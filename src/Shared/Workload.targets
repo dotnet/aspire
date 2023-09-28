@@ -1,0 +1,34 @@
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <PackageType>DotnetPlatform</PackageType>
+    <PackageId>$(MSBuildProjectName)</PackageId>
+    <IsPackable>true</IsPackable>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+    <IncludeSymbols>false</IncludeSymbols>
+    <NoWarn>$(NoWarn);NU5100;NU5128;NU5130;NU5131</NoWarn>
+    <DotNetOutputPath>$(RepoRoot)artifacts/bin/</DotNetOutputPath>
+    <DotNetDirectory>$(DotNetOutputPath)dotnet/</DotNetDirectory>
+    <DotNetPacksDirectory>$(DotNetDirectory)packs/</DotNetPacksDirectory>
+    <VersionBand Condition=" '$(VersionBand)' == '' ">$([System.Text.RegularExpressions.Regex]::Match($(MicrosoftDotnetSdkInternalPackageVersion), `^\d+\.\d+\.\d`))00</VersionBand>
+    <DotNetVersionBand Condition=" '$(DotNetPreviewVersionBand)' == '' ">$(VersionBand)$([System.Text.RegularExpressions.Regex]::Match($(MicrosoftDotnetSdkInternalPackageVersion), `\-(preview|rc|alpha).\d+`))</DotNetVersionBand>
+    <DotNetSdkManifestsFolder>$(DotNetVersionBand)</DotNetSdkManifestsFolder>
+    <DotNetAspireManifestVersionBand>$(DotNetVersionBand)</DotNetAspireManifestVersionBand>
+    <_AspireDotNetVersionMajor>8</_AspireDotNetVersionMajor>
+    <_AspireDotNetVersionMinor>0</_AspireDotNetVersionMinor>
+    <_AspireDotNetVersion>$(_AspireDotNetVersionMajor).$(_AspireDotNetVersionMinor)</_AspireDotNetVersion>
+    <_AspireDotNetTfm>net8.0</_AspireDotNetTfm>
+    <DotNetSdkManifestsDirectory>$(DotNetDirectory)sdk-manifests/$(DotNetSdkManifestsFolder)/</DotNetSdkManifestsDirectory>
+  </PropertyGroup>
+
+  <Import Project="$(RepoRoot)eng/ReplaceText.targets" />
+
+  <Target Name="_SetVersionTextReplacementValue" BeforeTargets="GatherTextReplacementValues" DependsOnTargets="SetVersions" >
+    <ItemGroup>
+      <TextReplacementValue Include="VERSION" NewValue="$(PackageReferenceVersion)" />
+    </ItemGroup>
+  </Target>
+
+</Project>

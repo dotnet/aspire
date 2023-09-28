@@ -1,0 +1,13 @@
+﻿@namespace Aspire.Dashboard.Components
+
+<div>Total: <strong>@_totalItemCount results found</strong></div>
+
+@code {
+    private int _totalItemCount;
+
+    public void SetTotalItemCount(int totalItemCount)
+    {
+        _totalItemCount = totalItemCount;
+        StateHasChanged();
+    }
+}

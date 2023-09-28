@@ -1,0 +1,250 @@
+{
+  "$schema": "https://json.schemastore.org/template",
+  "author": "Microsoft",
+  "classifications": [
+    "Common",
+    "Aspire",
+    "Blazor",
+    "Web",
+    "Web API",
+    "API",
+    "Service",
+    "Cloud"
+  ],
+  "name": "Aspire Starter Application",
+  "defaultName": "AspireApp",
+  "description": "A project template for creating an Aspire app with a Blazor web frontend and web API backend service, optionally using Redis for caching.",
+  "shortName": "Aspire-starter",
+  "sourceName": "AspireStarterApplication1",
+  "preferNameDirectory": false,
+  "tags": {
+    "language": "C#",
+    "type": "project"
+  },
+  "precedence": "8000",
+  "identity": "Aspire.Starter.CSharp.8.0",
+  "thirdPartyNotices": "https://aka.ms/aspnetcore/8.0-third-party-notices",
+  "groupIdentity": "Aspire.Starter",
+  "symbols": {
+    "Framework": {
+      "type": "parameter",
+      "description": "The target framework for the project.",
+      "datatype": "choice",
+      "choices": [
+        {
+          "choice": "net8.0",
+          "description": "Target net8.0"
+        }
+      ],
+      "replaces": "net8.0",
+      "defaultValue": "net8.0"
+    },
+    "UseRedisCache": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "displayName": "_Use Redis for caching (requires Docker)",
+      "description": "Configures whether to setup the application to use Redis for caching. Requires Docker to run locally."
+    },
+    "devHostHttpPort": {
+      "type": "parameter",
+      "datatype": "integer",
+      "description": "Port number to use for the HTTP endpoint in launchSettings.json of the DevHost project."
+    },
+    "devHostHttpPortGenerated": {
+      "type": "generated",
+      "generator": "port",
+      "parameters": {
+        "low": 15000,
+        "high": 15300
+      }
+    },
+    "devHostHttpPortReplacer": {
+      "type": "generated",
+      "generator": "coalesce",
+      "parameters": {
+        "sourceVariableName": "devHostHttpPort",
+        "fallbackVariableName": "devHostHttpPortGenerated"
+      },
+      "replaces": "15000"
+    },
+    "devHostOtlpHttpPort": {
+      "type": "parameter",
+      "datatype": "integer",
+      "description": "Port number to use for the OTLP HTTP endpoint in launchSettings.json of the DevHost project."
+    },
+    "devHostOtlpHttpPortGenerated": {
+      "type": "generated",
+      "generator": "port",
+      "parameters": {
+        "low": 16000,
+        "high": 16300
+      }
+    },
+    "devHostOtlpHttpPortReplacer": {
+      "type": "generated",
+      "generator": "coalesce",
+      "parameters": {
+        "sourceVariableName": "devHostOtlpHttpPort",
+        "fallbackVariableName": "devHostOtlpHttpPortGenerated"
+      },
+      "replaces": "16000"
+    },
+    "devHostHttpsPort": {
+      "type": "parameter",
+      "datatype": "integer",
+      "description": "Port number to use for the HTTPS endpoint in launchSettings.json of the DevHost project. This option is only applicable when the parameter no-https is not used."
+    },
+    "devHostHttpsPortGenerated": {
+      "type": "generated",
+      "generator": "port",
+      "parameters": {
+        "low": 17000,
+        "high": 17300
+      }
+    },
+    "devHostHttpsPortReplacer": {
+      "type": "generated",
+      "generator": "coalesce",
+      "parameters": {
+        "sourceVariableName": "devHostHttpsPort",
+        "fallbackVariableName": "devHostHttpsPortGenerated"
+      },
+      "replaces": "17000"
+    },
+    "devHostOtlpHttpsPort": {
+      "type": "parameter",
+      "datatype": "integer",
+      "description": "Port number to use for the OTLP HTTPS endpoint in launchSettings.json of the DevHost project."
+    },
+    "devHostOtlpHttpsPortGenerated": {
+      "type": "generated",
+      "generator": "port",
+      "parameters": {
+        "low": 18000,
+        "high": 18300
+      }
+    },
+    "devHostOtlpHttpsPortReplacer": {
+      "type": "generated",
+      "generator": "coalesce",
+      "parameters": {
+        "sourceVariableName": "devHostOtlpHttpsPort",
+        "fallbackVariableName": "devHostOtlpHttpsPortGenerated"
+      },
+      "replaces": "18000"
+    },
+    "webHttpPort": {
+      "type": "parameter",
+      "datatype": "integer",
+      "description": "Port number to use for the HTTP endpoint in launchSettings.json of the Web project."
+    },
+    "webHttpPortGenerated": {
+      "type": "generated",
+      "generator": "port",
+      "parameters": {
+        "low": 5000,
+        "high": 5300
+      }
+    },
+    "webHttpPortReplacer": {
+      "type": "generated",
+      "generator": "coalesce",
+      "parameters": {
+        "sourceVariableName": "webHttpPort",
+        "fallbackVariableName": "webHttpPortGenerated"
+      },
+      "replaces": "5000"
+    },
+    "webHttpsPort": {
+      "type": "parameter",
+      "datatype": "integer",
+      "description": "Port number to use for the HTTPS endpoint in launchSettings.json of the Web project. This option is only applicable when the parameter no-https is not used."
+    },
+    "webHttpsPortGenerated": {
+      "type": "generated",
+      "generator": "port",
+      "parameters": {
+        "low": 7000,
+        "high": 7300
+      }
+    },
+    "webHttpsPortReplacer": {
+      "type": "generated",
+      "generator": "coalesce",
+      "parameters": {
+        "sourceVariableName": "webHttpsPort",
+        "fallbackVariableName": "webHttpsPortGenerated"
+      },
+      "replaces": "7000"
+    },
+    "apiSerivceHttpPort": {
+      "type": "parameter",
+      "datatype": "integer",
+      "description": "Port number to use for the HTTP endpoint in launchSettings.json of the ApiService project."
+    },
+    "apiSerivceHttpPortGenerated": {
+      "type": "generated",
+      "generator": "port",
+      "parameters": {
+        "low": 5301,
+        "high": 5600
+      }
+    },
+    "apiSerivceHttpPortReplacer": {
+      "type": "generated",
+      "generator": "coalesce",
+      "parameters": {
+        "sourceVariableName": "apiSerivceHttpPort",
+        "fallbackVariableName": "apiSerivceHttpPortGenerated"
+      },
+      "replaces": "5301"
+    },
+    "apiSerivceHttpsPort": {
+      "type": "parameter",
+      "datatype": "integer",
+      "description": "Port number to use for the HTTPS endpoint in launchSettings.json of the ApiService project. This option is only applicable when the parameter no-https is not used."
+    },
+    "apiSerivceHttpsPortGenerated": {
+      "type": "generated",
+      "generator": "port",
+      "parameters": {
+        "low": 7301,
+        "high": 7600
+      }
+    },
+    "apiSerivceHttpsPortReplacer": {
+      "type": "generated",
+      "generator": "coalesce",
+      "parameters": {
+        "sourceVariableName": "apiSerivceHttpsPort",
+        "fallbackVariableName": "apiSerivceHttpsPortGenerated"
+      },
+      "replaces": "7301"
+    }
+  },
+  "primaryOutputs": [
+    {
+      "path": "AspireStarterApplication1.DevHost\\AspireStarterApplication1.DevHost.csproj"
+    },
+    {
+      "path": "AspireStarterApplication1.ServiceDefaults\\AspireStarterApplication1.ServiceDefaults.csproj"
+    },
+    {
+      "path": "AspireStarterApplication1.ApiService\\AspireStarterApplication1.ApiService.csproj"
+    },
+    {
+      "path": "AspireStarterApplication1.Web\\AspireStarterApplication1.Web.csproj"
+    }
+  ],
+  "postActions": [
+    {
+      "id": "set-startup-project",
+      "description": "Sets the startup project in the solution",
+      "actionId": "5BECCC32-4D5A-4476-A0F9-BD2E81AF0689",
+      "args": {
+        "projects": "0"
+      }
+    }
+  ]
+}

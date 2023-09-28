@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json.schemastore.org/ide.host",
+  "unsupportedHosts": [
+    {
+      "id": "vs",
+      "version": "(,17.8)"
+    }
+  ],
+  "requiredComponents": [
+    {
+      "hostId": "vs",
+      "componentType": "setupComponent",
+      "id": "environment:VSEnableAspireOrchestrationParameter=1"
+    }
+  ]
+}

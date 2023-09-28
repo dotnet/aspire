@@ -1,0 +1,42 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="ru" original="../Resources.resx">
+    <body>
+      <trans-unit id="DockerPrerequisiteMissingExceptionMessage">
+        <source>Docker could not be found.</source>
+        <target state="new">Docker could not be found.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DockerUnhealthyExceptionMessage">
+        <source>Docker was found but appears to be unhealthy. Exit code for 'docker info' was '{0}'.</source>
+        <target state="new">Docker was found but appears to be unhealthy. Exit code for 'docker info' was '{0}'.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DockerUnresponsiveExceptionMessage">
+        <source>Docker was found but appears to be unresponsive. The command 'docker info' did not return after '{0}' seconds.</source>
+        <target state="new">Docker was found but appears to be unresponsive. The command 'docker info' did not return after '{0}' seconds.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LaunchProfileIsSpecifiedButLaunchSettingsFileIsNotPresentExceptionMessage">
+        <source>Launch profile is specified but launch settings file is not present.</source>
+        <target state="new">Launch profile is specified but launch settings file is not present.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LaunchSettingsFileDoesNotContainProfileExceptionMessage">
+        <source>Launch settings file does not contain '{0}' profile.</source>
+        <target state="new">Launch settings file does not contain '{0}' profile.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectDoesNotContainServiceMetadataExceptionMessage">
+        <source>Project does not contain service metadata.</source>
+        <target state="new">Project does not contain service metadata.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ProjectFileNotFoundExceptionMessage">
+        <source>Project file '{0}' was not found.</source>
+        <target state="new">Project file '{0}' was not found.</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

@@ -1,0 +1,30 @@
+﻿@inject BasketServiceClient BasketClient
+@inject NavigationManager Navigation
+
+<form method="post" @formname="@($"addtocart-{Item.Id}")" @onsubmit="HandleAddToCart" data-enhance>
+    <input type="hidden" name="itemid" value="@Item.Id" />
+    <button type="submit" class="align-content-end cart-button" title=@($"Add {@Item.Name} to cart?")>
+        <i class="fa fa-cart-plus" aria-hidden="true"></i>
+    </button>
+    <AntiforgeryToken />
+</form>
+
+@code {
+    [Parameter]
+    [EditorRequired]
+    public required CatalogItem Item { get; set; }
+
+    [SupplyParameterFromForm]
+    public int ItemId { get; set; }
+
+    [CascadingParameter]
+    public HttpContext? HttpContext { get; set; }
+
+    private async Task HandleAddToCart()
+    {
+        await BasketClient.AddToCartAsync("user", ItemId);
+
+        // Preserve query string
+        Navigation.NavigateTo($"/{HttpContext?.Request.QueryString}");
+    }
+}

@@ -1,0 +1,28 @@
+﻿@using System.Runtime.InteropServices
+
+<div class="d-flex align-items-center justify-content-center pa-4">
+    <span class="text">
+        <a href="https://github.com/davidfowl/eStoreLite/blob/main/LICENSE"
+           rel="noopener noreferrer" target="_blank"
+           class="animated-underline">
+            &copy; @DateTime.Today.Year
+            &bull;
+            MIT Licensed
+        </a>
+    </span>
+    <span class="text">
+        @Message
+    </span>
+    <span class="text">
+        <a href="https://github.com/davidfowl/eStoreLite"
+           rel="noopener noreferrer" target="_blank"
+           class="animated-underline">
+            <i class="fa fa-github" aria-hidden="true"></i>
+            GitHub Repository
+        </a>
+    </span>
+</div>
+
+@code {
+    string Message = $"Powered by {RuntimeInformation.FrameworkDescription}";
+}

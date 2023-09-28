@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <NoWarn>$(NoWarn);CS8002</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Protobuf Include="**/*.proto" GrpcServices="Server">
+      <ProtoRoot>Otlp</ProtoRoot>
+    </Protobuf>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Required because we're using the Razor SDK not the Web SDK -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Grpc.AspNetCore" />
+    <PackageReference Include="Microsoft.Fast.Components.FluentUI" />
+    <PackageReference Include="Microsoft.Fast.Components.FluentUI.Icons" />
+  </ItemGroup>
+
+</Project>

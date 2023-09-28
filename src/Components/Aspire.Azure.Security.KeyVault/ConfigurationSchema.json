@@ -1,0 +1,79 @@
+{
+  "type": "object",
+  "properties": {
+    "Aspire": {
+      "type": "object",
+      "properties": {
+        "Azure": {
+          "type": "object",
+          "properties": {
+            "Security": {
+              "type": "object",
+              "properties": {
+                "KeyVault": {
+                  "type": "object",
+                  "properties": {
+                    "VaultUri": {
+                      "type": "string",
+                      "format": "uri",
+                      "description": "Gets or sets the 'Uri' to the vault on which the client operates. Appears as 'DNS Name' in the Azure portal. If you have a secret 'Uri', use 'KeyVaultSecretIdentifier' to parse the 'KeyVaultSecretIdentifier.VaultUri' and other information. You should validate that this URI references a valid Key Vault resource."
+                    },
+                    "HealthChecks": {
+                      "type": "boolean",
+                      "description": "Gets or sets a boolean value that indicates whether the Key Vaulte health check is enabled or not.",
+                      "default": true
+                    },
+                    "Tracing": {
+                      "type": "boolean",
+                      "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.",
+                      "default": false
+                    },
+                    "ClientOptions": {
+                      "type": "object",
+                      "description": "Options that allow you to configure the requests sent to Key Vault.",
+                      "properties": {
+                        "DisableChallengeResourceVerification": {
+                          "type": "boolean",
+                          "description": "Gets or sets whether to disable verification that the authentication challenge resource matches the Key Vault domain."
+                        },
+                        "Retry": {
+                          "type": "object",
+                          "description": "The set of options that can be specified to influence how retry attempts are made, and a failure is eligible to be retried",
+                          "properties": {
+                            "Delay": {
+                              "type": "string",
+                              "format": "duration",
+                              "description": "The delay between retry attempts for a fixed approach or the delay on which to base calculations for a backoff-based approach. If the service provides a Retry-After response header, the next retry will be delayed by the duration specified by the header value."
+                            },
+                            "MaxDelay": {
+                              "type": "string",
+                              "format": "duration",
+                              "description": "The maximum permissible delay between retry attempts when the service does not provide a Retry-After response header. If the service provides a Retry-After response header, the next retry will be delayed by the duration specified by the header value."
+                            },
+                            "MaxRetries": {
+                              "type": "integer",
+                              "description": "The maximum number of retry attempts before giving up."
+                            },
+                            "Mode": {
+                              "enum": [ "Fixed", "Exponential" ],
+                              "description": "The approach to use for calculating retry delays."
+                            },
+                            "NetworkTimeout": {
+                              "type": "string",
+                              "format": "duration",
+                              "description": "The timeout applied to an individual network operations."
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

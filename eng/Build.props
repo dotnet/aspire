@@ -1,0 +1,12 @@
+<Project>
+  <!--
+  Shared framework projects (sfxproj) can't be added to a solution, so we can't just let Arcade build
+  the root level solution. We instead add this props file to control which projects get built.
+  -->
+  <ItemGroup>
+    <ProjectToBuild Include="$(RepoRoot)src\**\*.csproj" Exclude="$(RepoRoot)src\Aspire.ProjectTemplates\templates\**\*.csproj" />
+    <ProjectToBuild Include="$(RepoRoot)tests\**\*.csproj"  />
+    <ProjectToBuild Include="$(RepoRoot)samples\**\*.csproj" />
+    <ProjectToBuild Include="$(RepoRoot)src\**\*.sfxproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,33 @@
+<Project>
+
+  <Import Project="..\..\Directory.Build.targets" />
+
+  <!--
+  Logic for including the ConfigurationSchema.json file and corresponding
+  PackageId.targets file which brings the ConfigurationSchema.json file into the Json Schema.
+  -->
+  <PropertyGroup>
+    <ConfigurationSchemaPath>$(MSBuildProjectDirectory)\ConfigurationSchema.json</ConfigurationSchemaPath>
+    <ConfigurationSchemaExists Condition="Exists('$(ConfigurationSchemaPath)')">true</ConfigurationSchemaExists>
+    <Features Condition="'$(EnableConfigurationBindingGenerator)' == 'true'">$(Features);InterceptorsPreview</Features>
+    <!-- AspNetCore.HealthChecks packages are unsigned, we ignore that warning on purpose  -->
+    <NoWarn>$(NoWarn);CS8002</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(ConfigurationSchemaExists)' == 'true'">
+    <None Include="$(ConfigurationSchemaPath)"
+          Pack="True"
+          PackagePath="ConfigurationSchema.json" />
+  </ItemGroup>
+
+  <PropertyGroup Condition="'$(ConfigurationSchemaExists)' == 'true'">
+    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);AddPackageTargetsInPackage</TargetsForTfmSpecificContentInPackage>
+  </PropertyGroup>
+
+  <Target Name="AddPackageTargetsInPackage">
+    <ItemGroup>
+      <TfmSpecificPackageFile Include="$(MSBuildThisFileDirectory)Common\Package.targets"
+                              PackagePath="buildTransitive\$(TargetFramework)\$(PackageId).targets" />
+    </ItemGroup>
+  </Target>
+</Project>

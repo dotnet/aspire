@@ -1,0 +1,8 @@
+<Project>
+
+  <Import
+    Project="Sdk.targets" Sdk="Aspire.Hosting.Sdk"
+    Condition=" ('$(IsAspireHost)' == 'true') and ('$(SkipAspireWorkloadManifest)' != 'true') "
+  />
+
+</Project>

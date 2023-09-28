@@ -1,0 +1,60 @@
+<Project>
+  <PropertyGroup>
+    <!-- Ensure this property is set even if Aspire.Hosting.Sdk was imported directly instead of via the workload targets -->
+    <IsAspireHost>true</IsAspireHost>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Aspire.Hosting" />
+  </ItemGroup>
+
+  <!-- *** BEGIN *** -->
+
+  <!--
+  A property-based workload cannot import props files (except AutoImport.props, which has very tight limitations.
+  Instead, we copy everything from Aspire.Hosting.props into these targets.
+  This means they cannot be overridden in the csproj, and may cause ordering issues, particularly StaticWebAssets.
+  -->
+
+  <ItemGroup>
+    <ProjectCapability Include="Aspire" />
+    <ProjectCapability Include="AspireHost" />
+    <!-- TODO: remove this once VS supports the new name. -->
+    <ProjectCapability Include="Astra" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <!-- Aspire hosting projects aren't publishable right now until https://github.com/dotnet/astra/issues/268 is good -->
+    <IsPublishable Condition="'$(IsPublishable)' == ''">false</IsPublishable>
+    <IsPackable Condition="'$(IsPackable)' == ''">false</IsPackable>
+  </PropertyGroup>
+  <Import Sdk="Microsoft.NET.Sdk.StaticWebAssets" Project="Sdk.props" />
+
+  <!-- *** END ***  -->
+
+  <Import Project="BundledVersions.targets" />
+
+  <!--
+  This SDK comes from a workload pack, so normally should only be referenced from
+  the WorkloadManifest.targets so as not to cause workload restore to require multiple
+  phases, but it's okay here because every workload that contains Aspire.Hosting.Sdk
+  also contains Microsoft.DeveloperControlPlane and vice versa. Once Aspire/DCP are public
+  we can move it to WorkloadManifest.targets to ensure future correctness.
+  -->
+  <Import Project="Sdk.targets" Sdk="Microsoft.DeveloperControlPlane" />
+
+  <Import Project="Aspire.Hosting.targets" />
+
+  <!--
+  This is temporary and should only affect projects that do not correctly migrate
+  to the Aspire workload from from the Aspire.Hosting package
+  -->
+  <Target
+    Name="_CheckAspireHostingPackageReference"
+    BeforeTargets="Restore"
+    Condition="'@(PackageReference->AnyHaveMetadataValue('Identity', 'Aspire.Hosting'))' =='true'"
+    >
+    <Error Text="Aspire.Hosting package references must be removed after migrating to the workload." />
+  </Target>
+
+</Project>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <RunConfiguration>
+    <!-- Filter out failing (wrong framework, platform, runtime or activeissue) tests -->
+    <TestCaseFilter>category!=failing</TestCaseFilter>
+  </RunConfiguration>
+  <LoggerRunSettings>
+    <Loggers>
+      <Logger friendlyName="trx" />
+      <Logger friendlyName="html" />
+      <Logger friendlyName="console">
+        <Configuration>
+          <Verbosity>Minimal</Verbosity>
+        </Configuration>
+      </Logger>
+    </Loggers>
+  </LoggerRunSettings>
+</RunSettings>

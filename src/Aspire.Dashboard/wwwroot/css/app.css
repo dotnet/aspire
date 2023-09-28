@@ -1,0 +1,8 @@
+fluent-toolbar fluent-switch,
+fluent-toolbar p {
+    margin-inline-end: 15px;
+}
+
+fluent-toolbar[orientation=horizontal] {
+    width: 100%;
+}

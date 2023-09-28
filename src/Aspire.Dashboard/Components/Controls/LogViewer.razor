@@ -1,0 +1,72 @@
+﻿@namespace Aspire.Dashboard.Components
+@using System.Text
+@using Aspire.Dashboard.Model
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<div class="log-overflow">
+    <div class="log-container" id="logContainer">
+        <span class="initial-text">@InitialText</span>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string InitialText { get; set; } = "";
+
+    bool initialMessageCleared = false;
+
+    private IJSObjectReference? _jsModule;
+
+    internal async Task ClearLogsAsync()
+    {
+        if (_jsModule is not null)
+        {
+            await _jsModule.InvokeVoidAsync("clearLogs");
+        }
+    }
+
+    internal Task AddLogEntryAsync(LogEntry logEntry)
+        => WriteLogsAsync(new[] { logEntry });
+
+    internal Task AddLogEntriesAsync(IEnumerable<LogEntry> logEntries)
+        => WriteLogsAsync(logEntries);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _jsModule ??= await JS.InvokeAsync<IJSObjectReference>("import", "/_content/Aspire.Dashboard/Components/Controls/LogViewer.razor.js");
+        }
+    }
+
+    private async Task WriteLogsAsync(IEnumerable<LogEntry> logs)
+    {
+        if (_jsModule is not null)
+        {
+            if (!initialMessageCleared)
+            {
+                initialMessageCleared = true;
+                await ClearLogsAsync();
+            }
+
+            await _jsModule.InvokeVoidAsync("addLogEntries", logs);
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_jsModule is not null)
+            {
+                await _jsModule.DisposeAsync();
+            }
+        }
+        catch (JSDisconnectedException)
+        {
+            // Per https://learn.microsoft.com/en-us/aspnet/core/blazor/javascript-interoperability/?view=aspnetcore-7.0#javascript-interop-calls-without-a-circuit
+            // this is one of the calls that will fail if the circuit is disconnected, and we just need to catch the exception so it doesn't pollute the logs
+        }
+    }
+}

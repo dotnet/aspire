@@ -1,0 +1,29 @@
+﻿@inherits LayoutComponentBase
+
+<FluentLayout>
+    <FluentHeader Style="margin-bottom:0px">Aspire Dashboard</FluentHeader>
+    <FluentStack Orientation="Orientation.Horizontal" Width="100%">
+
+        <FluentNavMenu Width="150" Collapsible="true">
+            <FluentNavMenuLink Icon="@(new Icons.Regular.Size24.AppGeneric())" Text="Projects" Href="/" />
+            <FluentNavMenuLink Icon="@(new Icons.Regular.Size24.BinFull())" Text="Containers" Href="/Containers" />
+            <FluentNavMenuLink Icon="@(new Icons.Regular.Size24.AppGeneric())" Text="Executables" Href="/Executables" />
+            <FluentNavMenuLink Icon="@(new Icons.Regular.Size24.SlideText())" Text="Project logs" Href="/ProjectLogs" />
+            <FluentNavMenuLink Icon="@(new Icons.Regular.Size24.SlideText())" Text="Container Logs" Href="/ContainerLogs" />
+            <FluentNavMenuLink Icon="@(new Icons.Regular.Size24.SlideTextSparkle())" Text="Semantic Logs" Href="/SemanticLogs" />
+        </FluentNavMenu>
+
+        @* Have to use Style instead of Class because of https://github.com/microsoft/fluentui-blazor/issues/741 *@
+        <FluentBodyContent Style="margin-right: 10px;">
+            @Body
+        </FluentBodyContent>
+
+    </FluentStack>
+</FluentLayout>
+<FluentDialogProvider />
+<FluentTooltipProvider />
+<div id="blazor-error-ui">
+    An unhandled error has occurred.
+    <a href="" class="reload">Reload</a>
+    <a class="dismiss">🗙</a>
+</div>

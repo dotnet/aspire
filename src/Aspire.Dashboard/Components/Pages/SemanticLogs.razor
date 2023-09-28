@@ -1,0 +1,245 @@
+﻿@page "/SemanticLogs/{applicationInstanceId?}"
+@using Aspire.Dashboard.Components.Dialogs
+@using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Model.Otlp
+@using Aspire.Dashboard.Otlp.Model
+@using Aspire.Dashboard.Otlp.Storage
+@using Microsoft.Fast.Components.FluentUI
+@using System.Web
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JS
+@implements IDisposable
+
+<h1>Semantic Logs</h1>
+
+@if (_applications is null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div>
+        <FluentStack Orientation="Orientation.Vertical">
+            @if (_applications.Count == 0)
+            {
+                <div>No OpenTelemetry applications found.</div>
+            }
+            else
+            {
+                <FluentToolbar Orientation="Orientation.Horizontal">
+                    <FluentSelect TOption="ApplicationViewModel"
+                                  Items="@_applications"
+                                  OptionValue="@(c => c.Id)"
+                                  OptionText="@(c => c.Name)"
+                                  Height="250px"
+                                  @bind-SelectedOption="_selectedApplication"
+                                  @bind-SelectedOption:after="HandleSelectedApplicationChangedAsync" />
+                    <FluentButton Appearance="Appearance.Lightweight"
+                                  IconEnd="@(new Icons.Filled.Size16.ArrowRepeatAll())"
+                                  OnClick="UpdateDataAsync"
+                                  Title="Refresh" />
+                    <FluentLabel slot="end">Filters: </FluentLabel>
+                    @if (_logFilters.Count == 0)
+                    {
+                        <span slot="end">No Filters</span>
+                    }
+                    else
+                    {
+                        foreach (var filter in _logFilters)
+                        {
+                            <FluentButton slot="end" Appearance="Appearance.Outline" OnClick="() => OpenFilterAsync(filter)">@filter.FilterText</FluentButton>
+                        }
+                    }
+                    <FluentButton slot="end" Appearance="Appearance.Stealth" aria-label="Add Filter" OnClick="() => OpenFilterAsync(null)"><FluentIcon Value="@(new Icons.Regular.Size16.Filter())" /></FluentButton>
+                </FluentToolbar>
+                <div class="SemanticLogsOverflow" tabindex="-1">
+                    <FluentDataGrid Class="SemanticLogsDataGrid" Virtualize="true" GenerateHeader="GenerateHeaderOption.Sticky" ItemSize="48" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="OtlpLogEntry" GridTemplateColumns="1fr 1fr 5fr 1fr 2fr 0.8fr">
+                        <PropertyColumn Title="Severity" Property="@(context => context.Severity)" />
+                        <PropertyColumn Title="Timestamp" Property="@(context => FormatTimeStamp(context.TimeStamp))" />
+                        <PropertyColumn Title="Message" Property="@(context => context.Message)" />
+                        <PropertyColumn Title="Span" Property="@(context => context.SpanId)" />
+                        <PropertyColumn Title="Trace" Property="@(context => context.TraceId)" />
+                        <TemplateColumn>
+                            <FluentButton Appearance="Appearance.Lightweight" OnClick="() => OnShowProperties(context)">View</FluentButton>
+                        </TemplateColumn>
+                    </FluentDataGrid>
+                </div>
+                <TotalItemsFooter @ref="totalItemsFooter" />
+            }
+        </FluentStack>
+    </div>
+}
+
+@code {
+    private readonly List<LogFilter> _logFilters = new();
+    private TotalItemsFooter totalItemsFooter = default!;
+    private List<ApplicationViewModel>? _applications;
+    private ApplicationViewModel? _selectedApplication;
+    private Subscription? _applicationsSubscription;
+    private Subscription? _logsSubscription;
+    private int _totalItemCount;
+    private bool _applicationChanged;
+
+    [Parameter]
+    public string? ApplicationInstanceId { get; set; }
+
+    [Inject]
+    public required TelemetryRepository TelemetryRepository { get; set; }
+
+    [Inject]
+    public required IDialogService DialogService { get; set; }
+
+    private ValueTask<GridItemsProviderResult<OtlpLogEntry>> GetData(GridItemsProviderRequest<OtlpLogEntry> request)
+    {
+        if (_selectedApplication is null)
+        {
+            return ValueTask.FromResult(new GridItemsProviderResult<OtlpLogEntry>());
+        }
+
+        var logs = TelemetryRepository.GetLogs(new GetLogsContext
+        {
+            ApplicationServiceId = _selectedApplication.Id,
+            StartIndex = request.StartIndex,
+            Count = request.Count,
+            Filters = _logFilters
+        });
+
+        // Updating the total item count as a field doesn't work because it isn't updated with the grid.
+        // The workaround is to put the count inside a control and explicitly update and refresh the control.
+        totalItemsFooter.SetTotalItemCount(logs.TotalItemCount);
+
+        return ValueTask.FromResult(new GridItemsProviderResult<OtlpLogEntry>
+            {
+                Items = logs.Items,
+                TotalItemCount = _totalItemCount = logs.TotalItemCount
+            });
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await UpdateApplicationsAsync();
+        _applicationsSubscription = TelemetryRepository.OnNewApplications(() => InvokeAsync(UpdateApplicationsAsync));
+    }
+
+    private async Task UpdateApplicationsAsync()
+    {
+        _applications = TelemetryRepository.GetApplications().Select(a => new ApplicationViewModel { Id = a.InstanceId, Name = a.ApplicationName }).ToList();
+        if (_selectedApplication == null && _applications.Count > 0)
+        {
+            _selectedApplication = _applications.SingleOrDefault(e => e.Id == ApplicationInstanceId) ?? _applications[0];
+            _applicationChanged = true;
+            await UpdateDataAsync();
+        }
+    }
+
+    private async Task HandleSelectedApplicationChangedAsync()
+    {
+        if (_selectedApplication is not null)
+        {
+            NavigationManager.NavigateTo($"/SemanticLogs/{_selectedApplication.Id}");
+            await UpdateDataAsync();
+        }
+    }
+
+    private async Task UpdateDataAsync()
+    {
+        // Subscribe to updates.
+        if (_logsSubscription is null || _logsSubscription.ApplicationId != _selectedApplication?.Id)
+        {
+            _logsSubscription?.Dispose();
+            if (_selectedApplication is not null)
+            {
+                _logsSubscription = TelemetryRepository.OnNewLogs(_selectedApplication.Id, () => InvokeAsync(UpdateDataAsync));
+            }
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnShowProperties(OtlpLogEntry entry)
+    {
+        var entryProperties = entry.AllProperties()
+            .Select(kvp => new LogEntryPropertyViewModel { Name = kvp.Key, Value = kvp.Value })
+            .ToList();
+
+        var parameters = new DialogParameters
+        {
+            Title = "Log Entry Details",
+            Width = "500px",
+            Height = "auto",
+            TrapFocus = true,
+            Modal = true,
+            PrimaryAction = "Close",
+            PrimaryActionEnabled = true,
+            SecondaryAction = null,
+        };
+        await DialogService.ShowPanelAsync<LogDetailsDialog>(entryProperties, parameters);
+    }
+
+    private async Task OpenFilterAsync(LogFilter? entry)
+    {
+        var logPropertyKeys = _selectedApplication is not null
+            ? TelemetryRepository.GetLogPropertyKeys(_selectedApplication.Id) ?? new List<string>()
+            : new List<string>();
+
+        var title = entry is not null ? "Edit Filter" : "Add Filter";
+        var parameters = new DialogParameters
+            {
+                OnDialogResult = DialogService.CreateDialogCallback(this, HandleFilterDialog),
+                Title = title,
+                Alignment = HorizontalAlignment.Right,
+                PrimaryAction = null,
+                SecondaryAction = null,
+            };
+        var data = new FilterDialogViewModel
+            {
+                Filter = entry,
+                LogPropertyKeys = logPropertyKeys
+            };
+        await DialogService.ShowPanelAsync<FilterDialog>(data, parameters);
+    }
+
+    private async Task HandleFilterDialog(DialogResult result)
+    {
+        if (result.Data is FilterDialogResult filterResult && filterResult.Filter is LogFilter filter)
+        {
+            if (filterResult.Delete)
+            {
+                _logFilters.Remove(filter);
+            }
+            else if (filterResult.Add)
+            {
+                _logFilters.Add(filter);
+            }
+        }
+
+        await UpdateDataAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            if (_selectedApplication is not null)
+            {
+                if (_applicationChanged)
+                {
+                    await JS.InvokeVoidAsync("switchLogsApplication");
+                    _applicationChanged = false;
+                }
+                await JS.InvokeVoidAsync("scollToLogsEnd");
+            }
+        }
+    }
+
+    private string FormatTimeStamp(DateTime timestamp)
+    {
+        return timestamp.ToLocalTime().ToString("h:mm:ss.fff tt");
+    }
+
+    public void Dispose()
+    {
+        _applicationsSubscription?.Dispose();
+        _logsSubscription?.Dispose();
+    }
+}

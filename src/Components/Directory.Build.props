@@ -1,0 +1,12 @@
+<Project>
+
+  <Import Project="../../Directory.Build.props" />
+
+  <PropertyGroup>
+    <ComponentCommonPackageTags>aspire component cloud</ComponentCommonPackageTags>
+    <ComponentCachePackageTags>$(ComponentCommonPackageTags) cache caching</ComponentCachePackageTags>
+    <ComponentDatabasePackageTags>$(ComponentCommonPackageTags) data database</ComponentDatabasePackageTags>
+    <ComponentEfCorePackageTags>$(ComponentDatabasePackageTags) ef efcore entityframework entityframeworkcore entity-framework-core o/rm</ComponentEfCorePackageTags>
+    <ComponentAzurePackageTags>$(ComponentCommonPackageTags) azure</ComponentAzurePackageTags>
+  </PropertyGroup>
+</Project>

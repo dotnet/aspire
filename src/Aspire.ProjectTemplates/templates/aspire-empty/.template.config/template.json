@@ -1,0 +1,145 @@
+{
+  "$schema": "https://json.schemastore.org/template",
+  "author": "Microsoft",
+  "classifications": [
+    "Common",
+    "Aspire",
+    "Cloud"
+  ],
+  "name": "Aspire Application",
+  "defaultName": "AspireApp",
+  "description": "A project template for creating an empty Aspire app.",
+  "shortName": "Aspire",
+  "sourceName": "AspireApplication1",
+  "preferNameDirectory": true,
+  "tags": {
+    "language": "C#",
+    "type": "solution",
+    "editorTreatAs": "solution"
+  },
+  "precedence": "8000",
+  "identity": "Aspire.Empty.CSharp.8.0",
+  "thirdPartyNotices": "https://aka.ms/aspnetcore/8.0-third-party-notices",
+  "groupIdentity": "Aspire.Empty",
+  "symbols": {
+    "Framework": {
+      "type": "parameter",
+      "description": "The target framework for the project.",
+      "datatype": "choice",
+      "choices": [
+        {
+          "choice": "net8.0",
+          "description": "Target net8.0"
+        }
+      ],
+      "replaces": "net8.0",
+      "defaultValue": "net8.0"
+    },
+    "devHostHttpPort": {
+      "type": "parameter",
+      "datatype": "integer",
+      "description": "Port number to use for the HTTP endpoint in launchSettings.json of the DevHost project."
+    },
+    "devHostHttpPortGenerated": {
+      "type": "generated",
+      "generator": "port",
+      "parameters": {
+        "low": 15000,
+        "high": 15300
+      }
+    },
+    "devHostHttpPortReplacer": {
+      "type": "generated",
+      "generator": "coalesce",
+      "parameters": {
+        "sourceVariableName": "devHostHttpPort",
+        "fallbackVariableName": "devHostHttpPortGenerated"
+      },
+      "replaces": "15000"
+    },
+    "devHostOtlpHttpPort": {
+      "type": "parameter",
+      "datatype": "integer",
+      "description": "Port number to use for the OTLP HTTP endpoint in launchSettings.json of the DevHost project."
+    },
+    "devHostOtlpHttpPortGenerated": {
+      "type": "generated",
+      "generator": "port",
+      "parameters": {
+        "low": 16000,
+        "high": 16300
+      }
+    },
+    "devHostOtlpHttpPortReplacer": {
+      "type": "generated",
+      "generator": "coalesce",
+      "parameters": {
+        "sourceVariableName": "devHostOtlpHttpPort",
+        "fallbackVariableName": "devHostOtlpHttpPortGenerated"
+      },
+      "replaces": "16000"
+    },
+    "devHostHttpsPort": {
+      "type": "parameter",
+      "datatype": "integer",
+      "description": "Port number to use for the HTTPS endpoint in launchSettings.json of the DevHost project. This option is only applicable when the parameter no-https is not used."
+    },
+    "devHostHttpsPortGenerated": {
+      "type": "generated",
+      "generator": "port",
+      "parameters": {
+        "low": 17000,
+        "high": 17300
+      }
+    },
+    "devHostHttpsPortReplacer": {
+      "type": "generated",
+      "generator": "coalesce",
+      "parameters": {
+        "sourceVariableName": "devHostHttpsPort",
+        "fallbackVariableName": "devHostHttpsPortGenerated"
+      },
+      "replaces": "17000"
+    },
+    "devHostOtlpHttpsPort": {
+      "type": "parameter",
+      "datatype": "integer",
+      "description": "Port number to use for the OTLP HTTPS endpoint in launchSettings.json of the DevHost project."
+    },
+    "devHostOtlpHttpsPortGenerated": {
+      "type": "generated",
+      "generator": "port",
+      "parameters": {
+        "low": 18000,
+        "high": 18300
+      }
+    },
+    "devHostOtlpHttpsPortReplacer": {
+      "type": "generated",
+      "generator": "coalesce",
+      "parameters": {
+        "sourceVariableName": "devHostOtlpHttpsPort",
+        "fallbackVariableName": "devHostOtlpHttpsPortGenerated"
+      },
+      "replaces": "18000"
+    }
+  },
+  "primaryOutputs": [
+    {
+      "path": "AspireApplication1.DevHost\\AspireApplication1.DevHost.csproj"
+    },
+    {
+      "path": "AspireApplication1.ServiceDefaults\\AspireApplication1.ServiceDefaults.csproj"
+    }
+  ],
+  "postActions": [
+    {
+      "id": "set-startup-project",
+      "description": "Sets the startup project in the solution",
+      "actionId": "5BECCC32-4D5A-4476-A0F9-BD2E81AF0689",
+      "args": {
+        "projects": "0"
+      }
+    }
+  ]
+}

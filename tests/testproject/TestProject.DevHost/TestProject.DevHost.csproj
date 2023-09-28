@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Aspire.Hosting\Aspire.Hosting.csproj" />
+    <ProjectReference Include="..\TestProject.ServiceA\TestProject.ServiceA.csproj" ServiceNameOverride="ServiceA" />
+    <ProjectReference Include="..\TestProject.ServiceB\TestProject.ServiceB.csproj" ServiceNameOverride="ServiceB" />
+    <ProjectReference Include="..\TestProject.ServiceC\TestProject.ServiceC.csproj" ServiceNameOverride="ServiceC" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Sdk Name="Microsoft.DotNet.SharedFramework.Sdk" />
+  <PropertyGroup>
+    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <RuntimeIdentifier>any</RuntimeIdentifier>
+    <SharedFrameworkName>Aspire.Hosting</SharedFrameworkName>
+    <PlatformPackageType>TargetingPack</PlatformPackageType>
+    <RuntimePackProjectPath>Aspire.Hosting.Runtime.sfxproj</RuntimePackProjectPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
+    <ProjectReference Include="..\Aspire.Dashboard\Aspire.Dashboard.csproj" />
+    <PackageReference Include="KubernetesClient" />
+  </ItemGroup>
+
+  <!-- type 'Grpc.Core.AsyncStreamReaderExtensions' exists in both Grpc.Core.Api and Grpc.Net.Common -->
+  <ItemGroup>
+    <IgnoredDuplicateType Include="Grpc.Core.AsyncStreamReaderExtensions" />
+  </ItemGroup>
+
+</Project>

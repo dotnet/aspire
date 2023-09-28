@@ -1,0 +1,141 @@
+﻿@page "/"
+@using Aspire.Dashboard.Model;
+@using Aspire.Dashboard.Services;
+@inject IDashboardViewModelService DashboardViewModelService
+@inject EnvironmentVariablesDialogService DialogService
+@implements IDisposable
+
+<PageTitle>Microsoft.Aspire Dashboard</PageTitle>
+
+<h1>Projects</h1>
+
+<div>
+    <FluentStack Orientation="Orientation.Vertical">
+        <FluentToolbar Orientation="Orientation.Horizontal">
+            <FluentSearch Placeholder="Filter..."
+                          Immediate="true"
+                          @bind-Value="filter"
+                          @oninput="HandleFilter"
+                          AfterBindValue="HandleClear"
+                          slot="end" />
+        </FluentToolbar>
+        <FluentDataGrid Items="@FilteredProjects" ResizableColumns="true" GridTemplateColumns="2fr 1fr 2fr 2fr 2fr 1fr 1fr">
+            <ChildContent>
+                <TemplateColumn Title="Name" Sortable="true" SortBy="@nameSort">
+                    <FluentHighlighter HighlightedText="@filter" Text="@context.Name" />
+                </TemplateColumn>
+                <PropertyColumn Property="@(e => e.State)" Sortable="true" />
+                <PropertyColumn Property="@(c => c.CreationTimeStamp)" Title="Start Time" Sortable="true" />
+                <TemplateColumn Title="Source Location" Sortable="true" SortBy="@projectPathSort">
+                    <FluentHighlighter HighlightedText="@filter" Text="@context.ProjectPath" />
+                </TemplateColumn>
+                <TemplateColumn Title="Endpoints" Sortable="false">
+                    <FluentStack Orientation="Orientation.Vertical">
+                        @if (context.ExpectedEndpointCount == 0 && context.Endpoints.Count == 0)
+                        {
+                            <span>N/A</span>
+                        }
+                        else
+                        {
+                            foreach (ServiceEndpoint endpoint in context.Endpoints.OrderBy(e => e.Address))
+                            {
+                                <a href="@endpoint.Address" target="_blank">@endpoint.Address</a>
+                            }
+                            if (context.ExpectedEndpointCount > context.Endpoints.Count)
+                            {
+                                <span>Starting...</span>
+                            }
+                        }
+                    </FluentStack>
+                </TemplateColumn>
+                <TemplateColumn Title="Environment" Sortable="false">
+                    <FluentButton Appearance="Appearance.Lightweight"
+                                  Disabled="@(!context.Environment.Any())"
+                                  Title="@(context.Environment.Any() ? "View" : "No Environment Variables")"
+                                  OnClick="async() => await ShowEnvironmentVariables(context)">View</FluentButton>
+                </TemplateColumn>
+                <TemplateColumn Title="Logs">
+                    <FluentAnchor Appearance="Appearance.Lightweight" Href="@($"/ProjectLogs/{context.Name}")">View</FluentAnchor>
+                </TemplateColumn>
+            </ChildContent>
+            <EmptyContent>No running projects found</EmptyContent>
+        </FluentDataGrid>
+    </FluentStack>
+</div>
+
+@code {
+    private readonly Dictionary<string, ProjectViewModel> projectsMap = new();
+    private readonly CancellationTokenSource watchTaskCancellationTokenSource = new();
+    private string filter = "";
+
+    private IQueryable<ProjectViewModel>? FilteredProjects =>
+        projectsMap.Values.Where(p =>
+            p.Name.Contains(filter, StringComparison.CurrentCultureIgnoreCase) ||
+            p.ProjectPath.Contains(filter, StringComparison.CurrentCultureIgnoreCase)
+        ).OrderBy(e => e.Name).AsQueryable();
+
+    private GridSort<ProjectViewModel> nameSort = GridSort<ProjectViewModel>
+        .ByAscending(p => p.Name);
+    private GridSort<ProjectViewModel> projectPathSort = GridSort<ProjectViewModel>
+        .ByAscending(p => p.ProjectPath);
+
+    protected override Task OnInitializedAsync()
+    {
+        _ = Task.Run(async () =>
+        {
+            await foreach (var componentChanged in DashboardViewModelService.WatchProjectsAsync(cancellationToken: watchTaskCancellationTokenSource.Token))
+            {
+                await OnProjectListChanged(componentChanged.ObjectChangeType, componentChanged.Component).ConfigureAwait(true);
+            }
+        }).ConfigureAwait(true);
+
+        return Task.CompletedTask;
+    }
+
+    private async Task ShowEnvironmentVariables(ProjectViewModel project)
+    {
+        await DialogService.ShowDialogAsync(
+            source: project.Name,
+            variables: project.Environment
+        );
+    }
+
+    private async Task OnProjectListChanged(ObjectChangeType objectChangeType, ProjectViewModel projectViewModel)
+    {
+        switch (objectChangeType)
+        {
+            case ObjectChangeType.Added:
+                projectsMap.Add(projectViewModel.Name, projectViewModel);
+                break;
+
+            case ObjectChangeType.Modified:
+                projectsMap[projectViewModel.Name] = projectViewModel;
+                break;
+
+            case ObjectChangeType.Deleted:
+                projectsMap.Remove(projectViewModel.Name);
+                break;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        watchTaskCancellationTokenSource.Cancel();
+        watchTaskCancellationTokenSource.Dispose();
+    }
+
+    private void HandleFilter(ChangeEventArgs args)
+    {
+        if (args.Value is string newFilter)
+        {
+            filter = newFilter;
+        }
+    }
+
+    private void HandleClear(string? value)
+    {
+        filter = value ?? string.Empty;
+    }
+}

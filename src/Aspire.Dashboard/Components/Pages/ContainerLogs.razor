@@ -1,0 +1,150 @@
+﻿@page "/ContainerLogs/{containerID?}"
+@using Aspire.Dashboard.Model
+@inject IDashboardViewModelService DashboardViewModelService
+@inject IJSRuntime JS
+@inject NavigationManager NavigationManager
+@implements IAsyncDisposable
+
+<PageTitle>Microsoft.Aspire Container Logs</PageTitle>
+
+<h1>Container Logs</h1>
+
+<div>
+    <FluentStack Orientation="Orientation.Vertical">
+        <FluentToolbar>
+            <FluentSelect TOption="ContainerViewModel"
+                            Items="@Containers"
+                            OptionValue="@(c => c.ContainerID)"
+                            OptionText="@(c => c.Name)"
+                            @bind-SelectedOption="_selectedContainer"
+                            @bind-SelectedOption:after="HandleSelectedOptionChangedAsync" />
+        </FluentToolbar>
+        <LogViewer @ref="_logViewer" InitialText="Waiting for logs..." />
+    </FluentStack>
+</div>
+
+@code {
+
+    [Parameter]
+    public string? ContainerID { get; set; }
+
+    private Dictionary<string, ContainerViewModel> _containerNameMapping = new();
+    private IEnumerable<ContainerViewModel> Containers => _containerNameMapping.Select(kvp => kvp.Value).OrderBy(c => c.Name);
+    private ContainerViewModel? _selectedContainer;
+    private LogViewer? _logViewer;
+    private CancellationTokenSource _watchTokenSource = new CancellationTokenSource();
+    private CancellationTokenSource _watchLogsTokenSource = new CancellationTokenSource();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var initialList = await DashboardViewModelService.GetContainersAsync();
+
+        foreach (var result in initialList)
+        {
+            _containerNameMapping[result.ViewModel.Name] = result.ViewModel;
+        }
+
+        if (ContainerID is not null)
+        {
+            _selectedContainer = initialList?.FirstOrDefault(c => string.Equals(ContainerID, c.ViewModel.ContainerID, StringComparison.Ordinal))?.ViewModel;
+        }
+        else if (initialList?.Count > 0)
+        {
+            _selectedContainer = initialList[0].ViewModel;
+        }
+
+        await LoadLogsAsync();
+
+        _ = Task.Run(async () =>
+        {
+            await foreach (var componentChanged in DashboardViewModelService.WatchContainersAsync(existingContainers: initialList?.Select(t => t.Model), cancellationToken: _watchTokenSource.Token))
+            {
+                await OnContainerListChanged(componentChanged.ObjectChangeType, componentChanged.Component);
+            }
+        });
+    }
+
+    private async Task LoadLogsAsync()
+    {
+        if (_selectedContainer is not null && _logViewer is not null)
+        {
+            await _logViewer.ClearLogsAsync();
+            await _watchLogsTokenSource.CancelAsync();
+
+            _watchLogsTokenSource = new CancellationTokenSource();
+
+            _ = Task.Run(async () =>
+            {
+                await foreach (var logs in _selectedContainer.LogSource.WatchLogsAsync(_watchLogsTokenSource.Token))
+                {
+                    var logEntries = logs.Select(l =>
+                    {
+                        // Container logs always start with an RFC3339Nano timestamp followed by a space
+                        // and then the rest of the log line
+                        var indexOfSpace = l.IndexOf(" ");
+                        return new LogEntry()
+                        {
+                            Timestamp = l[..indexOfSpace],
+                            Content = l[(indexOfSpace + 1)..]
+                        };
+                    });
+                    await _logViewer.AddLogEntriesAsync(logEntries);
+                }
+            }, _watchLogsTokenSource.Token);
+        }
+    }
+
+    private async Task HandleSelectedOptionChangedAsync()
+    {
+        if (_selectedContainer is not null)
+        {
+            // Change the URL
+            NavigationManager.NavigateTo($"/containerLogs/{_selectedContainer.ContainerID}");
+
+            await LoadLogsAsync();
+        }
+    }
+
+    private async Task OnContainerListChanged(ObjectChangeType changeType, ContainerViewModel containerViewModel)
+    {
+        if (changeType == ObjectChangeType.Added)
+        {
+            _containerNameMapping[containerViewModel.Name] = containerViewModel;
+
+            if (_selectedContainer is null)
+            {
+                if (string.IsNullOrEmpty(ContainerID) || string.Equals(ContainerID, containerViewModel.ContainerID, StringComparison.Ordinal))
+                {
+                    _selectedContainer = containerViewModel;
+                    await LoadLogsAsync();
+                }
+            }
+        }
+        else if (changeType == ObjectChangeType.Modified)
+        {
+            _containerNameMapping[containerViewModel.Name] = containerViewModel;
+        }
+        else if (changeType == ObjectChangeType.Deleted)
+        {
+            _containerNameMapping.Remove(containerViewModel.Name);
+            if (string.Equals(_selectedContainer?.Name, containerViewModel.Name, StringComparison.Ordinal))
+            {
+                if (_containerNameMapping.Count > 0)
+                {
+                    _selectedContainer = Containers.First();
+                    await LoadLogsAsync();
+                }
+            }
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await _watchTokenSource.CancelAsync();
+        _watchTokenSource.Dispose();
+        await _watchLogsTokenSource.CancelAsync();
+        _watchLogsTokenSource.Dispose();
+    }
+}

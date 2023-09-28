@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <ItemGroup>
+    <FileExtensionSignInfo Update=".nupkg" CertificateName="NuGet" />
+    <FileExtensionSignInfo Update=".zip" CertificateName="None" />
+    <FileExtensionSignInfo Include=".msi" CertificateName="MicrosoftDotNet500" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FileSignInfo Include="Fractions.dll" CertificateName="3PartySHA2" />
+    <FileSignInfo Include="IdentityModel.dll" CertificateName="3PartySHA2" />
+    <FileSignInfo Include="IdentityModel.OidcClient.dll" CertificateName="3PartySHA2" />
+    <FileSignInfo Include="KubernetesClient.Basic.dll" CertificateName="3PartySHA2" />
+    <FileSignInfo Include="KubernetesClient.dll" CertificateName="3PartySHA2" />
+    <FileSignInfo Include="KubernetesClient.Models.dll" CertificateName="3PartySHA2" />
+    <FileSignInfo Include="Prometheus.NetStandard.dll" CertificateName="3PartySHA2" />
+    <FileSignInfo Include="YamlDotNet.dll" CertificateName="3PartySHA2" />
+    <FileSignInfo Include="Grpc.AspNetCore.Server.ClientFactory.dll" CertificateName="3PartySHA2" />
+    <FileSignInfo Include="Grpc.AspNetCore.Server.dll" CertificateName="3PartySHA2" />
+    <FileSignInfo Include="Grpc.Core.Api.dll" CertificateName="3PartySHA2" />
+    <FileSignInfo Include="Grpc.Net.Client.dll" CertificateName="3PartySHA2" />
+    <FileSignInfo Include="Grpc.Net.ClientFactory.dll" CertificateName="3PartySHA2" />
+    <FileSignInfo Include="Grpc.Net.Common.dll" CertificateName="3PartySHA2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ItemsToSign Include="$(VisualStudioSetupInsertionPath)\**\*.msi" Condition="'$(PostBuildSign)' != 'true'" />
+    <ItemsToSign Include="$(ArtifactsPackagesDir)**\*.wixpack.zip" Condition="'$(PostBuildSign)' != 'true'" />
+    <ItemsToSignPostBuild Include="$(VisualStudioSetupInsertionPath)\**\*.msi" Condition="'$(PostBuildSign)' == 'true'" />
+    <ItemsToSign Include="$(VisualStudioSetupInsertionPath)\**\*.zip" Condition="'$(PostBuildSign)' != 'true'" />
+    <ItemsToSignPostBuild Include="$(VisualStudioSetupInsertionPath)\**\*.zip" Condition="'$(PostBuildSign)' == 'true'" />
+  </ItemGroup>
+</Project>

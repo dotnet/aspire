@@ -1,0 +1,18 @@
+<Project>
+
+  <PropertyGroup>
+    <ReadMePath>$(MSBuildProjectDirectory)\README.md</ReadMePath>
+    <ReadMeExists Condition="Exists('$(ReadMePath)')">true</ReadMeExists>
+    <PackageReadmeFile Condition="'$(PackageReadmeFile)' == '' And '$(ReadMeExists)' == 'true'">README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <Import Condition="'$(SampleProject)' == 'true' or '$(CI)' != 'true' " Project="eng\Versions.dev.targets" />
+  <Import Condition="'$(SampleProject)' != 'true' and '$(CI)' == 'true' " Project="eng\Versions.targets" />
+
+  <Import Project="Sdk.targets" Sdk="Microsoft.DotNet.Arcade.Sdk" />
+
+  <ItemGroup Condition="'$(ReadMeExists)' == 'true'">
+    <None Include="$(ReadMePath)" Pack="true" PackagePath="\"/>
+  </ItemGroup>
+  
+</Project>

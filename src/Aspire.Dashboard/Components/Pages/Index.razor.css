@@ -1,0 +1,12 @@
+.project-addresses a {
+    margin-right: 0.8em;
+}
+
+.project-endpoints a {
+    margin-right: 0.8em;
+}
+
+::deep fluent-toolbar,
+::deep fluent-data-grid {
+    width: 100%;
+}

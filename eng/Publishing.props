@@ -1,0 +1,41 @@
+<Project>
+   <PropertyGroup>
+      <PublishingVersion>3</PublishingVersion>
+      <!-- we don't need symbol packages for aspire -->
+      <AutoGenerateSymbolPackages>false</AutoGenerateSymbolPackages>
+   </PropertyGroup>
+
+  <PropertyGroup>
+    <_UploadPathRoot>aspire</_UploadPathRoot>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PublishDependsOnTargets>$(PublishDependsOnTargets);_PublishInstallers</PublishDependsOnTargets>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <_InstallersToPublish Include="$(ArtifactsDir)**\*.wixpack.zip" Condition="'$(PostBuildSign)' == 'true'" />
+    <_InstallerManifestFilesToPublish Include="$(ArtifactsDir)VSSetup\$(Configuration)\Insertion\**\*.zip" />
+  </ItemGroup>
+
+  <Target Name="_PublishInstallers">
+    <MSBuild Projects="$(RepoRoot)src\Microsoft.NET.Sdk.Aspire\Microsoft.NET.Sdk.Aspire.csproj"
+        Targets="ReturnPackageVersion"
+        SkipNonexistentProjects="false">
+      <Output TaskParameter="TargetOutputs" PropertyName="_PackageVersion" />
+    </MSBuild>
+
+    <ItemGroup>
+      <ItemsToPushToBlobFeed Include="@(_InstallersToPublish)">
+        <IsShipping>true</IsShipping>
+        <PublishFlatContainer>true</PublishFlatContainer>
+        <RelativeBlobPath>$(_UploadPathRoot)/$(_PackageVersion)/%(Filename)%(Extension)</RelativeBlobPath>
+      </ItemsToPushToBlobFeed>
+      <ItemsToPushToBlobFeed Include="@(_InstallerManifestFilesToPublish)">
+        <IsShipping>true</IsShipping>
+        <PublishFlatContainer>true</PublishFlatContainer>
+        <RelativeBlobPath>$(_UploadPathRoot)/$(_PackageVersion)/%(Filename)%(Extension)</RelativeBlobPath>
+      </ItemsToPushToBlobFeed>
+    </ItemGroup>
+  </Target>
+</Project>

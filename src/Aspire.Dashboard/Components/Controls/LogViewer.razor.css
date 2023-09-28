@@ -1,0 +1,88 @@
+.log-overflow {
+    height: calc(100vh - 165px);
+    width: 100%;
+    overflow: auto;
+    background-color: black;
+}
+
+::deep .log-container {
+    background: black;
+    color: white;
+    font-family: 'Cascadia Mono', Consolas, monospace;
+    font-size: 0.75rem;
+    margin: 16px 0 0 0;
+    padding-bottom: 24px;
+    line-height: 20px;
+    overflow: visible;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+::deep .initial-text {
+    padding-left: 12px;
+}
+
+::deep .line-row-container {
+    width:100%;
+    overflow: hidden;
+}
+
+::deep .line-row {
+    cursor: text;
+    padding: 0 12px 0 12px;
+    white-space: pre-wrap;
+
+    display: flex;
+    flex-direction: row;
+    flex-grow: 1;
+}
+
+::deep .line-area {
+    flex-grow: 1;
+    justify-content: flex-start;
+    display: flex;
+    flex-direction: row;
+}
+
+::deep .line-number {
+    padding-left: 10px;
+    min-width: 43px;
+    text-align:right;
+    align-self: flex-start;
+    flex-shrink: 0;
+}
+
+::deep .line-number::before {
+    content: attr(data-line-number);
+}
+
+::deep .timestamp {
+    color: darkgray;
+    margin-left: 10px;
+    padding-left: 6px;
+    white-space: nowrap;
+}
+
+::deep .timestamp.missing {
+    display: none;
+}
+
+::deep .content {
+    word-break: break-all;
+    margin-left: 10px;
+    position: relative;
+    margin-right: 6px;
+    user-select: text;
+    cursor: text;
+    padding: 0 6px 0 6px;
+    white-space: pre-wrap;
+}
+
+::deep .content.error {
+    color: red;
+}
+
+::deep .content.warning {
+    color: yellow;
+}

@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(NetCurrent)</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Aspire.Hosting\Aspire.Hosting.csproj" />
+    <ProjectReference Include="..\testproject\TestProject.DevHost\TestProject.DevHost.csproj" />
+  </ItemGroup>
+
+</Project>

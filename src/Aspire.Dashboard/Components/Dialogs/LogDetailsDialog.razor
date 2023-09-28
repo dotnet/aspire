@@ -1,0 +1,23 @@
+﻿@using Aspire.Dashboard.Model
+@using Microsoft.Fast.Components.FluentUI;
+@implements IDialogContentComponent<List<LogEntryPropertyViewModel>>
+
+<FluentDialogBody>
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+        <FluentDataGrid Items="@(Items)" GridTemplateColumns="1fr 2fr">
+            <PropertyColumn Title="Name" Property="@(context => context.Name)" />
+            <PropertyColumn Title="Value" Tooltip="true" Property="@(context => context.Value)" />
+        </FluentDataGrid>
+    </FluentStack>
+</FluentDialogBody>
+
+@code {
+    [CascadingParameter]
+    public FluentDialog? Dialog { get; set; }
+
+    [Parameter]
+    public List<LogEntryPropertyViewModel> Content { get; set; } = default!;
+
+    IQueryable<LogEntryPropertyViewModel>? Items => Content.AsQueryable();
+}
+

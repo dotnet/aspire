@@ -1,0 +1,64 @@
+<Project>
+
+  <Import Sdk="Microsoft.NET.Sdk.StaticWebAssets" Project="Sdk.targets" />
+
+  <PropertyGroup>
+    <!-- Similar to ASP.NET Core and Worker apps, set the default CWD of orchestrator projects to be the project directory. -->
+    <RunWorkingDirectory Condition=" '$(RunWorkingDirectory)' == '' and '$(EnableDefaultRunWorkingDirectory)' != 'false' ">$(MSBuildProjectDirectory)</RunWorkingDirectory>
+  </PropertyGroup>
+  
+  <!-- The purpose of this target is to take a list of the resolved project references and generate a set of items (ServiceMetadataSource) which contain
+     code that we want to add to the orchestrator project for each referenced project. The metadata contains pointers to the project/assembly. -->
+  <Target Name="GenerateServiceMetadataSources" DependsOnTargets="FindReferenceAssembliesForReferences" Inputs="@(ReferencePathWithRefAssemblies)" Outputs="%(ReferencePathWithRefAssemblies.Identity)">
+    <ItemGroup>
+      <ServiceMetadataSource Include="%(ReferencePathWithRefAssemblies.Identity)" Condition="%(ReferencePathWithRefAssemblies.ReferenceSourceTarget) == 'ProjectReference' And %(ReferencePathWithRefAssemblies.ServiceNameOverride) == ''">
+        <AssemblyName>$([System.IO.Path]::GetFileNameWithoutExtension(%(ReferencePathWithRefAssemblies.Identity)))</AssemblyName>
+        <Source>
+          <![CDATA[using System%3B
+
+namespace ]]>$(RootNamespace)<![CDATA[.Projects%3B
+
+public class ]]>$([System.IO.Path]::GetFileNameWithoutExtension(%(ReferencePathWithRefAssemblies.Identity)).Replace(".", "_"))<![CDATA[ : IServiceMetadata
+{
+  public string AssemblyName => """]]>$([System.IO.Path]::GetFileNameWithoutExtension(%(ReferencePathWithRefAssemblies.Identity)))<![CDATA["""%3B
+  public string AssemblyPath => """]]>%(ReferencePathWithRefAssemblies.Identity)<![CDATA["""%3B
+  public string ProjectPath => """]]>$([System.IO.Path]::GetFullPath(%(ReferencePathWithRefAssemblies.ProjectReferenceOriginalItemSpec)))<![CDATA["""%3B
+}]]>
+        </Source>
+      </ServiceMetadataSource>
+      <ServiceMetadataSource Include="%(ReferencePathWithRefAssemblies.Identity)" Condition="%(ReferencePathWithRefAssemblies.ReferenceSourceTarget) == 'ProjectReference' And %(ReferencePathWithRefAssemblies.ServiceNameOverride) != ''">
+				<AssemblyName>$([System.IO.Path]::GetFileNameWithoutExtension(%(ReferencePathWithRefAssemblies.Identity)))</AssemblyName>
+				<Source>
+					<![CDATA[using System%3B
+
+namespace ]]>$(RootNamespace)<![CDATA[.Projects%3B
+
+public class ]]>%(ReferencePathWithRefAssemblies.ServiceNameOverride)<![CDATA[ : IServiceMetadata
+{
+  public string AssemblyName => """]]>$([System.IO.Path]::GetFileNameWithoutExtension(%(ReferencePathWithRefAssemblies.Identity)))<![CDATA["""%3B
+  public string AssemblyPath => """]]>%(ReferencePathWithRefAssemblies.Identity)<![CDATA["""%3B
+  public string ProjectPath => """]]>$([System.IO.Path]::GetFullPath(%(ReferencePathWithRefAssemblies.ProjectReferenceOriginalItemSpec)))<![CDATA["""%3B
+}]]>
+				</Source>
+			</ServiceMetadataSource>
+		</ItemGroup>
+  </Target>
+  
+  <!-- The purpose of this target is to take all of the generated service meta data and write them to the intermediate build directory
+     and reference them for compilation. There will be a AssemblyName.ServiceMetadata.g.cs file for each referenced project. -->
+  <Target Name="WriteServiceMetadataSources" DependsOnTargets="GenerateServiceMetadataSources" BeforeTargets="CoreCompile">
+    <WriteLinesToFile
+      File="$(IntermediateOutputPath)Aspire\references\%(ServiceMetadataSource.AssemblyName).ServiceMetadata.g.cs"
+      Overwrite="true"
+      Lines="%(ServiceMetadataSource.Source)"
+      Encoding="Unicode"
+      Condition="%(ServiceMetadataSource.AssemblyName) != ''"
+      />
+    <ItemGroup>
+      <Compile
+        Include="$(IntermediateOutputPath)Aspire\references\%(ServiceMetadataSource.AssemblyName).ServiceMetadata.g.cs"
+        Condition="%(ServiceMetadataSource.AssemblyName) != ''"
+        />
+    </ItemGroup>
+  </Target>
+</Project>

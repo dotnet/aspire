@@ -1,0 +1,74 @@
+<Project>
+  <UsingTask TaskName="ReplaceText"
+      TaskFactory="RoslynCodeTaskFactory"
+      AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Input ParameterType="System.String" Required="true" />
+      <Output ParameterType="System.String" Required="true" />
+      <Replacements ParameterType="Microsoft.Build.Framework.ITaskItem[]" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System.IO" />
+      <Code Type="Fragment" Language="cs">
+        <![CDATA[
+          Directory.CreateDirectory(Path.GetDirectoryName(Output));
+          var sourceText = File.ReadAllText(Input);
+          foreach (var replacement in Replacements) {
+            var oldValue = replacement.ItemSpec;
+            var newValue = replacement.GetMetadata("NewValue");
+            sourceText = sourceText.Replace(oldValue, newValue);
+          }
+          File.WriteAllText(Output, sourceText);
+        ]]>
+      </Code>
+    </Task>
+  </UsingTask>
+
+  <ItemDefinitionGroup>
+    <TextReplacementValue Visible="False" />
+  </ItemDefinitionGroup>
+
+  <!--
+  Gathers any @(None) items with PerformTextReplacement metadata and performs text substitution
+  using @(TextReplacementValue) values, then switches the original @(None) items out for updated ones
+  that use the processed file but preserve all other metadata.
+  -->
+  <Target Name="GenerateTextReplacementFiles"
+    BeforeTargets="Build;AssignTargetPaths"
+    DependsOnTargets="_GatherTextReplacementFiles;_ProcessTextReplacementFiles"
+    Condition="@(None->AnyHaveMetadataValue('PerformTextReplacement', 'True'))"
+    >
+    <!-- NOTE: this target doesn't check inputs/outputs - even if the files didn't change, we must have the FileWrites and updated None items -->
+    <ItemGroup>
+      <FileWrites Include="@(_TextReplacementFile->'%(_TextReplacementIntermediateFile)')" />
+      <!-- remove the existing None items and replace with the updated ones, which should have preserved all the original metadata -->
+      <None Remove="@(_TextReplacementFile)" />
+      <None Include="@(_TextReplacementFile->Metadata('_TextReplacementIntermediateFile'))" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="_GatherTextReplacementFiles">
+    <ItemGroup>
+      <_TextReplacementFile Include="@(None->WithMetadataValue('PerformTextReplacement', 'True'))">
+        <Link>%(RelativeDir)$([System.String]::Copy('%(Filename)%(Extension)').Replace('.in.', '.'))</Link>
+        <_TextReplacementIntermediateFile>$(IntermediateOutputPath)TextReplacement\%(RelativeDir)$([System.String]::Copy('%(Filename)%(Extension)').Replace('.in.', '.'))</_TextReplacementIntermediateFile>
+      </_TextReplacementFile>
+    </ItemGroup>
+  </Target>
+
+  <Target Name="_ProcessTextReplacementFiles"
+    DependsOnTargets="GatherTextReplacementValues"
+    Inputs="$(MSBuildAllProjects);@(_TextReplacementFile)"
+    Outputs="@(_TextReplacementFile->'%(_TextReplacementIntermediateFile))"
+    >
+    <ReplaceText
+        Input="%(_TextReplacementFile.Identity)"
+        Output="%(_TextReplacementFile._TextReplacementIntermediateFile)"
+        Replacements="@(TextReplacementValue->'@%(Identity)@')"
+    />
+  </Target>
+
+  <!-- empty target for consumers to provide TextReplacementValue items that cannot be computed at evaluation time -->
+  <Target Name="GatherTextReplacementValues" />
+
+</Project>

@@ -1,0 +1,63 @@
+parameters:
+  # Optionally do not publish to TSA. Useful for e.g. verifying fixes before PR.
+- name: TSAEnabled
+  displayName: Publish results to TSA
+  type: boolean
+  default: true
+
+variables:
+- template: /eng/pipelines/common-variables.yml
+- template: /eng/common/templates/variables/pool-providers.yml
+  # CG is handled in the primary CI pipeline
+- name: skipComponentGovernanceDetection
+  value: true
+  # Force CodeQL enabled so it may be run on any branch
+- name: Codeql.Enabled
+  value: true
+  # Do not let CodeQL 3000 Extension gate scan frequency
+- name: Codeql.Cadence
+  value: 0
+  # CodeQL needs this plumbed along as a variable to enable TSA
+- name: Codeql.TSAEnabled
+  value: ${{ parameters.TSAEnabled }}
+
+  # Build variables
+- name: _BuildConfig
+  value: Release
+
+trigger: none
+
+schedules:
+  - cron: 0 12 * * 1
+    displayName: Weekly Monday CodeQL run
+    branches:
+      include:
+      - main
+      - release/*
+    always: true
+
+jobs:
+- job: codeql
+  displayName: CodeQL
+  pool:
+    name: $(DncEngInternalBuildPool)
+    demands: ImageOverride -equals 1es-windows-2022
+  timeoutInMinutes: 90
+
+  steps:
+
+  - task: UseDotNet@2
+    inputs:
+      useGlobalJson: true
+
+  - task: CodeQL3000Init@0
+    displayName: CodeQL Initialize
+
+  - script: eng\common\cibuild.cmd
+      -configuration $(_BuildConfig)
+      -prepareMachine
+      /p:Test=false
+    displayName: Windows Build
+
+  - task: CodeQL3000Finalize@0
+    displayName: CodeQL Finalize

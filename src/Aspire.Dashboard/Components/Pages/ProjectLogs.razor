@@ -1,0 +1,174 @@
+﻿@page "/ProjectLogs/{projectname?}"
+@using Aspire.Dashboard.Model;
+@using System.Text
+@implements IDisposable;
+@inject IDashboardViewModelService DashboardViewModelService
+@inject IJSRuntime JS
+@inject NavigationManager NavigationManager
+
+<PageTitle>Microsoft.Aspire Project Logs</PageTitle>
+
+<h1>Project Logs</h1>
+
+<div>
+    <FluentStack Orientation="Orientation.Vertical">
+        <FluentStack Orientation="Orientation.Horizontal">
+            <FluentSelect TOption="ProjectViewModel"
+                            Items="@Projects"
+                            OptionValue="@(c => c.Name)"
+                            OptionText="@(c => c.Name)"
+                            @bind-SelectedOption="_selectedProject"
+                            @bind-SelectedOption:after="HandleSelectedOptionChangedAsync" />
+        </FluentStack>
+        <LogViewer @ref="_logViewer" InitialText="Waiting for logs..." />
+    </FluentStack>
+</div>
+
+@code {
+    [Parameter]
+    public string? ProjectName { get; set; }
+
+    private LogViewer? _logViewer;
+    private ProjectViewModel? _selectedProject;
+    private readonly Dictionary<string, ProjectViewModel> _projectNameMapping = new Dictionary<string, ProjectViewModel>();
+    private IEnumerable<ProjectViewModel> Projects => _projectNameMapping.Select(kvp => kvp.Value).OrderBy(p => p.Name);
+    private CancellationTokenSource _watchProjectsTokenSource = new CancellationTokenSource();
+    private CancellationTokenSource _watchLogsTokenSource = new CancellationTokenSource();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var initialList = await DashboardViewModelService.GetProjectsAsync();
+
+        foreach (var result in initialList)
+        {
+            _projectNameMapping[result.ViewModel.Name] = result.ViewModel;
+        }
+
+        if (ProjectName is not null)
+        {
+            _selectedProject = initialList?.FirstOrDefault(c => string.Equals(ProjectName, c.ViewModel.Name, StringComparison.Ordinal))?.ViewModel;
+        }
+        else if (initialList?.Count > 0)
+        {
+            _selectedProject = initialList[0].ViewModel;
+        }
+
+        await LoadLogsAsync();
+
+        _ = Task.Run(async () =>
+        {
+            await foreach (var componentChanged in DashboardViewModelService.WatchProjectsAsync(existingProjects: initialList?.Select(t => t.Model), cancellationToken: _watchProjectsTokenSource.Token))
+            {
+                await OnProjectListChanged(componentChanged.ObjectChangeType, componentChanged.Component);
+            }
+        });
+    }
+
+    private async Task HandleSelectedOptionChangedAsync()
+    {
+        if (_selectedProject is not null)
+        {
+            NavigationManager.NavigateTo($"/ProjectLogs/{_selectedProject.Name}");
+            await LoadLogsAsync();
+        }
+    }
+
+    private async Task LoadLogsAsync()
+    {
+        if (_selectedProject?.LogSource?.Available == true && _logViewer is not null)
+        {
+            await _logViewer.ClearLogsAsync();
+            await _watchLogsTokenSource.CancelAsync();
+            _watchLogsTokenSource = new CancellationTokenSource();
+
+            _ = Task.Run(async () =>
+            {
+                await foreach (var logs in _selectedProject.LogSource.WatchOutputLogAsync(_watchLogsTokenSource.Token))
+                {
+                    var logEntries = logs.Select(l =>
+                    {
+                        return new LogEntry()
+                        {
+                            Timestamp = string.Empty,
+                            Content = l
+                        };
+                    });
+
+                    await _logViewer.AddLogEntriesAsync(logEntries);
+                }
+            }, _watchLogsTokenSource.Token);
+
+            _ = Task.Run(async () =>
+            {
+                await foreach (var logs in _selectedProject.LogSource.WatchErrorLogAsync(_watchLogsTokenSource.Token))
+                {
+                    var logEntries = logs.Select(l =>
+                    {
+                        return new LogEntry()
+                        {
+                            Timestamp = string.Empty,
+                            Content = l,
+                            Type = LogEntryType.Error
+                        };
+                    });
+
+                    await _logViewer.AddLogEntriesAsync(logEntries);
+                }
+            }, _watchLogsTokenSource.Token);
+        }
+    }
+
+    private async Task OnProjectListChanged(ObjectChangeType changeType, ProjectViewModel projectViewModel)
+    {
+        if (changeType == ObjectChangeType.Added)
+        {
+            _projectNameMapping[projectViewModel.Name] = projectViewModel;
+
+            if (_selectedProject is null)
+            {
+                if (string.IsNullOrEmpty(ProjectName) || string.Equals(ProjectName, projectViewModel.Name, StringComparison.Ordinal))
+                {
+                    _selectedProject = projectViewModel;
+                    await LoadLogsAsync();
+                }
+            }
+        }
+        else if (changeType == ObjectChangeType.Modified)
+        {          
+            _projectNameMapping[projectViewModel.Name] = projectViewModel;
+
+            if (string.Equals(_selectedProject?.Name, projectViewModel.Name, StringComparison.Ordinal))
+            {
+                var originalSelection = _selectedProject;
+                _selectedProject = projectViewModel;
+
+                if (!originalSelection!.LogSource.Available && _selectedProject.LogSource.Available)
+                {
+                    await LoadLogsAsync();
+                }
+            }
+        }
+        else if (changeType == ObjectChangeType.Deleted)
+        {
+            _projectNameMapping.Remove(projectViewModel.Name);
+            if (string.Equals(_selectedProject?.Name, projectViewModel.Name, StringComparison.Ordinal))
+            {
+                if (_projectNameMapping.Count > 0)
+                {
+                    _selectedProject = Projects.First();
+                    await LoadLogsAsync();
+                }
+            }
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        _watchProjectsTokenSource.Cancel();
+        _watchProjectsTokenSource.Dispose();
+        _watchLogsTokenSource.Cancel();
+        _watchLogsTokenSource.Dispose();
+    }
+}

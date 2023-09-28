@@ -1,0 +1,20 @@
+global:
+  scrape_interval: 1s # makes for a good demo
+
+scrape_configs:
+  # These are commented out for now, since we don't want to hard-code all the ports
+  # - job_name: 'myfrontend'
+  #   static_configs:
+  #     - targets: ['host.docker.internal:5000']
+  # - job_name: 'catalog'
+  #   static_configs:
+  #     - targets: ['host.docker.internal:5222']
+  - job_name: 'basket'
+    static_configs:
+      - targets: ['host.docker.internal:5304'] # hard-coded port matches MyApp/Program.cs
+  # - job_name: 'orderprocessor'
+  #   static_configs:
+  #     - targets: ['host.docker.internal:4999']
+  # - job_name: 'proxy'
+  #   static_configs:
+  #     - targets: ['host.docker.internal:4999']
