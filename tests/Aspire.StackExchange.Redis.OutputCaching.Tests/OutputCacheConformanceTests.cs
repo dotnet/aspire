@@ -19,11 +19,11 @@ public class OutputCacheConformanceTests : ConformanceTests
     {
         if (key is null)
         {
-            builder.AddRedisOutputCache(configure);
+            builder.AddRedisOutputCache(configureSettings: configure);
         }
         else
         {
-            builder.AddRedisOutputCache(key, configure);
+            builder.AddKeyedRedisOutputCache(key, configure);
         }
     }
 
@@ -34,7 +34,7 @@ public class OutputCacheConformanceTests : ConformanceTests
 
         var builder = CreateHostBuilder();
 
-        builder.AddRedisOutputCache();
+        builder.AddRedisOutputCache("redis");
 
         var tcs = new TaskCompletionSource();
         var exportedActivities = new List<Activity>();

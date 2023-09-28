@@ -6,5 +6,5 @@ namespace Aspire.Dashboard.Model.Otlp;
 public class ApplicationViewModel
 {
     public required string Name { get; init; }
-    public required string Id { get; init; }
+    public required string? Id { get; init; }
 }

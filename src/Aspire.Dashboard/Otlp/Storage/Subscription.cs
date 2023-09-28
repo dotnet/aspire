@@ -8,9 +8,9 @@ public sealed class Subscription : IDisposable
     private readonly Func<Task> _callback;
     private readonly Action _unsubscribe;
 
-    public string ApplicationId { get; }
+    public string? ApplicationId { get; }
 
-    public Subscription(string applicationId, Func<Task> callback, Action unsubscribe)
+    public Subscription(string? applicationId, Func<Task> callback, Action unsubscribe)
     {
         ApplicationId = applicationId;
         _callback = callback;

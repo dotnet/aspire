@@ -1,6 +1,6 @@
 # Aspire.StackExchange.Redis.OutputCaching library
 
-Registers an [IConnectionMultiplexer](https://stackexchange.github.io/StackExchange.Redis/Basics) in the DI container for connecting to a [Redis](https://redis.io/) server. Uses that IConnectionMultiplexer in [ASP.NET Core Output Caching](https://learn.microsoft.com/aspnet/core/performance/caching/output). Enables corresponding health check, logging, and telemetry.
+Registers an [ASP.NET Core Output Caching](https://learn.microsoft.com/aspnet/core/performance/caching/output) provider backed by a [Redis](https://redis.io/) server. Enables corresponding health check, logging, and telemetry.
 
 ## Getting started
 
@@ -18,7 +18,55 @@ dotnet add package Aspire.StackExchange.Redis.OutputCaching
 
 ## Usage Example
 
-Call `AddRedisOutputCache` extension method to add the Redis distributed caching services and an `IConnectionMultiplexer` singleton with the desired configurations exposed with `StackExchangeRedisSettings`. The library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `StackExchangeRedisSettings` from configuration by using `Aspire:StackExchange:Redis` key. Note that at least one host name is required to connect. Example `appsettings.json` that configures some of the options:
+In the `Program.cs` file of your project, call the `AddRedisOutputCache` extension to register the Redis output cache provider in the dependency injection container.
+
+```cs
+builder.AddRedisOutputCache();
+```
+
+After the `WebApplication` has been built, add the middleware to the request processing pipeline by calling [UseOutputCache](https://learn.microsoft.com/dotnet/api/microsoft.aspnetcore.builder.outputcacheapplicationbuilderextensions.useoutputcache).
+
+```cs
+app.UseOutputCache();
+```
+
+For minimal API apps, configure an endpoint to do caching by calling [CacheOutput](https://learn.microsoft.com/dotnet/api/microsoft.extensions.dependencyinjection.outputcacheconventionbuilderextensions.cacheoutput), or by applying the [`[OutputCache]`](https://learn.microsoft.com/dotnet/api/microsoft.aspnetcore.outputcaching.outputcacheattribute) attribute, as shown in the following examples:
+
+```cs
+app.MapGet("/cached", Gravatar.WriteGravatar).CacheOutput();
+app.MapGet("/attribute", [OutputCache] (context) => 
+    Gravatar.WriteGravatar(context));
+```
+
+For apps with controllers, apply the `[OutputCache]` attribute to the action method. For Razor Pages apps, apply the attribute to the Razor page class.
+
+## Configuration
+
+The Aspire StackExchange Redis OutputCache component provides multiple options to configure the Redis connection based on the requirements and conventions of your project. Note that at least one host name is required to connect.
+
+### Use a connection string
+
+When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddRedisOutputCache()`:
+
+```cs
+builder.AddRedisOutputCache("myRedisConnectionName");
+```
+
+And then the connection string will be retrieved from the `ConnectionStrings` configuration section:
+
+```json
+{
+  "ConnectionStrings": {
+    "myRedisConnectionName": "localhost:6379"
+  }
+}
+```
+
+See the [Basic Configuration Settings](https://stackexchange.github.io/StackExchange.Redis/Configuration.html#basic-configuration-strings) of the StackExchange.Redis docs for more information on how to format this connection string.
+
+### Use configuration providers
+
+The Redis OutputCache component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `StackExchangeRedisSettings` and `ConfigurationOptions` from configuration by using the `Aspire:StackExchange:Redis` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {
@@ -27,70 +75,51 @@ Call `AddRedisOutputCache` extension method to add the Redis distributed caching
       "Redis": {
         "ConnectionString": "localhost:6379",
         "ConfigurationOptions": {
-          "ConnectTimeout": 5000,
+          "ConnectTimeout": 3000,
           "ConnectRetry": 2
-        }
-      }
-    }
-  }
-}
-```
-If you have setup your configurations in the `Aspire.StackExchange.Redis` section you can just call the method without passing any parameter.
-
-```cs
-    builder.AddRedisOutputCache();
-```
-
-If you want to add more than one [IConnectionMultiplexer](https://stackexchange.github.io/StackExchange.Redis/Basics) you could use a named instances. The json configuration would look like: 
-
-```json
-{
-  "Aspire": {
-    "StackExchange": {
-      "Redis": {
-        "INSTANCE_NAME": {
-          "ConnectionString": "localhost:6379",
-          "ConfigurationOptions": {
-            "ConnectTimeout": 5000,
-            "ConnectRetry": 2
-          }
-        }
+        },
+        "Tracing": false
       }
     }
   }
 }
 ```
 
-To load the named configuration section from the json config call the `AddRedisOutputCache` method by passing the `INSTANCE_NAME`.
+### Use inline delegates
+
+You can also pass the `Action<StackExchangeRedisSettings> configureSettings` delegate to set up some or all the options inline, for example to use a connection string from code:
 
 ```cs
-    builder.AddRedisOutputCache("INSTANCE_NAME");
+builder.AddRedisOutputCache(configureSettings: settings => settings.ConnectionString = "localhost:6379");
 ```
 
-Also you can pass the `Action<StackExchangeRedisSettings>` delegate to set up some or all the options inline, for example to set the `Tracing`:
+You can also setup the [ConfigurationOptions](https://stackexchange.github.io/StackExchange.Redis/Configuration.html#configuration-options) using the `Action<ConfigurationOptions> configureOptions` delegate parameter of the `AddRedisOutputCache` method. For example to set the connection timeout:
 
 ```cs
-    builder.AddRedisOutputCache(settings => settings.Tracing = false);
+builder.AddRedisOutputCache(configureOptions: options => options.ConnectTimeout = 3000);
 ```
 
-Here are the configurable options with corresponding default values:
+## DevHost Extensions
+
+In your DevHost project, register a Redis container and consume the connection using the following methods:
 
 ```cs
-public sealed class StackExchangeRedisSettings
-{
-    // A boolean value that indicates whether the Redis health check is enabled or not.
-    public bool HealthChecks { get; set; } = true;
+var redis = builder.AddRedisContainer("cache");
 
-    // A boolean value that indicates whether the OpenTelemetry tracing is enabled or not.
-    public bool Tracing { get; set; } = true;
-}
+var myService = builder.AddProject<YourApp.Projects.MyService>()
+                       .WithRedis(redis);
 ```
 
-Check [ConfigurationOptions](https://stackexchange.github.io/StackExchange.Redis/Configuration.html#configuration-options) for more info about client config options.
+`.WithRedis` configures a connection in the `MyService` project named `cache`. In the `Program.cs` file of `MyService`, the redis connection can be consumed using:
+
+```cs
+builder.AddRedisOutputCache("cache");
+```
 
 ## Additional documentation
 
-https://github.com/dotnet/astra/tree/main/src/Components/README.md
+* https://learn.microsoft.com/aspnet/core/performance/caching/output
+* https://github.com/dotnet/astra/tree/main/src/Components/README.md
 
 ## Feedback & Contributing
 

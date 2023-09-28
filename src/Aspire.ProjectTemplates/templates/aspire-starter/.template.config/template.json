@@ -14,7 +14,7 @@
   "name": "Aspire Starter Application",
   "defaultName": "AspireApp",
   "description": "A project template for creating an Aspire app with a Blazor web frontend and web API backend service, optionally using Redis for caching.",
-  "shortName": "Aspire-starter",
+  "shortName": "aspire-starter",
   "sourceName": "AspireStarterApplication1",
   "preferNameDirectory": false,
   "tags": {

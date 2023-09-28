@@ -8,7 +8,7 @@ namespace Aspire.Hosting.Redis;
 
 public static class RedisContainerBuilderExtensions
 {
-    private const string RedisConnectionStringEnvironmentName = "Aspire__StackExchange__Redis__ConnectionString";
+    private const string ConnectionStringEnvironmentName = "ConnectionStrings__";
 
     public static IDistributedApplicationComponentBuilder<RedisContainerComponent> AddRedisContainer(this IDistributedApplicationBuilder builder, string name, int? port = null)
     {
@@ -20,9 +20,19 @@ public static class RedisContainerBuilderExtensions
         return componentBuilder;
     }
 
-    public static IDistributedApplicationComponentBuilder<ProjectComponent> WithRedis(this IDistributedApplicationComponentBuilder<ProjectComponent> projectBuilder, IDistributedApplicationComponentBuilder<RedisContainerComponent> redisBuilder)
+    public static IDistributedApplicationComponentBuilder<ProjectComponent> WithRedis(this IDistributedApplicationComponentBuilder<ProjectComponent> projectBuilder, IDistributedApplicationComponentBuilder<RedisContainerComponent> redisBuilder, string? connectionName = null)
     {
-        return projectBuilder.WithEnvironment(RedisConnectionStringEnvironmentName, () =>
+        if (string.IsNullOrEmpty(connectionName))
+        {
+            DistributedApplicationComponentExtensions.TryGetName(redisBuilder.Component, out connectionName);
+
+            if (connectionName is null)
+            {
+                throw new DistributedApplicationException("Redis connection name could not be determined. Please provide one.");
+            }
+        }
+
+        return projectBuilder.WithEnvironment(ConnectionStringEnvironmentName + connectionName, () =>
         {
             if (!redisBuilder.Component.TryGetAnnotationsOfType<AllocatedEndpointAnnotation>(out var allocatedEndpoints))
             {
@@ -35,8 +45,8 @@ public static class RedisContainerBuilderExtensions
         });
     }
 
-    public static IDistributedApplicationComponentBuilder<ProjectComponent> WithRedis(this IDistributedApplicationComponentBuilder<ProjectComponent> projectBuilder, string connectionString)
+    public static IDistributedApplicationComponentBuilder<ProjectComponent> WithRedis(this IDistributedApplicationComponentBuilder<ProjectComponent> projectBuilder, string connectionName, string connectionString)
     {
-        return projectBuilder.WithEnvironment(RedisConnectionStringEnvironmentName, connectionString);
+        return projectBuilder.WithEnvironment(ConnectionStringEnvironmentName + connectionName, connectionString);
     }
 }

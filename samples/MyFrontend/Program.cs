@@ -24,6 +24,8 @@ if (!app.Environment.IsDevelopment())
 
 app.UseStaticFiles();
 
+app.UseAntiforgery();
+
 app.MapRazorComponents<App>();
 
 app.MapGet("/admin", (IConfiguration config) =>

@@ -10,6 +10,7 @@ using OpenTelemetry.Proto.Logs.V1;
 using OpenTelemetry.Proto.Metrics.V1;
 using OpenTelemetry.Proto.Resource.V1;
 using OpenTelemetry.Proto.Trace.V1;
+using static OpenTelemetry.Proto.Trace.V1.Span.Types;
 
 namespace Aspire.Dashboard.Otlp.Storage;
 
@@ -24,9 +25,17 @@ public class TelemetryRepository
     private readonly List<Subscription> _applicationSubscriptions = new();
     private readonly List<Subscription> _logSubscriptions = new();
     private readonly List<Subscription> _metricsSubscriptions = new();
-    private readonly List<Subscription> _tracingSubscriptions = new();
+    private readonly List<Subscription> _tracesSubscriptions = new();
 
     private readonly ConcurrentDictionary<string, OtlpApplication> _applications = new();
+
+    private readonly ReaderWriterLockSlim _logsLock = new();
+    private readonly List<OtlpLogEntry> _logs = new();
+    private readonly HashSet<(OtlpApplication Application, string PropertyKey)> _logPropertyKeys = new();
+
+    private readonly ReaderWriterLockSlim _tracesLock = new();
+    private readonly Dictionary<string, OtlpTraceScope> _traceScopes = new();
+    private readonly OtlpTraceCollection _traces = new();
 
     public TelemetryRepository(IConfiguration config, ILoggerFactory loggerFactory)
     {
@@ -89,7 +98,7 @@ public class TelemetryRepository
         return AddSubscription(string.Empty, callback, _applicationSubscriptions);
     }
 
-    public Subscription OnNewLogs(string applicationId, Func<Task> callback)
+    public Subscription OnNewLogs(string? applicationId, Func<Task> callback)
     {
         return AddSubscription(applicationId, callback, _logSubscriptions);
     }
@@ -99,12 +108,12 @@ public class TelemetryRepository
         return AddSubscription(applicationId, callback, _metricsSubscriptions);
     }
 
-    public Subscription OnNewTracing(string applicationId, Func<Task> callback)
+    public Subscription OnNewTraces(string? applicationId, Func<Task> callback)
     {
-        return AddSubscription(applicationId, callback, _tracingSubscriptions);
+        return AddSubscription(applicationId, callback, _tracesSubscriptions);
     }
 
-    private Subscription AddSubscription(string applicationId, Func<Task> callback, List<Subscription> subscriptions)
+    private Subscription AddSubscription(string? applicationId, Func<Task> callback, List<Subscription> subscriptions)
     {
         Subscription? subscription = null;
         subscription = new Subscription(applicationId, callback, () =>
@@ -160,40 +169,163 @@ public class TelemetryRepository
                 continue;
             }
 
-            application.AddLogs(context, rl.ScopeLogs);
+            AddLogsCore(context, application, rl.ScopeLogs);
         }
 
         RaiseSubscriptionChanged(_logSubscriptions);
     }
 
+    public void AddLogsCore(AddContext context, OtlpApplication application, RepeatedField<ScopeLogs> scopeLogs)
+    {
+        _logsLock.EnterWriteLock();
+
+        try
+        {
+            foreach (var sl in scopeLogs)
+            {
+                // Instrumentation Scope isn't commonly used for logs.
+                // Skip it for now until there is feedback that it has useful information.
+
+                foreach (var record in sl.LogRecords)
+                {
+                    try
+                    {
+                        var logEntry = new OtlpLogEntry(record, application);
+                        _logs.Add(logEntry);
+                        foreach (var kvp in logEntry.Properties)
+                        {
+                            _logPropertyKeys.Add((application, kvp.Key));
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        context.FailureCount++;
+                        _logger.LogInformation(ex, "Error adding log entry.");
+                    }
+                }
+            }
+
+            // TODO: Insert logs into the right location instead of sorting everything.
+            _logs.Sort((a, b) => a.TimeStamp.CompareTo(b.TimeStamp));
+        }
+        finally
+        {
+            _logsLock.ExitWriteLock();
+        }
+    }
+
     public PagedResult<OtlpLogEntry> GetLogs(GetLogsContext context)
     {
-        if (!_applications.TryGetValue(context.ApplicationServiceId, out var application))
+        OtlpApplication? application = null;
+        if (context.ApplicationServiceId != null && !_applications.TryGetValue(context.ApplicationServiceId, out application))
         {
             return PagedResult<OtlpLogEntry>.Empty;
         }
 
-        return application.GetLogs(context);
+        _logsLock.EnterReadLock();
+
+        try
+        {
+            var results = _logs.AsEnumerable();
+            if (application != null)
+            {
+                results = results.Where(l => l.Application == application);
+            }
+
+            foreach (var filter in context.Filters)
+            {
+                results = filter.Apply(results);
+            }
+
+            return OtlpHelpers.GetItems(results, context.StartIndex, context.Count);
+        }
+        finally
+        {
+            _logsLock.ExitReadLock();
+        }
     }
 
-    public PagedResult<OtlpTraceScope> GetTraces(GetTracesContext context)
+    public List<string> GetLogPropertyKeys(string? applicationServiceId)
     {
-        if (!_applications.TryGetValue(context.ApplicationServiceId, out var application))
-        {
-            return PagedResult<OtlpTraceScope>.Empty;
-        }
+        _logsLock.EnterReadLock();
 
-        return application.GetTraces(context);
+        try
+        {
+            var applicationKeys = _logPropertyKeys.AsEnumerable();
+            if (applicationServiceId != null)
+            {
+                applicationKeys = applicationKeys.Where(keys => keys.Application.InstanceId == applicationServiceId);
+            }
+
+            var keys = applicationKeys.Select(keys => keys.PropertyKey).Distinct();
+            return keys.ToList();
+        }
+        finally
+        {
+            _logsLock.ExitReadLock();
+        }
     }
 
-    public List<string>? GetLogPropertyKeys(string applicationServiceId)
+    public GetTracesResult GetTraces(GetTracesContext context)
     {
-        if (!_applications.TryGetValue(applicationServiceId, out var application))
-        {
-            return null;
-        }
+        _tracesLock.EnterReadLock();
 
-        return application.GetLogPropertyKeys();
+        try
+        {
+            var results = _traces.AsEnumerable();
+            if (context.ApplicationServiceId != null)
+            {
+                results = results.Where(t => HasApplication(t, context.ApplicationServiceId));
+            }
+
+            // Traces can be modified as new spans are added. Copy traces before returning results to avoid concurrency issues.
+            var copyFunc = static (OtlpTrace t) => OtlpTrace.Clone(t);
+
+            var pagedResults = OtlpHelpers.GetItems(results, context.StartIndex, context.Count, copyFunc);
+            var maxDuration = pagedResults.TotalItemCount > 0 ? results.Max(r => r.Duration) : default;
+
+            return new GetTracesResult
+            {
+                PagedResult = pagedResults,
+                MaxDuraiton = maxDuration
+            };
+        }
+        finally
+        {
+            _tracesLock.ExitReadLock();
+        }
+    }
+
+    public OtlpTrace? GetTrace(string traceId)
+    {
+        _tracesLock.EnterReadLock();
+
+        try
+        {
+            var results = _traces.Where(t => t.TraceId.StartsWith(traceId, StringComparison.Ordinal));
+            var trace = results.SingleOrDefault();
+            return trace is not null ? OtlpTrace.Clone(trace) : null;
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"Multiple traces found with trace id '{traceId}'.", ex);
+        }
+        finally
+        {
+            _tracesLock.ExitReadLock();
+        }
+    }
+
+    private static bool HasApplication(OtlpTrace t, string applicationServiceId)
+    {
+        foreach (var span in t.Spans)
+        {
+            if (span.Source.InstanceId == applicationServiceId)
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     internal void AddMetrics(AddContext context, RepeatedField<ResourceMetrics> resourceMetrics)
@@ -218,7 +350,7 @@ public class TelemetryRepository
         RaiseSubscriptionChanged(_metricsSubscriptions);
     }
 
-    internal void AddTraces(AddContext context, RepeatedField<ResourceSpans> resourceSpans)
+    public void AddTraces(AddContext context, RepeatedField<ResourceSpans> resourceSpans)
     {
         foreach (var rs in resourceSpans)
         {
@@ -234,9 +366,191 @@ public class TelemetryRepository
                 continue;
             }
 
-            application.AddTraces(context, rs.ScopeSpans);
+            AddTracesCore(context, application, rs.ScopeSpans);
         }
 
-        RaiseSubscriptionChanged(_metricsSubscriptions);
+        RaiseSubscriptionChanged(_tracesSubscriptions);
+    }
+
+    private static OtlpSpanStatusCode ConvertStatus(Status? status)
+    {
+        return status?.Code switch
+        {
+            Status.Types.StatusCode.Ok => OtlpSpanStatusCode.Ok,
+            Status.Types.StatusCode.Error => OtlpSpanStatusCode.Error,
+            Status.Types.StatusCode.Unset => OtlpSpanStatusCode.Unset,
+            _ => OtlpSpanStatusCode.Unset
+        };
+    }
+
+    private static OtlpSpanKind ConvertSpanKind(SpanKind? kind)
+    {
+        return kind switch
+        {
+            // Unspecified to Internal is intentional.
+            // "Implementations MAY assume SpanKind to be INTERNAL when receiving UNSPECIFIED."
+            SpanKind.Unspecified => OtlpSpanKind.Internal,
+            SpanKind.Client => OtlpSpanKind.Client,
+            SpanKind.Server => OtlpSpanKind.Server,
+            SpanKind.Producer => OtlpSpanKind.Producer,
+            SpanKind.Consumer => OtlpSpanKind.Consumer,
+            _ => OtlpSpanKind.Unspecified
+        };
+    }
+
+    internal void AddTracesCore(AddContext context, OtlpApplication application, RepeatedField<ScopeSpans> scopeSpans)
+    {
+        _tracesLock.EnterWriteLock();
+
+        try
+        {
+            foreach (var scopeSpan in scopeSpans)
+            {
+                OtlpTraceScope? traceScope;
+                try
+                {
+                    if (!_traceScopes.TryGetValue(scopeSpan.Scope.Name, out traceScope))
+                    {
+                        traceScope = new OtlpTraceScope(scopeSpan.Scope);
+                        _traceScopes.Add(scopeSpan.Scope.Name, traceScope);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    context.FailureCount += scopeSpan.Spans.Count;
+                    _logger.LogInformation(ex, "Error adding scope.");
+                    continue;
+                }
+
+                OtlpTrace? lastTrace = null;
+
+                foreach (var span in scopeSpan.Spans)
+                {
+                    try
+                    {
+                        OtlpTrace? trace;
+                        bool newTrace = false;
+
+                        // Fast path to check if the span is in the same trace as the last span.
+                        if (lastTrace != null && span.TraceId.Span.SequenceEqual(lastTrace.Key.Span))
+                        {
+                            trace = lastTrace;
+                        }
+                        else if (!_traces.TryGetValue(span.TraceId.Memory, out trace))
+                        {
+                            trace = new OtlpTrace(span.TraceId.Memory, traceScope);
+                            newTrace = true;
+                        }
+
+                        var newSpan = CreateSpan(application, span, trace);
+                        trace.AddSpan(newSpan);
+
+                        // Traces are sorted by the start time of the first span.
+                        // We need to ensure traces are in the correct order if we're:
+                        // 1. Adding a new trace.
+                        // 2. The first span of the trace has changed.
+                        if (newTrace)
+                        {
+                            var added = false;
+                            var position = _traces.Count;
+                            for (var i = _traces.Count - 1; i >= 0; i--)
+                            {
+                                var currentTrace = _traces[i];
+                                if (trace.FirstSpan.StartTime > currentTrace.FirstSpan.StartTime)
+                                {
+                                    _traces.Insert(i + 1, trace);
+                                    added = true;
+                                    break;
+                                }
+                            }
+                            if (!added)
+                            {
+                                _traces.Insert(0, trace);
+                            }
+                        }
+                        else
+                        {
+                            if (trace.FirstSpan == newSpan)
+                            {
+                                var moved = false;
+                                var index = _traces.IndexOf(trace);
+
+                                for (var i = index - 1; i >= 0; i--)
+                                {
+                                    var currentTrace = _traces[i];
+                                    if (trace.FirstSpan.StartTime > currentTrace.FirstSpan.StartTime)
+                                    {
+                                        var insertPosition = i + 1;
+                                        if (index != insertPosition)
+                                        {
+                                            _traces.RemoveAt(index);
+                                            _traces.Insert(insertPosition, trace);
+                                        }
+                                        moved = true;
+                                        break;
+                                    }
+                                }
+                                if (!moved)
+                                {
+                                    if (index != 0)
+                                    {
+                                        _traces.RemoveAt(index);
+                                        _traces.Insert(0, trace);
+                                    }
+                                }
+                            }
+                        }
+
+                        lastTrace = trace;
+                    }
+                    catch (Exception ex)
+                    {
+                        context.FailureCount++;
+                        _logger.LogInformation(ex, "Error adding span.");
+                    }
+                }
+
+            }
+        }
+        finally
+        {
+            _tracesLock.ExitWriteLock();
+        }
+    }
+
+    private static OtlpSpan CreateSpan(OtlpApplication application, Span span, OtlpTrace trace)
+    {
+        var id = span.SpanId?.ToHexString();
+        if (id is null)
+        {
+            throw new ArgumentException("Span has no SpanId");
+        }
+
+        var events = new List<OtlpSpanEvent>();
+        foreach (var e in span.Events)
+        {
+            events.Add(new OtlpSpanEvent()
+            {
+                Name = e.Name,
+                Time = OtlpHelpers.UnixNanoSecondsToDateTime(e.TimeUnixNano),
+                Attributes = e.Attributes.ToKeyValuePairs()
+            });
+        }
+
+        var newSpan = new OtlpSpan(application, trace)
+        {
+            SpanId = id,
+            ParentSpanId = span.ParentSpanId?.ToHexString(),
+            Name = span.Name,
+            Kind = ConvertSpanKind(span.Kind),
+            StartTime = OtlpHelpers.UnixNanoSecondsToDateTime(span.StartTimeUnixNano),
+            EndTime = OtlpHelpers.UnixNanoSecondsToDateTime(span.EndTimeUnixNano),
+            Status = ConvertStatus(span.Status),
+            StatusMessage = span.Status?.Message,
+            Attributes = span.Attributes.ToKeyValuePairs(),
+            State = span.TraceState,
+            Events = events
+        };
+        return newSpan;
     }
 }

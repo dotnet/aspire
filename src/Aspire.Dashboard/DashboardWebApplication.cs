@@ -92,6 +92,8 @@ public class DashboardWebApplication : IHostedService
 
         _app.UseAuthorization();
 
+        _app.UseAntiforgery();
+
         _app.MapRazorComponents<App>().AddInteractiveServerRenderMode();
 
         // OTLP gRPC services.

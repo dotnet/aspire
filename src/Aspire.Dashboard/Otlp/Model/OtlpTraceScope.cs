@@ -17,8 +17,6 @@ public class OtlpTraceScope
 
     public string ServiceProperties => Properties.ConcatProperties();
 
-    public List<OtlpTraceSpan> TraceSpans { get; } = new List<OtlpTraceSpan>();
-
     public OtlpTraceScope(InstrumentationScope scope)
     {
         ScopeName = scope.Name;

@@ -123,7 +123,7 @@
                 },
                 "ConnectionString": {
                   "type": "string",
-                  "description": "A comma-delimited configuration string."
+                  "description": "Gets or sets the comma-delimited configuration string used to connect to the Redis server."
                 },
                 "HealthChecks": {
                   "type": "boolean",

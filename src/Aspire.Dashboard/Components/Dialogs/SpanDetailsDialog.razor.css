@@ -1,0 +1,26 @@
+.GridContainer {
+    width: auto;
+    height: auto;
+    max-width: 1000px;
+    max-height: 500px;
+    min-width: 800px;
+    overflow-x: auto;
+    overflow-y: auto;
+}
+
+::deep fluent-toolbar {
+    width: 100%;
+}
+
+::deep .defaultHidden {
+    visibility: hidden;
+}
+
+::deep .valueColumn:hover .defaultHidden,
+::deep .nameColumn:hover .defaultHidden {
+    visibility: visible;
+}
+
+.cellText {
+    flex-grow: 1;
+}

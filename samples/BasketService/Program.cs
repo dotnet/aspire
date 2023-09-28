@@ -5,7 +5,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 builder.Services.AddGrpc();
 
-builder.AddRedis();
+builder.AddRedis("basketCache");
 builder.Services.AddTransient<IBasketRepository, RedisBasketRepository>();
 
 // When running for Development, don't fail at startup if the developer hasn't configured ServiceBus yet.

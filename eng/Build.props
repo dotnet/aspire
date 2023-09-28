@@ -7,6 +7,5 @@
     <ProjectToBuild Include="$(RepoRoot)src\**\*.csproj" Exclude="$(RepoRoot)src\Aspire.ProjectTemplates\templates\**\*.csproj" />
     <ProjectToBuild Include="$(RepoRoot)tests\**\*.csproj"  />
     <ProjectToBuild Include="$(RepoRoot)samples\**\*.csproj" />
-    <ProjectToBuild Include="$(RepoRoot)src\**\*.sfxproj" />
   </ItemGroup>
 </Project>

@@ -1,3 +1,16 @@
+
+// To avoid Flash of Unstyled Content, the body is hidden by default with
+// the before-upgrade CSS class. Here we'll find the first web component
+// and wait for it to be upgraded. When it is, we'll remove that class
+// from the body. 
+const firstUndefinedElement = document.body.querySelector(":not(:defined)");
+
+if (firstUndefinedElement) {
+    customElements.whenDefined(firstUndefinedElement.localName).then(() => {
+        document.body.classList.remove("before-upgrade");
+    });
+}
+
 window.scrollToEndInTextArea = function (classSelector) {
     let fluentTextAreas = document.querySelectorAll(classSelector);
     if (fluentTextAreas && fluentTextAreas.length > 0) {
@@ -24,32 +37,20 @@ window.scollToLogsEnd = function () {
         return;
     }
 
-    container.onscroll = (event) => {
+    // The scroll event is used to detect when the user scrolls to view content.
+    container.addEventListener('scroll', () => {
         isScrolledToContent = !isScrolledToBottom(container);
-    };
+    }, { passive: true });
 
-    // This method scrolls to the bottom of the logs data grid. It is called by blazor when rendering updates.
-    // The MutationObserver is used to detect when the aria-rowcount attribute is updated, which indicates that
-    // the logs have been updated and populated into the grid. At this point, we can scroll to the bottom of the grid.
-
-    // Options for the observer (which mutations to observe)
-    const config = { attributes: true, attributeFilter: ["aria-rowcount"] };
-
-    let observer = null;
-    const callback = (mutationList, observer) => {
-        // Only scroll to the bottom if the current position is at the bottom.
-        // Prevents scrolling to the bottom when the user has scrolled up to view previous logs.
+    // The ResizeObserver reports changes in the grid size.
+    // This ensures that the logs are scrolled to the bottom when there are new logs
+    // unless the user has scrolled to view content.
+    const observer = new ResizeObserver(function () {
         if (!isScrolledToContent) {
             container.scrollTop = container.scrollHeight;
         }
-
-        // Disconnect the observer when the logs have been scrolled to the bottom.
-        // Blazor rendering updates will create an observer.
-        observer.disconnect();
-    };
-
-    observer = new MutationObserver(callback);
-    observer.observe(grid, config);
+    });
+    observer.observe(grid);
 };
 
 function isScrolledToBottom(container) {
@@ -60,7 +61,7 @@ function isScrolledToBottom(container) {
 }
 
 window.copyTextToClipboard = function (id, text, precopy, postcopy) {
-    let tooltipDiv = document.querySelector('fluent-tooltip[anchor=' + id + ']').children[0];
+    let tooltipDiv = document.querySelector('fluent-tooltip[anchor="' + id + '"]').children[0];
     navigator.clipboard.writeText(text)
         .then(() => {
             tooltipDiv.innerText = postcopy;

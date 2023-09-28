@@ -4,6 +4,7 @@
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
+using Aspire.Dashboard.Otlp.Storage;
 using Google.Protobuf;
 using Google.Protobuf.Collections;
 using OpenTelemetry.Proto.Common.V1;
@@ -27,9 +28,17 @@ public static class OtlpHelpers
         return null;
     }
 
-    public static string ToHexString(this ByteString bytes)
+    public static string ToShortenedId(string id) =>
+        id.Length > 7 ? id[..7] : id;
+
+    public static string FormatTimeStamp(DateTime timestamp)
     {
-        if (bytes is null or { Length: 0 })
+        return timestamp.ToLocalTime().ToString("h:mm:ss.fff tt", CultureInfo.CurrentCulture);
+    }
+
+    public static string ToHexString(ReadOnlyMemory<byte> bytes)
+    {
+        if (bytes.Length == 0)
         {
             return string.Empty;
         }
@@ -44,6 +53,11 @@ public static class OtlpHelpers
                 ToCharsBuffer(data[pos], chars, pos * 2);
             }
         });
+    }
+
+    public static string ToHexString(this ByteString bytes)
+    {
+        return ToHexString(bytes.Memory);
     }
 
     public static string GetString(this AnyValue value) =>
@@ -71,8 +85,19 @@ public static class OtlpHelpers
 
     public static DateTime UnixNanoSecondsToDateTime(ulong unixTimeNanoSeconds)
     {
-        var ms = (long)unixTimeNanoSeconds / 1_000_000;
-        return DateTimeOffset.FromUnixTimeMilliseconds(ms).DateTime;
+        var ticks = NanoSecondsToTicks(unixTimeNanoSeconds);
+
+        // Create a DateTime object for the Unix epoch (January 1, 1970)
+        var unixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        unixEpoch = unixEpoch.AddTicks(ticks);
+
+        return unixEpoch;
+    }
+
+    private static long NanoSecondsToTicks(ulong nanoSeconds)
+    {
+        const ulong nanosecondsPerTick = 100; // 100 nanoseconds per tick
+        return (long)(nanoSeconds / nanosecondsPerTick);
     }
 
     public static KeyValuePair<string, string>[] ToKeyValuePairs(this RepeatedField<KeyValue> attributes)
@@ -83,7 +108,7 @@ public static class OtlpHelpers
         }
 
         var values = new KeyValuePair<string, string>[attributes.Count];
-        for (int i = 0; i < attributes.Count; i++)
+        for (var i = 0; i < attributes.Count; i++)
         {
             var keyValue = attributes[i];
             values[i] = new KeyValuePair<string, string>(keyValue.Key, keyValue.Value.GetString());
@@ -125,4 +150,34 @@ public static class OtlpHelpers
 
     public static string Right(this string value, int length) =>
         value.Length <= length ? value : value.Substring(value.Length - length, length);
+
+    public static PagedResult<T> GetItems<T>(IEnumerable<T> results, int startIndex, int? count)
+    {
+        return GetItems<T, T>(results, startIndex, count, null);
+    }
+
+    public static PagedResult<TResult> GetItems<TSource, TResult>(IEnumerable<TSource> results, int startIndex, int? count, Func<TSource, TResult>? select)
+    {
+        var query = results.Skip(startIndex);
+        if (count != null)
+        {
+            query = query.Take(count.Value);
+        }
+        List<TResult> items;
+        if (select != null)
+        {
+            items = query.Select(select).ToList();
+        }
+        else
+        {
+            items = query.Cast<TResult>().ToList();
+        }
+        var totalItemCount = results.Count();
+
+        return new PagedResult<TResult>
+        {
+            Items = items,
+            TotalItemCount = totalItemCount
+        };
+    }
 }
