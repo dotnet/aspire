@@ -15,7 +15,7 @@ public class AspireRedisOutputCacheExtensionsTests
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
 
-        builder.AddRedisOutputCache();
+        builder.AddRedisOutputCache("redis");
 
         var host = builder.Build();
         var cacheStore = host.Services.GetRequiredService<IOutputCacheStore>();

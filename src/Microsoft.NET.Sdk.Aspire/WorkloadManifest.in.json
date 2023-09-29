@@ -3,14 +3,13 @@
   "workloads": {
     "aspire": {
       "description": ".NET Aspire SDK",
-      "extends": [ "aspire-host-runtime" ],
       "packs": [
         "Aspire.Hosting.Sdk",
         "Aspire.ProjectTemplates",
-       "Microsoft.DeveloperControlPlane",
-        "Aspire.Hosting.Ref"
+        "Aspire.Hosting.Orchestration",
+        "Aspire.Hosting"
       ],
-      // both DCP and Aspire.Hosting.Runtime only support these hosts
+      // DCP only support these hosts
       "platforms": [
         "win-x64",
         "win-arm64",
@@ -18,17 +17,6 @@
         "linux-arm64",
         "osx-x64",
         "osx-arm64"
-      ]
-    },
-    "aspire-host-runtime": {
-      "abstract": true,
-      "packs": [
-        "Aspire.Hosting.Runtime.win-x64",
-        "Aspire.Hosting.Runtime.win-arm64",
-        "Aspire.Hosting.Runtime.linux-x64",
-        "Aspire.Hosting.Runtime.linux-arm64",
-        "Aspire.Hosting.Runtime.osx-x64",
-        "Aspire.Hosting.Runtime.osx-arm64"
       ]
     }
   },
@@ -41,81 +29,22 @@
       "kind": "template",
       "version": "@VERSION@"
     },
-   "Microsoft.DeveloperControlPlane": {
+   "Aspire.Hosting.Orchestration": {
       "kind": "sdk",
-      "version": "@DCP_VERSION@",
+      "version": "@VERSION@",
       "alias-to": {
-        "win-x86": "Microsoft.DeveloperControlPlane.windows-386",
-        "win-x64": "Microsoft.DeveloperControlPlane.windows-amd64",
-        "win-arm64": "Microsoft.DeveloperControlPlane.windows-arm64",
-        "linux-x64": "Microsoft.DeveloperControlPlane.linux-amd64",
-        "linux-arm64": "Microsoft.DeveloperControlPlane.linux-arm64",
-        "osx-x64": "Microsoft.DeveloperControlPlane.darwin-amd64",
-        "osx-arm64": "Microsoft.DeveloperControlPlane.darwin-arm64"
+        "win-x86": "Aspire.Hosting.Orchestration.win-x86",
+        "win-x64": "Aspire.Hosting.Orchestration.win-x64",
+        "win-arm64": "Aspire.Hosting.Orchestration.win-arm64",
+        "linux-x64": "Aspire.Hosting.Orchestration.linux-x64",
+        "linux-arm64": "Aspire.Hosting.Orchestration.linux-arm64",
+        "osx-x64": "Aspire.Hosting.Orchestration.osx-x64",
+        "osx-arm64": "Aspire.Hosting.Orchestration.osx-arm64"
       }
     },
-    "Aspire.Hosting.Ref": {
-      "kind": "framework",
+    "Aspire.Hosting": {
+      "kind": "library",
       "version": "@VERSION@"
-    },
-    /*
-    Here we are not using alias-to to map a single pack ID to host specific variants like normal.
-    Instead, we are making sure that each runtime pack is only installed on the matching host,
-    as we do not expect Aspire host projects to be built for a platform other than the host,
-    so it's pointless to install the runtime packs for other platforms.
-
-    This means the build sees and treats these like any other RID-specific runtime packs. If for any
-    reason a RID-specific pack is needed other than the one installed by the workload, it will be
-    downloaded into the NuGet package directory at build time.
-    */
-    "Aspire.Hosting.Runtime.win-x86": {
-      "kind": "framework",
-      "version": "@VERSION@",
-      "alias-to": {
-        "win-x64": "Aspire.Hosting.Runtime.win-x86"
-      }
-    },
-    "Aspire.Hosting.Runtime.win-x64": {
-      "kind": "framework",
-      "version": "@VERSION@",
-      "alias-to": {
-        "win-x64": "Aspire.Hosting.Runtime.win-x64"
-      }
-    },
-    "Aspire.Hosting.Runtime.win-arm64": {
-      "kind": "framework",
-      "version": "@VERSION@",
-      "alias-to": {
-        "win-arm64": "Aspire.Hosting.Runtime.win-arm64"
-      }
-    },
-    "Aspire.Hosting.Runtime.linux-x64": {
-      "kind": "framework",
-      "version": "@VERSION@",
-      "alias-to": {
-        "linux-x64": "Aspire.Hosting.Runtime.linux-x64"
-      }
-    },
-    "Aspire.Hosting.Runtime.linux-arm64": {
-      "kind": "framework",
-      "version": "@VERSION@",
-      "alias-to": {
-        "linux-arm64": "Aspire.Hosting.Runtime.linux-arm64"
-      }
-    },
-    "Aspire.Hosting.Runtime.osx-x64": {
-      "kind": "framework",
-      "version": "@VERSION@",
-      "alias-to": {
-        "osx-x64": "Aspire.Hosting.Runtime.osx-x64"
-      }
-    },
-    "Aspire.Hosting.Runtime.osx-arm64": {
-      "kind": "framework",
-      "version": "@VERSION@",
-      "alias-to": {
-        "osx-arm64": "Aspire.Hosting.Runtime.osx-arm64"
-      }
     }
   }
 }

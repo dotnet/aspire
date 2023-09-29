@@ -1,11 +1,13 @@
 <Project>
+
   <PropertyGroup>
     <!-- Ensure this property is set even if Aspire.Hosting.Sdk was imported directly instead of via the workload targets -->
     <IsAspireHost>true</IsAspireHost>
+    <AspireHostingVersion Condition=" '$(AspireHostingVersion)' == '' ">@VERSION@</AspireHostingVersion>
   </PropertyGroup>
 
   <ItemGroup>
-    <FrameworkReference Include="Aspire.Hosting" />
+    <PackageReference Include="Aspire.Hosting" IsImplicitlyDefined="true" Version="$(AspireHostingVersion)" />
   </ItemGroup>
 
   <!-- *** BEGIN *** -->
@@ -32,29 +34,13 @@
 
   <!-- *** END ***  -->
 
-  <Import Project="BundledVersions.targets" />
-
   <!--
   This SDK comes from a workload pack, so normally should only be referenced from
   the WorkloadManifest.targets so as not to cause workload restore to require multiple
   phases, but it's okay here because every workload that contains Aspire.Hosting.Sdk
-  also contains Microsoft.DeveloperControlPlane and vice versa. Once Aspire/DCP are public
+  also contains Aspire.Hosting.Orchestration and vice versa. Once Aspire/DCP are public
   we can move it to WorkloadManifest.targets to ensure future correctness.
   -->
-  <Import Project="Sdk.targets" Sdk="Microsoft.DeveloperControlPlane" />
-
-  <Import Project="Aspire.Hosting.targets" />
-
-  <!--
-  This is temporary and should only affect projects that do not correctly migrate
-  to the Aspire workload from from the Aspire.Hosting package
-  -->
-  <Target
-    Name="_CheckAspireHostingPackageReference"
-    BeforeTargets="Restore"
-    Condition="'@(PackageReference->AnyHaveMetadataValue('Identity', 'Aspire.Hosting'))' =='true'"
-    >
-    <Error Text="Aspire.Hosting package references must be removed after migrating to the workload." />
-  </Target>
+  <Import Project="Sdk.targets" Sdk="Aspire.Hosting.Orchestration" />
 
 </Project>

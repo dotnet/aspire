@@ -18,7 +18,52 @@ dotnet add package Aspire.StackExchange.Redis
 
 ## Usage Example
 
-Call `AddRedis` extension method to add an `IConnectionMultiplexer` singleton with the desired configurations exposed with `StackExchangeRedisSettings`. The library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `StackExchangeRedisSettings` from configuration by using `Aspire:StackExchange:Redis` key. Note that at least one host name is required to connect. Example `appsettings.json` that configures some of the options:
+In the `Program.cs` file of your project, call the `AddRedis` extension method to register an `IConnectionMultiplexer` for use via the dependency injection container.
+
+```cs
+builder.AddRedis();
+```
+
+You can then retrieve the `IConnectionMultiplexer` instance using dependency injection. For example, to retrieve the cache from a Web API controller:
+
+```cs
+private readonly IConnectionMultiplexer _cache;
+
+public ProductsController(IConnectionMultiplexer cache)
+{
+    _cache = cache;
+}
+```
+
+See the [StackExchange.Redis documentation](https://stackexchange.github.io/StackExchange.Redis/Basics) for examples on using the `IConnectionMultiplexer`.
+
+## Configuration
+
+The Aspire StackExchange Redis component provides multiple options to configure the Redis connection based on the requirements and conventions of your project. Note that at least one host name is required to connect.
+
+### Use a connection string
+
+When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddRedis()`:
+
+```cs
+builder.AddRedis("myRedisConnectionName");
+```
+
+And then the connection string will be retrieved from the `ConnectionStrings` configuration section:
+
+```json
+{
+  "ConnectionStrings": {
+    "myRedisConnectionName": "localhost:6379"
+  }
+}
+```
+
+See the [Basic Configuration Settings](https://stackexchange.github.io/StackExchange.Redis/Configuration.html#basic-configuration-strings) of the StackExchange.Redis docs for more information on how to format this connection string.
+
+### Use configuration providers
+
+The Redis component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `StackExchangeRedisSettings` and `ConfigurationOptions` from configuration by using the `Aspire:StackExchange:Redis` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {
@@ -27,75 +72,51 @@ Call `AddRedis` extension method to add an `IConnectionMultiplexer` singleton wi
       "Redis": {
         "ConnectionString": "localhost:6379",
         "ConfigurationOptions": {
-          "ConnectTimeout": 5000,
+          "ConnectTimeout": 3000,
           "ConnectRetry": 2
         },
-        "Tracing": false    
-      }
-    }
-  }
-}
-```
- 
- If you have setup your configurations in the `Aspire.StackExchange.Redis` section you can just call the method without passing any parameter.
- 
-```cs
-    builder.AddRedis();
-```
-
-If you want to add more than one [IConnectionMultiplexer](https://stackexchange.github.io/StackExchange.Redis/Basics) you could use a named instances. The json configuration would look like: 
-
-```json
-{
-  "Aspire": {
-    "StackExchange": {
-      "Redis": {
-        "INSTANCE_NAME": {
-          "ConnectionString": "localhost:6379",
-          "ConfigurationOptions": {
-            "ConnectTimeout": 5000,
-            "ConnectRetry": 2
-          },
-          "Tracing": false
-        }
+        "Tracing": false
       }
     }
   }
 }
 ```
 
-To load the named configuration section from the json config call the `AddRedis` method by passing the `INSTANCE_NAME`.
+### Use inline delegates
+
+You can also pass the `Action<StackExchangeRedisSettings> configureSettings` delegate to set up some or all the options inline, for example to use a connection string from code:
 
 ```cs
-    builder.AddRedis("INSTANCE_NAME");
+builder.AddRedis(configureSettings: settings => settings.ConnectionString = "localhost:6379");
 ```
 
-Also you can pass the `Action<StackExchangeRedisSettings>` delegate to set up some or all the options inline, for example to set the `Tracing`:
+You can also setup the [ConfigurationOptions](https://stackexchange.github.io/StackExchange.Redis/Configuration.html#configuration-options) using the `Action<ConfigurationOptions> configureOptions` delegate parameter of the `AddRedis` method. For example to set the connection timeout:
 
 ```cs
-    builder.AddRedis(settings => settings.Tracing = false);
+builder.AddRedis(configureOptions: options => options.ConnectTimeout = 3000);
 ```
 
-Here are the configurable options with corresponding default values:
+## DevHost Extensions
+
+In your DevHost project, register a Redis container and consume the connection using the following methods:
 
 ```cs
-public sealed class StackExchangeRedisSettings
-{
-    // A boolean value that indicates whether the Redis health check is enabled or not.
-    public bool HealthChecks { get; set; } = true;
+var redis = builder.AddRedisContainer("cache");
 
-    // A boolean value that indicates whether the OpenTelemetry tracing is enabled or not.
-    public bool Tracing { get; set; } = true;
-}
+var myService = builder.AddProject<YourApp.Projects.MyService>()
+                       .WithRedis(redis);
 ```
 
-Check [ConfigurationOptions](https://stackexchange.github.io/StackExchange.Redis/Configuration.html#configuration-options) for more info about client config options.
+`.WithRedis` configures a connection in the `MyService` project named `cache`. In the `Program.cs` file of `MyService`, the redis connection can be consumed using:
 
-After adding a `IConnectionMultiplexer` to the builder you can get the `IConnectionMultiplexer` singleton instance using DI.
+```cs
+builder.AddRedis("cache");
+```
 
 ## Additional documentation
 
-https://github.com/dotnet/astra/tree/main/src/Components/README.md
+* https://stackexchange.github.io/StackExchange.Redis/Basics
+* https://github.com/dotnet/astra/tree/main/src/Components/README.md
 
 ## Feedback & Contributing
 

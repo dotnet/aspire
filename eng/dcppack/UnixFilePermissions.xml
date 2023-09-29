@@ -1,0 +1,6 @@
+<FileList>
+  <File Path="tools/dcp" Permission="755"/>
+  <File Path="tools/ext/bin/traefik" Permission="755"/>
+  <File Path="tools/ext/dcpd" Permission="755"/>
+  <File Path="tools/ext/dcpctrl" Permission="755"/>
+</FileList>

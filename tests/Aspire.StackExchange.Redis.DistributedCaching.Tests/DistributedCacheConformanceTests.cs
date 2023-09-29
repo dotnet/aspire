@@ -19,11 +19,11 @@ public class DistributedCacheConformanceTests : ConformanceTests
     {
         if (key is null)
         {
-            builder.AddRedisDistributedCache(configure);
+            builder.AddRedisDistributedCache(configureSettings: configure);
         }
         else
         {
-            builder.AddRedisDistributedCache(key, configure);
+            builder.AddKeyedRedisDistributedCache(key, configure);
         }
     }
 
@@ -34,7 +34,7 @@ public class DistributedCacheConformanceTests : ConformanceTests
 
         var builder = CreateHostBuilder();
 
-        builder.AddRedisDistributedCache();
+        builder.AddRedisDistributedCache("redis");
 
         var tcs = new TaskCompletionSource();
         var exportedActivities = new List<Activity>();

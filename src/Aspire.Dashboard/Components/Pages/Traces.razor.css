@@ -1,0 +1,31 @@
+
+.trace-id {
+    color: rgb(136, 136, 136);
+    padding-left: 0.5rem;
+    font-size: 12px;
+}
+
+.trace-list-reset {
+    padding-left: 0px;
+    margin-bottom: 0px;
+    list-style: none;
+    display: inline-block;
+}
+
+.trace-inline-block {
+    display: inline-block;
+}
+
+.trace-tag {
+    display: flex;
+    align-items: center;
+    border: 1px solid rgb(217, 217, 217);
+    padding: 2px 7px;
+    margin-right: 7px;
+    font-size: 12px;
+    background: rgb(250, 250, 250)
+}
+
+.trace-service-tag {
+    border-left-width: 15px;
+}

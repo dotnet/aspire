@@ -9,7 +9,7 @@
   "name": "Aspire Application",
   "defaultName": "AspireApp",
   "description": "A project template for creating an empty Aspire app.",
-  "shortName": "Aspire",
+  "shortName": "aspire",
   "sourceName": "AspireApplication1",
   "preferNameDirectory": true,
   "tags": {

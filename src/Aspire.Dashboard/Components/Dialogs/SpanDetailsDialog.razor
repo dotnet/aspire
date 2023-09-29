@@ -1,0 +1,160 @@
+﻿@using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Otlp.Model
+@using Microsoft.Fast.Components.FluentUI;
+@implements IDialogContentComponent<SpanDetailsDialogViewModel>
+@inject IJSRuntime JS
+
+<FluentDialogBody>
+    <div class="GridContainer">
+        <FluentStack Orientation="Orientation.Vertical">
+            <FluentToolbar Orientation="Orientation.Horizontal">
+                <div>
+                    Service <strong>@Content.Span.Source.ApplicationName</strong>
+                </div>
+                <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
+                <div>
+                    Duration <strong>@DurationFormatter.FormatDuration(Content.Span.Duration)</strong>
+                </div>
+                <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
+                <div>
+                    Start Time <strong>@DurationFormatter.FormatDuration(Content.Span.StartTime - Content.Span.Trace.FirstSpan.StartTime)</strong>
+                </div>
+                <FluentAnchor slot="end" Appearance="Appearance.Lightweight" Href="@($"/SemanticLogs?spanId={Content.Span.SpanId}")">View Logs</FluentAnchor>
+                <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
+                <FluentSearch Placeholder="Filter..."
+                              Immediate="true"
+                              Autofocus="true"
+                              @bind-Value="filter"
+                              @oninput="HandleFilter"
+                              AfterBindValue="HandleClear"
+                              slot="end" />
+            </FluentToolbar>
+            <FluentDataGrid Items="@FilteredItems"
+                            ResizableColumns="true"
+                            Style="width:100%"
+                            GenerateHeader="GenerateHeaderOption.Sticky"
+                            GridTemplateColumns="1fr 2fr">
+                <TemplateColumn Title="Name" Class="nameColumn" SortBy="@nameSort" Sortable="true">
+                    <FluentStack Orientation="Orientation.Horizontal">
+                        <span class="cellText">
+                            <FluentHighlighter HighlightedText="@filter" Text="@context.Name" />
+                        </span>
+                        @{
+                            var anchor = "name-" + context.Name;
+                        }
+                        <FluentButton Appearance="Appearance.Lightweight"
+                                      Id="@anchor"
+                                      IconEnd="@(new Icons.Regular.Size16.Copy())"
+                                      Class="defaultHidden"
+                                      OnClick="async () => await CopyTextToClipboardAsync(context.Name, anchor)" />
+                        <FluentTooltip Anchor="@anchor" Position="TooltipPosition.Top">@preCopyText</FluentTooltip>
+                        </FluentStack>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Value" Class="valueColumn" SortBy="@valueSort" Sortable="true">
+                        <FluentStack Orientation="Orientation.Horizontal">
+                            <span class="cellText">
+                                <FluentHighlighter HighlightedText="@filter" Text="@context.Value" />
+                            </span>
+                            @{
+                            var anchor = "copy-" + context.Name;
+                        }
+                        <FluentButton Appearance="Appearance.Lightweight"
+                                      Id="@anchor"
+                                      IconEnd="@(new Icons.Regular.Size16.Copy())"
+                                      Class="defaultHidden"
+                                      Title="Copy to Clipboard"
+                                      OnClick="async () => await CopyTextToClipboardAsync(context.Value, anchor)" />
+                        <FluentTooltip Anchor="@anchor" Position="TooltipPosition.Top">@preCopyText</FluentTooltip>
+                        </FluentStack>
+                    </TemplateColumn>
+                </FluentDataGrid>
+                <h4>Application</h4>
+                <FluentDataGrid Items="@FilteredApplicationItems"
+                                ResizableColumns="true"
+                                Style="width:100%"
+                                GenerateHeader="GenerateHeaderOption.Sticky"
+                                GridTemplateColumns="1fr 2fr">
+                    <TemplateColumn Title="Name" Class="nameColumn">
+                        <FluentStack Orientation="Orientation.Horizontal">
+                            <span class="cellText">
+                                <FluentHighlighter HighlightedText="@filter" Text="@context.Name" />
+                            </span>
+                            @{
+                            var anchor = "name-" + context.Name;
+                        }
+                        <FluentButton Appearance="Appearance.Lightweight"
+                                      Id="@anchor"
+                                      IconEnd="@(new Icons.Regular.Size16.Copy())"
+                                      Class="defaultHidden"
+                                      OnClick="async () => await CopyTextToClipboardAsync(context.Name, anchor)" />
+                        <FluentTooltip Anchor="@anchor" Position="TooltipPosition.Top">@preCopyText</FluentTooltip>
+                        </FluentStack>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Value" Class="valueColumn">
+                        <FluentStack Orientation="Orientation.Horizontal">
+                            <span class="cellText">
+                                <FluentHighlighter HighlightedText="@filter" Text="@context.Value" />
+                            </span>
+                            @{
+                            var anchor = "copy-" + context.Name;
+                        }
+                        <FluentButton Appearance="Appearance.Lightweight"
+                                      Id="@anchor"
+                                      IconEnd="@(new Icons.Regular.Size16.Copy())"
+                                      Class="defaultHidden"
+                                      Title="Copy to Clipboard"
+                                      OnClick="async () => await CopyTextToClipboardAsync(context.Value, anchor)" />
+                        <FluentTooltip Anchor="@anchor" Position="TooltipPosition.Top">@preCopyText</FluentTooltip>
+                        </FluentStack>
+                    </TemplateColumn>
+                </FluentDataGrid>
+            </FluentStack>
+        </div>
+    </FluentDialogBody>
+
+    @code {
+    [Parameter]
+    public SpanDetailsDialogViewModel Content { get; set; } = default!;
+
+    private IQueryable<SpanPropertyViewModel>? FilteredItems =>
+        Content.Properties.Where(vm =>
+            vm.Name.Contains(filter, StringComparison.CurrentCultureIgnoreCase) ||
+            vm.Value?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true
+        )?.AsQueryable();
+
+    private IQueryable<SpanPropertyViewModel>? FilteredApplicationItems =>
+        Content.Span.Source.AllProperties().Select(p => new SpanPropertyViewModel { Name = p.Key, Value = p.Value })
+            .Where(vm =>
+                vm.Name.Contains(filter, StringComparison.CurrentCultureIgnoreCase) ||
+                vm.Value?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true
+        )?.AsQueryable();
+
+    private const string preCopyText = "Copy to clipboard";
+    private const string postCopyText = "Copied!";
+
+    private string filter = "";
+
+    private GridSort<SpanPropertyViewModel> nameSort = GridSort<SpanPropertyViewModel>
+        .ByAscending(vm => vm.Name);
+    private GridSort<SpanPropertyViewModel> valueSort = GridSort<SpanPropertyViewModel>
+        .ByAscending(vm => vm.Value);
+
+    private void HandleFilter(ChangeEventArgs args)
+    {
+        if (args.Value is string newFilter)
+        {
+            filter = newFilter;
+        }
+    }
+
+    private void HandleClear(string? value)
+    {
+        filter = value ?? string.Empty;
+    }
+
+    private async Task CopyTextToClipboardAsync(string? text, string id)
+    {
+        await JS.InvokeVoidAsync("copyTextToClipboard", id, text, preCopyText, postCopyText);
+    }
+}
+

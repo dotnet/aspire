@@ -1,0 +1,185 @@
+﻿@page "/Traces/{applicationInstanceId?}"
+
+@using Aspire.Dashboard.Components.Dialogs
+@using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Model.Otlp
+@using Aspire.Dashboard.Otlp.Model
+@using Aspire.Dashboard.Otlp.Storage
+@using Microsoft.Fast.Components.FluentUI
+@using System.Web
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JS
+@implements IDisposable
+
+<h1>Traces</h1>
+
+<div>
+    <FluentStack Orientation="Orientation.Vertical">
+        <FluentToolbar Orientation="Orientation.Horizontal">
+            <FluentSelect TOption="ApplicationViewModel"
+                          Items="@_applications"
+                          OptionValue="@(c => c.Id)"
+                          OptionText="@(c => c.Name)"
+                          @bind-SelectedOption="_selectedApplication"
+                          @bind-SelectedOption:after="HandleSelectedApplicationChangedAsync" />
+        </FluentToolbar>
+        <div class="datagrid-overflow-area SemanticLogsOverflow" tabindex="-1">
+            <FluentDataGrid Class="SemanticLogsDataGrid" Virtualize="true" RowStyle="@GetRowStyle" GenerateHeader="GenerateHeaderOption.Sticky" ItemSize="48" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="OtlpTrace" GridTemplateColumns="0.8fr 2fr 3fr 0.5fr 0.5fr">
+              <ChildContent>
+                <PropertyColumn Title="Timestamp" Property="@(context => OtlpHelpers.FormatTimeStamp(context.FirstSpan.StartTime))" />
+                <TemplateColumn Title="Name">
+                    <span>@(context.FirstSpan.Source.ApplicationName): @context.FirstSpan.Name</span>
+                    <span class="trace-id">@OtlpHelpers.ToShortenedId(context.TraceId)</span>
+                </TemplateColumn>
+                <TemplateColumn Title="Spans">
+                    <FluentOverflow>
+                        <ChildContent>
+                            @foreach (var item in context.Spans.GroupBy(s => s.Source).OrderBy(g => g.Key.ApplicationName))
+                            {
+                                <FluentOverflowItem>
+                                    <span class="trace-tag trace-service-tag" style="border-left-color: @ColorGenerator.Instance.GetColorHexByKey(item.Key.ApplicationName);">
+                                        @if (item.Any(s => s.Status == OtlpSpanStatusCode.Error))
+                                        {
+                                            <FluentIcon Icon="Icons.Filled.Size12.ErrorCircle" Color="Color.Error" Class="trace-tag-icon" />
+                                        }
+                                        @item.Key.ApplicationName (@item.Count())
+                                    </span>
+                                </FluentOverflowItem>
+                            }
+                        </ChildContent>
+                        <MoreButtonTemplate Context="another_name">
+                            <span class="trace-tag">
+                                @($"+{another_name.ItemsOverflow.Count()}")
+                            </span>
+                        </MoreButtonTemplate>
+                    </FluentOverflow>
+                </TemplateColumn>
+                <PropertyColumn Title="Duration" Property="@(context => DurationFormatter.FormatDuration(context.Duration))" />
+                <TemplateColumn>
+                    <FluentButton Appearance="Appearance.Lightweight" OnClick="() => SelectTraceAsync(context)">View</FluentButton>
+                </TemplateColumn>
+             </ChildContent>
+             <EmptyContent>
+                  <FluentIcon Icon="Icons.Regular.Size24.GanttChart" />&nbsp;No traces found
+              </EmptyContent>
+            </FluentDataGrid>
+        </div>
+        <TotalItemsFooter @ref="totalItemsFooter" />
+    </FluentStack>
+</div>
+
+@code {
+    private static readonly ApplicationViewModel AllApplication = new ApplicationViewModel { Id = null, Name = "(All)" };
+
+    private readonly List<LogFilter> _logFilters = new();
+    private TotalItemsFooter totalItemsFooter = default!;
+    private List<ApplicationViewModel>? _applications;
+    private ApplicationViewModel _selectedApplication = AllApplication;
+    private Subscription? _applicationsSubscription;
+    private Subscription? _tracesSubscription;
+    private int _totalItemCount;
+    private TimeSpan _maxDuration;
+    private bool _applicationChanged;
+
+    [Parameter]
+    public string? ApplicationInstanceId { get; set; }
+
+    [Inject]
+    public required TelemetryRepository TelemetryRepository { get; set; }
+
+    [Inject]
+    public required IDialogService DialogService { get; set; }
+
+    private string GetRowStyle(OtlpTrace trace)
+    {
+        var percentage = 0.0;
+        if (_maxDuration != TimeSpan.Zero)
+        {
+            percentage = trace.Duration / _maxDuration * 100.0;
+        }
+
+        return $"background: linear-gradient(to right, var(--duration-color) {percentage.ToString("0.##")}%, transparent {percentage.ToString("0.##")}%);";
+    }
+
+    private ValueTask<GridItemsProviderResult<OtlpTrace>> GetData(GridItemsProviderRequest<OtlpTrace> request)
+    {
+        var result = TelemetryRepository.GetTraces(new GetTracesContext
+            {
+                ApplicationServiceId = _selectedApplication.Id,
+                StartIndex = request.StartIndex,
+                Count = request.Count
+            });
+        var traces = result.PagedResult;
+        _maxDuration = result.MaxDuraiton;
+
+        // Updating the total item count as a field doesn't work because it isn't updated with the grid.
+        // The workaround is to put the count inside a control and explicitly update and refresh the control.
+        totalItemsFooter.SetTotalItemCount(traces.TotalItemCount);
+
+        return ValueTask.FromResult(new GridItemsProviderResult<OtlpTrace>
+            {
+                Items = traces.Items,
+                TotalItemCount = _totalItemCount = traces.TotalItemCount
+            });
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await UpdateApplicationsAsync();
+        _applicationsSubscription = TelemetryRepository.OnNewApplications(() => InvokeAsync(async () =>
+        {
+            await UpdateApplicationsAsync();
+            StateHasChanged();
+        }));
+    }
+
+    private Task UpdateApplicationsAsync()
+    {
+        _applications = TelemetryRepository.GetApplications().Select(a => new ApplicationViewModel { Id = a.InstanceId, Name = a.ApplicationName }).ToList();
+        _applications.Insert(0, AllApplication);
+        _selectedApplication = _applications.SingleOrDefault(e => e.Id == ApplicationInstanceId) ?? AllApplication;
+
+        return Task.CompletedTask;
+    }
+
+    private Task HandleSelectedApplicationChangedAsync()
+    {
+        NavigationManager.NavigateTo($"/Traces/{_selectedApplication.Id}");
+        _applicationChanged = true;
+        UpdateSubscription();
+
+        return Task.CompletedTask;
+    }
+
+    private void UpdateSubscription()
+    {
+        // Subscribe to updates.
+        if (_tracesSubscription is null || _tracesSubscription.ApplicationId != _selectedApplication.Id)
+        {
+            _tracesSubscription?.Dispose();
+            _tracesSubscription = TelemetryRepository.OnNewTraces(_selectedApplication.Id, () => InvokeAsync(StateHasChanged));
+        }
+    }
+
+    private Task SelectTraceAsync(OtlpTrace trace)
+    {
+        NavigationManager.NavigateTo($"/Traces/Trace/{trace.TraceId}");
+        return Task.CompletedTask;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_applicationChanged)
+        {
+            await JS.InvokeVoidAsync("switchLogsApplication");
+            _applicationChanged = false;
+        }
+        await JS.InvokeVoidAsync("scollToLogsEnd");
+    }
+
+    public void Dispose()
+    {
+        _applicationsSubscription?.Dispose();
+        _tracesSubscription?.Dispose();
+    }
+}

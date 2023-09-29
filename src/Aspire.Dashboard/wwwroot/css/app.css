@@ -1,3 +1,7 @@
+body {
+    color: var(--neutral-foreground-rest);
+}
+
 fluent-toolbar fluent-switch,
 fluent-toolbar p {
     margin-inline-end: 15px;
@@ -6,3 +10,145 @@ fluent-toolbar p {
 fluent-toolbar[orientation=horizontal] {
     width: 100%;
 }
+
+
+/* Hide any web components that haven't been */
+:not(:defined),
+.before-upgrade {
+    visibility: hidden;
+
+.trace-view-grid {
+    width: 100%;
+}
+    .trace-view-grid .selected-span {
+        background-color: #FEFBDE;
+    }
+        .trace-view-grid .selected-span:hover {
+            background-color: #F9F6DB !important;
+        }
+    .trace-view-grid fluent-data-grid-row[row-type="default"]:hover .span-bar-label-detail {
+        display: inline !important;
+    }
+    .trace-view-grid fluent-data-grid-row[row-type="default"]:hover .span-bar-label {
+        color: black !important;
+    }
+    .trace-view-grid fluent-data-grid-row[row-type="default"]:hover {
+        background-color: #F5F5F5;
+    }
+    .trace-view-grid fluent-data-grid-row[row-type="header"] {
+        background: var(--fill-color);
+        border-bottom: calc(var(--stroke-width) * 1px) solid var(--neutral-stroke-divider-rest);
+    }
+    .trace-view-grid fluent-data-grid-row {
+        padding: 0;
+        border: 0;
+        align-items: center;
+    }
+    .trace-view-grid fluent-data-grid-cell {
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        vertical-align: middle;
+    }
+        .trace-view-grid fluent-data-grid-cell[grid-column="2"] fluent-divider {
+            display: none;
+        }
+
+.ticks {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    align-items: center;
+}
+    .ticks .tick {
+        width: 1px;
+        height: 30px;
+        background: #d8d8d8;
+        grid-row: 1;
+    }
+    .ticks .end-tick {
+        justify-self: end;
+        grid-row: 1;
+    }
+
+.tick-label {
+    margin-left: 0.25rem;
+    margin-right: 0.25rem;
+    white-space: nowrap;
+    grid-row: 1;
+}
+
+.span-container {
+    grid-column: 1 / span 4;
+    grid-row: 1;
+    height: 100%;
+    display: grid;
+    z-index: 1;
+    align-items: center;
+}
+    .span-container .span-bar {
+        height: 15px;
+        border-radius: 5px;
+        cursor: pointer;
+        grid-row: 1;
+    }
+    .span-container .span-bar-label {
+        font-size: 12px;
+        color: #aaa;
+        padding: 0 0.5em;
+        cursor: pointer;
+        height: min-content;
+    }
+    .span-container .span-bar-label-detail {
+        display: none;
+    }
+    .span-container .span-bar-label-right {
+        grid-row: 1;
+        grid-column: 3;
+    }
+    .span-container .span-bar-label-left {
+        grid-row: 1;
+        grid-column: 1;
+        justify-self: end;
+    }
+
+.uninstrumented-peer {
+    padding-left: 0.5rem;
+}
+
+.uninstrumented-peer-icon {
+    vertical-align: text-bottom;
+}
+
+.span-row-name {
+    color: rgb(136, 136, 136);
+    padding-left: 0.5rem;
+    font-size: 12px;
+}
+
+.trace-tag-icon {
+    margin-right: 3px;
+}
+
+:root {
+    --duration-color: rgb(215, 231, 234);
+}
+
+.trace-view-toolbar-detail {
+    margin-right: 15px;
+}
+
+
+.datagrid-overflow-area {
+    /*
+        Height of the browser - static height for other content
+        TODO: Is there a better way to do this?
+    */
+    height: calc(100vh - 225px);
+    width: 100%;
+    overflow: auto;
+}
+    .datagrid-overflow-area fluent-data-grid {
+        width: 100%;
+        height: 100%;
+    }

@@ -111,13 +111,12 @@ public class DcpHostService : IHostedService, IAsyncDisposable
         {
             AspireEventSource.Instance.DcpApiServerLaunchStop();
         }
-        
+
     }
 
     private ProcessSpec CreateDcpProcessSpec()
     {
-        DcpRuntimeAttribute dcpRuntimeInformation = DcpRuntimeAttribute.GetDcpRuntimeAttribute();
-        string dcpExePath = dcpRuntimeInformation.DcpPath;
+        string dcpExePath = Locations.DcpCliPath;
         if (!File.Exists(dcpExePath))
         {
             throw new FileNotFoundException("The Aspire application host is not installed. The application cannot be run without it.", dcpExePath);
@@ -143,14 +142,14 @@ public class DcpHostService : IHostedService, IAsyncDisposable
             }
         }
 
-        if (!string.IsNullOrEmpty(dcpRuntimeInformation.DcpExtensionsPath))
+        if (!string.IsNullOrEmpty(Locations.DcpExtensionsPath))
         {
-            dcpProcessSpec.EnvironmentVariables.Add("DCP_EXTENSIONS_PATH", dcpRuntimeInformation.DcpExtensionsPath);
+            dcpProcessSpec.EnvironmentVariables.Add("DCP_EXTENSIONS_PATH", Locations.DcpExtensionsPath);
         }
 
-        if (!string.IsNullOrEmpty(dcpRuntimeInformation.DcpBinPath))
+        if (!string.IsNullOrEmpty(Locations.DcpBinPath))
         {
-            dcpProcessSpec.EnvironmentVariables.Add("DCP_BIN_PATH", dcpRuntimeInformation.DcpBinPath);
+            dcpProcessSpec.EnvironmentVariables.Add("DCP_BIN_PATH", Locations.DcpBinPath);
         }
 
         // Set an environment variable to contain session info that should be deleted when DCP is done

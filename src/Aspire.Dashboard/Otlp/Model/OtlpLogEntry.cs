@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using System.Globalization;
 using Microsoft.Extensions.Logging;
 using OpenTelemetry.Proto.Logs.V1;
 
@@ -90,8 +89,8 @@ public class OtlpLogEntry
         var props = new Dictionary<string, string>
         {
             { "Application", Application.UniqueApplicationName },
-            { "Flags", Flags.ToString(CultureInfo.InvariantCulture) },
             { "Severity", Severity.ToString() },
+            { "Message", Message },
             { "TraceId", TraceId },
             { "SpanId", SpanId }
         };

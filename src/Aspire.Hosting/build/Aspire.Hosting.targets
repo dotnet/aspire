@@ -6,7 +6,7 @@
     <!-- Similar to ASP.NET Core and Worker apps, set the default CWD of orchestrator projects to be the project directory. -->
     <RunWorkingDirectory Condition=" '$(RunWorkingDirectory)' == '' and '$(EnableDefaultRunWorkingDirectory)' != 'false' ">$(MSBuildProjectDirectory)</RunWorkingDirectory>
   </PropertyGroup>
-  
+
   <!-- The purpose of this target is to take a list of the resolved project references and generate a set of items (ServiceMetadataSource) which contain
      code that we want to add to the orchestrator project for each referenced project. The metadata contains pointers to the project/assembly. -->
   <Target Name="GenerateServiceMetadataSources" DependsOnTargets="FindReferenceAssembliesForReferences" Inputs="@(ReferencePathWithRefAssemblies)" Outputs="%(ReferencePathWithRefAssemblies.Identity)">
@@ -43,7 +43,7 @@ public class ]]>%(ReferencePathWithRefAssemblies.ServiceNameOverride)<![CDATA[ :
 			</ServiceMetadataSource>
 		</ItemGroup>
   </Target>
-  
+
   <!-- The purpose of this target is to take all of the generated service meta data and write them to the intermediate build directory
      and reference them for compilation. There will be a AssemblyName.ServiceMetadata.g.cs file for each referenced project. -->
   <Target Name="WriteServiceMetadataSources" DependsOnTargets="GenerateServiceMetadataSources" BeforeTargets="CoreCompile">
@@ -59,6 +59,32 @@ public class ]]>%(ReferencePathWithRefAssemblies.ServiceNameOverride)<![CDATA[ :
         Include="$(IntermediateOutputPath)Aspire\references\%(ServiceMetadataSource.AssemblyName).ServiceMetadata.g.cs"
         Condition="%(ServiceMetadataSource.AssemblyName) != ''"
         />
+    </ItemGroup>
+  </Target>
+
+  <!-- This target registers the location of the Aspire orchestration dependencies -->
+  <Target Name="SetOrchestrationDiscoveryAttributes" BeforeTargets="GetAssemblyAttributes">
+    <PropertyGroup>
+      <DcpDir Condition=" '$(DcpDir)' == '' ">$([MSBuild]::NormalizePath($([System.Environment]::GetFolderPath(SpecialFolder.UserProfile)), '.dcp'))</DcpDir>
+      <DcpExtensionsPath Condition=" '$(DcpExtensionsPath)' == '' ">$([MSBuild]::NormalizePath($(DcpDir), 'ext'))</DcpExtensionsPath>
+      <DcpBinPath Condition=" '$(DcpBinPath)' == '' ">$([MSBuild]::NormalizePath($(DcpExtensionsPath), 'bin'))</DcpBinPath>
+      <DcpCliPath Condition=" '$(DcpCliPath)'  == '' ">$([MSBuild]::NormalizePath($(DcpDir), 'dcp'))</DcpCliPath>
+      <DcpCliPath Condition=" '$(OS)' == 'Windows_NT' and !$(DcpCliPath.EndsWith('.exe')) ">$(DcpCliPath).exe</DcpCliPath>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <AssemblyAttribute Include="System.Reflection.AssemblyMetadata">
+        <_Parameter1>dcpclipath</_Parameter1>
+        <_Parameter2>$(DcpCliPath)</_Parameter2>
+      </AssemblyAttribute>
+      <AssemblyAttribute Include="System.Reflection.AssemblyMetadata">
+        <_Parameter1>dcpextensionpaths</_Parameter1>
+        <_Parameter2>$(DcpExtensionsPath)</_Parameter2>
+      </AssemblyAttribute>
+      <AssemblyAttribute Include="System.Reflection.AssemblyMetadata">
+        <_Parameter1>dcpbinpath</_Parameter1>
+        <_Parameter2>$(DcpBinPath)</_Parameter2>
+      </AssemblyAttribute>
     </ItemGroup>
   </Target>
 </Project>

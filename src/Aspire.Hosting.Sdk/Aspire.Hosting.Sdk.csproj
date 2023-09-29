@@ -9,7 +9,7 @@
   <ItemGroup>
     <None Include="..\Aspire.Hosting\build\*.targets" Link="SDK\%(Filename)%(Extension)" Pack="true" PackagePath="Sdk\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Update="SDK\*.props;SDK\*.targets" Pack="true" PackagePath="Sdk\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <None Update="SDK\BundledVersions.in.targets" PerformTextReplacement="True" PackagePath="Sdk\BundledVersions.targets" />
+    <None Update="SDK\Sdk.in.targets" PerformTextReplacement="true" PackagePath="Sdk\Sdk.targets" />
   </ItemGroup>
 
 </Project>

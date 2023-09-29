@@ -19,25 +19,29 @@
                           AfterBindValue="HandleClear"
                           slot="end" />
         </FluentToolbar>
-        <FluentDataGrid Items="@FilteredExecutables" ResizableColumns="true" GridTemplateColumns="2fr 1fr 2fr 4fr 1fr">
-            <ChildContent>
-                <TemplateColumn Title="Name" Sortable="true" SortBy="@nameSort">
-                    <FluentHighlighter HighlightedText="@filter" Text="@context.Name" />
-                </TemplateColumn>
-                <PropertyColumn Property="@(e => e.State)" Sortable="true" />
-                <PropertyColumn Property="@(c => c.CreationTimeStamp)" Title="Start Time" Sortable="true" />
-                <TemplateColumn Title="Path" Sortable="true" SortBy="@executablePathSort">
-                    <FluentHighlighter HighlightedText="@filter" Text="@context.ExecutablePath" />
-                </TemplateColumn>
-                <TemplateColumn Title="Environment" Sortable="false">
-                    <FluentButton Appearance="Appearance.Lightweight"
-                                  Disabled="@(!context.Environment.Any())"
-                                  Title="@(context.Environment.Any() ? "View" : "No Environment Variables")"
-                                  OnClick="async() => await ShowEnvironmentVariables(context)">View</FluentButton>
-                </TemplateColumn>
-            </ChildContent>
-            <EmptyContent>No running executables found</EmptyContent>
-        </FluentDataGrid>
+        <div class="datagrid-overflow-area" tabindex="-1">
+            <FluentDataGrid Items="@FilteredExecutables" ResizableColumns="true" GridTemplateColumns="2fr 1fr 2fr 4fr 1fr">
+                <ChildContent>
+                    <TemplateColumn Title="Name" Sortable="true" SortBy="@nameSort">
+                        <FluentHighlighter HighlightedText="@filter" Text="@context.Name" />
+                    </TemplateColumn>
+                    <PropertyColumn Property="@(e => e.State)" Sortable="true" />
+                    <PropertyColumn Property="@(c => c.CreationTimeStamp)" Title="Start Time" Sortable="true" />
+                    <TemplateColumn Title="Path" Sortable="true" SortBy="@executablePathSort">
+                        <FluentHighlighter HighlightedText="@filter" Text="@context.ExecutablePath" />
+                    </TemplateColumn>
+                    <TemplateColumn Title="Environment" Sortable="false">
+                        <FluentButton Appearance="Appearance.Lightweight"
+                                      Disabled="@(!context.Environment.Any())"
+                                      Title="@(context.Environment.Any() ? "View" : "No Environment Variables")"
+                                      OnClick="async() => await ShowEnvironmentVariables(context)">View</FluentButton>
+                    </TemplateColumn>
+                </ChildContent>
+                <EmptyContent>
+                    <FluentIcon Icon="Icons.Regular.Size24.AppGeneric" />&nbsp;No running executables found
+                </EmptyContent>
+            </FluentDataGrid>
+        </div>
     </FluentStack>
 </div>
 

@@ -36,16 +36,16 @@
     <PackageReference Include="Microsoft.DotNet.Build.Tasks.Installers" GeneratePathProperty="true" />
   </ItemGroup>
 
-  <!-- Package downloads to DCP packages as they will need to get passed to the Arcade task for MSI generation -->
+  <!-- The list of runtimes DCP provides binaries for -->
   <ItemGroup>
-    <PackageDownload Include="Microsoft.DeveloperControlPlane.darwin-amd64" Version="[$(_DcpVersion)]" />
-    <PackageDownload Include="Microsoft.DeveloperControlPlane.darwin-arm64" Version="[$(_DcpVersion)]" />
-    <PackageDownload Include="Microsoft.DeveloperControlPlane.linux-amd64" Version="[$(_DcpVersion)]" />
-    <PackageDownload Include="Microsoft.DeveloperControlPlane.linux-arm64" Version="[$(_DcpVersion)]" />
-    <PackageDownload Include="Microsoft.DeveloperControlPlane.windows-386" Version="[$(_DcpVersion)]" />
-    <PackageDownload Include="Microsoft.DeveloperControlPlane.windows-amd64" Version="[$(_DcpVersion)]" />
-    <PackageDownload Include="Microsoft.DeveloperControlPlane.windows-arm64" Version="[$(_DcpVersion)]" />
-  </ItemGroup>
+      <_DcpRuntimes Include="win-x86" />
+      <_DcpRuntimes Include="win-x64" />
+      <_DcpRuntimes Include="win-arm64" />
+      <_DcpRuntimes Include="linux-x64" />
+      <_DcpRuntimes Include="linux-arm64" />
+      <_DcpRuntimes Include="osx-x64" />
+      <_DcpRuntimes Include="osx-arm64" />
+    </ItemGroup>
 
   <Import Sdk="Microsoft.NET.Sdk" Project="Sdk.targets" />
 
@@ -73,13 +73,7 @@
       </ShortNames>
     </ItemGroup>
 
-    <!-- Copy DCP packages to Package Source -->
-    <ItemGroup>
-      <_DCPPackagesToCopy Include="$(NuGetPackageRoot)Microsoft.DeveloperControlPlane*\$(_DcpVersion)\*.nupkg" />
-    </ItemGroup>
-
-    <!-- Temporarily copying the dcp packages into the package source folder so that the Arcade task can find them and use them to generate the MSIs. -->
-    <Copy SourceFiles="@(_DCPPackagesToCopy)" DestinationFolder="$(PackageSource)" />
+    <MSBuild Projects="../dcppack/dcppack.csproj" Targets="restore;build" Properties="DcpRuntime=%(_DcpRuntimes.Identity);PackageOutputPath=$(PackageSource)" />
 
     <ItemGroup>
       <ManifestPackages Include="$(PackageSource)Microsoft.NET.Sdk.Aspire.Manifest*.nupkg"
@@ -100,9 +94,6 @@
       <Output TaskParameter="SwixProjects" ItemName="SwixProjects" />
       <Output TaskParameter="Msis" ItemName="Msis" />
     </CreateVisualStudioWorkload>
-
-    <!-- Delete the DCP packages from the package source folder After the right Swix Packs were produced. -->
-    <Delete Files="$(PackageSource)%(_DCPPackagesToCopy.Filename).nupkg" />
 
     <!-- Split SWIX projects for packs and components/manifests and build them into separate folders. This allows us to consume pack-only drops
          across multiple VS builds to support multi-targeting. -->

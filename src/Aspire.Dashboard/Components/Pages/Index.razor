@@ -19,51 +19,62 @@
                           AfterBindValue="HandleClear"
                           slot="end" />
         </FluentToolbar>
-        <FluentDataGrid Items="@FilteredProjects" ResizableColumns="true" GridTemplateColumns="2fr 1fr 2fr 2fr 2fr 1fr 1fr">
-            <ChildContent>
-                <TemplateColumn Title="Name" Sortable="true" SortBy="@nameSort">
-                    <FluentHighlighter HighlightedText="@filter" Text="@context.Name" />
-                </TemplateColumn>
-                <PropertyColumn Property="@(e => e.State)" Sortable="true" />
-                <PropertyColumn Property="@(c => c.CreationTimeStamp)" Title="Start Time" Sortable="true" />
-                <TemplateColumn Title="Source Location" Sortable="true" SortBy="@projectPathSort">
-                    <FluentHighlighter HighlightedText="@filter" Text="@context.ProjectPath" />
-                </TemplateColumn>
-                <TemplateColumn Title="Endpoints" Sortable="false">
-                    <FluentStack Orientation="Orientation.Vertical">
-                        @if (context.ExpectedEndpointCount == 0 && context.Endpoints.Count == 0)
-                        {
-                            <span>N/A</span>
-                        }
-                        else
-                        {
-                            foreach (ServiceEndpoint endpoint in context.Endpoints.OrderBy(e => e.Address))
+        <div class="datagrid-overflow-area" tabindex="-1">
+            <FluentDataGrid Items="@FilteredProjects" ResizableColumns="true" GridTemplateColumns="2fr 1fr 2fr 2fr 2fr 1fr 1fr">
+                <ChildContent>
+                    <TemplateColumn Title="Name" Sortable="true" SortBy="@nameSort">
+                        <FluentHighlighter HighlightedText="@filter" Text="@context.Name" />
+                    </TemplateColumn>
+                    <PropertyColumn Property="@(e => e.State)" Sortable="true" />
+                    <PropertyColumn Property="@(c => c.CreationTimeStamp)" Title="Start Time" Sortable="true" />
+                    <TemplateColumn Title="Source Location" Sortable="true" SortBy="@projectPathSort">
+                        <FluentHighlighter HighlightedText="@filter" Text="@context.ProjectPath" />
+                    </TemplateColumn>
+                    <TemplateColumn Title="Endpoints" Sortable="false">
+                        <FluentStack Orientation="Orientation.Vertical">
+                            @* If we have no endpoints, and the app isn't running anymore or we're not expecting any, then just say None *@
+                            @if (context.Endpoints.Count == 0 && (context.State == FinishedState || context.ExpectedEndpointCount == 0))
                             {
-                                <a href="@endpoint.Address" target="_blank">@endpoint.Address</a>
+                                <span>None</span>
                             }
-                            if (context.ExpectedEndpointCount > context.Endpoints.Count)
+                            else
                             {
-                                <span>Starting...</span>
+                                @* If we have any, regardless of the state, go ahead and display them *@
+                                foreach (ServiceEndpoint endpoint in context.Endpoints.OrderBy(e => e.Address))
+                                {
+                                    <a href="@endpoint.Address" target="_blank">@endpoint.Address</a>
+                                }
+                                @* If we're expecting more, say Starting..., unless the app isn't running anymore *@
+                                if (context.State != FinishedState && context.ExpectedEndpointCount > context.Endpoints.Count)
+                                {
+                                    <span>Starting...</span>
+                                }
                             }
-                        }
-                    </FluentStack>
-                </TemplateColumn>
-                <TemplateColumn Title="Environment" Sortable="false">
-                    <FluentButton Appearance="Appearance.Lightweight"
-                                  Disabled="@(!context.Environment.Any())"
-                                  Title="@(context.Environment.Any() ? "View" : "No Environment Variables")"
-                                  OnClick="async() => await ShowEnvironmentVariables(context)">View</FluentButton>
-                </TemplateColumn>
-                <TemplateColumn Title="Logs">
-                    <FluentAnchor Appearance="Appearance.Lightweight" Href="@($"/ProjectLogs/{context.Name}")">View</FluentAnchor>
-                </TemplateColumn>
-            </ChildContent>
-            <EmptyContent>No running projects found</EmptyContent>
-        </FluentDataGrid>
+                        </FluentStack>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Environment" Sortable="false">
+                        <FluentButton Appearance="Appearance.Lightweight"
+                                      Disabled="@(!context.Environment.Any())"
+                                      Title="@(context.Environment.Any() ? "View" : "No Environment Variables")"
+                                      OnClick="async() => await ShowEnvironmentVariables(context)">View</FluentButton>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Logs">
+                        <FluentAnchor Appearance="Appearance.Lightweight" Href="@($"/ProjectLogs/{context.Name}")">View</FluentAnchor>
+                    </TemplateColumn>
+                </ChildContent>
+                <EmptyContent>
+                    <FluentIcon Icon="Icons.Regular.Size24.AppGeneric" />&nbsp;No running projects found
+                </EmptyContent>
+            </FluentDataGrid>
+        </div>
     </FluentStack>
 </div>
 
 @code {
+    // Ideally we'd be pulling this from Aspire.Hosting.Dcp.Model.ExecutableStates,
+    // but unfortunately the reference goes the other way
+    private const string FinishedState = "Finished";
+
     private readonly Dictionary<string, ProjectViewModel> projectsMap = new();
     private readonly CancellationTokenSource watchTaskCancellationTokenSource = new();
     private string filter = "";

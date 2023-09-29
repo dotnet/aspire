@@ -16,7 +16,7 @@ public class AspireRedisDistributedCacheExtensionsTests
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
 
-        builder.AddRedisDistributedCache();
+        builder.AddRedisDistributedCache("redis");
 
         var host = builder.Build();
         var cache = host.Services.GetRequiredService<IDistributedCache>();

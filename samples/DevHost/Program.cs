@@ -10,7 +10,7 @@ var grafana = builder.AddContainer("grafana", "grafana/grafana")
        .WithServiceBinding(containerPort: 3000, name: "grafana-http", scheme: "http");
 
 var postgres = builder.AddPostgresContainer("postgres");
-var redis = builder.AddRedisContainer("redis");
+var redis = builder.AddRedisContainer("basketCache");
 var sql = builder.AddSqlServerContainer("sql");
 
 var catalog = builder.AddProject<Projects.CatalogService>()
