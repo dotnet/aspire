@@ -149,7 +149,7 @@ fluent-toolbar[orientation=horizontal] {
     width: 100%;
     overflow: auto;
 }
-    .datagrid-overflow-area fluent-data-grid {
+    .datagrid-overflow-area .empty-content {
         width: 100%;
-        height: 100%;
+        height: 100px;
     }

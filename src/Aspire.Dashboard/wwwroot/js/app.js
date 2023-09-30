@@ -25,15 +25,14 @@ window.scrollToEndInTextArea = function (classSelector) {
 
 let isScrolledToContent = false;
 
-window.switchLogsApplication = function () {
+window.resetContinuousScrollPosition = function () {
     // Reset to scrolling to the end of the content after switching.
     isScrolledToContent = false;
 }
 
-window.scollToLogsEnd = function () {
-    const container = document.querySelector('.SemanticLogsOverflow');
-    const grid = document.querySelector('.SemanticLogsDataGrid');
-    if (container == null || grid == null) {
+window.initializeContinuousScroll = function () {
+    const container = document.querySelector('.continuous-scroll-overflow');
+    if (container == null) {
         return;
     }
 
@@ -50,7 +49,9 @@ window.scollToLogsEnd = function () {
             container.scrollTop = container.scrollHeight;
         }
     });
-    observer.observe(grid);
+    for (const child of container.children) {
+        observer.observe(child);
+    }
 };
 
 function isScrolledToBottom(container) {
