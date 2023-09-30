@@ -1,9 +1,9 @@
 <Project>
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-    <RuntimeVersion>8.0.0-rc.2.23479.6</RuntimeVersion>
-    <AspNetCoreVersion>8.0.0-rc.2.23480.2</AspNetCoreVersion>
-    <ExtensionsVersion>8.0.0-rc.2.23510.2</ExtensionsVersion>
+    <RuntimeVersion>8.0.0-rtm.23511.16</RuntimeVersion>
+    <AspNetCoreVersion>8.0.0-rtm.23512.10</AspNetCoreVersion>
+    <ExtensionsVersion>8.0.0-rtm.23511.3</ExtensionsVersion>
   </PropertyGroup>
   <ItemGroup>
     <!-- Azure SDK for .NET dependencies -->
@@ -47,6 +47,7 @@
     <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="$(RuntimeVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="$(RuntimeVersion)" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="$(RuntimeVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Features" Version="$(AspNetCoreVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="$(RuntimeVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="$(RuntimeVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Http" Version="$(RuntimeVersion)" />
