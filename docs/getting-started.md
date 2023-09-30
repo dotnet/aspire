@@ -1,22 +1,22 @@
 # Set up your environment
 
-## Install Visual Studio 2022 Internal Preview
+## Install Visual Studio 2022 Internal Preview (dogfood)
 
 1. [Visual Studio 2022 Enterprise IntPreview Setup](https://aka.ms/vs/17/intpreview/vs_enterprise.exe)
-    - This channel updates nightly. You need a build from 15-Aug-2023 or later.
+    - This channel updates nightly. You need a build from 29-Sep-2023 or later.
 2. Set an environment variable `VSEnableAspireOrchestrationParameter=1`
 3. Add NuGet sources to apply the following feeds
     - https://pkgs.dev.azure.com/dnceng/internal/_packaging/dotnet-tools-internal/nuget/v3/index.json
     - https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-grpc-pre-release/nuget/v3/index.json
     - See [Install and manage packages in Visual Studio](https://learn.microsoft.com/nuget/consume-packages/install-use-packages-visual-studio#package-sources) for instructions.
 
-## Install .NET 8 RC2
+## Install .NET 8 RTM nightly SDK
 
 1. Add the NuGet feed for .NET 8 - https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet8/nuget/v3/index.json (https://github.com/dotnet/installer#installers-and-binaries)
-2. Install the .NET 8 RC2 SDK version 8.0.100-rc.2.23472.8 or newer.
-   1. [Windows x64 link](https://dotnetbuilds.azureedge.net/public/Sdk/8.0.100-rc.2.23472.8/dotnet-sdk-8.0.100-rc.2.23472.8-win-x64.exe)
-   2. [Linux x64 link](https://dotnetbuilds.azureedge.net/public/Sdk/8.0.100-rc.2.23472.8/dotnet-sdk-8.0.100-rc.2.23472.8-linux-x64.tar.gz)
-   3. [OSX x64 link](https://dotnetbuilds.azureedge.net/public/Sdk/8.0.100-rc.2.23472.8/dotnet-sdk-8.0.100-rc.2.23472.8-osx-x64.tar.gz)
+2. Install the .NET 8 RTM nightly SDK version 8.0.100-rtm.23478.7 or newer:
+   1. [Windows x64 link](https://dotnetbuilds.azureedge.net/public/Sdk/8.0.100-rtm.23478.7/dotnet-sdk-8.0.100-rtm.23478.7-win-x64.exe)
+   2. [Linux x64 link](https://dotnetbuilds.azureedge.net/public/Sdk/8.0.100-rtm.23478.7/dotnet-sdk-8.0.100-rtm.23478.7-linux-x64.tar.gz)
+   3. [OSX x64 link](https://dotnetbuilds.azureedge.net/public/Sdk/8.0.100-rtm.23478.7/dotnet-sdk-8.0.100-rtm.23478.7-osx-x64.tar.gz)
 
 ## Install Docker Desktop
 
@@ -24,13 +24,13 @@
 
 ## Install the Aspire dotnet workload
 
-1. The RC2 SDK is aware that the Aspire workload exists, but the real manifest is not installed by default. In order to install it, you'll need to update the workload in a directory that has a NuGet.config[^3] with the right feeds configured[^2] so that it can pull the latest manifest. Once you have created the NuGet.config file in your working directory, then you need to run the following command[^1]:
+1. The RTM nightly SDK is aware that the Aspire workload exists, but the real manifest is not installed by default. In order to install it, you'll need to update the workload in a directory that has a NuGet.config[^3] with the right feeds configured[^2] so that it can pull the latest manifest. Once you have created the NuGet.config file in your working directory, then you need to run the following command[^1]:
 
    ```shell
     dotnet workload update --skip-sign-check --interactive
    ```
 
-2. The above command will update the Aspire manifest in your RC2 build, meaning it will already be setup for command-line (VS support is coming soon) In-product acquisition (IPA) of the Aspire workload. In order to manually install the workload, you can run the following command[^1]:
+2. The above command will update the Aspire manifest in your SDK build, meaning it will already be setup for command-line (VS support is coming soon) In-product acquisition (IPA) of the Aspire workload. In order to manually install the workload, you can run the following command[^1]:
 
    ```shell
     dotnet workload install aspire --skip-sign-check --interactive
@@ -43,7 +43,10 @@
       <configuration>
       <packageSources>
           <clear />
+          <add key="dotnet8" value="https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet8/nuget/v3/index.json" />
+          <add key="dotnet-public" value="https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public/nuget/v3/index.json" />
           <add key="dotnet-tools-internal" value="https://pkgs.dev.azure.com/dnceng/internal/_packaging/dotnet-tools-internal/nuget/v3/index.json" />
+          <add key="nuget" value="https://api.nuget.org/v3/index.json" />
       </packageSources>
       </configuration>
       ```
