@@ -16,6 +16,7 @@ fluent-toolbar[orientation=horizontal] {
 :not(:defined),
 .before-upgrade {
     visibility: hidden;
+}
 
 .trace-view-grid {
     width: 100%;
