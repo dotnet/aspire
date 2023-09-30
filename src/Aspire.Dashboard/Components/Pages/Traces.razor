@@ -23,7 +23,7 @@
                           @bind-SelectedOption="_selectedApplication"
                           @bind-SelectedOption:after="HandleSelectedApplicationChangedAsync" />
         </FluentToolbar>
-        <div class="datagrid-overflow-area SemanticLogsOverflow" tabindex="-1">
+        <div class="datagrid-overflow-area continuous-scroll-overflow" tabindex="-1">
             <FluentDataGrid Class="SemanticLogsDataGrid" Virtualize="true" RowStyle="@GetRowStyle" GenerateHeader="GenerateHeaderOption.Sticky" ItemSize="48" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="OtlpTrace" GridTemplateColumns="0.8fr 2fr 3fr 0.5fr 0.5fr">
               <ChildContent>
                 <PropertyColumn Title="Timestamp" Property="@(context => OtlpHelpers.FormatTimeStamp(context.FirstSpan.StartTime))" />
@@ -172,10 +172,10 @@
     {
         if (_applicationChanged)
         {
-            await JS.InvokeVoidAsync("switchLogsApplication");
+            await JS.InvokeVoidAsync("resetContinuousScrollPosition");
             _applicationChanged = false;
         }
-        await JS.InvokeVoidAsync("scollToLogsEnd");
+        await JS.InvokeVoidAsync("initializeContinuousScroll");
     }
 
     public void Dispose()

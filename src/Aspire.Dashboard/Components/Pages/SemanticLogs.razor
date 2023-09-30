@@ -34,11 +34,11 @@
             }
             <FluentButton slot="end" Appearance="Appearance.Stealth" aria-label="Add Filter" OnClick="() => OpenFilterAsync(null)"><FluentIcon Value="@(new Icons.Regular.Size16.Filter())" /></FluentButton>
         </FluentToolbar>
-        <div class="datagrid-overflow-area SemanticLogsOverflow" tabindex="-1">
+        <div class="datagrid-overflow-area continuous-scroll-overflow" tabindex="-1">
             <FluentDataGrid Class="SemanticLogsDataGrid" Virtualize="true" GenerateHeader="GenerateHeaderOption.Sticky" ItemSize="48" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="OtlpLogEntry" GridTemplateColumns="1fr 1fr 1fr 5fr 0.8fr 0.8fr">
                 <ChildContent>
                     <TemplateColumn Title="Service">
-                        <span style="padding-left:5px; border-left-width: 5px; border-left-style: solid; border-left-color: @ColorGenerator.Instance.GetColorHexByKey(context.Application.ApplicationName);">
+                        <span style="padding-left:5px; border-left-width: 5px; border-left-style: solid; border-left-color: @(ColorGenerator.Instance.GetColorHexByKey(context.Application.ApplicationName));">
                             @context.Application.ApplicationName
                         </span>
                     </TemplateColumn>
@@ -226,10 +226,13 @@
     {
         if (_applicationChanged)
         {
-            await JS.InvokeVoidAsync("switchLogsApplication");
+            await JS.InvokeVoidAsync("resetContinuousScrollPosition");
             _applicationChanged = false;
         }
-        await JS.InvokeVoidAsync("scollToLogsEnd");
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("initializeContinuousScroll");
+        }
     }
 
     public void Dispose()
