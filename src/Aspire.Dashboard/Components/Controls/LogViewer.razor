@@ -14,7 +14,10 @@
     [Parameter]
     public string InitialText { get; set; } = "";
 
+    private List<IEnumerable<LogEntry>> _preRenderQueue = new();
+
     bool initialMessageCleared = false;
+    bool renderComplete = false;
 
     private IJSObjectReference? _jsModule;
 
@@ -22,6 +25,7 @@
     {
         if (_jsModule is not null)
         {
+            initialMessageCleared = true;
             await _jsModule.InvokeVoidAsync("clearLogs");
         }
     }
@@ -32,17 +36,23 @@
     internal Task AddLogEntriesAsync(IEnumerable<LogEntry> logEntries)
         => WriteLogsAsync(logEntries);
 
+    private ValueTask WriteLogsToDom(IEnumerable<LogEntry> logs)
+        => _jsModule is null ? ValueTask.CompletedTask : _jsModule.InvokeVoidAsync("addLogEntries", logs);
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
             _jsModule ??= await JS.InvokeAsync<IJSObjectReference>("import", "/_content/Aspire.Dashboard/Components/Controls/LogViewer.razor.js");
-        }
-    }
 
-    private async Task WriteLogsAsync(IEnumerable<LogEntry> logs)
-    {
-        if (_jsModule is not null)
+            if (_preRenderQueue.Count > 0)
+            {
+                await WritePreRenderQueue();
+            }
+            renderComplete = true;
+        }
+
+        async Task WritePreRenderQueue()
         {
             if (!initialMessageCleared)
             {
@@ -50,7 +60,29 @@
                 await ClearLogsAsync();
             }
 
-            await _jsModule.InvokeVoidAsync("addLogEntries", logs);
+            foreach (var logs in _preRenderQueue)
+            {
+                await WriteLogsToDom(logs);
+            }
+            _preRenderQueue.Clear();
+        }
+    }
+
+    private async Task WriteLogsAsync(IEnumerable<LogEntry> logs)
+    {
+        if (renderComplete)
+        {
+            if (!initialMessageCleared)
+            {
+                initialMessageCleared = true;
+                await ClearLogsAsync();
+            }
+
+            await WriteLogsToDom(logs);
+        }
+        else
+        {
+            _preRenderQueue.Add(logs);
         }
     }
 
