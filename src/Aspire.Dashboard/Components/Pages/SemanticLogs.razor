@@ -36,37 +36,35 @@
         </FluentToolbar>
         <div class="datagrid-overflow-area SemanticLogsOverflow" tabindex="-1">
             <FluentDataGrid Class="SemanticLogsDataGrid" Virtualize="true" GenerateHeader="GenerateHeaderOption.Sticky" ItemSize="48" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="OtlpLogEntry" GridTemplateColumns="1fr 1fr 1fr 5fr 0.8fr 0.8fr">
-                    <ChildContent>
-                            <TemplateColumn Title="Service">
-                                <span style="padding-left:5px; border-left-width: 5px; border-left-style: solid; border-left-color: @ColorGenerator.Instance.GetColorHexByKey(context.Application.ApplicationName);">
-                                    @context.Application.ApplicationName
-                                </span>
-                            </TemplateColumn>
-                            <PropertyColumn Title="Severity" Property="@(context => context.Severity)" />
-                            <PropertyColumn Title="Timestamp" Property="@(context => OtlpHelpers.FormatTimeStamp(context.TimeStamp))" />
-                            <PropertyColumn Title="Message" Tooltip=true Property="@(context => context.Message)" />
-                            <TemplateColumn Title="Trace">
-                                @if (!string.IsNullOrEmpty(context.TraceId))
-                                {
-                                    <FluentAnchor Appearance="Appearance.Hypertext" Href="@($"/Traces/Trace/{HttpUtility.UrlEncode(context.TraceId)}")">
-                                        @OtlpHelpers.ToShortenedId(context.TraceId)
-                                    </FluentAnchor>
-                                }
-                            </TemplateColumn>
-                            <TemplateColumn>
-                                <FluentButton Appearance="Appearance.Lightweight" OnClick="() => OnShowProperties(context)">View</FluentButton>
-                            </TemplateColumn>
-                        </ChildContent>
-                        <EmptyContent>
-                            <FluentIcon Icon="Icons.Regular.Size24.SlideTextSparkle" />&nbsp;No semantic logs found
-                        </EmptyContent>
-                    </FluentDataGrid>
-                </div>
-                <TotalItemsFooter @ref="totalItemsFooter" />
-            }
-        </FluentStack>
-    </div>
-}
+                <ChildContent>
+                    <TemplateColumn Title="Service">
+                        <span style="padding-left:5px; border-left-width: 5px; border-left-style: solid; border-left-color: @ColorGenerator.Instance.GetColorHexByKey(context.Application.ApplicationName);">
+                            @context.Application.ApplicationName
+                        </span>
+                    </TemplateColumn>
+                    <PropertyColumn Title="Severity" Property="@(context => context.Severity)" />
+                    <PropertyColumn Title="Timestamp" Property="@(context => OtlpHelpers.FormatTimeStamp(context.TimeStamp))" />
+                    <PropertyColumn Title="Message" Tooltip=true Property="@(context => context.Message)" />
+                    <TemplateColumn Title="Trace">
+                        @if (!string.IsNullOrEmpty(context.TraceId))
+                        {
+                            <FluentAnchor Appearance="Appearance.Hypertext" Href="@($"/Traces/Trace/{HttpUtility.UrlEncode(context.TraceId)}")">
+                                @OtlpHelpers.ToShortenedId(context.TraceId)
+                            </FluentAnchor>
+                        }
+                    </TemplateColumn>
+                    <TemplateColumn>
+                        <FluentButton Appearance="Appearance.Lightweight" OnClick="() => OnShowProperties(context)">View</FluentButton>
+                    </TemplateColumn>
+                </ChildContent>
+                <EmptyContent>
+                    <FluentIcon Icon="Icons.Regular.Size24.SlideTextSparkle" />&nbsp;No semantic logs found
+                </EmptyContent>
+            </FluentDataGrid>
+        </div>
+        <TotalItemsFooter @ref="totalItemsFooter" />
+    </FluentStack>
+</div>
 
 @code {
     private static readonly ApplicationViewModel AllApplication = new ApplicationViewModel { Id = null, Name = "(All)" };
@@ -142,6 +140,7 @@
         _applications = TelemetryRepository.GetApplications().Select(a => new ApplicationViewModel { Id = a.InstanceId, Name = a.ApplicationName }).ToList();
         _applications.Insert(0, AllApplication);
         _selectedApplication = _applications.SingleOrDefault(e => e.Id == ApplicationInstanceId) ?? AllApplication;
+        UpdateSubscription();
 
         return Task.CompletedTask;
     }
@@ -150,6 +149,8 @@
     {
         NavigationManager.NavigateTo($"/SemanticLogs/{_selectedApplication.Id}");
         _applicationChanged = true;
+        UpdateSubscription();
+
         return Task.CompletedTask;
     }
 

@@ -138,6 +138,7 @@
         _applications = TelemetryRepository.GetApplications().Select(a => new ApplicationViewModel { Id = a.InstanceId, Name = a.ApplicationName }).ToList();
         _applications.Insert(0, AllApplication);
         _selectedApplication = _applications.SingleOrDefault(e => e.Id == ApplicationInstanceId) ?? AllApplication;
+        UpdateSubscription();
 
         return Task.CompletedTask;
     }
