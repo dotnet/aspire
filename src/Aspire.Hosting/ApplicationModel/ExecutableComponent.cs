@@ -3,7 +3,7 @@
 
 namespace Aspire.Hosting.ApplicationModel;
 
-public class ExecutableComponent(string command, string workingDirectory, string[]? args) : IDistributedApplicationComponent
+public class ExecutableComponent(string command, string workingDirectory, string[]? args) : IDistributedApplicationComponentWithEnvironment
 {
     public string Command { get; } = command;
     public string WorkingDirectory { get; } = workingDirectory;
