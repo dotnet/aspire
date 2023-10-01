@@ -5,13 +5,12 @@ builder.AddAzureProvisioning();
 var grafana = builder.AddContainer("grafana", "grafana/grafana")
                      .WithServiceBinding(containerPort: 3000, name: "grafana-http", scheme: "http");
 
-var catalogdb = builder.AddPostgresContainer("postgres").AddDatabase("catalog");
+var catalogdb = builder.AddAzureCosmosDB("cosmosdb", "<YOUR_CONNECTION_STRING>").AddDatabase("catalogdb");
 
 var redis = builder.AddRedisContainer("basketCache");
 
 var catalog = builder.AddProject<Projects.CatalogService>("catalogservice")
-                     .WithReference(catalogdb)
-                     .WithReplicas(2);
+    .WithReference(catalogdb);
 
 var serviceBus = builder.AddAzureServiceBus("messaging", queueNames: ["orders"]);
 

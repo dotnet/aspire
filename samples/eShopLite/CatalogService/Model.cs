@@ -16,7 +16,7 @@ public class CatalogDbContext(DbContextOptions<CatalogDbContext> options) : DbCo
                   .Where(ci => catalogBrandId == null || ci.CatalogBrandId == catalogBrandId)
                   .Where(ci => before == null || ci.Id <= before)
                   .Where(ci => after == null || ci.Id >= after)
-                  .Take(pageSize + 1));
+                  .Take(pageSize));
 
     public Task<List<CatalogItem>> GetCatalogItemsCompiledAsync(int? catalogBrandId, int? before, int? after, int pageSize)
     {
@@ -43,7 +43,6 @@ public class CatalogDbContext(DbContextOptions<CatalogDbContext> options) : DbCo
         builder.HasKey(ci => ci.Id);
 
         builder.Property(ci => ci.Id)
-            .UseHiLo("catalog_type_hilo")
             .IsRequired();
 
         builder.Property(cb => cb.Type)
@@ -54,10 +53,10 @@ public class CatalogDbContext(DbContextOptions<CatalogDbContext> options) : DbCo
     private static void DefineCatalogItem(EntityTypeBuilder<CatalogItem> builder)
     {
         builder.ToTable("Catalog");
+        builder.HasKey(c => c.Id);
 
         builder.Property(ci => ci.Id)
-                    .UseHiLo("catalog_hilo")
-                    .IsRequired();
+            .IsRequired();
 
         builder.Property(ci => ci.Name)
             .IsRequired(true)
@@ -86,7 +85,6 @@ public class CatalogDbContext(DbContextOptions<CatalogDbContext> options) : DbCo
         builder.HasKey(ci => ci.Id);
 
         builder.Property(ci => ci.Id)
-            .UseHiLo("catalog_brand_hilo")
             .IsRequired();
 
         builder.Property(cb => cb.Brand)

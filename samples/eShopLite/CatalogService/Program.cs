@@ -1,9 +1,10 @@
+using Aspire.Azure.EntityFrameworkCore.CosmosDB;
 using CatalogService;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
-builder.AddNpgsqlDbContext<CatalogDbContext>("catalog");
+builder.AddCosmosDBEntityFrameworkDBContext<CatalogDbContext>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddProblemDetails();
