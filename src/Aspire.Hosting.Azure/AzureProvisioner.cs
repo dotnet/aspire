@@ -216,7 +216,8 @@ internal sealed class AzureProvisioner(IConfiguration configuration, IHostEnviro
 
         if (keyVaultResource is null)
         {
-            // A vault's name must be between 3-24 alphanumeric characters. The name must begin with a letter, end with a letter or digit, and not contain consecutive hyphens. Follow this link for more information: https://go.microsoft.com/fwlink/?linkid=2147742
+            // A vault's name must be between 3-24 alphanumeric characters. The name must begin with a letter, end with a letter or digit, and not contain consecutive hyphens.
+            // Follow this link for more information: https://go.microsoft.com/fwlink/?linkid=2147742
             var vaultName = $"v{Guid.NewGuid().ToString().Replace("-", string.Empty)[0..20]}";
 
             logger.LogInformation("Creating key vault {vaultName} in {location}...", vaultName, location);
@@ -327,6 +328,7 @@ internal sealed class AzureProvisioner(IConfiguration configuration, IHostEnviro
 
         if (storageAccount is null)
         {
+            //  Storage account name must be between 3 and 24 characters in length and use numbers and lower-case letters only.
             var accountName = Guid.NewGuid().ToString().Replace("-", string.Empty)[0..20];
 
             logger.LogInformation("Creating storage account {accountName} in {location}...", accountName, location);
@@ -413,9 +415,12 @@ internal sealed class AzureProvisioner(IConfiguration configuration, IHostEnviro
 
         static string ParseToken(in AccessToken response)
         {
+            // Parse the access token to get the user's object id (this is their principal id)
+
             var parts = response.Token.Split('.');
             var part = parts[1];
-            string convertedToken = part.ToString().Replace('_', '/').Replace('-', '+');
+            var convertedToken = part.ToString().Replace('_', '/').Replace('-', '+');
+
             switch (part.Length % 4)
             {
                 case 2:
