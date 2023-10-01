@@ -17,7 +17,6 @@
 
     <!-- Azure Management SDK for .NET dependencies -->
     <PackageVersion Include="Azure.ResourceManager.KeyVault" Version="1.2.0-beta.2" />
-    <PackageVersion Include="Azure.ResourceManager.ManagedServiceIdentities" Version="1.2.0-beta.1" />
     <PackageVersion Include="Azure.ResourceManager.ServiceBus" Version="1.1.0-beta.3" />
     <PackageVersion Include="Azure.ResourceManager.Storage" Version="1.1.1" />
     <PackageVersion Include="Azure.ResourceManager.Authorization" Version="1.1.0-beta.1" />
