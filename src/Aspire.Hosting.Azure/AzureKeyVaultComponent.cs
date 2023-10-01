@@ -5,7 +5,9 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Azure;
 
-public class ServiceBusAnnotation(string? @namespace): IDistributedApplicationComponentAnnotation
+public class AzureKeyVaultComponent : IAzureComponent
 {
-    public string? Namespace { get; } = @namespace;
+    public ComponentMetadataCollection Annotations { get; } = new();
+
+    public string? VaultName { get; set; }
 }

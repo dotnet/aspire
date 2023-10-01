@@ -6,6 +6,8 @@ using Projects = DevHost.Projects;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
+builder.AddAzureProvisioning();
+
 var grafana = builder.AddContainer("grafana", "grafana/grafana")
        .WithServiceBinding(containerPort: 3000, name: "grafana-http", scheme: "http");
 
@@ -18,7 +20,7 @@ var catalog = builder.AddProject<Projects.CatalogService>()
                      .WithReplicas(2)
                      .WithSqlServer(sql, "master");
 
-var serviceBus = builder.AddAzureServiceBus("messaging");
+var serviceBus = builder.AddAzureServiceBus("messaging", "orders");
 
 var basket = builder.AddProject<Projects.BasketService>()
                     .WithRedis(redis)

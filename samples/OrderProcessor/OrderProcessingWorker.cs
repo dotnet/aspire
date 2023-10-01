@@ -31,7 +31,7 @@ public class OrderProcessingWorker : BackgroundService
         }
 
         const string configKeyName = "Aspire:Azure:Messaging:ServiceBus:OrderQueueName";
-        string queueName = _config[configKeyName] ?? throw new InvalidOperationException($"Queue name not found. Please add a valid name for configuration key '{configKeyName}'.");
+        string queueName = _config[configKeyName] ?? "orders";
 
         _messageProcessor = _client.CreateProcessor(queueName);
         _messageProcessor.ProcessMessageAsync += ProcessMessageAsync;
@@ -58,20 +58,24 @@ public class OrderProcessingWorker : BackgroundService
             _logger.LogInformation($"Processing Order at: {DateTime.UtcNow}");
 
             var message = args.Message;
-            _logger.LogDebug($"""
-                MessageId:{message.MessageId}
-                MessageBody:{message.Body}
-                """);
+
+            if (_logger.Equals(LogLevel.Debug))
+            {
+                _logger.LogDebug("""
+                MessageId:{MessageId}
+                MessageBody:{Body}
+                """, message.MessageId, message.Body);
+            }
             var order = message.Body.ToObjectFromJson<Order>();
 
             activity?.AddTag("order-id", order.Id);
             activity?.AddTag("product-count", order.Items.Count);
 
-            _logger.LogCritical($"""
-                OrderId:{order.Id}
-                BuyerId:{order.BuyerId}
-                ProductCount:{order.Items.Count}
-                """);
+            _logger.LogInformation("""
+                OrderId:{Id}
+                BuyerId:{BuyerId}
+                ProductCount:{Count}
+                """, order.Id, order.BuyerId, order.Items.Count);
 
             return Task.CompletedTask;
         }
