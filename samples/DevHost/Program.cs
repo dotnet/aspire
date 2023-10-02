@@ -20,7 +20,7 @@ var catalog = builder.AddProject<Projects.CatalogService>()
                      .WithReplicas(2)
                      .WithSqlServer(sql, "master");
 
-var serviceBus = builder.AddAzureServiceBus("messaging", "orders");
+var serviceBus = builder.AddAzureServiceBus("messaging", queueNames: ["orders"]);
 
 var basket = builder.AddProject<Projects.BasketService>()
                     .WithRedis(redis)

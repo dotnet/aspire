@@ -34,11 +34,12 @@ public static class AzureComponentExtensions
         });
     }
 
-    public static IDistributedApplicationComponentBuilder<AzureServiceBusComponent> AddAzureServiceBus(this IDistributedApplicationBuilder builder, string name, params string[] queueNames)
+    public static IDistributedApplicationComponentBuilder<AzureServiceBusComponent> AddAzureServiceBus(this IDistributedApplicationBuilder builder, string name, string[]? queueNames = null, string[]? topicNames = null)
     {
         var component = new AzureServiceBusComponent
         {
-            QueueNames = queueNames
+            QueueNames = queueNames ?? [],
+            TopicNames = topicNames ?? []
         };
 
         return builder.AddComponent(name, component);
