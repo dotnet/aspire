@@ -129,6 +129,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DaprDevHost", "samples\dapr
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Dapr", "src\Aspire.Hosting.Dapr\Aspire.Hosting.Dapr.csproj", "{E2EC79D0-80F7-4471-9613-D7C8C3D52F95}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Azure.Redis", "src\Components\Aspire.Azure.Redis\Aspire.Azure.Redis.csproj", "{B7C645A7-C532-4FB5-A675-E7AFF74CB35D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -351,6 +353,10 @@ Global
 		{E2EC79D0-80F7-4471-9613-D7C8C3D52F95}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E2EC79D0-80F7-4471-9613-D7C8C3D52F95}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E2EC79D0-80F7-4471-9613-D7C8C3D52F95}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B7C645A7-C532-4FB5-A675-E7AFF74CB35D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B7C645A7-C532-4FB5-A675-E7AFF74CB35D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B7C645A7-C532-4FB5-A675-E7AFF74CB35D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B7C645A7-C532-4FB5-A675-E7AFF74CB35D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -413,6 +419,7 @@ Global
 		{B1D88C56-46EB-4171-A997-56E67875CF80} = {57A42144-739E-49A7-BADB-BB8F5F20FA17}
 		{8EB719EE-38E4-4FAD-B3E5-F71FA7F7A3EB} = {57A42144-739E-49A7-BADB-BB8F5F20FA17}
 		{E2EC79D0-80F7-4471-9613-D7C8C3D52F95} = {B80354C7-BE58-43F6-8928-9F3A74AB7F47}
+		{B7C645A7-C532-4FB5-A675-E7AFF74CB35D} = {27381127-6C45-4B4C-8F18-41FF48DFE4B2}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6DCEDFEC-988E-4CB3-B45B-191EB5086E0C}

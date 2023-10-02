@@ -66,6 +66,7 @@
     <PackageVersion Include="Grpc.Tools" Version="2.57.0" />
     <PackageVersion Include="KubernetesClient" Version="11.0.36" />
     <PackageVersion Include="JsonSchema.Net" Version="5.2.5" />
+    <PackageVersion Include="Microsoft.Azure.StackExchangeRedis" Version="1.1.0" />
     <PackageVersion Include="Microsoft.Fast.Components.FluentUI" Version="3.1.1" />
     <PackageVersion Include="Microsoft.Fast.Components.FluentUI.Icons" Version="3.1.1" />
     <PackageVersion Include="Npgsql.DependencyInjection" Version="8.0.0-preview.4" />
