@@ -33,6 +33,18 @@ internal sealed class AzureProvisioner(IConfiguration configuration, IHostEnviro
             return;
         }
 
+        try
+        {
+            await ProvisionAzureComponents(configuration, environment, logger, azureComponents, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error provisioning azure components.");
+        }
+    }
+
+    private async Task ProvisionAzureComponents(IConfiguration configuration, IHostEnvironment environment, ILogger<AzureProvisioner> logger, IEnumerable<IAzureComponent> azureComponents, CancellationToken cancellationToken)
+    {
         var credential = new DefaultAzureCredential();
 
         var subscriptionId = configuration["Azure:SubscriptionId"] ?? throw new InvalidOperationException("An azure subscription id is required. Set the Azure:SubscriptionId configuration value.");
