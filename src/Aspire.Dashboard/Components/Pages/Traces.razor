@@ -178,6 +178,7 @@
             _filter = newFilter;
             _filterCts?.Cancel();
 
+            // Debouncing logic. Apply the filter after a delay.
             var cts = _filterCts = new CancellationTokenSource();
             _ = Task.Run(async () =>
             {
