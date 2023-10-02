@@ -6,7 +6,7 @@ using Projects = DevHost.Projects;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-builder.AddAzureProvisioning();
+// builder.AddAzureProvisioning();
 
 var grafana = builder.AddContainer("grafana", "grafana/grafana")
        .WithServiceBinding(containerPort: 3000, name: "grafana-http", scheme: "http");

@@ -35,13 +35,12 @@ internal sealed class AzureProvisioner(IConfiguration configuration, IHostEnviro
 
         var credential = new DefaultAzureCredential();
 
-        var subscriptionId = configuration["Azure:SubscriptionId"];
-
-        if (string.IsNullOrEmpty(subscriptionId))
+        var subscriptionId = configuration["Azure:SubscriptionId"] ?? throw new InvalidOperationException("An azure subscription id is required. Set the Azure:SubscriptionId configuration value.");
+        var location = configuration["Azure:Location"] switch
         {
-            logger.LogWarning("Unable to provision Azure resources because the subscription id is not configured. Set \"Azure:SubscriptionId\" in configuration.");
-            return;
-        }
+            null => throw new InvalidOperationException("An azure location/region is required. Set the Azure:Location configuration value."),
+            string loc => new AzureLocation(loc)
+        };
 
         var armClient = new ArmClient(credential, subscriptionId);
 
@@ -52,19 +51,18 @@ internal sealed class AzureProvisioner(IConfiguration configuration, IHostEnviro
         logger.LogInformation("Default subscription: {name} ({subscriptionId})", subscription.Id, subscription.Data.DisplayName);
 
         // Name of the resource group to create based on the machine name and application name
-        var rgName = $"{Environment.MachineName.ToLowerInvariant()}-{environment.ApplicationName.ToLowerInvariant()}-rg";
+        var (resourceGroupName, createIfNoExists) = configuration["Azure:ResourceGroup"] switch
+        {
+            null => ($"{Environment.MachineName.ToLowerInvariant()}-{environment.ApplicationName.ToLowerInvariant()}-rg", true),
+            string rg => (rg, false)
+        };
+
         var resourceGroups = subscription.GetResourceGroups();
         ResourceGroupResource? resourceGroup;
-        
-        var location = configuration["Azure:Location"] switch
-        {
-            null => AzureLocation.WestUS2,
-            string loc => new AzureLocation(loc)
-        };
 
         try
         {
-            var response = await resourceGroups.GetAsync(rgName, cancellationToken).ConfigureAwait(false);
+            var response = await resourceGroups.GetAsync(resourceGroupName, cancellationToken).ConfigureAwait(false);
             resourceGroup = response.Value;
             location = resourceGroup.Data.Location;
 
@@ -72,13 +70,18 @@ internal sealed class AzureProvisioner(IConfiguration configuration, IHostEnviro
         }
         catch (Exception)
         {
+            if (!createIfNoExists)
+            {
+                throw;
+            }
+
             // REVIEW: Is it possible to do this without an exception?
 
-            logger.LogInformation("Creating resource group {rgName} in {location}...", rgName, location);
+            logger.LogInformation("Creating resource group {rgName} in {location}...", resourceGroupName, location);
 
             var rgData = new ResourceGroupData(location);
             rgData.Tags.Add("aspire", "true");
-            var operation = await resourceGroups.CreateOrUpdateAsync(WaitUntil.Completed, rgName, rgData, cancellationToken).ConfigureAwait(false);
+            var operation = await resourceGroups.CreateOrUpdateAsync(WaitUntil.Completed, resourceGroupName, rgData, cancellationToken).ConfigureAwait(false);
             resourceGroup = operation.Value;
 
             logger.LogInformation("Resource group {rgName} created.", resourceGroup.Data.Name);
