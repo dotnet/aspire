@@ -30,7 +30,6 @@
     <IsPublishable Condition="'$(IsPublishable)' == ''">false</IsPublishable>
     <IsPackable Condition="'$(IsPackable)' == ''">false</IsPackable>
   </PropertyGroup>
-  <Import Sdk="Microsoft.NET.Sdk.StaticWebAssets" Project="Sdk.props" />
 
   <!-- *** END ***  -->
 
