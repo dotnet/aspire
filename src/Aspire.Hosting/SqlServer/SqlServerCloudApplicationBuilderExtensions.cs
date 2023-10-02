@@ -22,7 +22,8 @@ public static class SqlServerCloudApplicationBuilderExtensions
         return componentBuilder;
     }
 
-    public static IDistributedApplicationComponentBuilder<ProjectComponent> WithSqlServer(this IDistributedApplicationComponentBuilder<ProjectComponent> projectBuilder, IDistributedApplicationComponentBuilder<SqlServerContainerComponent> sqlBuilder, string? databaseName)
+    public static IDistributedApplicationComponentBuilder<T> WithSqlServer<T>(this IDistributedApplicationComponentBuilder<T> projectBuilder, IDistributedApplicationComponentBuilder<SqlServerContainerComponent> sqlBuilder, string? databaseName)
+        where T : IDistributedApplicationComponentWithEnvironment
     {
         return projectBuilder.WithEnvironment(SqlClientConfigSectionName, () =>
         {
@@ -39,7 +40,8 @@ public static class SqlServerCloudApplicationBuilderExtensions
         });
     }
 
-    public static IDistributedApplicationComponentBuilder<ProjectComponent> WithSqlServer(this IDistributedApplicationComponentBuilder<ProjectComponent> projectBuilder, string connectionString)
+    public static IDistributedApplicationComponentBuilder<T> WithSqlServer<T>(this IDistributedApplicationComponentBuilder<T> projectBuilder, string connectionString)
+        where T : IDistributedApplicationComponentWithEnvironment
     {
         return projectBuilder.WithEnvironment(SqlClientConfigSectionName, connectionString);
     }

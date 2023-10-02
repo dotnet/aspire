@@ -21,7 +21,12 @@ public static class ProjectComponentBuilderExtensions
         return projectBuilder;
     }
 
-    public static IDistributedApplicationComponentBuilder<T> WithReplicas<T>(this IDistributedApplicationComponentBuilder<T> builder, int replicas) where T : IDistributedApplicationComponent
+    public static IDistributedApplicationComponentBuilder<ProjectComponent> WithReplicas(this IDistributedApplicationComponentBuilder<ProjectComponent> builder, int replicas)
+    {
+        builder.WithAnnotation(new ReplicaAnnotation(replicas));
+        return builder;
+    }
+    public static IDistributedApplicationComponentBuilder<ExecutableComponent> WithReplicas(this IDistributedApplicationComponentBuilder<ExecutableComponent> builder, int replicas)
     {
         builder.WithAnnotation(new ReplicaAnnotation(replicas));
         return builder;
