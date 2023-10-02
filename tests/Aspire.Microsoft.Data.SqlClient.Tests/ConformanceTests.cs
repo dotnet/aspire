@@ -55,11 +55,11 @@ public class ConformanceTests : ConformanceTests<SqlConnection, MicrosoftDataSql
     {
         if (key is null)
         {
-            builder.AddSqlServerClient(configure);
+            builder.AddSqlServerClient(configureSettings: configure);
         }
         else
         {
-            builder.AddSqlServerClient(key, configure);
+            builder.AddKeyedSqlServerClient(key, configure);
         }
     }
 

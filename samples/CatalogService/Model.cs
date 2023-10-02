@@ -1,4 +1,3 @@
-using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -137,7 +136,4 @@ public class CatalogItem
     public int RestockThreshold { get; set; }
     public int MaxStockThreshold { get; set; }
     public bool OnReorder { get; set; }
-
-    [NotMapped]
-    public int ThirdPartyRating { get; set; }
 }

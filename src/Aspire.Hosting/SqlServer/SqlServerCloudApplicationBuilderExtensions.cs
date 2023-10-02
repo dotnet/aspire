@@ -8,7 +8,7 @@ namespace Aspire.Hosting.SqlServer;
 
 public static class SqlServerCloudApplicationBuilderExtensions
 {
-    private const string SqlClientConfigSectionName = "ConnectionStrings__Aspire.SqlServer";
+    private const string ConnectionStringEnvironmentName = "ConnectionStrings__";
 
     public static IDistributedApplicationComponentBuilder<SqlServerContainerComponent> AddSqlServerContainer(this IDistributedApplicationBuilder builder, string name, string? password = null, int? port = null)
     {
@@ -22,10 +22,20 @@ public static class SqlServerCloudApplicationBuilderExtensions
         return componentBuilder;
     }
 
-    public static IDistributedApplicationComponentBuilder<T> WithSqlServer<T>(this IDistributedApplicationComponentBuilder<T> projectBuilder, IDistributedApplicationComponentBuilder<SqlServerContainerComponent> sqlBuilder, string? databaseName)
+    public static IDistributedApplicationComponentBuilder<T> WithSqlServer<T>(this IDistributedApplicationComponentBuilder<T> projectBuilder, IDistributedApplicationComponentBuilder<SqlServerContainerComponent> sqlBuilder, string? databaseName, string? connectionName = null)
         where T : IDistributedApplicationComponentWithEnvironment
     {
-        return projectBuilder.WithEnvironment(SqlClientConfigSectionName, () =>
+        if (string.IsNullOrEmpty(connectionName))
+        {
+            DistributedApplicationComponentExtensions.TryGetName(sqlBuilder.Component, out connectionName);
+
+            if (connectionName is null)
+            {
+                throw new DistributedApplicationException("SqlServer connection name could not be determined. Please provide one.");
+            }
+        }
+
+        return projectBuilder.WithEnvironment(ConnectionStringEnvironmentName + connectionName, () =>
         {
             if (!sqlBuilder.Component.TryGetAnnotationsOfType<AllocatedEndpointAnnotation>(out var allocatedEndpoints))
             {
@@ -40,9 +50,9 @@ public static class SqlServerCloudApplicationBuilderExtensions
         });
     }
 
-    public static IDistributedApplicationComponentBuilder<T> WithSqlServer<T>(this IDistributedApplicationComponentBuilder<T> projectBuilder, string connectionString)
+    public static IDistributedApplicationComponentBuilder<T> WithSqlServer<T>(this IDistributedApplicationComponentBuilder<T> projectBuilder, string connectionName, string connectionString)
         where T : IDistributedApplicationComponentWithEnvironment
     {
-        return projectBuilder.WithEnvironment(SqlClientConfigSectionName, connectionString);
+        return projectBuilder.WithEnvironment(ConnectionStringEnvironmentName + connectionName, connectionString);
     }
 }

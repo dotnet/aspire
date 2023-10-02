@@ -9,6 +9,7 @@ namespace Aspire.Hosting.Postgres;
 public static class PostgresContainerBuilderExtensions
 {
     private const string PasswordEnvVarName = "POSTGRES_PASSWORD";
+    private const string ConnectionStringEnvironmentName = "ConnectionStrings__";
 
     public static IDistributedApplicationComponentBuilder<PostgresContainerComponent> AddPostgresContainer(this IDistributedApplicationBuilder builder, string name, int? port = null, string? password = null)
     {
@@ -32,13 +33,20 @@ public static class PostgresContainerBuilderExtensions
     /// <summary>
     /// Sets a connection string for this service. The connection string will be available in the service's environment.
     /// </summary>
-    public static IDistributedApplicationComponentBuilder<T> WithPostgresDatabase<T>(this IDistributedApplicationComponentBuilder<T> builder, IDistributedApplicationComponentBuilder<PostgresContainerComponent> postgres, string? databaseName = null)
+    public static IDistributedApplicationComponentBuilder<T> WithPostgresDatabase<T>(this IDistributedApplicationComponentBuilder<T> builder, IDistributedApplicationComponentBuilder<PostgresContainerComponent> postgres, string? databaseName = null, string? connectionName = null)
         where T : IDistributedApplicationComponentWithEnvironment
     {
-        // TODO: We need to come back to this, right now the connection string name is always the same.
-        var connectionStringVariableName = databaseName == null ? "ConnectionStrings__Aspire.PostgreSQL" : $"ConnectionStrings__Aspire.PostgreSQL";
+        if (string.IsNullOrEmpty(connectionName))
+        {
+            DistributedApplicationComponentExtensions.TryGetName(postgres.Component, out connectionName);
 
-        return builder.WithEnvironment(connectionStringVariableName, () =>
+            if (connectionName is null)
+            {
+                throw new DistributedApplicationException("Postgres connection name could not be determined. Please provide one.");
+            }
+        }
+
+        return builder.WithEnvironment(ConnectionStringEnvironmentName + connectionName, () =>
         {
             var config = new Dictionary<string, string>();
 
@@ -59,11 +67,10 @@ public static class PostgresContainerBuilderExtensions
             return connectionString;
         });
     }
-    public static IDistributedApplicationComponentBuilder<T> WithPostgresDatabase<T>(this IDistributedApplicationComponentBuilder<T> builder, string connectionString)
+
+    public static IDistributedApplicationComponentBuilder<T> WithPostgresDatabase<T>(this IDistributedApplicationComponentBuilder<T> builder, string connectionName, string connectionString)
         where T : IDistributedApplicationComponentWithEnvironment
     {
-        // TODO: We need to come back to this, right now the connection string name is always the same.
-        var connectionStringVariableName = "ConnectionStrings__Aspire.PostgreSQL";
-        return builder.WithEnvironment(connectionStringVariableName, connectionString);
+        return builder.WithEnvironment(ConnectionStringEnvironmentName + connectionName, connectionString);
     }
 }

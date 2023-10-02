@@ -13,11 +13,11 @@ public class ConformanceTests_NoPooling : ConformanceTests_Pooling
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<NpgsqlEntityFrameworkCorePostgreSQLSettings>? configure = null, string? key = null)
     {
-        builder.AddNpgsqlDbContext<TestDbContext>(options =>
+        builder.AddNpgsqlDbContext<TestDbContext>(configureSettings: settings =>
         {
-            options.DbContextPooling = false;
+            settings.DbContextPooling = false;
 
-            configure?.Invoke(options);
+            configure?.Invoke(settings);
         });
     }
 }

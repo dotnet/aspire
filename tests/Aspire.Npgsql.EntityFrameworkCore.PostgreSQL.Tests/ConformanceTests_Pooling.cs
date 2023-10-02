@@ -89,7 +89,7 @@ public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, NpgsqlEn
         });
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<NpgsqlEntityFrameworkCorePostgreSQLSettings>? configure = null, string? key = null)
-        => builder.AddNpgsqlDbContext<TestDbContext>(configure);
+        => builder.AddNpgsqlDbContext<TestDbContext>(configureSettings: configure);
 
     protected override void SetHealthCheck(NpgsqlEntityFrameworkCorePostgreSQLSettings options, bool enabled)
         => options.HealthChecks = enabled;
