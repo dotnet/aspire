@@ -52,9 +52,20 @@ public class OtlpTrace
 
     public void AddSpan(OtlpSpan span)
     {
-        Spans.Add(span);
-        // TODO: Optimize to insert at the right position.
-        Spans.Sort(SpanStartDateComparer.Instance);
+        var added = false;
+        for (var i = Spans.Count - 1; i >= 0; i--)
+        {
+            if (span.StartTime > Spans[i].StartTime)
+            {
+                Spans.Insert(i + 1, span);
+                added = true;
+                break;
+            }
+        }
+        if (!added)
+        {
+            Spans.Insert(0, span);
+        }
 
         if (string.IsNullOrEmpty(span.ParentSpanId))
         {

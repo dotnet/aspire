@@ -191,7 +191,24 @@ public class TelemetryRepository
                     try
                     {
                         var logEntry = new OtlpLogEntry(record, application);
-                        _logs.Add(logEntry);
+
+                        // Insert log entry in the correct position based on timestamp.
+                        // Logs can be added out of order by different services.
+                        var added = false;
+                        for (var i = _logs.Count - 1; i >= 0; i--)
+                        {
+                            if (logEntry.TimeStamp > _logs[i].TimeStamp)
+                            {
+                                _logs.Insert(i + 1, logEntry);
+                                added = true;
+                                break;
+                            }
+                        }
+                        if (!added)
+                        {
+                            _logs.Insert(0, logEntry);
+                        }
+
                         foreach (var kvp in logEntry.Properties)
                         {
                             _logPropertyKeys.Add((application, kvp.Key));
@@ -204,9 +221,6 @@ public class TelemetryRepository
                     }
                 }
             }
-
-            // TODO: Insert logs into the right location instead of sorting everything.
-            _logs.Sort((a, b) => a.TimeStamp.CompareTo(b.TimeStamp));
         }
         finally
         {
@@ -452,7 +466,6 @@ public class TelemetryRepository
                         if (newTrace)
                         {
                             var added = false;
-                            var position = _traces.Count;
                             for (var i = _traces.Count - 1; i >= 0; i--)
                             {
                                 var currentTrace = _traces[i];
