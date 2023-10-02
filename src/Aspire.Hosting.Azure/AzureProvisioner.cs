@@ -294,8 +294,10 @@ internal sealed class AzureProvisioner(IConfiguration configuration, IHostEnviro
 
         // Now create the queues
         var queues = serviceBusNamespace.GetServiceBusQueues();
+        var topics = serviceBusNamespace.GetServiceBusTopics();
 
         var queuesToCreate = new HashSet<string>(component.QueueNames);
+        var topicsToCreate = new HashSet<string>(component.TopicNames);
 
         // Delete unused queues
         await foreach (var sbQueue in queues.GetAllAsync(cancellationToken: cancellationToken))
@@ -311,6 +313,19 @@ internal sealed class AzureProvisioner(IConfiguration configuration, IHostEnviro
             queuesToCreate.Remove(sbQueue.Data.Name);
         }
 
+        await foreach (var sbTopic in topics.GetAllAsync(cancellationToken: cancellationToken))
+        {
+            if (!component.TopicNames.Contains(sbTopic.Data.Name))
+            {
+                logger.LogInformation("Deleting topic {topicName}", sbTopic.Data.Name);
+
+                await sbTopic.DeleteAsync(WaitUntil.Started, cancellationToken).ConfigureAwait(false);
+            }
+
+            // Don't need to create this topic
+            topicsToCreate.Remove(sbTopic.Data.Name);
+        }
+
         // Create the remaining queues
         foreach (var queueName in queuesToCreate)
         {
@@ -319,6 +334,16 @@ internal sealed class AzureProvisioner(IConfiguration configuration, IHostEnviro
             await queues.CreateOrUpdateAsync(WaitUntil.Completed, queueName, new ServiceBusQueueData(), cancellationToken).ConfigureAwait(false);
 
             logger.LogInformation("Queue {queueName} created.", queueName);
+        }
+
+        // Create the remaining topics
+        foreach (var topicName in topicsToCreate)
+        {
+            logger.LogInformation("Creating topic {topicName}...", topicName);
+
+            await topics.CreateOrUpdateAsync(WaitUntil.Completed, topicName, new ServiceBusTopicData(), cancellationToken).ConfigureAwait(false);
+
+            logger.LogInformation("Topic {topicName} created.", topicName);
         }
 
         // Azure Service Bus Data Owner

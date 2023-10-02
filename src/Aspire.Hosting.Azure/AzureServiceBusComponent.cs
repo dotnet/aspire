@@ -12,4 +12,5 @@ public class AzureServiceBusComponent : IAzureComponent
     public string ServiceBusNamespace { get; set; } = default!;
 
     public string[] QueueNames { get; set; } = [];
+    public string[] TopicNames { get; set; } = [];
 }
