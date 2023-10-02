@@ -32,7 +32,8 @@ public static class PostgresContainerBuilderExtensions
     /// <summary>
     /// Sets a connection string for this service. The connection string will be available in the service's environment.
     /// </summary>
-    public static IDistributedApplicationComponentBuilder<ProjectComponent> WithPostgresDatabase(this IDistributedApplicationComponentBuilder<ProjectComponent> builder, IDistributedApplicationComponentBuilder<PostgresContainerComponent> postgres, string? databaseName = null)
+    public static IDistributedApplicationComponentBuilder<T> WithPostgresDatabase<T>(this IDistributedApplicationComponentBuilder<T> builder, IDistributedApplicationComponentBuilder<PostgresContainerComponent> postgres, string? databaseName = null)
+        where T : IDistributedApplicationComponentWithEnvironment
     {
         // TODO: We need to come back to this, right now the connection string name is always the same.
         var connectionStringVariableName = databaseName == null ? "ConnectionStrings__Aspire.PostgreSQL" : $"ConnectionStrings__Aspire.PostgreSQL";
@@ -58,7 +59,8 @@ public static class PostgresContainerBuilderExtensions
             return connectionString;
         });
     }
-    public static IDistributedApplicationComponentBuilder<ProjectComponent> WithPostgresDatabase(this IDistributedApplicationComponentBuilder<ProjectComponent> builder, string connectionString)
+    public static IDistributedApplicationComponentBuilder<T> WithPostgresDatabase<T>(this IDistributedApplicationComponentBuilder<T> builder, string connectionString)
+        where T : IDistributedApplicationComponentWithEnvironment
     {
         // TODO: We need to come back to this, right now the connection string name is always the same.
         var connectionStringVariableName = "ConnectionStrings__Aspire.PostgreSQL";
