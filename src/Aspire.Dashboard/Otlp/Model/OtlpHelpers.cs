@@ -16,6 +16,8 @@ public static class OtlpHelpers
 {
     public static string? GetServiceId(this Resource resource)
     {
+        string? serviceName = null;
+
         for (var i = 0; i < resource.Attributes.Count; i++)
         {
             var attribute = resource.Attributes[i];
@@ -23,9 +25,17 @@ public static class OtlpHelpers
             {
                 return attribute.Value.GetString();
             }
+            if (attribute.Key == OtlpApplication.SERVICE_NAME)
+            {
+                serviceName = attribute.Value.GetString();
+            }
         }
 
-        return null;
+        //
+        // NOTE: The service.instance.id value is a recommended attribute, but not required.
+        //       See: https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/resource/semantic_conventions/README.md#service-experimental
+        //
+        return serviceName;
     }
 
     public static string ToShortenedId(string id) =>
