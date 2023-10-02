@@ -37,6 +37,10 @@ internal sealed class AzureProvisioner(IConfiguration configuration, IHostEnviro
         {
             await ProvisionAzureComponents(configuration, environment, logger, azureComponents, cancellationToken).ConfigureAwait(false);
         }
+        catch (MissingConfigurationException ex)
+        {
+            logger.LogWarning(ex, "Required configuration is missing.");
+        }
         catch (Exception ex)
         {
             logger.LogError(ex, "Error provisioning azure components.");
@@ -47,10 +51,10 @@ internal sealed class AzureProvisioner(IConfiguration configuration, IHostEnviro
     {
         var credential = new DefaultAzureCredential();
 
-        var subscriptionId = configuration["Azure:SubscriptionId"] ?? throw new InvalidOperationException("An azure subscription id is required. Set the Azure:SubscriptionId configuration value.");
+        var subscriptionId = configuration["Azure:SubscriptionId"] ?? throw new MissingConfigurationException("An azure subscription id is required. Set the Azure:SubscriptionId configuration value.");
         var location = configuration["Azure:Location"] switch
         {
-            null => throw new InvalidOperationException("An azure location/region is required. Set the Azure:Location configuration value."),
+            null => throw new MissingConfigurationException("An azure location/region is required. Set the Azure:Location configuration value."),
             string loc => new AzureLocation(loc)
         };
 
@@ -489,5 +493,10 @@ internal sealed class AzureProvisioner(IConfiguration configuration, IHostEnviro
         }
 
         return ParseToken(response);
+    }
+
+    sealed class MissingConfigurationException(string message) : Exception(message)
+    {
+
     }
 }
