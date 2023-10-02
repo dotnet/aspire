@@ -38,14 +38,14 @@
 
   <!-- The list of runtimes DCP provides binaries for -->
   <ItemGroup>
-      <_DcpRuntimes Include="win-x86" />
-      <_DcpRuntimes Include="win-x64" />
-      <_DcpRuntimes Include="win-arm64" />
-      <_DcpRuntimes Include="linux-x64" />
-      <_DcpRuntimes Include="linux-arm64" />
-      <_DcpRuntimes Include="osx-x64" />
-      <_DcpRuntimes Include="osx-arm64" />
-    </ItemGroup>
+    <_DcpRuntimes Include="win-x86" />
+    <_DcpRuntimes Include="win-x64" />
+    <_DcpRuntimes Include="win-arm64" />
+    <_DcpRuntimes Include="linux-x64" />
+    <_DcpRuntimes Include="linux-arm64" />
+    <_DcpRuntimes Include="osx-x64" />
+    <_DcpRuntimes Include="osx-arm64" />
+  </ItemGroup>
 
   <Import Sdk="Microsoft.NET.Sdk" Project="Sdk.targets" />
 

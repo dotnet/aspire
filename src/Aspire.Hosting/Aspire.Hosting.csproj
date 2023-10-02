@@ -17,6 +17,11 @@
     <PackageReference Include="Microsoft.Extensions.Hosting" />
   </ItemGroup>
 
+  <!-- Download DCP orchestrator components for local development -->
+  <ItemGroup>
+    <PackageDownload Include="Microsoft.DeveloperControlPlane.$(BuildOs)-$(BuildArch)" Version="[$(_DcpVersion)]" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\Aspire.Dashboard\Aspire.Dashboard.csproj" />
   </ItemGroup>
