@@ -30,7 +30,7 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
     {
         var executables = await _kubernetesService.ListAsync<Executable>().ConfigureAwait(false);
         return executables
-            .Where(exe => !exe.Metadata.Annotations.ContainsKey(Executable.CSharpProjectPathAnnotation))
+            .Where(exe => exe.Metadata.Annotations?.ContainsKey(Executable.CSharpProjectPathAnnotation) == false)
             .Select(exe =>
         {
             var model = new ExecutableViewModel()
@@ -59,7 +59,7 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
         var endpoints = await _kubernetesService.ListAsync<Endpoint>().ConfigureAwait(false);
 
         return executables
-            .Where(exe => exe.Metadata.Annotations.ContainsKey(Executable.CSharpProjectPathAnnotation))
+            .Where(exe => exe.Metadata.Annotations?.ContainsKey(Executable.CSharpProjectPathAnnotation) == true)
             .Select(exe =>
             {
                 var expectedEndpointCount = 0;
