@@ -3,6 +3,7 @@
 
 using System.Net;
 using Aspire.Dashboard.Components;
+using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Grpc;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Services;
@@ -65,6 +66,8 @@ public class DashboardWebApplication : IHostedService
         // OTLP services.
         builder.Services.AddGrpc();
         builder.Services.AddSingleton<TelemetryRepository>();
+        builder.Services.AddTransient<SemanticLogsViewModel>();
+        builder.Services.AddTransient<TracesViewModel>();
 
         builder.Services.AddFluentUIComponents(options =>
         {

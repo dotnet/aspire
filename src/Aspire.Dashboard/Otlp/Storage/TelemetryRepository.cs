@@ -291,6 +291,10 @@ public class TelemetryRepository
             {
                 results = results.Where(t => HasApplication(t, context.ApplicationServiceId));
             }
+            if (!string.IsNullOrWhiteSpace(context.FilterText))
+            {
+                results = results.Where(t => t.FullName.Contains(context.FilterText, StringComparison.OrdinalIgnoreCase));
+            }
 
             // Traces can be modified as new spans are added. Copy traces before returning results to avoid concurrency issues.
             var copyFunc = static (OtlpTrace t) => OtlpTrace.Clone(t);
@@ -301,7 +305,7 @@ public class TelemetryRepository
             return new GetTracesResult
             {
                 PagedResult = pagedResults,
-                MaxDuraiton = maxDuration
+                MaxDuration = maxDuration
             };
         }
         finally

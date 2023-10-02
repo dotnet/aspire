@@ -31,14 +31,14 @@ public class LogFilter
     private static Func<string, string, bool> ConditionToFuncString(FilterCondition c) =>
         c switch
         {
-            FilterCondition.Equals => (a, b) => a == b,
-            FilterCondition.Contains => (a, b) => a != null && a.Contains(b),
+            FilterCondition.Equals => (a, b) => string.Equals(a, b, StringComparison.OrdinalIgnoreCase),
+            FilterCondition.Contains => (a, b) => a != null && a.Contains(b, StringComparison.OrdinalIgnoreCase),
             // Condition.GreaterThan => (a, b) => a > b,
             // Condition.LessThan => (a, b) => a < b,
             // Condition.GreaterThanOrEqual => (a, b) => a >= b,
             // Condition.LessThanOrEqual => (a, b) => a <= b,
-            FilterCondition.NotEqual => (a, b) => a != b,
-            FilterCondition.NotContains => (a, b) => a != null && !a.Contains(b),
+            FilterCondition.NotEqual => (a, b) => !string.Equals(a, b, StringComparison.OrdinalIgnoreCase),
+            FilterCondition.NotContains => (a, b) => a != null && !a.Contains(b, StringComparison.OrdinalIgnoreCase),
             _ => throw new ArgumentOutOfRangeException(nameof(c), c, null)
         };
 
