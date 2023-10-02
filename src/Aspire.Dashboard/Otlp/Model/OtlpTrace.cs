@@ -13,6 +13,7 @@ public class OtlpTrace
     public ReadOnlyMemory<byte> Key { get; }
     public string TraceId { get; }
 
+    public string FullName { get; private set; }
     public OtlpSpan FirstSpan => Spans[0]; // There should always be at least one span in a trace.
     public OtlpSpan? RootSpan => _rootSpan;
     public TimeSpan Duration
@@ -65,6 +66,7 @@ public class OtlpTrace
         if (!added)
         {
             Spans.Insert(0, span);
+            FullName = $"{span.Source.ApplicationName}: {span.Name}";
         }
 
         if (string.IsNullOrEmpty(span.ParentSpanId))
@@ -78,6 +80,7 @@ public class OtlpTrace
         Key = traceId;
         TraceId = OtlpHelpers.ToHexString(traceId);
         TraceScope = traceScope;
+        FullName = string.Empty;
     }
 
     public static OtlpTrace Clone(OtlpTrace trace)

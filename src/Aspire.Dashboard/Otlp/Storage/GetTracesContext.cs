@@ -10,10 +10,11 @@ public sealed class GetTracesContext
     public required string? ApplicationServiceId { get; init; }
     public required int StartIndex { get; init; }
     public required int? Count { get; init; }
+    public required string FilterText { get; init; }
 }
 
 public sealed class GetTracesResult
 {
     public required PagedResult<OtlpTrace> PagedResult { get; init; }
-    public required TimeSpan MaxDuraiton { get; init; }
+    public required TimeSpan MaxDuration { get; init; }
 }

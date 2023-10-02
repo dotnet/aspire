@@ -1,19 +1,7 @@
-
 .trace-id {
     color: rgb(136, 136, 136);
     padding-left: 0.5rem;
     font-size: 12px;
-}
-
-.trace-list-reset {
-    padding-left: 0px;
-    margin-bottom: 0px;
-    list-style: none;
-    display: inline-block;
-}
-
-.trace-inline-block {
-    display: inline-block;
 }
 
 .trace-tag {

@@ -20,14 +20,21 @@
                           OptionText="@(c => c.Name)"
                           @bind-SelectedOption="_selectedApplication"
                           @bind-SelectedOption:after="HandleSelectedApplicationChangedAsync" />
+            <FluentSearch @bind-Value="_filter"
+                          @oninput="HandleFilter"
+                          AfterBindValue="HandleClear"
+                          Placeholder="Filter..."
+                          slot="end" />
+            @* Temporary workaround for https://github.com/microsoft/fluentui-blazor/issues/811 *@
+            <fluent-divider orientation="vertical" role="separator" aria-orientation="vertical" slot="end"></fluent-divider>
             <FluentLabel slot="end">Filters: </FluentLabel>
-            @if (_logFilters.Count == 0)
+            @if (ViewModel.Filters.Count == 0)
             {
                 <span slot="end">No Filters</span>
             }
             else
             {
-                foreach (var filter in _logFilters)
+                foreach (var filter in ViewModel.Filters)
                 {
                     <FluentButton slot="end" Appearance="Appearance.Outline" OnClick="() => OpenFilterAsync(filter)">@filter.FilterText</FluentButton>
                 }
@@ -44,11 +51,13 @@
                     </TemplateColumn>
                     <PropertyColumn Title="Severity" Property="@(context => context.Severity)" />
                     <PropertyColumn Title="Timestamp" Property="@(context => OtlpHelpers.FormatTimeStamp(context.TimeStamp))" />
-                    <PropertyColumn Title="Message" Tooltip=true Property="@(context => context.Message)" />
+                    <TemplateColumn Title="Message" Tooltip=true>
+                        <FluentHighlighter HighlightedText="@(ViewModel.FilterText)" Text="@context.Message" />
+                    </TemplateColumn>
                     <TemplateColumn Title="Trace">
                         @if (!string.IsNullOrEmpty(context.TraceId))
                         {
-                            <FluentAnchor Appearance="Appearance.Hypertext" Href="@($"/Traces/Trace/{HttpUtility.UrlEncode(context.TraceId)}")">
+                            <FluentAnchor Appearance="Appearance.Hypertext" Href="@($"/Trace/{HttpUtility.UrlEncode(context.TraceId)}")">
                                 @OtlpHelpers.ToShortenedId(context.TraceId)
                             </FluentAnchor>
                         }
@@ -62,27 +71,30 @@
                 </EmptyContent>
             </FluentDataGrid>
         </div>
-        <TotalItemsFooter @ref="totalItemsFooter" />
+        <TotalItemsFooter @ref="_totalItemsFooter" />
     </FluentStack>
 </div>
 
 @code {
     private static readonly ApplicationViewModel AllApplication = new ApplicationViewModel { Id = null, Name = "(All)" };
 
-    private readonly List<LogFilter> _logFilters = new();
-    private TotalItemsFooter totalItemsFooter = default!;
-    private List<ApplicationViewModel>? _applications;
+    private TotalItemsFooter _totalItemsFooter = default!;
+    private List<ApplicationViewModel> _applications = default!;
     private ApplicationViewModel _selectedApplication = AllApplication;
     private Subscription? _applicationsSubscription;
     private Subscription? _logsSubscription;
-    private int _totalItemCount;
     private bool _applicationChanged;
+    private CancellationTokenSource? _filterCts;
+    private string _filter = string.Empty;
 
     [Parameter]
     public string? ApplicationInstanceId { get; set; }
 
     [Inject]
     public required TelemetryRepository TelemetryRepository { get; set; }
+
+    [Inject]
+    public required SemanticLogsViewModel ViewModel { get; set; }
 
     [Inject]
     public required IDialogService DialogService { get; set; }
@@ -97,59 +109,56 @@
 
     private ValueTask<GridItemsProviderResult<OtlpLogEntry>> GetData(GridItemsProviderRequest<OtlpLogEntry> request)
     {
-        var logs = TelemetryRepository.GetLogs(new GetLogsContext
-            {
-                ApplicationServiceId = _selectedApplication.Id,
-                StartIndex = request.StartIndex,
-                Count = request.Count,
-                Filters = _logFilters
-            });
+        ViewModel.StartIndex = request.StartIndex;
+        ViewModel.Count = request.Count;
+
+        var logs = ViewModel.GetLogs();
 
         // Updating the total item count as a field doesn't work because it isn't updated with the grid.
         // The workaround is to put the count inside a control and explicitly update and refresh the control.
-        totalItemsFooter.SetTotalItemCount(logs.TotalItemCount);
+        _totalItemsFooter.SetTotalItemCount(logs.TotalItemCount);
 
-        return ValueTask.FromResult(new GridItemsProviderResult<OtlpLogEntry>
-            {
-                Items = logs.Items,
-                TotalItemCount = _totalItemCount = logs.TotalItemCount
-            });
+        return ValueTask.FromResult(GridItemsProviderResult.From(logs.Items, logs.TotalItemCount));
     }
 
-    protected override async Task OnInitializedAsync()
+    protected override Task OnInitializedAsync()
     {
         if (!string.IsNullOrEmpty(TraceId))
         {
-            _logFilters.Add(new LogFilter { Field = "TraceId", Condition = FilterCondition.Equals, Value = TraceId });
+            ViewModel.AddFilter(new LogFilter { Field = "TraceId", Condition = FilterCondition.Equals, Value = TraceId });
         }
         if (!string.IsNullOrEmpty(SpanId))
         {
-            _logFilters.Add(new LogFilter { Field = "SpanId", Condition = FilterCondition.Equals, Value = SpanId });
+            ViewModel.AddFilter(new LogFilter { Field = "SpanId", Condition = FilterCondition.Equals, Value = SpanId });
         }
 
-        await UpdateApplicationsAsync();
-        _applicationsSubscription = TelemetryRepository.OnNewApplications(() => InvokeAsync(async () =>
+        UpdateApplications();
+        _applicationsSubscription = TelemetryRepository.OnNewApplications(() => InvokeAsync(() =>
         {
-            await UpdateApplicationsAsync();
+            UpdateApplications();
             StateHasChanged();
         }));
+
+        return Task.CompletedTask;
     }
 
-    private Task UpdateApplicationsAsync()
+    protected override void OnParametersSet()
+    {
+        _selectedApplication = _applications.SingleOrDefault(e => e.Id == ApplicationInstanceId) ?? AllApplication;
+        ViewModel.ApplicationServiceId = _selectedApplication.Id;
+        UpdateSubscription();
+    }
+
+    private void UpdateApplications()
     {
         _applications = TelemetryRepository.GetApplications().Select(a => new ApplicationViewModel { Id = a.InstanceId, Name = a.ApplicationName }).ToList();
         _applications.Insert(0, AllApplication);
-        _selectedApplication = _applications.SingleOrDefault(e => e.Id == ApplicationInstanceId) ?? AllApplication;
-        UpdateSubscription();
-
-        return Task.CompletedTask;
     }
 
     private Task HandleSelectedApplicationChangedAsync()
     {
         NavigationManager.NavigateTo($"/SemanticLogs/{_selectedApplication.Id}");
         _applicationChanged = true;
-        UpdateSubscription();
 
         return Task.CompletedTask;
     }
@@ -160,7 +169,11 @@
         if (_logsSubscription is null || _logsSubscription.ApplicationId != _selectedApplication.Id)
         {
             _logsSubscription?.Dispose();
-            _logsSubscription = TelemetryRepository.OnNewLogs(_selectedApplication.Id, () => InvokeAsync(StateHasChanged));
+            _logsSubscription = TelemetryRepository.OnNewLogs(_selectedApplication.Id, async () =>
+            {
+                ViewModel.ClearData();
+                await InvokeAsync(StateHasChanged);
+            });
         }
     }
 
@@ -211,15 +224,40 @@
         {
             if (filterResult.Delete)
             {
-                _logFilters.Remove(filter);
+                ViewModel.RemoveFilter(filter);
             }
             else if (filterResult.Add)
             {
-                _logFilters.Add(filter);
+                ViewModel.AddFilter(filter);
             }
         }
 
         return Task.CompletedTask;
+    }
+
+    private void HandleFilter(ChangeEventArgs args)
+    {
+        if (args.Value is string newFilter)
+        {
+            _filter = newFilter;
+            _filterCts?.Cancel();
+
+            // Debouncing logic. Apply the filter after a delay.
+            var cts = _filterCts = new CancellationTokenSource();
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(400, cts.Token);
+                ViewModel.FilterText = newFilter ?? string.Empty;
+                await InvokeAsync(StateHasChanged);
+            });
+        }
+    }
+
+    private void HandleClear(string value)
+    {
+        _filterCts?.Cancel();
+        ViewModel.FilterText = string.Empty;
+        StateHasChanged();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -239,5 +277,6 @@
     {
         _applicationsSubscription?.Dispose();
         _logsSubscription?.Dispose();
+        _filterCts?.Dispose();
     }
 }
