@@ -57,7 +57,7 @@
                     <TemplateColumn Title="Trace">
                         @if (!string.IsNullOrEmpty(context.TraceId))
                         {
-                            <FluentAnchor Appearance="Appearance.Hypertext" Href="@($"/Traces/Trace/{HttpUtility.UrlEncode(context.TraceId)}")">
+                            <FluentAnchor Appearance="Appearance.Hypertext" Href="@($"/Trace/{HttpUtility.UrlEncode(context.TraceId)}")">
                                 @OtlpHelpers.ToShortenedId(context.TraceId)
                             </FluentAnchor>
                         }
@@ -71,15 +71,15 @@
                 </EmptyContent>
             </FluentDataGrid>
         </div>
-        <TotalItemsFooter @ref="totalItemsFooter" />
+        <TotalItemsFooter @ref="_totalItemsFooter" />
     </FluentStack>
 </div>
 
 @code {
     private static readonly ApplicationViewModel AllApplication = new ApplicationViewModel { Id = null, Name = "(All)" };
 
-    private TotalItemsFooter totalItemsFooter = default!;
-    private List<ApplicationViewModel>? _applications;
+    private TotalItemsFooter _totalItemsFooter = default!;
+    private List<ApplicationViewModel> _applications = default!;
     private ApplicationViewModel _selectedApplication = AllApplication;
     private Subscription? _applicationsSubscription;
     private Subscription? _logsSubscription;
@@ -116,12 +116,12 @@
 
         // Updating the total item count as a field doesn't work because it isn't updated with the grid.
         // The workaround is to put the count inside a control and explicitly update and refresh the control.
-        totalItemsFooter.SetTotalItemCount(logs.TotalItemCount);
+        _totalItemsFooter.SetTotalItemCount(logs.TotalItemCount);
 
         return ValueTask.FromResult(GridItemsProviderResult.From(logs.Items, logs.TotalItemCount));
     }
 
-    protected override async Task OnInitializedAsync()
+    protected override Task OnInitializedAsync()
     {
         if (!string.IsNullOrEmpty(TraceId))
         {
@@ -132,29 +132,33 @@
             ViewModel.AddFilter(new LogFilter { Field = "SpanId", Condition = FilterCondition.Equals, Value = SpanId });
         }
 
-        await UpdateApplicationsAsync();
-        _applicationsSubscription = TelemetryRepository.OnNewApplications(() => InvokeAsync(async () =>
+        UpdateApplications();
+        _applicationsSubscription = TelemetryRepository.OnNewApplications(() => InvokeAsync(() =>
         {
-            await UpdateApplicationsAsync();
+            UpdateApplications();
             StateHasChanged();
         }));
+
+        return Task.CompletedTask;
     }
 
-    private Task UpdateApplicationsAsync()
+    protected override void OnParametersSet()
+    {
+        _selectedApplication = _applications.SingleOrDefault(e => e.Id == ApplicationInstanceId) ?? AllApplication;
+        ViewModel.ApplicationServiceId = _selectedApplication.Id;
+        UpdateSubscription();
+    }
+
+    private void UpdateApplications()
     {
         _applications = TelemetryRepository.GetApplications().Select(a => new ApplicationViewModel { Id = a.InstanceId, Name = a.ApplicationName }).ToList();
         _applications.Insert(0, AllApplication);
-        _selectedApplication = _applications.SingleOrDefault(e => e.Id == ApplicationInstanceId) ?? AllApplication;
-        UpdateSubscription();
-
-        return Task.CompletedTask;
     }
 
     private Task HandleSelectedApplicationChangedAsync()
     {
         NavigationManager.NavigateTo($"/SemanticLogs/{_selectedApplication.Id}");
         _applicationChanged = true;
-        UpdateSubscription();
 
         return Task.CompletedTask;
     }

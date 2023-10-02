@@ -69,15 +69,15 @@
                 </EmptyContent>
             </FluentDataGrid>
         </div>
-        <TotalItemsFooter @ref="totalItemsFooter" />
+        <TotalItemsFooter @ref="_totalItemsFooter" />
     </FluentStack>
 </div>
 
 @code {
     private static readonly ApplicationViewModel AllApplication = new ApplicationViewModel { Id = null, Name = "(All)" };
 
-    private TotalItemsFooter totalItemsFooter = default!;
-    private List<ApplicationViewModel>? _applications;
+    private TotalItemsFooter _totalItemsFooter = default!;
+    private List<ApplicationViewModel> _applications = default!;
     private ApplicationViewModel _selectedApplication = AllApplication;
     private Subscription? _applicationsSubscription;
     private Subscription? _tracesSubscription;
@@ -117,36 +117,41 @@
 
         // Updating the total item count as a field doesn't work because it isn't updated with the grid.
         // The workaround is to put the count inside a control and explicitly update and refresh the control.
-        totalItemsFooter.SetTotalItemCount(traces.TotalItemCount);
+        _totalItemsFooter.SetTotalItemCount(traces.TotalItemCount);
 
         return ValueTask.FromResult(GridItemsProviderResult.From(traces.Items, traces.TotalItemCount));
     }
 
-    protected override async Task OnInitializedAsync()
+    protected override Task OnInitializedAsync()
     {
-        await UpdateApplicationsAsync();
-        _applicationsSubscription = TelemetryRepository.OnNewApplications(() => InvokeAsync(async () =>
+        UpdateApplications();
+        _applicationsSubscription = TelemetryRepository.OnNewApplications(() => InvokeAsync(() =>
         {
-            await UpdateApplicationsAsync();
+            UpdateApplications();
             StateHasChanged();
         }));
+
+        return Task.CompletedTask;
     }
 
-    private Task UpdateApplicationsAsync()
+    protected override void OnParametersSet()
+    {
+        _selectedApplication = _applications.SingleOrDefault(e => e.Id == ApplicationInstanceId) ?? AllApplication;
+        ViewModel.ApplicationServiceId = _selectedApplication.Id;
+        UpdateSubscription();
+    }
+
+    private void UpdateApplications()
     {
         _applications = TelemetryRepository.GetApplications().Select(a => new ApplicationViewModel { Id = a.InstanceId, Name = a.ApplicationName }).ToList();
         _applications.Insert(0, AllApplication);
-        _selectedApplication = _applications.SingleOrDefault(e => e.Id == ApplicationInstanceId) ?? AllApplication;
         UpdateSubscription();
-
-        return Task.CompletedTask;
     }
 
     private Task HandleSelectedApplicationChangedAsync()
     {
         NavigationManager.NavigateTo($"/Traces/{_selectedApplication.Id}");
         _applicationChanged = true;
-        UpdateSubscription();
 
         return Task.CompletedTask;
     }
@@ -167,7 +172,7 @@
 
     private Task SelectTraceAsync(OtlpTrace trace)
     {
-        NavigationManager.NavigateTo($"/Traces/Trace/{trace.TraceId}");
+        NavigationManager.NavigateTo($"/Trace/{trace.TraceId}");
         return Task.CompletedTask;
     }
 

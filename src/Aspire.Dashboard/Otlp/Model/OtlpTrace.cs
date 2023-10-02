@@ -53,11 +53,10 @@ public class OtlpTrace
 
     public void AddSpan(OtlpSpan span)
     {
-        var firstSpan = Spans.FirstOrDefault();
-
         var added = false;
         for (var i = Spans.Count - 1; i >= 0; i--)
         {
+            if (span.StartTime > Spans[i].StartTime)
             {
                 Spans.Insert(i + 1, span);
                 added = true;
@@ -67,7 +66,7 @@ public class OtlpTrace
         if (!added)
         {
             Spans.Insert(0, span);
-            FullName = $"{FirstSpan.Source.ApplicationName}: {FirstSpan.Name}";
+            FullName = $"{span.Source.ApplicationName}: {span.Name}";
         }
 
         if (string.IsNullOrEmpty(span.ParentSpanId))
