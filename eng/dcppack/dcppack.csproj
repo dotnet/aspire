@@ -40,7 +40,6 @@
   <Target Name="Build" />
 
   <ItemGroup>
-    <None Include="$(NuGetPackageRoot)Microsoft.DeveloperControlPlane.$(DcpPlatform)/$(_DcpVersion)/NOTICE" Pack="true" PackagePath="/" />
     <None Include="$(NuGetPackageRoot)Microsoft.DeveloperControlPlane.$(DcpPlatform)/$(_DcpVersion)/tools/**/*" Pack="true" PackagePath="tools/" />
     <None Include="Sdk.props" Pack="true" PackagePath="sdk/" />
     <None Include="Sdk.in.targets" PerformTextReplacement="True" Pack="true" PackagePath="sdk/" />
