@@ -20,10 +20,29 @@ public enum DcpApiOperationType
 public class KubernetesService : IDisposable
 {
     private static readonly TimeSpan s_initialRetryDelay = TimeSpan.FromMilliseconds(100);
-    private const int MaxConnectionRetries = 4;
     private static GroupVersion GroupVersion => Model.Dcp.GroupVersion;
 
     private IKubernetes? _kubernetes;
+    private TimeSpan _maxRetryDuration = TimeSpan.FromMilliseconds(1000);
+
+    public KubernetesService(TimeSpan maxRetryDuration)
+    {
+        this.MaxRetryDuration = maxRetryDuration;
+    }
+
+    public KubernetesService() { }
+
+    public TimeSpan MaxRetryDuration
+    {
+        get
+        {
+            return _maxRetryDuration;
+        }
+        set
+        {
+            _maxRetryDuration = value;
+        }
+    }
 
     public Task<T> CreateAsync<T>(T obj, CancellationToken cancellationToken = default)
         where T : CustomResource
@@ -183,8 +202,8 @@ public class KubernetesService : IDisposable
 
     private async Task<TResult> ExecuteWithRetry<TResult>(DcpApiOperationType operationType, string resourceType, Func<IKubernetes, Task<TResult>> operation, CancellationToken cancellationToken)
     {
+        var currentTimestamp = DateTime.UtcNow;
         var delay = s_initialRetryDelay;
-        var i = 0;
         AspireEventSource.Instance.DcpApiCallStart(operationType, resourceType);
 
         try
@@ -198,7 +217,7 @@ public class KubernetesService : IDisposable
                 }
                 catch (Exception e) when (IsRetryable(e))
                 {
-                    if (i == MaxConnectionRetries)
+                    if (DateTime.UtcNow.Subtract(currentTimestamp) > MaxRetryDuration)
                     {
                         AspireEventSource.Instance.DcpApiCallTimeout(operationType, resourceType);
                         throw;
@@ -208,7 +227,6 @@ public class KubernetesService : IDisposable
                     delay *= 2;
                     AspireEventSource.Instance.DcpApiCallRetry(operationType, resourceType);
                 }
-                i++;
             }
         }
         finally

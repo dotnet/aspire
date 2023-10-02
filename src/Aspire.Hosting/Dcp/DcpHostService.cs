@@ -27,6 +27,7 @@ public class DcpHostService : IHostedService, IAsyncDisposable
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger _logger;
     private readonly DashboardWebApplication _dashboard;
+    private readonly TimeSpan _maxInitialConnectionRetryDuration = TimeSpan.FromMilliseconds(5000);
 
     public DcpHostService(IHostEnvironment hostEnvironment, DistributedApplicationModel applicationModel, ILoggerFactory loggerFactory)
     {
@@ -99,7 +100,7 @@ public class DcpHostService : IHostedService, IAsyncDisposable
 
             try
             {
-                await new KubernetesService().ListAsync<Container>(cancellationToken: cancellationToken).ConfigureAwait(false);
+                await new KubernetesService(_maxInitialConnectionRetryDuration).ListAsync<Container>(cancellationToken: cancellationToken).ConfigureAwait(false);
             }
             catch
             {
