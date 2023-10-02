@@ -49,19 +49,30 @@ internal sealed class DockerContainerLogSource : IContainerLogSource
 
                 (processResultTask, _processDisposable) = ProcessUtil.Run(spec);
 
+                // Make sure the process exits if the cancellation token is cancelled
+                cancellationToken.Register(async () =>
+                {
+                    await DisposeProcess().ConfigureAwait(false);
+                });
+
                 _ = Task.Run(WaitForExit, cancellationToken);
 
                 return true;
             }
             catch
             {
+                await DisposeProcess().ConfigureAwait(false);
+
+                return false;
+            }
+
+            async ValueTask DisposeProcess()
+            {
                 if (_processDisposable is not null)
                 {
                     await _processDisposable.DisposeAsync().ConfigureAwait(false);
                     _processDisposable = null;
                 }
-
-                return false;
             }
 
             void WriteToOutputChannel(string s)
