@@ -1,4 +1,3 @@
-let rowIndex = 1;
 const template = createRowTemplate();
 
 /**
@@ -8,7 +7,6 @@ const template = createRowTemplate();
 export function clearLogs() {
     const container = document.getElementById("logContainer");
     container.textContent = '';
-    rowIndex = 1;
 }
 
 /**
@@ -29,8 +27,6 @@ export function addLogEntries(logEntries) {
             const rowContainer = getNewRowContainer();
             const lineRow = rowContainer.firstElementChild;
             const lineArea = lineRow.firstElementChild;
-            const lineNumber = lineArea.firstElementChild;
-            lineNumber.setAttribute("data-line-number", rowIndex++);
             const timestamp = lineArea.children[1];
             if (logEntry.timestamp) {
                 timestamp.textContent = logEntry.timestamp;

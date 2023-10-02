@@ -12,99 +12,150 @@ namespace Aspire.Hosting.Dashboard;
 
 internal sealed class DockerContainerLogSource : IContainerLogSource
 {
-    private const string Executable = "docker";
-
     public string? ContainerID { get; init; }
 
-    public async IAsyncEnumerable<string[]> WatchLogsAsync([EnumeratorCancellation]CancellationToken cancellationToken)
+    public IContainerLogWatcher GetWatcher() => new DockerContainerLogWatcher(ContainerID);
+
+    internal sealed class DockerContainerLogWatcher(string? containerID) : IContainerLogWatcher
     {
-        if (string.IsNullOrWhiteSpace(ContainerID))
+        private const string Executable = "docker";
+
+        private readonly Channel<string> _outputChannel = Channel.CreateUnbounded<string>(new UnboundedChannelOptions() { SingleReader = true });
+        private readonly Channel<string> _errorChannel = Channel.CreateUnbounded<string>(new UnboundedChannelOptions() { SingleReader = true });
+
+        private IAsyncDisposable? _processDisposable;
+
+        public async Task<bool> InitWatchAsync(CancellationToken cancellationToken)
         {
-            yield break;
-        }
-
-        Channel<string> channel = Channel.CreateUnbounded<string>(new UnboundedChannelOptions() { SingleReader = true });
-
-        Task<ProcessResult>? processResultTask = null;
-        IAsyncDisposable? disposable = null;
-
-        try
-        {
-            var args = $"logs --follow -t {ContainerID}";
-            var output = new StringBuilder();
-
-            var spec = new ProcessSpec(FileUtil.FindFullPathFromPath(Executable))
+            if (string.IsNullOrWhiteSpace(containerID))
             {
-                Arguments = args,
-                OnOutputData = WriteToChannel,
-                OnErrorData = WriteToChannel,
-                KillEntireProcessTree = false
-            };
-
-            (processResultTask, disposable) = ProcessUtil.Run(spec);
-
-            _ = Task.Run(WaitForExit, cancellationToken);
-        }
-        catch
-        {
-            if (disposable is not null)
-            {
-                await disposable.DisposeAsync().ConfigureAwait(false);
-                disposable = null;
+                return false;
             }
 
-            yield break;
-        }
+            Task<ProcessResult>? processResultTask = null;
 
-        while (!cancellationToken.IsCancellationRequested)
-        {
-            List<string> currentLogs = new();
-
-            // Wait until there's something to read
-            if (await channel.Reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false))
+            try
             {
-                // And then read everything that there is to read
-                while (!cancellationToken.IsCancellationRequested && channel.Reader.TryRead(out var log))
+                var args = $"logs --follow -t {containerID}";
+                var output = new StringBuilder();
+
+                var spec = new ProcessSpec(FileUtil.FindFullPathFromPath(Executable))
                 {
-                    currentLogs.Add(log);
+                    Arguments = args,
+                    OnOutputData = WriteToOutputChannel,
+                    OnErrorData = WriteToErrorChannel,
+                    KillEntireProcessTree = false
+                };
+
+                (processResultTask, _processDisposable) = ProcessUtil.Run(spec);
+
+                _ = Task.Run(WaitForExit, cancellationToken);
+
+                return true;
+            }
+            catch
+            {
+                if (_processDisposable is not null)
+                {
+                    await _processDisposable.DisposeAsync().ConfigureAwait(false);
+                    _processDisposable = null;
                 }
 
-                if (!cancellationToken.IsCancellationRequested && currentLogs.Count > 0)
+                return false;
+            }
+
+            void WriteToOutputChannel(string s)
+            {
+                _ = Task.Run(async () =>
                 {
-                    yield return currentLogs.ToArray();
+                    await _outputChannel.Writer.WriteAsync(s, cancellationToken).ConfigureAwait(false);
+                }, cancellationToken);
+            }
+
+            void WriteToErrorChannel(string s)
+            {
+                _ = Task.Run(async () =>
+                {
+                    await _errorChannel.Writer.WriteAsync(s, cancellationToken).ConfigureAwait(false);
+                }, cancellationToken);
+            }
+
+            async Task WaitForExit()
+            {
+                if (processResultTask is not null)
+                {
+                    var processResult = await processResultTask.ConfigureAwait(false);
+                    await _outputChannel.Writer.WriteAsync($"Process exited with code {processResult.ExitCode}", cancellationToken).ConfigureAwait(false);
+                    _outputChannel.Writer.Complete();
+                    _errorChannel.Writer.Complete();
                 }
             }
-            else
+        }
+
+        public async IAsyncEnumerable<string[]> WatchOutputLogsAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            while (!cancellationToken.IsCancellationRequested)
             {
-                // WaitToReadAsync will return false when the Channel is marked Complete
-                // down in WaitForExist, so we'll break out of the loop here
-                break;
+                List<string> currentLogs = new();
+
+                // Wait until there's something to read
+                if (await _outputChannel.Reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false))
+                {
+                    // And then read everything that there is to read
+                    while (!cancellationToken.IsCancellationRequested && _outputChannel.Reader.TryRead(out var log))
+                    {
+                        currentLogs.Add(log);
+                    }
+
+                    if (!cancellationToken.IsCancellationRequested && currentLogs.Count > 0)
+                    {
+                        yield return currentLogs.ToArray();
+                    }
+                }
+                else
+                {
+                    // WaitToReadAsync will return false when the Channel is marked Complete
+                    // down in WaitForExist, so we'll break out of the loop here
+                    break;
+                }
             }
         }
 
-        if (disposable is not null)
+        public async IAsyncEnumerable<string[]> WatchErrorLogsAsync([EnumeratorCancellation] CancellationToken cancellationToken)
         {
-            await disposable.DisposeAsync().ConfigureAwait(false);
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                List<string> currentLogs = new();
+
+                // Wait until there's something to read
+                if (await _errorChannel.Reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false))
+                {
+                    // And then read everything that there is to read
+                    while (!cancellationToken.IsCancellationRequested && _errorChannel.Reader.TryRead(out var log))
+                    {
+                        currentLogs.Add(log);
+                    }
+
+                    if (!cancellationToken.IsCancellationRequested && currentLogs.Count > 0)
+                    {
+                        yield return currentLogs.ToArray();
+                    }
+                }
+                else
+                {
+                    // WaitToReadAsync will return false when the Channel is marked Complete
+                    // down in WaitForExist, so we'll break out of the loop here
+                    break;
+                }
+            }
         }
 
-        void WriteToChannel(string s)
+        public async ValueTask DisposeAsync()
         {
-            _ = Task.Run(async () =>
+            if (_processDisposable is not null)
             {
-                await channel.Writer.WriteAsync(s, cancellationToken).ConfigureAwait(false);
-            }, cancellationToken);
-        }
-
-        async Task WaitForExit()
-        {
-            if (processResultTask is not null)
-            {
-                var processResult = await processResultTask.ConfigureAwait(false);
-                await channel.Writer.WriteAsync($"Process exited with code {processResult.ExitCode}", cancellationToken).ConfigureAwait(false);
-                channel.Writer.Complete();
+                await _processDisposable.DisposeAsync().ConfigureAwait(false);
             }
         }
     }
-
-    
 }

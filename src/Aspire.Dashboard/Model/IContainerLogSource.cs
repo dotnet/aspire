@@ -5,5 +5,5 @@ namespace Aspire.Dashboard.Model;
 
 public interface IContainerLogSource
 {
-    IAsyncEnumerable<string[]> WatchLogsAsync(CancellationToken cancellationToken);
+    IContainerLogWatcher GetWatcher();
 }
