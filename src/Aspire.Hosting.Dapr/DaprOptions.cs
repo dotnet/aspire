@@ -12,4 +12,12 @@ public sealed record DaprOptions
     /// Gets or sets the path to the Dapr CLI.
     /// </summary>
     public string? DaprPath { get; init; }
+
+    /// <summary>
+    /// Gets or sets whether Dapr sidecars export telemetry to the Aspire dashboard.
+    /// </summary>
+    /// <remarks>
+    /// Telemetry is enabled by default.
+    /// </remarks>
+    public bool? EnableTelemetry { get; init; }
 }
