@@ -20,7 +20,7 @@ public static class AspireAzureRedisExtensions
     /// <remarks>
     /// This needs to be invoked after the services and configuration have been added to the builder.
     /// </remarks>
-    public static async Task<IHostApplicationBuilder> ConfigureAzureRedisServicePrincipal(this IHostApplicationBuilder builder, string clientId, string principalId, string tenantId, string secret, string? name = null)
+    public static async Task<IHostApplicationBuilder> ConfigureAzureRedisServicePrincipalAsync(this IHostApplicationBuilder builder, string clientId, string principalId, string tenantId, string secret, string? name = null)
     {
         var options = new ConfigurationOptions();
 
@@ -45,7 +45,7 @@ public static class AspireAzureRedisExtensions
     /// <remarks>
     /// This needs to be invoked after the services and configuration have been added to the builder.
     /// </remarks>
-    public static async Task<IHostApplicationBuilder> ConfigureAzureRedisSystemAssignedManagedIdentity(this IHostApplicationBuilder builder, string principalId, string? name = null)
+    public static async Task<IHostApplicationBuilder> ConfigureAzureRedisSystemAssignedManagedIdentityAsync(this IHostApplicationBuilder builder, string principalId, string? name = null)
     {
         var options = new ConfigurationOptions();
 
@@ -71,7 +71,7 @@ public static class AspireAzureRedisExtensions
     /// <remarks>
     /// This needs to be invoked after the services and configuration have been added to the builder.
     /// </remarks>
-    public static async Task<IHostApplicationBuilder> ConfigureAzureRedisUserAssignedManagedIdentity(this IHostApplicationBuilder builder, string clientId, string principalId, string? name = null)
+    public static async Task<IHostApplicationBuilder> ConfigureAzureRedisUserAssignedManagedIdentityAsync(this IHostApplicationBuilder builder, string clientId, string principalId, string? name = null)
     {
         var options = new ConfigurationOptions();
 
