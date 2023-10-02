@@ -5,7 +5,10 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Azure;
 
-public class ServiceBusComponent : IDistributedApplicationComponent
+public class AzureStorageComponent : IAzureComponent
 {
     public ComponentMetadataCollection Annotations { get; } = new();
+
+    public string? ConnectionString { get; set; }
+    public string? AccountName { get; set; }
 }

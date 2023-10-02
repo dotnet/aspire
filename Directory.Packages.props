@@ -14,6 +14,13 @@
     <PackageVersion Include="Azure.Storage.Blobs" Version="12.17.0" />
     <PackageVersion Include="Azure.Storage.Queues" Version="12.15.0" />
     <PackageVersion Include="Microsoft.Extensions.Azure" Version="1.7.0" />
+
+    <!-- Azure Management SDK for .NET dependencies -->
+    <PackageVersion Include="Azure.ResourceManager.KeyVault" Version="1.2.0-beta.2" />
+    <PackageVersion Include="Azure.ResourceManager.ServiceBus" Version="1.1.0-beta.3" />
+    <PackageVersion Include="Azure.ResourceManager.Storage" Version="1.1.1" />
+    <PackageVersion Include="Azure.ResourceManager.Authorization" Version="1.1.0-beta.1" />
+    
     <!-- ASP.NET Core dependencies -->
     <PackageVersion Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="$(AspNetCoreVersion)" />
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="$(AspNetCoreVersion)" />
