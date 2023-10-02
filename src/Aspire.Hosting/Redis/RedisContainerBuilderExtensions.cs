@@ -20,7 +20,8 @@ public static class RedisContainerBuilderExtensions
         return componentBuilder;
     }
 
-    public static IDistributedApplicationComponentBuilder<ProjectComponent> WithRedis(this IDistributedApplicationComponentBuilder<ProjectComponent> projectBuilder, IDistributedApplicationComponentBuilder<RedisContainerComponent> redisBuilder, string? connectionName = null)
+    public static IDistributedApplicationComponentBuilder<T> WithRedis<T>(this IDistributedApplicationComponentBuilder<T> projectBuilder, IDistributedApplicationComponentBuilder<RedisContainerComponent> redisBuilder, string? connectionName = null)
+        where T : IDistributedApplicationComponentWithEnvironment
     {
         if (string.IsNullOrEmpty(connectionName))
         {
@@ -45,7 +46,8 @@ public static class RedisContainerBuilderExtensions
         });
     }
 
-    public static IDistributedApplicationComponentBuilder<ProjectComponent> WithRedis(this IDistributedApplicationComponentBuilder<ProjectComponent> projectBuilder, string connectionName, string connectionString)
+    public static IDistributedApplicationComponentBuilder<T> WithRedis<T>(this IDistributedApplicationComponentBuilder<T> projectBuilder, string connectionName, string connectionString)
+        where T : IDistributedApplicationComponentWithEnvironment
     {
         return projectBuilder.WithEnvironment(ConnectionStringEnvironmentName + connectionName, connectionString);
     }

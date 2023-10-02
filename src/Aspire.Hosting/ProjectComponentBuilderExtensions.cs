@@ -26,6 +26,11 @@ public static class ProjectComponentBuilderExtensions
         builder.WithAnnotation(new ReplicaAnnotation(replicas));
         return builder;
     }
+    public static IDistributedApplicationComponentBuilder<ExecutableComponent> WithReplicas(this IDistributedApplicationComponentBuilder<ExecutableComponent> builder, int replicas)
+    {
+        builder.WithAnnotation(new ReplicaAnnotation(replicas));
+        return builder;
+    }
 
     public static IDistributedApplicationComponentBuilder<ProjectComponent> WithLaunchProfile(this IDistributedApplicationComponentBuilder<ProjectComponent> builder, string launchProfileName)
     {
