@@ -53,7 +53,11 @@ public class OtlpApplication
         }
         if (string.IsNullOrEmpty(InstanceId))
         {
-            throw new ArgumentException("Resource needs to include a 'service.instance.id'");
+            //
+            // NOTE: The service.instance.id value is a recommended attribute, but not required.
+            //       See: https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/resource/semantic_conventions/README.md#service-experimental
+            //
+            InstanceId = ApplicationName;
         }
         Suffix = applications.Where(a => a.Value.ApplicationName == ApplicationName).Count();
         _logger = logger;

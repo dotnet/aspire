@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
+using Microsoft.Extensions.Configuration;
 using System.Globalization;
 using System.Net.Sockets;
 using static Aspire.Hosting.Dapr.CommandLineArgs;
@@ -11,6 +12,7 @@ namespace Aspire.Hosting.Dapr;
 
 internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedApplicationLifecycleHook
 {
+    private readonly IConfiguration _configuration;
     private readonly DaprOptions _options;
     private readonly DaprPortManager _portManager;
 
@@ -20,9 +22,12 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
             : Path.Combine("/usr", "local", "bin", "dapr");
 
     private const int DaprHttpPortStartRange = 50001;
+    private const string DashboardOtlpUrlVariableName = "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL";
+    private const string DashboardOtlpUrlDefaultValue = "http://localhost:18889";
 
-    public DaprDistributedApplicationLifecycleHook(DaprOptions options, DaprPortManager portManager)
+    public DaprDistributedApplicationLifecycleHook(IConfiguration configuration, DaprOptions options, DaprPortManager portManager)
     {
+        _configuration = configuration;
         this._options = options;
         this._portManager = portManager;
     }
@@ -125,6 +130,27 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
 
             component.Annotations.Add(new NameAnnotation { Name = sidecarOptions?.AppId ?? "Unknown" });
             component.Annotations.AddRange(ports.Select(port => new ServiceBindingAnnotation(ProtocolType.Tcp, name: port.Key, port: port.Value.Port)));
+
+            // NOTE: Telemetry is enabled by default.
+            if (this._options.EnableTelemetry != false)
+            {
+                component.Annotations.Add(
+                    new EnvironmentCallbackAnnotation(
+                        env =>
+                        {
+
+                            //
+                            // NOTE: Setting OTEL_EXPORTER_OTLP_ENDPOINT will not override any explicit OTLP configuration in a specified Dapr sidecar configuration file.
+                            //       The ambient Dapr sidecar configuration file does not configure an OTLP exporter (but could have been updated by the user to do so).
+                            //
+                            // TODO: It would be nice, at some point, to consolidate determination of the OTLP endpoint as it's now repeated in a few places.
+                            //
+
+                            env["OTEL_EXPORTER_OTLP_ENDPOINT"] = this._configuration[DashboardOtlpUrlVariableName] ?? DashboardOtlpUrlDefaultValue;
+                            env["OTEL_EXPORTER_OTLP_INSECURE"] = "true";
+                            env["OTEL_EXPORTER_OTLP_PROTOCOL"] = "grpc";
+                        }));
+            }
 
             component.Annotations.Add(
                 new ExecutableArgsCallbackAnnotation(
