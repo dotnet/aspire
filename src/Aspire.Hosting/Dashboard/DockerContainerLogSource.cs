@@ -44,18 +44,20 @@ internal sealed class DockerContainerLogSource : IContainerLogSource
                     Arguments = args,
                     OnOutputData = WriteToOutputChannel,
                     OnErrorData = WriteToErrorChannel,
-                    KillEntireProcessTree = false
+                    KillEntireProcessTree = false,
+                    ThrowOnNonZeroReturnCode = false // We don't want this to throw an exception because it is common
+                                                     // for us to cancel the task and kill the process, which returns -1
                 };
 
                 (processResultTask, _processDisposable) = ProcessUtil.Run(spec);
 
-                // Make sure the process exits if the cancellation token is cancelled
-                cancellationToken.Register(async () =>
-                {
-                    await DisposeProcess().ConfigureAwait(false);
-                });
+                var tcs = new TaskCompletionSource();
 
-                _ = Task.Run(WaitForExit, cancellationToken);
+                // Make sure the process exits if the cancellation token is cancelled
+                var ctr = cancellationToken.Register(() => tcs.TrySetResult());
+
+                // Don't forward cancellationToken here, because its handled internally in WaitForExit
+                _ = Task.Run(() => WaitForExit(tcs, ctr), CancellationToken.None);
 
                 return true;
             }
@@ -77,29 +79,38 @@ internal sealed class DockerContainerLogSource : IContainerLogSource
 
             void WriteToOutputChannel(string s)
             {
-                _ = Task.Run(async () =>
-                {
-                    await _outputChannel.Writer.WriteAsync(s, cancellationToken).ConfigureAwait(false);
-                }, cancellationToken);
+                _outputChannel.Writer.TryWrite(s);
             }
 
             void WriteToErrorChannel(string s)
             {
-                _ = Task.Run(async () =>
-                {
-                    await _errorChannel.Writer.WriteAsync(s, cancellationToken).ConfigureAwait(false);
-                }, cancellationToken);
+                _errorChannel.Writer.TryWrite(s);
             }
 
-            async Task WaitForExit()
+            async Task WaitForExit(TaskCompletionSource tcs, CancellationTokenRegistration ctr)
             {
                 if (processResultTask is not null)
                 {
-                    var processResult = await processResultTask.ConfigureAwait(false);
-                    await _outputChannel.Writer.WriteAsync($"Process exited with code {processResult.ExitCode}", cancellationToken).ConfigureAwait(false);
+                    // Wait for cancellation (tcs.Task) or for the process itself to exit.
+                    await Task.WhenAny(tcs.Task, processResultTask).ConfigureAwait(false);
+
+                    if (processResultTask.IsCompleted)
+                    {
+                        // If it was the process that exited, write that out to the logs. If it was cancelled,
+                        // there's no need to because the user has left the page
+                        var processResult = processResultTask.Result;
+                        await _outputChannel.Writer.WriteAsync($"Process exited with code {processResult.ExitCode}", cancellationToken).ConfigureAwait(false);
+                    }
+                    
                     _outputChannel.Writer.Complete();
                     _errorChannel.Writer.Complete();
+
+                    // If the process has already exited, this will be a no-op. But if it was cancelled
+                    // we need to end the process
+                    await DisposeProcess().ConfigureAwait(false);
                 }
+
+                ctr.Unregister();
             }
         }
 

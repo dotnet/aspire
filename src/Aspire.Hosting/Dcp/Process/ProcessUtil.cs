@@ -80,7 +80,7 @@ internal static partial class ProcessUtil
         {
             lock (processEventLock)
             {
-                if (process.ExitCode != 0)
+                if (processSpec.ThrowOnNonZeroReturnCode && process.ExitCode != 0)
                 {
                     processLifetimeTcs.TrySetException(new InvalidOperationException(
                         $"Command {processSpec.ExecutablePath} {processSpec.Arguments} returned non-zero exit code {process.ExitCode}"));
@@ -146,7 +146,7 @@ internal static partial class ProcessUtil
                 sys_kill(_process.Id, sig: 2); // SIGINT
             }
 
-            await Task.WhenAny(_processLifetimeTask, Task.Delay(s_processExitTimeout)).ConfigureAwait(false);
+            await _processLifetimeTask.WaitAsync(s_processExitTimeout).ConfigureAwait(false);
             if (!_process.HasExited)
             {
                 // Always try to kill the entire process tree here if all of the above has failed.
