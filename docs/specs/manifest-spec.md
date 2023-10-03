@@ -1,6 +1,6 @@
 # Manifest Specification for Aspire's Distributed Application Model
 
-This is a sepcification for the manifest file for Aspire's Distributed Application Model. The purpose of the manifest file is to allow developers to export definitions of components that comprise their distributed application model and their dependencies so that other tools can process it to facilitate deployment into target runtime environments.
+This is a specification for the manifest file for Aspire's Distributed Application Model. The purpose of the manifest file is to allow developers to export definitions of components that comprise their distributed application model and their dependencies so that other tools can process it to facilitate deployment into target runtime environments.
 
 The format of the manifest file itself does not pre-suppose a particular target environment but this document will make reference to specific cloud providers and technologies for illustrative purposes.
 
