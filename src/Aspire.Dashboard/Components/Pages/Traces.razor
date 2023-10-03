@@ -33,8 +33,10 @@
                 <ChildContent>
                     <PropertyColumn Title="Timestamp" Property="@(context => OtlpHelpers.FormatTimeStamp(context.FirstSpan.StartTime))" />
                     <TemplateColumn Title="Name">
-                        <span><FluentHighlighter HighlightedText="@(ViewModel.FilterText)" Text="@(context.FullName)" /></span>
-                        <span class="trace-id">@OtlpHelpers.ToShortenedId(context.TraceId)</span>
+                        <div class="col-long-content" title="@($"{context.FullName}: {OtlpHelpers.ToShortenedId(context.TraceId)}")">
+                            <span><FluentHighlighter HighlightedText="@(ViewModel.FilterText)" Text="@(context.FullName)" /></span>
+                            <span class="trace-id">@OtlpHelpers.ToShortenedId(context.TraceId)</span>
+                        </div>
                     </TemplateColumn>
                     <TemplateColumn Title="Spans">
                         <FluentOverflow>
