@@ -59,12 +59,12 @@ public class OrderProcessingWorker : BackgroundService
 
             var message = args.Message;
 
-            if (_logger.Equals(LogLevel.Debug))
+            if (_logger.IsEnabled(LogLevel.Debug))
             {
                 _logger.LogDebug("""
-                MessageId:{MessageId}
-                MessageBody:{Body}
-                """, message.MessageId, message.Body);
+                    MessageId:{MessageId}
+                    MessageBody:{Body}
+                    """, message.MessageId, message.Body);
             }
             var order = message.Body.ToObjectFromJson<Order>();
 

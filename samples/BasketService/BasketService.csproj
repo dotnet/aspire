@@ -22,9 +22,4 @@
     <ProjectReference Include="..\ServiceDefaults\ServiceDefaults.csproj" />
   </ItemGroup>
 
-  <!-- Enable Azure ActivitySources so Azure Components participate in tracing. -->
-  <ItemGroup>
-    <RuntimeHostConfigurationOption Include="Azure.Experimental.EnableActivitySource"
-                                    Value="true" />
-  </ItemGroup>
 </Project>
