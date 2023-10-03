@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Microsoft.AspNetCore.Mvc;
+using Dapr.Client;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,16 +11,8 @@ builder.AddServiceDefaults();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddHttpClient(
-    "dapr",
-    (provider, httpClient) =>
-    {
-        var configuration = provider.GetRequiredService<IConfiguration>();
 
-        int daprHttpPort = configuration.GetValue<int>("DAPR_HTTP_PORT");
-
-        httpClient.BaseAddress = new Uri($"http://localhost:{daprHttpPort}/v1.0/", UriKind.Absolute);
-    });
+builder.Services.AddSingleton(new DaprClientBuilder().Build());
 
 var app = builder.Build();
 
@@ -38,17 +30,9 @@ var summaries = new[]
     "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
 };
 
-app.MapGet("/weatherforecast", async ([FromServices] IHttpClientFactory httpClientFactory) =>
+app.MapGet("/weatherforecast", (DaprClient client) =>
 {
-    var httpClient = httpClientFactory.CreateClient("dapr");
-
-    string serviceAppId = "service-b";
-
-    var invocationUrl = new Uri($"invoke/{serviceAppId}/method/weatherforecast", UriKind.Relative);
-
-    var forecast = await httpClient.GetFromJsonAsync<WeatherForecast[]>(invocationUrl);
-
-    return forecast;
+    return client.InvokeMethodAsync<WeatherForecast[]>("service-b", "weatherforecast");
 })
 .WithName("GetWeatherForecast")
 .WithOpenApi();
