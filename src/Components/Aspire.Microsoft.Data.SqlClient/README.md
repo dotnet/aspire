@@ -18,7 +18,50 @@ dotnet add package Aspire.Microsoft.Data.SqlClient
 
 ## Usage Example
 
- Call `AddSqlServerClient` extension method to add the `SqlConnection` config with the desired configurations exposed with `MicrosoftDataSqlClientSettings`. The library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `MicrosoftDataSqlClientSettings` from configuration by using `Aspire:Microsoft:Data:SqlClient` key. Example `appsettings.json` that configures some of the settings, note that `ConnectionString` is required to be set:
+In the `Program.cs` file of your project, call the `AddSqlServerClient` extension method to register a `SqlConnection` for use via the dependency injection container.
+
+```cs
+builder.AddSqlServerClient();
+```
+
+You can then retrieve the `SqlConnection` instance using dependency injection. For example, to retrieve the cache from a Web API controller:
+
+```cs
+private readonly SqlConnection _connection;
+
+public ProductsController(SqlConnection connection)
+{
+    _connection = connection;
+}
+```
+
+## Configuration
+
+The Aspire SqlClient component provides multiple options to configure the SQL connection based on the requirements and conventions of your project.
+
+### Use a connection string
+
+When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddSqlServerClient()`:
+
+```cs
+builder.AddSqlServerClient("myConnection");
+```
+
+And then the connection string will be retrieved from the `ConnectionStrings` configuration section:
+
+```json
+{
+  "ConnectionStrings": {
+    "myConnection": "Data Source=myserver;Initial Catalog=master"
+  }
+}
+```
+
+See the [ConnectionString documentation](https://learn.microsoft.com/dotnet/api/system.data.sqlclient.sqlconnection.connectionstring#remarks) for more information on how to format this connection string.
+
+### Use configuration providers
+
+The Aspire SqlClient component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `MicrosoftDataSqlClientSettings` from configuration by using the `Aspire:Microsoft:Data:SqlClient` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {
@@ -26,7 +69,7 @@ dotnet add package Aspire.Microsoft.Data.SqlClient
     "Microsoft": {
       "Data": {
         "SqlClient": {
-          "ConnectionString": "YOUR_CONNECTIONSTRING",
+          "ConnectionString": "Data Source=myserver;Initial Catalog=master",
           "HealthChecks": true,
           "Metrics": false
         }
@@ -36,67 +79,36 @@ dotnet add package Aspire.Microsoft.Data.SqlClient
 }
 ```
 
-If you have setup your configurations in the `Aspire:Microsoft:Data:SqlClient` section you can just call the method without passing any parameter.
+### Use inline delegates
+
+Also you can pass the `Action<MicrosoftDataSqlClientSettings> configureSettings` delegate to set up some or all the options inline, for example to use a connection string from code:
 
 ```cs
-    builder.AddSqlServerClient();
+    builder.AddSqlServerClient(configureSettings: settings => settings.ConnectionString = "Data Source=myserver;Initial Catalog=master");
 ```
 
-If you want to add more than one [SqlConnection](https://learn.microsoft.com/dotnet/api/azure.storage.queues.queueserviceclient) you could use named instances. The json configuration would look like: 
+## DevHost Extensions
 
-```json
-{
-  "Aspire": {
-    "Microsoft": {
-      "Data": {
-        "SqlClient": {
-          "INSTANCE_NAME": {
-            "ServiceUri": "YOUR_URI",
-            "HealthChecks": false
-          }
-        }
-      }
-    }
-  }
-}
-```
-
-To load the named configuration section from the json config call the `AddSqlServerClient` method by passing the `INSTANCE_NAME`.
+In your DevHost project, register a SqlServer container and consume the connection using the following methods:
 
 ```cs
-    builder.AddSqlServerClient("INSTANCE_NAME");
+var sql = builder.AddSqlServerContainer("sqldata");
+
+var myService = builder.AddProject<YourApp.Projects.MyService>()
+                       .WithSqlServer(sql, "master");
 ```
 
-Also you can pass the `Action<MicrosoftDataSqlClientSettings>` delegate to set up some or all the options inline, for example to turn off the `Metrics`:
+`.WithSqlServer` configures a connection in the `MyService` project named `sqldata`. In the `Program.cs` file of `MyService`, the sql connection can be consumed using:
 
 ```cs
-    builder.AddSqlServerClient(settings => settings.Metrics = false);
+builder.AddSqlServerClient("sqldata");
 ```
-
-Here are the configurable options with corresponding default values:
-
-```cs
-public sealed class MicrosoftDataSqlClientSettings
-{
-    // The connection string of the SQL Server database to connect to.
-    public string? ConnectionString { get; set; }
-
-    // A boolean value that indicates whether the database health check is enabled or not.
-    public bool HealthChecks { get; set; } = true;
-
-    // A boolean value that indicates whether the OpenTelemetry tracing is enabled or not.
-    public bool Tracing { get; set; } = true;
-	
-    // A boolean value that indicates whether the OpenTelemetry metrics are enabled or not.
-    public bool Metrics { get; set; } = true;
-}
-```
-
-After adding a `SqlConnection` you can get the scoped [SqlConnection](https://learn.microsoft.com/dotnet/api/microsoft.data.sqlclient.sqlconnection) instance using DI.
 
 ## Additional documentation
 
-https://github.com/dotnet/astra/tree/main/src/Components/README.md
+* https://learn.microsoft.com/dotnet/framework/data/adonet/sql/
+* https://learn.microsoft.com/dotnet/api/system.data.sqlclient.sqlconnection
+* https://github.com/dotnet/astra/tree/main/src/Components/README.md
 
 ## Feedback & Contributing
 

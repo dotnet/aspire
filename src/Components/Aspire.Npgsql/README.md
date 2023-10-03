@@ -18,76 +18,91 @@ dotnet add package Aspire.Npgsql
 
 ## Usage Example
 
-Call `AddNpgsqlDataSource` extension method to add the `NpgsqlDataSource` with the desired configurations exposed with `NpgsqlSettings`. The library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `NpgsqlSettings` from configuration by using `Aspire:Npgsql` key. Example `appsettings.json` that configures some of the settings. note that `ConnectionString` is required to be set:
+In the `Program.cs` file of your project, call the `AddNpgsqlDataSource` extension method to register a `NpgsqlDataSource` for use via the dependency injection container.
+
+```cs
+builder.AddNpgsqlDataSource();
+```
+
+You can then retrieve the `NpgsqlDataSource` instance using dependency injection. For example, to retrieve the cache from a Web API controller:
+
+```cs
+private readonly NpgsqlDataSource _dataSource;
+
+public ProductsController(NpgsqlDataSource dataSource)
+{
+    _dataSource = dataSource;
+}
+```
+
+## Configuration
+
+The Aspire PostgreSQL Npgsql component provides multiple options to configure the database connection based on the requirements and conventions of your project.
+
+### Use a connection string
+
+When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddNpgsqlDataSource()`:
+
+```cs
+builder.AddNpgsqlDataSource("myConnection");
+```
+
+And then the connection string will be retrieved from the `ConnectionStrings` configuration section:
+
+```json
+{
+  "ConnectionStrings": {
+    "myConnection": "Host=myserver;Database=test"
+  }
+}
+```
+
+See the [ConnectionString documentation](https://www.npgsql.org/doc/connection-string-parameters.html) for more information on how to format this connection string.
+
+### Use configuration providers
+
+The Aspire PostgreSQL Npgsql component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `NpgsqlSettings` from configuration by using the `Aspire:Npgsql` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {
   "Aspire": {
     "Npgsql": {
-      "ConnectionString": "YOUR_CONNECTIONSTRING",
+      "ConnectionString": "Host=myserver;Database=test",
       "Metrics": false
     }
   }
 }
 ```
 
-If you have setup your configurations in the `Aspire:Npgsql` section you can just call the method without passing any parameter.
+### Use inline delegates
+
+Also you can pass the `Action<NpgsqlSettings> configureSettings` delegate to set up some or all the options inline, for example to use a connection string from code:
 
 ```cs
-    builder.AddNpgsqlDataSource();
+    builder.AddNpgsqlDataSource(configureSettings: settings => settings.ConnectionString = "Host=myserver;Database=test");
 ```
 
-If you want to add more than one [NpgsqlDataSource](https://www.npgsql.org/doc/api/Npgsql.NpgsqlDataSource.html) you could use named instances. The json configuration would look like: 
+## DevHost Extensions
 
-```json
-{
-  "Aspire": {
-    "Npgsql": {
-      "INSTANCE_NAME": {
-        "ServiceUri": "YOUR_URI",
-        "HealthChecks": false
-      }
-    }
-  }
-}
-```
-
-To load the named configuration section from the json config call the `AddNpgsqlDataSource` method by passing the `INSTANCE_NAME`.
+In your DevHost project, register a Postgres container and consume the connection using the following methods:
 
 ```cs
-    builder.AddNpgsqlDataSource("INSTANCE_NAME");
+var postgres = builder.AddPostgresContainer("postgresdb");
+
+var myService = builder.AddProject<YourApp.Projects.MyService>()
+                       .WithPostgresDatabase(postgres, databaseName: "test")
 ```
 
-Also you can pass the `Action<NpgsqlSettings>` delegate to set up some or all the options inline, for example to turn off the `Metrics`:
+`.WithPostgresDatabase` configures a connection in the `MyService` project named `postgresdb`. In the `Program.cs` file of `MyService`, the database connection can be consumed using:
 
 ```cs
-    builder.AddNpgsqlDataSource(settings => settings.Metrics = true);
+builder.AddNpgsqlDataSource("postgresdb");
 ```
-
-Here is the configurable options with corresponding default values:
-
-```cs
-public sealed class NpgsqlSettings
-{
-    // The connection string of the SQL Server database to connect to. Note that this is the only option that is required to set.
-    public string? ConnectionString { get; set; }
-
-    // A boolean value that indicates whether the DbContext health check is enabled or not.
-    public bool HealthChecks { get; set; } = true;
-
-    // A boolean value that indicates whether the OpenTelemetry tracing is enabled or not.
-    public bool Tracing { get; set; } = true;
-	
-    // A boolean value that indicates whether the OpenTelemetry metrics are enabled or not.
-    public bool Metrics { get; set; } = true;
-}
-```
-
-After adding a `NpgsqlDataSource` you can get the scoped [NpgsqlDataSource](https://learn.microsoft.com/dotnet/api/microsoft.data.sqlclient.sqlconnection) instance using DI.
 
 ## Additional documentation
 
-https://github.com/dotnet/astra/tree/main/src/Components/README.md
+* https://www.npgsql.org/doc/basic-usage.html
+* https://github.com/dotnet/astra/tree/main/src/Components/README.md
 
 ## Feedback & Contributing
 
