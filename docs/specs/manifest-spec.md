@@ -30,7 +30,6 @@ builder.AddProject<Projects.eShopLite_Frontend>("frontend")
     .IsExternal();
 
 builder.AddContainer("prometheus", "prom/prometheus")
-       .WithVolumeMount("../prometheus", "/etc/prometheus")
        .WithServiceBinding(9090);
 
 builder.Build().Run();
@@ -105,12 +104,6 @@ When ```dotnet publish``` is called on the DevHost project containing the code a
                     "protocol": "tcp",
                     "transport": "http",
                     "external": false
-                }
-            },
-            "volumeMounts": {
-                {
-                    "source": "[project relative path]/prometheus",
-                    "destination": "/etc/prometheus"
                 }
             }
         }
