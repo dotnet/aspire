@@ -21,12 +21,12 @@
 
     private IJSObjectReference? _jsModule;
 
-    internal async Task ClearLogsAsync()
+    internal async Task ClearLogsAsync(CancellationToken cancellationToken = default)
     {
         if (_jsModule is not null)
         {
             initialMessageCleared = true;
-            await _jsModule.InvokeVoidAsync("clearLogs");
+            await _jsModule.InvokeVoidAsync("clearLogs", cancellationToken);
         }
     }
 
