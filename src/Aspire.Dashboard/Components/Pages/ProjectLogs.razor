@@ -78,8 +78,6 @@
     {
         if (_selectedProject?.LogSource?.Available == true && _logViewer is not null)
         {
-            await _logViewer.ClearLogsAsync();
-
             await DisposeWatchLogsTokenSource();
 
             if (_pageDisposed)
@@ -91,6 +89,8 @@
             }
 
             _watchLogsTokenSource = new CancellationTokenSource();
+
+            await _logViewer.ClearLogsAsync(_watchLogsTokenSource.Token);
 
             _ = Task.Run(async () =>
             {

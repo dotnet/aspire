@@ -32,9 +32,10 @@
     private IEnumerable<ContainerViewModel> Containers => _containerNameMapping.Select(kvp => kvp.Value).OrderBy(c => c.Name);
     private ContainerViewModel? _selectedContainer;
     private LogViewer? _logViewer;
-    private CancellationTokenSource _watchTokenSource = new CancellationTokenSource();
-    private CancellationTokenSource _watchLogsTokenSource = new CancellationTokenSource();
+    private CancellationTokenSource _watchContainersTokenSource = new CancellationTokenSource();
+    private CancellationTokenSource? _watchLogsTokenSource;
     private IContainerLogWatcher? _currentWatcher;
+    private bool _pageDisposed;
 
     protected override async Task OnInitializedAsync()
     {
@@ -58,7 +59,7 @@
 
         _ = Task.Run(async () =>
         {
-            await foreach (var componentChanged in DashboardViewModelService.WatchContainersAsync(existingContainers: initialList?.Select(t => t.Model), cancellationToken: _watchTokenSource.Token))
+            await foreach (var componentChanged in DashboardViewModelService.WatchContainersAsync(existingContainers: initialList?.Select(t => t.Model), cancellationToken: _watchContainersTokenSource.Token))
             {
                 await OnContainerListChanged(componentChanged.ObjectChangeType, componentChanged.Component);
             }
@@ -69,15 +70,21 @@
     {
         if (_selectedContainer is not null && _logViewer is not null)
         {
-            await _watchLogsTokenSource.CancelAsync();
-            if (_currentWatcher is not null)
+            await DisposeCurrentWatcher();
+            await DisposeWatchLogsTokenSource();
+
+            if (_pageDisposed)
             {
-                await _currentWatcher.DisposeAsync();
+                // If the page got disposed after this call was started, but before we
+                // set up the _watchLogsTokenSource to a new object below, we would end
+                // up leaving the below tasks running indefinitely.
+                return;
             }
-            await _logViewer.ClearLogsAsync();
 
             _watchLogsTokenSource = new CancellationTokenSource();
             _currentWatcher = _selectedContainer.LogSource.GetWatcher();
+
+            await _logViewer.ClearLogsAsync(_watchLogsTokenSource.Token);
 
             if (await _currentWatcher.InitWatchAsync(_watchLogsTokenSource.Token))
             {
@@ -150,13 +157,30 @@
 
     public async ValueTask DisposeAsync()
     {
-        await _watchTokenSource.CancelAsync();
-        _watchTokenSource.Dispose();
-        await _watchLogsTokenSource.CancelAsync();
-        _watchLogsTokenSource.Dispose();
-        if (_currentWatcher is not null)
+        _pageDisposed = true;
+        await DisposeWatchContainersTokenSource();
+        await DisposeWatchLogsTokenSource();
+        await DisposeCurrentWatcher();
+    }
+
+    private ValueTask DisposeCurrentWatcher()
+        => _currentWatcher is null
+            ? ValueTask.CompletedTask
+            : _currentWatcher.DisposeAsync();
+
+    private async Task DisposeWatchContainersTokenSource()
+    {
+        await _watchContainersTokenSource.CancelAsync();
+        _watchContainersTokenSource.Dispose();
+    }
+
+    private async Task DisposeWatchLogsTokenSource()
+    {
+        if (_watchLogsTokenSource is not null)
         {
-            await _currentWatcher.DisposeAsync();
+            await _watchLogsTokenSource.CancelAsync();
+            _watchLogsTokenSource.Dispose();
+            _watchLogsTokenSource = null;
         }
     }
 }
