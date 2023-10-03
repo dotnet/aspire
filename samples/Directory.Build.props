@@ -12,4 +12,10 @@
     <NoWarn>$(NoWarn),1573,1591,1712</NoWarn>
   </PropertyGroup>
 
+  <!-- Enable Azure ActivitySources so Azure Components participate in tracing. -->
+  <ItemGroup>
+    <RuntimeHostConfigurationOption Include="Azure.Experimental.EnableActivitySource"
+                                    Value="true" />
+  </ItemGroup>
+
 </Project>

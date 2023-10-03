@@ -53,18 +53,19 @@ public class OrderProcessingWorker : BackgroundService
 
     private Task ProcessMessageAsync(ProcessMessageEventArgs args)
     {
-        using (var activity = ActivitySource.StartActivity("order-processor.worker"))
+        var parentId = args.Message.ApplicationProperties["traceparent"] as string;
+        using (var activity = ActivitySource.StartActivity("order-processor.worker", ActivityKind.Consumer, parentId))
         {
             _logger.LogInformation($"Processing Order at: {DateTime.UtcNow}");
 
             var message = args.Message;
 
-            if (_logger.Equals(LogLevel.Debug))
+            if (_logger.IsEnabled(LogLevel.Debug))
             {
                 _logger.LogDebug("""
-                MessageId:{MessageId}
-                MessageBody:{Body}
-                """, message.MessageId, message.Body);
+                    MessageId:{MessageId}
+                    MessageBody:{Body}
+                    """, message.MessageId, message.Body);
             }
             var order = message.Body.ToObjectFromJson<Order>();
 
