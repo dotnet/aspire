@@ -55,6 +55,7 @@
     <PackageVersion Include="Microsoft.Extensions.Primitives" Version="$(RuntimeVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="$(ExtensionsVersion)" />
     <!-- external dependencies -->
+    <PackageVersion Include="Dapr.AspNetCore" Version="1.12.0-rc01" />
     <PackageVersion Include="Dapr.Client" Version="1.12.0-rc01" />
     <PackageVersion Include="DnsClient" Version="1.7.0" />
     <PackageVersion Include="Google.Protobuf" Version="3.23.1" />

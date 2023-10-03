@@ -12,7 +12,7 @@ builder.AddServiceDefaults();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddSingleton(new DaprClientBuilder().Build());
+builder.Services.AddDaprClient();
 
 var app = builder.Build();
 
