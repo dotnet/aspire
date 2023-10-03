@@ -36,20 +36,13 @@ public static class PostgresContainerBuilderExtensions
     public static IDistributedApplicationComponentBuilder<T> WithPostgresDatabase<T>(this IDistributedApplicationComponentBuilder<T> builder, IDistributedApplicationComponentBuilder<PostgresContainerComponent> postgres, string? databaseName = null, string? connectionName = null)
         where T : IDistributedApplicationComponentWithEnvironment
     {
-        if (string.IsNullOrEmpty(connectionName))
+        if (string.IsNullOrEmpty(connectionName) && !postgres.Component.TryGetName(out connectionName))
         {
-            DistributedApplicationComponentExtensions.TryGetName(postgres.Component, out connectionName);
-
-            if (connectionName is null)
-            {
-                throw new DistributedApplicationException("Postgres connection name could not be determined. Please provide one.");
-            }
+            throw new DistributedApplicationException("Postgres connection name could not be determined. Please provide one.");
         }
 
         return builder.WithEnvironment(ConnectionStringEnvironmentName + connectionName, () =>
         {
-            var config = new Dictionary<string, string>();
-
             if (!postgres.Component.TryGetLastAnnotation<PostgresPasswordAnnotation>(out var passwordAnnotation))
             {
                 throw new InvalidOperationException($"Postgres does not have a password set!");

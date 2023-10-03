@@ -23,14 +23,9 @@ public static class RedisContainerBuilderExtensions
     public static IDistributedApplicationComponentBuilder<T> WithRedis<T>(this IDistributedApplicationComponentBuilder<T> projectBuilder, IDistributedApplicationComponentBuilder<RedisContainerComponent> redisBuilder, string? connectionName = null)
         where T : IDistributedApplicationComponentWithEnvironment
     {
-        if (string.IsNullOrEmpty(connectionName))
+        if (string.IsNullOrEmpty(connectionName) && !redisBuilder.Component.TryGetName(out connectionName))
         {
-            DistributedApplicationComponentExtensions.TryGetName(redisBuilder.Component, out connectionName);
-
-            if (connectionName is null)
-            {
-                throw new DistributedApplicationException("Redis connection name could not be determined. Please provide one.");
-            }
+            throw new DistributedApplicationException("Redis connection name could not be determined. Please provide one.");
         }
 
         return projectBuilder.WithEnvironment(ConnectionStringEnvironmentName + connectionName, () =>

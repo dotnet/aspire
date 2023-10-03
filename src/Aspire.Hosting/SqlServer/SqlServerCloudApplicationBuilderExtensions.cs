@@ -25,14 +25,9 @@ public static class SqlServerCloudApplicationBuilderExtensions
     public static IDistributedApplicationComponentBuilder<T> WithSqlServer<T>(this IDistributedApplicationComponentBuilder<T> projectBuilder, IDistributedApplicationComponentBuilder<SqlServerContainerComponent> sqlBuilder, string? databaseName, string? connectionName = null)
         where T : IDistributedApplicationComponentWithEnvironment
     {
-        if (string.IsNullOrEmpty(connectionName))
+        if (string.IsNullOrEmpty(connectionName) && !sqlBuilder.Component.TryGetName(out connectionName))
         {
-            DistributedApplicationComponentExtensions.TryGetName(sqlBuilder.Component, out connectionName);
-
-            if (connectionName is null)
-            {
-                throw new DistributedApplicationException("SqlServer connection name could not be determined. Please provide one.");
-            }
+            throw new DistributedApplicationException("SqlServer connection name could not be determined. Please provide one.");
         }
 
         return projectBuilder.WithEnvironment(ConnectionStringEnvironmentName + connectionName, () =>
