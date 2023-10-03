@@ -3,14 +3,14 @@
   "unsupportedHosts": [
     {
       "id": "vs",
-      "version": "(,17.8)"
+      "version": "(,17.9)"
     }
   ],
   "requiredComponents": [
     {
       "hostId": "vs",
       "componentType": "setupComponent",
-      "id": "environment:VSEnableAspireOrchestrationParameter=1"
+      "id": "Web"
     }
   ],
   "symbolInfo": [
