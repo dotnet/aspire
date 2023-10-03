@@ -14,7 +14,7 @@ namespace Aspire.Npgsql.Tests;
 
 public class ConformanceTests : ConformanceTests<NpgsqlDataSource, NpgsqlSettings>
 {
-    private const string ConnectionSting = "Host=localhost;Database=test_astra_npgsql;Username=postgres;Password=postgres";
+    private const string ConnectionSting = "Host=localhost;Database=test_aspire_npgsql;Username=postgres;Password=postgres";
 
     private static readonly Lazy<bool> s_canConnectToServer = new(GetCanConnect);
 

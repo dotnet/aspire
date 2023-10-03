@@ -11,6 +11,6 @@ public class ConformanceTests_Pooling_TypeSpecificConfig : ConformanceTests_Pool
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[1]
         {
-            new($"Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:{typeof(TestDbContext).Name}:ConnectionString", ConnectionSting)
+            new($"Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:{typeof(TestDbContext).Name}:ConnectionString", ConnectionString)
         });
 }
