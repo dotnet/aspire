@@ -18,6 +18,12 @@ fluent-toolbar[orientation=horizontal] {
     visibility: hidden;
 }
 
+.col-long-content {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .trace-view-grid {
     width: 100%;
 }

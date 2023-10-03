@@ -23,12 +23,16 @@
             <FluentDataGrid Items="@FilteredProjects" ResizableColumns="true" GridTemplateColumns="2fr 1fr 2fr 2fr 2fr 1fr 1fr">
                 <ChildContent>
                     <TemplateColumn Title="Name" Sortable="true" SortBy="@nameSort">
-                        <FluentHighlighter HighlightedText="@filter" Text="@context.Name" />
+                        <div class="col-long-content" title="@context.Name">
+                            <FluentHighlighter HighlightedText="@filter" Text="@context.Name" />
+                        </div>
                     </TemplateColumn>
                     <PropertyColumn Property="@(e => e.State)" Sortable="true" />
                     <PropertyColumn Property="@(c => c.CreationTimeStamp)" Title="Start Time" Sortable="true" />
                     <TemplateColumn Title="Source Location" Sortable="true" SortBy="@projectPathSort">
-                        <FluentHighlighter HighlightedText="@filter" Text="@context.ProjectPath" />
+                        <div class="col-long-content" title="@context.ProjectPath">
+                            <FluentHighlighter HighlightedText="@filter" Text="@context.ProjectPath" />
+                        </div>
                     </TemplateColumn>
                     <TemplateColumn Title="Endpoints" Sortable="false">
                         <FluentStack Orientation="Orientation.Vertical">
