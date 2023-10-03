@@ -61,7 +61,7 @@ public static class AspireServiceBusExtensions
 
     private sealed class MessageBusComponent : AzureComponent<AzureMessagingServiceBusSettings, ServiceBusClient, ServiceBusClientOptions>
     {
-        protected override string[] ActivitySourceNames => new[] { "Azure.Messaging.ServiceBus.ServiceBusReceiver", "Azure.Messaging.ServiceBus.ServiceBusSender" };
+        protected override string[] ActivitySourceNames => ["Azure.Messaging.ServiceBus", "Azure.Messaging.ServiceBus.ServiceBusReceiver", "Azure.Messaging.ServiceBus.ServiceBusSender", "Azure.Messaging.ServiceBus.ServiceBusProcessor"];
 
         protected override IAzureClientBuilder<ServiceBusClient, ServiceBusClientOptions> AddClient<TBuilder>(TBuilder azureFactoryBuilder, AzureMessagingServiceBusSettings settings)
         {
