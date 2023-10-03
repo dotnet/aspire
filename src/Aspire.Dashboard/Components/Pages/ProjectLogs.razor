@@ -85,15 +85,7 @@
             {
                 await foreach (var logs in _selectedProject.LogSource.WatchOutputLogAsync(_watchLogsTokenSource.Token))
                 {
-                    var logEntries = logs.Select(l =>
-                    {
-                        return new LogEntry()
-                        {
-                            Timestamp = string.Empty,
-                            Content = l
-                        };
-                    });
-
+                    var logEntries = logs.Select(l => LogEntry.Create(l, LogEntryType.Default));
                     await _logViewer.AddLogEntriesAsync(logEntries);
                 }
             }, _watchLogsTokenSource.Token);
@@ -102,16 +94,7 @@
             {
                 await foreach (var logs in _selectedProject.LogSource.WatchErrorLogAsync(_watchLogsTokenSource.Token))
                 {
-                    var logEntries = logs.Select(l =>
-                    {
-                        return new LogEntry()
-                        {
-                            Timestamp = string.Empty,
-                            Content = l,
-                            Type = LogEntryType.Error
-                        };
-                    });
-
+                    var logEntries = logs.Select(l => LogEntry.Create(l, LogEntryType.Error));
                     await _logViewer.AddLogEntriesAsync(logEntries);
                 }
             }, _watchLogsTokenSource.Token);

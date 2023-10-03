@@ -34,6 +34,7 @@
     private LogViewer? _logViewer;
     private CancellationTokenSource _watchTokenSource = new CancellationTokenSource();
     private CancellationTokenSource _watchLogsTokenSource = new CancellationTokenSource();
+    private IContainerLogWatcher? _currentWatcher;
 
     protected override async Task OnInitializedAsync()
     {
@@ -68,29 +69,36 @@
     {
         if (_selectedContainer is not null && _logViewer is not null)
         {
-            await _logViewer.ClearLogsAsync();
             await _watchLogsTokenSource.CancelAsync();
+            if (_currentWatcher is not null)
+            {
+                await _currentWatcher.DisposeAsync();
+            }
+            await _logViewer.ClearLogsAsync();
 
             _watchLogsTokenSource = new CancellationTokenSource();
+            _currentWatcher = _selectedContainer.LogSource.GetWatcher();
 
-            _ = Task.Run(async () =>
+            if (await _currentWatcher.InitWatchAsync(_watchLogsTokenSource.Token))
             {
-                await foreach (var logs in _selectedContainer.LogSource.WatchLogsAsync(_watchLogsTokenSource.Token))
+                _ = Task.Run(async () =>
                 {
-                    var logEntries = logs.Select(l =>
+                    await foreach (var logs in _currentWatcher.WatchOutputLogsAsync(_watchLogsTokenSource.Token))
                     {
-                        // Container logs always start with an RFC3339Nano timestamp followed by a space
-                        // and then the rest of the log line
-                        var indexOfSpace = l.IndexOf(" ");
-                        return new LogEntry()
-                        {
-                            Timestamp = l[..indexOfSpace],
-                            Content = l[(indexOfSpace + 1)..]
-                        };
-                    });
-                    await _logViewer.AddLogEntriesAsync(logEntries);
-                }
-            }, _watchLogsTokenSource.Token);
+                        var logEntries = logs.Select(l => LogEntry.Create(l, LogEntryType.Default));
+                        await _logViewer.AddLogEntriesAsync(logEntries);
+                    }
+                }, _watchLogsTokenSource.Token);
+
+                _ = Task.Run(async () =>
+                {
+                    await foreach (var logs in _currentWatcher.WatchErrorLogsAsync(_watchLogsTokenSource.Token))
+                    {
+                        var logEntries = logs.Select(l => LogEntry.Create(l, LogEntryType.Error));
+                        await _logViewer.AddLogEntriesAsync(logEntries);
+                    }
+                }, _watchLogsTokenSource.Token);
+            }
         }
     }
 
@@ -146,5 +154,9 @@
         _watchTokenSource.Dispose();
         await _watchLogsTokenSource.CancelAsync();
         _watchLogsTokenSource.Dispose();
+        if (_currentWatcher is not null)
+        {
+            await _currentWatcher.DisposeAsync();
+        }
     }
 }

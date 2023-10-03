@@ -14,6 +14,7 @@ internal sealed class ProcessSpec
     public Action<int>? OnStart { get; set; }
     public Action<int>? OnStop { get; set; }
     public bool KillEntireProcessTree { get; set; } = true;
+    public bool ThrowOnNonZeroReturnCode { get; set; } = true;
 
     public ProcessSpec(string executablePath)
     {
