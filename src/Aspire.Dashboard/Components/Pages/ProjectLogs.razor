@@ -1,7 +1,7 @@
 ﻿@page "/ProjectLogs/{projectname?}"
 @using Aspire.Dashboard.Model;
 @using System.Text
-@implements IDisposable;
+@implements IAsyncDisposable;
 @inject IDashboardViewModelService DashboardViewModelService
 @inject IJSRuntime JS
 @inject NavigationManager NavigationManager
@@ -33,7 +33,8 @@
     private readonly Dictionary<string, ProjectViewModel> _projectNameMapping = new Dictionary<string, ProjectViewModel>();
     private IEnumerable<ProjectViewModel> Projects => _projectNameMapping.Select(kvp => kvp.Value).OrderBy(p => p.Name);
     private CancellationTokenSource _watchProjectsTokenSource = new CancellationTokenSource();
-    private CancellationTokenSource _watchLogsTokenSource = new CancellationTokenSource();
+    private CancellationTokenSource? _watchLogsTokenSource;
+    private bool _pageDisposed;
 
     protected override async Task OnInitializedAsync()
     {
@@ -78,7 +79,17 @@
         if (_selectedProject?.LogSource?.Available == true && _logViewer is not null)
         {
             await _logViewer.ClearLogsAsync();
-            await _watchLogsTokenSource.CancelAsync();
+
+            await DisposeWatchLogsTokenSource();
+
+            if (_pageDisposed)
+            {
+                // If the page got disposed after this call was started, but before we
+                // set up the _watchLogsTokenSource to a new object below, we would end
+                // up leaving the below tasks running indefinitely.
+                return;
+            }
+
             _watchLogsTokenSource = new CancellationTokenSource();
 
             _ = Task.Run(async () =>
@@ -147,11 +158,26 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
-        _watchProjectsTokenSource.Cancel();
+        _pageDisposed = true;
+        await DisposeWatchProjectsTokenSource();
+        await DisposeWatchLogsTokenSource();
+    }
+
+    private async Task DisposeWatchProjectsTokenSource()
+    {
+        await _watchProjectsTokenSource.CancelAsync();
         _watchProjectsTokenSource.Dispose();
-        _watchLogsTokenSource.Cancel();
-        _watchLogsTokenSource.Dispose();
+    }
+
+    private async Task DisposeWatchLogsTokenSource()
+    {
+        if (_watchLogsTokenSource is not null)
+        {
+            await _watchLogsTokenSource.CancelAsync();
+            _watchLogsTokenSource.Dispose();
+            _watchLogsTokenSource = null;
+        }
     }
 }
