@@ -21,6 +21,23 @@
   "identity": "Aspire.Empty.CSharp.8.0",
   "thirdPartyNotices": "https://aka.ms/aspnetcore/8.0-third-party-notices",
   "groupIdentity": "Aspire.Empty",
+  "guids": [
+    "F98A6C4E-E01C-44BB-BCC9-4C23F1CD09CD",
+    "8CD1957F-C0E5-454E-8BDC-88F84DD58303",
+    "1C1883BC-2DC4-4D49-82A6-9909F00D385D"
+  ],
+  "sources": [
+    {
+      "modifiers": [
+        {
+          "condition": "(hostIdentifier == \"vs\")",
+          "exclude": [
+            "*.sln"
+          ]
+        }
+      ]
+    }
+  ],
   "symbols": {
     "Framework": {
       "type": "parameter",
@@ -130,6 +147,10 @@
   },
   "primaryOutputs": [
     {
+      "path": "AspireApplication1.sln",
+      "condition": "(hostIdentifier != \"vs\")"
+    },
+    {
       "path": "AspireApplication1.DevHost\\AspireApplication1.DevHost.csproj"
     },
     {
@@ -145,6 +166,18 @@
       "args": {
         "projects": "0"
       }
+    },
+    {
+      "id": "restore",
+      "condition": "(!skipRestore)",
+      "description": "Restore NuGet packages required by this project.",
+      "manualInstructions": [
+        {
+          "text": "Run 'dotnet restore'"
+        }
+      ],
+      "actionId": "210D431B-A78B-4D2F-B762-4ED3E3EA9025",
+      "continueOnError": true
     }
   ]
 }
