@@ -1,0 +1,26 @@
+{
+  "type": "object",
+  "properties": {
+    "Aspire.Azure.CosmosDB": {
+      "type": "object",
+      "properties": {
+        "ConnectionString": {
+          "type": "string",
+          "description": "Gets or sets the connection string of the Azure CosmosDB to connect to."
+        },
+        "HealthChecks": {
+          "type": "boolean",
+          "description": "Gets or sets a boolean value that indicates whether the health check is enabled or not."
+        },
+        "Tracing": {
+          "type": "boolean",
+          "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not."
+        },
+        "Metrics": {
+          "type": "boolean",
+          "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not."
+        }
+      }
+    }
+  }
+}
