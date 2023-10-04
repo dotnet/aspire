@@ -5,7 +5,7 @@ using Aspire.Hosting.Lifecycle;
 
 namespace Aspire.Hosting.Azure;
 
-public static class AzureComponentExtensions
+public static class AzureProvisionerExtensions
 {
     public static IDistributedApplicationBuilder AddAzureProvisioning(this IDistributedApplicationBuilder builder)
     {
