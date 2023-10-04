@@ -32,7 +32,7 @@ var summaries = new[]
 
 app.MapGet("/weatherforecast", (DaprClient client) =>
 {
-    return client.InvokeMethodAsync<WeatherForecast[]>("service-b", "weatherforecast");
+    return client.InvokeMethodAsync<WeatherForecast[]>(HttpMethod.Get, "service-b", "weatherforecast");
 })
 .WithName("GetWeatherForecast")
 .WithOpenApi();
