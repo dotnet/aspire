@@ -5,7 +5,6 @@ using System.Net.Sockets;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
-using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting.SqlServer;
 
@@ -39,8 +38,7 @@ public static class SqlServerCloudApplicationBuilderExtensions
 
         return builder.WithEnvironment(ConnectionStringEnvironmentName + connectionName, () =>
         {
-            var options = builder.ApplicationBuilder.Configuration.GetSection(PublishingOptions.Publishing).Get<PublishingOptions>();
-            if (options is { } && options.Publisher?.ToLowerInvariant() == "manifest")
+        if (builder.GetPublisherName() == "manifest")
             {
                 return $"{{{sqlBuilder.Component.Name}.connectionString}}";
             }

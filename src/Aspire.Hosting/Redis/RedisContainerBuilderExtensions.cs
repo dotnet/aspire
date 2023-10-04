@@ -5,7 +5,6 @@ using System.Net.Sockets;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
-using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting.Redis;
 
@@ -37,8 +36,7 @@ public static class RedisContainerBuilderExtensions
 
         return builder.WithEnvironment(ConnectionStringEnvironmentName + connectionName, () =>
         {
-            var options = builder.ApplicationBuilder.Configuration.GetSection(PublishingOptions.Publishing).Get<PublishingOptions>();
-            if (options is { } && options.Publisher?.ToLowerInvariant() == "manifest")
+            if (builder.GetPublisherName() == "manifest")
             {
                 return $"{{{redisBuilder.Component.Name}.connectionString}}";
             }
