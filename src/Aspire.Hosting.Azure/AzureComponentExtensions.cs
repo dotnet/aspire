@@ -3,7 +3,6 @@
 
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Publishing;
 
 namespace Aspire.Hosting.Azure;

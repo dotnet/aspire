@@ -109,6 +109,13 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options) : I
     {
         jsonWriter.WriteString("type", "container.v1");
 
+        if (!containerComponent.TryGetContainerImageName(out var image))
+        {
+            throw new DistributedApplicationException("Could not get container image name.");
+        }
+
+        jsonWriter.WriteString("image", image);
+
         await WriteEnvironmentVariablesAsync(containerComponent, jsonWriter, cancellationToken).ConfigureAwait(false);
 
         await jsonWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
