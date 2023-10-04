@@ -19,7 +19,8 @@
   "preferNameDirectory": false,
   "tags": {
     "language": "C#",
-    "type": "project"
+    "type": "solution",
+    "editorTreatAs": "solution"
   },
   "precedence": "8000",
   "identity": "Aspire.Starter.CSharp.8.0",

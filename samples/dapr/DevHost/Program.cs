@@ -2,7 +2,7 @@ using Aspire.Hosting.Dapr;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-builder.WithDaprSupport();
+builder.AddDapr();
 
 builder.AddProject<DaprDevHost.Projects.DaprServiceA>()
        .WithDaprSidecar("service-a");
