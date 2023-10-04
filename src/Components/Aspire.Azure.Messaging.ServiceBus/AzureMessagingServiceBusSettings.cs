@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Azure.Common;
 using Azure.Core;
 
 namespace Aspire.Azure.Messaging.ServiceBus;
@@ -8,11 +9,14 @@ namespace Aspire.Azure.Messaging.ServiceBus;
 /// <summary>
 /// Provides the client configuration settings for connecting to Azure Service Bus.
 /// </summary>
-public sealed class AzureMessagingServiceBusSettings
+public sealed class AzureMessagingServiceBusSettings : IConnectionStringSettings
 {
     /// <summary>
     /// Gets or sets the connection string used to connect to the Service Bus namespace. 
     /// </summary>
+    /// <remarks>
+    /// If <see cref="ConnectionString"/> is set, it overrides <see cref="Namespace"/> and <see cref="Credential"/>.
+    /// </remarks>
     public string? ConnectionString { get; set; }
 
     /// <summary>

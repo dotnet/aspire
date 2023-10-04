@@ -102,7 +102,7 @@ builder.AddNpgsqlDataSource("postgresdb");
 ## Additional documentation
 
 * https://www.npgsql.org/doc/basic-usage.html
-* https://github.com/dotnet/astra/tree/main/src/Components/README.md
+* https://github.com/dotnet/aspire/tree/main/src/Components/README.md
 
 ## Feedback & Contributing
 

@@ -54,14 +54,17 @@ public static class AspireRedisExtensions
         StackExchangeRedisSettings settings = new();
         configSection.Bind(settings);
 
+        if (string.IsNullOrEmpty(settings.ConnectionString) && !string.IsNullOrEmpty(connectionName))
+        {
+            settings.ConnectionString = builder.Configuration.GetConnectionString(connectionName);
+        }
+
         configureSettings?.Invoke(settings);
 
         // see comments on ConfigurationOptionsFactory for why a factory is used here
         builder.Services.TryAdd(ServiceDescriptor.Transient(typeof(IOptionsFactory<ConfigurationOptions>),
             sp => new ConfigurationOptionsFactory(
                 settings,
-                connectionName,
-                sp.GetRequiredService<IConfiguration>(),
                 sp.GetServices<IConfigureOptions<ConfigurationOptions>>(),
                 sp.GetServices<IPostConfigureOptions<ConfigurationOptions>>(),
                 sp.GetServices<IValidateOptions<ConfigurationOptions>>())));
@@ -157,24 +160,16 @@ public static class AspireRedisExtensions
     private sealed class ConfigurationOptionsFactory : OptionsFactory<ConfigurationOptions>
     {
         private readonly StackExchangeRedisSettings _settings;
-        private readonly string? _connectionStringName;
-        private readonly IConfiguration _configuration;
 
-        public ConfigurationOptionsFactory(StackExchangeRedisSettings settings, string? connectionStringName, IConfiguration configuration, IEnumerable<IConfigureOptions<ConfigurationOptions>> setups, IEnumerable<IPostConfigureOptions<ConfigurationOptions>> postConfigures, IEnumerable<IValidateOptions<ConfigurationOptions>> validations)
+        public ConfigurationOptionsFactory(StackExchangeRedisSettings settings, IEnumerable<IConfigureOptions<ConfigurationOptions>> setups, IEnumerable<IPostConfigureOptions<ConfigurationOptions>> postConfigures, IEnumerable<IValidateOptions<ConfigurationOptions>> validations)
             : base(setups, postConfigures, validations)
         {
             _settings = settings;
-            _connectionStringName = connectionStringName;
-            _configuration = configuration;
         }
 
         protected override ConfigurationOptions CreateInstance(string name)
         {
             var connectionString = _settings.ConnectionString;
-            if (string.IsNullOrEmpty(connectionString) && !string.IsNullOrEmpty(_connectionStringName))
-            {
-                connectionString = _configuration.GetConnectionString(_connectionStringName);
-            }
 
             return connectionString is not null ?
                 ConfigurationOptions.Parse(connectionString) :

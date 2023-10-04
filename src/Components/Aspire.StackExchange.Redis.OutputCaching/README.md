@@ -119,7 +119,7 @@ builder.AddRedisOutputCache("cache");
 ## Additional documentation
 
 * https://learn.microsoft.com/aspnet/core/performance/caching/output
-* https://github.com/dotnet/astra/tree/main/src/Components/README.md
+* https://github.com/dotnet/aspire/tree/main/src/Components/README.md
 
 ## Feedback & Contributing
 

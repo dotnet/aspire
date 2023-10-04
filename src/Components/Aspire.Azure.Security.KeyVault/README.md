@@ -16,37 +16,34 @@ Install the Aspire Azure Key Vault library with [NuGet][nuget]:
 ```dotnetcli
 dotnet add package Aspire.Azure.Security.KeyVault
 ```
-
 ## Usage Example
 
-Call `AddAzureKeyVaultSecrets` extension method to add the `SecretClient` with the desired configurations exposed with `AzureSecurityKeyVaultSettings`. The library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureSecurityKeyVaultSettings` from configuration by using `Aspire:Azure:Security:KeyVault` key. Note that the `VaultUri` is required to be set. Example `appsettings.json` that configures some of the options:
+In the `Program.cs` file of your project, call the `AddAzureKeyVaultSecrets` extension to register a `SecretClient` for use via the dependency injection container.
 
-```json
+```cs
+builder.AddAzureKeyVaultSecrets();
+```
+
+You can then retrieve the `SecretClient` instance using dependency injection. For example, to retrieve the cache from a Web API controller:
+
+```cs
+private readonly SecretClient _client;
+
+public ProductsController(SecretClient client)
 {
-  "Aspire": {
-    "Azure": {
-      "Security": {
-        "KeyVault": {
-          "VaultUri": "YOUR_VAULT_URI",
-          "HealthChecks": true,
-          "Tracing": false,
-          "ClientOptions": {
-            "DisableChallengeResourceVerification": true
-          }
-        }
-      }
-    }
-  }
+    _client = client;
 }
 ```
 
-If you have setup your configurations in the `Aspire.Azure.Security.KeyVault` section you can just call the method without passing any parameter.
+See the [Azure.Security.KeyVault.Secrets documentation](https://github.com/Azure/azure-sdk-for-net/blob/main/sdk/keyvault/Azure.Security.KeyVault.Secrets/README.md) for examples on using the `SecretClient`.
 
-```cs
-    builder.AddAzureKeyVaultSecrets();
-```
+## Configuration
 
-If you want to add more than one [SecretClient](https://learn.microsoft.com/dotnet/api/azure.security.keyvault.secrets.secretclient) you could use named instances. The json configuration would look like:
+The Aspire Azure Key Vault library provides multiple options to configure the Azure Key Vault connection based on the requirements and conventions of your project. Note that the `VaultUri` is required to be supplied.
+
+### Use configuration providers
+
+The Aspire Azure Key Vault library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureSecurityKeyVaultSettings` and `SecretClientOptions` from configuration by using the `Aspire:Azure:Security:KeyVault` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {
@@ -54,12 +51,12 @@ If you want to add more than one [SecretClient](https://learn.microsoft.com/dotn
     "Azure": {
       "Security": {
         "KeyVault": {
-          "INSTANCE_NAME": {
-            "VaultUri": "YOUR_VAULT_URI",
-            "HealthChecks": true,
-            "Tracing": false,
-            "ClientOptions": {
-              "DisableChallengeResourceVerification": true
+          "VaultUri": "https://{account_name}.vault.azure.net/",
+          "HealthChecks": false,
+          "Tracing": true,
+          "ClientOptions": {
+            "Diagnostics": {
+              "ApplicationId": "myapp"
             }
           }
         }
@@ -69,48 +66,24 @@ If you want to add more than one [SecretClient](https://learn.microsoft.com/dotn
 }
 ```
 
-To load the named configuration section from the json config call the `AddAzureKeyVaultSecrets` method by passing the `INSTANCE_NAME`.
+### Use inline delegates
+
+You can also pass the `Action<AzureSecurityKeyVaultSettings> configureSettings` delegate to set up some or all the options inline, for example to set the `ServiceUri`:
 
 ```cs
-    builder.AddAzureKeyVaultSecrets("INSTANCE_NAME");
+    builder.AddAzureKeyVaultSecrets(configureSettings: settings => settings.ServiceUri = new Uri("https://{account_name}.vault.azure.net/"));
 ```
 
-Also you can pass the `Action<AzureSecurityKeyVaultSettings>` delegate to set up some or all the options inline, for example to set the `VaultUri`:
+You can also setup the [SecretClientOptions](https://learn.microsoft.com/dotnet/api/azure.security.keyvault.secrets.secretclientoptions) using the `Action<IAzureClientBuilder<SecretClient, SecretClientOptions>> configureClientBuilder` delegate, the second parameter of the `AddAzureKeyVaultSecrets` method. For example, to set the first part of "User-Agent" headers for all requests issues by this client:
 
 ```cs
-    builder.AddAzureKeyVaultSecrets(settings => settings.VaultUri = new Uri("YOUR_VAULT_URI"));
+    builder.AddAzureKeyVaultSecrets(configureClientBuilder: clientBuilder => clientBuilder.ConfigureOptions(options => options.Diagnostics.ApplicationId = "myapp"));
 ```
-
-Here are the configurable options with corresponding default values:
-
-```cs
-public sealed class AzureSecurityKeyVaultSettings
-{
-    // A URI to the vault on which the client operates. Appears as "DNS Name" in the Azure portal.
-    public Uri? VaultUri { get; set; }
-
-    // The credential used to authenticate to the Azure Key Vault.
-    public TokenCredential? Credential { get; set; }
-
-    // A boolean value that indicates whether the Key Vault health check is enabled or not.
-    public bool HealthChecks { get; set; } = true;
-
-    // A boolean value that indicates whether the OpenTelemetry tracing is enabled or not.
-    public bool Tracing { get; set; }
-}
-```
-
-You can also setup the [SecretClientOptions](https://learn.microsoft.com/dotnet/api/azure.security.keyvault.secrets.secretclientoptions) using `Action<IAzureClientBuilder<SecretClient, SecretClientOptions>>` delegate, the parameter of the `AddAzureKeyVaultSecrets` method. For example to set the `DisableChallengeResourceVerification`:
-
-```cs
-    builder.AddAzureKeyVaultSecrets(null, clientBuilder => clientBuilder.ConfigureOptions(options => options.DisableChallengeResourceVerification = true))
-```
-
-After adding a `SecretClient` to the builder you can get the `SecretClient` instance using DI.
 
 ## Additional documentation
 
-https://github.com/dotnet/astra/tree/main/src/Components/README.md
+* https://github.com/Azure/azure-sdk-for-net/blob/main/sdk/keyvault/Azure.Security.KeyVault.Secrets/README.md
+* https://github.com/dotnet/aspire/tree/main/src/Components/README.md
 
 ## Feedback & Contributing
 

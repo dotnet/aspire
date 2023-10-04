@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Azure.Common;
 using Azure.Core;
 
 namespace Aspire.Azure.Data.Tables;
@@ -8,12 +9,23 @@ namespace Aspire.Azure.Data.Tables;
 /// <summary>
 /// Provides the client configuration settings for connecting to Azure Tables.
 /// </summary>
-public sealed class AzureDataTablesSettings
+public sealed class AzureDataTablesSettings : IConnectionStringSettings
 {
+    /// <summary>
+    /// Gets or sets the connection string used to connect to the table service account. 
+    /// </summary>
+    /// <remarks>
+    /// If <see cref="ConnectionString"/> is set, it overrides <see cref="ServiceUri"/> and <see cref="Credential"/>.
+    /// </remarks>
+    public string? ConnectionString { get; set; }
+
     /// <summary>
     /// A <see cref="Uri"/> referencing the table service account.
     /// This is likely to be similar to "https://{account_name}.table.core.windows.net/" or "https://{account_name}.table.cosmos.azure.com/".
     /// </summary>
+    /// <remarks>
+    /// Used along with <see cref="Credential"/> to establish the connection.
+    /// </remarks>
     public Uri? ServiceUri { get; set; }
 
     /// <summary>

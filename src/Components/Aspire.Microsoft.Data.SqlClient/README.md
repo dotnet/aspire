@@ -108,7 +108,7 @@ builder.AddSqlServerClient("sqldata");
 
 * https://learn.microsoft.com/dotnet/framework/data/adonet/sql/
 * https://learn.microsoft.com/dotnet/api/system.data.sqlclient.sqlconnection
-* https://github.com/dotnet/astra/tree/main/src/Components/README.md
+* https://github.com/dotnet/aspire/tree/main/src/Components/README.md
 
 ## Feedback & Contributing
 

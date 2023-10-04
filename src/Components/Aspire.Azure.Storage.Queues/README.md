@@ -19,34 +19,32 @@ dotnet add package Aspire.Azure.Storage.Queues
 
 ## Usage Example
 
-Call `AddAzureQueueService` extension method to add the `QueueServiceClient` with the desired configurations exposed with `AzureStorageQueuesSettings`. The library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureStorageQueuesSettings` from configuration by using `Aspire:Azure:Storage:Queues` key. Example `appsettings.json` that configures some of the settings, note that `ServiceUri` is required to be set:
+In the `Program.cs` file of your project, call the `AddAzureQueueService` extension to register a `QueueServiceClient` for use via the dependency injection container.
 
-```json
+```cs
+builder.AddAzureQueueService();
+```
+
+You can then retrieve the `QueueServiceClient` instance using dependency injection. For example, to retrieve the cache from a Web API controller:
+
+```cs
+private readonly QueueServiceClient _client;
+
+public ProductsController(QueueServiceClient client)
 {
-  "Aspire": {
-    "Azure": {
-      "Storage": {
-        "Queues": {
-          "ServiceUri": "YOUR_URI",
-          "HealthChecks": false,
-          "Tracing": true,
-          "ClientOptions": {
-            "MessageEncoding": "Base64"
-          }
-        }
-      }
-    }
-  }
+    _client = client;
 }
 ```
 
-If you have setup your configurations in the `Aspire.Azure.Storage.Queues` section you can just call the method without passing any parameter.
+See the [Azure.Storage.Queues documentation](https://github.com/Azure/azure-sdk-for-net/blob/main/sdk/storage/Azure.Storage.Queues/README.md) for examples on using the `QueueServiceClient`.
 
-```cs
-    builder.AddAzureQueueService();
-```
+## Configuration
 
-If you want to add more than one [QueueServiceClient](https://learn.microsoft.com/dotnet/api/azure.storage.queues.queueserviceclient) you could use named instances. The json configuration would look like: 
+The Aspire Azure Storage Queues library provides multiple options to configure the Azure Storage Queues connection based on the requirements and conventions of your project. Note that either a `ServiceUri` or a `ConnectionString` is a required to be supplied.
+
+### Use configuration providers
+
+The Aspire Azure Storage Queues library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureStorageQueuesSettings` and `QueueClientOptions` from configuration by using the `Aspire:Azure:Storage:Queues` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {
@@ -54,11 +52,12 @@ If you want to add more than one [QueueServiceClient](https://learn.microsoft.co
     "Azure": {
       "Storage": {
         "Queues": {
-          "INSTANCE_NAME": {
-            "ServiceUri": "YOUR_URI",
-            "HealthChecks": false,
-            "ClientOptions": {
-              "MessageEncoding": "Base64"
+          "ServiceUri": "https://{account_name}.queue.core.windows.net/",
+          "HealthChecks": false,
+          "Tracing": true,
+          "ClientOptions": {
+            "Diagnostics": {
+              "ApplicationId": "myapp"
             }
           }
         }
@@ -68,48 +67,42 @@ If you want to add more than one [QueueServiceClient](https://learn.microsoft.co
 }
 ```
 
-To load the named configuration section from the json config call the `AddAzureQueueService` method by passing the `INSTANCE_NAME`.
+### Use inline delegates
+
+You can also pass the `Action<AzureStorageQueuesSettings> configureSettings` delegate to set up some or all the options inline, for example to set the `ServiceUri`:
 
 ```cs
-    builder.AddAzureQueueService("INSTANCE_NAME");
+    builder.AddAzureQueueService(configureSettings: settings => settings.ServiceUri = new Uri("https://{account_name}.queue.core.windows.net/"));
 ```
 
-Also you can pass the `Action<AzureStorageQueuesSettings>` delegate to set up some or all the options inline, for example to set the `ServiceUri`:
+You can also setup the [QueueClientOptions](https://learn.microsoft.com/dotnet/api/azure.storage.queues.queueclientoptions) using the `Action<IAzureClientBuilder<QueueServiceClient, QueueClientOptions>> configureClientBuilder` delegate, the second parameter of the `AddAzureQueueService` method. For example, to set the first part of "User-Agent" headers for all requests issues by this client:
 
 ```cs
-    builder.AddAzureQueueService(settings => settings.ServiceUri = new Uri("YOUR_SERVICE_URI"));
+    builder.AddAzureQueueService(configureClientBuilder: clientBuilder => clientBuilder.ConfigureOptions(options => options.Diagnostics.ApplicationId = "myapp"));
 ```
 
-Here are the configurable settings with corresponding default values:
+### Use a connection string
+
+When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddAzureQueueService()`:
 
 ```cs
-public sealed class AzureStorageQueuesSettings
+builder.AddAzureQueueService("queueConnectionName");
+```
+
+And then the connection string will be retrieved from the `ConnectionStrings` configuration section:
+
+```json
 {
-    // A "Uri" referencing the queue service.
-    public Uri? ServiceUri { get; set; }
-
-    // The credential used to authenticate to the Queues Storage.
-    public TokenCredential? Credential { get; set; }
-
-    // A boolean value that indicates whether the health check is enabled or not.
-    public bool HealthChecks { get; set; } = true;
-
-    // A boolean value that indicates whether the OpenTelemetry tracing is enabled or not.
-    public bool Tracing { get; set; } = false;
+  "ConnectionStrings": {
+    "queueConnectionName": "AccountName=myaccount;AccountKey=myaccountkey"
+  }
 }
 ```
 
-You can also setup the [QueueClientOptions](https://learn.microsoft.com/dotnet/api/azure.storage.queues.queueclientoptions) using `Action<IAzureClientBuilder<QueueServiceClient, QueueClientOptions>>` delegate, the second parameter of the `AddAzureQueueService` method. For example to set the `MessageEncoding`:
-
-```cs
-    builder.AddAzureQueueService(null, clientBuilder => clientBuilder.ConfigureOptions(options => options.MessageEncoding = QueueMessageEncoding.Base64));
-```
-
-After adding a `QueueServiceClient` to the builder you can get the `QueueServiceClient` instance using DI.
-
 ## Additional documentation
 
-https://github.com/dotnet/astra/tree/main/src/Components/README.md
+* https://github.com/Azure/azure-sdk-for-net/blob/main/sdk/storage/Azure.Storage.Queues/README.md
+* https://github.com/dotnet/aspire/tree/main/src/Components/README.md
 
 ## Feedback & Contributing
 

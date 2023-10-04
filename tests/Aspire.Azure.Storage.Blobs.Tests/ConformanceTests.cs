@@ -78,11 +78,11 @@ public class ConformanceTests : ConformanceTests<BlobServiceClient, AzureStorage
     {
         if (key is null)
         {
-            builder.AddAzureBlobService(ConfigureCredentials);
+            builder.AddAzureBlobService(configureSettings: ConfigureCredentials);
         }
         else
         {
-            builder.AddAzureBlobService(key, ConfigureCredentials);
+            builder.AddKeyedAzureBlobService(key, ConfigureCredentials);
         }
 
         void ConfigureCredentials(AzureStorageBlobsSettings settings)

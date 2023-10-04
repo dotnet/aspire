@@ -38,7 +38,7 @@ public static class AspirePostgreSqlNpgsqlExtensions
     /// Configures health check, logging and telemetry for the Npgsql client.
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
-    /// <param name="name">The <see cref="ServiceDescriptor.ServiceKey"/> of the service.</param>
+    /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="configureSettings">An optional method that can be used for customizing options. It's invoked after the settings are read from the configuration.</param>
     /// <remarks>Reads the configuration from "Aspire:Npgsql:{name}" section.</remarks>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/> or <paramref name="name"/> is null.</exception>
