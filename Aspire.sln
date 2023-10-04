@@ -129,6 +129,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DaprDevHost", "samples\dapr
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Dapr", "src\Aspire.Hosting.Dapr\Aspire.Hosting.Dapr.csproj", "{E2EC79D0-80F7-4471-9613-D7C8C3D52F95}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.AzureProvisioning", "src\Aspire.Hosting.AzureProvisioning\Aspire.Hosting.AzureProvisioning.csproj", "{F764CE47-E8AA-4C1A-A36B-E9FFDE5DA59E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -351,6 +353,10 @@ Global
 		{E2EC79D0-80F7-4471-9613-D7C8C3D52F95}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E2EC79D0-80F7-4471-9613-D7C8C3D52F95}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E2EC79D0-80F7-4471-9613-D7C8C3D52F95}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F764CE47-E8AA-4C1A-A36B-E9FFDE5DA59E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F764CE47-E8AA-4C1A-A36B-E9FFDE5DA59E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F764CE47-E8AA-4C1A-A36B-E9FFDE5DA59E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F764CE47-E8AA-4C1A-A36B-E9FFDE5DA59E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -413,6 +419,7 @@ Global
 		{B1D88C56-46EB-4171-A997-56E67875CF80} = {57A42144-739E-49A7-BADB-BB8F5F20FA17}
 		{8EB719EE-38E4-4FAD-B3E5-F71FA7F7A3EB} = {57A42144-739E-49A7-BADB-BB8F5F20FA17}
 		{E2EC79D0-80F7-4471-9613-D7C8C3D52F95} = {B80354C7-BE58-43F6-8928-9F3A74AB7F47}
+		{F764CE47-E8AA-4C1A-A36B-E9FFDE5DA59E} = {B80354C7-BE58-43F6-8928-9F3A74AB7F47}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6DCEDFEC-988E-4CB3-B45B-191EB5086E0C}
