@@ -11,7 +11,7 @@ scrape_configs:
   #     - targets: ['host.docker.internal:5222']
   - job_name: 'basket'
     static_configs:
-      - targets: ['host.docker.internal:5304'] # hard-coded port matches AppHost/Program.cs
+      - targets: ['host.docker.internal:5266'] # hard-coded port matches AppHost/Program.cs
   # - job_name: 'orderprocessor'
   #   static_configs:
   #     - targets: ['host.docker.internal:4999']

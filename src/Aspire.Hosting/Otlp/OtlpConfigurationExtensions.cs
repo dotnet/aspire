@@ -35,8 +35,10 @@ public static class OtlpConfigurationExtensions
             // This reduces the delay that OTLP exporter waits to sends telemetry and makes the dashboard telemetry pages responsive.
             if (environment.IsDevelopment())
             {
-                context.EnvironmentVariables["OTEL_BLRP_SCHEDULE_DELAY"] = "1000"; // milliseconds
-                context.EnvironmentVariables["OTEL_BSP_SCHEDULE_DELAY"] = "1000"; // milliseconds
+                var value = "1000"; // milliseconds
+                context.EnvironmentVariables["OTEL_BLRP_SCHEDULE_DELAY"] = value;
+                context.EnvironmentVariables["OTEL_BSP_SCHEDULE_DELAY"] = value;
+                context.EnvironmentVariables["OTEL_METRIC_EXPORT_INTERVAL"] = value;
             }
         }));
     }

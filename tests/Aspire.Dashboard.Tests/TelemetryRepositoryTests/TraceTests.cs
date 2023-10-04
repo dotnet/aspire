@@ -53,7 +53,7 @@ public class TraceTests
                 Assert.Equal("TestId", app.InstanceId);
             });
 
-        var traces = repository.GetTraces(new GetTracesContext
+        var traces = repository.GetTraces(new GetTracesRequest
         {
             ApplicationServiceId = applications[0].InstanceId,
             FilterText = string.Empty,
@@ -125,7 +125,7 @@ public class TraceTests
                 Assert.Equal("TestId", app.InstanceId);
             });
 
-        var traces1 = repository.GetTraces(new GetTracesContext
+        var traces1 = repository.GetTraces(new GetTracesRequest
         {
             ApplicationServiceId = applications[0].InstanceId,
             FilterText = string.Empty,
@@ -166,7 +166,7 @@ public class TraceTests
             }
         });
 
-        var traces2 = repository.GetTraces(new GetTracesContext
+        var traces2 = repository.GetTraces(new GetTracesRequest
         {
             ApplicationServiceId = applications[0].InstanceId,
             FilterText = string.Empty,
@@ -218,7 +218,7 @@ public class TraceTests
             }
         });
 
-        var traces = repository.GetTraces(new GetTracesContext
+        var traces = repository.GetTraces(new GetTracesRequest
         {
             ApplicationServiceId = null,
             FilterText = string.Empty,
@@ -267,7 +267,7 @@ public class TraceTests
             }
         });
 
-        var traces1 = repository.GetTraces(new GetTracesContext
+        var traces1 = repository.GetTraces(new GetTracesRequest
         {
             ApplicationServiceId = null,
             FilterText = string.Empty,
@@ -282,7 +282,7 @@ public class TraceTests
                 AssertId("1-1", trace.RootSpan!.SpanId);
             });
 
-        var traces2 = repository.GetTraces(new GetTracesContext
+        var traces2 = repository.GetTraces(new GetTracesRequest
         {
             ApplicationServiceId = null,
             FilterText = string.Empty,

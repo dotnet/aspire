@@ -1,33 +1,26 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Google.Protobuf.Collections;
-using OpenTelemetry.Proto.Common.V1;
+using System.Diagnostics;
 using OpenTelemetry.Proto.Metrics.V1;
 
 namespace Aspire.Dashboard.Otlp.Model.MetricValues;
 
+[DebuggerDisplay("Name = {Name}, Values = {Values.Count}")]
 public class DimensionScope
 {
     public string Name { get; init; }
-    public int Key { get; init; }
-
-    public readonly KeyValuePair<string, string>[] _dimensions;
-    public readonly List<MetricValueBase> _values = new();
+    public KeyValuePair<string, string>[] Attributes { get; init; }
+    public readonly List<MetricValueBase> Values = new();
 
     // Used to aid in merging values that are the same in a concurrent environment
     private MetricValueBase? _lastValue;
 
-    public IEnumerable<MetricValueBase> Values => _values;
-
-    public bool IsHistogram => _values.Count > 0 && _values[0] is HistogramValue;
-
-    public DimensionScope(int key, RepeatedField<KeyValue> keyvalues)
+    public DimensionScope(KeyValuePair<string, string>[] attributes)
     {
-        _dimensions = keyvalues.ToKeyValuePairs();
-        var name = _dimensions.ConcatProperties();
+        Attributes = attributes;
+        var name = Attributes.ConcatProperties();
         Name = name != null && name.Length > 0 ? name : "no-dimensions";
-        Key = key;
     }
 
     /// <summary>
@@ -42,46 +35,38 @@ public class DimensionScope
         if (d.ValueCase == NumberDataPoint.ValueOneofCase.AsInt)
         {
             var value = d.AsInt;
-            lock (this)
+            var lastLongValue = _lastValue as MetricValue<long>;
+            if (lastLongValue is not null && lastLongValue.Value == value)
             {
-                var lastLongValue = _lastValue as MetricValue<long>;
-                if (lastLongValue is not null && lastLongValue.Value == value)
+                lastLongValue.End = end;
+                Interlocked.Increment(ref lastLongValue.Count);
+            }
+            else
+            {
+                if (lastLongValue is not null)
                 {
-                    lastLongValue.End = end;
-                    Interlocked.Increment(ref lastLongValue.Count);
+                    start = lastLongValue.End;
                 }
-                else
-                {
-                    if (lastLongValue is not null)
-                    {
-                        start = lastLongValue.End;
-                    }
-                    _lastValue = new MetricValue<long>(d.AsInt, start, end);
-                    _values.Append(_lastValue);
-                    //_values.Add(_lastValue);
-                }
+                _lastValue = new MetricValue<long>(d.AsInt, start, end);
+                Values.Add(_lastValue);
             }
         }
         else if (d.ValueCase == NumberDataPoint.ValueOneofCase.AsDouble)
         {
-            lock (this)
+            var lastDoubleValue = _lastValue as MetricValue<double>;
+            if (lastDoubleValue is not null && lastDoubleValue.Value == d.AsDouble)
             {
-                var lastDoubleValue = _lastValue as MetricValue<double>;
-                if (lastDoubleValue is not null && lastDoubleValue.Value == d.AsDouble)
+                lastDoubleValue.End = end;
+                Interlocked.Increment(ref lastDoubleValue.Count);
+            }
+            else
+            {
+                if (lastDoubleValue is not null)
                 {
-                    lastDoubleValue.End = end;
-                    Interlocked.Increment(ref lastDoubleValue.Count);
+                    start = lastDoubleValue.End;
                 }
-                else
-                {
-                    if (lastDoubleValue is not null)
-                    {
-                        start = lastDoubleValue.End;
-                    }
-                    _lastValue = new MetricValue<double>(d.AsDouble, start, end);
-                    //_values.(_lastValue);
-                    _values.Append(_lastValue);
-                }
+                _lastValue = new MetricValue<double>(d.AsDouble, start, end);
+                Values.Add(_lastValue);
             }
         }
     }
@@ -90,23 +75,43 @@ public class DimensionScope
     {
         var start = OtlpHelpers.UnixNanoSecondsToDateTime(h.StartTimeUnixNano);
         var end = OtlpHelpers.UnixNanoSecondsToDateTime(h.TimeUnixNano);
-        lock (this)
+
+        var lastHistogramValue = _lastValue as HistogramValue;
+        if (lastHistogramValue is not null && lastHistogramValue.Count == h.Count)
         {
-            var lastHistogramValue = _lastValue as HistogramValue;
-            if (lastHistogramValue is not null && lastHistogramValue.Count == h.Count)
+            lastHistogramValue.End = end;
+        }
+        else
+        {
+            // If the explicit bounds are the same as the last value, reuse them.
+            double[] explicitBounds;
+            if (lastHistogramValue is not null)
             {
-                lastHistogramValue.End = end;
+                start = lastHistogramValue.End;
+                explicitBounds = lastHistogramValue.ExplicitBounds.SequenceEqual(h.ExplicitBounds)
+                    ? lastHistogramValue.ExplicitBounds
+                    : h.ExplicitBounds.ToArray();
             }
             else
             {
-                if (lastHistogramValue is not null)
-                {
-                    start = lastHistogramValue.End;
-                }
-                _lastValue = new HistogramValue(h.BucketCounts, h.Sum, h.Count, start, end, h.ExplicitBounds.ToArray());
-                //_values.Add(_lastValue);
-                _values.Append(_lastValue);
+                explicitBounds = h.ExplicitBounds.ToArray();
             }
+            _lastValue = new HistogramValue(h.BucketCounts.ToArray(), h.Sum, h.Count, start, end, explicitBounds);
+            Values.Add(_lastValue);
         }
+    }
+
+    internal static DimensionScope Clone(DimensionScope value, DateTime valuesStart, DateTime valuesEnd)
+    {
+        _ = valuesStart;
+        _ = valuesEnd;
+
+        var newDimensionScope = new DimensionScope(value.Attributes);
+        foreach (var item in value.Values)
+        {
+            newDimensionScope.Values.Add(MetricValueBase.Clone(item));
+        }
+
+        return newDimensionScope;
     }
 }

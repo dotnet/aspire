@@ -5,7 +5,7 @@ using Aspire.Dashboard.Otlp.Model;
 
 namespace Aspire.Dashboard.Otlp.Storage;
 
-public sealed class GetTracesContext
+public sealed class GetTracesRequest
 {
     public required string? ApplicationServiceId { get; init; }
     public required int StartIndex { get; init; }
@@ -13,7 +13,7 @@ public sealed class GetTracesContext
     public required string FilterText { get; init; }
 }
 
-public sealed class GetTracesResult
+public sealed class GetTracesResponse
 {
     public required PagedResult<OtlpTrace> PagedResult { get; init; }
     public required TimeSpan MaxDuration { get; init; }

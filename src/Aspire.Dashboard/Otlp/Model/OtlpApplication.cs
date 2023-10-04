@@ -2,9 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using System.Globalization;
 using Google.Protobuf.Collections;
 using Microsoft.Extensions.Logging;
+using OpenTelemetry.Proto.Common.V1;
 using OpenTelemetry.Proto.Metrics.V1;
 using OpenTelemetry.Proto.Resource.V1;
 
@@ -22,6 +22,7 @@ public class OtlpApplication
 
     private readonly ReaderWriterLockSlim _metricsLock = new();
     private readonly Dictionary<string, OtlpMeter> _meters = new();
+    private readonly Dictionary<OtlpInstrumentKey, OtlpInstrument> _instruments = new();
 
     private readonly ILogger _logger;
 
@@ -79,51 +80,43 @@ public class OtlpApplication
 
     public string UniqueApplicationName => $"{ApplicationName}-{Suffix}";
 
-    public string ShortApplicationName
-    {
-        get
-        {
-            var n = ApplicationName + Suffix.ToString(CultureInfo.InvariantCulture);
-            return n.Length <= 10 ? n : $"{ApplicationName.Left(3)}…{ApplicationName.Right(5)}{Suffix}";
-        }
-    }
-
     public void AddMetrics(AddContext context, RepeatedField<ScopeMetrics> scopeMetrics)
     {
         _metricsLock.EnterWriteLock();
 
         try
         {
+            // Temporary attributes array to use when adding metrics to the instruments.
+            KeyValuePair<string, string>[]? tempAttributes = null;
+
             foreach (var sm in scopeMetrics)
             {
-                OtlpMeter? meter;
-
-                try
-                {
-                    if (!_meters.TryGetValue(sm.Scope.Name, out meter))
-                    {
-                        meter = new OtlpMeter(sm.Scope);
-                        _meters.Add(sm.Scope.Name, meter);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    context.FailureCount += sm.Metrics.Count;
-                    _logger.LogInformation(ex, "Error adding meter.");
-                    continue;
-                }
-
                 foreach (var metric in sm.Metrics)
                 {
+                    // kestrel.active_connections
+                    // http.server.request.duration
+
+                    if (ApplicationName != "myfrontend" || metric.Name != "http.server.request.duration")
+                    {
+                        //continue;
+                    }
+
                     try
                     {
-                        if (!meter.Instruments.TryGetValue(metric.Name, out var instrument))
+                        var instrumentKey = new OtlpInstrumentKey(sm.Scope.Name, metric.Name);
+                        if (!_instruments.TryGetValue(instrumentKey, out var instrument))
                         {
-                            instrument = new OtlpInstrument(metric, meter);
-                            meter.Instruments.Add(instrument.Name, instrument);
+                            _instruments.Add(instrumentKey, instrument = new OtlpInstrument
+                            {
+                                Name = metric.Name,
+                                Description = metric.Description,
+                                Unit = metric.Unit,
+                                Type = MapMetricType(metric.DataCase),
+                                Parent = GetMeter(sm.Scope)
+                            });
                         }
 
-                        instrument.AddInstrumentValuesFromGrpc(metric);
+                        instrument.AddMetrics(metric, ref tempAttributes);
                     }
                     catch (Exception ex)
                     {
@@ -136,6 +129,64 @@ public class OtlpApplication
         finally
         {
             _metricsLock.ExitWriteLock();
+        }
+    }
+
+    private static OtlpInstrumentType MapMetricType(Metric.DataOneofCase data)
+    {
+        return data switch
+        {
+            Metric.DataOneofCase.Gauge => OtlpInstrumentType.Gauge,
+            Metric.DataOneofCase.Sum => OtlpInstrumentType.Sum,
+            Metric.DataOneofCase.Histogram => OtlpInstrumentType.Histogram,
+            _ => OtlpInstrumentType.Unsupported
+        };
+    }
+
+    private OtlpMeter GetMeter(InstrumentationScope scope)
+    {
+        if (!_meters.TryGetValue(scope.Name, out var meter))
+        {
+            _meters.Add(scope.Name, meter = new OtlpMeter(scope));
+        }
+        return meter;
+    }
+
+    public OtlpInstrument? GetInstrument(string meterName, string instrumentName, DateTime valuesStart, DateTime valuesEnd)
+    {
+        _metricsLock.EnterReadLock();
+
+        try
+        {
+            if (!_instruments.TryGetValue(new OtlpInstrumentKey(meterName, instrumentName), out var instrument))
+            {
+                return null;
+            }
+
+            return OtlpInstrument.Clone(instrument, cloneData: true, valuesStart: valuesStart, valuesEnd: valuesEnd);
+        }
+        finally
+        {
+            _metricsLock.ExitReadLock();
+        }
+    }
+
+    public List<OtlpInstrument> GetInstrumentsSummary()
+    {
+        _metricsLock.EnterReadLock();
+
+        try
+        {
+            var instruments = new List<OtlpInstrument>(_instruments.Count);
+            foreach (var instrument in _instruments)
+            {
+                instruments.Add(OtlpInstrument.Clone(instrument.Value, cloneData: false, valuesStart: default, valuesEnd: default));
+            }
+            return instruments;
+        }
+        finally
+        {
+            _metricsLock.ExitReadLock();
         }
     }
 }

@@ -41,4 +41,16 @@ app.MapForwarder("/catalog/images/{id}", "http://catalogservice", "/api/v1/catal
 
 app.MapDefaultEndpoints();
 
+//_ = Task.Run(async () =>
+//{
+//    Meter m = new Meter("Microsoft.AspNetCore.Hosting");
+//    var s = m.CreateHistogram<double>("http.server.request.duration", "s", "My test histogram.");
+
+//    while (true)
+//    {
+//        await Task.Delay(5000);
+//        s.Record(0.5, new KeyValuePair<string, object?>("url.scheme", "http"));
+//    }
+//});
+
 app.Run();

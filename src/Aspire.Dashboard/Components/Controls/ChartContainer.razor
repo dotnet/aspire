@@ -1,0 +1,43 @@
+﻿@namespace Aspire.Dashboard.Components
+
+@using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Otlp.Model
+@using Aspire.Dashboard.Otlp.Model.MetricValues
+
+@if (_instrument is not null)
+{
+    <div class="metrics-chart" style="max-width: 1100px;">
+        <div class="metrics-chart-header" style="grid-column-end: span 2;">
+            <h3>@_instrument.Name</h3>
+            <p>@_instrument.Description</p>
+        </div>
+        <div class="metrics-chart-container">
+            <PlotlyChart InstrumentViewModel="_instrumentViewModel" Duration="Duration" />
+        </div>
+        @if (_viewModel.DimensionFilters.Count > 0)
+        {
+            <div class="metrics-filters-container">
+                <div style="margin-left: 10px">
+                    <h5>Dimensions</h5>
+                    <table style="width:100%">
+                        @foreach (var item in _viewModel.DimensionFilters)
+                        {
+                            <tr>
+                                <td class="dimension-name" title="@item.Name">@item.Name</td>
+                                <td class="dimension-values" title="@string.Join(", ", item.SelectedValues.Select(v => v.Name))">
+                                    <FluentAutocomplete TOption="DimensionValueViewModel"
+                                    Width="250px"
+                                    Placeholder="Select filters"
+                                    OnOptionsSearch="item.OnSearchAsync"
+                                    OptionText="@(item => item.Name)"
+                                    @bind-SelectedOptions="item.SelectedValues"
+                                    @bind-SelectedOptions:after="async () => await DimensionValuesChangedAsync(item)" />
+                                </td>
+                            </tr>
+                        }
+                    </table>
+                </div>
+            </div>
+        }
+    </div>
+}

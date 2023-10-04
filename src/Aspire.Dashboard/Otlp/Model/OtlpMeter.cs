@@ -9,11 +9,10 @@ namespace Aspire.Dashboard.Otlp.Model;
 [DebuggerDisplay("MeterName = {MeterName}, Instruments = {Instruments.Count}")]
 public class OtlpMeter
 {
-    public string? MeterName { get; init; }
+    public string MeterName { get; init; }
     public string Version { get; init; }
 
     public KeyValuePair<string, string>[] Properties { get; }
-    public Dictionary<string, OtlpInstrument> Instruments { get; } = new();
 
     public OtlpMeter(InstrumentationScope scope)
     {

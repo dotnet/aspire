@@ -7,6 +7,56 @@ fluent-toolbar[orientation=horizontal] {
     width: 100%;
 }
 
+/* Metrics chart SVG */
+.yaxislayer-above {
+    transform: translate(-10px,0px);
+}
+.xaxislayer-above {
+    transform: translate(0px,10px);
+}
+
+.dimension-value-popover .fluent-popover-content {
+    padding: 0;
+}
+    .dimension-value-popover .fluent-popover-content .fluent-popover-body {
+        margin: 0;
+    }
+
+.metrics-chart {
+    display: grid;
+    grid-template-columns: min-content auto;
+}
+
+.metrics-chart-header {
+    margin-left: 40px;
+}
+
+.metrics-chart-container {
+    grid-column: 1;
+    margin-bottom: 60px;
+}
+
+.metrics-filters-container {
+    grid-column: 2;
+}
+
+@media (max-width: 1700px) {
+    .metrics-filters-container {
+        grid-column: 1;
+        margin-left: 40px;
+    }
+}
+
+.metrics-filters-container td.dimension-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.metrics-filters-container td.dimension-values {
+    width: auto;
+}
+
 /* Hide any web components that haven't been */
 :not(:defined),
 .before-upgrade {
@@ -25,6 +75,29 @@ fluent-toolbar[orientation=horizontal] {
 
 :root {
     --duration-color: rgb(215, 231, 234);
+}
+
+.page-content-area {
+    /*
+        Height of the browser - static height for other content
+        TODO: Is there a better way to do this?
+    */
+    height: calc(100vh - 175px);
+    width: 100%;
+}
+
+.metrics-tree {
+    min-width: auto;
+    margin-right: 3px;
+}
+
+.metrics-content {
+    margin-left: 10px;
+}
+
+/* Remove the background color from unselected metrics tree items */
+fluent-tree-item.metrics-tree-item:not([selected])::part(positioning-region):not(:hover) {
+    background: unset;
 }
 
 .datagrid-overflow-area {
