@@ -15,6 +15,8 @@ Aspire.Azure.Messaging.ServiceBus:
   - "Azure.Identity"
   - "Azure.Messaging.ServiceBus"
 - Activity source names:
+  - "Azure.Messaging.ServiceBus"
+  - "Azure.Messaging.ServiceBus.ServiceBusProcessor"
   - "Azure.Messaging.ServiceBus.ServiceBusReceiver"
   - "Azure.Messaging.ServiceBus.ServiceBusSender"
 - Metric names:
