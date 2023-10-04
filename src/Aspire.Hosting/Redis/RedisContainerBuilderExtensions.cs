@@ -4,6 +4,8 @@
 using System.Net.Sockets;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Publishing;
+using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting.Redis;
 
@@ -28,23 +30,22 @@ public static class RedisContainerBuilderExtensions
         await jsonWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    public static IDistributedApplicationComponentBuilder<T> WithRedis<T>(this IDistributedApplicationComponentBuilder<T> projectBuilder, IDistributedApplicationComponentBuilder<RedisContainerComponent> redisBuilder, string? connectionName = null)
+    public static IDistributedApplicationComponentBuilder<T> WithRedis<T>(this IDistributedApplicationComponentBuilder<T> builder, IDistributedApplicationComponentBuilder<RedisContainerComponent> redisBuilder, string? connectionName = null)
         where T : IDistributedApplicationComponentWithEnvironment
     {
-        if (string.IsNullOrEmpty(connectionName) && !redisBuilder.Component.TryGetName(out connectionName))
-        {
-            throw new DistributedApplicationException("Redis connection name could not be determined. Please provide one.");
-        }
+        connectionName = connectionName ?? redisBuilder.Component.Name;
 
-        return projectBuilder.WithEnvironment(ConnectionStringEnvironmentName + connectionName, () =>
+        return builder.WithEnvironment(ConnectionStringEnvironmentName + connectionName, () =>
         {
+            var options = builder.ApplicationBuilder.Configuration.GetSection(PublishingOptions.Publishing).Get<PublishingOptions>();
+            if (options is { } && options.Publisher?.ToLowerInvariant() == "manifest")
+            {
+                return $"{{{redisBuilder.Component.Name}.connectionString}}";
+            }
+
             if (!redisBuilder.Component.TryGetAnnotationsOfType<AllocatedEndpointAnnotation>(out var allocatedEndpoints))
             {
-                // HACK: When their are no allocated endpoints it could mean that there is a problem with
-                //       DCP, however we want to try and use the same callback for now for generating the
-                //       connection string expressions in the manifest. So rather than throwing where
-                //       there are no allocated endpoints we will instead emit the appropriate expression.
-                return $"{{{redisBuilder.Component.Name}.connectionString}}";
+                throw new DistributedApplicationException("Redis component does not have endpoint annotation.");
             }
 
             // We should only have one endpoint for Redis for local scenarios.

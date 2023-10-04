@@ -4,6 +4,8 @@
 using System.Net.Sockets;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Publishing;
+using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting.Postgres;
 
@@ -48,13 +50,15 @@ public static class PostgresContainerBuilderExtensions
 
         return builder.WithEnvironment(ConnectionStringEnvironmentName + connectionName, () =>
         {
+            var options = builder.ApplicationBuilder.Configuration.GetSection(PublishingOptions.Publishing).Get<PublishingOptions>();
+            if (options is { } && options.Publisher?.ToLowerInvariant() == "manifest")
+            {
+                return $"{{{postgresBuilder.Component.Name}.connectionString}}";
+            }
+
             if (!postgresBuilder.Component.TryGetAllocatedEndPoints(out var allocatedEndpoints))
             {
-                // HACK: When their are no allocated endpoints it could mean that there is a problem with
-                //       DCP, however we want to try and use the same callback for now for generating the
-                //       connection string expressions in the manifest. So rather than throwing where
-                //       there are no allocated endpoints we will instead emit the appropriate expression.
-                return $"{{{postgresBuilder.Component.Name}.connectionString}}";
+                throw new InvalidOperationException("Expected allocated endpoints!");
             }
 
             if (!postgresBuilder.Component.TryGetLastAnnotation<PostgresPasswordAnnotation>(out var passwordAnnotation))

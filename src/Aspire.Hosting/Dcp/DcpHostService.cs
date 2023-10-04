@@ -49,7 +49,7 @@ internal sealed class DcpHostService : IHostedService, IAsyncDisposable
 
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
-        if (_publishingOptions.Value.Publisher != "dcp" || _publishingOptions.Value.Publisher is not null)
+        if (_publishingOptions.Value.Publisher is not null  && _publishingOptions.Value.Publisher != "dcp")
         {
             return;
         }

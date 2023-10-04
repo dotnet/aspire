@@ -3,7 +3,7 @@
 
 namespace Aspire.Hosting.Publishing;
 
-internal sealed class PublishingOptions
+public sealed class PublishingOptions
 {
     public const string Publishing = "Publishing";
 

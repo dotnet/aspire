@@ -3,14 +3,12 @@
 
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Publishing;
 
-internal sealed class ManifestPublisher(ILogger<ManifestPublisher> logger, DistributedApplicationModel model, IOptions<PublishingOptions> options) : IDistributedApplicationPublisher
+internal sealed class ManifestPublisher(DistributedApplicationModel model, IOptions<PublishingOptions> options) : IDistributedApplicationPublisher
 {
-    private readonly ILogger<ManifestPublisher> _logger = logger;
     private readonly DistributedApplicationModel _model = model;
     private readonly IOptions<PublishingOptions> _options = options;
 
