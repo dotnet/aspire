@@ -3,8 +3,10 @@
 
 namespace Aspire.Hosting.Publishing;
 
-public interface IDistributedApplicationPublisher
+internal sealed class PublishingOptions
 {
-    public string Name { get; }
-    public Task PublishAsync(CancellationToken cancellationToken);
+    public const string Publishing = "Publishing";
+
+    public string? Publisher { get; set; }
+    public string? OutputPath { get; set; }
 }

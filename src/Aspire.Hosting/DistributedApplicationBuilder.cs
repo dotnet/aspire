@@ -4,6 +4,7 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -30,7 +31,22 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Components));
         _innerBuilder.Services.AddLifecycleHook<DcpDistributedApplicationLifecycleHook>();
         _innerBuilder.Services.AddHostedService<DcpHostService>();
+        _innerBuilder.Services.AddSingleton<IDistributedApplicationPublisher, DcpPublisher>();
+        _innerBuilder.Services.AddSingleton<IDistributedApplicationPublisher, ManifestPublisher>();
+        _innerBuilder.Services.AddHostedService<DistributedApplicationRunner>();
 
+        ConfigurePublishingOptions(args);
+    }
+
+    private void ConfigurePublishingOptions(string[] args)
+    {
+        var switchMappings = new Dictionary<string, string>()
+        {
+            { "--publisher", "Publishing:Publisher" },
+            { "--output-path", "Publishing:OutputPath" }
+        };
+        _innerBuilder.Configuration.AddCommandLine(args, switchMappings);
+        _innerBuilder.Services.Configure<PublishingOptions>(_innerBuilder.Configuration.GetSection(PublishingOptions.Publishing));
     }
 
     public DistributedApplication Build()
@@ -50,7 +66,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
     public Dictionary<IDistributedApplicationComponent, object> componentBuilders = new();
 
-    public IDistributedApplicationComponentBuilder<T> AddComponent<T>(string name, T component) where T : IDistributedApplicationComponent
+    public IDistributedApplicationComponentBuilder<T> AddComponent<T>(T component) where T : IDistributedApplicationComponent
     {
         // NOTE: This method is designed to be idempotent. Occasionally libraries will need to
         //       get access to a pre-existing builder that is wrapping a component. We store
@@ -64,7 +80,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         {
             Components.Add(component);
             var builder = new DistributedApplicationComponentBuilder<T>(this, component);
-            builder.WithName(name);
+            builder.WithName(component.Name); // TODO: Remove when fully transitioned Name away from annotation.
             componentBuilders.Add(component, builder);
             return builder;
         }

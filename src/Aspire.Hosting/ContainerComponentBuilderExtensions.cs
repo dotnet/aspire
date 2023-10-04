@@ -15,8 +15,8 @@ public static class ContainerComponentBuilderExtensions
 
     public static IDistributedApplicationComponentBuilder<ContainerComponent> AddContainer(this IDistributedApplicationBuilder builder, string name, string image, string tag)
     {
-        var container = new ContainerComponent();
-        var componentBuilder = builder.AddComponent(name, container);
+        var container = new ContainerComponent(name);
+        var componentBuilder = builder.AddComponent(container);
         componentBuilder.WithAnnotation(new ContainerImageAnnotation { Image = image, Tag = tag });
 
         return componentBuilder;

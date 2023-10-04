@@ -7,7 +7,7 @@ namespace Aspire.Hosting.SqlServer;
 
 public class SqlServerContainerComponent : ContainerComponent
 {
-    public SqlServerContainerComponent()
+    public SqlServerContainerComponent(string name) : base(name)
     {
         GeneratedPassword = Guid.NewGuid().ToString();
     }

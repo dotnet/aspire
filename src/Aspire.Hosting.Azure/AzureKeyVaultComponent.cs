@@ -5,9 +5,7 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Azure;
 
-public class AzureKeyVaultComponent : IAzureComponent
+public class AzureKeyVaultComponent(string name) : DistributedApplicationComponent(name), IAzureComponent
 {
-    public ComponentMetadataCollection Annotations { get; } = new();
-
     public string? VaultName { get; set; }
 }

@@ -5,6 +5,6 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Postgres;
 
-public class PostgresContainerComponent : ContainerComponent
+public class PostgresContainerComponent(string name) : ContainerComponent(name)
 {
 }

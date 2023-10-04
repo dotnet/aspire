@@ -5,5 +5,6 @@ namespace Aspire.Hosting.ApplicationModel;
 
 public interface IDistributedApplicationComponent
 {
+    string Name { get; }
     ComponentMetadataCollection Annotations { get; }
 }
