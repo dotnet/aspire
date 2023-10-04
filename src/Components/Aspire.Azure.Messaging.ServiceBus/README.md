@@ -52,7 +52,7 @@ The Aspire Azure Service Bus library supports [Microsoft.Extensions.Configuratio
     "Azure": {
       "Messaging": {
         "ServiceBus": {
-          "Namespace": "YOUR_SERVICE_BUS_NAMESPACE",
+          "Namespace": "servicebusnamespace",
           "HealthChecks": false,
           "Tracing": true,
           "ClientOptions": {
