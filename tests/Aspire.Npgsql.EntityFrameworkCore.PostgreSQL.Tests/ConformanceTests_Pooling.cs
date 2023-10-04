@@ -18,7 +18,7 @@ namespace Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.Tests;
 public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, NpgsqlEntityFrameworkCorePostgreSQLSettings>
 {
     // in the future it can become a static property that reads the value from Env Var
-    protected const string ConnectionSting = "Host=localhost;Database=test;Username=postgres;Password=postgres";
+    protected const string ConnectionString = "Host=localhost;Database=test;Username=postgres;Password=postgres";
 
     private static readonly Lazy<bool> s_canConnectToServer = new(GetCanConnect);
 
@@ -85,11 +85,11 @@ public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, NpgsqlEn
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[1]
         {
-            new KeyValuePair<string, string?>("Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:ConnectionString", ConnectionSting)
+            new KeyValuePair<string, string?>("Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:ConnectionString", ConnectionString)
         });
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<NpgsqlEntityFrameworkCorePostgreSQLSettings>? configure = null, string? key = null)
-        => builder.AddNpgsqlDbContext<TestDbContext>(configure);
+        => builder.AddNpgsqlDbContext<TestDbContext>(configureSettings: configure);
 
     protected override void SetHealthCheck(NpgsqlEntityFrameworkCorePostgreSQLSettings options, bool enabled)
         => options.HealthChecks = enabled;
@@ -158,7 +158,7 @@ public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, NpgsqlEn
 
     private static bool GetCanConnect()
     {
-        var builder = new DbContextOptionsBuilder<TestDbContext>().UseNpgsql(connectionString: ConnectionSting);
+        var builder = new DbContextOptionsBuilder<TestDbContext>().UseNpgsql(connectionString: ConnectionString);
         using TestDbContext dbContext = new(builder.Options);
 
         try

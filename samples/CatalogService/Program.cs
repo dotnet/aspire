@@ -1,13 +1,10 @@
 using CatalogService;
-using CatalogService.Services.Ratings;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
-builder.AddNpgsqlDbContext<CatalogDbContext>();
+builder.AddNpgsqlDbContext<CatalogDbContext>("catalog");
 
-builder.AddSqlServerClient();
-builder.Services.AddScoped<RatingsService>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddProblemDetails();
 builder.Services.AddSwaggerGen();

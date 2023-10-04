@@ -1,5 +1,3 @@
-using CatalogService.Services.Ratings;
-
 namespace CatalogService;
 
 public static class CatalogApi
@@ -10,10 +8,9 @@ public static class CatalogApi
 
         group.WithTags("Catalog");
 
-        group.MapGet("items/type/all/brand/{catalogBrandId?}", async (RatingsService ratingService, int? catalogBrandId, CatalogDbContext catalogContext, int? before, int? after, int pageSize = 8) =>
+        group.MapGet("items/type/all/brand/{catalogBrandId?}", async (int? catalogBrandId, CatalogDbContext catalogContext, int? before, int? after, int pageSize = 8) =>
         {
             var itemsOnPage = await catalogContext.GetCatalogItemsCompiledAsync(catalogBrandId, before, after, pageSize);
-            await ratingService.ApplyRatingsAsync(itemsOnPage);
 
             var (firstId, nextId) = itemsOnPage switch
             {

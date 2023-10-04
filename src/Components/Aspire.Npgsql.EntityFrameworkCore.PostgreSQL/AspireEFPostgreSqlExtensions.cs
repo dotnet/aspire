@@ -22,7 +22,8 @@ public static partial class AspireEFPostgreSqlExtensions
     /// </summary>
     /// <typeparam name="TContext">The <see cref="DbContext" /> that needs to be registered.</typeparam>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
-    /// <param name="configure">An optional delegate that can be used for customizing options. It's invoked after the settings are read from the configuration.</param>
+    /// <param name="connectionName">An optional name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
+    /// <param name="configureSettings">An optional delegate that can be used for customizing options. It's invoked after the settings are read from the configuration.</param>
     /// <remarks>
     /// <para>
     /// Reads the configuration from "Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:{typeof(TContext).Name}" config section, or "Aspire:Npgsql:EntityFrameworkCore:PostgreSQL" if former does not exist.
@@ -42,30 +43,31 @@ public static partial class AspireEFPostgreSqlExtensions
     /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="NpgsqlEntityFrameworkCorePostgreSQLSettings.ConnectionString"/> is not provided.</exception>
     public static void AddNpgsqlDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
         this IHostApplicationBuilder builder,
-        Action<NpgsqlEntityFrameworkCorePostgreSQLSettings>? configure = null) where TContext : DbContext
+        string? connectionName = null,
+        Action<NpgsqlEntityFrameworkCorePostgreSQLSettings>? configureSettings = null) where TContext : DbContext
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        NpgsqlEntityFrameworkCorePostgreSQLSettings configurationOptions = new();
+        NpgsqlEntityFrameworkCorePostgreSQLSettings settings = new();
         var typeSpecificSectionName = $"{DefaultConfigSectionName}:{typeof(TContext).Name}";
         var typeSpecificConfigurationSection = builder.Configuration.GetSection(typeSpecificSectionName);
         if (typeSpecificConfigurationSection.Exists()) // https://github.com/dotnet/runtime/issues/91380
         {
-            typeSpecificConfigurationSection.Bind(configurationOptions);
+            typeSpecificConfigurationSection.Bind(settings);
         }
         else
         {
-            builder.Configuration.GetSection(DefaultConfigSectionName).Bind(configurationOptions);
+            builder.Configuration.GetSection(DefaultConfigSectionName).Bind(settings);
         }
 
-        if (string.IsNullOrEmpty(configurationOptions.ConnectionString))
+        if (string.IsNullOrEmpty(settings.ConnectionString) && !string.IsNullOrEmpty(connectionName))
         {
-            configurationOptions.ConnectionString = builder.Configuration.GetConnectionString("Aspire.PostgreSQL");
+            settings.ConnectionString = builder.Configuration.GetConnectionString(connectionName);
         }
 
-        configure?.Invoke(configurationOptions);
+        configureSettings?.Invoke(settings);
 
-        if (string.IsNullOrEmpty(configurationOptions.ConnectionString))
+        if (string.IsNullOrEmpty(settings.ConnectionString))
         {
             throw new InvalidOperationException($"ConnectionString is missing. It should be provided under 'ConnectionString' key in '{DefaultConfigSectionName}' or '{typeSpecificSectionName}' configuration section.");
         }
@@ -78,10 +80,10 @@ public static partial class AspireEFPostgreSqlExtensions
 #pragma warning restore IL3050
         }
 
-        builder.Services.AddNpgsqlDataSource(configurationOptions.ConnectionString,
+        builder.Services.AddNpgsqlDataSource(settings.ConnectionString,
             builder => builder.UseLoggerFactory(null)); // a workaround for https://github.com/npgsql/efcore.pg/issues/2821 
 
-        if (configurationOptions.DbContextPooling)
+        if (settings.DbContextPooling)
         {
             builder.Services.AddDbContextPool<TContext>(ConfigureDbContext);
         }
@@ -90,13 +92,13 @@ public static partial class AspireEFPostgreSqlExtensions
             builder.Services.AddDbContext<TContext>(ConfigureDbContext);
         }
 
-        if (configurationOptions.HealthChecks)
+        if (settings.HealthChecks)
         {
             // calling MapHealthChecks is the responsibility of the app, not Component
             builder.Services.AddHealthChecks().AddDbContextCheck<TContext>();
         }
 
-        if (configurationOptions.Tracing)
+        if (settings.Tracing)
         {
             builder.Services.AddOpenTelemetry()
                 .WithTracing(tracerProviderBuilder =>
@@ -109,7 +111,7 @@ public static partial class AspireEFPostgreSqlExtensions
                 });
         }
 
-        if (configurationOptions.Metrics)
+        if (settings.Metrics)
         {
             builder.Services.AddOpenTelemetry()
                 .WithMetrics(meterProviderBuilder =>
@@ -139,9 +141,9 @@ public static partial class AspireEFPostgreSqlExtensions
             {
                 // Resiliency:
                 // 1. Connection resiliency automatically retries failed database commands: https://www.npgsql.org/efcore/misc/other.html#execution-strategy
-                if (configurationOptions.MaxRetryCount > 0)
+                if (settings.MaxRetryCount > 0)
                 {
-                    builder.EnableRetryOnFailure(configurationOptions.MaxRetryCount);
+                    builder.EnableRetryOnFailure(settings.MaxRetryCount);
                 }
                 // 2. "Scale proportionally: You want to ensure that you don't scale out a resource to a point where it will exhaust other associated resources."
                 // The pooling is enabled by default, the min pool size is 0 by default: https://www.npgsql.org/doc/connection-string-parameters.html#pooling

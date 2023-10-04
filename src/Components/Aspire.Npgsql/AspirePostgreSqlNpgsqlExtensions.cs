@@ -21,95 +21,96 @@ public static class AspirePostgreSqlNpgsqlExtensions
     private const string DefaultConfigSectionName = "Aspire:Npgsql";
 
     /// <summary>
-    /// Registers <see cref="NpgsqlDataSource" /> service for connecting PostgreSQL database with Npgsql client.
+    /// Registers <see cref="NpgsqlDataSource"/> service for connecting PostgreSQL database with Npgsql client.
     /// Configures health check, logging and telemetry for the Npgsql client.
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
-    /// <param name="configure">An optional delegate that can be used for customizing options. It's invoked after the settings are read from the configuration.</param>
+    /// <param name="connectionName">An optional name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
+    /// <param name="configureSettings">An optional delegate that can be used for customizing options. It's invoked after the settings are read from the configuration.</param>
     /// <remarks>Reads the configuration from "Aspire:Npgsql" section.</remarks>
     /// <exception cref="ArgumentNullException">Thrown if mandatory <paramref name="builder"/> is null.</exception>
     /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="NpgsqlSettings.ConnectionString"/> is not provided.</exception>
-    public static void AddNpgsqlDataSource(this IHostApplicationBuilder builder, Action<NpgsqlSettings>? configure = null)
-        => AddNpgsqlDataSource(builder, DefaultConfigSectionName, configure, name: null);
+    public static void AddNpgsqlDataSource(this IHostApplicationBuilder builder, string? connectionName = null, Action<NpgsqlSettings>? configureSettings = null)
+        => AddNpgsqlDataSource(builder, DefaultConfigSectionName, configureSettings, connectionName, serviceKey: null);
 
     /// <summary>
-    /// Registers <see cref="NpgsqlDataSource" /> service for given <paramref name="name"/> for connecting PostgreSQL database with Npgsql client.
+    /// Registers <see cref="NpgsqlDataSource"/> as a keyed service for given <paramref name="name"/> for connecting PostgreSQL database with Npgsql client.
     /// Configures health check, logging and telemetry for the Npgsql client.
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="name">The <see cref="ServiceDescriptor.ServiceKey"/> of the service.</param>
-    /// <param name="configure">An optional method that can be used for customizing options. It's invoked after the settings are read from the configuration.</param>
+    /// <param name="configureSettings">An optional method that can be used for customizing options. It's invoked after the settings are read from the configuration.</param>
     /// <remarks>Reads the configuration from "Aspire:Npgsql:{name}" section.</remarks>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/> or <paramref name="name"/> is null.</exception>
     /// <exception cref="ArgumentException">Thrown if mandatory <paramref name="name"/> is empty.</exception>
     /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="NpgsqlSettings.ConnectionString"/> is not provided.</exception>
-    public static void AddNpgsqlDataSource(this IHostApplicationBuilder builder, string name, Action<NpgsqlSettings>? configure = null)
+    public static void AddKeyedNpgsqlDataSource(this IHostApplicationBuilder builder, string name, Action<NpgsqlSettings>? configureSettings = null)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        AddNpgsqlDataSource(builder, $"{DefaultConfigSectionName}:{name}", configure, name);
+        AddNpgsqlDataSource(builder, $"{DefaultConfigSectionName}:{name}", configureSettings, connectionName: name, serviceKey: name);
     }
 
     private static void AddNpgsqlDataSource(IHostApplicationBuilder builder, string configurationSectionName,
-        Action<NpgsqlSettings>? configure, string? name)
+        Action<NpgsqlSettings>? configureSettings, string? connectionName, object? serviceKey)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        NpgsqlSettings configurationOptions = new();
-        builder.Configuration.GetSection(configurationSectionName).Bind(configurationOptions);
+        NpgsqlSettings settings = new();
+        builder.Configuration.GetSection(configurationSectionName).Bind(settings);
 
-        if (string.IsNullOrEmpty(configurationOptions.ConnectionString))
+        if (string.IsNullOrEmpty(settings.ConnectionString) && !string.IsNullOrEmpty(connectionName))
         {
-            configurationOptions.ConnectionString = builder.Configuration.GetConnectionString("Aspire.PostgreSQL");
+            settings.ConnectionString = builder.Configuration.GetConnectionString(connectionName);
         }
 
-        configure?.Invoke(configurationOptions);
+        configureSettings?.Invoke(settings);
 
-        if (string.IsNullOrEmpty(configurationOptions.ConnectionString))
+        if (string.IsNullOrEmpty(settings.ConnectionString))
         {
             throw new InvalidOperationException($"ConnectionString is missing. It should be provided under 'ConnectionString' key in '{configurationSectionName}' configuration section.");
         }
 
-        if (name is null)
+        if (serviceKey is null)
         {
-            builder.Services.AddNpgsqlDataSource(configurationOptions.ConnectionString);
+            builder.Services.AddNpgsqlDataSource(settings.ConnectionString);
         }
         else
         {
             // Currently Npgsql does not support Keyed DI Registration, so we implement it on our own.
             // Register a NpgsqlDataSource factory method, based on https://github.com/npgsql/npgsql/blob/c2fc02a858176f2b5eab7a2c2336ff5ab4748ad0/src/Npgsql.DependencyInjection/NpgsqlServiceCollectionExtensions.cs#L147-L150
-            builder.Services.AddKeyedSingleton<NpgsqlDataSource>(name, (serviceProvider, _) =>
+            builder.Services.AddKeyedSingleton<NpgsqlDataSource>(serviceKey, (serviceProvider, _) =>
             {
-                var dataSourceBuilder = new NpgsqlDataSourceBuilder(configurationOptions.ConnectionString);
+                var dataSourceBuilder = new NpgsqlDataSourceBuilder(settings.ConnectionString);
                 dataSourceBuilder.UseLoggerFactory(serviceProvider.GetService<ILoggerFactory>());
                 return dataSourceBuilder.Build();
             });
             // Common Services, based on https://github.com/npgsql/npgsql/blob/c2fc02a858176f2b5eab7a2c2336ff5ab4748ad0/src/Npgsql.DependencyInjection/NpgsqlServiceCollectionExtensions.cs#L165
             // They let the users resolve NpgsqlConnection directly.
-            builder.Services.AddKeyedSingleton<DbDataSource>(name, (serviceProvider, _) => serviceProvider.GetRequiredKeyedService<NpgsqlDataSource>(name));
-            builder.Services.AddKeyedSingleton<NpgsqlConnection>(name, (serviceProvider, _) => serviceProvider.GetRequiredKeyedService<NpgsqlDataSource>(name).CreateConnection());
-            builder.Services.AddKeyedSingleton<DbConnection>(name, (serviceProvider, _) => serviceProvider.GetRequiredKeyedService<NpgsqlDataSource>(name).CreateConnection());
+            builder.Services.AddKeyedSingleton<DbDataSource>(serviceKey, (serviceProvider, _) => serviceProvider.GetRequiredKeyedService<NpgsqlDataSource>(serviceKey));
+            builder.Services.AddKeyedSingleton<NpgsqlConnection>(serviceKey, (serviceProvider, _) => serviceProvider.GetRequiredKeyedService<NpgsqlDataSource>(serviceKey).CreateConnection());
+            builder.Services.AddKeyedSingleton<DbConnection>(serviceKey, (serviceProvider, _) => serviceProvider.GetRequiredKeyedService<NpgsqlDataSource>(serviceKey).CreateConnection());
         }
 
         // Same as SqlClient connection pooling is on by default and can be handled with connection string 
         // https://www.npgsql.org/doc/connection-string-parameters.html#pooling
-        if (configurationOptions.HealthChecks)
+        if (settings.HealthChecks)
         {
             builder.Services.AddHealthChecks()
                 .Add(new HealthCheckRegistration(
-                    name is null ? "PostgreSql" : $"PostgreSql_{name}",
+                    serviceKey is null ? "PostgreSql" : $"PostgreSql_{connectionName}",
                     sp => new NpgSqlHealthCheck(new NpgSqlHealthCheckOptions()
                     {
-                        DataSource = name is null
+                        DataSource = serviceKey is null
                             ? sp.GetRequiredService<NpgsqlDataSource>()
-                            : sp.GetRequiredKeyedService<NpgsqlDataSource>(name)
+                            : sp.GetRequiredKeyedService<NpgsqlDataSource>(serviceKey)
                     }),
                     failureStatus: default,
                     tags: default,
                     timeout: default));
         }
 
-        if (configurationOptions.Tracing)
+        if (settings.Tracing)
         {
             builder.Services.AddOpenTelemetry()
                 .WithTracing(tracerProviderBuilder =>
@@ -118,7 +119,7 @@ public static class AspirePostgreSqlNpgsqlExtensions
                 });
         }
 
-        if (configurationOptions.Metrics)
+        if (settings.Metrics)
         {
             builder.Services.AddOpenTelemetry()
                 .WithMetrics(meterProviderBuilder =>

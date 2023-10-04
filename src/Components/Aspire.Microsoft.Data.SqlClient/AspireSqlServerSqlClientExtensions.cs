@@ -24,11 +24,12 @@ public static class AspireSqlServerSqlClientExtensions
     /// Configures health check, logging and telemetry for the SqlClient.
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
-    /// <param name="configure">An optional delegate that can be used for customizing options. It's invoked after the settings are read from the configuration.</param>
+    /// <param name="connectionName">An optional name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
+    /// <param name="configureSettings">An optional delegate that can be used for customizing options. It's invoked after the settings are read from the configuration.</param>
     /// <remarks>Reads the configuration from "Aspire:Microsoft:Data:SqlClient" section.</remarks>
     /// <exception cref="InvalidOperationException">If required <see cref="MicrosoftDataSqlClientSettings.ConnectionString"/>  is not provided in configuration section.</exception>
-    public static void AddSqlServerClient(this IHostApplicationBuilder builder, Action<MicrosoftDataSqlClientSettings>? configure = null)
-        => AddSqlClient(builder, DefaultConfigSectionName, configure, name: null);
+    public static void AddSqlServerClient(this IHostApplicationBuilder builder, string? connectionName = null, Action<MicrosoftDataSqlClientSettings>? configureSettings = null)
+        => AddSqlClient(builder, DefaultConfigSectionName, configureSettings, connectionName, serviceKey: null);
 
     /// <summary>
     /// Registers 'Scoped' <see cref="SqlConnection" /> factory for given <paramref name="name"/> for connecting Azure SQL, MsSQL database using Microsoft.Data.SqlClient.
@@ -36,47 +37,48 @@ public static class AspireSqlServerSqlClientExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="name">The <see cref="ServiceDescriptor.ServiceKey"/> of the service.</param>
-    /// <param name="configure">An optional method that can be used for customizing options. It's invoked after the settings are read from the configuration.</param>
+    /// <param name="configureSettings">An optional method that can be used for customizing options. It's invoked after the settings are read from the configuration.</param>
     /// <remarks>Reads the configuration from "Aspire:Microsoft:Data:SqlClient:{name}" section.</remarks>
     /// <exception cref="InvalidOperationException">If required <see cref="MicrosoftDataSqlClientSettings.ConnectionString"/> is not provided in configuration section.</exception>
-    public static void AddSqlServerClient(this IHostApplicationBuilder builder, string name, Action<MicrosoftDataSqlClientSettings>? configure = null)
+    public static void AddKeyedSqlServerClient(this IHostApplicationBuilder builder, string name, Action<MicrosoftDataSqlClientSettings>? configureSettings = null)
     {
         ArgumentNullException.ThrowIfNull(name);
 
-        AddSqlClient(builder, $"{DefaultConfigSectionName}:{name}", configure, name);
+        AddSqlClient(builder, $"{DefaultConfigSectionName}:{name}", configureSettings, connectionName: name, serviceKey: name);
     }
 
-    private static void AddSqlClient(IHostApplicationBuilder builder, string configurationSectionName, Action<MicrosoftDataSqlClientSettings>? configure, string? name)
+    private static void AddSqlClient(IHostApplicationBuilder builder, string configurationSectionName,
+        Action<MicrosoftDataSqlClientSettings>? configure, string? connectionName, object? serviceKey)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        MicrosoftDataSqlClientSettings configurationOptions = new();
-        builder.Configuration.GetSection(configurationSectionName).Bind(configurationOptions);
+        MicrosoftDataSqlClientSettings settings = new();
+        builder.Configuration.GetSection(configurationSectionName).Bind(settings);
 
-        if (string.IsNullOrEmpty(configurationOptions.ConnectionString))
+        if (string.IsNullOrEmpty(settings.ConnectionString) && !string.IsNullOrEmpty(connectionName))
         {
-            configurationOptions.ConnectionString = builder.Configuration.GetConnectionString("Aspire.SqlServer");
+            settings.ConnectionString = builder.Configuration.GetConnectionString(connectionName);
         }
 
-        configure?.Invoke(configurationOptions);
+        configure?.Invoke(settings);
 
-        if (string.IsNullOrEmpty(configurationOptions.ConnectionString))
+        if (string.IsNullOrEmpty(settings.ConnectionString))
         {
             throw new InvalidOperationException($"ConnectionString is missing. It should be provided under 'ConnectionString' key in '{configurationSectionName}' configuration section.");
         }
 
-        if (string.IsNullOrEmpty(name))
+        if (serviceKey is null)
         {
-            builder.Services.AddScoped(_ => new SqlConnection(configurationOptions.ConnectionString));
+            builder.Services.AddScoped(_ => new SqlConnection(settings.ConnectionString));
         }
         else
         {
-            builder.Services.AddKeyedScoped(name, (_, __) => new SqlConnection(configurationOptions.ConnectionString));
+            builder.Services.AddKeyedScoped(serviceKey, (_, __) => new SqlConnection(settings.ConnectionString));
         }
 
         // SqlClient Data Provider (Microsoft.Data.SqlClient) handles connection pooling automatically and it's on by default
         // https://learn.microsoft.com/sql/connect/ado-net/sql-server-connection-pooling
-        if (configurationOptions.Tracing)
+        if (settings.Tracing)
         {
             builder.Services.AddOpenTelemetry().WithTracing(tracerProviderBuilder =>
             {
@@ -84,7 +86,7 @@ public static class AspireSqlServerSqlClientExtensions
             });
         }
 
-        if (configurationOptions.Metrics)
+        if (settings.Metrics)
         {
             builder.Services.AddOpenTelemetry().WithMetrics(meterProviderBuilder =>
             {
@@ -96,14 +98,14 @@ public static class AspireSqlServerSqlClientExtensions
             });
         }
 
-        if (configurationOptions.HealthChecks)
+        if (settings.HealthChecks)
         {
             builder.Services.AddHealthChecks()
                 .Add(new HealthCheckRegistration(
-                    name is null ? "SqlServer" : $"SqlServer_{name}",
+                    serviceKey is null ? "SqlServer" : $"SqlServer_{connectionName}",
                     sp => new SqlServerHealthCheck(new SqlServerHealthCheckOptions()
                     {
-                        ConnectionString = configurationOptions.ConnectionString
+                        ConnectionString = settings.ConnectionString
                     }),
                     failureStatus: default,
                     tags: default,

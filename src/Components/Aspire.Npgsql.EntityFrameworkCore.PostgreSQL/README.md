@@ -18,7 +18,50 @@ dotnet add package Aspire.Npgsql.EntityFrameworkCore.PostgreSQL
 
 ## Usage Example
 
-Call `AddNpgsqlDbContext` extension method to add the `DbContext`  with the desired configurations exposed with `NpgsqlEntityFrameworkCorePostgreSQLSettings`. The library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `NpgsqlEntityFrameworkCorePostgreSQLSettings` from configuration by using `Aspire:Npgsql:EntityFrameworkCore:PostgreSQL` key. Example `appsettings.json` that configures some of the options, note that `ConnectionString` is  required to be set:
+In the `Program.cs` file of your project, call the `AddNpgsqlDbContext` extension method to register a `DbContext` for use via the dependency injection container.
+
+```cs
+builder.AddNpgsqlDbContext<MyDbContext>();
+```
+
+You can then retrieve the `MyDbContext` instance using dependency injection. For example, to retrieve the cache from a Web API controller:
+
+```cs
+private readonly MyDbContext _context;
+
+public ProductsController(MyDbContext context)
+{
+    _context = context;
+}
+```
+
+## Configuration
+
+The Aspire PostgreSQL EntityFrameworkCore Npgsql component provides multiple options to configure the database connection based on the requirements and conventions of your project.
+
+### Use a connection string
+
+When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddNpgsqlDbContext()`:
+
+```cs
+builder.AddNpgsqlDbContext<MyDbContext>("myConnection");
+```
+
+And then the connection string will be retrieved from the `ConnectionStrings` configuration section:
+
+```json
+{
+  "ConnectionStrings": {
+    "myConnection": "Host=myserver;Database=test"
+  }
+}
+```
+
+See the [ConnectionString documentation](https://www.npgsql.org/doc/connection-string-parameters.html) for more information on how to format this connection string.
+
+### Use configuration providers
+
+The Aspire PostgreSQL EntityFrameworkCore Npgsql component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `NpgsqlEntityFrameworkCorePostgreSQLSettings` from configuration by using the `:Npgsql:EntityFrameworkCore:PostgreSQL` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {
@@ -26,7 +69,7 @@ Call `AddNpgsqlDbContext` extension method to add the `DbContext`  with the desi
     "Npgsql": {
       "EntityFrameworkCore": {
         "PostgreSQL": {
-          "ConnectionString": "YOUR_CONNECTIONSTRING",
+          "ConnectionString": "Host=myserver;Database=test",
           "DbContextPooling": true,
           "HealthChecks": false,
           "Tracing": false
@@ -37,76 +80,35 @@ Call `AddNpgsqlDbContext` extension method to add the `DbContext`  with the desi
 }
 ```
 
-If you have setup your configurations in the `Aspire:Npgsql:EntityFrameworkCore:PostgreSQL` section you can just call the method without passing any parameter.
- 
-```cs
-    builder.AddNpgsqlDbContext<YourDbContext>();
-```
+### Use inline delegates
 
-If you want to register more than one `DbContext` with different configuration, you can use `$"Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:{typeof(TContext).Name}"` configuration section name. The json configuration would look like:
-
-```json
-{
-  "Aspire": {
-    "Npgsql": {
-      "EntityFrameworkCore": {
-        "PostgreSQL": {
-          "ConnectionString": "DEFAULT_CONNECTIONSTRING",
-          "DbContextPooling": true,
-          "Tracing": false,
-          "AnotherDbContext": {
-            "ConnectionString": "AnotherDbContext_CONNECTIONSTRING",
-            "Tracing": true
-          }
-        }
-      }
-    }
-  }
-}
-```
-
-Then calling the `AddNpgsqlDbContext` method with `AnotherDbContext` type parameter would load the settings from `Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:AnotherDbContext` section. 
+Also you can pass the `Action<NpgsqlEntityFrameworkCorePostgreSQLSettings> configureSettings` delegate to set up some or all the options inline, for example to use a connection string from code:
 
 ```cs
-    builder.AddNpgsqlDbContext<AnotherDbContext>();
+    builder.AddNpgsqlDbContext<MyDbContext>(configureSettings: settings => settings.ConnectionString = "Host=myserver;Database=test");
 ```
 
-Also you can pass the `Action<NpgsqlEntityFrameworkCorePostgreSQLSettings>` delegate to set up some or all the options inline, for example to set the `ConnectionString`:
+## DevHost Extensions
+
+In your DevHost project, register a Postgres container and consume the connection using the following methods:
 
 ```cs
-    builder.AddNpgsqlDbContext<YourDbContext>(settings => settings.ConnectionString = "YOUR_CONNECTIONSTRING");
+var postgres = builder.AddPostgresContainer("postgresdb");
+
+var myService = builder.AddProject<YourApp.Projects.MyService>()
+                       .WithPostgresDatabase(postgres, databaseName: "test")
 ```
 
-Here are the configurable options with corresponding default values:
+`.WithPostgresDatabase` configures a connection in the `MyService` project named `postgresdb`. In the `Program.cs` file of `MyService`, the database connection can be consumed using:
 
 ```cs
-public sealed class NpgsqlEntityFrameworkCorePostgreSQLSettings
-{
-    // The connection string of the SQL Server database to connect to.
-    public string? ConnectionString { get; set; }
-
-    // A boolean value that indicates whether the DB context will be pooled or explicitly created every time it's requested.
-    public bool DbContextPooling { get; set; } = true;
-	
-    // The maximum number of retry attempts. Default value is 6, set it to 0 to disable the retry mechanism.
-    public int MaxRetryCount { get; set; } = 6;
-
-    // A boolean value that indicates whether the database health check is enabled or not.
-    public bool HealthChecks { get; set; } = true;
-
-    // A boolean value that indicates whether the OpenTelemetry tracing is enabled or not.
-    public bool Tracing { get; set; } = true;
-	
-    // A boolean value that indicates whether the OpenTelemetry metrics are enabled or not.
-    public bool Metrics { get; set; } = true;
-}
+builder.AddNpgsqlDbContext<MyDbContext>("postgresdb");
 ```
-
-After adding a `YourDbContext` to the builder you can get the `YourDbContext` instance using DI.
 
 ## Additional documentation
 
-https://github.com/dotnet/astra/tree/main/src/Components/README.md
+* https://learn.microsoft.com/ef/core/
+* https://github.com/dotnet/astra/tree/main/src/Components/README.md
 
 ## Feedback & Contributing
 
