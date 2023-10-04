@@ -10,5 +10,6 @@ public class ExecutableViewModel
     public DateTime? CreationTimeStamp { get; set; }
     public string? ExecutablePath { get; set; }
     public List<EnvironmentVariableViewModel> Environment { get; } = new();
+    public required IFileLogSource LogSource { get; init; }
 }
 

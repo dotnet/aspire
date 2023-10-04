@@ -65,7 +65,7 @@
     {
         _ = Task.Run(async () =>
         {
-            await foreach (var componentChanged in DashboardViewModelService.WatchExecutablesAsync(watchTaskCancellationTokenSource.Token))
+            await foreach (var componentChanged in DashboardViewModelService.WatchExecutablesAsync(cancellationToken: watchTaskCancellationTokenSource.Token))
             {
                 await OnExecutableListChanged(componentChanged.ObjectChangeType, componentChanged.Component).ConfigureAwait(true);
             }
