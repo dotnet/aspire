@@ -5,10 +5,8 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Azure;
 
-public class AzureStorageComponent : IAzureComponent
+public class AzureStorageComponent(string name) : DistributedApplicationComponent(name), IAzureComponent
 {
-    public ComponentMetadataCollection Annotations { get; } = new();
-
     public string? ConnectionString { get; set; }
     public string? AccountName { get; set; }
 }

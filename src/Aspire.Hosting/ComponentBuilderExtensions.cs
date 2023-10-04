@@ -7,9 +7,9 @@ namespace Aspire.Hosting;
 
 public static class ComponentBuilderExtensions
 {
-    public static AllocatedEndpointAnnotation GetEndpoint<T>(this IDistributedApplicationComponentBuilder<T> builder, string name) where T : IDistributedApplicationComponent
+    public static AllocatedEndpointAnnotation? GetEndpoint<T>(this IDistributedApplicationComponentBuilder<T> builder, string name) where T : IDistributedApplicationComponent
     {
-        return builder.Component.Annotations.OfType<AllocatedEndpointAnnotation>().Single(a => a.Name == name);
+        return builder.Component.Annotations.OfType<AllocatedEndpointAnnotation>().SingleOrDefault();
     }
 
     public static IDistributedApplicationComponentBuilder<T> WithEnvironment<T>(this IDistributedApplicationComponentBuilder<T> builder, string name, string? value) where T : IDistributedApplicationComponent

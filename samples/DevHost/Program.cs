@@ -26,7 +26,7 @@ var basket = builder.AddProject<Projects.BasketService>()
 builder.AddProject<Projects.MyFrontend>()
        .WithServiceReference(basket)
        .WithServiceReference(catalog, bindingName: "http")
-       .WithEnvironment("GRAFANA_URL", () => grafana.GetEndpoint("grafana-http").UriString);
+       .WithEnvironment("GRAFANA_URL", () => grafana.GetEndpoint("grafana-http")?.UriString ?? $"{{{grafana.Component.Name}.bindings.grafana-http}}");
 
 builder.AddProject<Projects.OrderProcessor>()
        .WithAzureServiceBus(serviceBus)
