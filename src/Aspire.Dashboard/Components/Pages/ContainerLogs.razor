@@ -11,19 +11,20 @@
 
 <div>
     <FluentStack Orientation="Orientation.Vertical">
-        <FluentToolbar>
+        <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
             <FluentSelect TOption="ContainerViewModel"
                             Items="@Containers"
                             OptionValue="@(c => c.ContainerID)"
-                            OptionText="@(c => c.Name)"
+                            OptionText="GetContainerDisplayText"
                             @bind-SelectedOption="_selectedContainer"
                             @bind-SelectedOption:after="HandleSelectedOptionChangedAsync" />
-        </FluentToolbar>
-        <LogViewer @ref="_logViewer" InitialText="Waiting for logs..." />
+            <FluentLabel Typo="Typography.Body">@_status</FluentLabel>
+        </FluentStack>
+        <LogViewer @ref="_logViewer" />
     </FluentStack>
 </div>
 
-@code {
+    @code {
 
     [Parameter]
     public string? ContainerID { get; set; }
@@ -35,10 +36,12 @@
     private CancellationTokenSource _watchContainersTokenSource = new CancellationTokenSource();
     private CancellationTokenSource? _watchLogsTokenSource;
     private IContainerLogWatcher? _currentWatcher;
-    private bool _pageDisposed;
+    private string _status = ContainerLogStatuses.Initializing;
 
     protected override async Task OnInitializedAsync()
     {
+        _status = ContainerLogStatuses.LoadingContainers;
+
         var initialList = await DashboardViewModelService.GetContainersAsync();
 
         foreach (var result in initialList)
@@ -66,25 +69,23 @@
         });
     }
 
+    private Task ClearLogsAsync()
+        => _logViewer is not null ? _logViewer.ClearLogsAsync() : Task.CompletedTask;
+
     private async Task LoadLogsAsync()
     {
-        if (_selectedContainer is not null && _logViewer is not null)
+        if (_selectedContainer is null)
         {
-            await DisposeCurrentWatcher();
-            await DisposeWatchLogsTokenSource();
-
-            if (_pageDisposed)
-            {
-                // If the page got disposed after this call was started, but before we
-                // set up the _watchLogsTokenSource to a new object below, we would end
-                // up leaving the below tasks running indefinitely.
-                return;
-            }
-
+            _status = ContainerLogStatuses.NoContainerSelected;
+        }
+        else if (_logViewer is null)
+        {
+            _status = ContainerLogStatuses.InitializingLogViewer;
+        }
+        else
+        {
             _watchLogsTokenSource = new CancellationTokenSource();
             _currentWatcher = _selectedContainer.LogSource.GetWatcher();
-
-            await _logViewer.ClearLogsAsync(_watchLogsTokenSource.Token);
 
             if (await _currentWatcher.InitWatchAsync(_watchLogsTokenSource.Token))
             {
@@ -105,6 +106,12 @@
                         await _logViewer.AddLogEntriesAsync(logEntries);
                     }
                 }, _watchLogsTokenSource.Token);
+
+                _status = ContainerLogStatuses.WatchingLogs;
+            }
+            else
+            {
+                _status = ContainerLogStatuses.FailedToInitialize;
             }
         }
     }
@@ -115,7 +122,9 @@
         {
             // Change the URL
             NavigationManager.NavigateTo($"/containerLogs/{_selectedContainer.ContainerID}");
-
+            await DisposeCurrentWatcher();
+            await DisposeWatchLogsTokenSource();
+            await ClearLogsAsync();
             await LoadLogsAsync();
         }
     }
@@ -147,7 +156,6 @@
                 if (_containerNameMapping.Count > 0)
                 {
                     _selectedContainer = Containers.First();
-                    await LoadLogsAsync();
                 }
             }
         }
@@ -155,9 +163,22 @@
         await InvokeAsync(StateHasChanged);
     }
 
+    private static string GetContainerDisplayText(ContainerViewModel container)
+    {
+        string stateText = "";
+        if (string.IsNullOrEmpty(container.State))
+        {
+            stateText = " (Unknown State)";
+        }
+        else if (container.State != "Running")
+        {
+            stateText = $" ({container.State})";
+        }
+        return $"{container.Name}{stateText}";
+    }
+
     public async ValueTask DisposeAsync()
     {
-        _pageDisposed = true;
         await DisposeWatchContainersTokenSource();
         await DisposeWatchLogsTokenSource();
         await DisposeCurrentWatcher();
@@ -182,5 +203,15 @@
             _watchLogsTokenSource.Dispose();
             _watchLogsTokenSource = null;
         }
+    }
+
+    private static class ContainerLogStatuses
+    {
+        public const string FailedToInitialize = "Failed to Initialize";
+        public const string Initializing = "Initializing...";
+        public const string InitializingLogViewer = "Initializing Log Viewer...";
+        public const string LoadingContainers = "Loading Containers...";
+        public const string NoContainerSelected = "No Container Selected";
+        public const string WatchingLogs = "Watching Logs...";
     }
 }

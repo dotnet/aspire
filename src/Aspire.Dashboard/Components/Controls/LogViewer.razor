@@ -6,17 +6,13 @@
 
 <div class="log-overflow">
     <div class="log-container" id="logContainer">
-        <span class="initial-text">@InitialText</span>
+        
     </div>
 </div>
 
 @code {
-    [Parameter]
-    public string InitialText { get; set; } = "";
-
     private List<IEnumerable<LogEntry>> _preRenderQueue = new();
 
-    bool initialMessageCleared = false;
     bool renderComplete = false;
 
     private IJSObjectReference? _jsModule;
@@ -25,7 +21,6 @@
     {
         if (_jsModule is not null)
         {
-            initialMessageCleared = true;
             await _jsModule.InvokeVoidAsync("clearLogs", cancellationToken);
         }
     }
@@ -54,12 +49,6 @@
 
         async Task WritePreRenderQueue()
         {
-            if (!initialMessageCleared)
-            {
-                initialMessageCleared = true;
-                await ClearLogsAsync();
-            }
-
             foreach (var logs in _preRenderQueue)
             {
                 await WriteLogsToDom(logs);
@@ -72,12 +61,6 @@
     {
         if (renderComplete)
         {
-            if (!initialMessageCleared)
-            {
-                initialMessageCleared = true;
-                await ClearLogsAsync();
-            }
-
             await WriteLogsToDom(logs);
         }
         else
