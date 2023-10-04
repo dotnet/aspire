@@ -63,12 +63,33 @@ public static class AzureComponentExtensions
         };
 
         return builder.AddComponent(component)
-                      .WithAnnotation(new ManifestPublishingCallbackAnnotation(WriteAzureServiceBusComponentToManifestAsync));
+                      .WithAnnotation(new ManifestPublishingCallbackAnnotation((jsonWriter, cancellationToken) => WriteAzureServiceBusComponentToManifestAsync(component, jsonWriter, cancellationToken)));
     }
 
-    private static async Task WriteAzureServiceBusComponentToManifestAsync(Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
+    private static async Task WriteAzureServiceBusComponentToManifestAsync(AzureServiceBusComponent component,  Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
     {
         jsonWriter.WriteString("type", "azure.servicebus.v1");
+
+        if (component.QueueNames.Length > 0)
+        {
+            jsonWriter.WriteStartArray("queues");
+            foreach (var queueName in component.QueueNames)
+            {
+                jsonWriter.WriteStringValue(queueName);
+            }
+            jsonWriter.WriteEndArray();
+        }
+
+        if (component.TopicNames.Length > 0)
+        {
+            jsonWriter.WriteStartArray("topics");
+            foreach (var topicName in component.TopicNames)
+            {
+                jsonWriter.WriteStringValue(topicName);
+            }
+            jsonWriter.WriteEndArray();
+        }
+
         await jsonWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 

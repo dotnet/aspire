@@ -7,14 +7,13 @@ using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Publishing;
 
-internal sealed class ManifestPublisher(DistributedApplicationModel model, IOptions<PublishingOptions> options) : IDistributedApplicationPublisher
+internal sealed class ManifestPublisher(IOptions<PublishingOptions> options) : IDistributedApplicationPublisher
 {
-    private readonly DistributedApplicationModel _model = model;
     private readonly IOptions<PublishingOptions> _options = options;
 
     public string Name => "manifest";
 
-    public async Task PublishAsync(CancellationToken cancellationToken)
+    public async Task PublishAsync(DistributedApplicationModel model, CancellationToken cancellationToken)
     {
         if (_options.Value.OutputPath == null)
         {
@@ -25,14 +24,14 @@ internal sealed class ManifestPublisher(DistributedApplicationModel model, IOpti
         using var jsonWriter = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true });
 
         jsonWriter.WriteStartObject();
-        await WriteComponentsAsync(jsonWriter, cancellationToken).ConfigureAwait(false);
+        await WriteComponentsAsync(model, jsonWriter, cancellationToken).ConfigureAwait(false);
         jsonWriter.WriteEndObject();
     }
 
-    private async Task WriteComponentsAsync(Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
+    private static async Task WriteComponentsAsync(DistributedApplicationModel model, Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
     {
         jsonWriter.WriteStartObject("components");
-        foreach (var component in _model.Components)
+        foreach (var component in model.Components)
         {
             await WriteComponentAsync(component, jsonWriter, cancellationToken).ConfigureAwait(false);
         }
