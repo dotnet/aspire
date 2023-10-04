@@ -8,7 +8,7 @@ namespace Aspire.Dashboard.Model;
 
 internal sealed partial class LogEntry
 {
-    private static readonly Regex s_rfc3339NanoRegEx = GenerateRfc3339NanoRegEx();
+    private static readonly Regex s_rfc3339RegEx = GenerateRfc3339RegEx();
 
     public string? Content { get; set; }
     public string? Timestamp { get; set; }
@@ -18,11 +18,11 @@ internal sealed partial class LogEntry
     public static LogEntry Create(string s, LogEntryType type)
     {
         var indexOfSpace = s.IndexOf(' ');
-        var possibleTimestamp = s[..indexOfSpace];
+        var possibleTimestamp = indexOfSpace == -1 ? null : s[..indexOfSpace];
 
-        // For right now, we only support RFC3339Nano timestamps, which is what (most) containers generate
+        // For right now, we only support RFC3339 timestamps, which is what (most) containers generate
         // We can tweak this once project/executable log timestamps are finalized
-        if (s_rfc3339NanoRegEx.IsMatch(possibleTimestamp))
+        if (possibleTimestamp is not null && s_rfc3339RegEx.IsMatch(possibleTimestamp))
         {
             return new() { Timestamp = possibleTimestamp, Content = s[(indexOfSpace + 1)..], Type = type };
         }
@@ -62,7 +62,7 @@ internal sealed partial class LogEntry
     //
     // Note: (?:) is a non-capturing group, since we don't care about the values, we are just interested in whether or not there is a match
     [GeneratedRegex("^(?:\\d{4})-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])T(?:[01][0-9]|2[0-3]):(?:[0-5][0-9]):(?:[0-5][0-9])(?:\\.\\d{1,9})?(?:Z|(?:[Z+-](?:[01][0-9]|2[0-3]):(?:[0-5][0-9])))?$")]
-    private static partial Regex GenerateRfc3339NanoRegEx();
+    private static partial Regex GenerateRfc3339RegEx();
 }
 
 internal enum LogEntryType
