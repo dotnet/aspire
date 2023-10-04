@@ -23,8 +23,6 @@ internal sealed class ManifestPublisher(ILogger<ManifestPublisher> logger, Distr
             throw new DistributedApplicationException("The '--output-path [path]' option was not specified even though '--publish manifest' argument was used.");
         }
 
-        _logger.LogInformation("blah");
-
         using var stream = new FileStream(_options.Value.OutputPath, FileMode.Create);
         using var jsonWriter = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true });
 
