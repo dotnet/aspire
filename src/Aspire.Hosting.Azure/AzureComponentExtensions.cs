@@ -11,12 +11,6 @@ namespace Aspire.Hosting.Azure;
 
 public static class AzureComponentExtensions
 {
-    public static IDistributedApplicationBuilder AddAzureProvisioning(this IDistributedApplicationBuilder builder)
-    {
-        builder.Services.AddLifecycleHook<AzureProvisioner>();
-        return builder;
-    }
-
     public static IDistributedApplicationComponentBuilder<AzureKeyVaultComponent> AddAzureKeyVault(this IDistributedApplicationBuilder builder, string name)
     {
         var component = new AzureKeyVaultComponent(name);

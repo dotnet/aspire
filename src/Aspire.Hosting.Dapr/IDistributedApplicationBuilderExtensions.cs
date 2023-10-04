@@ -17,7 +17,7 @@ public static class IDistributedApplicationBuilderExtensions
     /// <param name="builder">The distributed application builder instance.</param>
     /// <param name="options">Options for configuring Dapr, if any.</param>
     /// <returns>The distributed application builder instance.</returns>
-    public static IDistributedApplicationBuilder WithDaprSupport(this IDistributedApplicationBuilder builder, DaprOptions? options = null)
+    public static IDistributedApplicationBuilder AddDapr(this IDistributedApplicationBuilder builder, DaprOptions? options = null)
     {
         builder.Services.AddSingleton(options ?? new DaprOptions());
         builder.Services.AddLifecycleHook<DaprDistributedApplicationLifecycleHook>();
