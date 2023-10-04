@@ -110,7 +110,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                 ports.Add("profile", (sidecarOptions?.ProfilePort ?? this._portManager.ReservePort(DaprHttpPortStartRange), daprProfilePortArg, null));
             }
 
-            var component = new ExecutableComponent($"{project.Name}dapr", fileName, workingDirectory, daprCommandLine.Arguments.ToArray());
+            var component = new ExecutableComponent($"{sidecarOptions?.AppId}", fileName, workingDirectory, daprCommandLine.Arguments.ToArray());
 
             project.Annotations.Add(
                 new EnvironmentCallbackAnnotation(
