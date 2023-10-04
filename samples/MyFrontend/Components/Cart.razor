@@ -4,7 +4,7 @@
 <div class="justify-content-end">
     @if (basketIsAvailable)
     {
-        <form method="post" @formname="checkout" @onsubmit="HandleCheckout" data-enhance>
+        <form action="@Navigation.Uri" method="post" @formname="checkout" @onsubmit="HandleCheckout" data-enhance>
             <AntiforgeryToken />
             <button type="submit" class="align-content-end cart-button">
                 <span class="fa-stack fa-lg cart-stack pa-4">
