@@ -7,11 +7,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
-    <PackageReference Include="Azure.ResourceManager.KeyVault" />
-    <PackageReference Include="Azure.ResourceManager.ServiceBus" />
-    <PackageReference Include="Azure.ResourceManager.Storage" />
-    <PackageReference Include="Azure.ResourceManager.Authorization" />
-    <PackageReference Include="Azure.Identity" />
   </ItemGroup>
 
 </Project>
