@@ -11,8 +11,8 @@ internal sealed class AspireEventSource : EventSource
 {
     public static readonly AspireEventSource Instance = new AspireEventSource();
 
-    [Event(1, Level = EventLevel.Informational, Message = "Application is starting...")]
-    public void AppRunStart()
+    [Event(1, Level = EventLevel.Informational, Message = "DCP host is starting...")]
+    public void DcpHostStartupStart()
     {
         if (IsEnabled())
         {
@@ -20,8 +20,8 @@ internal sealed class AspireEventSource : EventSource
         }
     }
 
-    [Event(2, Level = EventLevel.Informational, Message = "Application has stopped")]
-    public void AppRunStop()
+    [Event(2, Level = EventLevel.Informational, Message = "DCP host has started")]
+    public void DcpHostStartupStop()
     {
         if (IsEnabled())
         {
@@ -242,6 +242,24 @@ internal sealed class AspireEventSource : EventSource
         if (IsEnabled())
         {
             WriteEvent(26);
+        }
+    }
+
+    [Event(27, Level = EventLevel.Informational, Message = "Application before-start hooks running...")]
+    public void AppBeforeStartHooksStart()
+    {
+        if (IsEnabled())
+        {
+            WriteEvent(27);
+        }
+    }
+
+    [Event(28, Level = EventLevel.Informational, Message = "Application before-start hooks completed")]
+    public void AppBeforeStartHooksStop()
+    {
+        if (IsEnabled())
+        {
+            WriteEvent(28);
         }
     }
 }
