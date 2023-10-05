@@ -81,10 +81,7 @@
     white-space: pre-wrap;
 }
 
-::deep .content.error {
-    color: red;
-}
-
-::deep .content.warning {
-    color: yellow;
+::deep .content > fluent-badge {
+    margin-right: 1em;
+    user-select: none;
 }

@@ -1,4 +1,5 @@
 const template = createRowTemplate();
+const stdErrorBadgeTemplate = createStdErrBadgeTemplate();
 
 /**
  * Clears all log entries from the log viewer and resets the
@@ -39,9 +40,7 @@ export function addLogEntries(logEntries) {
             const content = lineArea.lastElementChild;
             content.textContent = logEntry.content;
             if (logEntry.type === "Error") {
-                content.classList.add("error");
-            } else if (logEntry.type === "Warning") {
-                content.classList.add("warning");
+                content.prepend(getStdErrorBadge());
             }
 
             insertSorted(container, rowContainer, logEntry.timestamp, logEntry.parentId, logEntry.lineIndex);
@@ -106,6 +105,14 @@ function getNewRowContainer() {
 }
 
 /**
+ * Clones the stderr badge template for use with a new log entry
+ * @returns
+ */
+function getStdErrorBadge() {
+    return stdErrorBadgeTemplate.cloneNode(true);
+}
+
+/**
  * Creates the initial row container template that will be cloned
  * for each log entry
  * @returns {HTMLElement}
@@ -127,6 +134,18 @@ function createRowTemplate() {
     templateElement.innerHTML = templateString.trim();
     const rowTemplate = templateElement.content.firstChild;
     return rowTemplate;
+}
+
+/**
+ * Creates the initial stderr badge template that will be cloned
+ * for each log entry
+ * @returns {HTMLElement}
+ */
+function createStdErrBadgeTemplate() {
+    const badge = document.createElement("fluent-badge");
+    badge.setAttribute("appearance", "accent");
+    badge.textContent = "stderr";
+    return badge;
 }
 
 /**
