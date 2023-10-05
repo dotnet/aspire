@@ -3,9 +3,10 @@
 
 namespace Aspire.Dashboard.Model;
 
-public interface IFileLogSource
+public interface ILogSource
 {
-    bool Available { get; }
+    ValueTask<bool> StartAsync(CancellationToken cancellationToken);
     IAsyncEnumerable<string[]> WatchOutputLogAsync(CancellationToken cancellationToken);
     IAsyncEnumerable<string[]> WatchErrorLogAsync(CancellationToken cancellationToken);
+    ValueTask StopAsync(CancellationToken cancellationToken = default);
 }

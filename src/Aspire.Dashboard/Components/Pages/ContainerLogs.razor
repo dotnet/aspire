@@ -1,4 +1,4 @@
-﻿@page "/ContainerLogs/{containerID?}"
+﻿@page "/ContainerLogs/{containerid?}"
 @using Aspire.Dashboard.Model
 @inject IDashboardViewModelService DashboardViewModelService
 @inject IJSRuntime JS
@@ -13,21 +13,21 @@
     <FluentStack Orientation="Orientation.Vertical">
         <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
             <FluentSelect TOption="ContainerViewModel"
-                            Items="@Containers"
-                            OptionValue="@(c => c.ContainerID)"
-                            OptionText="GetContainerDisplayText"
-                            @bind-SelectedOption="_selectedContainer"
-                            @bind-SelectedOption:after="HandleSelectedOptionChangedAsync" />
+                          Items="@Containers"
+                          OptionValue="@(c => c.ContainerID)"
+                          OptionText="GetContainerDisplayText"
+                          @bind-SelectedOption="_selectedContainer"
+                          @bind-SelectedOption:after="HandleSelectedOptionChangedAsync" />
             <FluentLabel Typo="Typography.Body">@_status</FluentLabel>
+            </FluentStack>
+            <LogViewer @ref="_logViewer" />
         </FluentStack>
-        <LogViewer @ref="_logViewer" />
-    </FluentStack>
-</div>
+    </div>
 
     @code {
 
     [Parameter]
-    public string? ContainerID { get; set; }
+    public string? ContainerId { get; set; }
 
     private Dictionary<string, ContainerViewModel> _containerNameMapping = new();
     private IEnumerable<ContainerViewModel> Containers => _containerNameMapping.Select(kvp => kvp.Value).OrderBy(c => c.Name);
@@ -35,7 +35,6 @@
     private LogViewer? _logViewer;
     private CancellationTokenSource _watchContainersTokenSource = new CancellationTokenSource();
     private CancellationTokenSource? _watchLogsTokenSource;
-    private IContainerLogWatcher? _currentWatcher;
     private string _status = ContainerLogStatuses.Initializing;
 
     protected override async Task OnInitializedAsync()
@@ -49,9 +48,9 @@
             _containerNameMapping[result.ViewModel.Name] = result.ViewModel;
         }
 
-        if (ContainerID is not null)
+        if (ContainerId is not null)
         {
-            _selectedContainer = initialList?.FirstOrDefault(c => string.Equals(ContainerID, c.ViewModel.ContainerID, StringComparison.Ordinal))?.ViewModel;
+            _selectedContainer = initialList?.FirstOrDefault(c => string.Equals(ContainerId, c.ViewModel.ContainerID, StringComparison.Ordinal))?.ViewModel;
         }
         else if (initialList?.Count > 0)
         {
@@ -72,7 +71,7 @@
     private Task ClearLogsAsync()
         => _logViewer is not null ? _logViewer.ClearLogsAsync() : Task.CompletedTask;
 
-    private async Task LoadLogsAsync()
+    private async ValueTask LoadLogsAsync()
     {
         if (_selectedContainer is null)
         {
@@ -85,24 +84,23 @@
         else
         {
             _watchLogsTokenSource = new CancellationTokenSource();
-            _currentWatcher = _selectedContainer.LogSource.GetWatcher();
-
-            if (await _currentWatcher.InitWatchAsync(_watchLogsTokenSource.Token))
+            if (await _selectedContainer.LogSource.StartAsync(_watchLogsTokenSource.Token))
             {
                 _ = Task.Run(async () =>
                 {
-                    await _logViewer.WatchLogsAsync(() => _currentWatcher.WatchOutputLogsAsync(_watchLogsTokenSource.Token), LogEntryType.Default);
+                    await _logViewer.WatchLogsAsync(() => _selectedContainer.LogSource.WatchOutputLogAsync(_watchLogsTokenSource.Token), LogEntryType.Default);
                 });
 
                 _ = Task.Run(async () =>
                 {
-                    await _logViewer.WatchLogsAsync(() => _currentWatcher.WatchErrorLogsAsync(_watchLogsTokenSource.Token), LogEntryType.Error);
+                    await _logViewer.WatchLogsAsync(() => _selectedContainer.LogSource.WatchErrorLogAsync(_watchLogsTokenSource.Token), LogEntryType.Error);
                 });
 
                 _status = ContainerLogStatuses.WatchingLogs;
             }
             else
             {
+                _watchLogsTokenSource = null;
                 _status = ContainerLogStatuses.FailedToInitialize;
             }
         }
@@ -114,8 +112,7 @@
         {
             // Change the URL
             NavigationManager.NavigateTo($"/containerLogs/{_selectedContainer.ContainerID}");
-            await DisposeCurrentWatcher();
-            await DisposeWatchLogsTokenSource();
+            await StopWatchingLogsAsync();
             await ClearLogsAsync();
             await LoadLogsAsync();
         }
@@ -129,7 +126,7 @@
 
             if (_selectedContainer is null)
             {
-                if (string.IsNullOrEmpty(ContainerID) || string.Equals(ContainerID, containerViewModel.ContainerID, StringComparison.Ordinal))
+                if (string.IsNullOrEmpty(ContainerId) || string.Equals(ContainerId, containerViewModel.ContainerID, StringComparison.Ordinal))
                 {
                     _selectedContainer = containerViewModel;
                     await LoadLogsAsync();
@@ -148,6 +145,7 @@
                 if (_containerNameMapping.Count > 0)
                 {
                     _selectedContainer = Containers.First();
+                    await HandleSelectedOptionChangedAsync();
                 }
             }
         }
@@ -172,14 +170,8 @@
     public async ValueTask DisposeAsync()
     {
         await DisposeWatchContainersTokenSource();
-        await DisposeWatchLogsTokenSource();
-        await DisposeCurrentWatcher();
+        await StopWatchingLogsAsync();
     }
-
-    private ValueTask DisposeCurrentWatcher()
-        => _currentWatcher is null
-            ? ValueTask.CompletedTask
-            : _currentWatcher.DisposeAsync();
 
     private async Task DisposeWatchContainersTokenSource()
     {
@@ -187,12 +179,14 @@
         _watchContainersTokenSource.Dispose();
     }
 
-    private async Task DisposeWatchLogsTokenSource()
+    private async Task StopWatchingLogsAsync()
     {
         if (_watchLogsTokenSource is not null)
         {
             await _watchLogsTokenSource.CancelAsync();
             _watchLogsTokenSource.Dispose();
+            // The token source only gets created if selected container is not null
+            await _selectedContainer!.LogSource.StopAsync();
             _watchLogsTokenSource = null;
         }
     }

@@ -123,7 +123,7 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
                     ContainerID = container.Status?.ContainerID,
                     CreationTimeStamp = container.Metadata.CreationTimestamp?.ToLocalTime(),
                     Image = container.Spec.Image!,
-                    LogSource = new DockerContainerLogSource() { ContainerID = container.Status?.ContainerID },
+                    LogSource = new DockerContainerLogSource(container.Status!.ContainerID!),
                     State = container.Status?.State
                 };
 
@@ -167,7 +167,7 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
                 ContainerID = container.Status?.ContainerID,
                 CreationTimeStamp = container.Metadata.CreationTimestamp?.ToLocalTime(),
                 Image = container.Spec.Image!,
-                LogSource = new DockerContainerLogSource() { ContainerID = container.Status?.ContainerID },
+                LogSource = new DockerContainerLogSource(container.Status!.ContainerID!),
                 State = container.Status?.State
             };
 
