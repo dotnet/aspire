@@ -9,7 +9,7 @@ using Aspire.Dashboard.Model;
 
 namespace Aspire.Hosting.Dashboard;
 
-internal sealed class FileLogSource(string? stdOutPath, string? stdErrPath) : IProjectLogSource
+internal sealed class FileLogSource(string? stdOutPath, string? stdErrPath) : IFileLogSource
 {
     private readonly string? _stdOutPath = stdOutPath;
     private readonly string? _stdErrPath = stdErrPath;

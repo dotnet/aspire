@@ -3,7 +3,7 @@
 
 namespace Aspire.Dashboard.Model;
 
-public interface IProjectLogSource
+public interface IFileLogSource
 {
     bool Available { get; }
     IAsyncEnumerable<string[]> WatchOutputLogAsync(CancellationToken cancellationToken);

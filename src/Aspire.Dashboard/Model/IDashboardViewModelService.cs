@@ -6,9 +6,9 @@ namespace Aspire.Dashboard.Model;
 public interface IDashboardViewModelService
 {
     public Task<List<ResultWithSource<ContainerViewModel>>> GetContainersAsync();
-    public Task<List<ExecutableViewModel>> GetExecutablesAsync();
+    public Task<List<ResultWithSource<ExecutableViewModel>>> GetExecutablesAsync();
     public Task<List<ResultWithSource<ProjectViewModel>>> GetProjectsAsync();
     public IAsyncEnumerable<ComponentChanged<ContainerViewModel>> WatchContainersAsync(IEnumerable<object>? existingContainers = null, CancellationToken cancellationToken = default);
-    public IAsyncEnumerable<ComponentChanged<ExecutableViewModel>> WatchExecutablesAsync(CancellationToken cancellationToken);
+    public IAsyncEnumerable<ComponentChanged<ExecutableViewModel>> WatchExecutablesAsync(IEnumerable<object>? existingExecutables = null, CancellationToken cancellationToken = default);
     public IAsyncEnumerable<ComponentChanged<ProjectViewModel>> WatchProjectsAsync(IEnumerable<object>? existingProjects = null, CancellationToken cancellationToken = default);
 }

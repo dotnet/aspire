@@ -15,7 +15,7 @@ public class ProjectViewModel
 
     public List<ServiceEndpoint> Endpoints { get; } = new();
     public List<EnvironmentVariableViewModel> Environment { get; } = new();
-    public required IProjectLogSource LogSource { get; init; }
+    public required IFileLogSource LogSource { get; init; }
     public required int ExpectedEndpointCount { get; init; }
 }
 

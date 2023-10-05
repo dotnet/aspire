@@ -16,17 +16,13 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
     private readonly DistributedApplicationModel _applicationModel;
     private readonly KubernetesService _kubernetesService;
 
-    // TODO: the whole view model should use K8s watches to get updates about objects appearing and disappearing from the model,
-    // and push changes to the UI as necessary.
-    // Currently one has to keep refreshing the browser window to see the changes.
-
     public DashboardViewModelService(DistributedApplicationModel applicationModel)
     {
         _applicationModel = applicationModel;
         _kubernetesService = new KubernetesService();
     }
 
-    public async Task<List<ExecutableViewModel>> GetExecutablesAsync()
+    public async Task<List<ResultWithSource<ExecutableViewModel>>> GetExecutablesAsync()
     {
         var executables = await _kubernetesService.ListAsync<Executable>().ConfigureAwait(false);
         return executables
@@ -38,7 +34,8 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
                 Name = exe.Metadata.Name,
                 CreationTimeStamp = exe.Metadata?.CreationTimestamp?.ToLocalTime(),
                 ExecutablePath = exe.Spec.ExecutablePath,
-                State = exe.Status?.State
+                State = exe.Status?.State,
+                LogSource = new FileLogSource(exe.Status?.StdOutFile, exe.Status?.StdErrFile)
             };
 
             if (exe.Status?.EffectiveEnv is not null)
@@ -46,9 +43,9 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
                 FillEnvironmentVariables(model.Environment, exe.Status.EffectiveEnv);
             }
 
-            return model;
+            return new ResultWithSource<ExecutableViewModel>(model, exe);
         })
-        .OrderBy(e => e.Name)
+        .OrderBy(e => e.ViewModel.Name)
         .ToList();
     }
 
@@ -194,9 +191,11 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
         }
     }
 
-    public async IAsyncEnumerable<ComponentChanged<ExecutableViewModel>> WatchExecutablesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+    public async IAsyncEnumerable<ComponentChanged<ExecutableViewModel>> WatchExecutablesAsync(
+        IEnumerable<object>? existingExecutables = null,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        await foreach (var (watchEventType, executable) in _kubernetesService.WatchAsync<Executable>(cancellationToken: cancellationToken))
+        await foreach (var (watchEventType, executable) in _kubernetesService.WatchAsync<Executable>(existingObjects: existingExecutables?.Cast<Executable>(), cancellationToken: cancellationToken))
         {
             var objectChangeType = ToObjectChangeType(watchEventType);
             if (objectChangeType == ObjectChangeType.Other)
@@ -214,7 +213,8 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
                 Name = executable.Metadata.Name,
                 CreationTimeStamp = executable.Metadata?.CreationTimestamp?.ToLocalTime(),
                 ExecutablePath = executable.Spec.ExecutablePath,
-                State = executable.Status?.State
+                State = executable.Status?.State,
+                LogSource = new FileLogSource(executable.Status?.StdOutFile, executable.Status?.StdErrFile)
             };
 
             if (executable.Status?.EffectiveEnv is not null)
