@@ -7,7 +7,7 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.SqlServer;
 
-public static class SqlServerCloudApplicationBuilderExtensions
+public static class SqlServerBuilderExtensions
 {
     private const string ConnectionStringEnvironmentName = "ConnectionStrings__";
 
@@ -22,6 +22,12 @@ public static class SqlServerCloudApplicationBuilderExtensions
         componentBuilder.WithEnvironment("ACCEPT_EULA", "Y");
         componentBuilder.WithEnvironment("MSSQL_SA_PASSWORD", sqlServer.GeneratedPassword);
         return componentBuilder;
+    }
+
+    public static IDistributedApplicationComponentBuilder<SqlServerComponent> AddSqlServer(this IDistributedApplicationBuilder builder, string name, string connectionString)
+    {
+        return builder.AddComponent(new SqlServerComponent(name, connectionString))
+            .WithAnnotation(new ManifestPublishingCallbackAnnotation(WriteSqlServerComponentToManifest));
     }
 
     private static async Task WriteSqlServerComponentToManifest(Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
@@ -45,22 +51,8 @@ public static class SqlServerCloudApplicationBuilderExtensions
                 return;
             }
 
-            if (!sqlBuilder.Component.TryGetAnnotationsOfType<AllocatedEndpointAnnotation>(out var allocatedEndpoints))
-            {
-                throw new DistributedApplicationException("Sql component does not have endpoint annotation.");
-            }
-
-            var endpoint = allocatedEndpoints.Single();
-
-            // HACK: Use  the 127.0.0.1 address because localhost is resolving to [::1] following
-            //       up with DCP on this issue.
-            context.EnvironmentVariables[connectionStringName] = $"Server=127.0.0.1,{endpoint.Port};Database={databaseName ?? "master"};User ID=sa;Password={sqlBuilder.Component.GeneratedPassword};TrustServerCertificate=true;";
+            var connectionString = sqlBuilder.Component.GetConnectionString(databaseName);
+            context.EnvironmentVariables[connectionStringName] = connectionString;
         });
-    }
-
-    public static IDistributedApplicationComponentBuilder<T> WithSqlServer<T>(this IDistributedApplicationComponentBuilder<T> projectBuilder, string connectionName, string connectionString)
-        where T : IDistributedApplicationComponentWithEnvironment
-    {
-        return projectBuilder.WithEnvironment(ConnectionStringEnvironmentName + connectionName, connectionString);
     }
 }

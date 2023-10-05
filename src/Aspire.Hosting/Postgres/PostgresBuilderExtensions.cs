@@ -7,7 +7,7 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Postgres;
 
-public static class PostgresContainerBuilderExtensions
+public static class PostgresBuilderExtensions
 {
     private const string PasswordEnvVarName = "POSTGRES_PASSWORD";
     private const string ConnectionStringEnvironmentName = "ConnectionStrings__";
@@ -32,6 +32,12 @@ public static class PostgresContainerBuilderExtensions
                       });
     }
 
+    public static IDistributedApplicationComponentBuilder<PostgresComponent> AddPostgres(this IDistributedApplicationBuilder builder, string name, string connectionString)
+    {
+        return builder.AddComponent(new PostgresComponent(name, connectionString))
+            .WithAnnotation(new ManifestPublishingCallbackAnnotation(WritePostgresComponentToManifest));
+    }
+
     private static async Task WritePostgresComponentToManifest(Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
     {
         jsonWriter.WriteString("type", "postgres.v1");
@@ -41,7 +47,7 @@ public static class PostgresContainerBuilderExtensions
     /// <summary>
     /// Sets a connection string for this service. The connection string will be available in the service's environment.
     /// </summary>
-    public static IDistributedApplicationComponentBuilder<T> WithPostgresDatabase<T>(this IDistributedApplicationComponentBuilder<T> builder, IDistributedApplicationComponentBuilder<PostgresContainerComponent> postgresBuilder, string? databaseName = null, string? connectionName = null)
+    public static IDistributedApplicationComponentBuilder<T> WithPostgresDatabase<T>(this IDistributedApplicationComponentBuilder<T> builder, IDistributedApplicationComponentBuilder<IPostgresComponent> postgresBuilder, string? databaseName = null, string? connectionName = null)
         where T : IDistributedApplicationComponentWithEnvironment
     {
         connectionName = connectionName ?? postgresBuilder.Component.Name;
@@ -54,28 +60,8 @@ public static class PostgresContainerBuilderExtensions
                 return;
             }
 
-            if (!postgresBuilder.Component.TryGetAllocatedEndPoints(out var allocatedEndpoints))
-            {
-                throw new InvalidOperationException("Expected allocated endpoints!");
-            }
-
-            if (!postgresBuilder.Component.TryGetLastAnnotation<PostgresPasswordAnnotation>(out var passwordAnnotation))
-            {
-                throw new InvalidOperationException($"Postgres does not have a password set!");
-            }
-
-            var allocatedEndpoint = allocatedEndpoints.Single(); // We should only have one endpoint for Postgres.
-
-            var baseConnectionString = $"Host={allocatedEndpoint.Address};Port={allocatedEndpoint.Port};Username=postgres;Password={passwordAnnotation.Password};";
-            var connectionString = databaseName == null ? baseConnectionString : $"{baseConnectionString}Database={databaseName};";
-
+            var connectionString = postgresBuilder.Component.GetConnectionString(databaseName);
             context.EnvironmentVariables[$"{ConnectionStringEnvironmentName}{connectionName}"] = connectionString;
         });
-    }
-
-    public static IDistributedApplicationComponentBuilder<T> WithPostgresDatabase<T>(this IDistributedApplicationComponentBuilder<T> builder, string connectionName, string connectionString)
-        where T : IDistributedApplicationComponentWithEnvironment
-    {
-        return builder.WithEnvironment(ConnectionStringEnvironmentName + connectionName, connectionString);
     }
 }

@@ -7,7 +7,7 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Redis;
 
-public static class RedisContainerBuilderExtensions
+public static class RedisBuilderExtensions
 {
     private const string ConnectionStringEnvironmentName = "ConnectionStrings__";
 
@@ -22,13 +22,19 @@ public static class RedisContainerBuilderExtensions
         return componentBuilder;
     }
 
+    public static IDistributedApplicationComponentBuilder<RedisComponent> AddRedis(this IDistributedApplicationBuilder builder, string name, string connectionString)
+    {
+        return builder.AddComponent(new RedisComponent(name, connectionString))
+            .WithAnnotation(new ManifestPublishingCallbackAnnotation(WriteRedisComponentToManifest));
+    }
+
     private static async Task WriteRedisComponentToManifest(Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
     {
         jsonWriter.WriteString("type", "redis.v1");
         await jsonWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    public static IDistributedApplicationComponentBuilder<T> WithRedis<T>(this IDistributedApplicationComponentBuilder<T> builder, IDistributedApplicationComponentBuilder<RedisContainerComponent> redisBuilder, string? connectionName = null)
+    public static IDistributedApplicationComponentBuilder<T> WithRedis<T>(this IDistributedApplicationComponentBuilder<T> builder, IDistributedApplicationComponentBuilder<IRedisComponent> redisBuilder, string? connectionName = null)
         where T : IDistributedApplicationComponentWithEnvironment
     {
         connectionName = connectionName ?? redisBuilder.Component.Name;
@@ -43,20 +49,8 @@ public static class RedisContainerBuilderExtensions
                 return;
             }
 
-            if (!redisBuilder.Component.TryGetAnnotationsOfType<AllocatedEndpointAnnotation>(out var allocatedEndpoints))
-            {
-                throw new DistributedApplicationException("Redis component does not have endpoint annotation.");
-            }
-
-            // We should only have one endpoint for Redis for local scenarios.
-            var endpoint = allocatedEndpoints.Single();
-            context.EnvironmentVariables[connectionStringName] = endpoint.EndPointString;
+            var connectionString = redisBuilder.Component.GetConnectionString();
+            context.EnvironmentVariables[connectionStringName] = connectionString;
         });
-    }
-
-    public static IDistributedApplicationComponentBuilder<T> WithRedis<T>(this IDistributedApplicationComponentBuilder<T> projectBuilder, string connectionName, string connectionString)
-        where T : IDistributedApplicationComponentWithEnvironment
-    {
-        return projectBuilder.WithEnvironment(ConnectionStringEnvironmentName + connectionName, connectionString);
     }
 }
