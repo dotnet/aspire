@@ -43,14 +43,13 @@ internal sealed class ServiceAppResource : AppResource
     }
 }
 
-internal sealed class ApplicationExecutor(DistributedApplicationModel model, IServiceProvider serviceProvider) : IDisposable
+internal sealed class ApplicationExecutor(DistributedApplicationModel model) : IDisposable
 {
     private const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
 
     private readonly DistributedApplicationModel _model = model;
     private readonly List<AppResource> _appResources = new();
     private readonly KubernetesService _kubernetesService = new();
-    private readonly IServiceProvider _serviceProvider = serviceProvider;
 
     public async Task RunApplicationAsync(CancellationToken cancellationToken = default)
     {
@@ -361,7 +360,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, ISe
                 }
 
                 var config = new Dictionary<string, string>();
-                var context = new EnvironmentCallbackContext(_serviceProvider, config);
+                var context = new EnvironmentCallbackContext("dcp", config);
 
                 // Need to apply configuration settings manually; see PrepareExecutables() for details.
                 if (er.Component is ProjectComponent project && project.SelectLaunchProfileName() is { } launchProfileName && project.GetLaunchSettings() is { } launchSettings)
@@ -487,7 +486,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, ISe
                 if (containerComponent.TryGetEnvironmentVariables(out var containerEnvironmentVariables))
                 {
                     var config = new Dictionary<string, string>();
-                    var context = new EnvironmentCallbackContext(_serviceProvider, config);
+                    var context = new EnvironmentCallbackContext("dcp", config);
 
                     foreach (var v in containerEnvironmentVariables)
                     {

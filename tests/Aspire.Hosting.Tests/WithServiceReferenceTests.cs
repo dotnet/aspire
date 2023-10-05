@@ -32,7 +32,7 @@ public class WithServiceReferenceTests
         var annotations = testProgram.ServiceBBuilder.Component.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext(testProgram.App!.Services, config);
+        var context = new EnvironmentCallbackContext("dcp", config);
 
         foreach (var annotation in annotations)
         {
@@ -82,7 +82,7 @@ public class WithServiceReferenceTests
         var annotations = testProgram.ServiceBBuilder.Component.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext(testProgram.App!.Services, config);
+        var context = new EnvironmentCallbackContext("dcp", config);
 
         foreach (var annotation in annotations)
         {
@@ -132,7 +132,7 @@ public class WithServiceReferenceTests
         var annotations = testProgram.ServiceBBuilder.Component.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext(testProgram.App!.Services, config);
+        var context = new EnvironmentCallbackContext("dcp", config);
 
         foreach (var annotation in annotations)
         {
