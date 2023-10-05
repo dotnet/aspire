@@ -32,13 +32,13 @@ internal sealed class DcpHostService : IHostedService, IAsyncDisposable
     private readonly TimeSpan _maxInitialConnectionRetryDuration = TimeSpan.FromMilliseconds(5000);
     private readonly IOptions<PublishingOptions> _publishingOptions;
 
-    public DcpHostService(DistributedApplicationModel applicationModel, ILoggerFactory loggerFactory, IOptions<PublishingOptions> publishingOptions)
+    public DcpHostService(DistributedApplicationModel applicationModel, ILoggerFactory loggerFactory, IOptions<PublishingOptions> publishingOptions, ApplicationExecutor appExecutor)
     {
-        _appExecutor = new ApplicationExecutor(applicationModel);
         _applicationModel = applicationModel;
         _loggerFactory = loggerFactory;
         _logger = loggerFactory.CreateLogger<DcpHostService>();
         _publishingOptions = publishingOptions;
+        _appExecutor = appExecutor;
 
         _dashboard = new DashboardWebApplication(serviceCollection =>
         {

@@ -7,9 +7,10 @@ using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Publishing;
 
-internal sealed class ManifestPublisher(IOptions<PublishingOptions> options) : IDistributedApplicationPublisher
+internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, IServiceProvider serviceProvider) : IDistributedApplicationPublisher
 {
     private readonly IOptions<PublishingOptions> _options = options;
+    private readonly IServiceProvider _serviceProvider = serviceProvider;
 
     public string Name => "manifest";
 
@@ -28,7 +29,7 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options) : I
         jsonWriter.WriteEndObject();
     }
 
-    private static async Task WriteComponentsAsync(DistributedApplicationModel model, Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
+    private async Task WriteComponentsAsync(DistributedApplicationModel model, Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
     {
         jsonWriter.WriteStartObject("components");
         foreach (var component in model.Components)
@@ -40,7 +41,7 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options) : I
         await jsonWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private static async Task WriteComponentAsync(IDistributedApplicationComponent component, Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
+    private async Task WriteComponentAsync(IDistributedApplicationComponent component, Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
     {
         if (!component.TryGetName(out var componentName))
         {
@@ -83,16 +84,17 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options) : I
         await jsonWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private static async Task WriteEnvironmentVariablesAsync(IDistributedApplicationComponent component, Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
+    private async Task WriteEnvironmentVariablesAsync(IDistributedApplicationComponent component, Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
     {
         var config = new Dictionary<string, string>();
+        var context = new EnvironmentCallbackContext(_serviceProvider, config);
 
         if (component.TryGetAnnotationsOfType<EnvironmentCallbackAnnotation>(out var callbacks))
         {
             jsonWriter.WriteStartObject("env");
             foreach (var callback in callbacks)
             {
-                callback.Callback(config);
+                callback.Callback(context);
             }
 
             foreach (var (key, value) in config)
@@ -105,7 +107,7 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options) : I
         await jsonWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private static async Task WriteContainerAsync(ContainerComponent containerComponent, Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
+    private async Task WriteContainerAsync(ContainerComponent containerComponent, Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
     {
         jsonWriter.WriteString("type", "container.v1");
 
@@ -121,7 +123,7 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options) : I
         await jsonWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private static async Task WriteProjectAsync(ProjectComponent projectComponent, Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
+    private async Task WriteProjectAsync(ProjectComponent projectComponent, Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
     {
         jsonWriter.WriteString("type", "project.v1");
 
@@ -130,7 +132,7 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options) : I
         await jsonWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private static async Task WriteExecutableAsync(ExecutableComponent executableComponent, Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
+    private async Task WriteExecutableAsync(ExecutableComponent executableComponent, Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
     {
         jsonWriter.WriteString("type", "executable.v1");
 

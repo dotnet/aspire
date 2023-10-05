@@ -25,13 +25,13 @@ public static class AzureComponentExtensions
     public static IDistributedApplicationComponentBuilder<T> WithAddAzureKeyVault<T>(this IDistributedApplicationComponentBuilder<T> builder, IDistributedApplicationComponentBuilder<AzureKeyVaultComponent> keyVaultBuilder)
         where T : IDistributedApplicationComponentWithEnvironment
     {
-        return builder.WithEnvironment((env) =>
+        return builder.WithEnvironment((context) =>
         {
             // HACK: Query publishing options to see if we are publishing a manifest. if we are fallback
             //       to rendering the placeholder string.
             if (builder.GetPublisherName() == "manifest")
             {
-                env[$"Aspire__Azure__Security__KeyVault__VaultUri"] = $"{{{keyVaultBuilder.Component.Name}.vaultUri}}";
+                context.EnvironmentVariables[$"Aspire__Azure__Security__KeyVault__VaultUri"] = $"{{{keyVaultBuilder.Component.Name}.vaultUri}}";
                 return;
             }
 
@@ -40,7 +40,7 @@ public static class AzureComponentExtensions
             if (vaultName is not null)
             {
                 // TODO: These endpoints won't work outsize Azure public cloud.
-                env[$"Aspire__Azure__Security__KeyVault__VaultUri"] = $"https://{vaultName}.vault.azure.net/";
+                context.EnvironmentVariables[$"Aspire__Azure__Security__KeyVault__VaultUri"] = $"https://{vaultName}.vault.azure.net/";
             }
         });
     }
@@ -87,13 +87,13 @@ public static class AzureComponentExtensions
     public static IDistributedApplicationComponentBuilder<T> WithAzureServiceBus<T>(this IDistributedApplicationComponentBuilder<T> builder, IDistributedApplicationComponentBuilder<AzureServiceBusComponent> serviceBusBuilder)
         where T : IDistributedApplicationComponentWithEnvironment
     {
-        return builder.WithEnvironment((env) =>
+        return builder.WithEnvironment((context) =>
         {
             // HACK: Query publishing options to see if we are publishing a manifest. if we are fallback
             //       to rendering the placeholder string.
             if (builder.GetPublisherName() == "manifest")
             {
-                env[$"Aspire__Azure__Messaging__ServiceBus__Namespace"] = $"{{{serviceBusBuilder.Component.Name}.connectionString}}";
+                context.EnvironmentVariables[$"Aspire__Azure__Messaging__ServiceBus__Namespace"] = $"{{{serviceBusBuilder.Component.Name}.connectionString}}";
                 return;
             }
 
@@ -102,7 +102,7 @@ public static class AzureComponentExtensions
             if (sbNamespace is not null)
             {
                 // TODO: These endpoints won't work outsize Azure public cloud.
-                env[$"Aspire__Azure__Messaging__ServiceBus__Namespace"] = $"{sbNamespace}.servicebus.windows.net";
+                context.EnvironmentVariables[$"Aspire__Azure__Messaging__ServiceBus__Namespace"] = $"{sbNamespace}.servicebus.windows.net";
             }
         });
     }
@@ -123,15 +123,15 @@ public static class AzureComponentExtensions
     public static IDistributedApplicationComponentBuilder<T> WithAzureStorage<T>(this IDistributedApplicationComponentBuilder<T> builder, IDistributedApplicationComponentBuilder<AzureStorageComponent> storage)
         where T : IDistributedApplicationComponentWithEnvironment
     {
-        return builder.WithEnvironment((env) =>
+        return builder.WithEnvironment((context) =>
         {
             // HACK: Query publishing options to see if we are publishing a manifest. if we are fallback
             //       to rendering the placeholder string.
             if (builder.GetPublisherName() == "manifest")
             {
-                env[$"Aspire__Azure__Data__Tables__ServiceUri"] = $"{{{storage.Component.Name}.tableEndpoint}}";
-                env[$"Aspire__Azure__Storage__Blobs__ServiceUri"] = $"{{{storage.Component.Name}.blobEndpoint}}";
-                env[$"Aspire__Azure__Storage__Queues__ServiceUri"] = $"{{{storage.Component.Name}.queueEndpoint}}";
+                context.EnvironmentVariables[$"Aspire__Azure__Data__Tables__ServiceUri"] = $"{{{storage.Component.Name}.tableEndpoint}}";
+                context.EnvironmentVariables[$"Aspire__Azure__Storage__Blobs__ServiceUri"] = $"{{{storage.Component.Name}.blobEndpoint}}";
+                context.EnvironmentVariables[$"Aspire__Azure__Storage__Queues__ServiceUri"] = $"{{{storage.Component.Name}.queueEndpoint}}";
                 return;
             }
 
@@ -144,9 +144,9 @@ public static class AzureComponentExtensions
             if (accountName is not null)
             {
                 // TODO: These URLs won't work outsize Azure public cloud.
-                env[$"Aspire__Azure__Data__Tables__ServiceUri"] = $"https://{accountName}.table.core.windows.net/";
-                env[$"Aspire__Azure__Storage__Blobs__ServiceUri"] = $"https://{accountName}.blob.core.windows.net/";
-                env[$"Aspire__Azure__Storage__Queues__ServiceUri"] = $"https://{accountName}.queue.core.windows.net/";
+                context.EnvironmentVariables[$"Aspire__Azure__Data__Tables__ServiceUri"] = $"https://{accountName}.table.core.windows.net/";
+                context.EnvironmentVariables[$"Aspire__Azure__Storage__Blobs__ServiceUri"] = $"https://{accountName}.blob.core.windows.net/";
+                context.EnvironmentVariables[$"Aspire__Azure__Storage__Queues__ServiceUri"] = $"https://{accountName}.queue.core.windows.net/";
             }
         });
     }

@@ -47,11 +47,12 @@ public static class PostgresContainerBuilderExtensions
     {
         connectionName = connectionName ?? postgresBuilder.Component.Name;
 
-        return builder.WithEnvironment(ConnectionStringEnvironmentName + connectionName, () =>
+        return builder.WithEnvironment((context) =>
         {
             if (builder.GetPublisherName() == "manifest")
             {
-                return $"{{{postgresBuilder.Component.Name}.connectionString}}";
+                context.EnvironmentVariables[$"{ConnectionStringEnvironmentName}{connectionName}"] = $"{{{postgresBuilder.Component.Name}.connectionString}}";
+                return;
             }
 
             if (!postgresBuilder.Component.TryGetAllocatedEndPoints(out var allocatedEndpoints))
@@ -68,7 +69,8 @@ public static class PostgresContainerBuilderExtensions
 
             var baseConnectionString = $"Host={allocatedEndpoint.Address};Port={allocatedEndpoint.Port};Username=postgres;Password={passwordAnnotation.Password};";
             var connectionString = databaseName == null ? baseConnectionString : $"{baseConnectionString}Database={databaseName};";
-            return connectionString;
+
+            context.EnvironmentVariables[$"{ConnectionStringEnvironmentName}{connectionName}"] = connectionString;
         });
     }
 

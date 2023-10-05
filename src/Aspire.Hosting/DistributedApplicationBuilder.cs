@@ -28,14 +28,21 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     {
         _args = args;
         _innerBuilder = new HostApplicationBuilder();
+
+        // Core things
         _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Components));
-        _innerBuilder.Services.AddLifecycleHook<DcpDistributedApplicationLifecycleHook>();
-        _innerBuilder.Services.AddHostedService<DcpHostService>();
-        _innerBuilder.Services.AddSingleton<IDistributedApplicationPublisher, DcpPublisher>();
-        _innerBuilder.Services.AddSingleton<IDistributedApplicationPublisher, ManifestPublisher>();
         _innerBuilder.Services.AddHostedService<DistributedApplicationRunner>();
 
+        // DCP stuff
+        _innerBuilder.Services.AddLifecycleHook<DcpDistributedApplicationLifecycleHook>();
+        _innerBuilder.Services.AddSingleton<ApplicationExecutor>();
+        _innerBuilder.Services.AddHostedService<DcpHostService>();
+
+        // Publishing support
         ConfigurePublishingOptions(args);
+        _innerBuilder.Services.AddSingleton<IDistributedApplicationPublisher, ManifestPublisher>();
+        _innerBuilder.Services.AddSingleton<IDistributedApplicationPublisher, DcpPublisher>();
+
     }
 
     private void ConfigurePublishingOptions(string[] args)
