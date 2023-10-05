@@ -8,9 +8,9 @@ internal static class CatalogContextSeed
     {
         using var scope = serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<CatalogDbContext>();
-        var delayMs = 500;
+        var delayMs = 1000;
         var retries = 0;
-        var maxRetryCount = 3;
+        var maxRetryCount = 10;
 
         while (true)
         {
