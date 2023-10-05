@@ -91,21 +91,13 @@
 
             _ = Task.Run(async () =>
             {
-                await foreach (var logs in _selectedExecutable.LogSource.WatchOutputLogAsync(_watchLogsTokenSource.Token))
-                {
-                    var logEntries = logs.Select(l => LogEntry.Create(l, LogEntryType.Default));
-                    await _logViewer.AddLogEntriesAsync(logEntries);
-                }
-            }, _watchLogsTokenSource.Token);
+                await _logViewer.WatchLogsAsync(() => _selectedExecutable.LogSource.WatchOutputLogAsync(_watchLogsTokenSource.Token), LogEntryType.Default);
+            });
 
             _ = Task.Run(async () =>
             {
-                await foreach (var logs in _selectedExecutable.LogSource.WatchErrorLogAsync(_watchLogsTokenSource.Token))
-                {
-                    var logEntries = logs.Select(l => LogEntry.Create(l, LogEntryType.Error));
-                    await _logViewer.AddLogEntriesAsync(logEntries);
-                }
-            }, _watchLogsTokenSource.Token);
+                await _logViewer.WatchLogsAsync(() => _selectedExecutable.LogSource.WatchOutputLogAsync(_watchLogsTokenSource.Token), LogEntryType.Error);
+            });
 
             _status = ExecutableLogStatuses.WatchingLogs;
         }

@@ -91,21 +91,13 @@
 
             _ = Task.Run(async () =>
             {
-                await foreach (var logs in _selectedProject.LogSource.WatchOutputLogAsync(_watchLogsTokenSource.Token))
-                {
-                    var logEntries = logs.Select(l => LogEntry.Create(l, LogEntryType.Default));
-                    await _logViewer.AddLogEntriesAsync(logEntries);
-                }
-            }, _watchLogsTokenSource.Token);
+                await _logViewer.WatchLogsAsync(() => _selectedProject.LogSource.WatchOutputLogAsync(_watchLogsTokenSource.Token), LogEntryType.Default);
+            });
 
             _ = Task.Run(async () =>
             {
-                await foreach (var logs in _selectedProject.LogSource.WatchErrorLogAsync(_watchLogsTokenSource.Token))
-                {
-                    var logEntries = logs.Select(l => LogEntry.Create(l, LogEntryType.Error));
-                    await _logViewer.AddLogEntriesAsync(logEntries);
-                }
-            }, _watchLogsTokenSource.Token);
+                await _logViewer.WatchLogsAsync(() => _selectedProject.LogSource.WatchErrorLogAsync(_watchLogsTokenSource.Token), LogEntryType.Error);
+            });
 
             _status = ProjectLogStatuses.WatchingLogs;
         }
@@ -138,7 +130,7 @@
             }
         }
         else if (changeType == ObjectChangeType.Modified)
-        {          
+        {
             _projectNameMapping[projectViewModel.Name] = projectViewModel;
 
             if (string.Equals(_selectedProject?.Name, projectViewModel.Name, StringComparison.Ordinal))
