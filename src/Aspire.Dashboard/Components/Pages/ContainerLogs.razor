@@ -14,7 +14,7 @@
         <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
             <FluentSelect TOption="ContainerViewModel"
                           Items="@Containers"
-                          OptionValue="@(c => c.ContainerID)"
+                          OptionValue="@(c => c.ContainerId)"
                           OptionText="GetContainerDisplayText"
                           @bind-SelectedOption="_selectedContainer"
                           @bind-SelectedOption:after="HandleSelectedOptionChangedAsync" />
@@ -29,17 +29,17 @@
     [Parameter]
     public string? ContainerId { get; set; }
 
+    private ContainerViewModel? _selectedContainer;
     private Dictionary<string, ContainerViewModel> _containerNameMapping = new();
     private IEnumerable<ContainerViewModel> Containers => _containerNameMapping.Select(kvp => kvp.Value).OrderBy(c => c.Name);
-    private ContainerViewModel? _selectedContainer;
     private LogViewer? _logViewer;
     private CancellationTokenSource _watchContainersTokenSource = new CancellationTokenSource();
     private CancellationTokenSource? _watchLogsTokenSource;
-    private string _status = ContainerLogStatuses.Initializing;
+    private string _status = LogStatus.Initializing;
 
     protected override async Task OnInitializedAsync()
     {
-        _status = ContainerLogStatuses.LoadingContainers;
+        _status = LogStatus.LoadingContainers;
 
         var initialList = await DashboardViewModelService.GetContainersAsync();
 
@@ -50,7 +50,7 @@
 
         if (ContainerId is not null)
         {
-            _selectedContainer = initialList?.FirstOrDefault(c => string.Equals(ContainerId, c.ContainerID, StringComparison.Ordinal));
+            _selectedContainer = initialList?.FirstOrDefault(c => string.Equals(ContainerId, c.ContainerId, StringComparison.Ordinal));
         }
         else if (initialList?.Count > 0)
         {
@@ -75,11 +75,11 @@
     {
         if (_selectedContainer is null)
         {
-            _status = ContainerLogStatuses.NoContainerSelected;
+            _status = LogStatus.NoContainerSelected;
         }
         else if (_logViewer is null)
         {
-            _status = ContainerLogStatuses.InitializingLogViewer;
+            _status = LogStatus.InitializingLogViewer;
         }
         else
         {
@@ -96,12 +96,12 @@
                     await _logViewer.WatchLogsAsync(() => _selectedContainer.LogSource.WatchErrorLogAsync(_watchLogsTokenSource.Token), LogEntryType.Error);
                 });
 
-                _status = ContainerLogStatuses.WatchingLogs;
+                _status = LogStatus.WatchingLogs;
             }
             else
             {
                 _watchLogsTokenSource = null;
-                _status = ContainerLogStatuses.FailedToInitialize;
+                _status = LogStatus.FailedToInitialize;
             }
         }
     }
@@ -111,7 +111,7 @@
         if (_selectedContainer is not null)
         {
             // Change the URL
-            NavigationManager.NavigateTo($"/containerLogs/{_selectedContainer.ContainerID}");
+            NavigationManager.NavigateTo($"/containerLogs/{_selectedContainer.ContainerId}");
             await StopWatchingLogsAsync();
             await ClearLogsAsync();
             await LoadLogsAsync();
@@ -126,7 +126,7 @@
 
             if (_selectedContainer is null)
             {
-                if (string.IsNullOrEmpty(ContainerId) || string.Equals(ContainerId, containerViewModel.ContainerID, StringComparison.Ordinal))
+                if (string.IsNullOrEmpty(ContainerId) || string.Equals(ContainerId, containerViewModel.ContainerId, StringComparison.Ordinal))
                 {
                     _selectedContainer = containerViewModel;
                     await LoadLogsAsync();
@@ -189,15 +189,5 @@
             await _selectedContainer!.LogSource.StopAsync();
             _watchLogsTokenSource = null;
         }
-    }
-
-    private static class ContainerLogStatuses
-    {
-        public const string FailedToInitialize = "Failed to Initialize";
-        public const string Initializing = "Initializing...";
-        public const string InitializingLogViewer = "Initializing Log Viewer...";
-        public const string LoadingContainers = "Loading Containers...";
-        public const string NoContainerSelected = "No Container Selected";
-        public const string WatchingLogs = "Watching Logs...";
     }
 }

@@ -1,6 +1,5 @@
 ﻿@page "/ExecutableLogs/{executablename?}"
 @using Aspire.Dashboard.Model;
-@using System.Text
 @implements IAsyncDisposable;
 @inject IDashboardViewModelService DashboardViewModelService
 @inject IJSRuntime JS
@@ -29,17 +28,17 @@
     [Parameter]
     public string? ExecutableName { get; set; }
 
-    private LogViewer? _logViewer;
     private ExecutableViewModel? _selectedExecutable;
-    private readonly Dictionary<string, ExecutableViewModel> _executableNameMapping = new Dictionary<string, ExecutableViewModel>();
+    private readonly Dictionary<string, ExecutableViewModel> _executableNameMapping = new();
     private IEnumerable<ExecutableViewModel> Executables => _executableNameMapping.Select(kvp => kvp.Value).OrderBy(p => p.Name);
+    private LogViewer? _logViewer;
     private CancellationTokenSource _watchExecutablesTokenSource = new CancellationTokenSource();
     private CancellationTokenSource? _watchLogsTokenSource;
-    private string _status = ExecutableLogStatuses.Initializing;
+    private string _status = LogStatus.Initializing;
 
     protected override async Task OnInitializedAsync()
     {
-        _status = ExecutableLogStatuses.LoadingExecutables;
+        _status = LogStatus.LoadingExecutables;
 
         var initialList = await DashboardViewModelService.GetExecutablesAsync();
 
@@ -75,11 +74,11 @@
     {
         if (_selectedExecutable is null)
         {
-            _status = ExecutableLogStatuses.NoExecutableSelected;
+            _status = LogStatus.NoExecutableSelected;
         }
         else if (_logViewer is null)
         {
-            _status = ExecutableLogStatuses.InitializingLogViewer;
+            _status = LogStatus.InitializingLogViewer;
         }
         else
         {
@@ -96,12 +95,12 @@
                     await _logViewer.WatchLogsAsync(() => _selectedExecutable.LogSource.WatchOutputLogAsync(_watchLogsTokenSource.Token), LogEntryType.Error);
                 });
 
-                _status = ExecutableLogStatuses.WatchingLogs;
+                _status = LogStatus.WatchingLogs;
             }
             else
             {
                 _watchLogsTokenSource = null;
-                _status = ExecutableLogStatuses.LogsNotYetAvailable;
+                _status = LogStatus.LogsNotYetAvailable;
             }
         }
     }
@@ -199,15 +198,5 @@
             await _selectedExecutable!.LogSource.StopAsync();
             _watchLogsTokenSource = null;
         }
-    }
-
-    private static class ExecutableLogStatuses
-    {
-        public const string Initializing = "Initializing...";
-        public const string InitializingLogViewer = "Initializing Log Viewer...";
-        public const string LoadingExecutables = "Loading Executables...";
-        public const string LogsNotYetAvailable = "Logs Not Yet Available";
-        public const string NoExecutableSelected = "No Executable Selected";
-        public const string WatchingLogs = "Watching Logs...";
     }
 }

@@ -10,15 +10,10 @@ using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.Dashboard;
 
-internal sealed class DockerContainerLogSource : ILogSource
+internal sealed class DockerContainerLogSource(string containerId) : ILogSource
 {
-    private readonly string _containerId;
+    private readonly string _containerId = containerId;
     private DockerContainerLogWatcher? _containerLogWatcher;
-
-    public DockerContainerLogSource(string containerId)
-    {
-        _containerId = containerId;
-    }
 
     public async ValueTask<bool> StartAsync(CancellationToken cancellationToken)
     {
@@ -66,7 +61,7 @@ internal sealed class DockerContainerLogSource : ILogSource
         }
     }
 
-    private sealed class DockerContainerLogWatcher(string? containerID) : IAsyncDisposable
+    private sealed class DockerContainerLogWatcher(string? containerId) : IAsyncDisposable
     {
         private const string Executable = "docker";
 
@@ -77,7 +72,7 @@ internal sealed class DockerContainerLogSource : ILogSource
 
         public async Task<bool> InitWatchAsync(CancellationToken cancellationToken)
         {
-            if (string.IsNullOrWhiteSpace(containerID))
+            if (string.IsNullOrWhiteSpace(containerId))
             {
                 return false;
             }
@@ -86,7 +81,7 @@ internal sealed class DockerContainerLogSource : ILogSource
 
             try
             {
-                var args = $"logs --follow -t {containerID}";
+                var args = $"logs --follow -t {containerId}";
                 var output = new StringBuilder();
 
                 var spec = new ProcessSpec(FileUtil.FindFullPathFromPath(Executable))
@@ -168,7 +163,7 @@ internal sealed class DockerContainerLogSource : ILogSource
         {
             while (!cancellationToken.IsCancellationRequested)
             {
-                List<string> currentLogs = new();
+                List<string> currentLogs = [];
 
                 // Wait until there's something to read
                 if (await _outputChannel.Reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false))
@@ -197,7 +192,7 @@ internal sealed class DockerContainerLogSource : ILogSource
         {
             while (!cancellationToken.IsCancellationRequested)
             {
-                List<string> currentLogs = new();
+                List<string> currentLogs = [];
 
                 // Wait until there's something to read
                 if (await _errorChannel.Reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false))
