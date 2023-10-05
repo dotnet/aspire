@@ -3,14 +3,9 @@
 
 namespace Aspire.Dashboard.Model;
 
-public class ContainerViewModel
+public class ContainerViewModel : ResourceViewModel
 {
-    public required string Name { get; init; }
-    public string? State { get; init; }
     public string? ContainerID { get; init; }
-    public DateTime? CreationTimeStamp { get; init; }
     public required string Image { get; init; }
     public List<int> Ports { get; } = new();
-    public required ILogSource LogSource { get; init; }
-    public List<EnvironmentVariableViewModel> Environment { get; } = new();
 }

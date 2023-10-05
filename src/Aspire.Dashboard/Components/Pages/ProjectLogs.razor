@@ -45,23 +45,23 @@
 
         foreach (var result in initialList)
         {
-            _projectNameMapping[result.ViewModel.Name] = result.ViewModel;
+            _projectNameMapping[result.Name] = result;
         }
 
         if (ProjectName is not null)
         {
-            _selectedProject = initialList?.FirstOrDefault(c => string.Equals(ProjectName, c.ViewModel.Name, StringComparison.Ordinal))?.ViewModel;
+            _selectedProject = initialList?.FirstOrDefault(c => string.Equals(ProjectName, c.Name, StringComparison.Ordinal));
         }
         else if (initialList?.Count > 0)
         {
-            _selectedProject = initialList[0].ViewModel;
+            _selectedProject = initialList[0];
         }
 
         await LoadLogsAsync();
 
         _ = Task.Run(async () =>
         {
-            await foreach (var componentChanged in DashboardViewModelService.WatchProjectsAsync(existingProjects: initialList?.Select(t => t.Model), cancellationToken: _watchProjectsTokenSource.Token))
+            await foreach (var componentChanged in DashboardViewModelService.WatchProjectsAsync(existingProjects: initialList?.Select(t => t.NamespacedName), cancellationToken: _watchProjectsTokenSource.Token))
             {
                 await OnProjectListChanged(componentChanged.ObjectChangeType, componentChanged.Component);
             }

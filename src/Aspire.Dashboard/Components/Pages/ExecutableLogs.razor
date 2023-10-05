@@ -45,23 +45,23 @@
 
         foreach (var result in initialList)
         {
-            _executableNameMapping[result.ViewModel.Name] = result.ViewModel;
+            _executableNameMapping[result.Name] = result;
         }
 
         if (ExecutableName is not null)
         {
-            _selectedExecutable = initialList?.FirstOrDefault(c => string.Equals(ExecutableName, c.ViewModel.Name, StringComparison.Ordinal))?.ViewModel;
+            _selectedExecutable = initialList?.FirstOrDefault(c => string.Equals(ExecutableName, c.Name, StringComparison.Ordinal));
         }
         else if (initialList?.Count > 0)
         {
-            _selectedExecutable = initialList[0].ViewModel;
+            _selectedExecutable = initialList[0];
         }
 
         await LoadLogsAsync();
 
         _ = Task.Run(async () =>
         {
-            await foreach (var componentChanged in DashboardViewModelService.WatchExecutablesAsync(existingExecutables: initialList?.Select(t => t.Model), cancellationToken: _watchExecutablesTokenSource.Token))
+            await foreach (var componentChanged in DashboardViewModelService.WatchExecutablesAsync(existingExecutables: initialList?.Select(t => t.NamespacedName), cancellationToken: _watchExecutablesTokenSource.Token))
             {
                 await OnExecutableListChanged(componentChanged.ObjectChangeType, componentChanged.Component);
             }

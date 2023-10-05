@@ -3,19 +3,10 @@
 
 namespace Aspire.Dashboard.Model;
 
-public class ProjectViewModel
+public class ProjectViewModel : ResourceViewModel
 {
-    public required string Name { get; init; }
-    public string? State { get; init; }
-    public DateTime? CreationTimeStamp { get; init; }
-
     public required string ProjectPath { get; init; }
-
     public List<string> Addresses { get; } = new();
-
     public List<ServiceEndpoint> Endpoints { get; } = new();
-    public List<EnvironmentVariableViewModel> Environment { get; } = new();
-    public required ILogSource LogSource { get; init; }
     public required int ExpectedEndpointCount { get; init; }
 }
-

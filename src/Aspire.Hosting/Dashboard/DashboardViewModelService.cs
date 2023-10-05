@@ -22,45 +22,46 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
         _kubernetesService = new KubernetesService();
     }
 
-    public async Task<List<ResultWithSource<ExecutableViewModel>>> GetExecutablesAsync()
+    public async Task<List<ExecutableViewModel>> GetExecutablesAsync()
     {
         var executables = await _kubernetesService.ListAsync<Executable>().ConfigureAwait(false);
         return executables
-            .Where(exe => exe.Metadata.Annotations?.ContainsKey(Executable.CSharpProjectPathAnnotation) == false)
-            .Select(exe =>
-        {
-            var model = new ExecutableViewModel()
+            .Where(executable => executable.Metadata.Annotations?.ContainsKey(Executable.CSharpProjectPathAnnotation) == false)
+            .Select(executable =>
             {
-                Name = exe.Metadata.Name,
-                CreationTimeStamp = exe.Metadata?.CreationTimestamp?.ToLocalTime(),
-                ExecutablePath = exe.Spec.ExecutablePath,
-                State = exe.Status?.State,
-                LogSource = new FileLogSource(exe.Status?.StdOutFile, exe.Status?.StdErrFile)
-            };
+                var model = new ExecutableViewModel()
+                {
+                    Name = executable.Metadata.Name,
+                    NamespacedName = new(executable.Metadata.Name, null),
+                    CreationTimeStamp = executable.Metadata?.CreationTimestamp?.ToLocalTime(),
+                    ExecutablePath = executable.Spec.ExecutablePath,
+                    State = executable.Status?.State,
+                    LogSource = new FileLogSource(executable.Status?.StdOutFile, executable.Status?.StdErrFile)
+                };
 
-            if (exe.Status?.EffectiveEnv is not null)
-            {
-                FillEnvironmentVariables(model.Environment, exe.Status.EffectiveEnv);
-            }
+                if (executable.Status?.EffectiveEnv is not null)
+                {
+                    FillEnvironmentVariables(model.Environment, executable.Status.EffectiveEnv);
+                }
 
-            return new ResultWithSource<ExecutableViewModel>(model, exe);
-        })
-        .OrderBy(e => e.ViewModel.Name)
-        .ToList();
+                return model;
+            })
+            .OrderBy(e => e.Name)
+            .ToList();
     }
 
-    public async Task<List<ResultWithSource<ProjectViewModel>>> GetProjectsAsync()
+    public async Task<List<ProjectViewModel>> GetProjectsAsync()
     {
         var executables = await _kubernetesService.ListAsync<Executable>().ConfigureAwait(false);
 
         var endpoints = await _kubernetesService.ListAsync<Endpoint>().ConfigureAwait(false);
 
         return executables
-            .Where(exe => exe.Metadata.Annotations?.ContainsKey(Executable.CSharpProjectPathAnnotation) == true)
-            .Select(exe =>
+            .Where(executable => executable.Metadata.Annotations?.ContainsKey(Executable.CSharpProjectPathAnnotation) == true)
+            .Select(executable =>
             {
                 var expectedEndpointCount = 0;
-                if (exe.Metadata?.Annotations?.TryGetValue(Executable.ServiceProducerAnnotation, out var annotationJson) == true)
+                if (executable.Metadata?.Annotations?.TryGetValue(Executable.ServiceProducerAnnotation, out var annotationJson) == true)
                 {
                     var serviceProducerAnnotations = JsonSerializer.Deserialize<ServiceProducerAnnotation[]>(annotationJson);
                     if (serviceProducerAnnotations is not null)
@@ -71,11 +72,12 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
 
                 var model = new ProjectViewModel
                 {
-                    Name = exe.Metadata!.Name,
-                    CreationTimeStamp = exe.Metadata?.CreationTimestamp?.ToLocalTime(),
-                    ProjectPath = exe.Metadata?.Annotations?[Executable.CSharpProjectPathAnnotation] ?? "",
-                    State = exe.Status?.State,
-                    LogSource = new FileLogSource(exe.Status?.StdOutFile, exe.Status?.StdErrFile),
+                    Name = executable.Metadata!.Name,
+                    NamespacedName = new(executable.Metadata.Name, null),
+                    CreationTimeStamp = executable.Metadata?.CreationTimestamp?.ToLocalTime(),
+                    ProjectPath = executable.Metadata?.Annotations?[Executable.CSharpProjectPathAnnotation] ?? "",
+                    State = executable.Status?.State,
+                    LogSource = new FileLogSource(executable.Status?.StdOutFile, executable.Status?.StdErrFile),
                     ExpectedEndpointCount = expectedEndpointCount
                 };
 
@@ -85,7 +87,7 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
                 }
 
                 model.Endpoints.AddRange(endpoints
-                    .Where(ep => ep.Metadata.OwnerReferences.Any(or => or.Kind == exe.Kind && or.Name == exe.Metadata?.Name))
+                    .Where(ep => ep.Metadata.OwnerReferences.Any(or => or.Kind == executable.Kind && or.Name == executable.Metadata?.Name))
                     .Select(ep =>
                     {
                         // CONSIDER: a more robust way to store application protocol information in DCP model
@@ -99,18 +101,18 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
                     })
                 );
 
-                if (exe.Status?.EffectiveEnv is not null)
+                if (executable.Status?.EffectiveEnv is not null)
                 {
-                    FillEnvironmentVariables(model.Environment, exe.Status.EffectiveEnv);
+                    FillEnvironmentVariables(model.Environment, executable.Status.EffectiveEnv);
                 }
 
-                return new ResultWithSource<ProjectViewModel>(model, exe);
+                return model;
             })
-            .OrderBy(m => m.ViewModel.Name)
+            .OrderBy(m => m.Name)
             .ToList();
     }
 
-    public async Task<List<ResultWithSource<ContainerViewModel>>> GetContainersAsync()
+    public async Task<List<ContainerViewModel>> GetContainersAsync()
     {
         var containers = await _kubernetesService.ListAsync<Container>().ConfigureAwait(false);
 
@@ -120,6 +122,7 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
                 var model = new ContainerViewModel
                 {
                     Name = container.Metadata.Name,
+                    NamespacedName = new(container.Metadata.Name, null),
                     ContainerID = container.Status?.ContainerID,
                     CreationTimeStamp = container.Metadata.CreationTimestamp?.ToLocalTime(),
                     Image = container.Spec.Image!,
@@ -143,17 +146,17 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
                     FillEnvironmentVariables(model.Environment, container.Spec.Env);
                 }
 
-                return new ResultWithSource<ContainerViewModel>(model, container);
+                return model;
             })
-            .OrderBy(e => e.ViewModel.Name)
+            .OrderBy(e => e.Name)
             .ToList();
     }
 
     public async IAsyncEnumerable<ComponentChanged<ContainerViewModel>> WatchContainersAsync(
-        IEnumerable<object>? existingContainers = null,
+        IEnumerable<NamespacedName>? existingContainers = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        await foreach (var (watchEventType, container) in _kubernetesService.WatchAsync<Container>(existingObjects: existingContainers?.Cast<Container>(), cancellationToken: cancellationToken))
+        await foreach (var (watchEventType, container) in _kubernetesService.WatchAsync<Container>(existingObjects: existingContainers, cancellationToken: cancellationToken))
         {
             var objectChangeType = ToObjectChangeType(watchEventType);
             if (objectChangeType == ObjectChangeType.Other)
@@ -164,6 +167,7 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
             var containerViewModel = new ContainerViewModel
             {
                 Name = container.Metadata.Name,
+                NamespacedName = new(container.Metadata.Name, null),
                 ContainerID = container.Status?.ContainerID,
                 CreationTimeStamp = container.Metadata.CreationTimestamp?.ToLocalTime(),
                 Image = container.Spec.Image!,
@@ -192,10 +196,10 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
     }
 
     public async IAsyncEnumerable<ComponentChanged<ExecutableViewModel>> WatchExecutablesAsync(
-        IEnumerable<object>? existingExecutables = null,
+        IEnumerable<NamespacedName>? existingExecutables = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        await foreach (var (watchEventType, executable) in _kubernetesService.WatchAsync<Executable>(existingObjects: existingExecutables?.Cast<Executable>(), cancellationToken: cancellationToken))
+        await foreach (var (watchEventType, executable) in _kubernetesService.WatchAsync<Executable>(existingObjects: existingExecutables, cancellationToken: cancellationToken))
         {
             var objectChangeType = ToObjectChangeType(watchEventType);
             if (objectChangeType == ObjectChangeType.Other)
@@ -208,9 +212,10 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
                 continue;
             }
 
-            var executableViewModel = new ExecutableViewModel()
+            var executableViewModel = new ExecutableViewModel
             {
                 Name = executable.Metadata.Name,
+                NamespacedName = new(executable.Metadata.Name, null),
                 CreationTimeStamp = executable.Metadata?.CreationTimestamp?.ToLocalTime(),
                 ExecutablePath = executable.Spec.ExecutablePath,
                 State = executable.Status?.State,
@@ -227,10 +232,10 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
     }
 
     public async IAsyncEnumerable<ComponentChanged<ProjectViewModel>> WatchProjectsAsync(
-        IEnumerable<object>? existingProjects = null,
+        IEnumerable<NamespacedName>? existingProjects = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        await foreach (var (watchEventType, executable) in _kubernetesService.WatchAsync<Executable>(existingObjects: existingProjects?.Cast<Executable>(), cancellationToken: cancellationToken))
+        await foreach (var (watchEventType, executable) in _kubernetesService.WatchAsync<Executable>(existingObjects: existingProjects, cancellationToken: cancellationToken))
         {
             var objectChangeType = ToObjectChangeType(watchEventType);
             if (objectChangeType == ObjectChangeType.Other)
@@ -256,6 +261,7 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
             var projectViewModel = new ProjectViewModel
             {
                 Name = executable.Metadata!.Name,
+                NamespacedName = new(executable.Metadata.Name, null),
                 CreationTimeStamp = executable.Metadata?.CreationTimestamp?.ToLocalTime(),
                 ProjectPath = executable.Metadata?.Annotations?[Executable.CSharpProjectPathAnnotation] ?? "",
                 State = executable.Status?.State,
