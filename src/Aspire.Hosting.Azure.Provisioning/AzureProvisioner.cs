@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Reflection;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
@@ -17,13 +18,14 @@ using Azure.ResourceManager.ServiceBus;
 using Azure.ResourceManager.Storage;
 using Azure.ResourceManager.Storage.Models;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration.UserSecrets;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Azure;
 
 // Provisions azure resources for development purposes
-internal sealed class AzureProvisioner(IConfiguration configuration, IHostEnvironment environment, ILogger<AzureProvisioner> logger) : IDistributedApplicationLifecycleHook
+internal sealed partial class AzureProvisioner(IConfiguration configuration, IHostEnvironment environment, ILogger<AzureProvisioner> logger) : IDistributedApplicationLifecycleHook
 {
     public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
@@ -49,7 +51,44 @@ internal sealed class AzureProvisioner(IConfiguration configuration, IHostEnviro
 
     private async Task ProvisionAzureComponents(IConfiguration configuration, IHostEnvironment environment, ILogger<AzureProvisioner> logger, IEnumerable<IAzureComponent> azureComponents, CancellationToken cancellationToken)
     {
-        var credential = new DefaultAzureCredential();
+        // Try to find the user secrets path
+        // we're going to cache access tokens in the user secrets file
+        // to speed up credential acquisition.
+        static string? GetUserSecretsPath()
+        {
+            return Assembly.GetEntryAssembly()?.GetCustomAttribute<UserSecretsIdAttribute>()?.UserSecretsId switch
+            {
+                null => Environment.GetEnvironmentVariable("DOTNET_USER_SECRETS_ID"),
+                string id => UserSecretsPathHelper.GetSecretsPathFromSecretsId(id)
+            };
+        }
+
+        // DefaultAzureCredential isn't optimized for development scenarios. It will try to providers in this order: 
+        //- EnvironmentCredential
+        //- WorkloadIdentityCredential
+        //- ManagedIdentityCredential
+        //- SharedTokenCacheCredential
+        //- VisualStudioCredential
+        //- VisualStudioCodeCredential
+        //- AzureCliCredential
+        //- AzurePowerShellCredential
+        //- AzureDeveloperCliCredential
+        //- InteractiveBrowserCredential
+
+        // Remove the irrelevant ones for development scenarios
+        var credentialChain = new ChainedTokenCredential(
+            new VisualStudioCredential(),
+            new VisualStudioCodeCredential(),
+            new AzureCliCredential(),
+            new AzurePowerShellCredential(),
+            new AzureDeveloperCliCredential(),
+            new InteractiveBrowserCredential());
+
+        TokenCredential credential = GetUserSecretsPath() switch
+        {
+            null => credentialChain,
+            string path => new UserSecretsTokenCredential(configuration, path, credentialChain)
+        };
 
         var subscriptionId = configuration["Azure:SubscriptionId"] ?? throw new MissingConfigurationException("An azure subscription id is required. Set the Azure:SubscriptionId configuration value.");
         var location = configuration["Azure:Location"] switch
@@ -497,6 +536,5 @@ internal sealed class AzureProvisioner(IConfiguration configuration, IHostEnviro
 
     sealed class MissingConfigurationException(string message) : Exception(message)
     {
-
     }
 }
