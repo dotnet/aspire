@@ -4,7 +4,6 @@
 using System.Net.Sockets;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Publishing;
 
 namespace Aspire.Hosting.Postgres;
 
@@ -49,7 +48,7 @@ public static class PostgresContainerBuilderExtensions
 
         return builder.WithEnvironment((context) =>
         {
-            if (builder.GetPublisherName() == "manifest")
+            if (context.PublisherName == "manifest")
             {
                 context.EnvironmentVariables[$"{ConnectionStringEnvironmentName}{connectionName}"] = $"{{{postgresBuilder.Component.Name}.connectionString}}";
                 return;

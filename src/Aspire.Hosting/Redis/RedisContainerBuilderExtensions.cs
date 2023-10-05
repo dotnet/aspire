@@ -4,7 +4,6 @@
 using System.Net.Sockets;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Publishing;
 
 namespace Aspire.Hosting.Redis;
 
@@ -34,11 +33,14 @@ public static class RedisContainerBuilderExtensions
     {
         connectionName = connectionName ?? redisBuilder.Component.Name;
 
-        return builder.WithEnvironment(ConnectionStringEnvironmentName + connectionName, () =>
+        return builder.WithEnvironment((context) =>
         {
-            if (builder.GetPublisherName() == "manifest")
+            var connectionStringName = $"{ConnectionStringEnvironmentName}{connectionName}";
+
+            if (context.PublisherName == "manifest")
             {
-                return $"{{{redisBuilder.Component.Name}.connectionString}}";
+                context.EnvironmentVariables[connectionStringName] = $"{{{redisBuilder.Component.Name}.connectionString}}";
+                return;
             }
 
             if (!redisBuilder.Component.TryGetAnnotationsOfType<AllocatedEndpointAnnotation>(out var allocatedEndpoints))
@@ -48,7 +50,7 @@ public static class RedisContainerBuilderExtensions
 
             // We should only have one endpoint for Redis for local scenarios.
             var endpoint = allocatedEndpoints.Single();
-            return endpoint.EndPointString;
+            context.EnvironmentVariables[connectionStringName] = endpoint.EndPointString;
         });
     }
 

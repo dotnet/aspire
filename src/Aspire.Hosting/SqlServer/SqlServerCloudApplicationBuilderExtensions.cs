@@ -4,7 +4,6 @@
 using System.Net.Sockets;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Publishing;
 
 namespace Aspire.Hosting.SqlServer;
 
@@ -36,11 +35,14 @@ public static class SqlServerCloudApplicationBuilderExtensions
     {
         connectionName = connectionName ?? sqlBuilder.Component.Name;
 
-        return builder.WithEnvironment(ConnectionStringEnvironmentName + connectionName, () =>
+        return builder.WithEnvironment((context) =>
         {
-        if (builder.GetPublisherName() == "manifest")
+            var connectionStringName = $"{ConnectionStringEnvironmentName}{connectionName}";
+
+            if (context.PublisherName == "manifest")
             {
-                return $"{{{sqlBuilder.Component.Name}.connectionString}}";
+                context.EnvironmentVariables[connectionStringName] = $"{{{sqlBuilder.Component.Name}.connectionString}}";
+                return;
             }
 
             if (!sqlBuilder.Component.TryGetAnnotationsOfType<AllocatedEndpointAnnotation>(out var allocatedEndpoints))
@@ -52,7 +54,7 @@ public static class SqlServerCloudApplicationBuilderExtensions
 
             // HACK: Use  the 127.0.0.1 address because localhost is resolving to [::1] following
             //       up with DCP on this issue.
-            return $"Server=127.0.0.1,{endpoint.Port};Database={databaseName ?? "master"};User ID=sa;Password={sqlBuilder.Component.GeneratedPassword};TrustServerCertificate=true;";
+            context.EnvironmentVariables[connectionStringName] = $"Server=127.0.0.1,{endpoint.Port};Database={databaseName ?? "master"};User ID=sa;Password={sqlBuilder.Component.GeneratedPassword};TrustServerCertificate=true;";
         });
     }
 

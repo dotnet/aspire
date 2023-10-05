@@ -3,7 +3,6 @@
 
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Publishing;
 
 namespace Aspire.Hosting.Azure;
 
@@ -29,7 +28,7 @@ public static class AzureComponentExtensions
         {
             // HACK: Query publishing options to see if we are publishing a manifest. if we are fallback
             //       to rendering the placeholder string.
-            if (builder.GetPublisherName() == "manifest")
+            if (context.PublisherName == "manifest")
             {
                 context.EnvironmentVariables[$"Aspire__Azure__Security__KeyVault__VaultUri"] = $"{{{keyVaultBuilder.Component.Name}.vaultUri}}";
                 return;
@@ -91,7 +90,7 @@ public static class AzureComponentExtensions
         {
             // HACK: Query publishing options to see if we are publishing a manifest. if we are fallback
             //       to rendering the placeholder string.
-            if (builder.GetPublisherName() == "manifest")
+            if (context.PublisherName == "manifest")
             {
                 context.EnvironmentVariables[$"Aspire__Azure__Messaging__ServiceBus__Namespace"] = $"{{{serviceBusBuilder.Component.Name}.connectionString}}";
                 return;
@@ -127,7 +126,7 @@ public static class AzureComponentExtensions
         {
             // HACK: Query publishing options to see if we are publishing a manifest. if we are fallback
             //       to rendering the placeholder string.
-            if (builder.GetPublisherName() == "manifest")
+            if (context.PublisherName == "manifest")
             {
                 context.EnvironmentVariables[$"Aspire__Azure__Data__Tables__ServiceUri"] = $"{{{storage.Component.Name}.tableEndpoint}}";
                 context.EnvironmentVariables[$"Aspire__Azure__Storage__Blobs__ServiceUri"] = $"{{{storage.Component.Name}.blobEndpoint}}";

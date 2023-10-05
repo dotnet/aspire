@@ -3,18 +3,26 @@
 
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Publishing;
 
-internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, IServiceProvider serviceProvider) : IDistributedApplicationPublisher
+internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, IServiceProvider serviceProvider, IHostApplicationLifetime lifetime) : IDistributedApplicationPublisher
 {
     private readonly IOptions<PublishingOptions> _options = options;
     private readonly IServiceProvider _serviceProvider = serviceProvider;
+    private readonly IHostApplicationLifetime _lifetime = lifetime;
 
     public string Name => "manifest";
 
     public async Task PublishAsync(DistributedApplicationModel model, CancellationToken cancellationToken)
+    {
+        await WriteManifestAsync(model, cancellationToken).ConfigureAwait(false);
+        _lifetime.StopApplication();
+    }
+
+    private async Task WriteManifestAsync(DistributedApplicationModel model, CancellationToken cancellationToken)
     {
         if (_options.Value.OutputPath == null)
         {
@@ -29,6 +37,8 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, ISe
         jsonWriter.WriteStartObject();
         await WriteComponentsAsync(model, jsonWriter, cancellationToken).ConfigureAwait(false);
         jsonWriter.WriteEndObject();
+
+        await jsonWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private async Task WriteComponentsAsync(DistributedApplicationModel model, Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
