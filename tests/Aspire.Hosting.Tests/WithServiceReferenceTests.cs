@@ -3,7 +3,6 @@
 
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
-using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Aspire.Hosting.Tests;
@@ -27,14 +26,13 @@ public class WithServiceReferenceTests
 
         // Get the service provider.
         testProgram.ServiceBBuilder.WithServiceReference(testProgram.ServiceABuilder, "mybinding");
-        testProgram.AppBuilder.Build();
-        var sp = testProgram.App?.Services.GetRequiredService<IServiceProvider>();
+        testProgram.Build();
 
         // Call environment variable callbacks.
         var annotations = testProgram.ServiceBBuilder.Component.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext(sp!, config);
+        var context = new EnvironmentCallbackContext(testProgram.App!.Services, config);
 
         foreach (var annotation in annotations)
         {
@@ -78,16 +76,15 @@ public class WithServiceReferenceTests
 
         // Get the service provider.
         testProgram.ServiceBBuilder.WithServiceReference(testProgram.ServiceABuilder, "mybinding");
-        testProgram.AppBuilder.Build();
-        var sp = testProgram.App?.Services.GetRequiredService<IServiceProvider>();
+        testProgram.Build();
 
         // Call environment variable callbacks.
-        var annoations = testProgram.ServiceBBuilder.Component.Annotations.OfType<EnvironmentCallbackAnnotation>();
+        var annotations = testProgram.ServiceBBuilder.Component.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext(sp!, config);
+        var context = new EnvironmentCallbackContext(testProgram.App!.Services, config);
 
-        foreach (var annotation in annoations)
+        foreach (var annotation in annotations)
         {
             annotation.Callback(context);
         }
@@ -129,16 +126,15 @@ public class WithServiceReferenceTests
 
         // Get the service provider.
         testProgram.ServiceBBuilder.WithServiceReference(testProgram.ServiceABuilder, "mybinding");
-        testProgram.AppBuilder.Build();
-        var sp = testProgram.App?.Services.GetRequiredService<IServiceProvider>();
+        testProgram.Build();
 
         // Call environment variable callbacks.
-        var annoations = testProgram.ServiceBBuilder.Component.Annotations.OfType<EnvironmentCallbackAnnotation>();
+        var annotations = testProgram.ServiceBBuilder.Component.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext(sp!, config);
+        var context = new EnvironmentCallbackContext(testProgram.App!.Services, config);
 
-        foreach (var annotation in annoations)
+        foreach (var annotation in annotations)
         {
             annotation.Callback(context);
         }
