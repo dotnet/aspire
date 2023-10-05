@@ -15,8 +15,8 @@ public static class ContainerComponentBuilderExtensions
 
     public static IDistributedApplicationComponentBuilder<ContainerComponent> AddContainer(this IDistributedApplicationBuilder builder, string name, string image, string tag)
     {
-        var container = new ContainerComponent();
-        var componentBuilder = builder.AddComponent(name, container);
+        var container = new ContainerComponent(name);
+        var componentBuilder = builder.AddComponent(container);
         componentBuilder.WithAnnotation(new ContainerImageAnnotation { Image = image, Tag = tag });
 
         return componentBuilder;
@@ -29,7 +29,13 @@ public static class ContainerComponentBuilderExtensions
             throw new DistributedApplicationException($"Service binding with name '{name}' already exists");
         }
 
-        var annotation = new ServiceBindingAnnotation(ProtocolType.Tcp, scheme, name, hostPort, containerPort);
+        var annotation = new ServiceBindingAnnotation(
+            protocol: ProtocolType.Tcp,
+            uriScheme: scheme,
+            name: name,
+            port: hostPort,
+            containerPort: containerPort);
+
         return builder.WithAnnotation(annotation);
     }
 

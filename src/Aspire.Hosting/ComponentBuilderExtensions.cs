@@ -7,9 +7,9 @@ namespace Aspire.Hosting;
 
 public static class ComponentBuilderExtensions
 {
-    public static AllocatedEndpointAnnotation GetEndpoint<T>(this IDistributedApplicationComponentBuilder<T> builder, string name) where T : IDistributedApplicationComponent
+    public static AllocatedEndpointAnnotation? GetEndpoint<T>(this IDistributedApplicationComponentBuilder<T> builder, string name) where T : IDistributedApplicationComponent
     {
-        return builder.Component.Annotations.OfType<AllocatedEndpointAnnotation>().Single(a => a.Name == name);
+        return builder.Component.Annotations.OfType<AllocatedEndpointAnnotation>().SingleOrDefault();
     }
 
     public static IDistributedApplicationComponentBuilder<T> WithEnvironment<T>(this IDistributedApplicationComponentBuilder<T> builder, string name, string? value) where T : IDistributedApplicationComponent
@@ -27,7 +27,7 @@ public static class ComponentBuilderExtensions
         return builder.WithAnnotation(new EnvironmentCallbackAnnotation(name, callback));
     }
 
-    public static IDistributedApplicationComponentBuilder<T> WithEnvironment<T>(this IDistributedApplicationComponentBuilder<T> builder, Action<Dictionary<string, string>> callback) where T : IDistributedApplicationComponentWithEnvironment
+    public static IDistributedApplicationComponentBuilder<T> WithEnvironment<T>(this IDistributedApplicationComponentBuilder<T> builder, Action<EnvironmentCallbackContext> callback) where T: IDistributedApplicationComponentWithEnvironment
     {
         return builder.WithAnnotation(new EnvironmentCallbackAnnotation(callback));
     }
@@ -38,9 +38,9 @@ public static class ComponentBuilderExtensions
         return endpoints.GroupBy(e => e.UriScheme).Any(g => g.Count() > 1);
     }
 
-    private static Action<Dictionary<string, string>> CreateServiceReferenceEnvironmentPopulationCallback(ServiceReferenceAnnotation serviceReferencesAnnotation)
+    private static Action<EnvironmentCallbackContext> CreateServiceReferenceEnvironmentPopulationCallback(ServiceReferenceAnnotation serviceReferencesAnnotation)
     {
-        return (env) =>
+        return (context) =>
         {
             if (!serviceReferencesAnnotation.Component.TryGetName(out var name))
             {
@@ -57,12 +57,12 @@ public static class ComponentBuilderExtensions
             foreach (var allocatedEndPoint in allocatedEndPoints)
             {
                 var bindingNameQualifiedUriStringKey = $"services__{name}__{i++}";
-                env[bindingNameQualifiedUriStringKey] = allocatedEndPoint.BindingNameQualifiedUriString;
+                context.EnvironmentVariables[bindingNameQualifiedUriStringKey] = allocatedEndPoint.BindingNameQualifiedUriString;
 
                 if (!containsAmiguousEndpoints)
                 {
                     var uriStringKey = $"services__{name}__{i++}";
-                    env[uriStringKey] = allocatedEndPoint.UriString;
+                    context.EnvironmentVariables[uriStringKey] = allocatedEndPoint.UriString;
                 }
             }
         };

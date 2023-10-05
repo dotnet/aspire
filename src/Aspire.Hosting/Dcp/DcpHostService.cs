@@ -12,13 +12,15 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Dcp.Process;
+using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Dcp;
 
-public class DcpHostService : IHostedService, IAsyncDisposable
+internal sealed class DcpHostService : IHostedService, IAsyncDisposable
 {
     private const int LoggingSocketConnectionBacklog = 3;
     private readonly ApplicationExecutor _appExecutor;
@@ -28,13 +30,15 @@ public class DcpHostService : IHostedService, IAsyncDisposable
     private readonly ILogger _logger;
     private readonly DashboardWebApplication _dashboard;
     private readonly TimeSpan _maxInitialConnectionRetryDuration = TimeSpan.FromMilliseconds(5000);
+    private readonly IOptions<PublishingOptions> _publishingOptions;
 
-    public DcpHostService(IHostEnvironment hostEnvironment, DistributedApplicationModel applicationModel, ILoggerFactory loggerFactory)
+    public DcpHostService(DistributedApplicationModel applicationModel, ILoggerFactory loggerFactory, IOptions<PublishingOptions> publishingOptions, ApplicationExecutor appExecutor)
     {
-        _appExecutor = new ApplicationExecutor(applicationModel);
         _applicationModel = applicationModel;
         _loggerFactory = loggerFactory;
         _logger = loggerFactory.CreateLogger<DcpHostService>();
+        _publishingOptions = publishingOptions;
+        _appExecutor = appExecutor;
 
         _dashboard = new DashboardWebApplication(serviceCollection =>
         {
@@ -45,6 +49,11 @@ public class DcpHostService : IHostedService, IAsyncDisposable
 
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
+        if (_publishingOptions.Value.Publisher is not null  && _publishingOptions.Value.Publisher != "dcp")
+        {
+            return;
+        }
+
         await EnsureDcpHostRunningAsync(cancellationToken).ConfigureAwait(false);
         await _appExecutor.RunApplicationAsync(cancellationToken).ConfigureAwait(false);
         await _dashboard.StartAsync(cancellationToken).ConfigureAwait(false);
@@ -52,6 +61,11 @@ public class DcpHostService : IHostedService, IAsyncDisposable
 
     public async Task StopAsync(CancellationToken cancellationToken = default)
     {
+        if (_publishingOptions.Value.Publisher != "dcp" || _publishingOptions.Value.Publisher is not null)
+        {
+            return;
+        }
+
         await _dashboard.StopAsync(cancellationToken).ConfigureAwait(false);
         await _appExecutor.StopApplicationAsync(cancellationToken).ConfigureAwait(false);
     }

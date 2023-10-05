@@ -360,6 +360,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model) : I
                 }
 
                 var config = new Dictionary<string, string>();
+                var context = new EnvironmentCallbackContext("dcp", config);
 
                 // Need to apply configuration settings manually; see PrepareExecutables() for details.
                 if (er.Component is ProjectComponent project && project.SelectLaunchProfileName() is { } launchProfileName && project.GetLaunchSettings() is { } launchSettings)
@@ -371,7 +372,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model) : I
                 {
                     foreach (var ann in envVarAnnotations)
                     {
-                        ann.Callback(config);
+                        ann.Callback(context);
                     }
                 }
 
@@ -485,10 +486,11 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model) : I
                 if (containerComponent.TryGetEnvironmentVariables(out var containerEnvironmentVariables))
                 {
                     var config = new Dictionary<string, string>();
+                    var context = new EnvironmentCallbackContext("dcp", config);
 
                     foreach (var v in containerEnvironmentVariables)
                     {
-                        v.Callback(config);
+                        v.Callback(context);
                     }
 
                     foreach (var kvp in config)

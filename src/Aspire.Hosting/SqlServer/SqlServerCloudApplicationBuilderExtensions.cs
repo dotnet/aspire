@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
+using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.SqlServer;
@@ -12,9 +13,10 @@ public static class SqlServerCloudApplicationBuilderExtensions
 
     public static IDistributedApplicationComponentBuilder<SqlServerContainerComponent> AddSqlServerContainer(this IDistributedApplicationBuilder builder, string name, string? password = null, int? port = null)
     {
-        var sqlServer = new SqlServerContainerComponent();
+        var sqlServer = new SqlServerContainerComponent(name);
 
-        var componentBuilder = builder.AddComponent(name, sqlServer);
+        var componentBuilder = builder.AddComponent(sqlServer);
+        componentBuilder.WithAnnotation(new ManifestPublishingCallbackAnnotation(WriteSqlServerComponentToManifest));
         componentBuilder.WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, port: port, containerPort: 1433));
         componentBuilder.WithAnnotation(new ContainerImageAnnotation { Registry = "mcr.microsoft.com", Image = "mssql/server", Tag = "2022-latest" });
         componentBuilder.WithEnvironment("ACCEPT_EULA", "Y");
@@ -22,16 +24,27 @@ public static class SqlServerCloudApplicationBuilderExtensions
         return componentBuilder;
     }
 
-    public static IDistributedApplicationComponentBuilder<T> WithSqlServer<T>(this IDistributedApplicationComponentBuilder<T> projectBuilder, IDistributedApplicationComponentBuilder<SqlServerContainerComponent> sqlBuilder, string? databaseName, string? connectionName = null)
+    private static async Task WriteSqlServerComponentToManifest(Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
+    {
+        jsonWriter.WriteString("type", "sqlserver.v1");
+        await jsonWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    public static IDistributedApplicationComponentBuilder<T> WithSqlServer<T>(this IDistributedApplicationComponentBuilder<T> builder, IDistributedApplicationComponentBuilder<SqlServerContainerComponent> sqlBuilder, string? databaseName, string? connectionName = null)
         where T : IDistributedApplicationComponentWithEnvironment
     {
-        if (string.IsNullOrEmpty(connectionName) && !sqlBuilder.Component.TryGetName(out connectionName))
-        {
-            throw new DistributedApplicationException("SqlServer connection name could not be determined. Please provide one.");
-        }
+        connectionName = connectionName ?? sqlBuilder.Component.Name;
 
-        return projectBuilder.WithEnvironment(ConnectionStringEnvironmentName + connectionName, () =>
+        return builder.WithEnvironment((context) =>
         {
+            var connectionStringName = $"{ConnectionStringEnvironmentName}{connectionName}";
+
+            if (context.PublisherName == "manifest")
+            {
+                context.EnvironmentVariables[connectionStringName] = $"{{{sqlBuilder.Component.Name}.connectionString}}";
+                return;
+            }
+
             if (!sqlBuilder.Component.TryGetAnnotationsOfType<AllocatedEndpointAnnotation>(out var allocatedEndpoints))
             {
                 throw new DistributedApplicationException("Sql component does not have endpoint annotation.");
@@ -41,7 +54,7 @@ public static class SqlServerCloudApplicationBuilderExtensions
 
             // HACK: Use  the 127.0.0.1 address because localhost is resolving to [::1] following
             //       up with DCP on this issue.
-            return $"Server=127.0.0.1,{endpoint.Port};Database={databaseName ?? "master"};User ID=sa;Password={sqlBuilder.Component.GeneratedPassword};TrustServerCertificate=true;";
+            context.EnvironmentVariables[connectionStringName] = $"Server=127.0.0.1,{endpoint.Port};Database={databaseName ?? "master"};User ID=sa;Password={sqlBuilder.Component.GeneratedPassword};TrustServerCertificate=true;";
         });
     }
 

@@ -5,6 +5,6 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Redis;
 
-public class RedisContainerComponent : ContainerComponent
+public class RedisContainerComponent(string name) : ContainerComponent(name)
 {
 }

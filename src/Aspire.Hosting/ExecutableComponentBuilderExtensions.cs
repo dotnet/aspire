@@ -9,8 +9,8 @@ public static class ExecutableComponentBuilderExtensions
 {
     public static IDistributedApplicationComponentBuilder<ExecutableComponent> AddExecutable(this IDistributedApplicationBuilder builder, string name, string command, string workingDirectory, params string[]? args)
     {
-        var component = new ExecutableComponent(command, workingDirectory, args);
-        var componentBuilder = builder.AddComponent(name, component);
+        var component = new ExecutableComponent(name, command, workingDirectory, args);
+        var componentBuilder = builder.AddComponent(component);
         return componentBuilder;
     }
 }

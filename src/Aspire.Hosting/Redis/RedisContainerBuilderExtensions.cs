@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
+using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Redis;
@@ -12,24 +13,36 @@ public static class RedisContainerBuilderExtensions
 
     public static IDistributedApplicationComponentBuilder<RedisContainerComponent> AddRedisContainer(this IDistributedApplicationBuilder builder, string name, int? port = null)
     {
-        var redis = new RedisContainerComponent();
+        var redis = new RedisContainerComponent(name);
 
-        var componentBuilder = builder.AddComponent(name, redis);
+        var componentBuilder = builder.AddComponent(redis);
+        componentBuilder.WithAnnotation(new ManifestPublishingCallbackAnnotation(WriteRedisComponentToManifest));
         componentBuilder.WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, port: port, containerPort: 6379)); // Internal port is always 6379.
         componentBuilder.WithAnnotation(new ContainerImageAnnotation { Image = "redis", Tag = "latest" });
         return componentBuilder;
     }
 
-    public static IDistributedApplicationComponentBuilder<T> WithRedis<T>(this IDistributedApplicationComponentBuilder<T> projectBuilder, IDistributedApplicationComponentBuilder<RedisContainerComponent> redisBuilder, string? connectionName = null)
+    private static async Task WriteRedisComponentToManifest(Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
+    {
+        jsonWriter.WriteString("type", "redis.v1");
+        await jsonWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    public static IDistributedApplicationComponentBuilder<T> WithRedis<T>(this IDistributedApplicationComponentBuilder<T> builder, IDistributedApplicationComponentBuilder<RedisContainerComponent> redisBuilder, string? connectionName = null)
         where T : IDistributedApplicationComponentWithEnvironment
     {
-        if (string.IsNullOrEmpty(connectionName) && !redisBuilder.Component.TryGetName(out connectionName))
-        {
-            throw new DistributedApplicationException("Redis connection name could not be determined. Please provide one.");
-        }
+        connectionName = connectionName ?? redisBuilder.Component.Name;
 
-        return projectBuilder.WithEnvironment(ConnectionStringEnvironmentName + connectionName, () =>
+        return builder.WithEnvironment((context) =>
         {
+            var connectionStringName = $"{ConnectionStringEnvironmentName}{connectionName}";
+
+            if (context.PublisherName == "manifest")
+            {
+                context.EnvironmentVariables[connectionStringName] = $"{{{redisBuilder.Component.Name}.connectionString}}";
+                return;
+            }
+
             if (!redisBuilder.Component.TryGetAnnotationsOfType<AllocatedEndpointAnnotation>(out var allocatedEndpoints))
             {
                 throw new DistributedApplicationException("Redis component does not have endpoint annotation.");
@@ -37,7 +50,7 @@ public static class RedisContainerBuilderExtensions
 
             // We should only have one endpoint for Redis for local scenarios.
             var endpoint = allocatedEndpoints.Single();
-            return endpoint.EndPointString;
+            context.EnvironmentVariables[connectionStringName] = endpoint.EndPointString;
         });
     }
 

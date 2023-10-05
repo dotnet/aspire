@@ -19,7 +19,7 @@ public interface IDistributedApplicationBuilder
     /// Adds a component to the application.
     /// </summary>
     /// <returns></returns>
-    IDistributedApplicationComponentBuilder<T> AddComponent<T>(string name, T component) where T : IDistributedApplicationComponent;
+    IDistributedApplicationComponentBuilder<T> AddComponent<T>(T component) where T : IDistributedApplicationComponent;
 
     DistributedApplication Build();
 }

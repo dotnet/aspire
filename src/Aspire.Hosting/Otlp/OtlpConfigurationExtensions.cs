@@ -16,16 +16,16 @@ public static class OtlpConfigurationExtensions
         // Configure OpenTelemetry in projects using environment variables.
         // https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/configuration/sdk-environment-variables.md
 
-        return builder.WithEnvironment((config) =>
+        return builder.WithEnvironment((context) =>
         {
-            config["OTEL_EXPORTER_OTLP_ENDPOINT"] = builder.ApplicationBuilder.Configuration[DashboardOtlpUrlVariableName] ?? DashboardOtlpUrlDefaultValue;
+            context.EnvironmentVariables["OTEL_EXPORTER_OTLP_ENDPOINT"] = builder.ApplicationBuilder.Configuration[DashboardOtlpUrlVariableName] ?? DashboardOtlpUrlDefaultValue;
 
             // Set a small batch schedule delay in development.
             // This reduces the delay that OTLP exporter waits to sends telemetry and makes the dashboard telemetry pages responsive.
             if (builder.ApplicationBuilder.Environment.IsDevelopment())
             {
-                config["OTEL_BLRP_SCHEDULE_DELAY"] = "1000"; // milliseconds
-                config["OTEL_BSP_SCHEDULE_DELAY"] = "1000"; // milliseconds
+                context.EnvironmentVariables["OTEL_BLRP_SCHEDULE_DELAY"] = "1000"; // milliseconds
+                context.EnvironmentVariables["OTEL_BSP_SCHEDULE_DELAY"] = "1000"; // milliseconds
             }
         });
     }

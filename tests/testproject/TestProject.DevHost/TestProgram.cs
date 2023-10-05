@@ -26,10 +26,17 @@ public class TestProgram
         await App.RunAsync(cancellationToken);
     }
 
+    public void Build()
+    {
+        if (App == null)
+        {
+            App = AppBuilder.Build();
+        }
+    }
     public void Run()
     {
-        App = AppBuilder.Build();
-        App.Run();
+        Build();
+        App!.Run();
     }
 }
 
