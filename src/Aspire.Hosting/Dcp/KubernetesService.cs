@@ -246,7 +246,7 @@ public class KubernetesService : IDisposable
         {
             if (_kubernetes != null) { return; }
 
-            var config = KubernetesClientConfiguration.BuildConfigFromConfigFile(Locations.DcpKubeconfigPath);
+            var config = KubernetesClientConfiguration.BuildConfigFromConfigFile(kubeconfigPath: Locations.DcpKubeconfigPath, useRelativePaths: false);
             _kubernetes = new Kubernetes(config);
         }
     }

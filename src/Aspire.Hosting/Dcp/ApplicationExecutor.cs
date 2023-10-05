@@ -95,18 +95,17 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model) : I
             AspireEventSource.Instance.DcpServicesCreationStart();
 
             var needAddressAllocated = _appResources.OfType<ServiceAppResource>().Where(sr => !sr.Service.HasCompleteAddress).ToList();
-            if (needAddressAllocated.Count == 0)
-            {
-                // No need to wait for any updates to Service objects from the orchestrator.
-                await CreateResourcesAsync<Service>(cancellationToken).ConfigureAwait(false);
-                return;
-            }
-
-            // Start the watcher before creating new Services so that we do not miss any updates.
-            IAsyncEnumerable<(WatchEventType, Service)> serviceChangeEnumerator = _kubernetesService.WatchAsync<Service>(cancellationToken: cancellationToken);
 
             await CreateResourcesAsync<Service>(cancellationToken).ConfigureAwait(false);
 
+            if (needAddressAllocated.Count == 0)
+            {
+                // No need to wait for any updates to Service objects from the orchestrator.
+                return;
+            }
+
+            // We do not specify the initial list version, so the watcher will give us all updates to Service objects.
+            IAsyncEnumerable<(WatchEventType, Service)> serviceChangeEnumerator = _kubernetesService.WatchAsync<Service>(cancellationToken: cancellationToken);
             await foreach (var (evt, updated) in serviceChangeEnumerator)
             {
                 if (evt == WatchEventType.Bookmark) { continue; } // Bookmarks do not contain any data.

@@ -10,7 +10,6 @@ using Aspire.Dashboard;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
-using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Dcp.Process;
 using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,7 +19,7 @@ using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Dcp;
 
-internal sealed class DcpHostService : IHostedService, IAsyncDisposable
+internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
 {
     private const int LoggingSocketConnectionBacklog = 3;
     private readonly ApplicationExecutor _appExecutor;
@@ -29,7 +28,6 @@ internal sealed class DcpHostService : IHostedService, IAsyncDisposable
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger _logger;
     private readonly DashboardWebApplication _dashboard;
-    private readonly TimeSpan _maxInitialConnectionRetryDuration = TimeSpan.FromMilliseconds(5000);
     private readonly IOptions<PublishingOptions> _publishingOptions;
 
     public DcpHostService(DistributedApplicationModel applicationModel, ILoggerFactory loggerFactory, IOptions<PublishingOptions> publishingOptions, ApplicationExecutor appExecutor)
@@ -54,7 +52,7 @@ internal sealed class DcpHostService : IHostedService, IAsyncDisposable
             return;
         }
 
-        await EnsureDcpHostRunningAsync(cancellationToken).ConfigureAwait(false);
+        EnsureDcpHostRunning();
         await _appExecutor.RunApplicationAsync(cancellationToken).ConfigureAwait(false);
         await _dashboard.StartAsync(cancellationToken).ConfigureAwait(false);
     }
@@ -82,7 +80,7 @@ internal sealed class DcpHostService : IHostedService, IAsyncDisposable
         _dcpRunDisposable = null;
     }
 
-    private async Task EnsureDcpHostRunningAsync(CancellationToken cancellationToken)
+    private void EnsureDcpHostRunning()
     {
         AspireEventSource.Instance.DcpApiServerLaunchStart();
 
@@ -111,16 +109,6 @@ internal sealed class DcpHostService : IHostedService, IAsyncDisposable
             }
 
             (_, _dcpRunDisposable) = ProcessUtil.Run(dcpProcessSpec);
-
-            try
-            {
-                await new KubernetesService(_maxInitialConnectionRetryDuration).ListAsync<Container>(cancellationToken: cancellationToken).ConfigureAwait(false);
-            }
-            catch
-            {
-                await DisposeAsync().ConfigureAwait(false);
-                throw;
-            }
         }
         finally
         {
@@ -301,5 +289,27 @@ internal sealed class DcpHostService : IHostedService, IAsyncDisposable
         {
             reader.Complete();
         }
+    }
+
+    public Task StartedAsync(CancellationToken _)
+    {
+        AspireEventSource.Instance.DcpHostStartupStop();
+        return Task.CompletedTask;
+    }
+
+    public Task StartingAsync(CancellationToken cancellationToken)
+    {
+        AspireEventSource.Instance.DcpHostStartupStart();
+        return Task.CompletedTask;
+    }
+
+    public Task StoppedAsync(CancellationToken cancellationToken)
+    {
+        return Task.CompletedTask;
+    }
+
+    public Task StoppingAsync(CancellationToken cancellationToken)
+    {
+        return Task.CompletedTask;
     }
 }
