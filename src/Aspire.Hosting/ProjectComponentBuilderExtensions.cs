@@ -60,7 +60,7 @@ public static class ProjectComponentBuilderExtensions
             throw new DistributedApplicationException($"Service binding with name '{name}' already exists");
         }
 
-        var annotation = new ServiceBindingAnnotation(ProtocolType.Tcp, scheme, name, hostPort);
+        var annotation = new ServiceBindingAnnotation(ProtocolType.Tcp, scheme, name, port: hostPort);
         return builder.WithAnnotation(annotation);
     }
 }

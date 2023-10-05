@@ -18,7 +18,9 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, ISe
     {
         if (_options.Value.OutputPath == null)
         {
-            throw new DistributedApplicationException("The '--output-path [path]' option was not specified even though '--publish manifest' argument was used.");
+            throw new DistributedApplicationException(
+                "The '--output-path [path]' option was not specified even though '--publish manifest' argument was used."
+                );
         }
 
         using var stream = new FileStream(_options.Value.OutputPath, FileMode.Create);
@@ -107,6 +109,25 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, ISe
         await jsonWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 
+    private static async Task WriteBindingsAsync(IDistributedApplicationComponent component, Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
+    {
+        if (component.TryGetServiceBindings(out var serviceBindings))
+        {
+            jsonWriter.WriteStartObject("bindings");
+            foreach (var serviceBinding in serviceBindings)
+            {
+                jsonWriter.WriteStartObject(serviceBinding.Name);
+                jsonWriter.WriteString("scheme", serviceBinding.UriScheme);
+                jsonWriter.WriteString("protocol", serviceBinding.Protocol.ToString().ToLowerInvariant());
+                jsonWriter.WriteString("transport", serviceBinding.Transport);
+                jsonWriter.WriteEndObject();
+            }
+            jsonWriter.WriteEndObject();
+        }
+
+        await jsonWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
+    }
+
     private async Task WriteContainerAsync(ContainerComponent containerComponent, Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
     {
         jsonWriter.WriteString("type", "container.v1");
@@ -119,6 +140,7 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, ISe
         jsonWriter.WriteString("image", image);
 
         await WriteEnvironmentVariablesAsync(containerComponent, jsonWriter, cancellationToken).ConfigureAwait(false);
+        await WriteBindingsAsync(containerComponent, jsonWriter, cancellationToken).ConfigureAwait(false);
 
         await jsonWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
@@ -127,7 +149,17 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, ISe
     {
         jsonWriter.WriteString("type", "project.v1");
 
+        if (!projectComponent.TryGetLastAnnotation<IServiceMetadata>(out var metadata))
+        {
+            throw new DistributedApplicationException("Service metadata not found.");
+        }
+
+        var manifestPath = _options.Value.OutputPath ?? throw new DistributedApplicationException("Output path not specified");
+        var relativePathToProjectFile = Path.GetRelativePath(manifestPath, metadata.ProjectPath);
+        jsonWriter.WriteString("path", relativePathToProjectFile);
+
         await WriteEnvironmentVariablesAsync(projectComponent, jsonWriter, cancellationToken).ConfigureAwait(false);
+        await WriteBindingsAsync(projectComponent, jsonWriter, cancellationToken).ConfigureAwait(false);
 
         await jsonWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
@@ -137,6 +169,7 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, ISe
         jsonWriter.WriteString("type", "executable.v1");
 
         await WriteEnvironmentVariablesAsync(executableComponent, jsonWriter, cancellationToken).ConfigureAwait(false);
+        await WriteBindingsAsync(executableComponent, jsonWriter, cancellationToken).ConfigureAwait(false);
 
         await jsonWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
