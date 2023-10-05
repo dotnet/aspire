@@ -9,22 +9,35 @@ namespace Aspire.Dashboard.Model;
 internal sealed partial class LogEntry
 {
     private static readonly Regex s_rfc3339RegEx = GenerateRfc3339RegEx();
+    private static readonly Regex s_logLevelRegEx = GenerateLogLevelRegEx();
 
     public string? Content { get; set; }
     public string? Timestamp { get; set; }
     [JsonConverter(typeof(JsonStringEnumConverter<LogEntryType>))]
     public LogEntryType Type { get; init; } = LogEntryType.Default;
+    public int LineIndex { get; set; }
+    public Guid? ParentId { get; set; }
+    public Guid Id { get; } = Guid.NewGuid();
+    public string? ParentTimestamp { get; set; }
+    public bool IsFirstLine { get; private set; }
+
+    private LogEntry() { }
 
     public static LogEntry Create(string s, LogEntryType type)
     {
         var indexOfSpace = s.IndexOf(' ');
-        var possibleTimestamp = indexOfSpace == -1 ? null : s[..indexOfSpace];
+
+        var firstLineIndicator = indexOfSpace == -1 ? null : s[..indexOfSpace];
 
         // For right now, we only support RFC3339 timestamps, which is what (most) containers generate
         // We can tweak this once project/executable log timestamps are finalized
-        if (possibleTimestamp is not null && s_rfc3339RegEx.IsMatch(possibleTimestamp))
+        if (firstLineIndicator is not null && s_rfc3339RegEx.IsMatch(firstLineIndicator))
         {
-            return new() { Timestamp = possibleTimestamp, Content = s[(indexOfSpace + 1)..], Type = type };
+            return new() { Timestamp = firstLineIndicator, Content = s[(indexOfSpace + 1)..], Type = type, IsFirstLine = true };
+        }
+        else if (firstLineIndicator is not null && s_logLevelRegEx.IsMatch(firstLineIndicator))
+        {
+            return new() { Content = s, Type = type, IsFirstLine = true };
         }
         else
         {
@@ -63,6 +76,11 @@ internal sealed partial class LogEntry
     // Note: (?:) is a non-capturing group, since we don't care about the values, we are just interested in whether or not there is a match
     [GeneratedRegex("^(?:\\d{4})-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])T(?:[01][0-9]|2[0-3]):(?:[0-5][0-9]):(?:[0-5][0-9])(?:\\.\\d{1,9})?(?:Z|(?:[Z+-](?:[01][0-9]|2[0-3]):(?:[0-5][0-9])))?$")]
     private static partial Regex GenerateRfc3339RegEx();
+
+    // Regular expression that detects log levels used as indicators
+    // of the first line of a log entry
+    [GeneratedRegex("^(trce|dbug|info|warn|fail|crit):$")]
+    private static partial Regex GenerateLogLevelRegEx();
 }
 
 internal enum LogEntryType
