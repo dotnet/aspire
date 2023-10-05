@@ -7,7 +7,6 @@ using Microsoft.Extensions.Http.Resilience;
 using Microsoft.Extensions.Logging;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
-using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 
 public static class Extensions
@@ -40,14 +39,7 @@ public static class Extensions
             logging.IncludeScopes = true;
         });
 
-        // TODO: OTel generates different serviceInstanceId for different telemetry types.
-        // For example, logging, metrics, and tracing all have different serviceInstanceId values.
-        // Explicitly generate serviceInstanceId so the same value is used for all telemetry types.
-        // Is this the right thing to do or is there a bug in OTel?
-        var serviceInstanceId = Guid.NewGuid().ToString();
-
         builder.Services.AddOpenTelemetry()
-            .ConfigureResource(resourceBuilder => resourceBuilder.AddService(builder.Environment.ApplicationName, serviceInstanceId: serviceInstanceId))
             .WithMetrics(metrics =>
             {
                 metrics.AddRuntimeInstrumentation()

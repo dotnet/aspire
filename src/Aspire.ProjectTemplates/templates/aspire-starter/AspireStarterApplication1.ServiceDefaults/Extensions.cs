@@ -7,7 +7,6 @@ using Microsoft.Extensions.Http.Resilience;
 using Microsoft.Extensions.Logging;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
-using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 
 namespace Microsoft.Extensions.Hosting;
@@ -42,10 +41,7 @@ public static class Extensions
             logging.IncludeScopes = true;
         });
 
-        var serviceInstanceId = Guid.NewGuid().ToString();
-
         builder.Services.AddOpenTelemetry()
-            .ConfigureResource(resourceBuilder => resourceBuilder.AddService(builder.Environment.ApplicationName, serviceInstanceId: serviceInstanceId))
             .WithMetrics(metrics =>
             {
                 metrics.AddRuntimeInstrumentation()
