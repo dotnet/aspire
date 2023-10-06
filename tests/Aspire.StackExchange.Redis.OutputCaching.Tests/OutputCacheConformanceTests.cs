@@ -19,7 +19,7 @@ public class OutputCacheConformanceTests : ConformanceTests
     {
         if (key is null)
         {
-            builder.AddRedisOutputCache(configureSettings: configure);
+            builder.AddRedisOutputCache("redis", configure);
         }
         else
         {

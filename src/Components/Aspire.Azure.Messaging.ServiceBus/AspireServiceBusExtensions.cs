@@ -24,14 +24,14 @@ public static class AspireServiceBusExtensions
     /// Registers <see cref="ServiceBusClient"/> as a singleton in the services provided by the <paramref name="builder"/>.
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
-    /// <param name="connectionName">An optional name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
+    /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureMessagingServiceBusSettings"/>. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{ServiceBusClient, ServiceBusClientOptions}"/>.</param>
     /// <remarks>Reads the configuration from "Aspire.Azure.Messaging.ServiceBus" section.</remarks>
     /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureMessagingServiceBusSettings.ConnectionString"/> nor <see cref="AzureMessagingServiceBusSettings.Namespace"/> is provided.</exception>
     public static void AddAzureServiceBus(
         this IHostApplicationBuilder builder,
-        string? connectionName = null,
+        string connectionName,
         Action<AzureMessagingServiceBusSettings>? configureSettings = null,
         Action<IAzureClientBuilder<ServiceBusClient, ServiceBusClientOptions>>? configureClientBuilder = null)
     {

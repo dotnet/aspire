@@ -37,7 +37,7 @@ public class AspireServiceBusExtensionsTests
             host.Services.GetRequiredKeyedService<ServiceBusClient>("sb") :
             host.Services.GetRequiredService<ServiceBusClient>();
 
-        Assert.Equal("aspireservicebustests.servicebus.windows.net", client.FullyQualifiedNamespace);
+        Assert.Equal(ConformanceTests.FullyQualifiedNamespace, client.FullyQualifiedNamespace);
     }
 
     [Theory]
@@ -64,6 +64,65 @@ public class AspireServiceBusExtensionsTests
             host.Services.GetRequiredKeyedService<ServiceBusClient>("sb") :
             host.Services.GetRequiredService<ServiceBusClient>();
 
-        Assert.Equal("aspireservicebustests.servicebus.windows.net", client.FullyQualifiedNamespace);
+        Assert.Equal(ConformanceTests.FullyQualifiedNamespace, client.FullyQualifiedNamespace);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ConnectionNameWinsOverConfigSection(bool useKeyed)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        var key = useKeyed ? "sb" : null;
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>(ConformanceTests.CreateConfigKey("Aspire:Azure:Messaging:ServiceBus", key, "ConnectionString"), "unused"),
+            new KeyValuePair<string, string?>("ConnectionStrings:sb", ConnectionString)
+        ]);
+
+        if (useKeyed)
+        {
+            builder.AddKeyedAzureServiceBus("sb");
+        }
+        else
+        {
+            builder.AddAzureServiceBus("sb");
+        }
+
+        var host = builder.Build();
+        var client = useKeyed ?
+            host.Services.GetRequiredKeyedService<ServiceBusClient>("sb") :
+            host.Services.GetRequiredService<ServiceBusClient>();
+
+        Assert.Equal(ConformanceTests.FullyQualifiedNamespace, client.FullyQualifiedNamespace);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void NamespaceWorksInConnectionStrings(bool useKeyed)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        var key = useKeyed ? "sb" : null;
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:sb", ConformanceTests.FullyQualifiedNamespace)
+        ]);
+
+        if (useKeyed)
+        {
+            builder.AddKeyedAzureServiceBus("sb");
+        }
+        else
+        {
+            builder.AddAzureServiceBus("sb");
+        }
+
+        var host = builder.Build();
+        var client = useKeyed ?
+            host.Services.GetRequiredKeyedService<ServiceBusClient>("sb") :
+            host.Services.GetRequiredService<ServiceBusClient>();
+
+        Assert.Equal(ConformanceTests.FullyQualifiedNamespace, client.FullyQualifiedNamespace);
     }
 }

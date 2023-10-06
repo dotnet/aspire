@@ -48,4 +48,24 @@ public class AspireEFPostgreSqlExtensionsTests
         // the connection string from config should not be used since code set it explicitly
         Assert.DoesNotContain("unused", actualConnectionString);
     }
+
+    [Fact]
+    public void ConnectionNameWinsOverConfigSection()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:ConnectionString", "unused"),
+            new KeyValuePair<string, string?>("ConnectionStrings:npgsql", ConnectionString)
+        ]);
+
+        builder.AddNpgsqlDbContext<TestDbContext>("npgsql");
+
+        var host = builder.Build();
+        var context = host.Services.GetRequiredService<TestDbContext>();
+
+        var actualConnectionString = context.Database.GetDbConnection().ConnectionString;
+        Assert.Equal(ConnectionString, actualConnectionString);
+        // the connection string from config should not be used since it was found in ConnectionStrings
+        Assert.DoesNotContain("unused", actualConnectionString);
+    }
 }

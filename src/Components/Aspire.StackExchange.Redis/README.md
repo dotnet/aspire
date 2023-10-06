@@ -18,10 +18,10 @@ dotnet add package Aspire.StackExchange.Redis
 
 ## Usage Example
 
-In the `Program.cs` file of your project, call the `AddRedis` extension method to register an `IConnectionMultiplexer` for use via the dependency injection container.
+In the `Program.cs` file of your project, call the `AddRedis` extension method to register an `IConnectionMultiplexer` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```cs
-builder.AddRedis();
+builder.AddRedis("cache");
 ```
 
 You can then retrieve the `IConnectionMultiplexer` instance using dependency injection. For example, to retrieve the cache from a Web API controller:
@@ -70,12 +70,12 @@ The Redis component supports [Microsoft.Extensions.Configuration](https://learn.
   "Aspire": {
     "StackExchange": {
       "Redis": {
-        "ConnectionString": "localhost:6379",
         "ConfigurationOptions": {
           "ConnectTimeout": 3000,
           "ConnectRetry": 2
         },
-        "Tracing": false
+        "HealthChecks": false,
+        "Tracing": true
       }
     }
   }
@@ -84,16 +84,16 @@ The Redis component supports [Microsoft.Extensions.Configuration](https://learn.
 
 ### Use inline delegates
 
-You can also pass the `Action<StackExchangeRedisSettings> configureSettings` delegate to set up some or all the options inline, for example to use a connection string from code:
+You can also pass the `Action<StackExchangeRedisSettings> configureSettings` delegate to set up some or all the options inline, for example to disable health checks from code:
 
 ```cs
-builder.AddRedis(configureSettings: settings => settings.ConnectionString = "localhost:6379");
+builder.AddRedis("cache", settings => settings.HealthChecks = false);
 ```
 
 You can also setup the [ConfigurationOptions](https://stackexchange.github.io/StackExchange.Redis/Configuration.html#configuration-options) using the `Action<ConfigurationOptions> configureOptions` delegate parameter of the `AddRedis` method. For example to set the connection timeout:
 
 ```cs
-builder.AddRedis(configureOptions: options => options.ConnectTimeout = 3000);
+builder.AddRedis("cache", configureOptions: options => options.ConnectTimeout = 3000);
 ```
 
 ## DevHost Extensions

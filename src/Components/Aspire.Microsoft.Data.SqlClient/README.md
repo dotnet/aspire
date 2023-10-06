@@ -18,10 +18,10 @@ dotnet add package Aspire.Microsoft.Data.SqlClient
 
 ## Usage Example
 
-In the `Program.cs` file of your project, call the `AddSqlServerClient` extension method to register a `SqlConnection` for use via the dependency injection container.
+In the `Program.cs` file of your project, call the `AddSqlServerClient` extension method to register a `SqlConnection` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```cs
-builder.AddSqlServerClient();
+builder.AddSqlServerClient("sqldata");
 ```
 
 You can then retrieve the `SqlConnection` instance using dependency injection. For example, to retrieve the cache from a Web API controller:
@@ -69,7 +69,6 @@ The Aspire SqlClient component supports [Microsoft.Extensions.Configuration](htt
     "Microsoft": {
       "Data": {
         "SqlClient": {
-          "ConnectionString": "Data Source=myserver;Initial Catalog=master",
           "HealthChecks": true,
           "Metrics": false
         }
@@ -81,10 +80,10 @@ The Aspire SqlClient component supports [Microsoft.Extensions.Configuration](htt
 
 ### Use inline delegates
 
-Also you can pass the `Action<MicrosoftDataSqlClientSettings> configureSettings` delegate to set up some or all the options inline, for example to use a connection string from code:
+Also you can pass the `Action<MicrosoftDataSqlClientSettings> configureSettings` delegate to set up some or all the options inline, for example to disable health checks from code:
 
 ```cs
-    builder.AddSqlServerClient(configureSettings: settings => settings.ConnectionString = "Data Source=myserver;Initial Catalog=master");
+    builder.AddSqlServerClient("sqldata", settings => settings.HealthChecks = false);
 ```
 
 ## DevHost Extensions

@@ -19,7 +19,7 @@ public class DistributedCacheConformanceTests : ConformanceTests
     {
         if (key is null)
         {
-            builder.AddRedisDistributedCache(configureSettings: configure);
+            builder.AddRedisDistributedCache("redis", configure);
         }
         else
         {

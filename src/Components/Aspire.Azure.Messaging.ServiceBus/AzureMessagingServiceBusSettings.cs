@@ -52,4 +52,20 @@ public sealed class AzureMessagingServiceBusSettings : IConnectionStringSettings
     /// Or by setting "AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE" environment variable to "true".
     /// </remarks>
     public bool Tracing { get; set; }
+
+    void IConnectionStringSettings.ParseConnectionString(string? connectionString)
+    {
+        if (!string.IsNullOrEmpty(connectionString))
+        {
+            // a service bus namespace can't contain ';'. if it is found assume it is a connection string
+            if (!connectionString.Contains(';'))
+            {
+                Namespace = connectionString;
+            }
+            else
+            {
+                ConnectionString = connectionString;
+            }
+        }
+    }
 }

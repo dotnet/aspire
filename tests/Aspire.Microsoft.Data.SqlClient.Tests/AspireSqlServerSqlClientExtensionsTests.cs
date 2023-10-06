@@ -69,4 +69,36 @@ public class AspireSqlServerSqlClientExtensionsTests
         // the connection string from config should not be used since code set it explicitly
         Assert.DoesNotContain("unused", connection.ConnectionString);
     }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ConnectionNameWinsOverConfigSection(bool useKeyed)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        var key = useKeyed ? "sqlconnection" : null;
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>(ConformanceTests.CreateConfigKey("Aspire:Microsoft:Data:SqlClient", key, "ConnectionString"), "unused"),
+            new KeyValuePair<string, string?>("ConnectionStrings:sqlconnection", ConnectionString)
+        ]);
+
+        if (useKeyed)
+        {
+            builder.AddKeyedSqlServerClient("sqlconnection");
+        }
+        else
+        {
+            builder.AddSqlServerClient("sqlconnection");
+        }
+
+        var host = builder.Build();
+        var dataSource = useKeyed ?
+            host.Services.GetRequiredKeyedService<SqlConnection>("sqlconnection") :
+            host.Services.GetRequiredService<SqlConnection>();
+
+        Assert.Equal(ConnectionString, dataSource.ConnectionString);
+        // the connection string from config should not be used since it was found in ConnectionStrings
+        Assert.DoesNotContain("unused", dataSource.ConnectionString);
+    }
 }

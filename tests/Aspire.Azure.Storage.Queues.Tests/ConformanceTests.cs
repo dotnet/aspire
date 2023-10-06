@@ -16,7 +16,7 @@ public class ConformanceTests : ConformanceTests<QueueServiceClient, AzureStorag
 {
     // Authentication method: Azure AD User Account
     // Roles: Storage Queue Data Contributor
-    private const string ServiceUri = "https://aspirestoragetests.queue.core.windows.net";
+    public const string ServiceUri = "https://aspirestoragetests.queue.core.windows.net";
 
     private static readonly Lazy<bool> s_canConnectToServer = new(GetCanConnect);
 
@@ -80,7 +80,7 @@ public class ConformanceTests : ConformanceTests<QueueServiceClient, AzureStorag
     {
         if (key is null)
         {
-            builder.AddAzureQueueService(configureSettings: ConfigureCredentials);
+            builder.AddAzureQueueService("queue", ConfigureCredentials);
         }
         else
         {

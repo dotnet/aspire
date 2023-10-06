@@ -64,7 +64,6 @@ public class AspireRedisExtensionsTests
     [ConditionalTheory]
     [InlineData(true)]
     [InlineData(false)]
-
     public void ConnectionStringCanBeSetInCode(bool useKeyed)
     {
         AspireRedisHelpers.SkipIfCanNotConnectToServer();
@@ -91,6 +90,40 @@ public class AspireRedisExtensionsTests
 
         Assert.Contains(AspireRedisHelpers.TestingEndpoint, connection.Configuration);
         // the connection string from config should not be used since code set it explicitly
+        Assert.DoesNotContain("unused", connection.Configuration);
+    }
+
+    [ConditionalTheory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ConnectionNameWinsOverConfigSection(bool useKeyed)
+    {
+        AspireRedisHelpers.SkipIfCanNotConnectToServer();
+
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        var key = useKeyed ? "redis" : null;
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>(ConformanceTests.CreateConfigKey("Aspire:StackExchange:Redis", key, "ConnectionString"), "unused"),
+            new KeyValuePair<string, string?>("ConnectionStrings:redis", AspireRedisHelpers.TestingEndpoint)
+        ]);
+
+        if (useKeyed)
+        {
+            builder.AddKeyedRedis("redis");
+        }
+        else
+        {
+            builder.AddRedis("redis");
+        }
+
+        var host = builder.Build();
+        var connection = useKeyed ?
+            host.Services.GetRequiredKeyedService<IConnectionMultiplexer>("redis") :
+            host.Services.GetRequiredService<IConnectionMultiplexer>();
+
+        Assert.Contains(AspireRedisHelpers.TestingEndpoint, connection.Configuration);
+        // the connection string from config should not be used since it was found in ConnectionStrings
         Assert.DoesNotContain("unused", connection.Configuration);
     }
 }

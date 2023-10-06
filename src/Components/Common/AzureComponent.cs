@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using Azure.Core;
 using Azure.Core.Extensions;
 using Microsoft.Extensions.Azure;
@@ -41,7 +42,7 @@ internal abstract class AzureComponent<TSettings, TClient, TClientOptions>
         string configurationSectionName,
         Action<TSettings>? configureSettings,
         Action<IAzureClientBuilder<TClient, TClientOptions>>? configureClientBuilder,
-        string? connectionName,
+        string connectionName,
         string? serviceKey)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -51,11 +52,11 @@ internal abstract class AzureComponent<TSettings, TClient, TClientOptions>
         var settings = new TSettings();
         configSection.Bind(settings);
 
+        Debug.Assert(settings is IConnectionStringSettings, $"The settings object should implement {nameof(IConnectionStringSettings)}.");
         if (settings is IConnectionStringSettings csSettings &&
-            string.IsNullOrEmpty(csSettings.ConnectionString) &&
-            !string.IsNullOrEmpty(connectionName))
+            builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {
-            csSettings.ConnectionString = builder.Configuration.GetConnectionString(connectionName);
+            csSettings.ParseConnectionString(connectionString);
         }
 
         configureSettings?.Invoke(settings);
@@ -131,5 +132,5 @@ internal abstract class AzureComponent<TSettings, TClient, TClientOptions>
 
 internal interface IConnectionStringSettings
 {
-    string? ConnectionString { get; set; }
+    void ParseConnectionString(string? connectionString);
 }

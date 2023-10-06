@@ -14,7 +14,7 @@ public class ConformanceTests : ConformanceTests<TableServiceClient, AzureDataTa
 {
     // Authentication method: Azure AD User Account
     // Roles: Storage Table Data Reader, Storage Table Data Contributor
-    private const string ServiceUri = "https://aspirestoragetests.table.core.windows.net/";
+    public const string ServiceUri = "https://aspirestoragetests.table.core.windows.net/";
 
     private static readonly Lazy<bool> s_canConnectToServer = new(GetCanConnect);
 
@@ -76,7 +76,7 @@ public class ConformanceTests : ConformanceTests<TableServiceClient, AzureDataTa
     {
         if (key is null)
         {
-            builder.AddAzureTableService(configureSettings: ConfigureCredentials);
+            builder.AddAzureTableService("tables", ConfigureCredentials);
         }
         else
         {

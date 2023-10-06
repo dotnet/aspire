@@ -22,14 +22,14 @@ public static class AspireTablesExtensions
     /// Enables retries, corresponding health check, logging and telemetry.
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
-    /// <param name="connectionName">An optional name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
+    /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureDataTablesSettings"/>. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{TableServiceClient, TableClientOptions}"/>.</param>
     /// <remarks>Reads the configuration from "Aspire.Azure.Data.Tables" section.</remarks>
     /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureDataTablesSettings.ConnectionString"/> nor <see cref="AzureDataTablesSettings.ServiceUri"/> is provided.</exception>
     public static void AddAzureTableService(
         this IHostApplicationBuilder builder,
-        string? connectionName = null,
+        string connectionName,
         Action<AzureDataTablesSettings>? configureSettings = null,
         Action<IAzureClientBuilder<TableServiceClient, TableClientOptions>>? configureClientBuilder = null)
     {
@@ -64,7 +64,7 @@ public static class AspireTablesExtensions
         protected override IAzureClientBuilder<TableServiceClient, TableClientOptions> AddClient<TBuilder>(TBuilder azureFactoryBuilder, AzureDataTablesSettings settings)
         {
             var connectionString = settings.ConnectionString;
-            
+
             return !string.IsNullOrEmpty(connectionString) ?
                 azureFactoryBuilder.AddTableServiceClient(connectionString) :
                 azureFactoryBuilder.AddTableServiceClient(settings.ServiceUri);

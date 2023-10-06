@@ -12,7 +12,7 @@ namespace Aspire.Azure.Messaging.ServiceBus.Tests;
 public abstract class ConformanceTests : ConformanceTests<ServiceBusClient, AzureMessagingServiceBusSettings>
 {
     // Roles: Azure Service Bus Data Owner
-    protected const string FullyQualifiedNamespace = "aspireServiceBusTests.servicebus.windows.net";
+    public const string FullyQualifiedNamespace = "aspireservicebustests.servicebus.windows.net";
     // Fake connection string for cases when credentials are unavailable and need to switch to raw connection string
     protected const string ConnectionString = "Endpoint=sb://foo.servicebus.windows.net/;SharedAccessKeyName=fake;SharedAccessKey=fake";
 
@@ -69,7 +69,7 @@ public abstract class ConformanceTests : ConformanceTests<ServiceBusClient, Azur
     {
         if (key is null)
         {
-            builder.AddAzureServiceBus(configureSettings: ConfigureCredentials);
+            builder.AddAzureServiceBus("sb", ConfigureCredentials);
         }
         else
         {

@@ -50,4 +50,19 @@ public sealed class AzureStorageBlobsSettings : IConnectionStringSettings
     /// Or by setting "AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE" environment variable to "true".
     /// </remarks>
     public bool Tracing { get; set; }
+
+    void IConnectionStringSettings.ParseConnectionString(string? connectionString)
+    {
+        if (!string.IsNullOrEmpty(connectionString))
+        {
+            if (Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))
+            {
+                ServiceUri = uri;
+            }
+            else
+            {
+                ConnectionString = connectionString;
+            }
+        }
+    }
 }
