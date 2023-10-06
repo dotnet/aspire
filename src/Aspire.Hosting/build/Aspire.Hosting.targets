@@ -9,7 +9,7 @@
 
   <!-- The purpose of this target is to take a list of the resolved project references and generate a set of items (ServiceMetadataSource) which contain
      code that we want to add to the orchestrator project for each referenced project. The metadata contains pointers to the project/assembly. -->
-  <Target Name="GenerateServiceMetadataSources" DependsOnTargets="FindReferenceAssembliesForReferences" Inputs="@(ReferencePathWithRefAssemblies)" Outputs="%(ReferencePathWithRefAssemblies.Identity)">
+  <Target Name="GenerateServiceMetadataSources" DependsOnTargets="FindReferenceAssembliesForReferences" Inputs="@(ReferencePathWithRefAssemblies)" Outputs="@(ReferencePathWithRefAssemblies)">
     <ItemGroup>
       <ServiceMetadataSource Include="%(ReferencePathWithRefAssemblies.Identity)" Condition="%(ReferencePathWithRefAssemblies.ReferenceSourceTarget) == 'ProjectReference' And %(ReferencePathWithRefAssemblies.ServiceNameOverride) == ''">
         <AssemblyName>$([System.IO.Path]::GetFileNameWithoutExtension(%(ReferencePathWithRefAssemblies.Identity)))</AssemblyName>
