@@ -38,7 +38,11 @@ export function addLogEntries(logEntries) {
                 timestamp.classList.add("missing");
             }
             const content = lineArea.lastElementChild;
-            content.textContent = logEntry.content;
+
+            // logEntry.content should already be HTMLEncoded other than the <span>s produced
+            // by the ANSI Control Sequence Parsing, so it should be safe to set innerHTML here
+            content.innerHTML = logEntry.content;
+            
             if (logEntry.type === "Error") {
                 content.prepend(getStdErrorBadge());
             }
