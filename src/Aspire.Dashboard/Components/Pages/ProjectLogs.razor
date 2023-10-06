@@ -1,6 +1,5 @@
 ﻿@page "/ProjectLogs/{projectname?}"
 @using Aspire.Dashboard.Model;
-@using System.Text
 @implements IAsyncDisposable;
 @inject IDashboardViewModelService DashboardViewModelService
 @inject IJSRuntime JS
@@ -29,17 +28,17 @@
     [Parameter]
     public string? ProjectName { get; set; }
 
-    private LogViewer? _logViewer;
     private ProjectViewModel? _selectedProject;
-    private readonly Dictionary<string, ProjectViewModel> _projectNameMapping = new Dictionary<string, ProjectViewModel>();
+    private readonly Dictionary<string, ProjectViewModel> _projectNameMapping = new();
     private IEnumerable<ProjectViewModel> Projects => _projectNameMapping.Select(kvp => kvp.Value).OrderBy(p => p.Name);
+    private LogViewer? _logViewer;
     private CancellationTokenSource _watchProjectsTokenSource = new CancellationTokenSource();
     private CancellationTokenSource? _watchLogsTokenSource;
-    private string _status = ProjectLogStatuses.Initializing;
+    private string _status = LogStatus.Initializing;
 
     protected override async Task OnInitializedAsync()
     {
-        _status = ProjectLogStatuses.LoadingProjects;
+        _status = LogStatus.LoadingProjects;
 
         var initialList = await DashboardViewModelService.GetProjectsAsync();
 
@@ -75,11 +74,11 @@
     {
         if (_selectedProject is null)
         {
-            _status = ProjectLogStatuses.NoProjectSelected;
+            _status = LogStatus.NoProjectSelected;
         }
         else if (_logViewer is null)
         {
-            _status = ProjectLogStatuses.InitializingLogViewer;
+            _status = LogStatus.InitializingLogViewer;
         }
         else
         {
@@ -96,12 +95,12 @@
                     await _logViewer.WatchLogsAsync(() => _selectedProject.LogSource.WatchErrorLogAsync(_watchLogsTokenSource.Token), LogEntryType.Error);
                 });
 
-                _status = ProjectLogStatuses.WatchingLogs;
+                _status = LogStatus.WatchingLogs;
             }
             else
             {
                 _watchLogsTokenSource = null;
-                _status = ProjectLogStatuses.LogsNotYetAvailable;
+                _status = LogStatus.LogsNotYetAvailable;
             }
         }
     }
@@ -199,15 +198,5 @@
             await _selectedProject!.LogSource.StopAsync();
             _watchLogsTokenSource = null;
         }
-    }
-
-    private static class ProjectLogStatuses
-    {
-        public const string Initializing = "Initializing...";
-        public const string InitializingLogViewer = "Initializing Log Viewer...";
-        public const string LoadingProjects = "Loading Projects...";
-        public const string LogsNotYetAvailable = "Logs Not Yet Available";
-        public const string NoProjectSelected = "No Project Selected";
-        public const string WatchingLogs = "Watching Logs...";
     }
 }

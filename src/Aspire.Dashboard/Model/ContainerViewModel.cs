@@ -5,7 +5,7 @@ namespace Aspire.Dashboard.Model;
 
 public class ContainerViewModel : ResourceViewModel
 {
-    public string? ContainerID { get; init; }
+    public string? ContainerId { get; init; }
     public required string Image { get; init; }
     public List<int> Ports { get; } = new();
 }

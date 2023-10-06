@@ -11,16 +11,10 @@ using k8s;
 
 namespace Aspire.Hosting.Dashboard;
 
-public class DashboardViewModelService : IDashboardViewModelService, IDisposable
+public class DashboardViewModelService(DistributedApplicationModel applicationModel) : IDashboardViewModelService, IDisposable
 {
-    private readonly DistributedApplicationModel _applicationModel;
-    private readonly KubernetesService _kubernetesService;
-
-    public DashboardViewModelService(DistributedApplicationModel applicationModel)
-    {
-        _applicationModel = applicationModel;
-        _kubernetesService = new KubernetesService();
-    }
+    private readonly DistributedApplicationModel _applicationModel = applicationModel;
+    private readonly KubernetesService _kubernetesService = new KubernetesService();
 
     public async Task<List<ExecutableViewModel>> GetExecutablesAsync()
     {
@@ -123,10 +117,10 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
                 {
                     Name = container.Metadata.Name,
                     NamespacedName = new(container.Metadata.Name, null),
-                    ContainerID = container.Status?.ContainerID,
+                    ContainerId = container.Status?.ContainerId,
                     CreationTimeStamp = container.Metadata.CreationTimestamp?.ToLocalTime(),
                     Image = container.Spec.Image!,
-                    LogSource = new DockerContainerLogSource(container.Status!.ContainerID!),
+                    LogSource = new DockerContainerLogSource(container.Status!.ContainerId!),
                     State = container.Status?.State
                 };
 
@@ -168,10 +162,10 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
             {
                 Name = container.Metadata.Name,
                 NamespacedName = new(container.Metadata.Name, null),
-                ContainerID = container.Status?.ContainerID,
+                ContainerId = container.Status?.ContainerId,
                 CreationTimeStamp = container.Metadata.CreationTimestamp?.ToLocalTime(),
                 Image = container.Spec.Image!,
-                LogSource = new DockerContainerLogSource(container.Status!.ContainerID!),
+                LogSource = new DockerContainerLogSource(container.Status!.ContainerId!),
                 State = container.Status?.State
             };
 
