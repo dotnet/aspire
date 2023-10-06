@@ -1,9 +1,8 @@
 ﻿@page "/Executables"
 @using Aspire.Dashboard.Model;
 @using Aspire.Dashboard.Services;
-@inject IDashboardViewModelService DashboardViewModelService
-@inject EnvironmentVariablesDialogService DialogService
 @implements IDisposable
+@inherits ResourcesListBase<ExecutableViewModel>
 
 <PageTitle>Microsoft.Aspire Dashboard</PageTitle>
 
@@ -20,7 +19,7 @@
                           slot="end" />
         </FluentToolbar>
         <div class="datagrid-overflow-area" tabindex="-1">
-            <FluentDataGrid Items="@FilteredExecutables" ResizableColumns="true" GridTemplateColumns="2fr 1fr 2fr 4fr 1fr">
+            <FluentDataGrid Items="@FilteredResources" ResizableColumns="true" GridTemplateColumns="2fr 1fr 2fr 4fr 1fr">
                 <ChildContent>
                     <TemplateColumn Title="Name" Sortable="true" SortBy="@nameSort">
                         <FluentHighlighter HighlightedText="@filter" Text="@context.Name" />
@@ -49,78 +48,14 @@
 </div>
 
 @code {
-    private readonly Dictionary<string, ExecutableViewModel> executablesMap = new();
-    private readonly CancellationTokenSource watchTaskCancellationTokenSource = new();
-    private string filter = "";
+    protected override IAsyncEnumerable<ComponentChanged<ExecutableViewModel>> WatchResources(
+        IDashboardViewModelService dashboardViewModelService, CancellationToken cancellationToken)
+        => dashboardViewModelService.WatchExecutablesAsync(cancellationToken: cancellationToken);
 
-    private IQueryable<ExecutableViewModel>? FilteredExecutables =>
-        executablesMap.Values.Where(e =>
-            e.Name.Contains(filter, StringComparison.CurrentCultureIgnoreCase) ||
-            e.ExecutablePath?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true
-        ).OrderBy(e => e.Name).AsQueryable();
+    protected override bool Filter(ExecutableViewModel resource)
+        => resource.Name.Contains(filter, StringComparison.CurrentCultureIgnoreCase)
+        || resource.ExecutablePath?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true;
 
-    private GridSort<ExecutableViewModel> nameSort = GridSort<ExecutableViewModel>
-        .ByAscending(e => e.Name);
     private GridSort<ExecutableViewModel> executablePathSort = GridSort<ExecutableViewModel>
         .ByAscending(e => e.ExecutablePath);
-
-    protected override Task OnInitializedAsync()
-    {
-        _ = Task.Run(async () =>
-        {
-            await foreach (var componentChanged in DashboardViewModelService.WatchExecutablesAsync(cancellationToken: watchTaskCancellationTokenSource.Token))
-            {
-                await OnExecutableListChanged(componentChanged.ObjectChangeType, componentChanged.Component).ConfigureAwait(true);
-            }
-        }).ConfigureAwait(true);
-
-        return Task.CompletedTask;
-    }
-
-    private async Task ShowEnvironmentVariables(ExecutableViewModel executable)
-    {
-        await DialogService.ShowDialogAsync(
-            source: executable.Name,
-            variables: executable.Environment
-        );
-    }
-
-    private async Task OnExecutableListChanged(ObjectChangeType objectChangeType, ExecutableViewModel executableViewModel)
-    {
-        switch (objectChangeType)
-        {
-            case ObjectChangeType.Added:
-                executablesMap.Add(executableViewModel.Name, executableViewModel);
-                break;
-
-            case ObjectChangeType.Modified:
-                executablesMap[executableViewModel.Name] = executableViewModel;
-                break;
-
-            case ObjectChangeType.Deleted:
-                executablesMap.Remove(executableViewModel.Name);
-                break;
-        }
-
-        await InvokeAsync(StateHasChanged);
-    }
-
-    public void Dispose()
-    {
-        watchTaskCancellationTokenSource.Cancel();
-        watchTaskCancellationTokenSource.Dispose();
-    }
-
-    private void HandleFilter(ChangeEventArgs args)
-    {
-        if (args.Value is string newFilter)
-        {
-            filter = newFilter;
-        }
-    }
-
-    private void HandleClear(string? value)
-    {
-        filter = value ?? string.Empty;
-    }
 }
