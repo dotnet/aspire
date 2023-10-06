@@ -1,202 +1,25 @@
 ﻿@page "/ProjectLogs/{projectname?}"
 @using Aspire.Dashboard.Model;
-@implements IAsyncDisposable;
-@inject IDashboardViewModelService DashboardViewModelService
-@inject IJSRuntime JS
-@inject NavigationManager NavigationManager
+@inherits ResourceLogsBase<ProjectViewModel>
 
-<PageTitle>Microsoft.Aspire Project Logs</PageTitle>
+@{
+    base.BuildRenderTree(__builder);
+}
 
-<h1>Project Logs</h1>
-
-<div>
-    <FluentStack Orientation="Orientation.Vertical">
-        <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
-            <FluentSelect TOption="ProjectViewModel"
-                          Items="@Projects"
-                          OptionValue="@(c => c.Name)"
-                          OptionText="GetProjectDisplayText"
-                          @bind-SelectedOption="_selectedProject"
-                          @bind-SelectedOption:after="HandleSelectedOptionChangedAsync" />
-            <FluentLabel Typo="Typography.Body">@_status</FluentLabel>
-            </FluentStack>
-            <LogViewer @ref="_logViewer" />
-        </FluentStack>
-    </div>
-
-    @code {
+@code {
     [Parameter]
     public string? ProjectName { get; set; }
 
-    private ProjectViewModel? _selectedProject;
-    private readonly Dictionary<string, ProjectViewModel> _projectNameMapping = new();
-    private IEnumerable<ProjectViewModel> Projects => _projectNameMapping.Select(kvp => kvp.Value).OrderBy(p => p.Name);
-    private LogViewer? _logViewer;
-    private CancellationTokenSource _watchProjectsTokenSource = new CancellationTokenSource();
-    private CancellationTokenSource? _watchLogsTokenSource;
-    private string _status = LogStatus.Initializing;
+    protected override string? ResourceName => ProjectName;
+    protected override string ResourceType => "Project";
+    protected override string LoadingResourcesMessage => LogStatus.LoadingProjects;
+    protected override string NoResourceSelectedMessage => LogStatus.NoProjectSelected;
+    protected override string LogsNotAvailableMessage => LogStatus.LogsNotYetAvailable;
+    protected override string UrlPrefix => "/ProjectLogs";
 
-    protected override async Task OnInitializedAsync()
-    {
-        _status = LogStatus.LoadingProjects;
+    protected override Task<List<ProjectViewModel>> GetResources(IDashboardViewModelService dashboardViewModelService)
+        => dashboardViewModelService.GetProjectsAsync();
 
-        var initialList = await DashboardViewModelService.GetProjectsAsync();
-
-        foreach (var result in initialList)
-        {
-            _projectNameMapping[result.Name] = result;
-        }
-
-        if (ProjectName is not null)
-        {
-            _selectedProject = initialList?.FirstOrDefault(c => string.Equals(ProjectName, c.Name, StringComparison.Ordinal));
-        }
-        else if (initialList?.Count > 0)
-        {
-            _selectedProject = initialList[0];
-        }
-
-        await LoadLogsAsync();
-
-        _ = Task.Run(async () =>
-        {
-            await foreach (var componentChanged in DashboardViewModelService.WatchProjectsAsync(existingProjects: initialList?.Select(t => t.NamespacedName), cancellationToken: _watchProjectsTokenSource.Token))
-            {
-                await OnProjectListChanged(componentChanged.ObjectChangeType, componentChanged.Component);
-            }
-        });
-    }
-
-    private Task ClearLogsAsync()
-        => _logViewer is not null ? _logViewer.ClearLogsAsync() : Task.CompletedTask;
-
-    private async ValueTask LoadLogsAsync()
-    {
-        if (_selectedProject is null)
-        {
-            _status = LogStatus.NoProjectSelected;
-        }
-        else if (_logViewer is null)
-        {
-            _status = LogStatus.InitializingLogViewer;
-        }
-        else
-        {
-            _watchLogsTokenSource = new CancellationTokenSource();
-            if (await _selectedProject.LogSource.StartAsync(_watchLogsTokenSource.Token))
-            {
-                _ = Task.Run(async () =>
-                {
-                    await _logViewer.WatchLogsAsync(() => _selectedProject.LogSource.WatchOutputLogAsync(_watchLogsTokenSource.Token), LogEntryType.Default);
-                });
-
-                _ = Task.Run(async () =>
-                {
-                    await _logViewer.WatchLogsAsync(() => _selectedProject.LogSource.WatchErrorLogAsync(_watchLogsTokenSource.Token), LogEntryType.Error);
-                });
-
-                _status = LogStatus.WatchingLogs;
-            }
-            else
-            {
-                _watchLogsTokenSource = null;
-                _status = LogStatus.LogsNotYetAvailable;
-            }
-        }
-    }
-
-    private async Task HandleSelectedOptionChangedAsync()
-    {
-        if (_selectedProject is not null)
-        {
-            NavigationManager.NavigateTo($"/ProjectLogs/{_selectedProject.Name}");
-            await StopWatchingLogsAsync();
-            await ClearLogsAsync();
-            await LoadLogsAsync();
-        }
-    }
-
-    private async Task OnProjectListChanged(ObjectChangeType changeType, ProjectViewModel projectViewModel)
-    {
-        if (changeType == ObjectChangeType.Added)
-        {
-            _projectNameMapping[projectViewModel.Name] = projectViewModel;
-
-            if (_selectedProject is null)
-            {
-                if (string.IsNullOrEmpty(ProjectName) || string.Equals(ProjectName, projectViewModel.Name, StringComparison.Ordinal))
-                {
-                    _selectedProject = projectViewModel;
-                    await LoadLogsAsync();
-                }
-            }
-        }
-        else if (changeType == ObjectChangeType.Modified)
-        {
-            _projectNameMapping[projectViewModel.Name] = projectViewModel;
-
-            if (string.Equals(_selectedProject?.Name, projectViewModel.Name, StringComparison.Ordinal))
-            {
-                var originalSelection = _selectedProject;
-                _selectedProject = projectViewModel;
-
-                if (_watchLogsTokenSource is null)
-                {
-                    await LoadLogsAsync();
-                }
-            }
-        }
-        else if (changeType == ObjectChangeType.Deleted)
-        {
-            _projectNameMapping.Remove(projectViewModel.Name);
-            if (string.Equals(_selectedProject?.Name, projectViewModel.Name, StringComparison.Ordinal))
-            {
-                if (_projectNameMapping.Count > 0)
-                {
-                    _selectedProject = Projects.First();
-                    await HandleSelectedOptionChangedAsync();
-                }
-            }
-        }
-
-        await InvokeAsync(StateHasChanged);
-    }
-
-    private static string GetProjectDisplayText(ProjectViewModel project)
-    {
-        string stateText = "";
-        if (string.IsNullOrEmpty(project.State))
-        {
-            stateText = " (Unknown State)";
-        }
-        else if (project.State != "Running")
-        {
-            stateText = $" ({project.State})";
-        }
-        return $"{project.Name}{stateText}";
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        await DisposeWatchProjectsTokenSource();
-        await StopWatchingLogsAsync();
-    }
-
-    private async Task DisposeWatchProjectsTokenSource()
-    {
-        await _watchProjectsTokenSource.CancelAsync();
-        _watchProjectsTokenSource.Dispose();
-    }
-
-    private async Task StopWatchingLogsAsync()
-    {
-        if (_watchLogsTokenSource is not null)
-        {
-            await _watchLogsTokenSource.CancelAsync();
-            _watchLogsTokenSource.Dispose();
-            // The token source only gets created if selected project is not null
-            await _selectedProject!.LogSource.StopAsync();
-            _watchLogsTokenSource = null;
-        }
-    }
+    protected override IAsyncEnumerable<ComponentChanged<ProjectViewModel>> WatchResources(IDashboardViewModelService dashboardViewModelService, IEnumerable<NamespacedName>? initialList, CancellationToken cancellationToken)
+        => dashboardViewModelService.WatchProjectsAsync(initialList, cancellationToken);
 }

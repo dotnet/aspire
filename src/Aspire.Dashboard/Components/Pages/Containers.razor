@@ -40,7 +40,7 @@
                                       OnClick="async() => await ShowEnvironmentVariables(context)">View</FluentButton>
                     </TemplateColumn>
                     <TemplateColumn Title="Logs">
-                        <FluentAnchor Appearance="Appearance.Lightweight" Href="@($"/containerLogs/{context.ContainerId}")">View</FluentAnchor>
+                        <FluentAnchor Appearance="Appearance.Lightweight" Href="@($"/containerLogs/{context.Name}")">View</FluentAnchor>
                     </TemplateColumn>
                 </ChildContent>
                 <EmptyContent>
