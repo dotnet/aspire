@@ -82,9 +82,9 @@ Also you can pass the `Action<NpgsqlSettings> configureSettings` delegate to set
     builder.AddNpgsqlDataSource(configureSettings: settings => settings.ConnectionString = "Host=myserver;Database=test");
 ```
 
-## DevHost Extensions
+## App Extensions
 
-In your DevHost project, register a Postgres container and consume the connection using the following methods:
+In your App project, register a Postgres container and consume the connection using the following methods:
 
 ```cs
 var postgres = builder.AddPostgresContainer("postgresdb");

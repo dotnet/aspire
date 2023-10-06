@@ -5,5 +5,5 @@ hooks:
   preprovision:
     continueOnError: false
     interactive: false
-    run: dotnet run --project MyApp/MyApp.csproj -- --target azure --output-path .\infra\myapp
+    run: dotnet run --project App\App.csproj -- --target azure --output-path .\infra\eshoplite
     shell: pwsh

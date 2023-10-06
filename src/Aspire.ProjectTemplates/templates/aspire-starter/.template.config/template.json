@@ -70,12 +70,12 @@
       "displayName": "_Use Redis for caching (requires Docker)",
       "description": "Configures whether to setup the application to use Redis for caching. Requires Docker to run locally."
     },
-    "devHostHttpPort": {
+    "appHttpPort": {
       "type": "parameter",
       "datatype": "integer",
-      "description": "Port number to use for the HTTP endpoint in launchSettings.json of the DevHost project."
+      "description": "Port number to use for the HTTP endpoint in launchSettings.json of the App project."
     },
-    "devHostHttpPortGenerated": {
+    "appHttpPortGenerated": {
       "type": "generated",
       "generator": "port",
       "parameters": {
@@ -83,21 +83,21 @@
         "high": 15300
       }
     },
-    "devHostHttpPortReplacer": {
+    "appHttpPortReplacer": {
       "type": "generated",
       "generator": "coalesce",
       "parameters": {
-        "sourceVariableName": "devHostHttpPort",
-        "fallbackVariableName": "devHostHttpPortGenerated"
+        "sourceVariableName": "appHttpPort",
+        "fallbackVariableName": "appHttpPortGenerated"
       },
       "replaces": "15000"
     },
-    "devHostOtlpHttpPort": {
+    "appOtlpHttpPort": {
       "type": "parameter",
       "datatype": "integer",
-      "description": "Port number to use for the OTLP HTTP endpoint in launchSettings.json of the DevHost project."
+      "description": "Port number to use for the OTLP HTTP endpoint in launchSettings.json of the App project."
     },
-    "devHostOtlpHttpPortGenerated": {
+    "appOtlpHttpPortGenerated": {
       "type": "generated",
       "generator": "port",
       "parameters": {
@@ -105,21 +105,21 @@
         "high": 16300
       }
     },
-    "devHostOtlpHttpPortReplacer": {
+    "appOtlpHttpPortReplacer": {
       "type": "generated",
       "generator": "coalesce",
       "parameters": {
-        "sourceVariableName": "devHostOtlpHttpPort",
-        "fallbackVariableName": "devHostOtlpHttpPortGenerated"
+        "sourceVariableName": "appOtlpHttpPort",
+        "fallbackVariableName": "appOtlpHttpPortGenerated"
       },
       "replaces": "16000"
     },
-    "devHostHttpsPort": {
+    "appHttpsPort": {
       "type": "parameter",
       "datatype": "integer",
-      "description": "Port number to use for the HTTPS endpoint in launchSettings.json of the DevHost project. This option is only applicable when the parameter no-https is not used."
+      "description": "Port number to use for the HTTPS endpoint in launchSettings.json of the App project. This option is only applicable when the parameter no-https is not used."
     },
-    "devHostHttpsPortGenerated": {
+    "appHttpsPortGenerated": {
       "type": "generated",
       "generator": "port",
       "parameters": {
@@ -127,21 +127,21 @@
         "high": 17300
       }
     },
-    "devHostHttpsPortReplacer": {
+    "appHttpsPortReplacer": {
       "type": "generated",
       "generator": "coalesce",
       "parameters": {
-        "sourceVariableName": "devHostHttpsPort",
-        "fallbackVariableName": "devHostHttpsPortGenerated"
+        "sourceVariableName": "appHttpsPort",
+        "fallbackVariableName": "appHttpsPortGenerated"
       },
       "replaces": "17000"
     },
-    "devHostOtlpHttpsPort": {
+    "appOtlpHttpsPort": {
       "type": "parameter",
       "datatype": "integer",
-      "description": "Port number to use for the OTLP HTTPS endpoint in launchSettings.json of the DevHost project."
+      "description": "Port number to use for the OTLP HTTPS endpoint in launchSettings.json of the App project."
     },
-    "devHostOtlpHttpsPortGenerated": {
+    "appOtlpHttpsPortGenerated": {
       "type": "generated",
       "generator": "port",
       "parameters": {
@@ -149,12 +149,12 @@
         "high": 18300
       }
     },
-    "devHostOtlpHttpsPortReplacer": {
+    "appOtlpHttpsPortReplacer": {
       "type": "generated",
       "generator": "coalesce",
       "parameters": {
-        "sourceVariableName": "devHostOtlpHttpsPort",
-        "fallbackVariableName": "devHostOtlpHttpsPortGenerated"
+        "sourceVariableName": "appOtlpHttpsPort",
+        "fallbackVariableName": "appOtlpHttpsPortGenerated"
       },
       "replaces": "18000"
     },
@@ -253,7 +253,7 @@
       "condition": "(hostIdentifier != \"vs\")"
     },
     {
-      "path": "AspireStarterApplication1.DevHost\\AspireStarterApplication1.DevHost.csproj"
+      "path": "AspireStarterApplication1.App\\AspireStarterApplication1.App.csproj"
     },
     {
       "path": "AspireStarterApplication1.ServiceDefaults\\AspireStarterApplication1.ServiceDefaults.csproj"

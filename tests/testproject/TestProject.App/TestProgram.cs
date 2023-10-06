@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using TestProject.DevHost.Projects;
+using TestProject.App.Projects;
 
 public class TestProgram
 {
