@@ -8,6 +8,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
 using k8s;
+using NamespacedName = Aspire.Dashboard.Model.NamespacedName;
 
 namespace Aspire.Hosting.Dashboard;
 
@@ -46,7 +47,8 @@ public class DashboardViewModelService(DistributedApplicationModel applicationMo
         IEnumerable<NamespacedName>? existingContainers = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        await foreach (var (watchEventType, container) in _kubernetesService.WatchAsync<Container>(existingObjects: existingContainers, cancellationToken: cancellationToken))
+        var existingObjects = existingContainers?.Select(ec => new Dcp.Model.NamespacedName(ec.Name, ec.Namespace));
+        await foreach (var (watchEventType, container) in _kubernetesService.WatchAsync<Container>(existingObjects: existingObjects, cancellationToken: cancellationToken))
         {
             var objectChangeType = ToObjectChangeType(watchEventType);
             if (objectChangeType == ObjectChangeType.Other)
@@ -64,7 +66,8 @@ public class DashboardViewModelService(DistributedApplicationModel applicationMo
         IEnumerable<NamespacedName>? existingExecutables = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        await foreach (var (watchEventType, executable) in _kubernetesService.WatchAsync<Executable>(existingObjects: existingExecutables, cancellationToken: cancellationToken))
+        var existingObjects = existingExecutables?.Select(ec => new Dcp.Model.NamespacedName(ec.Name, ec.Namespace));
+        await foreach (var (watchEventType, executable) in _kubernetesService.WatchAsync<Executable>(existingObjects: existingObjects, cancellationToken: cancellationToken))
         {
             var objectChangeType = ToObjectChangeType(watchEventType);
             if (objectChangeType == ObjectChangeType.Other)
@@ -87,7 +90,8 @@ public class DashboardViewModelService(DistributedApplicationModel applicationMo
         IEnumerable<NamespacedName>? existingProjects = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        await foreach (var (watchEventType, executable) in _kubernetesService.WatchAsync<Executable>(existingObjects: existingProjects, cancellationToken: cancellationToken))
+        var existingObjects = existingProjects?.Select(ec => new Dcp.Model.NamespacedName(ec.Name, ec.Namespace));
+        await foreach (var (watchEventType, executable) in _kubernetesService.WatchAsync<Executable>(existingObjects: existingObjects, cancellationToken: cancellationToken))
         {
             var objectChangeType = ToObjectChangeType(watchEventType);
             if (objectChangeType == ObjectChangeType.Other)
