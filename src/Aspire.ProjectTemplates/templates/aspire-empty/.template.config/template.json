@@ -151,7 +151,7 @@
       "condition": "(hostIdentifier != \"vs\")"
     },
     {
-      "path": "AspireApplication1.DevHost\\AspireApplication1.DevHost.csproj"
+      "path": "AspireApplication1.App\\AspireApplication1.App.csproj"
     },
     {
       "path": "AspireApplication1.ServiceDefaults\\AspireApplication1.ServiceDefaults.csproj"

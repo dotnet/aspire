@@ -253,7 +253,7 @@
       "condition": "(hostIdentifier != \"vs\")"
     },
     {
-      "path": "AspireStarterApplication1.DevHost\\AspireStarterApplication1.DevHost.csproj"
+      "path": "AspireStarterApplication1.App\\AspireStarterApplication1.App.csproj"
     },
     {
       "path": "AspireStarterApplication1.ServiceDefaults\\AspireStarterApplication1.ServiceDefaults.csproj"
