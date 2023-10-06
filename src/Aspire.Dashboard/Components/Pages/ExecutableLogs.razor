@@ -92,7 +92,7 @@
 
                 _ = Task.Run(async () =>
                 {
-                    await _logViewer.WatchLogsAsync(() => _selectedExecutable.LogSource.WatchOutputLogAsync(_watchLogsTokenSource.Token), LogEntryType.Error);
+                    await _logViewer.WatchLogsAsync(() => _selectedExecutable.LogSource.WatchErrorLogAsync(_watchLogsTokenSource.Token), LogEntryType.Error);
                 });
 
                 _status = LogStatus.WatchingLogs;

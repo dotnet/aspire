@@ -36,6 +36,9 @@
                                       Title="@(context.Environment.Any() ? "View" : "No Environment Variables")"
                                       OnClick="async() => await ShowEnvironmentVariables(context)">View</FluentButton>
                     </TemplateColumn>
+                    <TemplateColumn Title="Logs">
+                        <FluentAnchor Appearance="Appearance.Lightweight" Href="@($"/ExecutableLogs/{context.Name}")">View</FluentAnchor>
+                    </TemplateColumn>
                 </ChildContent>
                 <EmptyContent>
                     <FluentIcon Icon="Icons.Regular.Size24.AppGeneric" />&nbsp;No running executables found
