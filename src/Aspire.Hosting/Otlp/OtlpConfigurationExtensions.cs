@@ -19,6 +19,12 @@ public static class OtlpConfigurationExtensions
 
         component.Annotations.Add(new EnvironmentCallbackAnnotation(context =>
         {
+            if (context.PublisherName == "manifest")
+            {
+                // REVIEW:  Do we want to set references to an imaginary otlp provider as a requirement?
+                return;
+            }
+
             context.EnvironmentVariables["OTEL_EXPORTER_OTLP_ENDPOINT"] = configuration[DashboardOtlpUrlVariableName] ?? DashboardOtlpUrlDefaultValue;
 
             // Set the service name and instance id to the component name and UID. Values are injected by DCP.
