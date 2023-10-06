@@ -45,23 +45,23 @@
 
         foreach (var result in initialList)
         {
-            _containerNameMapping[result.ViewModel.Name] = result.ViewModel;
+            _containerNameMapping[result.Name] = result;
         }
 
         if (ContainerId is not null)
         {
-            _selectedContainer = initialList?.FirstOrDefault(c => string.Equals(ContainerId, c.ViewModel.ContainerID, StringComparison.Ordinal))?.ViewModel;
+            _selectedContainer = initialList?.FirstOrDefault(c => string.Equals(ContainerId, c.ContainerID, StringComparison.Ordinal));
         }
         else if (initialList?.Count > 0)
         {
-            _selectedContainer = initialList[0].ViewModel;
+            _selectedContainer = initialList[0];
         }
 
         await LoadLogsAsync();
 
         _ = Task.Run(async () =>
         {
-            await foreach (var componentChanged in DashboardViewModelService.WatchContainersAsync(existingContainers: initialList?.Select(t => t.Model), cancellationToken: _watchContainersTokenSource.Token))
+            await foreach (var componentChanged in DashboardViewModelService.WatchContainersAsync(existingContainers: initialList?.Select(t => t.NamespacedName), cancellationToken: _watchContainersTokenSource.Token))
             {
                 await OnContainerListChanged(componentChanged.ObjectChangeType, componentChanged.Component);
             }
