@@ -5,9 +5,10 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.SqlServer;
 
-public class SqlServerComponent(string name, string connectionString) : DistributedApplicationComponent(name), ISqlServerComponent
+public class SqlServerComponent(string name, string? connectionString) : DistributedApplicationComponent(name), ISqlServerComponent
 {
-    public string GetConnectionString(string? databaseName = null) =>
+    public string? GetConnectionString(string? databaseName = null) =>
+        connectionString is null ? null :
         databaseName is null ?
             connectionString :
             connectionString.EndsWith(';') ?

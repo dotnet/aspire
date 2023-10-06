@@ -5,9 +5,10 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Postgres;
 
-public class PostgresComponent(string name, string connectionString) : DistributedApplicationComponent(name), IPostgresComponent
+public class PostgresComponent(string name, string? connectionString) : DistributedApplicationComponent(name), IPostgresComponent
 {
-    public string GetConnectionString(string? databaseName = null) =>
+    public string? GetConnectionString(string? databaseName = null) =>
+        connectionString is null ? null :
         databaseName is null ?
             connectionString :
             connectionString.EndsWith(';') ?

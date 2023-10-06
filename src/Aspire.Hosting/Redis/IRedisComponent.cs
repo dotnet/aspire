@@ -7,5 +7,5 @@ namespace Aspire.Hosting.Redis;
 
 public interface IRedisComponent : IDistributedApplicationComponent
 {
-    string GetConnectionString();
+    string? GetConnectionString();
 }

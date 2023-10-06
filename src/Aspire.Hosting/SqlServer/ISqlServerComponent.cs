@@ -7,5 +7,5 @@ namespace Aspire.Hosting.SqlServer;
 
 public interface ISqlServerComponent : IDistributedApplicationComponent
 {
-    string GetConnectionString(string? databaseName = null);
+    string? GetConnectionString(string? databaseName = null);
 }

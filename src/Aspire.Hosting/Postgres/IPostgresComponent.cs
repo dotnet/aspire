@@ -7,5 +7,5 @@ namespace Aspire.Hosting.Postgres;
 
 public interface IPostgresComponent : IDistributedApplicationComponent
 {
-    string GetConnectionString(string? databaseName = null);
+    string? GetConnectionString(string? databaseName = null);
 }

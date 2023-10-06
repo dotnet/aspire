@@ -22,22 +22,33 @@ public static class RedisBuilderExtensions
         return componentBuilder;
     }
 
-    public static IDistributedApplicationComponentBuilder<RedisComponent> AddRedis(this IDistributedApplicationBuilder builder, string name, string connectionString)
+    public static IDistributedApplicationComponentBuilder<RedisComponent> AddRedis(this IDistributedApplicationBuilder builder, string name, string? connectionString)
     {
-        return builder.AddComponent(new RedisComponent(name, connectionString))
-            .WithAnnotation(new ManifestPublishingCallbackAnnotation(WriteRedisComponentToManifest));
+        var redis = new RedisComponent(name, connectionString);
+
+        return builder.AddComponent(redis)
+            .WithAnnotation(new ManifestPublishingCallbackAnnotation((jsonWriter, cancellationToken) =>
+                WriteRedisComponentToManifest(jsonWriter, redis.GetConnectionString(), cancellationToken)));
     }
 
-    private static async Task WriteRedisComponentToManifest(Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
+    private static Task WriteRedisComponentToManifest(Utf8JsonWriter jsonWriter, CancellationToken cancellationToken) =>
+        WriteRedisComponentToManifest(jsonWriter, null, cancellationToken);
+
+    private static async Task WriteRedisComponentToManifest(Utf8JsonWriter jsonWriter, string? connectionString, CancellationToken cancellationToken)
     {
         jsonWriter.WriteString("type", "redis.v1");
+        if (!string.IsNullOrEmpty(connectionString))
+        {
+            jsonWriter.WriteString("connectionString", connectionString);
+        }
         await jsonWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public static IDistributedApplicationComponentBuilder<T> WithRedis<T>(this IDistributedApplicationComponentBuilder<T> builder, IDistributedApplicationComponentBuilder<IRedisComponent> redisBuilder, string? connectionName = null)
         where T : IDistributedApplicationComponentWithEnvironment
     {
-        connectionName = connectionName ?? redisBuilder.Component.Name;
+        var redis = redisBuilder.Component;
+        connectionName = connectionName ?? redis.Name;
 
         return builder.WithEnvironment((context) =>
         {
@@ -45,11 +56,15 @@ public static class RedisBuilderExtensions
 
             if (context.PublisherName == "manifest")
             {
-                context.EnvironmentVariables[connectionStringName] = $"{{{redisBuilder.Component.Name}.connectionString}}";
+                context.EnvironmentVariables[connectionStringName] = $"{{{redis.Name}.connectionString}}";
                 return;
             }
 
-            var connectionString = redisBuilder.Component.GetConnectionString();
+            var connectionString = redis.GetConnectionString();
+            if (string.IsNullOrEmpty(connectionString))
+            {
+                throw new DistributedApplicationException($"A connection string for Redis '{redis.Name}' could not be retrieved.");
+            }
             context.EnvironmentVariables[connectionStringName] = connectionString;
         });
     }

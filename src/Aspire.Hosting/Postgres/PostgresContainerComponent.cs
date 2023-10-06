@@ -11,12 +11,12 @@ public class PostgresContainerComponent(string name) : ContainerComponent(name),
     {
         if (!this.TryGetAllocatedEndPoints(out var allocatedEndpoints))
         {
-            throw new InvalidOperationException("Expected allocated endpoints!");
+            throw new DistributedApplicationException("Expected allocated endpoints!");
         }
 
         if (!this.TryGetLastAnnotation<PostgresPasswordAnnotation>(out var passwordAnnotation))
         {
-            throw new InvalidOperationException($"Postgres does not have a password set!");
+            throw new DistributedApplicationException($"Postgres does not have a password set!");
         }
 
         var allocatedEndpoint = allocatedEndpoints.Single(); // We should only have one endpoint for Postgres.

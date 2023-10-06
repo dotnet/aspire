@@ -32,15 +32,25 @@ public static class PostgresBuilderExtensions
                       });
     }
 
-    public static IDistributedApplicationComponentBuilder<PostgresComponent> AddPostgres(this IDistributedApplicationBuilder builder, string name, string connectionString)
+    public static IDistributedApplicationComponentBuilder<PostgresComponent> AddPostgres(this IDistributedApplicationBuilder builder, string name, string? connectionString)
     {
-        return builder.AddComponent(new PostgresComponent(name, connectionString))
-            .WithAnnotation(new ManifestPublishingCallbackAnnotation(WritePostgresComponentToManifest));
+        var postgres = new PostgresComponent(name, connectionString);
+
+        return builder.AddComponent(postgres)
+            .WithAnnotation(new ManifestPublishingCallbackAnnotation((jsonWriter, cancellationToken) =>
+                WritePostgresComponentToManifest(jsonWriter, postgres.GetConnectionString(), cancellationToken)));
     }
 
-    private static async Task WritePostgresComponentToManifest(Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
+    private static Task WritePostgresComponentToManifest(Utf8JsonWriter jsonWriter, CancellationToken cancellationToken) =>
+        WritePostgresComponentToManifest(jsonWriter, null, cancellationToken);
+
+    private static async Task WritePostgresComponentToManifest(Utf8JsonWriter jsonWriter, string? connectionString, CancellationToken cancellationToken)
     {
         jsonWriter.WriteString("type", "postgres.v1");
+        if (!string.IsNullOrEmpty(connectionString))
+        {
+            jsonWriter.WriteString("connectionString", connectionString);
+        }
         await jsonWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 
@@ -50,18 +60,25 @@ public static class PostgresBuilderExtensions
     public static IDistributedApplicationComponentBuilder<T> WithPostgresDatabase<T>(this IDistributedApplicationComponentBuilder<T> builder, IDistributedApplicationComponentBuilder<IPostgresComponent> postgresBuilder, string? databaseName = null, string? connectionName = null)
         where T : IDistributedApplicationComponentWithEnvironment
     {
+        var postgres = postgresBuilder.Component;
         connectionName = connectionName ?? postgresBuilder.Component.Name;
 
         return builder.WithEnvironment((context) =>
         {
+            var connectionStringName = $"{ConnectionStringEnvironmentName}{connectionName}";
+
             if (context.PublisherName == "manifest")
             {
-                context.EnvironmentVariables[$"{ConnectionStringEnvironmentName}{connectionName}"] = $"{{{postgresBuilder.Component.Name}.connectionString}}";
+                context.EnvironmentVariables[connectionStringName] = $"{{{postgres.Name}.connectionString}}";
                 return;
             }
 
-            var connectionString = postgresBuilder.Component.GetConnectionString(databaseName);
-            context.EnvironmentVariables[$"{ConnectionStringEnvironmentName}{connectionName}"] = connectionString;
+            var connectionString = postgres.GetConnectionString(databaseName);
+            if (string.IsNullOrEmpty(connectionString))
+            {
+                throw new DistributedApplicationException($"A connection string for Postgres '{postgres.Name}' could not be retrieved.");
+            }
+            context.EnvironmentVariables[connectionStringName] = connectionString;
         });
     }
 }
