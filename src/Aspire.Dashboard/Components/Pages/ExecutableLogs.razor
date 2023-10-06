@@ -57,7 +57,7 @@
             _selectedExecutable = initialList[0].ViewModel;
         }
 
-        LoadLogs();
+        await LoadLogsAsync();
 
         _ = Task.Run(async () =>
         {
@@ -71,15 +71,11 @@
     private Task ClearLogsAsync()
         => _logViewer is not null ? _logViewer.ClearLogsAsync() : Task.CompletedTask;
 
-    private void LoadLogs()
+    private async ValueTask LoadLogsAsync()
     {
         if (_selectedExecutable is null)
         {
             _status = ExecutableLogStatuses.NoExecutableSelected;
-        }
-        else if (_selectedExecutable?.LogSource?.Available != true)
-        {
-            _status = ExecutableLogStatuses.LogsNotYetAvailable;
         }
         else if (_logViewer is null)
         {
@@ -88,18 +84,25 @@
         else
         {
             _watchLogsTokenSource = new CancellationTokenSource();
-
-            _ = Task.Run(async () =>
+            if (await _selectedExecutable.LogSource.StartAsync(_watchLogsTokenSource.Token))
             {
-                await _logViewer.WatchLogsAsync(() => _selectedExecutable.LogSource.WatchOutputLogAsync(_watchLogsTokenSource.Token), LogEntryType.Default);
-            });
+                _ = Task.Run(async () =>
+                {
+                    await _logViewer.WatchLogsAsync(() => _selectedExecutable.LogSource.WatchOutputLogAsync(_watchLogsTokenSource.Token), LogEntryType.Default);
+                });
 
-            _ = Task.Run(async () =>
+                _ = Task.Run(async () =>
+                {
+                    await _logViewer.WatchLogsAsync(() => _selectedExecutable.LogSource.WatchOutputLogAsync(_watchLogsTokenSource.Token), LogEntryType.Error);
+                });
+
+                _status = ExecutableLogStatuses.WatchingLogs;
+            }
+            else
             {
-                await _logViewer.WatchLogsAsync(() => _selectedExecutable.LogSource.WatchOutputLogAsync(_watchLogsTokenSource.Token), LogEntryType.Error);
-            });
-
-            _status = ExecutableLogStatuses.WatchingLogs;
+                _watchLogsTokenSource = null;
+                _status = ExecutableLogStatuses.LogsNotYetAvailable;
+            }
         }
     }
 
@@ -108,9 +111,9 @@
         if (_selectedExecutable is not null)
         {
             NavigationManager.NavigateTo($"/ExecutableLogs/{_selectedExecutable.Name}");
-            await DisposeWatchLogsTokenSource();
+            await StopWatchingLogsAsync();
             await ClearLogsAsync();
-            LoadLogs();
+            await LoadLogsAsync();
         }
     }
 
@@ -125,7 +128,7 @@
                 if (string.IsNullOrEmpty(ExecutableName) || string.Equals(ExecutableName, ExecutableViewModel.Name, StringComparison.Ordinal))
                 {
                     _selectedExecutable = ExecutableViewModel;
-                    LoadLogs();
+                    await LoadLogsAsync();
                 }
             }
         }
@@ -138,9 +141,9 @@
                 var originalSelection = _selectedExecutable;
                 _selectedExecutable = ExecutableViewModel;
 
-                if (!originalSelection!.LogSource.Available && _selectedExecutable.LogSource.Available)
+                if (_watchLogsTokenSource is null)
                 {
-                    LoadLogs();
+                    await LoadLogsAsync();
                 }
             }
         }
@@ -152,6 +155,7 @@
                 if (_executableNameMapping.Count > 0)
                 {
                     _selectedExecutable = Executables.First();
+                    await HandleSelectedOptionChangedAsync();
                 }
             }
         }
@@ -176,7 +180,7 @@
     public async ValueTask DisposeAsync()
     {
         await DisposeWatchExecutablesTokenSource();
-        await DisposeWatchLogsTokenSource();
+        await StopWatchingLogsAsync();
     }
 
     private async Task DisposeWatchExecutablesTokenSource()
@@ -185,12 +189,14 @@
         _watchExecutablesTokenSource.Dispose();
     }
 
-    private async Task DisposeWatchLogsTokenSource()
+    private async Task StopWatchingLogsAsync()
     {
         if (_watchLogsTokenSource is not null)
         {
             await _watchLogsTokenSource.CancelAsync();
             _watchLogsTokenSource.Dispose();
+            // The token source only gets created if selected executable is not null
+            await _selectedExecutable!.LogSource.StopAsync();
             _watchLogsTokenSource = null;
         }
     }

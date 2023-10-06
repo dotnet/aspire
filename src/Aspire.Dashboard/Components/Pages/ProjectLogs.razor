@@ -14,16 +14,16 @@
     <FluentStack Orientation="Orientation.Vertical">
         <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
             <FluentSelect TOption="ProjectViewModel"
-                            Items="@Projects"
-                            OptionValue="@(c => c.Name)"
-                            OptionText="GetProjectDisplayText"
-                            @bind-SelectedOption="_selectedProject"
-                            @bind-SelectedOption:after="HandleSelectedOptionChangedAsync" />
+                          Items="@Projects"
+                          OptionValue="@(c => c.Name)"
+                          OptionText="GetProjectDisplayText"
+                          @bind-SelectedOption="_selectedProject"
+                          @bind-SelectedOption:after="HandleSelectedOptionChangedAsync" />
             <FluentLabel Typo="Typography.Body">@_status</FluentLabel>
+            </FluentStack>
+            <LogViewer @ref="_logViewer" />
         </FluentStack>
-        <LogViewer @ref="_logViewer" />
-    </FluentStack>
-</div>
+    </div>
 
     @code {
     [Parameter]
@@ -57,7 +57,7 @@
             _selectedProject = initialList[0].ViewModel;
         }
 
-        LoadLogs();
+        await LoadLogsAsync();
 
         _ = Task.Run(async () =>
         {
@@ -71,15 +71,11 @@
     private Task ClearLogsAsync()
         => _logViewer is not null ? _logViewer.ClearLogsAsync() : Task.CompletedTask;
 
-    private void LoadLogs()
+    private async ValueTask LoadLogsAsync()
     {
         if (_selectedProject is null)
         {
             _status = ProjectLogStatuses.NoProjectSelected;
-        }
-        else if (_selectedProject?.LogSource?.Available != true)
-        {
-            _status = ProjectLogStatuses.LogsNotYetAvailable;
         }
         else if (_logViewer is null)
         {
@@ -88,18 +84,25 @@
         else
         {
             _watchLogsTokenSource = new CancellationTokenSource();
-
-            _ = Task.Run(async () =>
+            if (await _selectedProject.LogSource.StartAsync(_watchLogsTokenSource.Token))
             {
-                await _logViewer.WatchLogsAsync(() => _selectedProject.LogSource.WatchOutputLogAsync(_watchLogsTokenSource.Token), LogEntryType.Default);
-            });
+                _ = Task.Run(async () =>
+                {
+                    await _logViewer.WatchLogsAsync(() => _selectedProject.LogSource.WatchOutputLogAsync(_watchLogsTokenSource.Token), LogEntryType.Default);
+                });
 
-            _ = Task.Run(async () =>
+                _ = Task.Run(async () =>
+                {
+                    await _logViewer.WatchLogsAsync(() => _selectedProject.LogSource.WatchErrorLogAsync(_watchLogsTokenSource.Token), LogEntryType.Error);
+                });
+
+                _status = ProjectLogStatuses.WatchingLogs;
+            }
+            else
             {
-                await _logViewer.WatchLogsAsync(() => _selectedProject.LogSource.WatchErrorLogAsync(_watchLogsTokenSource.Token), LogEntryType.Error);
-            });
-
-            _status = ProjectLogStatuses.WatchingLogs;
+                _watchLogsTokenSource = null;
+                _status = ProjectLogStatuses.LogsNotYetAvailable;
+            }
         }
     }
 
@@ -108,9 +111,9 @@
         if (_selectedProject is not null)
         {
             NavigationManager.NavigateTo($"/ProjectLogs/{_selectedProject.Name}");
-            await DisposeWatchLogsTokenSource();
+            await StopWatchingLogsAsync();
             await ClearLogsAsync();
-            LoadLogs();
+            await LoadLogsAsync();
         }
     }
 
@@ -125,7 +128,7 @@
                 if (string.IsNullOrEmpty(ProjectName) || string.Equals(ProjectName, projectViewModel.Name, StringComparison.Ordinal))
                 {
                     _selectedProject = projectViewModel;
-                    LoadLogs();
+                    await LoadLogsAsync();
                 }
             }
         }
@@ -138,9 +141,9 @@
                 var originalSelection = _selectedProject;
                 _selectedProject = projectViewModel;
 
-                if (!originalSelection!.LogSource.Available && _selectedProject.LogSource.Available)
+                if (_watchLogsTokenSource is null)
                 {
-                    LoadLogs();
+                    await LoadLogsAsync();
                 }
             }
         }
@@ -152,6 +155,7 @@
                 if (_projectNameMapping.Count > 0)
                 {
                     _selectedProject = Projects.First();
+                    await HandleSelectedOptionChangedAsync();
                 }
             }
         }
@@ -176,7 +180,7 @@
     public async ValueTask DisposeAsync()
     {
         await DisposeWatchProjectsTokenSource();
-        await DisposeWatchLogsTokenSource();
+        await StopWatchingLogsAsync();
     }
 
     private async Task DisposeWatchProjectsTokenSource()
@@ -185,12 +189,14 @@
         _watchProjectsTokenSource.Dispose();
     }
 
-    private async Task DisposeWatchLogsTokenSource()
+    private async Task StopWatchingLogsAsync()
     {
         if (_watchLogsTokenSource is not null)
         {
             await _watchLogsTokenSource.CancelAsync();
             _watchLogsTokenSource.Dispose();
+            // The token source only gets created if selected project is not null
+            await _selectedProject!.LogSource.StopAsync();
             _watchLogsTokenSource = null;
         }
     }

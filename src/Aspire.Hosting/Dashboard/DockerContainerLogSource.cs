@@ -10,13 +10,63 @@ using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.Dashboard;
 
-internal sealed class DockerContainerLogSource : IContainerLogSource
+internal sealed class DockerContainerLogSource : ILogSource
 {
-    public string? ContainerID { get; init; }
+    private readonly string _containerId;
+    private DockerContainerLogWatcher? _containerLogWatcher;
 
-    public IContainerLogWatcher GetWatcher() => new DockerContainerLogWatcher(ContainerID);
+    public DockerContainerLogSource(string containerId)
+    {
+        _containerId = containerId;
+    }
 
-    internal sealed class DockerContainerLogWatcher(string? containerID) : IContainerLogWatcher
+    public async ValueTask<bool> StartAsync(CancellationToken cancellationToken)
+    {
+        if (_containerLogWatcher is not null)
+        {
+            return true;
+        }
+
+        _containerLogWatcher = new DockerContainerLogWatcher(_containerId);
+        var watcherInitialized = await _containerLogWatcher.InitWatchAsync(cancellationToken).ConfigureAwait(false);
+        if (!watcherInitialized)
+        {
+            await _containerLogWatcher.DisposeAsync().ConfigureAwait(false);
+        }
+        return watcherInitialized;
+    }
+
+    public async IAsyncEnumerable<string[]> WatchOutputLogAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        if (_containerLogWatcher is not null)
+        {
+            await foreach (var logs in _containerLogWatcher!.WatchOutputLogsAsync(cancellationToken).ConfigureAwait(false))
+            {
+                yield return logs;
+            }
+        }
+    }
+
+    public async IAsyncEnumerable<string[]> WatchErrorLogAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        if (_containerLogWatcher is not null)
+        {
+            await foreach (var logs in _containerLogWatcher!.WatchErrorLogsAsync(cancellationToken).ConfigureAwait(false))
+            {
+                yield return logs;
+            }
+        }
+    }
+
+    public async ValueTask StopAsync(CancellationToken cancellationToken = default)
+    {
+        if (_containerLogWatcher is not null)
+        {
+            await _containerLogWatcher.DisposeAsync().ConfigureAwait(false);
+        }
+    }
+
+    private sealed class DockerContainerLogWatcher(string? containerID) : IAsyncDisposable
     {
         private const string Executable = "docker";
 
@@ -101,7 +151,7 @@ internal sealed class DockerContainerLogSource : IContainerLogSource
                         var processResult = processResultTask.Result;
                         await _outputChannel.Writer.WriteAsync($"Process exited with code {processResult.ExitCode}", cancellationToken).ConfigureAwait(false);
                     }
-                    
+
                     _outputChannel.Writer.Complete();
                     _errorChannel.Writer.Complete();
 

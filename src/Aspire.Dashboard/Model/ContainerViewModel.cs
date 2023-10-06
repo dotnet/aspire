@@ -11,6 +11,6 @@ public class ContainerViewModel
     public DateTime? CreationTimeStamp { get; init; }
     public required string Image { get; init; }
     public List<int> Ports { get; } = new();
-    public required IContainerLogSource LogSource { get; init; }
+    public required ILogSource LogSource { get; init; }
     public List<EnvironmentVariableViewModel> Environment { get; } = new();
 }
