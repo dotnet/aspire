@@ -16,7 +16,7 @@ public static class PostgresContainerBuilderExtensions
     {
         var postgresContainer = new PostgresContainerComponent(name);
         return builder.AddComponent(postgresContainer)
-                      .WithAnnotation(new ManifestPublishingCallbackAnnotation(WritePostgresComponentToManifest))
+                      .WithAnnotation(new ManifestPublishingCallbackAnnotation((writer, ct) => WritePostgresComponentToManifestAsync(postgresContainer, writer, ct)))
                       .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, port: port, containerPort: 5432)) // Internal port is always 5432.
                       .WithAnnotation(new ContainerImageAnnotation { Image = "postgres", Tag = "latest" })
                       .WithEnvironment("POSTGRES_HOST_AUTH_METHOD", "trust")
@@ -32,9 +32,25 @@ public static class PostgresContainerBuilderExtensions
                       });
     }
 
-    private static async Task WritePostgresComponentToManifest(Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
+    private static async Task WritePostgresComponentToManifestAsync(PostgresContainerComponent component, Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
     {
         jsonWriter.WriteString("type", "postgres.v1");
+
+        var databases = component.Annotations.OfType<PostgresDatabaseAnnotation>();
+        if (databases.Any())
+        {
+            jsonWriter.WriteStartObject("databases");
+
+            foreach (var database in databases)
+            {
+                jsonWriter.WriteStartObject(database.DatabaseName);
+                jsonWriter.WriteEndObject();
+            }
+
+            jsonWriter.WriteEndObject();
+
+        }
+
         await jsonWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 
@@ -46,11 +62,19 @@ public static class PostgresContainerBuilderExtensions
     {
         connectionName = connectionName ?? postgresBuilder.Component.Name;
 
+        // We need to capture this here so that when we do manifest generation we know
+        // how to enumerate the databases.
+        if (databaseName != null && !postgresBuilder.Component.Annotations.OfType<PostgresDatabaseAnnotation>().Any(db => db.DatabaseName == databaseName))
+        {
+            postgresBuilder.WithAnnotation(new PostgresDatabaseAnnotation(databaseName));
+        }
+
         return builder.WithEnvironment((context) =>
         {
             if (context.PublisherName == "manifest")
             {
-                context.EnvironmentVariables[$"{ConnectionStringEnvironmentName}{connectionName}"] = $"{{{postgresBuilder.Component.Name}.connectionString}}";
+                var manifestConnectionString = databaseName == null ? $"{postgresBuilder.Component.Name}.connectionString" : $"{postgresBuilder.Component.Name}.databases.{databaseName}.connectionString";
+                context.EnvironmentVariables[$"{ConnectionStringEnvironmentName}{connectionName}"] = manifestConnectionString;
                 return;
             }
 
