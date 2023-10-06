@@ -88,9 +88,9 @@ Also you can pass the `Action<MicrosoftEntityFrameworkCoreSqlServerSettings> con
     builder.AddSqlServerDbContext<MyDbContext>("sqldata", settings => settings.HealthChecks = false);
 ```
 
-## DevHost Extensions
+## App Extensions
 
-In your DevHost project, register a SqlServer container and consume the connection using the following methods:
+In your App project, register a SqlServer container and consume the connection using the following methods:
 
 ```cs
 var sql = builder.AddSqlServerContainer("sqldata");

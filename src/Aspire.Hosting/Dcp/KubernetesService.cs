@@ -135,7 +135,7 @@ public class KubernetesService : IDisposable
 
     public async IAsyncEnumerable<(WatchEventType, T)> WatchAsync<T>(
         string? namespaceParameter = null,
-        IEnumerable<T>? existingObjects = null,
+        IEnumerable<NamespacedName>? existingObjects = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
         where T : CustomResource
     {
@@ -172,8 +172,8 @@ public class KubernetesService : IDisposable
             // check against the existing set to make sure we don't send Added events for objects we already
             // know about.
             if (watchEventType != WatchEventType.Added ||
-                existingObjects?.Any(o => string.Equals(obj.Metadata.Name, o.Metadata.Name, StringComparison.Ordinal) &&
-                                          string.Equals(obj.Metadata.NamespaceProperty, o.Metadata.NamespaceProperty, StringComparison.Ordinal)) != true)
+                existingObjects?.Any(o => string.Equals(obj.Metadata.Name, o.Name, StringComparison.Ordinal) &&
+                                          string.Equals(obj.Metadata.NamespaceProperty, o.Namespace, StringComparison.Ordinal)) != true)
             {
                 yield return item;
             }
@@ -246,7 +246,7 @@ public class KubernetesService : IDisposable
         {
             if (_kubernetes != null) { return; }
 
-            var config = KubernetesClientConfiguration.BuildConfigFromConfigFile(Locations.DcpKubeconfigPath);
+            var config = KubernetesClientConfiguration.BuildConfigFromConfigFile(kubeconfigPath: Locations.DcpKubeconfigPath, useRelativePaths: false);
             _kubernetes = new Kubernetes(config);
         }
     }

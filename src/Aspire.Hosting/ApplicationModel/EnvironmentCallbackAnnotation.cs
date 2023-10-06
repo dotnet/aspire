@@ -7,13 +7,18 @@ public class EnvironmentCallbackAnnotation : IDistributedApplicationComponentAnn
 {
     public EnvironmentCallbackAnnotation(string name, Func<string> callback)
     {
-        Callback = (d) => d[name] = callback();
+        Callback = (c) => c.EnvironmentVariables[name] = callback();
     }
 
     public EnvironmentCallbackAnnotation(Action<Dictionary<string, string>> callback)
     {
+        Callback = (c) => callback(c.EnvironmentVariables);
+    }
+
+    public EnvironmentCallbackAnnotation(Action<EnvironmentCallbackContext> callback)
+    {
         Callback = callback;
     }
 
-    public Action<Dictionary<string, string>> Callback { get; private set; }
+    public Action<EnvironmentCallbackContext> Callback { get; private set; }
 }

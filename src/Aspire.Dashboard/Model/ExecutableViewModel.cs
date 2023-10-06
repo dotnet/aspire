@@ -3,12 +3,8 @@
 
 namespace Aspire.Dashboard.Model;
 
-public class ExecutableViewModel
+public class ExecutableViewModel : ResourceViewModel
 {
-    public required string Name { get; init; }
-    public string? State { get; init; }
-    public DateTime? CreationTimeStamp { get; set; }
     public string? ExecutablePath { get; set; }
-    public List<EnvironmentVariableViewModel> Environment { get; } = new();
 }
 

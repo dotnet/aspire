@@ -13,8 +13,8 @@ public class WithServiceBindingTests
         var ex = Assert.Throws<DistributedApplicationException>(() =>
         {
             var testProgram = new TestProgram([]);
-            testProgram.ServiceABuilder.WithServiceBinding(3000, 1000, "https", "mybinding");
-            testProgram.ServiceABuilder.WithServiceBinding(3000, 2000, "https", "mybinding");
+            testProgram.ServiceABuilder.WithServiceBinding(3000, 1000, scheme: "https", name: "mybinding");
+            testProgram.ServiceABuilder.WithServiceBinding(3000, 2000, scheme: "https", name: "mybinding");
         });
 
         Assert.Equal("Service binding with name 'mybinding' already exists", ex.Message);
@@ -26,8 +26,8 @@ public class WithServiceBindingTests
         var ex = Assert.Throws<DistributedApplicationException>(() =>
         {
             var testProgram = new TestProgram([]);
-            testProgram.ServiceABuilder.WithServiceBinding(1000, "https", "mybinding");
-            testProgram.ServiceABuilder.WithServiceBinding(2000, "https", "mybinding");
+            testProgram.ServiceABuilder.WithServiceBinding(1000, scheme: "https", name: "mybinding");
+            testProgram.ServiceABuilder.WithServiceBinding(2000, scheme: "https", name: "mybinding");
         });
 
         Assert.Equal("Service binding with name 'mybinding' already exists", ex.Message);

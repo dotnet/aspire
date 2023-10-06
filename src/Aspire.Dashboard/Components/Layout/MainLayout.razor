@@ -8,9 +8,13 @@
             <FluentNavMenuLink Icon="@(new Icons.Regular.Size24.AppGeneric())" Text="Projects" Href="/" />
             <FluentNavMenuLink Icon="@(new Icons.Regular.Size24.BinFull())" Text="Containers" Href="/Containers" />
             <FluentNavMenuLink Icon="@(new Icons.Regular.Size24.AppGeneric())" Text="Executables" Href="/Executables" />
-            <FluentNavMenuLink Icon="@(new Icons.Regular.Size24.SlideText())" Text="Project logs" Href="/ProjectLogs" />
-            <FluentNavMenuLink Icon="@(new Icons.Regular.Size24.SlideText())" Text="Container Logs" Href="/ContainerLogs" />
-            <FluentNavMenuLink Icon="@(new Icons.Regular.Size24.SlideTextSparkle())" Text="Semantic Logs" Href="/SemanticLogs" />
+            <FluentNavMenuGroup Icon="@(new Icons.Regular.Size24.SlideText())" Text="Logs" Expanded="true" OnAction="OnMenuGroupClicked">
+                <FluentNavMenuLink Icon="@(new Icons.Regular.Size24.SlideText())" Text="Project" Href="/ProjectLogs" />
+                <FluentNavMenuLink Icon="@(new Icons.Regular.Size24.SlideText())" Text="Container" Href="/ContainerLogs" />
+                <FluentNavMenuLink Icon="@(new Icons.Regular.Size24.SlideText())" Text="Executable" Href="/ExecutableLogs" />
+                <FluentNavMenuLink Icon="@(new Icons.Regular.Size24.SlideTextSparkle())" Text="Structured" Href="/SemanticLogs" />
+            </FluentNavMenuGroup>
+            
             <FluentNavMenuLink Icon="@(new Icons.Regular.Size24.GanttChart())" Text="Traces" Href="/Traces" />
         </FluentNavMenu>
 
@@ -28,3 +32,11 @@
     <a href="" class="reload">Reload</a>
     <a class="dismiss">🗙</a>
 </div>
+
+@code {
+    // Workaround for bug in current NavMenu when clicking on menu groups
+    private void OnMenuGroupClicked(NavMenuActionArgs args)
+    {
+        args.SetHandled();
+    }
+}

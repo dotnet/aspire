@@ -9,12 +9,15 @@ using Aspire.Dashboard.Model;
 
 namespace Aspire.Hosting.Dashboard;
 
-internal sealed class FileLogSource(string? stdOutPath, string? stdErrPath) : IProjectLogSource
+internal sealed class FileLogSource(string? stdOutPath, string? stdErrPath) : ILogSource
 {
     private readonly string? _stdOutPath = stdOutPath;
     private readonly string? _stdErrPath = stdErrPath;
 
-    public bool Available => _stdOutPath is not null || _stdErrPath is not null;
+    public ValueTask<bool> StartAsync(CancellationToken cancellationToken)
+    {
+        return ValueTask.FromResult(_stdOutPath is not null || _stdErrPath is not null);
+    }
 
     public async IAsyncEnumerable<string[]> WatchOutputLogAsync([EnumeratorCancellation]CancellationToken cancellationToken)
     {
@@ -36,6 +39,11 @@ internal sealed class FileLogSource(string? stdOutPath, string? stdErrPath) : IP
                 yield return logs;
             }
         }
+    }
+
+    public ValueTask StopAsync(CancellationToken cancellationToken = default)
+    {
+        return ValueTask.CompletedTask;
     }
 
     private static readonly StreamPipeReaderOptions s_streamPipeReaderOptions = new(leaveOpen: true);

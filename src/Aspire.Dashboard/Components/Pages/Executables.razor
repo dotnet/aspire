@@ -36,6 +36,9 @@
                                       Title="@(context.Environment.Any() ? "View" : "No Environment Variables")"
                                       OnClick="async() => await ShowEnvironmentVariables(context)">View</FluentButton>
                     </TemplateColumn>
+                    <TemplateColumn Title="Logs">
+                        <FluentAnchor Appearance="Appearance.Lightweight" Href="@($"/ExecutableLogs/{context.Name}")">View</FluentAnchor>
+                    </TemplateColumn>
                 </ChildContent>
                 <EmptyContent>
                     <FluentIcon Icon="Icons.Regular.Size24.AppGeneric" />&nbsp;No running executables found
@@ -65,7 +68,7 @@
     {
         _ = Task.Run(async () =>
         {
-            await foreach (var componentChanged in DashboardViewModelService.WatchExecutablesAsync(watchTaskCancellationTokenSource.Token))
+            await foreach (var componentChanged in DashboardViewModelService.WatchExecutablesAsync(cancellationToken: watchTaskCancellationTokenSource.Token))
             {
                 await OnExecutableListChanged(componentChanged.ObjectChangeType, componentChanged.Component).ConfigureAwait(true);
             }

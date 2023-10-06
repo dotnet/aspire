@@ -1,0 +1,202 @@
+﻿@page "/ExecutableLogs/{executablename?}"
+@using Aspire.Dashboard.Model;
+@implements IAsyncDisposable;
+@inject IDashboardViewModelService DashboardViewModelService
+@inject IJSRuntime JS
+@inject NavigationManager NavigationManager
+
+<PageTitle>Microsoft.Aspire Executable Logs</PageTitle>
+
+<h1>Executable Logs</h1>
+
+<div>
+    <FluentStack Orientation="Orientation.Vertical">
+        <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
+            <FluentSelect TOption="ExecutableViewModel"
+                          Items="@Executables"
+                          OptionValue="@(c => c.Name)"
+                          OptionText="GetExecutableDisplayText"
+                          @bind-SelectedOption="_selectedExecutable"
+                          @bind-SelectedOption:after="HandleSelectedOptionChangedAsync" />
+            <FluentLabel Typo="Typography.Body">@_status</FluentLabel>
+            </FluentStack>
+            <LogViewer @ref="_logViewer" />
+        </FluentStack>
+    </div>
+
+    @code {
+    [Parameter]
+    public string? ExecutableName { get; set; }
+
+    private ExecutableViewModel? _selectedExecutable;
+    private readonly Dictionary<string, ExecutableViewModel> _executableNameMapping = new();
+    private IEnumerable<ExecutableViewModel> Executables => _executableNameMapping.Select(kvp => kvp.Value).OrderBy(p => p.Name);
+    private LogViewer? _logViewer;
+    private CancellationTokenSource _watchExecutablesTokenSource = new CancellationTokenSource();
+    private CancellationTokenSource? _watchLogsTokenSource;
+    private string _status = LogStatus.Initializing;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _status = LogStatus.LoadingExecutables;
+
+        var initialList = await DashboardViewModelService.GetExecutablesAsync();
+
+        foreach (var result in initialList)
+        {
+            _executableNameMapping[result.Name] = result;
+        }
+
+        if (ExecutableName is not null)
+        {
+            _selectedExecutable = initialList?.FirstOrDefault(c => string.Equals(ExecutableName, c.Name, StringComparison.Ordinal));
+        }
+        else if (initialList?.Count > 0)
+        {
+            _selectedExecutable = initialList[0];
+        }
+
+        await LoadLogsAsync();
+
+        _ = Task.Run(async () =>
+        {
+            await foreach (var componentChanged in DashboardViewModelService.WatchExecutablesAsync(existingExecutables: initialList?.Select(t => t.NamespacedName), cancellationToken: _watchExecutablesTokenSource.Token))
+            {
+                await OnExecutableListChanged(componentChanged.ObjectChangeType, componentChanged.Component);
+            }
+        });
+    }
+
+    private Task ClearLogsAsync()
+        => _logViewer is not null ? _logViewer.ClearLogsAsync() : Task.CompletedTask;
+
+    private async ValueTask LoadLogsAsync()
+    {
+        if (_selectedExecutable is null)
+        {
+            _status = LogStatus.NoExecutableSelected;
+        }
+        else if (_logViewer is null)
+        {
+            _status = LogStatus.InitializingLogViewer;
+        }
+        else
+        {
+            _watchLogsTokenSource = new CancellationTokenSource();
+            if (await _selectedExecutable.LogSource.StartAsync(_watchLogsTokenSource.Token))
+            {
+                _ = Task.Run(async () =>
+                {
+                    await _logViewer.WatchLogsAsync(() => _selectedExecutable.LogSource.WatchOutputLogAsync(_watchLogsTokenSource.Token), LogEntryType.Default);
+                });
+
+                _ = Task.Run(async () =>
+                {
+                    await _logViewer.WatchLogsAsync(() => _selectedExecutable.LogSource.WatchErrorLogAsync(_watchLogsTokenSource.Token), LogEntryType.Error);
+                });
+
+                _status = LogStatus.WatchingLogs;
+            }
+            else
+            {
+                _watchLogsTokenSource = null;
+                _status = LogStatus.LogsNotYetAvailable;
+            }
+        }
+    }
+
+    private async Task HandleSelectedOptionChangedAsync()
+    {
+        if (_selectedExecutable is not null)
+        {
+            NavigationManager.NavigateTo($"/ExecutableLogs/{_selectedExecutable.Name}");
+            await StopWatchingLogsAsync();
+            await ClearLogsAsync();
+            await LoadLogsAsync();
+        }
+    }
+
+    private async Task OnExecutableListChanged(ObjectChangeType changeType, ExecutableViewModel ExecutableViewModel)
+    {
+        if (changeType == ObjectChangeType.Added)
+        {
+            _executableNameMapping[ExecutableViewModel.Name] = ExecutableViewModel;
+
+            if (_selectedExecutable is null)
+            {
+                if (string.IsNullOrEmpty(ExecutableName) || string.Equals(ExecutableName, ExecutableViewModel.Name, StringComparison.Ordinal))
+                {
+                    _selectedExecutable = ExecutableViewModel;
+                    await LoadLogsAsync();
+                }
+            }
+        }
+        else if (changeType == ObjectChangeType.Modified)
+        {
+            _executableNameMapping[ExecutableViewModel.Name] = ExecutableViewModel;
+
+            if (string.Equals(_selectedExecutable?.Name, ExecutableViewModel.Name, StringComparison.Ordinal))
+            {
+                var originalSelection = _selectedExecutable;
+                _selectedExecutable = ExecutableViewModel;
+
+                if (_watchLogsTokenSource is null)
+                {
+                    await LoadLogsAsync();
+                }
+            }
+        }
+        else if (changeType == ObjectChangeType.Deleted)
+        {
+            _executableNameMapping.Remove(ExecutableViewModel.Name);
+            if (string.Equals(_selectedExecutable?.Name, ExecutableViewModel.Name, StringComparison.Ordinal))
+            {
+                if (_executableNameMapping.Count > 0)
+                {
+                    _selectedExecutable = Executables.First();
+                    await HandleSelectedOptionChangedAsync();
+                }
+            }
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private static string GetExecutableDisplayText(ExecutableViewModel executable)
+    {
+        string stateText = "";
+        if (string.IsNullOrEmpty(executable.State))
+        {
+            stateText = " (Unknown State)";
+        }
+        else if (executable.State != "Running")
+        {
+            stateText = $" ({executable.State})";
+        }
+        return $"{executable.Name}{stateText}";
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await DisposeWatchExecutablesTokenSource();
+        await StopWatchingLogsAsync();
+    }
+
+    private async Task DisposeWatchExecutablesTokenSource()
+    {
+        await _watchExecutablesTokenSource.CancelAsync();
+        _watchExecutablesTokenSource.Dispose();
+    }
+
+    private async Task StopWatchingLogsAsync()
+    {
+        if (_watchLogsTokenSource is not null)
+        {
+            await _watchLogsTokenSource.CancelAsync();
+            _watchLogsTokenSource.Dispose();
+            // The token source only gets created if selected executable is not null
+            await _selectedExecutable!.LogSource.StopAsync();
+            _watchLogsTokenSource = null;
+        }
+    }
+}

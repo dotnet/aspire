@@ -5,7 +5,7 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting;
 
-public interface IDistributedApplicationComponentBuilder<T> where T : IDistributedApplicationComponent
+public interface IDistributedApplicationComponentBuilder<out T> where T : IDistributedApplicationComponent
 {
     IDistributedApplicationBuilder ApplicationBuilder { get; }
     T Component { get; }

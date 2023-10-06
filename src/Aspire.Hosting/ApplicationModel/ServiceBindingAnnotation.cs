@@ -9,16 +9,17 @@ namespace Aspire.Hosting.ApplicationModel;
 [DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}")]
 public sealed class ServiceBindingAnnotation : IDistributedApplicationComponentAnnotation
 {
-    public ServiceBindingAnnotation(ProtocolType protocol, string? uriScheme = null, string? name = null, int? port = null, int? containerPort = null)
+    public ServiceBindingAnnotation(ProtocolType protocol, string? uriScheme = null, string? transport = null, string? name = null, int? port = null, int? containerPort = null)
     {
         // If the URI scheme is null, we'll adopt either udp:// or tcp:// based on the
         // protocol. If the name is null, we'll use the URI scheme as the default. This
         // is because we eventually always need these values to be populated so lets do
         // it up front.
 
-        UriScheme = uriScheme ?? protocol.ToString().ToLowerInvariant();
-        Name = name ?? UriScheme;
         Protocol = protocol;
+        UriScheme = uriScheme ?? protocol.ToString().ToLowerInvariant();
+        Transport = transport ?? (UriScheme == "http" || UriScheme == "https" ? "http" : Protocol.ToString().ToLowerInvariant());
+        Name = name ?? UriScheme;
         Port = port;
         ContainerPort = containerPort ?? port;
     }
@@ -50,4 +51,9 @@ public sealed class ServiceBindingAnnotation : IDistributedApplicationComponentA
     /// If a service is URI-addressable, this will property will contain the URI scheme to use for constructing service URI.
     /// </summary>
     public string UriScheme { get; }
+
+    /// <summary>
+    /// Transport that is being used (e.g. http, http2, http3 etc).
+    /// </summary>
+    public string Transport { get; }
 }

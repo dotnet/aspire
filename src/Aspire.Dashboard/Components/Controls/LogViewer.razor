@@ -6,17 +6,13 @@
 
 <div class="log-overflow">
     <div class="log-container" id="logContainer">
-        <span class="initial-text">@InitialText</span>
+        
     </div>
 </div>
 
 @code {
-    [Parameter]
-    public string InitialText { get; set; } = "";
-
     private List<IEnumerable<LogEntry>> _preRenderQueue = new();
 
-    bool initialMessageCleared = false;
     bool renderComplete = false;
 
     private IJSObjectReference? _jsModule;
@@ -25,7 +21,6 @@
     {
         if (_jsModule is not null)
         {
-            initialMessageCleared = true;
             await _jsModule.InvokeVoidAsync("clearLogs", cancellationToken);
         }
     }
@@ -36,8 +31,39 @@
     internal Task AddLogEntriesAsync(IEnumerable<LogEntry> logEntries)
         => WriteLogsAsync(logEntries);
 
-    private ValueTask WriteLogsToDom(IEnumerable<LogEntry> logs)
+    private ValueTask WriteLogsToDomAsync(IEnumerable<LogEntry> logs)
         => _jsModule is null ? ValueTask.CompletedTask : _jsModule.InvokeVoidAsync("addLogEntries", logs);
+
+    internal async Task WatchLogsAsync(Func<IAsyncEnumerable<string[]>> watchMethod, LogEntryType logEntryType)
+    {
+        string? parentTimestamp = null;
+        Guid? parentId = null;
+        int lineIndex = 0;
+
+        await foreach (var logs in watchMethod())
+        {
+            var logEntries = new List<LogEntry>(logs.Length);
+            foreach (var log in logs)
+            {
+                var logEntry = LogEntry.Create(log, logEntryType);
+                if (logEntry.IsFirstLine)
+                {
+                    parentTimestamp = logEntry.Timestamp;
+                    parentId = logEntry.Id;
+                    lineIndex = 0;
+                }
+                else if (parentId.HasValue)
+                {
+                    logEntry.ParentTimestamp = parentTimestamp;
+                    logEntry.ParentId = parentId;
+                    logEntry.LineIndex = ++lineIndex;
+                }
+                logEntries.Add(logEntry);
+            }
+
+            await AddLogEntriesAsync(logEntries);
+        }
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -47,22 +73,16 @@
 
             if (_preRenderQueue.Count > 0)
             {
-                await WritePreRenderQueue();
+                await WritePreRenderQueueAsync();
             }
             renderComplete = true;
         }
 
-        async Task WritePreRenderQueue()
+        async Task WritePreRenderQueueAsync()
         {
-            if (!initialMessageCleared)
-            {
-                initialMessageCleared = true;
-                await ClearLogsAsync();
-            }
-
             foreach (var logs in _preRenderQueue)
             {
-                await WriteLogsToDom(logs);
+                await WriteLogsToDomAsync(logs);
             }
             _preRenderQueue.Clear();
         }
@@ -72,13 +92,7 @@
     {
         if (renderComplete)
         {
-            if (!initialMessageCleared)
-            {
-                initialMessageCleared = true;
-                await ClearLogsAsync();
-            }
-
-            await WriteLogsToDom(logs);
+            await WriteLogsToDomAsync(logs);
         }
         else
         {

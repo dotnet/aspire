@@ -153,6 +153,8 @@ public class ServiceProducerAnnotation
     }
 }
 
+public sealed record NamespacedName(string Name, string? Namespace);
+
 public static class Rules
 {
     public static bool IsValidObjectName(string candidate)

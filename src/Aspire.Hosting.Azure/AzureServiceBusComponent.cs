@@ -5,10 +5,8 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Azure;
 
-public class AzureServiceBusComponent : IAzureComponent
+public class AzureServiceBusComponent(string name) : DistributedApplicationComponent(name), IAzureComponent
 {
-    public ComponentMetadataCollection Annotations { get; } = new();
-
     public string ServiceBusNamespace { get; set; } = default!;
 
     public string[] QueueNames { get; set; } = [];

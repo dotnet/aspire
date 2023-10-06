@@ -87,9 +87,9 @@ Also you can pass the `Action<NpgsqlEntityFrameworkCorePostgreSQLSettings> confi
     builder.AddNpgsqlDbContext<MyDbContext>("postgresdb", settings => settings.HealthChecks = false);
 ```
 
-## DevHost Extensions
+## App Extensions
 
-In your DevHost project, register a Postgres container and consume the connection using the following methods:
+In your App project, register a Postgres container and consume the connection using the following methods:
 
 ```cs
 var postgres = builder.AddPostgresContainer("postgresdb");

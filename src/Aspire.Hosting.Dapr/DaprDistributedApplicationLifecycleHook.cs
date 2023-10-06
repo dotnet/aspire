@@ -3,7 +3,9 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.Otlp;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using System.Globalization;
 using System.Net.Sockets;
 using static Aspire.Hosting.Dapr.CommandLineArgs;
@@ -13,6 +15,7 @@ namespace Aspire.Hosting.Dapr;
 internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedApplicationLifecycleHook
 {
     private readonly IConfiguration _configuration;
+    private readonly IHostEnvironment _environment;
     private readonly DaprOptions _options;
     private readonly DaprPortManager _portManager;
 
@@ -22,12 +25,11 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
             : Path.Combine("/usr", "local", "bin", "dapr");
 
     private const int DaprHttpPortStartRange = 50001;
-    private const string DashboardOtlpUrlVariableName = "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL";
-    private const string DashboardOtlpUrlDefaultValue = "http://localhost:18889";
 
-    public DaprDistributedApplicationLifecycleHook(IConfiguration configuration, DaprOptions options, DaprPortManager portManager)
+    public DaprDistributedApplicationLifecycleHook(IConfiguration configuration, IHostEnvironment environment, DaprOptions options, DaprPortManager portManager)
     {
         _configuration = configuration;
+        _environment = environment;
         this._options = options;
         this._portManager = portManager;
     }
@@ -110,7 +112,12 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                 ports.Add("profile", (sidecarOptions?.ProfilePort ?? this._portManager.ReservePort(DaprHttpPortStartRange), daprProfilePortArg, null));
             }
 
-            var component = new ExecutableComponent(fileName, workingDirectory, daprCommandLine.Arguments.ToArray());
+            if (!(sidecarOptions?.AppId is { } appId))
+            {
+                throw new DistributedApplicationException("AppId is required for Dapr sidecar executable.");
+            }
+
+            var component = new ExecutableComponent(appId, fileName, workingDirectory, daprCommandLine.Arguments.ToArray());
 
             project.Annotations.Add(
                 new EnvironmentCallbackAnnotation(
@@ -134,19 +141,13 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
             // NOTE: Telemetry is enabled by default.
             if (this._options.EnableTelemetry != false)
             {
+                OtlpConfigurationExtensions.AddOtlpEnvironment(component, _configuration, _environment);
+
+                // Explicitly specify OTEL endpoint is insecure and use gRPC to sidecar.
                 component.Annotations.Add(
                     new EnvironmentCallbackAnnotation(
                         env =>
                         {
-
-                            //
-                            // NOTE: Setting OTEL_EXPORTER_OTLP_ENDPOINT will not override any explicit OTLP configuration in a specified Dapr sidecar configuration file.
-                            //       The ambient Dapr sidecar configuration file does not configure an OTLP exporter (but could have been updated by the user to do so).
-                            //
-                            // TODO: It would be nice, at some point, to consolidate determination of the OTLP endpoint as it's now repeated in a few places.
-                            //
-
-                            env["OTEL_EXPORTER_OTLP_ENDPOINT"] = this._configuration[DashboardOtlpUrlVariableName] ?? DashboardOtlpUrlDefaultValue;
                             env["OTEL_EXPORTER_OTLP_INSECURE"] = "true";
                             env["OTEL_EXPORTER_OTLP_PROTOCOL"] = "grpc";
                         }));

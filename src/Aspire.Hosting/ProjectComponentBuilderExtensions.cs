@@ -13,8 +13,8 @@ public static class ProjectComponentBuilderExtensions
 {
     public static IDistributedApplicationComponentBuilder<ProjectComponent> AddProject<TProject>(this IDistributedApplicationBuilder builder, string? name = null) where TProject : IServiceMetadata, new()
     {
-        var project = new ProjectComponent();
-        var projectBuilder = builder.AddComponent(name ?? typeof(TProject).Name.ToLowerInvariant(), project);
+        var project = new ProjectComponent(name ?? typeof(TProject).Name.ToLowerInvariant());
+        var projectBuilder = builder.AddComponent(project);
         projectBuilder.ConfigureOtlpEnvironment();
         var serviceMetadata = new TProject();
         projectBuilder.WithAnnotation(serviceMetadata);
@@ -60,7 +60,7 @@ public static class ProjectComponentBuilderExtensions
             throw new DistributedApplicationException($"Service binding with name '{name}' already exists");
         }
 
-        var annotation = new ServiceBindingAnnotation(ProtocolType.Tcp, scheme, name, hostPort);
+        var annotation = new ServiceBindingAnnotation(ProtocolType.Tcp, scheme, name, port: hostPort);
         return builder.WithAnnotation(annotation);
     }
 }
