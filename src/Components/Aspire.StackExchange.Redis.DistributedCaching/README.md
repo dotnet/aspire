@@ -94,9 +94,9 @@ You can also setup the [ConfigurationOptions](https://stackexchange.github.io/St
 builder.AddRedisDistributedCache(configureOptions: options => options.ConnectTimeout = 3000);
 ```
 
-## DevHost Extensions
+## App Extensions
 
-In your DevHost project, register a Redis container and consume the connection using the following methods:
+In your App project, register a Redis container and consume the connection using the following methods:
 
 ```cs
 var redis = builder.AddRedisContainer("cache");

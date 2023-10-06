@@ -11,7 +11,7 @@ The Aspire distributed application model is comprised components which are typic
 ```csharp
 using Aspire.Hosting.Postgres;
 using Aspire.Hosting.Redis;
-using Projects = eShopLite.DevHost.Projects;
+using Projects = eShopLite.App.Projects;
 
 var builder = CloudApplication.CreateBuilder(args);
 
@@ -35,7 +35,7 @@ builder.AddContainer("prometheus", "prom/prometheus")
 builder.Build().Run();
 ```
 
-When ```dotnet publish``` is called on the DevHost project containing the code above the application model and dependency projects will be built and the devhost will be executed in a model which emits an ```aspire-manifest.json``` file in the build artifacts for the DevHost project. The manifest file for the above project would look like the following:
+When ```dotnet publish``` is called on the App project containing the code above the application model and dependency projects will be built and the App will be executed in a model which emits an ```aspire-manifest.json``` file in the build artifacts for the App project. The manifest file for the above project would look like the following:
 
 ```json
 {
