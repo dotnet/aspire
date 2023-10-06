@@ -10,7 +10,7 @@ public class LocalOnlyFactAttribute : FactAttribute
     {
         get
         {
-            if (Environment.GetEnvironmentVariable("TF_BUILD") != null)
+            if (Environment.GetEnvironmentVariable("BUILD_BUILDID") != null)
             {
                 return "LocalOnlyFactAttribute tests are not run as part of CI.";
             }
