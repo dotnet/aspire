@@ -14,34 +14,21 @@ namespace Aspire.Hosting.Dashboard;
 public class DashboardViewModelService(DistributedApplicationModel applicationModel) : IDashboardViewModelService, IDisposable
 {
     private readonly DistributedApplicationModel _applicationModel = applicationModel;
-    private readonly KubernetesService _kubernetesService = new KubernetesService();
+    private readonly KubernetesService _kubernetesService = new();
+
+    public async Task<List<ContainerViewModel>> GetContainersAsync()
+    {
+        var containers = await _kubernetesService.ListAsync<Container>().ConfigureAwait(false);
+
+        return containers.Select(ConvertToContainerViewModel).OrderBy(e => e.Name).ToList();
+    }
 
     public async Task<List<ExecutableViewModel>> GetExecutablesAsync()
     {
         var executables = await _kubernetesService.ListAsync<Executable>().ConfigureAwait(false);
         return executables
             .Where(executable => executable.Metadata.Annotations?.ContainsKey(Executable.CSharpProjectPathAnnotation) == false)
-            .Select(executable =>
-            {
-                var model = new ExecutableViewModel()
-                {
-                    Name = executable.Metadata.Name,
-                    NamespacedName = new(executable.Metadata.Name, null),
-                    CreationTimeStamp = executable.Metadata?.CreationTimestamp?.ToLocalTime(),
-                    ExecutablePath = executable.Spec.ExecutablePath,
-                    State = executable.Status?.State,
-                    LogSource = new FileLogSource(executable.Status?.StdOutFile, executable.Status?.StdErrFile)
-                };
-
-                if (executable.Status?.EffectiveEnv is not null)
-                {
-                    FillEnvironmentVariables(model.Environment, executable.Status.EffectiveEnv);
-                }
-
-                return model;
-            })
-            .OrderBy(e => e.Name)
-            .ToList();
+            .Select(ConvertToExecutableViewModel).OrderBy(e => e.Name).ToList();
     }
 
     public async Task<List<ProjectViewModel>> GetProjectsAsync()
@@ -52,98 +39,7 @@ public class DashboardViewModelService(DistributedApplicationModel applicationMo
 
         return executables
             .Where(executable => executable.Metadata.Annotations?.ContainsKey(Executable.CSharpProjectPathAnnotation) == true)
-            .Select(executable =>
-            {
-                var expectedEndpointCount = 0;
-                if (executable.Metadata?.Annotations?.TryGetValue(Executable.ServiceProducerAnnotation, out var annotationJson) == true)
-                {
-                    var serviceProducerAnnotations = JsonSerializer.Deserialize<ServiceProducerAnnotation[]>(annotationJson);
-                    if (serviceProducerAnnotations is not null)
-                    {
-                        expectedEndpointCount = serviceProducerAnnotations.Length;
-                    }
-                }
-
-                var model = new ProjectViewModel
-                {
-                    Name = executable.Metadata!.Name,
-                    NamespacedName = new(executable.Metadata.Name, null),
-                    CreationTimeStamp = executable.Metadata?.CreationTimestamp?.ToLocalTime(),
-                    ProjectPath = executable.Metadata?.Annotations?[Executable.CSharpProjectPathAnnotation] ?? "",
-                    State = executable.Status?.State,
-                    LogSource = new FileLogSource(executable.Status?.StdOutFile, executable.Status?.StdErrFile),
-                    ExpectedEndpointCount = expectedEndpointCount
-                };
-
-                if (_applicationModel.TryGetProjectWithPath(model.ProjectPath, out var project) && project.TryGetAllocatedEndPoints(out var allocatedEndpoints))
-                {
-                    model.Addresses.AddRange(allocatedEndpoints.Select(ep => ep.UriString));
-                }
-
-                model.Endpoints.AddRange(endpoints
-                    .Where(ep => ep.Metadata.OwnerReferences.Any(or => or.Kind == executable.Kind && or.Name == executable.Metadata?.Name))
-                    .Select(ep =>
-                    {
-                        // CONSIDER: a more robust way to store application protocol information in DCP model
-                        string scheme = "http://";
-                        if (ep.Spec.ServiceName?.EndsWith("https") is true)
-                        {
-                            scheme = "https://";
-                        }
-
-                        return new ServiceEndpoint($"{scheme}{ep.Spec.Address}:{ep.Spec.Port}", ep.Spec.ServiceName ?? "");
-                    })
-                );
-
-                if (executable.Status?.EffectiveEnv is not null)
-                {
-                    FillEnvironmentVariables(model.Environment, executable.Status.EffectiveEnv);
-                }
-
-                return model;
-            })
-            .OrderBy(m => m.Name)
-            .ToList();
-    }
-
-    public async Task<List<ContainerViewModel>> GetContainersAsync()
-    {
-        var containers = await _kubernetesService.ListAsync<Container>().ConfigureAwait(false);
-
-        return containers
-            .Select(container =>
-            {
-                var model = new ContainerViewModel
-                {
-                    Name = container.Metadata.Name,
-                    NamespacedName = new(container.Metadata.Name, null),
-                    ContainerId = container.Status?.ContainerId,
-                    CreationTimeStamp = container.Metadata.CreationTimestamp?.ToLocalTime(),
-                    Image = container.Spec.Image!,
-                    LogSource = new DockerContainerLogSource(container.Status!.ContainerId!),
-                    State = container.Status?.State
-                };
-
-                if (container.Spec.Ports != null)
-                {
-                    foreach (var port in container.Spec.Ports)
-                    {
-                        if (port.ContainerPort != null)
-                        {
-                            model.Ports.Add(port.ContainerPort.Value);
-                        }
-                    }
-                }
-
-                if (container.Spec.Env is not null)
-                {
-                    FillEnvironmentVariables(model.Environment, container.Spec.Env);
-                }
-
-                return model;
-            })
-            .OrderBy(e => e.Name)
-            .ToList();
+            .Select(executable => ConvertToProjectViewModel(executable, endpoints)).OrderBy(m => m.Name).ToList();
     }
 
     public async IAsyncEnumerable<ComponentChanged<ContainerViewModel>> WatchContainersAsync(
@@ -158,32 +54,7 @@ public class DashboardViewModelService(DistributedApplicationModel applicationMo
                 continue;
             }
 
-            var containerViewModel = new ContainerViewModel
-            {
-                Name = container.Metadata.Name,
-                NamespacedName = new(container.Metadata.Name, null),
-                ContainerId = container.Status?.ContainerId,
-                CreationTimeStamp = container.Metadata.CreationTimestamp?.ToLocalTime(),
-                Image = container.Spec.Image!,
-                LogSource = new DockerContainerLogSource(container.Status!.ContainerId!),
-                State = container.Status?.State
-            };
-
-            if (container.Spec.Ports != null)
-            {
-                foreach (var port in container.Spec.Ports)
-                {
-                    if (port.ContainerPort != null)
-                    {
-                        containerViewModel.Ports.Add(port.ContainerPort.Value);
-                    }
-                }
-            }
-
-            if (container.Spec.Env is not null)
-            {
-                FillEnvironmentVariables(containerViewModel.Environment, container.Spec.Env);
-            }
+            var containerViewModel = ConvertToContainerViewModel(container);
 
             yield return new ComponentChanged<ContainerViewModel>(objectChangeType, containerViewModel);
         }
@@ -206,20 +77,7 @@ public class DashboardViewModelService(DistributedApplicationModel applicationMo
                 continue;
             }
 
-            var executableViewModel = new ExecutableViewModel
-            {
-                Name = executable.Metadata.Name,
-                NamespacedName = new(executable.Metadata.Name, null),
-                CreationTimeStamp = executable.Metadata?.CreationTimestamp?.ToLocalTime(),
-                ExecutablePath = executable.Spec.ExecutablePath,
-                State = executable.Status?.State,
-                LogSource = new FileLogSource(executable.Status?.StdOutFile, executable.Status?.StdErrFile)
-            };
-
-            if (executable.Status?.EffectiveEnv is not null)
-            {
-                FillEnvironmentVariables(executableViewModel.Environment, executable.Status.EffectiveEnv);
-            }
+            var executableViewModel = ConvertToExecutableViewModel(executable);
 
             yield return new ComponentChanged<ExecutableViewModel>(objectChangeType, executableViewModel);
         }
@@ -242,55 +100,114 @@ public class DashboardViewModelService(DistributedApplicationModel applicationMo
                 continue;
             }
 
-            var expectedEndpointCount = 0;
-            if (executable.Metadata?.Annotations?.TryGetValue(Executable.ServiceProducerAnnotation, out var annotationJson) == true)
-            {
-                var serviceProducerAnnotations = JsonSerializer.Deserialize<ServiceProducerAnnotation[]>(annotationJson);
-                if (serviceProducerAnnotations is not null)
-                {
-                    expectedEndpointCount = serviceProducerAnnotations.Length;
-                }
-            }
-
-            var projectViewModel = new ProjectViewModel
-            {
-                Name = executable.Metadata!.Name,
-                NamespacedName = new(executable.Metadata.Name, null),
-                CreationTimeStamp = executable.Metadata?.CreationTimestamp?.ToLocalTime(),
-                ProjectPath = executable.Metadata?.Annotations?[Executable.CSharpProjectPathAnnotation] ?? "",
-                State = executable.Status?.State,
-                LogSource = new FileLogSource(executable.Status?.StdOutFile, executable.Status?.StdErrFile),
-                ExpectedEndpointCount = expectedEndpointCount
-            };
-
-            if (_applicationModel.TryGetProjectWithPath(projectViewModel.ProjectPath, out var project) && project.TryGetAllocatedEndPoints(out var allocatedEndpoints))
-            {
-                projectViewModel.Addresses.AddRange(allocatedEndpoints.Select(ep => ep.UriString));
-            }
-
-            projectViewModel.Endpoints.AddRange((await _kubernetesService.ListAsync<Endpoint>(cancellationToken: cancellationToken).ConfigureAwait(true))
-                .Where(ep => ep.Metadata.OwnerReferences.Any(or => or.Kind == executable.Kind && or.Name == executable.Metadata?.Name))
-                .Select(ep =>
-                {
-                    // CONSIDER: a more robust way to store application protocol information in DCP model
-                    string scheme = "http://";
-                    if (ep.Spec.ServiceName?.EndsWith("https") is true)
-                    {
-                        scheme = "https://";
-                    }
-
-                    return new ServiceEndpoint($"{scheme}{ep.Spec.Address}:{ep.Spec.Port}", ep.Spec.ServiceName ?? "");
-                }
-            )
-            );
-
-            if (executable.Status?.EffectiveEnv is not null)
-            {
-                FillEnvironmentVariables(projectViewModel.Environment, executable.Status.EffectiveEnv);
-            }
+            var endpoints = await _kubernetesService.ListAsync<Endpoint>(cancellationToken: cancellationToken).ConfigureAwait(false);
+            var projectViewModel = ConvertToProjectViewModel(executable, endpoints);
 
             yield return new ComponentChanged<ProjectViewModel>(objectChangeType, projectViewModel);
         }
+    }
+
+    private static ContainerViewModel ConvertToContainerViewModel(Container container)
+    {
+        var model = new ContainerViewModel
+        {
+            Name = container.Metadata.Name,
+            NamespacedName = new(container.Metadata.Name, null),
+            ContainerId = container.Status?.ContainerId,
+            CreationTimeStamp = container.Metadata.CreationTimestamp?.ToLocalTime(),
+            Image = container.Spec.Image!,
+            LogSource = new DockerContainerLogSource(container.Status!.ContainerId!),
+            State = container.Status?.State
+        };
+
+        if (container.Spec.Ports != null)
+        {
+            foreach (var port in container.Spec.Ports)
+            {
+                if (port.ContainerPort != null)
+                {
+                    model.Ports.Add(port.ContainerPort.Value);
+                }
+            }
+        }
+
+        if (container.Spec.Env is not null)
+        {
+            FillEnvironmentVariables(model.Environment, container.Spec.Env);
+        }
+
+        return model;
+    }
+
+    private static ExecutableViewModel ConvertToExecutableViewModel(Executable executable)
+    {
+        var model = new ExecutableViewModel()
+        {
+            Name = executable.Metadata.Name,
+            NamespacedName = new(executable.Metadata.Name, null),
+            CreationTimeStamp = executable.Metadata?.CreationTimestamp?.ToLocalTime(),
+            ExecutablePath = executable.Spec.ExecutablePath,
+            State = executable.Status?.State,
+            LogSource = new FileLogSource(executable.Status?.StdOutFile, executable.Status?.StdErrFile)
+        };
+
+        if (executable.Status?.EffectiveEnv is not null)
+        {
+            FillEnvironmentVariables(model.Environment, executable.Status.EffectiveEnv);
+        }
+
+        return model;
+    }
+
+    private ProjectViewModel ConvertToProjectViewModel(Executable executable, List<Endpoint> endpoints)
+    {
+        var expectedEndpointCount = 0;
+        if (executable.Metadata?.Annotations?.TryGetValue(Executable.ServiceProducerAnnotation, out var annotationJson) == true)
+        {
+            var serviceProducerAnnotations = JsonSerializer.Deserialize<ServiceProducerAnnotation[]>(annotationJson);
+            if (serviceProducerAnnotations is not null)
+            {
+                expectedEndpointCount = serviceProducerAnnotations.Length;
+            }
+        }
+
+        var model = new ProjectViewModel
+        {
+            Name = executable.Metadata!.Name,
+            NamespacedName = new(executable.Metadata.Name, null),
+            CreationTimeStamp = executable.Metadata?.CreationTimestamp?.ToLocalTime(),
+            ProjectPath = executable.Metadata?.Annotations?[Executable.CSharpProjectPathAnnotation] ?? "",
+            State = executable.Status?.State,
+            LogSource = new FileLogSource(executable.Status?.StdOutFile, executable.Status?.StdErrFile),
+            ExpectedEndpointCount = expectedEndpointCount
+        };
+
+        if (_applicationModel.TryGetProjectWithPath(model.ProjectPath, out var project) && project.TryGetAllocatedEndPoints(out var allocatedEndpoints))
+        {
+            model.Addresses.AddRange(allocatedEndpoints.Select(ep => ep.UriString));
+        }
+
+        model.Endpoints.AddRange(endpoints
+            .Where(ep => ep.Metadata.OwnerReferences.Any(or => or.Kind == executable.Kind && or.Name == executable.Metadata?.Name))
+            .Select(ep =>
+            {
+                // CONSIDER: a more robust way to store application protocol information in DCP model
+                string scheme = "http://";
+                if (ep.Spec.ServiceName?.EndsWith("https") is true)
+                {
+                    scheme = "https://";
+                }
+
+                return new ServiceEndpoint($"{scheme}{ep.Spec.Address}:{ep.Spec.Port}", ep.Spec.ServiceName ?? "");
+            })
+        );
+
+        if (executable.Status?.EffectiveEnv is not null)
+        {
+            FillEnvironmentVariables(model.Environment, executable.Status.EffectiveEnv);
+        }
+
+        return model;
     }
 
     public void Dispose()
