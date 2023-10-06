@@ -12,13 +12,12 @@ public static class AzureComponentExtensions
     {
         var component = new AzureKeyVaultComponent(name);
         return builder.AddComponent(component)
-                      .WithAnnotation(new ManifestPublishingCallbackAnnotation(WriteAzureKeyVaultComponentToManifestAsync));
+                      .WithAnnotation(new ManifestPublishingCallbackAnnotation(WriteAzureKeyVaultComponentToManifest));
     }
 
-    private static async Task WriteAzureKeyVaultComponentToManifestAsync(Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
+    private static void WriteAzureKeyVaultComponentToManifest(Utf8JsonWriter jsonWriter)
     {
         jsonWriter.WriteString("type", "azure.keyvault.v1");
-        await jsonWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public static IDistributedApplicationComponentBuilder<T> WithAddAzureKeyVault<T>(this IDistributedApplicationComponentBuilder<T> builder, IDistributedApplicationComponentBuilder<AzureKeyVaultComponent> keyVaultBuilder)
@@ -53,10 +52,10 @@ public static class AzureComponentExtensions
         };
 
         return builder.AddComponent(component)
-                      .WithAnnotation(new ManifestPublishingCallbackAnnotation((jsonWriter, cancellationToken) => WriteAzureServiceBusComponentToManifestAsync(component, jsonWriter, cancellationToken)));
+                      .WithAnnotation(new ManifestPublishingCallbackAnnotation(jsonWriter => WriteAzureServiceBusComponentToManifest(component, jsonWriter)));
     }
 
-    private static async Task WriteAzureServiceBusComponentToManifestAsync(AzureServiceBusComponent component,  Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
+    private static void WriteAzureServiceBusComponentToManifest(AzureServiceBusComponent component, Utf8JsonWriter jsonWriter)
     {
         jsonWriter.WriteString("type", "azure.servicebus.v1");
 
@@ -79,8 +78,6 @@ public static class AzureComponentExtensions
             }
             jsonWriter.WriteEndArray();
         }
-
-        await jsonWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public static IDistributedApplicationComponentBuilder<T> WithAzureServiceBus<T>(this IDistributedApplicationComponentBuilder<T> builder, IDistributedApplicationComponentBuilder<AzureServiceBusComponent> serviceBusBuilder)
@@ -110,13 +107,12 @@ public static class AzureComponentExtensions
     {
         var component = new AzureStorageComponent(name);
         return builder.AddComponent(component)
-                      .WithAnnotation(new ManifestPublishingCallbackAnnotation(WriteAzureStorageComponentToManifestAsync));
+                      .WithAnnotation(new ManifestPublishingCallbackAnnotation(WriteAzureStorageComponentToManifest));
     }
 
-    private static async Task WriteAzureStorageComponentToManifestAsync(Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
+    private static void WriteAzureStorageComponentToManifest(Utf8JsonWriter jsonWriter)
     {
         jsonWriter.WriteString("type", "azure.storage.v1");
-        await jsonWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public static IDistributedApplicationComponentBuilder<T> WithAzureStorage<T>(this IDistributedApplicationComponentBuilder<T> builder, IDistributedApplicationComponentBuilder<AzureStorageComponent> storage)

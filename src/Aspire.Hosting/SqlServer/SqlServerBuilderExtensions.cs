@@ -29,21 +29,20 @@ public static class SqlServerBuilderExtensions
         var sqlServer = new SqlServerComponent(name, connectionString);
 
         return builder.AddComponent(sqlServer)
-            .WithAnnotation(new ManifestPublishingCallbackAnnotation((jsonWriter, cancellationToken) =>
-                WriteSqlServerComponentToManifest(jsonWriter, sqlServer.GetConnectionString(), cancellationToken)));
+            .WithAnnotation(new ManifestPublishingCallbackAnnotation(jsonWriter =>
+                WriteSqlServerComponentToManifest(jsonWriter, sqlServer.GetConnectionString())));
     }
 
-    private static Task WriteSqlServerComponentToManifest(Utf8JsonWriter jsonWriter, CancellationToken cancellationToken) =>
-        WriteSqlServerComponentToManifest(jsonWriter, null, cancellationToken);
+    private static void WriteSqlServerComponentToManifest(Utf8JsonWriter jsonWriter) =>
+        WriteSqlServerComponentToManifest(jsonWriter, null);
 
-    private static async Task WriteSqlServerComponentToManifest(Utf8JsonWriter jsonWriter, string? connectionString, CancellationToken cancellationToken)
+    private static void WriteSqlServerComponentToManifest(Utf8JsonWriter jsonWriter, string? connectionString)
     {
         jsonWriter.WriteString("type", "sqlserver.v1");
         if (!string.IsNullOrEmpty(connectionString))
         {
             jsonWriter.WriteString("connectionString", connectionString);
         }
-        await jsonWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public static IDistributedApplicationComponentBuilder<T> WithSqlServer<T>(this IDistributedApplicationComponentBuilder<T> builder, IDistributedApplicationComponentBuilder<SqlServerContainerComponent> sqlBuilder, string? databaseName, string? connectionName = null)

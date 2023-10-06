@@ -37,21 +37,20 @@ public static class PostgresBuilderExtensions
         var postgres = new PostgresComponent(name, connectionString);
 
         return builder.AddComponent(postgres)
-            .WithAnnotation(new ManifestPublishingCallbackAnnotation((jsonWriter, cancellationToken) =>
-                WritePostgresComponentToManifest(jsonWriter, postgres.GetConnectionString(), cancellationToken)));
+            .WithAnnotation(new ManifestPublishingCallbackAnnotation(jsonWriter =>
+                WritePostgresComponentToManifest(jsonWriter, postgres.GetConnectionString())));
     }
 
-    private static Task WritePostgresComponentToManifest(Utf8JsonWriter jsonWriter, CancellationToken cancellationToken) =>
-        WritePostgresComponentToManifest(jsonWriter, null, cancellationToken);
+    private static void WritePostgresComponentToManifest(Utf8JsonWriter jsonWriter) =>
+        WritePostgresComponentToManifest(jsonWriter, null);
 
-    private static async Task WritePostgresComponentToManifest(Utf8JsonWriter jsonWriter, string? connectionString, CancellationToken cancellationToken)
+    private static void WritePostgresComponentToManifest(Utf8JsonWriter jsonWriter, string? connectionString)
     {
         jsonWriter.WriteString("type", "postgres.v1");
         if (!string.IsNullOrEmpty(connectionString))
         {
             jsonWriter.WriteString("connectionString", connectionString);
         }
-        await jsonWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
