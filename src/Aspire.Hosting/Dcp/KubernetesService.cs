@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Runtime.CompilerServices;
-using Aspire.Dashboard.Model;
 using Aspire.Hosting.Dcp.Model;
 using k8s;
 using k8s.Exceptions;
