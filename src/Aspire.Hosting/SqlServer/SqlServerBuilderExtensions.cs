@@ -7,7 +7,7 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.SqlServer;
 
-public static class SqlServerCloudApplicationBuilderExtensions
+public static class SqlServerBuilderExtensions
 {
     private const string ConnectionStringEnvironmentName = "ConnectionStrings__";
 
@@ -24,15 +24,32 @@ public static class SqlServerCloudApplicationBuilderExtensions
         return componentBuilder;
     }
 
-    private static async Task WriteSqlServerComponentToManifest(Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
+    public static IDistributedApplicationComponentBuilder<SqlServerComponent> AddSqlServer(this IDistributedApplicationBuilder builder, string name, string? connectionString)
+    {
+        var sqlServer = new SqlServerComponent(name, connectionString);
+
+        return builder.AddComponent(sqlServer)
+            .WithAnnotation(new ManifestPublishingCallbackAnnotation((jsonWriter, cancellationToken) =>
+                WriteSqlServerComponentToManifest(jsonWriter, sqlServer.GetConnectionString(), cancellationToken)));
+    }
+
+    private static Task WriteSqlServerComponentToManifest(Utf8JsonWriter jsonWriter, CancellationToken cancellationToken) =>
+        WriteSqlServerComponentToManifest(jsonWriter, null, cancellationToken);
+
+    private static async Task WriteSqlServerComponentToManifest(Utf8JsonWriter jsonWriter, string? connectionString, CancellationToken cancellationToken)
     {
         jsonWriter.WriteString("type", "sqlserver.v1");
+        if (!string.IsNullOrEmpty(connectionString))
+        {
+            jsonWriter.WriteString("connectionString", connectionString);
+        }
         await jsonWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public static IDistributedApplicationComponentBuilder<T> WithSqlServer<T>(this IDistributedApplicationComponentBuilder<T> builder, IDistributedApplicationComponentBuilder<SqlServerContainerComponent> sqlBuilder, string? databaseName, string? connectionName = null)
         where T : IDistributedApplicationComponentWithEnvironment
     {
+        var sql = sqlBuilder.Component;
         connectionName = connectionName ?? sqlBuilder.Component.Name;
 
         return builder.WithEnvironment((context) =>
@@ -41,26 +58,16 @@ public static class SqlServerCloudApplicationBuilderExtensions
 
             if (context.PublisherName == "manifest")
             {
-                context.EnvironmentVariables[connectionStringName] = $"{{{sqlBuilder.Component.Name}.connectionString}}";
+                context.EnvironmentVariables[connectionStringName] = $"{{{sql.Name}.connectionString}}";
                 return;
             }
 
-            if (!sqlBuilder.Component.TryGetAnnotationsOfType<AllocatedEndpointAnnotation>(out var allocatedEndpoints))
+            var connectionString = sql.GetConnectionString(databaseName);
+            if (string.IsNullOrEmpty(connectionString))
             {
-                throw new DistributedApplicationException("Sql component does not have endpoint annotation.");
+                throw new DistributedApplicationException($"A connection string for SqlServer '{sql.Name}' could not be retrieved.");
             }
-
-            var endpoint = allocatedEndpoints.Single();
-
-            // HACK: Use  the 127.0.0.1 address because localhost is resolving to [::1] following
-            //       up with DCP on this issue.
-            context.EnvironmentVariables[connectionStringName] = $"Server=127.0.0.1,{endpoint.Port};Database={databaseName ?? "master"};User ID=sa;Password={sqlBuilder.Component.GeneratedPassword};TrustServerCertificate=true;";
+            context.EnvironmentVariables[connectionStringName] = connectionString;
         });
-    }
-
-    public static IDistributedApplicationComponentBuilder<T> WithSqlServer<T>(this IDistributedApplicationComponentBuilder<T> projectBuilder, string connectionName, string connectionString)
-        where T : IDistributedApplicationComponentWithEnvironment
-    {
-        return projectBuilder.WithEnvironment(ConnectionStringEnvironmentName + connectionName, connectionString);
     }
 }
