@@ -1,7 +1,6 @@
 #if UseRedisCache
 using Aspire.Hosting.Redis;
 #endif
-using Projects = AspireStarterApplication1.AppHost.Projects;
 
 var builder = DistributedApplication.CreateBuilder(args);
 

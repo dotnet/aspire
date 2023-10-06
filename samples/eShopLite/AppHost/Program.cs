@@ -2,14 +2,13 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Postgres;
 using Aspire.Hosting.Redis;
-using Projects = AppHost.Projects;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
 builder.AddAzureProvisioning();
 
 var grafana = builder.AddContainer("grafana", "grafana/grafana")
-       .WithServiceBinding(containerPort: 3000, name: "grafana-http", scheme: "http");
+                     .WithServiceBinding(containerPort: 3000, name: "grafana-http", scheme: "http");
 
 var catalogdb = builder.AddPostgresContainer("postgres").AddDatabase("catalog");
 
@@ -36,7 +35,7 @@ builder.AddProject<Projects.OrderProcessor>()
        .WithReference(serviceBus, optional: true)
        .WithLaunchProfile("OrderProcessor");
 
-builder.AddProject<Projects.ApiGateway>()
+builder.AddProject<Projects.ApiGateway>("apigateway")
        .WithServiceReference(basket)
        .WithServiceReference(catalog);
 

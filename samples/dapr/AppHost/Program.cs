@@ -4,10 +4,10 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 builder.AddDapr();
 
-builder.AddProject<DaprAppHost.Projects.DaprServiceA>()
+builder.AddProject<Projects.DaprServiceA>("servicea")
        .WithDaprSidecar("service-a");
 
-builder.AddProject<DaprAppHost.Projects.DaprServiceB>()
+builder.AddProject<Projects.DaprServiceB>("serviceb")
        .WithDaprSidecar("service-b");
 
 using var app = builder.Build();
