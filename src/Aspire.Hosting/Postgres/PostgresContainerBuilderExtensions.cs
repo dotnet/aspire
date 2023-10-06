@@ -73,7 +73,7 @@ public static class PostgresContainerBuilderExtensions
         {
             if (context.PublisherName == "manifest")
             {
-                var manifestConnectionString = databaseName == null ? $"{postgresBuilder.Component.Name}.connectionString" : $"{postgresBuilder.Component.Name}.databases.{databaseName}.connectionString";
+                var manifestConnectionString = databaseName == null ? $"{{{postgresBuilder.Component.Name}.connectionString}}" : $"{{{postgresBuilder.Component.Name}.databases.{databaseName}.connectionString}}";
                 context.EnvironmentVariables[$"{ConnectionStringEnvironmentName}{connectionName}"] = manifestConnectionString;
                 return;
             }
