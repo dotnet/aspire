@@ -11,6 +11,10 @@ public static class ConsoleLogsConfigurationExtensions
     {
         return builder.WithEnvironment((context) =>
         {
+            if (context.PublisherName == "Manifest")
+            {
+                return;
+            }
             // Enable ANSI Control Sequences for colors in Output Redirection
             context.EnvironmentVariables["DOTNET_SYSTEM_CONSOLE_ALLOW_ANSI_COLOR_REDIRECTION"] = "true";
 
