@@ -4,6 +4,7 @@
 using System.Net.Sockets;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
+using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting.Redis;
 
@@ -22,9 +23,9 @@ public static class RedisBuilderExtensions
         return componentBuilder;
     }
 
-    public static IDistributedApplicationComponentBuilder<RedisComponent> AddRedis(this IDistributedApplicationBuilder builder, string name, string? connectionString)
+    public static IDistributedApplicationComponentBuilder<RedisComponent> AddRedis(this IDistributedApplicationBuilder builder, string name, string? connectionString = null)
     {
-        var redis = new RedisComponent(name, connectionString);
+        var redis = new RedisComponent(name, connectionString ?? builder.Configuration.GetConnectionString(name));
 
         return builder.AddComponent(redis)
             .WithAnnotation(new ManifestPublishingCallbackAnnotation(jsonWriter =>

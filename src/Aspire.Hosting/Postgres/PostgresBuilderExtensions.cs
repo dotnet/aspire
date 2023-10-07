@@ -4,6 +4,7 @@
 using System.Net.Sockets;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
+using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting.Postgres;
 
@@ -34,7 +35,7 @@ public static class PostgresBuilderExtensions
 
     public static IDistributedApplicationComponentBuilder<PostgresComponent> AddPostgres(this IDistributedApplicationBuilder builder, string name, string? connectionString)
     {
-        var postgres = new PostgresComponent(name, connectionString);
+        var postgres = new PostgresComponent(name, connectionString ?? builder.Configuration.GetConnectionString(name));
 
         return builder.AddComponent(postgres)
             .WithAnnotation(new ManifestPublishingCallbackAnnotation(jsonWriter =>

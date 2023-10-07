@@ -4,6 +4,7 @@
 using System.Net.Sockets;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
+using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting.SqlServer;
 
@@ -26,7 +27,7 @@ public static class SqlServerBuilderExtensions
 
     public static IDistributedApplicationComponentBuilder<SqlServerComponent> AddSqlServer(this IDistributedApplicationBuilder builder, string name, string? connectionString)
     {
-        var sqlServer = new SqlServerComponent(name, connectionString);
+        var sqlServer = new SqlServerComponent(name, connectionString ?? builder.Configuration.GetConnectionString(name));
 
         return builder.AddComponent(sqlServer)
             .WithAnnotation(new ManifestPublishingCallbackAnnotation(jsonWriter =>

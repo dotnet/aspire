@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
+using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting.Azure;
 
@@ -33,7 +34,7 @@ public static class AzureComponentExtensions
                 return;
             }
 
-            var vaultName = keyVaultBuilder.Component.VaultName ?? builder.ApplicationBuilder.Configuration["Aspire:Azure:Security:KeyVault:VaultName"];
+            var vaultName = keyVaultBuilder.Component.VaultName ?? builder.ApplicationBuilder.Configuration.GetConnectionString(builder.Component.Name);
 
             if (vaultName is not null)
             {
@@ -93,7 +94,7 @@ public static class AzureComponentExtensions
                 return;
             }
 
-            var sbNamespace = serviceBusBuilder.Component.ServiceBusNamespace ?? builder.ApplicationBuilder.Configuration["Aspire:Azure:Messaging:ServiceBus:Namespace"];
+            var sbNamespace = serviceBusBuilder.Component.ServiceBusNamespace ?? builder.ApplicationBuilder.Configuration.GetConnectionString(builder.Component.Name);
 
             if (sbNamespace is not null)
             {
@@ -134,7 +135,9 @@ public static class AzureComponentExtensions
             //storage.Component.TryGetName(out var name);
             //env[$"ConnectionStrings__{name}"] = storage.Component.ConnectionString!;
 
-            var accountName = storage.Component.AccountName ?? builder.ApplicationBuilder.Configuration["Aspire:Azure:Storage:AccountName"];
+            // REVIEW: This is a case where a single component exports 3 connection strings. We can split this up into 3 components
+            // to make it easier to consume.
+            var accountName = storage.Component.AccountName ?? builder.ApplicationBuilder.Configuration.GetConnectionString(builder.Component.Name);
 
             if (accountName is not null)
             {
