@@ -13,8 +13,6 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, IHo
     private readonly IOptions<PublishingOptions> _options = options;
     private readonly IHostApplicationLifetime _lifetime = lifetime;
 
-    public string Name => "manifest";
-
     public async Task PublishAsync(DistributedApplicationModel model, CancellationToken cancellationToken)
     {
         await WriteManifestAsync(model, cancellationToken).ConfigureAwait(false);
