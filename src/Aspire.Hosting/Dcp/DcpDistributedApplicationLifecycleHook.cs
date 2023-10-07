@@ -44,7 +44,7 @@ public sealed class DcpDistributedApplicationLifecycleHook : IDistributedApplica
                 {
                     // If someone uses WithServiceBinding in the dev host to register a service binding with the name
                     // http or https this exception will be thrown.
-                    throw new DistributedApplicationException("Service binding annotation with name '{uri.Scheme}' already exists.");
+                    throw new DistributedApplicationException($"Service binding annotation with name '{uri.Scheme}' already exists.");
                 }
 
                 var generatedServiceBindingAnnotation = new ServiceBindingAnnotation(
