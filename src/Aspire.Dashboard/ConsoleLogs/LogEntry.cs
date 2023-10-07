@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Net;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
@@ -23,25 +24,27 @@ internal sealed partial class LogEntry
 
     private LogEntry() { }
 
-    public static LogEntry Create(string s, LogEntryType type)
+    public static LogEntry Create(string text, LogEntryType type)
     {
-        var indexOfSpace = s.IndexOf(' ');
+        var encodedText = WebUtility.HtmlEncode(text);
 
-        var firstLineIndicator = indexOfSpace == -1 ? null : s[..indexOfSpace];
+        var indexOfSpace = encodedText.IndexOf(' ');
+
+        var firstLineIndicator = indexOfSpace == -1 ? null : encodedText[..indexOfSpace];
 
         // For right now, we only support RFC3339 timestamps, which is what (most) containers generate
         // We can tweak this once project/executable log timestamps are finalized
         if (firstLineIndicator is not null && s_rfc3339RegEx.IsMatch(firstLineIndicator))
         {
-            return new() { Timestamp = firstLineIndicator, Content = s[(indexOfSpace + 1)..], Type = type, IsFirstLine = true };
+            return new() { Timestamp = firstLineIndicator, Content = encodedText[(indexOfSpace + 1)..], Type = type, IsFirstLine = true };
         }
         else if (firstLineIndicator is not null && s_logLevelRegEx.IsMatch(firstLineIndicator))
         {
-            return new() { Content = s, Type = type, IsFirstLine = true };
+            return new() { Content = encodedText, Type = type, IsFirstLine = true };
         }
         else
         {
-            return new() { Content = s, Type = type };
+            return new() { Content = encodedText, Type = type };
         }
     }
 
@@ -62,7 +65,7 @@ internal sealed partial class LogEntry
     // (?:0[1-9]|1[0-2])                                   - Two digits for the month, restricted to 01-12
     // -                                                   - Separator for the date
     // (?:0[1-9]|[12][0-9]|3[01])                          - Two digits for the day, restricted to 01-31
-    // 'T'                                                 - Literal, separator between date and time
+    // [T ]                                                - Literal, separator between date and time, either a T or a space
     // (?:[01][0-9]|2[0-3])                                - Two digits for the hour, restricted to 00-23
     // :                                                   - Separator for the time
     // (?:[0-5][0-9])                                      - Two digits for the minutes, restricted to 00-59
@@ -78,8 +81,16 @@ internal sealed partial class LogEntry
     private static partial Regex GenerateRfc3339RegEx();
 
     // Regular expression that detects log levels used as indicators
-    // of the first line of a log entry
-    [GeneratedRegex("^(trce|dbug|info|warn|fail|crit):$")]
+    // of the first line of a log entry, skipping any ANSI control sequences
+    // that may come first
+    //
+    // Explanation:
+    // ^                                 - Starts the string
+    // (?:\x1B\\[\\d{1,2}m)*             - Zero or more ANSI SGR Control Sequences (e.g. \x1B[32m, which means green foreground)
+    // (?:trce|dbug|info|warn|fail|crit) - One of the log level names
+    // :                                 - Literal
+    // $                                 - Ends the string
+    [GeneratedRegex("^(?:\x1B\\[\\d{1,2}m)*(?:trce|dbug|info|warn|fail|crit)(?:\u001b\\[\\d{1,2}m)*:$")]
     private static partial Regex GenerateLogLevelRegEx();
 }
 

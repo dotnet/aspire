@@ -1,5 +1,6 @@
 ﻿@namespace Aspire.Dashboard.Components
 @using System.Text
+@using Aspire.Dashboard.ConsoleLogs
 @using Aspire.Dashboard.Model
 @inject IJSRuntime JS
 @implements IAsyncDisposable
@@ -11,10 +12,10 @@
 </div>
 
 @code {
+    private static readonly AnsiParser s_ansiParser = new();
+
     private List<IEnumerable<LogEntry>> _preRenderQueue = new();
-
-    bool renderComplete = false;
-
+    private bool renderComplete = false;
     private IJSObjectReference? _jsModule;
 
     internal async Task ClearLogsAsync(CancellationToken cancellationToken = default)
@@ -39,6 +40,7 @@
         string? parentTimestamp = null;
         Guid? parentId = null;
         int lineIndex = 0;
+        AnsiParser.ParserState? residualState = null;
 
         await foreach (var logs in watchMethod())
         {
@@ -46,6 +48,11 @@
             foreach (var log in logs)
             {
                 var logEntry = LogEntry.Create(log, logEntryType);
+
+                var conversionResult = s_ansiParser.ConvertToHtml(logEntry.Content, residualState);
+                logEntry.Content = conversionResult.ConvertedText;
+                residualState = conversionResult.ResidualState;
+
                 if (logEntry.IsFirstLine)
                 {
                     parentTimestamp = logEntry.Timestamp;

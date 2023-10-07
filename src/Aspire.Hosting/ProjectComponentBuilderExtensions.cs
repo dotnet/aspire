@@ -4,6 +4,7 @@
 using System.Globalization;
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Otlp;
 using Aspire.Hosting.Properties;
 
@@ -16,6 +17,7 @@ public static class ProjectComponentBuilderExtensions
         var project = new ProjectComponent(name ?? typeof(TProject).Name.ToLowerInvariant());
         var projectBuilder = builder.AddComponent(project);
         projectBuilder.ConfigureOtlpEnvironment();
+        projectBuilder.ConfigureConsoleLogs();
         var serviceMetadata = new TProject();
         projectBuilder.WithAnnotation(serviceMetadata);
         return projectBuilder;
