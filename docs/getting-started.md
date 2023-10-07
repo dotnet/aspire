@@ -56,7 +56,7 @@
 2. Change `MyApp\Program.cs` to be:
 
 ```C#
-var builder = CloudApplication.CreateBuilder(args);
+var builder = DistributedApplication.CreateBuilder(args);
 
 builder.AddProject<MyApp.Projects.WebApplication22>(); // USE YOUR APP NAME
 
