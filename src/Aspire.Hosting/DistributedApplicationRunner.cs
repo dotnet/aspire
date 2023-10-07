@@ -18,7 +18,10 @@ internal sealed class DistributedApplicationRunner(DistributedApplicationModel m
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         var publisherName = _options.Value.Publisher?.ToLowerInvariant() ?? "dcp";
-        var publisher = _serviceProvider.GetRequiredKeyedService<IDistributedApplicationPublisher>(publisherName);
+
+        var publisher = _serviceProvider.GetKeyedService<IDistributedApplicationPublisher>(publisherName)
+            ?? throw new DistributedApplicationException($"Could not find registered publisher '{publisherName}'");
+
         await publisher.PublishAsync(_model, stoppingToken).ConfigureAwait(false);
     }
 }
