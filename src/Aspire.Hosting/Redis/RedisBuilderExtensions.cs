@@ -27,21 +27,20 @@ public static class RedisBuilderExtensions
         var redis = new RedisComponent(name, connectionString);
 
         return builder.AddComponent(redis)
-            .WithAnnotation(new ManifestPublishingCallbackAnnotation((jsonWriter, cancellationToken) =>
-                WriteRedisComponentToManifest(jsonWriter, redis.GetConnectionString(), cancellationToken)));
+            .WithAnnotation(new ManifestPublishingCallbackAnnotation(jsonWriter =>
+                WriteRedisComponentToManifest(jsonWriter, redis.GetConnectionString())));
     }
 
-    private static Task WriteRedisComponentToManifest(Utf8JsonWriter jsonWriter, CancellationToken cancellationToken) =>
-        WriteRedisComponentToManifest(jsonWriter, null, cancellationToken);
+    private static void WriteRedisComponentToManifest(Utf8JsonWriter jsonWriter) =>
+        WriteRedisComponentToManifest(jsonWriter, null);
 
-    private static async Task WriteRedisComponentToManifest(Utf8JsonWriter jsonWriter, string? connectionString, CancellationToken cancellationToken)
+    private static void WriteRedisComponentToManifest(Utf8JsonWriter jsonWriter, string? connectionString)
     {
         jsonWriter.WriteString("type", "redis.v1");
         if (!string.IsNullOrEmpty(connectionString))
         {
             jsonWriter.WriteString("connectionString", connectionString);
         }
-        await jsonWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public static IDistributedApplicationComponentBuilder<T> WithRedis<T>(this IDistributedApplicationComponentBuilder<T> builder, IDistributedApplicationComponentBuilder<IRedisComponent> redisBuilder, string? connectionName = null)

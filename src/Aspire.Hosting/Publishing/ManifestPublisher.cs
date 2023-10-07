@@ -34,25 +34,23 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, IHo
         using var jsonWriter = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true });
 
         jsonWriter.WriteStartObject();
-        await WriteComponentsAsync(model, jsonWriter, cancellationToken).ConfigureAwait(false);
+        WriteComponents(model, jsonWriter);
         jsonWriter.WriteEndObject();
 
         await jsonWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task WriteComponentsAsync(DistributedApplicationModel model, Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
+    private void WriteComponents(DistributedApplicationModel model, Utf8JsonWriter jsonWriter)
     {
         jsonWriter.WriteStartObject("components");
         foreach (var component in model.Components)
         {
-            await WriteComponentAsync(component, jsonWriter, cancellationToken).ConfigureAwait(false);
+            WriteComponent(component, jsonWriter);
         }
         jsonWriter.WriteEndObject();
-
-        await jsonWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task WriteComponentAsync(IDistributedApplicationComponent component, Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
+    private void WriteComponent(IDistributedApplicationComponent component, Utf8JsonWriter jsonWriter)
     {
         if (!component.TryGetName(out var componentName))
         {
@@ -65,37 +63,34 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, IHo
         // out the JSON. If so use that callback, otherwise use the fallback logic that we have.
         if (component.TryGetLastAnnotation<ManifestPublishingCallbackAnnotation>(out var manifestPublishingCallbackAnnotation))
         {
-            await manifestPublishingCallbackAnnotation.Callback(jsonWriter, cancellationToken).ConfigureAwait(false);
+            manifestPublishingCallbackAnnotation.Callback(jsonWriter);
         }
         else if (component is ContainerComponent containerComponent)
         {
-            await WriteContainerAsync(containerComponent, jsonWriter, cancellationToken).ConfigureAwait(false);
+            WriteContainer(containerComponent, jsonWriter);
         }
         else if (component is ProjectComponent projectComponent)
         {
-            await WriteProjectAsync(projectComponent, jsonWriter, cancellationToken).ConfigureAwait(false);
+            WriteProject(projectComponent, jsonWriter);
         }
         else if (component is ExecutableComponent executableComponent)
         {
-            await WriteExecutableAsync(executableComponent, jsonWriter, cancellationToken).ConfigureAwait(false);
+            WriteExecutable(executableComponent, jsonWriter);
         }
         else
         {
-            await WriteErrorAsync(jsonWriter, cancellationToken).ConfigureAwait(false);
+            WriteError(jsonWriter);
         }
 
         jsonWriter.WriteEndObject();
-
-        await jsonWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private static async Task WriteErrorAsync(Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
+    private static void WriteError(Utf8JsonWriter jsonWriter)
     {
         jsonWriter.WriteString("error", "This component does not support generation in the manifest.");
-        await jsonWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private static async Task WriteEnvironmentVariablesAsync(IDistributedApplicationComponent component, Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
+    private static void WriteEnvironmentVariables(IDistributedApplicationComponent component, Utf8JsonWriter jsonWriter)
     {
         var config = new Dictionary<string, string>();
         var context = new EnvironmentCallbackContext("manifest", config);
@@ -114,11 +109,9 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, IHo
             }
             jsonWriter.WriteEndObject();
         }
-
-        await jsonWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private static async Task WriteBindingsAsync(IDistributedApplicationComponent component, Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
+    private static void WriteBindings(IDistributedApplicationComponent component, Utf8JsonWriter jsonWriter)
     {
         if (component.TryGetServiceBindings(out var serviceBindings))
         {
@@ -133,11 +126,9 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, IHo
             }
             jsonWriter.WriteEndObject();
         }
-
-        await jsonWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private static async Task WriteContainerAsync(ContainerComponent containerComponent, Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
+    private static void WriteContainer(ContainerComponent containerComponent, Utf8JsonWriter jsonWriter)
     {
         jsonWriter.WriteString("type", "container.v1");
 
@@ -148,13 +139,11 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, IHo
 
         jsonWriter.WriteString("image", image);
 
-        await WriteEnvironmentVariablesAsync(containerComponent, jsonWriter, cancellationToken).ConfigureAwait(false);
-        await WriteBindingsAsync(containerComponent, jsonWriter, cancellationToken).ConfigureAwait(false);
-
-        await jsonWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
+        WriteEnvironmentVariables(containerComponent, jsonWriter);
+        WriteBindings(containerComponent, jsonWriter);
     }
 
-    private async Task WriteProjectAsync(ProjectComponent projectComponent, Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
+    private void WriteProject(ProjectComponent projectComponent, Utf8JsonWriter jsonWriter)
     {
         jsonWriter.WriteString("type", "project.v1");
 
@@ -167,19 +156,15 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, IHo
         var relativePathToProjectFile = Path.GetRelativePath(manifestPath, metadata.ProjectPath);
         jsonWriter.WriteString("path", relativePathToProjectFile);
 
-        await WriteEnvironmentVariablesAsync(projectComponent, jsonWriter, cancellationToken).ConfigureAwait(false);
-        await WriteBindingsAsync(projectComponent, jsonWriter, cancellationToken).ConfigureAwait(false);
-
-        await jsonWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
+        WriteEnvironmentVariables(projectComponent, jsonWriter);
+        WriteBindings(projectComponent, jsonWriter);
     }
 
-    private static async Task WriteExecutableAsync(ExecutableComponent executableComponent, Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
+    private static void WriteExecutable(ExecutableComponent executableComponent, Utf8JsonWriter jsonWriter)
     {
         jsonWriter.WriteString("type", "executable.v1");
 
-        await WriteEnvironmentVariablesAsync(executableComponent, jsonWriter, cancellationToken).ConfigureAwait(false);
-        await WriteBindingsAsync(executableComponent, jsonWriter, cancellationToken).ConfigureAwait(false);
-
-        await jsonWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
+        WriteEnvironmentVariables(executableComponent, jsonWriter);
+        WriteBindings(executableComponent, jsonWriter);
     }
 }
