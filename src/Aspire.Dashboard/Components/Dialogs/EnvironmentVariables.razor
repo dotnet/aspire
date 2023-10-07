@@ -22,10 +22,11 @@
             <FluentDataGrid Items="@FilteredItems"
                             ResizableColumns="true"
                             Style="width:100%"
-                            GenerateHeader="GenerateHeaderOption.Sticky">
-                <TemplateColumn Title="Name" Class="nameColumn" SortBy="@nameSort" Sortable="true">
+                            GenerateHeader="GenerateHeaderOption.Sticky"
+                            GridTemplateColumns="1fr 1fr">
+                <TemplateColumn Title="Name" Class="nameColumn" SortBy="@nameSort" Sortable="true" Tooltip="true" >
                     <FluentStack Orientation="Orientation.Horizontal">
-                        <span class="cellText">
+                        <span class="cellText" title="@context.Name">
                             <FluentHighlighter HighlightedText="@filter"
                                                Text="@context.Name" />
                         </span>
@@ -41,7 +42,7 @@
                     </FluentStack>
                 </TemplateColumn>
                 <TemplateColumn Title="Value" Class="valueColumn" SortBy="@valueSort" Sortable="true">
-                    <FluentStack Orientation="Orientation.Horizontal">
+                    <FluentStack Orientation="Orientation.Horizontal" Width="400px;">
                         @if (context.IsValueMasked)
                         {
                             <span class="cellText">
@@ -50,7 +51,7 @@
                         }
                         else
                         {
-                            <span class="cellText">
+                            <span class="cellText" title="@context.Value">
                                 <FluentHighlighter HighlightedText="@filter"
                                                    Text="@context.Value" />
                             </span>
