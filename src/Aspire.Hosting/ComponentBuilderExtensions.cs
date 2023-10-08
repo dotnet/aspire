@@ -22,12 +22,12 @@ public static class ComponentBuilderExtensions
         return builder.WithAnnotation(new NameAnnotation { Name = name });
     }
 
-    public static IDistributedApplicationComponentBuilder<T> WithEnvironment<T>(this IDistributedApplicationComponentBuilder<T> builder, string name, Func<string> callback) where T: IDistributedApplicationComponentWithEnvironment
+    public static IDistributedApplicationComponentBuilder<T> WithEnvironment<T>(this IDistributedApplicationComponentBuilder<T> builder, string name, Func<string> callback) where T : IDistributedApplicationComponentWithEnvironment
     {
         return builder.WithAnnotation(new EnvironmentCallbackAnnotation(name, callback));
     }
 
-    public static IDistributedApplicationComponentBuilder<T> WithEnvironment<T>(this IDistributedApplicationComponentBuilder<T> builder, Action<EnvironmentCallbackContext> callback) where T: IDistributedApplicationComponentWithEnvironment
+    public static IDistributedApplicationComponentBuilder<T> WithEnvironment<T>(this IDistributedApplicationComponentBuilder<T> builder, Action<EnvironmentCallbackContext> callback) where T : IDistributedApplicationComponentWithEnvironment
     {
         return builder.WithAnnotation(new EnvironmentCallbackAnnotation(callback));
     }
@@ -66,6 +66,31 @@ public static class ComponentBuilderExtensions
                 }
             }
         };
+    }
+
+    public static IDistributedApplicationComponentBuilder<TDestination> WithReference<TDestination, TSource>(this IDistributedApplicationComponentBuilder<TDestination> builder, IDistributedApplicationComponentBuilder<TSource> source)
+        where TDestination : IDistributedApplicationComponentWithEnvironment
+        where TSource : IConnectionStringProvider
+    {
+        var connectionName = $"ConnectionStrings__{source.Component.Name}";
+
+        return builder.WithEnvironment(context =>
+        {
+            if (context.PublisherName == "manifest")
+            {
+                context.EnvironmentVariables[connectionName] = $"{{{source.Component.Name}.connectionString}}";
+                return;
+            }
+
+            var connectionString = source.Component.GetConnectionString();
+
+            if (string.IsNullOrEmpty(connectionString))
+            {
+                throw new DistributedApplicationException($"A connection string for '{source.Component.Name}' could not be retrieved.");
+            }
+
+            context.EnvironmentVariables[connectionName] = connectionString;
+        });
     }
 
     public static IDistributedApplicationComponentBuilder<TDestination> WithServiceReference<TDestination, TSource>(this IDistributedApplicationComponentBuilder<TDestination> builder, IDistributedApplicationComponentBuilder<TSource> bindingSourceBuilder, string? bindingName = null) where TDestination : IDistributedApplicationComponentWithEnvironment where TSource : IDistributedApplicationComponent
