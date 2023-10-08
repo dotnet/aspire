@@ -1,68 +1,100 @@
 {
   "components": {
     "grafana": {
-      "type": "container.v1"
+      "type": "container.v1",
+      "image": "grafana/grafana:latest",
+      "bindings": {
+        "grafana-http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        }
+      }
     },
-    "postgres": {
+    "catalog": {
       "type": "postgres.v1"
     },
     "basketCache": {
       "type": "redis.v1"
     },
-    "sql": {
-      "type": "sqlserver.v1"
-    },
     "catalogservice": {
       "type": "project.v1",
+      "path": "..\\..\\CatalogService\\CatalogService.csproj",
       "env": {
-        "OTEL_EXPORTER_OTLP_ENDPOINT": "http://localhost:16031",
-        "OTEL_BLRP_SCHEDULE_DELAY": "1000",
-        "OTEL_BSP_SCHEDULE_DELAY": "1000",
-        "ConnectionStrings__Aspire.PostgreSQL": "{postgres.connectionString}",
-        "ConnectionStrings__Aspire.SqlServer": "{sql.connectionString}"
+        "ConnectionStrings__catalog": "{catalog.connectionString}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        }
       }
     },
     "messaging": {
-      "type": "azure.servicebus.v1"
+      "type": "azure.servicebus.v1",
+      "queues": [
+        "orders"
+      ]
     },
     "basketservice": {
       "type": "project.v1",
+      "path": "..\\..\\BasketService\\BasketService.csproj",
       "env": {
-        "OTEL_EXPORTER_OTLP_ENDPOINT": "http://localhost:16031",
-        "OTEL_BLRP_SCHEDULE_DELAY": "1000",
-        "OTEL_BSP_SCHEDULE_DELAY": "1000",
         "ConnectionStrings__basketCache": "{basketCache.connectionString}",
-        "Aspire__Azure__Messaging__ServiceBus__Namespace": "{messaging.endpoint}"
+        "Aspire__Azure__Messaging__ServiceBus__Namespace": "{messaging.connectionString}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        }
       }
     },
     "myfrontend": {
       "type": "project.v1",
+      "path": "..\\..\\MyFrontend\\MyFrontend.csproj",
       "env": {
-        "OTEL_EXPORTER_OTLP_ENDPOINT": "http://localhost:16031",
-        "OTEL_BLRP_SCHEDULE_DELAY": "1000",
-        "OTEL_BSP_SCHEDULE_DELAY": "1000",
         "GRAFANA_URL": "{grafana.bindings.grafana-http}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        }
       }
     },
     "orderprocessor": {
       "type": "project.v1",
+      "path": "..\\..\\OrderProcessor\\OrderProcessor.csproj",
       "env": {
-        "OTEL_EXPORTER_OTLP_ENDPOINT": "http://localhost:16031",
-        "OTEL_BLRP_SCHEDULE_DELAY": "1000",
-        "OTEL_BSP_SCHEDULE_DELAY": "1000",
-        "Aspire__Azure__Messaging__ServiceBus__Namespace": "{messaging.endpoint}"
+        "Aspire__Azure__Messaging__ServiceBus__Namespace": "{messaging.connectionString}"
       }
     },
     "apigateway": {
       "type": "project.v1",
-      "env": {
-        "OTEL_EXPORTER_OTLP_ENDPOINT": "http://localhost:16031",
-        "OTEL_BLRP_SCHEDULE_DELAY": "1000",
-        "OTEL_BSP_SCHEDULE_DELAY": "1000"
+      "path": "..\\..\\ApiGateway\\ApiGateway.csproj",
+      "env": {},
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        }
       }
     },
     "prometheus": {
-      "type": "container.v1"
+      "type": "container.v1",
+      "image": "prom/prometheus:latest",
+      "bindings": {
+        "tcp": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp"
+        }
+      }
     }
   }
 }
