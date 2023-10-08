@@ -136,3 +136,4 @@ node_modules/
 
 # vscode python env files
 .env
+samples/DevHost/aspire-manifest-new.json
