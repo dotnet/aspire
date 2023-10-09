@@ -73,15 +73,11 @@
         {
             _jsModule ??= await JS.InvokeAsync<IJSObjectReference>("import", "/_content/Aspire.Dashboard/Components/Controls/LogViewer.razor.js");
 
-            while (_preRenderQueue.Count > 0)
+            while (_preRenderQueue.TryDequeue(out var logs))
             {
-                if (_preRenderQueue.TryDequeue(out var logs))
-                {
-                    await WriteLogsToDomAsync(logs);
-                }
+                await WriteLogsToDomAsync(logs);
             }
             renderComplete = true;
-            _preRenderQueue.Clear();
         }
     }
 
