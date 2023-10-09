@@ -19,7 +19,7 @@
                           slot="end" />
         </FluentToolbar>
         <div class="datagrid-overflow-area" tabindex="-1">
-            <FluentDataGrid Items="@FilteredResources" ResizableColumns="true" GridTemplateColumns="2fr 1fr 2fr 4fr 1fr">
+            <FluentDataGrid Items="@FilteredResources" ResizableColumns="true" GridTemplateColumns="2fr 1fr 2fr 4fr 4fr 4fr 1fr">
                 <ChildContent>
                     <TemplateColumn Title="Name" Sortable="true" SortBy="@nameSort">
                         <FluentHighlighter HighlightedText="@filter" Text="@context.Name" />
@@ -27,7 +27,19 @@
                     <PropertyColumn Property="@(e => e.State)" Sortable="true" />
                     <PropertyColumn Property="@(c => c.CreationTimeStamp)" Title="Start Time" Sortable="true" />
                     <TemplateColumn Title="Path" Sortable="true" SortBy="@executablePathSort">
-                        <FluentHighlighter HighlightedText="@filter" Text="@context.ExecutablePath" />
+                        <div class="col-long-content" title="@context.ExecutablePath">
+                            <FluentHighlighter HighlightedText="@filter" Text="@context.ExecutablePath" />
+                        </div>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Working Directory" Sortable="true" SortBy="@workingDirectorySort">
+                        <div class="col-long-content" title="@context.WorkingDirectory">
+                            <FluentHighlighter HighlightedText="@filter" Text="@context.WorkingDirectory" />
+                        </div>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Arguments">
+                        <div class="col-long-content" title="@(context.Arguments != null ? string.Join(" ", context.Arguments) : string.Empty)">
+                            <FluentHighlighter HighlightedText="@filter" Text="@(context.Arguments != null ? string.Join(" ", context.Arguments) : string.Empty)" />
+                        </div>
                     </TemplateColumn>
                     <TemplateColumn Title="Environment" Sortable="false">
                         <FluentButton Appearance="Appearance.Lightweight"
@@ -54,8 +66,11 @@
 
     protected override bool Filter(ExecutableViewModel resource)
         => resource.Name.Contains(filter, StringComparison.CurrentCultureIgnoreCase)
-        || resource.ExecutablePath?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true;
+        || resource.ExecutablePath?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true
+        || resource.WorkingDirectory?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true
+        || resource.Arguments?.Any(e => e.Contains(filter, StringComparison.CurrentCultureIgnoreCase)) == true;
 
-    private GridSort<ExecutableViewModel> executablePathSort = GridSort<ExecutableViewModel>
-        .ByAscending(e => e.ExecutablePath);
+    private GridSort<ExecutableViewModel> executablePathSort = GridSort<ExecutableViewModel>.ByAscending(e => e.ExecutablePath);
+
+    private GridSort<ExecutableViewModel> workingDirectorySort = GridSort<ExecutableViewModel>.ByAscending(e => e.WorkingDirectory);
 }

@@ -6,5 +6,7 @@ namespace Aspire.Dashboard.Model;
 public class ExecutableViewModel : ResourceViewModel
 {
     public string? ExecutablePath { get; set; }
+    public string? WorkingDirectory { get; set; }
+    public List<string>? Arguments { get; set; }
 }
 

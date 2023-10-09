@@ -151,6 +151,8 @@ public class DashboardViewModelService(DistributedApplicationModel applicationMo
             NamespacedName = new(executable.Metadata.Name, null),
             CreationTimeStamp = executable.Metadata?.CreationTimestamp?.ToLocalTime(),
             ExecutablePath = executable.Spec.ExecutablePath,
+            WorkingDirectory = executable.Spec.WorkingDirectory,
+            Arguments = executable.Spec.Args,
             State = executable.Status?.State,
             LogSource = new FileLogSource(executable.Status?.StdOutFile, executable.Status?.StdErrFile)
         };
