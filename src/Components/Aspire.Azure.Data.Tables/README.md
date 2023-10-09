@@ -121,4 +121,4 @@ You can also setup the [TableClientOptions](https://learn.microsoft.com/dotnet/a
 
 ## Feedback & Contributing
 
-https://github.com/dotnet/astra
+https://github.com/dotnet/aspire

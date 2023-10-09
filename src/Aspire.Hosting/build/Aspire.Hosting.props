@@ -3,7 +3,7 @@
   <PropertyGroup>
     <IsDistributedApplicationHost Condition="'$(IsDistributedApplicationHost)' == ''">true</IsDistributedApplicationHost>
     <IsAspireHost Condition="'$(IsAspireHost)' == ''">true</IsAspireHost>
-    <!-- Aspire hosting projects aren't publishable right now until https://github.com/dotnet/astra/issues/268 is good -->
+    <!-- Aspire hosting projects aren't publishable right now until https://github.com/dotnet/aspire/issues/147 is good -->
     <IsPublishable Condition="'$(IsPublishable)' == ''">false</IsPublishable>
     <IsPackable Condition="'$(IsPackable)' == ''">false</IsPackable>
   </PropertyGroup>
@@ -20,8 +20,6 @@
 
   <ItemGroup>
     <ProjectCapability Include="Aspire" />
-    <!-- TODO: remove this once VS supports the new name. -->
-    <ProjectCapability Include="Astra" />
   </ItemGroup>
 
   <Import Sdk="Microsoft.NET.Sdk.StaticWebAssets" Project="Sdk.props" />

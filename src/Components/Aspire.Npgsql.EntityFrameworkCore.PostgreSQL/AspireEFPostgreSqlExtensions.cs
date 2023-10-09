@@ -75,7 +75,7 @@ public static partial class AspireEFPostgreSqlExtensions
         if (builder.Environment.IsDevelopment())
         {
             // calling UseDeveloperExceptionPage is the responsibility of the app, not Component
-#pragma warning disable IL3050 // TODO: https://github.com/dotnet/astra/issues/88 should remove this line
+#pragma warning disable IL3050 // TODO: https://github.com/dotnet/aspire/issues/146 should remove this line
             builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 #pragma warning restore IL3050
         }
