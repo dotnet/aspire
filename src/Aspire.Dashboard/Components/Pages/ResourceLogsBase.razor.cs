@@ -38,7 +38,6 @@ public abstract partial class ResourceLogsBase<TResource> : ComponentBase, IAsyn
     private CancellationTokenSource? _watchLogsTokenSource;
     private string _status = LogStatus.Initializing;
 
-#pragma warning disable CA2007 // Consider calling ConfigureAwait on the awaited task
     protected override async Task OnInitializedAsync()
     {
         _status = LoadingResourcesMessage;
