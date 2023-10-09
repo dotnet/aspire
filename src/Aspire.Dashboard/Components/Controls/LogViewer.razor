@@ -2,6 +2,7 @@
 @using System.Text
 @using Aspire.Dashboard.ConsoleLogs
 @using Aspire.Dashboard.Model
+@using System.Collections.Concurrent
 @inject IJSRuntime JS
 @implements IAsyncDisposable
 
@@ -14,7 +15,7 @@
 @code {
     private static readonly AnsiParser s_ansiParser = new();
 
-    private List<IEnumerable<LogEntry>> _preRenderQueue = new();
+    private ConcurrentQueue<IEnumerable<LogEntry>> _preRenderQueue = new();
     private bool renderComplete = false;
     private IJSObjectReference? _jsModule;
 
@@ -25,12 +26,6 @@
             await _jsModule.InvokeVoidAsync("clearLogs", cancellationToken);
         }
     }
-
-    internal Task AddLogEntryAsync(LogEntry logEntry)
-        => WriteLogsAsync(new[] { logEntry });
-
-    internal Task AddLogEntriesAsync(IEnumerable<LogEntry> logEntries)
-        => WriteLogsAsync(logEntries);
 
     private ValueTask WriteLogsToDomAsync(IEnumerable<LogEntry> logs)
         => _jsModule is null ? ValueTask.CompletedTask : _jsModule.InvokeVoidAsync("addLogEntries", logs);
@@ -68,7 +63,7 @@
                 logEntries.Add(logEntry);
             }
 
-            await AddLogEntriesAsync(logEntries);
+            await WriteLogsAsync(logEntries);
         }
     }
 
@@ -78,20 +73,11 @@
         {
             _jsModule ??= await JS.InvokeAsync<IJSObjectReference>("import", "/_content/Aspire.Dashboard/Components/Controls/LogViewer.razor.js");
 
-            if (_preRenderQueue.Count > 0)
-            {
-                await WritePreRenderQueueAsync();
-            }
-            renderComplete = true;
-        }
-
-        async Task WritePreRenderQueueAsync()
-        {
-            foreach (var logs in _preRenderQueue)
+            while (_preRenderQueue.TryDequeue(out var logs))
             {
                 await WriteLogsToDomAsync(logs);
             }
-            _preRenderQueue.Clear();
+            renderComplete = true;
         }
     }
 
@@ -103,7 +89,7 @@
         }
         else
         {
-            _preRenderQueue.Add(logs);
+            _preRenderQueue.Enqueue(logs);
         }
     }
 
