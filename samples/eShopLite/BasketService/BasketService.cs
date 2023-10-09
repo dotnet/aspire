@@ -69,7 +69,7 @@ public class BasketService(IBasketRepository repository, IConfiguration configur
         _serviceBusClient ??= serviceProvider.GetService<ServiceBusClient>();
         if (_serviceBusClient is null)
         {
-            _logger.LogWarning($"Azure ServiceBus is unavailable. Ensure you have configured it - for example in MyApp's user secrets under {AspireServiceBusExtensions.DefaultNamespaceConfigKey}.");
+            _logger.LogWarning($"Azure ServiceBus is unavailable. Ensure you have configured it - for example in AppHosts's user secrets under {AspireServiceBusExtensions.DefaultNamespaceConfigKey}.");
         }
         else
         {

@@ -26,7 +26,7 @@ public class OrderProcessingWorker : BackgroundService
     {
         if (_client is null)
         {
-            _logger.LogCritical($"Azure ServiceBus is unavailable. Ensure you have configured it - for example in MyApp's user secrets under '{AspireServiceBusExtensions.DefaultNamespaceConfigKey}'.");
+            _logger.LogCritical($"Azure ServiceBus is unavailable. Ensure you have configured it - for example in AppHost's user secrets under '{AspireServiceBusExtensions.DefaultNamespaceConfigKey}'.");
             return;
         }
 
