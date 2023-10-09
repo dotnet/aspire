@@ -5,6 +5,6 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Redis;
 
-public interface IRedisComponent : IConnectionStringProvider
+public interface IRedisComponent : IDistributedApplicationComponentWithConnectionString
 {
 }

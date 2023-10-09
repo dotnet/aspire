@@ -3,7 +3,7 @@
 
 namespace Aspire.Hosting.ApplicationModel;
 
-public interface IConnectionStringProvider : IDistributedApplicationComponent
+public interface IDistributedApplicationComponentWithConnectionString : IDistributedApplicationComponent
 {
     public string? GetConnectionString();
 }

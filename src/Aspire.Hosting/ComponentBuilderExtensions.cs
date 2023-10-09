@@ -70,7 +70,7 @@ public static class ComponentBuilderExtensions
 
     public static IDistributedApplicationComponentBuilder<TDestination> WithReference<TDestination, TSource>(this IDistributedApplicationComponentBuilder<TDestination> builder, IDistributedApplicationComponentBuilder<TSource> source)
         where TDestination : IDistributedApplicationComponentWithEnvironment
-        where TSource : IConnectionStringProvider
+        where TSource : IDistributedApplicationComponentWithConnectionString
     {
         var connectionName = $"ConnectionStrings__{source.Component.Name}";
 
