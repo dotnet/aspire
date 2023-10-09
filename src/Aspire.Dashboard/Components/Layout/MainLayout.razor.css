@@ -8,6 +8,10 @@ main {
     flex: 1;
 }
 
+::deep .fluent-nav-link {
+    width: 100%;
+}
+
 .sidebar {
     background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
 }
