@@ -15,22 +15,14 @@ public static class PostgresBuilderExtensions
 
     public static IDistributedApplicationComponentBuilder<PostgresContainerComponent> AddPostgresContainer(this IDistributedApplicationBuilder builder, string name, int? port = null, string? password = null)
     {
-        var postgresContainer = new PostgresContainerComponent(name);
+        password = password ?? Guid.NewGuid().ToString("N");
+        var postgresContainer = new PostgresContainerComponent(name, password);
         return builder.AddComponent(postgresContainer)
                       .WithAnnotation(new ManifestPublishingCallbackAnnotation(WritePostgresComponentToManifest))
                       .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, port: port, containerPort: 5432)) // Internal port is always 5432.
                       .WithAnnotation(new ContainerImageAnnotation { Image = "postgres", Tag = "latest" })
                       .WithEnvironment("POSTGRES_HOST_AUTH_METHOD", "trust")
-                      .WithAnnotation(new PostgresPasswordAnnotation(password ?? ""))
-                      .WithEnvironment(PasswordEnvVarName, () =>
-                      {
-                          if (!postgresContainer.TryGetLastAnnotation<PostgresPasswordAnnotation>(out var passwordAnnotation))
-                          {
-                              throw new DistributedApplicationException("Password annotation not found!");
-                          }
-
-                          return passwordAnnotation.Password;
-                      });
+                      .WithEnvironment(PasswordEnvVarName, () => postgresContainer.Password);
     }
 
     public static IDistributedApplicationComponentBuilder<PostgresComponent> AddPostgres(this IDistributedApplicationBuilder builder, string name, string? connectionString = null)
