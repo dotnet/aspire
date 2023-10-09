@@ -104,7 +104,6 @@ public class AspireTablesExtensionsTests
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
 
-        var key = useKeyed ? "tables" : null;
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>("ConnectionStrings:tables", ConformanceTests.ServiceUri)
         ]);

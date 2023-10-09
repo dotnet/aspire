@@ -104,7 +104,6 @@ public class AspireQueueStorageExtensionsTests
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
 
-        var key = useKeyed ? "queue" : null;
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>("ConnectionStrings:queue", ConformanceTests.ServiceUri)
         ]);

@@ -97,11 +97,11 @@ public static class AspireServiceBusExtensions
         protected override bool GetTracingEnabled(AzureMessagingServiceBusSettings settings)
             => settings.Tracing;
 
-        protected override void Validate(AzureMessagingServiceBusSettings settings, string configurationSectionName)
+        protected override void Validate(AzureMessagingServiceBusSettings settings, string connectionName, string configurationSectionName)
         {
             if (string.IsNullOrEmpty(settings.ConnectionString) && string.IsNullOrEmpty(settings.Namespace))
             {
-                throw new InvalidOperationException($"A ServiceBusClient could not be configured. Either specify a 'ConnectionString' or 'Namespace' in '{configurationSectionName}' configuration section.");
+                throw new InvalidOperationException($"A ServiceBusClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'ConnectionString' or 'Namespace' in the '{configurationSectionName}' configuration section.");
             }
         }
     }

@@ -92,7 +92,7 @@ You can also pass the `Action<AzureSecurityKeyVaultSettings> configureSettings` 
     builder.AddAzureKeyVaultSecrets("secrets", settings => settings.HealthChecks = false);
 ```
 
-You can also setup the [SecretClientOptions](https://learn.microsoft.com/dotnet/api/azure.security.keyvault.secrets.secretclientoptions) using the `Action<IAzureClientBuilder<SecretClient, SecretClientOptions>> configureClientBuilder` delegate, the second parameter of the `AddAzureKeyVaultSecrets` method. For example, to set the first part of "User-Agent" headers for all requests issues by this client:
+You can also setup the [SecretClientOptions](https://learn.microsoft.com/dotnet/api/azure.security.keyvault.secrets.secretclientoptions) using the optional `Action<IAzureClientBuilder<SecretClient, SecretClientOptions>> configureClientBuilder` parameter of the `AddAzureKeyVaultSecrets` method. For example, to set the first part of "User-Agent" headers for all requests issues by this client:
 
 ```cs
     builder.AddAzureKeyVaultSecrets("secrets", configureClientBuilder: clientBuilder => clientBuilder.ConfigureOptions(options => options.Diagnostics.ApplicationId = "myapp"));

@@ -27,7 +27,7 @@ internal abstract class AzureComponent<TSettings, TClient, TClientOptions>
 
     protected abstract TokenCredential? GetTokenCredential(TSettings settings);
 
-    protected abstract void Validate(TSettings settings, string configurationSectionName);
+    protected abstract void Validate(TSettings settings, string connectionName, string configurationSectionName);
 
     protected abstract IAzureClientBuilder<TClient, TClientOptions> AddClient<TBuilder>(TBuilder azureFactoryBuilder, TSettings settings)
         where TBuilder : IAzureClientFactoryBuilder, IAzureClientFactoryBuilderWithCredential;
@@ -61,7 +61,7 @@ internal abstract class AzureComponent<TSettings, TClient, TClientOptions>
 
         configureSettings?.Invoke(settings);
 
-        Validate(settings, configurationSectionName);
+        Validate(settings, connectionName, configurationSectionName);
 
         if (!string.IsNullOrEmpty(serviceKey))
         {
