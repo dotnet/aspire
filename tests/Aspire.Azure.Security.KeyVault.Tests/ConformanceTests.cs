@@ -21,7 +21,7 @@ public class ConformanceTests : ConformanceTests<SecretClient, AzureSecurityKeyV
 
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
-    protected override string ActivitySourceName => "Azure.Security.KeyVault.Secrets.SecretClient";
+    protected override string ActivitySourceName => "Azure.Security.KeyVault.Secrets.*";
 
     protected override string[] RequiredLogCategories => new string[] { "Azure.Core" };
 
