@@ -35,7 +35,7 @@ builder.AddContainer("prometheus", "prom/prometheus")
 builder.Build().Run();
 ```
 
-When ```dotnet publish``` is called on the App project containing the code above the application model and dependency projects will be built and the App will be executed in a model which emits an ```aspire-manifest.json``` file in the build artifacts for the App project. The manifest file for the above project would look like the following:
+When ```dotnet publish``` is called on the AppHost project containing the code above the application model and dependency projects will be built and the AppHost will be executed in a model which emits an ```aspire-manifest.json``` file in the build artifacts for the AppHost project. The manifest file for the above project would look like the following:
 
 ```json
 {

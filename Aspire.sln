@@ -7,7 +7,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting", "src\Aspir
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MyFrontend", "samples\eShopLite\MyFrontend\MyFrontend.csproj", "{E958BE04-81C2-434C-9E6C-CA145A2B8218}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "App", "samples\eShopLite\App\App.csproj", "{C1D595AD-FFFD-4E52-AAF6-8DD8C4BD67F1}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AppHost", "samples\eShopLite\AppHost\AppHost.csproj", "{C1D595AD-FFFD-4E52-AAF6-8DD8C4BD67F1}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{D173887B-AF42-4576-B9C1-96B9E9B3D9C0}"
 EndProject
@@ -95,7 +95,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.StackExchange.Redis.
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Tests", "tests\Aspire.Hosting.Tests\Aspire.Hosting.Tests.csproj", "{D3B3AFFF-211A-4450-AE5E-055BD1323D2E}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestProject.App", "tests\testproject\TestProject.App\TestProject.App.csproj", "{C3BA722D-B03F-465B-BC47-421CA97B97E0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestProject.AppHost", "tests\testproject\TestProject.AppHost\TestProject.AppHost.csproj", "{C3BA722D-B03F-465B-BC47-421CA97B97E0}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "testproject", "testproject", "{975F6F41-B455-451D-A312-098DE4A167B6}"
 EndProject
@@ -125,7 +125,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DaprServiceA", "samples\dap
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DaprServiceB", "samples\dapr\ServiceB\DaprServiceB.csproj", "{B1D88C56-46EB-4171-A997-56E67875CF80}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DaprApp", "samples\dapr\App\DaprApp.csproj", "{8EB719EE-38E4-4FAD-B3E5-F71FA7F7A3EB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DaprAppHost", "samples\dapr\AppHost\DaprAppHost.csproj", "{8EB719EE-38E4-4FAD-B3E5-F71FA7F7A3EB}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Dapr", "src\Aspire.Hosting.Dapr\Aspire.Hosting.Dapr.csproj", "{E2EC79D0-80F7-4471-9613-D7C8C3D52F95}"
 EndProject

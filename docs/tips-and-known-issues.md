@@ -15,13 +15,13 @@ The remedy is to do "Restart Docker" gesture from the Docker icon in system tray
 This will display process IDs of all the Aspire shopping running processes
 
 ```ps1
-ps | where ProcessName -cmatch '(Api)|(Catalog)|(Basket)|(MyApp)|(MyFrontend)|(OrderProcessor)' | % {Write-Output $_.Id }
+ps | where ProcessName -cmatch '(Api)|(Catalog)|(Basket)|(AppHost)|(MyFrontend)|(OrderProcessor)' | % {Write-Output $_.Id }
 ```
 
 … and this will kill them
 
 ```ps1
-ps | where ProcessName -cmatch '(Api)|(Catalog)|(Basket)|(MyApp)|(MyFrontend)|(OrderProcessor)' | % {Write-Output $_.Id; kill $_.Id }
+ps | where ProcessName -cmatch '(Api)|(Catalog)|(Basket)|(AppHost)|(MyFrontend)|(OrderProcessor)' | % {Write-Output $_.Id; kill $_.Id }
 ```
 
 ### If you want to check the current status of running Aspire services using the low level Kubernetes compatible API
@@ -29,7 +29,7 @@ ps | where ProcessName -cmatch '(Api)|(Catalog)|(Basket)|(MyApp)|(MyFrontend)|(O
 You can find the kubeconfig for a given run of an Aspire application in the `%TEMP%/aspire/<PID>` (or equivalnet) folder, where &lt;PID&gt; is the process ID of the Aspire orchestration project that is running. For the Aspire eShopLite sample you can find the Aspire orchestration PID by running:
 
 ```ps1
-ps | where ProcessName -cmatch '(MyApp)' | % {Write-Output $_.Id }
+ps | where ProcessName -cmatch '(AppHost)' | % {Write-Output $_.Id }
 ```
 
 ```ps1

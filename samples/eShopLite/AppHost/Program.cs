@@ -1,7 +1,7 @@
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Postgres;
 using Aspire.Hosting.Redis;
-using Projects = App.Projects;
+using Projects = AppHost.Projects;
 
 var builder = DistributedApplication.CreateBuilder(args);
 

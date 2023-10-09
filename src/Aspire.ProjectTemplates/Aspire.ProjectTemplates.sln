@@ -9,13 +9,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "templates", "templates", "{
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "aspire-empty", "aspire-empty", "{041691F3-5A46-44E4-84D9-49156371D011}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AspireApplication1.App", "templates\aspire-empty\AspireApplication1.App\AspireApplication1.App.csproj", "{A1C9D929-9B2E-460D-A3D4-1B630CE6BFA1}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AspireApplication1.AppHost", "templates\aspire-empty\AspireApplication1.AppHost\AspireApplication1.AppHost.csproj", "{A1C9D929-9B2E-460D-A3D4-1B630CE6BFA1}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AspireApplication1.Shared", "templates\aspire-empty\AspireApplication1.Shared\AspireApplication1.Shared.csproj", "{3F14C160-B8D3-441E-B0F2-42BB33BB1FAC}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "aspire-starter", "aspire-starter", "{CFA6C31A-FB2B-4AA5-815C-0E636EF0E945}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AspireStarterApplication1.App", "templates\aspire-starter\AspireStarterApplication1.App\AspireStarterApplication1.App.csproj", "{6E8844D8-90FA-4A1C-9499-C6A34BD4885D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AspireStarterApplication1.AppHost", "templates\aspire-starter\AspireStarterApplication1.AppHost\AspireStarterApplication1.AppHost.csproj", "{6E8844D8-90FA-4A1C-9499-C6A34BD4885D}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AspireStarterApplication1.Shared", "templates\aspire-starter\AspireStarterApplication1.Shared\AspireStarterApplication1.Shared.csproj", "{AC71920C-7DED-4F83-A5B5-E776163A31A0}"
 EndProject

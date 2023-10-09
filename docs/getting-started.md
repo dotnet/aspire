@@ -53,12 +53,12 @@
 
 1. Create a new ASP.NET Core Web App and check the "Enlist in Aspire orchestration" box
 
-2. Change `MyApp\Program.cs` to be:
+2. Change `AppHost\Program.cs` to be:
 
 ```C#
 var builder = DistributedApplication.CreateBuilder(args);
 
-builder.AddProject<MyApp.Projects.WebApplication22>(); // USE YOUR APP NAME
+builder.AddProject<AppHost.Projects.WebApplication22>(); // USE YOUR APP NAME
 
 await using var app = builder.Build();
 return await app.RunAsync();
@@ -92,10 +92,10 @@ return await app.RunAsync();
 2. Add the following user-secret to the MyApp orchestrator project (using the unique namespace you created above):
 
 ```shell
-C:\git\aspire\samples\MyApp> dotnet user-secrets set Aspire.Azure.Messaging.ServiceBus:Namespace <ServiceBus namespace host>
+C:\git\aspire\samples\eShopLite\AppHost> dotnet user-secrets set Aspire.Azure.Messaging.ServiceBus:Namespace <ServiceBus namespace host>
 ```
 
-- You can do the same in VS by right-clicking MyApp in the Solution Explorer -> "Manage User Secrets" and add
+- You can do the same in VS by right-clicking AppHost in the Solution Explorer -> "Manage User Secrets" and add
 
 ```json
 {
@@ -109,13 +109,13 @@ C:\git\aspire\samples\MyApp> dotnet user-secrets set Aspire.Azure.Messaging.Serv
 
 1. Make sure Docker Desktop is running
 2. Open `Aspire.sln` solution
-3. Set `MyApp` project under `\samples` folder to be the startup project. Make sure the launch profile is set to "Run Locally".
-4. F5, go to http://localhost:5000 and enjoy.
+3. Set `AppHost` project under `\samples` folder to be the startup project. Make sure the launch profile is set to "http".
+4. F5, go to http://localhost:15888 and enjoy.
 5. When you are done, "Stop Debugging".
 
 # Dashboard
 
-Starting debugging in VS will automatically launch browser with dashboard which is being served at URL "http://localhost:18888" by default. The URL is controlled by launchsettings.json file in MyApp project.
+Starting debugging in VS will automatically launch browser with dashboard which is being served at URL "http://localhost:15888" by default. The URL is controlled by launchSettings.json file in AppHost project.
 
 # Tips and known issues
 
