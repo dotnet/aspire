@@ -61,7 +61,7 @@ public static class PostgresBuilderExtensions
         where T : IDistributedApplicationComponentWithEnvironment
     {
         var postgres = postgresBuilder.Component;
-        connectionName = connectionName ?? postgresBuilder.Component.Name;
+        connectionName ??= postgresBuilder.Component.Name;
 
         return builder.WithEnvironment((context) =>
         {
