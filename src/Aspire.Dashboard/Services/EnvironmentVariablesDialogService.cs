@@ -7,7 +7,7 @@ using Microsoft.Fast.Components.FluentUI;
 
 namespace Aspire.Dashboard.Services;
 
-internal sealed class EnvironmentVariablesDialogService(IDialogService dialogService)
+public sealed class EnvironmentVariablesDialogService(IDialogService dialogService)
 {
     public async Task ShowDialogAsync(string source, List<EnvironmentVariableViewModel> variables)
     {
