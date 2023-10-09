@@ -24,7 +24,7 @@
                 <FluentSearch Placeholder="Filter..."
                               Immediate="true"
                               Autofocus="true"
-                              @bind-Value="filter"
+                              @bind-Value="_filter"
                               @oninput="HandleFilter"
                               AfterBindValue="HandleClear"
                               slot="end" />
@@ -34,10 +34,10 @@
                             Style="width:100%"
                             GenerateHeader="GenerateHeaderOption.Sticky"
                             GridTemplateColumns="1fr 2fr">
-                <TemplateColumn Title="Name" Class="nameColumn" SortBy="@nameSort" Sortable="true">
+                <TemplateColumn Title="Name" Class="nameColumn" SortBy="@_nameSort" Sortable="true">
                     <FluentStack Orientation="Orientation.Horizontal">
                         <span class="cellText">
-                            <FluentHighlighter HighlightedText="@filter" Text="@context.Name" />
+                            <FluentHighlighter HighlightedText="@_filter" Text="@context.Name" />
                         </span>
                         @{
                             var anchor = "name-" + context.Name;
@@ -47,13 +47,13 @@
                                       IconEnd="@(new Icons.Regular.Size16.Copy())"
                                       Class="defaultHidden"
                                       OnClick="async () => await CopyTextToClipboardAsync(context.Name, anchor)" />
-                        <FluentTooltip Anchor="@anchor" Position="TooltipPosition.Top">@preCopyText</FluentTooltip>
+                        <FluentTooltip Anchor="@anchor" Position="TooltipPosition.Top">@PreCopyText</FluentTooltip>
                         </FluentStack>
                     </TemplateColumn>
-                    <TemplateColumn Title="Value" Class="valueColumn" SortBy="@valueSort" Sortable="true">
+                    <TemplateColumn Title="Value" Class="valueColumn" SortBy="@_valueSort" Sortable="true">
                         <FluentStack Orientation="Orientation.Horizontal">
                             <span class="cellText">
-                                <FluentHighlighter HighlightedText="@filter" Text="@context.Value" />
+                                <FluentHighlighter HighlightedText="@_filter" Text="@context.Value" />
                             </span>
                             @{
                             var anchor = "copy-" + context.Name;
@@ -64,7 +64,7 @@
                                       Class="defaultHidden"
                                       Title="Copy to Clipboard"
                                       OnClick="async () => await CopyTextToClipboardAsync(context.Value, anchor)" />
-                        <FluentTooltip Anchor="@anchor" Position="TooltipPosition.Top">@preCopyText</FluentTooltip>
+                        <FluentTooltip Anchor="@anchor" Position="TooltipPosition.Top">@PreCopyText</FluentTooltip>
                         </FluentStack>
                     </TemplateColumn>
                 </FluentDataGrid>
@@ -77,7 +77,7 @@
                     <TemplateColumn Title="Name" Class="nameColumn">
                         <FluentStack Orientation="Orientation.Horizontal">
                             <span class="cellText">
-                                <FluentHighlighter HighlightedText="@filter" Text="@context.Name" />
+                                <FluentHighlighter HighlightedText="@_filter" Text="@context.Name" />
                             </span>
                             @{
                             var anchor = "name-" + context.Name;
@@ -87,13 +87,13 @@
                                       IconEnd="@(new Icons.Regular.Size16.Copy())"
                                       Class="defaultHidden"
                                       OnClick="async () => await CopyTextToClipboardAsync(context.Name, anchor)" />
-                        <FluentTooltip Anchor="@anchor" Position="TooltipPosition.Top">@preCopyText</FluentTooltip>
+                        <FluentTooltip Anchor="@anchor" Position="TooltipPosition.Top">@PreCopyText</FluentTooltip>
                         </FluentStack>
                     </TemplateColumn>
                     <TemplateColumn Title="Value" Class="valueColumn">
                         <FluentStack Orientation="Orientation.Horizontal">
                             <span class="cellText">
-                                <FluentHighlighter HighlightedText="@filter" Text="@context.Value" />
+                                <FluentHighlighter HighlightedText="@_filter" Text="@context.Value" />
                             </span>
                             @{
                             var anchor = "copy-" + context.Name;
@@ -104,57 +104,10 @@
                                       Class="defaultHidden"
                                       Title="Copy to Clipboard"
                                       OnClick="async () => await CopyTextToClipboardAsync(context.Value, anchor)" />
-                        <FluentTooltip Anchor="@anchor" Position="TooltipPosition.Top">@preCopyText</FluentTooltip>
+                        <FluentTooltip Anchor="@anchor" Position="TooltipPosition.Top">@PreCopyText</FluentTooltip>
                         </FluentStack>
                     </TemplateColumn>
                 </FluentDataGrid>
             </FluentStack>
         </div>
     </FluentDialogBody>
-
-    @code {
-    [Parameter]
-    public SpanDetailsDialogViewModel Content { get; set; } = default!;
-
-    private IQueryable<SpanPropertyViewModel>? FilteredItems =>
-        Content.Properties.Where(vm =>
-            vm.Name.Contains(filter, StringComparison.CurrentCultureIgnoreCase) ||
-            vm.Value?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true
-        )?.AsQueryable();
-
-    private IQueryable<SpanPropertyViewModel>? FilteredApplicationItems =>
-        Content.Span.Source.AllProperties().Select(p => new SpanPropertyViewModel { Name = p.Key, Value = p.Value })
-            .Where(vm =>
-                vm.Name.Contains(filter, StringComparison.CurrentCultureIgnoreCase) ||
-                vm.Value?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true
-        )?.AsQueryable();
-
-    private const string preCopyText = "Copy to clipboard";
-    private const string postCopyText = "Copied!";
-
-    private string filter = "";
-
-    private GridSort<SpanPropertyViewModel> nameSort = GridSort<SpanPropertyViewModel>
-        .ByAscending(vm => vm.Name);
-    private GridSort<SpanPropertyViewModel> valueSort = GridSort<SpanPropertyViewModel>
-        .ByAscending(vm => vm.Value);
-
-    private void HandleFilter(ChangeEventArgs args)
-    {
-        if (args.Value is string newFilter)
-        {
-            filter = newFilter;
-        }
-    }
-
-    private void HandleClear(string? value)
-    {
-        filter = value ?? string.Empty;
-    }
-
-    private async Task CopyTextToClipboardAsync(string? text, string id)
-    {
-        await JS.InvokeVoidAsync("copyTextToClipboard", id, text, preCopyText, postCopyText);
-    }
-}
-
