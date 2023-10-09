@@ -11,9 +11,7 @@ if (!builder.Environment.IsDevelopment() || builder.Configuration[AspireServiceB
 }
 
 builder.Services.AddHostedService<OrderProcessingWorker>();
-// ensure the OrderProcessingWorker's Activities participate in tracing
-builder.Services.AddOpenTelemetry()
-    .WithTracing(traceBuilder => traceBuilder.AddSource(OrderProcessingWorker.ActivitySourceName));
+builder.Services.AddOpenTelemetry();
 
 var host = builder.Build();
 host.Run();
