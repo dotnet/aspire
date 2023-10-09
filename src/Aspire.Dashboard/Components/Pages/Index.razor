@@ -79,9 +79,14 @@
     // but unfortunately the reference goes the other way
     private const string FinishedState = "Finished";
 
+    protected override Task<List<ProjectViewModel>> GetResources(IDashboardViewModelService dashboardViewModelService)
+        => dashboardViewModelService.GetProjectsAsync();
+
     protected override IAsyncEnumerable<ComponentChanged<ProjectViewModel>> WatchResources(
-        IDashboardViewModelService dashboardViewModelService, CancellationToken cancellationToken)
-        => dashboardViewModelService.WatchProjectsAsync(cancellationToken: cancellationToken);
+    IDashboardViewModelService dashboardViewModelService,
+        IEnumerable<NamespacedName> initialList,
+        CancellationToken cancellationToken)
+        => dashboardViewModelService.WatchProjectsAsync(initialList, cancellationToken);
 
     protected override bool Filter(ProjectViewModel resource)
         => resource.Name.Contains(filter, StringComparison.CurrentCultureIgnoreCase)

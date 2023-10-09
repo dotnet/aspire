@@ -16,8 +16,11 @@ public abstract class ResourcesListBase<TResource> : ComponentBase
     [Inject]
     public required EnvironmentVariablesDialogService EnvironmentVariablesDialogService { get; init; }
 
+    protected abstract Task<List<TResource>> GetResources(IDashboardViewModelService dashboardViewModelService);
     protected abstract IAsyncEnumerable<ComponentChanged<TResource>> WatchResources(
-        IDashboardViewModelService dashboardViewModelService, CancellationToken cancellationToken);
+        IDashboardViewModelService dashboardViewModelService,
+        IEnumerable<NamespacedName> initialList,
+        CancellationToken cancellationToken);
     protected abstract bool Filter(TResource resource);
 
     private readonly Dictionary<string, TResource> _resourcesMap = new();
@@ -28,17 +31,22 @@ public abstract class ResourcesListBase<TResource> : ComponentBase
 
     protected GridSort<TResource> nameSort = GridSort<TResource>.ByAscending(p => p.Name);
 
-    protected override Task OnInitializedAsync()
+    protected override async Task OnInitializedAsync()
     {
+        var resources = await GetResources(DashboardViewModelService);
+        foreach (var resource in resources)
+        {
+            _resourcesMap.Add(resource.Name, resource);
+        }
+
         _ = Task.Run(async () =>
         {
-            await foreach (var componentChanged in WatchResources(DashboardViewModelService, _watchTaskCancellationTokenSource.Token))
+            await foreach (var componentChanged in WatchResources(
+                DashboardViewModelService, resources.Select(e => e.NamespacedName), _watchTaskCancellationTokenSource.Token))
             {
                 await OnResourceListChanged(componentChanged.ObjectChangeType, componentChanged.Component);
             }
         });
-
-        return Task.CompletedTask;
     }
 
     protected async Task ShowEnvironmentVariables(TResource resource)

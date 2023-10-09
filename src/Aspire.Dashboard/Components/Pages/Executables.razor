@@ -60,9 +60,14 @@
 </div>
 
 @code {
+    protected override Task<List<ExecutableViewModel>> GetResources(IDashboardViewModelService dashboardViewModelService)
+        => dashboardViewModelService.GetExecutablesAsync();
+
     protected override IAsyncEnumerable<ComponentChanged<ExecutableViewModel>> WatchResources(
-        IDashboardViewModelService dashboardViewModelService, CancellationToken cancellationToken)
-        => dashboardViewModelService.WatchExecutablesAsync(cancellationToken: cancellationToken);
+        IDashboardViewModelService dashboardViewModelService,
+        IEnumerable<NamespacedName> initialList,
+        CancellationToken cancellationToken)
+        => dashboardViewModelService.WatchExecutablesAsync(initialList, cancellationToken);
 
     protected override bool Filter(ExecutableViewModel resource)
         => resource.Name.Contains(filter, StringComparison.CurrentCultureIgnoreCase)
