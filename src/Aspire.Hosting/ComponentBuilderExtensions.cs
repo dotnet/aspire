@@ -20,11 +20,6 @@ public static class ComponentBuilderExtensions
         return builder.WithAnnotation(new EnvironmentCallbackAnnotation(name, () => value ?? string.Empty));
     }
 
-    public static IDistributedApplicationComponentBuilder<T> WithName<T>(this IDistributedApplicationComponentBuilder<T> builder, string name) where T : IDistributedApplicationComponent
-    {
-        return builder.WithAnnotation(new NameAnnotation { Name = name });
-    }
-
     public static IDistributedApplicationComponentBuilder<T> WithEnvironment<T>(this IDistributedApplicationComponentBuilder<T> builder, string name, Func<string> callback) where T : IDistributedApplicationComponentWithEnvironment
     {
         return builder.WithAnnotation(new EnvironmentCallbackAnnotation(name, callback));
@@ -45,10 +40,7 @@ public static class ComponentBuilderExtensions
     {
         return (context) =>
         {
-            if (!serviceReferencesAnnotation.Component.TryGetName(out var name))
-            {
-                throw new InvalidOperationException("When referencing component as an endpoint you must specify a name using WithName(string) on the referenced project.");
-            }
+            var name = serviceReferencesAnnotation.Component.Name;
 
             var allocatedEndPoints = serviceReferencesAnnotation.Component.Annotations
                 .OfType<AllocatedEndpointAnnotation>()

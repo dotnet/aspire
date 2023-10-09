@@ -156,8 +156,7 @@ internal sealed class AzureProvisioner(IConfiguration configuration, IHostEnviro
 
                 tasks.Add(task);
 
-                c.TryGetName(out var name);
-                componentNameToStorageAccountMap.Remove(name!);
+                componentNameToStorageAccountMap.Remove(c.Name);
             }
 
             if (c is AzureServiceBusComponent serviceBus)
@@ -173,8 +172,7 @@ internal sealed class AzureProvisioner(IConfiguration configuration, IHostEnviro
 
                 tasks.Add(task);
 
-                c.TryGetName(out var name);
-                componentNameToServiceBusNamespaceMap.Remove(name!);
+                componentNameToServiceBusNamespaceMap.Remove(c.Name);
             }
 
             if (c is AzureKeyVaultComponent keyVault)
@@ -190,8 +188,7 @@ internal sealed class AzureProvisioner(IConfiguration configuration, IHostEnviro
 
                 tasks.Add(task);
 
-                c.TryGetName(out var name);
-                componentNameToKeyVaultMap.Remove(name!);
+                componentNameToKeyVaultMap.Remove(c.Name);
             }
         }
 
@@ -230,8 +227,7 @@ internal sealed class AzureProvisioner(IConfiguration configuration, IHostEnviro
         Guid principalId,
         CancellationToken cancellationToken)
     {
-        keyVault.TryGetName(out var name);
-        componentNameToKeyVaultMap.TryGetValue(name!, out var keyVaultResource);
+        componentNameToKeyVaultMap.TryGetValue(keyVault.Name, out var keyVaultResource);
 
         if (keyVaultResource is null)
         {
@@ -247,7 +243,7 @@ internal sealed class AzureProvisioner(IConfiguration configuration, IHostEnviro
                 EnableRbacAuthorization = true
             };
             var parameters = new KeyVaultCreateOrUpdateContent(location, properties);
-            parameters.Tags.Add("aspire-component-name", name);
+            parameters.Tags.Add("aspire-component-name", keyVault.Name);
 
             var operation = await keyVaults.CreateOrUpdateAsync(WaitUntil.Completed, vaultName, parameters, cancellationToken).ConfigureAwait(false);
             keyVaultResource = operation.Value;
@@ -274,8 +270,7 @@ internal sealed class AzureProvisioner(IConfiguration configuration, IHostEnviro
         Guid principalId,
         CancellationToken cancellationToken)
     {
-        component.TryGetName(out var name);
-        componentNameToServiceBusNamespaceMap.TryGetValue(name!, out var serviceBusNamespace);
+        componentNameToServiceBusNamespaceMap.TryGetValue(component.Name, out var serviceBusNamespace);
 
         if (serviceBusNamespace is null)
         {
@@ -285,7 +280,7 @@ internal sealed class AzureProvisioner(IConfiguration configuration, IHostEnviro
             logger.LogInformation("Creating service bus namespace {namespace} in {location}...", namespaceName, location);
 
             var parameters = new ServiceBusNamespaceData(location);
-            parameters.Tags.Add("aspire-component-name", name);
+            parameters.Tags.Add("aspire-component-name", component.Name);
 
             // Now we can create a storage account with defined account name and parameters
             var operation = await serviceBusNamespaces.CreateOrUpdateAsync(WaitUntil.Completed, namespaceName, parameters, cancellationToken).ConfigureAwait(false);
@@ -367,8 +362,7 @@ internal sealed class AzureProvisioner(IConfiguration configuration, IHostEnviro
         Guid principalId,
         CancellationToken cancellationToken)
     {
-        component.TryGetName(out var name);
-        componentNameToStorageAccountMap.TryGetValue(name!, out var storageAccount);
+        componentNameToStorageAccountMap.TryGetValue(component.Name, out var storageAccount);
 
         if (storageAccount is null)
         {
@@ -381,7 +375,7 @@ internal sealed class AzureProvisioner(IConfiguration configuration, IHostEnviro
             var sku = new StorageSku(StorageSkuName.StandardGrs);
             var kind = StorageKind.Storage;
             var parameters = new StorageAccountCreateOrUpdateContent(sku, kind, location);
-            parameters.Tags.Add("aspire-component-name", name);
+            parameters.Tags.Add("aspire-component-name", component.Name);
 
             // Now we can create a storage account with defined account name and parameters
             var accountCreateOperation = await storageAccounts.CreateOrUpdateAsync(WaitUntil.Completed, accountName, parameters, cancellationToken).ConfigureAwait(false);

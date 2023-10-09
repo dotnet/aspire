@@ -135,7 +135,6 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         }
                     }));
 
-            component.Annotations.Add(new NameAnnotation { Name = sidecarOptions?.AppId ?? "Unknown" });
             component.Annotations.AddRange(ports.Select(port => new ServiceBindingAnnotation(ProtocolType.Tcp, name: port.Key, port: port.Value.Port)));
 
             // NOTE: Telemetry is enabled by default.

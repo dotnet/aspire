@@ -50,12 +50,7 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, IHo
 
     private void WriteComponent(IDistributedApplicationComponent component, Utf8JsonWriter jsonWriter)
     {
-        if (!component.TryGetName(out var componentName))
-        {
-            throw new DistributedApplicationException("Component did not have name!");
-        }
-
-        jsonWriter.WriteStartObject(componentName);
+        jsonWriter.WriteStartObject(component.Name);
 
         // First see if the component has a callback annotation with overrides the behavior for rendering
         // out the JSON. If so use that callback, otherwise use the fallback logic that we have.

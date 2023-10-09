@@ -13,7 +13,6 @@ public abstract class DistributedApplicationComponent(string name) : IDistribute
 
     private string DebuggerToString()
     {
-        DistributedApplicationComponentExtensions.TryGetName(this, out var name);
-        return $@"Type = {GetType().Name}, Name = ""{name}""";
+        return $@"Type = {GetType().Name}, Name = ""{Name}""";
     }
 }
