@@ -34,9 +34,9 @@ public abstract class ResourcesListBase<TResource> : ComponentBase
         {
             await foreach (var componentChanged in WatchResources(DashboardViewModelService, _watchTaskCancellationTokenSource.Token))
             {
-                await OnResourceListChanged(componentChanged.ObjectChangeType, componentChanged.Component).ConfigureAwait(true);
+                await OnResourceListChanged(componentChanged.ObjectChangeType, componentChanged.Component);
             }
-        }).ConfigureAwait(true);
+        });
 
         return Task.CompletedTask;
     }
@@ -46,7 +46,7 @@ public abstract class ResourcesListBase<TResource> : ComponentBase
         await EnvironmentVariablesDialogService.ShowDialogAsync(
             source: resource.Name,
             variables: resource.Environment
-        ).ConfigureAwait(true);
+        );
     }
 
     private async Task OnResourceListChanged(ObjectChangeType objectChangeType, TResource resource)
@@ -66,7 +66,7 @@ public abstract class ResourcesListBase<TResource> : ComponentBase
                 break;
         }
 
-        await InvokeAsync(StateHasChanged).ConfigureAwait(true);
+        await InvokeAsync(StateHasChanged);
     }
 
     public void Dispose()
