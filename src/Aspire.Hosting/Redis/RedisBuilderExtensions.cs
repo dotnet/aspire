@@ -9,8 +9,6 @@ namespace Aspire.Hosting.Redis;
 
 public static class RedisBuilderExtensions
 {
-    private const string ConnectionStringEnvironmentName = "ConnectionStrings__";
-
     public static IDistributedApplicationComponentBuilder<RedisContainerComponent> AddRedisContainer(this IDistributedApplicationBuilder builder, string name, int? port = null)
     {
         var redis = new RedisContainerComponent(name);
@@ -46,25 +44,6 @@ public static class RedisBuilderExtensions
     public static IDistributedApplicationComponentBuilder<T> WithRedis<T>(this IDistributedApplicationComponentBuilder<T> builder, IDistributedApplicationComponentBuilder<IRedisComponent> redisBuilder, string? connectionName = null)
         where T : IDistributedApplicationComponentWithEnvironment
     {
-        var redis = redisBuilder.Component;
-        connectionName = connectionName ?? redis.Name;
-
-        return builder.WithEnvironment((context) =>
-        {
-            var connectionStringName = $"{ConnectionStringEnvironmentName}{connectionName}";
-
-            if (context.PublisherName == "manifest")
-            {
-                context.EnvironmentVariables[connectionStringName] = $"{{{redis.Name}.connectionString}}";
-                return;
-            }
-
-            var connectionString = redis.GetConnectionString();
-            if (string.IsNullOrEmpty(connectionString))
-            {
-                throw new DistributedApplicationException($"A connection string for Redis '{redis.Name}' could not be retrieved.");
-            }
-            context.EnvironmentVariables[connectionStringName] = connectionString;
-        });
+        return builder.WithReference(redisBuilder);
     }
 }
