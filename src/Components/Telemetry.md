@@ -5,7 +5,7 @@ Aspire.Azure.Data.Tables:
   - "Azure.Core"
   - "Azure.Identity"
 - Activity source names:
-  - "Azure.Data.Tables.TableServiceClient"
+  - "Azure.Data.Tables.*"
 - Metric names:
   - none (currently not supported by the Azure SDK)
 
@@ -15,10 +15,8 @@ Aspire.Azure.Messaging.ServiceBus:
   - "Azure.Identity"
   - "Azure.Messaging.ServiceBus"
 - Activity source names:
+  - "Azure.Messaging.ServiceBus.*"
   - "Azure.Messaging.ServiceBus"
-  - "Azure.Messaging.ServiceBus.ServiceBusProcessor"
-  - "Azure.Messaging.ServiceBus.ServiceBusReceiver"
-  - "Azure.Messaging.ServiceBus.ServiceBusSender"
 - Metric names:
   - none (currently not supported by the Azure SDK)
 
