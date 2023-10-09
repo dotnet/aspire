@@ -20,7 +20,7 @@ public static class RedisBuilderExtensions
         return componentBuilder;
     }
 
-    public static IDistributedApplicationComponentBuilder<RedisComponent> AddRedis(this IDistributedApplicationBuilder builder, string name, string? connectionString)
+    public static IDistributedApplicationComponentBuilder<RedisComponent> AddRedis(this IDistributedApplicationBuilder builder, string name, string? connectionString = null)
     {
         var redis = new RedisComponent(name, connectionString);
 
@@ -44,6 +44,6 @@ public static class RedisBuilderExtensions
     public static IDistributedApplicationComponentBuilder<T> WithRedis<T>(this IDistributedApplicationComponentBuilder<T> builder, IDistributedApplicationComponentBuilder<IRedisComponent> redisBuilder, string? connectionName = null)
         where T : IDistributedApplicationComponentWithEnvironment
     {
-        return builder.WithReference(redisBuilder);
+        return builder.WithReference(redisBuilder, connectionName);
     }
 }
