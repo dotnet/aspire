@@ -22,16 +22,18 @@ public static class AspireQueueStorageExtensions
     /// Enables retries, corresponding health check, logging and telemetry.
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
+    /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureStorageQueuesSettings"/>. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{QueueServiceClient, QueueClientOptions}"/>.</param>
     /// <remarks>Reads the configuration from "Aspire.Azure.Storage.Queues" section.</remarks>
-    /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="AzureStorageQueuesSettings.ServiceUri"/> is not provided.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureStorageQueuesSettings.ConnectionString"/> nor <see cref="AzureStorageQueuesSettings.ServiceUri"/> is provided.</exception>
     public static void AddAzureQueueService(
         this IHostApplicationBuilder builder,
+        string connectionName,
         Action<AzureStorageQueuesSettings>? configureSettings = null,
         Action<IAzureClientBuilder<QueueServiceClient, QueueClientOptions>>? configureClientBuilder = null)
     {
-        new StorageQueueComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, name: null);
+        new StorageQueueComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName, serviceKey: null);
     }
 
     /// <summary>
@@ -39,12 +41,12 @@ public static class AspireQueueStorageExtensions
     /// Enables retries, corresponding health check, logging and telemetry.
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
-    /// <param name="name">The <see cref="ServiceDescriptor.ServiceKey"/> of the service.</param>
+    /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureStorageQueuesSettings"/>. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{QueueServiceClient, QueueClientOptions}"/>.</param>
     /// <remarks>Reads the configuration from "Aspire.Azure.Storage.Queues:{name}" section.</remarks>
-    /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="AzureStorageQueuesSettings.ServiceUri"/> is not provided.</exception>
-    public static void AddAzureQueueService(
+    /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureStorageQueuesSettings.ConnectionString"/> nor <see cref="AzureStorageQueuesSettings.ServiceUri"/> is provided.</exception>
+    public static void AddKeyedAzureQueueService(
         this IHostApplicationBuilder builder,
         string name,
         Action<AzureStorageQueuesSettings>? configureSettings = null,
@@ -54,15 +56,21 @@ public static class AspireQueueStorageExtensions
 
         string configurationSectionName = StorageQueueComponent.GetKeyedConfigurationSectionName(name, DefaultConfigSectionName);
 
-        new StorageQueueComponent().AddClient(builder, configurationSectionName, configureSettings, configureClientBuilder, name);
+        new StorageQueueComponent().AddClient(builder, configurationSectionName, configureSettings, configureClientBuilder, connectionName: name, serviceKey: name);
     }
 
     private sealed class StorageQueueComponent : AzureComponent<AzureStorageQueuesSettings, QueueServiceClient, QueueClientOptions>
     {
-        protected override string[] ActivitySourceNames => new[] { "Azure.Storage.Queues.QueueClient" };
+        protected override string[] ActivitySourceNames => ["Azure.Storage.Queues.QueueClient"];
 
         protected override IAzureClientBuilder<QueueServiceClient, QueueClientOptions> AddClient<TBuilder>(TBuilder azureFactoryBuilder, AzureStorageQueuesSettings settings)
-            => azureFactoryBuilder.AddQueueServiceClient(settings.ServiceUri);
+        {
+            var connectionString = settings.ConnectionString;
+
+            return !string.IsNullOrEmpty(connectionString) ?
+                azureFactoryBuilder.AddQueueServiceClient(connectionString) :
+                azureFactoryBuilder.AddQueueServiceClient(settings.ServiceUri);
+        }
 
         protected override IHealthCheck CreateHealthCheck(QueueServiceClient client, AzureStorageQueuesSettings settings)
             => new AzureQueueStorageHealthCheck(client, new AzureQueueStorageHealthCheckOptions());
@@ -78,9 +86,9 @@ public static class AspireQueueStorageExtensions
 
         protected override void Validate(AzureStorageQueuesSettings settings, string configurationSectionName)
         {
-            if (settings.ServiceUri is null)
+            if (string.IsNullOrEmpty(settings.ConnectionString) && settings.ServiceUri is null)
             {
-                throw new InvalidOperationException($"ServiceUri is missing. It should be provided under 'ServiceUri' key in '{configurationSectionName}' configuration section.");
+                throw new InvalidOperationException($"A QueueServiceClient could not be configured. Either specify a 'ConnectionString' or 'ServiceUri' in '{configurationSectionName}' configuration section.");
             }
         }
     }

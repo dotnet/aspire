@@ -13,7 +13,7 @@ public class ConformanceTests_NoPooling : ConformanceTests_Pooling
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<MicrosoftEntityFrameworkCoreSqlServerSettings>? configure = null, string? key = null)
     {
-        builder.AddSqlServerDbContext<TestDbContext>(configureSettings: settings =>
+        builder.AddSqlServerDbContext<TestDbContext>("sqlconnection", settings =>
         {
             settings.DbContextPooling = false;
             configure?.Invoke(settings);

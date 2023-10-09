@@ -70,7 +70,7 @@ public class ConformanceTests : ConformanceTests<NpgsqlDataSource, NpgsqlSetting
     {
         if (key is null)
         {
-            builder.AddNpgsqlDataSource(configureSettings: configure);
+            builder.AddNpgsqlDataSource("npgsql", configure);
         }
         else
         {

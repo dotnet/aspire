@@ -24,11 +24,11 @@ public static class AspireSqlServerSqlClientExtensions
     /// Configures health check, logging and telemetry for the SqlClient.
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
-    /// <param name="connectionName">An optional name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
+    /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="configureSettings">An optional delegate that can be used for customizing options. It's invoked after the settings are read from the configuration.</param>
     /// <remarks>Reads the configuration from "Aspire:Microsoft:Data:SqlClient" section.</remarks>
     /// <exception cref="InvalidOperationException">If required <see cref="MicrosoftDataSqlClientSettings.ConnectionString"/>  is not provided in configuration section.</exception>
-    public static void AddSqlServerClient(this IHostApplicationBuilder builder, string? connectionName = null, Action<MicrosoftDataSqlClientSettings>? configureSettings = null)
+    public static void AddSqlServerClient(this IHostApplicationBuilder builder, string connectionName, Action<MicrosoftDataSqlClientSettings>? configureSettings = null)
         => AddSqlClient(builder, DefaultConfigSectionName, configureSettings, connectionName, serviceKey: null);
 
     /// <summary>
@@ -36,7 +36,7 @@ public static class AspireSqlServerSqlClientExtensions
     /// Configures health check, logging and telemetry for the SqlClient.
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
-    /// <param name="name">The <see cref="ServiceDescriptor.ServiceKey"/> of the service.</param>
+    /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="configureSettings">An optional method that can be used for customizing options. It's invoked after the settings are read from the configuration.</param>
     /// <remarks>Reads the configuration from "Aspire:Microsoft:Data:SqlClient:{name}" section.</remarks>
     /// <exception cref="InvalidOperationException">If required <see cref="MicrosoftDataSqlClientSettings.ConnectionString"/> is not provided in configuration section.</exception>
@@ -48,23 +48,23 @@ public static class AspireSqlServerSqlClientExtensions
     }
 
     private static void AddSqlClient(IHostApplicationBuilder builder, string configurationSectionName,
-        Action<MicrosoftDataSqlClientSettings>? configure, string? connectionName, object? serviceKey)
+        Action<MicrosoftDataSqlClientSettings>? configure, string connectionName, object? serviceKey)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
         MicrosoftDataSqlClientSettings settings = new();
         builder.Configuration.GetSection(configurationSectionName).Bind(settings);
 
-        if (string.IsNullOrEmpty(settings.ConnectionString) && !string.IsNullOrEmpty(connectionName))
+        if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {
-            settings.ConnectionString = builder.Configuration.GetConnectionString(connectionName);
+            settings.ConnectionString = connectionString;
         }
 
         configure?.Invoke(settings);
 
         if (string.IsNullOrEmpty(settings.ConnectionString))
         {
-            throw new InvalidOperationException($"ConnectionString is missing. It should be provided under 'ConnectionString' key in '{configurationSectionName}' configuration section.");
+            throw new InvalidOperationException($"ConnectionString is missing. It should be provided in 'ConnectionStrings:{connectionName}' or under the 'ConnectionString' key in '{configurationSectionName}' configuration section.");
         }
 
         if (serviceKey is null)

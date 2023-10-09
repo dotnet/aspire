@@ -18,10 +18,10 @@ dotnet add package Aspire.Microsoft.EntityFrameworkCore.SqlServer
 
 ## Usage Example
 
-In the `Program.cs` file of your project, call the `AddSqlServerDbContext` extension method to register a `DbContext` for use via the dependency injection container.
+In the `Program.cs` file of your project, call the `AddSqlServerDbContext` extension method to register a `DbContext` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```cs
-builder.AddSqlServerDbContext<MyDbContext>();
+builder.AddSqlServerDbContext<MyDbContext>("sqldata");
 ```
 
 You can then retrieve the `MyDbContext` instance using dependency injection. For example, to retrieve the cache from a Web API controller:
@@ -69,7 +69,6 @@ The Aspire SQL Server EntityFrameworkCore SqlClient component supports [Microsof
     "Microsoft": {
       "EntityFrameworkCore": {
         "SqlServer": {
-          "ConnectionString": "Data Source=myserver;Initial Catalog=master",
           "DbContextPooling": true,
           "HealthChecks": false,
           "Tracing": false,
@@ -83,10 +82,10 @@ The Aspire SQL Server EntityFrameworkCore SqlClient component supports [Microsof
 
 ### Use inline delegates
 
-Also you can pass the `Action<MicrosoftEntityFrameworkCoreSqlServerSettings> configureSettings` delegate to set up some or all the options inline, for example to use a connection string from code:
+Also you can pass the `Action<MicrosoftEntityFrameworkCoreSqlServerSettings> configureSettings` delegate to set up some or all the options inline, for example to disable health checks from code:
 
 ```cs
-    builder.AddSqlServerDbContext<MyDbContext>(configureSettings: settings => settings.ConnectionString = "Data Source=myserver;Initial Catalog=master");
+    builder.AddSqlServerDbContext<MyDbContext>("sqldata", settings => settings.HealthChecks = false);
 ```
 
 ## App Extensions
@@ -109,7 +108,7 @@ builder.AddSqlServerDbContext<MyDbContext>("sqldata");
 ## Additional documentation
 
 * https://learn.microsoft.com/ef/core/
-* https://github.com/dotnet/astra/tree/main/src/Components/README.md
+* https://github.com/dotnet/aspire/tree/main/src/Components/README.md
 
 ## Feedback & Contributing
 

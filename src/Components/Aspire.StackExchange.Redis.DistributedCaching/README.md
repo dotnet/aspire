@@ -18,10 +18,10 @@ dotnet add package Aspire.StackExchange.Redis.DistributedCaching
 
 ## Usage Example
 
-In the `Program.cs` file of your project, call the `AddRedisDistributedCache` extension to register an `IDistributedCache` for use via the dependency injection container.
+In the `Program.cs` file of your project, call the `AddRedisDistributedCache` extension to register an `IDistributedCache` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```cs
-builder.AddRedisDistributedCache();
+builder.AddRedisDistributedCache("cache");
 ```
 
 You can then retrieve the `IDistributedCache` instance using dependency injection. For example, to retrieve the cache from a Web API controller:
@@ -68,12 +68,12 @@ The Redis Distributed Cache component supports [Microsoft.Extensions.Configurati
   "Aspire": {
     "StackExchange": {
       "Redis": {
-        "ConnectionString": "localhost:6379",
         "ConfigurationOptions": {
           "ConnectTimeout": 3000,
           "ConnectRetry": 2
         },
-        "Tracing": false
+        "HealthChecks": false,
+        "Tracing": true
       }
     }
   }
@@ -82,16 +82,16 @@ The Redis Distributed Cache component supports [Microsoft.Extensions.Configurati
 
 ### Use inline delegates
 
-You can also pass the `Action<StackExchangeRedisSettings> configureSettings` delegate to set up some or all the options inline, for example to use a connection string from code:
+You can also pass the `Action<StackExchangeRedisSettings> configureSettings` delegate to set up some or all the options inline, for example to disable health checks from code:
 
 ```cs
-builder.AddRedisDistributedCache(configureSettings: settings => settings.ConnectionString = "localhost:6379");
+builder.AddRedisDistributedCache("cache", settings => settings.HealthChecks = false);
 ```
 
 You can also setup the [ConfigurationOptions](https://stackexchange.github.io/StackExchange.Redis/Configuration.html#configuration-options) using the `Action<ConfigurationOptions> configureOptions` delegate parameter of the `AddRedisDistributedCache` method. For example to set the connection timeout:
 
 ```cs
-builder.AddRedisDistributedCache(configureOptions: options => options.ConnectTimeout = 3000);
+builder.AddRedisDistributedCache("cache", configureOptions: options => options.ConnectTimeout = 3000);
 ```
 
 ## App Extensions
@@ -114,7 +114,7 @@ builder.AddRedisDistributedCache("cache");
 ## Additional documentation
 
 * https://learn.microsoft.com/aspnet/core/performance/caching/distributed
-* https://github.com/dotnet/astra/tree/main/src/Components/README.md
+* https://github.com/dotnet/aspire/tree/main/src/Components/README.md
 
 ## Feedback & Contributing
 

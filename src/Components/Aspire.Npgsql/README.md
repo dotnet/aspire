@@ -18,10 +18,10 @@ dotnet add package Aspire.Npgsql
 
 ## Usage Example
 
-In the `Program.cs` file of your project, call the `AddNpgsqlDataSource` extension method to register a `NpgsqlDataSource` for use via the dependency injection container.
+In the `Program.cs` file of your project, call the `AddNpgsqlDataSource` extension method to register a `NpgsqlDataSource` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```cs
-builder.AddNpgsqlDataSource();
+builder.AddNpgsqlDataSource("postgresdb");
 ```
 
 You can then retrieve the `NpgsqlDataSource` instance using dependency injection. For example, to retrieve the cache from a Web API controller:
@@ -67,8 +67,8 @@ The Aspire PostgreSQL Npgsql component supports [Microsoft.Extensions.Configurat
 {
   "Aspire": {
     "Npgsql": {
-      "ConnectionString": "Host=myserver;Database=test",
-      "Metrics": false
+      "HealthChecks": false,
+      "Tracing": false
     }
   }
 }
@@ -76,10 +76,10 @@ The Aspire PostgreSQL Npgsql component supports [Microsoft.Extensions.Configurat
 
 ### Use inline delegates
 
-Also you can pass the `Action<NpgsqlSettings> configureSettings` delegate to set up some or all the options inline, for example to use a connection string from code:
+Also you can pass the `Action<NpgsqlSettings> configureSettings` delegate to set up some or all the options inline, for example to disable health checks from code:
 
 ```cs
-    builder.AddNpgsqlDataSource(configureSettings: settings => settings.ConnectionString = "Host=myserver;Database=test");
+    builder.AddNpgsqlDataSource("postgresdb", settings => settings.HealthChecks = false);
 ```
 
 ## App Extensions
@@ -102,7 +102,7 @@ builder.AddNpgsqlDataSource("postgresdb");
 ## Additional documentation
 
 * https://www.npgsql.org/doc/basic-usage.html
-* https://github.com/dotnet/astra/tree/main/src/Components/README.md
+* https://github.com/dotnet/aspire/tree/main/src/Components/README.md
 
 ## Feedback & Contributing
 

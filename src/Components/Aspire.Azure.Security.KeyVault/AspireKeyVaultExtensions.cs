@@ -22,16 +22,18 @@ public static class AspireKeyVaultExtensions
     /// Enables retries, corresponding health check, logging and telemetry.
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
+    /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureSecurityKeyVaultSettings"/>. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{SecretClient, SecretClientOptions}"/>.</param>
     /// <remarks>Reads the configuration from "Aspire.Azure.Security.KeyVault" section.</remarks>
     /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="AzureSecurityKeyVaultSettings.VaultUri"/> is not provided.</exception>
     public static void AddAzureKeyVaultSecrets(
         this IHostApplicationBuilder builder,
+        string connectionName,
         Action<AzureSecurityKeyVaultSettings>? configureSettings = null,
         Action<IAzureClientBuilder<SecretClient, SecretClientOptions>>? configureClientBuilder = null)
     {
-        new KeyVaultComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, name: null);
+        new KeyVaultComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName, serviceKey: null);
     }
 
     /// <summary>
@@ -39,12 +41,12 @@ public static class AspireKeyVaultExtensions
     /// Enables retries, corresponding health check, logging and telemetry.
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
-    /// <param name="name">The <see cref="ServiceDescriptor.ServiceKey"/> of the service.</param>
+    /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection information from the ConnectionStrings configuration section.</param>
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureSecurityKeyVaultSettings"/>. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{SecretClient, SecretClientOptions}"/>.</param>
     /// <remarks>Reads the configuration from "Aspire.Azure.Security.KeyVault:{name}" section.</remarks>
     /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="AzureSecurityKeyVaultSettings.VaultUri"/> is not provided.</exception>
-    public static void AddAzureKeyVaultSecrets(
+    public static void AddKeyedAzureKeyVaultSecrets(
         this IHostApplicationBuilder builder,
         string name,
         Action<AzureSecurityKeyVaultSettings>? configureSettings = null,
@@ -54,7 +56,7 @@ public static class AspireKeyVaultExtensions
 
         string configurationSectionName = KeyVaultComponent.GetKeyedConfigurationSectionName(name, DefaultConfigSectionName);
 
-        new KeyVaultComponent().AddClient(builder, configurationSectionName, configureSettings, configureClientBuilder, name);
+        new KeyVaultComponent().AddClient(builder, configurationSectionName, configureSettings, configureClientBuilder, connectionName: name, serviceKey: name);
     }
 
     private sealed class KeyVaultComponent : AzureComponent<AzureSecurityKeyVaultSettings, SecretClient, SecretClientOptions>

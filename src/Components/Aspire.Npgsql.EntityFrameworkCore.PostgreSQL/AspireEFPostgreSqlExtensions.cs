@@ -22,7 +22,7 @@ public static partial class AspireEFPostgreSqlExtensions
     /// </summary>
     /// <typeparam name="TContext">The <see cref="DbContext" /> that needs to be registered.</typeparam>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
-    /// <param name="connectionName">An optional name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
+    /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="configureSettings">An optional delegate that can be used for customizing options. It's invoked after the settings are read from the configuration.</param>
     /// <remarks>
     /// <para>
@@ -43,7 +43,7 @@ public static partial class AspireEFPostgreSqlExtensions
     /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="NpgsqlEntityFrameworkCorePostgreSQLSettings.ConnectionString"/> is not provided.</exception>
     public static void AddNpgsqlDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
         this IHostApplicationBuilder builder,
-        string? connectionName = null,
+        string connectionName,
         Action<NpgsqlEntityFrameworkCorePostgreSQLSettings>? configureSettings = null) where TContext : DbContext
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -60,16 +60,16 @@ public static partial class AspireEFPostgreSqlExtensions
             builder.Configuration.GetSection(DefaultConfigSectionName).Bind(settings);
         }
 
-        if (string.IsNullOrEmpty(settings.ConnectionString) && !string.IsNullOrEmpty(connectionName))
+        if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {
-            settings.ConnectionString = builder.Configuration.GetConnectionString(connectionName);
+            settings.ConnectionString = connectionString;
         }
 
         configureSettings?.Invoke(settings);
 
         if (string.IsNullOrEmpty(settings.ConnectionString))
         {
-            throw new InvalidOperationException($"ConnectionString is missing. It should be provided under 'ConnectionString' key in '{DefaultConfigSectionName}' or '{typeSpecificSectionName}' configuration section.");
+            throw new InvalidOperationException($"ConnectionString is missing. It should be provided in 'ConnectionStrings:{connectionName}' or under the 'ConnectionString' key in '{DefaultConfigSectionName}' or '{typeSpecificSectionName}' configuration section.");
         }
 
         if (builder.Environment.IsDevelopment())
