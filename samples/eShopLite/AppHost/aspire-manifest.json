@@ -11,8 +11,12 @@
         }
       }
     },
+    "postgres": {
+      "type": "postgres.server.v1"
+    },
     "catalog": {
-      "type": "postgres.v1"
+      "type": "postgres.database.v1",
+      "parent": "postgres"
     },
     "basketCache": {
       "type": "redis.v1"

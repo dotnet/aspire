@@ -5,7 +5,6 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Postgres;
 
-public interface IPostgresComponent : IDistributedApplicationComponent
+public interface IPostgresComponent : IDistributedApplicationComponentWithConnectionString
 {
-    string? GetConnectionString(string? databaseName = null);
 }

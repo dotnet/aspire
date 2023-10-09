@@ -9,7 +9,7 @@ public class PostgresContainerComponent(string name, string password) : Containe
 {
     public string Password { get; } = password;
 
-    public string GetConnectionString(string? databaseName = null)
+    public string? GetConnectionString()
     {
         if (!this.TryGetAllocatedEndPoints(out var allocatedEndpoints))
         {
@@ -18,8 +18,7 @@ public class PostgresContainerComponent(string name, string password) : Containe
 
         var allocatedEndpoint = allocatedEndpoints.Single(); // We should only have one endpoint for Postgres.
 
-        var baseConnectionString = $"Host={allocatedEndpoint.Address};Port={allocatedEndpoint.Port};Username=postgres;Password={Password};";
-        var connectionString = databaseName is null ? baseConnectionString : $"{baseConnectionString}Database={databaseName};";
+        var connectionString = $"Host={allocatedEndpoint.Address};Port={allocatedEndpoint.Port};Username=postgres;Password={Password};";
         return connectionString;
     }
 }
