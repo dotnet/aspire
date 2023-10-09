@@ -11,7 +11,6 @@ if (!builder.Environment.IsDevelopment() || builder.Configuration[AspireServiceB
 }
 
 builder.Services.AddHostedService<OrderProcessingWorker>();
-builder.Services.AddOpenTelemetry();
 
 var host = builder.Build();
 host.Run();
