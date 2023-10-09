@@ -2,11 +2,14 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting;
 
 public static class ComponentBuilderExtensions
 {
+    private const string ConnectionStringEnvironmentName = "ConnectionStrings__";
+
     public static AllocatedEndpointAnnotation? GetEndpoint<T>(this IDistributedApplicationComponentBuilder<T> builder, string name) where T : IDistributedApplicationComponent
     {
         return builder.Component.Annotations.OfType<AllocatedEndpointAnnotation>().SingleOrDefault();
@@ -68,28 +71,32 @@ public static class ComponentBuilderExtensions
         };
     }
 
-    public static IDistributedApplicationComponentBuilder<TDestination> WithReference<TDestination, TSource>(this IDistributedApplicationComponentBuilder<TDestination> builder, IDistributedApplicationComponentBuilder<TSource> source)
+    public static IDistributedApplicationComponentBuilder<TDestination> WithReference<TDestination, TSource>(this IDistributedApplicationComponentBuilder<TDestination> builder, IDistributedApplicationComponentBuilder<TSource> source, string? connectionName = null)
         where TDestination : IDistributedApplicationComponentWithEnvironment
         where TSource : IDistributedApplicationComponentWithConnectionString
     {
-        var connectionName = $"ConnectionStrings__{source.Component.Name}";
+        var component = source.Component;
+        connectionName ??= component.Name;
 
         return builder.WithEnvironment(context =>
         {
+            var connectionStringName = $"{ConnectionStringEnvironmentName}{connectionName}";
+
             if (context.PublisherName == "manifest")
             {
-                context.EnvironmentVariables[connectionName] = $"{{{source.Component.Name}.connectionString}}";
+                context.EnvironmentVariables[connectionStringName] = $"{{{component.Name}.connectionString}}";
                 return;
             }
 
-            var connectionString = source.Component.GetConnectionString();
+            var connectionString = component.GetConnectionString() ??
+                builder.ApplicationBuilder.Configuration.GetConnectionString(component.Name);
 
             if (string.IsNullOrEmpty(connectionString))
             {
-                throw new DistributedApplicationException($"A connection string for '{source.Component.Name}' could not be retrieved.");
+                throw new DistributedApplicationException($"A connection string for '{component.Name}' could not be retrieved.");
             }
 
-            context.EnvironmentVariables[connectionName] = connectionString;
+            context.EnvironmentVariables[connectionStringName] = connectionString;
         });
     }
 

@@ -4,6 +4,7 @@
 using System.Net.Sockets;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
+using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting.Postgres;
 
@@ -32,7 +33,7 @@ public static class PostgresBuilderExtensions
                       });
     }
 
-    public static IDistributedApplicationComponentBuilder<PostgresComponent> AddPostgres(this IDistributedApplicationBuilder builder, string name, string? connectionString)
+    public static IDistributedApplicationComponentBuilder<PostgresComponent> AddPostgres(this IDistributedApplicationBuilder builder, string name, string? connectionString = null)
     {
         var postgres = new PostgresComponent(name, connectionString);
 
@@ -60,7 +61,7 @@ public static class PostgresBuilderExtensions
         where T : IDistributedApplicationComponentWithEnvironment
     {
         var postgres = postgresBuilder.Component;
-        connectionName = connectionName ?? postgresBuilder.Component.Name;
+        connectionName ??= postgresBuilder.Component.Name;
 
         return builder.WithEnvironment((context) =>
         {
@@ -72,11 +73,14 @@ public static class PostgresBuilderExtensions
                 return;
             }
 
-            var connectionString = postgres.GetConnectionString(databaseName);
+            var connectionString = postgres.GetConnectionString(databaseName) ??
+                builder.ApplicationBuilder.Configuration.GetConnectionString(postgres.Name);
+
             if (string.IsNullOrEmpty(connectionString))
             {
                 throw new DistributedApplicationException($"A connection string for Postgres '{postgres.Name}' could not be retrieved.");
             }
+
             context.EnvironmentVariables[connectionStringName] = connectionString;
         });
     }

@@ -4,6 +4,7 @@
 using System.Net.Sockets;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
+using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting.SqlServer;
 
@@ -24,7 +25,7 @@ public static class SqlServerBuilderExtensions
         return componentBuilder;
     }
 
-    public static IDistributedApplicationComponentBuilder<SqlServerComponent> AddSqlServer(this IDistributedApplicationBuilder builder, string name, string? connectionString)
+    public static IDistributedApplicationComponentBuilder<SqlServerComponent> AddSqlServer(this IDistributedApplicationBuilder builder, string name, string? connectionString = null)
     {
         var sqlServer = new SqlServerComponent(name, connectionString);
 
@@ -49,7 +50,7 @@ public static class SqlServerBuilderExtensions
         where T : IDistributedApplicationComponentWithEnvironment
     {
         var sql = sqlBuilder.Component;
-        connectionName = connectionName ?? sqlBuilder.Component.Name;
+        connectionName ??= sqlBuilder.Component.Name;
 
         return builder.WithEnvironment((context) =>
         {
@@ -61,11 +62,14 @@ public static class SqlServerBuilderExtensions
                 return;
             }
 
-            var connectionString = sql.GetConnectionString(databaseName);
+            var connectionString = sql.GetConnectionString(databaseName) ??
+                builder.ApplicationBuilder.Configuration.GetConnectionString(sql.Name);
+
             if (string.IsNullOrEmpty(connectionString))
             {
                 throw new DistributedApplicationException($"A connection string for SqlServer '{sql.Name}' could not be retrieved.");
             }
+
             context.EnvironmentVariables[connectionStringName] = connectionString;
         });
     }
