@@ -111,4 +111,4 @@ builder.AddSqlServerClient("sqldata");
 
 ## Feedback & Contributing
 
-https://github.com/dotnet/astra
+https://github.com/dotnet/aspire

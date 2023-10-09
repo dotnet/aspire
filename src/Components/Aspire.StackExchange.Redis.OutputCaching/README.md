@@ -123,4 +123,4 @@ builder.AddRedisOutputCache("cache");
 
 ## Feedback & Contributing
 
-https://github.com/dotnet/astra
+https://github.com/dotnet/aspire

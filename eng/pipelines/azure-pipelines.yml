@@ -35,13 +35,13 @@ stages:
 - stage: build
   displayName: Build
   jobs:
-  # TODO: Temporarily disabled, see:https://github.com/dotnet/astra/issues/110
+  # TODO: Temporarily disabled, see:https://github.com/dotnet/aspire/issues/145
   # - ${{ if and(eq(variables._RunAsInternal, True), notin(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranch'], 'refs/heads/main')) }}:
   #   - template: /eng/common/templates/job/onelocbuild.yml
   #     parameters:
-  #       MirrorRepo: astra
+  #       MirrorRepo: aspire
   #       LclSource: lclFilesFromPackage
-  #       LclPackageId: 'LCL-JUNO-PROD-ASTRA'
+  #       LclPackageId: 'LCL-JUNO-PROD-ASPIRE'
   - template: /eng/common/templates/jobs/jobs.yml
     parameters:
       artifacts:

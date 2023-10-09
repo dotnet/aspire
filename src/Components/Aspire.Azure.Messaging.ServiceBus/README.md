@@ -119,5 +119,5 @@ You can also setup the [ServiceBusClientOptions](https://learn.microsoft.com/dot
 
 ## Feedback & Contributing
 
-https://github.com/dotnet/astra
+https://github.com/dotnet/aspire
 

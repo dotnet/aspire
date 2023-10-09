@@ -105,4 +105,4 @@ You can also setup the [SecretClientOptions](https://learn.microsoft.com/dotnet/
 
 ## Feedback & Contributing
 
-https://github.com/dotnet/astra
+https://github.com/dotnet/aspire
