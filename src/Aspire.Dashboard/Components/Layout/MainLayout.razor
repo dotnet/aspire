@@ -4,22 +4,20 @@
     <FluentHeader Style="margin-bottom:0px">Aspire Dashboard</FluentHeader>
     <FluentStack Orientation="Orientation.Horizontal" Width="100%">
 
-        <FluentNavMenu Width="150" Collapsible="true">
-            <FluentNavMenuLink Icon="@(new Icons.Regular.Size24.AppGeneric())" Text="Projects" Href="/" />
-            <FluentNavMenuLink Icon="@(new Icons.Regular.Size24.BinFull())" Text="Containers" Href="/Containers" />
-            <FluentNavMenuLink Icon="@(new Icons.Regular.Size24.AppGeneric())" Text="Executables" Href="/Executables" />
-            <FluentNavMenuGroup Icon="@(new Icons.Regular.Size24.SlideText())" Text="Logs" Expanded="true" OnAction="OnMenuGroupClicked">
-                <FluentNavMenuLink Icon="@(new Icons.Regular.Size24.SlideText())" Text="Project" Href="/ProjectLogs" />
-                <FluentNavMenuLink Icon="@(new Icons.Regular.Size24.SlideText())" Text="Container" Href="/ContainerLogs" />
-                <FluentNavMenuLink Icon="@(new Icons.Regular.Size24.SlideText())" Text="Executable" Href="/ExecutableLogs" />
-                <FluentNavMenuLink Icon="@(new Icons.Regular.Size24.SlideTextSparkle())" Text="Structured" Href="/SemanticLogs" />
-            </FluentNavMenuGroup>
-            
-            <FluentNavMenuLink Icon="@(new Icons.Regular.Size24.GanttChart())" Text="Traces" Href="/Traces" />
+        <FluentNavMenu Width="250" Collapsible="true">
+            <FluentNavLink Icon="@(new Icons.Regular.Size24.AppGeneric())" Href="/" Match="NavLinkMatch.All">Projects</FluentNavLink>
+            <FluentNavLink Icon="@(new Icons.Regular.Size24.BinFull())" Href="/Containers">Containers</FluentNavLink>
+            <FluentNavLink Icon="@(new Icons.Regular.Size24.AppGeneric())" Href="/Executables">Executables</FluentNavLink>
+            <FluentNavGroup Title="Logs" Icon="@(new Icons.Regular.Size24.SlideText())" Expanded="true" Gap="10px 0;">
+                <FluentNavLink Icon="@(new Icons.Regular.Size24.SlideText())" Href="/ProjectLogs">Project</FluentNavLink>
+                <FluentNavLink Icon="@(new Icons.Regular.Size24.SlideText())" Href="/ContainerLogs">Container</FluentNavLink>
+                <FluentNavLink Icon="@(new Icons.Regular.Size24.SlideText())" Href="/ExecutableLogs">Executable</FluentNavLink>
+                <FluentNavLink Icon="@(new Icons.Regular.Size24.SlideTextSparkle())" Href="/SemanticLogs">Structured</FluentNavLink>
+            </FluentNavGroup>
+            <FluentNavLink Icon="@(new Icons.Regular.Size24.GanttChart())" Href="/Traces">Traces</FluentNavLink>
         </FluentNavMenu>
 
-        @* Have to use Style instead of Class because of https://github.com/microsoft/fluentui-blazor/issues/741 *@
-        <FluentBodyContent Style="margin-right: 10px;">
+        <FluentBodyContent Class="custom-body-content">
             @Body
         </FluentBodyContent>
 
@@ -33,10 +31,3 @@
     <a class="dismiss">🗙</a>
 </div>
 
-@code {
-    // Workaround for bug in current NavMenu when clicking on menu groups
-    private void OnMenuGroupClicked(NavMenuActionArgs args)
-    {
-        args.SetHandled();
-    }
-}
