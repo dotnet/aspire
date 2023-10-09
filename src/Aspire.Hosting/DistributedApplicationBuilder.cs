@@ -86,7 +86,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         {
             Components.Add(component);
             var builder = new DistributedApplicationComponentBuilder<T>(this, component);
-            builder.WithName(component.Name); // TODO: Remove when fully transitioned Name away from annotation.
             componentBuilders.Add(component, builder);
             return builder;
         }

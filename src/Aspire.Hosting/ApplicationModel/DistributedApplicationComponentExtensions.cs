@@ -7,13 +7,6 @@ namespace Aspire.Hosting.ApplicationModel;
 
 public static class DistributedApplicationComponentExtensions
 {
-    public static bool TryGetName(this IDistributedApplicationComponent component, [NotNullWhen(true)] out string? name)
-    {
-        var result = component.TryGetLastAnnotation<NameAnnotation>(out var nameAnnotation);
-        name = nameAnnotation?.Name;
-        return result;
-    }
-
     public static bool TryGetLastAnnotation<T>(this IDistributedApplicationComponent component, [NotNullWhen(true)] out T? annotation) where T : IDistributedApplicationComponentAnnotation
     {
         if (component.Annotations.OfType<T>().LastOrDefault() is { } lastAnnotation)
@@ -76,10 +69,6 @@ public static class DistributedApplicationComponentExtensions
 
         imageName = null;
         return false;
-    }
-    public static bool HasName(this IDistributedApplicationComponent component, string name)
-    {
-        return component.TryGetName(out var componentName) && componentName == name;
     }
 
     public static int GetReplicaCount(this IDistributedApplicationComponent component)

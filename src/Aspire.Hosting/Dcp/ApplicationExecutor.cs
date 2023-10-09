@@ -441,9 +441,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model) : I
                 throw new InvalidOperationException();
             }
 
-            var computedContainerName = container.TryGetName(out var specifiedContainerName) ? specifiedContainerName : containerImageName;
-            // TODO: the image name is really not the best name for Container object; we should use a "service name" or "component name"
-            var ctr = Container.Create(computedContainerName, containerImageName);
+            var ctr = Container.Create(container.Name, containerImageName);
 
             if (container.TryGetVolumeMounts(out var volumeMounts))
             {
@@ -630,48 +628,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model) : I
     private static string GetObjectNameForComponent(IDistributedApplicationComponent component, string suffix = "")
     {
         string maybeWithSuffix(string s) => string.IsNullOrWhiteSpace(suffix) ? s : $"{s}_{suffix}";
-
-        if (component.TryGetName(out var name))
-        {
-            return maybeWithSuffix(name);
-        }
-
-        switch (component)
-        {
-            case ContainerComponent:
-                if (!component.TryGetContainerImageName(out var imageName))
-                {
-                    throw new ArgumentException("The container component has no name and no image information."); // Should never happen.
-                }
-
-                if (Rules.IsValidObjectName(imageName))
-                {
-                    return maybeWithSuffix(imageName);
-                }
-                else
-                {
-                    throw new ArgumentException($"Could not determine a good name for container component using image '{imageName}'; use WithName() on the container to fix this issue.");
-                }
-
-            case ProjectComponent:
-                if (!component.TryGetLastAnnotation<IServiceMetadata>(out var projectMetadata))
-                {
-                    throw new ArgumentException("The project component has no name and no project metadata"); // Should never happen.
-                }
-
-                // TODO: the assembly name is really not the best name for Executable object (should use project name probably).
-                if (Rules.IsValidObjectName(projectMetadata.AssemblyName))
-                {
-                    return maybeWithSuffix(projectMetadata.AssemblyName);
-                }
-                else
-                {
-                    throw new ArgumentException($"Could not determine a good name for project component with assembly name '{projectMetadata.AssemblyName}'; use WithName() on the project to fix this issue.");
-                }
-
-            default:
-                throw new ArgumentException($"Could not determine a good name for component of type {component.GetType().Name}");
-        }
+        return maybeWithSuffix(component.Name);
     }
 
     private static string GenerateUniqueServiceName(List<string> serviceNames, string candidateName)
