@@ -6,6 +6,11 @@
     <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
     <IsAotCompatible>true</IsAotCompatible>
     <PackageTags>$(ComponentDatabasePackageTags) postgressql postgres npgsql sql</PackageTags>
+    <Description>
+      Registers NpgsqlDataSource in the DI container for connecting PostgreSQL
+      database. Enables corresponding health check, metrics, logging and
+      telemetry.
+    </Description>
   </PropertyGroup>
 
   <ItemGroup>

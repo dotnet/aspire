@@ -6,6 +6,11 @@
     <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
     <IsAotCompatible>true</IsAotCompatible>
     <PackageTags>$(ComponentEfCorePackageTags) postgressql postgres npgsql sql</PackageTags>
+    <Description>
+      Registers EntityFrameworkCore DbContext in the DI container for connecting
+      PostgreSQL database. Enables connection pooling, health check, logging and
+      telemetry.
+    </Description>
   </PropertyGroup>
 
   <ItemGroup>

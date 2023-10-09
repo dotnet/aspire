@@ -6,6 +6,11 @@
     <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
     <IsAotCompatible>true</IsAotCompatible>
     <PackageTags>$(ComponentDatabasePackageTags) sqlserver sql</PackageTags>
+    <Description>
+      Registers 'Scoped' Microsoft.Data.SqlClient.SqlConnection factory in the
+      DI container for connecting Azure SQL, MS SQL database. Enables health
+      check, metrics and telemetry.
+    </Description>
   </PropertyGroup>
 
   <ItemGroup>

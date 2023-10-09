@@ -4,6 +4,11 @@
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
     <PackageTags>$(ComponentAzurePackageTags) storage blobs blob</PackageTags>
+    <Description>
+      Registers a BlobServiceClient service as a singleton in the DI container
+      for connecting to Azure Storage Blobs. Enables corresponding health
+      checks, logging and telemetry.
+    </Description>
   </PropertyGroup>
 
   <ItemGroup>

@@ -4,6 +4,10 @@
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
     <PackageTags>$(ComponentAzurePackageTags) servicebus amqp</PackageTags>
+    <Description>
+      Registers a ServiceBusClient in the DI container for connecting to Azure
+      Service Bus.
+    </Description>
   </PropertyGroup>
 
   <ItemGroup>

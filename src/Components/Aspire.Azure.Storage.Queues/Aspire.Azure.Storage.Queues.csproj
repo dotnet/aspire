@@ -4,6 +4,11 @@
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
     <PackageTags>$(ComponentAzurePackageTags) storage queue queues</PackageTags>
+    <Description>
+      Registers QueueServiceClient as a singleton in the DI container for
+      connecting to Azure Queue Storage. Enables corresponding health check,
+      logging and telemetry.
+    </Description>
   </PropertyGroup>
 
   <ItemGroup>

@@ -6,6 +6,11 @@
     <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
     <IsAotCompatible>true</IsAotCompatible>
     <PackageTags>$(ComponentEfCorePackageTags) sqlserver sql</PackageTags>
+    <Description>
+      Registers EntityFrameworkCore DbContext service for connecting Azure SQL,
+      MS SQL server database. Enables connection pooling, health check, logging
+      and telemetry.
+    </Description>
   </PropertyGroup>
 
   <ItemGroup>

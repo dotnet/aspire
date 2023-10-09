@@ -4,6 +4,10 @@
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
     <PackageTags>$(ComponentCachePackageTags) redis</PackageTags>
+    <Description>
+      Registers an IConnectionMultiplexer in the DI container for connecting to
+      Redis server. Enables corresponding health check, logging, and telemetry.
+    </Description>
   </PropertyGroup>
 
   <ItemGroup>
