@@ -1,33 +1,34 @@
 ﻿@inherits LayoutComponentBase
 
-<FluentLayout>
-    <FluentHeader Style="margin-bottom:0px">Aspire Dashboard</FluentHeader>
-    <FluentStack Orientation="Orientation.Horizontal" Width="100%">
+<div>
+    <FluentLayout>
+        <FluentHeader Style="margin-bottom:0px">Aspire Dashboard</FluentHeader>
+        <FluentStack Orientation="Orientation.Horizontal" Width="100%">
 
-        <FluentNavMenu Width="250" Collapsible="true">
-            <FluentNavLink Icon="@(new Icons.Regular.Size24.AppGeneric())" Href="/" Match="NavLinkMatch.All">Projects</FluentNavLink>
-            <FluentNavLink Icon="@(new Icons.Regular.Size24.BinFull())" Href="/Containers">Containers</FluentNavLink>
-            <FluentNavLink Icon="@(new Icons.Regular.Size24.AppGeneric())" Href="/Executables">Executables</FluentNavLink>
-            <FluentNavGroup Title="Logs" Icon="@(new Icons.Regular.Size24.SlideText())" Expanded="true" Gap="10px 0;">
-                <FluentNavLink Icon="@(new Icons.Regular.Size24.SlideText())" Href="/ProjectLogs">Project</FluentNavLink>
-                <FluentNavLink Icon="@(new Icons.Regular.Size24.SlideText())" Href="/ContainerLogs">Container</FluentNavLink>
-                <FluentNavLink Icon="@(new Icons.Regular.Size24.SlideText())" Href="/ExecutableLogs">Executable</FluentNavLink>
-                <FluentNavLink Icon="@(new Icons.Regular.Size24.SlideTextSparkle())" Href="/SemanticLogs">Structured</FluentNavLink>
-            </FluentNavGroup>
-            <FluentNavLink Icon="@(new Icons.Regular.Size24.GanttChart())" Href="/Traces">Traces</FluentNavLink>
-        </FluentNavMenu>
+            <FluentNavMenu Width="250" Collapsible="true">
+                <FluentNavLink Icon="@(new Icons.Regular.Size24.AppGeneric())" Href="/" Match="NavLinkMatch.All">Projects</FluentNavLink>
+                <FluentNavLink Icon="@(new Icons.Regular.Size24.BinFull())" Href="/Containers">Containers</FluentNavLink>
+                <FluentNavLink Icon="@(new Icons.Regular.Size24.AppGeneric())" Href="/Executables">Executables</FluentNavLink>
+                <FluentNavGroup Title="Logs" Icon="@(new Icons.Regular.Size24.SlideText())" Expanded="true" Gap="10px 0;">
+                    <FluentNavLink Icon="@(new Icons.Regular.Size24.SlideText())" Href="/ProjectLogs">Project</FluentNavLink>
+                    <FluentNavLink Icon="@(new Icons.Regular.Size24.SlideText())" Href="/ContainerLogs">Container</FluentNavLink>
+                    <FluentNavLink Icon="@(new Icons.Regular.Size24.SlideText())" Href="/ExecutableLogs">Executable</FluentNavLink>
+                    <FluentNavLink Icon="@(new Icons.Regular.Size24.SlideTextSparkle())" Href="/SemanticLogs">Structured</FluentNavLink>
+                </FluentNavGroup>
+                <FluentNavLink Icon="@(new Icons.Regular.Size24.GanttChart())" Href="/Traces">Traces</FluentNavLink>
+            </FluentNavMenu>
 
-        <FluentBodyContent Class="custom-body-content">
-            @Body
-        </FluentBodyContent>
+            <FluentBodyContent Class="custom-body-content">
+                @Body
+            </FluentBodyContent>
 
-    </FluentStack>
-</FluentLayout>
-<FluentDialogProvider />
-<FluentTooltipProvider />
-<div id="blazor-error-ui">
-    An unhandled error has occurred.
-    <a href="" class="reload">Reload</a>
-    <a class="dismiss">🗙</a>
+        </FluentStack>
+    </FluentLayout>
+    <FluentDialogProvider />
+    <FluentTooltipProvider />
+    <div id="blazor-error-ui">
+        An unhandled error has occurred.
+        <a href="" class="reload">Reload</a>
+        <a class="dismiss">🗙</a>
+    </div>
 </div>
-
