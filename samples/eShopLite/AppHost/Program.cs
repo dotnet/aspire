@@ -30,7 +30,7 @@ builder.AddProject<Projects.MyFrontend>()
        .WithEnvironment("GRAFANA_URL", () => grafana.GetEndpoint("grafana-http")?.UriString ?? $"{{{grafana.Component.Name}.bindings.grafana-http}}");
 
 builder.AddProject<Projects.OrderProcessor>()
-       .WithAzureServiceBus(serviceBus)
+       .WithReference(serviceBus, optional: true)
        .WithLaunchProfile("OrderProcessor");
 
 builder.AddProject<Projects.ApiGateway>()
