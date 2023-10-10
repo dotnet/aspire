@@ -7,6 +7,37 @@ namespace Aspire.Hosting.Azure;
 
 public class AzureStorageComponent(string name) : DistributedApplicationComponent(name), IAzureComponent
 {
-    public string? ConnectionString { get; set; }
-    public string? AccountName { get; set; }
+    public string? TableUri { get; set; }
+    public string? QueueUri { get; set; }
+    public string? BlobUri { get; set; }
+}
+
+public class AzureTableStorageComponent(string name, AzureStorageComponent storage) : DistributedApplicationComponent(name),
+    IAzureComponent,
+    IDistributedApplicationComponentWithConnectionString,
+    IDistributedApplicationComponentWithParent<AzureStorageComponent>
+{
+    public AzureStorageComponent Parent => storage;
+
+    public string? GetConnectionString() => Parent.TableUri;
+}
+
+public class AzureBlobStorageComponent(string name, AzureStorageComponent storage) : DistributedApplicationComponent(name),
+    IAzureComponent,
+    IDistributedApplicationComponentWithConnectionString,
+    IDistributedApplicationComponentWithParent<AzureStorageComponent>
+{
+    public AzureStorageComponent Parent => storage;
+
+    public string? GetConnectionString() => Parent.BlobUri;
+}
+
+public class AzureQueueStorageComponent(string name, AzureStorageComponent storage) : DistributedApplicationComponent(name),
+    IAzureComponent,
+    IDistributedApplicationComponentWithConnectionString,
+    IDistributedApplicationComponentWithParent<AzureStorageComponent>
+{
+    public AzureStorageComponent Parent => storage;
+
+    public string? GetConnectionString() => Parent.QueueUri;
 }
