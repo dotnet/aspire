@@ -362,6 +362,8 @@ public abstract class ConformanceTests<TService, TOptions>
     [InlineData(false)]
     public void ConnectionInformationIsDelayValidated(bool useKey)
     {
+        SetupConnectionInformationIsDelayValidated();
+
         var builder = Host.CreateEmptyApplicationBuilder(null);
 
         string? key = useKey ? "key" : null;
@@ -386,6 +388,8 @@ public abstract class ConformanceTests<TService, TOptions>
 
         return directory!;
     }
+
+    protected virtual void SetupConnectionInformationIsDelayValidated() { }
 
     // This method can have side effects (setting AppContext switch, enabling activity source by name).
     // That is why it needs to be executed in a standalone process.
