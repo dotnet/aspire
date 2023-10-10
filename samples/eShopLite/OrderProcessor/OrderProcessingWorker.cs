@@ -6,10 +6,6 @@ namespace OrderProcessor;
 
 public class OrderProcessingWorker : BackgroundService
 {
-    public static readonly string ActivitySourceName = "Worker";
-
-    public static ActivitySource ActivitySource { get; } = new ActivitySource(ActivitySourceName);
-
     private readonly ILogger<OrderProcessingWorker> _logger;
     private readonly IConfiguration _config;
     private readonly ServiceBusClient? _client;
@@ -53,32 +49,29 @@ public class OrderProcessingWorker : BackgroundService
 
     private Task ProcessMessageAsync(ProcessMessageEventArgs args)
     {
-        using (var activity = ActivitySource.StartActivity("order-processor.worker"))
+        _logger.LogInformation($"Processing Order at: {DateTime.UtcNow}");
+
+        var message = args.Message;
+
+        if (_logger.IsEnabled(LogLevel.Debug))
         {
-            _logger.LogInformation($"Processing Order at: {DateTime.UtcNow}");
-
-            var message = args.Message;
-
-            if (_logger.IsEnabled(LogLevel.Debug))
-            {
-                _logger.LogDebug("""
-                    MessageId:{MessageId}
-                    MessageBody:{Body}
-                    """, message.MessageId, message.Body);
-            }
-            var order = message.Body.ToObjectFromJson<Order>();
-
-            activity?.AddTag("order-id", order.Id);
-            activity?.AddTag("product-count", order.Items.Count);
-
-            _logger.LogInformation("""
-                OrderId:{Id}
-                BuyerId:{BuyerId}
-                ProductCount:{Count}
-                """, order.Id, order.BuyerId, order.Items.Count);
-
-            return Task.CompletedTask;
+            _logger.LogDebug("""
+                MessageId:{MessageId}
+                MessageBody:{Body}
+                """, message.MessageId, message.Body);
         }
+        var order = message.Body.ToObjectFromJson<Order>();
+
+        Activity.Current?.AddTag("order-id", order.Id);
+        Activity.Current?.AddTag("product-count", order.Items.Count);
+
+        _logger.LogInformation("""
+            OrderId:{Id}
+            BuyerId:{BuyerId}
+            ProductCount:{Count}
+            """, order.Id, order.BuyerId, order.Items.Count);
+
+        return Task.CompletedTask;
     }
 
     private Task ProcessErrorAsync(ProcessErrorEventArgs arg)
