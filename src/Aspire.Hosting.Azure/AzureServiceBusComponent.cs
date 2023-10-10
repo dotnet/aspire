@@ -7,6 +7,7 @@ namespace Aspire.Hosting.Azure;
 
 public class AzureServiceBusComponent(string name) : DistributedApplicationComponent(name), IAzureComponent, IDistributedApplicationComponentWithConnectionString
 {
+    // This is the full uri to the service bus namespace e.g https://namespace.servicebus.windows.net
     public string? ServiceBusEndpoint { get; set; }
 
     public string[] QueueNames { get; set; } = [];

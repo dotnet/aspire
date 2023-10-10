@@ -251,7 +251,7 @@ internal sealed class AzureProvisioner(IConfiguration configuration, IHostEnviro
             logger.LogInformation("Key vault {vaultName} created.", keyVaultResource.Data.Name);
         }
 
-        keyVault.VaultUri = keyVaultResource.Data.Properties.VaultUri.ToString();
+        keyVault.VaultUri = keyVaultResource.Data.Properties.VaultUri;
 
         // Key Vault Administrator
         // https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles#key-vault-administrator
@@ -384,9 +384,9 @@ internal sealed class AzureProvisioner(IConfiguration configuration, IHostEnviro
             logger.LogInformation("Storage account {accountName} created.", storageAccount.Data.Name);
         }
         
-        component.BlobUri = storageAccount.Data.PrimaryEndpoints.BlobUri.ToString();
-        component.TableUri = storageAccount.Data.PrimaryEndpoints.TableUri.ToString();
-        component.QueueUri = storageAccount.Data.PrimaryEndpoints.QueueUri.ToString();
+        component.BlobUri = storageAccount.Data.PrimaryEndpoints.BlobUri;
+        component.TableUri = storageAccount.Data.PrimaryEndpoints.TableUri;
+        component.QueueUri = storageAccount.Data.PrimaryEndpoints.QueueUri;
 
         // Storage Queue Data Contributor
         // https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles#storage-queue-data-contributor

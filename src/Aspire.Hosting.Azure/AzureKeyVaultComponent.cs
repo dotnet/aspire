@@ -7,7 +7,7 @@ namespace Aspire.Hosting.Azure;
 
 public class AzureKeyVaultComponent(string name) : DistributedApplicationComponent(name), IAzureComponent, IDistributedApplicationComponentWithConnectionString
 {
-    public string? VaultUri { get; set; }
+    public Uri? VaultUri { get; set; }
 
-    public string? GetConnectionString() => VaultUri;
+    public string? GetConnectionString() => VaultUri?.ToString();
 }

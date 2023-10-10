@@ -7,9 +7,9 @@ namespace Aspire.Hosting.Azure;
 
 public class AzureStorageComponent(string name) : DistributedApplicationComponent(name), IAzureComponent
 {
-    public string? TableUri { get; set; }
-    public string? QueueUri { get; set; }
-    public string? BlobUri { get; set; }
+    public Uri? TableUri { get; set; }
+    public Uri? QueueUri { get; set; }
+    public Uri? BlobUri { get; set; }
 }
 
 public class AzureTableStorageComponent(string name, AzureStorageComponent storage) : DistributedApplicationComponent(name),
@@ -19,7 +19,7 @@ public class AzureTableStorageComponent(string name, AzureStorageComponent stora
 {
     public AzureStorageComponent Parent => storage;
 
-    public string? GetConnectionString() => Parent.TableUri;
+    public string? GetConnectionString() => Parent.TableUri?.ToString();
 }
 
 public class AzureBlobStorageComponent(string name, AzureStorageComponent storage) : DistributedApplicationComponent(name),
@@ -29,7 +29,7 @@ public class AzureBlobStorageComponent(string name, AzureStorageComponent storag
 {
     public AzureStorageComponent Parent => storage;
 
-    public string? GetConnectionString() => Parent.BlobUri;
+    public string? GetConnectionString() => Parent.BlobUri?.ToString();
 }
 
 public class AzureQueueStorageComponent(string name, AzureStorageComponent storage) : DistributedApplicationComponent(name),
@@ -39,5 +39,5 @@ public class AzureQueueStorageComponent(string name, AzureStorageComponent stora
 {
     public AzureStorageComponent Parent => storage;
 
-    public string? GetConnectionString() => Parent.QueueUri;
+    public string? GetConnectionString() => Parent.QueueUri?.ToString();
 }
