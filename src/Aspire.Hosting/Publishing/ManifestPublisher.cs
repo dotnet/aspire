@@ -115,6 +115,12 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, IHo
                 jsonWriter.WriteString("scheme", serviceBinding.UriScheme);
                 jsonWriter.WriteString("protocol", serviceBinding.Protocol.ToString().ToLowerInvariant());
                 jsonWriter.WriteString("transport", serviceBinding.Transport);
+
+                if (serviceBinding.IsExternal)
+                {
+                    jsonWriter.WriteBoolean("external", serviceBinding.IsExternal);
+                }
+
                 jsonWriter.WriteEndObject();
             }
             jsonWriter.WriteEndObject();

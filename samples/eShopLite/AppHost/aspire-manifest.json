@@ -26,13 +26,6 @@
       "path": "..\\..\\CatalogService\\CatalogService.csproj",
       "env": {
         "ConnectionStrings__catalog": "{catalog.connectionString}"
-      },
-      "bindings": {
-        "http": {
-          "scheme": "http",
-          "protocol": "tcp",
-          "transport": "http"
-        }
       }
     },
     "messaging": {
@@ -52,7 +45,8 @@
         "http": {
           "scheme": "http",
           "protocol": "tcp",
-          "transport": "http"
+          "transport": "http",
+          "external": true
         }
       }
     },
@@ -63,10 +57,11 @@
         "GRAFANA_URL": "{grafana.bindings.grafana-http}"
       },
       "bindings": {
-        "http": {
-          "scheme": "http",
+        "https": {
+          "scheme": "https",
           "protocol": "tcp",
-          "transport": "http"
+          "transport": "http",
+          "external": true
         }
       }
     },
@@ -80,14 +75,7 @@
     "apigateway": {
       "type": "project.v1",
       "path": "..\\..\\ApiGateway\\ApiGateway.csproj",
-      "env": {},
-      "bindings": {
-        "http": {
-          "scheme": "http",
-          "protocol": "tcp",
-          "transport": "http"
-        }
-      }
+      "env": {}
     },
     "prometheus": {
       "type": "container.v1",

@@ -3,17 +3,90 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.Publishing;
+using Microsoft.Extensions.Options;
 using System.Net.Sockets;
 
 namespace Aspire.Hosting.Dcp;
 
-public sealed class DcpDistributedApplicationLifecycleHook : IDistributedApplicationLifecycleHook
+public sealed class DcpDistributedApplicationLifecycleHook(IOptions<PublishingOptions> publishingOptions) : IDistributedApplicationLifecycleHook
 {
+    private readonly IOptions<PublishingOptions> _publishingOptions = publishingOptions;
+
     public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
-        PrepareServices(appModel);
+        var publisher = _publishingOptions.Value?.Publisher == null ? "dcp" : _publishingOptions.Value.Publisher;
+
+        // HACK: We only automatically add service bindings when publishing under DCP, but this lifecycle hook
+        //       always runs because we use it to deterministically sequence logic in the lifecycle.
+        if (publisher == "dcp")
+        {
+            PrepareServices(appModel);
+        }
+
+        foreach (var component in appModel.Components)
+        {
+            // Grab the service bindings we already have for this component.
+            var serviceBindingsLookup = component.Annotations
+                .OfType<ServiceBindingAnnotation>()
+                .ToLookup(a => a.Name);
+
+            // Find any callbacks for this specific publisher.
+            var bindingNameGroupedCallbackAnnotations = component.Annotations
+                .OfType<ServiceBindingCallbackAnnotation>()
+                .Where(a => a.PublisherName == publisher)
+                .ToLookup(a => a.BindingName);
+
+            foreach (var callbackAnnotationsForBinding in bindingNameGroupedCallbackAnnotations)
+            {
+                // For each callback that maps to this publisher and service binding name, find
+                // the existing service binding annotation, and if it doesn't exist create one.
+                ServiceBindingAnnotation inputAnnotation = serviceBindingsLookup.Contains(callbackAnnotationsForBinding.Key)
+                    ? serviceBindingsLookup[callbackAnnotationsForBinding.Key].Single()
+                    : CreateServiceBindingAnnotation(callbackAnnotationsForBinding.Key);
+
+                var callbackAnnotation = callbackAnnotationsForBinding.Single(); // Initially will only support one callback annotation per binding???
+                ServiceBindingAnnotation outputAnnotation = inputAnnotation;
+
+                // If the callback exists, invoke it (sometimes it won't exist if someone is
+                // just using the WithServiceBindingForPublisher(...) to bring a service binding into
+                // existence.
+                if (callbackAnnotation.Callback != null)
+                {
+                    var context = new ServiceBindingCallbackContext(publisher, inputAnnotation);
+                    outputAnnotation = callbackAnnotation.Callback(context);
+                }
+
+                // Currently we support swapping out the existing service binding for a completely
+                // new one. This is done to enable some interesting scenarios in the future around
+                // transparently adding reverse proxies/tunnels.
+                if (component.Annotations.Contains(inputAnnotation))
+                {
+                    component.Annotations.Remove(inputAnnotation);
+                }
+
+                if (!component.Annotations.Contains(outputAnnotation))
+                {
+                    component.Annotations.Add(outputAnnotation);
+                }
+            }
+        }
 
         return Task.CompletedTask;
+    }
+
+    private static ServiceBindingAnnotation CreateServiceBindingAnnotation(string bindingName)
+    {
+        var uriScheme = bindingName.ToLowerInvariant() switch
+        {
+            "http" => "http",
+            "https" => "https",
+            _ => "tcp"
+        };
+
+        // TODO: This is where we might add heuristics to detect container ports etc.
+
+        return new ServiceBindingAnnotation(ProtocolType.Tcp, name: bindingName, uriScheme: uriScheme);
     }
 
     private void PrepareServices(DistributedApplicationModel model)
