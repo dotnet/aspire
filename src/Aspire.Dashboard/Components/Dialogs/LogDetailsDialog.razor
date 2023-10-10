@@ -32,13 +32,13 @@
                                       Id="@anchor"
                                       IconEnd="@(new Icons.Regular.Size16.Copy())"
                                       Class="defaultHidden"
-                                      OnClick="async () => await CopyTextToClipboardAsync(context.Name, anchor)" />
+                                      OnClick="() => CopyTextToClipboardAsync(context.Name, anchor)" />
                         <FluentTooltip Anchor="@anchor" Position="TooltipPosition.Top">@preCopyText</FluentTooltip>
                     </FluentStack>
                 </TemplateColumn>
                 <TemplateColumn Title="Value" Class="valueColumn" SortBy="@valueSort" Sortable="true">
-                    <FluentStack Orientation="Orientation.Horizontal">
-                        <span class="cellText">
+                        <FluentStack Orientation="Orientation.Horizontal">
+                        <span class="cellText" title="@context.Value">
                             <FluentHighlighter HighlightedText="@filter" Text="@context.Value" />
                         </span>
                         @{
@@ -48,8 +48,7 @@
                                       Id="@anchor"
                                       IconEnd="@(new Icons.Regular.Size16.Copy())"
                                       Class="defaultHidden"
-                                      Title="Copy to Clipboard"
-                                      OnClick="async () => await CopyTextToClipboardAsync(context.Value, anchor)" />
+                                      OnClick="() => CopyTextToClipboardAsync(context.Value, anchor)" />
                         <FluentTooltip Anchor="@anchor" Position="TooltipPosition.Top">@preCopyText</FluentTooltip>
                     </FluentStack>
                 </TemplateColumn>
