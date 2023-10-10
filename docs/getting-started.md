@@ -92,7 +92,7 @@ return await app.RunAsync();
 2. Add the following user-secret to the MyApp orchestrator project (using the unique namespace you created above):
 
 ```shell
-C:\git\aspire\samples\eShopLite\AppHost> dotnet user-secrets set ConnectionStrings:messaging <ServiceBus namespace host>
+C:\git\aspire\samples\eShopLite\AppHost> dotnet user-secrets set ConnectionStrings:messaging <serviceBusNamespace>.servicebus.windows.net
 ```
 
 - You can do the same in VS by right-clicking AppHost in the Solution Explorer -> "Manage User Secrets" and add
