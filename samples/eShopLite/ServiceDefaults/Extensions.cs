@@ -21,11 +21,11 @@ public static class Extensions
 
         builder.Services.ConfigureHttpClientDefaults(http =>
         {
-            // Turn on service discovery by default
-            http.UseServiceDiscovery();
-
             // Turn on resilience by default
             http.AddStandardResilienceHandler();
+
+            // Turn on service discovery by default
+            http.UseServiceDiscovery();
         });
 
         return builder;
