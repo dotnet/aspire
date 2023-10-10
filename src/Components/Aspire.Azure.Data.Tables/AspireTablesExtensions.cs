@@ -7,7 +7,6 @@ using Azure.Core;
 using Azure.Core.Extensions;
 using Azure.Data.Tables;
 using HealthChecks.Azure.Data.Tables;
-using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
@@ -61,13 +60,20 @@ public static class AspireTablesExtensions
 
     private sealed class TableServiceComponent : AzureComponent<AzureDataTablesSettings, TableServiceClient, TableClientOptions>
     {
-        protected override IAzureClientBuilder<TableServiceClient, TableClientOptions> AddClient<TBuilder>(TBuilder azureFactoryBuilder, AzureDataTablesSettings settings)
+        protected override IAzureClientBuilder<TableServiceClient, TableClientOptions> AddClient<TBuilder>(TBuilder azureFactoryBuilder, AzureDataTablesSettings settings, string connectionName, string configurationSectionName)
         {
-            var connectionString = settings.ConnectionString;
+            return azureFactoryBuilder.RegisterClientFactory<TableServiceClient, TableClientOptions>((options, cred) =>
+            {
+                var connectionString = settings.ConnectionString;
+                if (string.IsNullOrEmpty(connectionString) && settings.ServiceUri is null)
+                {
+                    throw new InvalidOperationException($"A TableServiceClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'ConnectionString' or 'ServiceUri' in the '{configurationSectionName}' configuration section.");
+                }
 
-            return !string.IsNullOrEmpty(connectionString) ?
-                azureFactoryBuilder.AddTableServiceClient(connectionString) :
-                azureFactoryBuilder.AddTableServiceClient(settings.ServiceUri);
+                return !string.IsNullOrEmpty(connectionString) ? new TableServiceClient(connectionString, options) :
+                    cred is not null ? new TableServiceClient(settings.ServiceUri, cred, options) :
+                    new TableServiceClient(settings.ServiceUri, options);
+            }, requiresCredential: false);
         }
 
         protected override IHealthCheck CreateHealthCheck(TableServiceClient client, AzureDataTablesSettings settings)
@@ -81,13 +87,5 @@ public static class AspireTablesExtensions
 
         protected override bool GetTracingEnabled(AzureDataTablesSettings settings)
             => settings.Tracing;
-
-        protected override void Validate(AzureDataTablesSettings settings, string connectionName, string configurationSectionName)
-        {
-            if (string.IsNullOrEmpty(settings.ConnectionString) && settings.ServiceUri is null)
-            {
-                throw new InvalidOperationException($"A TableServiceClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'ConnectionString' or 'ServiceUri' in the '{configurationSectionName}' configuration section.");
-            }
-        }
     }
 }

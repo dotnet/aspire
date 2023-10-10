@@ -8,7 +8,6 @@ using Azure.Core.Extensions;
 using Azure.Messaging.ServiceBus;
 using HealthChecks.AzureServiceBus;
 using HealthChecks.AzureServiceBus.Configuration;
-using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
@@ -63,13 +62,20 @@ public static class AspireServiceBusExtensions
         // TODO: Remove "Azure.Messaging.ServiceBus" source when https://github.com/Azure/azure-sdk-for-net/issues/39166 is fixed
         protected override string[] ActivitySourceNames => ["Azure.Messaging.ServiceBus.*", "Azure.Messaging.ServiceBus"];
 
-        protected override IAzureClientBuilder<ServiceBusClient, ServiceBusClientOptions> AddClient<TBuilder>(TBuilder azureFactoryBuilder, AzureMessagingServiceBusSettings settings)
+        protected override IAzureClientBuilder<ServiceBusClient, ServiceBusClientOptions> AddClient<TBuilder>(TBuilder azureFactoryBuilder, AzureMessagingServiceBusSettings settings, string connectionName, string configurationSectionName)
         {
-            var connectionString = settings.ConnectionString;
+            return azureFactoryBuilder.RegisterClientFactory<ServiceBusClient, ServiceBusClientOptions>((options, cred) =>
+            {
+                var connectionString = settings.ConnectionString;
+                if (string.IsNullOrEmpty(connectionString) && string.IsNullOrEmpty(settings.Namespace))
+                {
+                    throw new InvalidOperationException($"A ServiceBusClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'ConnectionString' or 'Namespace' in the '{configurationSectionName}' configuration section.");
+                }
 
-            return !string.IsNullOrEmpty(connectionString) ?
-                azureFactoryBuilder.AddServiceBusClient(connectionString) :
-                azureFactoryBuilder.AddServiceBusClientWithNamespace(settings.Namespace!);
+                return !string.IsNullOrEmpty(connectionString) ?
+                    new ServiceBusClient(connectionString, options) :
+                    new ServiceBusClient(settings.Namespace, cred, options);
+            }, requiresCredential: false);
         }
 
         protected override IHealthCheck CreateHealthCheck(ServiceBusClient client, AzureMessagingServiceBusSettings settings)
@@ -95,13 +101,5 @@ public static class AspireServiceBusExtensions
 
         protected override bool GetTracingEnabled(AzureMessagingServiceBusSettings settings)
             => settings.Tracing;
-
-        protected override void Validate(AzureMessagingServiceBusSettings settings, string connectionName, string configurationSectionName)
-        {
-            if (string.IsNullOrEmpty(settings.ConnectionString) && string.IsNullOrEmpty(settings.Namespace))
-            {
-                throw new InvalidOperationException($"A ServiceBusClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'ConnectionString' or 'Namespace' in the '{configurationSectionName}' configuration section.");
-            }
-        }
     }
 }

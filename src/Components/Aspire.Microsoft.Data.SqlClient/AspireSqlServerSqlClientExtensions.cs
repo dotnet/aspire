@@ -62,18 +62,24 @@ public static class AspireSqlServerSqlClientExtensions
 
         configure?.Invoke(settings);
 
-        if (string.IsNullOrEmpty(settings.ConnectionString))
+        // delay validating the ConnectionString until the SqlConnection is requested. This ensures an exception doesn't happen until a Logger is established.
+        string GetConnectionString()
         {
-            throw new InvalidOperationException($"ConnectionString is missing. It should be provided in 'ConnectionStrings:{connectionName}' or under the 'ConnectionString' key in '{configurationSectionName}' configuration section.");
+            var connectionString = settings.ConnectionString;
+            if (string.IsNullOrEmpty(connectionString))
+            {
+                throw new InvalidOperationException($"ConnectionString is missing. It should be provided in 'ConnectionStrings:{connectionName}' or under the 'ConnectionString' key in '{configurationSectionName}' configuration section.");
+            }
+            return connectionString;
         }
 
         if (serviceKey is null)
         {
-            builder.Services.AddScoped(_ => new SqlConnection(settings.ConnectionString));
+            builder.Services.AddScoped(_ => new SqlConnection(GetConnectionString()));
         }
         else
         {
-            builder.Services.AddKeyedScoped(serviceKey, (_, __) => new SqlConnection(settings.ConnectionString));
+            builder.Services.AddKeyedScoped(serviceKey, (_, __) => new SqlConnection(GetConnectionString()));
         }
 
         // SqlClient Data Provider (Microsoft.Data.SqlClient) handles connection pooling automatically and it's on by default
@@ -105,7 +111,7 @@ public static class AspireSqlServerSqlClientExtensions
                     serviceKey is null ? "SqlServer" : $"SqlServer_{connectionName}",
                     sp => new SqlServerHealthCheck(new SqlServerHealthCheckOptions()
                     {
-                        ConnectionString = settings.ConnectionString
+                        ConnectionString = settings.ConnectionString ?? string.Empty
                     }),
                     failureStatus: default,
                     tags: default,

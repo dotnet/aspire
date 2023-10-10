@@ -7,7 +7,6 @@ using Azure.Core;
 using Azure.Core.Extensions;
 using Azure.Security.KeyVault.Secrets;
 using HealthChecks.Azure.KeyVault.Secrets;
-using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
@@ -61,8 +60,18 @@ public static class AspireKeyVaultExtensions
 
     private sealed class KeyVaultComponent : AzureComponent<AzureSecurityKeyVaultSettings, SecretClient, SecretClientOptions>
     {
-        protected override IAzureClientBuilder<SecretClient, SecretClientOptions> AddClient<TBuilder>(TBuilder azureFactoryBuilder, AzureSecurityKeyVaultSettings settings)
-            => azureFactoryBuilder.AddSecretClient(settings.VaultUri);
+        protected override IAzureClientBuilder<SecretClient, SecretClientOptions> AddClient<TBuilder>(TBuilder azureFactoryBuilder, AzureSecurityKeyVaultSettings settings, string connectionName, string configurationSectionName)
+        {
+            return azureFactoryBuilder.RegisterClientFactory<SecretClient, SecretClientOptions>((options, cred) =>
+            {
+                if (settings.VaultUri is null)
+                {
+                    throw new InvalidOperationException($"VaultUri is missing. It should be provided in 'ConnectionStrings:{connectionName}' or under the 'VaultUri' key in the '{configurationSectionName}' configuration section.");
+                }
+
+                return new SecretClient(settings.VaultUri, cred, options);
+            });
+        }
 
         protected override IHealthCheck CreateHealthCheck(SecretClient client, AzureSecurityKeyVaultSettings settings)
             => new AzureKeyVaultSecretsHealthCheck(client, new AzureKeyVaultSecretOptions());
@@ -75,13 +84,5 @@ public static class AspireKeyVaultExtensions
 
         protected override bool GetTracingEnabled(AzureSecurityKeyVaultSettings settings)
             => settings.Tracing;
-
-        protected override void Validate(AzureSecurityKeyVaultSettings settings, string connectionName, string configurationSectionName)
-        {
-            if (settings.VaultUri is null)
-            {
-                throw new InvalidOperationException($"VaultUri is missing. It should be provided in 'ConnectionStrings:{connectionName}' or under the 'VaultUri' key in the '{configurationSectionName}' configuration section.");
-            }
-        }
     }
 }
