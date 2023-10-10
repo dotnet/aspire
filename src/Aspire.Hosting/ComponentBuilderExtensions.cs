@@ -63,7 +63,7 @@ public static class ComponentBuilderExtensions
         };
     }
 
-    public static IDistributedApplicationComponentBuilder<TDestination> WithReference<TDestination, TSource>(this IDistributedApplicationComponentBuilder<TDestination> builder, IDistributedApplicationComponentBuilder<TSource> source, string? connectionName = null)
+    public static IDistributedApplicationComponentBuilder<TDestination> WithReference<TDestination, TSource>(this IDistributedApplicationComponentBuilder<TDestination> builder, IDistributedApplicationComponentBuilder<TSource> source, string? connectionName = null, bool optional = false)
         where TDestination : IDistributedApplicationComponentWithEnvironment
         where TSource : IDistributedApplicationComponentWithConnectionString
     {
@@ -85,6 +85,12 @@ public static class ComponentBuilderExtensions
 
             if (string.IsNullOrEmpty(connectionString))
             {
+                if (optional)
+                {
+                    // This is an optional connection string, so we can just return.
+                    return;
+                }
+
                 throw new DistributedApplicationException($"A connection string for '{component.Name}' could not be retrieved.");
             }
 

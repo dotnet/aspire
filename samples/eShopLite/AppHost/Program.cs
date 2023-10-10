@@ -22,7 +22,7 @@ var serviceBus = builder.AddAzureServiceBus("messaging", queueNames: ["orders"])
 
 var basket = builder.AddProject<Projects.BasketService>()
                     .WithRedis(redis)
-                    .WithAzureServiceBus(serviceBus);
+                    .WithReference(serviceBus, optional: true);
 
 builder.AddProject<Projects.MyFrontend>()
        .WithServiceReference(basket)

@@ -20,27 +20,10 @@ public static class AzureComponentExtensions
         jsonWriter.WriteString("type", "azure.keyvault.v1");
     }
 
-    public static IDistributedApplicationComponentBuilder<T> WithAddAzureKeyVault<T>(this IDistributedApplicationComponentBuilder<T> builder, IDistributedApplicationComponentBuilder<AzureKeyVaultComponent> keyVaultBuilder)
+    public static IDistributedApplicationComponentBuilder<T> WithAddAzureKeyVault<T>(this IDistributedApplicationComponentBuilder<T> builder, IDistributedApplicationComponentBuilder<AzureKeyVaultComponent> keyVaultBuilder, string? connectionName = null)
         where T : IDistributedApplicationComponentWithEnvironment
     {
-        return builder.WithEnvironment((context) =>
-        {
-            // HACK: Query publishing options to see if we are publishing a manifest. if we are fallback
-            //       to rendering the placeholder string.
-            if (context.PublisherName == "manifest")
-            {
-                context.EnvironmentVariables[$"Aspire__Azure__Security__KeyVault__VaultUri"] = $"{{{keyVaultBuilder.Component.Name}.vaultUri}}";
-                return;
-            }
-
-            var vaultName = keyVaultBuilder.Component.VaultName ?? builder.ApplicationBuilder.Configuration["Aspire:Azure:Security:KeyVault:VaultName"];
-
-            if (vaultName is not null)
-            {
-                // TODO: These endpoints won't work outsize Azure public cloud.
-                context.EnvironmentVariables[$"Aspire__Azure__Security__KeyVault__VaultUri"] = $"https://{vaultName}.vault.azure.net/";
-            }
-        });
+        return builder.WithReference(keyVaultBuilder, connectionName);
     }
 
     public static IDistributedApplicationComponentBuilder<AzureServiceBusComponent> AddAzureServiceBus(this IDistributedApplicationBuilder builder, string name, string[]? queueNames = null, string[]? topicNames = null)
@@ -80,27 +63,10 @@ public static class AzureComponentExtensions
         }
     }
 
-    public static IDistributedApplicationComponentBuilder<T> WithAzureServiceBus<T>(this IDistributedApplicationComponentBuilder<T> builder, IDistributedApplicationComponentBuilder<AzureServiceBusComponent> serviceBusBuilder)
+    public static IDistributedApplicationComponentBuilder<T> WithAzureServiceBus<T>(this IDistributedApplicationComponentBuilder<T> builder, IDistributedApplicationComponentBuilder<AzureServiceBusComponent> serviceBusBuilder, string? connectionName = null)
         where T : IDistributedApplicationComponentWithEnvironment
     {
-        return builder.WithEnvironment((context) =>
-        {
-            // HACK: Query publishing options to see if we are publishing a manifest. if we are fallback
-            //       to rendering the placeholder string.
-            if (context.PublisherName == "manifest")
-            {
-                context.EnvironmentVariables[$"Aspire__Azure__Messaging__ServiceBus__Namespace"] = $"{{{serviceBusBuilder.Component.Name}.connectionString}}";
-                return;
-            }
-
-            var sbNamespace = serviceBusBuilder.Component.ServiceBusNamespace ?? builder.ApplicationBuilder.Configuration["Aspire:Azure:Messaging:ServiceBus:Namespace"];
-
-            if (sbNamespace is not null)
-            {
-                // TODO: These endpoints won't work outsize Azure public cloud.
-                context.EnvironmentVariables[$"Aspire__Azure__Messaging__ServiceBus__Namespace"] = $"{sbNamespace}.servicebus.windows.net";
-            }
-        });
+        return builder.WithReference(serviceBusBuilder, connectionName);
     }
 
     public static IDistributedApplicationComponentBuilder<AzureStorageComponent> AddAzureStorage(this IDistributedApplicationBuilder builder, string name)
@@ -115,34 +81,60 @@ public static class AzureComponentExtensions
         jsonWriter.WriteString("type", "azure.storage.v1");
     }
 
-    public static IDistributedApplicationComponentBuilder<T> WithAzureStorage<T>(this IDistributedApplicationComponentBuilder<T> builder, IDistributedApplicationComponentBuilder<AzureStorageComponent> storage)
+    public static IDistributedApplicationComponentBuilder<AzureBlobStorageComponent> AddBlobs(this IDistributedApplicationComponentBuilder<AzureStorageComponent> storageBuilder, string name)
+    {
+        var component = new AzureBlobStorageComponent(name, storageBuilder.Component);
+        return storageBuilder.ApplicationBuilder.AddComponent(component)
+                             .WithAnnotation(new ManifestPublishingCallbackAnnotation(json => WriteBlobStorageComponentToManifest(json, component)));
+    }
+
+    private static void WriteBlobStorageComponentToManifest(Utf8JsonWriter json, AzureBlobStorageComponent component)
+    {
+        json.WriteString("type", "azure.storage.blob.v1");
+        json.WriteString("parent", component.Parent.Name);
+    }
+
+    public static IDistributedApplicationComponentBuilder<AzureTableStorageComponent> AddTables(this IDistributedApplicationComponentBuilder<AzureStorageComponent> storageBuilder, string name)
+    {
+        var component = new AzureTableStorageComponent(name, storageBuilder.Component);
+        return storageBuilder.ApplicationBuilder.AddComponent(component)
+                             .WithAnnotation(new ManifestPublishingCallbackAnnotation(json => WriteTableStorageComponentToManifest(json, component)));
+    }
+
+    private static void WriteTableStorageComponentToManifest(Utf8JsonWriter json, AzureTableStorageComponent component)
+    {
+        json.WriteString("type", "azure.storage.table.v1");
+        json.WriteString("parent", component.Parent.Name);
+    }
+
+    public static IDistributedApplicationComponentBuilder<AzureQueueStorageComponent> AddQueues(this IDistributedApplicationComponentBuilder<AzureStorageComponent> storageBuilder, string name)
+    {
+        var component = new AzureQueueStorageComponent(name, storageBuilder.Component);
+        return storageBuilder.ApplicationBuilder.AddComponent(component)
+                             .WithAnnotation(new ManifestPublishingCallbackAnnotation(json => WriteQueueStorageComponentToManifest(json, component)));
+    }
+
+    private static void WriteQueueStorageComponentToManifest(Utf8JsonWriter json, AzureQueueStorageComponent component)
+    {
+        json.WriteString("type", "azure.storage.queue.v1");
+        json.WriteString("parent", component.Parent.Name);
+    }
+
+    public static IDistributedApplicationComponentBuilder<T> WithTableStorage<T>(this IDistributedApplicationComponentBuilder<T> builder, IDistributedApplicationComponentBuilder<AzureTableStorageComponent> tableBuilder, string? connectionName = null)
         where T : IDistributedApplicationComponentWithEnvironment
     {
-        return builder.WithEnvironment((context) =>
-        {
-            // HACK: Query publishing options to see if we are publishing a manifest. if we are fallback
-            //       to rendering the placeholder string.
-            if (context.PublisherName == "manifest")
-            {
-                context.EnvironmentVariables[$"Aspire__Azure__Data__Tables__ServiceUri"] = $"{{{storage.Component.Name}.tableEndpoint}}";
-                context.EnvironmentVariables[$"Aspire__Azure__Storage__Blobs__ServiceUri"] = $"{{{storage.Component.Name}.blobEndpoint}}";
-                context.EnvironmentVariables[$"Aspire__Azure__Storage__Queues__ServiceUri"] = $"{{{storage.Component.Name}.queueEndpoint}}";
-                return;
-            }
+        return builder.WithReference(tableBuilder, connectionName);
+    }
 
-            // We don't support connection strings yet
-            //storage.Component.TryGetName(out var name);
-            //env[$"ConnectionStrings__{name}"] = storage.Component.ConnectionString!;
+    public static IDistributedApplicationComponentBuilder<T> WithQueueStorage<T>(this IDistributedApplicationComponentBuilder<T> builder, IDistributedApplicationComponentBuilder<AzureQueueStorageComponent> queueBuilder, string? connectionName = null)
+        where T : IDistributedApplicationComponentWithEnvironment
+    {
+        return builder.WithReference(queueBuilder, connectionName);
+    }
 
-            var accountName = storage.Component.AccountName ?? builder.ApplicationBuilder.Configuration["Aspire:Azure:Storage:AccountName"];
-
-            if (accountName is not null)
-            {
-                // TODO: These URLs won't work outsize Azure public cloud.
-                context.EnvironmentVariables[$"Aspire__Azure__Data__Tables__ServiceUri"] = $"https://{accountName}.table.core.windows.net/";
-                context.EnvironmentVariables[$"Aspire__Azure__Storage__Blobs__ServiceUri"] = $"https://{accountName}.blob.core.windows.net/";
-                context.EnvironmentVariables[$"Aspire__Azure__Storage__Queues__ServiceUri"] = $"https://{accountName}.queue.core.windows.net/";
-            }
-        });
+    public static IDistributedApplicationComponentBuilder<T> WithBlobStorage<T>(this IDistributedApplicationComponentBuilder<T> builder, IDistributedApplicationComponentBuilder<AzureBlobStorageComponent> blobBuilder, string? connectionName = null)
+        where T : IDistributedApplicationComponentWithEnvironment
+    {
+        return builder.WithReference(blobBuilder, connectionName);
     }
 }

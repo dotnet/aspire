@@ -5,7 +5,9 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Azure;
 
-public class AzureKeyVaultComponent(string name) : DistributedApplicationComponent(name), IAzureComponent
+public class AzureKeyVaultComponent(string name) : DistributedApplicationComponent(name), IAzureComponent, IDistributedApplicationComponentWithConnectionString
 {
-    public string? VaultName { get; set; }
+    public Uri? VaultUri { get; set; }
+
+    public string? GetConnectionString() => VaultUri?.ToString();
 }

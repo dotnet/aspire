@@ -17,8 +17,6 @@ namespace Microsoft.Extensions.Hosting;
 public static class AspireServiceBusExtensions
 {
     private const string DefaultConfigSectionName = "Aspire:Azure:Messaging:ServiceBus";
-    private const string NamespaceConfigKeyName = "Namespace";
-    public const string DefaultNamespaceConfigKey = $"{DefaultConfigSectionName}:{NamespaceConfigKeyName}";
 
     /// <summary>
     /// Registers <see cref="ServiceBusClient"/> as a singleton in the services provided by the <paramref name="builder"/>.

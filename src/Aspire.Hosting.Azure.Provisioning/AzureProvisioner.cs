@@ -251,7 +251,7 @@ internal sealed class AzureProvisioner(IConfiguration configuration, IHostEnviro
             logger.LogInformation("Key vault {vaultName} created.", keyVaultResource.Data.Name);
         }
 
-        keyVault.VaultName = keyVaultResource.Data.Name;
+        keyVault.VaultUri = keyVaultResource.Data.Properties.VaultUri;
 
         // Key Vault Administrator
         // https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles#key-vault-administrator
@@ -289,7 +289,7 @@ internal sealed class AzureProvisioner(IConfiguration configuration, IHostEnviro
             logger.LogInformation("Service bus namespace {namespace} created.", serviceBusNamespace.Data.Name);
         }
 
-        component.ServiceBusNamespace = serviceBusNamespace.Data.Name;
+        component.ServiceBusEndpoint = serviceBusNamespace.Data.ServiceBusEndpoint;
 
         // Now create the queues
         var queues = serviceBusNamespace.GetServiceBusQueues();
@@ -383,20 +383,10 @@ internal sealed class AzureProvisioner(IConfiguration configuration, IHostEnviro
 
             logger.LogInformation("Storage account {accountName} created.", storageAccount.Data.Name);
         }
-
-        // Our storage component doesn't support connection strings yet
-
-        // Get the storage account key
-        //string accountKey = "";
-        //await foreach (StorageAccountKey key in storageAccount.GetKeysAsync(cancellationToken: cancellationToken))
-        //{
-        //    accountKey = key.Value;
-        //    break;
-        //}
-
-        // component.ConnectionString = $"DefaultEndpointsProtocol=https;AccountName={accountName};AccountKey={accountKey}==;EndpointSuffix=core.windows.net";
-
-        component.AccountName = storageAccount.Data.Name;
+        
+        component.BlobUri = storageAccount.Data.PrimaryEndpoints.BlobUri;
+        component.TableUri = storageAccount.Data.PrimaryEndpoints.TableUri;
+        component.QueueUri = storageAccount.Data.PrimaryEndpoints.QueueUri;
 
         // Storage Queue Data Contributor
         // https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles#storage-queue-data-contributor
