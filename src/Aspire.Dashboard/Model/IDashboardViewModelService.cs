@@ -5,6 +5,7 @@ namespace Aspire.Dashboard.Model;
 
 public interface IDashboardViewModelService
 {
+    public string ApplicationName { get; }
     public Task<List<ContainerViewModel>> GetContainersAsync();
     public Task<List<ExecutableViewModel>> GetExecutablesAsync();
     public Task<List<ProjectViewModel>> GetProjectsAsync();

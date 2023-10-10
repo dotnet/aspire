@@ -8,14 +8,26 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
 using k8s;
+using Microsoft.Extensions.Hosting;
 using NamespacedName = Aspire.Dashboard.Model.NamespacedName;
 
 namespace Aspire.Hosting.Dashboard;
 
-public class DashboardViewModelService(DistributedApplicationModel applicationModel) : IDashboardViewModelService, IDisposable
+public class DashboardViewModelService : IDashboardViewModelService, IDisposable
 {
-    private readonly DistributedApplicationModel _applicationModel = applicationModel;
+    private const string AppHostSuffix = ".AppHost";
+
+    private readonly DistributedApplicationModel _applicationModel;
+    private readonly string _applicationName;
     private readonly KubernetesService _kubernetesService = new();
+
+    public DashboardViewModelService(DistributedApplicationModel applicationModel, IHostEnvironment hostEnvironment)
+    {
+        _applicationModel = applicationModel;
+        _applicationName = ComputeApplicationName(hostEnvironment.ApplicationName);
+    }
+
+    public string ApplicationName => _applicationName;
 
     public async Task<List<ContainerViewModel>> GetContainersAsync()
     {
@@ -245,5 +257,15 @@ public class DashboardViewModelService(DistributedApplicationModel applicationMo
         }
 
         target.Sort((v1, v2) => string.Compare(v1.Name, v2.Name));
+    }
+
+    private static string ComputeApplicationName(string applicationName)
+    {
+        if (applicationName.EndsWith(AppHostSuffix, StringComparison.OrdinalIgnoreCase))
+        {
+            applicationName = applicationName[..^AppHostSuffix.Length];
+        }
+
+        return applicationName;
     }
 }
