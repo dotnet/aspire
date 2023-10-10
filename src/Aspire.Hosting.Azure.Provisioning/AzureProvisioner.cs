@@ -64,7 +64,7 @@ internal sealed class AzureProvisioner(IConfiguration configuration, IHostEnviro
 
         var subscription = await armClient.GetDefaultSubscriptionAsync(cancellationToken).ConfigureAwait(false);
 
-        logger.LogInformation("Default subscription: {name} ({subscriptionId})", subscription.Id, subscription.Data.DisplayName);
+        logger.LogInformation("Default subscription: {name} ({subscriptionId})", subscription.Data.DisplayName, subscription.Id);
 
         // Name of the resource group to create based on the machine name and application name
         var (resourceGroupName, createIfNoExists) = configuration["Azure:ResourceGroup"] switch
