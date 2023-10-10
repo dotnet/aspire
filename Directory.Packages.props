@@ -3,7 +3,7 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <RuntimeVersion>8.0.0-rc.2.23479.6</RuntimeVersion>
     <AspNetCoreVersion>8.0.0-rc.2.23480.2</AspNetCoreVersion>
-    <ExtensionsVersion>8.0.0-rc.2.23479.6</ExtensionsVersion>
+    <ExtensionsVersion>8.0.0-rc.2.23510.2</ExtensionsVersion>
   </PropertyGroup>
   <ItemGroup>
     <!-- Azure SDK for .NET dependencies -->
