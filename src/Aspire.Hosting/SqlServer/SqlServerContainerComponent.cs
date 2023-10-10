@@ -5,26 +5,21 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.SqlServer;
 
-public class SqlServerContainerComponent : ContainerComponent, ISqlServerComponent
+public class SqlServerContainerComponent(string name, string password) : ContainerComponent(name), ISqlServerComponent
 {
-    public SqlServerContainerComponent(string name) : base(name)
-    {
-        GeneratedPassword = Guid.NewGuid().ToString();
-    }
+    public string GeneratedPassword { get; } = password;
 
-    public string GeneratedPassword { get; }
-
-    public string GetConnectionString(string? databaseName = null)
+    public string? GetConnectionString()
     {
         if (!this.TryGetAnnotationsOfType<AllocatedEndpointAnnotation>(out var allocatedEndpoints))
         {
-            throw new DistributedApplicationException("Sql component does not have endpoint annotation.");
+            throw new DistributedApplicationException("Expected allocated endpoints!");
         }
 
         var endpoint = allocatedEndpoints.Single();
 
         // HACK: Use the 127.0.0.1 address because localhost is resolving to [::1] following
         //       up with DCP on this issue.
-        return $"Server=127.0.0.1,{endpoint.Port};Database={databaseName ?? "master"};User ID=sa;Password={GeneratedPassword};TrustServerCertificate=true;";
+        return $"Server=127.0.0.1,{endpoint.Port};User ID=sa;Password={GeneratedPassword};TrustServerCertificate=true;";
     }
 }

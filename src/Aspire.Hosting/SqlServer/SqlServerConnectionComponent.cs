@@ -3,9 +3,9 @@
 
 using Aspire.Hosting.ApplicationModel;
 
-namespace Aspire.Hosting.Postgres;
+namespace Aspire.Hosting.SqlServer;
 
-public class PostgresConnectionComponent(string name, string connectionString) : DistributedApplicationComponent(name), IPostgresComponent
+public class SqlServerConnectionComponent(string name, string connectionString) : DistributedApplicationComponent(name), ISqlServerComponent
 {
     private readonly string _connectionString = connectionString;
 

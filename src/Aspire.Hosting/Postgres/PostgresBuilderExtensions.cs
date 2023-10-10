@@ -33,10 +33,10 @@ public static class PostgresBuilderExtensions
         var postgresConnectionComponent = new PostgresConnectionComponent(name, connectionString);
 
         return builder.AddComponent(postgresConnectionComponent)
-            .WithAnnotation(new ManifestPublishingCallbackAnnotation((json) => WritePostgresComponentToManifest(json, postgresConnectionComponent)));
+            .WithAnnotation(new ManifestPublishingCallbackAnnotation((json) => WritePostgresConnectionToManifest(json, postgresConnectionComponent)));
     }
 
-    private static void WritePostgresComponentToManifest(Utf8JsonWriter jsonWriter, PostgresConnectionComponent postgresConnectionComponent)
+    private static void WritePostgresConnectionToManifest(Utf8JsonWriter jsonWriter, PostgresConnectionComponent postgresConnectionComponent)
     {
         jsonWriter.WriteString("type", "postgres.connection.v1");
         jsonWriter.WriteString("connectionString", postgresConnectionComponent.GetConnectionString());

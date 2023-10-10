@@ -5,7 +5,6 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.SqlServer;
 
-public interface ISqlServerComponent : IDistributedApplicationComponent
+public interface ISqlServerComponent : IDistributedApplicationComponentWithConnectionString
 {
-    string? GetConnectionString(string? databaseName = null);
 }
