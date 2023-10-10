@@ -5,9 +5,9 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.SqlServer;
 
-public class SqlServerConnectionComponent(string name, string connectionString) : DistributedApplicationComponent(name), ISqlServerComponent
+public class SqlServerConnectionComponent(string name, string? connectionString) : DistributedApplicationComponent(name), ISqlServerComponent
 {
-    private readonly string _connectionString = connectionString;
+    private readonly string? _connectionString = connectionString;
 
     public string? GetConnectionString() => _connectionString;
 }

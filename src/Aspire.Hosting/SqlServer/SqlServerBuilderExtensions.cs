@@ -4,7 +4,6 @@
 using System.Net.Sockets;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
-using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting.SqlServer;
 
@@ -26,10 +25,6 @@ public static class SqlServerBuilderExtensions
 
     public static IDistributedApplicationComponentBuilder<SqlServerConnectionComponent> AddSqlServerConnection(this IDistributedApplicationBuilder builder, string name, string? connectionString = null)
     {
-        connectionString = connectionString
-                           ?? builder.Configuration.GetConnectionString(name)
-                           ?? throw new DistributedApplicationException($"A connection string for SQL Server resource '{name}' could not be retrieved.");
-
         var sqlServerConnectionComponent = new SqlServerConnectionComponent(name, connectionString);
 
         return builder.AddComponent(sqlServerConnectionComponent)

@@ -4,7 +4,6 @@
 using System.Net.Sockets;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
-using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting.Postgres;
 
@@ -26,10 +25,6 @@ public static class PostgresBuilderExtensions
 
     public static IDistributedApplicationComponentBuilder<PostgresConnectionComponent> AddPostgresConnection(this IDistributedApplicationBuilder builder, string name, string? connectionString = null)
     {
-        connectionString = connectionString
-                           ?? builder.Configuration.GetConnectionString(name)
-                           ?? throw new DistributedApplicationException($"A connection string for Postgres resource '{name}' could not be retrieved.");
-
         var postgresConnectionComponent = new PostgresConnectionComponent(name, connectionString);
 
         return builder.AddComponent(postgresConnectionComponent)
