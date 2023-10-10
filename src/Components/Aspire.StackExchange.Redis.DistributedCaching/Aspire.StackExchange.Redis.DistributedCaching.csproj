@@ -5,9 +5,8 @@
     <IsPackable>true</IsPackable>
     <PackageTags>$(ComponentCachePackageTags) distributedcaching distributedcache redis</PackageTags>
     <Description>
-      Registers an IDistributedCache in the DI container that connects to a
-      Redis server. See Distributed Caching for more information. Enables
-      corresponding health check, logging, and telemetry.
+      Offers Redis-based implementation for IDistributedCache, including health
+      check, logging, and telemetry.
     </Description>
   </PropertyGroup>
 

@@ -5,8 +5,8 @@
     <IsPackable>true</IsPackable>
     <PackageTags>$(ComponentCachePackageTags) aspnetcore outputcaching outputcache redis</PackageTags>
     <Description>
-      Registers an ASP.NET Core Output Caching provider backed by a Redis
-      server. Enables corresponding health check, logging, and telemetry.
+      Offers a Redis-based implementation for ASP.NET Core Output Caching,
+      including health check, logging, and telemetry.
     </Description>
   </PropertyGroup>
 

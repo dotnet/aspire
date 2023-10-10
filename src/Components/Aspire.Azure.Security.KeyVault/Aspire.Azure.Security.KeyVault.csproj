@@ -5,8 +5,8 @@
     <IsPackable>true</IsPackable>
     <PackageTags>$(ComponentAzurePackageTags) keyvault secrets</PackageTags>
     <Description>
-      Registers a SecretClient in the DI container for connecting to Azure Key
-      Vault. Enables corresponding health checks, logging and telemetry.
+      Offers a client for Azure Key Vault, including health check, logging and
+      telemetry.
     </Description>
   </PropertyGroup>
 

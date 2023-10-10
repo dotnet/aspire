@@ -5,9 +5,8 @@
     <IsPackable>true</IsPackable>
     <PackageTags>$(ComponentAzurePackageTags) tables table</PackageTags>
     <Description>
-      Registers TableServiceClient as a singleton in the DI container for
-      connecting to Azure Table storage. Enables corresponding health check,
-      logging and telemetry.
+      Offers a client for Azure Table Storage, including health check, logging,
+      and telemetry.
     </Description>
   </PropertyGroup>
 

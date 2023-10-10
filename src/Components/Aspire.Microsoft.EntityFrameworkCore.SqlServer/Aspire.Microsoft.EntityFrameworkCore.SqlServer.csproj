@@ -7,9 +7,8 @@
     <IsAotCompatible>true</IsAotCompatible>
     <PackageTags>$(ComponentEfCorePackageTags) sqlserver sql</PackageTags>
     <Description>
-      Registers EntityFrameworkCore DbContext service for connecting Azure SQL,
-      MS SQL server database. Enables connection pooling, health check, logging
-      and telemetry.
+      Offers Microsoft SQL Server provider for EF Core, including connection
+      pooling, health check, logging, and telemetry.
     </Description>
   </PropertyGroup>
 
