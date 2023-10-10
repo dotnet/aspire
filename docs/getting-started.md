@@ -100,7 +100,7 @@ C:\git\aspire\samples\eShopLite\AppHost> dotnet user-secrets set ConnectionStrin
 ```json
 {
   "ConnectionStrings": {
-    "messaging": "<ServiceBus namespace host>"
+    "messaging": "<serviceBusNamespace>.servicebus.windows.net"
   }
 }
 ```
