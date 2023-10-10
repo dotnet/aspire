@@ -23,6 +23,6 @@ public sealed class EnvironmentVariablesDialogService(IDialogService dialogServi
             Height = "auto"
         };
 
-        _ = await dialogService.ShowDialogAsync<EnvironmentVariables>(variables, parameters).ConfigureAwait(false);
+        _ = await dialogService.ShowDialogAsync<EnvironmentVariables>(variables, parameters).ConfigureAwait(true);
     }
 }

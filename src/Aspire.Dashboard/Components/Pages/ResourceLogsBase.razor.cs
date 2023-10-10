@@ -27,7 +27,7 @@ public abstract partial class ResourceLogsBase<TResource> : ComponentBase, IAsyn
     protected abstract Task<List<TResource>> GetResources(IDashboardViewModelService dashboardViewModelService);
     protected abstract IAsyncEnumerable<ComponentChanged<TResource>> WatchResources(
         IDashboardViewModelService dashboardViewModelService,
-        IEnumerable<NamespacedName>? initialList,
+        IEnumerable<NamespacedName> initialList,
         CancellationToken cancellationToken);
 
     private TResource? _selectedResource;
@@ -51,9 +51,9 @@ public abstract partial class ResourceLogsBase<TResource> : ComponentBase, IAsyn
 
         if (ResourceName is not null)
         {
-            _selectedResource = initialList?.FirstOrDefault(c => string.Equals(ResourceName, c.Name, StringComparison.Ordinal));
+            _selectedResource = initialList.FirstOrDefault(c => string.Equals(ResourceName, c.Name, StringComparison.Ordinal));
         }
-        else if (initialList?.Count > 0)
+        else if (initialList.Count > 0)
         {
             _selectedResource = initialList[0];
         }
@@ -62,7 +62,7 @@ public abstract partial class ResourceLogsBase<TResource> : ComponentBase, IAsyn
 
         _ = Task.Run(async () =>
         {
-            await foreach (var componentChanged in WatchResources(DashboardViewModelService, initialList?.Select(t => t.NamespacedName), _watchContainersTokenSource.Token))
+            await foreach (var componentChanged in WatchResources(DashboardViewModelService, initialList.Select(t => t.NamespacedName), _watchContainersTokenSource.Token))
             {
                 await OnResourceListChangedAsync(componentChanged.ObjectChangeType, componentChanged.Component);
             }
