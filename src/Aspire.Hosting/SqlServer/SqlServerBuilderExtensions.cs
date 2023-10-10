@@ -4,20 +4,18 @@
 using System.Net.Sockets;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
-using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting.SqlServer;
 
 public static class SqlServerBuilderExtensions
 {
-    private const string ConnectionStringEnvironmentName = "ConnectionStrings__";
-
     public static IDistributedApplicationComponentBuilder<SqlServerContainerComponent> AddSqlServerContainer(this IDistributedApplicationBuilder builder, string name, string? password = null, int? port = null)
     {
-        var sqlServer = new SqlServerContainerComponent(name);
+        password = password ?? Guid.NewGuid().ToString("N");
+        var sqlServer = new SqlServerContainerComponent(name, password);
 
         var componentBuilder = builder.AddComponent(sqlServer);
-        componentBuilder.WithAnnotation(new ManifestPublishingCallbackAnnotation(WriteSqlServerComponentToManifest));
+        componentBuilder.WithAnnotation(new ManifestPublishingCallbackAnnotation(WriteSqlServerContainerToManifest));
         componentBuilder.WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, port: port, containerPort: 1433));
         componentBuilder.WithAnnotation(new ContainerImageAnnotation { Registry = "mcr.microsoft.com", Image = "mssql/server", Tag = "2022-latest" });
         componentBuilder.WithEnvironment("ACCEPT_EULA", "Y");
@@ -25,52 +23,43 @@ public static class SqlServerBuilderExtensions
         return componentBuilder;
     }
 
-    public static IDistributedApplicationComponentBuilder<SqlServerComponent> AddSqlServer(this IDistributedApplicationBuilder builder, string name, string? connectionString = null)
+    public static IDistributedApplicationComponentBuilder<SqlServerConnectionComponent> AddSqlServerConnection(this IDistributedApplicationBuilder builder, string name, string? connectionString = null)
     {
-        var sqlServer = new SqlServerComponent(name, connectionString);
+        var sqlServerConnectionComponent = new SqlServerConnectionComponent(name, connectionString);
 
-        return builder.AddComponent(sqlServer)
+        return builder.AddComponent(sqlServerConnectionComponent)
             .WithAnnotation(new ManifestPublishingCallbackAnnotation(jsonWriter =>
-                WriteSqlServerComponentToManifest(jsonWriter, sqlServer.GetConnectionString())));
+                WriteSqlServerConnectionToManifest(jsonWriter, sqlServerConnectionComponent)));
     }
 
-    private static void WriteSqlServerComponentToManifest(Utf8JsonWriter jsonWriter) =>
-        WriteSqlServerComponentToManifest(jsonWriter, null);
-
-    private static void WriteSqlServerComponentToManifest(Utf8JsonWriter jsonWriter, string? connectionString)
+    private static void WriteSqlServerConnectionToManifest(Utf8JsonWriter jsonWriter, SqlServerConnectionComponent sqlServerConnectionComponent)
     {
-        jsonWriter.WriteString("type", "sqlserver.v1");
-        if (!string.IsNullOrEmpty(connectionString))
-        {
-            jsonWriter.WriteString("connectionString", connectionString);
-        }
+        jsonWriter.WriteString("type", "sqlserver.connection.v1");
+        jsonWriter.WriteString("connectionString", sqlServerConnectionComponent.GetConnectionString());
     }
 
-    public static IDistributedApplicationComponentBuilder<T> WithSqlServer<T>(this IDistributedApplicationComponentBuilder<T> builder, IDistributedApplicationComponentBuilder<ISqlServerComponent> sqlBuilder, string? databaseName, string? connectionName = null)
+    private static void WriteSqlServerContainerToManifest(Utf8JsonWriter jsonWriter)
+    {
+        jsonWriter.WriteString("type", "sqlserver.server.v1");
+    }
+
+    private static void WriteSqlServerDatabaseComponentToManifest(Utf8JsonWriter json, SqlServerDatabaseComponent sqlServerDatabaseComponent)
+    {
+        json.WriteString("type", "sqlserver.database.v1");
+        json.WriteString("parent", sqlServerDatabaseComponent.Parent.Name);
+    }
+
+    public static IDistributedApplicationComponentBuilder<T> WithSqlServer<T, TSqlServer>(this IDistributedApplicationComponentBuilder<T> builder, IDistributedApplicationComponentBuilder<TSqlServer> sqlServerBuilder, string? connectionName = null) where TSqlServer : ISqlServerComponent
         where T : IDistributedApplicationComponentWithEnvironment
     {
-        var sql = sqlBuilder.Component;
-        connectionName ??= sqlBuilder.Component.Name;
+        return builder.WithReference(sqlServerBuilder, connectionName);
+    }
 
-        return builder.WithEnvironment((context) =>
-        {
-            var connectionStringName = $"{ConnectionStringEnvironmentName}{connectionName}";
-
-            if (context.PublisherName == "manifest")
-            {
-                context.EnvironmentVariables[connectionStringName] = $"{{{sql.Name}.connectionString}}";
-                return;
-            }
-
-            var connectionString = sql.GetConnectionString(databaseName) ??
-                builder.ApplicationBuilder.Configuration.GetConnectionString(sql.Name);
-
-            if (string.IsNullOrEmpty(connectionString))
-            {
-                throw new DistributedApplicationException($"A connection string for SqlServer '{sql.Name}' could not be retrieved.");
-            }
-
-            context.EnvironmentVariables[connectionStringName] = connectionString;
-        });
+    public static IDistributedApplicationComponentBuilder<SqlServerDatabaseComponent> AddDatabase(this IDistributedApplicationComponentBuilder<SqlServerContainerComponent> builder, string name)
+    {
+        var sqlServerDatabase = new SqlServerDatabaseComponent(name, builder.Component);
+        return builder.ApplicationBuilder.AddComponent(sqlServerDatabase)
+                                         .WithAnnotation(new ManifestPublishingCallbackAnnotation(
+                                             (json) => WriteSqlServerDatabaseComponentToManifest(json, sqlServerDatabase)));
     }
 }
