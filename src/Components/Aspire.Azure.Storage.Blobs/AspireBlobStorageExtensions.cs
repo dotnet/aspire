@@ -84,11 +84,11 @@ public static class AspireBlobStorageExtensions
         protected override bool GetTracingEnabled(AzureStorageBlobsSettings settings)
             => settings.Tracing;
 
-        protected override void Validate(AzureStorageBlobsSettings settings, string configurationSectionName)
+        protected override void Validate(AzureStorageBlobsSettings settings, string connectionName, string configurationSectionName)
         {
             if (string.IsNullOrEmpty(settings.ConnectionString) && settings.ServiceUri is null)
             {
-                throw new InvalidOperationException($"A BlobServiceClient could not be configured. Either specify a 'ConnectionString' or 'ServiceUri' in '{configurationSectionName}' configuration section.");
+                throw new InvalidOperationException($"A BlobServiceClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'ConnectionString' or 'ServiceUri' in the '{configurationSectionName}' configuration section.");
             }
         }
     }

@@ -104,7 +104,6 @@ public class AspireBlobStorageExtensionsTests
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
 
-        var key = useKeyed ? "blob" : null;
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>("ConnectionStrings:blob", ConformanceTests.ServiceUri)
         ]);

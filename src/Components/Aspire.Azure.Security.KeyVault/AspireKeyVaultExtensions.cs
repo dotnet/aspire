@@ -76,11 +76,11 @@ public static class AspireKeyVaultExtensions
         protected override bool GetTracingEnabled(AzureSecurityKeyVaultSettings settings)
             => settings.Tracing;
 
-        protected override void Validate(AzureSecurityKeyVaultSettings settings, string configurationSectionName)
+        protected override void Validate(AzureSecurityKeyVaultSettings settings, string connectionName, string configurationSectionName)
         {
             if (settings.VaultUri is null)
             {
-                throw new InvalidOperationException($"VaultUri is missing. It should be provided under 'VaultUri' key in '{configurationSectionName}' configuration section.");
+                throw new InvalidOperationException($"VaultUri is missing. It should be provided in 'ConnectionStrings:{connectionName}' or under the 'VaultUri' key in the '{configurationSectionName}' configuration section.");
             }
         }
     }

@@ -106,7 +106,7 @@ You can also pass the `Action<AzureMessagingServiceBusSettings> configureSetting
     builder.AddAzureServiceBus("sb", settings => settings.HealthChecks = false);
 ```
 
-You can also setup the [ServiceBusClientOptions](https://learn.microsoft.com/dotnet/api/azure.messaging.servicebus.servicebusclientoptions) using the `Action<IAzureClientBuilder<ServiceBusClient, ServiceBusClientOptions>> configureClientBuilder` delegate, the second parameter of the `AddAzureServiceBus` method. For example, to set the client ID for this client:
+You can also setup the [ServiceBusClientOptions](https://learn.microsoft.com/dotnet/api/azure.messaging.servicebus.servicebusclientoptions) using the optional `Action<IAzureClientBuilder<ServiceBusClient, ServiceBusClientOptions>> configureClientBuilder` parameter of the `AddAzureServiceBus` method. For example, to set the client ID for this client:
 
 ```cs
     builder.AddAzureServiceBus("sb", configureClientBuilder: clientBuilder => clientBuilder.ConfigureOptions(options => options.Identifier = "CLIENT_ID"));
