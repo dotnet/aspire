@@ -4,6 +4,7 @@
 using System.Net.Sockets;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
+using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting.Postgres;
 
@@ -23,8 +24,12 @@ public static class PostgresBuilderExtensions
                       .WithEnvironment(PasswordEnvVarName, () => postgresContainerComponent.Password);
     }
 
-    public static IDistributedApplicationComponentBuilder<PostgresConnectionComponent> AddPostgresConnection(this IDistributedApplicationBuilder builder, string name, string connectionString)
+    public static IDistributedApplicationComponentBuilder<PostgresConnectionComponent> AddPostgresConnection(this IDistributedApplicationBuilder builder, string name, string? connectionString = null)
     {
+        connectionString = connectionString
+                           ?? builder.Configuration.GetConnectionString(name)
+                           ?? throw new DistributedApplicationException($"A connection string for Postgres resource '{name}' could not be retrieved.");
+
         var postgresConnectionComponent = new PostgresConnectionComponent(name, connectionString);
 
         return builder.AddComponent(postgresConnectionComponent)
@@ -54,29 +59,7 @@ public static class PostgresBuilderExtensions
     public static IDistributedApplicationComponentBuilder<T> WithPostgres<T, TPostgres>(this IDistributedApplicationComponentBuilder<T> builder, IDistributedApplicationComponentBuilder<TPostgres> postgresBuilder, string? connectionName = null) where TPostgres : IPostgresComponent
         where T : IDistributedApplicationComponentWithEnvironment
     {
-        connectionName ??= postgresBuilder.Component.Name;
-
         return builder.WithReference(postgresBuilder, connectionName);
-
-        //return builder.WithEnvironment((context) =>
-        //{
-        //    var connectionStringName = $"{ConnectionStringEnvironmentName}{connectionName}";
-
-        //    if (context.PublisherName == "manifest")
-        //    {
-        //        context.EnvironmentVariables[connectionStringName] = $"{{{postgres.Name}.connectionString}}";
-        //        return;
-        //    }
-
-        //    var connectionString = postgres.GetConnectionString() ?? builder.ApplicationBuilder.Configuration.GetConnectionString(postgres.Name);
-
-        //    if (string.IsNullOrEmpty(connectionString))
-        //    {
-        //        throw new DistributedApplicationException($"A connection string for Postgres '{postgres.Name}' could not be retrieved.");
-        //    }
-
-        //    context.EnvironmentVariables[connectionStringName] = connectionString;
-        //});
     }
 
     public static IDistributedApplicationComponentBuilder<PostgresDatabaseComponent> AddDatabase(this IDistributedApplicationComponentBuilder<PostgresContainerComponent> builder, string name)

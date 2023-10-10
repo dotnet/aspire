@@ -6,5 +6,4 @@ namespace Aspire.Hosting.ApplicationModel;
 public interface IDistributedApplicationComponentWithParent<T> : IDistributedApplicationComponent where T : IDistributedApplicationComponent
 {
     public T Parent { get; }
-    public string? GetConnectionString();
 }
