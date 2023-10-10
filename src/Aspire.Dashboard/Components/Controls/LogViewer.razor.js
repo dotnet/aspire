@@ -31,12 +31,6 @@ export function addLogEntries(logEntries) {
             rowContainer.setAttribute("data-timestamp", logEntry.timestamp ?? logEntry.parentTimestamp ?? "");
             const lineRow = rowContainer.firstElementChild;
             const lineArea = lineRow.firstElementChild;
-            const timestamp = lineArea.children[1];
-            if (logEntry.timestamp) {
-                timestamp.textContent = logEntry.timestamp;
-            } else {
-                timestamp.classList.add("missing");
-            }
             const content = lineArea.lastElementChild;
 
             // logEntry.content should already be HTMLEncoded other than the <span>s produced
@@ -128,7 +122,6 @@ function createRowTemplate() {
             <div class="line-row">
                 <span class="line-area">
                     <span class="line-number"></span>
-                    <span class="timestamp"></span>
                     <span class="content"></span>
                 </span>
             </div>

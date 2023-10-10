@@ -15,7 +15,7 @@ public class AnsiParser
     private const int DefaultForegroundCode = 39;
     private const int DefaultBackgroundCode = 49;
 
-    public ConversionResult ConvertToHtml(string? text, ParserState? priorResidualState = null)
+    public static ConversionResult ConvertToHtml(string? text, ParserState? priorResidualState = null)
     {
         var textStartIndex = -1;
         var textLength = 0;
