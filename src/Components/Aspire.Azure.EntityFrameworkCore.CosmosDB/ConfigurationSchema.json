@@ -26,11 +26,6 @@
                       "description": "Gets or sets the maximum number of retry attempts. Set it to 0 to disable the retry mechanism.",
                       "default": 6
                     },
-                    "HealthChecks": {
-                      "type": "boolean",
-                      "description": "Gets or sets a boolean value that indicates whether the DbContext health check is enabled or not.",
-                      "default": true
-                    },
                     "Tracing": {
                       "type": "boolean",
                       "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.",

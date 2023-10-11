@@ -78,11 +78,6 @@ public static class AspireAzureEFCoreCosmosDBExtensions
             });
         }
 
-        if (configurationOptions.HealthChecks)
-        {
-            builder.Services.AddHealthChecks().AddDbContextCheck<TContext>();
-        }
-
         void ConfigureDbContext(DbContextOptionsBuilder dbContextOptionsBuilder)
         {
             if (string.IsNullOrEmpty(configurationOptions.ConnectionString))
