@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Configuration;
 
@@ -129,5 +130,21 @@ public static class ComponentBuilderExtensions
         }
 
         return builder;
+    }
+
+    public static IDistributedApplicationComponentBuilder<T> WithServiceBinding<T>(this IDistributedApplicationComponentBuilder<T> builder, int? hostPort = null, string? scheme = null, string? name = null) where T : IDistributedApplicationComponent
+    {
+        if (builder.Component.Annotations.OfType<ServiceBindingAnnotation>().Any(sb => sb.Name == name))
+        {
+            throw new DistributedApplicationException($"Service binding with name '{name}' already exists");
+        }
+
+        var annotation = new ServiceBindingAnnotation(ProtocolType.Tcp, scheme, name, port: hostPort);
+        return builder.WithAnnotation(annotation);
+    }
+
+    public static IDistributedApplicationComponentBuilder<T> WithServiceBindingForPublisher<T>(this IDistributedApplicationComponentBuilder<T> builder, string publisherName, string bindingName, Func<ServiceBindingCallbackContext, ServiceBindingAnnotation>? callback = null) where T : IDistributedApplicationComponent
+    {
+        return builder.WithAnnotation(new ServiceBindingCallbackAnnotation(publisherName, bindingName, callback));
     }
 }

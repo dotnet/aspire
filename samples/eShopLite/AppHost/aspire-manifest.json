@@ -1,4 +1,4 @@
-{
+ {
   "components": {
     "grafana": {
       "type": "container.v1",
@@ -26,13 +26,6 @@
       "path": "..\\..\\CatalogService\\CatalogService.csproj",
       "env": {
         "ConnectionStrings__catalog": "{catalog.connectionString}"
-      },
-      "bindings": {
-        "http": {
-          "scheme": "http",
-          "protocol": "tcp",
-          "transport": "http"
-        }
       }
     },
     "messaging": {
@@ -46,13 +39,14 @@
       "path": "..\\..\\BasketService\\BasketService.csproj",
       "env": {
         "ConnectionStrings__basketCache": "{basketCache.connectionString}",
-        "Aspire__Azure__Messaging__ServiceBus__Namespace": "{messaging.connectionString}"
+        "ConnectionStrings__messaging": "{messaging.connectionString}"
       },
       "bindings": {
         "http": {
           "scheme": "http",
           "protocol": "tcp",
-          "transport": "http"
+          "transport": "http",
+          "external": true
         }
       }
     },
@@ -63,10 +57,11 @@
         "GRAFANA_URL": "{grafana.bindings.grafana-http}"
       },
       "bindings": {
-        "http": {
-          "scheme": "http",
+        "https": {
+          "scheme": "https",
           "protocol": "tcp",
-          "transport": "http"
+          "transport": "http",
+          "external": true
         }
       }
     },
@@ -74,20 +69,13 @@
       "type": "project.v1",
       "path": "..\\..\\OrderProcessor\\OrderProcessor.csproj",
       "env": {
-        "Aspire__Azure__Messaging__ServiceBus__Namespace": "{messaging.connectionString}"
+        "ConnectionStrings__messaging": "{messaging.connectionString}"
       }
     },
     "apigateway": {
       "type": "project.v1",
       "path": "..\\..\\ApiGateway\\ApiGateway.csproj",
-      "env": {},
-      "bindings": {
-        "http": {
-          "scheme": "http",
-          "protocol": "tcp",
-          "transport": "http"
-        }
-      }
+      "env": {}
     },
     "prometheus": {
       "type": "container.v1",

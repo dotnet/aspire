@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
-using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Otlp;
@@ -53,16 +52,5 @@ public static class ProjectComponentBuilderExtensions
 
         var launchProfileAnnotation = new LaunchProfileAnnotation(launchProfileName, launchProfile);
         return builder.WithAnnotation(launchProfileAnnotation);
-    }
-
-    public static IDistributedApplicationComponentBuilder<T> WithServiceBinding<T>(this IDistributedApplicationComponentBuilder<T> builder, int? hostPort = null, string? scheme = null, string? name = null) where T : IDistributedApplicationComponent
-    {
-        if (builder.Component.Annotations.OfType<ServiceBindingAnnotation>().Any(sb => sb.Name == name))
-        {
-            throw new DistributedApplicationException($"Service binding with name '{name}' already exists");
-        }
-
-        var annotation = new ServiceBindingAnnotation(ProtocolType.Tcp, scheme, name, port: hostPort);
-        return builder.WithAnnotation(annotation);
     }
 }
