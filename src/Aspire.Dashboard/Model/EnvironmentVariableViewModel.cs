@@ -8,4 +8,5 @@ public sealed class EnvironmentVariableViewModel
     public required string Name { get; init; }
     public string? Value { get; init; }
     public bool IsValueMasked { get; set; } = true;
+    public bool FromSpec { get; set; }
 }

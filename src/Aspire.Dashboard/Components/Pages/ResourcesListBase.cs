@@ -22,6 +22,7 @@ public abstract class ResourcesListBase<TResource> : ComponentBase
         IEnumerable<NamespacedName> initialList,
         CancellationToken cancellationToken);
     protected abstract bool Filter(TResource resource);
+    protected virtual bool ShowSpecOnlyToggle => true;
 
     private readonly Dictionary<string, TResource> _resourcesMap = new();
     private readonly CancellationTokenSource _watchTaskCancellationTokenSource = new();
@@ -53,7 +54,11 @@ public abstract class ResourcesListBase<TResource> : ComponentBase
     {
         await EnvironmentVariablesDialogService.ShowDialogAsync(
             source: resource.Name,
-            variables: resource.Environment
+            viewModel: new()
+            {
+                EnvironmentVariables = resource.Environment,
+                ShowSpecOnlyToggle = ShowSpecOnlyToggle
+            }
         );
     }
 

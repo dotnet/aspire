@@ -1,11 +1,19 @@
 ﻿@using Aspire.Dashboard.Model
-@implements IDialogContentComponent<List<EnvironmentVariableViewModel>>
+@implements IDialogContentComponent<EnvironmentVariablesDialogViewModel>
 @inject IJSRuntime JS
 
 <FluentDialogBody>
     <div class="GridContainer">
         <FluentStack Orientation="Orientation.Vertical">
             <FluentToolbar Orientation="Orientation.Horizontal">
+                @if (Content?.ShowSpecOnlyToggle == true)
+                {
+                    <FluentButton Appearance="Appearance.Lightweight"
+                                  IconEnd="@(_showAll ? _showSpecOnlyIcon : _showAllIcon)"
+                                  Title="@(_showAll ? "Show Spec Only" : "Show All")"
+                                  OnClick="() => _showAll = !_showAll"
+                                  slot="end" />
+                }
                 <FluentButton Appearance="Appearance.Lightweight"
                               IconEnd="@(_defaultMasked ? _unmaskIcon : _maskIcon)"
                               Title="@(_defaultMasked ? "Show Values" : "Hide Values")"
