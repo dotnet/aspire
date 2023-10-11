@@ -68,12 +68,9 @@
     <PackageVersion Include="JsonSchema.Net" Version="5.2.5" />
     <PackageVersion Include="Microsoft.Fast.Components.FluentUI" Version="3.2.0" />
     <PackageVersion Include="Microsoft.Fast.Components.FluentUI.Icons" Version="3.1.1" />
-    <PackageVersion Include="Npgsql.DependencyInjection" Version="8.0.0-preview.4" />
-    <!-- Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore depends on Microsoft.EntityFrameworkCore.Relational which depends on Microsoft.EntityFrameworkCore
-         Npgsql.EntityFrameworkCore.PostgreSQL depends on Microsoft.EntityFrameworkCore and needs to be synced with HealthChecks package
-         Npgsql.EntityFrameworkCore.PostgreSQL and Npgsql.OpenTelemetry depend on Npgsql and need to be synced. -->
-    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.0-rc.1" />
-    <PackageVersion Include="Npgsql.OpenTelemetry" Version="8.0.0-preview.4" />
+    <PackageVersion Include="Npgsql.DependencyInjection" Version="8.0.0-rc.2" />
+    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.0-rc.2" />
+    <PackageVersion Include="Npgsql.OpenTelemetry" Version="8.0.0-rc.2" />
     <PackageVersion Include="OpenTelemetry.Exporter.InMemory" Version="1.6.0" />
     <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.6.0" />
     <PackageVersion Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" Version="1.6.0-rc.1" />
