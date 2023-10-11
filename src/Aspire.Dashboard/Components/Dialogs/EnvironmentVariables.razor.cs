@@ -11,12 +11,15 @@ public partial class EnvironmentVariables
 {
 
     [Parameter]
-    public List<EnvironmentVariableViewModel>? Content { get; set; }
+    public EnvironmentVariablesDialogViewModel? Content { get; set; }
+
+    private bool _showAll;
 
     private IQueryable<EnvironmentVariableViewModel>? FilteredItems =>
-        Content?.Where(vm =>
-            vm.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) ||
-            vm.Value?.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) == true
+        Content?.EnvironmentVariables?.Where(vm =>
+            (_showAll || vm.FromSpec) &&
+            (vm.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) ||
+            vm.Value?.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) == true)
         )?.AsQueryable();
 
     private const string PreCopyText = "Copy to clipboard";
@@ -27,6 +30,8 @@ public partial class EnvironmentVariables
 
     private readonly Icon _maskIcon = new Icons.Regular.Size16.EyeOff();
     private readonly Icon _unmaskIcon = new Icons.Regular.Size16.Eye();
+    private readonly Icon _showSpecOnlyIcon = new Icons.Regular.Size16.DocumentHeader();
+    private readonly Icon _showAllIcon = new Icons.Regular.Size16.DocumentOnePage();
 
     private readonly GridSort<EnvironmentVariableViewModel> _nameSort = GridSort<EnvironmentVariableViewModel>.ByAscending(vm => vm.Name);
     private readonly GridSort<EnvironmentVariableViewModel> _valueSort = GridSort<EnvironmentVariableViewModel>.ByAscending(vm => vm.Value);
@@ -36,7 +41,7 @@ public partial class EnvironmentVariables
         _defaultMasked = !_defaultMasked;
         if (Content is not null)
         {
-            foreach (var vm in Content)
+            foreach (var vm in Content.EnvironmentVariables)
             {
                 vm.IsValueMasked = _defaultMasked;
             }
@@ -66,9 +71,9 @@ public partial class EnvironmentVariables
     {
         if (Content is not null)
         {
-            bool foundMasked = false;
-            bool foundUnmasked = false;
-            foreach (var vm in Content)
+            var foundMasked = false;
+            var foundUnmasked = false;
+            foreach (var vm in Content.EnvironmentVariables)
             {
                 foundMasked |= vm.IsValueMasked;
                 foundUnmasked |= !vm.IsValueMasked;

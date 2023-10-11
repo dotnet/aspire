@@ -149,7 +149,7 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
 
         if (container.Spec.Env is not null)
         {
-            FillEnvironmentVariables(model.Environment, container.Spec.Env);
+            FillEnvironmentVariables(model.Environment, container.Spec.Env, container.Spec.Env);
         }
 
         return model;
@@ -171,7 +171,7 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
 
         if (executable.Status?.EffectiveEnv is not null)
         {
-            FillEnvironmentVariables(model.Environment, executable.Status.EffectiveEnv);
+            FillEnvironmentVariables(model.Environment, executable.Status.EffectiveEnv, executable.Spec.Env);
         }
 
         return model;
@@ -222,7 +222,7 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
 
         if (executable.Status?.EffectiveEnv is not null)
         {
-            FillEnvironmentVariables(model.Environment, executable.Status.EffectiveEnv);
+            FillEnvironmentVariables(model.Environment, executable.Status.EffectiveEnv, executable.Spec.Env);
         }
 
         return model;
@@ -242,16 +242,17 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
             _ => ObjectChangeType.Other
         };
 
-    private static void FillEnvironmentVariables(List<EnvironmentVariableViewModel> target, List<EnvVar> source)
+    private static void FillEnvironmentVariables(List<EnvironmentVariableViewModel> target, List<EnvVar> effectiveSource, List<EnvVar>? specSource)
     {
-        foreach (var env in source)
+        foreach (var env in effectiveSource)
         {
             if (env.Name is not null)
             {
                 target.Add(new()
                 {
                     Name = env.Name,
-                    Value = env.Value
+                    Value = env.Value,
+                    FromSpec = specSource?.Any(e => string.Equals(e.Name, env.Name, StringComparison.Ordinal)) == true
                 });
             }
         }
