@@ -7,8 +7,9 @@
     <IsAotCompatible>true</IsAotCompatible>
     <PackageTags>$(ComponentEfCorePackageTags) sqlserver sql</PackageTags>
     <Description>
-      Offers Microsoft SQL Server provider for EF Core, including connection
-      pooling, health check, logging, and telemetry.
+      A Microsoft SQL Server provider for Entity Framework Core that integrates
+      with Aspire, including connection pooling, health check, logging, and
+      telemetry.
     </Description>
   </PropertyGroup>
 

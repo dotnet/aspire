@@ -5,8 +5,8 @@
     <IsPackable>true</IsPackable>
     <PackageTags>$(ComponentAzurePackageTags) storage blobs blob</PackageTags>
     <Description>
-      Offers a client for Azure Blob Storage, including health check, logging
-      and telemetry.
+      A client for Azure Blob Storage that integrates with Aspire, including
+      health checks, logging and telemetry.
     </Description>
   </PropertyGroup>
 

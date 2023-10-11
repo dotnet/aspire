@@ -7,8 +7,8 @@
     <IsAotCompatible>true</IsAotCompatible>
     <PackageTags>$(ComponentDatabasePackageTags) sqlserver sql</PackageTags>
     <Description>
-      Offers a Microsoft SQL Server client, including health check, metrics and
-      telemetry.
+      A Microsoft SQL Server client that integrates with Aspire, including
+      health checks, metrics and telemetry.
     </Description>
   </PropertyGroup>
 

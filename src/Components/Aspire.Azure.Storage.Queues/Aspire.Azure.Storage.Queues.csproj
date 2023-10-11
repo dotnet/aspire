@@ -5,8 +5,8 @@
     <IsPackable>true</IsPackable>
     <PackageTags>$(ComponentAzurePackageTags) storage queue queues</PackageTags>
     <Description>
-      Offers a client for Azure Queue Storage, including health check, logging
-      and telemetry.
+      A client for Azure Queue Storage that integrates with Aspire, including
+      health checks, logging and telemetry.
     </Description>
   </PropertyGroup>
 

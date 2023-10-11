@@ -7,8 +7,8 @@
     <IsAotCompatible>true</IsAotCompatible>
     <PackageTags>$(ComponentDatabasePackageTags) postgressql postgres npgsql sql</PackageTags>
     <Description>
-      Offers a Postgres client including health check, metrics, logging, and
-      telemetry.
+      A PostgreSQL client that integrates with Aspire, including health checks,
+      metrics, logging, and telemetry.
     </Description>
   </PropertyGroup>
 
