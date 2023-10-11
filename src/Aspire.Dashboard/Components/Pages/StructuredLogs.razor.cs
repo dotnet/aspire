@@ -11,7 +11,7 @@ using Microsoft.Fast.Components.FluentUI;
 using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Pages;
-public partial class SemanticLogs
+public partial class StructuredLogs
 {
     private static readonly ApplicationViewModel s_allApplication = new ApplicationViewModel { Id = null, Name = "(All)" };
 
@@ -31,7 +31,7 @@ public partial class SemanticLogs
     public required TelemetryRepository TelemetryRepository { get; set; }
 
     [Inject]
-    public required SemanticLogsViewModel ViewModel { get; set; }
+    public required StructuredLogsViewModel ViewModel { get; set; }
 
     [Inject]
     public required IDialogService DialogService { get; set; }
@@ -94,7 +94,7 @@ public partial class SemanticLogs
 
     private Task HandleSelectedApplicationChangedAsync()
     {
-        NavigationManager.NavigateTo($"/SemanticLogs/{_selectedApplication.Id}");
+        NavigationManager.NavigateTo($"/StructuredLogs/{_selectedApplication.Id}");
         _applicationChanged = true;
 
         return Task.CompletedTask;

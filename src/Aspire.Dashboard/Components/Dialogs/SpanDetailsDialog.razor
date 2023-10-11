@@ -19,7 +19,7 @@
                 <div>
                     Start Time <strong>@DurationFormatter.FormatDuration(Content.Span.StartTime - Content.Span.Trace.FirstSpan.StartTime)</strong>
                 </div>
-                <FluentAnchor slot="end" Appearance="Appearance.Lightweight" Href="@($"/SemanticLogs?spanId={Content.Span.SpanId}")">View Logs</FluentAnchor>
+                <FluentAnchor slot="end" Appearance="Appearance.Lightweight" Href="@($"/StructuredLogs?spanId={Content.Span.SpanId}")">View Logs</FluentAnchor>
                 <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
                 <FluentSearch Placeholder="Filter..."
                               Immediate="true"

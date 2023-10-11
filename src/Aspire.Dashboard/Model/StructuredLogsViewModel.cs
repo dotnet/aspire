@@ -7,7 +7,7 @@ using Aspire.Dashboard.Otlp.Storage;
 
 namespace Aspire.Dashboard.Model;
 
-public class SemanticLogsViewModel
+public class StructuredLogsViewModel
 {
     private readonly TelemetryRepository _telemetryRepository;
     private readonly List<LogFilter> _filters = new();
@@ -18,7 +18,7 @@ public class SemanticLogsViewModel
     private int _logsStartIndex;
     private int? _logsCount;
 
-    public SemanticLogsViewModel(TelemetryRepository telemetryRepository)
+    public StructuredLogsViewModel(TelemetryRepository telemetryRepository)
     {
         _telemetryRepository = telemetryRepository;
     }
