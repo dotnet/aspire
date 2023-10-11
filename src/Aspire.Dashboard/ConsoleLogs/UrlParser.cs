@@ -11,7 +11,7 @@ public static partial class UrlParser
 {
     private static readonly Regex s_urlRegEx = GenerateUrlRegEx();
 
-    public static bool Parse(string? text, [NotNullWhen(true)] out string? modifiedText)
+    public static bool TryParse(string? text, [NotNullWhen(true)] out string? modifiedText)
     {
         if (text is not null)
         {

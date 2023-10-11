@@ -33,12 +33,11 @@ internal sealed partial class LogParser(LogEntryType logEntryType)
         var isFirstLine = false;
         string? timestamp = null;
 
-        var timestampResult = TimestampParser.TryColorizeTimestamp(content);
-        if (timestampResult.Success)
+        if (TimestampParser.TryColorizeTimestamp(content, out var timestampParseResult))
         {
             isFirstLine = true;
-            content = timestampResult.ModifiedText;
-            timestamp = timestampResult.Timestamp;
+            content = timestampParseResult.ModifiedText;
+            timestamp = timestampParseResult.Timestamp;
         }
         // 3. Parse the content to look for info/warn/dbug header
         else if (LogLevelParser.StartsWithLogLevelHeader(content))
@@ -52,7 +51,7 @@ internal sealed partial class LogParser(LogEntryType logEntryType)
         _residualState = conversionResult.ResidualState;
 
         // 5. Parse the content to look for URLs and make them links if possible
-        if (UrlParser.Parse(content, out var modifiedText))
+        if (UrlParser.TryParse(content, out var modifiedText))
         {
             content = modifiedText;
         }

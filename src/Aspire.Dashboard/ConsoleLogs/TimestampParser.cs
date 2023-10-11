@@ -8,22 +8,23 @@ public static partial class TimestampParser
 {
     private static readonly Regex s_rfc3339RegEx = GenerateRfc3339RegEx();
 
-    public static TimestampParserResult TryColorizeTimestamp(string text)
+    public static bool TryColorizeTimestamp(string text, out TimestampParserResult result)
     {
         var match = s_rfc3339RegEx.Match(text);
 
-        var span = text.AsSpan();
-
         if (match.Success)
         {
+            var span = text.AsSpan();
             var timestamp = span[match.Index..(match.Index + match.Length)];
             var theRest = match.Index + match.Length >= span.Length ? "" : span[(match.Index + match.Length)..];
 
             var modifiedText = $"<span class=\"timestamp\">{timestamp}</span>{theRest}";
-            return new(true, modifiedText, timestamp.ToString());
+            result = new(modifiedText, timestamp.ToString());
+            return true;
         }
 
-        return new(false, null, null);
+        result = default;
+        return false;
     }
 
     // Regular Expression for an RFC3339 timestamp, including RFC3339Nano
@@ -57,5 +58,5 @@ public static partial class TimestampParser
     [GeneratedRegex("^(?:\\d{4})-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])T(?:[01][0-9]|2[0-3]):(?:[0-5][0-9]):(?:[0-5][0-9])(?:\\.\\d{1,9})?(?:Z|(?:[Z+-](?:[01][0-9]|2[0-3]):(?:[0-5][0-9])))?")]
     private static partial Regex GenerateRfc3339RegEx();
 
-    public readonly record struct TimestampParserResult(bool Success, string? ModifiedText, string? Timestamp);
+    public readonly record struct TimestampParserResult(string? ModifiedText, string? Timestamp);
 }

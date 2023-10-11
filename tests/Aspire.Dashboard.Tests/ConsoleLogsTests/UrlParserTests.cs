@@ -13,9 +13,9 @@ public class UrlParserTests
     [InlineData("")]
     [InlineData(" ")]
     [InlineData("This is some text without any urls")]
-    public void Parse_NoUrl_ReturnsFalse(string input)
+    public void TryParse_NoUrl_ReturnsFalse(string input)
     {
-        var result = UrlParser.Parse(input, out var _);
+        var result = UrlParser.TryParse(input, out var _);
 
         Assert.False(result);
     }
@@ -24,9 +24,9 @@ public class UrlParserTests
     [InlineData("This is some text with a URL at the end: https://bing.com/", true, "This is some text with a URL at the end: <a target=\"_blank\" href=\"https://bing.com/\">https://bing.com/</a>")]
     [InlineData("https://bing.com/ This is some text with a URL at the beginning", true, "<a target=\"_blank\" href=\"https://bing.com/\">https://bing.com/</a> This is some text with a URL at the beginning")]
     [InlineData("This is some text with a https://bing.com/ in the middle", true, "This is some text with a <a target=\"_blank\" href=\"https://bing.com/\">https://bing.com/</a> in the middle")]
-    public void Parse_ReturnsCorrectResult(string input, bool expectedResult, string? expectedOutput)
+    public void TryParse_ReturnsCorrectResult(string input, bool expectedResult, string? expectedOutput)
     {
-        var result = UrlParser.Parse(input, out var modifiedText);
+        var result = UrlParser.TryParse(input, out var modifiedText);
 
         Assert.Equal(expectedResult, result);
         Assert.Equal(expectedOutput, modifiedText);
@@ -40,9 +40,9 @@ public class UrlParserTests
     [InlineData("http://bing.com/dir", "<a target=\"_blank\" href=\"http://bing.com/dir\">http://bing.com/dir</a>")]
     [InlineData("http://bing.com/index.aspx", "<a target=\"_blank\" href=\"http://bing.com/index.aspx\">http://bing.com/index.aspx</a>")]
     [InlineData("http://bing", "<a target=\"_blank\" href=\"http://bing\">http://bing</a>")]
-    public void Parse_SupportedUrlFormats(string input, string? expectedOutput)
+    public void TryParse_SupportedUrlFormats(string input, string? expectedOutput)
     {
-        var result = UrlParser.Parse(input, out var modifiedText);
+        var result = UrlParser.TryParse(input, out var modifiedText);
 
         Assert.True(result);
         Assert.Equal(expectedOutput, modifiedText);
@@ -52,9 +52,9 @@ public class UrlParserTests
     [InlineData("file:///c:/windows/system32/calc.exe")]
     [InlineData("ftp://ftp.localhost.com/")]
     [InlineData("ftp://user:pass@ftp.localhost.com/")]
-    public void Parse_UnsupportedUrlFormats(string input)
+    public void TryParse_UnsupportedUrlFormats(string input)
     {
-        var result = UrlParser.Parse(input, out var _);
+        var result = UrlParser.TryParse(input, out var _);
 
         Assert.False(result);
     }
