@@ -5,7 +5,7 @@
     <IsPackable>true</IsPackable>
     <PackageTags>$(ComponentAzurePackageTags) servicebus amqp</PackageTags>
     <Description>
-      A client for Azure ServiceBus that integrates with Aspire, including
+      A client for Azure Service Bus that integrates with Aspire, including
       health checks, logging and telemetry.
     </Description>
   </PropertyGroup>
