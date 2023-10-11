@@ -7,6 +7,9 @@
 @using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Otlp.Storage
 @using System.Diagnostics
+@inject IDashboardViewModelService DashboardViewModelService
+
+<PageTitle>@DashboardViewModelService.ApplicationName Traces</PageTitle>
 
 <h1 style="display:inline-block">@(_trace.FirstSpan.Source.ApplicationName): @_trace.FirstSpan.Name</h1>
 <span class="trace-id">@_trace.TraceId.Substring(0, 7)</span>
