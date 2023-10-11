@@ -16,8 +16,7 @@ public class AnsiParserTests
     public void ConvertToHtml_ReturnsInputUnchangedIfNoCodesPresent(string input)
     {
         var expectedOutput = input;
-        var parser = new AnsiParser();
-        var result = parser.ConvertToHtml(input);
+        var result = AnsiParser.ConvertToHtml(input);
 
         Assert.Equal(expectedOutput, result.ConvertedText);
     }
@@ -32,8 +31,7 @@ public class AnsiParserTests
     [InlineData("Real Text Before\x1B[2mReal Text Between\x1B[23mReal Text After", "Real Text BeforeReal Text BetweenReal Text After")]
     public void ConvertToHtml_IgnoresUnsupportedButValidCodes(string input, string expectedOutput)
     {
-        var parser = new AnsiParser();
-        var result = parser.ConvertToHtml(input);
+        var result = AnsiParser.ConvertToHtml(input);
 
         Assert.Equal(expectedOutput, result.ConvertedText);
         Assert.Equal(default, result.ResidualState);
@@ -45,8 +43,7 @@ public class AnsiParserTests
         var input = "\x1B[32mThis is some green text";
         var expectedOutput = "<span class=\"ansi-fg-green\">This is some green text</span>";
         var expectedResidualState = new AnsiParser.ParserState() { ForegroundColor = ConsoleColor.Green };
-        var parser = new AnsiParser();
-        var result = parser.ConvertToHtml(input);
+        var result = AnsiParser.ConvertToHtml(input);
 
         Assert.Equal(expectedOutput, result.ConvertedText);
         Assert.Equal(expectedResidualState, result.ResidualState);
@@ -57,8 +54,7 @@ public class AnsiParserTests
     {
         var input = "\x1B[32mThis is some green text\x1B[39m";
         var expectedOutput = "<span class=\"ansi-fg-green\">This is some green text</span>";
-        var parser = new AnsiParser();
-        var result = parser.ConvertToHtml(input);
+        var result = AnsiParser.ConvertToHtml(input);
 
         Assert.Equal(expectedOutput, result.ConvertedText);
         Assert.Equal(default, result.ResidualState);
@@ -69,8 +65,7 @@ public class AnsiParserTests
     {
         var input = "\x1B[32m\x1B[42mThis is some green text with a green background\x1B[39m\x1B[49m";
         var expectedOutput = "<span class=\"ansi-fg-green ansi-bg-green\">This is some green text with a green background</span>";
-        var parser = new AnsiParser();
-        var result = parser.ConvertToHtml(input);
+        var result = AnsiParser.ConvertToHtml(input);
 
         Assert.Equal(expectedOutput, result.ConvertedText);
         Assert.Equal(default, result.ResidualState);
@@ -81,8 +76,7 @@ public class AnsiParserTests
     {
         var input = "\x1B[32mThis is some green text\x1B[39m and this is some plain text";
         var expectedOutput = "<span class=\"ansi-fg-green\">This is some green text</span> and this is some plain text";
-        var parser = new AnsiParser();
-        var result = parser.ConvertToHtml(input);
+        var result = AnsiParser.ConvertToHtml(input);
 
         Assert.Equal(expectedOutput, result.ConvertedText);
         Assert.Equal(default, result.ResidualState);
@@ -93,8 +87,7 @@ public class AnsiParserTests
     {
         var input = "\x1B[32mGreen text\x1B[39m Plain text\x1B[42m Green background\x1B[49m";
         var expectedOutput = "<span class=\"ansi-fg-green\">Green text</span> Plain text<span class=\"ansi-bg-green\"> Green background</span>";
-        var parser = new AnsiParser();
-        var result = parser.ConvertToHtml(input);
+        var result = AnsiParser.ConvertToHtml(input);
 
         Assert.Equal(expectedOutput, result.ConvertedText);
         Assert.Equal(default, result.ResidualState);
@@ -105,8 +98,7 @@ public class AnsiParserTests
     {
         var input = "\x1B[32mGreen text\x1B[42m Green text Green background\x1B[39m Green background\x1B[49m";
         var expectedOutput = "<span class=\"ansi-fg-green\">Green text</span><span class=\"ansi-fg-green ansi-bg-green\"> Green text Green background</span><span class=\"ansi-bg-green\"> Green background</span>";
-        var parser = new AnsiParser();
-        var result = parser.ConvertToHtml(input);
+        var result = AnsiParser.ConvertToHtml(input);
 
         Assert.Equal(expectedOutput, result.ConvertedText);
         Assert.Equal(default, result.ResidualState);
@@ -119,9 +111,8 @@ public class AnsiParserTests
         var input2 = "This is some more green text\u001b[39m";
         var expectedOutput1 = "<span class=\"ansi-fg-green\">This is some green text</span>";
         var expectedOutput2 = "<span class=\"ansi-fg-green\">This is some more green text</span>";
-        var parser = new AnsiParser();
-        var result1 = parser.ConvertToHtml(input1);
-        var result2 = parser.ConvertToHtml(input2, result1.ResidualState);
+        var result1 = AnsiParser.ConvertToHtml(input1);
+        var result2 = AnsiParser.ConvertToHtml(input2, result1.ResidualState);
 
         Assert.Equal(expectedOutput1, result1.ConvertedText);
         Assert.Equal(new AnsiParser.ParserState() { ForegroundColor = ConsoleColor.Green }, result1.ResidualState);
@@ -136,9 +127,8 @@ public class AnsiParserTests
         var input2 = "Green background\x1B[39m Green background\x1B[49m";
         var expectedOutput1 = "<span class=\"ansi-fg-green\">Green text</span><span class=\"ansi-fg-green ansi-bg-green\"> Green text</span>";
         var expectedOutput2 = "<span class=\"ansi-fg-green ansi-bg-green\">Green background</span><span class=\"ansi-bg-green\"> Green background</span>";
-        var parser = new AnsiParser();
-        var result1 = parser.ConvertToHtml(input1);
-        var result2 = parser.ConvertToHtml(input2, result1.ResidualState);
+        var result1 = AnsiParser.ConvertToHtml(input1);
+        var result2 = AnsiParser.ConvertToHtml(input2, result1.ResidualState);
 
         Assert.Equal(expectedOutput1, result1.ConvertedText);
         Assert.Equal(new AnsiParser.ParserState() { ForegroundColor = ConsoleColor.Green, BackgroundColor = ConsoleColor.Green }, result1.ResidualState);
@@ -165,8 +155,7 @@ public class AnsiParserTests
     [InlineData("\x1B[1m\x1B[37mBright White\x1B[22m\x1B[39m", "<span class=\"ansi-fg-brightwhite\">Bright White</span>")]
     public void ConvertToHtml_ForegroundColorSupport(string input, string expectedOutput)
     {
-        var parser = new AnsiParser();
-        var result = parser.ConvertToHtml(input);
+        var result = AnsiParser.ConvertToHtml(input);
 
         Assert.Equal(expectedOutput, result.ConvertedText);
         Assert.Equal(default, result.ResidualState);
@@ -183,8 +172,7 @@ public class AnsiParserTests
     [InlineData("\x1B[47mWhite\x1B[49m", "<span class=\"ansi-bg-white\">White</span>")]
     public void ConvertToHtml_BackgroundColorSupport(string input, string expectedOutput)
     {
-        var parser = new AnsiParser();
-        var result = parser.ConvertToHtml(input);
+        var result = AnsiParser.ConvertToHtml(input);
 
         Assert.Equal(expectedOutput, result.ConvertedText);
         Assert.Equal(default, result.ResidualState);
@@ -196,8 +184,7 @@ public class AnsiParserTests
         var input = "\x1B[1m\x1B[32m\x1B[42mBright Green Text on Green Background\x1B[22mNo Longer Bright";
         var expectedOutput = "<span class=\"ansi-fg-brightgreen ansi-bg-green\">Bright Green Text on Green Background</span><span class=\"ansi-fg-green ansi-bg-green\">No Longer Bright</span>";
         var expectedResidualState = new AnsiParser.ParserState() {  ForegroundColor = ConsoleColor.Green, BackgroundColor = ConsoleColor.Green };
-        var parser = new AnsiParser();
-        var result = parser.ConvertToHtml(input);
+        var result = AnsiParser.ConvertToHtml(input);
 
         Assert.Equal(expectedOutput, result.ConvertedText);
         Assert.Equal(expectedResidualState, result.ResidualState);
@@ -209,8 +196,7 @@ public class AnsiParserTests
         var input = "\x1B[1m\x1B[32m\x1B[42mBright Green Text on Green Background\x1B[39mNo Longer Green Text";
         var expectedOutput = "<span class=\"ansi-fg-brightgreen ansi-bg-green\">Bright Green Text on Green Background</span><span class=\"ansi-bg-green\">No Longer Green Text</span>";
         var expectedResidualState = new AnsiParser.ParserState() { Bright = true, BackgroundColor = ConsoleColor.Green };
-        var parser = new AnsiParser();
-        var result = parser.ConvertToHtml(input);
+        var result = AnsiParser.ConvertToHtml(input);
 
         Assert.Equal(expectedOutput, result.ConvertedText);
         Assert.Equal(expectedResidualState, result.ResidualState);
@@ -222,8 +208,7 @@ public class AnsiParserTests
         var input = "\x1B[1m\x1B[32m\x1B[42mBright Green Text on Green Background\x1B[49mNo Longer Green Background";
         var expectedOutput = "<span class=\"ansi-fg-brightgreen ansi-bg-green\">Bright Green Text on Green Background</span><span class=\"ansi-fg-brightgreen\">No Longer Green Background</span>";
         var expectedResidualState = new AnsiParser.ParserState() { Bright = true, ForegroundColor = ConsoleColor.Green };
-        var parser = new AnsiParser();
-        var result = parser.ConvertToHtml(input);
+        var result = AnsiParser.ConvertToHtml(input);
 
         Assert.Equal(expectedOutput, result.ConvertedText);
         Assert.Equal(expectedResidualState, result.ResidualState);
