@@ -97,7 +97,6 @@ public sealed class DcpDistributedApplicationLifecycleHook(IOptions<PublishingOp
                 continue;
             }
 
-            var launchSettings = projectComponent.GetLaunchSettings();
             var launchProfile = projectComponent.GetEffectiveLaunchProfile();
             if (launchProfile is null)
             {
