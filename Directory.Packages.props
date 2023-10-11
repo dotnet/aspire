@@ -59,10 +59,10 @@
     <PackageVersion Include="Dapr.Client" Version="1.12.0-rc01" />
     <PackageVersion Include="DnsClient" Version="1.7.0" />
     <PackageVersion Include="Google.Protobuf" Version="3.23.1" />
-    <PackageVersion Include="Grpc.AspNetCore" Version="2.58.0-dev202309130702" />
-    <PackageVersion Include="Grpc.Net.Client" Version="2.58.0-dev202309130702" />
-    <PackageVersion Include="Grpc.Net.ClientFactory" Version="2.58.0-dev202309130702" />
-    <PackageVersion Include="Grpc.Net.Server" Version="2.58.0-dev202309130702" />
+    <PackageVersion Include="Grpc.AspNetCore" Version="2.58.0-pre1" />
+    <PackageVersion Include="Grpc.Net.Client" Version="2.58.0-pre1" />
+    <PackageVersion Include="Grpc.Net.ClientFactory" Version="2.58.0-pre1" />
+    <PackageVersion Include="Grpc.Net.Server" Version="2.58.0-pre1" />
     <PackageVersion Include="Grpc.Tools" Version="2.57.0" />
     <PackageVersion Include="KubernetesClient" Version="11.0.36" />
     <PackageVersion Include="JsonSchema.Net" Version="5.2.5" />
