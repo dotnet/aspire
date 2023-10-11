@@ -20,8 +20,7 @@ public static class ConsoleLogsConfigurationExtensions
 
             // Enable Simple Console Logger Formatting with a UTC timestamp similar to RFC3339Nano that Docker generates
             context.EnvironmentVariables["LOGGING__CONSOLE__FORMATTERNAME"] = "simple";
-            context.EnvironmentVariables["LOGGING__CONSOLE__FORMATTEROPTIONS__TIMESTAMPFORMAT"] = "yyyy-MM-dd'T'HH:mm:ss.ffffff'Z' ";
-            context.EnvironmentVariables["LOGGING__CONSOLE__FORMATTEROPTIONS__USEUTCTIMESTAMP"] = "true";
+            context.EnvironmentVariables["LOGGING__CONSOLE__FORMATTEROPTIONS__TIMESTAMPFORMAT"] = "yyyy-MM-dd'T'HH:mm:ss.ffffff ";
         });
     }
 }
