@@ -1,15 +1,5 @@
 <Project>
 
-  <PropertyGroup>
-    <!-- Ensure this property is set even if Aspire.Hosting.Sdk was imported directly instead of via the workload targets -->
-    <IsAspireHost>true</IsAspireHost>
-    <AspireHostingVersion Condition=" '$(AspireHostingVersion)' == '' ">@VERSION@</AspireHostingVersion>
-  </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Aspire.Hosting" IsImplicitlyDefined="true" Version="$(AspireHostingVersion)" />
-  </ItemGroup>
-
   <!-- *** BEGIN *** -->
 
   <!--
