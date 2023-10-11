@@ -11,7 +11,7 @@
   <PropertyGroup>
     <!-- Package versions defined directly in <reporoot>/Directory.Packages.props -->
     <MicrosoftDotnetSdkInternalPackageVersion>8.0.100-rc.1.23422.1</MicrosoftDotnetSdkInternalPackageVersion>
-    <_DcpVersion>0.1.34-rc.2</_DcpVersion>
+    <_DcpVersion>0.1.35-rc.0</_DcpVersion>
     <MicrosoftNETCoreAppRefPackageVersion>8.0.0-rc.1.23419.3</MicrosoftNETCoreAppRefPackageVersion>
     <MicrosoftmacOSSdkPackageVersion>13.3.8825-net8-rc1</MicrosoftmacOSSdkPackageVersion>
     <MicrosoftDotNetBuildTasksPackagingVersion>8.0.0-beta.23463.1</MicrosoftDotNetBuildTasksPackagingVersion>
