@@ -11,7 +11,8 @@
     padding: 2px 7px;
     margin-right: 7px;
     font-size: 12px;
-    background: rgb(250, 250, 250)
+    background-color: var(--neutral-fill-rest);
+    color: var(--neutral-foreground-rest);
 }
 
 .trace-service-tag {
