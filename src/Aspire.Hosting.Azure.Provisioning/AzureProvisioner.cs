@@ -290,15 +290,8 @@ internal sealed class AzureProvisioner(IConfiguration configuration, IHostEnviro
         }
 
         // This is the full uri to the service bus namespace e.g https://namespace.servicebus.windows.net:443/
-        // the connection strings for the app need the port, scheme and trailing slash removed
-        var endpoint = new UriBuilder(serviceBusNamespace.Data.ServiceBusEndpoint)
-        {
-            Scheme = null,
-            Port = -1
-        }
-        .ToString();
-
-        component.ServiceBusEndpoint = endpoint[^1] == '/' ? endpoint[..^1] : endpoint;
+        // the connection strings for the app need the host name only
+        component.ServiceBusEndpoint = new Uri(serviceBusNamespace.Data.ServiceBusEndpoint).Host;
 
         // Now create the queues
         var queues = serviceBusNamespace.GetServiceBusQueues();
