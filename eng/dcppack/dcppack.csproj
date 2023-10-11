@@ -41,8 +41,8 @@
 
   <ItemGroup>
     <None Include="$(NuGetPackageRoot)Microsoft.DeveloperControlPlane.$(DcpPlatform)/$(_DcpVersion)/tools/**/*" Pack="true" PackagePath="tools/" />
-    <None Include="Sdk.props" Pack="true" PackagePath="sdk/" />
-    <None Include="Sdk.in.targets" PerformTextReplacement="True" Pack="true" PackagePath="sdk/" />
+    <None Include="Sdk.props" Pack="true" PackagePath="Sdk/" />
+    <None Include="Sdk.in.targets" PerformTextReplacement="True" Pack="true" PackagePath="Sdk/" />
     <None Include="Aspire.Hosting.Orchestration.props" pack="true" PackagePath="build/$(PackageId).props" />
     <None Include="Aspire.Hosting.Orchestration.targets" pack="true" PackagePath="build/$(PackageId).targets" />
     <None Include="UnixFilePermissions.xml" Pack="true" PackagePath="data/" Condition=" '$(DcpPlatformType)' == 'Unix' " />
