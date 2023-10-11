@@ -77,16 +77,12 @@ public sealed class DcpDistributedApplicationLifecycleHook(IOptions<PublishingOp
 
     private static ServiceBindingAnnotation CreateServiceBindingAnnotation(string bindingName)
     {
-        var uriScheme = bindingName.ToLowerInvariant() switch
+        return bindingName.ToLowerInvariant() switch
         {
-            "http" => "http",
-            "https" => "https",
-            _ => "tcp"
+            "http" => new ServiceBindingAnnotation(ProtocolType.Tcp, uriScheme: "http", containerPort: 80),
+            "https" => new ServiceBindingAnnotation(ProtocolType.Tcp, uriScheme: "https", containerPort: 443),
+            _ => new ServiceBindingAnnotation(ProtocolType.Tcp, name: bindingName)
         };
-
-        // TODO: This is where we might add heuristics to detect container ports etc.
-
-        return new ServiceBindingAnnotation(ProtocolType.Tcp, name: bindingName, uriScheme: uriScheme);
     }
 
     private void PrepareServices(DistributedApplicationModel model)

@@ -1,4 +1,4 @@
-{
+ {
   "components": {
     "grafana": {
       "type": "container.v1",
@@ -39,7 +39,7 @@
       "path": "..\\..\\BasketService\\BasketService.csproj",
       "env": {
         "ConnectionStrings__basketCache": "{basketCache.connectionString}",
-        "Aspire__Azure__Messaging__ServiceBus__Namespace": "{messaging.connectionString}"
+        "ConnectionStrings__messaging": "{messaging.connectionString}"
       },
       "bindings": {
         "http": {
@@ -69,7 +69,7 @@
       "type": "project.v1",
       "path": "..\\..\\OrderProcessor\\OrderProcessor.csproj",
       "env": {
-        "Aspire__Azure__Messaging__ServiceBus__Namespace": "{messaging.connectionString}"
+        "ConnectionStrings__messaging": "{messaging.connectionString}"
       }
     },
     "apigateway": {
