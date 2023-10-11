@@ -8,4 +8,8 @@
     <IsAspireHost>true</IsAspireHost>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting" Version="<REPLACE_WITH_LATEST_VERSION>" />
+  </ItemGroup>
+
 </Project>
