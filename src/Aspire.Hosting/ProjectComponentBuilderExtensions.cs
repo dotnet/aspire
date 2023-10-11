@@ -11,9 +11,9 @@ namespace Aspire.Hosting;
 
 public static class ProjectComponentBuilderExtensions
 {
-    public static IDistributedApplicationComponentBuilder<ProjectComponent> AddProject<TProject>(this IDistributedApplicationBuilder builder, string? name = null) where TProject : IServiceMetadata, new()
+    public static IDistributedApplicationComponentBuilder<ProjectComponent> AddProject<TProject>(this IDistributedApplicationBuilder builder, string name) where TProject : IServiceMetadata, new()
     {
-        var project = new ProjectComponent(name ?? typeof(TProject).Name.ToLowerInvariant());
+        var project = new ProjectComponent(name);
         var projectBuilder = builder.AddComponent(project);
         projectBuilder.ConfigureOtlpEnvironment();
         projectBuilder.ConfigureConsoleLogs();

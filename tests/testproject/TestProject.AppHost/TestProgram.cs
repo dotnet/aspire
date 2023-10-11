@@ -2,16 +2,15 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using TestProject.AppHost.Projects;
 
 public class TestProgram
 {
     public TestProgram(string[] args)
     {
         AppBuilder = DistributedApplication.CreateBuilder(args);
-        ServiceABuilder = AppBuilder.AddProject<ServiceA>();
-        ServiceBBuilder = AppBuilder.AddProject<ServiceB>();
-        ServiceCBuilder = AppBuilder.AddProject<ServiceC>();
+        ServiceABuilder = AppBuilder.AddProject<Projects.ServiceA>("servicea");
+        ServiceBBuilder = AppBuilder.AddProject<Projects.ServiceB>("serviceb");
+        ServiceCBuilder = AppBuilder.AddProject<Projects.ServiceC>("servicec");
     }
 
     public IDistributedApplicationBuilder AppBuilder { get; private set; }

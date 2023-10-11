@@ -1,4 +1,4 @@
- {
+{
   "components": {
     "grafana": {
       "type": "container.v1",
