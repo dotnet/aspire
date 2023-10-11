@@ -152,7 +152,7 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, IHo
         }
 
         var manifestPath = _options.Value.OutputPath ?? throw new DistributedApplicationException("Output path not specified");
-        var relativePathToProjectFile = Path.GetRelativePath(manifestPath, metadata.ProjectPath);
+        var relativePathToProjectFile = Path.GetRelativePath(Path.GetDirectoryName(manifestPath)!, metadata.ProjectPath);
         jsonWriter.WriteString("path", relativePathToProjectFile);
 
         WriteEnvironmentVariables(projectComponent, jsonWriter);

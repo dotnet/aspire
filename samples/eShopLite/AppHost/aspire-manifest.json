@@ -23,7 +23,7 @@
     },
     "catalogservice": {
       "type": "project.v1",
-      "path": "..\\..\\CatalogService\\CatalogService.csproj",
+      "path": "..\\CatalogService\\CatalogService.csproj",
       "env": {
         "ConnectionStrings__catalog": "{catalog.connectionString}"
       }
@@ -36,7 +36,7 @@
     },
     "basketservice": {
       "type": "project.v1",
-      "path": "..\\..\\BasketService\\BasketService.csproj",
+      "path": "..\\BasketService\\BasketService.csproj",
       "env": {
         "ConnectionStrings__basketCache": "{basketCache.connectionString}",
         "ConnectionStrings__messaging": "{messaging.connectionString}"
@@ -52,7 +52,7 @@
     },
     "myfrontend": {
       "type": "project.v1",
-      "path": "..\\..\\MyFrontend\\MyFrontend.csproj",
+      "path": "..\\MyFrontend\\MyFrontend.csproj",
       "env": {
         "GRAFANA_URL": "{grafana.bindings.grafana-http}"
       },
@@ -67,14 +67,14 @@
     },
     "orderprocessor": {
       "type": "project.v1",
-      "path": "..\\..\\OrderProcessor\\OrderProcessor.csproj",
+      "path": "..\\OrderProcessor\\OrderProcessor.csproj",
       "env": {
         "ConnectionStrings__messaging": "{messaging.connectionString}"
       }
     },
     "apigateway": {
       "type": "project.v1",
-      "path": "..\\..\\ApiGateway\\ApiGateway.csproj",
+      "path": "..\\ApiGateway\\ApiGateway.csproj",
       "env": {}
     },
     "prometheus": {
