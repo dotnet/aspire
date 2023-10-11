@@ -26,13 +26,13 @@
 
   <!-- Package downloads to DCP packages as we need to repack the binaries from them -->
   <ItemGroup>
-    <PackageDownload Include="Microsoft.DeveloperControlPlane.darwin-amd64" Version="[$(_DcpVersion)]" />
-    <PackageDownload Include="Microsoft.DeveloperControlPlane.darwin-arm64" Version="[$(_DcpVersion)]" />
-    <PackageDownload Include="Microsoft.DeveloperControlPlane.linux-amd64" Version="[$(_DcpVersion)]" />
-    <PackageDownload Include="Microsoft.DeveloperControlPlane.linux-arm64" Version="[$(_DcpVersion)]" />
-    <PackageDownload Include="Microsoft.DeveloperControlPlane.windows-386" Version="[$(_DcpVersion)]" />
-    <PackageDownload Include="Microsoft.DeveloperControlPlane.windows-amd64" Version="[$(_DcpVersion)]" />
-    <PackageDownload Include="Microsoft.DeveloperControlPlane.windows-arm64" Version="[$(_DcpVersion)]" />
+    <PackageDownload Include="Microsoft.DeveloperControlPlane.darwin-amd64" Version="[$(MicrosoftDeveloperControlPlanedarwinamd64PackageVersion)]" />
+    <PackageDownload Include="Microsoft.DeveloperControlPlane.darwin-arm64" Version="[$(MicrosoftDeveloperControlPlanedarwinarm64PackageVersion)]" />
+    <PackageDownload Include="Microsoft.DeveloperControlPlane.linux-amd64" Version="[$(MicrosoftDeveloperControlPlanelinuxamd64PackageVersion)]" />
+    <PackageDownload Include="Microsoft.DeveloperControlPlane.linux-arm64" Version="[$(MicrosoftDeveloperControlPlanelinuxarm64PackageVersion)]" />
+    <PackageDownload Include="Microsoft.DeveloperControlPlane.windows-386" Version="[$(MicrosoftDeveloperControlPlanewindows386PackageVersion)]" />
+    <PackageDownload Include="Microsoft.DeveloperControlPlane.windows-amd64" Version="[$(MicrosoftDeveloperControlPlanewindowsamd64PackageVersion)]" />
+    <PackageDownload Include="Microsoft.DeveloperControlPlane.windows-arm64" Version="[$(MicrosoftDeveloperControlPlanewindowsarm64PackageVersion)]" />
   </ItemGroup>
 
   <Import Sdk="Microsoft.NET.Sdk" Project="Sdk.targets" />
@@ -40,7 +40,7 @@
   <Target Name="Build" />
 
   <ItemGroup>
-    <None Include="$(NuGetPackageRoot)Microsoft.DeveloperControlPlane.$(DcpPlatform)/$(_DcpVersion)/tools/**/*" Pack="true" PackagePath="tools/" />
+    <None Include="$(NuGetPackageRoot)Microsoft.DeveloperControlPlane.$(DcpPlatform)/$(MicrosoftDeveloperControlPlanedarwinamd64PackageVersion)/tools/**/*" Pack="true" PackagePath="tools/" />
     <None Include="Sdk.props" Pack="true" PackagePath="Sdk/" />
     <None Include="Sdk.in.targets" PerformTextReplacement="True" Pack="true" PackagePath="Sdk/" />
     <None Include="Aspire.Hosting.Orchestration.props" pack="true" PackagePath="build/$(PackageId).props" />
