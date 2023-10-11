@@ -289,7 +289,16 @@ internal sealed class AzureProvisioner(IConfiguration configuration, IHostEnviro
             logger.LogInformation("Service bus namespace {namespace} created.", serviceBusNamespace.Data.Name);
         }
 
-        component.ServiceBusEndpoint = serviceBusNamespace.Data.ServiceBusEndpoint;
+        // This is the full uri to the service bus namespace e.g https://namespace.servicebus.windows.net:443/
+        // the connection strings for the app need the port, scheme and trailing slash removed
+        var endpoint = new UriBuilder(serviceBusNamespace.Data.ServiceBusEndpoint)
+        {
+            Scheme = null,
+            Port = -1
+        }
+        .ToString();
+
+        component.ServiceBusEndpoint = endpoint[^1] == '/' ? endpoint[..^1] : endpoint;
 
         // Now create the queues
         var queues = serviceBusNamespace.GetServiceBusQueues();
@@ -383,7 +392,7 @@ internal sealed class AzureProvisioner(IConfiguration configuration, IHostEnviro
 
             logger.LogInformation("Storage account {accountName} created.", storageAccount.Data.Name);
         }
-        
+
         component.BlobUri = storageAccount.Data.PrimaryEndpoints.BlobUri;
         component.TableUri = storageAccount.Data.PrimaryEndpoints.TableUri;
         component.QueueUri = storageAccount.Data.PrimaryEndpoints.QueueUri;
