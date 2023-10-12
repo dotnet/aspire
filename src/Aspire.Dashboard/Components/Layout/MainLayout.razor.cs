@@ -49,9 +49,9 @@ public partial class MainLayout
     {
         // See if we got a base layer luminance value from the cookie and set the value
         // This will avoid a flash of white if the last system theme and current system theme are both dark
-        if (ApplicationState.TryTakeFromJson<StandardLuminance>("baseLayerStandardLuminance", out var restoredBaseLayerStandardLuminance))
+        if (ApplicationState.TryTakeFromJson<StandardLuminance>("baseLayerLuminance", out var restoredBaseLayerLuminance))
         {
-            _baseLayerLuminance = restoredBaseLayerStandardLuminance;
+            _baseLayerLuminance = restoredBaseLayerLuminance;
             StateHasChanged();
         }
     }
@@ -77,7 +77,7 @@ public partial class MainLayout
     {
         // Persist the base layer luminance value from pre-rendering (when we pull it out of the
         // cookie) to rendering (when setting it is important.
-        ApplicationState.PersistAsJson("baseLayerStandardLuminance", _baseLayerLuminance);
+        ApplicationState.PersistAsJson("baseLayerLuminance", _baseLayerLuminance);
         return Task.CompletedTask;
     }
 }
