@@ -1,0 +1,17 @@
+# Set up your environment
+
+## Install Visual Studio 2022 Internal Preview (dogfood)
+
+[Visual Studio 2022 Enterprise IntPreview Setup](https://aka.ms/vs/17/intpreview/vs_enterprise.exe)
+    - This channel updates nightly. You need a build from 12-Oct-2023 or later.
+
+## Install .NET 8 RTM nightly SDK
+
+Install the .NET 8 RTM nightly SDK version 8.0.100-rtm.23512.3 or newer:
+   1. [Windows x64 link](https://dotnetbuilds.azureedge.net/public/Sdk/8.0.100-rtm.23512.3/dotnet-sdk-8.0.100-rtm.23512.3-win-x64.exe)
+   2. [Linux x64 link](https://dotnetbuilds.azureedge.net/public/Sdk/8.0.100-rtm.23512.3/dotnet-sdk-8.0.100-rtm.23512.3-linux-x64.tar.gz)
+   3. [OSX x64 link](https://dotnetbuilds.azureedge.net/public/Sdk/8.0.100-rtm.23512.3/dotnet-sdk-8.0.100-rtm.23512.3-osx-x64.tar.gz)
+
+## Install Docker Desktop
+
+1. https://www.docker.com/
