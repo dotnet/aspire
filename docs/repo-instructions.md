@@ -4,7 +4,7 @@ Follow all steps in [machine-requirements](machine-requirements.md).
 
 # Building the repo
 
-You can build the repo from the command line by simply `dotnet build .\Aspire.sln`.
+You can build the repo from the command line by simply `.\build.cmd`.
 
 You can launch VS with:
 
