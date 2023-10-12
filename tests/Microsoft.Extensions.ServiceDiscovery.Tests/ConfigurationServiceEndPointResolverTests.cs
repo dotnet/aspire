@@ -37,7 +37,7 @@ public class ConfigurationServiceEndPointResolverTests
             var tcs = new TaskCompletionSource<ServiceEndPointResolverResult>();
             resolver.OnEndPointsUpdated = tcs.SetResult;
             resolver.Start();
-            var initialResult = await tcs.Task.ConfigureAwait(false);
+            var initialResult = await tcs.Task;
             Assert.NotNull(initialResult);
             Assert.True(initialResult.ResolvedSuccessfully);
             Assert.Equal(ResolutionStatus.Success, initialResult.Status);
@@ -71,7 +71,7 @@ public class ConfigurationServiceEndPointResolverTests
             var tcs = new TaskCompletionSource<ServiceEndPointResolverResult>();
             resolver.OnEndPointsUpdated = tcs.SetResult;
             resolver.Start();
-            var initialResult = await tcs.Task.ConfigureAwait(false);
+            var initialResult = await tcs.Task;
             Assert.NotNull(initialResult);
             Assert.True(initialResult.ResolvedSuccessfully);
             Assert.Equal(ResolutionStatus.Success, initialResult.Status);
@@ -108,7 +108,7 @@ public class ConfigurationServiceEndPointResolverTests
             var tcs = new TaskCompletionSource<ServiceEndPointResolverResult>();
             resolver.OnEndPointsUpdated = tcs.SetResult;
             resolver.Start();
-            var initialResult = await tcs.Task.ConfigureAwait(false);
+            var initialResult = await tcs.Task;
             Assert.NotNull(initialResult);
             Assert.True(initialResult.ResolvedSuccessfully);
             Assert.Equal(ResolutionStatus.Success, initialResult.Status);
