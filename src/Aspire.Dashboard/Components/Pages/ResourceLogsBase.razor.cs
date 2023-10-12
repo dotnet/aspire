@@ -31,7 +31,7 @@ public abstract partial class ResourceLogsBase<TResource> : ComponentBase, IAsyn
         IEnumerable<NamespacedName> initialList,
         CancellationToken cancellationToken);
 
-    private FluentSelect<TResource>? _resourceList;
+    private FluentSelect<TResource>? _resourceSelectComponent;
     private TResource? _selectedResource;
     private readonly Dictionary<string, TResource> _resourceNameMapping = new();
     private IEnumerable<TResource> Resources => _resourceNameMapping.Select(kvp => kvp.Value).OrderBy(c => c.Name);
@@ -218,9 +218,9 @@ public abstract partial class ResourceLogsBase<TResource> : ComponentBase, IAsyn
 
     private async Task UpdateResourceListSelectedResourceAsync()
     {
-        if (_resourceList is not null && JS is not null)
+        if (_resourceSelectComponent is not null && JS is not null)
         {
-            await JS.InvokeVoidAsync("updateFluentSelectDisplayValue", _resourceList.Element);
+            await JS.InvokeVoidAsync("updateFluentSelectDisplayValue", _resourceSelectComponent.Element);
         }
     }
 }

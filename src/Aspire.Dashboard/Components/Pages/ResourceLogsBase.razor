@@ -9,7 +9,7 @@
 <div>
     <FluentStack Orientation="Orientation.Vertical">
         <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
-            <FluentSelect @ref="_resourceList" TOption="TResource"
+            <FluentSelect @ref="_resourceSelectComponent" TOption="TResource"
                           Items="@Resources"
                           OptionValue="@(c => c.Name)"
                           OptionText="GetDisplayText"
