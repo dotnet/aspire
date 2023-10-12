@@ -1,7 +1,6 @@
 #if UseRedisCache
 using Aspire.Hosting.Redis;
 #endif
-using Projects = AspireStarterApplication1.AppHost.Projects;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
@@ -13,7 +12,7 @@ var apiservice = builder.AddProject<Projects.AspireStarterApplication1_ApiServic
 
 builder.AddProject<Projects.AspireStarterApplication1_Web>("webfrontend")
 #if UseRedisCache
-    .WithRedis(cache)
+    .WithReference(cache)
 #endif
     .WithServiceReference(apiservice);
 

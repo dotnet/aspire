@@ -2,22 +2,21 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using TestProject.AppHost.Projects;
 
 public class TestProgram
 {
     public TestProgram(string[] args)
     {
         AppBuilder = DistributedApplication.CreateBuilder(args);
-        ServiceABuilder = AppBuilder.AddProject<ServiceA>();
-        ServiceBBuilder = AppBuilder.AddProject<ServiceB>();
-        ServiceCBuilder = AppBuilder.AddProject<ServiceC>();
+        ServiceABuilder = AppBuilder.AddProject<Projects.ServiceA>("servicea");
+        ServiceBBuilder = AppBuilder.AddProject<Projects.ServiceB>("serviceb");
+        ServiceCBuilder = AppBuilder.AddProject<Projects.ServiceC>("servicec");
     }
 
     public IDistributedApplicationBuilder AppBuilder { get; private set; }
-    public IDistributedApplicationComponentBuilder<ProjectComponent> ServiceABuilder { get; private set; }
-    public IDistributedApplicationComponentBuilder<ProjectComponent> ServiceBBuilder { get; private set; }
-    public IDistributedApplicationComponentBuilder<ProjectComponent> ServiceCBuilder { get; private set; }
+    public IDistributedApplicationResourceBuilder<ProjectResource> ServiceABuilder { get; private set; }
+    public IDistributedApplicationResourceBuilder<ProjectResource> ServiceBBuilder { get; private set; }
+    public IDistributedApplicationResourceBuilder<ProjectResource> ServiceCBuilder { get; private set; }
     public DistributedApplication? App { get; private set; }
 
     public async Task RunAsync(CancellationToken cancellationToken = default)

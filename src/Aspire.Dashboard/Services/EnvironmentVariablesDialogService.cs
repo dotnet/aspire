@@ -9,7 +9,7 @@ namespace Aspire.Dashboard.Services;
 
 public sealed class EnvironmentVariablesDialogService(IDialogService dialogService)
 {
-    public async Task ShowDialogAsync(string source, List<EnvironmentVariableViewModel> variables)
+    public async Task ShowDialogAsync(string source, EnvironmentVariablesDialogViewModel viewModel)
     {
         DialogParameters parameters = new()
         {
@@ -23,6 +23,6 @@ public sealed class EnvironmentVariablesDialogService(IDialogService dialogServi
             Height = "auto"
         };
 
-        _ = await dialogService.ShowDialogAsync<EnvironmentVariables>(variables, parameters).ConfigureAwait(true);
+        _ = await dialogService.ShowDialogAsync<EnvironmentVariables>(viewModel, parameters).ConfigureAwait(true);
     }
 }

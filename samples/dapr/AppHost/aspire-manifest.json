@@ -1,28 +1,14 @@
 {
-  "components": {
-    "daprservicea": {
+  "resources": {
+    "servicea": {
       "type": "project.v1",
-      "path": "..\\..\\ServiceA\\DaprServiceA.csproj",
-      "env": {},
-      "bindings": {
-        "http": {
-          "scheme": "http",
-          "protocol": "tcp",
-          "transport": "http"
-        }
-      }
+      "path": "..\\ServiceA\\DaprServiceA.csproj",
+      "env": {}
     },
-    "daprserviceb": {
+    "serviceb": {
       "type": "project.v1",
-      "path": "..\\..\\ServiceB\\DaprServiceB.csproj",
-      "env": {},
-      "bindings": {
-        "http": {
-          "scheme": "http",
-          "protocol": "tcp",
-          "transport": "http"
-        }
-      }
+      "path": "..\\ServiceB\\DaprServiceB.csproj",
+      "env": {}
     },
     "service-a": {
       "type": "executable.v1",

@@ -3,6 +3,7 @@
 
 using Aspire.Dashboard.Model;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Fast.Components.FluentUI;
 using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Pages;
@@ -25,11 +26,12 @@ public abstract partial class ResourceLogsBase<TResource> : ComponentBase, IAsyn
     protected abstract string UrlPrefix { get; }
 
     protected abstract Task<List<TResource>> GetResources(IDashboardViewModelService dashboardViewModelService);
-    protected abstract IAsyncEnumerable<ComponentChanged<TResource>> WatchResources(
+    protected abstract IAsyncEnumerable<ResourceChanged<TResource>> WatchResources(
         IDashboardViewModelService dashboardViewModelService,
         IEnumerable<NamespacedName> initialList,
         CancellationToken cancellationToken);
 
+    private FluentSelect<TResource>? _resourceSelectComponent;
     private TResource? _selectedResource;
     private readonly Dictionary<string, TResource> _resourceNameMapping = new();
     private IEnumerable<TResource> Resources => _resourceNameMapping.Select(kvp => kvp.Value).OrderBy(c => c.Name);
@@ -62,9 +64,9 @@ public abstract partial class ResourceLogsBase<TResource> : ComponentBase, IAsyn
 
         _ = Task.Run(async () =>
         {
-            await foreach (var componentChanged in WatchResources(DashboardViewModelService, initialList.Select(t => t.NamespacedName), _watchContainersTokenSource.Token))
+            await foreach (var resourceChanged in WatchResources(DashboardViewModelService, initialList.Select(t => t.NamespacedName), _watchContainersTokenSource.Token))
             {
-                await OnResourceListChangedAsync(componentChanged.ObjectChangeType, componentChanged.Component);
+                await OnResourceListChangedAsync(resourceChanged.ObjectChangeType, resourceChanged.Resource);
             }
         });
     }
@@ -87,15 +89,20 @@ public abstract partial class ResourceLogsBase<TResource> : ComponentBase, IAsyn
             _watchLogsTokenSource = new CancellationTokenSource();
             if (await _selectedResource.LogSource.StartAsync(_watchLogsTokenSource.Token))
             {
-                _ = Task.Run(async () =>
+                var outputTask = Task.Run(async () =>
                 {
                     await _logViewer.WatchLogsAsync(() => _selectedResource.LogSource.WatchOutputLogAsync(_watchLogsTokenSource.Token), LogEntryType.Default);
                 });
 
-                _ = Task.Run(async () =>
+                var errorTask = Task.Run(async () =>
                 {
                     await _logViewer.WatchLogsAsync(() => _selectedResource.LogSource.WatchErrorLogAsync(_watchLogsTokenSource.Token), LogEntryType.Error);
                 });
+
+                _ = Task.WhenAll(outputTask, errorTask).ContinueWith((task) =>
+                {
+                    _status = LogStatus.FinishedWatchingLogs;
+                }, TaskScheduler.Current);
 
                 _status = LogStatus.WatchingLogs;
             }
@@ -145,6 +152,10 @@ public abstract partial class ResourceLogsBase<TResource> : ComponentBase, IAsyn
                 {
                     await LoadLogsAsync();
                 }
+                else if (!string.Equals(_selectedResource.State, "Running", StringComparison.Ordinal))
+                {
+                    _status = LogStatus.FinishedWatchingLogs;
+                }
             }
         }
         else if (changeType == ObjectChangeType.Deleted)
@@ -161,6 +172,10 @@ public abstract partial class ResourceLogsBase<TResource> : ComponentBase, IAsyn
         }
 
         await InvokeAsync(StateHasChanged);
+
+        // Workaround for issue in fluent-select web component where the display value of the
+        // selected item doesn't update automatically when the item changes
+        await UpdateResourceListSelectedResourceAsync();
     }
 
     private static string GetDisplayText(TResource resource)
@@ -198,6 +213,14 @@ public abstract partial class ResourceLogsBase<TResource> : ComponentBase, IAsyn
             // The token source only gets created if selected resource is not null
             await _selectedResource!.LogSource.StopAsync();
             _watchLogsTokenSource = null;
+        }
+    }
+
+    private async Task UpdateResourceListSelectedResourceAsync()
+    {
+        if (_resourceSelectComponent is not null && JS is not null)
+        {
+            await JS.InvokeVoidAsync("updateFluentSelectDisplayValue", _resourceSelectComponent.Element);
         }
     }
 }

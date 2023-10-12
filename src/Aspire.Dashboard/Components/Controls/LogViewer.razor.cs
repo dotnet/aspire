@@ -9,8 +9,6 @@ using Microsoft.JSInterop;
 namespace Aspire.Dashboard.Components;
 public partial class LogViewer
 {
-    private static readonly AnsiParser s_ansiParser = new();
-
     private readonly ConcurrentQueue<IEnumerable<LogEntry>> _preRenderQueue = new();
     private bool _renderComplete;
     private IJSObjectReference? _jsModule;
@@ -28,35 +26,14 @@ public partial class LogViewer
 
     internal async Task WatchLogsAsync(Func<IAsyncEnumerable<string[]>> watchMethod, LogEntryType logEntryType)
     {
-        string? parentTimestamp = null;
-        Guid? parentId = null;
-        int lineIndex = 0;
-        AnsiParser.ParserState? residualState = null;
+        var logParser = new LogParser(logEntryType);
 
         await foreach (var logs in watchMethod())
         {
             var logEntries = new List<LogEntry>(logs.Length);
             foreach (var log in logs)
             {
-                var logEntry = LogEntry.Create(log, logEntryType);
-
-                var conversionResult = s_ansiParser.ConvertToHtml(logEntry.Content, residualState);
-                logEntry.Content = conversionResult.ConvertedText;
-                residualState = conversionResult.ResidualState;
-
-                if (logEntry.IsFirstLine)
-                {
-                    parentTimestamp = logEntry.Timestamp;
-                    parentId = logEntry.Id;
-                    lineIndex = 0;
-                }
-                else if (parentId.HasValue)
-                {
-                    logEntry.ParentTimestamp = parentTimestamp;
-                    logEntry.ParentId = parentId;
-                    logEntry.LineIndex = ++lineIndex;
-                }
-                logEntries.Add(logEntry);
+                logEntries.Add(logParser.CreateLogEntry(log));
             }
 
             await WriteLogsAsync(logEntries);

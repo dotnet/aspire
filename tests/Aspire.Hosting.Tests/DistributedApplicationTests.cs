@@ -101,7 +101,7 @@ public class DistributedApplicationTests
     }
 
     [LocalOnlyFact]
-    private async void TestProjectStartsAndStopsCleanly()
+    public async void TestProjectStartsAndStopsCleanly()
     {
         var cts = new CancellationTokenSource();
         cts.CancelAfter(TimeSpan.FromMinutes(1));
@@ -120,7 +120,7 @@ public class DistributedApplicationTests
     }
 
     [LocalOnlyFact]
-    private async void TestServicesWithMultipleReplicas()
+    public async void TestServicesWithMultipleReplicas()
     {
         // Start up the test project.
         var cts = new CancellationTokenSource();

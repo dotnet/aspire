@@ -59,16 +59,6 @@
     content: counter(line-number);
 }
 
-::deep .timestamp {
-    color: gray;
-    margin-left: 1em;
-    white-space: nowrap;
-}
-
-::deep .timestamp.missing {
-    display: none;
-}
-
 ::deep .content {
     word-break: break-all;
     margin-left: 1em;
@@ -77,6 +67,21 @@
     user-select: text;
     cursor: text;
     white-space: pre-wrap;
+}
+
+::deep .content .timestamp {
+    color: gray;
+}
+
+::deep .content a,
+::deep .content a:active,
+::deep .content a:visited {
+    color: #CCCCCC;
+    text-decoration: none;
+}
+
+::deep .content a:hover {
+    text-decoration: underline;
 }
 
 ::deep .content > fluent-badge {

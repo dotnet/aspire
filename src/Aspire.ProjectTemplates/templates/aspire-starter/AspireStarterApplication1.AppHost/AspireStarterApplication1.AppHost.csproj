@@ -13,4 +13,8 @@
     <ProjectReference Include="..\AspireStarterApplication1.Web\AspireStarterApplication1.Web.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting" Version="<REPLACE_WITH_LATEST_VERSION>" />
+  </ItemGroup>
+
 </Project>

@@ -4,7 +4,7 @@
 @implements IDisposable
 @inherits ResourcesListBase<ContainerViewModel>
 
-<PageTitle>@DashboardViewModelService.ApplicationName Dashboard</PageTitle>
+<PageTitle>@DashboardViewModelService.ApplicationName Containers</PageTitle>
 
 <h1>Containers</h1>
 
@@ -54,7 +54,7 @@
     protected override Task<List<ContainerViewModel>> GetResources(IDashboardViewModelService dashboardViewModelService)
         => dashboardViewModelService.GetContainersAsync();
 
-    protected override IAsyncEnumerable<ComponentChanged<ContainerViewModel>> WatchResources(
+    protected override IAsyncEnumerable<ResourceChanged<ContainerViewModel>> WatchResources(
     IDashboardViewModelService dashboardViewModelService,
         IEnumerable<NamespacedName> initialList,
         CancellationToken cancellationToken)
@@ -65,4 +65,6 @@
         || resource.Image.Contains(filter, StringComparison.CurrentCultureIgnoreCase);
 
     private GridSort<ContainerViewModel> imageSort = GridSort<ContainerViewModel>.ByAscending(c => c.Image);
+
+    protected override bool ShowSpecOnlyToggle => false;
 }

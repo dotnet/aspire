@@ -1,5 +1,5 @@
 {
-  "components": {
+  "resources": {
     "grafana": {
       "type": "container.v1",
       "image": "grafana/grafana:latest",
@@ -23,16 +23,9 @@
     },
     "catalogservice": {
       "type": "project.v1",
-      "path": "..\\..\\CatalogService\\CatalogService.csproj",
+      "path": "..\\CatalogService\\CatalogService.csproj",
       "env": {
         "ConnectionStrings__catalog": "{catalog.connectionString}"
-      },
-      "bindings": {
-        "http": {
-          "scheme": "http",
-          "protocol": "tcp",
-          "transport": "http"
-        }
       }
     },
     "messaging": {
@@ -43,51 +36,46 @@
     },
     "basketservice": {
       "type": "project.v1",
-      "path": "..\\..\\BasketService\\BasketService.csproj",
+      "path": "..\\BasketService\\BasketService.csproj",
       "env": {
         "ConnectionStrings__basketCache": "{basketCache.connectionString}",
-        "Aspire__Azure__Messaging__ServiceBus__Namespace": "{messaging.connectionString}"
+        "ConnectionStrings__messaging": "{messaging.connectionString}"
       },
       "bindings": {
         "http": {
           "scheme": "http",
           "protocol": "tcp",
-          "transport": "http"
+          "transport": "http",
+          "external": true
         }
       }
     },
     "myfrontend": {
       "type": "project.v1",
-      "path": "..\\..\\MyFrontend\\MyFrontend.csproj",
+      "path": "..\\MyFrontend\\MyFrontend.csproj",
       "env": {
         "GRAFANA_URL": "{grafana.bindings.grafana-http}"
       },
       "bindings": {
-        "http": {
-          "scheme": "http",
+        "https": {
+          "scheme": "https",
           "protocol": "tcp",
-          "transport": "http"
+          "transport": "http",
+          "external": true
         }
       }
     },
     "orderprocessor": {
       "type": "project.v1",
-      "path": "..\\..\\OrderProcessor\\OrderProcessor.csproj",
+      "path": "..\\OrderProcessor\\OrderProcessor.csproj",
       "env": {
-        "Aspire__Azure__Messaging__ServiceBus__Namespace": "{messaging.connectionString}"
+        "ConnectionStrings__messaging": "{messaging.connectionString}"
       }
     },
     "apigateway": {
       "type": "project.v1",
-      "path": "..\\..\\ApiGateway\\ApiGateway.csproj",
-      "env": {},
-      "bindings": {
-        "http": {
-          "scheme": "http",
-          "protocol": "tcp",
-          "transport": "http"
-        }
-      }
+      "path": "..\\ApiGateway\\ApiGateway.csproj",
+      "env": {}
     },
     "prometheus": {
       "type": "container.v1",

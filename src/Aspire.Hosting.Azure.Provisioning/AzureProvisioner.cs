@@ -25,17 +25,19 @@ namespace Aspire.Hosting.Azure;
 // Provisions azure resources for development purposes
 internal sealed class AzureProvisioner(IConfiguration configuration, IHostEnvironment environment, ILogger<AzureProvisioner> logger) : IDistributedApplicationLifecycleHook
 {
+    private const string Key = "aspire-resource-name";
+
     public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
-        var azureComponents = appModel.Components.OfType<IAzureComponent>();
-        if (!azureComponents.OfType<IAzureComponent>().Any())
+        var azureResources = appModel.Resources.OfType<IAzureResource>();
+        if (!azureResources.OfType<IAzureResource>().Any())
         {
             return;
         }
 
         try
         {
-            await ProvisionAzureComponents(configuration, environment, logger, azureComponents, cancellationToken).ConfigureAwait(false);
+            await ProvisionAzureResources(configuration, environment, logger, azureResources, cancellationToken).ConfigureAwait(false);
         }
         catch (MissingConfigurationException ex)
         {
@@ -43,11 +45,11 @@ internal sealed class AzureProvisioner(IConfiguration configuration, IHostEnviro
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error provisioning azure components.");
+            logger.LogError(ex, "Error provisioning Azure resources.");
         }
     }
 
-    private async Task ProvisionAzureComponents(IConfiguration configuration, IHostEnvironment environment, ILogger<AzureProvisioner> logger, IEnumerable<IAzureComponent> azureComponents, CancellationToken cancellationToken)
+    private async Task ProvisionAzureResources(IConfiguration configuration, IHostEnvironment environment, ILogger<AzureProvisioner> logger, IEnumerable<IAzureResource> azureResources, CancellationToken cancellationToken)
     {
         var credential = new DefaultAzureCredential();
 
@@ -105,50 +107,50 @@ internal sealed class AzureProvisioner(IConfiguration configuration, IHostEnviro
 
         var principalId = Guid.Parse(await GetUserPrincipalAsync(credential, cancellationToken).ConfigureAwait(false));
 
-        // Create a dictionary from component name to StorageAccountResource using the tag aspire-component-name to find the storage account
+        // Create a dictionary from resource name to StorageAccountResource using the tag aspire-resource-name to find the storage account
         var storageAccounts = resourceGroup.GetStorageAccounts();
-        var componentNameToStorageAccountMap = new Dictionary<string, StorageAccountResource>();
+        var resourceNameToStorageAccountMap = new Dictionary<string, StorageAccountResource>();
 
         await foreach (var a in storageAccounts.GetAllAsync(cancellationToken: cancellationToken))
         {
-            if (a.Data.Tags.TryGetValue("aspire-component-name", out var aspireName))
+            if (a.Data.Tags.TryGetValue("aspire-resource-name", out var aspireName))
             {
-                componentNameToStorageAccountMap.Add(aspireName, a);
+                resourceNameToStorageAccountMap.Add(aspireName, a);
             }
         }
 
         var serviceBusNamespaces = resourceGroup.GetServiceBusNamespaces();
-        var componentNameToServiceBusNamespaceMap = new Dictionary<string, ServiceBusNamespaceResource>();
+        var resourceNameToServiceBusNamespaceMap = new Dictionary<string, ServiceBusNamespaceResource>();
 
         await foreach (var ns in serviceBusNamespaces.GetAllAsync(cancellationToken: cancellationToken))
         {
-            if (ns.Data.Tags.TryGetValue("aspire-component-name", out var aspireName))
+            if (ns.Data.Tags.TryGetValue("aspire-resource-name", out var aspireName))
             {
-                componentNameToServiceBusNamespaceMap.Add(aspireName, ns);
+                resourceNameToServiceBusNamespaceMap.Add(aspireName, ns);
             }
         }
 
         var keyVaults = resourceGroup.GetKeyVaults();
-        var componentNameToKeyVaultMap = new Dictionary<string, KeyVaultResource>();
+        var resourceNameToKeyVaultMap = new Dictionary<string, KeyVaultResource>();
 
         await foreach (var kv in keyVaults.GetAllAsync(cancellationToken: cancellationToken))
         {
-            if (kv.Data.Tags.TryGetValue("aspire-component-name", out var aspireName))
+            if (kv.Data.Tags.TryGetValue(Key, out var aspireName))
             {
-                componentNameToKeyVaultMap.Add(aspireName, kv);
+                resourceNameToKeyVaultMap.Add(aspireName, kv);
             }
         }
 
         var tasks = new List<Task>();
 
-        foreach (var c in azureComponents)
+        foreach (var c in azureResources)
         {
-            if (c is AzureStorageComponent storage)
+            if (c is AzureStorageResource storage)
             {
                 var task = CreateStorageAccountAsync(armClient,
                     subscription,
                     storageAccounts,
-                    componentNameToStorageAccountMap,
+                    resourceNameToStorageAccountMap,
                     location,
                     storage,
                     principalId,
@@ -156,15 +158,15 @@ internal sealed class AzureProvisioner(IConfiguration configuration, IHostEnviro
 
                 tasks.Add(task);
 
-                componentNameToStorageAccountMap.Remove(c.Name);
+                resourceNameToStorageAccountMap.Remove(c.Name);
             }
 
-            if (c is AzureServiceBusComponent serviceBus)
+            if (c is AzureServiceBusResource serviceBus)
             {
                 var task = CreateServiceBusAsync(armClient,
                     subscription,
                     serviceBusNamespaces,
-                    componentNameToServiceBusNamespaceMap,
+                    resourceNameToServiceBusNamespaceMap,
                     location,
                     serviceBus,
                     principalId,
@@ -172,15 +174,15 @@ internal sealed class AzureProvisioner(IConfiguration configuration, IHostEnviro
 
                 tasks.Add(task);
 
-                componentNameToServiceBusNamespaceMap.Remove(c.Name);
+                resourceNameToServiceBusNamespaceMap.Remove(c.Name);
             }
 
-            if (c is AzureKeyVaultComponent keyVault)
+            if (c is AzureKeyVaultResource keyVault)
             {
                 var task = CreateKeyVaultAsync(armClient,
                     subscription,
                     keyVaults,
-                    componentNameToKeyVaultMap,
+                    resourceNameToKeyVaultMap,
                     location,
                     keyVault,
                     principalId,
@@ -188,30 +190,30 @@ internal sealed class AzureProvisioner(IConfiguration configuration, IHostEnviro
 
                 tasks.Add(task);
 
-                componentNameToKeyVaultMap.Remove(c.Name);
+                resourceNameToKeyVaultMap.Remove(c.Name);
             }
         }
 
         await Task.WhenAll(tasks).ConfigureAwait(false);
 
         // Clean up any left over resources that are no longer in the model
-        foreach (var (name, sa) in componentNameToStorageAccountMap)
+        foreach (var (name, sa) in resourceNameToStorageAccountMap)
         {
-            logger.LogInformation("Deleting storage account {accountName} which maps to component name {name}.", sa.Id, name);
+            logger.LogInformation("Deleting storage account {accountName} which maps to resource name {name}.", sa.Id, name);
 
             await sa.DeleteAsync(WaitUntil.Started, cancellationToken).ConfigureAwait(false);
         }
 
-        foreach (var (name, ns) in componentNameToServiceBusNamespaceMap)
+        foreach (var (name, ns) in resourceNameToServiceBusNamespaceMap)
         {
-            logger.LogInformation("Deleting service bus namespace {namespaceName} which maps to component name {name}.", ns.Id, name);
+            logger.LogInformation("Deleting service bus namespace {namespaceName} which maps to resource name {name}.", ns.Id, name);
 
             await ns.DeleteAsync(WaitUntil.Started, cancellationToken).ConfigureAwait(false);
         }
 
-        foreach (var (name, kv) in componentNameToKeyVaultMap)
+        foreach (var (name, kv) in resourceNameToKeyVaultMap)
         {
-            logger.LogInformation("Deleting key vault {keyVaultName} which maps to component name {name}.", kv.Id, name);
+            logger.LogInformation("Deleting key vault {keyVaultName} which maps to resource name {name}.", kv.Id, name);
 
             await kv.DeleteAsync(WaitUntil.Started, cancellationToken).ConfigureAwait(false);
         }
@@ -221,13 +223,13 @@ internal sealed class AzureProvisioner(IConfiguration configuration, IHostEnviro
         ArmClient armClient,
         SubscriptionResource subscription,
         KeyVaultCollection keyVaults,
-        Dictionary<string, KeyVaultResource> componentNameToKeyVaultMap,
+        Dictionary<string, KeyVaultResource> resourceNameToKeyVaultMap,
         AzureLocation location,
-        AzureKeyVaultComponent keyVault,
+        AzureKeyVaultResource keyVault,
         Guid principalId,
         CancellationToken cancellationToken)
     {
-        componentNameToKeyVaultMap.TryGetValue(keyVault.Name, out var keyVaultResource);
+        resourceNameToKeyVaultMap.TryGetValue(keyVault.Name, out var keyVaultResource);
 
         if (keyVaultResource is null)
         {
@@ -243,7 +245,7 @@ internal sealed class AzureProvisioner(IConfiguration configuration, IHostEnviro
                 EnableRbacAuthorization = true
             };
             var parameters = new KeyVaultCreateOrUpdateContent(location, properties);
-            parameters.Tags.Add("aspire-component-name", keyVault.Name);
+            parameters.Tags.Add("aspire-resource-name", keyVault.Name);
 
             var operation = await keyVaults.CreateOrUpdateAsync(WaitUntil.Completed, vaultName, parameters, cancellationToken).ConfigureAwait(false);
             keyVaultResource = operation.Value;
@@ -264,13 +266,13 @@ internal sealed class AzureProvisioner(IConfiguration configuration, IHostEnviro
         ArmClient armClient,
         SubscriptionResource subscription,
         ServiceBusNamespaceCollection serviceBusNamespaces,
-        Dictionary<string, ServiceBusNamespaceResource> componentNameToServiceBusNamespaceMap,
+        Dictionary<string, ServiceBusNamespaceResource> resourceNameToServiceBusNamespaceMap,
         AzureLocation location,
-        AzureServiceBusComponent component,
+        AzureServiceBusResource resource,
         Guid principalId,
         CancellationToken cancellationToken)
     {
-        componentNameToServiceBusNamespaceMap.TryGetValue(component.Name, out var serviceBusNamespace);
+        resourceNameToServiceBusNamespaceMap.TryGetValue(resource.Name, out var serviceBusNamespace);
 
         if (serviceBusNamespace is null)
         {
@@ -280,7 +282,7 @@ internal sealed class AzureProvisioner(IConfiguration configuration, IHostEnviro
             logger.LogInformation("Creating service bus namespace {namespace} in {location}...", namespaceName, location);
 
             var parameters = new ServiceBusNamespaceData(location);
-            parameters.Tags.Add("aspire-component-name", component.Name);
+            parameters.Tags.Add("aspire-resource-name", resource.Name);
 
             // Now we can create a storage account with defined account name and parameters
             var operation = await serviceBusNamespaces.CreateOrUpdateAsync(WaitUntil.Completed, namespaceName, parameters, cancellationToken).ConfigureAwait(false);
@@ -289,19 +291,21 @@ internal sealed class AzureProvisioner(IConfiguration configuration, IHostEnviro
             logger.LogInformation("Service bus namespace {namespace} created.", serviceBusNamespace.Data.Name);
         }
 
-        component.ServiceBusEndpoint = serviceBusNamespace.Data.ServiceBusEndpoint;
+        // This is the full uri to the service bus namespace e.g https://namespace.servicebus.windows.net:443/
+        // the connection strings for the app need the host name only
+        resource.ServiceBusEndpoint = new Uri(serviceBusNamespace.Data.ServiceBusEndpoint).Host;
 
         // Now create the queues
         var queues = serviceBusNamespace.GetServiceBusQueues();
         var topics = serviceBusNamespace.GetServiceBusTopics();
 
-        var queuesToCreate = new HashSet<string>(component.QueueNames);
-        var topicsToCreate = new HashSet<string>(component.TopicNames);
+        var queuesToCreate = new HashSet<string>(resource.QueueNames);
+        var topicsToCreate = new HashSet<string>(resource.TopicNames);
 
         // Delete unused queues
         await foreach (var sbQueue in queues.GetAllAsync(cancellationToken: cancellationToken))
         {
-            if (!component.QueueNames.Contains(sbQueue.Data.Name))
+            if (!resource.QueueNames.Contains(sbQueue.Data.Name))
             {
                 logger.LogInformation("Deleting queue {queueName}", sbQueue.Data.Name);
 
@@ -314,7 +318,7 @@ internal sealed class AzureProvisioner(IConfiguration configuration, IHostEnviro
 
         await foreach (var sbTopic in topics.GetAllAsync(cancellationToken: cancellationToken))
         {
-            if (!component.TopicNames.Contains(sbTopic.Data.Name))
+            if (!resource.TopicNames.Contains(sbTopic.Data.Name))
             {
                 logger.LogInformation("Deleting topic {topicName}", sbTopic.Data.Name);
 
@@ -356,13 +360,13 @@ internal sealed class AzureProvisioner(IConfiguration configuration, IHostEnviro
         ArmClient armClient,
         SubscriptionResource subscription,
         StorageAccountCollection storageAccounts,
-        Dictionary<string, StorageAccountResource> componentNameToStorageAccountMap,
+        Dictionary<string, StorageAccountResource> resourceNameToStorageAccountMap,
         AzureLocation location,
-        AzureStorageComponent component,
+        AzureStorageResource resource,
         Guid principalId,
         CancellationToken cancellationToken)
     {
-        componentNameToStorageAccountMap.TryGetValue(component.Name, out var storageAccount);
+        resourceNameToStorageAccountMap.TryGetValue(resource.Name, out var storageAccount);
 
         if (storageAccount is null)
         {
@@ -375,7 +379,7 @@ internal sealed class AzureProvisioner(IConfiguration configuration, IHostEnviro
             var sku = new StorageSku(StorageSkuName.StandardGrs);
             var kind = StorageKind.Storage;
             var parameters = new StorageAccountCreateOrUpdateContent(sku, kind, location);
-            parameters.Tags.Add("aspire-component-name", component.Name);
+            parameters.Tags.Add("aspire-resource-name", resource.Name);
 
             // Now we can create a storage account with defined account name and parameters
             var accountCreateOperation = await storageAccounts.CreateOrUpdateAsync(WaitUntil.Completed, accountName, parameters, cancellationToken).ConfigureAwait(false);
@@ -383,10 +387,10 @@ internal sealed class AzureProvisioner(IConfiguration configuration, IHostEnviro
 
             logger.LogInformation("Storage account {accountName} created.", storageAccount.Data.Name);
         }
-        
-        component.BlobUri = storageAccount.Data.PrimaryEndpoints.BlobUri;
-        component.TableUri = storageAccount.Data.PrimaryEndpoints.TableUri;
-        component.QueueUri = storageAccount.Data.PrimaryEndpoints.QueueUri;
+
+        resource.BlobUri = storageAccount.Data.PrimaryEndpoints.BlobUri;
+        resource.TableUri = storageAccount.Data.PrimaryEndpoints.TableUri;
+        resource.QueueUri = storageAccount.Data.PrimaryEndpoints.QueueUri;
 
         // Storage Queue Data Contributor
         // https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles#storage-queue-data-contributor

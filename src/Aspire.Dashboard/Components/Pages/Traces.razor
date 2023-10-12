@@ -8,8 +8,11 @@
 @using Microsoft.Fast.Components.FluentUI
 @using System.Web
 @inject NavigationManager NavigationManager
+@inject IDashboardViewModelService DashboardViewModelService
 @inject IJSRuntime JS
 @implements IDisposable
+
+<PageTitle>@DashboardViewModelService.ApplicationName Traces</PageTitle>
 
 <h1>Traces</h1>
 
@@ -29,7 +32,7 @@
                           slot="end" />
         </FluentToolbar>
         <div class="datagrid-overflow-area continuous-scroll-overflow" tabindex="-1">
-            <FluentDataGrid Class="SemanticLogsDataGrid" Virtualize="true" RowStyle="@GetRowStyle" GenerateHeader="GenerateHeaderOption.Sticky" ItemSize="48" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="OtlpTrace" GridTemplateColumns="0.8fr 2fr 3fr 0.5fr 0.5fr">
+            <FluentDataGrid Virtualize="true" RowStyle="@GetRowStyle" GenerateHeader="GenerateHeaderOption.Sticky" ItemSize="48" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="OtlpTrace" GridTemplateColumns="0.8fr 2fr 3fr 0.5fr 0.5fr">
                 <ChildContent>
                     <PropertyColumn Title="Timestamp" Property="@(context => OtlpHelpers.FormatTimeStamp(context.FirstSpan.StartTime))" />
                     <TemplateColumn Title="Name">

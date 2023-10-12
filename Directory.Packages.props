@@ -1,9 +1,9 @@
 <Project>
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-    <RuntimeVersion>8.0.0-rc.2.23479.6</RuntimeVersion>
-    <AspNetCoreVersion>8.0.0-rc.2.23480.2</AspNetCoreVersion>
-    <ExtensionsVersion>8.0.0-rc.2.23510.2</ExtensionsVersion>
+    <RuntimeVersion>8.0.0-rtm.23511.16</RuntimeVersion>
+    <AspNetCoreVersion>8.0.0-rtm.23512.10</AspNetCoreVersion>
+    <ExtensionsVersion>8.0.0-rtm.23511.3</ExtensionsVersion>
   </PropertyGroup>
   <ItemGroup>
     <!-- Azure SDK for .NET dependencies -->
@@ -59,21 +59,18 @@
     <PackageVersion Include="Dapr.Client" Version="1.12.0-rc01" />
     <PackageVersion Include="DnsClient" Version="1.7.0" />
     <PackageVersion Include="Google.Protobuf" Version="3.23.1" />
-    <PackageVersion Include="Grpc.AspNetCore" Version="2.58.0-dev202309130702" />
-    <PackageVersion Include="Grpc.Net.Client" Version="2.58.0-dev202309130702" />
-    <PackageVersion Include="Grpc.Net.ClientFactory" Version="2.58.0-dev202309130702" />
-    <PackageVersion Include="Grpc.Net.Server" Version="2.58.0-dev202309130702" />
+    <PackageVersion Include="Grpc.AspNetCore" Version="2.58.0-pre1" />
+    <PackageVersion Include="Grpc.Net.Client" Version="2.58.0-pre1" />
+    <PackageVersion Include="Grpc.Net.ClientFactory" Version="2.58.0-pre1" />
+    <PackageVersion Include="Grpc.Net.Server" Version="2.58.0-pre1" />
     <PackageVersion Include="Grpc.Tools" Version="2.57.0" />
     <PackageVersion Include="KubernetesClient" Version="11.0.36" />
     <PackageVersion Include="JsonSchema.Net" Version="5.2.5" />
     <PackageVersion Include="Microsoft.Fast.Components.FluentUI" Version="3.2.0" />
     <PackageVersion Include="Microsoft.Fast.Components.FluentUI.Icons" Version="3.1.1" />
-    <PackageVersion Include="Npgsql.DependencyInjection" Version="8.0.0-preview.4" />
-    <!-- Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore depends on Microsoft.EntityFrameworkCore.Relational which depends on Microsoft.EntityFrameworkCore
-         Npgsql.EntityFrameworkCore.PostgreSQL depends on Microsoft.EntityFrameworkCore and needs to be synced with HealthChecks package
-         Npgsql.EntityFrameworkCore.PostgreSQL and Npgsql.OpenTelemetry depend on Npgsql and need to be synced. -->
-    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.0-rc.1" />
-    <PackageVersion Include="Npgsql.OpenTelemetry" Version="8.0.0-preview.4" />
+    <PackageVersion Include="Npgsql.DependencyInjection" Version="8.0.0-rc.2" />
+    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.0-rc.2" />
+    <PackageVersion Include="Npgsql.OpenTelemetry" Version="8.0.0-rc.2" />
     <PackageVersion Include="OpenTelemetry.Exporter.InMemory" Version="1.6.0" />
     <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.6.0" />
     <PackageVersion Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" Version="1.6.0-rc.1" />

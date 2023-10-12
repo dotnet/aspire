@@ -1,36 +1,39 @@
 ﻿@using Aspire.Dashboard.Model
+@using Microsoft.AspNetCore.Http
 @inject IDashboardViewModelService dashboardViewModelService
 @inherits LayoutComponentBase
 
 <div>
-    <FluentLayout>
-        <FluentHeader Style="margin-bottom:0px">@dashboardViewModelService.ApplicationName Dashboard</FluentHeader>
-        <FluentStack Orientation="Orientation.Horizontal" Width="100%">
+    <FluentDesignSystemProvider BaseLayerLuminance="@_baseLayerLuminance">
+        <FluentLayout>
+            <FluentHeader Style="margin-bottom:0px">@dashboardViewModelService.ApplicationName Dashboard</FluentHeader>
+            <FluentStack Orientation="Orientation.Horizontal" Width="100%">
+                <div class="nav-menu-container">
+                    <FluentNavMenu Width="250" Collapsible="true">
+                        <FluentNavLink Icon="@(new Icons.Regular.Size24.AppGeneric())" Href="/" Match="NavLinkMatch.All">Projects</FluentNavLink>
+                        <FluentNavLink Icon="@(new Icons.Regular.Size24.BinFull())" Href="/Containers">Containers</FluentNavLink>
+                        <FluentNavLink Icon="@(new Icons.Regular.Size24.AppGeneric())" Href="/Executables">Executables</FluentNavLink>
+                        <FluentNavGroup Title="Logs" Icon="@(new Icons.Regular.Size24.SlideText())" Expanded="true" Gap="10px 0;">
+                            <FluentNavLink Icon="@(new Icons.Regular.Size24.SlideText())" Href="/ProjectLogs">Project</FluentNavLink>
+                            <FluentNavLink Icon="@(new Icons.Regular.Size24.SlideText())" Href="/ContainerLogs">Container</FluentNavLink>
+                            <FluentNavLink Icon="@(new Icons.Regular.Size24.SlideText())" Href="/ExecutableLogs">Executable</FluentNavLink>
+                            <FluentNavLink Icon="@(new Icons.Regular.Size24.SlideTextSparkle())" Href="/StructuredLogs">Structured</FluentNavLink>
+                        </FluentNavGroup>
+                        <FluentNavLink Icon="@(new Icons.Regular.Size24.GanttChart())" Href="/Traces">Traces</FluentNavLink>
+                    </FluentNavMenu>
+                </div>
+                <FluentBodyContent Class="custom-body-content">
+                    @Body
+                </FluentBodyContent>
 
-            <FluentNavMenu Width="250" Collapsible="true">
-                <FluentNavLink Icon="@(new Icons.Regular.Size24.AppGeneric())" Href="/" Match="NavLinkMatch.All">Projects</FluentNavLink>
-                <FluentNavLink Icon="@(new Icons.Regular.Size24.BinFull())" Href="/Containers">Containers</FluentNavLink>
-                <FluentNavLink Icon="@(new Icons.Regular.Size24.AppGeneric())" Href="/Executables">Executables</FluentNavLink>
-                <FluentNavGroup Title="Logs" Icon="@(new Icons.Regular.Size24.SlideText())" Expanded="true" Gap="10px 0;">
-                    <FluentNavLink Icon="@(new Icons.Regular.Size24.SlideText())" Href="/ProjectLogs">Project</FluentNavLink>
-                    <FluentNavLink Icon="@(new Icons.Regular.Size24.SlideText())" Href="/ContainerLogs">Container</FluentNavLink>
-                    <FluentNavLink Icon="@(new Icons.Regular.Size24.SlideText())" Href="/ExecutableLogs">Executable</FluentNavLink>
-                    <FluentNavLink Icon="@(new Icons.Regular.Size24.SlideTextSparkle())" Href="/SemanticLogs">Structured</FluentNavLink>
-                </FluentNavGroup>
-                <FluentNavLink Icon="@(new Icons.Regular.Size24.GanttChart())" Href="/Traces">Traces</FluentNavLink>
-            </FluentNavMenu>
-
-            <FluentBodyContent Class="custom-body-content">
-                @Body
-            </FluentBodyContent>
-
-        </FluentStack>
-    </FluentLayout>
-    <FluentDialogProvider />
-    <FluentTooltipProvider />
-    <div id="blazor-error-ui">
-        An unhandled error has occurred.
-        <a href="" class="reload">Reload</a>
-        <a class="dismiss">🗙</a>
-    </div>
+            </FluentStack>
+        </FluentLayout>
+        <FluentDialogProvider />
+        <FluentTooltipProvider />
+        <div id="blazor-error-ui">
+            An unhandled error has occurred.
+            <a href="" class="reload">Reload</a>
+            <a class="dismiss">🗙</a>
+        </div>
+    </FluentDesignSystemProvider>
 </div>

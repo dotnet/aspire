@@ -12,9 +12,9 @@ namespace Aspire.Hosting;
 
 internal static class LaunchProfileExtensions
 {
-    internal static LaunchSettings? GetLaunchSettings(this ProjectComponent projectComponent)
+    internal static LaunchSettings? GetLaunchSettings(this ProjectResource projectResource)
     {
-        if (!projectComponent.TryGetLastAnnotation<IServiceMetadata>(out var serviceMetadata))
+        if (!projectResource.TryGetLastAnnotation<IServiceMetadata>(out var serviceMetadata))
         {
             throw new DistributedApplicationException(Resources.ProjectDoesNotContainServiceMetadataExceptionMessage);
         }
@@ -22,15 +22,15 @@ internal static class LaunchProfileExtensions
         return serviceMetadata.GetLaunchSettings();
     }
 
-    internal static LaunchProfile? GetEffectiveLaunchProfile(this ProjectComponent projectComponent)
+    internal static LaunchProfile? GetEffectiveLaunchProfile(this ProjectResource projectResource)
     {
-        string? launchProfileName = projectComponent.SelectLaunchProfileName();
+        string? launchProfileName = projectResource.SelectLaunchProfileName();
         if (string.IsNullOrEmpty(launchProfileName))
         {
             return null;
         }
 
-        var profiles = projectComponent.GetLaunchSettings()?.Profiles;
+        var profiles = projectResource.GetLaunchSettings()?.Profiles;
         if (profiles is null)
         {
             return null;
@@ -73,9 +73,9 @@ internal static class LaunchProfileExtensions
         TrySelectLaunchProfileByOrder
     ];
 
-    private static bool TrySelectLaunchProfileByOrder(ProjectComponent projectComponent, [NotNullWhen(true)] out string? launchProfileName)
+    private static bool TrySelectLaunchProfileByOrder(ProjectResource projectResource, [NotNullWhen(true)] out string? launchProfileName)
     {
-        var launchSettings = GetLaunchSettings(projectComponent);
+        var launchSettings = GetLaunchSettings(projectResource);
 
         if (launchSettings == null || launchSettings.Profiles.Count == 0)
         {
@@ -87,7 +87,7 @@ internal static class LaunchProfileExtensions
         return true;
     }
 
-    private static bool TrySelectLaunchProfileFromEnvironment(ProjectComponent projectComponent, [NotNullWhen(true)] out string? launchProfileName)
+    private static bool TrySelectLaunchProfileFromEnvironment(ProjectResource projectResource, [NotNullWhen(true)] out string? launchProfileName)
     {
         var launchProfileEnvironmentVariable = Environment.GetEnvironmentVariable("DOTNET_LAUNCH_PROFILE");
 
@@ -97,7 +97,7 @@ internal static class LaunchProfileExtensions
             return false;
         }
 
-        var launchSettings = GetLaunchSettings(projectComponent);
+        var launchSettings = GetLaunchSettings(projectResource);
         if (launchSettings == null)
         {
             launchProfileName = null;
@@ -114,9 +114,9 @@ internal static class LaunchProfileExtensions
         return launchProfile != null;
     }
 
-    private static bool TrySelectLaunchProfileFromAnnotation(ProjectComponent projectComponent, [NotNullWhen(true)] out string? launchProfileName)
+    private static bool TrySelectLaunchProfileFromAnnotation(ProjectResource projectResource, [NotNullWhen(true)] out string? launchProfileName)
     {
-        if (projectComponent.TryGetLastAnnotation<LaunchProfileAnnotation>(out var launchProfileAnnotation))
+        if (projectResource.TryGetLastAnnotation<LaunchProfileAnnotation>(out var launchProfileAnnotation))
         {
             launchProfileName = launchProfileAnnotation.LaunchProfileName;
             return true;
@@ -128,11 +128,11 @@ internal static class LaunchProfileExtensions
         }
     }
 
-    internal static string? SelectLaunchProfileName(this ProjectComponent projectComponent)
+    internal static string? SelectLaunchProfileName(this ProjectResource projectResource)
     {
         foreach (var launchProfileSelector in s_launchProfileSelectors)
         {
-            if (launchProfileSelector(projectComponent, out var launchProfile))
+            if (launchProfileSelector(projectResource, out var launchProfile))
             {
                 return launchProfile;
             }
@@ -142,7 +142,7 @@ internal static class LaunchProfileExtensions
     }
 }
 
-internal delegate bool LaunchProfileSelector(ProjectComponent project, out string? launchProfile);
+internal delegate bool LaunchProfileSelector(ProjectResource project, out string? launchProfile);
 
 [JsonSerializable(typeof(LaunchSettings))]
 internal sealed partial class LaunchSetttingsSerializerContext : JsonSerializerContext

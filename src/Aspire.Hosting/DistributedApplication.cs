@@ -46,10 +46,10 @@ public class DistributedApplication : IHost, IAsyncDisposable
 
     private void EnsureDockerIfNecessary()
     {
-        // If we don't have any components that need a container  then we
+        // If we don't have any respirces that need a container  then we
         // don't need to check for Docker.
         var appModel = this.Services.GetRequiredService<DistributedApplicationModel>();
-        if (!appModel.Components.Any(c => c.Annotations.OfType<ContainerImageAnnotation>().Any()))
+        if (!appModel.Resources.Any(c => c.Annotations.OfType<ContainerImageAnnotation>().Any()))
         {
             return;
         }

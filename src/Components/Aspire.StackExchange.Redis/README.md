@@ -104,10 +104,10 @@ In your App project, register a Redis container and consume the connection using
 var redis = builder.AddRedisContainer("cache");
 
 var myService = builder.AddProject<YourApp.Projects.MyService>()
-                       .WithRedis(redis);
+                       .WithReference(redis);
 ```
 
-`.WithRedis` configures a connection in the `MyService` project named `cache`. In the `Program.cs` file of `MyService`, the redis connection can be consumed using:
+`.WithReference` configures a connection in the `MyService` project named `cache`. In the `Program.cs` file of `MyService`, the redis connection can be consumed using:
 
 ```cs
 builder.AddRedis("cache");

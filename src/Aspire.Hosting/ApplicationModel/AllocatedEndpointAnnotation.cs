@@ -7,7 +7,7 @@ using System.Net.Sockets;
 namespace Aspire.Hosting.ApplicationModel;
 
 [DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, UriString = {UriString}, BindingNameQualifiedUriString = {BindingNameQualifiedUriString}")]
-public class AllocatedEndpointAnnotation : IDistributedApplicationComponentAnnotation
+public class AllocatedEndpointAnnotation : IDistributedApplicationResourceAnnotation
 {
     public AllocatedEndpointAnnotation(string name, ProtocolType protocol, string address, int port, string scheme)
     {

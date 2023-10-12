@@ -6,6 +6,11 @@
     <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
     <IsAotCompatible>true</IsAotCompatible>
     <PackageTags>$(ComponentEfCorePackageTags) sqlserver sql</PackageTags>
+    <Description>
+      A Microsoft SQL Server provider for Entity Framework Core that integrates
+      with Aspire, including connection pooling, health check, logging, and
+      telemetry.
+    </Description>
   </PropertyGroup>
 
   <ItemGroup>

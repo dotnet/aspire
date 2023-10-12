@@ -19,7 +19,7 @@ var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/error");
+    app.UseExceptionHandler("/error", createScopeForErrors: true);
 }
 
 app.UseStaticFiles();
