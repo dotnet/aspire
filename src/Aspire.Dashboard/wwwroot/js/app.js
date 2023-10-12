@@ -72,3 +72,9 @@ window.copyTextToClipboard = function (id, text, precopy, postcopy) {
         });
     setTimeout(function () { tooltipDiv.innerText = precopy }, 1500);
 };
+
+window.updateFluentSelectDisplayValue = function (fluentSelect) {
+    if (fluentSelect) {
+        fluentSelect.updateDisplayValue();
+    }
+}
