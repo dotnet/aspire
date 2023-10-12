@@ -13,5 +13,5 @@ public class AzureServiceBusResource(string name) : DistributedApplicationResour
     public string[] QueueNames { get; set; } = [];
     public string[] TopicNames { get; set; } = [];
 
-    public string? GetConnectionString() => ServiceBusEndpoint;
+    public string? GetConnectionString(IDistributedApplicationResource? targetResource) => ServiceBusEndpoint;
 }

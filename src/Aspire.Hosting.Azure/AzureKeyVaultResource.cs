@@ -9,5 +9,5 @@ public class AzureKeyVaultResource(string name) : DistributedApplicationResource
 {
     public Uri? VaultUri { get; set; }
 
-    public string? GetConnectionString() => VaultUri?.ToString();
+    public string? GetConnectionString(IDistributedApplicationResource? targetResource) => VaultUri?.ToString();
 }

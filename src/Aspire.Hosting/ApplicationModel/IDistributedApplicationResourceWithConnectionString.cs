@@ -5,5 +5,5 @@ namespace Aspire.Hosting.ApplicationModel;
 
 public interface IDistributedApplicationResourceWithConnectionString : IDistributedApplicationResource
 {
-    public string? GetConnectionString();
+    public string? GetConnectionString(IDistributedApplicationResource? targetResource);
 }

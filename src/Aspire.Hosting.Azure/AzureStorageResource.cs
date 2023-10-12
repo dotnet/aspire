@@ -19,7 +19,7 @@ public class AzureTableStorageResource(string name, AzureStorageResource storage
 {
     public AzureStorageResource Parent => storage;
 
-    public string? GetConnectionString() => Parent.TableUri?.ToString();
+    public string? GetConnectionString(IDistributedApplicationResource? targetResource) => Parent.TableUri?.ToString();
 }
 
 public class AzureBlobStorageResource(string name, AzureStorageResource storage) : DistributedApplicationResource(name),
@@ -29,7 +29,7 @@ public class AzureBlobStorageResource(string name, AzureStorageResource storage)
 {
     public AzureStorageResource Parent => storage;
 
-    public string? GetConnectionString() => Parent.BlobUri?.ToString();
+    public string? GetConnectionString(IDistributedApplicationResource? targetResource) => Parent.BlobUri?.ToString();
 }
 
 public class AzureQueueStorageResource(string name, AzureStorageResource storage) : DistributedApplicationResource(name),
@@ -39,5 +39,5 @@ public class AzureQueueStorageResource(string name, AzureStorageResource storage
 {
     public AzureStorageResource Parent => storage;
 
-    public string? GetConnectionString() => Parent.QueueUri?.ToString();
+    public string? GetConnectionString(IDistributedApplicationResource? targetResource) => Parent.QueueUri?.ToString();
 }

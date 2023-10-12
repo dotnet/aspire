@@ -9,7 +9,7 @@ public class SqlServerContainerResource(string name, string password) : Containe
 {
     public string GeneratedPassword { get; } = password;
 
-    public string? GetConnectionString()
+    public string? GetConnectionString(IDistributedApplicationResource? targetResource)
     {
         if (!this.TryGetAnnotationsOfType<AllocatedEndpointAnnotation>(out var allocatedEndpoints))
         {
@@ -18,8 +18,12 @@ public class SqlServerContainerResource(string name, string password) : Containe
 
         var endpoint = allocatedEndpoints.Single();
 
+        // Can't use localhost because the container is running in a different network namespace.
+        // Eventually we'll want to use the container name, but that requires a network between containers.
+        var address = targetResource is null || !targetResource.IsContainer() ? "127.0.0.1" : "host.docker.internal";
+
         // HACK: Use the 127.0.0.1 address because localhost is resolving to [::1] following
         //       up with DCP on this issue.
-        return $"Server=127.0.0.1,{endpoint.Port};User ID=sa;Password={GeneratedPassword};TrustServerCertificate=true;";
+        return $"Server={address},{endpoint.Port};User ID=sa;Password={GeneratedPassword};TrustServerCertificate=true;";
     }
 }

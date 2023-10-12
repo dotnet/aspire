@@ -9,5 +9,5 @@ public class SqlServerConnectionResource(string name, string? connectionString) 
 {
     private readonly string? _connectionString = connectionString;
 
-    public string? GetConnectionString() => _connectionString;
+    public string? GetConnectionString(IDistributedApplicationResource? targetResource = null) => _connectionString;
 }

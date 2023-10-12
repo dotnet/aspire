@@ -14,9 +14,9 @@ public class SqlServerDatabaseResource : ContainerResource, ISqlServerResource, 
 
     public SqlServerContainerResource Parent { get; }
 
-    public string? GetConnectionString()
+    public string? GetConnectionString(IDistributedApplicationResource? targetResource)
     {
-        if (Parent.GetConnectionString() is { } connectionString)
+        if (Parent.GetConnectionString(targetResource) is { } connectionString)
         {
             return $"{connectionString}Database={Name}";
         }

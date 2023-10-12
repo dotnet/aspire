@@ -7,7 +7,7 @@ namespace Aspire.Hosting.Redis;
 
 public class RedisContainerResource(string name) : ContainerResource(name), IRedisResource
 {
-    public string GetConnectionString()
+    public string GetConnectionString(IDistributedApplicationResource? targetResource)
     {
         if (!this.TryGetAnnotationsOfType<AllocatedEndpointAnnotation>(out var allocatedEndpoints))
         {
@@ -16,6 +16,9 @@ public class RedisContainerResource(string name) : ContainerResource(name), IRed
 
         // We should only have one endpoint for Redis for local scenarios.
         var endpoint = allocatedEndpoints.Single();
-        return endpoint.EndPointString;
+
+        var address = targetResource is null || !targetResource.IsContainer() ? endpoint.Address : "host.docker.internal";
+
+        return $"{address}:{endpoint.Port}";
     }
 }

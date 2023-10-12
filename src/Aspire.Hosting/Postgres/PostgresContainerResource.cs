@@ -9,7 +9,7 @@ public class PostgresContainerResource(string name, string password) : Container
 {
     public string Password { get; } = password;
 
-    public string? GetConnectionString()
+    public string? GetConnectionString(IDistributedApplicationResource? targetResource = null)
     {
         if (!this.TryGetAllocatedEndPoints(out var allocatedEndpoints))
         {
@@ -18,7 +18,9 @@ public class PostgresContainerResource(string name, string password) : Container
 
         var allocatedEndpoint = allocatedEndpoints.Single(); // We should only have one endpoint for Postgres.
 
-        var connectionString = $"Host={allocatedEndpoint.Address};Port={allocatedEndpoint.Port};Username=postgres;Password={Password};";
+        var host = targetResource is null || !targetResource.IsContainer() ? allocatedEndpoint.Address : "host.docker.internal";
+
+        var connectionString = $"Host={host};Port={allocatedEndpoint.Port};Username=postgres;Password={Password};";
         return connectionString;
     }
 }

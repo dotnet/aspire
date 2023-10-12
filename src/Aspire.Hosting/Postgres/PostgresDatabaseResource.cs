@@ -9,9 +9,9 @@ public class PostgresDatabaseResource(string name, PostgresContainerResource pos
 {
     public PostgresContainerResource Parent { get; } = postgresContainer;
 
-    public string? GetConnectionString()
+    public string? GetConnectionString(IDistributedApplicationResource? targetResource)
     {
-        if (Parent.GetConnectionString() is { } connectionString)
+        if (Parent.GetConnectionString(targetResource) is { } connectionString)
         {
             return $"{connectionString}Database={Name}";
         }

@@ -81,7 +81,7 @@ public static class ResourceBuilderExtensions
                 return;
             }
 
-            var connectionString = resource.GetConnectionString() ??
+            var connectionString = resource.GetConnectionString(builder.Resource) ??
                 builder.ApplicationBuilder.Configuration.GetConnectionString(resource.Name);
 
             if (string.IsNullOrEmpty(connectionString))
