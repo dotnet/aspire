@@ -15,8 +15,8 @@ var catalogdb = builder.AddPostgresContainer("postgres").AddDatabase("catalog");
 var redis = builder.AddRedisContainer("basketCache");
 
 var catalog = builder.AddProject<Projects.CatalogService>("catalogservice")
-                     .WithPostgres(catalogdb);
-//                     .WithReplicas(2);
+                     .WithPostgres(catalogdb)
+                     .WithReplicas(2);
 
 var serviceBus = builder.AddAzureServiceBus("messaging", queueNames: ["orders"]);
 
