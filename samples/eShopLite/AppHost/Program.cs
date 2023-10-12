@@ -15,14 +15,14 @@ var catalogdb = builder.AddPostgresContainer("postgres").AddDatabase("catalog");
 var redis = builder.AddRedisContainer("basketCache");
 
 var catalog = builder.AddProject<Projects.CatalogService>("catalogservice")
-                     .WithPostgres(catalogdb)
+                     .WithReference(catalogdb)
                      .WithReplicas(2);
 
 var serviceBus = builder.AddAzureServiceBus("messaging", queueNames: ["orders"]);
 
 var basket = builder.AddProject<Projects.BasketService>("basketservice")
                     .WithServiceBindingForPublisher("manifest", "http", context => context.Binding.AsExternal())
-                    .WithRedis(redis)
+                    .WithReference(redis)
                     .WithReference(serviceBus, optional: true);
 
 builder.AddProject<Projects.MyFrontend>("myfrontend")

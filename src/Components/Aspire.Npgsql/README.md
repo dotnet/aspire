@@ -87,13 +87,13 @@ Also you can pass the `Action<NpgsqlSettings> configureSettings` delegate to set
 In your App project, register a Postgres container and consume the connection using the following methods:
 
 ```cs
-var postgres = builder.AddPostgresContainer("postgresdb");
+var postgresdb = builder.AddPostgresContainer("pg").AddDatabase("postgresdb");
 
 var myService = builder.AddProject<YourApp.Projects.MyService>()
-                       .WithPostgresDatabase(postgres, databaseName: "test")
+                       .WithReference(postgresdb);
 ```
 
-`.WithPostgresDatabase` configures a connection in the `MyService` project named `postgresdb`. In the `Program.cs` file of `MyService`, the database connection can be consumed using:
+`.WithReference` configures a connection in the `MyService` project named `postgresdb`. In the `Program.cs` file of `MyService`, the database connection can be consumed using:
 
 ```cs
 builder.AddNpgsqlDataSource("postgresdb");

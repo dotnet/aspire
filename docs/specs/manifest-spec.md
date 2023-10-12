@@ -13,16 +13,16 @@ using Aspire.Hosting.Postgres;
 using Aspire.Hosting.Redis;
 using Projects = eShopLite.App.Projects;
 
-var builder = CloudApplication.CreateBuilder(args);
+var builder = DistributedApplication.CreateBuilder(args);
 
-var postgres = builder.AddPostgresContainer("postgres");
+var catalogDb = builder.AddPostgresContainer("postgres").AddDatabase("catalogdb");
 var redis = builder.AddRedisContainer("redis");
 
 var catalog = builder.AddProject<Projects.eShopLite_CatalogService>("catalogservice")
-    .WithPostgresDatabase(postgres, databaseName: "catalogdb");
+    .WithReference(catalogDb);
 
 var basket = builder.AddProject<Projects.eShopLite_BasketService>("basketservice")
-    .WithRedis(redis);
+    .WithReference(redis);
 
 builder.AddProject<Projects.eShopLite_Frontend>("frontend")
     .WithServiceReference(basket)
@@ -49,7 +49,7 @@ When ```dotnet publish``` is called on the AppHost project containing the code a
         },
         "catalogservice": {
             "type": "project.v1",
-            "projectPath": "[relative path to]\\eShopLite.BasketService.csproj",
+            "path": "[relative path to]\\eShopLite.BasketService.csproj",
             "env": {
                 "ConnectionStrings__postgres": "{postgres.connectionString}"
             },
@@ -64,7 +64,7 @@ When ```dotnet publish``` is called on the AppHost project containing the code a
         },
         "basketservice": {
             "type": "project.v1",
-            "projectPath": "[relative path to]\\eShopLite.BasketService.csproj",
+            "path": "[relative path to]\\eShopLite.BasketService.csproj",
             "env": {
                 "ConnectionStrings__redis": "{redis.connectionString}"
             },
@@ -79,7 +79,7 @@ When ```dotnet publish``` is called on the AppHost project containing the code a
         },
         "frontend": {
             "type": "project.v1",
-            "projectPath": "[relative path to]\\eShopLite.Frontend.csproj",
+            "path": "[relative path to]\\eShopLite.Frontend.csproj",
             "bindings": {
                 "https": { // Will end up being bound as external on port 443, container port inferred from container image.
                     "scheme": "https",
