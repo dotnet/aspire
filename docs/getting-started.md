@@ -48,23 +48,13 @@ Ensure the `.NET Aspire SDK` component is checked in `Individual components`.
 
 ### Command line
 
-### Visual Studio
-
-Ensure you are using the [Visual Studio 2022 Enterprise IntPreview Setup](https://aka.ms/vs/17/intpreview/vs_enterprise.exe) feed.
-
-Check the `ASP.NET and web development` Workload.
-
-Ensure the `.NET Aspire SDK` component is checked in `Individual components`.
-
-### Command line
-
 1. The RTM nightly SDK is aware that the Aspire workload exists, but the real manifest is not installed by default. In order to install it, you'll need to update the workload in a directory that has a NuGet.config[^3] with the right feeds configured[^2] so that it can pull the latest manifest. Once you have created the NuGet.config file in your working directory, then you need to run the following command[^1]:
 
     ```shell
     dotnet workload update --skip-sign-check --interactive
     ```
 
-2. The above command will update the Aspire manifest in your RC2 build, meaning it will already be setup for command-line. In-product acquisition (IPA) of the Aspire workload. In order to manually install the workload, you can run the following command[^1]:
+2. The above command will update the Aspire manifest in your SDK build, meaning it will already be setup for command-line and Visual Studio in-product acquisition (IPA) of the Aspire workload. In order to manually install the workload, you can run the following command[^1]:
 
     ```shell
     dotnet workload install aspire --skip-sign-check --interactive
