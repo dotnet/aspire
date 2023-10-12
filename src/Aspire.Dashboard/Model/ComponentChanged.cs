@@ -3,5 +3,5 @@
 
 namespace Aspire.Dashboard.Model;
 
-public sealed record ComponentChanged<T>(ObjectChangeType ObjectChangeType, T Component)
+public sealed record ResourceChanged<T>(ObjectChangeType ObjectChangeType, T Resource)
     where T : class;

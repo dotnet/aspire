@@ -29,7 +29,7 @@ builder.AddProject<Projects.MyFrontend>("myfrontend")
        .WithServiceBindingForPublisher("manifest", "https", context => context.Binding.AsExternal())
        .WithServiceReference(basket)
        .WithServiceReference(catalog, bindingName: "http")
-       .WithEnvironment("GRAFANA_URL", () => grafana.GetEndpoint("grafana-http")?.UriString ?? $"{{{grafana.Component.Name}.bindings.grafana-http}}");
+       .WithEnvironment("GRAFANA_URL", () => grafana.GetEndpoint("grafana-http")?.UriString ?? $"{{{grafana.Resource.Name}.bindings.grafana-http}}");
 
 builder.AddProject<Projects.OrderProcessor>("orderprocessor")
        .WithReference(serviceBus, optional: true)

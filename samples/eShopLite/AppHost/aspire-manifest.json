@@ -1,5 +1,5 @@
 {
-  "components": {
+  "resources": {
     "grafana": {
       "type": "container.v1",
       "image": "grafana/grafana:latest",

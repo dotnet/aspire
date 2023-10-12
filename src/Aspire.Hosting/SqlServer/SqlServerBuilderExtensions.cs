@@ -9,33 +9,31 @@ namespace Aspire.Hosting.SqlServer;
 
 public static class SqlServerBuilderExtensions
 {
-    public static IDistributedApplicationComponentBuilder<SqlServerContainerComponent> AddSqlServerContainer(this IDistributedApplicationBuilder builder, string name, string? password = null, int? port = null)
+    public static IDistributedApplicationResourceBuilder<SqlServerContainerResource> AddSqlServerContainer(this IDistributedApplicationBuilder builder, string name, string? password = null, int? port = null)
     {
         password = password ?? Guid.NewGuid().ToString("N");
-        var sqlServer = new SqlServerContainerComponent(name, password);
+        var sqlServer = new SqlServerContainerResource(name, password);
 
-        var componentBuilder = builder.AddComponent(sqlServer);
-        componentBuilder.WithAnnotation(new ManifestPublishingCallbackAnnotation(WriteSqlServerContainerToManifest));
-        componentBuilder.WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, port: port, containerPort: 1433));
-        componentBuilder.WithAnnotation(new ContainerImageAnnotation { Registry = "mcr.microsoft.com", Image = "mssql/server", Tag = "2022-latest" });
-        componentBuilder.WithEnvironment("ACCEPT_EULA", "Y");
-        componentBuilder.WithEnvironment("MSSQL_SA_PASSWORD", sqlServer.GeneratedPassword);
-        return componentBuilder;
+        return builder.AddResource(sqlServer)
+                      .WithAnnotation(new ManifestPublishingCallbackAnnotation(WriteSqlServerContainerToManifest))
+                      .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, port: port, containerPort: 1433))
+                      .WithAnnotation(new ContainerImageAnnotation { Registry = "mcr.microsoft.com", Image = "mssql/server", Tag = "2022-latest" })
+                      .WithEnvironment("ACCEPT_EULA", "Y")
+                      .WithEnvironment("MSSQL_SA_PASSWORD", sqlServer.GeneratedPassword);
     }
 
-    public static IDistributedApplicationComponentBuilder<SqlServerConnectionComponent> AddSqlServerConnection(this IDistributedApplicationBuilder builder, string name, string? connectionString = null)
+    public static IDistributedApplicationResourceBuilder<SqlServerConnectionResource> AddSqlServerConnection(this IDistributedApplicationBuilder builder, string name, string? connectionString = null)
     {
-        var sqlServerConnectionComponent = new SqlServerConnectionComponent(name, connectionString);
+        var sqlServerConnection = new SqlServerConnectionResource(name, connectionString);
 
-        return builder.AddComponent(sqlServerConnectionComponent)
-            .WithAnnotation(new ManifestPublishingCallbackAnnotation(jsonWriter =>
-                WriteSqlServerConnectionToManifest(jsonWriter, sqlServerConnectionComponent)));
+        return builder.AddResource(sqlServerConnection)
+                      .WithAnnotation(new ManifestPublishingCallbackAnnotation(jsonWriter => WriteSqlServerConnectionToManifest(jsonWriter, sqlServerConnection)));
     }
 
-    private static void WriteSqlServerConnectionToManifest(Utf8JsonWriter jsonWriter, SqlServerConnectionComponent sqlServerConnectionComponent)
+    private static void WriteSqlServerConnectionToManifest(Utf8JsonWriter jsonWriter, SqlServerConnectionResource sqlServerConnection)
     {
         jsonWriter.WriteString("type", "sqlserver.connection.v1");
-        jsonWriter.WriteString("connectionString", sqlServerConnectionComponent.GetConnectionString());
+        jsonWriter.WriteString("connectionString", sqlServerConnection.GetConnectionString());
     }
 
     private static void WriteSqlServerContainerToManifest(Utf8JsonWriter jsonWriter)
@@ -43,23 +41,23 @@ public static class SqlServerBuilderExtensions
         jsonWriter.WriteString("type", "sqlserver.server.v1");
     }
 
-    private static void WriteSqlServerDatabaseComponentToManifest(Utf8JsonWriter json, SqlServerDatabaseComponent sqlServerDatabaseComponent)
+    private static void WriteSqlServerDatabaseToManifest(Utf8JsonWriter json, SqlServerDatabaseResource sqlServerDatabase)
     {
         json.WriteString("type", "sqlserver.database.v1");
-        json.WriteString("parent", sqlServerDatabaseComponent.Parent.Name);
+        json.WriteString("parent", sqlServerDatabase.Parent.Name);
     }
 
-    public static IDistributedApplicationComponentBuilder<T> WithSqlServer<T, TSqlServer>(this IDistributedApplicationComponentBuilder<T> builder, IDistributedApplicationComponentBuilder<TSqlServer> sqlServerBuilder, string? connectionName = null) where TSqlServer : ISqlServerComponent
-        where T : IDistributedApplicationComponentWithEnvironment
+    public static IDistributedApplicationResourceBuilder<T> WithSqlServer<T, TSqlServer>(this IDistributedApplicationResourceBuilder<T> builder, IDistributedApplicationResourceBuilder<TSqlServer> sqlServerBuilder, string? connectionName = null) where TSqlServer : ISqlServerResource
+        where T : IDistributedApplicationResourceWithEnvironment
     {
         return builder.WithReference(sqlServerBuilder, connectionName);
     }
 
-    public static IDistributedApplicationComponentBuilder<SqlServerDatabaseComponent> AddDatabase(this IDistributedApplicationComponentBuilder<SqlServerContainerComponent> builder, string name)
+    public static IDistributedApplicationResourceBuilder<SqlServerDatabaseResource> AddDatabase(this IDistributedApplicationResourceBuilder<SqlServerContainerResource> builder, string name)
     {
-        var sqlServerDatabase = new SqlServerDatabaseComponent(name, builder.Component);
-        return builder.ApplicationBuilder.AddComponent(sqlServerDatabase)
+        var sqlServerDatabase = new SqlServerDatabaseResource(name, builder.Resource);
+        return builder.ApplicationBuilder.AddResource(sqlServerDatabase)
                                          .WithAnnotation(new ManifestPublishingCallbackAnnotation(
-                                             (json) => WriteSqlServerDatabaseComponentToManifest(json, sqlServerDatabase)));
+                                             (json) => WriteSqlServerDatabaseToManifest(json, sqlServerDatabase)));
     }
 }

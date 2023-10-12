@@ -25,7 +25,7 @@ public abstract partial class ResourceLogsBase<TResource> : ComponentBase, IAsyn
     protected abstract string UrlPrefix { get; }
 
     protected abstract Task<List<TResource>> GetResources(IDashboardViewModelService dashboardViewModelService);
-    protected abstract IAsyncEnumerable<ComponentChanged<TResource>> WatchResources(
+    protected abstract IAsyncEnumerable<ResourceChanged<TResource>> WatchResources(
         IDashboardViewModelService dashboardViewModelService,
         IEnumerable<NamespacedName> initialList,
         CancellationToken cancellationToken);
@@ -62,9 +62,9 @@ public abstract partial class ResourceLogsBase<TResource> : ComponentBase, IAsyn
 
         _ = Task.Run(async () =>
         {
-            await foreach (var componentChanged in WatchResources(DashboardViewModelService, initialList.Select(t => t.NamespacedName), _watchContainersTokenSource.Token))
+            await foreach (var resourceChanged in WatchResources(DashboardViewModelService, initialList.Select(t => t.NamespacedName), _watchContainersTokenSource.Token))
             {
-                await OnResourceListChangedAsync(componentChanged.ObjectChangeType, componentChanged.Component);
+                await OnResourceListChangedAsync(resourceChanged.ObjectChangeType, resourceChanged.Resource);
             }
         });
     }

@@ -3,7 +3,7 @@
 
 namespace Aspire.Hosting.ApplicationModel;
 
-public class DcpResourceAnnotation(string resourceNamespace, string resourceName, string resourceKind) : IDistributedApplicationComponentAnnotation
+public class DcpResourceAnnotation(string resourceNamespace, string resourceName, string resourceKind) : IDistributedApplicationResourceAnnotation
 {
     public string ResourceNamespace { get; } = resourceNamespace ?? "";
     public string ResourceName { get; } = resourceName;

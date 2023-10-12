@@ -24,15 +24,15 @@ public sealed class DcpDistributedApplicationLifecycleHook(IOptions<PublishingOp
             PrepareServices(appModel);
         }
 
-        foreach (var component in appModel.Components)
+        foreach (var resource in appModel.Resources)
         {
-            // Grab the service bindings we already have for this component.
-            var serviceBindingsLookup = component.Annotations
+            // Grab the service bindings we already have for this resource.
+            var serviceBindingsLookup = resource.Annotations
                 .OfType<ServiceBindingAnnotation>()
                 .ToLookup(a => a.Name);
 
             // Find any callbacks for this specific publisher.
-            var bindingNameGroupedCallbackAnnotations = component.Annotations
+            var bindingNameGroupedCallbackAnnotations = resource.Annotations
                 .OfType<ServiceBindingCallbackAnnotation>()
                 .Where(a => a.PublisherName == publisher)
                 .ToLookup(a => a.BindingName);
@@ -60,14 +60,14 @@ public sealed class DcpDistributedApplicationLifecycleHook(IOptions<PublishingOp
                 // Currently we support swapping out the existing service binding for a completely
                 // new one. This is done to enable some interesting scenarios in the future around
                 // transparently adding reverse proxies/tunnels.
-                if (component.Annotations.Contains(inputAnnotation))
+                if (resource.Annotations.Contains(inputAnnotation))
                 {
-                    component.Annotations.Remove(inputAnnotation);
+                    resource.Annotations.Remove(inputAnnotation);
                 }
 
-                if (!component.Annotations.Contains(outputAnnotation))
+                if (!resource.Annotations.Contains(outputAnnotation))
                 {
-                    component.Annotations.Add(outputAnnotation);
+                    resource.Annotations.Add(outputAnnotation);
                 }
             }
         }
@@ -87,17 +87,17 @@ public sealed class DcpDistributedApplicationLifecycleHook(IOptions<PublishingOp
 
     private void PrepareServices(DistributedApplicationModel model)
     {
-        // Automatically add ServiceBindingAnnotations to project components based on ApplicationUrl set in the launch profile.
-        foreach (var projectComponent in model.Components.OfType<ProjectComponent>())
+        // Automatically add ServiceBindingAnnotations to project resources based on ApplicationUrl set in the launch profile.
+        foreach (var projectResource in model.Resources.OfType<ProjectResource>())
         {
 
-            var selectedLaunchProfileName = projectComponent.SelectLaunchProfileName();
+            var selectedLaunchProfileName = projectResource.SelectLaunchProfileName();
             if (selectedLaunchProfileName is null)
             {
                 continue;
             }
 
-            var launchProfile = projectComponent.GetEffectiveLaunchProfile();
+            var launchProfile = projectResource.GetEffectiveLaunchProfile();
             if (launchProfile is null)
             {
                 continue;
@@ -108,7 +108,7 @@ public sealed class DcpDistributedApplicationLifecycleHook(IOptions<PublishingOp
             {
                 var uri = new Uri(url);
 
-                if (projectComponent.Annotations.OfType<ServiceBindingAnnotation>().Any(sb => sb.Name == uri.Scheme))
+                if (projectResource.Annotations.OfType<ServiceBindingAnnotation>().Any(sb => sb.Name == uri.Scheme))
                 {
                     // If someone uses WithServiceBinding in the dev host to register a service binding with the name
                     // http or https this exception will be thrown.
@@ -121,7 +121,7 @@ public sealed class DcpDistributedApplicationLifecycleHook(IOptions<PublishingOp
                     port: uri.Port
                     );
 
-                projectComponent.Annotations.Add(generatedServiceBindingAnnotation);
+                projectResource.Annotations.Add(generatedServiceBindingAnnotation);
             }
         }
     }
