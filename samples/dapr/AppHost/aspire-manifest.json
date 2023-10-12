@@ -1,5 +1,5 @@
 {
-  "components": {
+  "resources": {
     "servicea": {
       "type": "project.v1",
       "path": "..\\ServiceA\\DaprServiceA.csproj",

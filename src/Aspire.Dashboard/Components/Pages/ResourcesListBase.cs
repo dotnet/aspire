@@ -42,10 +42,10 @@ public abstract class ResourcesListBase<TResource> : ComponentBase
 
         _ = Task.Run(async () =>
         {
-            await foreach (var componentChanged in WatchResources(
+            await foreach (var resourceChanged in WatchResources(
                 DashboardViewModelService, resources.Select(e => e.NamespacedName), _watchTaskCancellationTokenSource.Token))
             {
-                await OnResourceListChanged(componentChanged.ObjectChangeType, componentChanged.Resource);
+                await OnResourceListChanged(resourceChanged.ObjectChangeType, resourceChanged.Resource);
             }
         });
     }
