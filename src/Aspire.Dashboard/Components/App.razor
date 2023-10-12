@@ -12,8 +12,9 @@
     <link rel="stylesheet" href="_content/Aspire.Dashboard/Aspire.Dashboard.bundle.scp.css" />
     <HeadOutlet @rendermode="@RenderMode.InteractiveServer" />
     <!-- Make the body background dark if dark mode will be enabled to prevent a flash of white
-         before fully rendered -->
-    <style>@@media (prefers-color-scheme: dark) { body { background-color: #333333; } }</style>
+         before fully rendered. This value is from --neutral-fill-layer-rest, but that custom
+         property isn't available at this point. -->
+    <style>@@media (prefers-color-scheme: dark) { body { background-color: #464646; } }</style>
 </head>
 
 <body class="before-upgrade">
