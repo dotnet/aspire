@@ -36,19 +36,19 @@
                     <TemplateColumn Title="Endpoints" Sortable="false">
                         <FluentStack Orientation="Orientation.Vertical">
                             @* If we have no endpoints, and the app isn't running anymore or we're not expecting any, then just say None *@
-                            @if (context.Endpoints.Count == 0 && (context.State == FinishedState || context.ExpectedEndpointCount == 0))
+                            @if (context.Endpoints.Count == 0 && (context.State == FinishedState || context.ExpectedEndpointsCount == 0))
                             {
                                 <span>None</span>
                             }
                             else
                             {
                                 @* If we have any, regardless of the state, go ahead and display them *@
-                                foreach (ServiceEndpoint endpoint in context.Endpoints.OrderBy(e => e.Address))
+                                foreach (var endpoint in context.Endpoints.OrderBy(e => e))
                                 {
-                                    <a href="@endpoint.Address" target="_blank">@endpoint.Address</a>
+                                    <a href="@endpoint" target="_blank">@endpoint</a>
                                 }
                                 @* If we're expecting more, say Starting..., unless the app isn't running anymore *@
-                                if (context.State != FinishedState && context.ExpectedEndpointCount > context.Endpoints.Count)
+                                if (context.State != FinishedState && context.ExpectedEndpointsCount > context.Endpoints.Count)
                                 {
                                     <span>Starting...</span>
                                 }

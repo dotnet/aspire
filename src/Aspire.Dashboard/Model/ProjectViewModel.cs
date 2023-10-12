@@ -6,7 +6,6 @@ namespace Aspire.Dashboard.Model;
 public class ProjectViewModel : ResourceViewModel
 {
     public required string ProjectPath { get; init; }
-    public List<string> Addresses { get; } = new();
-    public List<ServiceEndpoint> Endpoints { get; } = new();
-    public required int ExpectedEndpointCount { get; init; }
+    public List<string> Endpoints { get; } = new();
+    public required int ExpectedEndpointsCount { get; init; }
 }

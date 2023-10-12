@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Runtime.CompilerServices;
+using System.Text;
 using System.Text.Json;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
@@ -197,26 +198,37 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
             ProjectPath = executable.Metadata?.Annotations?[Executable.CSharpProjectPathAnnotation] ?? "",
             State = executable.Status?.State,
             LogSource = new FileLogSource(executable.Status?.StdOutFile, executable.Status?.StdErrFile),
-            ExpectedEndpointCount = expectedEndpointCount
+            ExpectedEndpointsCount = expectedEndpointCount
         };
-
-        if (_applicationModel.TryGetProjectWithPath(model.ProjectPath, out var project) && project.TryGetAllocatedEndPoints(out var allocatedEndpoints))
-        {
-            model.Addresses.AddRange(allocatedEndpoints.Select(ep => ep.UriString));
-        }
 
         model.Endpoints.AddRange(endpoints
             .Where(ep => ep.Metadata.OwnerReferences.Any(or => or.Kind == executable.Kind && or.Name == executable.Metadata?.Name))
             .Select(ep =>
             {
+                var builder = new StringBuilder();
                 // CONSIDER: a more robust way to store application protocol information in DCP model
-                string scheme = "http://";
                 if (ep.Spec.ServiceName?.EndsWith("https") is true)
                 {
-                    scheme = "https://";
+                    builder.Append("https://");
+                }
+                else
+                {
+                    builder.Append("http://");
                 }
 
-                return new ServiceEndpoint($"{scheme}{ep.Spec.Address}:{ep.Spec.Port}", ep.Spec.ServiceName ?? "");
+                builder.Append(ep.Spec.Address);
+                builder.Append(':');
+                builder.Append(ep.Spec.Port);
+
+                if (_applicationModel.TryGetProjectWithPath(model.ProjectPath, out var project)
+                    && project.GetEffectiveLaunchProfile() is LaunchProfile launchProfile
+                    && launchProfile.LaunchUrl is string launchUrl)
+                {
+                    builder.Append('/');
+                    builder.Append(launchUrl);
+                }
+
+                return builder.ToString();
             })
         );
 
