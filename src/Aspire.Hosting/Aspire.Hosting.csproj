@@ -19,7 +19,7 @@
 
   <!-- Download DCP orchestrator components for local development -->
   <ItemGroup>
-    <PackageDownload Include="Microsoft.DeveloperControlPlane.$(BuildOs)-$(BuildArch)" Version="[$(_DcpVersion)]" />
+    <PackageDownload Include="Microsoft.DeveloperControlPlane.$(BuildOs)-$(BuildArch)" Version="[$(MicrosoftDeveloperControlPlanedarwinamd64PackageVersion)]" />
   </ItemGroup>
 
   <ItemGroup>

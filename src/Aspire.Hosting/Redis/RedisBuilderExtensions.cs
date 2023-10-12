@@ -9,41 +9,32 @@ namespace Aspire.Hosting.Redis;
 
 public static class RedisBuilderExtensions
 {
-    public static IDistributedApplicationComponentBuilder<RedisContainerComponent> AddRedisContainer(this IDistributedApplicationBuilder builder, string name, int? port = null)
+    public static IDistributedApplicationResourceBuilder<RedisContainerResource> AddRedisContainer(this IDistributedApplicationBuilder builder, string name, int? port = null)
     {
-        var redis = new RedisContainerComponent(name);
-
-        var componentBuilder = builder.AddComponent(redis);
-        componentBuilder.WithAnnotation(new ManifestPublishingCallbackAnnotation(WriteRedisComponentToManifest));
-        componentBuilder.WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, port: port, containerPort: 6379)); // Internal port is always 6379.
-        componentBuilder.WithAnnotation(new ContainerImageAnnotation { Image = "redis", Tag = "latest" });
-        return componentBuilder;
+        var redis = new RedisContainerResource(name);
+        return builder.AddResource(redis)
+                      .WithAnnotation(new ManifestPublishingCallbackAnnotation(WriteRedisResourceToManifest))
+                      .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, port: port, containerPort: 6379))
+                      .WithAnnotation(new ContainerImageAnnotation { Image = "redis", Tag = "latest" });
     }
 
-    public static IDistributedApplicationComponentBuilder<RedisComponent> AddRedis(this IDistributedApplicationBuilder builder, string name, string? connectionString = null)
+    public static IDistributedApplicationResourceBuilder<RedisResource> AddRedis(this IDistributedApplicationBuilder builder, string name, string? connectionString = null)
     {
-        var redis = new RedisComponent(name, connectionString);
-
-        return builder.AddComponent(redis)
-            .WithAnnotation(new ManifestPublishingCallbackAnnotation(jsonWriter =>
-                WriteRedisComponentToManifest(jsonWriter, redis.GetConnectionString())));
+        var redis = new RedisResource(name, connectionString);
+        return builder.AddResource(redis)
+                      .WithAnnotation(new ManifestPublishingCallbackAnnotation(jsonWriter =>
+                        WriteRedisResourceToManifest(jsonWriter, redis.GetConnectionString())));
     }
 
-    private static void WriteRedisComponentToManifest(Utf8JsonWriter jsonWriter) =>
-        WriteRedisComponentToManifest(jsonWriter, null);
+    private static void WriteRedisResourceToManifest(Utf8JsonWriter jsonWriter) =>
+        WriteRedisResourceToManifest(jsonWriter, null);
 
-    private static void WriteRedisComponentToManifest(Utf8JsonWriter jsonWriter, string? connectionString)
+    private static void WriteRedisResourceToManifest(Utf8JsonWriter jsonWriter, string? connectionString)
     {
         jsonWriter.WriteString("type", "redis.v1");
         if (!string.IsNullOrEmpty(connectionString))
         {
             jsonWriter.WriteString("connectionString", connectionString);
         }
-    }
-
-    public static IDistributedApplicationComponentBuilder<T> WithRedis<T>(this IDistributedApplicationComponentBuilder<T> builder, IDistributedApplicationComponentBuilder<IRedisComponent> redisBuilder, string? connectionName = null)
-        where T : IDistributedApplicationComponentWithEnvironment
-    {
-        return builder.WithReference(redisBuilder, connectionName);
     }
 }

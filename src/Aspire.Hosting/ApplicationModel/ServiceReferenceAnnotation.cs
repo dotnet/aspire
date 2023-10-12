@@ -5,9 +5,9 @@ using System.Collections.ObjectModel;
 
 namespace Aspire.Hosting.ApplicationModel;
 
-internal sealed class ServiceReferenceAnnotation(IDistributedApplicationComponent component) : IDistributedApplicationComponentAnnotation
+internal sealed class ServiceReferenceAnnotation(IDistributedApplicationResource resource) : IDistributedApplicationResourceAnnotation
 {
-    public IDistributedApplicationComponent Component { get; } = component;
+    public IDistributedApplicationResource Resource { get; } = resource;
     public bool UseAllBindings { get; set; }
     public Collection<string> BindingNames { get; } = new();
 }

@@ -21,7 +21,7 @@ public class DashboardWebApplication : IHostedService
 {
     private const string DashboardOtlpUrlVariableName = "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL";
     private const string DashboardOtlpUrlDefaultValue = "http://localhost:18889";
-    private const string DashboardUrlVariableName = "DOTNET_DASHBOARD_URL";
+    private const string DashboardUrlVariableName = "ASPNETCORE_URLS";
     private const string DashboardUrlDefaultValue = "http://localhost:18888";
 
     private readonly WebApplication _app;

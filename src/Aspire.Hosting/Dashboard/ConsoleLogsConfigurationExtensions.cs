@@ -7,7 +7,7 @@ namespace Aspire.Hosting.Dashboard;
 
 public static class ConsoleLogsConfigurationExtensions
 {
-    public static IDistributedApplicationComponentBuilder<T> ConfigureConsoleLogs<T>(this IDistributedApplicationComponentBuilder<T> builder) where T : IDistributedApplicationComponentWithEnvironment
+    public static IDistributedApplicationResourceBuilder<T> ConfigureConsoleLogs<T>(this IDistributedApplicationResourceBuilder<T> builder) where T : IDistributedApplicationResourceWithEnvironment
     {
         return builder.WithEnvironment((context) =>
         {

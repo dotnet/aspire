@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Runtime.CompilerServices;
+using System.Text;
 using System.Text.Json;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
@@ -55,7 +56,7 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
             .Select(executable => ConvertToProjectViewModel(executable, endpoints)).OrderBy(m => m.Name).ToList();
     }
 
-    public async IAsyncEnumerable<ComponentChanged<ContainerViewModel>> WatchContainersAsync(
+    public async IAsyncEnumerable<ResourceChanged<ContainerViewModel>> WatchContainersAsync(
         IEnumerable<NamespacedName>? existingContainers = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
@@ -70,11 +71,11 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
 
             var containerViewModel = ConvertToContainerViewModel(container);
 
-            yield return new ComponentChanged<ContainerViewModel>(objectChangeType, containerViewModel);
+            yield return new ResourceChanged<ContainerViewModel>(objectChangeType, containerViewModel);
         }
     }
 
-    public async IAsyncEnumerable<ComponentChanged<ExecutableViewModel>> WatchExecutablesAsync(
+    public async IAsyncEnumerable<ResourceChanged<ExecutableViewModel>> WatchExecutablesAsync(
         IEnumerable<NamespacedName>? existingExecutables = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
@@ -94,11 +95,11 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
 
             var executableViewModel = ConvertToExecutableViewModel(executable);
 
-            yield return new ComponentChanged<ExecutableViewModel>(objectChangeType, executableViewModel);
+            yield return new ResourceChanged<ExecutableViewModel>(objectChangeType, executableViewModel);
         }
     }
 
-    public async IAsyncEnumerable<ComponentChanged<ProjectViewModel>> WatchProjectsAsync(
+    public async IAsyncEnumerable<ResourceChanged<ProjectViewModel>> WatchProjectsAsync(
         IEnumerable<NamespacedName>? existingProjects = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
@@ -119,7 +120,7 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
             var endpoints = await _kubernetesService.ListAsync<Endpoint>(cancellationToken: cancellationToken).ConfigureAwait(false);
             var projectViewModel = ConvertToProjectViewModel(executable, endpoints);
 
-            yield return new ComponentChanged<ProjectViewModel>(objectChangeType, projectViewModel);
+            yield return new ResourceChanged<ProjectViewModel>(objectChangeType, projectViewModel);
         }
     }
 
@@ -149,7 +150,7 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
 
         if (container.Spec.Env is not null)
         {
-            FillEnvironmentVariables(model.Environment, container.Spec.Env);
+            FillEnvironmentVariables(model.Environment, container.Spec.Env, container.Spec.Env);
         }
 
         return model;
@@ -171,7 +172,7 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
 
         if (executable.Status?.EffectiveEnv is not null)
         {
-            FillEnvironmentVariables(model.Environment, executable.Status.EffectiveEnv);
+            FillEnvironmentVariables(model.Environment, executable.Status.EffectiveEnv, executable.Spec.Env);
         }
 
         return model;
@@ -197,32 +198,43 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
             ProjectPath = executable.Metadata?.Annotations?[Executable.CSharpProjectPathAnnotation] ?? "",
             State = executable.Status?.State,
             LogSource = new FileLogSource(executable.Status?.StdOutFile, executable.Status?.StdErrFile),
-            ExpectedEndpointCount = expectedEndpointCount
+            ExpectedEndpointsCount = expectedEndpointCount
         };
-
-        if (_applicationModel.TryGetProjectWithPath(model.ProjectPath, out var project) && project.TryGetAllocatedEndPoints(out var allocatedEndpoints))
-        {
-            model.Addresses.AddRange(allocatedEndpoints.Select(ep => ep.UriString));
-        }
 
         model.Endpoints.AddRange(endpoints
             .Where(ep => ep.Metadata.OwnerReferences.Any(or => or.Kind == executable.Kind && or.Name == executable.Metadata?.Name))
             .Select(ep =>
             {
+                var builder = new StringBuilder();
                 // CONSIDER: a more robust way to store application protocol information in DCP model
-                string scheme = "http://";
                 if (ep.Spec.ServiceName?.EndsWith("https") is true)
                 {
-                    scheme = "https://";
+                    builder.Append("https://");
+                }
+                else
+                {
+                    builder.Append("http://");
                 }
 
-                return new ServiceEndpoint($"{scheme}{ep.Spec.Address}:{ep.Spec.Port}", ep.Spec.ServiceName ?? "");
+                builder.Append(ep.Spec.Address);
+                builder.Append(':');
+                builder.Append(ep.Spec.Port);
+
+                if (_applicationModel.TryGetProjectWithPath(model.ProjectPath, out var project)
+                    && project.GetEffectiveLaunchProfile() is LaunchProfile launchProfile
+                    && launchProfile.LaunchUrl is string launchUrl)
+                {
+                    builder.Append('/');
+                    builder.Append(launchUrl);
+                }
+
+                return builder.ToString();
             })
         );
 
         if (executable.Status?.EffectiveEnv is not null)
         {
-            FillEnvironmentVariables(model.Environment, executable.Status.EffectiveEnv);
+            FillEnvironmentVariables(model.Environment, executable.Status.EffectiveEnv, executable.Spec.Env);
         }
 
         return model;
@@ -242,16 +254,17 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
             _ => ObjectChangeType.Other
         };
 
-    private static void FillEnvironmentVariables(List<EnvironmentVariableViewModel> target, List<EnvVar> source)
+    private static void FillEnvironmentVariables(List<EnvironmentVariableViewModel> target, List<EnvVar> effectiveSource, List<EnvVar>? specSource)
     {
-        foreach (var env in source)
+        foreach (var env in effectiveSource)
         {
             if (env.Name is not null)
             {
                 target.Add(new()
                 {
                     Name = env.Name,
-                    Value = env.Value
+                    Value = env.Value,
+                    FromSpec = specSource?.Any(e => string.Equals(e.Name, env.Name, StringComparison.Ordinal)) == true
                 });
             }
         }

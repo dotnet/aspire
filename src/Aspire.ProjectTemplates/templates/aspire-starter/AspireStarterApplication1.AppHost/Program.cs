@@ -12,7 +12,7 @@ var apiservice = builder.AddProject<Projects.AspireStarterApplication1_ApiServic
 
 builder.AddProject<Projects.AspireStarterApplication1_Web>("webfrontend")
 #if UseRedisCache
-    .WithRedis(cache)
+    .WithReference(cache)
 #endif
     .WithServiceReference(apiservice);
 

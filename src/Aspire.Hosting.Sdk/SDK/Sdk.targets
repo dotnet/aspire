@@ -1,0 +1,33 @@
+<Project>
+
+  <!-- *** BEGIN *** -->
+
+  <!--
+  A property-based workload cannot import props files (except AutoImport.props, which has very tight limitations.
+  Instead, we copy everything from Aspire.Hosting.props into these targets.
+  This means they cannot be overridden in the csproj, and may cause ordering issues, particularly StaticWebAssets.
+  -->
+
+  <ItemGroup>
+    <ProjectCapability Include="Aspire" />
+    <ProjectCapability Include="AspireHost" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <!-- Aspire hosting projects aren't publishable right now until https://github.com/dotnet/aspire/issues/147 is good -->
+    <IsPublishable Condition="'$(IsPublishable)' == ''">false</IsPublishable>
+    <IsPackable Condition="'$(IsPackable)' == ''">false</IsPackable>
+  </PropertyGroup>
+
+  <!-- *** END ***  -->
+
+  <!--
+  This SDK comes from a workload pack, so normally should only be referenced from
+  the WorkloadManifest.targets so as not to cause workload restore to require multiple
+  phases, but it's okay here because every workload that contains Aspire.Hosting.Sdk
+  also contains Aspire.Hosting.Orchestration and vice versa. Once Aspire/DCP are public
+  we can move it to WorkloadManifest.targets to ensure future correctness.
+  -->
+  <Import Project="Sdk.targets" Sdk="Aspire.Hosting.Orchestration" />
+
+</Project>

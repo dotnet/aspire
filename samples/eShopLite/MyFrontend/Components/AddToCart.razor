@@ -1,13 +1,12 @@
 ﻿@inject BasketServiceClient BasketClient
 @inject NavigationManager Navigation
 
-<form action="@Navigation.Uri" method="post" @formname="@($"addtocart-{Item.Id}")" @onsubmit="HandleAddToCart" data-enhance>
+<EditForm Model="this" FormName="@($"addtocart-{Item.Id}")" OnSubmit="HandleAddToCart" action="@Navigation.Uri" data-enhance>
     <input type="hidden" name="itemid" value="@Item.Id" />
     <button type="submit" class="align-content-end cart-button" title=@($"Add {@Item.Name} to cart?")>
         <i class="fa fa-cart-plus" aria-hidden="true"></i>
     </button>
-    <AntiforgeryToken />
-</form>
+</EditForm>
 
 @code {
     [Parameter]

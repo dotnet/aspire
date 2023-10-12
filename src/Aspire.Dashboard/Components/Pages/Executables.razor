@@ -4,7 +4,7 @@
 @implements IDisposable
 @inherits ResourcesListBase<ExecutableViewModel>
 
-<PageTitle>@DashboardViewModelService.ApplicationName Dashboard</PageTitle>
+<PageTitle>@DashboardViewModelService.ApplicationName Executables</PageTitle>
 
 <h1>Executables</h1>
 
@@ -63,7 +63,7 @@
     protected override Task<List<ExecutableViewModel>> GetResources(IDashboardViewModelService dashboardViewModelService)
         => dashboardViewModelService.GetExecutablesAsync();
 
-    protected override IAsyncEnumerable<ComponentChanged<ExecutableViewModel>> WatchResources(
+    protected override IAsyncEnumerable<ResourceChanged<ExecutableViewModel>> WatchResources(
         IDashboardViewModelService dashboardViewModelService,
         IEnumerable<NamespacedName> initialList,
         CancellationToken cancellationToken)

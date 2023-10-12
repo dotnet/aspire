@@ -6,7 +6,7 @@ using System.Diagnostics;
 namespace Aspire.Hosting.ApplicationModel;
 
 [DebuggerDisplay("Type = {GetType().Name,nq}, Source = {Source}, Target = {Target}")]
-public sealed class VolumeMountAnnotation : IDistributedApplicationComponentAnnotation
+public sealed class VolumeMountAnnotation : IDistributedApplicationResourceAnnotation
 {
     public VolumeMountAnnotation(string source, string target, VolumeMountType type = default, bool isReadOnly = false)
     {

@@ -73,6 +73,12 @@ window.copyTextToClipboard = function (id, text, precopy, postcopy) {
     setTimeout(function () { tooltipDiv.innerText = precopy }, 1500);
 };
 
+window.updateFluentSelectDisplayValue = function (fluentSelect) {
+    if (fluentSelect) {
+        fluentSelect.updateDisplayValue();
+    }
+}
+
 window.setThemeCookie = function () {
     let matched = window.matchMedia('(prefers-color-scheme: dark)').matches;
 

@@ -7,8 +7,11 @@
 @using Microsoft.Fast.Components.FluentUI
 @using System.Web
 @inject NavigationManager NavigationManager
+@inject IDashboardViewModelService DashboardViewModelService
 @inject IJSRuntime JS
 @implements IDisposable
+
+<PageTitle>@DashboardViewModelService.ApplicationName Structured Logs</PageTitle>
 
 <h1>Structured Logs</h1>
 <div>
@@ -42,7 +45,7 @@
             <FluentButton slot="end" Appearance="Appearance.Stealth" aria-label="Add Filter" OnClick="() => OpenFilterAsync(null)"><FluentIcon Value="@(new Icons.Regular.Size16.Filter())" /></FluentButton>
         </FluentToolbar>
         <div class="datagrid-overflow-area continuous-scroll-overflow" tabindex="-1">
-            <FluentDataGrid Class="StructuredLogsDataGrid" Virtualize="true" GenerateHeader="GenerateHeaderOption.Sticky" ItemSize="48" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="OtlpLogEntry" GridTemplateColumns="1fr 1fr 1fr 5fr 0.8fr 0.8fr">
+            <FluentDataGrid Virtualize="true" GenerateHeader="GenerateHeaderOption.Sticky" ItemSize="48" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="OtlpLogEntry" GridTemplateColumns="1fr 1fr 1fr 5fr 0.8fr 0.8fr">
                 <ChildContent>
                     <TemplateColumn Title="Service">
                         <div class="col-long-content" title="@context.Application.ApplicationName">

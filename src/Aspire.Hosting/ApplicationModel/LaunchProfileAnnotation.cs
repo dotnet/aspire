@@ -6,7 +6,7 @@ using System.Diagnostics;
 namespace Aspire.Hosting.ApplicationModel;
 
 [DebuggerDisplay("Type = {GetType().Name,nq}, LaunchProfileName = {LaunchProfileName}")]
-internal sealed class LaunchProfileAnnotation : IDistributedApplicationComponentAnnotation
+internal sealed class LaunchProfileAnnotation : IDistributedApplicationResourceAnnotation
 {
     public LaunchProfileAnnotation(string launchProfileName, LaunchProfile launchProfile)
     {

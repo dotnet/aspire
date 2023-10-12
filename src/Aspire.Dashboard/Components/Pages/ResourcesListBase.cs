@@ -17,11 +17,12 @@ public abstract class ResourcesListBase<TResource> : ComponentBase
     public required EnvironmentVariablesDialogService EnvironmentVariablesDialogService { get; init; }
 
     protected abstract Task<List<TResource>> GetResources(IDashboardViewModelService dashboardViewModelService);
-    protected abstract IAsyncEnumerable<ComponentChanged<TResource>> WatchResources(
+    protected abstract IAsyncEnumerable<ResourceChanged<TResource>> WatchResources(
         IDashboardViewModelService dashboardViewModelService,
         IEnumerable<NamespacedName> initialList,
         CancellationToken cancellationToken);
     protected abstract bool Filter(TResource resource);
+    protected virtual bool ShowSpecOnlyToggle => true;
 
     private readonly Dictionary<string, TResource> _resourcesMap = new();
     private readonly CancellationTokenSource _watchTaskCancellationTokenSource = new();
@@ -41,10 +42,10 @@ public abstract class ResourcesListBase<TResource> : ComponentBase
 
         _ = Task.Run(async () =>
         {
-            await foreach (var componentChanged in WatchResources(
+            await foreach (var resourceChanged in WatchResources(
                 DashboardViewModelService, resources.Select(e => e.NamespacedName), _watchTaskCancellationTokenSource.Token))
             {
-                await OnResourceListChanged(componentChanged.ObjectChangeType, componentChanged.Component);
+                await OnResourceListChanged(resourceChanged.ObjectChangeType, resourceChanged.Resource);
             }
         });
     }
@@ -53,7 +54,11 @@ public abstract class ResourcesListBase<TResource> : ComponentBase
     {
         await EnvironmentVariablesDialogService.ShowDialogAsync(
             source: resource.Name,
-            variables: resource.Environment
+            viewModel: new()
+            {
+                EnvironmentVariables = resource.Environment,
+                ShowSpecOnlyToggle = ShowSpecOnlyToggle
+            }
         );
     }
 

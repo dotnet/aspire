@@ -4,6 +4,10 @@
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
     <PackageTags>$(ComponentCachePackageTags) distributedcaching distributedcache redis</PackageTags>
+    <Description>
+      A Redis-based implementation for IDistributedCache that integrates with
+      Aspire, including health checks, logging, and telemetry.
+    </Description>
   </PropertyGroup>
 
   <ItemGroup>
