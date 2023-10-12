@@ -43,7 +43,7 @@ public partial class Traces
             percentage = trace.Duration / ViewModel.MaxDuration * 100.0;
         }
 
-        return $"background: linear-gradient(to right, var(--duration-color) {percentage:0.##}%, transparent {percentage:0.##}%);";
+        return $"background: linear-gradient(to right, var(--neutral-fill-input-alt-active) {percentage:0.##}%, transparent {percentage:0.##}%);";
     }
 
     private ValueTask<GridItemsProviderResult<OtlpTrace>> GetData(GridItemsProviderRequest<OtlpTrace> request)

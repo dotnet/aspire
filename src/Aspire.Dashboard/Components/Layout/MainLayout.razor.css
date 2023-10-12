@@ -102,3 +102,14 @@ main {
     right: 0.75rem;
     top: 0.5rem;
 }
+
+::deep .layout {
+    min-height: 100vh;
+    background-color: var(--neutral-fill-layer-rest);
+    color: var(--neutral-foreground-rest);
+}
+
+::deep .nav-menu-container {
+    min-height: calc(100vh - 50px);
+    background-color: var(--neutral-fill-stealth-rest);
+}

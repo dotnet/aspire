@@ -78,3 +78,15 @@ window.updateFluentSelectDisplayValue = function (fluentSelect) {
         fluentSelect.updateDisplayValue();
     }
 }
+
+window.setThemeCookie = function () {
+    let matched = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+    if (matched) {
+        document.cookie = "lastSystemTheme=dark";
+        return true;
+    } else {
+        document.cookie = "lastSystemTheme=light";
+        return false;
+    }
+};
