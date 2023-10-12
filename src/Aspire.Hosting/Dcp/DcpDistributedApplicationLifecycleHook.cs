@@ -17,72 +17,12 @@ public sealed class DcpDistributedApplicationLifecycleHook(IOptions<PublishingOp
     {
         var publisher = _publishingOptions.Value?.Publisher == null ? "dcp" : _publishingOptions.Value.Publisher;
 
-        // HACK: We only automatically add service bindings when publishing under DCP, but this lifecycle hook
-        //       always runs because we use it to deterministically sequence logic in the lifecycle.
         if (publisher == "dcp")
         {
             PrepareServices(appModel);
         }
 
-        foreach (var resource in appModel.Resources)
-        {
-            // Grab the service bindings we already have for this resource.
-            var serviceBindingsLookup = resource.Annotations
-                .OfType<ServiceBindingAnnotation>()
-                .ToLookup(a => a.Name);
-
-            // Find any callbacks for this specific publisher.
-            var bindingNameGroupedCallbackAnnotations = resource.Annotations
-                .OfType<ServiceBindingCallbackAnnotation>()
-                .Where(a => a.PublisherName == publisher)
-                .ToLookup(a => a.BindingName);
-
-            foreach (var callbackAnnotationsForBinding in bindingNameGroupedCallbackAnnotations)
-            {
-                // For each callback that maps to this publisher and service binding name, find
-                // the existing service binding annotation, and if it doesn't exist create one.
-                ServiceBindingAnnotation inputAnnotation = serviceBindingsLookup.Contains(callbackAnnotationsForBinding.Key)
-                    ? serviceBindingsLookup[callbackAnnotationsForBinding.Key].Single()
-                    : CreateServiceBindingAnnotation(callbackAnnotationsForBinding.Key);
-
-                var callbackAnnotation = callbackAnnotationsForBinding.Single(); // Initially will only support one callback annotation per binding???
-                ServiceBindingAnnotation outputAnnotation = inputAnnotation;
-
-                // If the callback exists, invoke it (sometimes it won't exist if someone is
-                // just using the WithServiceBindingForPublisher(...) to bring a service binding into
-                // existence.
-                if (callbackAnnotation.Callback != null)
-                {
-                    var context = new ServiceBindingCallbackContext(publisher, inputAnnotation);
-                    outputAnnotation = callbackAnnotation.Callback(context);
-                }
-
-                // Currently we support swapping out the existing service binding for a completely
-                // new one. This is done to enable some interesting scenarios in the future around
-                // transparently adding reverse proxies/tunnels.
-                if (resource.Annotations.Contains(inputAnnotation))
-                {
-                    resource.Annotations.Remove(inputAnnotation);
-                }
-
-                if (!resource.Annotations.Contains(outputAnnotation))
-                {
-                    resource.Annotations.Add(outputAnnotation);
-                }
-            }
-        }
-
         return Task.CompletedTask;
-    }
-
-    private static ServiceBindingAnnotation CreateServiceBindingAnnotation(string bindingName)
-    {
-        return bindingName.ToLowerInvariant() switch
-        {
-            "http" => new ServiceBindingAnnotation(ProtocolType.Tcp, uriScheme: "http", containerPort: 80),
-            "https" => new ServiceBindingAnnotation(ProtocolType.Tcp, uriScheme: "https", containerPort: 443),
-            _ => new ServiceBindingAnnotation(ProtocolType.Tcp, name: bindingName)
-        };
     }
 
     private void PrepareServices(DistributedApplicationModel model)

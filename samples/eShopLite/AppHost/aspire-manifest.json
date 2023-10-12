@@ -26,6 +26,18 @@
       "path": "..\\CatalogService\\CatalogService.csproj",
       "env": {
         "ConnectionStrings__catalog": "{catalog.connectionString}"
+      },
+      "bindings": {
+        "generated-http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "generated-https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http"
+        }
       }
     },
     "messaging": {
@@ -42,11 +54,15 @@
         "ConnectionStrings__messaging": "{messaging.connectionString}"
       },
       "bindings": {
-        "http": {
+        "generated-http": {
           "scheme": "http",
           "protocol": "tcp",
-          "transport": "http",
-          "external": true
+          "transport": "http"
+        },
+        "generated-https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http"
         }
       }
     },
@@ -57,11 +73,28 @@
         "GRAFANA_URL": "{grafana.bindings.grafana-http}"
       },
       "bindings": {
-        "https": {
+        "generated-http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "generated-https": {
           "scheme": "https",
           "protocol": "tcp",
-          "transport": "http",
-          "external": true
+          "transport": "http"
+        }
+      },
+      "references": {
+        "basketservice": {
+          "bindings": [
+            "generated-http",
+            "generated-https"
+          ]
+        },
+        "catalogservice": {
+          "bindings": [
+            "http"
+          ]
         }
       }
     },
@@ -70,12 +103,50 @@
       "path": "..\\OrderProcessor\\OrderProcessor.csproj",
       "env": {
         "ConnectionStrings__messaging": "{messaging.connectionString}"
+      },
+      "bindings": {
+        "generated-http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "generated-https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http"
+        }
       }
     },
     "apigateway": {
       "type": "project.v1",
       "path": "..\\ApiGateway\\ApiGateway.csproj",
-      "env": {}
+      "env": {},
+      "bindings": {
+        "generated-http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "generated-https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http"
+        }
+      },
+      "references": {
+        "basketservice": {
+          "bindings": [
+            "generated-http",
+            "generated-https"
+          ]
+        },
+        "catalogservice": {
+          "bindings": [
+            "generated-http",
+            "generated-https"
+          ]
+        }
+      }
     },
     "prometheus": {
       "type": "container.v1",

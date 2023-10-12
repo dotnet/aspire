@@ -142,9 +142,4 @@ public static class ResourceBuilderExtensions
         var annotation = new ServiceBindingAnnotation(ProtocolType.Tcp, scheme, name, port: hostPort);
         return builder.WithAnnotation(annotation);
     }
-
-    public static IDistributedApplicationResourceBuilder<T> WithServiceBindingForPublisher<T>(this IDistributedApplicationResourceBuilder<T> builder, string publisherName, string bindingName, Func<ServiceBindingCallbackContext, ServiceBindingAnnotation>? callback = null) where T : IDistributedApplicationResource
-    {
-        return builder.WithAnnotation(new ServiceBindingCallbackAnnotation(publisherName, bindingName, callback));
-    }
 }

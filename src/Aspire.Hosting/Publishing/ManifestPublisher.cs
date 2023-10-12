@@ -104,6 +104,38 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, IHo
         }
     }
 
+    private static void WriteReferences(IDistributedApplicationResource resource, Utf8JsonWriter jsonWriter)
+    {
+        var serviceReferenceAnnotations = resource.Annotations.OfType<ServiceReferenceAnnotation>();
+
+        if (serviceReferenceAnnotations.Any())
+        {
+            jsonWriter.WriteStartObject("references");
+
+            foreach (var serviceReferenceAnnotation in serviceReferenceAnnotations)
+            {
+                jsonWriter.WriteStartObject(serviceReferenceAnnotation.Resource.Name);
+
+                jsonWriter.WriteStartArray("bindings");
+
+                var bindingNames = serviceReferenceAnnotation.UseAllBindings
+                    ? serviceReferenceAnnotation.Resource.Annotations.OfType<ServiceBindingAnnotation>().Select(b => b.Name)
+                    : serviceReferenceAnnotation.BindingNames;
+
+                foreach (var bindingName in bindingNames)
+                {
+                    jsonWriter.WriteStringValue(bindingName);
+                }
+
+                jsonWriter.WriteEndArray();
+
+                jsonWriter.WriteEndObject();
+            }
+
+            jsonWriter.WriteEndObject();
+        }
+    }
+
     private static void WriteBindings(IDistributedApplicationResource resource, Utf8JsonWriter jsonWriter)
     {
         if (resource.TryGetServiceBindings(out var serviceBindings))
@@ -159,6 +191,7 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, IHo
 
         WriteEnvironmentVariables(project, jsonWriter);
         WriteBindings(project, jsonWriter);
+        WriteReferences(project, jsonWriter);
     }
 
     private static void WriteExecutable(ExecutableResource executable, Utf8JsonWriter jsonWriter)
