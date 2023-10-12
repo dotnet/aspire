@@ -17,7 +17,7 @@ public abstract class ResourcesListBase<TResource> : ComponentBase
     public required EnvironmentVariablesDialogService EnvironmentVariablesDialogService { get; init; }
 
     protected abstract Task<List<TResource>> GetResources(IDashboardViewModelService dashboardViewModelService);
-    protected abstract IAsyncEnumerable<ComponentChanged<TResource>> WatchResources(
+    protected abstract IAsyncEnumerable<ResourceChanged<TResource>> WatchResources(
         IDashboardViewModelService dashboardViewModelService,
         IEnumerable<NamespacedName> initialList,
         CancellationToken cancellationToken);
@@ -45,7 +45,7 @@ public abstract class ResourcesListBase<TResource> : ComponentBase
             await foreach (var componentChanged in WatchResources(
                 DashboardViewModelService, resources.Select(e => e.NamespacedName), _watchTaskCancellationTokenSource.Token))
             {
-                await OnResourceListChanged(componentChanged.ObjectChangeType, componentChanged.Component);
+                await OnResourceListChanged(componentChanged.ObjectChangeType, componentChanged.Resource);
             }
         });
     }

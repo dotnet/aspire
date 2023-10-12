@@ -10,7 +10,7 @@ namespace Aspire.Hosting.Tests;
 public class WithServiceReferenceTests
 {
     [Fact]
-    public void ComponentWithSingleServiceBindingProducesSimplifiedEnvironmentVariables()
+    public void ResourceWithSingleServiceBindingProducesSimplifiedEnvironmentVariables()
     {
         var testProgram = new TestProgram([]);
 
@@ -29,7 +29,7 @@ public class WithServiceReferenceTests
         testProgram.Build();
 
         // Call environment variable callbacks.
-        var annotations = testProgram.ServiceBBuilder.Component.Annotations.OfType<EnvironmentCallbackAnnotation>();
+        var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
         var context = new EnvironmentCallbackContext("dcp", config);
@@ -46,7 +46,7 @@ public class WithServiceReferenceTests
     }
 
     [Fact]
-    public void ComponentWithConflictingServiceBindingsProducesFullyScopedEnvironmentVariables()
+    public void ResourceWithConflictingServiceBindingsProducesFullyScopedEnvironmentVariables()
     {
         var testProgram = new TestProgram([]);
 
@@ -79,7 +79,7 @@ public class WithServiceReferenceTests
         testProgram.Build();
 
         // Call environment variable callbacks.
-        var annotations = testProgram.ServiceBBuilder.Component.Annotations.OfType<EnvironmentCallbackAnnotation>();
+        var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
         var context = new EnvironmentCallbackContext("dcp", config);
@@ -96,7 +96,7 @@ public class WithServiceReferenceTests
     }
 
     [Fact]
-    public void ComponentWithNonConflictingServiceBindingsProducesAllVariantsOfEnvironmentVariables()
+    public void ResourceWithNonConflictingServiceBindingsProducesAllVariantsOfEnvironmentVariables()
     {
         var testProgram = new TestProgram([]);
 
@@ -129,7 +129,7 @@ public class WithServiceReferenceTests
         testProgram.Build();
 
         // Call environment variable callbacks.
-        var annotations = testProgram.ServiceBBuilder.Component.Annotations.OfType<EnvironmentCallbackAnnotation>();
+        var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
         var context = new EnvironmentCallbackContext("dcp", config);

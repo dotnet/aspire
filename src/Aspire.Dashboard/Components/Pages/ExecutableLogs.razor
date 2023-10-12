@@ -20,6 +20,6 @@
     protected override Task<List<ExecutableViewModel>> GetResources(IDashboardViewModelService dashboardViewModelService)
         => dashboardViewModelService.GetExecutablesAsync();
 
-    protected override IAsyncEnumerable<ComponentChanged<ExecutableViewModel>> WatchResources(IDashboardViewModelService dashboardViewModelService, IEnumerable<NamespacedName>? initialList, CancellationToken cancellationToken)
+    protected override IAsyncEnumerable<ResourceChanged<ExecutableViewModel>> WatchResources(IDashboardViewModelService dashboardViewModelService, IEnumerable<NamespacedName>? initialList, CancellationToken cancellationToken)
         => dashboardViewModelService.WatchExecutablesAsync(initialList, cancellationToken);
 }

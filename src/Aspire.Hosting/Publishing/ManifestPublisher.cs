@@ -32,43 +32,43 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, IHo
         using var jsonWriter = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true });
 
         jsonWriter.WriteStartObject();
-        WriteComponents(model, jsonWriter);
+        WriteResources(model, jsonWriter);
         jsonWriter.WriteEndObject();
 
         await jsonWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private void WriteComponents(DistributedApplicationModel model, Utf8JsonWriter jsonWriter)
+    private void WriteResources(DistributedApplicationModel model, Utf8JsonWriter jsonWriter)
     {
-        jsonWriter.WriteStartObject("components");
-        foreach (var component in model.Components)
+        jsonWriter.WriteStartObject("resources");
+        foreach (var resource in model.Resources)
         {
-            WriteComponent(component, jsonWriter);
+            WriteResource(resource, jsonWriter);
         }
         jsonWriter.WriteEndObject();
     }
 
-    private void WriteComponent(IDistributedApplicationComponent component, Utf8JsonWriter jsonWriter)
+    private void WriteResource(IDistributedApplicationResource resource, Utf8JsonWriter jsonWriter)
     {
-        jsonWriter.WriteStartObject(component.Name);
+        jsonWriter.WriteStartObject(resource.Name);
 
-        // First see if the component has a callback annotation with overrides the behavior for rendering
+        // First see if the resource has a callback annotation with overrides the behavior for rendering
         // out the JSON. If so use that callback, otherwise use the fallback logic that we have.
-        if (component.TryGetLastAnnotation<ManifestPublishingCallbackAnnotation>(out var manifestPublishingCallbackAnnotation))
+        if (resource.TryGetLastAnnotation<ManifestPublishingCallbackAnnotation>(out var manifestPublishingCallbackAnnotation))
         {
             manifestPublishingCallbackAnnotation.Callback(jsonWriter);
         }
-        else if (component is ContainerComponent containerComponent)
+        else if (resource is ContainerResource container)
         {
-            WriteContainer(containerComponent, jsonWriter);
+            WriteContainer(container, jsonWriter);
         }
-        else if (component is ProjectComponent projectComponent)
+        else if (resource is ProjectResource project)
         {
-            WriteProject(projectComponent, jsonWriter);
+            WriteProject(project, jsonWriter);
         }
-        else if (component is ExecutableComponent executableComponent)
+        else if (resource is ExecutableResource executable)
         {
-            WriteExecutable(executableComponent, jsonWriter);
+            WriteExecutable(executable, jsonWriter);
         }
         else
         {
@@ -80,15 +80,15 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, IHo
 
     private static void WriteError(Utf8JsonWriter jsonWriter)
     {
-        jsonWriter.WriteString("error", "This component does not support generation in the manifest.");
+        jsonWriter.WriteString("error", "This resource does not support generation in the manifest.");
     }
 
-    private static void WriteEnvironmentVariables(IDistributedApplicationComponent component, Utf8JsonWriter jsonWriter)
+    private static void WriteEnvironmentVariables(IDistributedApplicationResource resource, Utf8JsonWriter jsonWriter)
     {
         var config = new Dictionary<string, string>();
         var context = new EnvironmentCallbackContext("manifest", config);
 
-        if (component.TryGetAnnotationsOfType<EnvironmentCallbackAnnotation>(out var callbacks))
+        if (resource.TryGetAnnotationsOfType<EnvironmentCallbackAnnotation>(out var callbacks))
         {
             jsonWriter.WriteStartObject("env");
             foreach (var callback in callbacks)
@@ -104,9 +104,9 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, IHo
         }
     }
 
-    private static void WriteBindings(IDistributedApplicationComponent component, Utf8JsonWriter jsonWriter)
+    private static void WriteBindings(IDistributedApplicationResource resource, Utf8JsonWriter jsonWriter)
     {
-        if (component.TryGetServiceBindings(out var serviceBindings))
+        if (resource.TryGetServiceBindings(out var serviceBindings))
         {
             jsonWriter.WriteStartObject("bindings");
             foreach (var serviceBinding in serviceBindings)
@@ -127,26 +127,26 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, IHo
         }
     }
 
-    private static void WriteContainer(ContainerComponent containerComponent, Utf8JsonWriter jsonWriter)
+    private static void WriteContainer(ContainerResource container, Utf8JsonWriter jsonWriter)
     {
         jsonWriter.WriteString("type", "container.v1");
 
-        if (!containerComponent.TryGetContainerImageName(out var image))
+        if (!container.TryGetContainerImageName(out var image))
         {
             throw new DistributedApplicationException("Could not get container image name.");
         }
 
         jsonWriter.WriteString("image", image);
 
-        WriteEnvironmentVariables(containerComponent, jsonWriter);
-        WriteBindings(containerComponent, jsonWriter);
+        WriteEnvironmentVariables(container, jsonWriter);
+        WriteBindings(container, jsonWriter);
     }
 
-    private void WriteProject(ProjectComponent projectComponent, Utf8JsonWriter jsonWriter)
+    private void WriteProject(ProjectResource project, Utf8JsonWriter jsonWriter)
     {
         jsonWriter.WriteString("type", "project.v1");
 
-        if (!projectComponent.TryGetLastAnnotation<IServiceMetadata>(out var metadata))
+        if (!project.TryGetLastAnnotation<IServiceMetadata>(out var metadata))
         {
             throw new DistributedApplicationException("Service metadata not found.");
         }
@@ -156,15 +156,15 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, IHo
         var relativePathToProjectFile = Path.GetRelativePath(manifestDirectory, metadata.ProjectPath);
         jsonWriter.WriteString("path", relativePathToProjectFile);
 
-        WriteEnvironmentVariables(projectComponent, jsonWriter);
-        WriteBindings(projectComponent, jsonWriter);
+        WriteEnvironmentVariables(project, jsonWriter);
+        WriteBindings(project, jsonWriter);
     }
 
-    private static void WriteExecutable(ExecutableComponent executableComponent, Utf8JsonWriter jsonWriter)
+    private static void WriteExecutable(ExecutableResource executable, Utf8JsonWriter jsonWriter)
     {
         jsonWriter.WriteString("type", "executable.v1");
 
-        WriteEnvironmentVariables(executableComponent, jsonWriter);
-        WriteBindings(executableComponent, jsonWriter);
+        WriteEnvironmentVariables(executable, jsonWriter);
+        WriteBindings(executable, jsonWriter);
     }
 }

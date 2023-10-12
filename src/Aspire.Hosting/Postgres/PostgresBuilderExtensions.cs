@@ -11,30 +11,30 @@ public static class PostgresBuilderExtensions
 {
     private const string PasswordEnvVarName = "POSTGRES_PASSWORD";
 
-    public static IDistributedApplicationComponentBuilder<PostgresContainerComponent> AddPostgresContainer(this IDistributedApplicationBuilder builder, string name, int? port = null, string? password = null)
+    public static IDistributedApplicationResourceBuilder<PostgresContainerResource> AddPostgresContainer(this IDistributedApplicationBuilder builder, string name, int? port = null, string? password = null)
     {
         password = password ?? Guid.NewGuid().ToString("N");
-        var postgresContainerComponent = new PostgresContainerComponent(name, password);
-        return builder.AddComponent(postgresContainerComponent)
+        var postgresContainer = new PostgresContainerResource(name, password);
+        return builder.AddResource(postgresContainer)
                       .WithAnnotation(new ManifestPublishingCallbackAnnotation(WritePostgresContainerToManifest))
                       .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, port: port, containerPort: 5432)) // Internal port is always 5432.
                       .WithAnnotation(new ContainerImageAnnotation { Image = "postgres", Tag = "latest" })
                       .WithEnvironment("POSTGRES_HOST_AUTH_METHOD", "trust")
-                      .WithEnvironment(PasswordEnvVarName, () => postgresContainerComponent.Password);
+                      .WithEnvironment(PasswordEnvVarName, () => postgresContainer.Password);
     }
 
-    public static IDistributedApplicationComponentBuilder<PostgresConnectionComponent> AddPostgresConnection(this IDistributedApplicationBuilder builder, string name, string? connectionString = null)
+    public static IDistributedApplicationResourceBuilder<PostgresConnectionResource> AddPostgresConnection(this IDistributedApplicationBuilder builder, string name, string? connectionString = null)
     {
-        var postgresConnectionComponent = new PostgresConnectionComponent(name, connectionString);
+        var postgresConnection = new PostgresConnectionResource(name, connectionString);
 
-        return builder.AddComponent(postgresConnectionComponent)
-            .WithAnnotation(new ManifestPublishingCallbackAnnotation((json) => WritePostgresConnectionToManifest(json, postgresConnectionComponent)));
+        return builder.AddResource(postgresConnection)
+            .WithAnnotation(new ManifestPublishingCallbackAnnotation((json) => WritePostgresConnectionToManifest(json, postgresConnection)));
     }
 
-    private static void WritePostgresConnectionToManifest(Utf8JsonWriter jsonWriter, PostgresConnectionComponent postgresConnectionComponent)
+    private static void WritePostgresConnectionToManifest(Utf8JsonWriter jsonWriter, PostgresConnectionResource postgresConnection)
     {
         jsonWriter.WriteString("type", "postgres.connection.v1");
-        jsonWriter.WriteString("connectionString", postgresConnectionComponent.GetConnectionString());
+        jsonWriter.WriteString("connectionString", postgresConnection.GetConnectionString());
     }
 
     private static void WritePostgresContainerToManifest(Utf8JsonWriter jsonWriter)
@@ -42,26 +42,26 @@ public static class PostgresBuilderExtensions
         jsonWriter.WriteString("type", "postgres.server.v1");
     }
 
-    private static void WritePostgresDatabaseComponentToManifest(Utf8JsonWriter json, PostgresDatabaseComponent postgresDatabaseComponent)
+    private static void WritePostgresDatabaseToManifest(Utf8JsonWriter json, PostgresDatabaseResource postgresDatabase)
     {
         json.WriteString("type", "postgres.database.v1");
-        json.WriteString("parent", postgresDatabaseComponent.Parent.Name);
+        json.WriteString("parent", postgresDatabase.Parent.Name);
     }
 
     /// <summary>
     /// Sets a connection string for this service. The connection string will be available in the service's environment.
     /// </summary>
-    public static IDistributedApplicationComponentBuilder<T> WithPostgres<T, TPostgres>(this IDistributedApplicationComponentBuilder<T> builder, IDistributedApplicationComponentBuilder<TPostgres> postgresBuilder, string? connectionName = null) where TPostgres : IPostgresComponent
-        where T : IDistributedApplicationComponentWithEnvironment
+    public static IDistributedApplicationResourceBuilder<T> WithPostgres<T, TPostgres>(this IDistributedApplicationResourceBuilder<T> builder, IDistributedApplicationResourceBuilder<TPostgres> postgresBuilder, string? connectionName = null) where TPostgres : IPostgresResource
+        where T : IDistributedApplicationResourceWithEnvironment
     {
         return builder.WithReference(postgresBuilder, connectionName);
     }
 
-    public static IDistributedApplicationComponentBuilder<PostgresDatabaseComponent> AddDatabase(this IDistributedApplicationComponentBuilder<PostgresContainerComponent> builder, string name)
+    public static IDistributedApplicationResourceBuilder<PostgresDatabaseResource> AddDatabase(this IDistributedApplicationResourceBuilder<PostgresContainerResource> builder, string name)
     {
-        var postgresDatabase = new PostgresDatabaseComponent(name, builder.Component);
-        return builder.ApplicationBuilder.AddComponent(postgresDatabase)
+        var postgresDatabase = new PostgresDatabaseResource(name, builder.Resource);
+        return builder.ApplicationBuilder.AddResource(postgresDatabase)
                                          .WithAnnotation(new ManifestPublishingCallbackAnnotation(
-                                             (json) => WritePostgresDatabaseComponentToManifest(json, postgresDatabase)));
+                                             (json) => WritePostgresDatabaseToManifest(json, postgresDatabase)));
     }
 }

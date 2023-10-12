@@ -36,9 +36,9 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
 
     public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
-        var projectComponents = appModel.GetProjectComponents().ToArray();
+        var projectResources = appModel.GetProjectResources().ToArray();
 
-        foreach (var project in projectComponents)
+        foreach (var project in projectResources)
         {
             if (!project.TryGetLastAnnotation<IServiceMetadata>(out var projectMetadata))
             {
@@ -117,13 +117,13 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                 throw new DistributedApplicationException("AppId is required for Dapr sidecar executable.");
             }
 
-            var component = new ExecutableComponent(appId, fileName, workingDirectory, daprCommandLine.Arguments.ToArray());
+            var resource = new ExecutableResource(appId, fileName, workingDirectory, daprCommandLine.Arguments.ToArray());
 
             project.Annotations.Add(
                 new EnvironmentCallbackAnnotation(
                     env =>
                     {
-                        if (component.TryGetAllocatedEndPoints(out var endPoints))
+                        if (resource.TryGetAllocatedEndPoints(out var endPoints))
                         {
                             foreach (var endPoint in endPoints)
                             {
@@ -135,15 +135,15 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         }
                     }));
 
-            component.Annotations.AddRange(ports.Select(port => new ServiceBindingAnnotation(ProtocolType.Tcp, name: port.Key, port: port.Value.Port)));
+            resource.Annotations.AddRange(ports.Select(port => new ServiceBindingAnnotation(ProtocolType.Tcp, name: port.Key, port: port.Value.Port)));
 
             // NOTE: Telemetry is enabled by default.
             if (this._options.EnableTelemetry != false)
             {
-                OtlpConfigurationExtensions.AddOtlpEnvironment(component, _configuration, _environment);
+                OtlpConfigurationExtensions.AddOtlpEnvironment(resource, _configuration, _environment);
 
                 // Explicitly specify OTEL endpoint is insecure and use gRPC to sidecar.
-                component.Annotations.Add(
+                resource.Annotations.Add(
                     new EnvironmentCallbackAnnotation(
                         env =>
                         {
@@ -152,7 +152,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         }));
             }
 
-            component.Annotations.Add(
+            resource.Annotations.Add(
                 new ExecutableArgsCallbackAnnotation(
                     updatedArgs =>
                     {
@@ -172,7 +172,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         }
                     }));
 
-            appModel.Components.Add(component);
+            appModel.Resources.Add(resource);
         }
 
         return Task.CompletedTask;

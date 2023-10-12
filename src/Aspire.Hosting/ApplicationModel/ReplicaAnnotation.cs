@@ -6,7 +6,7 @@ using System.Diagnostics;
 namespace Aspire.Hosting.ApplicationModel;
 
 [DebuggerDisplay("Type = {GetType().Name,nq}, Replicas = {Replicas}")]
-public sealed class ReplicaAnnotation : IDistributedApplicationComponentAnnotation
+public sealed class ReplicaAnnotation : IDistributedApplicationResourceAnnotation
 {
     public ReplicaAnnotation(int replicas = 1)
     {

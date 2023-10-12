@@ -5,10 +5,10 @@ using System.Diagnostics;
 
 namespace Aspire.Hosting.ApplicationModel;
 
-[DebuggerDisplay("Name = {Name}, Components = {Components.Count}")]
-public class DistributedApplicationModel(IDistributedApplicationComponentCollection components)
+[DebuggerDisplay("Name = {Name}, Resources = {Resources.Count}")]
+public class DistributedApplicationModel(IDistributedApplicationResourceCollection resources)
 {
-    public IDistributedApplicationComponentCollection Components { get; } = components;
+    public IDistributedApplicationResourceCollection Resources { get; } = resources;
 
     public string? Name { get; set; }
 }

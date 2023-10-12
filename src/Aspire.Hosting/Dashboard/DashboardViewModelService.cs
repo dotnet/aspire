@@ -56,7 +56,7 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
             .Select(executable => ConvertToProjectViewModel(executable, endpoints)).OrderBy(m => m.Name).ToList();
     }
 
-    public async IAsyncEnumerable<ComponentChanged<ContainerViewModel>> WatchContainersAsync(
+    public async IAsyncEnumerable<ResourceChanged<ContainerViewModel>> WatchContainersAsync(
         IEnumerable<NamespacedName>? existingContainers = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
@@ -71,11 +71,11 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
 
             var containerViewModel = ConvertToContainerViewModel(container);
 
-            yield return new ComponentChanged<ContainerViewModel>(objectChangeType, containerViewModel);
+            yield return new ResourceChanged<ContainerViewModel>(objectChangeType, containerViewModel);
         }
     }
 
-    public async IAsyncEnumerable<ComponentChanged<ExecutableViewModel>> WatchExecutablesAsync(
+    public async IAsyncEnumerable<ResourceChanged<ExecutableViewModel>> WatchExecutablesAsync(
         IEnumerable<NamespacedName>? existingExecutables = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
@@ -95,11 +95,11 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
 
             var executableViewModel = ConvertToExecutableViewModel(executable);
 
-            yield return new ComponentChanged<ExecutableViewModel>(objectChangeType, executableViewModel);
+            yield return new ResourceChanged<ExecutableViewModel>(objectChangeType, executableViewModel);
         }
     }
 
-    public async IAsyncEnumerable<ComponentChanged<ProjectViewModel>> WatchProjectsAsync(
+    public async IAsyncEnumerable<ResourceChanged<ProjectViewModel>> WatchProjectsAsync(
         IEnumerable<NamespacedName>? existingProjects = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
@@ -120,7 +120,7 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
             var endpoints = await _kubernetesService.ListAsync<Endpoint>(cancellationToken: cancellationToken).ConfigureAwait(false);
             var projectViewModel = ConvertToProjectViewModel(executable, endpoints);
 
-            yield return new ComponentChanged<ProjectViewModel>(objectChangeType, projectViewModel);
+            yield return new ResourceChanged<ProjectViewModel>(objectChangeType, projectViewModel);
         }
     }
 

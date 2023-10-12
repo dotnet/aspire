@@ -12,7 +12,7 @@ namespace Aspire.Hosting.Dapr;
 public static class IDistributedApplicationBuilderExtensions
 {
     /// <summary>
-    /// Adds Dapr support to Aspire, including the ability to add Dapr sidecar to application components.
+    /// Adds Dapr support to Aspire, including the ability to add Dapr sidecar to application resource.
     /// </summary>
     /// <param name="builder">The distributed application builder instance.</param>
     /// <param name="options">Options for configuring Dapr, if any.</param>

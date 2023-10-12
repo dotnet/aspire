@@ -54,7 +54,7 @@
     protected override Task<List<ContainerViewModel>> GetResources(IDashboardViewModelService dashboardViewModelService)
         => dashboardViewModelService.GetContainersAsync();
 
-    protected override IAsyncEnumerable<ComponentChanged<ContainerViewModel>> WatchResources(
+    protected override IAsyncEnumerable<ResourceChanged<ContainerViewModel>> WatchResources(
     IDashboardViewModelService dashboardViewModelService,
         IEnumerable<NamespacedName> initialList,
         CancellationToken cancellationToken)

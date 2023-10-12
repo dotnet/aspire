@@ -6,7 +6,7 @@ using System.Diagnostics;
 namespace Aspire.Hosting.ApplicationModel;
 
 [DebuggerDisplay("Type = {GetType().Name,nq}, Image = {Image}, Tag = {Tag}")]
-public sealed class ContainerImageAnnotation : IDistributedApplicationComponentAnnotation
+public sealed class ContainerImageAnnotation : IDistributedApplicationResourceAnnotation
 {
     public string? Registry { get; set; }
     public required string Image { get; set; }

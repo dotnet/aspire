@@ -14,9 +14,9 @@ public class TestProgram
     }
 
     public IDistributedApplicationBuilder AppBuilder { get; private set; }
-    public IDistributedApplicationComponentBuilder<ProjectComponent> ServiceABuilder { get; private set; }
-    public IDistributedApplicationComponentBuilder<ProjectComponent> ServiceBBuilder { get; private set; }
-    public IDistributedApplicationComponentBuilder<ProjectComponent> ServiceCBuilder { get; private set; }
+    public IDistributedApplicationResourceBuilder<ProjectResource> ServiceABuilder { get; private set; }
+    public IDistributedApplicationResourceBuilder<ProjectResource> ServiceBBuilder { get; private set; }
+    public IDistributedApplicationResourceBuilder<ProjectResource> ServiceCBuilder { get; private set; }
     public DistributedApplication? App { get; private set; }
 
     public async Task RunAsync(CancellationToken cancellationToken = default)

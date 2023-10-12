@@ -82,7 +82,7 @@
     protected override Task<List<ProjectViewModel>> GetResources(IDashboardViewModelService dashboardViewModelService)
         => dashboardViewModelService.GetProjectsAsync();
 
-    protected override IAsyncEnumerable<ComponentChanged<ProjectViewModel>> WatchResources(
+    protected override IAsyncEnumerable<ResourceChanged<ProjectViewModel>> WatchResources(
     IDashboardViewModelService dashboardViewModelService,
         IEnumerable<NamespacedName> initialList,
         CancellationToken cancellationToken)
