@@ -6,15 +6,8 @@ Follow all steps in [machine-requirements](machine-requirements.md).
 
 Add NuGet sources to apply the following feeds
     - https://pkgs.dev.azure.com/dnceng/internal/_packaging/dotnet-tools-internal/nuget/v3/index.json
+    - https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet8/nuget/v3/index.json (https://github.com/dotnet/installer#installers-and-binaries)
     - See [Install and manage packages in Visual Studio](https://learn.microsoft.com/nuget/consume-packages/install-use-packages-visual-studio#package-sources) for instructions.
-
-## Install .NET 8 RTM nightly SDK
-
-1. Add the NuGet feed for .NET 8 - https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet8/nuget/v3/index.json (https://github.com/dotnet/installer#installers-and-binaries)
-2. Install the .NET 8 RTM nightly SDK version 8.0.100-rtm.23512.3 or newer:
-   1. [Windows x64 link](https://dotnetbuilds.azureedge.net/public/Sdk/8.0.100-rtm.23512.3/dotnet-sdk-8.0.100-rtm.23512.3-win-x64.exe)
-   2. [Linux x64 link](https://dotnetbuilds.azureedge.net/public/Sdk/8.0.100-rtm.23512.3/dotnet-sdk-8.0.100-rtm.23512.3-linux-x64.tar.gz)
-   3. [OSX x64 link](https://dotnetbuilds.azureedge.net/public/Sdk/8.0.100-rtm.23512.3/dotnet-sdk-8.0.100-rtm.23512.3-osx-x64.tar.gz)
 
 ## Install the Azure Artifacts Credential Provider for NuGet
 
@@ -42,10 +35,6 @@ Examples:
 - `sh -c "$(curl -fsSL https://aka.ms/install-artifacts-credprovider.sh)"`
 
 > Note: this script only installs the netcore version of the plugin. If you need to have it working with mono msbuild, you will need to download the version with both netcore and netfx binaries following the steps in [Manual installation on Linux and Mac](#installation-on-linux-and-mac)
-
-## Install Docker Desktop
-
-1. https://www.docker.com/
 
 ## Install the Aspire dotnet workload
 

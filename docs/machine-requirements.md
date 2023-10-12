@@ -1,17 +1,16 @@
 # Set up your environment
 
-## Install Visual Studio 2022 Internal Preview
+## Install Visual Studio 2022 Internal Preview (dogfood)
 
-1. [Visual Studio 2022 Enterprise IntPreview Setup](https://aka.ms/vs/17/intpreview/vs_enterprise.exe)
-    - This channel updates nightly. You need a 17.9.0 Preview build.
+[Visual Studio 2022 Enterprise IntPreview Setup](https://aka.ms/vs/17/intpreview/vs_enterprise.exe)
+    - This channel updates nightly. You need a build from 12-Oct-2023 or later.
 
-## Install .NET 8 RC2
+## Install .NET 8 RTM nightly SDK
 
-1. Add the NuGet feed for .NET 8 - https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet8/nuget/v3/index.json (https://github.com/dotnet/installer#installers-and-binaries)
-2. Install the .NET 8 RC2 SDK version 8.0.100-rc.2.23502.2.
-   1. [Windows x64 link](https://dotnetcli.azureedge.net/dotnet/Sdk/8.0.100-rc.2.23502.2/dotnet-sdk-8.0.100-rc.2.23502.2-win-x64.exe)
-   2. [Linux x64 link](https://dotnetcli.azureedge.net/dotnet/Sdk/8.0.100-rc.2.23502.2/dotnet-sdk-8.0.100-rc.2.23502.2-linux-x64.tar.gz)
-   3. [OSX x64 link](https://dotnetcli.azureedge.net/dotnet/Sdk/8.0.100-rc.2.23502.2/dotnet-sdk-8.0.100-rc.2.23502.2-osx-x64.tar.gz)
+Install the .NET 8 RTM nightly SDK version 8.0.100-rtm.23512.3 or newer:
+   1. [Windows x64 link](https://dotnetbuilds.azureedge.net/public/Sdk/8.0.100-rtm.23512.3/dotnet-sdk-8.0.100-rtm.23512.3-win-x64.exe)
+   2. [Linux x64 link](https://dotnetbuilds.azureedge.net/public/Sdk/8.0.100-rtm.23512.3/dotnet-sdk-8.0.100-rtm.23512.3-linux-x64.tar.gz)
+   3. [OSX x64 link](https://dotnetbuilds.azureedge.net/public/Sdk/8.0.100-rtm.23512.3/dotnet-sdk-8.0.100-rtm.23512.3-osx-x64.tar.gz)
 
 ## Install Docker Desktop
 
