@@ -48,15 +48,6 @@ public static class PostgresBuilderExtensions
         json.WriteString("parent", postgresDatabase.Parent.Name);
     }
 
-    /// <summary>
-    /// Sets a connection string for this service. The connection string will be available in the service's environment.
-    /// </summary>
-    public static IDistributedApplicationResourceBuilder<T> WithPostgres<T, TPostgres>(this IDistributedApplicationResourceBuilder<T> builder, IDistributedApplicationResourceBuilder<TPostgres> postgresBuilder, string? connectionName = null) where TPostgres : IPostgresResource
-        where T : IDistributedApplicationResourceWithEnvironment
-    {
-        return builder.WithReference(postgresBuilder, connectionName);
-    }
-
     public static IDistributedApplicationResourceBuilder<PostgresDatabaseResource> AddDatabase(this IDistributedApplicationResourceBuilder<PostgresContainerResource> builder, string name)
     {
         var postgresDatabase = new PostgresDatabaseResource(name, builder.Resource);

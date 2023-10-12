@@ -47,12 +47,6 @@ public static class SqlServerBuilderExtensions
         json.WriteString("parent", sqlServerDatabase.Parent.Name);
     }
 
-    public static IDistributedApplicationResourceBuilder<T> WithSqlServer<T, TSqlServer>(this IDistributedApplicationResourceBuilder<T> builder, IDistributedApplicationResourceBuilder<TSqlServer> sqlServerBuilder, string? connectionName = null) where TSqlServer : ISqlServerResource
-        where T : IDistributedApplicationResourceWithEnvironment
-    {
-        return builder.WithReference(sqlServerBuilder, connectionName);
-    }
-
     public static IDistributedApplicationResourceBuilder<SqlServerDatabaseResource> AddDatabase(this IDistributedApplicationResourceBuilder<SqlServerContainerResource> builder, string name)
     {
         var sqlServerDatabase = new SqlServerDatabaseResource(name, builder.Resource);

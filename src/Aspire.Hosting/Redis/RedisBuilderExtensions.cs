@@ -37,10 +37,4 @@ public static class RedisBuilderExtensions
             jsonWriter.WriteString("connectionString", connectionString);
         }
     }
-
-    public static IDistributedApplicationResourceBuilder<T> WithRedis<T>(this IDistributedApplicationResourceBuilder<T> builder, IDistributedApplicationResourceBuilder<IRedisResource> redisBuilder, string? connectionName = null)
-        where T : IDistributedApplicationResourceWithEnvironment
-    {
-        return builder.WithReference(redisBuilder, connectionName);
-    }
 }

@@ -93,13 +93,13 @@ Also you can pass the `Action<MicrosoftEntityFrameworkCoreSqlServerSettings> con
 In your App project, register a SqlServer container and consume the connection using the following methods:
 
 ```cs
-var sql = builder.AddSqlServerContainer("sqldata");
+var sql = builder.AddSqlServerContainer("sql").AddDatabase("sqldata");
 
 var myService = builder.AddProject<YourApp.Projects.MyService>()
-                       .WithSqlServer(sql, "master");
+                       .WithReference(sql);
 ```
 
-`.WithSqlServer` configures a connection in the `MyService` project named `sqldata`. In the `Program.cs` file of `MyService`, the sql connection can be consumed using:
+`.WithReference` configures a connection in the `MyService` project named `sqldata`. In the `Program.cs` file of `MyService`, the sql connection can be consumed using:
 
 ```cs
 builder.AddSqlServerDbContext<MyDbContext>("sqldata");

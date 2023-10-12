@@ -20,12 +20,6 @@ public static class AzureResourceExtensions
         jsonWriter.WriteString("type", "azure.keyvault.v1");
     }
 
-    public static IDistributedApplicationResourceBuilder<T> WithAddAzureKeyVault<T>(this IDistributedApplicationResourceBuilder<T> builder, IDistributedApplicationResourceBuilder<AzureKeyVaultResource> keyVaultBuilder, string? connectionName = null)
-        where T : IDistributedApplicationResourceWithEnvironment
-    {
-        return builder.WithReference(keyVaultBuilder, connectionName);
-    }
-
     public static IDistributedApplicationResourceBuilder<AzureServiceBusResource> AddAzureServiceBus(this IDistributedApplicationBuilder builder, string name, string[]? queueNames = null, string[]? topicNames = null)
     {
         var resource = new AzureServiceBusResource(name)
@@ -61,12 +55,6 @@ public static class AzureResourceExtensions
             }
             jsonWriter.WriteEndArray();
         }
-    }
-
-    public static IDistributedApplicationResourceBuilder<T> WithAzureServiceBus<T>(this IDistributedApplicationResourceBuilder<T> builder, IDistributedApplicationResourceBuilder<AzureServiceBusResource> serviceBusBuilder, string? connectionName = null)
-        where T : IDistributedApplicationResourceWithEnvironment
-    {
-        return builder.WithReference(serviceBusBuilder, connectionName);
     }
 
     public static IDistributedApplicationResourceBuilder<AzureStorageResource> AddAzureStorage(this IDistributedApplicationBuilder builder, string name)
@@ -118,23 +106,5 @@ public static class AzureResourceExtensions
     {
         json.WriteString("type", "azure.storage.queue.v1");
         json.WriteString("parent", resource.Parent.Name);
-    }
-
-    public static IDistributedApplicationResourceBuilder<T> WithTableStorage<T>(this IDistributedApplicationResourceBuilder<T> builder, IDistributedApplicationResourceBuilder<AzureTableStorageResource> tableBuilder, string? connectionName = null)
-        where T : IDistributedApplicationResourceWithEnvironment
-    {
-        return builder.WithReference(tableBuilder, connectionName);
-    }
-
-    public static IDistributedApplicationResourceBuilder<T> WithQueueStorage<T>(this IDistributedApplicationResourceBuilder<T> builder, IDistributedApplicationResourceBuilder<AzureQueueStorageResource> queueBuilder, string? connectionName = null)
-        where T : IDistributedApplicationResourceWithEnvironment
-    {
-        return builder.WithReference(queueBuilder, connectionName);
-    }
-
-    public static IDistributedApplicationResourceBuilder<T> WithBlobStorage<T>(this IDistributedApplicationResourceBuilder<T> builder, IDistributedApplicationResourceBuilder<AzureBlobStorageResource> blobBuilder, string? connectionName = null)
-        where T : IDistributedApplicationResourceWithEnvironment
-    {
-        return builder.WithReference(blobBuilder, connectionName);
     }
 }
