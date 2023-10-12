@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading.Channels;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.Dcp.Process;
@@ -83,7 +82,6 @@ internal sealed class DockerContainerLogSource(string containerId) : ILogSource
             try
             {
                 var args = $"logs --follow -t {containerId}";
-                var output = new StringBuilder();
 
                 var spec = new ProcessSpec(FileUtil.FindFullPathFromPath(Executable))
                 {

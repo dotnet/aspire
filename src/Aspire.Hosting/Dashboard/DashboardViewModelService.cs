@@ -4,10 +4,13 @@
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
+using Aspire.Hosting.Dcp.Process;
+using Aspire.Hosting.Utils;
 using k8s;
 using Microsoft.Extensions.Hosting;
 using NamespacedName = Aspire.Dashboard.Model.NamespacedName;
@@ -34,7 +37,11 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
     {
         var containers = await _kubernetesService.ListAsync<Container>().ConfigureAwait(false);
 
-        return containers.Select(ConvertToContainerViewModel).OrderBy(e => e.Name).ToList();
+        var results = containers.Select(ConvertToContainerViewModel).OrderBy(e => e.Name).ToList();
+
+        await Task.WhenAll(results.Select(FillEnvironmentVariablesFromDocker)).ConfigureAwait(false);
+
+        return results;
     }
 
     public async Task<List<ExecutableViewModel>> GetExecutablesAsync()
@@ -70,6 +77,7 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
             }
 
             var containerViewModel = ConvertToContainerViewModel(container);
+            await FillEnvironmentVariablesFromDocker(containerViewModel).ConfigureAwait(false);
 
             yield return new ResourceChanged<ContainerViewModel>(objectChangeType, containerViewModel);
         }
@@ -154,6 +162,56 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
         }
 
         return model;
+    }
+
+    private static async Task FillEnvironmentVariablesFromDocker(ContainerViewModel containerViewModel)
+    {
+        if (containerViewModel.State is not null
+            && containerViewModel.ContainerId is not null)
+        {
+            IAsyncDisposable? processDisposable = null;
+            try
+            {
+                Task<ProcessResult> task;
+                var outputStringBuilder = new StringBuilder();
+                var spec = new ProcessSpec(FileUtil.FindFullPathFromPath("docker"))
+                {
+                    Arguments = $"container inspect --format=\"{{{{json .Config.Env}}}}\" {containerViewModel.ContainerId}",
+                    OnOutputData = s => outputStringBuilder.Append(s),
+                    KillEntireProcessTree = false,
+                    ThrowOnNonZeroReturnCode = false
+                };
+
+                (task, processDisposable) = ProcessUtil.Run(spec);
+
+                var exitCode = (await task.WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(false)).ExitCode;
+                if (exitCode == 0)
+                {
+                    var jsonArray = JsonNode.Parse(outputStringBuilder.ToString())?.AsArray();
+                    if (jsonArray is not null)
+                    {
+                        var envVars = new List<EnvVar>();
+                        foreach (var item in jsonArray)
+                        {
+                            if (item is not null)
+                            {
+                                var parts = item.ToString().Split('=', 2);
+                                envVars.Add(new EnvVar { Name = parts[0], Value = parts[1] });
+                            }
+                        }
+                        FillEnvironmentVariables(containerViewModel.Environment, envVars, envVars);
+                    }
+                }
+            }
+            catch
+            {
+                // If we fail to retrieve env vars from container at any point, we just skip it.
+                if (processDisposable != null)
+                {
+                    await processDisposable.DisposeAsync().ConfigureAwait(false);
+                }
+            }
+        }
     }
 
     private static ExecutableViewModel ConvertToExecutableViewModel(Executable executable)
