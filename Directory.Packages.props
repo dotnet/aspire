@@ -2,8 +2,8 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <RuntimeVersion>8.0.0-rtm.23511.16</RuntimeVersion>
-    <AspNetCoreVersion>8.0.0-rtm.23512.10</AspNetCoreVersion>
-    <ExtensionsVersion>8.0.0-rtm.23511.3</ExtensionsVersion>
+    <AspNetCoreVersion>8.0.0-rtm.23512.20</AspNetCoreVersion>
+    <ExtensionsVersion>8.0.0-rtm.23512.3</ExtensionsVersion>
   </PropertyGroup>
   <ItemGroup>
     <!-- Azure SDK for .NET dependencies -->
