@@ -49,7 +49,7 @@
   <Target Name="CopyTemplatesToIntermediateOutputPath">
 
     <ItemGroup>
-      <_ContentFilesToPackage Include="templates\**\*" Exclude="templates\**\bin\**;templates\**\obj\**;templates\**\*.csproj"/>
+      <_ContentFilesToPackage Include="templates\**\*" Exclude="templates\**\bin\**;templates\**\obj\**;templates\**\*.csproj" />
     </ItemGroup>
 
     <Copy SourceFiles="@(_ContentFilesToPackage)"

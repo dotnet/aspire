@@ -12,7 +12,7 @@
   <Import Project="Sdk.targets" Sdk="Microsoft.DotNet.Arcade.Sdk" />
 
   <ItemGroup Condition="'$(ReadMeExists)' == 'true'">
-    <None Include="$(ReadMePath)" Pack="true" PackagePath="\"/>
+    <None Include="$(ReadMePath)" Pack="true" PackagePath="\" />
   </ItemGroup>
   
 </Project>
