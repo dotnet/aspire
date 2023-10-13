@@ -93,7 +93,6 @@ public class MockRequest : Request
         }
 
         values.Add(header.Value);
-
     }
 
     protected override bool TryGetHeader(string name, [NotNullWhen(true)] out string? value)

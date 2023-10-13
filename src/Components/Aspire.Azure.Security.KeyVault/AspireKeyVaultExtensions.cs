@@ -89,8 +89,6 @@ public static class AspireKeyVaultExtensions
         Action<AzureSecurityKeyVaultSettings>? configureSettings,
         Action<SecretClientOptions>? configureOptions)
     {
-        ArgumentNullException.ThrowIfNull(configuration);
-
         var configSection = configuration.GetSection(DefaultConfigSectionName);
 
         var settings = new AzureSecurityKeyVaultSettings();
