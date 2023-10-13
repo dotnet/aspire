@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Model;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Fast.Components.FluentUI;
@@ -24,6 +25,7 @@ public abstract partial class ResourceLogsBase<TResource> : ComponentBase, IAsyn
     protected abstract string NoResourceSelectedMessage { get; }
     protected abstract string LogsNotAvailableMessage { get; }
     protected abstract string UrlPrefix { get; }
+    protected virtual bool ConvertTimestampsFromUtc => false;
 
     protected abstract Task<List<TResource>> GetResources(IDashboardViewModelService dashboardViewModelService);
     protected abstract IAsyncEnumerable<ResourceChanged<TResource>> WatchResources(
@@ -91,12 +93,25 @@ public abstract partial class ResourceLogsBase<TResource> : ComponentBase, IAsyn
             {
                 var outputTask = Task.Run(async () =>
                 {
-                    await _logViewer.WatchLogsAsync(() => _selectedResource.LogSource.WatchOutputLogAsync(_watchLogsTokenSource.Token), LogEntryType.Default);
+                    await _logViewer.WatchLogsAsync(
+                        () => _selectedResource.LogSource.WatchOutputLogAsync(_watchLogsTokenSource.Token),
+                        new LogParserOptions()
+                        {
+                            ConvertTimestampsFromUtc = ConvertTimestampsFromUtc
+                        }
+                    );
                 });
 
                 var errorTask = Task.Run(async () =>
                 {
-                    await _logViewer.WatchLogsAsync(() => _selectedResource.LogSource.WatchErrorLogAsync(_watchLogsTokenSource.Token), LogEntryType.Error);
+                    await _logViewer.WatchLogsAsync(
+                        () => _selectedResource.LogSource.WatchErrorLogAsync(_watchLogsTokenSource.Token),
+                        new LogParserOptions()
+                        {
+                            ConvertTimestampsFromUtc = ConvertTimestampsFromUtc,
+                            LogEntryType = LogEntryType.Error
+                        }
+                    );
                 });
 
                 _ = Task.WhenAll(outputTask, errorTask).ContinueWith((task) =>

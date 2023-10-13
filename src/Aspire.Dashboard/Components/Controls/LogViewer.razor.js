@@ -38,7 +38,15 @@ export function addLogEntries(logEntries) {
             content.innerHTML = logEntry.content;
             
             if (logEntry.type === "Error") {
-                content.prepend(getStdErrorBadge());
+                const stdErrorBadge = getStdErrorBadge();
+                // If there's a timestamp, we want to put the badge after it to keep timestamps
+                // aligned. If there's not, then we just put the badge at the start of the content
+                const timestampSpan = content.querySelector(".timestamp");
+                if (timestampSpan) {
+                    timestampSpan.after(stdErrorBadge);
+                } else {
+                    content.prepend(stdErrorBadge);
+                }
             }
 
             insertSorted(container, rowContainer, logEntry.timestamp, logEntry.parentId, logEntry.lineIndex);

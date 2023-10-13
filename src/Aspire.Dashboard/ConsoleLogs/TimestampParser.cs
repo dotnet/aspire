@@ -1,14 +1,17 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using System.Text.RegularExpressions;
 
 namespace Aspire.Dashboard.ConsoleLogs;
 public static partial class TimestampParser
 {
+    public const string DisplayFormat = "yyyy-MM-ddTHH:mm:ss.fffffff";
+
     private static readonly Regex s_rfc3339RegEx = GenerateRfc3339RegEx();
 
-    public static bool TryColorizeTimestamp(string text, out TimestampParserResult result)
+    public static bool TryColorizeTimestamp(string text, bool convertTimestampsFromUtc, out TimestampParserResult result)
     {
         var match = s_rfc3339RegEx.Match(text);
 
@@ -18,13 +21,26 @@ public static partial class TimestampParser
             var timestamp = span[match.Index..(match.Index + match.Length)];
             var theRest = match.Index + match.Length >= span.Length ? "" : span[(match.Index + match.Length)..];
 
-            var modifiedText = $"<span class=\"timestamp\">{timestamp}</span>{theRest}";
+            var timestampForDisplay = convertTimestampsFromUtc ? ConvertTimestampFromUtc(timestamp) : timestamp.ToString();
+
+            var modifiedText = $"<span class=\"timestamp\">{timestampForDisplay}</span>{theRest}";
             result = new(modifiedText, timestamp.ToString());
             return true;
         }
 
         result = default;
         return false;
+    }
+
+    private static string ConvertTimestampFromUtc(ReadOnlySpan<char> timestamp)
+    {
+        if (DateTimeOffset.TryParse(timestamp, out var dateTimeUtc))
+        {
+            var dateTimeLocal = dateTimeUtc.ToLocalTime();
+            return dateTimeLocal.ToString(DisplayFormat, CultureInfo.CurrentCulture);
+        }
+
+        return timestamp.ToString();
     }
 
     // Regular Expression for an RFC3339 timestamp, including RFC3339Nano

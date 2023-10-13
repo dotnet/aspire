@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Dashboard;
@@ -20,7 +21,7 @@ public static class ConsoleLogsConfigurationExtensions
 
             // Enable Simple Console Logger Formatting with a UTC timestamp similar to RFC3339Nano that Docker generates
             context.EnvironmentVariables["LOGGING__CONSOLE__FORMATTERNAME"] = "simple";
-            context.EnvironmentVariables["LOGGING__CONSOLE__FORMATTEROPTIONS__TIMESTAMPFORMAT"] = "yyyy-MM-dd'T'HH:mm:ss.ffffff ";
+            context.EnvironmentVariables["LOGGING__CONSOLE__FORMATTEROPTIONS__TIMESTAMPFORMAT"] = $"{TimestampParser.DisplayFormat} ";
         });
     }
 }
