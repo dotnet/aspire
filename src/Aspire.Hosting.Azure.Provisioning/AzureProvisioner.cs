@@ -4,6 +4,7 @@
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.Publishing;
 using Azure;
 using Azure.Core;
 using Azure.Identity;
@@ -19,16 +20,23 @@ using Azure.ResourceManager.Storage.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Azure;
 
 // Provisions azure resources for development purposes
-internal sealed class AzureProvisioner(IConfiguration configuration, IHostEnvironment environment, ILogger<AzureProvisioner> logger) : IDistributedApplicationLifecycleHook
+internal sealed class AzureProvisioner(IOptions<PublishingOptions> options, IConfiguration configuration, IHostEnvironment environment, ILogger<AzureProvisioner> logger) : IDistributedApplicationLifecycleHook
 {
     private const string Key = "aspire-resource-name";
 
     public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
+        // TODO: Make this more general purpose
+        if (options.Value.Publisher == "manifest")
+        {
+            return;
+        }
+
         var azureResources = appModel.Resources.OfType<IAzureResource>();
         if (!azureResources.OfType<IAzureResource>().Any())
         {
