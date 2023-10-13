@@ -83,6 +83,28 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, IHo
         jsonWriter.WriteString("error", "This resource does not support generation in the manifest.");
     }
 
+    private static void WriteServiceDiscoveryEnvironmentVariables(IDistributedApplicationResource resource, Utf8JsonWriter jsonWriter)
+    {
+        var serviceReferenceAnnotations = resource.Annotations.OfType<ServiceReferenceAnnotation>();
+
+        if (serviceReferenceAnnotations.Any())
+        {
+            foreach (var serviceReferenceAnnotation in serviceReferenceAnnotations)
+            {
+                // HACK: For November we are only handling a single binding from each service that we
+                //       add via WithServiceReference(...). If WithServiceReference(...) was called without
+                //       specifying a specific binding then the ```UseAllBindings``` property is set to true
+                //       at which point we won't have the binding name easily accessible so we need to look
+                //       at the annotations to figure it out.
+                var bindingName = serviceReferenceAnnotation.UseAllBindings
+                    ? serviceReferenceAnnotation.Resource.Annotations.OfType<ServiceBindingAnnotation>().Single().Name
+                    : serviceReferenceAnnotation.BindingNames.Single();
+
+                jsonWriter.WriteString($"services__{serviceReferenceAnnotation.Resource.Name}__0", $"{{{serviceReferenceAnnotation.Resource.Name}.bindings.{bindingName}.url}}");
+            }
+        }
+    }
+
     private static void WriteEnvironmentVariables(IDistributedApplicationResource resource, Utf8JsonWriter jsonWriter)
     {
         var config = new Dictionary<string, string>();
@@ -100,41 +122,44 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, IHo
             {
                 jsonWriter.WriteString(key, value);
             }
-            jsonWriter.WriteEndObject();
-        }
-    }
 
-    private static void WriteReferences(IDistributedApplicationResource resource, Utf8JsonWriter jsonWriter)
-    {
-        var serviceReferenceAnnotations = resource.Annotations.OfType<ServiceReferenceAnnotation>();
-
-        if (serviceReferenceAnnotations.Any())
-        {
-            jsonWriter.WriteStartObject("references");
-
-            foreach (var serviceReferenceAnnotation in serviceReferenceAnnotations)
-            {
-                jsonWriter.WriteStartObject(serviceReferenceAnnotation.Resource.Name);
-
-                jsonWriter.WriteStartArray("bindings");
-
-                var bindingNames = serviceReferenceAnnotation.UseAllBindings
-                    ? serviceReferenceAnnotation.Resource.Annotations.OfType<ServiceBindingAnnotation>().Select(b => b.Name)
-                    : serviceReferenceAnnotation.BindingNames;
-
-                foreach (var bindingName in bindingNames)
-                {
-                    jsonWriter.WriteStringValue(bindingName);
-                }
-
-                jsonWriter.WriteEndArray();
-
-                jsonWriter.WriteEndObject();
-            }
+            WriteServiceDiscoveryEnvironmentVariables(resource, jsonWriter);
 
             jsonWriter.WriteEndObject();
         }
     }
+
+    //private static void WriteReferences(IDistributedApplicationResource resource, Utf8JsonWriter jsonWriter)
+    //{
+    //    var serviceReferenceAnnotations = resource.Annotations.OfType<ServiceReferenceAnnotation>();
+
+    //    if (serviceReferenceAnnotations.Any())
+    //    {
+    //        jsonWriter.WriteStartObject("references");
+
+    //        foreach (var serviceReferenceAnnotation in serviceReferenceAnnotations)
+    //        {
+    //            jsonWriter.WriteStartObject(serviceReferenceAnnotation.Resource.Name);
+
+    //            jsonWriter.WriteStartArray("bindings");
+
+    //            var bindingNames = serviceReferenceAnnotation.UseAllBindings
+    //                ? serviceReferenceAnnotation.Resource.Annotations.OfType<ServiceBindingAnnotation>().Select(b => b.Name)
+    //                : serviceReferenceAnnotation.BindingNames;
+
+    //            foreach (var bindingName in bindingNames)
+    //            {
+    //                jsonWriter.WriteStringValue(bindingName);
+    //            }
+
+    //            jsonWriter.WriteEndArray();
+
+    //            jsonWriter.WriteEndObject();
+    //        }
+
+    //        jsonWriter.WriteEndObject();
+    //    }
+    //}
 
     private static void WriteBindings(IDistributedApplicationResource resource, Utf8JsonWriter jsonWriter)
     {
@@ -191,7 +216,6 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, IHo
 
         WriteEnvironmentVariables(project, jsonWriter);
         WriteBindings(project, jsonWriter);
-        WriteReferences(project, jsonWriter);
     }
 
     private static void WriteExecutable(ExecutableResource executable, Utf8JsonWriter jsonWriter)

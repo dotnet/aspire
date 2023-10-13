@@ -23,22 +23,20 @@ internal sealed class AutomaticManifestPublisherBindingInjectionHook(IOptions<Pu
         {
             // TODO: Add logic here that analyzes each project and figures out the best
             //       bindings to automatically add.
-            if (!projectResource.Annotations.OfType<ServiceBindingAnnotation>().Any(sb => sb.UriScheme == "http"))
+            if (!projectResource.Annotations.OfType<ServiceBindingAnnotation>().Any(sb => sb.UriScheme == "http" || sb.Name == "http"))
             {
                 var httpBinding = new ServiceBindingAnnotation(
                     System.Net.Sockets.ProtocolType.Tcp,
-                    uriScheme: "http",
-                    name: "generated-http"
+                    uriScheme: "http"
                     );
                 projectResource.Annotations.Add(httpBinding);
             }
 
-            if (!projectResource.Annotations.OfType<ServiceBindingAnnotation>().Any(sb => sb.UriScheme == "https"))
+            if (!projectResource.Annotations.OfType<ServiceBindingAnnotation>().Any(sb => sb.UriScheme == "https" || sb.Name == "http"))
             {
                 var httpsBinding = new ServiceBindingAnnotation(
                     System.Net.Sockets.ProtocolType.Tcp,
-                    uriScheme: "https",
-                    name: "generated-https"
+                    uriScheme: "https"
                     );
                 projectResource.Annotations.Add(httpsBinding);
             }
