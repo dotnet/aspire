@@ -11,12 +11,14 @@
                     <FluentButton Appearance="Appearance.Lightweight"
                                   IconEnd="@(_showAll ? _showSpecOnlyIcon : _showAllIcon)"
                                   Title="@(_showAll ? "Show Spec Only" : "Show All")"
+                                  aria-label="@(_showAll ? "Show Spec Only" : "Show All")"
                                   OnClick="() => _showAll = !_showAll"
                                   slot="end" />
                 }
                 <FluentButton Appearance="Appearance.Lightweight"
                               IconEnd="@(_defaultMasked ? _unmaskIcon : _maskIcon)"
                               Title="@(_defaultMasked ? "Show Values" : "Hide Values")"
+                              aria-label="@(_defaultMasked ? "Show Values" : "Hide Values")"
                               OnClick="ToggleMaskState"
                               slot="end" />
                 <FluentSearch Placeholder="Filter..."
@@ -67,7 +69,8 @@
                         <FluentButton Appearance="Appearance.Lightweight"
                                       IconEnd="@(context.IsValueMasked ? _unmaskIcon : _maskIcon)"
                                       Title="@(context.IsValueMasked ? "Show Value" : "Hide Value")"
-                                      OnClick="() => ToggleMaskState(context)" />
+                                      OnClick="() => ToggleMaskState(context)"
+                                      aria-label="@(context.IsValueMasked ? "Show Value" : "Hide Value")" />
                         @{
                             var anchor = "copy-" + context.Name;
                         }
@@ -75,7 +78,8 @@
                                       Id="@anchor"
                                       IconEnd="@(new Icons.Regular.Size16.Copy())"
                                       Class="defaultHidden"
-                                      @onclick="@(() => CopyTextToClipboardAsync(context.Value, @anchor))" />
+                                      @onclick="@(() => CopyTextToClipboardAsync(context.Value, @anchor))"
+                                      aria-label="Copy to Clipboard" />
                         <FluentTooltip Anchor="@anchor" Position="TooltipPosition.Top">@PreCopyText</FluentTooltip>
                     </FluentStack>
                 </TemplateColumn>
