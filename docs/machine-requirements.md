@@ -7,10 +7,10 @@
 
 ## Install .NET 8 RTM nightly SDK
 
-Install the .NET 8 RTM nightly SDK version 8.0.100-rtm.23512.3 or newer:
-   1. [Windows x64 link](https://dotnetbuilds.azureedge.net/public/Sdk/8.0.100-rtm.23512.3/dotnet-sdk-8.0.100-rtm.23512.3-win-x64.exe)
-   2. [Linux x64 link](https://dotnetbuilds.azureedge.net/public/Sdk/8.0.100-rtm.23512.3/dotnet-sdk-8.0.100-rtm.23512.3-linux-x64.tar.gz)
-   3. [OSX x64 link](https://dotnetbuilds.azureedge.net/public/Sdk/8.0.100-rtm.23512.3/dotnet-sdk-8.0.100-rtm.23512.3-osx-x64.tar.gz)
+Install the .NET 8 RTM nightly SDK version 8.0.100-rtm.23512.16 or newer:
+   1. [Windows x64 link](https://dotnetbuilds.azureedge.net/public/Sdk/8.0.100-rtm.23512.16/dotnet-sdk-8.0.100-rtm.23512.16-win-x64.exe)
+   2. [Linux x64 link](https://dotnetbuilds.azureedge.net/public/Sdk/8.0.100-rtm.23512.16/dotnet-sdk-8.0.100-rtm.23512.16-linux-x64.tar.gz)
+   3. [OSX x64 link](https://dotnetbuilds.azureedge.net/public/Sdk/8.0.100-rtm.23512.16/dotnet-sdk-8.0.100-rtm.23512.16-osx-x64.tar.gz)
 
 ## Install Docker Desktop
 
