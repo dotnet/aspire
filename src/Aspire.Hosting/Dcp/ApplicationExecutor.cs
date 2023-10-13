@@ -27,6 +27,7 @@ internal sealed class ServiceAppResource : AppResource
     public Service Service => (Service)DcpResource;
     public ServiceBindingAnnotation ServiceBindingAnnotation { get; private set; }
     public ServiceProducerAnnotation DcpServiceProducerAnnotation { get; private set; }
+
     public override List<ServiceAppResource> ServicesProduced
     {
         get { throw new InvalidOperationException("Service resources do not produce any services"); }
@@ -180,6 +181,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model) : I
         {
             svc.Spec.Protocol = PortProtocol.FromProtocolType(sba.Protocol);
             svc.Spec.AddressAllocationMode = AddressAllocationModes.IPv4Loopback;
+            svc.Annotate(CustomResource.UriSchemeAnnotation, sba.UriScheme);
 
             _appResources.Add(new ServiceAppResource(producingResource, svc, sba));
         }
