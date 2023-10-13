@@ -79,14 +79,10 @@ window.updateFluentSelectDisplayValue = function (fluentSelect) {
     }
 }
 
-window.setThemeCookie = function () {
-    let matched = window.matchMedia('(prefers-color-scheme: dark)').matches;
+let matched = window.matchMedia('(prefers-color-scheme: dark)').matches;
 
-    if (matched) {
-        document.cookie = "lastSystemTheme=dark";
-        return true;
-    } else {
-        document.cookie = "lastSystemTheme=light";
-        return false;
-    }
-};
+if (matched) {
+    window.DefaultBaseLayerLuminance = 0.23;
+} else {
+    window.DefaultBaseLayerLuminance = 1.0;
+}
