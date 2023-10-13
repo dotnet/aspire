@@ -85,8 +85,11 @@
 }
 
 ::deep .content > fluent-badge {
-    margin-right: 1em;
     user-select: none;
+}
+
+::deep .content > .timestamp + fluent-badge {
+    margin-left: 1ch;
 }
 
 ::deep .ansi-fg-black {

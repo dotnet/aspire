@@ -24,9 +24,9 @@ public partial class LogViewer
     private ValueTask WriteLogsToDomAsync(IEnumerable<LogEntry> logs)
         => _jsModule is null ? ValueTask.CompletedTask : _jsModule.InvokeVoidAsync("addLogEntries", logs);
 
-    internal async Task WatchLogsAsync(Func<IAsyncEnumerable<string[]>> watchMethod, LogEntryType logEntryType)
+    internal async Task WatchLogsAsync(Func<IAsyncEnumerable<string[]>> watchMethod, LogParserOptions logParserOptions = default)
     {
-        var logParser = new LogParser(logEntryType);
+        var logParser = new LogParser(logParserOptions);
 
         await foreach (var logs in watchMethod())
         {
