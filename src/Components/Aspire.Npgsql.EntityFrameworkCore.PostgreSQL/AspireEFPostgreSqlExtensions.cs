@@ -67,11 +67,6 @@ public static partial class AspireEFPostgreSqlExtensions
 
         configureSettings?.Invoke(settings);
 
-        if (string.IsNullOrEmpty(settings.ConnectionString))
-        {
-            throw new InvalidOperationException($"ConnectionString is missing. It should be provided in 'ConnectionStrings:{connectionName}' or under the 'ConnectionString' key in '{DefaultConfigSectionName}' or '{typeSpecificSectionName}' configuration section.");
-        }
-
         if (builder.Environment.IsDevelopment())
         {
             // calling UseDeveloperExceptionPage is the responsibility of the app, not Component
@@ -80,8 +75,16 @@ public static partial class AspireEFPostgreSqlExtensions
 #pragma warning restore IL3050
         }
 
-        builder.Services.AddNpgsqlDataSource(settings.ConnectionString,
-            builder => builder.UseLoggerFactory(null)); // a workaround for https://github.com/npgsql/efcore.pg/issues/2821 
+        builder.Services.AddNpgsqlDataSource(settings.ConnectionString ?? string.Empty, builder =>
+        {
+            // delay validating the ConnectionString until the DataSource is requested. This ensures an exception doesn't happen until a Logger is established.
+            if (string.IsNullOrEmpty(settings.ConnectionString))
+            {
+                throw new InvalidOperationException($"ConnectionString is missing. It should be provided in 'ConnectionStrings:{connectionName}' or under the 'ConnectionString' key in '{DefaultConfigSectionName}' or '{typeSpecificSectionName}' configuration section.");
+            }
+
+            builder.UseLoggerFactory(null); // a workaround for https://github.com/npgsql/efcore.pg/issues/2821
+        });
 
         if (settings.DbContextPooling)
         {

@@ -27,9 +27,7 @@ internal abstract class AzureComponent<TSettings, TClient, TClientOptions>
 
     protected abstract TokenCredential? GetTokenCredential(TSettings settings);
 
-    protected abstract void Validate(TSettings settings, string connectionName, string configurationSectionName);
-
-    protected abstract IAzureClientBuilder<TClient, TClientOptions> AddClient<TBuilder>(TBuilder azureFactoryBuilder, TSettings settings)
+    protected abstract IAzureClientBuilder<TClient, TClientOptions> AddClient<TBuilder>(TBuilder azureFactoryBuilder, TSettings settings, string connectionName, string configurationSectionName)
         where TBuilder : IAzureClientFactoryBuilder, IAzureClientFactoryBuilderWithCredential;
 
     protected abstract IHealthCheck CreateHealthCheck(TClient client, TSettings settings);
@@ -61,8 +59,6 @@ internal abstract class AzureComponent<TSettings, TClient, TClientOptions>
 
         configureSettings?.Invoke(settings);
 
-        Validate(settings, connectionName, configurationSectionName);
-
         if (!string.IsNullOrEmpty(serviceKey))
         {
             // When named client registration is used (.WithName), Microsoft.Extensions.Azure
@@ -77,7 +73,7 @@ internal abstract class AzureComponent<TSettings, TClient, TClientOptions>
 
         builder.Services.AddAzureClients(azureFactoryBuilder =>
         {
-            var secretClientBuilder = AddClient(azureFactoryBuilder, settings);
+            var secretClientBuilder = AddClient(azureFactoryBuilder, settings, connectionName, configurationSectionName);
 
             if (GetTokenCredential(settings) is { } credential)
             {

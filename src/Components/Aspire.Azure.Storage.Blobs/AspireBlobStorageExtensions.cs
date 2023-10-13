@@ -7,7 +7,6 @@ using Azure.Core;
 using Azure.Core.Extensions;
 using Azure.Storage.Blobs;
 using HealthChecks.Azure.Storage.Blobs;
-using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
@@ -61,13 +60,20 @@ public static class AspireBlobStorageExtensions
 
     private sealed class BlobStorageComponent : AzureComponent<AzureStorageBlobsSettings, BlobServiceClient, BlobClientOptions>
     {
-        protected override IAzureClientBuilder<BlobServiceClient, BlobClientOptions> AddClient<TBuilder>(TBuilder azureFactoryBuilder, AzureStorageBlobsSettings settings)
+        protected override IAzureClientBuilder<BlobServiceClient, BlobClientOptions> AddClient<TBuilder>(TBuilder azureFactoryBuilder, AzureStorageBlobsSettings settings, string connectionName, string configurationSectionName)
         {
-            var connectionString = settings.ConnectionString;
+            return azureFactoryBuilder.RegisterClientFactory<BlobServiceClient, BlobClientOptions>((options, cred) =>
+            {
+                var connectionString = settings.ConnectionString;
+                if (string.IsNullOrEmpty(connectionString) && settings.ServiceUri is null)
+                {
+                    throw new InvalidOperationException($"A BlobServiceClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'ConnectionString' or 'ServiceUri' in the '{configurationSectionName}' configuration section.");
+                }
 
-            return !string.IsNullOrEmpty(connectionString) ?
-                azureFactoryBuilder.AddBlobServiceClient(connectionString) :
-                azureFactoryBuilder.AddBlobServiceClient(settings.ServiceUri);
+                return !string.IsNullOrEmpty(connectionString) ? new BlobServiceClient(connectionString, options) :
+                    cred is not null ? new BlobServiceClient(settings.ServiceUri, cred, options) :
+                    new BlobServiceClient(settings.ServiceUri, options);
+            }, requiresCredential: false);
         }
 
         protected override IHealthCheck CreateHealthCheck(BlobServiceClient client, AzureStorageBlobsSettings settings)
@@ -81,13 +87,5 @@ public static class AspireBlobStorageExtensions
 
         protected override bool GetTracingEnabled(AzureStorageBlobsSettings settings)
             => settings.Tracing;
-
-        protected override void Validate(AzureStorageBlobsSettings settings, string connectionName, string configurationSectionName)
-        {
-            if (string.IsNullOrEmpty(settings.ConnectionString) && settings.ServiceUri is null)
-            {
-                throw new InvalidOperationException($"A BlobServiceClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'ConnectionString' or 'ServiceUri' in the '{configurationSectionName}' configuration section.");
-            }
-        }
     }
 }

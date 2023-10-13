@@ -56,11 +56,6 @@ public static class AspireSqlServerEFCoreSqlClientExtensions
 
         configureSettings?.Invoke(settings);
 
-        if (string.IsNullOrEmpty(settings.ConnectionString))
-        {
-            throw new InvalidOperationException($"ConnectionString is missing. It should be provided in 'ConnectionStrings:{connectionName}' or under the 'ConnectionString' key in '{DefaultConfigSectionName}' or '{typeSpecificSectionName}' configuration section.");
-        }
-
         if (settings.DbContextPooling)
         {
             builder.Services.AddDbContextPool<TContext>(ConfigureDbContext);
@@ -102,6 +97,11 @@ public static class AspireSqlServerEFCoreSqlClientExtensions
             // https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.dbcontextoptionsbuilder.useloggerfactory?view=efcore-7.0#remarks
             dbContextOptionsBuilder.UseSqlServer(settings.ConnectionString, builder =>
             {
+                if (string.IsNullOrEmpty(settings.ConnectionString))
+                {
+                    throw new InvalidOperationException($"ConnectionString is missing. It should be provided in 'ConnectionStrings:{connectionName}' or under the 'ConnectionString' key in '{DefaultConfigSectionName}' or '{typeSpecificSectionName}' configuration section.");
+                }
+
                 // Resiliency:
                 // Connection resiliency automatically retries failed database commands
                 if (settings.MaxRetryCount > 0)

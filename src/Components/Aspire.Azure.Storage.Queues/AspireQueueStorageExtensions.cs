@@ -7,7 +7,6 @@ using Azure.Core;
 using Azure.Core.Extensions;
 using Azure.Storage.Queues;
 using HealthChecks.Azure.Storage.Queues;
-using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
@@ -61,13 +60,20 @@ public static class AspireQueueStorageExtensions
 
     private sealed class StorageQueueComponent : AzureComponent<AzureStorageQueuesSettings, QueueServiceClient, QueueClientOptions>
     {
-        protected override IAzureClientBuilder<QueueServiceClient, QueueClientOptions> AddClient<TBuilder>(TBuilder azureFactoryBuilder, AzureStorageQueuesSettings settings)
+        protected override IAzureClientBuilder<QueueServiceClient, QueueClientOptions> AddClient<TBuilder>(TBuilder azureFactoryBuilder, AzureStorageQueuesSettings settings, string connectionName, string configurationSectionName)
         {
-            var connectionString = settings.ConnectionString;
+            return azureFactoryBuilder.RegisterClientFactory<QueueServiceClient, QueueClientOptions>((options, cred) =>
+            {
+                var connectionString = settings.ConnectionString;
+                if (string.IsNullOrEmpty(connectionString) && settings.ServiceUri is null)
+                {
+                    throw new InvalidOperationException($"A QueueServiceClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'ConnectionString' or 'ServiceUri' in the '{configurationSectionName}' configuration section.");
+                }
 
-            return !string.IsNullOrEmpty(connectionString) ?
-                azureFactoryBuilder.AddQueueServiceClient(connectionString) :
-                azureFactoryBuilder.AddQueueServiceClient(settings.ServiceUri);
+                return !string.IsNullOrEmpty(connectionString) ? new QueueServiceClient(connectionString, options) :
+                    cred is not null ? new QueueServiceClient(settings.ServiceUri, cred, options) :
+                    new QueueServiceClient(settings.ServiceUri, options);
+            }, requiresCredential: false);
         }
 
         protected override IHealthCheck CreateHealthCheck(QueueServiceClient client, AzureStorageQueuesSettings settings)
@@ -81,13 +87,5 @@ public static class AspireQueueStorageExtensions
 
         protected override bool GetTracingEnabled(AzureStorageQueuesSettings settings)
             => settings.Tracing;
-
-        protected override void Validate(AzureStorageQueuesSettings settings, string connectionName, string configurationSectionName)
-        {
-            if (string.IsNullOrEmpty(settings.ConnectionString) && settings.ServiceUri is null)
-            {
-                throw new InvalidOperationException($"A QueueServiceClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'ConnectionString' or 'ServiceUri' in the '{configurationSectionName}' configuration section.");
-            }
-        }
     }
 }
