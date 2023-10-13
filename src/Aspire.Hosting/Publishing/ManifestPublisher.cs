@@ -91,16 +91,25 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, IHo
         {
             foreach (var serviceReferenceAnnotation in serviceReferenceAnnotations)
             {
-                // HACK: For November we are only handling a single binding from each service that we
-                //       add via WithServiceReference(...). If WithServiceReference(...) was called without
-                //       specifying a specific binding then the ```UseAllBindings``` property is set to true
-                //       at which point we won't have the binding name easily accessible so we need to look
-                //       at the annotations to figure it out.
-                var bindingName = serviceReferenceAnnotation.UseAllBindings
-                    ? serviceReferenceAnnotation.Resource.Annotations.OfType<ServiceBindingAnnotation>().Single().Name
-                    : serviceReferenceAnnotation.BindingNames.Single();
+                var bindingNames = serviceReferenceAnnotation.UseAllBindings
+                    ? serviceReferenceAnnotation.Resource.Annotations.OfType<ServiceBindingAnnotation>().Select(sb => sb.Name)
+                    : serviceReferenceAnnotation.BindingNames;
 
-                jsonWriter.WriteString($"services__{serviceReferenceAnnotation.Resource.Name}__0", $"{{{serviceReferenceAnnotation.Resource.Name}.bindings.{bindingName}.url}}");
+                var serviceBindingAnnotationsGroupedByScheme = serviceReferenceAnnotation.Resource.Annotations
+                    .OfType<ServiceBindingAnnotation>()
+                    .Where(sba => bindingNames.Contains(sba.Name))
+                    .GroupBy(sba => sba.UriScheme);
+
+                var i = 0;
+                foreach (var serviceBindingAnnotationGroupedByScheme in serviceBindingAnnotationsGroupedByScheme)
+                {
+                    // HACK: For November we are only going to support a single service binding annotation
+                    //       per URI scheme per service reference.
+                    var binding = serviceBindingAnnotationGroupedByScheme.Single();
+
+                    jsonWriter.WriteString($"services__{serviceReferenceAnnotation.Resource.Name}__{i++}", $"{{{serviceReferenceAnnotation.Resource.Name}.bindings.{binding.Name}.url}}");
+                }
+
             }
         }
     }

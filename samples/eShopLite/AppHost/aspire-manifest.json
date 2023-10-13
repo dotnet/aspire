@@ -32,6 +32,11 @@
           "scheme": "http",
           "protocol": "tcp",
           "transport": "http"
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http"
         }
       }
     },
@@ -53,6 +58,11 @@
           "scheme": "http",
           "protocol": "tcp",
           "transport": "http"
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http"
         }
       }
     },
@@ -62,11 +72,17 @@
       "env": {
         "GRAFANA_URL": "{grafana.bindings.grafana-http}",
         "services__basketservice__0": "{basketservice.bindings.http.url}",
+        "services__basketservice__1": "{basketservice.bindings.https.url}",
         "services__catalogservice__0": "{catalogservice.bindings.http.url}"
       },
       "bindings": {
         "http": {
           "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "https": {
+          "scheme": "https",
           "protocol": "tcp",
           "transport": "http"
         }
@@ -83,6 +99,11 @@
           "scheme": "http",
           "protocol": "tcp",
           "transport": "http"
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http"
         }
       }
     },
@@ -91,11 +112,18 @@
       "path": "..\\ApiGateway\\ApiGateway.csproj",
       "env": {
         "services__basketservice__0": "{basketservice.bindings.http.url}",
-        "services__catalogservice__0": "{catalogservice.bindings.http.url}"
+        "services__basketservice__1": "{basketservice.bindings.https.url}",
+        "services__catalogservice__0": "{catalogservice.bindings.http.url}",
+        "services__catalogservice__1": "{catalogservice.bindings.https.url}"
       },
       "bindings": {
         "http": {
           "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "https": {
+          "scheme": "https",
           "protocol": "tcp",
           "transport": "http"
         }

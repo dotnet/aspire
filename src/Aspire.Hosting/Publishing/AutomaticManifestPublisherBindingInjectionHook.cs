@@ -32,7 +32,7 @@ internal sealed class AutomaticManifestPublisherBindingInjectionHook(IOptions<Pu
                 projectResource.Annotations.Add(httpBinding);
             }
 
-            if (!projectResource.Annotations.OfType<ServiceBindingAnnotation>().Any(sb => sb.UriScheme == "https" || sb.Name == "http"))
+            if (!projectResource.Annotations.OfType<ServiceBindingAnnotation>().Any(sb => sb.UriScheme == "https" || sb.Name == "https"))
             {
                 var httpsBinding = new ServiceBindingAnnotation(
                     System.Net.Sockets.ProtocolType.Tcp,
