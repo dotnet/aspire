@@ -83,6 +83,37 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, IHo
         jsonWriter.WriteString("error", "This resource does not support generation in the manifest.");
     }
 
+    private static void WriteServiceDiscoveryEnvironmentVariables(IDistributedApplicationResource resource, Utf8JsonWriter jsonWriter)
+    {
+        var serviceReferenceAnnotations = resource.Annotations.OfType<ServiceReferenceAnnotation>();
+
+        if (serviceReferenceAnnotations.Any())
+        {
+            foreach (var serviceReferenceAnnotation in serviceReferenceAnnotations)
+            {
+                var bindingNames = serviceReferenceAnnotation.UseAllBindings
+                    ? serviceReferenceAnnotation.Resource.Annotations.OfType<ServiceBindingAnnotation>().Select(sb => sb.Name)
+                    : serviceReferenceAnnotation.BindingNames;
+
+                var serviceBindingAnnotationsGroupedByScheme = serviceReferenceAnnotation.Resource.Annotations
+                    .OfType<ServiceBindingAnnotation>()
+                    .Where(sba => bindingNames.Contains(sba.Name))
+                    .GroupBy(sba => sba.UriScheme);
+
+                var i = 0;
+                foreach (var serviceBindingAnnotationGroupedByScheme in serviceBindingAnnotationsGroupedByScheme)
+                {
+                    // HACK: For November we are only going to support a single service binding annotation
+                    //       per URI scheme per service reference.
+                    var binding = serviceBindingAnnotationGroupedByScheme.Single();
+
+                    jsonWriter.WriteString($"services__{serviceReferenceAnnotation.Resource.Name}__{i++}", $"{{{serviceReferenceAnnotation.Resource.Name}.bindings.{binding.Name}.url}}");
+                }
+
+            }
+        }
+    }
+
     private static void WriteEnvironmentVariables(IDistributedApplicationResource resource, Utf8JsonWriter jsonWriter)
     {
         var config = new Dictionary<string, string>();
@@ -100,6 +131,9 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, IHo
             {
                 jsonWriter.WriteString(key, value);
             }
+
+            WriteServiceDiscoveryEnvironmentVariables(resource, jsonWriter);
+
             jsonWriter.WriteEndObject();
         }
     }

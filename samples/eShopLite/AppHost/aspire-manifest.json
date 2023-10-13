@@ -26,6 +26,18 @@
       "path": "..\\CatalogService\\CatalogService.csproj",
       "env": {
         "ConnectionStrings__catalog": "{catalog.connectionString}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http"
+        }
       }
     },
     "messaging": {
@@ -45,8 +57,12 @@
         "http": {
           "scheme": "http",
           "protocol": "tcp",
-          "transport": "http",
-          "external": true
+          "transport": "http"
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http"
         }
       }
     },
@@ -54,14 +70,21 @@
       "type": "project.v1",
       "path": "..\\MyFrontend\\MyFrontend.csproj",
       "env": {
-        "GRAFANA_URL": "{grafana.bindings.grafana-http}"
+        "GRAFANA_URL": "{grafana.bindings.grafana-http}",
+        "services__basketservice__0": "{basketservice.bindings.http.url}",
+        "services__basketservice__1": "{basketservice.bindings.https.url}",
+        "services__catalogservice__0": "{catalogservice.bindings.http.url}"
       },
       "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
         "https": {
           "scheme": "https",
           "protocol": "tcp",
-          "transport": "http",
-          "external": true
+          "transport": "http"
         }
       }
     },
@@ -70,12 +93,41 @@
       "path": "..\\OrderProcessor\\OrderProcessor.csproj",
       "env": {
         "ConnectionStrings__messaging": "{messaging.connectionString}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http"
+        }
       }
     },
     "apigateway": {
       "type": "project.v1",
       "path": "..\\ApiGateway\\ApiGateway.csproj",
-      "env": {}
+      "env": {
+        "services__basketservice__0": "{basketservice.bindings.http.url}",
+        "services__basketservice__1": "{basketservice.bindings.https.url}",
+        "services__catalogservice__0": "{catalogservice.bindings.http.url}",
+        "services__catalogservice__1": "{catalogservice.bindings.https.url}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http"
+        }
+      }
     },
     "prometheus": {
       "type": "container.v1",

@@ -1,4 +1,3 @@
-using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Postgres;
 using Aspire.Hosting.Redis;
@@ -21,12 +20,10 @@ var catalog = builder.AddProject<Projects.CatalogService>("catalogservice")
 var serviceBus = builder.AddAzureServiceBus("messaging", queueNames: ["orders"]);
 
 var basket = builder.AddProject<Projects.BasketService>("basketservice")
-                    .WithServiceBindingForPublisher("manifest", "http", context => context.Binding.AsExternal())
                     .WithReference(redis)
                     .WithReference(serviceBus, optional: true);
 
 builder.AddProject<Projects.MyFrontend>("myfrontend")
-       .WithServiceBindingForPublisher("manifest", "https", context => context.Binding.AsExternal())
        .WithServiceReference(basket)
        .WithServiceReference(catalog, bindingName: "http")
        .WithEnvironment("GRAFANA_URL", () => grafana.GetEndpoint("grafana-http")?.UriString ?? $"{{{grafana.Resource.Name}.bindings.grafana-http}}");
