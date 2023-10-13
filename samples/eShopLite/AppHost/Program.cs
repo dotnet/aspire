@@ -1,7 +1,3 @@
-using Aspire.Hosting.Azure;
-using Aspire.Hosting.Postgres;
-using Aspire.Hosting.Redis;
-
 var builder = DistributedApplication.CreateBuilder(args);
 
 builder.AddAzureProvisioning();

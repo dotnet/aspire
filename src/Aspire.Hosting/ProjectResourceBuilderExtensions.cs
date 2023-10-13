@@ -4,7 +4,6 @@
 using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
-using Aspire.Hosting.Otlp;
 using Aspire.Hosting.Properties;
 
 namespace Aspire.Hosting;

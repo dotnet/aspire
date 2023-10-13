@@ -3,8 +3,9 @@
 
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure;
 
-namespace Aspire.Hosting.Azure;
+namespace Aspire.Hosting;
 
 public static class AzureResourceExtensions
 {

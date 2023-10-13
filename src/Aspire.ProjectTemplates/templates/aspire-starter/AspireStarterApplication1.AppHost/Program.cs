@@ -1,7 +1,3 @@
-#if UseRedisCache
-using Aspire.Hosting.Redis;
-#endif
-
 var builder = DistributedApplication.CreateBuilder(args);
 
 #if UseRedisCache

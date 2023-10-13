@@ -1,10 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Dapr;
 using Aspire.Hosting.Lifecycle;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Aspire.Hosting.Dapr;
+namespace Aspire.Hosting;
 
 /// <summary>
 /// Extensions to <see cref="IDistributedApplicationBuilder"/> related to Dapr.

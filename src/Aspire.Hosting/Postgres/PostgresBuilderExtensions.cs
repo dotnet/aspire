@@ -4,8 +4,9 @@
 using System.Net.Sockets;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Postgres;
 
-namespace Aspire.Hosting.Postgres;
+namespace Aspire.Hosting;
 
 public static class PostgresBuilderExtensions
 {
