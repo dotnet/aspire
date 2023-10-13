@@ -2,8 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Dapr;
 
-namespace Aspire.Hosting.Dapr;
+namespace Aspire.Hosting;
 
 /// <summary>
 /// Extensions to <see cref="IDistributedApplicationResourceBuilder{T}"/> related to Dapr.
