@@ -58,6 +58,7 @@ internal sealed class DockerContainerLogSource(string containerId) : ILogSource
         if (_containerLogWatcher is not null)
         {
             await _containerLogWatcher.DisposeAsync().ConfigureAwait(false);
+            _containerLogWatcher = null;
         }
     }
 

@@ -116,7 +116,14 @@ public abstract partial class ResourceLogsBase<TResource> : ComponentBase, IAsyn
 
                 _ = Task.WhenAll(outputTask, errorTask).ContinueWith((task) =>
                 {
-                    _status = LogStatus.FinishedWatchingLogs;
+                    // If the task was canceled, that means one or both of the underlying tasks were canceled
+                    // which only really happens when we switch to another container source or when leaving
+                    // page. In both of those situations we can skip updating the status because it'll just
+                    // cause a flash of text change before it changes again or the page is navigated away.
+                    if (!task.IsCanceled)
+                    {
+                        _status = LogStatus.FinishedWatchingLogs;
+                    }
                 }, TaskScheduler.Current);
 
                 _status = LogStatus.WatchingLogs;
