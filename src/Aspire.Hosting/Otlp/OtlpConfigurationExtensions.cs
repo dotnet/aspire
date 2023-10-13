@@ -5,7 +5,7 @@ using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 
-namespace Aspire.Hosting.Otlp;
+namespace Aspire.Hosting;
 
 public static class OtlpConfigurationExtensions
 {
