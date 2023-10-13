@@ -4,6 +4,9 @@
     <ReadMePath>$(MSBuildProjectDirectory)\README.md</ReadMePath>
     <ReadMeExists Condition="Exists('$(ReadMePath)')">true</ReadMeExists>
     <PackageReadmeFile Condition="'$(PackageReadmeFile)' == '' And '$(ReadMeExists)' == 'true'">README.md</PackageReadmeFile>
+    <IconPath>$(MSBuildThisFileDirectory)src/Shared/Aspire_icon_256.png</IconPath>
+    <IconExists Condition="Exists('$(IconPath)')">true</IconExists>
+    <PackageIconFullPath Condition="'$(UseAspireIcon)' != 'false' And '$(IconExists)' == 'true'">$(IconPath)</PackageIconFullPath>
   </PropertyGroup>
 
   <Import Condition="'$(SampleProject)' == 'true' or '$(CI)' != 'true' " Project="eng\Versions.dev.targets" />
@@ -12,7 +15,7 @@
   <Import Project="Sdk.targets" Sdk="Microsoft.DotNet.Arcade.Sdk" />
 
   <ItemGroup Condition="'$(ReadMeExists)' == 'true'">
-    <None Include="$(ReadMePath)" Pack="true" PackagePath="\"/>
+    <None Include="$(ReadMePath)" Pack="true" PackagePath="\" />
   </ItemGroup>
   
 </Project>
