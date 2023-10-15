@@ -1,7 +1,7 @@
 ﻿@inject BasketServiceClient BasketClient
 @inject NavigationManager Navigation
 
-<EditForm Model="this" FormName="@($"addtocart-{Item.Id}")" OnSubmit="HandleAddToCart" action="@Navigation.Uri" data-enhance>
+<EditForm action="@Navigation.ToBaseRelativePath(Navigation.Uri)" Model="this" FormName="@($"addtocart-{Item.Id}")" OnSubmit="HandleAddToCart" data-enhance>
     <input type="hidden" name="itemid" value="@Item.Id" />
     <button type="submit" class="align-content-end cart-button" title=@($"Add {@Item.Name} to cart?")>
         <i class="fa fa-cart-plus" aria-hidden="true"></i>
@@ -16,14 +16,11 @@
     [SupplyParameterFromForm]
     public int ItemId { get; set; }
 
-    [CascadingParameter]
-    public HttpContext? HttpContext { get; set; }
-
     private async Task HandleAddToCart()
     {
         await BasketClient.AddToCartAsync("user", ItemId);
 
         // Preserve query string
-        Navigation.NavigateTo($"/{HttpContext?.Request.QueryString}");
+        Navigation.NavigateTo($"/{new Uri(Navigation.Uri).Query}");
     }
 }
