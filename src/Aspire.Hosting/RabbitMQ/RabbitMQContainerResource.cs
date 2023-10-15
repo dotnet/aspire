@@ -5,8 +5,10 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.RabbitMQ;
 
-public class RabbitMQContainerResource(string name) : ContainerResource(name), IDistributedApplicationResourceWithConnectionString
+public class RabbitMQContainerResource(string name, string? password) : ContainerResource(name), IDistributedApplicationResourceWithConnectionString
 {
+    public string? Password { get; } = password;
+
     public string? GetConnectionString()
     {
         if (!this.TryGetAllocatedEndPoints(out var allocatedEndpoints))
@@ -15,6 +17,11 @@ public class RabbitMQContainerResource(string name) : ContainerResource(name), I
         }
 
         var endpoint = allocatedEndpoints.Where(a => a.Name != "management").Single();
-        return $"amqp://{endpoint.EndPointString}";
+        if (Password is null)
+        {
+            return $"amqp://{endpoint.EndPointString}";
+        }
+
+        return $"amqp://guest:{Password}@{endpoint.EndPointString}";
     }
 }
