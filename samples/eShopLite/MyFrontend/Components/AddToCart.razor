@@ -1,7 +1,7 @@
 ﻿@inject BasketServiceClient BasketClient
 @inject NavigationManager Navigation
 
-<EditForm action="@Navigation.ToBaseRelativePath(Navigation.Uri)" Model="this" FormName="@($"addtocart-{Item.Id}")" OnSubmit="HandleAddToCart" data-enhance>
+<EditForm action="@Navigation.ToAbsolutePath(Navigation.Uri)" Model="this" FormName="@($"addtocart-{Item.Id}")" OnSubmit="HandleAddToCart" data-enhance>
     <input type="hidden" name="itemid" value="@Item.Id" />
     <button type="submit" class="align-content-end cart-button" title=@($"Add {@Item.Name} to cart?")>
         <i class="fa fa-cart-plus" aria-hidden="true"></i>
