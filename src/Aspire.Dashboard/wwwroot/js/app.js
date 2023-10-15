@@ -82,7 +82,7 @@ window.updateFluentSelectDisplayValue = function (fluentSelect) {
 let matched = window.matchMedia('(prefers-color-scheme: dark)').matches;
 
 if (matched) {
-    window.DefaultBaseLayerLuminance = 0.23;
+    window.DefaultBaseLayerLuminance = 0.08;
 } else {
     window.DefaultBaseLayerLuminance = 1.0;
 }
