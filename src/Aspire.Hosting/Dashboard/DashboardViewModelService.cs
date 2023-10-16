@@ -225,7 +225,8 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
             WorkingDirectory = executable.Spec.WorkingDirectory,
             Arguments = executable.Spec.Args,
             State = executable.Status?.State,
-            LogSource = new FileLogSource(executable.Status?.StdOutFile, executable.Status?.StdErrFile)
+            LogSource = new FileLogSource(executable.Status?.StdOutFile, executable.Status?.StdErrFile),
+            ProcessId = executable.Status?.ProcessId,
         };
 
         if (executable.Status?.EffectiveEnv is not null)
@@ -256,7 +257,8 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
             ProjectPath = executable.Metadata?.Annotations?[Executable.CSharpProjectPathAnnotation] ?? "",
             State = executable.Status?.State,
             LogSource = new FileLogSource(executable.Status?.StdOutFile, executable.Status?.StdErrFile),
-            ExpectedEndpointsCount = expectedEndpointCount
+            ExpectedEndpointsCount = expectedEndpointCount,
+            ProcessId = executable.Status?.ProcessId,
         };
 
         model.Endpoints.AddRange(endpoints
