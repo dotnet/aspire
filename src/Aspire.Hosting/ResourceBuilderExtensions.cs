@@ -64,7 +64,19 @@ public static class ResourceBuilderExtensions
         };
     }
 
-    public static IDistributedApplicationResourceBuilder<TDestination> WithReference<TDestination, TSource>(this IDistributedApplicationResourceBuilder<TDestination> builder, IDistributedApplicationResourceBuilder<TSource> source, string? connectionName = null, bool optional = false)
+    public static IDistributedApplicationResourceBuilder<TDestination> WithReference<TDestination, TSource>(this IDistributedApplicationResourceBuilder<TDestination> builder, IDistributedApplicationResourceBuilder<TSource> source, string? connectionName = null, bool optional = false, string? bindingName = null)
+    where TDestination : IDistributedApplicationResourceWithEnvironment
+    where TSource : IDistributedApplicationResource
+    {
+        return source switch
+        {
+            IDistributedApplicationResourceBuilder<IDistributedApplicationResourceWithConnectionString> sourceWithConnectionString => builder.WithReferenceToResource(sourceWithConnectionString, connectionName, optional),
+            IDistributedApplicationResourceBuilder<IDistributedApplicationResource> sourceWithServiceBindings => builder.WithReferenceToService(sourceWithServiceBindings, bindingName),
+            _ => throw new DistributedApplicationException("Cannot add reference to this component.")
+        };
+    }
+
+    private static IDistributedApplicationResourceBuilder<TDestination> WithReferenceToResource<TDestination, TSource>(this IDistributedApplicationResourceBuilder<TDestination> builder, IDistributedApplicationResourceBuilder<TSource> source, string? connectionName = null, bool optional = false)
         where TDestination : IDistributedApplicationResourceWithEnvironment
         where TSource : IDistributedApplicationResourceWithConnectionString
     {
@@ -99,7 +111,7 @@ public static class ResourceBuilderExtensions
         });
     }
 
-    public static IDistributedApplicationResourceBuilder<TDestination> WithServiceReference<TDestination, TSource>(this IDistributedApplicationResourceBuilder<TDestination> builder, IDistributedApplicationResourceBuilder<TSource> bindingSourceBuilder, string? bindingName = null) where TDestination : IDistributedApplicationResourceWithEnvironment where TSource : IDistributedApplicationResource
+    private static IDistributedApplicationResourceBuilder<TDestination> WithReferenceToService<TDestination, TSource>(this IDistributedApplicationResourceBuilder<TDestination> builder, IDistributedApplicationResourceBuilder<TSource> bindingSourceBuilder, string? bindingName = null) where TDestination : IDistributedApplicationResourceWithEnvironment where TSource : IDistributedApplicationResource
     {
         // When adding a service reference we get to see whether there is a ServiceReferencesAnnotation
         // on the resource, if there is then it means we have already been here before and we can just

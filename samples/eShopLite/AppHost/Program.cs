@@ -20,8 +20,8 @@ var basket = builder.AddProject<Projects.BasketService>("basketservice")
                     .WithReference(serviceBus, optional: true);
 
 builder.AddProject<Projects.MyFrontend>("myfrontend")
-       .WithServiceReference(basket)
-       .WithServiceReference(catalog, bindingName: "http")
+       .WithReference(basket)
+       .WithReference(catalog, bindingName: "http")
        .WithEnvironment("GRAFANA_URL", () => grafana.GetEndpoint("grafana-http")?.UriString ?? $"{{{grafana.Resource.Name}.bindings.grafana-http}}");
 
 builder.AddProject<Projects.OrderProcessor>("orderprocessor")
@@ -29,8 +29,8 @@ builder.AddProject<Projects.OrderProcessor>("orderprocessor")
        .WithLaunchProfile("OrderProcessor");
 
 builder.AddProject<Projects.ApiGateway>("apigateway")
-       .WithServiceReference(basket)
-       .WithServiceReference(catalog);
+       .WithReference(basket)
+       .WithReference(catalog);
 
 builder.AddContainer("prometheus", "prom/prometheus")
        .WithVolumeMount("../prometheus", "/etc/prometheus")
