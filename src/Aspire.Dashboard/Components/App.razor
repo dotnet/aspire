@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="_content/Microsoft.Fast.Components.FluentUI/Microsoft.Fast.Components.FluentUI.bundle.scp.css" />
     <link rel="stylesheet" href="_content/Aspire.Dashboard/css/app.css" />
     <link rel="stylesheet" href="_content/Aspire.Dashboard/Aspire.Dashboard.bundle.scp.css" />
-    <HeadOutlet @rendermode="@RenderMode.InteractiveServer" />
+    <HeadOutlet @rendermode="@(new InteractiveServerRenderMode(prerender: false))" />
     <!-- Make the body background dark if dark mode will be enabled to prevent a flash of white
          before fully rendered. This value is from --neutral-fill-layer-rest, but that custom
          property isn't available at this point. -->
@@ -18,7 +18,7 @@
 </head>
 
 <body class="before-upgrade">
-    <Routes @rendermode="@RenderMode.InteractiveServer" />
+    <Routes @rendermode="@(new InteractiveServerRenderMode(prerender: false))" />
     <script src="_framework/blazor.web.js"></script>
     <script src="_content/Aspire.Dashboard/js/app.js"></script>
 </body>
