@@ -9,6 +9,12 @@ Add NuGet sources to apply the following feeds
 - https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet8/nuget/v3/index.json (https://github.com/dotnet/installer#installers-and-binaries)
 - See [Install and manage packages in Visual Studio](https://learn.microsoft.com/nuget/consume-packages/install-use-packages-visual-studio#package-sources) for instructions.
 
+### Command line instructions
+```sh
+dotnet nuget add source https://pkgs.dev.azure.com/dnceng/internal/_packaging/dotnet-tools-internal/nuget/v3/index.json
+dotnet nuget add source https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet8/nuget/v3/index.json
+```
+
 ## Install the Azure Artifacts Credential Provider for NuGet
 
 See [full setup instructions](https://github.com/microsoft/artifacts-credprovider#setup).
@@ -28,7 +34,7 @@ See [full setup instructions](https://github.com/microsoft/artifacts-credprovide
 
 #### Automatic bash script
 
-[Linux or Mac helper script](helpers/installcredprovider.sh)
+[Linux or Mac helper script](https://github.com/microsoft/artifacts-credprovider/blob/master/helpers/installcredprovider.sh)
 
 Examples:
 - `wget -qO- https://aka.ms/install-artifacts-credprovider.sh | bash`
