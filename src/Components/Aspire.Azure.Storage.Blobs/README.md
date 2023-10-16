@@ -19,13 +19,13 @@ dotnet add package Aspire.Azure.Storage.Blobs
 
 ## Usage Example
 
-In the `Program.cs` file of your project, call the `AddAzureBlobService` extension to register a `BlobServiceClient` for use via the dependency injection container. The method takes a connection name parameter.
+In the `Program.cs` file of your project, call the `AddAzureBlobService` extension method to register a `BlobServiceClient` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```cs
 builder.AddAzureBlobService("blobs");
 ```
 
-You can then retrieve the `BlobServiceClient` instance using dependency injection. For example, to retrieve the cache from a Web API controller:
+You can then retrieve the `BlobServiceClient` instance using dependency injection. For example, to retrieve the client from a Web API controller:
 
 ```cs
 private readonly BlobServiceClient _client;
@@ -112,6 +112,23 @@ You can also setup the [BlobClientOptions](https://learn.microsoft.com/dotnet/ap
 
 ```cs
     builder.AddAzureBlobService("blobs", configureClientBuilder: clientBuilder => clientBuilder.ConfigureOptions(options => options.Diagnostics.ApplicationId = "myapp"));
+```
+
+## AppHost Extensions
+
+In your AppHost project, add a Blob Storage connection and consume the connection using the following methods:
+
+```cs
+var blobs = builder.AddAzureStorage("storage").AddBlobs("blobs");
+
+var myService = builder.AddProject<Projects.MyService>()
+                       .WithReference(blobs);
+```
+
+`AddBlobs` will read connection information from the AppHost's configuration (for example, from "user secrets") under the `ConnectionStrings:blobs` config key. `.WithReference` passes that connection information into a connection string named `blobs` in the `MyService` project. In the `Program.cs` file of `MyService`, the connection can be consumed using:
+
+```cs
+builder.AddAzureBlobService("blobs");
 ```
 
 ## Additional documentation

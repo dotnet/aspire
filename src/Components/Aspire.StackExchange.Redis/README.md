@@ -24,7 +24,7 @@ In the `Program.cs` file of your project, call the `AddRedis` extension method t
 builder.AddRedis("cache");
 ```
 
-You can then retrieve the `IConnectionMultiplexer` instance using dependency injection. For example, to retrieve the cache from a Web API controller:
+You can then retrieve the `IConnectionMultiplexer` instance using dependency injection. For example, to retrieve the connection multiplexer from a Web API controller:
 
 ```cs
 private readonly IConnectionMultiplexer _cache;
@@ -96,14 +96,14 @@ You can also setup the [ConfigurationOptions](https://stackexchange.github.io/St
 builder.AddRedis("cache", configureOptions: options => options.ConnectTimeout = 3000);
 ```
 
-## App Extensions
+## AppHost Extensions
 
-In your App project, register a Redis container and consume the connection using the following methods:
+In your AppHost project, register a Redis container and consume the connection using the following methods:
 
 ```cs
 var redis = builder.AddRedisContainer("cache");
 
-var myService = builder.AddProject<YourApp.Projects.MyService>()
+var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(redis);
 ```
 

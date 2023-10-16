@@ -24,7 +24,7 @@ In the `Program.cs` file of your project, call the `AddSqlServerDbContext` exten
 builder.AddSqlServerDbContext<MyDbContext>("sqldata");
 ```
 
-You can then retrieve the `MyDbContext` instance using dependency injection. For example, to retrieve the cache from a Web API controller:
+You can then retrieve the `MyDbContext` instance using dependency injection. For example, to retrieve the context from a Web API controller:
 
 ```cs
 private readonly MyDbContext _context;
@@ -88,14 +88,14 @@ Also you can pass the `Action<MicrosoftEntityFrameworkCoreSqlServerSettings> con
     builder.AddSqlServerDbContext<MyDbContext>("sqldata", settings => settings.HealthChecks = false);
 ```
 
-## App Extensions
+## AppHost Extensions
 
-In your App project, register a SqlServer container and consume the connection using the following methods:
+In your AppHost project, register a SqlServer container and consume the connection using the following methods:
 
 ```cs
 var sql = builder.AddSqlServerContainer("sql").AddDatabase("sqldata");
 
-var myService = builder.AddProject<YourApp.Projects.MyService>()
+var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(sql);
 ```
 

@@ -19,13 +19,13 @@ dotnet add package Aspire.Azure.Messaging.ServiceBus
 
 ## Usage Example
 
-In the `Program.cs` file of your project, call the `AddAzureServiceBus` extension to register a `ServiceBusClient` for use via the dependency injection container. The method takes a connection name parameter.
+In the `Program.cs` file of your project, call the `AddAzureServiceBus` extension method to register a `ServiceBusClient` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```cs
 builder.AddAzureServiceBus("sb");
 ```
 
-You can then retrieve the `ServiceBusClient` instance using dependency injection. For example, to retrieve the cache from a Web API controller:
+You can then retrieve the `ServiceBusClient` instance using dependency injection. For example, to retrieve the client from a Web API controller:
 
 ```cs
 private readonly ServiceBusClient _client;
@@ -110,6 +110,23 @@ You can also setup the [ServiceBusClientOptions](https://learn.microsoft.com/dot
 
 ```cs
     builder.AddAzureServiceBus("sb", configureClientBuilder: clientBuilder => clientBuilder.ConfigureOptions(options => options.Identifier = "CLIENT_ID"));
+```
+
+## AppHost Extensions
+
+In your AppHost project, add a Service Bus connection and consume the connection using the following methods:
+
+```cs
+var serviceBus = builder.AddAzureServiceBus("sb");
+
+var myService = builder.AddProject<Projects.MyService>()
+                       .WithReference(serviceBus);
+```
+
+`AddAzureServiceBus` will read connection information from the AppHost's configuration (for example, from "user secrets") under the `ConnectionStrings:sb` config key. `.WithReference` passes that connection information into a connection string named `sb` in the `MyService` project. In the `Program.cs` file of `MyService`, the connection can be consumed using:
+
+```cs
+builder.AddAzureServiceBus("sb");
 ```
 
 ## Additional documentation

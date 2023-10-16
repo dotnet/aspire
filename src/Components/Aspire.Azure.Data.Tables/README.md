@@ -19,13 +19,13 @@ dotnet add package Aspire.Azure.Data.Tables
 
 ## Usage Example
 
-In the `Program.cs` file of your project, call the `AddAzureTableService` extension to register a `TableServiceClient` for use via the dependency injection container. The method takes a connection name parameter.
+In the `Program.cs` file of your project, call the `AddAzureTableService` extension method to register a `TableServiceClient` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```cs
 builder.AddAzureTableService("tables");
 ```
 
-You can then retrieve the `TableServiceClient` instance using dependency injection. For example, to retrieve the cache from a Web API controller:
+You can then retrieve the `TableServiceClient` instance using dependency injection. For example, to retrieve the client from a Web API controller:
 
 ```cs
 private readonly TableServiceClient _client;
@@ -112,6 +112,23 @@ You can also setup the [TableClientOptions](https://learn.microsoft.com/dotnet/a
 
 ```cs
     builder.AddAzureTableService("tables", configureClientBuilder: clientBuilder => clientBuilder.ConfigureOptions(options => options.Diagnostics.ApplicationId = "myapp"));
+```
+
+## AppHost Extensions
+
+In your AppHost project, add a Table Storage connection and consume the connection using the following methods:
+
+```cs
+var tables = builder.AddAzureStorage("storage").AddTables("tables");
+
+var myService = builder.AddProject<Projects.MyService>()
+                       .WithReference(tables);
+```
+
+`AddTables` will read connection information from the AppHost's configuration (for example, from "user secrets") under the `ConnectionStrings:tables` config key. `.WithReference` passes that connection information into a connection string named `tables` in the `MyService` project. In the `Program.cs` file of `MyService`, the connection can be consumed using:
+
+```cs
+builder.AddAzureTableService("tables");
 ```
 
 ## Additional documentation
