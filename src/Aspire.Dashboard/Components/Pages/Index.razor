@@ -19,7 +19,7 @@
                           slot="end" />
         </FluentToolbar>
         <div class="datagrid-overflow-area" tabindex="-1">
-            <FluentDataGrid Items="@FilteredResources" ResizableColumns="true" GridTemplateColumns="2fr 1fr 2fr 2fr 2fr 1fr 1fr">
+            <FluentDataGrid Items="@FilteredResources" ResizableColumns="true" GridTemplateColumns="2fr 1fr 2fr 1fr 4fr 4fr 4fr 1fr 1fr">
                 <ChildContent>
                     <TemplateColumn Title="Name" Sortable="true" SortBy="@nameSort">
                         <div class="col-long-content" title="@context.Name">
@@ -28,6 +28,7 @@
                     </TemplateColumn>
                     <PropertyColumn Property="@(e => e.State)" Sortable="true" />
                     <PropertyColumn Property="@(c => c.CreationTimeStamp)" Title="Start Time" Sortable="true" />
+                    <PropertyColumn Property="@(c => c.ProcessId)" Title="Process Id" Sortable="true" />
                     <TemplateColumn Title="Source Location" Sortable="true" SortBy="@projectPathSort">
                         <div class="col-long-content" title="@context.ProjectPath">
                             <FluentHighlighter HighlightedText="@filter" Text="@context.ProjectPath" />
