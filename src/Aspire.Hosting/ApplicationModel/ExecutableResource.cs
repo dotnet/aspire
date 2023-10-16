@@ -3,7 +3,7 @@
 
 namespace Aspire.Hosting.ApplicationModel;
 
-public class ExecutableResource(string name, string command, string workingDirectory, string[]? args) : DistributedApplicationResource(name), IDistributedApplicationResourceWithEnvironment
+public class ExecutableResource(string name, string command, string workingDirectory, string[]? args) : DistributedApplicationResource(name), IDistributedApplicationResourceWithEnvironment, IDistributedApplicationResourceWithBindings
 {
     public string Command { get; } = command;
     public string WorkingDirectory { get; } = workingDirectory;

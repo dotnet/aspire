@@ -21,8 +21,8 @@ var basket = builder.AddProject<Projects.BasketService>("basketservice")
 
 builder.AddProject<Projects.MyFrontend>("myfrontend")
        .WithReference(basket)
-       .WithReference(catalog, bindingName: "http")
-       .WithEnvironment("GRAFANA_URL", () => grafana.GetEndpoint("grafana-http")?.UriString ?? $"{{{grafana.Resource.Name}.bindings.grafana-http}}");
+       .WithReference(catalog.GetEndpoint("http"))
+       .WithEnvironment("GRAFANA_URL", () => grafana.GetEndpoint("grafana-http").UriStringOrPlaceholder);
 
 builder.AddProject<Projects.OrderProcessor>("orderprocessor")
        .WithReference(serviceBus, optional: true)

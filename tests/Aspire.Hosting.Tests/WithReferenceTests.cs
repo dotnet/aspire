@@ -7,7 +7,7 @@ using Xunit;
 
 namespace Aspire.Hosting.Tests;
 
-public class WithServiceReferenceTests
+public class WithReferenceTests
 {
     [Fact]
     public void ResourceWithSingleServiceBindingProducesSimplifiedEnvironmentVariables()
@@ -25,7 +25,7 @@ public class WithServiceReferenceTests
             ));
 
         // Get the service provider.
-        testProgram.ServiceBBuilder.WithServiceReference(testProgram.ServiceABuilder, "mybinding");
+        testProgram.ServiceBBuilder.WithReference(testProgram.ServiceABuilder.GetEndpoint("mybinding"));
         testProgram.Build();
 
         // Call environment variable callbacks.
@@ -71,11 +71,10 @@ public class WithServiceReferenceTests
             "https"
             ));
 
-        testProgram.ServiceBBuilder.WithServiceReference(testProgram.ServiceABuilder, "mybinding");
-        testProgram.ServiceBBuilder.WithServiceReference(testProgram.ServiceABuilder, "myconflictingbinding");
+        testProgram.ServiceBBuilder.WithReference(testProgram.ServiceABuilder.GetEndpoint("mybinding"));
+        testProgram.ServiceBBuilder.WithReference(testProgram.ServiceABuilder.GetEndpoint("myconflictingbinding"));
 
         // Get the service provider.
-        testProgram.ServiceBBuilder.WithServiceReference(testProgram.ServiceABuilder, "mybinding");
         testProgram.Build();
 
         // Call environment variable callbacks.
@@ -121,11 +120,10 @@ public class WithServiceReferenceTests
             "http"
             ));
 
-        testProgram.ServiceBBuilder.WithServiceReference(testProgram.ServiceABuilder, "mybinding");
-        testProgram.ServiceBBuilder.WithServiceReference(testProgram.ServiceABuilder, "mynonconflictingbinding");
+        testProgram.ServiceBBuilder.WithReference(testProgram.ServiceABuilder.GetEndpoint("mybinding"));
+        testProgram.ServiceBBuilder.WithReference(testProgram.ServiceABuilder.GetEndpoint("mynonconflictingbinding"));
 
         // Get the service provider.
-        testProgram.ServiceBBuilder.WithServiceReference(testProgram.ServiceABuilder, "mybinding");
         testProgram.Build();
 
         // Call environment variable callbacks.
