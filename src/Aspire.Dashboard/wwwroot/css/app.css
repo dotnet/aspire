@@ -45,3 +45,21 @@ fluent-toolbar[orientation=horizontal] {
 .custom-body-content {
     margin-right: 10px;
 }
+
+/* The fluent dialog's default fill color is too dark in our current dark theme.
+   Setting it to the floating layer allows it to stand out more and doesn't impact light theme. */
+fluent-dialog::part(control) {
+    background: var(--neutral-layer-floating);
+}
+
+/* Changing the dialog's fill color means stealth buttons on the dialog have the wrong background,
+   so change it to match */
+fluent-dialog fluent-button[appearance=stealth]:not(:hover)::part(control) {
+    background: var(--neutral-layer-floating);
+}
+
+/* But changing the stealth button's background in dialogs means the stealth buttons used as headers for grid cells
+   now have the wrong background. So change that back */
+fluent-dialog fluent-data-grid-cell[cell-type=columnheader] fluent-button[appearance=stealth]:not(:hover)::part(control) {
+    background: var(--fill-layer);
+}
