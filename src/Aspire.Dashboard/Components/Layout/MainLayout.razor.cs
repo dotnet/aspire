@@ -29,7 +29,7 @@ public partial class MainLayout
             SecondaryAction = null,
             TrapFocus = true,
             Modal = true,
-            Width = "auto",
+            Width = "300px",
             Height = "auto"
         };
 
