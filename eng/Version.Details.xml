@@ -29,9 +29,9 @@
       <Uri>https://github.com/microsoft/usvc-apiserver</Uri>
       <Sha>2d5f3a1fe63e53b0bf553280f420ee0da9bac3ff</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Extensions.Http.Resilience" Version="8.0.0-rtm.23516.4">
+    <Dependency Name="Microsoft.Extensions.Http.Resilience" Version="8.0.0-rtm.23516.6">
       <Uri>https://github.com/dotnet/extensions</Uri>
-      <Sha>2fe3f6e0039b5ecf30857f72074e6fc37fc99819</Sha>
+      <Sha>380709126a65c4d8237c7b5fb4982ea8becc2a1e</Sha>
     </Dependency>
   </ProductDependencies>
   <ToolsetDependencies>
