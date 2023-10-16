@@ -10,7 +10,7 @@ namespace Aspire.Hosting;
 
 public static class RedisBuilderExtensions
 {
-    public static IDistributedApplicationResourceBuilder<RedisContainerResource> AddRedisContainer(this IDistributedApplicationBuilder builder, string name, int? port = null)
+    public static IDistributedApplicationResourceBuilder<RedisContainerResource> AddRedis(this IDistributedApplicationBuilder builder, string name, int? port = null)
     {
         var redis = new RedisContainerResource(name);
         return builder.AddResource(redis)
@@ -19,9 +19,9 @@ public static class RedisBuilderExtensions
                       .WithAnnotation(new ContainerImageAnnotation { Image = "redis", Tag = "latest" });
     }
 
-    public static IDistributedApplicationResourceBuilder<RedisResource> AddRedis(this IDistributedApplicationBuilder builder, string name, string? connectionString = null)
+    public static IDistributedApplicationResourceBuilder<RedisConnectionResource> AddRedisConnection(this IDistributedApplicationBuilder builder, string name, string? connectionString = null)
     {
-        var redis = new RedisResource(name, connectionString);
+        var redis = new RedisConnectionResource(name, connectionString);
         return builder.AddResource(redis)
                       .WithAnnotation(new ManifestPublishingCallbackAnnotation(jsonWriter =>
                         WriteRedisResourceToManifest(jsonWriter, redis.GetConnectionString())));

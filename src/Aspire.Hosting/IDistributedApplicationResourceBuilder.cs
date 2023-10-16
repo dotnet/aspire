@@ -9,6 +9,6 @@ public interface IDistributedApplicationResourceBuilder<out T> where T : IDistri
 {
     IDistributedApplicationBuilder ApplicationBuilder { get; }
     T Resource { get; }
-    IDistributedApplicationResourceBuilder<T> WithAnnotation<TAnnotation>() where TAnnotation : IDistributedApplicationResourceAnnotation, new() => WithAnnotation<TAnnotation>(new TAnnotation());
+//    IDistributedApplicationResourceBuilder<T> WithAnnotation<TAnnotation>() where TAnnotation : IDistributedApplicationResourceAnnotation, new() => WithAnnotation<TAnnotation>(new TAnnotation());
     IDistributedApplicationResourceBuilder<T> WithAnnotation<TAnnotation>(TAnnotation annotation) where TAnnotation : IDistributedApplicationResourceAnnotation;
 }

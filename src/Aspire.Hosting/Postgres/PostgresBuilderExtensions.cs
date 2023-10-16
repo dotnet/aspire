@@ -20,8 +20,8 @@ public static class PostgresBuilderExtensions
                       .WithAnnotation(new ManifestPublishingCallbackAnnotation(WritePostgresContainerToManifest))
                       .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, port: port, containerPort: 5432)) // Internal port is always 5432.
                       .WithAnnotation(new ContainerImageAnnotation { Image = "postgres", Tag = "latest" })
-                      .WithEnvironment("POSTGRES_HOST_AUTH_METHOD", "trust")
-                      .WithEnvironment(PasswordEnvVarName, () => postgresContainer.Password);
+                      .WithAnnotation(new EnvironmentCallbackAnnotation("POSTGRES_HOST_AUTH_METHOD", () => "trust"))
+                      .WithAnnotation(new EnvironmentCallbackAnnotation(PasswordEnvVarName, () => postgresContainer.Password));
     }
 
     public static IDistributedApplicationResourceBuilder<PostgresConnectionResource> AddPostgresConnection(this IDistributedApplicationBuilder builder, string name, string? connectionString = null)

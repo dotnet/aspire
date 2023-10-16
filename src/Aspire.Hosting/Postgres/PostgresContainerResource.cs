@@ -5,7 +5,7 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Postgres;
 
-public class PostgresContainerResource(string name, string password) : ContainerResource(name), IPostgresResource
+public class PostgresContainerResource(string name, string password) : DistributedApplicationResource(name), IPostgresResource
 {
     public string Password { get; } = password;
 

@@ -7,7 +7,7 @@ var grafana = builder.AddContainer("grafana", "grafana/grafana")
 
 var catalogdb = builder.AddPostgresContainer("postgres").AddDatabase("catalog");
 
-var redis = builder.AddRedisContainer("basketCache");
+var redis = builder.AddRedis("basketCache");
 
 var catalog = builder.AddProject<Projects.CatalogService>("catalogservice")
                      .WithReference(catalogdb)

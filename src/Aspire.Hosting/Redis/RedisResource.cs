@@ -5,7 +5,7 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Redis;
 
-public class RedisResource(string name, string? connectionString) : DistributedApplicationResource(name), IRedisResource
+public class RedisConnectionResource(string name, string? connectionString) : DistributedApplicationResource(name), IRedisResource
 {
     public string? GetConnectionString() => connectionString;
 }

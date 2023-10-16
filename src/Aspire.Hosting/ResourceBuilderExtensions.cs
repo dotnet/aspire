@@ -11,7 +11,7 @@ public static class ResourceBuilderExtensions
 {
     private const string ConnectionStringEnvironmentName = "ConnectionStrings__";
 
-    public static IDistributedApplicationResourceBuilder<T> WithEnvironment<T>(this IDistributedApplicationResourceBuilder<T> builder, string name, string? value) where T : IDistributedApplicationResource
+    public static IDistributedApplicationResourceBuilder<T> WithEnvironment<T>(this IDistributedApplicationResourceBuilder<T> builder, string name, string? value) where T : IDistributedApplicationResourceWithEnvironment
     {
         return builder.WithAnnotation(new EnvironmentCallbackAnnotation(name, () => value ?? string.Empty));
     }
