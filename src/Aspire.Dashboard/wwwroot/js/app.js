@@ -2,7 +2,7 @@
 // To avoid Flash of Unstyled Content, the body is hidden by default with
 // the before-upgrade CSS class. Here we'll find the first web component
 // and wait for it to be upgraded. When it is, we'll remove that class
-// from the body. 
+// from the body.
 const firstUndefinedElement = document.body.querySelector(":not(:defined)");
 
 if (firstUndefinedElement) {
@@ -80,12 +80,4 @@ window.updateFluentSelectDisplayValue = function (fluentSelect) {
     if (fluentSelect) {
         fluentSelect.updateDisplayValue();
     }
-}
-
-let matched = window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-if (matched) {
-    window.DefaultBaseLayerLuminance = 0.08;
-} else {
-    window.DefaultBaseLayerLuminance = 1.0;
 }
