@@ -10,17 +10,17 @@ namespace Aspire.Hosting;
 
 public static class SqlServerBuilderExtensions
 {
-    public static IDistributedApplicationResourceBuilder<SqlServerContainerResource> AddSqlServerContainer(this IDistributedApplicationBuilder builder, string name, string? password = null, int? port = null)
+    public static IDistributedApplicationResourceBuilder<SqlServerResource> AddSqlServer(this IDistributedApplicationBuilder builder, string name, string? password = null, int? port = null)
     {
         password = password ?? Guid.NewGuid().ToString("N");
-        var sqlServer = new SqlServerContainerResource(name, password);
+        var sqlServer = new SqlServerResource(name, password);
 
         return builder.AddResource(sqlServer)
                       .WithAnnotation(new ManifestPublishingCallbackAnnotation(WriteSqlServerContainerToManifest))
                       .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, port: port, containerPort: 1433))
                       .WithAnnotation(new ContainerImageAnnotation { Registry = "mcr.microsoft.com", Image = "mssql/server", Tag = "2022-latest" })
-                      .WithEnvironment("ACCEPT_EULA", "Y")
-                      .WithEnvironment("MSSQL_SA_PASSWORD", sqlServer.GeneratedPassword);
+                      .WithAnnotation(new EnvironmentCallbackAnnotation("ACCEPT_EULA", () => "Y"))
+                      .WithAnnotation(new EnvironmentCallbackAnnotation("MSSQL_SA_PASSWORD", () => sqlServer.GeneratedPassword));
     }
 
     public static IDistributedApplicationResourceBuilder<SqlServerConnectionResource> AddSqlServerConnection(this IDistributedApplicationBuilder builder, string name, string? connectionString = null)
@@ -48,7 +48,7 @@ public static class SqlServerBuilderExtensions
         json.WriteString("parent", sqlServerDatabase.Parent.Name);
     }
 
-    public static IDistributedApplicationResourceBuilder<SqlServerDatabaseResource> AddDatabase(this IDistributedApplicationResourceBuilder<SqlServerContainerResource> builder, string name)
+    public static IDistributedApplicationResourceBuilder<SqlServerDatabaseResource> AddDatabase(this IDistributedApplicationResourceBuilder<SqlServerResource> builder, string name)
     {
         var sqlServerDatabase = new SqlServerDatabaseResource(name, builder.Resource);
         return builder.ApplicationBuilder.AddResource(sqlServerDatabase)

@@ -51,8 +51,7 @@
       "path": "..\\BasketService\\BasketService.csproj",
       "env": {
         "ConnectionStrings__basketCache": "{basketCache.connectionString}",
-        "ConnectionStrings__messaging": "{messaging.connectionString}",
-        "services__basketCache__0": "{basketCache.bindings.tcp.url}"
+        "ConnectionStrings__messaging": "{messaging.connectionString}"
       },
       "bindings": {
         "http": {

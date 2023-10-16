@@ -5,7 +5,7 @@ builder.AddAzureProvisioning();
 var grafana = builder.AddContainer("grafana", "grafana/grafana")
                      .WithServiceBinding(containerPort: 3000, name: "grafana-http", scheme: "http");
 
-var catalogdb = builder.AddPostgresContainer("postgres").AddDatabase("catalog");
+var catalogdb = builder.AddPostgres("postgres").AddDatabase("catalog");
 
 var redis = builder.AddRedis("basketCache");
 

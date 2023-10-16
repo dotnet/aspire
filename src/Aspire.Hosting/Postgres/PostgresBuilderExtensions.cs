@@ -12,10 +12,10 @@ public static class PostgresBuilderExtensions
 {
     private const string PasswordEnvVarName = "POSTGRES_PASSWORD";
 
-    public static IDistributedApplicationResourceBuilder<PostgresContainerResource> AddPostgresContainer(this IDistributedApplicationBuilder builder, string name, int? port = null, string? password = null)
+    public static IDistributedApplicationResourceBuilder<PostgresResource> AddPostgres(this IDistributedApplicationBuilder builder, string name, int? port = null, string? password = null)
     {
         password = password ?? Guid.NewGuid().ToString("N");
-        var postgresContainer = new PostgresContainerResource(name, password);
+        var postgresContainer = new PostgresResource(name, password);
         return builder.AddResource(postgresContainer)
                       .WithAnnotation(new ManifestPublishingCallbackAnnotation(WritePostgresContainerToManifest))
                       .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, port: port, containerPort: 5432)) // Internal port is always 5432.
@@ -49,7 +49,7 @@ public static class PostgresBuilderExtensions
         json.WriteString("parent", postgresDatabase.Parent.Name);
     }
 
-    public static IDistributedApplicationResourceBuilder<PostgresDatabaseResource> AddDatabase(this IDistributedApplicationResourceBuilder<PostgresContainerResource> builder, string name)
+    public static IDistributedApplicationResourceBuilder<PostgresDatabaseResource> AddDatabase(this IDistributedApplicationResourceBuilder<PostgresResource> builder, string name)
     {
         var postgresDatabase = new PostgresDatabaseResource(name, builder.Resource);
         return builder.ApplicationBuilder.AddResource(postgresDatabase)

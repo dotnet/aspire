@@ -5,7 +5,7 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.SqlServer;
 
-public class SqlServerContainerResource(string name, string password) : ContainerResource(name), ISqlServerResource
+public class SqlServerResource(string name, string password) : DistributedApplicationResource(name), ISqlServerResource
 {
     public string GeneratedPassword { get; } = password;
 

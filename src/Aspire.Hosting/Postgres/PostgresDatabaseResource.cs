@@ -5,9 +5,9 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Postgres;
 
-public class PostgresDatabaseResource(string name, PostgresContainerResource postgresContainer) : DistributedApplicationResource(name), IPostgresResource, IDistributedApplicationResourceWithParent<PostgresContainerResource>
+public class PostgresDatabaseResource(string name, PostgresResource postgresContainer) : DistributedApplicationResource(name), IPostgresResource, IDistributedApplicationResourceWithParent<PostgresResource>
 {
-    public PostgresContainerResource Parent { get; } = postgresContainer;
+    public PostgresResource Parent { get; } = postgresContainer;
 
     public string? GetConnectionString()
     {

@@ -5,14 +5,14 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.SqlServer;
 
-public class SqlServerDatabaseResource : ContainerResource, ISqlServerResource, IDistributedApplicationResourceWithParent<SqlServerContainerResource>
+public class SqlServerDatabaseResource : ContainerResource, ISqlServerResource, IDistributedApplicationResourceWithParent<SqlServerResource>
 {
-    public SqlServerDatabaseResource(string name, SqlServerContainerResource sqlServerContainer) : base(name)
+    public SqlServerDatabaseResource(string name, SqlServerResource sqlServerContainer) : base(name)
     {
         Parent = sqlServerContainer;
     }
 
-    public SqlServerContainerResource Parent { get; }
+    public SqlServerResource Parent { get; }
 
     public string? GetConnectionString()
     {

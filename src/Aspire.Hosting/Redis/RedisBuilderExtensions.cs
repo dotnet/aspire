@@ -10,9 +10,9 @@ namespace Aspire.Hosting;
 
 public static class RedisBuilderExtensions
 {
-    public static IDistributedApplicationResourceBuilder<RedisContainerResource> AddRedis(this IDistributedApplicationBuilder builder, string name, int? port = null)
+    public static IDistributedApplicationResourceBuilder<RedisResource> AddRedis(this IDistributedApplicationBuilder builder, string name, int? port = null)
     {
-        var redis = new RedisContainerResource(name);
+        var redis = new RedisResource(name);
         return builder.AddResource(redis)
                       .WithAnnotation(new ManifestPublishingCallbackAnnotation(WriteRedisResourceToManifest))
                       .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, port: port, containerPort: 6379))
