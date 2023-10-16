@@ -42,6 +42,25 @@ Examples:
 
 > Note: this script only installs the netcore version of the plugin. If you need to have it working with mono msbuild, you will need to download the version with both netcore and netfx binaries following the steps in [Manual installation on Linux and Mac](#installation-on-linux-and-mac)
 
+## Setup NuGet Feed
+
+Unless you work for Microsoft, you won't have access to the internal Azure
+DevOps feed. We have a private mirror on GitHub you can use instead. To access
+it, you need to perform the following steps:
+
+1. [Create a personal access token](https://github.com/settings/tokens/new) for
+   your GitHub account with the `read:packages` scope with your desired
+   expiration length:
+    [<img width="583" alt="image" src="https://user-images.githubusercontent.com/249088/160220117-7e79822e-a18a-445c-89ff-b3d9ca84892f.png">](https://github.com/settings/tokens/new)
+
+1. At the command line, go to the root of the Aspire repo and run the following
+   commands to add the package feed to your NuGet configuration, replacing the
+   `<YOUR_USER_NAME>` and `<YOUR_TOKEN>` placeholders with the relevant values:
+   ```text
+   dotnet nuget remove source dotnet-libraries-internal
+   dotnet nuget add source -u <YOUR_USER_NAME> -p <YOUR_TOKEN> --name dotnet-libraries-internal "https://nuget.pkg.github.com/dotnet/index.json"
+   ```
+
 ## Install the Aspire dotnet workload
 
 ### Visual Studio
