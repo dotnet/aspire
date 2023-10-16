@@ -113,3 +113,15 @@ main {
     min-height: calc(100vh - 50px);
     background-color: var(--neutral-fill-stealth-rest);
 }
+
+::deep .header-right {
+    margin-left: auto;
+}
+
+::deep .layout > .header fluent-button[appearance=stealth]::part(control) {
+    background-color: var(--accent-fill-rest);
+}
+
+::deep .layout > .header fluent-button[appearance=stealth]:hover::part(control) {
+    background-color: var(--accent-fill-hover);
+}
