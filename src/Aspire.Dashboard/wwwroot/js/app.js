@@ -9,6 +9,9 @@ if (firstUndefinedElement) {
     customElements.whenDefined(firstUndefinedElement.localName).then(() => {
         document.body.classList.remove("before-upgrade");
     });
+} else {
+    // In the event this code doesn't run until after they've all been upgraded
+    document.body.classList.remove("before-upgrade");
 }
 
 window.scrollToEndInTextArea = function (classSelector) {
