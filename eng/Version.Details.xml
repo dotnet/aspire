@@ -29,6 +29,10 @@
       <Uri>https://github.com/microsoft/usvc-apiserver</Uri>
       <Sha>2d5f3a1fe63e53b0bf553280f420ee0da9bac3ff</Sha>
     </Dependency>
+    <Dependency Name="Microsoft.Extensions.Http.Resilience" Version="8.0.0-rtm.23516.4">
+      <Uri>https://github.com/dotnet/extensions</Uri>
+      <Sha>2fe3f6e0039b5ecf30857f72074e6fc37fc99819</Sha>
+    </Dependency>
   </ProductDependencies>
   <ToolsetDependencies>
     <Dependency Name="Microsoft.DotNet.Arcade.Sdk" Version="8.0.0-beta.23505.1">

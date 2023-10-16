@@ -3,7 +3,6 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <RuntimeVersion>8.0.0-rtm.23511.16</RuntimeVersion>
     <AspNetCoreVersion>8.0.0-rtm.23512.20</AspNetCoreVersion>
-    <ExtensionsVersion>8.0.0-rtm.23512.3</ExtensionsVersion>
   </PropertyGroup>
   <ItemGroup>
     <!-- Azure SDK for .NET dependencies -->
@@ -54,7 +53,7 @@
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="$(RuntimeVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Options" Version="$(RuntimeVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Primitives" Version="$(RuntimeVersion)" />
-    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="$(ExtensionsVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="$(MicrosoftExtensionsHttpResiliencePackageVersion)" />
     <!-- external dependencies -->
     <PackageVersion Include="Dapr.AspNetCore" Version="1.11.0" />
     <PackageVersion Include="Dapr.Client" Version="1.12.0-rc01" />
