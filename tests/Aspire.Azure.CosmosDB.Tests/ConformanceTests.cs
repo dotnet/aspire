@@ -26,7 +26,7 @@ public class ConformanceTests : ConformanceTests<CosmosClient, AzureCosmosDBOpti
         });
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<AzureCosmosDBOptions>? configure = null, string? key = null)
-        => builder.AddAzureCosmosDBConfig(configure, key);
+        => builder.AddAzureCosmosDB("cosmosdb", configure);
 
     protected override void SetHealthCheck(AzureCosmosDBOptions options, bool enabled)
         => options.HealthChecks = enabled;
