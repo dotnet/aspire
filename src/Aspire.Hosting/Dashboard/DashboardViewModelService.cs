@@ -317,7 +317,7 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
     private static int GetExpectedEndpointsCount(CustomResource resource, List<Service> services)
     {
         var expectedCount = 0;
-        if (resource.Metadata.Annotations.TryGetValue(CustomResource.ServiceProducerAnnotation, out var servicesProducedAnnotationJson))
+        if (resource.Metadata.Annotations is not null && resource.Metadata.Annotations.TryGetValue(CustomResource.ServiceProducerAnnotation, out var servicesProducedAnnotationJson))
         {
             var serviceProducerAnnotations = JsonSerializer.Deserialize<ServiceProducerAnnotation[]>(servicesProducedAnnotationJson);
             if (serviceProducerAnnotations is not null)
