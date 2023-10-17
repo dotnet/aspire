@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
+using System.Diagnostics.Metrics;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Model.MetricValues;
@@ -13,7 +15,7 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
 {
     private readonly CounterChartViewModel _viewModel = new();
 
-    private OtlpInstrument? _instrument;
+    private OtlpInstrument _instrument = default!;
     private PeriodicTimer? _tickTimer;
     private Task? _tickTask;
     private int _renderedDimensionsCount;
@@ -58,11 +60,9 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
         var timer = _tickTimer;
         while (await timer!.WaitForNextTickAsync().ConfigureAwait(false))
         {
-            _instrument = TelemetryRepository.GetInstrument(ApplicationId, MeterName, InstrumentName);
-            if (_instrument is null)
-            {
-                return;
-            }
+            var instrument = TelemetryRepository.GetInstrument(ApplicationId, MeterName, InstrumentName);
+            Debug.Assert(instrument != null);
+            _instrument = instrument;
 
             if (_instrument.Dimensions.Count > _renderedDimensionsCount)
             {
@@ -132,11 +132,9 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
 
     protected override async Task OnParametersSetAsync()
     {
-        _instrument = TelemetryRepository.GetInstrument(ApplicationId, MeterName, InstrumentName);
-        if (_instrument is null)
-        {
-            return;
-        }
+        var instrument = TelemetryRepository.GetInstrument(ApplicationId, MeterName, InstrumentName);
+        Debug.Assert(instrument != null);
+        _instrument = instrument;
 
         var hasInstrumentChanged = _previousMeterName != MeterName || _previousInstrumentName != InstrumentName;
         _previousMeterName = MeterName;
