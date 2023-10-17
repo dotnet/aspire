@@ -28,15 +28,6 @@ app.UseAntiforgery();
 
 app.MapRazorComponents<App>();
 
-app.MapGet("/admin", (IConfiguration config) =>
-{
-    return config["GRAFANA_URL"] switch
-    {
-        string url => Results.Redirect(url),
-        null => Results.StatusCode(500)
-    };
-});
-
 app.MapForwarder("/catalog/images/{id}", "http://catalogservice", "/api/v1/catalog/items/{id}/image");
 
 app.MapDefaultEndpoints();
