@@ -64,6 +64,7 @@
     <PackageVersion Include="Grpc.Net.ClientFactory" Version="2.58.0-pre1" />
     <PackageVersion Include="Grpc.Net.Server" Version="2.58.0-pre1" />
     <PackageVersion Include="Grpc.Tools" Version="2.57.0" />
+    <PackageVersion Include="Humanizer.Core" Version="2.14.1" />
     <PackageVersion Include="KubernetesClient" Version="11.0.36" />
     <PackageVersion Include="JsonSchema.Net" Version="5.2.5" />
     <PackageVersion Include="Microsoft.Fast.Components.FluentUI" Version="3.2.0" />

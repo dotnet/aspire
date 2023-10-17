@@ -42,7 +42,6 @@ public static class Extensions
             .WithMetrics(metrics =>
             {
                 metrics.AddRuntimeInstrumentation()
-                       .AddHttpClientInstrumentation()
                        .AddAspNetCore8Instrumentation();
             })
             .WithTracing(tracing =>
@@ -114,7 +113,7 @@ public static class Extensions
 
     private static MeterProviderBuilder AddAspNetCore8Instrumentation(this MeterProviderBuilder meterProviderBuilder) =>
         meterProviderBuilder
-            .AddMeter("Microsoft.AspNetCore.Hosting", "Microsoft.AspNetCore.Server.Kestrel")
+            .AddMeter("Microsoft.AspNetCore.Hosting", "Microsoft.AspNetCore.Server.Kestrel", "System.Net.Http")
             .AddView("http.server.request.duration",
                 new ExplicitBucketHistogramConfiguration
                 {

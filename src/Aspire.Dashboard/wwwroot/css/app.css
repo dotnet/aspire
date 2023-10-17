@@ -27,6 +27,15 @@ fluent-toolbar[orientation=horizontal] {
     --duration-color: rgb(215, 231, 234);
 }
 
+.page-content-area {
+    /*
+        Height of the browser - static height for other content
+        TODO: Is there a better way to do this?
+    */
+    height: calc(100vh - 175px);
+    width: 100%;
+}
+
 .datagrid-overflow-area {
     /*
         Height of the browser - static height for other content
