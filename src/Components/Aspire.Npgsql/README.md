@@ -24,7 +24,7 @@ In the `Program.cs` file of your project, call the `AddNpgsqlDataSource` extensi
 builder.AddNpgsqlDataSource("postgresdb");
 ```
 
-You can then retrieve the `NpgsqlDataSource` instance using dependency injection. For example, to retrieve the cache from a Web API controller:
+You can then retrieve the `NpgsqlDataSource` instance using dependency injection. For example, to retrieve the data source from a Web API controller:
 
 ```cs
 private readonly NpgsqlDataSource _dataSource;
@@ -82,14 +82,14 @@ Also you can pass the `Action<NpgsqlSettings> configureSettings` delegate to set
     builder.AddNpgsqlDataSource("postgresdb", settings => settings.HealthChecks = false);
 ```
 
-## App Extensions
+## AppHost Extensions
 
-In your App project, register a Postgres container and consume the connection using the following methods:
+In your AppHost project, register a Postgres container and consume the connection using the following methods:
 
 ```cs
 var postgresdb = builder.AddPostgresContainer("pg").AddDatabase("postgresdb");
 
-var myService = builder.AddProject<YourApp.Projects.MyService>()
+var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(postgresdb);
 ```
 

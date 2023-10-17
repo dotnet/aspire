@@ -1,6 +1,6 @@
 # Aspire.Azure.Security.KeyVault
 
-Registers a [SecretClient](https://learn.microsoft.com/dotnet/api/azure.security.keyvault.secrets.secretclient) in the DI container for connecting to Azure Key Vault. Enables corresponding health checks, logging and telemetry.
+Retrieves secrets from Azure Key Vault to use in your application. Registers a [SecretClient](https://learn.microsoft.com/dotnet/api/azure.security.keyvault.secrets.secretclient) in the DI container for connecting to Azure Key Vault. Enables corresponding health checks, logging and telemetry.
 
 ## Getting started
 
@@ -17,15 +17,34 @@ Install the Aspire Azure Key Vault library with [NuGet][nuget]:
 dotnet add package Aspire.Azure.Security.KeyVault
 ```
 
-## Usage Example
+## Usage Examples
 
-In the `Program.cs` file of your project, call the `AddAzureKeyVaultSecrets` extension to register a `SecretClient` for use via the dependency injection container. The method takes a connection name parameter.
+### Add Secrets to Configuration
+
+In the `Program.cs` file of your project, call the `builder.Configuration.AddKeyVaultSecrets` extension method to add the secrets in the Azure Key Vault to the application's Configuration. The method takes a connection name parameter.
+
+```cs
+builder.Configuration.AddKeyVaultSecrets("secrets");
+```
+
+You can then retrieve a secret through normal `IConfiguration` APIs. For example, to retrieve a secret from a Web API controller:
+
+```cs
+public ProductsController(IConfiguration configuration)
+{
+    string secretValue = configuration["secretKey"];
+}
+```
+
+### Use SecretClient
+
+Alternatively, you can use a `SecretClient` to retrieve the secrets on demand. In the `Program.cs` file of your project, call the `AddAzureKeyVaultSecrets` extension method to register a `SecretClient` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```cs
 builder.AddAzureKeyVaultSecrets("secrets");
 ```
 
-You can then retrieve the `SecretClient` instance using dependency injection. For example, to retrieve the cache from a Web API controller:
+You can then retrieve the `SecretClient` instance using dependency injection. For example, to retrieve the client from a Web API controller:
 
 ```cs
 private readonly SecretClient _client;
@@ -96,6 +115,23 @@ You can also setup the [SecretClientOptions](https://learn.microsoft.com/dotnet/
 
 ```cs
     builder.AddAzureKeyVaultSecrets("secrets", configureClientBuilder: clientBuilder => clientBuilder.ConfigureOptions(options => options.Diagnostics.ApplicationId = "myapp"));
+```
+
+## AppHost Extensions
+
+In your AppHost project, add a Key Vault connection and consume the connection using the following methods:
+
+```cs
+var keyVault = builder.AddAzureKeyVault("secrets");
+
+var myService = builder.AddProject<Projects.MyService>()
+                       .WithReference(keyVault);
+```
+
+`AddAzureKeyVault` will read connection information from the AppHost's configuration (for example, from "user secrets") under the `ConnectionStrings:secrets` config key. `.WithReference` passes that connection information into a connection string named `secrets` in the `MyService` project. In the `Program.cs` file of `MyService`, the connection can be consumed using:
+
+```cs
+builder.Configuration.AddKeyVaultSecrets("secrets");
 ```
 
 ## Additional documentation

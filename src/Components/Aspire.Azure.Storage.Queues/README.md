@@ -19,13 +19,13 @@ dotnet add package Aspire.Azure.Storage.Queues
 
 ## Usage Example
 
-In the `Program.cs` file of your project, call the `AddAzureQueueService` extension to register a `QueueServiceClient` for use via the dependency injection container. The method takes a connection name parameter.
+In the `Program.cs` file of your project, call the `AddAzureQueueService` extension method to register a `QueueServiceClient` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```cs
 builder.AddAzureQueueService("queue");
 ```
 
-You can then retrieve the `QueueServiceClient` instance using dependency injection. For example, to retrieve the cache from a Web API controller:
+You can then retrieve the `QueueServiceClient` instance using dependency injection. For example, to retrieve the client from a Web API controller:
 
 ```cs
 private readonly QueueServiceClient _client;
@@ -112,6 +112,23 @@ You can also setup the [QueueClientOptions](https://learn.microsoft.com/dotnet/a
 
 ```cs
     builder.AddAzureQueueService("queue", configureClientBuilder: clientBuilder => clientBuilder.ConfigureOptions(options => options.Diagnostics.ApplicationId = "myapp"));
+```
+
+## AppHost Extensions
+
+In your AppHost project, add a Storage Queue connection and consume the connection using the following methods:
+
+```cs
+var queue = builder.AddAzureStorage("storage").AddQueues("queue");
+
+var myService = builder.AddProject<Projects.MyService>()
+                       .WithReference(queue);
+```
+
+`AddQueues` will read connection information from the AppHost's configuration (for example, from "user secrets") under the `ConnectionStrings:queue` config key. `.WithReference` passes that connection information into a connection string named `queue` in the `MyService` project. In the `Program.cs` file of `MyService`, the connection can be consumed using:
+
+```cs
+builder.AddAzureQueueService("queue");
 ```
 
 ## Additional documentation
