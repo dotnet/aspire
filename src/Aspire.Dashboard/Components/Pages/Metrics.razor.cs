@@ -135,16 +135,8 @@ public partial class Metrics : IDisposable
             state = new MetricsSelectedState { ApplicationId = _selectedApplication.Id };
         }
 
-        if (state != null)
-        {
-            NavigateTo(state);
-            await ProtectedSessionStore.SetAsync(MetricsSelectedState.Key, state);
-        }
-        else
-        {
-            NavigateTo(state);
-            await ProtectedSessionStore.DeleteAsync(MetricsSelectedState.Key);
-        }
+        NavigateTo(state);
+        await ProtectedSessionStore.SetAsync(MetricsSelectedState.Key, state);
     }
 
     private void NavigateTo(MetricsSelectedState state)
