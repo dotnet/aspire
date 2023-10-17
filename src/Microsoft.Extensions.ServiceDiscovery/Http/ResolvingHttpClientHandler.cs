@@ -24,7 +24,6 @@ public class ResolvingHttpClientHandler(HttpServiceEndPointResolver resolver) : 
         {
             var result = await _resolver.GetEndpointAsync(request, cancellationToken).ConfigureAwait(false);
             request.RequestUri = ResolvingHttpDelegatingHandler.GetUriWithEndPoint(originalUri, result);
-            request.Headers.Host ??= result.Features.Get<IHostNameFeature>()?.HostName;
             epHealth = result.Features.Get<IEndPointHealthFeature>();
         }
 
@@ -39,8 +38,7 @@ public class ResolvingHttpClientHandler(HttpServiceEndPointResolver resolver) : 
         }
         finally
         {
-            // Report health so that the resolver pipeline can take health and performance into consideration, possibly triggering a circuit breaker?.
-            epHealth?.ReportHealth(responseDuration.Elapsed, error);
+            epHealth?.ReportHealth(responseDuration.Elapsed, error); // Report health so that the resolver pipeline can take health and performance into consideration, possibly triggering a circuit breaker?.
             request.RequestUri = originalUri;
         }
     }
