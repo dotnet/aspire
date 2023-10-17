@@ -5,6 +5,7 @@
     <IsPackable>true</IsPackable>
     <PackageTags>$(ComponentCachePackageTags) redis</PackageTags>
     <Description>A generic Redis client that integrates with Aspire, including health checks, logging, and telemetry.</Description>
+    <PackageIconFullPath>$(MSBuildThisFileDirectory)../../Shared/redis-cube-red_white-rgb.png</PackageIconFullPath>
   </PropertyGroup>
 
   <ItemGroup>
