@@ -11,6 +11,10 @@ namespace Aspire.Dashboard.Components.Pages;
 public abstract class ResourcesListBase<TResource> : ComponentBase
     where TResource : ResourceViewModel
 {
+    // Ideally we'd be pulling this from Aspire.Hosting.Dcp.Model.ExecutableStates,
+    // but unfortunately the reference goes the other way
+    protected const string FinishedState = "Finished";
+
     [Inject]
     public required IDashboardViewModelService DashboardViewModelService { get; init; }
     [Inject]

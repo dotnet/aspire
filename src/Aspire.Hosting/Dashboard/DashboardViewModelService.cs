@@ -36,8 +36,10 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
     public async Task<List<ContainerViewModel>> GetContainersAsync()
     {
         var containers = await _kubernetesService.ListAsync<Container>().ConfigureAwait(false);
+        var endpoints = await _kubernetesService.ListAsync<Endpoint>().ConfigureAwait(false);
+        var services = await _kubernetesService.ListAsync<Service>().ConfigureAwait(false);
 
-        var results = containers.Select(ConvertToContainerViewModel).OrderBy(e => e.Name).ToList();
+        var results = containers.Select(e => ConvertToContainerViewModel(e, services, endpoints)).OrderBy(e => e.Name).ToList();
 
         await Task.WhenAll(results.Select(FillEnvironmentVariablesFromDocker)).ConfigureAwait(false);
 
@@ -47,20 +49,23 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
     public async Task<List<ExecutableViewModel>> GetExecutablesAsync()
     {
         var executables = await _kubernetesService.ListAsync<Executable>().ConfigureAwait(false);
-        return executables
-            .Where(executable => executable.Metadata.Annotations?.ContainsKey(Executable.CSharpProjectPathAnnotation) == false)
-            .Select(ConvertToExecutableViewModel).OrderBy(e => e.Name).ToList();
+        var endpoints = await _kubernetesService.ListAsync<Endpoint>().ConfigureAwait(false);
+        var services = await _kubernetesService.ListAsync<Service>().ConfigureAwait(false);
+
+        return executables.Where(executable => executable.Metadata.Annotations?.ContainsKey(Executable.CSharpProjectPathAnnotation) == false)
+            .Select(e => ConvertToExecutableViewModel(e, services, endpoints))
+            .ToList();
     }
 
     public async Task<List<ProjectViewModel>> GetProjectsAsync()
     {
         var executables = await _kubernetesService.ListAsync<Executable>().ConfigureAwait(false);
-
         var endpoints = await _kubernetesService.ListAsync<Endpoint>().ConfigureAwait(false);
+        var services = await _kubernetesService.ListAsync<Service>().ConfigureAwait(false);
 
-        return executables
-            .Where(executable => executable.Metadata.Annotations?.ContainsKey(Executable.CSharpProjectPathAnnotation) == true)
-            .Select(executable => ConvertToProjectViewModel(executable, endpoints)).OrderBy(m => m.Name).ToList();
+        return executables.Where(executable => executable.Metadata.Annotations?.ContainsKey(Executable.CSharpProjectPathAnnotation) == true)
+            .Select(e => ConvertToProjectViewModel(e, services, endpoints))
+            .ToList();
     }
 
     public async IAsyncEnumerable<ResourceChanged<ContainerViewModel>> WatchContainersAsync(
@@ -76,7 +81,9 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
                 continue;
             }
 
-            var containerViewModel = ConvertToContainerViewModel(container);
+            var endpoints = await _kubernetesService.ListAsync<Endpoint>(cancellationToken: cancellationToken).ConfigureAwait(false);
+            var services = await _kubernetesService.ListAsync<Service>(cancellationToken: cancellationToken).ConfigureAwait(false);
+            var containerViewModel = ConvertToContainerViewModel(container, services, endpoints);
             await FillEnvironmentVariablesFromDocker(containerViewModel).ConfigureAwait(false);
 
             yield return new ResourceChanged<ContainerViewModel>(objectChangeType, containerViewModel);
@@ -101,7 +108,9 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
                 continue;
             }
 
-            var executableViewModel = ConvertToExecutableViewModel(executable);
+            var endpoints = await _kubernetesService.ListAsync<Endpoint>(cancellationToken: cancellationToken).ConfigureAwait(false);
+            var services = await _kubernetesService.ListAsync<Service>(cancellationToken: cancellationToken).ConfigureAwait(false);
+            var executableViewModel = ConvertToExecutableViewModel(executable, services, endpoints);
 
             yield return new ResourceChanged<ExecutableViewModel>(objectChangeType, executableViewModel);
         }
@@ -126,13 +135,14 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
             }
 
             var endpoints = await _kubernetesService.ListAsync<Endpoint>(cancellationToken: cancellationToken).ConfigureAwait(false);
-            var projectViewModel = ConvertToProjectViewModel(executable, endpoints);
+            var services = await _kubernetesService.ListAsync<Service>(cancellationToken: cancellationToken).ConfigureAwait(false);
+            var projectViewModel = ConvertToProjectViewModel(executable, services, endpoints);
 
             yield return new ResourceChanged<ProjectViewModel>(objectChangeType, projectViewModel);
         }
     }
 
-    private static ContainerViewModel ConvertToContainerViewModel(Container container)
+    private ContainerViewModel ConvertToContainerViewModel(Container container, List<Service> services, List<Endpoint> endpoints)
     {
         var model = new ContainerViewModel
         {
@@ -142,7 +152,8 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
             CreationTimeStamp = container.Metadata.CreationTimestamp?.ToLocalTime(),
             Image = container.Spec.Image!,
             LogSource = new DockerContainerLogSource(container.Status!.ContainerId!),
-            State = container.Status?.State
+            State = container.Status?.State,
+            ExpectedEndpointsCount = GetExpectedEndpointsCount(container, services)
         };
 
         if (container.Spec.Ports != null)
@@ -155,6 +166,8 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
                 }
             }
         }
+
+        FillEndpoints(services, endpoints, container, model);
 
         if (container.Spec.Env is not null)
         {
@@ -214,9 +227,9 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
         }
     }
 
-    private static ExecutableViewModel ConvertToExecutableViewModel(Executable executable)
+    private ExecutableViewModel ConvertToExecutableViewModel(Executable executable, List<Service> services, List<Endpoint> endpoints)
     {
-        var model = new ExecutableViewModel()
+        var model = new ExecutableViewModel
         {
             Name = executable.Metadata.Name,
             NamespacedName = new(executable.Metadata.Name, null),
@@ -227,7 +240,10 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
             State = executable.Status?.State,
             LogSource = new FileLogSource(executable.Status?.StdOutFile, executable.Status?.StdErrFile),
             ProcessId = executable.Status?.ProcessId,
+            ExpectedEndpointsCount = GetExpectedEndpointsCount(executable, services)
         };
+
+        FillEndpoints(services, endpoints, executable, model);
 
         if (executable.Status?.EffectiveEnv is not null)
         {
@@ -237,18 +253,8 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
         return model;
     }
 
-    private ProjectViewModel ConvertToProjectViewModel(Executable executable, List<Endpoint> endpoints)
+    private ProjectViewModel ConvertToProjectViewModel(Executable executable, List<Service> services, List<Endpoint> endpoints)
     {
-        var expectedEndpointCount = 0;
-        if (executable.Metadata?.Annotations?.TryGetValue(Executable.ServiceProducerAnnotation, out var annotationJson) == true)
-        {
-            var serviceProducerAnnotations = JsonSerializer.Deserialize<ServiceProducerAnnotation[]>(annotationJson);
-            if (serviceProducerAnnotations is not null)
-            {
-                expectedEndpointCount = serviceProducerAnnotations.Length;
-            }
-        }
-
         var model = new ProjectViewModel
         {
             Name = executable.Metadata!.Name,
@@ -257,40 +263,11 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
             ProjectPath = executable.Metadata?.Annotations?[Executable.CSharpProjectPathAnnotation] ?? "",
             State = executable.Status?.State,
             LogSource = new FileLogSource(executable.Status?.StdOutFile, executable.Status?.StdErrFile),
-            ExpectedEndpointsCount = expectedEndpointCount,
             ProcessId = executable.Status?.ProcessId,
+            ExpectedEndpointsCount = GetExpectedEndpointsCount(executable, services)
         };
 
-        model.Endpoints.AddRange(endpoints
-            .Where(ep => ep.Metadata.OwnerReferences.Any(or => or.Kind == executable.Kind && or.Name == executable.Metadata?.Name))
-            .Select(ep =>
-            {
-                var builder = new StringBuilder();
-                // CONSIDER: a more robust way to store application protocol information in DCP model
-                if (ep.Spec.ServiceName?.EndsWith("https") is true)
-                {
-                    builder.Append("https://");
-                }
-                else
-                {
-                    builder.Append("http://");
-                }
-
-                builder.Append(ep.Spec.Address);
-                builder.Append(':');
-                builder.Append(ep.Spec.Port);
-
-                if (_applicationModel.TryGetProjectWithPath(model.ProjectPath, out var project)
-                    && project.GetEffectiveLaunchProfile() is LaunchProfile launchProfile
-                    && launchProfile.LaunchUrl is string launchUrl)
-                {
-                    builder.Append('/');
-                    builder.Append(launchUrl);
-                }
-
-                return builder.ToString();
-            })
-        );
+        FillEndpoints(services, endpoints, executable, model);
 
         if (executable.Status?.EffectiveEnv is not null)
         {
@@ -298,6 +275,68 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
         }
 
         return model;
+    }
+
+    private void FillEndpoints(List<Service> services, List<Endpoint> endpoints, CustomResource resource, ResourceViewModel resourceViewModel)
+    {
+        resourceViewModel.Endpoints.AddRange(
+            endpoints.Where(ep => ep.Metadata.OwnerReferences.Any(or => or.Kind == resource.Kind && or.Name == resource.Metadata.Name))
+            .Select(ep =>
+            {
+                var matchingService = services.SingleOrDefault(s => s.Metadata.Name == ep.Spec.ServiceName);
+                if (matchingService is not null
+                    && matchingService.Metadata.Annotations.TryGetValue(CustomResource.UriSchemeAnnotation, out var uriScheme)
+                    && (string.Equals(uriScheme, "http", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(uriScheme, "https", StringComparison.OrdinalIgnoreCase)))
+                {
+                    var builder = new StringBuilder();
+                    builder.Append(uriScheme);
+                    builder.Append("://");
+                    builder.Append(ep.Spec.Address);
+                    builder.Append(':');
+                    builder.Append(ep.Spec.Port);
+
+                    // For project look into launch profile to append launch url
+                    if (resourceViewModel is ProjectViewModel projectViewModel
+                        && _applicationModel.TryGetProjectWithPath(projectViewModel.ProjectPath, out var project)
+                        && project.GetEffectiveLaunchProfile() is LaunchProfile launchProfile
+                        && launchProfile.LaunchUrl is string launchUrl)
+                    {
+                        builder.Append('/');
+                        builder.Append(launchUrl);
+                    }
+
+                    return builder.ToString();
+                }
+
+                return string.Empty;
+            })
+            .Where(e => !string.Equals(e, string.Empty, StringComparison.Ordinal)));
+    }
+
+    private static int GetExpectedEndpointsCount(CustomResource resource, List<Service> services)
+    {
+        var expectedCount = 0;
+        if (resource.Metadata.Annotations.TryGetValue(CustomResource.ServiceProducerAnnotation, out var servicesProducedAnnotationJson))
+        {
+            var serviceProducerAnnotations = JsonSerializer.Deserialize<ServiceProducerAnnotation[]>(servicesProducedAnnotationJson);
+            if (serviceProducerAnnotations is not null)
+            {
+                foreach (var serviceProducer in serviceProducerAnnotations)
+                {
+                    var matchingService = services.SingleOrDefault(s => s.Metadata.Name == serviceProducer.ServiceName);
+                    if (matchingService is not null
+                        && matchingService.Metadata.Annotations.TryGetValue(CustomResource.UriSchemeAnnotation, out var uriScheme)
+                        && (string.Equals(uriScheme, "http", StringComparison.OrdinalIgnoreCase)
+                            || string.Equals(uriScheme, "https", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        expectedCount++;
+                    }
+                }
+            }
+        }
+
+        return expectedCount;
     }
 
     public void Dispose()

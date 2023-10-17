@@ -7,6 +7,4 @@ public class ProjectViewModel : ResourceViewModel
 {
     public int? ProcessId { get; init; }
     public required string ProjectPath { get; init; }
-    public List<string> Endpoints { get; } = new();
-    public required int ExpectedEndpointsCount { get; init; }
 }

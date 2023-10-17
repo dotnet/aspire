@@ -19,7 +19,7 @@
                           slot="end" />
         </FluentToolbar>
         <div class="datagrid-overflow-area" tabindex="-1">
-            <FluentDataGrid Items="@FilteredResources" ResizableColumns="true" GridTemplateColumns="2fr 1fr 2fr 1fr 4fr 4fr 4fr 1fr 1fr">
+            <FluentDataGrid Items="@FilteredResources" ResizableColumns="true" GridTemplateColumns="2fr 1fr 2fr 1fr 4fr 2fr 1fr 1fr">
                 <ChildContent>
                     <TemplateColumn Title="Name" Sortable="true" SortBy="@nameSort">
                         <div class="col-long-content" title="@context.Name">
@@ -76,10 +76,6 @@
 
 @code
 {
-    // Ideally we'd be pulling this from Aspire.Hosting.Dcp.Model.ExecutableStates,
-    // but unfortunately the reference goes the other way
-    private const string FinishedState = "Finished";
-
     protected override Task<List<ProjectViewModel>> GetResources(IDashboardViewModelService dashboardViewModelService)
         => dashboardViewModelService.GetProjectsAsync();
 
