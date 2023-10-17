@@ -1,6 +1,6 @@
 # Aspire.StackExchange.Redis library
 
-Registers an [IConnectionMultiplexer](https://stackexchange.github.io/StackExchange.Redis/Basics) in the DI container for connecting to [Redis](https://redis.io/) server. Enables corresponding health check, logging, and telemetry.
+Registers an [IConnectionMultiplexer](https://stackexchange.github.io/StackExchange.Redis/Basics) in the DI container for connecting to [Redis](https://redis.io/)®* server. Enables corresponding health check, logging, and telemetry.
 
 ## Getting started
 
@@ -121,3 +121,5 @@ builder.AddRedis("cache");
 ## Feedback & Contributing
 
 https://github.com/dotnet/aspire
+
+_*Redis is a registered trademark of Redis Ltd. Any rights therein are reserved to Redis Ltd._

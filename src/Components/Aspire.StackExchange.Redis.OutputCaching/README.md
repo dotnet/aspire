@@ -1,6 +1,6 @@
 # Aspire.StackExchange.Redis.OutputCaching library
 
-Registers an [ASP.NET Core Output Caching](https://learn.microsoft.com/aspnet/core/performance/caching/output) provider backed by a [Redis](https://redis.io/) server. Enables corresponding health check, logging, and telemetry.
+Registers an [ASP.NET Core Output Caching](https://learn.microsoft.com/aspnet/core/performance/caching/output) provider backed by a [Redis](https://redis.io/)®* server. Enables corresponding health check, logging, and telemetry.
 
 ## Getting started
 
@@ -124,3 +124,5 @@ builder.AddRedisOutputCache("cache");
 ## Feedback & Contributing
 
 https://github.com/dotnet/aspire
+
+_*Redis is a registered trademark of Redis Ltd. Any rights therein are reserved to Redis Ltd._

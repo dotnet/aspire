@@ -1,6 +1,6 @@
 # Aspire.StackExchange.Redis.DistributedCaching library
 
-Registers an [IDistributedCache](https://learn.microsoft.com/dotnet/api/microsoft.extensions.caching.distributed.idistributedcache) in the DI container that connects to a [Redis](https://redis.io/) server. See [Distributed Caching](https://learn.microsoft.com/aspnet/core/performance/caching/distributed) for more information. Enables corresponding health check, logging, and telemetry.
+Registers an [IDistributedCache](https://learn.microsoft.com/dotnet/api/microsoft.extensions.caching.distributed.idistributedcache) in the DI container that connects to a [Redis](https://redis.io/)®* server. See [Distributed Caching](https://learn.microsoft.com/aspnet/core/performance/caching/distributed) for more information. Enables corresponding health check, logging, and telemetry.
 
 ## Getting started
 
@@ -119,3 +119,5 @@ builder.AddRedisDistributedCache("cache");
 ## Feedback & Contributing
 
 https://github.com/dotnet/aspire
+
+_*Redis is a registered trademark of Redis Ltd. Any rights therein are reserved to Redis Ltd._
