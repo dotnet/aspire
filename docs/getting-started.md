@@ -103,13 +103,13 @@ Ensure the `.NET Aspire SDK` component is checked in `Individual components`.
 
 # Create a new Project
 
+## In Visual Studio
+
 1. Create a new Blazor Web App and check the "Enlist in Aspire orchestration" box
-
 2. <kbd>F5</kbd>
-
 3. The dashboard should launch automatically. You can click on your app's "Endpoint" to navigate to the app.
 
-# Create a new Project from the command line using workload templates
+## Using command line using workload templates
 
 - To create an empty Aspire project[^3], run the following command::
 
@@ -124,3 +124,15 @@ Ensure the `.NET Aspire SDK` component is checked in `Individual components`.
 ```
 
 [^3]: In order for these commands to work, you must have already installed the Aspire workload by following the steps in #Install-the-Aspire-dotnet-workload section.
+
+You need to create a `NuGet.config` file in the root directory of your project with the contents above.
+Once that is created you can build with
+
+```shell
+   dotnet build
+```
+
+And then run with
+```shell
+   dotnet run --project "$(basename $PWD).AppHost"
+```
