@@ -60,7 +60,7 @@ public sealed class ServiceEndPointResolver(
     public ValueTask<ServiceEndPointCollection> GetEndPointsAsync(CancellationToken cancellationToken = default)
     {
         // If the cache is valid, return the cached value.
-        if (_cachedEndPoints is { ChangeToken.HasChanged: false } cached)
+        if (_cachedEndPoints is { ChangeToken.HasChanged: false, Count: > 0 } cached)
         {
             return new ValueTask<ServiceEndPointCollection>(cached);
         }
@@ -87,7 +87,7 @@ public sealed class ServiceEndPointResolver(
         lock (_lock)
         {
             // If the cache is invalid or needs invalidation, refresh the cache.
-            if (_refreshTask.IsCompleted && (_cacheState == CacheStatus.Invalid || _cachedEndPoints is null or { ChangeToken.HasChanged: true } || force))
+            if (ShouldRefresh(force))
             {
                 // Indicate that the cache is being updated and start a new refresh task.
                 _cacheState = CacheStatus.Refreshing;
@@ -115,6 +115,11 @@ public sealed class ServiceEndPointResolver(
 
             return _refreshTask;
         }
+    }
+
+    private bool ShouldRefresh(bool force)
+    {
+        return _refreshTask.IsCompleted && (force || _cacheState == CacheStatus.Invalid || _cachedEndPoints is null or { ChangeToken.HasChanged: true } or { Count: 0 });
     }
 
     private async Task RefreshAsyncInternal()
