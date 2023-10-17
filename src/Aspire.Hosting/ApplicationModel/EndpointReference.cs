@@ -8,7 +8,7 @@ public sealed class EndpointReference(IDistributedApplicationResourceWithBinding
     public IDistributedApplicationResourceWithBindings Owner { get; } = owner;
     public string BindingName { get; } = bindingName;
 
-    public string UriStringOrPlaceholder
+    public string UriString
     {
         get
         {

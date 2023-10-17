@@ -59,45 +59,13 @@ public static class ResourceBuilderExtensions
         };
     }
 
-    public static IDistributedApplicationResourceBuilder<TDestination> WithReference<TDestination>(this IDistributedApplicationResourceBuilder<TDestination> builder, IDistributedApplicationResourceBuilder<IDistributedApplicationResource> source, string? connectionName = null, bool optional = false)
-    where TDestination : IDistributedApplicationResourceWithEnvironment
-    {
-        var hasAppliedReference = false;
-
-        if (source is IDistributedApplicationResourceBuilder<IDistributedApplicationResourceWithConnectionString> connectionStringResourceBuilder)
-        {
-            ApplyConnectionString(builder, connectionStringResourceBuilder, connectionName, optional);
-            hasAppliedReference = true;
-        }
-
-        if (source is IDistributedApplicationResourceBuilder<IDistributedApplicationResourceWithBindings> bindingResourceBuilder)
-        {
-            ApplyBinding(builder, bindingResourceBuilder.Resource);
-            hasAppliedReference = true;
-        }
-
-        if (!hasAppliedReference)
-        {
-            throw new DistributedApplicationException("The source resource does not implement IDistributedApplicationResourceWithConnectionString or IDistributedApplicationResourceWithBindings.");
-        }
-
-        return builder;
-    }
-
-    public static IDistributedApplicationResourceBuilder<TDestination> WithReference<TDestination>(this IDistributedApplicationResourceBuilder<TDestination> builder, EndpointReference endpointReference)
-        where TDestination: IDistributedApplicationResourceWithEnvironment
-    {
-        ApplyBinding(builder, endpointReference.Owner, endpointReference.BindingName);
-        return builder;
-    }
-
-    private static void ApplyConnectionString<T>(IDistributedApplicationResourceBuilder<T> builder, IDistributedApplicationResourceBuilder<IDistributedApplicationResourceWithConnectionString> source, string? connectionName = null, bool optional = false)
-        where T : IDistributedApplicationResourceWithEnvironment
+    public static IDistributedApplicationResourceBuilder<TDestination> WithReference<TDestination>(this IDistributedApplicationResourceBuilder<TDestination> builder, IDistributedApplicationResourceBuilder<IDistributedApplicationResourceWithConnectionString> source, string? connectionName = null, bool optional = false)
+        where TDestination : IDistributedApplicationResourceWithEnvironment
     {
         var resource = source.Resource;
         connectionName ??= resource.Name;
 
-        builder.WithEnvironment(context =>
+        return builder.WithEnvironment(context =>
         {
             var connectionStringName = $"{ConnectionStringEnvironmentName}{connectionName}";
 
@@ -124,6 +92,21 @@ public static class ResourceBuilderExtensions
             context.EnvironmentVariables[connectionStringName] = connectionString;
         });
     }
+
+    public static IDistributedApplicationResourceBuilder<TDestination> WithReference<TDestination, TSource>(this IDistributedApplicationResourceBuilder<TDestination> builder, IDistributedApplicationResourceBuilder<TSource> source)
+        where TDestination : IDistributedApplicationResourceWithEnvironment where TSource: ProjectResource
+    {
+        ApplyBinding(builder, source.Resource);
+        return builder;
+    }
+
+    public static IDistributedApplicationResourceBuilder<TDestination> WithReference<TDestination>(this IDistributedApplicationResourceBuilder<TDestination> builder, EndpointReference endpointReference)
+        where TDestination : IDistributedApplicationResourceWithEnvironment
+    {
+        ApplyBinding(builder, endpointReference.Owner, endpointReference.BindingName);
+        return builder;
+    }
+
     private static void ApplyBinding<T>(IDistributedApplicationResourceBuilder<T> builder, IDistributedApplicationResourceWithBindings resourceWithBindings, string? bindingName = null)
         where T : IDistributedApplicationResourceWithEnvironment
     {

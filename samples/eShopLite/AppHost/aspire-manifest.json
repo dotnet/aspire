@@ -51,8 +51,7 @@
       "path": "..\\BasketService\\BasketService.csproj",
       "env": {
         "ConnectionStrings__basketCache": "{basketCache.connectionString}",
-        "ConnectionStrings__messaging": "{messaging.connectionString}",
-        "services__basketCache__0": "{basketCache.bindings.tcp.url}"
+        "ConnectionStrings__messaging": "{messaging.connectionString}"
       },
       "bindings": {
         "http": {
@@ -71,7 +70,7 @@
       "type": "project.v1",
       "path": "..\\MyFrontend\\MyFrontend.csproj",
       "env": {
-        "GRAFANA_URL": "grafana.bindings.grafana-http",
+        "GRAFANA_URL": "{grafana.bindings.grafana-http}",
         "services__basketservice__0": "{basketservice.bindings.http.url}",
         "services__basketservice__1": "{basketservice.bindings.https.url}",
         "services__catalogservice__0": "{catalogservice.bindings.http.url}"
