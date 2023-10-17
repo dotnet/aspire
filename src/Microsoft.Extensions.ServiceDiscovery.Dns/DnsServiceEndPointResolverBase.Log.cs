@@ -6,9 +6,9 @@ using Microsoft.Extensions.ServiceDiscovery.Abstractions;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Dns;
 
-internal partial class DnsServiceEndPointResolver
+internal partial class DnsServiceEndPointResolverBase
 {
-    private static partial class Log
+    internal static partial class Log
     {
         [LoggerMessage(1, LogLevel.Trace, "Resolving endpoints for service '{ServiceName}' using DNS SRV lookup for name '{RecordName}'.", EventName = "SrvQuery")]
         public static partial void SrvQuery(ILogger logger, string serviceName, string recordName);
@@ -31,10 +31,16 @@ internal partial class DnsServiceEndPointResolver
         [LoggerMessage(3, LogLevel.Debug, "Discovered {Count} endpoints for service '{ServiceName}'. Will refresh in {Ttl}.", EventName = "DiscoveredEndPoints")]
         public static partial void DiscoveredEndPointsCoreDebug(ILogger logger, int count, string serviceName, TimeSpan ttl);
 
-        [LoggerMessage(3, LogLevel.Debug, "Discovered {Count} endpoints for service '{ServiceName}'. Will refresh in {Ttl}. EndPoints: {EndPoints}", EventName = "DiscoveredEndPointsDetailed")]
+        [LoggerMessage(4, LogLevel.Debug, "Discovered {Count} endpoints for service '{ServiceName}'. Will refresh in {Ttl}. EndPoints: {EndPoints}", EventName = "DiscoveredEndPointsDetailed")]
         public static partial void DiscoveredEndPointsCoreTrace(ILogger logger, int count, string serviceName, TimeSpan ttl, string endPoints);
 
-        [LoggerMessage(4, LogLevel.Warning, "Endpoints resolution failed for service '{ServiceName}'.", EventName = "ResolutionFailed")]
+        [LoggerMessage(5, LogLevel.Warning, "Endpoints resolution failed for service '{ServiceName}'.", EventName = "ResolutionFailed")]
         public static partial void ResolutionFailed(ILogger logger, Exception exception, string serviceName);
+
+        [LoggerMessage(6, LogLevel.Debug, "Service name '{ServiceName}' is not a valid URI or DNS name.", EventName = "ServiceNameIsNotUriOrDnsName")]
+        public static partial void ServiceNameIsNotUriOrDnsName(ILogger logger, string serviceName);
+
+        [LoggerMessage(7, LogLevel.Debug, "DNS SRV query cannot be constructed for service name '{ServiceName}' because no DNS namespace was configured or detected.", EventName = "NoDnsSuffixFound")]
+        public static partial void NoDnsSuffixFound(ILogger logger, string serviceName);
     }
 }
