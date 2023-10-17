@@ -48,7 +48,7 @@ public static class AzureCosmosDBCloudApplicationBuilderExtensions
         where TDestination : IDistributedApplicationResourceWithEnvironment
     {
         return builder
-            .WithReference(cosmosDatabaseResource)
+            .WithReference(cosmosDatabaseResource, cosmosDatabaseResource.Resource.Parent.Name)
             .WithEnvironment("Aspire.Azure.EntityFrameworkCore.CosmosDB:DatabaseName", cosmosDatabaseResource.Resource.Name);
     }
 
