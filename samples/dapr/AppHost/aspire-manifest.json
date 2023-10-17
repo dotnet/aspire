@@ -3,12 +3,36 @@
     "servicea": {
       "type": "project.v1",
       "path": "..\\ServiceA\\DaprServiceA.csproj",
-      "env": {}
+      "env": {},
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http"
+        }
+      }
     },
     "serviceb": {
       "type": "project.v1",
       "path": "..\\ServiceB\\DaprServiceB.csproj",
-      "env": {}
+      "env": {},
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http"
+        }
+      }
     },
     "service-a": {
       "type": "executable.v1",

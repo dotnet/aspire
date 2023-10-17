@@ -11,11 +11,6 @@ public static class ResourceBuilderExtensions
 {
     private const string ConnectionStringEnvironmentName = "ConnectionStrings__";
 
-    public static AllocatedEndpointAnnotation? GetEndpoint<T>(this IDistributedApplicationResourceBuilder<T> builder, string name) where T : IDistributedApplicationResource
-    {
-        return builder.Resource.Annotations.OfType<AllocatedEndpointAnnotation>().SingleOrDefault();
-    }
-
     public static IDistributedApplicationResourceBuilder<T> WithEnvironment<T>(this IDistributedApplicationResourceBuilder<T> builder, string name, string? value) where T : IDistributedApplicationResource
     {
         return builder.WithAnnotation(new EnvironmentCallbackAnnotation(name, () => value ?? string.Empty));
@@ -64,9 +59,8 @@ public static class ResourceBuilderExtensions
         };
     }
 
-    public static IDistributedApplicationResourceBuilder<TDestination> WithReference<TDestination, TSource>(this IDistributedApplicationResourceBuilder<TDestination> builder, IDistributedApplicationResourceBuilder<TSource> source, string? connectionName = null, bool optional = false)
+    public static IDistributedApplicationResourceBuilder<TDestination> WithReference<TDestination>(this IDistributedApplicationResourceBuilder<TDestination> builder, IDistributedApplicationResourceBuilder<IDistributedApplicationResourceWithConnectionString> source, string? connectionName = null, bool optional = false)
         where TDestination : IDistributedApplicationResourceWithEnvironment
-        where TSource : IDistributedApplicationResourceWithConnectionString
     {
         var resource = source.Resource;
         connectionName ??= resource.Name;
@@ -99,7 +93,22 @@ public static class ResourceBuilderExtensions
         });
     }
 
-    public static IDistributedApplicationResourceBuilder<TDestination> WithServiceReference<TDestination, TSource>(this IDistributedApplicationResourceBuilder<TDestination> builder, IDistributedApplicationResourceBuilder<TSource> bindingSourceBuilder, string? bindingName = null) where TDestination : IDistributedApplicationResourceWithEnvironment where TSource : IDistributedApplicationResource
+    public static IDistributedApplicationResourceBuilder<TDestination> WithReference<TDestination, TSource>(this IDistributedApplicationResourceBuilder<TDestination> builder, IDistributedApplicationResourceBuilder<TSource> source)
+        where TDestination : IDistributedApplicationResourceWithEnvironment where TSource: ProjectResource
+    {
+        ApplyBinding(builder, source.Resource);
+        return builder;
+    }
+
+    public static IDistributedApplicationResourceBuilder<TDestination> WithReference<TDestination>(this IDistributedApplicationResourceBuilder<TDestination> builder, EndpointReference endpointReference)
+        where TDestination : IDistributedApplicationResourceWithEnvironment
+    {
+        ApplyBinding(builder, endpointReference.Owner, endpointReference.BindingName);
+        return builder;
+    }
+
+    private static void ApplyBinding<T>(IDistributedApplicationResourceBuilder<T> builder, IDistributedApplicationResourceWithBindings resourceWithBindings, string? bindingName = null)
+        where T : IDistributedApplicationResourceWithEnvironment
     {
         // When adding a service reference we get to see whether there is a ServiceReferencesAnnotation
         // on the resource, if there is then it means we have already been here before and we can just
@@ -107,12 +116,12 @@ public static class ResourceBuilderExtensions
         // in a single pass. There is one ServiceReferenceAnnotation per service binding source.
         var serviceReferenceAnnotation = builder.Resource.Annotations
             .OfType<ServiceReferenceAnnotation>()
-            .Where(sra => sra.Resource == (IDistributedApplicationResource)bindingSourceBuilder.Resource)
+            .Where(sra => sra.Resource == (IDistributedApplicationResource)resourceWithBindings)
             .SingleOrDefault();
 
         if (serviceReferenceAnnotation == null)
         {
-            serviceReferenceAnnotation = new ServiceReferenceAnnotation(bindingSourceBuilder.Resource);
+            serviceReferenceAnnotation = new ServiceReferenceAnnotation(resourceWithBindings);
             builder.WithAnnotation(serviceReferenceAnnotation);
 
             var callback = CreateServiceReferenceEnvironmentPopulationCallback(serviceReferenceAnnotation);
@@ -128,8 +137,6 @@ public static class ResourceBuilderExtensions
         {
             serviceReferenceAnnotation.BindingNames.Add(bindingName);
         }
-
-        return builder;
     }
 
     public static IDistributedApplicationResourceBuilder<T> WithServiceBinding<T>(this IDistributedApplicationResourceBuilder<T> builder, int? hostPort = null, string? scheme = null, string? name = null) where T : IDistributedApplicationResource
@@ -141,5 +148,10 @@ public static class ResourceBuilderExtensions
 
         var annotation = new ServiceBindingAnnotation(ProtocolType.Tcp, scheme, name, port: hostPort);
         return builder.WithAnnotation(annotation);
+    }
+
+    public static EndpointReference GetEndpoint<T>(this IDistributedApplicationResourceBuilder<T> builder, string name) where T: IDistributedApplicationResourceWithBindings
+    {
+        return builder.Resource.GetEndpoint(name);
     }
 }

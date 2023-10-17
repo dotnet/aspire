@@ -3,6 +3,6 @@
 
 namespace Aspire.Hosting.ApplicationModel;
 
-public class ProjectResource(string name) : DistributedApplicationResource(name), IDistributedApplicationResourceWithEnvironment
+public class ProjectResource(string name) : DistributedApplicationResource(name), IDistributedApplicationResourceWithEnvironment, IDistributedApplicationResourceWithBindings
 {
 }
