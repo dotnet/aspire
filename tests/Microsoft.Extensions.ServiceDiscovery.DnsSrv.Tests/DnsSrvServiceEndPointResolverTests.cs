@@ -11,13 +11,13 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.ServiceDiscovery.Abstractions;
 using Xunit;
 
-namespace Microsoft.Extensions.ServiceDiscovery.Dns.Tests;
+namespace Microsoft.Extensions.ServiceDiscovery.DnsSrv.Tests;
 
 /// <summary>
-/// Tests for <see cref="DnsServiceEndPointResolver"/> and <see cref="DnsServiceEndPointResolverProvider"/>.
+/// Tests for <see cref="DnsSrvServiceEndPointResolver"/> and <see cref="DnsSrvServiceEndPointResolverProvider"/>.
 /// These also cover <see cref="ServiceEndPointResolver"/> and <see cref="ServiceEndPointResolverFactory"/> by extension.
 /// </summary>
-public class DnsServiceEndPointResolverTests
+public class DnsSrvServiceEndPointResolverTests
 {
     private sealed class FakeDnsClient : IDnsQuery
     {
@@ -101,7 +101,7 @@ public class DnsServiceEndPointResolverTests
         var services = new ServiceCollection()
             .AddSingleton<IDnsQuery>(dnsClientMock)
             .AddServiceDiscoveryCore()
-            .AddDnsSrvServiceEndPointResolver()
+            .AddDnsSrvServiceEndPointResolver(optionsBuilder => optionsBuilder.Configure(options => options.QuerySuffix = ".ns"))
             .BuildServiceProvider();
         var resolverFactory = services.GetRequiredService<ServiceEndPointResolverFactory>();
         ServiceEndPointResolver resolver;
@@ -170,15 +170,15 @@ public class DnsServiceEndPointResolverTests
         if (dnsFirst)
         {
             serviceCollection
-            .AddDnsSrvServiceEndPointResolver()
+            .AddDnsSrvServiceEndPointResolver(optionsBuilder => optionsBuilder.Configure(options => options.QuerySuffix = ".ns"))
             .AddConfigurationServiceEndPointResolver();
         }
         else
         {
             serviceCollection
             .AddConfigurationServiceEndPointResolver()
-            .AddDnsSrvServiceEndPointResolver();
-        }
+            .AddDnsSrvServiceEndPointResolver(optionsBuilder => optionsBuilder.Configure(options => options.QuerySuffix = ".ns"));
+        };
         var services = serviceCollection.BuildServiceProvider();
         var resolverFactory = services.GetRequiredService<ServiceEndPointResolverFactory>();
         ServiceEndPointResolver resolver;

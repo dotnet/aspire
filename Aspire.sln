@@ -27,7 +27,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Extensions.Servic
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Extensions.ServiceDiscovery", "src\Microsoft.Extensions.ServiceDiscovery\Microsoft.Extensions.ServiceDiscovery.csproj", "{7570F683-EB48-467F-B1B1-70FF0153F52B}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Extensions.ServiceDiscovery.Dns", "src\Microsoft.Extensions.ServiceDiscovery.Dns\Microsoft.Extensions.ServiceDiscovery.Dns.csproj", "{327CB76F-3BB8-4955-A01D-CD8553AD36CC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Extensions.ServiceDiscovery.DnsSrv", "src\Microsoft.Extensions.ServiceDiscovery.DnsSrv\Microsoft.Extensions.ServiceDiscovery.DnsSrv.csproj", "{327CB76F-3BB8-4955-A01D-CD8553AD36CC}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ServiceDiscovery", "ServiceDiscovery", "{63BB22D3-0FAC-4E87-BF9D-9FA2441684C9}"
 EndProject
@@ -63,7 +63,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ServiceDiscovery", "Service
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Extensions.ServiceDiscovery.Tests", "tests\Microsoft.Extensions.ServiceDiscovery.Tests\Microsoft.Extensions.ServiceDiscovery.Tests.csproj", "{CD7BF1EC-ABF9-48DE-8683-353216DB4958}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Extensions.ServiceDiscovery.Dns.Tests", "tests\Microsoft.Extensions.ServiceDiscovery.Dns.Tests\Microsoft.Extensions.ServiceDiscovery.Dns.Tests.csproj", "{845B39FE-A982-44EB-A4DB-CCCD93CBF261}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Extensions.ServiceDiscovery.DnsSrv.Tests", "tests\Microsoft.Extensions.ServiceDiscovery.DnsSrv.Tests\Microsoft.Extensions.ServiceDiscovery.DnsSrv.Tests.csproj", "{845B39FE-A982-44EB-A4DB-CCCD93CBF261}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.ProjectTemplates", "src\Aspire.ProjectTemplates\Aspire.ProjectTemplates.csproj", "{29012D95-AA39-4DC9-AFAA-2FC3A8CDEF33}"
 EndProject

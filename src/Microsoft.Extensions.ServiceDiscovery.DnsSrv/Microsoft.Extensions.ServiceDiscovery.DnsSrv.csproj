@@ -1,9 +1,13 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Microsoft.Extensions.ServiceDiscovery\Internal\ServiceNameParts.cs" Link="Internal\ServiceNameParts.cs" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="DnsClient" />
@@ -17,6 +21,10 @@
   <ItemGroup>
     <ProjectReference Include="..\Microsoft.Extensions.ServiceDiscovery.Abstractions\Microsoft.Extensions.ServiceDiscovery.Abstractions.csproj" />
     <ProjectReference Include="..\Microsoft.Extensions.ServiceDiscovery\Microsoft.Extensions.ServiceDiscovery.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Microsoft.Extensions.ServiceDiscovery.DnsSrv.Tests"/>
   </ItemGroup>
 
 </Project>

@@ -58,7 +58,8 @@ public class ResolvingHttpDelegatingHandler : DelegatingHandler
         }
         finally
         {
-            epHealth?.ReportHealth(responseDuration.Elapsed, error); // Report health so that the resolver pipeline can take health and performance into consideration, possibly triggering a circuit breaker?.
+            // Report health so that the resolver pipeline can take health and performance into consideration, possibly triggering a circuit breaker?.
+            epHealth?.ReportHealth(responseDuration.Elapsed, error);
             request.RequestUri = originalUri;
         }
     }

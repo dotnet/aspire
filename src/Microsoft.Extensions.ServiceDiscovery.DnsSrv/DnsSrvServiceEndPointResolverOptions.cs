@@ -1,12 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-namespace Microsoft.Extensions.ServiceDiscovery.Dns;
+namespace Microsoft.Extensions.ServiceDiscovery.DnsSrv;
 
 /// <summary>
-/// Options for configuring <see cref="DnsServiceEndPointResolver"/>.
+/// Options for configuring <see cref="DnsSrvServiceEndPointResolver"/>.
 /// </summary>
-public class DnsServiceEndPointResolverOptions
+public class DnsSrvServiceEndPointResolverOptions
 {
     /// <summary>
     /// Gets or sets the default refresh period for endpoints resolved from DNS.
@@ -29,15 +29,10 @@ public class DnsServiceEndPointResolverOptions
     public double RetryBackOffFactor { get; set; } = 2;
 
     /// <summary>
-    /// Gets or sets the default DNS namespace for services resolved via this provider.
+    /// Gets or sets the default DNS query suffix for services resolved via this provider.
     /// </summary>
     /// <remarks>
     /// If not specified, the provider will attempt to infer the namespace.
     /// </remarks>
-    public string? DnsNamespace { get; set; }
-
-    /// <summary>
-    /// Gets or sets a value indicating whether to use DNS SRV queries to discover host addresses and ports.
-    /// </summary>
-    public bool UseSrvQuery { get; set; }
+    public string? QuerySuffix { get; set; }
 }

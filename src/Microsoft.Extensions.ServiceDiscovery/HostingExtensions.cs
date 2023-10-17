@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.ServiceDiscovery;
 using Microsoft.Extensions.ServiceDiscovery.Abstractions;
+using Microsoft.Extensions.ServiceDiscovery.Dns;
 using Microsoft.Extensions.ServiceDiscovery.Internal;
 
 namespace Microsoft.Extensions.Hosting;
@@ -78,6 +79,21 @@ public static class HostingExtensions
     {
         services.AddServiceDiscoveryCore();
         services.AddSingleton<IServiceEndPointResolverProvider, PassThroughServiceEndPointResolverProvider>();
+        return services;
+    }
+
+    /// <summary>
+    /// Adds DNS-based service discovery to the <see cref="IServiceCollection"/>.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="configureOptions">The DNS service discovery configuration options.</param>
+    /// <returns>The provided <see cref="IServiceCollection"/>.</returns>
+    public static IServiceCollection AddDnsServiceEndPointResolver(this IServiceCollection services, Action<OptionsBuilder<DnsServiceEndPointResolverOptions>>? configureOptions = null)
+    {
+        services.AddServiceDiscoveryCore();
+        services.AddSingleton<IServiceEndPointResolverProvider, DnsServiceEndPointResolverProvider>();
+        var options = services.AddOptions<DnsServiceEndPointResolverOptions>();
+        configureOptions?.Invoke(options);
         return services;
     }
 }
