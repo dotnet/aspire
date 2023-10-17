@@ -22,31 +22,28 @@ public static class AspireAzureCosmosDBExtensions
     /// Configures health check, logging and telemetry for the <see cref="CosmosClient" />.
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
+    /// <param name="connectionName">The connection name to use to find a connection string.</param>
     /// <param name="configure">An optional method that can be used for customizing options. It's invoked after the settings are read from the configuration.</param>
-    /// <param name="key">The sub-key of the configuration section. If not provided, the default value: <see cref="DefaultConfigSectionName"/></param>
     /// <exception cref="InvalidOperationException">If required ConnectionString is not provided in configuration section</exception>
-    public static void AddAzureCosmosDBConfig(this IHostApplicationBuilder builder, Action<AzureCosmosDBOptions>? configure = null,
-        string? key = null)
+    public static void AddAzureCosmosDB(
+        this IHostApplicationBuilder builder,
+        string connectionName,
+        Action<AzureCosmosDBOptions>? configure = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        string configurationSectionName = key is null
-            ? DefaultConfigSectionName
-            : $"{DefaultConfigSectionName}:{key}";
+        AzureCosmosDBOptions settings = new();
+        builder.Configuration.GetSection(DefaultConfigSectionName).Bind(settings);
 
-        AzureCosmosDBOptions configurationOptions = new();
-        builder.Configuration.GetSection(configurationSectionName).Bind(configurationOptions);
-
-        if (string.IsNullOrEmpty(configurationOptions.ConnectionString))
+        if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {
-            configurationOptions.ConnectionString = builder.Configuration.GetConnectionString("Aspire.Azure.CosmosDB");
+            settings.ConnectionString = connectionString;
         }
+        configure?.Invoke(settings);
 
-        configure?.Invoke(configurationOptions);
+        builder.Services.AddScoped(_ => ConfigureDb());
 
-        builder.Services.AddScoped<CosmosClient>(_ => ConfigureDb());
-
-        if (configurationOptions.Tracing)
+        if (settings.Tracing)
         {
             builder.Services.AddOpenTelemetry().WithTracing(tracerProviderBuilder =>
             {
@@ -54,7 +51,7 @@ public static class AspireAzureCosmosDBExtensions
             });
         }
 
-        if (configurationOptions.Metrics)
+        if (settings.Metrics)
         {
             builder.Services.AddOpenTelemetry().WithMetrics(meterProviderBuilder =>
             {
@@ -65,12 +62,12 @@ public static class AspireAzureCosmosDBExtensions
             });
         }
 
-        if (configurationOptions.HealthChecks)
+        if (settings.HealthChecks)
         {
             builder.Services.AddHealthChecks()
                 .Add(new HealthCheckRegistration(
                     "AzureCosmosDB",
-                    sp => new AzureCosmosDBHealthCheck(configurationOptions),
+                    sp => new AzureCosmosDBHealthCheck(settings),
                     failureStatus: default,
                     tags: default,
                     timeout: default));
@@ -78,12 +75,12 @@ public static class AspireAzureCosmosDBExtensions
 
         CosmosClient ConfigureDb()
         {
-            if (string.IsNullOrEmpty(configurationOptions.ConnectionString))
+            if (string.IsNullOrEmpty(settings.ConnectionString))
             {
-                throw new InvalidOperationException($"ConnectionString is missing. It should be provided under 'ConnectionString' key in '{configurationSectionName}' configuration section.");
+                throw new InvalidOperationException($"ConnectionString is missing. It should be provided under 'ConnectionString' key in '{DefaultConfigSectionName}' configuration section.");
             }
 
-            return new CosmosClient(configurationOptions.ConnectionString);
+            return new CosmosClient(settings.ConnectionString);
         }
     }
 }
