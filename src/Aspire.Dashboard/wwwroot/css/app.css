@@ -15,13 +15,6 @@ fluent-toolbar[orientation=horizontal] {
     transform: translate(0px,10px);
 }
 
-.dimension-value-popover .fluent-popover-content {
-    padding: 0;
-}
-    .dimension-value-popover .fluent-popover-content .fluent-popover-body {
-        margin: 0;
-    }
-
 .metrics-chart {
     display: grid;
     grid-template-columns: min-content auto;

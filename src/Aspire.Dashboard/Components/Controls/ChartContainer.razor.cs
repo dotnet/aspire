@@ -39,19 +39,21 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
     protected override void OnInitialized()
     {
         _tickTimer = new PeriodicTimer(TimeSpan.FromSeconds(0.2));
-        _tickTask = Task.Run(UpdateData);
+        _tickTask = Task.Run(UpdateDataAsync);
     }
 
     public async ValueTask DisposeAsync()
     {
         _tickTimer?.Dispose();
+
+        // Wait for UpdateData to complete.
         if (_tickTask is { } t)
         {
             await t.ConfigureAwait(false);
         }
     }
 
-    private async Task UpdateData()
+    private async Task UpdateDataAsync()
     {
         var timer = _tickTimer;
         while (await timer!.WaitForNextTickAsync().ConfigureAwait(false))

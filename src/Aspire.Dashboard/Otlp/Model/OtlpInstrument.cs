@@ -138,13 +138,13 @@ public class OtlpInstrument
 
         public int GetHashCode([DisallowNull] ReadOnlyMemory<KeyValuePair<string, string>> obj)
         {
-            var hashcode = 0;
+            var hashcode = new HashCode();
             foreach (KeyValuePair<string, string> pair in obj.Span)
             {
-                hashcode ^= pair.Key.GetHashCode();
-                hashcode ^= pair.Value.GetHashCode();
+                hashcode.Add(pair.Key);
+                hashcode.Add(pair.Value);
             }
-            return hashcode;
+            return hashcode.ToHashCode();
         }
     }
 

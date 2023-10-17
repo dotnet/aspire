@@ -93,14 +93,6 @@ public class OtlpApplication
             {
                 foreach (var metric in sm.Metrics)
                 {
-                    // kestrel.active_connections
-                    // http.server.request.duration
-
-                    if (ApplicationName != "myfrontend" || metric.Name != "http.server.request.duration")
-                    {
-                        //continue;
-                    }
-
                     try
                     {
                         var instrumentKey = new OtlpInstrumentKey(sm.Scope.Name, metric.Name);

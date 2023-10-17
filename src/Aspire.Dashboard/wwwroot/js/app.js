@@ -84,16 +84,14 @@ window.updateFluentSelectDisplayValue = function (fluentSelect) {
 
 function getThemeColors() {
     // Get colors from the current light/dark theme.
-    var style = getComputedStyle(document.documentElement);
+    var style = getComputedStyle(document.getElementById("mainlayout-container"));
     return {
-        backgroundColor: style.getPropertyValue('--neutral-fill-layer-rest'),
-        textColor: style.getPropertyValue('--neutral-foreground-rest')
+        backgroundColor: style.getPropertyValue("--neutral-fill-layer-rest"),
+        textColor: style.getPropertyValue("--neutral-foreground-rest")
     };
 }
 
 window.updateChart = function (id, traces, xValues, rangeStartTime, rangeEndTime) {
-    console.log(`updateChart rangeStartTime = ${rangeStartTime}, rangeEndTime = ${rangeEndTime}`);
-
     var chartContainerDiv = document.getElementById(id);
     var chartDiv = chartContainerDiv.firstChild;
 
@@ -128,8 +126,6 @@ window.updateChart = function (id, traces, xValues, rangeStartTime, rangeEndTime
 };
 
 window.initializeChart = function (id, traces, xValues, rangeStartTime, rangeEndTime) {
-    console.log(`initializeChart rangeStartTime = ${rangeStartTime}, rangeEndTime = ${rangeEndTime}`);
-
     var chartContainerDiv = document.getElementById(id);
 
     // Reusing a div can create issues with chart lines appearing beyond the end range.
