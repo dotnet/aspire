@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.ExceptionServices;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Logging;
@@ -49,6 +50,7 @@ public sealed class ServiceEndPointResolver(
     /// </summary>
     public void Start()
     {
+        ThrowIfNoResolvers();
         _ = RefreshAsync(force: false);
     }
 
@@ -59,6 +61,8 @@ public sealed class ServiceEndPointResolver(
     /// <returns>A collection of resolved endpoints for the service.</returns>
     public ValueTask<ServiceEndPointCollection> GetEndPointsAsync(CancellationToken cancellationToken = default)
     {
+        ThrowIfNoResolvers();
+
         // If the cache is valid, return the cached value.
         if (_cachedEndPoints is { ChangeToken.HasChanged: false } cached)
         {
@@ -138,7 +142,6 @@ public sealed class ServiceEndPointResolver(
                 }
 
                 var endPoints = ServiceEndPointCollectionSource.CreateServiceEndPointCollection(collection);
-
                 var statusCode = status.StatusCode;
                 if (statusCode != ResolutionStatusCode.Success)
                 {
@@ -181,7 +184,7 @@ public sealed class ServiceEndPointResolver(
                     }
 
                     // The cache is valid
-                    newEndPoints = (ServiceEndPointCollection?)endPoints;
+                    newEndPoints = endPoints;
                     newCacheState = CacheStatus.Valid;
                     break;
                 }
@@ -355,4 +358,15 @@ public sealed class ServiceEndPointResolver(
             timerCancellation?.Dispose();
         }
     }
+
+    private void ThrowIfNoResolvers()
+    {
+        if (_resolvers.Length == 0)
+        {
+            ThrowNoResolversConfigured();
+        }
+    }
+
+    [DoesNotReturn]
+    private static void ThrowNoResolversConfigured() => throw new InvalidOperationException("No service endpoint resolvers are configured.");
 }
