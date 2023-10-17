@@ -103,6 +103,7 @@ public class DimensionScope
 
     internal static DimensionScope Clone(DimensionScope value, DateTime valuesStart, DateTime valuesEnd)
     {
+        // TODO: Use start and end dates to only clone data in the range.
         _ = valuesStart;
         _ = valuesEnd;
 
