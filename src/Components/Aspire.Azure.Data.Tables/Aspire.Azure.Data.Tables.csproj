@@ -5,7 +5,7 @@
     <IsPackable>true</IsPackable>
     <PackageTags>$(ComponentAzurePackageTags) tables table</PackageTags>
     <Description>A client for Azure Table Storage that integrates with Aspire, including health checks, logging, and telemetry.</Description>
-    <PackageIconFullPath>$(MSBuildThisFileDirectory)../../Shared/Azure Table_256x.png</PackageIconFullPath>
+    <PackageIconFullPath>$(SharedDir)Azure Table_256x.png</PackageIconFullPath>
   </PropertyGroup>
 
   <ItemGroup>
