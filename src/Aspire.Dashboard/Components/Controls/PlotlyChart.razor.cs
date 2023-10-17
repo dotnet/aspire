@@ -14,11 +14,7 @@ namespace Aspire.Dashboard.Components;
 
 public partial class PlotlyChart : ComponentBase
 {
-    private const int GRAPH_POINT_COUNT = 30; // 3 minutes
-
-    private static int s_lastId;
-    private readonly int _instanceID = ++s_lastId;
-    private string ChartDivId => $"lineChart{_instanceID}";
+    private const int GraphPointCount = 30;
 
     private TimeSpan _tickDuration;
     private DateTime _lastUpdateTime;
@@ -74,7 +70,7 @@ public partial class PlotlyChart : ComponentBase
 
     protected override void OnParametersSet()
     {
-        _tickDuration = Duration / GRAPH_POINT_COUNT;
+        _tickDuration = Duration / GraphPointCount;
     }
 
     private Task OnInstrumentDataUpdate()
@@ -379,11 +375,11 @@ public partial class PlotlyChart : ComponentBase
         List<DateTime> xValues;
         if (InstrumentViewModel.Instrument.Type != OtlpInstrumentType.Histogram)
         {
-            (traces, xValues) = CalculateChartValues(InstrumentViewModel.MatchedDimensions, GRAPH_POINT_COUNT, tickUpdate, inProgressDataTime, unit);
+            (traces, xValues) = CalculateChartValues(InstrumentViewModel.MatchedDimensions, GraphPointCount, tickUpdate, inProgressDataTime, unit);
         }
         else
         {
-            (traces, xValues) = CalculateHistogramValues(InstrumentViewModel.MatchedDimensions, GRAPH_POINT_COUNT, tickUpdate, inProgressDataTime, unit);
+            (traces, xValues) = CalculateHistogramValues(InstrumentViewModel.MatchedDimensions, GraphPointCount, tickUpdate, inProgressDataTime, unit);
         }
 
         var traceDtos = traces.Select(y => new
@@ -396,7 +392,7 @@ public partial class PlotlyChart : ComponentBase
         if (!tickUpdate)
         {
             await JSRuntime.InvokeVoidAsync("initializeChart",
-                ChartDivId,
+                "plotly-chart-container",
                 traceDtos,
                 xValues,
                 inProgressDataTime.ToLocalTime(),
@@ -405,7 +401,7 @@ public partial class PlotlyChart : ComponentBase
         else
         {
             await JSRuntime.InvokeVoidAsync("updateChart",
-                ChartDivId,
+                "plotly-chart-container",
                 traceDtos,
                 xValues,
                 inProgressDataTime.ToLocalTime(),

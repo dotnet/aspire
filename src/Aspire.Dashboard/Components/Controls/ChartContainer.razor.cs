@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using System.Diagnostics.Metrics;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Model.MetricValues;
@@ -80,10 +79,7 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
 
     public async Task DimensionValuesChangedAsync(DimensionFilterViewModel dimensionViewModel)
     {
-        if (_instrument is not null)
-        {
-            await UpdateInstrumentDataAsync(_instrument);
-        }
+        await UpdateInstrumentDataAsync(_instrument);
     }
 
     private async Task UpdateInstrumentDataAsync(OtlpInstrument instrument)
@@ -151,7 +147,7 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
     private List<DimensionFilterViewModel> CreateUpdatedFilters(bool hasInstrumentChanged)
     {
         var filters = new List<DimensionFilterViewModel>();
-        foreach (var item in _instrument!.KnownAttributeValues.OrderBy(kvp => kvp.Key))
+        foreach (var item in _instrument.KnownAttributeValues.OrderBy(kvp => kvp.Key))
         {
             var dimensionModel = new DimensionFilterViewModel
             {
