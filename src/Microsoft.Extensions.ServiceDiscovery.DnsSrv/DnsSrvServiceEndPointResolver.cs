@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Net;
+using System.Net.Sockets;
 using DnsClient;
 using DnsClient.Protocol;
 using Microsoft.Extensions.Logging;
@@ -15,7 +16,7 @@ namespace Microsoft.Extensions.ServiceDiscovery.DnsSrv;
 /// <summary>
 /// A service end point resolver that uses DNS to resolve the service end points.
 /// </summary>
-internal sealed partial class DnsSrvServiceEndPointResolver : IServiceEndPointResolver, IHostNameFeature
+internal sealed partial class DnsSrvServiceEndPointResolver : IServiceEndPointResolver, IHostNameFeature, IEndPointHealthFeature
 {
     private readonly object _lock = new();
     private readonly string _serviceName;
@@ -33,6 +34,7 @@ internal sealed partial class DnsSrvServiceEndPointResolver : IServiceEndPointRe
     private CancellationTokenSource _lastCollectionCancellation;
     private List<ServiceEndPoint>? _lastEndPointCollection;
     private TimeSpan _nextRefreshPeriod;
+    private bool _hasReportedError;
 
     /// <summary>
     /// Initializes a new <see cref="DnsSrvServiceEndPointResolver"/> instance.
@@ -184,6 +186,7 @@ internal sealed partial class DnsSrvServiceEndPointResolver : IServiceEndPointRe
     {
         var serviceEndPoint = ServiceEndPoint.Create(endPoint);
         serviceEndPoint.Features.Set<IHostNameFeature>(this);
+        serviceEndPoint.Features.Set<IEndPointHealthFeature>(this);
         return serviceEndPoint;
     }
 
@@ -216,6 +219,7 @@ internal sealed partial class DnsSrvServiceEndPointResolver : IServiceEndPointRe
             }
             else
             {
+                _hasReportedError = false;
                 _lastRefreshTimeStamp = _timeProvider.GetTimestamp();
                 _nextRefreshPeriod = options.DefaultRefreshPeriod;
                 _lastStatus = ResolutionStatus.Success;
@@ -266,6 +270,39 @@ internal sealed partial class DnsSrvServiceEndPointResolver : IServiceEndPointRe
         if (_resolveTask is { } task)
         {
             await task.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+        }
+    }
+
+    void IEndPointHealthFeature.ReportHealth(TimeSpan responseTime, Exception? exception)
+    {
+        if (exception is SocketException || exception?.InnerException is SocketException)
+        {
+            _logger.LogError(exception, "Error observed in service {ServiceName}, expediting refresh", _serviceName);
+            if (_hasReportedError)
+            {
+                return;
+            }
+
+            lock (_lock)
+            {
+                if (_hasReportedError)
+                {
+                    // Avoid scheduling refresh of the same collection multiple times.
+                    return;
+                }
+
+                _hasReportedError = true;
+                var elapsed = ElapsedSinceRefresh;
+                var minRetryPeriod = _options.CurrentValue.MinRetryPeriod;
+                if (elapsed > minRetryPeriod)
+                {
+                    _lastCollectionCancellation.Cancel();
+                }
+                else
+                {
+                    _lastCollectionCancellation.CancelAfter(minRetryPeriod - elapsed);
+                }
+            }
         }
     }
 }
