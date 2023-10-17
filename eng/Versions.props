@@ -24,6 +24,6 @@
     <MicrosoftDotNetBuildTasksTemplatingVersion>8.0.0-beta.23505.1</MicrosoftDotNetBuildTasksTemplatingVersion>
     <MicrosoftDotNetBuildTasksInstallersPackageVersion>8.0.0-beta.23505.1</MicrosoftDotNetBuildTasksInstallersPackageVersion>
     <MicrosoftDotNetBuildTasksWorkloadsPackageVersion>8.0.0-beta.23505.1</MicrosoftDotNetBuildTasksWorkloadsPackageVersion>
-    <MicrosoftExtensionsHttpResiliencePackageVersion>8.0.0-rtm.23516.6</MicrosoftExtensionsHttpResiliencePackageVersion>
+    <MicrosoftExtensionsHttpResiliencePackageVersion>8.0.0-rtm.23516.7</MicrosoftExtensionsHttpResiliencePackageVersion>
   </PropertyGroup>
 </Project>
