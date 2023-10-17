@@ -13,7 +13,7 @@ namespace Microsoft.Extensions.ServiceDiscovery.Dns;
 /// <summary>
 /// A service end point resolver that uses DNS to resolve the service end points.
 /// </summary>
-internal sealed partial class DnsServiceEndPointResolver : IServiceEndPointResolver
+internal sealed partial class DnsServiceEndPointResolver : IServiceEndPointResolver, IHostNameFeature
 {
     private readonly object _lock = new();
     private readonly string _serviceName;
@@ -62,6 +62,8 @@ internal sealed partial class DnsServiceEndPointResolver : IServiceEndPointResol
     }
 
     private TimeSpan ElapsedSinceRefresh => _timeProvider.GetElapsedTime(_lastRefreshTimeStamp);
+
+    string IHostNameFeature.HostName => _hostName;
 
     /// <inheritdoc/>
     public async ValueTask<ResolutionStatus> ResolveAsync(ServiceEndPointCollectionSource endPoints, CancellationToken cancellationToken)
@@ -116,7 +118,7 @@ internal sealed partial class DnsServiceEndPointResolver : IServiceEndPointResol
             var addresses = await System.Net.Dns.GetHostAddressesAsync(_hostName, _disposeCancellation.Token).ConfigureAwait(false);
             foreach (var address in addresses)
             {
-                endPoints.Add(ServiceEndPoint.Create(new IPEndPoint(address, _defaultPort)));
+                endPoints.Add(CreateEndPoint(new IPEndPoint(address, _defaultPort)));
             }
 
             if (endPoints.Count == 0)
@@ -143,6 +145,13 @@ internal sealed partial class DnsServiceEndPointResolver : IServiceEndPointResol
             var exception = new InvalidOperationException(msg);
             return exception;
         }
+    }
+
+    private ServiceEndPoint CreateEndPoint(EndPoint endPoint)
+    {
+        var serviceEndPoint = ServiceEndPoint.Create(endPoint);
+        serviceEndPoint.Features.Set<IHostNameFeature>(this);
+        return serviceEndPoint;
     }
 
     private void SetException(Exception exception) => SetResult(endPoints: null, exception, validityPeriod: TimeSpan.Zero);

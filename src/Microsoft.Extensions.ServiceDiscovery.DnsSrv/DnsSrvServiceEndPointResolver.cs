@@ -16,7 +16,7 @@ namespace Microsoft.Extensions.ServiceDiscovery.DnsSrv;
 /// <summary>
 /// A service end point resolver that uses DNS to resolve the service end points.
 /// </summary>
-internal sealed partial class DnsSrvServiceEndPointResolver : IServiceEndPointResolver, IEndPointHealthFeature
+internal sealed partial class DnsSrvServiceEndPointResolver : IServiceEndPointResolver, IHostNameFeature, IEndPointHealthFeature
 {
     private readonly object _lock = new();
     private readonly string _serviceName;
@@ -70,6 +70,8 @@ internal sealed partial class DnsSrvServiceEndPointResolver : IServiceEndPointRe
     }
 
     private TimeSpan ElapsedSinceRefresh => _timeProvider.GetElapsedTime(_lastRefreshTimeStamp);
+
+    string IHostNameFeature.HostName => _hostName;
 
     /// <inheritdoc/>
     public async ValueTask<ResolutionStatus> ResolveAsync(ServiceEndPointCollectionSource endPoints, CancellationToken cancellationToken)
@@ -183,6 +185,7 @@ internal sealed partial class DnsSrvServiceEndPointResolver : IServiceEndPointRe
     private ServiceEndPoint CreateEndPoint(EndPoint endPoint)
     {
         var serviceEndPoint = ServiceEndPoint.Create(endPoint);
+        serviceEndPoint.Features.Set<IHostNameFeature>(this);
         serviceEndPoint.Features.Set<IEndPointHealthFeature>(this);
         return serviceEndPoint;
     }

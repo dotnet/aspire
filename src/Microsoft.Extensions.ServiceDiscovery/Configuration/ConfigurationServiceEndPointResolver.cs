@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Net;
 using System.Text;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
@@ -11,7 +12,7 @@ namespace Microsoft.Extensions.ServiceDiscovery.Abstractions;
 /// <summary>
 /// A service endpoint resolver that uses configuration to resolve endpoints.
 /// </summary>
-internal sealed partial class ConfigurationServiceEndPointResolver : IServiceEndPointResolver
+internal sealed partial class ConfigurationServiceEndPointResolver : IServiceEndPointResolver, IHostNameFeature
 {
     private readonly string _serviceName;
     private readonly string? _endpointName;
@@ -48,6 +49,8 @@ internal sealed partial class ConfigurationServiceEndPointResolver : IServiceEnd
 
     /// <inheritdoc/>
     public ValueTask<ResolutionStatus> ResolveAsync(ServiceEndPointCollectionSource endPoints, CancellationToken cancellationToken) => new(ResolveInternal(endPoints));
+
+    string IHostNameFeature.HostName => _serviceName;
 
     private ResolutionStatus ResolveInternal(ServiceEndPointCollectionSource endPoints)
     {
@@ -91,7 +94,7 @@ internal sealed partial class ConfigurationServiceEndPointResolver : IServiceEnd
                             return ResolutionStatus.FromException(new KeyNotFoundException($"The configuration section for service endpoint {_serviceName} is invalid."));
                         }
 
-                        endPoints.EndPoints.Add(ServiceEndPoint.Create(endPoint));
+                        endPoints.EndPoints.Add(CreateEndPoint(endPoint));
                     }
                 }
             }
@@ -105,7 +108,7 @@ internal sealed partial class ConfigurationServiceEndPointResolver : IServiceEnd
                     return ResolutionStatus.FromException(new KeyNotFoundException($"The configuration section for service endpoint {_serviceName} is invalid."));
                 }
 
-                endPoints.EndPoints.Add(ServiceEndPoint.Create(endPoint));
+                endPoints.EndPoints.Add(CreateEndPoint(endPoint));
             }
         }
 
@@ -115,6 +118,13 @@ internal sealed partial class ConfigurationServiceEndPointResolver : IServiceEnd
         static bool SchemesMatch(string? scheme, ServiceNameParts parts) =>
             (string.IsNullOrEmpty(parts.EndPointName) || string.IsNullOrEmpty(scheme))
             || MemoryExtensions.Equals(parts.EndPointName, scheme, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private ServiceEndPoint CreateEndPoint(EndPoint endPoint)
+    {
+        var serviceEndPoint = ServiceEndPoint.Create(endPoint);
+        serviceEndPoint.Features.Set<IHostNameFeature>(this);
+        return serviceEndPoint;
     }
 
     private ResolutionStatus CreateNotFoundResponse(ServiceEndPointCollectionSource endPoints, string? baseSectionName)
