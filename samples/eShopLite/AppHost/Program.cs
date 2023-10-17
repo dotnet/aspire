@@ -3,9 +3,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 builder.AddAzureProvisioning();
 
 var grafana = builder.AddContainer("grafana", "grafana/grafana")
-                     .WithVolumeMount("../grafana/config", "/etc/grafana")
-                     .WithVolumeMount("../grafana/dashboards", "/var/lib/grafana/dashboards")
-                     .WithServiceBinding(containerPort: 3000, hostPort: 3000, name: "grafana-http", scheme: "http");
+                     .WithServiceBinding(containerPort: 3000, name: "grafana-http", scheme: "http");
 
 var catalogdb = builder.AddPostgresContainer("postgres").AddDatabase("catalog");
 
@@ -36,6 +34,6 @@ builder.AddProject<Projects.ApiGateway>("apigateway")
 
 builder.AddContainer("prometheus", "prom/prometheus")
        .WithVolumeMount("../prometheus", "/etc/prometheus")
-       .WithServiceBinding(9090, hostPort: 9090);
+       .WithServiceBinding(9090);
 
 builder.Build().Run();
