@@ -25,30 +25,36 @@ public static class AspireAzureEFCoreCosmosDBExtensions
     /// </summary>
     /// <typeparam name="TContext">The <see cref="DbContext" /> that needs to be registered.</typeparam>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
+    /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="configure">An optional delegate that can be used for customizing options. It's invoked after the settings are read from the configuration.</param>
-    /// <param name="configurationSectionName">The key of the configuration section. If not provided the default is 'Aspire.Azure.EntityFrameworkCore.CosmosDB'</param>
     /// <exception cref="ArgumentNullException">Thrown if mandatory <paramref name="builder"/> is null.</exception>
-    /// <exception cref="ArgumentNullException">Thrown if optional <paramref name="configurationSectionName"/> is null.</exception>
     /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="AzureEntityFrameworkCoreCosmosDBSettings.ConnectionString"/> is not provided.</exception>
     public static void AddCosmosDBEntityFrameworkDBContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
         this IHostApplicationBuilder builder,
-        Action<AzureEntityFrameworkCoreCosmosDBSettings>? configure = null,
-        string configurationSectionName = DefaultConfigSectionName) where TContext : DbContext
+        string connectionName,
+        Action<AzureEntityFrameworkCoreCosmosDBSettings>? configure = null) where TContext : DbContext
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(configurationSectionName);
 
-        AzureEntityFrameworkCoreCosmosDBSettings configurationOptions = new();
-        builder.Configuration.GetSection(configurationSectionName).Bind(configurationOptions);
-
-        if(string.IsNullOrEmpty(configurationOptions.ConnectionString))
+        AzureEntityFrameworkCoreCosmosDBSettings settings = new();
+        var typeSpecificSectionName = $"{DefaultConfigSectionName}:{typeof(TContext).Name}";
+        var typeSpecificConfigurationSection = builder.Configuration.GetSection(typeSpecificSectionName);
+        if (typeSpecificConfigurationSection.Exists()) // https://github.com/dotnet/runtime/issues/91380
         {
-            configurationOptions.ConnectionString = builder.Configuration.GetConnectionString("Aspire.Azure.CosmosDB");
+            typeSpecificConfigurationSection.Bind(settings);
+        }
+        else
+        {
+            builder.Configuration.GetSection(DefaultConfigSectionName).Bind(settings);
         }
 
-        configure?.Invoke(configurationOptions);
+        if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
+        {
+            settings.ConnectionString = connectionString;
+        }
+        configure?.Invoke(settings);
 
-        if (configurationOptions.DbContextPooling)
+        if (settings.DbContextPooling)
         {
             builder.Services.AddDbContextPool<TContext>(ConfigureDbContext);
         }
@@ -57,7 +63,7 @@ public static class AspireAzureEFCoreCosmosDBExtensions
             builder.Services.AddDbContext<TContext>(ConfigureDbContext);
         }
 
-        if (configurationOptions.Tracing)
+        if (settings.Tracing)
         {
             builder.Services.AddOpenTelemetry().WithTracing(tracerProviderBuilder =>
             {
@@ -66,7 +72,7 @@ public static class AspireAzureEFCoreCosmosDBExtensions
             });
         }
 
-        if (configurationOptions.Metrics)
+        if (settings.Metrics)
         {
             builder.Services.AddOpenTelemetry().WithMetrics(meterProviderBuilder =>
             {
@@ -80,19 +86,19 @@ public static class AspireAzureEFCoreCosmosDBExtensions
 
         void ConfigureDbContext(DbContextOptionsBuilder dbContextOptionsBuilder)
         {
-            if (string.IsNullOrEmpty(configurationOptions.ConnectionString))
+            if (string.IsNullOrEmpty(settings.ConnectionString))
             {
-                throw new InvalidOperationException($"ConnectionString is missing. It should be provided under 'ConnectionString' key in '{configurationSectionName}' configuration section.");
+                throw new InvalidOperationException($"ConnectionString is missing. It should be provided in 'ConnectionStrings:{connectionName}' or under the 'ConnectionString' key in '{DefaultConfigSectionName}' or '{typeSpecificSectionName}' configuration section.");
             }
 
-            if (string.IsNullOrEmpty(configurationOptions.DatabaseName))
+            if (string.IsNullOrEmpty(settings.DatabaseName))
             {
-                throw new InvalidOperationException($"DatabaseName is missing. It should be provided under 'DatabaseName' key in '{configurationSectionName}' configuration section.");
+                throw new InvalidOperationException($"DatabaseName is missing. It should be provided under 'DatabaseName' key in '{DefaultConfigSectionName}' or '{typeSpecificSectionName}' configuration section.");
             }
 
             // We don't register logger factory, because there is no need to:
             // https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.dbcontextoptionsbuilder.useloggerfactory?view=efcore-7.0#remarks
-            dbContextOptionsBuilder.UseCosmos(configurationOptions.ConnectionString, configurationOptions.DatabaseName, builder =>
+            dbContextOptionsBuilder.UseCosmos(settings.ConnectionString, settings.DatabaseName, builder =>
             {
             });
         }

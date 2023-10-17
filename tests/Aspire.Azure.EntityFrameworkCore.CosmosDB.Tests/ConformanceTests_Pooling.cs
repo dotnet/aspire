@@ -38,7 +38,7 @@ public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, AzureEnt
         });
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<AzureEntityFrameworkCoreCosmosDBSettings>? configure = null, string? key = null)
-        => builder.AddCosmosDBEntityFrameworkDBContext<TestDbContext>(configure);
+        => builder.AddCosmosDBEntityFrameworkDBContext<TestDbContext>("cosmosdb", configure);
 
     protected override void SetHealthCheck(AzureEntityFrameworkCoreCosmosDBSettings options, bool enabled)
         => throw new NotImplementedException();

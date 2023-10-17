@@ -12,7 +12,7 @@ public static class AzureCosmosDBCloudApplicationBuilderExtensions
      public static IDistributedApplicationResourceBuilder<CosmosDBConnectionResource> AddAzureCosmosDB(
          this IDistributedApplicationBuilder builder,
          string name,
-         string connectionString)
+         string? connectionString = null)
     {
         var connection = new CosmosDBConnectionResource(name, connectionString);
         return builder.AddResource(connection)
@@ -24,6 +24,7 @@ public static class AzureCosmosDBCloudApplicationBuilderExtensions
         jsonWriter.WriteString("type", "azurecosmosdb.connection.v1");
         jsonWriter.WriteString("connectionString", cosmosDbConnection.GetConnectionString());
     }
+
     private static void WriteCosmosDBDatabaseToManifest(Utf8JsonWriter jsonWriter, CosmosDatabaseResource cosmosDatabase)
     {
         jsonWriter.WriteString("type", "azurecosmosdb.database.v1");
@@ -40,4 +41,15 @@ public static class AzureCosmosDBCloudApplicationBuilderExtensions
             .WithAnnotation(new ManifestPublishingCallbackAnnotation(
                 (json) => WriteCosmosDBDatabaseToManifest(json, cosmosDatabase)));
     }
+
+    public static IDistributedApplicationResourceBuilder<TDestination> WithAzureCosmosDB<TDestination>(
+        this IDistributedApplicationResourceBuilder<TDestination> builder,
+        IDistributedApplicationResourceBuilder<CosmosDatabaseResource> cosmosDatabaseResource)
+        where TDestination : IDistributedApplicationResourceWithEnvironment
+    {
+        return builder
+            .WithReference(cosmosDatabaseResource)
+            .WithEnvironment("Aspire.Azure.EntityFrameworkCore.CosmosDB:DatabaseName", cosmosDatabaseResource.Resource.Name);
+    }
+
 }
