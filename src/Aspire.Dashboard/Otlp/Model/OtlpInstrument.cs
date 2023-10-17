@@ -101,7 +101,7 @@ public class OtlpInstrument
         }
     }
 
-    public static OtlpInstrument Clone(OtlpInstrument instrument, bool cloneData, DateTime valuesStart, DateTime valuesEnd)
+    public static OtlpInstrument Clone(OtlpInstrument instrument, bool cloneData, DateTime? valuesStart, DateTime? valuesEnd)
     {
         var newInstrument = new OtlpInstrument
         {

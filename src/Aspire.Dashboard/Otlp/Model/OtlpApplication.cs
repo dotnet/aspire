@@ -144,7 +144,7 @@ public class OtlpApplication
         return meter;
     }
 
-    public OtlpInstrument? GetInstrument(string meterName, string instrumentName, DateTime valuesStart, DateTime valuesEnd)
+    public OtlpInstrument? GetInstrument(string meterName, string instrumentName, DateTime? valuesStart, DateTime? valuesEnd)
     {
         _metricsLock.EnterReadLock();
 
@@ -172,7 +172,7 @@ public class OtlpApplication
             var instruments = new List<OtlpInstrument>(_instruments.Count);
             foreach (var instrument in _instruments)
             {
-                instruments.Add(OtlpInstrument.Clone(instrument.Value, cloneData: false, valuesStart: default, valuesEnd: default));
+                instruments.Add(OtlpInstrument.Clone(instrument.Value, cloneData: false, valuesStart: null, valuesEnd: null));
             }
             return instruments;
         }

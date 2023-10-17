@@ -59,9 +59,7 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
         var timer = _tickTimer;
         while (await timer!.WaitForNextTickAsync().ConfigureAwait(false))
         {
-            var instrument = TelemetryRepository.GetInstrument(ApplicationId, MeterName, InstrumentName);
-            Debug.Assert(instrument != null);
-            _instrument = instrument;
+            _instrument = GetInstrument();
 
             if (_instrument.Dimensions.Count > _renderedDimensionsCount)
             {
@@ -128,9 +126,7 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
 
     protected override async Task OnParametersSetAsync()
     {
-        var instrument = TelemetryRepository.GetInstrument(ApplicationId, MeterName, InstrumentName);
-        Debug.Assert(instrument != null);
-        _instrument = instrument;
+        _instrument = GetInstrument();
 
         var hasInstrumentChanged = _previousMeterName != MeterName || _previousInstrumentName != InstrumentName;
         _previousMeterName = MeterName;
@@ -142,6 +138,20 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
         _viewModel.DimensionFilters.AddRange(filters);
 
         await UpdateInstrumentDataAsync(_instrument);
+    }
+
+    private OtlpInstrument GetInstrument()
+    {
+        var instrument = TelemetryRepository.GetInstrument(new GetInstrumentRequest
+        {
+            ApplicationServiceId = ApplicationId,
+            MeterName = MeterName,
+            InstrumentName = InstrumentName,
+            StartTime = DateTime.UtcNow.Subtract(Duration),
+            EndTime = DateTime.UtcNow,
+        });
+        Debug.Assert(instrument != null);
+        return instrument;
     }
 
     private List<DimensionFilterViewModel> CreateUpdatedFilters(bool hasInstrumentChanged)

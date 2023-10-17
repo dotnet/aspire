@@ -581,13 +581,13 @@ public class TelemetryRepository
         return application.GetInstrumentsSummary();
     }
 
-    public OtlpInstrument? GetInstrument(string applicationServiceId, string meterName, string instrumentName)
+    public OtlpInstrument? GetInstrument(GetInstrumentRequest request)
     {
-        if (!_applications.TryGetValue(applicationServiceId, out var application))
+        if (!_applications.TryGetValue(request.ApplicationServiceId, out var application))
         {
             return null;
         }
 
-        return application.GetInstrument(meterName, instrumentName, default, default);
+        return application.GetInstrument(request.MeterName, request.InstrumentName, request.StartTime, request.EndTime);
     }
 }

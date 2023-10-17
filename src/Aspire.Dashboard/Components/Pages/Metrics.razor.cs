@@ -85,7 +85,12 @@ public partial class Metrics : IDisposable
             _selectedMeter = _instruments.FirstOrDefault(i => i.Parent.MeterName == MeterName)?.Parent;
             if (_selectedMeter != null && !string.IsNullOrEmpty(InstrumentName))
             {
-                _selectedInstrument = TelemetryRepository.GetInstrument(ApplicationInstanceId!, MeterName, InstrumentName);
+                _selectedInstrument = TelemetryRepository.GetInstrument(new GetInstrumentRequest
+                {
+                    ApplicationServiceId = ApplicationInstanceId!,
+                    MeterName = MeterName,
+                    InstrumentName = InstrumentName
+                });
             }
         }
 

@@ -101,16 +101,19 @@ public class DimensionScope
         }
     }
 
-    internal static DimensionScope Clone(DimensionScope value, DateTime valuesStart, DateTime valuesEnd)
+    internal static DimensionScope Clone(DimensionScope value, DateTime? valuesStart, DateTime? valuesEnd)
     {
-        // TODO: Use start and end dates to only clone data in the range.
-        _ = valuesStart;
-        _ = valuesEnd;
-
         var newDimensionScope = new DimensionScope(value.Attributes);
-        foreach (var item in value.Values)
+        if (valuesStart != null && valuesEnd != null)
         {
-            newDimensionScope.Values.Add(MetricValueBase.Clone(item));
+            foreach (var item in value.Values)
+            {
+                if ((item.Start <= valuesEnd.Value && item.End >= valuesStart.Value) ||
+                    (item.Start >= valuesStart.Value && item.End <= valuesEnd.Value))
+                {
+                    newDimensionScope.Values.Add(MetricValueBase.Clone(item));
+                }
+            }
         }
 
         return newDimensionScope;
