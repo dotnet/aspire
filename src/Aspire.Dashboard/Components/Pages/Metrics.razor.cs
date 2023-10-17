@@ -120,7 +120,7 @@ public partial class Metrics : IDisposable
 
     private async Task HandleSelectedTreeItemChanged()
     {
-        MetricsSelectedState? state = null;
+        MetricsSelectedState state;
 
         if (_selectedTreeItem?.Data is OtlpMeter meter)
         {
@@ -130,6 +130,10 @@ public partial class Metrics : IDisposable
         {
             state = new MetricsSelectedState { ApplicationId = _selectedApplication.Id, MeterName = instrument.Parent.MeterName, InstrumentName = instrument.Name };
         }
+        else
+        {
+            state = new MetricsSelectedState { ApplicationId = _selectedApplication.Id };
+        }
 
         if (state != null)
         {
@@ -138,6 +142,7 @@ public partial class Metrics : IDisposable
         }
         else
         {
+            NavigateTo(state);
             await ProtectedSessionStore.DeleteAsync(MetricsSelectedState.Key);
         }
     }

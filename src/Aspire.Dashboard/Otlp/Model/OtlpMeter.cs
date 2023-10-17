@@ -6,7 +6,7 @@ using OpenTelemetry.Proto.Common.V1;
 
 namespace Aspire.Dashboard.Otlp.Model;
 
-[DebuggerDisplay("MeterName = {MeterName}, Instruments = {Instruments.Count}")]
+[DebuggerDisplay("MeterName = {MeterName}")]
 public class OtlpMeter
 {
     public string MeterName { get; init; }
