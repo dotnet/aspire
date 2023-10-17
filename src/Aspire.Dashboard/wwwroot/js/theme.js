@@ -2,8 +2,8 @@ const currentThemeCookieName = "currentTheme";
 const themeSettingSystem = "System";
 const themeSettingDark = "Dark";
 const themeSettingLight = "Light";
-const darkThemeLuminance = 0.08;
-const lightThemeLuminance = 1.0;
+const darkThemeLuminance = 0.15;
+const lightThemeLuminance = 0.95;
 
 /**
  * Returns the current system theme (Light or Dark)
@@ -56,7 +56,7 @@ function getCookieValue(cookieName) {
 
 let theme = window.getThemeCookieValue();
 
-if (theme === themeSettingSystem) {
+if (!theme || theme === themeSettingSystem) {
     theme = window.getSystemTheme();
 }
 
@@ -65,3 +65,5 @@ if (theme === themeSettingDark) {
 } else /* Light */ {
     window.DefaultBaseLayerLuminance = lightThemeLuminance;
 }
+
+window.DefaultBaseAccentColor = "#512BD4";

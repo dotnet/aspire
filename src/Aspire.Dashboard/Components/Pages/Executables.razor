@@ -6,11 +6,10 @@
 
 <PageTitle>@DashboardViewModelService.ApplicationName Executables</PageTitle>
 
-<h1>Executables</h1>
-
 <div>
     <FluentStack Orientation="Orientation.Vertical">
         <FluentToolbar Orientation="Orientation.Horizontal">
+            <h1 slot="label">Executables</h1>
             <FluentSearch Placeholder="Filter..."
                           Immediate="true"
                           @bind-Value="filter"
