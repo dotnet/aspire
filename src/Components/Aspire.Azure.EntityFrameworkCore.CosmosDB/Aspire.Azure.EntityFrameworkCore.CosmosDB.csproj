@@ -17,11 +17,4 @@
     <PackageReference Include="OpenTelemetry.Instrumentation.EventCounters" />
   </ItemGroup>
 
-  <ItemGroup>
-    <None Update="ConfigurationSchema.json">
-      <PackagePath>ConfigurationSchema.json</PackagePath>
-      <Pack>True</Pack>
-    </None>
-  </ItemGroup>
-  
 </Project>
