@@ -56,7 +56,7 @@ function getCookieValue(cookieName) {
 
 let theme = window.getThemeCookieValue();
 
-if (theme === themeSettingSystem) {
+if (!theme || theme === themeSettingSystem) {
     theme = window.getSystemTheme();
 }
 
