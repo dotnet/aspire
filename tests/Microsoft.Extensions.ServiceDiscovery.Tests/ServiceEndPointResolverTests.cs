@@ -6,6 +6,7 @@ using System.Net;
 using System.Threading.Channels;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Primitives;
 using Microsoft.Extensions.ServiceDiscovery.Abstractions;
 using Xunit;
@@ -24,7 +25,21 @@ public class ServiceEndPointResolverTests
             .AddServiceDiscoveryCore()
             .BuildServiceProvider();
         var resolverFactory = services.GetRequiredService<ServiceEndPointResolverFactory>();
-        Assert.Throws<InvalidOperationException>(() => resolverFactory.CreateResolver("https://basket"));
+        var exception = Assert.Throws<InvalidOperationException>(() => resolverFactory.CreateResolver("https://basket"));
+        Assert.Equal("No resolver which supports the provided service name has been configured.", exception.Message);
+    }
+
+    [Fact]
+    public async Task ServiceEndPointResolver_NoResolversConfigured_Throws()
+    {
+        var services = new ServiceCollection()
+            .AddServiceDiscoveryCore()
+            .BuildServiceProvider();
+        var resolverFactory = new ServiceEndPointResolver([], NullLogger.Instance, "foo", TimeProvider.System, Options.Options.Create(new ServiceEndPointResolverOptions()));
+        var exception = Assert.Throws<InvalidOperationException>(resolverFactory.Start);
+        Assert.Equal("No service endpoint resolvers are configured.", exception.Message);
+        exception = await Assert.ThrowsAsync<InvalidOperationException>(async () => await resolverFactory.GetEndPointsAsync());
+        Assert.Equal("No service endpoint resolvers are configured.", exception.Message);
     }
 
     [Fact]
@@ -35,6 +50,18 @@ public class ServiceEndPointResolverTests
             .BuildServiceProvider();
         var resolverFactory = services.GetRequiredService<ServiceEndPointResolverFactory>();
         Assert.Throws<ArgumentNullException>(() => resolverFactory.CreateResolver(null!));
+    }
+
+    [Fact]
+    public async Task UseServiceDiscovery_NoResolvers_Throws()
+    {
+        var serviceCollection = new ServiceCollection();
+            serviceCollection.AddHttpClient("foo", c => c.BaseAddress = new("http://foo"))
+            .UseServiceDiscovery();
+        var services = serviceCollection.BuildServiceProvider();
+        var client = services.GetRequiredService<IHttpClientFactory>().CreateClient("foo");
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () => await client.GetStringAsync("/"));
+        Assert.Equal("No resolver which supports the provided service name has been configured.", exception.Message);
     }
 
     private sealed class FakeEndPointResolverProvider(Func<string, (bool Result, IServiceEndPointResolver? Resolver)> createResolverDelegate) : IServiceEndPointResolverProvider

@@ -43,7 +43,7 @@ public class ServiceEndPointResolverFactory(
 
         if (resolvers is not { Count: > 0 })
         {
-            throw new InvalidOperationException("No resolver which supports the provided service name has been configured");
+            throw new InvalidOperationException("No resolver which supports the provided service name has been configured.");
         }
 
         return new ServiceEndPointResolver(
