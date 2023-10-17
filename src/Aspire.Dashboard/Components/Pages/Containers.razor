@@ -6,11 +6,10 @@
 
 <PageTitle>@DashboardViewModelService.ApplicationName Containers</PageTitle>
 
-<h1>Containers</h1>
-
 <div>
     <FluentStack Orientation="Orientation.Vertical">
         <FluentToolbar Orientation="Orientation.Horizontal">
+            <h1 slot="label">Containers</h1>
             <FluentSearch Placeholder="Filter..."
                           Immediate="true"
                           @bind-Value="filter"
