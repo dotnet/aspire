@@ -14,9 +14,6 @@ namespace Aspire.Dashboard.Components.Pages;
 public partial class Metrics : IDisposable
 {
     private static readonly ApplicationViewModel s_selectApplication = new ApplicationViewModel { Id = null, Name = "Select service..." };
-
-    private List<ApplicationViewModel> _applications = default!;
-    private ApplicationViewModel _selectedApplication = s_selectApplication;
     private static readonly List<MetricsDurationViewModel> s_durations = new List<MetricsDurationViewModel>
     {
         new MetricsDurationViewModel { Text = "Last 1 minute", Duration = TimeSpan.FromMinutes(1) },
@@ -29,6 +26,9 @@ public partial class Metrics : IDisposable
         new MetricsDurationViewModel { Text = "Last 12 hours", Duration = TimeSpan.FromHours(12) },
         new MetricsDurationViewModel { Text = "Last 24 hours", Duration = TimeSpan.FromHours(24) },
     };
+
+    private List<ApplicationViewModel> _applications = default!;
+    private ApplicationViewModel _selectedApplication = s_selectApplication;
     private MetricsDurationViewModel _selectedDuration = s_durations[0];
     private Subscription? _applicationsSubscription;
     private Subscription? _metricsSubscription;
@@ -107,11 +107,6 @@ public partial class Metrics : IDisposable
     private Task HandleSelectedApplicationChangedAsync()
     {
         NavigationManager.NavigateTo($"/Metrics/{_selectedApplication.Id}");
-        return Task.CompletedTask;
-    }
-
-    private static Task HandleSelectedDurationChangedAsync()
-    {
         return Task.CompletedTask;
     }
 

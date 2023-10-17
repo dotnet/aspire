@@ -21,8 +21,7 @@
             <FluentSelect slot="end" TOption="MetricsDurationViewModel"
                           Items="@s_durations"
                           OptionText="@(c => c.Text)"
-                          @bind-SelectedOption="_selectedDuration"
-                          @bind-SelectedOption:after="HandleSelectedDurationChangedAsync" />
+                          @bind-SelectedOption="_selectedDuration" />
         </FluentToolbar>
         <div class="page-content-area">
             @if (_instruments?.Count > 0)
