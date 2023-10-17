@@ -16,12 +16,14 @@
                           OptionValue="@(c => c.Id)"
                           OptionText="@(c => c.Name)"
                           @bind-SelectedOption="_selectedApplication"
-                          @bind-SelectedOption:after="HandleSelectedApplicationChangedAsync" />
+                          @bind-SelectedOption:after="HandleSelectedApplicationChangedAsync"
+                          AriaLabel="Select an Application"/>
             <FluentIcon slot="end" Icon="Icons.Regular.Size20.Clock" Style="margin-right:5px;" />
             <FluentSelect slot="end" TOption="MetricsDurationViewModel"
                           Items="@s_durations"
                           OptionText="@(c => c.Text)"
-                          @bind-SelectedOption="_selectedDuration" />
+                          @bind-SelectedOption="_selectedDuration"
+                          AriaLabel="Select a Duration"/>
         </FluentToolbar>
         <div class="page-content-area">
             @if (_instruments?.Count > 0)

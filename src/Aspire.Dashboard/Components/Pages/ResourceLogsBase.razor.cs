@@ -25,6 +25,7 @@ public abstract partial class ResourceLogsBase<TResource> : ComponentBase, IAsyn
     protected abstract string NoResourceSelectedMessage { get; }
     protected abstract string LogsNotAvailableMessage { get; }
     protected abstract string UrlPrefix { get; }
+    protected abstract string SelectResourceTitle { get; }
     protected virtual bool ConvertTimestampsFromUtc => false;
 
     protected abstract Task<List<TResource>> GetResources(IDashboardViewModelService dashboardViewModelService);

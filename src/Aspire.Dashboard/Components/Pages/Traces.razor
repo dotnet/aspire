@@ -24,7 +24,8 @@
                           OptionValue="@(c => c.Id)"
                           OptionText="@(c => c.Name)"
                           @bind-SelectedOption="_selectedApplication"
-                          @bind-SelectedOption:after="HandleSelectedApplicationChangedAsync" />
+                          @bind-SelectedOption:after="HandleSelectedApplicationChangedAsync"
+                          AriaLabel="Select an Application"/>
             <FluentSearch @bind-Value="_filter"
                           @oninput="HandleFilter"
                           AfterBindValue="HandleClear"
