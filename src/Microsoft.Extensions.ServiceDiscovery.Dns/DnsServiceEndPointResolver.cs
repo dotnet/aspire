@@ -13,12 +13,14 @@ internal sealed partial class DnsServiceEndPointResolver(
     string hostName,
     IOptionsMonitor<DnsServiceEndPointResolverOptions> options,
     ILogger<DnsServiceEndPointResolver> logger,
-    TimeProvider timeProvider) : DnsServiceEndPointResolverBase(serviceName, logger, timeProvider)
+    TimeProvider timeProvider) : DnsServiceEndPointResolverBase(serviceName, logger, timeProvider), IHostNameFeature
 {
     protected override double RetryBackOffFactor => options.CurrentValue.RetryBackOffFactor;
     protected override TimeSpan MinRetryPeriod => options.CurrentValue.MinRetryPeriod;
     protected override TimeSpan MaxRetryPeriod => options.CurrentValue.MaxRetryPeriod;
     protected override TimeSpan DefaultRefreshPeriod => options.CurrentValue.DefaultRefreshPeriod;
+
+    string IHostNameFeature.HostName => hostName;
 
     protected override async Task ResolveAsyncCore()
     {
@@ -28,7 +30,9 @@ internal sealed partial class DnsServiceEndPointResolver(
         var addresses = await System.Net.Dns.GetHostAddressesAsync(hostName, ShutdownToken).ConfigureAwait(false);
         foreach (var address in addresses)
         {
-            endPoints.Add(ServiceEndPoint.Create(new IPEndPoint(address, 0)));
+            var endPoint = ServiceEndPoint.Create(new IPEndPoint(address, 0));
+            endPoint.Features.Set<IHostNameFeature>(this);
+            endPoints.Add(endPoint);
         }
 
         if (endPoints.Count == 0)

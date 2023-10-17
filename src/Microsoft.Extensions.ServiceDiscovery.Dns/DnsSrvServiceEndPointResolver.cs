@@ -13,15 +13,18 @@ namespace Microsoft.Extensions.ServiceDiscovery.Dns;
 internal sealed partial class DnsSrvServiceEndPointResolver(
     string serviceName,
     string srvQuery,
+    string hostName,
     IOptionsMonitor<DnsSrvServiceEndPointResolverOptions> options,
     ILogger<DnsSrvServiceEndPointResolver> logger,
     IDnsQuery dnsClient,
-    TimeProvider timeProvider) : DnsServiceEndPointResolverBase(serviceName, logger, timeProvider)
+    TimeProvider timeProvider) : DnsServiceEndPointResolverBase(serviceName, logger, timeProvider), IHostNameFeature
 {
     protected override double RetryBackOffFactor => options.CurrentValue.RetryBackOffFactor;
     protected override TimeSpan MinRetryPeriod => options.CurrentValue.MinRetryPeriod;
     protected override TimeSpan MaxRetryPeriod => options.CurrentValue.MaxRetryPeriod;
     protected override TimeSpan DefaultRefreshPeriod => options.CurrentValue.DefaultRefreshPeriod;
+
+    string IHostNameFeature.HostName => hostName;
 
     protected override async Task ResolveAsyncCore()
     {
@@ -53,11 +56,11 @@ internal sealed partial class DnsSrvServiceEndPointResolver(
             ttl = MinTtl(record, ttl);
             if (targetRecord is AddressRecord addressRecord)
             {
-                endPoints.Add(ServiceEndPoint.Create(new IPEndPoint(addressRecord.Address, record.Port)));
+                endPoints.Add(CreateEndPoint(new IPEndPoint(addressRecord.Address, record.Port)));
             }
             else if (targetRecord is CNameRecord canonicalNameRecord)
             {
-                endPoints.Add(ServiceEndPoint.Create(new DnsEndPoint(canonicalNameRecord.CanonicalName.Value.TrimEnd('.'), record.Port)));
+                endPoints.Add(CreateEndPoint(new DnsEndPoint(canonicalNameRecord.CanonicalName.Value.TrimEnd('.'), record.Port)));
             }
         }
 
@@ -77,6 +80,13 @@ internal sealed partial class DnsSrvServiceEndPointResolver(
                 _ => $"No DNS records were found for service {ServiceName} (DNS name: {dnsName})."
             };
             return new InvalidOperationException(msg);
+        }
+
+        ServiceEndPoint CreateEndPoint(EndPoint endPoint)
+        {
+            var serviceEndPoint = ServiceEndPoint.Create(endPoint);
+            serviceEndPoint.Features.Set<IHostNameFeature>(this);
+            return serviceEndPoint;
         }
     }
 }
