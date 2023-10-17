@@ -14,7 +14,8 @@
                           OptionValue="@(c => c.Name)"
                           OptionText="GetDisplayText"
                           @bind-SelectedOption="_selectedResource"
-                          @bind-SelectedOption:after="HandleSelectedOptionChangedAsync" />
+                          @bind-SelectedOption:after="HandleSelectedOptionChangedAsync"
+                          AriaLabel="@SelectResourceTitle"/>
             <FluentLabel Typo="Typography.Body">@_status</FluentLabel>
             </FluentStack>
             <LogViewer @ref="_logViewer" />

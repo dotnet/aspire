@@ -16,6 +16,7 @@
     protected override string NoResourceSelectedMessage => LogStatus.NoContainerSelected;
     protected override string LogsNotAvailableMessage => LogStatus.FailedToInitialize;
     protected override string UrlPrefix => "/ContainerLogs";
+    protected override string SelectResourceTitle => "Select a Container";
     protected override bool ConvertTimestampsFromUtc => true;
 
     protected override Task<List<ContainerViewModel>> GetResources(IDashboardViewModelService dashboardViewModelService)

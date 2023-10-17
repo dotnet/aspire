@@ -16,6 +16,7 @@
     protected override string NoResourceSelectedMessage => LogStatus.NoProjectSelected;
     protected override string LogsNotAvailableMessage => LogStatus.LogsNotYetAvailable;
     protected override string UrlPrefix => "/ProjectLogs";
+    protected override string SelectResourceTitle => "Select a Project";
 
     protected override Task<List<ProjectViewModel>> GetResources(IDashboardViewModelService dashboardViewModelService)
         => dashboardViewModelService.GetProjectsAsync();

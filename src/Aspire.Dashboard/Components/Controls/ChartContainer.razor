@@ -26,6 +26,7 @@
                                 <FluentAutocomplete TOption="DimensionValueViewModel"
                                                     Width="250px"
                                                     Placeholder="Select filters"
+                                                    AriaLabel="Select filters"
                                                     OnOptionsSearch="item.OnSearchAsync"
                                                     OptionText="@(item => item.Name)"
                                                     @bind-SelectedOptions="item.SelectedValues"
