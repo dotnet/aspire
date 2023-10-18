@@ -21,13 +21,13 @@ public static class AzureCosmosDBCloudApplicationBuilderExtensions
 
     private static void WriteCosmosDBConnectionToManifest(Utf8JsonWriter jsonWriter, CosmosDBConnectionResource cosmosDbConnection)
     {
-        jsonWriter.WriteString("type", "azurecosmosdb.connection.v1");
+        jsonWriter.WriteString("type", "azure.cosmosdb.connection.v1");
         jsonWriter.WriteString("connectionString", cosmosDbConnection.GetConnectionString());
     }
 
     private static void WriteCosmosDBDatabaseToManifest(Utf8JsonWriter jsonWriter, CosmosDatabaseResource cosmosDatabase)
     {
-        jsonWriter.WriteString("type", "azurecosmosdb.database.v1");
+        jsonWriter.WriteString("type", "azure.cosmosdb.database.v1");
         jsonWriter.WriteString("parent", cosmosDatabase.Parent.Name);
         jsonWriter.WriteString("databaseName", cosmosDatabase.Name);
     }
