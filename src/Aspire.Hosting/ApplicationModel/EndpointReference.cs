@@ -13,7 +13,7 @@ public sealed class EndpointReference(IDistributedApplicationResourceWithBinding
         get
         {
             var allocatedEndpoint = Owner.Annotations.OfType<AllocatedEndpointAnnotation>().SingleOrDefault(a => a.Name == BindingName);
-            return allocatedEndpoint?.UriString ?? $"{{{Owner.Name}.bindings.{BindingName}}}";
+            return allocatedEndpoint?.UriString ?? $"{{{Owner.Name}.bindings.{BindingName}.url}}";
         }
     }
 }
