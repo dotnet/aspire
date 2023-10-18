@@ -44,9 +44,16 @@ public class DistributedApplication : IHost, IAsyncDisposable
         _host.Dispose();
     }
 
-    public ValueTask DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
-        return ((IAsyncDisposable)_host).DisposeAsync();
+        if (_host is IAsyncDisposable asyncDisposable)
+        {
+            await asyncDisposable.DisposeAsync().ConfigureAwait(false);
+        }
+        else
+        {
+            _host.Dispose();
+        }
     }
 
     private const int WaitTimeForDockerTestCommandInSeconds = 10;
@@ -162,7 +169,12 @@ public class DistributedApplication : IHost, IAsyncDisposable
         }
     }
 
-    Task IHost.StartAsync(CancellationToken cancellationToken) => _host.StartAsync(cancellationToken);
+    async Task IHost.StartAsync(CancellationToken cancellationToken)
+    {
+        EnsureDockerIfNecessary();
+        await ExecuteBeforeStartHooksAsync(cancellationToken).ConfigureAwait(false);
+        await _host.StartAsync(cancellationToken).ConfigureAwait(false);
+    }
 
     Task IHost.StopAsync(CancellationToken cancellationToken) => _host.StopAsync(cancellationToken);
 }
