@@ -23,7 +23,7 @@ public class KubernetesService : IDisposable
     private static GroupVersion GroupVersion => Model.Dcp.GroupVersion;
 
     private IKubernetes? _kubernetes;
-    private TimeSpan _maxRetryDuration = TimeSpan.FromMilliseconds(1000);
+    private TimeSpan _maxRetryDuration = TimeSpan.FromSeconds(5);
 
     public KubernetesService(TimeSpan maxRetryDuration)
     {
