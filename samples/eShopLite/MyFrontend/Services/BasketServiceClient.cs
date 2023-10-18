@@ -12,16 +12,16 @@ public class BasketServiceClient(Basket.BasketClient client)
         try
         {
             var response = await client.GetBasketByIdAsync(new BasketRequest { Id = buyerId });
-            var result = MapToCustomerBasket(response);
+            var result = !string.IsNullOrEmpty(response.BuyerId) ? MapToCustomerBasket(response) : null;
             return (result, true);
         }
         catch (RpcException ex) when (
-            // Basket is not found or service name could not be resolved
-            ex.StatusCode is StatusCode.NotFound or StatusCode.Unavailable ||
+            // Service name could not be resolved
+            ex.StatusCode is StatusCode.Unavailable ||
             // Polly resilience timed out after retries
             (ex.StatusCode is StatusCode.Internal && ex.Status.DebugException is TimeoutRejectedException))
         {
-            return (null, ex.StatusCode == StatusCode.NotFound);
+            return (null, false);
         }
     }
 
