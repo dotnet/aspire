@@ -21,16 +21,13 @@ internal sealed class AutomaticManifestPublisherBindingInjectionHook(IOptions<Pu
 
         foreach (var projectResource in projectResources)
         {
-            var isHttp2Service = projectResource.Annotations.OfType<Http2ServiceAnnotation>().Any();
-
             // TODO: Add logic here that analyzes each project and figures out the best
             //       bindings to automatically add.
             if (!projectResource.Annotations.OfType<ServiceBindingAnnotation>().Any(sb => sb.UriScheme == "http" || sb.Name == "http"))
             {
                 var httpBinding = new ServiceBindingAnnotation(
                     System.Net.Sockets.ProtocolType.Tcp,
-                    uriScheme: "http",
-                    transport: isHttp2Service ? "http2" : "http"
+                    uriScheme: "http"
                     );
                 projectResource.Annotations.Add(httpBinding);
             }
@@ -39,8 +36,7 @@ internal sealed class AutomaticManifestPublisherBindingInjectionHook(IOptions<Pu
             {
                 var httpsBinding = new ServiceBindingAnnotation(
                     System.Net.Sockets.ProtocolType.Tcp,
-                    uriScheme: "https",
-                    transport: isHttp2Service ? "http2" : "http"
+                    uriScheme: "https"
                     );
                 projectResource.Annotations.Add(httpsBinding);
             }
