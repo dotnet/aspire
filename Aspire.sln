@@ -132,13 +132,14 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Azure.Provisioning", "src\Aspire.Hosting.Azure.Provisioning\Aspire.Hosting.Azure.Provisioning.csproj", "{D4BD974F-6505-43FC-A94E-2019F0DB5D5D}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "eShopLite", "eShopLite", "{A68BA1A5-1604-433D-9778-DC0199831C2A}"
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Azure.CosmosDB", "src\Components\Aspire.Azure.CosmosDB\Aspire.Azure.CosmosDB.csproj", "{23298562-C1D4-41CD-83FE-426C94FEE35F}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Azure.EntityFrameworkCore.CosmosDB", "src\Components\Aspire.Azure.EntityFrameworkCore.CosmosDB\Aspire.Azure.EntityFrameworkCore.CosmosDB.csproj", "{00C9BA50-2AFB-4D9C-A2D6-8154BCCD0A63}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Azure.Data.Cosmos", "src\Components\Aspire.Azure.CosmosDB\Aspire.Azure.Data.Cosmos.csproj", "{23298562-C1D4-41CD-83FE-426C94FEE35F}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Azure.CosmosDB.Tests", "tests\Aspire.Azure.CosmosDB.Tests\Aspire.Azure.CosmosDB.Tests.csproj", "{A5836BC1-6A45-4BB6-9D22-A7F750890AB8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Azure.Data.Cosmos.EntityFrameworkCore", "src\Components\Aspire.Azure.EntityFrameworkCore.CosmosDB\Aspire.Azure.Data.Cosmos.EntityFrameworkCore.csproj", "{00C9BA50-2AFB-4D9C-A2D6-8154BCCD0A63}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Azure.EntityFrameworkCore.CosmosDB.Tests", "tests\Aspire.Azure.EntityFrameworkCore.CosmosDB.Tests\Aspire.Azure.EntityFrameworkCore.CosmosDB.Tests.csproj", "{FDA02617-9C49-4DA8-A43A-A34DBA9B8596}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Azure.Data.Cosmos.Tests", "tests\Aspire.Azure.CosmosDB.Tests\Aspire.Azure.Data.Cosmos.Tests.csproj", "{A5836BC1-6A45-4BB6-9D22-A7F750890AB8}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Azure.Data.Cosmos.EntityFrameworkCore.Tests", "tests\Aspire.Azure.EntityFrameworkCore.CosmosDB.Tests\Aspire.Azure.Data.Cosmos.EntityFrameworkCore.Tests.csproj", "{FDA02617-9C49-4DA8-A43A-A34DBA9B8596}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
