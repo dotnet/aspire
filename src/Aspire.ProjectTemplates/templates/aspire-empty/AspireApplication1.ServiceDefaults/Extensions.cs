@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
@@ -44,8 +43,7 @@ public static class Extensions
             .WithMetrics(metrics =>
             {
                 metrics.AddRuntimeInstrumentation()
-                       .AddHttpClientInstrumentation()
-                       .AddAspNetCore8Instrumentation();
+                       .AddBuiltInMeters();
             })
             .WithTracing(tracing =>
             {
@@ -113,9 +111,9 @@ public static class Extensions
         return app;
     }
 
-    private static MeterProviderBuilder AddAspNetCore8Instrumentation(this MeterProviderBuilder meterProviderBuilder) =>
+    private static MeterProviderBuilder AddBuiltInMeters(this MeterProviderBuilder meterProviderBuilder) =>
         meterProviderBuilder
-            .AddMeter("Microsoft.AspNetCore.Hosting", "Microsoft.AspNetCore.Server.Kestrel")
+            .AddMeter("Microsoft.AspNetCore.Hosting", "Microsoft.AspNetCore.Server.Kestrel", "System.Net.Http")
             .AddView("http.server.request.duration",
                 new ExplicitBucketHistogramConfiguration
                 {
