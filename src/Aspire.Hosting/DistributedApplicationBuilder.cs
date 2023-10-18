@@ -73,9 +73,9 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
     public IDistributedApplicationResourceBuilder<T> AddResource<T>(T resource) where T : IDistributedApplicationResource
     {
-        if (Resources.Any(r => r.Name == resource.Name))
+        if (Resources.FirstOrDefault(r => r.Name == resource.Name) is { } existingResource)
         {
-            throw new DistributedApplicationException("Cannot have two resources with the same name.");
+            throw new DistributedApplicationException($"Cannot add resource of type '{resource.GetType()}' with name '{resource.Name}' because resource of type '{existingResource.GetType()}' with that name already exists.");
         }
 
         Resources.Add(resource);
