@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
@@ -10,9 +11,10 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.Fast.Components.FluentUI;
 
 namespace Aspire.Dashboard.Components.Pages;
+
 public partial class TraceDetail
 {
-    private OtlpTrace _trace = default!;
+    private OtlpTrace? _trace;
     private OtlpSpan? _span;
     private Subscription? _tracesSubscription;
 
@@ -32,6 +34,8 @@ public partial class TraceDetail
 
     private ValueTask<GridItemsProviderResult<SpanWaterfallViewModel>> GetData(GridItemsProviderRequest<SpanWaterfallViewModel> request)
     {
+        Debug.Assert(_trace != null);
+
         var orderedSpans = new List<SpanWaterfallViewModel>();
         // There should be one root span but just in case, we'll add them all.
         foreach (var rootSpan in _trace.Spans.Where(s => string.IsNullOrEmpty(s.ParentSpanId)).OrderBy(s => s.StartTime))
@@ -100,27 +104,28 @@ public partial class TraceDetail
 
     private void UpdateDetailViewData()
     {
+        _trace = null;
+        _span = null;
+
         if (TraceId is not null)
         {
-            var trace = TelemetryRepository.GetTrace(TraceId);
-            if (trace == null)
+            _trace = TelemetryRepository.GetTrace(TraceId);
+            if (_trace != null)
             {
-                throw new InvalidOperationException($"Could not find trace with trace id {TraceId}.");
-            }
-            _trace = trace;
-            if (_tracesSubscription is null || _tracesSubscription.ApplicationId != _trace.FirstSpan.Source.InstanceId)
-            {
-                _tracesSubscription?.Dispose();
-                _tracesSubscription = TelemetryRepository.OnNewTraces(_trace.FirstSpan.Source.InstanceId, () => InvokeAsync(() =>
+                if (_tracesSubscription is null || _tracesSubscription.ApplicationId != _trace.FirstSpan.Source.InstanceId)
                 {
-                    UpdateDetailViewData();
-                    StateHasChanged();
-                    return Task.CompletedTask;
-                }));
-            }
-            if (SpanId is not null)
-            {
-                _span = _trace?.Spans.FirstOrDefault(s => s.SpanId.StartsWith(SpanId, StringComparison.Ordinal));
+                    _tracesSubscription?.Dispose();
+                    _tracesSubscription = TelemetryRepository.OnNewTraces(_trace.FirstSpan.Source.InstanceId, () => InvokeAsync(() =>
+                    {
+                        UpdateDetailViewData();
+                        StateHasChanged();
+                        return Task.CompletedTask;
+                    }));
+                }
+                if (SpanId is not null)
+                {
+                    _span = _trace.Spans.FirstOrDefault(s => s.SpanId.StartsWith(SpanId, StringComparison.Ordinal));
+                }
             }
         }
     }
