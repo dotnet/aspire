@@ -2,7 +2,7 @@
   "version": "@VERSION@",
   "workloads": {
     "aspire": {
-      "description": ".NET Aspire SDK",
+      "description": ".NET Aspire SDK (Preview)",
       "packs": [
         "Aspire.Hosting.Sdk",
         "Aspire.ProjectTemplates",
