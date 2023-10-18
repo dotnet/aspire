@@ -10,7 +10,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Components\Aspire.Azure.EntityFrameworkCore.CosmosDB\Aspire.Azure.Data.Cosmos.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="..\..\src\Components\Aspire.Azure.Data.Cosmos.EntityFrameworkCore\Aspire.Azure.Data.Cosmos.EntityFrameworkCore.csproj" />
     <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />
   </ItemGroup>
 
