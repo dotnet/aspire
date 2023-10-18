@@ -1,0 +1,83 @@
+﻿@page "/StructuredLogs/{applicationInstanceId?}"
+@using Aspire.Dashboard.Components.Dialogs
+@using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Model.Otlp
+@using Aspire.Dashboard.Otlp.Model
+@using Aspire.Dashboard.Otlp.Storage
+@using Microsoft.Fast.Components.FluentUI
+@using System.Web
+@inject NavigationManager NavigationManager
+@inject IDashboardViewModelService DashboardViewModelService
+@inject IJSRuntime JS
+@implements IDisposable
+
+<PageTitle>@DashboardViewModelService.ApplicationName Structured Logs</PageTitle>
+
+<h1>Structured Logs</h1>
+<div>
+    <FluentStack Orientation="Orientation.Vertical">
+        <FluentToolbar Orientation="Orientation.Horizontal">
+            <FluentSelect TOption="ApplicationViewModel"
+                          Items="@_applications"
+                          OptionValue="@(c => c.Id)"
+                          OptionText="@(c => c.Name)"
+                          @bind-SelectedOption="_selectedApplication"
+                          @bind-SelectedOption:after="HandleSelectedApplicationChangedAsync" />
+            <FluentSearch @bind-Value="_filter"
+                          @oninput="HandleFilter"
+                          AfterBindValue="HandleClear"
+                          Placeholder="Filter..."
+                          slot="end" />
+            @* Temporary workaround for https://github.com/microsoft/fluentui-blazor/issues/811 *@
+            <fluent-divider orientation="vertical" role="separator" aria-orientation="vertical" slot="end"></fluent-divider>
+            <FluentLabel slot="end">Filters: </FluentLabel>
+            @if (ViewModel.Filters.Count == 0)
+            {
+                <span slot="end">No Filters</span>
+            }
+            else
+            {
+                foreach (var filter in ViewModel.Filters)
+                {
+                    <FluentButton slot="end" Appearance="Appearance.Outline" OnClick="() => OpenFilterAsync(filter)">@filter.FilterText</FluentButton>
+                }
+            }
+            <FluentButton slot="end" Appearance="Appearance.Stealth" aria-label="Add Filter" OnClick="() => OpenFilterAsync(null)"><FluentIcon Value="@(new Icons.Regular.Size16.Filter())" /></FluentButton>
+        </FluentToolbar>
+        <div class="datagrid-overflow-area continuous-scroll-overflow" tabindex="-1">
+            <FluentDataGrid Virtualize="true" GenerateHeader="GenerateHeaderOption.Sticky" ItemSize="48" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="OtlpLogEntry" GridTemplateColumns="1fr 1fr 1fr 5fr 0.8fr 0.8fr">
+                <ChildContent>
+                    <TemplateColumn Title="Service">
+                        <div class="col-long-content" title="@context.Application.ApplicationName">
+                            <span style="padding-left:5px; border-left-width: 5px; border-left-style: solid; border-left-color: @(ColorGenerator.Instance.GetColorHexByKey(context.Application.ApplicationName));">
+                                @context.Application.ApplicationName
+                            </span>
+                        </div>
+                    </TemplateColumn>
+                    <PropertyColumn Title="Severity" Property="@(context => context.Severity)" />
+                    <PropertyColumn Title="Timestamp" Property="@(context => OtlpHelpers.FormatTimeStamp(context.TimeStamp))" />
+                    <TemplateColumn Title="Message">
+                        <div class="col-long-content" title="@context.Message">
+                            <FluentHighlighter HighlightedText="@(ViewModel.FilterText)" Text="@context.Message" />
+                        </div>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Trace">
+                        @if (!string.IsNullOrEmpty(context.TraceId))
+                        {
+                            <FluentAnchor Appearance="Appearance.Hypertext" Href="@($"/Trace/{HttpUtility.UrlEncode(context.TraceId)}")">
+                                @OtlpHelpers.ToShortenedId(context.TraceId)
+                            </FluentAnchor>
+                        }
+                    </TemplateColumn>
+                    <TemplateColumn Title="Details">
+                        <FluentButton Appearance="Appearance.Lightweight" OnClick="() => OnShowProperties(context)">View</FluentButton>
+                    </TemplateColumn>
+                </ChildContent>
+                <EmptyContent>
+                    <FluentIcon Icon="Icons.Regular.Size24.SlideTextSparkle" />&nbsp;No structured logs found
+                </EmptyContent>
+            </FluentDataGrid>
+        </div>
+        <TotalItemsFooter @ref="_totalItemsFooter" />
+    </FluentStack>
+</div>

@@ -1,0 +1,91 @@
+﻿@page "/Metrics/{applicationInstanceId?}"
+@page "/Metrics/{applicationInstanceId}/Meter/{meterName}"
+@page "/Metrics/{applicationInstanceId}/Meter/{meterName}/Instrument/{instrumentName}"
+
+@using Aspire.Dashboard.Model.Otlp
+
+<PageTitle>@DashboardViewModelService.ApplicationName Metrics</PageTitle>
+
+<h1>Metrics</h1>
+
+<div>
+    <FluentStack Orientation="Orientation.Vertical">
+        <FluentToolbar Orientation="Orientation.Horizontal">
+            <FluentSelect TOption="ApplicationViewModel"
+                          Items="@_applications"
+                          OptionValue="@(c => c.Id)"
+                          OptionText="@(c => c.Name)"
+                          @bind-SelectedOption="_selectedApplication"
+                          @bind-SelectedOption:after="HandleSelectedApplicationChangedAsync"
+                          AriaLabel="Select an Application"/>
+            <FluentIcon slot="end" Icon="Icons.Regular.Size20.Clock" Style="margin-right:5px;" />
+            <FluentSelect slot="end" TOption="MetricsDurationViewModel"
+                          Items="@s_durations"
+                          OptionText="@(c => c.Text)"
+                          @bind-SelectedOption="_selectedDuration"
+                          AriaLabel="Select a Duration"/>
+        </FluentToolbar>
+        <div class="page-content-area">
+            @if (_instruments?.Count > 0)
+            {
+                <FluentSplitter Style="height:100%" Panel1Size="2fr" Panel2Size="8fr">
+                    <Panel1>
+                        <FluentTreeView Class="metrics-tree" @bind-CurrentSelected="_selectedTreeItem" @bind-CurrentSelected:after="HandleSelectedTreeItemChanged">
+                            <ChildContent>
+                                @foreach (var meterGroup in _instruments.GroupBy(i => i.Parent).OrderBy(g => g.Key.MeterName))
+                                {
+                                    <FluentTreeItem Class="metrics-tree-item" Text="@meterGroup.Key.MeterName" Data="@meterGroup.Key" title="@meterGroup.Key.MeterName" InitiallyExpanded="true" InitiallySelected="@(_selectedInstrument == null && meterGroup.Key.MeterName == _selectedMeter?.MeterName)">
+                                        @foreach (var instrument in meterGroup.OrderBy(i => i.Name))
+                                        {
+                                            <FluentTreeItem Class="metrics-tree-item" Text="@instrument.Name" Data="@instrument" title="@instrument.Name" InitiallySelected="@(instrument.Name == _selectedInstrument?.Name && instrument.Parent.MeterName == _selectedMeter?.MeterName)" />
+                                        }
+                                    </FluentTreeItem>
+                                }
+                            </ChildContent>
+                        </FluentTreeView>
+                    </Panel1>
+                    <Panel2>
+                        <div class="metrics-content">
+                            @if (_selectedApplication.Id != null && _selectedMeter != null && _selectedInstrument != null)
+                            {
+                                <ChartContainer ApplicationId="@(_selectedApplication.Id)" MeterName="@(_selectedMeter.MeterName)" InstrumentName="@(_selectedInstrument.Name)" Duration="_selectedDuration.Duration" />
+                            }
+                            else if (_selectedMeter != null)
+                            {
+                                <h3>@_selectedMeter.MeterName</h3>
+                                <table style="max-width:1100px;">
+                                    @foreach (var item in _instruments.Where(i => i.Parent == _selectedMeter).OrderBy(i => i.Name))
+                                    {
+                                        <tr>
+                                            <td>
+                                                <FluentAnchor Href="@($"/Metrics/{_selectedApplication.Id}/Meter/{item.Parent.MeterName}/Instrument/{item.Name}")" Appearance="Appearance.Lightweight">@item.Name</FluentAnchor>
+                                            </td>
+                                            <td>@item.Description</td>
+                                        </tr>
+                                    }
+
+                                </table>
+                            }
+                            else
+                            {
+                                <p>Select instrument.</p>
+                            }
+                        </div>
+                    </Panel2>
+                </FluentSplitter>
+            }
+            else if (_instruments == null)
+            {
+                <div class="empty-content">
+                    <FluentIcon Icon="Icons.Regular.Size24.ChartMultiple" />&nbsp;Select a service to view metrics
+                </div>
+            }
+            else
+            {
+                <div class="empty-content">
+                    <FluentIcon Icon="Icons.Regular.Size24.ChartMultiple" />&nbsp;No metrics for the selected service
+                </div>
+            }
+        </div>
+    </FluentStack>
+</div>

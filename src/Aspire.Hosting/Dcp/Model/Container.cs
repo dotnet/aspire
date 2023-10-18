@@ -159,7 +159,7 @@ public class ContainerStatus : V1Status
 
     // ID of the Container (if an attempt to start the Container was made)
     [JsonPropertyName("containerId")]
-    public string? ContainerID { get; set; }
+    public string? ContainerId { get; set; }
 
     // Timestamp of the Container start attempt
     [JsonPropertyName("startupTimestamp")]

@@ -1,0 +1,12 @@
+﻿@using Microsoft.Fast.Components.FluentUI.DesignTokens
+@inject GlobalState GlobalState
+@inject BaseLayerLuminance BaseLayerLuminance
+@inject AccentBaseColor AccentBaseColor
+@inject IJSRuntime JS
+@implements IDialogContentComponent
+
+<FluentRadioGroup TValue="string" Label="Theme" Value="@_currentSetting" ValueChanged="SettingChangedAsync" Orientation="Orientation.Vertical">
+    <FluentRadio Value="@ThemeSettingSystem">System</FluentRadio>
+    <FluentRadio Value="@ThemeSettingLight">Light</FluentRadio>
+    <FluentRadio Value="@ThemeSettingDark">Dark</FluentRadio>
+</FluentRadioGroup>

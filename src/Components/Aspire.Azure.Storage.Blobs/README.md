@@ -19,34 +19,66 @@ dotnet add package Aspire.Azure.Storage.Blobs
 
 ## Usage Example
 
-Call `AddAzureBlobService` extension method to add the `BlobServiceClient` with the desired configurations exposed with `AzureStorageBlobsSettings`. The library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureStorageBlobsSettings` from configuration by using `Aspire:Azure:Storage:Blobs` key. Example `appsettings.json` that configures some of the settings, note that `ServiceUri` is required to be set:
+In the `Program.cs` file of your project, call the `AddAzureBlobService` extension method to register a `BlobServiceClient` for use via the dependency injection container. The method takes a connection name parameter.
+
+```cs
+builder.AddAzureBlobService("blobs");
+```
+
+You can then retrieve the `BlobServiceClient` instance using dependency injection. For example, to retrieve the client from a Web API controller:
+
+```cs
+private readonly BlobServiceClient _client;
+
+public ProductsController(BlobServiceClient client)
+{
+    _client = client;
+}
+```
+
+See the [Azure.Storage.Blobs documentation](https://github.com/Azure/azure-sdk-for-net/blob/main/sdk/storage/Azure.Storage.Blobs/README.md) for examples on using the `BlobServiceClient`.
+
+## Configuration
+
+The Aspire Azure Storage Blobs library provides multiple options to configure the Azure Storage Blob connection based on the requirements and conventions of your project. Note that either a `ServiceUri` or a `ConnectionString` is a required to be supplied.
+
+### Use a connection string
+
+When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddAzureBlobService()`:
+
+```cs
+builder.AddAzureBlobService("blobsConnectionName");
+```
+
+And then the connection information will be retrieved from the `ConnectionStrings` configuration section. Two connection formats are supported:
+
+#### Service URI
+
+The recommended approach is to use a ServiceUri, which works with the `AzureStorageBlobsSettings.Credential` property to establish a connection. If no credential is configured, the [DefaultAzureCredential](https://learn.microsoft.com/dotnet/api/azure.identity.defaultazurecredential) is used.
 
 ```json
 {
-  "Aspire": {
-    "Azure": {
-      "Storage": {
-        "Blobs": {
-          "ServiceUri": "YOUR_SERVICEURI",
-          "HealthChecks": true,
-          "Tracing": false,
-          "ClientOptions": {
-            "EnableTenantDiscovery": true
-          }
-        }
-      }
-    }
+  "ConnectionStrings": {
+    "blobsConnectionName": "https://{account_name}.blob.core.windows.net/"
   }
 }
 ```
 
-If you have setup your configurations in the `Aspire.Azure.Storage.Blobs` section you can just call the method without passing any parameter.
+#### Connection String
 
-```cs
-    builder.AddAzureBlobService();
+Alternatively, an [Azure Storage connection string](https://learn.microsoft.com/azure/storage/common/storage-configure-connection-string) can be used.
+
+```json
+{
+  "ConnectionStrings": {
+    "blobsConnectionName": "AccountName=myaccount;AccountKey=myaccountkey"
+  }
+}
 ```
 
-If you want to add more than one [BlobServiceClient](https://learn.microsoft.com/dotnet/api/azure.storage.blobs.blobserviceclient) you could use named instances. The json configuration would look like: 
+### Use configuration providers
+
+The Aspire Azure Storage Blobs library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureStorageBlobsSettings` and `BlobClientOptions` from configuration by using the `Aspire:Azure:Storage:Blobs` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {
@@ -54,11 +86,11 @@ If you want to add more than one [BlobServiceClient](https://learn.microsoft.com
     "Azure": {
       "Storage": {
         "Blobs": {
-          "INSTANCE_NAME": {
-            "ServiceUri": "YOUR_URI",
-            "HealthChecks": false,
-            "ClientOptions": {
-              "EnableTenantDiscovery": true
+          "HealthChecks": false,
+          "Tracing": true,
+          "ClientOptions": {
+            "Diagnostics": {
+              "ApplicationId": "myapp"
             }
           }
         }
@@ -68,49 +100,42 @@ If you want to add more than one [BlobServiceClient](https://learn.microsoft.com
 }
 ```
 
-To load the named configuration section from the json config call the `AddAzureBlobService` method by passing the `INSTANCE_NAME`.
+### Use inline delegates
+
+You can also pass the `Action<AzureStorageBlobsSettings> configureSettings` delegate to set up some or all the options inline, for example to disable health checks from code:
 
 ```cs
-    builder.AddAzureBlobService("INSTANCE_NAME");
+    builder.AddAzureBlobService("blobs", settings => settings.HealthChecks = false);
 ```
 
-Also you can pass the `Action<AzureStorageBlobsSettings>` delegate to set up some or all the options inline, for example to set the `ServiceUri`:
+You can also setup the [BlobClientOptions](https://learn.microsoft.com/dotnet/api/azure.storage.blobs.blobclientoptions) using the optional `Action<IAzureClientBuilder<BlobServiceClient, BlobClientOptions>> configureClientBuilder` parameter of the `AddAzureBlobService` method. For example, to set the first part of "User-Agent" headers for all requests issues by this client:
 
 ```cs
-    builder.AddAzureBlobService(settings => settings.ServiceUri = new Uri("YOUR_SERVICEURI"));
+    builder.AddAzureBlobService("blobs", configureClientBuilder: clientBuilder => clientBuilder.ConfigureOptions(options => options.Diagnostics.ApplicationId = "myapp"));
 ```
 
-Here are the configurable options with corresponding default values:
+## AppHost Extensions
+
+In your AppHost project, add a Blob Storage connection and consume the connection using the following methods:
 
 ```cs
-public sealed class AzureStorageBlobsSettings
-{
-    //  A "Uri" referencing the blob service.
-    public Uri? ServiceUri { get; set; }
+var blobs = builder.AddAzureStorage("storage").AddBlobs("blobs");
 
-    // The credential used to authenticate to the Blob Storage.
-    public TokenCredential? Credential { get; set; }
-
-    // A boolean value that indicates whether the Blob Storage health check is enabled or not.
-    public bool HealthChecks { get; set; } = true;
-
-    // A boolean value that indicates whether the OpenTelemetry tracing is enabled or not.
-    public bool Tracing { get; set; } = false
-}
+var myService = builder.AddProject<Projects.MyService>()
+                       .WithReference(blobs);
 ```
 
-You can also setup the [BlobClientOptions](https://learn.microsoft.com/dotnet/api/azure.storage.blobs.blobclientoptions) using `Action<IAzureClientBuilder<BlobServiceClient, BlobClientOptions>>` delegate, the second parameter of the `AddAzureBlobService` method. For example to set the `EnableTenantDiscovery`:
+`AddBlobs` will read connection information from the AppHost's configuration (for example, from "user secrets") under the `ConnectionStrings:blobs` config key. `.WithReference` passes that connection information into a connection string named `blobs` in the `MyService` project. In the `Program.cs` file of `MyService`, the connection can be consumed using:
 
 ```cs
-    builder.AddAzureBlobService(null, clientBuilder => clientBuilder.ConfigureOptions(options => options.EnableTenantDiscovery = true));
+builder.AddAzureBlobService("blobs");
 ```
-
-After adding a `BlobServiceClient` to the builder you can get the `BlobServiceClient` instance using DI.
 
 ## Additional documentation
 
-https://github.com/dotnet/astra/tree/main/src/Components/README.md
+* https://github.com/Azure/azure-sdk-for-net/blob/main/sdk/storage/Azure.Storage.Blobs/README.md
+* https://github.com/dotnet/aspire/tree/main/src/Components/README.md
 
 ## Feedback & Contributing
 
-https://github.com/dotnet/astra
+https://github.com/dotnet/aspire

@@ -21,9 +21,10 @@ public class DashboardWebApplication : IHostedService
 {
     private const string DashboardOtlpUrlVariableName = "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL";
     private const string DashboardOtlpUrlDefaultValue = "http://localhost:18889";
-    private const string DashboardUrlVariableName = "DOTNET_DASHBOARD_URL";
+    private const string DashboardUrlVariableName = "ASPNETCORE_URLS";
     private const string DashboardUrlDefaultValue = "http://localhost:18888";
 
+    private readonly bool _isAllHttps;
     private readonly WebApplication _app;
 
     public DashboardWebApplication(Action<IServiceCollection> configureServices)
@@ -39,6 +40,8 @@ public class DashboardWebApplication : IHostedService
             throw new InvalidOperationException("Only one URL for Aspire dashboard OTLP endpoint is supported.");
         }
 
+        _isAllHttps = dashboardHttpsPort is not null && IsHttps(otlpUris[0]);
+
         builder.WebHost.ConfigureKestrel(kestrelOptions =>
         {
             ConfigureListenAddresses(kestrelOptions, dashboardUris);
@@ -53,7 +56,7 @@ public class DashboardWebApplication : IHostedService
             builder.WebHost.UseStaticWebAssets();
         }
 
-        if (dashboardHttpsPort is not null)
+        if (_isAllHttps)
         {
             // Explicitly configure the HTTPS redirect port as we're possibly listening on multiple HTTPS addresses
             // if the dashboard OTLP URL is configured to use HTTPS too
@@ -66,7 +69,7 @@ public class DashboardWebApplication : IHostedService
         // OTLP services.
         builder.Services.AddGrpc();
         builder.Services.AddSingleton<TelemetryRepository>();
-        builder.Services.AddTransient<SemanticLogsViewModel>();
+        builder.Services.AddTransient<StructuredLogsViewModel>();
         builder.Services.AddTransient<TracesViewModel>();
 
         builder.Services.AddFluentUIComponents(options =>
@@ -86,7 +89,7 @@ public class DashboardWebApplication : IHostedService
             _app.UseExceptionHandler("/Error");
         }
 
-        if (dashboardHttpsPort is not null)
+        if (_isAllHttps)
         {
             _app.UseHttpsRedirection();
         }

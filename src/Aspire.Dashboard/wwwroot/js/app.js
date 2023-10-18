@@ -2,13 +2,16 @@
 // To avoid Flash of Unstyled Content, the body is hidden by default with
 // the before-upgrade CSS class. Here we'll find the first web component
 // and wait for it to be upgraded. When it is, we'll remove that class
-// from the body. 
+// from the body.
 const firstUndefinedElement = document.body.querySelector(":not(:defined)");
 
 if (firstUndefinedElement) {
     customElements.whenDefined(firstUndefinedElement.localName).then(() => {
         document.body.classList.remove("before-upgrade");
     });
+} else {
+    // In the event this code doesn't run until after they've all been upgraded
+    document.body.classList.remove("before-upgrade");
 }
 
 window.scrollToEndInTextArea = function (classSelector) {
@@ -72,3 +75,112 @@ window.copyTextToClipboard = function (id, text, precopy, postcopy) {
         });
     setTimeout(function () { tooltipDiv.innerText = precopy }, 1500);
 };
+
+window.updateFluentSelectDisplayValue = function (fluentSelect) {
+    if (fluentSelect) {
+        fluentSelect.updateDisplayValue();
+    }
+}
+
+function getThemeColors() {
+    // Get colors from the current light/dark theme.
+    var style = getComputedStyle(document.getElementById("mainlayout-container"));
+    return {
+        backgroundColor: style.getPropertyValue("--fill-color"),
+        textColor: style.getPropertyValue("--neutral-foreground-rest")
+    };
+}
+
+window.updateChart = function (id, traces, xValues, rangeStartTime, rangeEndTime) {
+    var chartContainerDiv = document.getElementById(id);
+    var chartDiv = chartContainerDiv.firstChild;
+
+    var themeColors = getThemeColors();
+
+    var xUpdate = [];
+    var yUpdate = [];
+    var tooltipsUpdate = [];
+    for (var i = 0; i < traces.length; i++) {
+        xUpdate.push(xValues);
+        yUpdate.push(traces[i].values);
+        tooltipsUpdate.push(traces[i].tooltips);
+    }
+
+    var data = {
+        x: xUpdate,
+        y: yUpdate,
+        text: tooltipsUpdate,
+    };
+
+    var layout = {
+        xaxis: {
+            type: 'date',
+            range: [rangeEndTime, rangeStartTime],
+            fixedrange: true,
+            tickformat: "%-I:%M:%S %p",
+            color: themeColors.textColor
+        }
+    };
+
+    Plotly.update(chartDiv, data, layout);
+};
+
+window.initializeChart = function (id, traces, xValues, rangeStartTime, rangeEndTime) {
+    var chartContainerDiv = document.getElementById(id);
+
+    // Reusing a div can create issues with chart lines appearing beyond the end range.
+    // Workaround this issue by replacing the chart div. Ensures we start from a new state.
+    var chartDiv = document.createElement("div");
+    chartContainerDiv.replaceChildren(chartDiv);
+
+    var themeColors = getThemeColors();
+
+    var data = [];
+    for (var i = 0; i < traces.length; i++) {
+        var name = traces[i].name || "Value";
+        var t = {
+            x: xValues,
+            y: traces[i].values,
+            name: name,
+            text: traces[i].tooltips,
+            hoverinfo: 'text',
+            line: { width: 0 },
+            stackgroup: "one"
+        };
+        data.push(t);
+    }
+
+    var layout = {
+        paper_bgcolor: themeColors.backgroundColor,
+        plot_bgcolor: themeColors.backgroundColor,
+        margin: { t: 0, r: 0, b: 40, l: 50 },
+        xaxis: {
+            type: 'date',
+            range: [rangeEndTime, rangeStartTime],
+            fixedrange: true,
+            tickformat: "%-I:%M:%S %p",
+            color: themeColors.textColor
+        },
+        yaxis: {
+            rangemode: "tozero",
+            fixedrange: true,
+            color: themeColors.textColor
+        },
+        hovermode: "x",
+        showlegend: true,
+        legend: {
+            orientation: "h",
+            font: {
+                color: themeColors.textColor
+            },
+            traceorder: "normal",
+            itemclick: false,
+            itemdoubleclick: false
+        }
+    };
+
+    var options = { scrollZoom: false, displayModeBar: false };
+
+    Plotly.newPlot(chartDiv, data, layout, options);
+};
+

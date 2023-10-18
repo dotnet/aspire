@@ -16,7 +16,7 @@ public class ConformanceTests : ConformanceTests<BlobServiceClient, AzureStorage
 {
     // Authentication method: Azure AD User Account
     // Roles: Storage Blob Data Reader, Storage Blob Data Contributor
-    private const string ServiceUri = "https://aspirestoragetests.blob.core.windows.net/";
+    public const string ServiceUri = "https://aspirestoragetests.blob.core.windows.net/";
 
     private static readonly Lazy<bool> s_canConnectToServer = new(GetCanConnect);
 
@@ -78,11 +78,11 @@ public class ConformanceTests : ConformanceTests<BlobServiceClient, AzureStorage
     {
         if (key is null)
         {
-            builder.AddAzureBlobService(ConfigureCredentials);
+            builder.AddAzureBlobService("blob", ConfigureCredentials);
         }
         else
         {
-            builder.AddAzureBlobService(key, ConfigureCredentials);
+            builder.AddKeyedAzureBlobService(key, ConfigureCredentials);
         }
 
         void ConfigureCredentials(AzureStorageBlobsSettings settings)

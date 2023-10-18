@@ -1,0 +1,23 @@
+﻿@namespace Aspire.Dashboard.Components.Pages
+@using Aspire.Dashboard.Model
+@typeparam TResource where TResource : ResourceViewModel
+
+<PageTitle>@DashboardViewModelService.ApplicationName @ResourceType Logs</PageTitle>
+
+<h1>@ResourceType Logs</h1>
+
+<div>
+    <FluentStack Orientation="Orientation.Vertical">
+        <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
+            <FluentSelect @ref="_resourceSelectComponent" TOption="TResource"
+                          Items="@Resources"
+                          OptionValue="@(c => c.Name)"
+                          OptionText="GetDisplayText"
+                          @bind-SelectedOption="_selectedResource"
+                          @bind-SelectedOption:after="HandleSelectedOptionChangedAsync"
+                          AriaLabel="@SelectResourceTitle"/>
+            <FluentLabel Typo="Typography.Body">@_status</FluentLabel>
+            </FluentStack>
+            <LogViewer @ref="_logViewer" />
+        </FluentStack>
+    </div>

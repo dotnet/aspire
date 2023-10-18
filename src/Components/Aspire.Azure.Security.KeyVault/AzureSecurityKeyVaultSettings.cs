@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Azure.Common;
 using Azure.Core;
 using Azure.Security.KeyVault.Secrets;
 
@@ -9,7 +10,7 @@ namespace Aspire.Azure.Security.KeyVault;
 /// <summary>
 /// Provides the client configuration settings for connecting to Azure Key Vault.
 /// </summary>
-public sealed class AzureSecurityKeyVaultSettings
+public sealed class AzureSecurityKeyVaultSettings : IConnectionStringSettings
 {
     /// <summary>
     /// A <see cref="Uri"/> to the vault on which the client operates. Appears as "DNS Name" in the Azure portal.
@@ -39,4 +40,13 @@ public sealed class AzureSecurityKeyVaultSettings
     /// Or by setting "AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE" environment variable to "true".
     /// </remarks>
     public bool Tracing { get; set; }
+
+    void IConnectionStringSettings.ParseConnectionString(string? connectionString)
+    {
+        if (!string.IsNullOrEmpty(connectionString) &&
+            Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))
+        {
+            VaultUri = uri;
+        }
+    }
 }

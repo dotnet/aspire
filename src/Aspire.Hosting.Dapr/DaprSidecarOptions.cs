@@ -138,7 +138,7 @@ public sealed record DaprSidecarOptions
     public int? ProfilePort { get; init; }
 
     /// <summary>
-    /// Gets or sets the paths of Dapr sidecar resources (i.e. components).
+    /// Gets or sets the paths of Dapr sidecar resources (i.e. resources).
     /// </summary>
     public IImmutableSet<string> ResourcesPaths { get; init; } = ImmutableHashSet<string>.Empty;
 

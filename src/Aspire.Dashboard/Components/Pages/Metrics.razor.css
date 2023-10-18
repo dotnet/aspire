@@ -1,0 +1,61 @@
+.empty-content {
+    width: 100%;
+    height: 100px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: 600;
+}
+
+/* Metrics chart SVG */
+::deep .yaxislayer-above {
+    transform: translate(-10px,0px);
+}
+
+::deep .xaxislayer-above {
+    transform: translate(0px,10px);
+}
+
+::deep .metrics-chart {
+    display: grid;
+    grid-template-columns: min-content auto;
+}
+
+::deep .metrics-chart-header {
+    margin-left: 40px;
+}
+
+::deep .metrics-chart-container {
+    grid-column: 1;
+    margin-bottom: 60px;
+}
+
+::deep .metrics-filters-container {
+    grid-column: 2;
+}
+
+@media (max-width: 1700px) {
+    ::deep .metrics-filters-container {
+        grid-column: 1;
+        margin-left: 40px;
+    }
+}
+
+::deep .metrics-filters-container td.dimension-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+::deep .metrics-filters-container td.dimension-values {
+    width: auto;
+}
+
+::deep .metrics-tree {
+    min-width: auto;
+    margin-right: 3px;
+}
+
+::deep .metrics-content {
+    margin-left: 10px;
+}

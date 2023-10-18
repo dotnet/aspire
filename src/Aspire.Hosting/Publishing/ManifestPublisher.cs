@@ -13,8 +13,6 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, IHo
     private readonly IOptions<PublishingOptions> _options = options;
     private readonly IHostApplicationLifetime _lifetime = lifetime;
 
-    public string Name => "manifest";
-
     public async Task PublishAsync(DistributedApplicationModel model, CancellationToken cancellationToken)
     {
         await WriteManifestAsync(model, cancellationToken).ConfigureAwait(false);
@@ -34,73 +32,94 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, IHo
         using var jsonWriter = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true });
 
         jsonWriter.WriteStartObject();
-        await WriteComponentsAsync(model, jsonWriter, cancellationToken).ConfigureAwait(false);
+        WriteResources(model, jsonWriter);
         jsonWriter.WriteEndObject();
 
         await jsonWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task WriteComponentsAsync(DistributedApplicationModel model, Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
+    private void WriteResources(DistributedApplicationModel model, Utf8JsonWriter jsonWriter)
     {
-        jsonWriter.WriteStartObject("components");
-        foreach (var component in model.Components)
+        jsonWriter.WriteStartObject("resources");
+        foreach (var resource in model.Resources)
         {
-            await WriteComponentAsync(component, jsonWriter, cancellationToken).ConfigureAwait(false);
+            WriteResource(resource, jsonWriter);
         }
         jsonWriter.WriteEndObject();
-
-        await jsonWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task WriteComponentAsync(IDistributedApplicationComponent component, Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
+    private void WriteResource(IDistributedApplicationResource resource, Utf8JsonWriter jsonWriter)
     {
-        if (!component.TryGetName(out var componentName))
-        {
-            throw new DistributedApplicationException("Component did not have name!");
-        }
+        jsonWriter.WriteStartObject(resource.Name);
 
-        jsonWriter.WriteStartObject(componentName);
-
-        // First see if the component has a callback annotation with overrides the behavior for rendering
+        // First see if the resource has a callback annotation with overrides the behavior for rendering
         // out the JSON. If so use that callback, otherwise use the fallback logic that we have.
-        if (component.TryGetLastAnnotation<ManifestPublishingCallbackAnnotation>(out var manifestPublishingCallbackAnnotation))
+        if (resource.TryGetLastAnnotation<ManifestPublishingCallbackAnnotation>(out var manifestPublishingCallbackAnnotation))
         {
-            await manifestPublishingCallbackAnnotation.Callback(jsonWriter, cancellationToken).ConfigureAwait(false);
+            manifestPublishingCallbackAnnotation.Callback(jsonWriter);
         }
-        else if (component is ContainerComponent containerComponent)
+        else if (resource is ContainerResource container)
         {
-            await WriteContainerAsync(containerComponent, jsonWriter, cancellationToken).ConfigureAwait(false);
+            WriteContainer(container, jsonWriter);
         }
-        else if (component is ProjectComponent projectComponent)
+        else if (resource is ProjectResource project)
         {
-            await WriteProjectAsync(projectComponent, jsonWriter, cancellationToken).ConfigureAwait(false);
+            WriteProject(project, jsonWriter);
         }
-        else if (component is ExecutableComponent executableComponent)
+        else if (resource is ExecutableResource executable)
         {
-            await WriteExecutableAsync(executableComponent, jsonWriter, cancellationToken).ConfigureAwait(false);
+            WriteExecutable(executable, jsonWriter);
         }
         else
         {
-            await WriteErrorAsync(jsonWriter, cancellationToken).ConfigureAwait(false);
+            WriteError(jsonWriter);
         }
 
         jsonWriter.WriteEndObject();
-
-        await jsonWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private static async Task WriteErrorAsync(Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
+    private static void WriteError(Utf8JsonWriter jsonWriter)
     {
-        jsonWriter.WriteString("error", "This component does not support generation in the manifest.");
-        await jsonWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
+        jsonWriter.WriteString("error", "This resource does not support generation in the manifest.");
     }
 
-    private static async Task WriteEnvironmentVariablesAsync(IDistributedApplicationComponent component, Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
+    private static void WriteServiceDiscoveryEnvironmentVariables(IDistributedApplicationResource resource, Utf8JsonWriter jsonWriter)
+    {
+        var serviceReferenceAnnotations = resource.Annotations.OfType<ServiceReferenceAnnotation>();
+
+        if (serviceReferenceAnnotations.Any())
+        {
+            foreach (var serviceReferenceAnnotation in serviceReferenceAnnotations)
+            {
+                var bindingNames = serviceReferenceAnnotation.UseAllBindings
+                    ? serviceReferenceAnnotation.Resource.Annotations.OfType<ServiceBindingAnnotation>().Select(sb => sb.Name)
+                    : serviceReferenceAnnotation.BindingNames;
+
+                var serviceBindingAnnotationsGroupedByScheme = serviceReferenceAnnotation.Resource.Annotations
+                    .OfType<ServiceBindingAnnotation>()
+                    .Where(sba => bindingNames.Contains(sba.Name))
+                    .GroupBy(sba => sba.UriScheme);
+
+                var i = 0;
+                foreach (var serviceBindingAnnotationGroupedByScheme in serviceBindingAnnotationsGroupedByScheme)
+                {
+                    // HACK: For November we are only going to support a single service binding annotation
+                    //       per URI scheme per service reference.
+                    var binding = serviceBindingAnnotationGroupedByScheme.Single();
+
+                    jsonWriter.WriteString($"services__{serviceReferenceAnnotation.Resource.Name}__{i++}", $"{{{serviceReferenceAnnotation.Resource.Name}.bindings.{binding.Name}.url}}");
+                }
+
+            }
+        }
+    }
+
+    private static void WriteEnvironmentVariables(IDistributedApplicationResource resource, Utf8JsonWriter jsonWriter)
     {
         var config = new Dictionary<string, string>();
         var context = new EnvironmentCallbackContext("manifest", config);
 
-        if (component.TryGetAnnotationsOfType<EnvironmentCallbackAnnotation>(out var callbacks))
+        if (resource.TryGetAnnotationsOfType<EnvironmentCallbackAnnotation>(out var callbacks))
         {
             jsonWriter.WriteStartObject("env");
             foreach (var callback in callbacks)
@@ -112,15 +131,16 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, IHo
             {
                 jsonWriter.WriteString(key, value);
             }
+
+            WriteServiceDiscoveryEnvironmentVariables(resource, jsonWriter);
+
             jsonWriter.WriteEndObject();
         }
-
-        await jsonWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private static async Task WriteBindingsAsync(IDistributedApplicationComponent component, Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
+    private static void WriteBindings(IDistributedApplicationResource resource, Utf8JsonWriter jsonWriter)
     {
-        if (component.TryGetServiceBindings(out var serviceBindings))
+        if (resource.TryGetServiceBindings(out var serviceBindings))
         {
             jsonWriter.WriteStartObject("bindings");
             foreach (var serviceBinding in serviceBindings)
@@ -129,57 +149,57 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, IHo
                 jsonWriter.WriteString("scheme", serviceBinding.UriScheme);
                 jsonWriter.WriteString("protocol", serviceBinding.Protocol.ToString().ToLowerInvariant());
                 jsonWriter.WriteString("transport", serviceBinding.Transport);
+
+                if (serviceBinding.IsExternal)
+                {
+                    jsonWriter.WriteBoolean("external", serviceBinding.IsExternal);
+                }
+
                 jsonWriter.WriteEndObject();
             }
             jsonWriter.WriteEndObject();
         }
-
-        await jsonWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private static async Task WriteContainerAsync(ContainerComponent containerComponent, Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
+    private static void WriteContainer(ContainerResource container, Utf8JsonWriter jsonWriter)
     {
         jsonWriter.WriteString("type", "container.v1");
 
-        if (!containerComponent.TryGetContainerImageName(out var image))
+        if (!container.TryGetContainerImageName(out var image))
         {
             throw new DistributedApplicationException("Could not get container image name.");
         }
 
         jsonWriter.WriteString("image", image);
 
-        await WriteEnvironmentVariablesAsync(containerComponent, jsonWriter, cancellationToken).ConfigureAwait(false);
-        await WriteBindingsAsync(containerComponent, jsonWriter, cancellationToken).ConfigureAwait(false);
-
-        await jsonWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
+        WriteEnvironmentVariables(container, jsonWriter);
+        WriteBindings(container, jsonWriter);
     }
 
-    private async Task WriteProjectAsync(ProjectComponent projectComponent, Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
+    private void WriteProject(ProjectResource project, Utf8JsonWriter jsonWriter)
     {
         jsonWriter.WriteString("type", "project.v1");
 
-        if (!projectComponent.TryGetLastAnnotation<IServiceMetadata>(out var metadata))
+        if (!project.TryGetLastAnnotation<IServiceMetadata>(out var metadata))
         {
             throw new DistributedApplicationException("Service metadata not found.");
         }
 
         var manifestPath = _options.Value.OutputPath ?? throw new DistributedApplicationException("Output path not specified");
-        var relativePathToProjectFile = Path.GetRelativePath(manifestPath, metadata.ProjectPath);
+        var fullyQualifiedManifestPath = Path.GetFullPath(manifestPath);
+        var manifestDirectory = Path.GetDirectoryName(fullyQualifiedManifestPath) ?? throw new DistributedApplicationException("Could not get directory name of output path");
+        var relativePathToProjectFile = Path.GetRelativePath(manifestDirectory, metadata.ProjectPath);
         jsonWriter.WriteString("path", relativePathToProjectFile);
 
-        await WriteEnvironmentVariablesAsync(projectComponent, jsonWriter, cancellationToken).ConfigureAwait(false);
-        await WriteBindingsAsync(projectComponent, jsonWriter, cancellationToken).ConfigureAwait(false);
-
-        await jsonWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
+        WriteEnvironmentVariables(project, jsonWriter);
+        WriteBindings(project, jsonWriter);
     }
 
-    private static async Task WriteExecutableAsync(ExecutableComponent executableComponent, Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
+    private static void WriteExecutable(ExecutableResource executable, Utf8JsonWriter jsonWriter)
     {
         jsonWriter.WriteString("type", "executable.v1");
 
-        await WriteEnvironmentVariablesAsync(executableComponent, jsonWriter, cancellationToken).ConfigureAwait(false);
-        await WriteBindingsAsync(executableComponent, jsonWriter, cancellationToken).ConfigureAwait(false);
-
-        await jsonWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
+        WriteEnvironmentVariables(executable, jsonWriter);
+        WriteBindings(executable, jsonWriter);
     }
 }

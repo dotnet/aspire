@@ -1,17 +1,15 @@
 ﻿@page "/"
 @using Aspire.Dashboard.Model;
 @using Aspire.Dashboard.Services;
-@inject IDashboardViewModelService DashboardViewModelService
-@inject EnvironmentVariablesDialogService DialogService
 @implements IDisposable
+@inherits ResourcesListBase<ProjectViewModel>
 
-<PageTitle>Microsoft.Aspire Dashboard</PageTitle>
-
-<h1>Projects</h1>
+<PageTitle>@DashboardViewModelService.ApplicationName Projects</PageTitle>
 
 <div>
     <FluentStack Orientation="Orientation.Vertical">
         <FluentToolbar Orientation="Orientation.Horizontal">
+            <h1 slot="label">Projects</h1>
             <FluentSearch Placeholder="Filter..."
                           Immediate="true"
                           @bind-Value="filter"
@@ -20,7 +18,7 @@
                           slot="end" />
         </FluentToolbar>
         <div class="datagrid-overflow-area" tabindex="-1">
-            <FluentDataGrid Items="@FilteredProjects" ResizableColumns="true" GridTemplateColumns="2fr 1fr 2fr 2fr 2fr 1fr 1fr">
+            <FluentDataGrid Items="@FilteredResources" ResizableColumns="true" GridTemplateColumns="2fr 1fr 2fr 1fr 4fr 2fr 1fr 1fr">
                 <ChildContent>
                     <TemplateColumn Title="Name" Sortable="true" SortBy="@nameSort">
                         <div class="col-long-content" title="@context.Name">
@@ -29,6 +27,7 @@
                     </TemplateColumn>
                     <PropertyColumn Property="@(e => e.State)" Sortable="true" />
                     <PropertyColumn Property="@(c => c.CreationTimeStamp)" Title="Start Time" Sortable="true" />
+                    <PropertyColumn Property="@(c => c.ProcessId)" Title="Process Id" Sortable="true" />
                     <TemplateColumn Title="Source Location" Sortable="true" SortBy="@projectPathSort">
                         <div class="col-long-content" title="@context.ProjectPath">
                             <FluentHighlighter HighlightedText="@filter" Text="@context.ProjectPath" />
@@ -37,19 +36,19 @@
                     <TemplateColumn Title="Endpoints" Sortable="false">
                         <FluentStack Orientation="Orientation.Vertical">
                             @* If we have no endpoints, and the app isn't running anymore or we're not expecting any, then just say None *@
-                            @if (context.Endpoints.Count == 0 && (context.State == FinishedState || context.ExpectedEndpointCount == 0))
+                            @if (context.Endpoints.Count == 0 && (context.State == FinishedState || context.ExpectedEndpointsCount == 0))
                             {
                                 <span>None</span>
                             }
                             else
                             {
                                 @* If we have any, regardless of the state, go ahead and display them *@
-                                foreach (ServiceEndpoint endpoint in context.Endpoints.OrderBy(e => e.Address))
+                                foreach (var endpoint in context.Endpoints.OrderBy(e => e))
                                 {
-                                    <a href="@endpoint.Address" target="_blank">@endpoint.Address</a>
+                                    <a href="@endpoint" target="_blank">@endpoint</a>
                                 }
                                 @* If we're expecting more, say Starting..., unless the app isn't running anymore *@
-                                if (context.State != FinishedState && context.ExpectedEndpointCount > context.Endpoints.Count)
+                                if (context.State != FinishedState && context.ExpectedEndpointsCount > context.Endpoints.Count)
                                 {
                                     <span>Starting...</span>
                                 }
@@ -74,83 +73,20 @@
     </FluentStack>
 </div>
 
-@code {
-    // Ideally we'd be pulling this from Aspire.Hosting.Dcp.Model.ExecutableStates,
-    // but unfortunately the reference goes the other way
-    private const string FinishedState = "Finished";
+@code
+{
+    protected override Task<List<ProjectViewModel>> GetResources(IDashboardViewModelService dashboardViewModelService)
+        => dashboardViewModelService.GetProjectsAsync();
 
-    private readonly Dictionary<string, ProjectViewModel> projectsMap = new();
-    private readonly CancellationTokenSource watchTaskCancellationTokenSource = new();
-    private string filter = "";
+    protected override IAsyncEnumerable<ResourceChanged<ProjectViewModel>> WatchResources(
+    IDashboardViewModelService dashboardViewModelService,
+        IEnumerable<NamespacedName> initialList,
+        CancellationToken cancellationToken)
+        => dashboardViewModelService.WatchProjectsAsync(initialList, cancellationToken);
 
-    private IQueryable<ProjectViewModel>? FilteredProjects =>
-        projectsMap.Values.Where(p =>
-            p.Name.Contains(filter, StringComparison.CurrentCultureIgnoreCase) ||
-            p.ProjectPath.Contains(filter, StringComparison.CurrentCultureIgnoreCase)
-        ).OrderBy(e => e.Name).AsQueryable();
+    protected override bool Filter(ProjectViewModel resource)
+        => resource.Name.Contains(filter, StringComparison.CurrentCultureIgnoreCase)
+        || resource.ProjectPath.Contains(filter, StringComparison.CurrentCultureIgnoreCase);
 
-    private GridSort<ProjectViewModel> nameSort = GridSort<ProjectViewModel>
-        .ByAscending(p => p.Name);
-    private GridSort<ProjectViewModel> projectPathSort = GridSort<ProjectViewModel>
-        .ByAscending(p => p.ProjectPath);
-
-    protected override Task OnInitializedAsync()
-    {
-        _ = Task.Run(async () =>
-        {
-            await foreach (var componentChanged in DashboardViewModelService.WatchProjectsAsync(cancellationToken: watchTaskCancellationTokenSource.Token))
-            {
-                await OnProjectListChanged(componentChanged.ObjectChangeType, componentChanged.Component).ConfigureAwait(true);
-            }
-        }).ConfigureAwait(true);
-
-        return Task.CompletedTask;
-    }
-
-    private async Task ShowEnvironmentVariables(ProjectViewModel project)
-    {
-        await DialogService.ShowDialogAsync(
-            source: project.Name,
-            variables: project.Environment
-        );
-    }
-
-    private async Task OnProjectListChanged(ObjectChangeType objectChangeType, ProjectViewModel projectViewModel)
-    {
-        switch (objectChangeType)
-        {
-            case ObjectChangeType.Added:
-                projectsMap.Add(projectViewModel.Name, projectViewModel);
-                break;
-
-            case ObjectChangeType.Modified:
-                projectsMap[projectViewModel.Name] = projectViewModel;
-                break;
-
-            case ObjectChangeType.Deleted:
-                projectsMap.Remove(projectViewModel.Name);
-                break;
-        }
-
-        await InvokeAsync(StateHasChanged);
-    }
-
-    public void Dispose()
-    {
-        watchTaskCancellationTokenSource.Cancel();
-        watchTaskCancellationTokenSource.Dispose();
-    }
-
-    private void HandleFilter(ChangeEventArgs args)
-    {
-        if (args.Value is string newFilter)
-        {
-            filter = newFilter;
-        }
-    }
-
-    private void HandleClear(string? value)
-    {
-        filter = value ?? string.Empty;
-    }
+    private GridSort<ProjectViewModel> projectPathSort = GridSort<ProjectViewModel>.ByAscending(p => p.ProjectPath);
 }

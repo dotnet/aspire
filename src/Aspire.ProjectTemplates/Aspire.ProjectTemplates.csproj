@@ -17,8 +17,14 @@
   <Target Name="AddTemplatesToPackageAsContent"
           DependsOnTargets="ReplacePackageVersionOnTemplates">
 
+    <!-- Creating a temporary item instead of defining content items directly in order to avoid MSBuild MSB4120
+    message shown when an item within a target references itself which may cuase unintended expansion. -->
     <ItemGroup>
-      <Content Include="$(IntermediateOutputPath)\content\templates\**\*" PackagePath="content/templates/%(Content.RecursiveDir)" />
+      <_TemplatesForPackage Include="$(IntermediateOutputPath)\content\templates\**\*" />
+    </ItemGroup>
+    <ItemGroup>
+      <Content Include="%(_TemplatesForPackage.Identity)" 
+              PackagePath="content/templates/%(_TemplatesForPackage.RecursiveDir)" />
     </ItemGroup>
   </Target>
 
@@ -35,7 +41,8 @@
 
     <WriteLinesToFile File="%(TemplateProjectFiles.DestinationFile)"
                       Lines="$([System.IO.File]::ReadAllText('%(TemplateProjectFiles.FullPath)')
-                                                 .Replace('&lt;REPLACE_WITH_LATEST_VERSION&gt;', '$(PackageVersion)'))"
+                                                 .Replace('&lt;REPLACE_WITH_LATEST_VERSION&gt;', '$(PackageVersion)')
+                                                 .Replace('&lt;REPLACE_WITH_EXTENSIONS_VERSION&gt;', '$(MicrosoftExtensionsHttpResiliencePackageVersion)'))"
                       Overwrite="true" />
   </Target>
 
@@ -43,7 +50,7 @@
   <Target Name="CopyTemplatesToIntermediateOutputPath">
 
     <ItemGroup>
-      <_ContentFilesToPackage Include="templates\**\*" Exclude="templates\**\bin\**;templates\**\obj\**;templates\**\*.csproj"/>
+      <_ContentFilesToPackage Include="templates\**\*" Exclude="templates\**\bin\**;templates\**\obj\**;templates\**\*.csproj" />
     </ItemGroup>
 
     <Copy SourceFiles="@(_ContentFilesToPackage)"

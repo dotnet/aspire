@@ -10,6 +10,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OpenTelemetry.Trace;
 using StackExchange.Redis;
+using StackExchange.Redis.Configuration;
 
 namespace Microsoft.Extensions.Hosting;
 
@@ -22,11 +23,11 @@ public static class AspireRedisExtensions
     /// Enables retries, corresponding health check, logging, and telemetry.
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
-    /// <param name="connectionName">An optional name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
+    /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="StackExchangeRedisSettings"/>. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureOptions">An optional method that can be used for customizing the <see cref="ConfigurationOptions"/>. It's invoked after the options are read from the configuration.</param>
     /// <remarks>Reads the configuration from "Aspire.StackExchange.Redis" section.</remarks>
-    public static void AddRedis(this IHostApplicationBuilder builder, string? connectionName = null, Action<StackExchangeRedisSettings>? configureSettings = null, Action<ConfigurationOptions>? configureOptions = null)
+    public static void AddRedis(this IHostApplicationBuilder builder, string connectionName, Action<StackExchangeRedisSettings>? configureSettings = null, Action<ConfigurationOptions>? configureOptions = null)
         => AddRedis(builder, DefaultConfigSectionName, configureSettings, configureOptions, connectionName, serviceKey: null);
 
     /// <summary>
@@ -45,7 +46,7 @@ public static class AspireRedisExtensions
         AddRedis(builder, $"{DefaultConfigSectionName}:{name}", configureSettings, configureOptions, connectionName: name, serviceKey: name);
     }
 
-    private static void AddRedis(IHostApplicationBuilder builder, string configurationSectionName, Action<StackExchangeRedisSettings>? configureSettings, Action<ConfigurationOptions>? configureOptions, string? connectionName, object? serviceKey)
+    private static void AddRedis(IHostApplicationBuilder builder, string configurationSectionName, Action<StackExchangeRedisSettings>? configureSettings, Action<ConfigurationOptions>? configureOptions, string connectionName, object? serviceKey)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
@@ -54,14 +55,17 @@ public static class AspireRedisExtensions
         StackExchangeRedisSettings settings = new();
         configSection.Bind(settings);
 
+        if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
+        {
+            settings.ConnectionString = connectionString;
+        }
+
         configureSettings?.Invoke(settings);
 
         // see comments on ConfigurationOptionsFactory for why a factory is used here
         builder.Services.TryAdd(ServiceDescriptor.Transient(typeof(IOptionsFactory<ConfigurationOptions>),
             sp => new ConfigurationOptionsFactory(
                 settings,
-                connectionName,
-                sp.GetRequiredService<IConfiguration>(),
                 sp.GetServices<IConfigureOptions<ConfigurationOptions>>(),
                 sp.GetServices<IPostConfigureOptions<ConfigurationOptions>>(),
                 sp.GetServices<IValidateOptions<ConfigurationOptions>>())));
@@ -79,12 +83,12 @@ public static class AspireRedisExtensions
         if (serviceKey is null)
         {
             builder.Services.AddSingleton<IConnectionMultiplexer>(
-                sp => ConnectionMultiplexer.Connect(GetConfigurationOptions(sp, configurationSectionName, optionsName), CreateLogger(sp)));
+                sp => ConnectionMultiplexer.Connect(GetConfigurationOptions(sp, connectionName, configurationSectionName, optionsName), CreateLogger(sp)));
         }
         else
         {
             builder.Services.AddKeyedSingleton<IConnectionMultiplexer>(serviceKey,
-                (sp, key) => ConnectionMultiplexer.Connect(GetConfigurationOptions(sp, configurationSectionName, optionsName), CreateLogger(sp)));
+                (sp, key) => ConnectionMultiplexer.Connect(GetConfigurationOptions(sp, connectionName, configurationSectionName, optionsName), CreateLogger(sp)));
         }
 
         if (settings.Tracing)
@@ -114,7 +118,7 @@ public static class AspireRedisExtensions
                 : null;
     }
 
-    private static ConfigurationOptions GetConfigurationOptions(IServiceProvider serviceProvider, string configurationSectionName, string? optionsName)
+    private static ConfigurationOptions GetConfigurationOptions(IServiceProvider serviceProvider, string connectionName, string configurationSectionName, string? optionsName)
     {
         var configurationOptions = optionsName is null ?
             serviceProvider.GetRequiredService<IOptions<ConfigurationOptions>>().Value :
@@ -122,7 +126,7 @@ public static class AspireRedisExtensions
 
         if (configurationOptions is null || configurationOptions.EndPoints.Count == 0)
         {
-            throw new InvalidOperationException($"No endpoints specified. Ensure a valid connection string was provided for the '{configurationSectionName}:ConnectionString' configuration key.");
+            throw new InvalidOperationException($"No endpoints specified. Ensure a valid connection string was provided in 'ConnectionStrings:{connectionName}' or for the '{configurationSectionName}:ConnectionString' configuration key.");
         }
 
         return configurationOptions;
@@ -157,28 +161,36 @@ public static class AspireRedisExtensions
     private sealed class ConfigurationOptionsFactory : OptionsFactory<ConfigurationOptions>
     {
         private readonly StackExchangeRedisSettings _settings;
-        private readonly string? _connectionStringName;
-        private readonly IConfiguration _configuration;
 
-        public ConfigurationOptionsFactory(StackExchangeRedisSettings settings, string? connectionStringName, IConfiguration configuration, IEnumerable<IConfigureOptions<ConfigurationOptions>> setups, IEnumerable<IPostConfigureOptions<ConfigurationOptions>> postConfigures, IEnumerable<IValidateOptions<ConfigurationOptions>> validations)
+        public ConfigurationOptionsFactory(StackExchangeRedisSettings settings, IEnumerable<IConfigureOptions<ConfigurationOptions>> setups, IEnumerable<IPostConfigureOptions<ConfigurationOptions>> postConfigures, IEnumerable<IValidateOptions<ConfigurationOptions>> validations)
             : base(setups, postConfigures, validations)
         {
             _settings = settings;
-            _connectionStringName = connectionStringName;
-            _configuration = configuration;
         }
 
         protected override ConfigurationOptions CreateInstance(string name)
         {
             var connectionString = _settings.ConnectionString;
-            if (string.IsNullOrEmpty(connectionString) && !string.IsNullOrEmpty(_connectionStringName))
-            {
-                connectionString = _configuration.GetConnectionString(_connectionStringName);
-            }
 
-            return connectionString is not null ?
+            var options = connectionString is not null ?
                 ConfigurationOptions.Parse(connectionString) :
                 base.CreateInstance(name);
+
+            if (options.Defaults.GetType() == typeof(DefaultOptionsProvider))
+            {
+                options.Defaults = new AspireDefaultOptionsProvider();
+            }
+
+            return options;
         }
+    }
+
+    /// <summary>
+    /// A Redis DefaultOptionsProvider for Aspire specific defaults.
+    /// </summary>
+    private sealed class AspireDefaultOptionsProvider : DefaultOptionsProvider
+    {
+        // Disable aborting on connect fail since we want to retry, even in local development.
+        public override bool AbortOnConnectFail => false;
     }
 }

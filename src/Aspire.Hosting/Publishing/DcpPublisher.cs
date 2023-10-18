@@ -7,8 +7,6 @@ namespace Aspire.Hosting.Publishing;
 
 internal sealed class DcpPublisher : IDistributedApplicationPublisher
 {
-    public string Name => "dcp";
-
     public Task PublishAsync(DistributedApplicationModel model, CancellationToken cancellationToken)
     {
         return Task.CompletedTask;

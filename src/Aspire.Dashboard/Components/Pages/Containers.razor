@@ -1,17 +1,15 @@
 ﻿@page "/Containers"
 @using Aspire.Dashboard.Model;
 @using Aspire.Dashboard.Services;
-@inject IDashboardViewModelService DashboardViewModelService
-@inject EnvironmentVariablesDialogService DialogService
 @implements IDisposable
+@inherits ResourcesListBase<ContainerViewModel>
 
-<PageTitle>Microsoft.Aspire Dashboard</PageTitle>
-
-<h1>Containers</h1>
+<PageTitle>@DashboardViewModelService.ApplicationName Containers</PageTitle>
 
 <div>
     <FluentStack Orientation="Orientation.Vertical">
         <FluentToolbar Orientation="Orientation.Horizontal">
+            <h1 slot="label">Containers</h1>
             <FluentSearch Placeholder="Filter..."
                           Immediate="true"
                           @bind-Value="filter"
@@ -20,7 +18,7 @@
                           slot="end" />
         </FluentToolbar>
         <div class="datagrid-overflow-area" tabindex="-1">
-            <FluentDataGrid Items="@FilteredContainers" ResizableColumns="true" GridTemplateColumns="2fr 1fr 2fr 3fr 1fr 1fr 1fr">
+            <FluentDataGrid Items="@FilteredResources" ResizableColumns="true" GridTemplateColumns="2fr 1fr 2fr 3fr 1fr 2fr 1fr 1fr">
                 <ChildContent>
                     <TemplateColumn Title="Name" Sortable="true" SortBy="@nameSort">
                         <FluentHighlighter HighlightedText="@filter" Text="@context.Name" />
@@ -33,6 +31,28 @@
                     <TemplateColumn Title="Ports" Sortable="false">
                         <span>@string.Join(";", context.Ports.Select(e => e.ToString()))</span>
                     </TemplateColumn>
+                    <TemplateColumn Title="Endpoints" Sortable="false">
+                        <FluentStack Orientation="Orientation.Vertical">
+                            @* If we have no endpoints, and the app isn't running anymore or we're not expecting any, then just say None *@
+                            @if (context.Endpoints.Count == 0 && (context.State == FinishedState || context.ExpectedEndpointsCount == 0))
+                            {
+                                <span>None</span>
+                            }
+                            else
+                            {
+                                @* If we have any, regardless of the state, go ahead and display them *@
+                                foreach (var endpoint in context.Endpoints.OrderBy(e => e))
+                                {
+                                    <a href="@endpoint" target="_blank">@endpoint</a>
+                                }
+                                @* If we're expecting more, say Starting..., unless the app isn't running anymore *@
+                                if (context.State != FinishedState && context.ExpectedEndpointsCount > context.Endpoints.Count)
+                                {
+                                    <span>Starting...</span>
+                                }
+                            }
+                        </FluentStack>
+                    </TemplateColumn>
                     <TemplateColumn Title="Environment" Sortable="false">
                         <FluentButton Appearance="Appearance.Lightweight"
                                       Disabled="@(!context.Environment.Any())"
@@ -40,7 +60,7 @@
                                       OnClick="async() => await ShowEnvironmentVariables(context)">View</FluentButton>
                     </TemplateColumn>
                     <TemplateColumn Title="Logs">
-                        <FluentAnchor Appearance="Appearance.Lightweight" Href="@($"/containerLogs/{context.ContainerID}")">View</FluentAnchor>
+                        <FluentAnchor Appearance="Appearance.Lightweight" Href="@($"/containerLogs/{context.Name}")">View</FluentAnchor>
                     </TemplateColumn>
                 </ChildContent>
                 <EmptyContent>
@@ -52,79 +72,20 @@
 </div>
 
 @code {
-    private readonly Dictionary<string, ContainerViewModel> containersMap = new();
-    private readonly CancellationTokenSource watchTaskCancellationTokenSource = new();
-    private string filter = "";
+    protected override Task<List<ContainerViewModel>> GetResources(IDashboardViewModelService dashboardViewModelService)
+        => dashboardViewModelService.GetContainersAsync();
 
-    private IQueryable<ContainerViewModel>? FilteredContainers =>
-        containersMap.Values.Where(c =>
-            c.Name.Contains(filter, StringComparison.CurrentCultureIgnoreCase) ||
-            c.Image.Contains(filter, StringComparison.CurrentCultureIgnoreCase)
-        ).OrderBy(e => e.Name).AsQueryable();
+    protected override IAsyncEnumerable<ResourceChanged<ContainerViewModel>> WatchResources(
+    IDashboardViewModelService dashboardViewModelService,
+        IEnumerable<NamespacedName> initialList,
+        CancellationToken cancellationToken)
+        => dashboardViewModelService.WatchContainersAsync(initialList, cancellationToken);
 
-    private GridSort<ContainerViewModel> nameSort = GridSort<ContainerViewModel>
-        .ByAscending(c => c.Name);
-    private GridSort<ContainerViewModel> imageSort = GridSort<ContainerViewModel>
-        .ByAscending(c => c.Image);
+    protected override bool Filter(ContainerViewModel resource)
+        => resource.Name.Contains(filter, StringComparison.CurrentCultureIgnoreCase)
+        || resource.Image.Contains(filter, StringComparison.CurrentCultureIgnoreCase);
 
+    private GridSort<ContainerViewModel> imageSort = GridSort<ContainerViewModel>.ByAscending(c => c.Image);
 
-    protected override Task OnInitializedAsync()
-    {
-        _ = Task.Run(async () =>
-        {
-            await foreach (var componentChanged in DashboardViewModelService.WatchContainersAsync(cancellationToken: watchTaskCancellationTokenSource.Token))
-            {
-                await OnContainerListChanged(componentChanged.ObjectChangeType, componentChanged.Component).ConfigureAwait(true);
-            }
-        }).ConfigureAwait(true);
-
-        return Task.CompletedTask;
-    }
-
-    private async Task ShowEnvironmentVariables(ContainerViewModel container)
-    {
-        await DialogService.ShowDialogAsync(
-            source: container.Name,
-            variables: container.Environment
-        );
-    }
-
-    private async Task OnContainerListChanged(ObjectChangeType objectChangeType, ContainerViewModel containerViewModel)
-    {
-        switch (objectChangeType)
-        {
-            case ObjectChangeType.Added:
-                containersMap.Add(containerViewModel.Name, containerViewModel);
-                break;
-
-            case ObjectChangeType.Modified:
-                containersMap[containerViewModel.Name] = containerViewModel;
-                break;
-
-            case ObjectChangeType.Deleted:
-                containersMap.Remove(containerViewModel.Name);
-                break;
-        }
-
-        await InvokeAsync(StateHasChanged);
-    }
-
-    public void Dispose()
-    {
-        watchTaskCancellationTokenSource.Cancel();
-        watchTaskCancellationTokenSource.Dispose();
-    }
-
-    private void HandleFilter(ChangeEventArgs args)
-    {
-        if (args.Value is string newFilter)
-        {
-            filter = newFilter;
-        }
-    }
-
-    private void HandleClear(string? value)
-    {
-        filter = value ?? string.Empty;
-    }
+    protected override bool ShowSpecOnlyToggle => false;
 }

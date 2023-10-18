@@ -18,13 +18,13 @@ dotnet add package Aspire.Microsoft.Data.SqlClient
 
 ## Usage Example
 
-In the `Program.cs` file of your project, call the `AddSqlServerClient` extension method to register a `SqlConnection` for use via the dependency injection container.
+In the `Program.cs` file of your project, call the `AddSqlServerClient` extension method to register a `SqlConnection` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```cs
-builder.AddSqlServerClient();
+builder.AddSqlServerClient("sqldata");
 ```
 
-You can then retrieve the `SqlConnection` instance using dependency injection. For example, to retrieve the cache from a Web API controller:
+You can then retrieve the `SqlConnection` instance using dependency injection. For example, to retrieve the connection from a Web API controller:
 
 ```cs
 private readonly SqlConnection _connection;
@@ -69,7 +69,6 @@ The Aspire SqlClient component supports [Microsoft.Extensions.Configuration](htt
     "Microsoft": {
       "Data": {
         "SqlClient": {
-          "ConnectionString": "Data Source=myserver;Initial Catalog=master",
           "HealthChecks": true,
           "Metrics": false
         }
@@ -81,24 +80,24 @@ The Aspire SqlClient component supports [Microsoft.Extensions.Configuration](htt
 
 ### Use inline delegates
 
-Also you can pass the `Action<MicrosoftDataSqlClientSettings> configureSettings` delegate to set up some or all the options inline, for example to use a connection string from code:
+Also you can pass the `Action<MicrosoftDataSqlClientSettings> configureSettings` delegate to set up some or all the options inline, for example to disable health checks from code:
 
 ```cs
-    builder.AddSqlServerClient(configureSettings: settings => settings.ConnectionString = "Data Source=myserver;Initial Catalog=master");
+    builder.AddSqlServerClient("sqldata", settings => settings.HealthChecks = false);
 ```
 
-## DevHost Extensions
+## AppHost Extensions
 
-In your DevHost project, register a SqlServer container and consume the connection using the following methods:
+In your AppHost project, register a SqlServer container and consume the connection using the following methods:
 
 ```cs
-var sql = builder.AddSqlServerContainer("sqldata");
+var sql = builder.AddSqlServerContainer("sql").AddDatabase("sqldata");
 
-var myService = builder.AddProject<YourApp.Projects.MyService>()
-                       .WithSqlServer(sql, "master");
+var myService = builder.AddProject<Projects.MyService>()
+                       .WithReference(sql);
 ```
 
-`.WithSqlServer` configures a connection in the `MyService` project named `sqldata`. In the `Program.cs` file of `MyService`, the sql connection can be consumed using:
+`.WithReference` configures a connection in the `MyService` project named `sqldata`. In the `Program.cs` file of `MyService`, the sql connection can be consumed using:
 
 ```cs
 builder.AddSqlServerClient("sqldata");
@@ -108,8 +107,8 @@ builder.AddSqlServerClient("sqldata");
 
 * https://learn.microsoft.com/dotnet/framework/data/adonet/sql/
 * https://learn.microsoft.com/dotnet/api/system.data.sqlclient.sqlconnection
-* https://github.com/dotnet/astra/tree/main/src/Components/README.md
+* https://github.com/dotnet/aspire/tree/main/src/Components/README.md
 
 ## Feedback & Contributing
 
-https://github.com/dotnet/astra
+https://github.com/dotnet/aspire

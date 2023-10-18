@@ -22,7 +22,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
     public IServiceCollection Services => _innerBuilder.Services;
 
-    public IDistributedApplicationComponentCollection Components { get; } = new DistributedApplicationComponentCollection();
+    public IDistributedApplicationResourceCollection Resources { get; } = new DistributedApplicationResourceCollection();
 
     public DistributedApplicationBuilder(string[] args)
     {
@@ -30,7 +30,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder = new HostApplicationBuilder();
 
         // Core things
-        _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Components));
+        _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Resources));
         _innerBuilder.Services.AddHostedService<DistributedApplicationRunner>();
 
         // DCP stuff
@@ -40,6 +40,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         // Publishing support
         ConfigurePublishingOptions(args);
+        _innerBuilder.Services.AddLifecycleHook<AutomaticManifestPublisherBindingInjectionHook>();
         _innerBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, ManifestPublisher>("manifest");
         _innerBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, DcpPublisher>("dcp");
     }
@@ -70,24 +71,23 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         
     }
 
-    public Dictionary<IDistributedApplicationComponent, object> componentBuilders = new();
+    public Dictionary<IDistributedApplicationResource, object> resourceBuilders = new();
 
-    public IDistributedApplicationComponentBuilder<T> AddComponent<T>(T component) where T : IDistributedApplicationComponent
+    public IDistributedApplicationResourceBuilder<T> AddResource<T>(T resource) where T : IDistributedApplicationResource
     {
         // NOTE: This method is designed to be idempotent. Occasionally libraries will need to
-        //       get access to a pre-existing builder that is wrapping a component. We store
-        //       references to all the builders we create so that if someone calls add component
-        //       on a component that is already in the model we return the existing builder.
-        if (componentBuilders.TryGetValue(component, out var existingBuilder))
+        //       get access to a pre-existing builder that is wrapping a resource. We store
+        //       references to all the builders we create so that if someone calls add resource
+        //       on a resource that is already in the model we return the existing builder.
+        if (resourceBuilders.TryGetValue(resource, out var existingBuilder))
         {
-            return (IDistributedApplicationComponentBuilder<T>)existingBuilder;
+            return (IDistributedApplicationResourceBuilder<T>)existingBuilder;
         }
         else
         {
-            Components.Add(component);
-            var builder = new DistributedApplicationComponentBuilder<T>(this, component);
-            builder.WithName(component.Name); // TODO: Remove when fully transitioned Name away from annotation.
-            componentBuilders.Add(component, builder);
+            Resources.Add(resource);
+            var builder = new DistributedApplicationResourceBuilder<T>(this, resource);
+            resourceBuilders.Add(resource, builder);
             return builder;
         }
     }

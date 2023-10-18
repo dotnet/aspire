@@ -19,6 +19,7 @@ public abstract class CustomResource : KubernetesObject, IMetadata<V1ObjectMeta>
 {
     public static readonly string ServiceProducerAnnotation = "service-producer";
     public static readonly string ServiceConsumerAnnotation = "service-consumer";
+    public static readonly string UriSchemeAnnotation = "uri-scheme";
 
     [JsonPropertyName("metadata")]
     public V1ObjectMeta Metadata { get; set; } = new V1ObjectMeta();
@@ -135,7 +136,7 @@ public class ServiceProducerAnnotation
     {
         if (obj is null || obj is not ServiceProducerAnnotation) { return false; }
 
-        ServiceProducerAnnotation other = (ServiceProducerAnnotation)obj;
+        var other = (ServiceProducerAnnotation)obj;
 
         if (!string.Equals(ServiceName, other.ServiceName, StringComparison.Ordinal)) { return false; }
 
@@ -152,6 +153,8 @@ public class ServiceProducerAnnotation
         return HashCode.Combine(ServiceName, Address, Port);
     }
 }
+
+public sealed record NamespacedName(string Name, string? Namespace);
 
 public static class Rules
 {

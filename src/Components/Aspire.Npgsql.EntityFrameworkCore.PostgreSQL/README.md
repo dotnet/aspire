@@ -18,13 +18,13 @@ dotnet add package Aspire.Npgsql.EntityFrameworkCore.PostgreSQL
 
 ## Usage Example
 
-In the `Program.cs` file of your project, call the `AddNpgsqlDbContext` extension method to register a `DbContext` for use via the dependency injection container.
+In the `Program.cs` file of your project, call the `AddNpgsqlDbContext` extension method to register a `DbContext` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```cs
-builder.AddNpgsqlDbContext<MyDbContext>();
+builder.AddNpgsqlDbContext<MyDbContext>("postgresdb");
 ```
 
-You can then retrieve the `MyDbContext` instance using dependency injection. For example, to retrieve the cache from a Web API controller:
+You can then retrieve the `MyDbContext` instance using dependency injection. For example, to retrieve the context from a Web API controller:
 
 ```cs
 private readonly MyDbContext _context;
@@ -61,7 +61,7 @@ See the [ConnectionString documentation](https://www.npgsql.org/doc/connection-s
 
 ### Use configuration providers
 
-The Aspire PostgreSQL EntityFrameworkCore Npgsql component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `NpgsqlEntityFrameworkCorePostgreSQLSettings` from configuration by using the `:Npgsql:EntityFrameworkCore:PostgreSQL` key. Example `appsettings.json` that configures some of the options:
+The Aspire PostgreSQL EntityFrameworkCore Npgsql component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `NpgsqlEntityFrameworkCorePostgreSQLSettings` from configuration by using the `Aspire:Npgsql:EntityFrameworkCore:PostgreSQL` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {
@@ -69,7 +69,6 @@ The Aspire PostgreSQL EntityFrameworkCore Npgsql component supports [Microsoft.E
     "Npgsql": {
       "EntityFrameworkCore": {
         "PostgreSQL": {
-          "ConnectionString": "Host=myserver;Database=test",
           "DbContextPooling": true,
           "HealthChecks": false,
           "Tracing": false
@@ -82,24 +81,24 @@ The Aspire PostgreSQL EntityFrameworkCore Npgsql component supports [Microsoft.E
 
 ### Use inline delegates
 
-Also you can pass the `Action<NpgsqlEntityFrameworkCorePostgreSQLSettings> configureSettings` delegate to set up some or all the options inline, for example to use a connection string from code:
+Also you can pass the `Action<NpgsqlEntityFrameworkCorePostgreSQLSettings> configureSettings` delegate to set up some or all the options inline, for example to disable health checks from code:
 
 ```cs
-    builder.AddNpgsqlDbContext<MyDbContext>(configureSettings: settings => settings.ConnectionString = "Host=myserver;Database=test");
+    builder.AddNpgsqlDbContext<MyDbContext>("postgresdb", settings => settings.HealthChecks = false);
 ```
 
-## DevHost Extensions
+## AppHost Extensions
 
-In your DevHost project, register a Postgres container and consume the connection using the following methods:
+In your AppHost project, register a Postgres container and consume the connection using the following methods:
 
 ```cs
-var postgres = builder.AddPostgresContainer("postgresdb");
+var postgresdb = builder.AddPostgresContainer("pg").AddDatabase("postgresdb");
 
-var myService = builder.AddProject<YourApp.Projects.MyService>()
-                       .WithPostgresDatabase(postgres, databaseName: "test")
+var myService = builder.AddProject<Projects.MyService>()
+                       .WithReference(postgresdb);
 ```
 
-`.WithPostgresDatabase` configures a connection in the `MyService` project named `postgresdb`. In the `Program.cs` file of `MyService`, the database connection can be consumed using:
+`.WithReference` configures a connection in the `MyService` project named `postgresdb`. In the `Program.cs` file of `MyService`, the database connection can be consumed using:
 
 ```cs
 builder.AddNpgsqlDbContext<MyDbContext>("postgresdb");
@@ -108,8 +107,8 @@ builder.AddNpgsqlDbContext<MyDbContext>("postgresdb");
 ## Additional documentation
 
 * https://learn.microsoft.com/ef/core/
-* https://github.com/dotnet/astra/tree/main/src/Components/README.md
+* https://github.com/dotnet/aspire/tree/main/src/Components/README.md
 
 ## Feedback & Contributing
 
-https://github.com/dotnet/astra
+https://github.com/dotnet/aspire

@@ -2,12 +2,9 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Http.Resilience;
 using Microsoft.Extensions.Logging;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
-using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 
 namespace Microsoft.Extensions.Hosting;
@@ -24,11 +21,11 @@ public static class Extensions
 
         builder.Services.ConfigureHttpClientDefaults(http =>
         {
-            // Turn on service discovery by default
-            http.UseServiceDiscovery();
-
             // Turn on resilience by default
             http.AddStandardResilienceHandler();
+
+            // Turn on service discovery by default
+            http.UseServiceDiscovery();
         });
 
         return builder;
@@ -42,18 +39,20 @@ public static class Extensions
             logging.IncludeScopes = true;
         });
 
-        var serviceInstanceId = Guid.NewGuid().ToString();
-
         builder.Services.AddOpenTelemetry()
-            .ConfigureResource(resourceBuilder => resourceBuilder.AddService(builder.Environment.ApplicationName, serviceInstanceId: serviceInstanceId))
             .WithMetrics(metrics =>
             {
                 metrics.AddRuntimeInstrumentation()
-                       .AddHttpClientInstrumentation()
-                       .AddAspNetCore8Instrumentation();
+                       .AddBuiltInMeters();
             })
             .WithTracing(tracing =>
             {
+                if (builder.Environment.IsDevelopment())
+                {
+                    // We want to view all traces in development
+                    tracing.SetSampler(new AlwaysOnSampler());
+                }
+
                 tracing.AddAspNetCoreInstrumentation()
                        .AddGrpcClientInstrumentation()
                        .AddHttpClientInstrumentation();
@@ -112,9 +111,9 @@ public static class Extensions
         return app;
     }
 
-    private static MeterProviderBuilder AddAspNetCore8Instrumentation(this MeterProviderBuilder meterProviderBuilder) =>
+    private static MeterProviderBuilder AddBuiltInMeters(this MeterProviderBuilder meterProviderBuilder) =>
         meterProviderBuilder
-            .AddMeter("Microsoft.AspNetCore.Hosting", "Microsoft.AspNetCore.Server.Kestrel")
+            .AddMeter("Microsoft.AspNetCore.Hosting", "Microsoft.AspNetCore.Server.Kestrel", "System.Net.Http")
             .AddView("http.server.request.duration",
                 new ExplicitBucketHistogramConfiguration
                 {

@@ -11,18 +11,18 @@ The Aspire distributed application model is comprised components which are typic
 ```csharp
 using Aspire.Hosting.Postgres;
 using Aspire.Hosting.Redis;
-using Projects = eShopLite.DevHost.Projects;
+using Projects = eShopLite.App.Projects;
 
-var builder = CloudApplication.CreateBuilder(args);
+var builder = DistributedApplication.CreateBuilder(args);
 
-var postgres = builder.AddPostgresContainer("postgres");
+var catalogDb = builder.AddPostgresContainer("postgres").AddDatabase("catalogdb");
 var redis = builder.AddRedisContainer("redis");
 
 var catalog = builder.AddProject<Projects.eShopLite_CatalogService>("catalogservice")
-    .WithPostgresDatabase(postgres, databaseName: "catalogdb");
+    .WithReference(catalogDb);
 
 var basket = builder.AddProject<Projects.eShopLite_BasketService>("basketservice")
-    .WithRedis(redis);
+    .WithReference(redis);
 
 builder.AddProject<Projects.eShopLite_Frontend>("frontend")
     .WithServiceReference(basket)
@@ -35,7 +35,7 @@ builder.AddContainer("prometheus", "prom/prometheus")
 builder.Build().Run();
 ```
 
-When ```dotnet publish``` is called on the DevHost project containing the code above the application model and dependency projects will be built and the devhost will be executed in a model which emits an ```aspire-manifest.json``` file in the build artifacts for the DevHost project. The manifest file for the above project would look like the following:
+When ```dotnet publish``` is called on the AppHost project containing the code above the application model and dependency projects will be built and the AppHost will be executed in a model which emits an ```aspire-manifest.json``` file in the build artifacts for the AppHost project. The manifest file for the above project would look like the following:
 
 ```json
 {
@@ -49,7 +49,7 @@ When ```dotnet publish``` is called on the DevHost project containing the code a
         },
         "catalogservice": {
             "type": "project.v1",
-            "projectPath": "[relative path to]\\eShopLite.BasketService.csproj",
+            "path": "[relative path to]\\eShopLite.BasketService.csproj",
             "env": {
                 "ConnectionStrings__postgres": "{postgres.connectionString}"
             },
@@ -64,7 +64,7 @@ When ```dotnet publish``` is called on the DevHost project containing the code a
         },
         "basketservice": {
             "type": "project.v1",
-            "projectPath": "[relative path to]\\eShopLite.BasketService.csproj",
+            "path": "[relative path to]\\eShopLite.BasketService.csproj",
             "env": {
                 "ConnectionStrings__redis": "{redis.connectionString}"
             },
@@ -79,7 +79,7 @@ When ```dotnet publish``` is called on the DevHost project containing the code a
         },
         "frontend": {
             "type": "project.v1",
-            "projectPath": "[relative path to]\\eShopLite.Frontend.csproj",
+            "path": "[relative path to]\\eShopLite.Frontend.csproj",
             "bindings": {
                 "https": { // Will end up being bound as external on port 443, container port inferred from container image.
                     "scheme": "https",

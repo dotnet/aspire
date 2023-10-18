@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using Azure.Core;
 using Azure.Core.Extensions;
 using Microsoft.Extensions.Azure;
@@ -16,7 +17,7 @@ internal abstract class AzureComponent<TSettings, TClient, TClientOptions>
     where TClient : class
     where TClientOptions : class
 {
-    protected virtual string[] ActivitySourceNames => new[] { $"{typeof(TClient).Namespace}.{typeof(TClient).Name}" };
+    protected virtual string[] ActivitySourceNames => new[] { $"{typeof(TClient).Namespace}.*" };
 
     // There would be no need for Get* methods if TSettings had a common base type or if it was implementing a shared interface.
     // TSettings is a public type and we don't have a shared package yet, but we may reconsider the approach in near future.
@@ -26,14 +27,10 @@ internal abstract class AzureComponent<TSettings, TClient, TClientOptions>
 
     protected abstract TokenCredential? GetTokenCredential(TSettings settings);
 
-    protected abstract void Validate(TSettings settings, string configurationSectionName);
-
-    protected abstract IAzureClientBuilder<TClient, TClientOptions> AddClient<TBuilder>(TBuilder azureFactoryBuilder, TSettings settings)
+    protected abstract IAzureClientBuilder<TClient, TClientOptions> AddClient<TBuilder>(TBuilder azureFactoryBuilder, TSettings settings, string connectionName, string configurationSectionName)
         where TBuilder : IAzureClientFactoryBuilder, IAzureClientFactoryBuilderWithCredential;
 
     protected abstract IHealthCheck CreateHealthCheck(TClient client, TSettings settings);
-
-    protected virtual void LoadCustomSettings(TSettings settings, IConfiguration rootConfiguration, string configurationSectionName) { }
 
     internal static string GetKeyedConfigurationSectionName(string key, string defaultConfigSectionName)
         => $"{defaultConfigSectionName}:{key}";
@@ -43,7 +40,8 @@ internal abstract class AzureComponent<TSettings, TClient, TClientOptions>
         string configurationSectionName,
         Action<TSettings>? configureSettings,
         Action<IAzureClientBuilder<TClient, TClientOptions>>? configureClientBuilder,
-        string? name)
+        string connectionName,
+        string? serviceKey)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
@@ -52,13 +50,16 @@ internal abstract class AzureComponent<TSettings, TClient, TClientOptions>
         var settings = new TSettings();
         configSection.Bind(settings);
 
-        LoadCustomSettings(settings, builder.Configuration, configurationSectionName);
+        Debug.Assert(settings is IConnectionStringSettings, $"The settings object should implement {nameof(IConnectionStringSettings)}.");
+        if (settings is IConnectionStringSettings csSettings &&
+            builder.Configuration.GetConnectionString(connectionName) is string connectionString)
+        {
+            csSettings.ParseConnectionString(connectionString);
+        }
 
         configureSettings?.Invoke(settings);
 
-        Validate(settings, configurationSectionName);
-
-        if (!string.IsNullOrEmpty(name))
+        if (!string.IsNullOrEmpty(serviceKey))
         {
             // When named client registration is used (.WithName), Microsoft.Extensions.Azure
             // TRIES to register a factory for given client type and later
@@ -72,7 +73,7 @@ internal abstract class AzureComponent<TSettings, TClient, TClientOptions>
 
         builder.Services.AddAzureClients(azureFactoryBuilder =>
         {
-            var secretClientBuilder = AddClient(azureFactoryBuilder, settings);
+            var secretClientBuilder = AddClient(azureFactoryBuilder, settings, connectionName, configurationSectionName);
 
             if (GetTokenCredential(settings) is { } credential)
             {
@@ -83,13 +84,13 @@ internal abstract class AzureComponent<TSettings, TClient, TClientOptions>
 
             configureClientBuilder?.Invoke(secretClientBuilder);
 
-            if (!string.IsNullOrEmpty(name))
+            if (!string.IsNullOrEmpty(serviceKey))
             {
                 // Set the name for the client registration.
-                secretClientBuilder.WithName(name);
+                secretClientBuilder.WithName(serviceKey);
 
                 // To resolve named clients IAzureClientFactory{TClient}.CreateClient needs to be used.
-                builder.Services.AddKeyedSingleton(name,
+                builder.Services.AddKeyedSingleton(serviceKey,
                     static (serviceProvider, serviceKey) => serviceProvider.GetRequiredService<IAzureClientFactory<TClient>>().CreateClient((string)serviceKey!));
             }
         });
@@ -100,15 +101,15 @@ internal abstract class AzureComponent<TSettings, TClient, TClientOptions>
 
             builder.Services.AddHealthChecks()
                 .Add(new HealthCheckRegistration(
-                   name is null ? namePrefix : $"{namePrefix}_{name}",
+                   serviceKey is null ? namePrefix : $"{namePrefix}_{serviceKey}",
                    serviceProvider =>
                    {
                        // From https://devblogs.microsoft.com/azure-sdk/lifetime-management-and-thread-safety-guarantees-of-azure-sdk-net-clients/:
                        // "The main rule of Azure SDK client lifetime management is: treat clients as singletons".
                        // So it's fine to root the client via the health check.
-                       TClient client = name is null
+                       TClient client = serviceKey is null
                             ? serviceProvider.GetRequiredService<TClient>()
-                            : serviceProvider.GetRequiredKeyedService<TClient>(name);
+                            : serviceProvider.GetRequiredKeyedService<TClient>(serviceKey);
 
                        return CreateHealthCheck(client, settings);
                    },
@@ -123,4 +124,9 @@ internal abstract class AzureComponent<TSettings, TClient, TClientOptions>
                 .WithTracing(traceBuilder => traceBuilder.AddSource(ActivitySourceNames));
         }
     }
+}
+
+internal interface IConnectionStringSettings
+{
+    void ParseConnectionString(string? connectionString);
 }

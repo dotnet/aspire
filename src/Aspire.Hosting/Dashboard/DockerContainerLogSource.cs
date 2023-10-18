@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading.Channels;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.Dcp.Process;
@@ -10,13 +9,59 @@ using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.Dashboard;
 
-internal sealed class DockerContainerLogSource : IContainerLogSource
+internal sealed class DockerContainerLogSource(string containerId) : ILogSource
 {
-    public string? ContainerID { get; init; }
+    private readonly string _containerId = containerId;
+    private DockerContainerLogWatcher? _containerLogWatcher;
 
-    public IContainerLogWatcher GetWatcher() => new DockerContainerLogWatcher(ContainerID);
+    public async ValueTask<bool> StartAsync(CancellationToken cancellationToken)
+    {
+        if (_containerLogWatcher is not null)
+        {
+            return true;
+        }
 
-    internal sealed class DockerContainerLogWatcher(string? containerID) : IContainerLogWatcher
+        _containerLogWatcher = new DockerContainerLogWatcher(_containerId);
+        var watcherInitialized = await _containerLogWatcher.InitWatchAsync(cancellationToken).ConfigureAwait(false);
+        if (!watcherInitialized)
+        {
+            await _containerLogWatcher.DisposeAsync().ConfigureAwait(false);
+        }
+        return watcherInitialized;
+    }
+
+    public async IAsyncEnumerable<string[]> WatchOutputLogAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        if (_containerLogWatcher is not null)
+        {
+            await foreach (var logs in _containerLogWatcher!.WatchOutputLogsAsync(cancellationToken).ConfigureAwait(false))
+            {
+                yield return logs;
+            }
+        }
+    }
+
+    public async IAsyncEnumerable<string[]> WatchErrorLogAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        if (_containerLogWatcher is not null)
+        {
+            await foreach (var logs in _containerLogWatcher!.WatchErrorLogsAsync(cancellationToken).ConfigureAwait(false))
+            {
+                yield return logs;
+            }
+        }
+    }
+
+    public async ValueTask StopAsync(CancellationToken cancellationToken = default)
+    {
+        if (_containerLogWatcher is not null)
+        {
+            await _containerLogWatcher.DisposeAsync().ConfigureAwait(false);
+            _containerLogWatcher = null;
+        }
+    }
+
+    private sealed class DockerContainerLogWatcher(string? containerId) : IAsyncDisposable
     {
         private const string Executable = "docker";
 
@@ -27,7 +72,7 @@ internal sealed class DockerContainerLogSource : IContainerLogSource
 
         public async Task<bool> InitWatchAsync(CancellationToken cancellationToken)
         {
-            if (string.IsNullOrWhiteSpace(containerID))
+            if (string.IsNullOrWhiteSpace(containerId))
             {
                 return false;
             }
@@ -36,8 +81,7 @@ internal sealed class DockerContainerLogSource : IContainerLogSource
 
             try
             {
-                var args = $"logs --follow -t {containerID}";
-                var output = new StringBuilder();
+                var args = $"logs --follow -t {containerId}";
 
                 var spec = new ProcessSpec(FileUtil.FindFullPathFromPath(Executable))
                 {
@@ -101,7 +145,7 @@ internal sealed class DockerContainerLogSource : IContainerLogSource
                         var processResult = processResultTask.Result;
                         await _outputChannel.Writer.WriteAsync($"Process exited with code {processResult.ExitCode}", cancellationToken).ConfigureAwait(false);
                     }
-                    
+
                     _outputChannel.Writer.Complete();
                     _errorChannel.Writer.Complete();
 
@@ -118,7 +162,7 @@ internal sealed class DockerContainerLogSource : IContainerLogSource
         {
             while (!cancellationToken.IsCancellationRequested)
             {
-                List<string> currentLogs = new();
+                List<string> currentLogs = [];
 
                 // Wait until there's something to read
                 if (await _outputChannel.Reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false))
@@ -147,7 +191,7 @@ internal sealed class DockerContainerLogSource : IContainerLogSource
         {
             while (!cancellationToken.IsCancellationRequested)
             {
-                List<string> currentLogs = new();
+                List<string> currentLogs = [];
 
                 // Wait until there's something to read
                 if (await _errorChannel.Reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false))

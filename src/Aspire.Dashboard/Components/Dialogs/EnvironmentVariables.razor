@@ -1,20 +1,30 @@
 ﻿@using Aspire.Dashboard.Model
-@implements IDialogContentComponent<List<EnvironmentVariableViewModel>>
+@implements IDialogContentComponent<EnvironmentVariablesDialogViewModel>
 @inject IJSRuntime JS
 
 <FluentDialogBody>
     <div class="GridContainer">
         <FluentStack Orientation="Orientation.Vertical">
             <FluentToolbar Orientation="Orientation.Horizontal">
+                @if (Content?.ShowSpecOnlyToggle == true)
+                {
+                    <FluentButton Appearance="Appearance.Lightweight"
+                                  IconEnd="@(_showAll ? _showSpecOnlyIcon : _showAllIcon)"
+                                  Title="@(_showAll ? "Show Spec Only" : "Show All")"
+                                  aria-label="@(_showAll ? "Show Spec Only" : "Show All")"
+                                  OnClick="() => _showAll = !_showAll"
+                                  slot="end" />
+                }
                 <FluentButton Appearance="Appearance.Lightweight"
-                              IconEnd="@(defaultMasked ? unmaskIcon : maskIcon)"
-                              Title="@(defaultMasked ? "Show Values" : "Hide Values")"
+                              IconEnd="@(_defaultMasked ? _unmaskIcon : _maskIcon)"
+                              Title="@(_defaultMasked ? "Show Values" : "Hide Values")"
+                              aria-label="@(_defaultMasked ? "Show Values" : "Hide Values")"
                               OnClick="ToggleMaskState"
                               slot="end" />
                 <FluentSearch Placeholder="Filter..."
                               Immediate="true"
                               Autofocus="true"
-                              @bind-Value="filter"
+                              @bind-Value="_filter"
                               @oninput="HandleFilter"
                               AfterBindValue="HandleClear"
                               slot="end" />
@@ -22,11 +32,12 @@
             <FluentDataGrid Items="@FilteredItems"
                             ResizableColumns="true"
                             Style="width:100%"
-                            GenerateHeader="GenerateHeaderOption.Sticky">
-                <TemplateColumn Title="Name" Class="nameColumn" SortBy="@nameSort" Sortable="true">
+                            GenerateHeader="GenerateHeaderOption.Sticky"
+                            GridTemplateColumns="1fr 1fr">
+                <TemplateColumn Title="Name" Class="nameColumn" SortBy="@_nameSort" Sortable="true" Tooltip="true" >
                     <FluentStack Orientation="Orientation.Horizontal">
-                        <span class="cellText">
-                            <FluentHighlighter HighlightedText="@filter"
+                        <span class="cellText" title="@context.Name">
+                            <FluentHighlighter HighlightedText="@_filter"
                                                Text="@context.Name" />
                         </span>
                         @{
@@ -37,11 +48,11 @@
                                       IconEnd="@(new Icons.Regular.Size16.Copy())"
                                       Class="defaultHidden"
                                       @onclick="@(() => CopyTextToClipboardAsync(context.Name, @anchor))" />
-                        <FluentTooltip Anchor="@anchor" Position="TooltipPosition.Top">@preCopyText</FluentTooltip>
+                        <FluentTooltip Anchor="@anchor" Position="TooltipPosition.Top">@PreCopyText</FluentTooltip>
                     </FluentStack>
                 </TemplateColumn>
-                <TemplateColumn Title="Value" Class="valueColumn" SortBy="@valueSort" Sortable="true">
-                    <FluentStack Orientation="Orientation.Horizontal">
+                <TemplateColumn Title="Value" Class="valueColumn" SortBy="@_valueSort" Sortable="true">
+                    <FluentStack Orientation="Orientation.Horizontal" Width="400px;">
                         @if (context.IsValueMasked)
                         {
                             <span class="cellText">
@@ -50,15 +61,16 @@
                         }
                         else
                         {
-                            <span class="cellText">
-                                <FluentHighlighter HighlightedText="@filter"
+                            <span class="cellText" title="@context.Value">
+                                <FluentHighlighter HighlightedText="@_filter"
                                                    Text="@context.Value" />
                             </span>
                         }
                         <FluentButton Appearance="Appearance.Lightweight"
-                                      IconEnd="@(context.IsValueMasked ? unmaskIcon : maskIcon)"
+                                      IconEnd="@(context.IsValueMasked ? _unmaskIcon : _maskIcon)"
                                       Title="@(context.IsValueMasked ? "Show Value" : "Hide Value")"
-                                      OnClick="() => ToggleMaskState(context)" />
+                                      OnClick="() => ToggleMaskState(context)"
+                                      aria-label="@(context.IsValueMasked ? "Show Value" : "Hide Value")" />
                         @{
                             var anchor = "copy-" + context.Name;
                         }
@@ -66,8 +78,9 @@
                                       Id="@anchor"
                                       IconEnd="@(new Icons.Regular.Size16.Copy())"
                                       Class="defaultHidden"
-                                      @onclick="@(() => CopyTextToClipboardAsync(context.Value, @anchor))" />
-                        <FluentTooltip Anchor="@anchor" Position="TooltipPosition.Top">@preCopyText</FluentTooltip>
+                                      @onclick="@(() => CopyTextToClipboardAsync(context.Value, @anchor))"
+                                      aria-label="Copy to Clipboard" />
+                        <FluentTooltip Anchor="@anchor" Position="TooltipPosition.Top">@PreCopyText</FluentTooltip>
                     </FluentStack>
                 </TemplateColumn>
             </FluentDataGrid>
@@ -75,88 +88,3 @@
 
     </div>
 </FluentDialogBody>
-
-@code {
-
-    [Parameter]
-    public List<EnvironmentVariableViewModel>? Content { get; set; }
-
-    private IQueryable<EnvironmentVariableViewModel>? FilteredItems =>
-        Content?.Where(vm =>
-            vm.Name.Contains(filter, StringComparison.CurrentCultureIgnoreCase) ||
-            vm.Value?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true
-        )?.AsQueryable();
-
-    private const string preCopyText = "Copy to clipboard";
-    private const string postCopyText = "Copied!";
-
-    private string filter = "";
-    private bool defaultMasked = true;
-
-    private Icon maskIcon = new Icons.Regular.Size16.EyeOff();
-    private Icon unmaskIcon = new Icons.Regular.Size16.Eye();
-
-    private GridSort<EnvironmentVariableViewModel> nameSort = GridSort<EnvironmentVariableViewModel>
-        .ByAscending(vm => vm.Name);
-    private GridSort<EnvironmentVariableViewModel> valueSort = GridSort<EnvironmentVariableViewModel>
-        .ByAscending(vm => vm.Value);
-
-    private void ToggleMaskState()
-    {
-        defaultMasked = !defaultMasked;
-        if (Content is not null)
-        {
-            foreach (var vm in Content)
-            {
-                vm.IsValueMasked = defaultMasked;
-            }
-        }
-    }
-
-    private void ToggleMaskState(EnvironmentVariableViewModel vm)
-    {
-        vm.IsValueMasked = !vm.IsValueMasked;
-        CheckAllMaskStates();
-    }
-
-    private void HandleFilter(ChangeEventArgs args)
-    {
-        if (args.Value is string newFilter)
-        {
-            filter = newFilter;
-        }
-    }
-
-    private void HandleClear(string? value)
-    {
-        filter = value ?? string.Empty;
-    }
-
-    private void CheckAllMaskStates()
-    {
-        if (Content is not null)
-        {
-            bool foundMasked = false;
-            bool foundUnmasked = false;
-            foreach (var vm in Content)
-            {
-                foundMasked |= vm.IsValueMasked;
-                foundUnmasked |= !vm.IsValueMasked;
-            }
-
-            if (!foundMasked && foundUnmasked)
-            {
-                defaultMasked = false;
-            }
-            else if (foundMasked && !foundUnmasked)
-            {
-                defaultMasked = true;
-            }
-        }
-    }
-
-    private async Task CopyTextToClipboardAsync(string? text, string id)
-    {
-        await JS.InvokeVoidAsync("copyTextToClipboard", id, text, preCopyText, postCopyText);
-    }
-}

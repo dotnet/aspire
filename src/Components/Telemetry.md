@@ -5,7 +5,7 @@ Aspire.Azure.Data.Tables:
   - "Azure.Core"
   - "Azure.Identity"
 - Activity source names:
-  - "Azure.Data.Tables.TableServiceClient"
+  - "Azure.Data.Tables.*"
 - Metric names:
   - none (currently not supported by the Azure SDK)
 
@@ -15,10 +15,8 @@ Aspire.Azure.Messaging.ServiceBus:
   - "Azure.Identity"
   - "Azure.Messaging.ServiceBus"
 - Activity source names:
+  - "Azure.Messaging.ServiceBus.*"
   - "Azure.Messaging.ServiceBus"
-  - "Azure.Messaging.ServiceBus.ServiceBusProcessor"
-  - "Azure.Messaging.ServiceBus.ServiceBusReceiver"
-  - "Azure.Messaging.ServiceBus.ServiceBusSender"
 - Metric names:
   - none (currently not supported by the Azure SDK)
 
@@ -27,7 +25,7 @@ Aspire.Azure.Security.KeyVault:
   - "Azure.Core"
   - "Azure.Identity"
 - Activity source names:
-  - "Azure.Security.KeyVault.Secrets.SecretClient"
+  - "Azure.Security.KeyVault.Secrets.*"
 - Metric names:
   - none (currently not supported by the Azure SDK)
 
@@ -36,7 +34,7 @@ Aspire.Azure.Storage.Blobs:
   - "Azure.Core"
   - "Azure.Identity"
 - Activity source names:
-  - "Azure.Storage.Blobs.BlobContainerClient"
+  - "Azure.Storage.Blobs.*"
 - Metric names:
   - none (currently not supported by the Azure SDK)
 
@@ -45,7 +43,7 @@ Aspire.Azure.Storage.Queues:
   - "Azure.Core"
   - "Azure.Identity"
 - Activity source names:
-  - "Azure.Storage.Queues.QueueClient"
+  - "Azure.Storage.Queues.*"
 - Metric names:
   - none (currently not supported by the Azure SDK)
 

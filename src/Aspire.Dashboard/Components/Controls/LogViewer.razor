@@ -1,6 +1,8 @@
 ﻿@namespace Aspire.Dashboard.Components
 @using System.Text
+@using Aspire.Dashboard.ConsoleLogs
 @using Aspire.Dashboard.Model
+@using System.Collections.Concurrent
 @inject IJSRuntime JS
 @implements IAsyncDisposable
 
@@ -9,110 +11,3 @@
         
     </div>
 </div>
-
-@code {
-    private List<IEnumerable<LogEntry>> _preRenderQueue = new();
-
-    bool renderComplete = false;
-
-    private IJSObjectReference? _jsModule;
-
-    internal async Task ClearLogsAsync(CancellationToken cancellationToken = default)
-    {
-        if (_jsModule is not null)
-        {
-            await _jsModule.InvokeVoidAsync("clearLogs", cancellationToken);
-        }
-    }
-
-    internal Task AddLogEntryAsync(LogEntry logEntry)
-        => WriteLogsAsync(new[] { logEntry });
-
-    internal Task AddLogEntriesAsync(IEnumerable<LogEntry> logEntries)
-        => WriteLogsAsync(logEntries);
-
-    private ValueTask WriteLogsToDomAsync(IEnumerable<LogEntry> logs)
-        => _jsModule is null ? ValueTask.CompletedTask : _jsModule.InvokeVoidAsync("addLogEntries", logs);
-
-    internal async Task WatchLogsAsync(Func<IAsyncEnumerable<string[]>> watchMethod, LogEntryType logEntryType)
-    {
-        string? parentTimestamp = null;
-        Guid? parentId = null;
-        int lineIndex = 0;
-
-        await foreach (var logs in watchMethod())
-        {
-            var logEntries = new List<LogEntry>(logs.Length);
-            foreach (var log in logs)
-            {
-                var logEntry = LogEntry.Create(log, logEntryType);
-                if (logEntry.IsFirstLine)
-                {
-                    parentTimestamp = logEntry.Timestamp;
-                    parentId = logEntry.Id;
-                    lineIndex = 0;
-                }
-                else if (parentId.HasValue)
-                {
-                    logEntry.ParentTimestamp = parentTimestamp;
-                    logEntry.ParentId = parentId;
-                    logEntry.LineIndex = ++lineIndex;
-                }
-                logEntries.Add(logEntry);
-            }
-
-            await AddLogEntriesAsync(logEntries);
-        }
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            _jsModule ??= await JS.InvokeAsync<IJSObjectReference>("import", "/_content/Aspire.Dashboard/Components/Controls/LogViewer.razor.js");
-
-            if (_preRenderQueue.Count > 0)
-            {
-                await WritePreRenderQueueAsync();
-            }
-            renderComplete = true;
-        }
-
-        async Task WritePreRenderQueueAsync()
-        {
-            foreach (var logs in _preRenderQueue)
-            {
-                await WriteLogsToDomAsync(logs);
-            }
-            _preRenderQueue.Clear();
-        }
-    }
-
-    private async Task WriteLogsAsync(IEnumerable<LogEntry> logs)
-    {
-        if (renderComplete)
-        {
-            await WriteLogsToDomAsync(logs);
-        }
-        else
-        {
-            _preRenderQueue.Add(logs);
-        }
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        try
-        {
-            if (_jsModule is not null)
-            {
-                await _jsModule.DisposeAsync();
-            }
-        }
-        catch (JSDisconnectedException)
-        {
-            // Per https://learn.microsoft.com/en-us/aspnet/core/blazor/javascript-interoperability/?view=aspnetcore-7.0#javascript-interop-calls-without-a-circuit
-            // this is one of the calls that will fail if the circuit is disconnected, and we just need to catch the exception so it doesn't pollute the logs
-        }
-    }
-}

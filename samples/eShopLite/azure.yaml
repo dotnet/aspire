@@ -1,0 +1,9 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+
+name: Aspire
+hooks:
+  preprovision:
+    continueOnError: false
+    interactive: false
+    run: dotnet run --project AppHost\AppHost.csproj -- --target azure --output-path .\infra\eshoplite
+    shell: pwsh

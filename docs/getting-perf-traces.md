@@ -6,7 +6,7 @@ Collect the trace using PerfView (https://github.com/microsoft/perfview/releases
 1. If you do not intend to share the trace with anyone, uncheck the "Zip" and "Merge" option.
 1. Increase Circular MB to 8192.
 1. Check the "Thread Time" checkbox.
-1. Expand Advanced Options panel and make sure you have Kernel Base, Cpu Samples, File I/O, and .NET options checked.
+1. Expand Advanced Options panel and make sure you have Kernel Base, Cpu Samples, File I/O, .NET, and Task (TPL) options checked.
 1. In "Additional Providers" add `*Microsoft-Aspire-Hosting` (note the asterisk before the Aspire provider name!).
 
 Once you are ready, git "Start Collection" button and run your scenario.

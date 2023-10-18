@@ -6,7 +6,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Aspire.Hosting\Aspire.Hosting.csproj" />
-    <ProjectReference Include="..\testproject\TestProject.DevHost\TestProject.DevHost.csproj" />
+    <ProjectReference Include="..\testproject\TestProject.AppHost\TestProject.AppHost.csproj" />
   </ItemGroup>
 
 </Project>

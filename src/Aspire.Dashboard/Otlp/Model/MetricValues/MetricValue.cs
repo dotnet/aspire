@@ -13,4 +13,9 @@ public class MetricValue<T> : MetricValueBase where T : struct
     }
 
     public override string? ToString() => Value.ToString();
+
+    protected override MetricValueBase Clone()
+    {
+        return new MetricValue<T>(Value, Start, End);
+    }
 }

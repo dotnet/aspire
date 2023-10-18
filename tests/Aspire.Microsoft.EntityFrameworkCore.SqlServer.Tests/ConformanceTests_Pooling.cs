@@ -70,7 +70,7 @@ public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, Microsof
         });
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<MicrosoftEntityFrameworkCoreSqlServerSettings>? configure = null, string? key = null)
-        => builder.AddSqlServerDbContext<TestDbContext>(configureSettings: configure);
+        => builder.AddSqlServerDbContext<TestDbContext>("sqlconnection", configure);
 
     protected override void SetHealthCheck(MicrosoftEntityFrameworkCoreSqlServerSettings options, bool enabled)
         => options.HealthChecks = enabled;

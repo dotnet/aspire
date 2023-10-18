@@ -1,209 +1,27 @@
-﻿@page "/ContainerLogs/{containerID?}"
+﻿@page "/ContainerLogs/{containername?}"
 @using Aspire.Dashboard.Model
-@inject IDashboardViewModelService DashboardViewModelService
-@inject IJSRuntime JS
-@inject NavigationManager NavigationManager
-@implements IAsyncDisposable
+@inherits ResourceLogsBase<ContainerViewModel>
 
-<PageTitle>Microsoft.Aspire Container Logs</PageTitle>
+@{
+    base.BuildRenderTree(__builder);
+}
 
-<h1>Container Logs</h1>
-
-<div>
-    <FluentStack Orientation="Orientation.Vertical">
-        <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
-            <FluentSelect TOption="ContainerViewModel"
-                            Items="@Containers"
-                            OptionValue="@(c => c.ContainerID)"
-                            OptionText="GetContainerDisplayText"
-                            @bind-SelectedOption="_selectedContainer"
-                            @bind-SelectedOption:after="HandleSelectedOptionChangedAsync" />
-            <FluentLabel Typo="Typography.Body">@_status</FluentLabel>
-        </FluentStack>
-        <LogViewer @ref="_logViewer" />
-    </FluentStack>
-</div>
-
-    @code {
-
+@code {
     [Parameter]
-    public string? ContainerID { get; set; }
+    public string? ContainerName { get; set; }
 
-    private Dictionary<string, ContainerViewModel> _containerNameMapping = new();
-    private IEnumerable<ContainerViewModel> Containers => _containerNameMapping.Select(kvp => kvp.Value).OrderBy(c => c.Name);
-    private ContainerViewModel? _selectedContainer;
-    private LogViewer? _logViewer;
-    private CancellationTokenSource _watchContainersTokenSource = new CancellationTokenSource();
-    private CancellationTokenSource? _watchLogsTokenSource;
-    private IContainerLogWatcher? _currentWatcher;
-    private string _status = ContainerLogStatuses.Initializing;
+    protected override string? ResourceName => ContainerName;
+    protected override string ResourceType => "Container";
+    protected override string LoadingResourcesMessage => LogStatus.LoadingContainers;
+    protected override string NoResourceSelectedMessage => LogStatus.NoContainerSelected;
+    protected override string LogsNotAvailableMessage => LogStatus.FailedToInitialize;
+    protected override string UrlPrefix => "/ContainerLogs";
+    protected override string SelectResourceTitle => "Select a Container";
+    protected override bool ConvertTimestampsFromUtc => true;
 
-    protected override async Task OnInitializedAsync()
-    {
-        _status = ContainerLogStatuses.LoadingContainers;
+    protected override Task<List<ContainerViewModel>> GetResources(IDashboardViewModelService dashboardViewModelService)
+        => dashboardViewModelService.GetContainersAsync();
 
-        var initialList = await DashboardViewModelService.GetContainersAsync();
-
-        foreach (var result in initialList)
-        {
-            _containerNameMapping[result.ViewModel.Name] = result.ViewModel;
-        }
-
-        if (ContainerID is not null)
-        {
-            _selectedContainer = initialList?.FirstOrDefault(c => string.Equals(ContainerID, c.ViewModel.ContainerID, StringComparison.Ordinal))?.ViewModel;
-        }
-        else if (initialList?.Count > 0)
-        {
-            _selectedContainer = initialList[0].ViewModel;
-        }
-
-        await LoadLogsAsync();
-
-        _ = Task.Run(async () =>
-        {
-            await foreach (var componentChanged in DashboardViewModelService.WatchContainersAsync(existingContainers: initialList?.Select(t => t.Model), cancellationToken: _watchContainersTokenSource.Token))
-            {
-                await OnContainerListChanged(componentChanged.ObjectChangeType, componentChanged.Component);
-            }
-        });
-    }
-
-    private Task ClearLogsAsync()
-        => _logViewer is not null ? _logViewer.ClearLogsAsync() : Task.CompletedTask;
-
-    private async Task LoadLogsAsync()
-    {
-        if (_selectedContainer is null)
-        {
-            _status = ContainerLogStatuses.NoContainerSelected;
-        }
-        else if (_logViewer is null)
-        {
-            _status = ContainerLogStatuses.InitializingLogViewer;
-        }
-        else
-        {
-            _watchLogsTokenSource = new CancellationTokenSource();
-            _currentWatcher = _selectedContainer.LogSource.GetWatcher();
-
-            if (await _currentWatcher.InitWatchAsync(_watchLogsTokenSource.Token))
-            {
-                _ = Task.Run(async () =>
-                {
-                    await _logViewer.WatchLogsAsync(() => _currentWatcher.WatchOutputLogsAsync(_watchLogsTokenSource.Token), LogEntryType.Default);
-                });
-
-                _ = Task.Run(async () =>
-                {
-                    await _logViewer.WatchLogsAsync(() => _currentWatcher.WatchErrorLogsAsync(_watchLogsTokenSource.Token), LogEntryType.Error);
-                });
-
-                _status = ContainerLogStatuses.WatchingLogs;
-            }
-            else
-            {
-                _status = ContainerLogStatuses.FailedToInitialize;
-            }
-        }
-    }
-
-    private async Task HandleSelectedOptionChangedAsync()
-    {
-        if (_selectedContainer is not null)
-        {
-            // Change the URL
-            NavigationManager.NavigateTo($"/containerLogs/{_selectedContainer.ContainerID}");
-            await DisposeCurrentWatcher();
-            await DisposeWatchLogsTokenSource();
-            await ClearLogsAsync();
-            await LoadLogsAsync();
-        }
-    }
-
-    private async Task OnContainerListChanged(ObjectChangeType changeType, ContainerViewModel containerViewModel)
-    {
-        if (changeType == ObjectChangeType.Added)
-        {
-            _containerNameMapping[containerViewModel.Name] = containerViewModel;
-
-            if (_selectedContainer is null)
-            {
-                if (string.IsNullOrEmpty(ContainerID) || string.Equals(ContainerID, containerViewModel.ContainerID, StringComparison.Ordinal))
-                {
-                    _selectedContainer = containerViewModel;
-                    await LoadLogsAsync();
-                }
-            }
-        }
-        else if (changeType == ObjectChangeType.Modified)
-        {
-            _containerNameMapping[containerViewModel.Name] = containerViewModel;
-        }
-        else if (changeType == ObjectChangeType.Deleted)
-        {
-            _containerNameMapping.Remove(containerViewModel.Name);
-            if (string.Equals(_selectedContainer?.Name, containerViewModel.Name, StringComparison.Ordinal))
-            {
-                if (_containerNameMapping.Count > 0)
-                {
-                    _selectedContainer = Containers.First();
-                }
-            }
-        }
-
-        await InvokeAsync(StateHasChanged);
-    }
-
-    private static string GetContainerDisplayText(ContainerViewModel container)
-    {
-        string stateText = "";
-        if (string.IsNullOrEmpty(container.State))
-        {
-            stateText = " (Unknown State)";
-        }
-        else if (container.State != "Running")
-        {
-            stateText = $" ({container.State})";
-        }
-        return $"{container.Name}{stateText}";
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        await DisposeWatchContainersTokenSource();
-        await DisposeWatchLogsTokenSource();
-        await DisposeCurrentWatcher();
-    }
-
-    private ValueTask DisposeCurrentWatcher()
-        => _currentWatcher is null
-            ? ValueTask.CompletedTask
-            : _currentWatcher.DisposeAsync();
-
-    private async Task DisposeWatchContainersTokenSource()
-    {
-        await _watchContainersTokenSource.CancelAsync();
-        _watchContainersTokenSource.Dispose();
-    }
-
-    private async Task DisposeWatchLogsTokenSource()
-    {
-        if (_watchLogsTokenSource is not null)
-        {
-            await _watchLogsTokenSource.CancelAsync();
-            _watchLogsTokenSource.Dispose();
-            _watchLogsTokenSource = null;
-        }
-    }
-
-    private static class ContainerLogStatuses
-    {
-        public const string FailedToInitialize = "Failed to Initialize";
-        public const string Initializing = "Initializing...";
-        public const string InitializingLogViewer = "Initializing Log Viewer...";
-        public const string LoadingContainers = "Loading Containers...";
-        public const string NoContainerSelected = "No Container Selected";
-        public const string WatchingLogs = "Watching Logs...";
-    }
+    protected override IAsyncEnumerable<ResourceChanged<ContainerViewModel>> WatchResources(IDashboardViewModelService dashboardViewModelService, IEnumerable<NamespacedName>? initialList, CancellationToken cancellationToken)
+        => dashboardViewModelService.WatchContainersAsync(initialList, cancellationToken);
 }

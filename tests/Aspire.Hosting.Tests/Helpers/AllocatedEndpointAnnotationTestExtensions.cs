@@ -6,7 +6,7 @@ using Aspire.Hosting.ApplicationModel;
 namespace Aspire.Hosting.Tests.Helpers;
 public static class AllocatedEndpointAnnotationTestExtensions
 {
-    public static async Task<string> HttpGetPidAsync(this IDistributedApplicationComponentBuilder<ProjectComponent> builder, string bindingName, CancellationToken cancellationToken)
+    public static async Task<string> HttpGetPidAsync(this IDistributedApplicationResourceBuilder<ProjectResource> builder, string bindingName, CancellationToken cancellationToken)
     {
         var client = new HttpClient(new SocketsHttpHandler()
         {
@@ -19,7 +19,7 @@ public static class AllocatedEndpointAnnotationTestExtensions
             {
                 // We have to get the allocated endpoint each time through the loop
                 // because it may not be populated yet by the time we get here.
-                var allocatedEndpoint = builder.Component.Annotations.OfType<AllocatedEndpointAnnotation>().Single(a => a.Name == bindingName);
+                var allocatedEndpoint = builder.Resource.Annotations.OfType<AllocatedEndpointAnnotation>().Single(a => a.Name == bindingName);
                 var url = $"{allocatedEndpoint.UriString}/pid";
 
                 var response = await client.GetStringAsync(url, cancellationToken);

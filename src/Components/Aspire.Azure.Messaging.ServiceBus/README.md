@@ -17,9 +17,68 @@ Install the Aspire Azure Service Bus library with [NuGet][nuget]:
 dotnet add package Aspire.Azure.Messaging.ServiceBus
 ```
 
-## Usage example
+## Usage Example
 
-Call the `AddAzureServiceBus` extension method to add the `ServiceBusClient` with the desired configurations exposed with `AzureMessagingServiceBusSettings`. The library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureMessagingServiceBusSettings` from configuration by using `Aspire:Azure:Messaging:ServiceBus` key. Example `appsettings.json` that configures the `Namespace`, note that the `Namespace` or the `ConnectionString` is required to be set:
+In the `Program.cs` file of your project, call the `AddAzureServiceBus` extension method to register a `ServiceBusClient` for use via the dependency injection container. The method takes a connection name parameter.
+
+```cs
+builder.AddAzureServiceBus("sb");
+```
+
+You can then retrieve the `ServiceBusClient` instance using dependency injection. For example, to retrieve the client from a Web API controller:
+
+```cs
+private readonly ServiceBusClient _client;
+
+public ProductsController(ServiceBusClient client)
+{
+    _client = client;
+}
+```
+
+See the [Azure.Messaging.ServiceBus documentation](https://github.com/Azure/azure-sdk-for-net/blob/main/sdk/servicebus/Azure.Messaging.ServiceBus/README.md) for examples on using the `ServiceBusClient`.
+
+## Configuration
+
+The Aspire Azure Service Bus library provides multiple options to configure the Azure Service Bus connection based on the requirements and conventions of your project. Note that either a `Namespace` or a `ConnectionString` is a required to be supplied.
+
+### Use a connection string
+
+When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddAzureServiceBus()`:
+
+```cs
+builder.AddAzureServiceBus("serviceBusConnectionName");
+```
+
+And then the connection information will be retrieved from the `ConnectionStrings` configuration section. Two connection formats are supported:
+
+#### Fully Qualified Namespace
+
+The recommended approach is to use a fully qualified namespace, which works with the `AzureMessagingServiceBusSettings.Credential` property to establish a connection. If no credential is configured, the [DefaultAzureCredential](https://learn.microsoft.com/dotnet/api/azure.identity.defaultazurecredential) is used.
+
+```json
+{
+  "ConnectionStrings": {
+    "serviceBusConnectionName": "{your_namespace}.servicebus.windows.net"
+  }
+}
+```
+
+#### Connection String
+
+Alternatively, a connection string can be used.
+
+```json
+{
+  "ConnectionStrings": {
+    "serviceBusConnectionName": "Endpoint=sb://mynamespace.servicebus.windows.net/;SharedAccessKeyName=accesskeyname;SharedAccessKey=accesskey"
+  }
+}
+```
+
+### Use configuration providers
+
+The Aspire Azure Service Bus library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureMessagingServiceBusSettings` and `ServiceBusClientOptions` from configuration by using the `Aspire:Azure:Messaging:ServiceBus` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {
@@ -27,7 +86,8 @@ Call the `AddAzureServiceBus` extension method to add the `ServiceBusClient` wit
     "Azure": {
       "Messaging": {
         "ServiceBus": {
-          "Namespace": "YOUR_SERVICE_BUS_NAMESPACE",
+          "HealthChecks": false,
+          "Tracing": true,
           "ClientOptions": {
             "Identifier": "CLIENT_ID"
           }
@@ -38,82 +98,43 @@ Call the `AddAzureServiceBus` extension method to add the `ServiceBusClient` wit
 }
 ```
 
-If you have setup your configurations in the `Aspire.Azure.Messaging.ServiceBus` section you can just call the method without passing any parameter.
+### Use inline delegates
+
+You can also pass the `Action<AzureMessagingServiceBusSettings> configureSettings` delegate to set up some or all the options inline, for example to disable health checks from code:
 
 ```cs
-    builder.AddAzureServiceBus();
+    builder.AddAzureServiceBus("sb", settings => settings.HealthChecks = false);
 ```
 
-If you want to add more than one [ServiceBusClient](https://learn.microsoft.com/dotnet/api/azure.messaging.servicebus.servicebusclient) you could use named instances. The json configuration would look like: 
-
-```json
-{
-  "Aspire": {
-    "Azure": {
-      "Messaging": {
-        "ServiceBus": {
-          "INSTANCE_NAME": {
-            "Namespace": "YOUR_SERVICE_BUS_NAMESPACE",
-            "ClientOptions": {
-              "Identifier": "CLIENT_ID"
-            }
-          }
-        }
-      }
-    }
-  }
-}
-```
-
-To load the named configuration section from the json config call the `AddAzureServiceBus` method by passing the `INSTANCE_NAME`.
+You can also setup the [ServiceBusClientOptions](https://learn.microsoft.com/dotnet/api/azure.messaging.servicebus.servicebusclientoptions) using the optional `Action<IAzureClientBuilder<ServiceBusClient, ServiceBusClientOptions>> configureClientBuilder` parameter of the `AddAzureServiceBus` method. For example, to set the client ID for this client:
 
 ```cs
-    builder.AddAzureServiceBus("INSTANCE_NAME");
+    builder.AddAzureServiceBus("sb", configureClientBuilder: clientBuilder => clientBuilder.ConfigureOptions(options => options.Identifier = "CLIENT_ID"));
 ```
 
-Also you can pass the `Action<AzureMessagingServiceBusSettings>` delegate to set up some or all the options inline, for example to set the `Namespace`:
+## AppHost Extensions
+
+In your AppHost project, add a Service Bus connection and consume the connection using the following methods:
 
 ```cs
-    builder.AddAzureServiceBus(settings => settings.Namespace = "YOUR_SERVICE_BUS_NAMESPACE");
+var serviceBus = builder.AddAzureServiceBus("sb");
+
+var myService = builder.AddProject<Projects.MyService>()
+                       .WithReference(serviceBus);
 ```
 
-Here are the configurable options:
+`AddAzureServiceBus` will read connection information from the AppHost's configuration (for example, from "user secrets") under the `ConnectionStrings:sb` config key. `.WithReference` passes that connection information into a connection string named `sb` in the `MyService` project. In the `Program.cs` file of `MyService`, the connection can be consumed using:
 
 ```cs
-public sealed class AzureMessagingServiceBusSettings
-{
-    // The connection string used to connect to the Service Bus namespace. 
-    public string? ConnectionString { get; set; }
-
-    // The fully qualified Service Bus namespace. 
-    public string? Namespace { get; set; }
-
-    // The credential used to authenticate to the Service Bus namespace.
-    public TokenCredential? Credential { get; set; }
-
-    // Name of the queue used by the health check. Mandatory to get queue health check enabled.
-    public string? HealthCheckQueueName { get; set; }
-
-    // Name of the topic used by the health check. Mandatory to get topic health check enabled.
-    public string? HealthCheckTopicName { get; set; }
-
-    // Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.
-    public bool Tracing { get; set; }
-}
+builder.AddAzureServiceBus("sb");
 ```
-
-You can also setup the [ServiceBusClientOptions](https://learn.microsoft.com/dotnet/api/azure.messaging.servicebus.servicebusclientoptions) using `Action<IAzureClientBuilder<ServiceBusClient, ServiceBusClientOptions>>` delegate, the second parameter of the `AddAzureServiceBus` method. For example to set the `ServiceBusClient` ID to identify the client:
-
-```cs
-    builder.AddAzureServiceBus(null, clientBuilder => clientBuilder.ConfigureOptions(options => options.Identifier = "CLIENT_ID"));
-```
-
-After adding a `ServiceBusClient` to the builder you can get the `ServiceBusClient` instance using DI.
 
 ## Additional documentation
 
-https://github.com/dotnet/astra/tree/main/src/Components/README.md
+* https://github.com/Azure/azure-sdk-for-net/blob/main/sdk/servicebus/Azure.Messaging.ServiceBus/README.md
+* https://github.com/dotnet/aspire/tree/main/src/Components/README.md
 
 ## Feedback & Contributing
 
-https://github.com/dotnet/astra
+https://github.com/dotnet/aspire
+

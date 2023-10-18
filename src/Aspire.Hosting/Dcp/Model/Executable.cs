@@ -51,6 +51,9 @@ public class ExecutableStatus : V1Status
     [JsonPropertyName("executionID")]
     public string? ExecutionID { get; set; }
 
+    [JsonPropertyName("pid")]
+    public int ProcessId { get; set; }
+
     // The current state of the process/IDE session started for this executable
     [JsonPropertyName("state")]
     public string? State { get; set; } = ExecutableStates.Unknown;

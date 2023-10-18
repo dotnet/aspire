@@ -3,33 +3,41 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.Publishing;
+using Microsoft.Extensions.Options;
 using System.Net.Sockets;
 
 namespace Aspire.Hosting.Dcp;
 
-public sealed class DcpDistributedApplicationLifecycleHook : IDistributedApplicationLifecycleHook
+public sealed class DcpDistributedApplicationLifecycleHook(IOptions<PublishingOptions> publishingOptions) : IDistributedApplicationLifecycleHook
 {
+    private readonly IOptions<PublishingOptions> _publishingOptions = publishingOptions;
+
     public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
-        PrepareServices(appModel);
+        var publisher = _publishingOptions.Value?.Publisher == null ? "dcp" : _publishingOptions.Value.Publisher;
+
+        if (publisher == "dcp")
+        {
+            PrepareServices(appModel);
+        }
 
         return Task.CompletedTask;
     }
 
     private void PrepareServices(DistributedApplicationModel model)
     {
-        // Automatically add ServiceBindingAnnotations to project components based on ApplicationUrl set in the launch profile.
-        foreach (var projectComponent in model.Components.OfType<ProjectComponent>())
+        // Automatically add ServiceBindingAnnotations to project resources based on ApplicationUrl set in the launch profile.
+        foreach (var projectResource in model.Resources.OfType<ProjectResource>())
         {
 
-            var selectedLaunchProfileName = projectComponent.SelectLaunchProfileName();
+            var selectedLaunchProfileName = projectResource.SelectLaunchProfileName();
             if (selectedLaunchProfileName is null)
             {
                 continue;
             }
 
-            var launchSettings = projectComponent.GetLaunchSettings();
-            var launchProfile = projectComponent.GetEffectiveLaunchProfile();
+            var launchProfile = projectResource.GetEffectiveLaunchProfile();
             if (launchProfile is null)
             {
                 continue;
@@ -40,11 +48,11 @@ public sealed class DcpDistributedApplicationLifecycleHook : IDistributedApplica
             {
                 var uri = new Uri(url);
 
-                if (projectComponent.Annotations.OfType<ServiceBindingAnnotation>().Any(sb => sb.Name == uri.Scheme))
+                if (projectResource.Annotations.OfType<ServiceBindingAnnotation>().Any(sb => sb.Name == uri.Scheme))
                 {
                     // If someone uses WithServiceBinding in the dev host to register a service binding with the name
                     // http or https this exception will be thrown.
-                    throw new DistributedApplicationException("Service binding annotation with name '{uri.Scheme}' already exists.");
+                    throw new DistributedApplicationException($"Service binding annotation with name '{uri.Scheme}' already exists.");
                 }
 
                 var generatedServiceBindingAnnotation = new ServiceBindingAnnotation(
@@ -53,7 +61,7 @@ public sealed class DcpDistributedApplicationLifecycleHook : IDistributedApplica
                     port: uri.Port
                     );
 
-                projectComponent.Annotations.Add(generatedServiceBindingAnnotation);
+                projectResource.Annotations.Add(generatedServiceBindingAnnotation);
             }
         }
     }

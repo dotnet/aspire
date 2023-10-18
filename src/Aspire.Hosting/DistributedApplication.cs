@@ -46,10 +46,10 @@ public class DistributedApplication : IHost, IAsyncDisposable
 
     private void EnsureDockerIfNecessary()
     {
-        // If we don't have any components that need a container  then we
+        // If we don't have any respirces that need a container  then we
         // don't need to check for Docker.
         var appModel = this.Services.GetRequiredService<DistributedApplicationModel>();
-        if (!appModel.Components.Any(c => c.Annotations.OfType<ContainerImageAnnotation>().Any()))
+        if (!appModel.Resources.Any(c => c.Annotations.OfType<ContainerImageAnnotation>().Any()))
         {
             return;
         }
@@ -107,15 +107,12 @@ public class DistributedApplication : IHost, IAsyncDisposable
     {
         try
         {
-            AspireEventSource.Instance.AppRunStart();
             EnsureDockerIfNecessary();
             await ExecuteBeforeStartHooksAsync(cancellationToken).ConfigureAwait(false);
             await _host.RunAsync(cancellationToken).ConfigureAwait(false);
         }
         finally
         {
-            AspireEventSource.Instance.AppRunStop();
-
             if (_host is IAsyncDisposable asyncDisposable)
             {
                 await asyncDisposable.DisposeAsync().ConfigureAwait(false);
@@ -134,12 +131,21 @@ public class DistributedApplication : IHost, IAsyncDisposable
 
     private async Task ExecuteBeforeStartHooksAsync(CancellationToken cancellationToken)
     {
-        var lifecycleHooks = _host.Services.GetServices<IDistributedApplicationLifecycleHook>();
-        var appModel = _host.Services.GetRequiredService<DistributedApplicationModel>();
+        AspireEventSource.Instance.AppBeforeStartHooksStart();
 
-        foreach (var lifecycleHook in lifecycleHooks)
+        try
         {
-            await lifecycleHook.BeforeStartAsync(appModel, cancellationToken).ConfigureAwait(false);
+            var lifecycleHooks = _host.Services.GetServices<IDistributedApplicationLifecycleHook>();
+            var appModel = _host.Services.GetRequiredService<DistributedApplicationModel>();
+
+            foreach (var lifecycleHook in lifecycleHooks)
+            {
+                await lifecycleHook.BeforeStartAsync(appModel, cancellationToken).ConfigureAwait(false);
+            }
+        }
+        finally
+        {
+            AspireEventSource.Instance.AppBeforeStartHooksStop();
         }
     }
 

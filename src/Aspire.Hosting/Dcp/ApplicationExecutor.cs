@@ -10,23 +10,24 @@ namespace Aspire.Hosting.Dcp;
 
 internal class AppResource
 {
-    public IDistributedApplicationComponent Component { get; private set; }
-    public CustomResource Resource { get; private set; }
+    public IDistributedApplicationResource ModelResource { get; private set; }
+    public CustomResource DcpResource { get; private set; }
     public virtual List<ServiceAppResource> ServicesProduced { get; private set; } = new();
     public virtual List<ServiceAppResource> ServicesConsumed { get; private set; } = new();
 
-    public AppResource(IDistributedApplicationComponent component, CustomResource resource)
+    public AppResource(IDistributedApplicationResource modelResource, CustomResource dcpResource)
     {
-        this.Component = component;
-        this.Resource = resource;
+        this.ModelResource = modelResource;
+        this.DcpResource = dcpResource;
     }
 }
 
 internal sealed class ServiceAppResource : AppResource
 {
-    public Service Service => (Service)Resource;
+    public Service Service => (Service)DcpResource;
     public ServiceBindingAnnotation ServiceBindingAnnotation { get; private set; }
     public ServiceProducerAnnotation DcpServiceProducerAnnotation { get; private set; }
+
     public override List<ServiceAppResource> ServicesProduced
     {
         get { throw new InvalidOperationException("Service resources do not produce any services"); }
@@ -36,7 +37,7 @@ internal sealed class ServiceAppResource : AppResource
         get { throw new InvalidOperationException("Service resources do not consume any services"); }
     }
 
-    public ServiceAppResource(IDistributedApplicationComponent component, Service service, ServiceBindingAnnotation sba) : base(component, service)
+    public ServiceAppResource(IDistributedApplicationResource modelResource, Service service, ServiceBindingAnnotation sba) : base(modelResource, service)
     {
         ServiceBindingAnnotation = sba;
         DcpServiceProducerAnnotation = new(service.Metadata.Name);
@@ -95,18 +96,17 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model) : I
             AspireEventSource.Instance.DcpServicesCreationStart();
 
             var needAddressAllocated = _appResources.OfType<ServiceAppResource>().Where(sr => !sr.Service.HasCompleteAddress).ToList();
-            if (needAddressAllocated.Count == 0)
-            {
-                // No need to wait for any updates to Service objects from the orchestrator.
-                await CreateResourcesAsync<Service>(cancellationToken).ConfigureAwait(false);
-                return;
-            }
-
-            // Start the watcher before creating new Services so that we do not miss any updates.
-            IAsyncEnumerable<(WatchEventType, Service)> serviceChangeEnumerator = _kubernetesService.WatchAsync<Service>(cancellationToken: cancellationToken);
 
             await CreateResourcesAsync<Service>(cancellationToken).ConfigureAwait(false);
 
+            if (needAddressAllocated.Count == 0)
+            {
+                // No need to wait for any updates to Service objects from the orchestrator.
+                return;
+            }
+
+            // We do not specify the initial list version, so the watcher will give us all updates to Service objects.
+            IAsyncEnumerable<(WatchEventType, Service)> serviceChangeEnumerator = _kubernetesService.WatchAsync<Service>(cancellationToken: cancellationToken);
             await foreach (var (evt, updated) in serviceChangeEnumerator)
             {
                 if (evt == WatchEventType.Bookmark) { continue; } // Bookmarks do not contain any data.
@@ -134,11 +134,11 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model) : I
 
     private async Task CreateContainersAndExecutablesAsync(CancellationToken cancellationToken)
     {
-        var toCreate = _appResources.Where(r => r.Resource is Container || r.Resource is Executable || r.Resource is ExecutableReplicaSet);
+        var toCreate = _appResources.Where(r => r.DcpResource is Container || r.DcpResource is Executable || r.DcpResource is ExecutableReplicaSet);
         AddAllocatedEndpointInfo(toCreate);
 
-        await CreateContainersAsync(toCreate.Where(ar => ar.Resource is Container), cancellationToken).ConfigureAwait(false);
-        await CreateExecutablesAsync(toCreate.Where(ar => ar.Resource is Executable || ar.Resource is ExecutableReplicaSet), cancellationToken).ConfigureAwait(false);
+        await CreateContainersAsync(toCreate.Where(ar => ar.DcpResource is Container), cancellationToken).ConfigureAwait(false);
+        await CreateExecutablesAsync(toCreate.Where(ar => ar.DcpResource is Executable || ar.DcpResource is ExecutableReplicaSet), cancellationToken).ConfigureAwait(false);
     }
 
     private static void AddAllocatedEndpointInfo(IEnumerable<AppResource> resources)
@@ -147,7 +147,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model) : I
         {
             foreach (var sp in appResource.ServicesProduced)
             {
-                var svc = (Service)sp.Resource;
+                var svc = (Service)sp.DcpResource;
                 if (!svc.HasCompleteAddress)
                 {
                     // This should never happen; if it does, we have a bug without a workaround for th the user.
@@ -162,38 +162,39 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model) : I
                     sp.ServiceBindingAnnotation.UriScheme
                     );
 
-                appResource.Component.Annotations.Add(a);
+                appResource.ModelResource.Annotations.Add(a);
             }
         }
     }
 
     private void PrepareServices()
     {
-        var serviceProducers = _model.Components
-            .Select(c => (Component: c, SBAnnotations: c.Annotations.OfType<ServiceBindingAnnotation>()))
+        var serviceProducers = _model.Resources
+            .Select(r => (ModelResource: r, SBAnnotations: r.Annotations.OfType<ServiceBindingAnnotation>()))
             .Where(sp => sp.SBAnnotations.Any());
 
         // We need to ensure that Services have unique names (otherwise we cannot really distinguish between
-        // services produced by different components).
+        // services produced by different resources).
         List<string> serviceNames = new();
 
-        void addServiceAppResource(Service svc, IDistributedApplicationComponent producingComponent, ServiceBindingAnnotation sba)
+        void addServiceAppResource(Service svc, IDistributedApplicationResource producingResource, ServiceBindingAnnotation sba)
         {
             svc.Spec.Protocol = PortProtocol.FromProtocolType(sba.Protocol);
             svc.Spec.AddressAllocationMode = AddressAllocationModes.IPv4Loopback;
+            svc.Annotate(CustomResource.UriSchemeAnnotation, sba.UriScheme);
 
-            _appResources.Add(new ServiceAppResource(producingComponent, svc, sba));
+            _appResources.Add(new ServiceAppResource(producingResource, svc, sba));
         }
 
         foreach (var sp in serviceProducers)
         {
             var sbAnnotations = sp.SBAnnotations.ToArray();
-            var replicas = sp.Component.GetReplicaCount();
+            var replicas = sp.ModelResource.GetReplicaCount();
 
             foreach (var sba in sbAnnotations)
             {
                 var candidateServiceName = sbAnnotations.Length == 1 ?
-                    GetObjectNameForComponent(sp.Component) : GetObjectNameForComponent(sp.Component, sba.Name);
+                    GetObjectNameForResource(sp.ModelResource) : GetObjectNameForResource(sp.ModelResource, sba.Name);
                 var uniqueServiceName = GenerateUniqueServiceName(serviceNames, candidateServiceName);
                 var svc = Service.Create(uniqueServiceName);
 
@@ -204,7 +205,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model) : I
                     svc.Spec.Port = sba.Port;
                 }
 
-                addServiceAppResource(svc, sp.Component, sba);
+                addServiceAppResource(svc, sp.ModelResource, sba);
             }
         }
     }
@@ -217,11 +218,11 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model) : I
 
     private void PreparePlainExecutables()
     {
-        var executableComponents = _model.GetExecutableComponents();
+        var modelExecutableResources = _model.GetExecutableResources();
 
-        foreach (var executable in executableComponents)
+        foreach (var executable in modelExecutableResources)
         {
-            var exeName = GetObjectNameForComponent(executable);
+            var exeName = GetObjectNameForResource(executable);
             var exePath = Path.GetFullPath(executable.Command);
             var exe = Executable.Create(exeName, exePath);
 
@@ -237,19 +238,19 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model) : I
 
     private void PrepareProjectExecutables()
     {
-        var projectComponents = _model.GetProjectComponents();
+        var modelProjectResources = _model.GetProjectResources();
 
-        foreach (var project in projectComponents)
+        foreach (var project in modelProjectResources)
         {
             if (!project.TryGetLastAnnotation<IServiceMetadata>(out var projectMetadata))
             {
-                throw new InvalidOperationException("A project component is missing required metadata"); // Should never happen.
+                throw new InvalidOperationException("A project resource is missing required metadata"); // Should never happen.
             }
 
             CustomResource workload;
             ExecutableSpec exeSpec;
             IAnnotationHolder annotationHolder;
-            var workloadName = GetObjectNameForComponent(project);
+            var workloadName = GetObjectNameForResource(project);
             int replicas = project.GetReplicaCount();
 
             if (replicas > 1)
@@ -335,7 +336,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model) : I
                 ExecutableSpec spec;
                 Func<Task<CustomResource>> createResource;
 
-                switch (er.Resource)
+                switch (er.DcpResource)
                 {
                     case Executable exe:
                         spec = exe.Spec;
@@ -346,12 +347,12 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model) : I
                         createResource = async () => await _kubernetesService.CreateAsync(ers, cancellationToken).ConfigureAwait(false);
                         break;
                     default:
-                        throw new InvalidOperationException($"Expected an Executable-like resource, but got {er.Resource.Kind} instead");
+                        throw new InvalidOperationException($"Expected an Executable-like resource, but got {er.DcpResource.Kind} instead");
                 }
 
                 spec.Args ??= new();
 
-                if (er.Component.TryGetAnnotationsOfType<ExecutableArgsCallbackAnnotation>(out var exeArgsCallbacks))
+                if (er.ModelResource.TryGetAnnotationsOfType<ExecutableArgsCallbackAnnotation>(out var exeArgsCallbacks))
                 {
                     foreach (var exeArgsCallback in exeArgsCallbacks)
                     {
@@ -363,12 +364,12 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model) : I
                 var context = new EnvironmentCallbackContext("dcp", config);
 
                 // Need to apply configuration settings manually; see PrepareExecutables() for details.
-                if (er.Component is ProjectComponent project && project.SelectLaunchProfileName() is { } launchProfileName && project.GetLaunchSettings() is { } launchSettings)
+                if (er.ModelResource is ProjectResource project && project.SelectLaunchProfileName() is { } launchProfileName && project.GetLaunchSettings() is { } launchSettings)
                 {
                     ApplyLaunchProfile(er, config, launchProfileName, launchSettings);
                 }
 
-                if (er.Component.TryGetEnvironmentVariables(out var envVarAnnotations))
+                if (er.ModelResource.TryGetEnvironmentVariables(out var envVarAnnotations))
                 {
                     foreach (var ann in envVarAnnotations)
                     {
@@ -384,7 +385,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model) : I
 
                 var createdExecutable = await createResource().ConfigureAwait(false);
                 var dcpResourceAnnotation = new DcpResourceAnnotation(createdExecutable.Metadata.NamespaceProperty, createdExecutable.Metadata.Name, createdExecutable.Kind);
-                er.Component.Annotations.Add(dcpResourceAnnotation);
+                er.ModelResource.Annotations.Add(dcpResourceAnnotation);
             }
 
         }
@@ -402,12 +403,12 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model) : I
         var launchProfile = launchSettings.Profiles[launchProfileName];
         if (!string.IsNullOrWhiteSpace(launchProfile.ApplicationUrl))
         {
-            int replicas = executableResource.Component.GetReplicaCount();
+            int replicas = executableResource.ModelResource.GetReplicaCount();
 
             if (replicas > 1)
             {
                 // Can't use the information in ASPNETCORE_URLS directly when multiple replicas are in play.
-                // Instead we are going to SYNTHESIZE the new ASPNETCORE_URLS value based on the information about services produced by this component.
+                // Instead we are going to SYNTHESIZE the new ASPNETCORE_URLS value based on the information about services produced by this resource.
                 var urls = executableResource.ServicesProduced.Select(sar =>
                 {
                     var url = sar.ServiceBindingAnnotation.UriScheme + "://localhost:{{- portForServing \"" + sar.Service.Metadata.Name + "\" -}}";
@@ -430,9 +431,9 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model) : I
 
     private void PrepareContainers()
     {
-        var containerComponents = _model.GetContainerComponents();
+        var modelContainerResources = _model.GetContainerResources();
 
-        foreach (var container in containerComponents)
+        foreach (var container in modelContainerResources)
         {
             if (!container.TryGetContainerImageName(out var containerImageName))
             {
@@ -442,9 +443,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model) : I
                 throw new InvalidOperationException();
             }
 
-            var computedContainerName = container.TryGetName(out var specifiedContainerName) ? specifiedContainerName : containerImageName;
-            // TODO: the image name is really not the best name for Container object; we should use a "service name" or "component name"
-            var ctr = Container.Create(computedContainerName, containerImageName);
+            var ctr = Container.Create(container.Name, containerImageName);
 
             if (container.TryGetVolumeMounts(out var volumeMounts))
             {
@@ -478,12 +477,12 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model) : I
 
             foreach (var cr in containerResources)
             {
-                var container = (Container)cr.Resource;
-                var containerComponent = cr.Component;
+                var dcpContainerResource = (Container)cr.DcpResource;
+                var modelContainerResource = cr.ModelResource;
 
-                container.Spec.Env = new();
+                dcpContainerResource.Spec.Env = new();
 
-                if (containerComponent.TryGetEnvironmentVariables(out var containerEnvironmentVariables))
+                if (modelContainerResource.TryGetEnvironmentVariables(out var containerEnvironmentVariables))
                 {
                     var config = new Dictionary<string, string>();
                     var context = new EnvironmentCallbackContext("dcp", config);
@@ -495,13 +494,13 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model) : I
 
                     foreach (var kvp in config)
                     {
-                        container.Spec.Env.Add(new EnvVar { Name = kvp.Key, Value = kvp.Value });
+                        dcpContainerResource.Spec.Env.Add(new EnvVar { Name = kvp.Key, Value = kvp.Value });
                     }
                 }
 
                 if (cr.ServicesProduced.Count > 0)
                 {
-                    container.Spec.Ports = new();
+                    dcpContainerResource.Spec.Ports = new();
 
                     foreach (var sp in cr.ServicesProduced)
                     {
@@ -528,13 +527,13 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model) : I
                                 portSpec.Protocol = PortProtocol.UDP; break;
                         }
 
-                        container.Spec.Ports.Add(portSpec);
+                        dcpContainerResource.Spec.Ports.Add(portSpec);
                     }
                 }
 
-                var createdContainer = await _kubernetesService.CreateAsync(container, cancellationToken).ConfigureAwait(false);
+                var createdContainer = await _kubernetesService.CreateAsync(dcpContainerResource, cancellationToken).ConfigureAwait(false);
                 var dcpResourceAnnotation = new DcpResourceAnnotation(createdContainer.Metadata.NamespaceProperty, createdContainer.Metadata.Name, createdContainer.Kind);
-                cr.Component.Annotations.Add(dcpResourceAnnotation);
+                cr.ModelResource.Annotations.Add(dcpResourceAnnotation);
             }
         }
         finally
@@ -543,28 +542,28 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model) : I
         }
     }
 
-    private void AddServicesProducedInfo(IDistributedApplicationComponent component, IAnnotationHolder dcpResource, AppResource appResource)
+    private void AddServicesProducedInfo(IDistributedApplicationResource modelResource, IAnnotationHolder dcpResource, AppResource appResource)
     {
-        string componentName = "(unknown)";
+        string modelResourceName = "(unknown)";
         try
         {
-            componentName = GetObjectNameForComponent(component);
+            modelResourceName = GetObjectNameForResource(modelResource);
         }
         catch { } // For error messages only, OK to fall back to (unknown)
 
-        var servicesProduced = _appResources.OfType<ServiceAppResource>().Where(r => r.Component == component);
+        var servicesProduced = _appResources.OfType<ServiceAppResource>().Where(r => r.ModelResource == modelResource);
         foreach (var sp in servicesProduced)
         {
-            if (component.IsContainer())
+            if (modelResource.IsContainer())
             {
                 if (sp.ServiceBindingAnnotation.ContainerPort is null)
                 {
-                    throw new InvalidOperationException($"The ServiceBindingAnnotation for container component {componentName} must specify the ContainerPort");
+                    throw new InvalidOperationException($"The ServiceBindingAnnotation for container resource {modelResourceName} must specify the ContainerPort");
                 }
 
                 sp.DcpServiceProducerAnnotation.Port = sp.ServiceBindingAnnotation.ContainerPort;
             }
-            else if (component is ExecutableComponent)
+            else if (modelResource is ExecutableResource)
             {
                 sp.DcpServiceProducerAnnotation.Port = sp.ServiceBindingAnnotation.Port;
             }
@@ -572,10 +571,10 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model) : I
             {
                 if (sp.ServiceBindingAnnotation.Port is null)
                 {
-                    throw new InvalidOperationException($"The ServiceBindingAnnotation for component {componentName} must specify the Port");
+                    throw new InvalidOperationException($"The ServiceBindingAnnotation for resource {modelResourceName} must specify the Port");
                 }
 
-                if (component.GetReplicaCount() == 1)
+                if (modelResource.GetReplicaCount() == 1)
                 {
                     // If multiple replicas are used, each replica will get its own port.
                     sp.DcpServiceProducerAnnotation.Port = sp.ServiceBindingAnnotation.Port;
@@ -589,7 +588,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model) : I
 
     private async Task CreateResourcesAsync<RT>(CancellationToken cancellationToken) where RT : CustomResource
     {
-        var resourcesToCreate = _appResources.Select(r => r.Resource).OfType<RT>();
+        var resourcesToCreate = _appResources.Select(r => r.DcpResource).OfType<RT>();
         if (!resourcesToCreate.Any())
         {
             return;
@@ -604,7 +603,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model) : I
 
     private async Task DeleteResourcesAsync<RT>(string resourceName, CancellationToken cancellationToken) where RT : CustomResource
     {
-        var resourcesToDelete = _appResources.Select(r => r.Resource).OfType<RT>();
+        var resourcesToDelete = _appResources.Select(r => r.DcpResource).OfType<RT>();
         if (!resourcesToDelete.Any())
         {
             return;
@@ -628,51 +627,10 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model) : I
         _kubernetesService.Dispose();
     }
 
-    private static string GetObjectNameForComponent(IDistributedApplicationComponent component, string suffix = "")
+    private static string GetObjectNameForResource(IDistributedApplicationResource resource, string suffix = "")
     {
         string maybeWithSuffix(string s) => string.IsNullOrWhiteSpace(suffix) ? s : $"{s}_{suffix}";
-
-        if (component.TryGetName(out var name))
-        {
-            return maybeWithSuffix(name);
-        }
-
-        switch (component)
-        {
-            case ContainerComponent:
-                if (!component.TryGetContainerImageName(out var imageName))
-                {
-                    throw new ArgumentException("The container component has no name and no image information."); // Should never happen.
-                }
-
-                if (Rules.IsValidObjectName(imageName))
-                {
-                    return maybeWithSuffix(imageName);
-                }
-                else
-                {
-                    throw new ArgumentException($"Could not determine a good name for container component using image '{imageName}'; use WithName() on the container to fix this issue.");
-                }
-
-            case ProjectComponent:
-                if (!component.TryGetLastAnnotation<IServiceMetadata>(out var projectMetadata))
-                {
-                    throw new ArgumentException("The project component has no name and no project metadata"); // Should never happen.
-                }
-
-                // TODO: the assembly name is really not the best name for Executable object (should use project name probably).
-                if (Rules.IsValidObjectName(projectMetadata.AssemblyName))
-                {
-                    return maybeWithSuffix(projectMetadata.AssemblyName);
-                }
-                else
-                {
-                    throw new ArgumentException($"Could not determine a good name for project component with assembly name '{projectMetadata.AssemblyName}'; use WithName() on the project to fix this issue.");
-                }
-
-            default:
-                throw new ArgumentException($"Could not determine a good name for component of type {component.GetType().Name}");
-        }
+        return maybeWithSuffix(resource.Name);
     }
 
     private static string GenerateUniqueServiceName(List<string> serviceNames, string candidateName)

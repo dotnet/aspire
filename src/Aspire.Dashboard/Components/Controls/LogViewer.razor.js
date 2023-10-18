@@ -31,16 +31,22 @@ export function addLogEntries(logEntries) {
             rowContainer.setAttribute("data-timestamp", logEntry.timestamp ?? logEntry.parentTimestamp ?? "");
             const lineRow = rowContainer.firstElementChild;
             const lineArea = lineRow.firstElementChild;
-            const timestamp = lineArea.children[1];
-            if (logEntry.timestamp) {
-                timestamp.textContent = logEntry.timestamp;
-            } else {
-                timestamp.classList.add("missing");
-            }
             const content = lineArea.lastElementChild;
-            content.textContent = logEntry.content;
+
+            // logEntry.content should already be HTMLEncoded other than the <span>s produced
+            // by the ANSI Control Sequence Parsing, so it should be safe to set innerHTML here
+            content.innerHTML = logEntry.content;
+            
             if (logEntry.type === "Error") {
-                content.prepend(getStdErrorBadge());
+                const stdErrorBadge = getStdErrorBadge();
+                // If there's a timestamp, we want to put the badge after it to keep timestamps
+                // aligned. If there's not, then we just put the badge at the start of the content
+                const timestampSpan = content.querySelector(".timestamp");
+                if (timestampSpan) {
+                    timestampSpan.after(stdErrorBadge);
+                } else {
+                    content.prepend(stdErrorBadge);
+                }
             }
 
             insertSorted(container, rowContainer, logEntry.timestamp, logEntry.parentId, logEntry.lineIndex);
@@ -124,7 +130,6 @@ function createRowTemplate() {
             <div class="line-row">
                 <span class="line-area">
                     <span class="line-number"></span>
-                    <span class="timestamp"></span>
                     <span class="content"></span>
                 </span>
             </div>

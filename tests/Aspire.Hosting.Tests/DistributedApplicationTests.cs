@@ -100,10 +100,8 @@ public class DistributedApplicationTests
         Assert.Equal(exceptionMessage, ex.InnerExceptions.First().Message);
     }
 
-    // Test is disabled as it is currently broken. Issue tracking the fix is: https://github.com/dotnet/astra/issues/675
-    // When uncommenting next line, test needs to be made public.
-    //[LocalOnlyFact]
-    private async void TestProjectStartsAndStopsCleanly()
+    [LocalOnlyFact]
+    public async void TestProjectStartsAndStopsCleanly()
     {
         var cts = new CancellationTokenSource();
         cts.CancelAfter(TimeSpan.FromMinutes(1));
@@ -121,10 +119,8 @@ public class DistributedApplicationTests
         await pendingRun;
     }
 
-    // Test is disabled as it is currently broken. Issue tracking the fix is: https://github.com/dotnet/astra/issues/675
-    // When uncommenting next line, test needs to be made public.
-    //[LocalOnlyFact]
-    private async void TestServicesWithMultipleReplicas()
+    [LocalOnlyFact]
+    public async void TestServicesWithMultipleReplicas()
     {
         // Start up the test project.
         var cts = new CancellationTokenSource();

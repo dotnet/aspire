@@ -15,7 +15,7 @@ namespace Aspire.Azure.Security.KeyVault.Tests;
 public class ConformanceTests : ConformanceTests<SecretClient, AzureSecurityKeyVaultSettings>
 {
     // Roles: Key Vault Secrets User
-    private const string VaultUri = "https://aspiretests.vault.azure.net/";
+    public const string VaultUri = "https://aspiretests.vault.azure.net/";
 
     private static readonly Lazy<bool> s_canConnectToServer = new(GetCanConnect);
 
@@ -73,11 +73,11 @@ public class ConformanceTests : ConformanceTests<SecretClient, AzureSecurityKeyV
     {
         if (key is null)
         {
-            builder.AddAzureKeyVaultSecrets(ConfigureCredentials);
+            builder.AddAzureKeyVaultSecrets("secrets", ConfigureCredentials);
         }
         else
         {
-            builder.AddAzureKeyVaultSecrets(key, ConfigureCredentials);
+            builder.AddKeyedAzureKeyVaultSecrets(key, ConfigureCredentials);
         }
 
         void ConfigureCredentials(AzureSecurityKeyVaultSettings settings)

@@ -6,19 +6,14 @@
     <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
     <IsAotCompatible>true</IsAotCompatible>
     <PackageTags>$(ComponentEfCorePackageTags) postgressql postgres npgsql sql</PackageTags>
-
-    <!--
-    EFCore 8.0-rc2 has breaking changes that Npgsql.EntityFrameworkCore.PostgreSQL hasn't responded to yet.
-    Pin to 8.0-rc1 for now.
-    -->
-    <AspNetVersion>8.0.0-rc.1.23421.29</AspNetVersion>
+    <Description>A PostgreSQL provider for Entity Framework Core that integrates with Aspire, including connection pooling, health checks, logging, and telemetry.</Description>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
-    <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" VersionOverride="$(AspNetVersion)" />
+    <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore"/>
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
-    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" VersionOverride="$(AspNetVersion)" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" />
     <PackageReference Include="Npgsql.DependencyInjection" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
     <PackageReference Include="Npgsql.OpenTelemetry" />

@@ -2,12 +2,12 @@
     height: calc(100vh - 165px);
     width: 100%;
     overflow: auto;
-    background-color: black;
+    background-color: #0C0C0C;
 }
 
 ::deep .log-container {
-    background: black;
-    color: white;
+    background: #0C0C0C;
+    color: #CCCCCC;
     font-family: 'Cascadia Mono', Consolas, monospace;
     font-size: 0.75rem;
     margin: 16px 0 0 0;
@@ -59,29 +59,131 @@
     content: counter(line-number);
 }
 
-::deep .timestamp {
-    color: darkgray;
-    margin-left: 10px;
-    padding-left: 6px;
-    white-space: nowrap;
-}
-
-::deep .timestamp.missing {
-    display: none;
-}
-
 ::deep .content {
     word-break: break-all;
-    margin-left: 10px;
+    margin-left: 1em;
     position: relative;
     margin-right: 6px;
     user-select: text;
     cursor: text;
-    padding: 0 6px 0 6px;
     white-space: pre-wrap;
 }
 
+::deep .content .timestamp {
+    color: gray;
+}
+
+::deep .content a,
+::deep .content a:active,
+::deep .content a:visited {
+    color: #CCCCCC;
+    text-decoration: none;
+}
+
+::deep .content a:hover {
+    text-decoration: underline;
+}
+
 ::deep .content > fluent-badge {
-    margin-right: 1em;
     user-select: none;
+}
+
+::deep .content > .timestamp + fluent-badge {
+    margin-left: 1ch;
+}
+
+::deep .ansi-fg-black {
+    color: #0C0C0C;
+}
+
+::deep .ansi-fg-blue {
+    color: #0037DA;
+}
+
+::deep .ansi-fg-cyan {
+    color: #3A96DD;
+}
+
+::deep .ansi-fg-green {
+    color: #13A10E;
+}
+
+::deep .ansi-fg-magenta {
+    color: #881798;
+}
+
+::deep .ansi-fg-red {
+    color: #C50F1F;
+}
+
+::deep .ansi-fg-white {
+    color: #CCCCCC;
+}
+
+::deep .ansi-fg-yellow {
+    color: #C19C00;
+}
+
+::deep .ansi-fg-brightblack {
+    color: #767676;
+}
+
+::deep .ansi-fg-brightblue {
+    color: #3B78FF;
+}
+
+::deep .ansi-fg-brightcyan {
+    color: #61D6D6;
+}
+
+::deep .ansi-fg-brightgreen {
+    color: #16C60C;
+}
+
+::deep .ansi-fg-brightmagenta {
+    color: #B4009E;
+}
+
+::deep .ansi-fg-brightred {
+    color: #E74856;
+}
+
+::deep .ansi-fg-brightwhite {
+    color: #F2F2F2;
+}
+
+::deep .ansi-fg-brightyellow {
+    color: #F9F1A5;
+}
+
+::deep .ansi-bg-black {
+    background-color: #0C0C0C;
+}
+
+::deep .ansi-bg-blue {
+    background-color: #0037DA;
+}
+
+::deep .ansi-bg-cyan {
+    background-color: #3A96DD;
+}
+
+::deep .ansi-bg-green {
+    background-color: #13A10E;
+}
+
+::deep .ansi-bg-magenta {
+    background-color: #881798;
+}
+
+::deep .ansi-bg-red {
+    background-color: #C50F1F;
+}
+
+::deep .ansi-bg-white {
+    background-color: #CCCCCC;
+}
+
+::deep .ansi-bg-yellow {
+    background-color: #C19C00;
 }

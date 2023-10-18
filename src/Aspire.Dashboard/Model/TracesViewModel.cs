@@ -43,7 +43,7 @@ public class TracesViewModel
         var traces = _traces;
         if (traces == null)
         {
-            var result = _telemetryRepository.GetTraces(new GetTracesContext
+            var result = _telemetryRepository.GetTraces(new GetTracesRequest
             {
                 ApplicationServiceId = ApplicationServiceId,
                 FilterText = FilterText,

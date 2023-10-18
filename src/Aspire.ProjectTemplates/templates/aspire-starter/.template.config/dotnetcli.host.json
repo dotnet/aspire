@@ -4,10 +4,10 @@
       "Framework": {
         "longName": "framework"
       },
-      "devHostHttpPort": {
+      "appHttpPort": {
         "isHidden": true
       },
-      "devHostHttpsPort": {
+      "appHttpsPort": {
         "isHidden": true
       },
       "webHttpPort": {

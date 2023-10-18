@@ -7,6 +7,5 @@ namespace Aspire.Hosting.Publishing;
 
 public interface IDistributedApplicationPublisher
 {
-    public string Name { get; }
     public Task PublishAsync(DistributedApplicationModel model, CancellationToken cancellationToken);
 }

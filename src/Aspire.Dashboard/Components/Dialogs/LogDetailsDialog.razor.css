@@ -21,6 +21,15 @@
     visibility: visible;
 }
 
-.cellText {
-    flex-grow: 1;
+::deep .nameColumn .cellText {
+    width: 95%;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+
+
+::deep .valueColumn .cellText {
+    width: 95%;
+    text-overflow: ellipsis;
+    overflow: hidden;
 }
