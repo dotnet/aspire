@@ -30,6 +30,7 @@ public sealed class DcpDistributedApplicationLifecycleHook(IOptions<PublishingOp
         // Automatically add ServiceBindingAnnotations to project resources based on ApplicationUrl set in the launch profile.
         foreach (var projectResource in model.Resources.OfType<ProjectResource>())
         {
+            var isHttp2Service = projectResource.Annotations.OfType<Http2ServiceAnnotation>().Any();
 
             var selectedLaunchProfileName = projectResource.SelectLaunchProfileName();
             if (selectedLaunchProfileName is null)
@@ -58,7 +59,8 @@ public sealed class DcpDistributedApplicationLifecycleHook(IOptions<PublishingOp
                 var generatedServiceBindingAnnotation = new ServiceBindingAnnotation(
                     ProtocolType.Tcp,
                     uriScheme: uri.Scheme,
-                    port: uri.Port
+                    port: uri.Port,
+                    transport: isHttp2Service ? "http2" : "http"
                     );
 
                 projectResource.Annotations.Add(generatedServiceBindingAnnotation);
