@@ -140,15 +140,6 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
             if (this._options.EnableTelemetry != false)
             {
                 OtlpConfigurationExtensions.AddOtlpEnvironment(resource, _configuration, _environment);
-
-                // Explicitly specify OTEL endpoint is insecure and use gRPC to sidecar.
-                resource.Annotations.Add(
-                    new EnvironmentCallbackAnnotation(
-                        env =>
-                        {
-                            env["OTEL_EXPORTER_OTLP_INSECURE"] = "true";
-                            env["OTEL_EXPORTER_OTLP_PROTOCOL"] = "grpc";
-                        }));
             }
 
             resource.Annotations.Add(
