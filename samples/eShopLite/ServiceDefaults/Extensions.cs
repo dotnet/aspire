@@ -43,7 +43,7 @@ public static class Extensions
             .WithMetrics(metrics =>
             {
                 metrics.AddRuntimeInstrumentation()
-                       .AddNet8Instrumentation();
+                       .AddBuiltInMeters();
             })
             .WithTracing(tracing =>
             {
@@ -111,7 +111,7 @@ public static class Extensions
         return app;
     }
 
-    private static MeterProviderBuilder AddNet8Instrumentation(this MeterProviderBuilder meterProviderBuilder) =>
+    private static MeterProviderBuilder AddBuiltInMeters(this MeterProviderBuilder meterProviderBuilder) =>
         meterProviderBuilder
             .AddMeter("Microsoft.AspNetCore.Hosting", "Microsoft.AspNetCore.Server.Kestrel", "System.Net.Http")
             .AddView("http.server.request.duration",
