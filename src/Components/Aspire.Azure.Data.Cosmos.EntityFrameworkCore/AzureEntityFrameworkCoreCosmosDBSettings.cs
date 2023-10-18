@@ -1,15 +1,15 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-namespace Aspire.Azure.EntityFrameworkCore.CosmosDB;
+namespace Aspire.Azure.Data.Cosmos.EntityFrameworkCore;
 
 /// <summary>
-/// The options relevant to accessing Azure CosmosDB database using EntityFrameworkCore.
+/// The options relevant to accessing Azure Cosmos DB database using EntityFrameworkCore.
 /// </summary>
 public sealed class AzureEntityFrameworkCoreCosmosDBSettings
 {
     /// <summary>
-    /// The connection string of the Azure CosmosDB server database to connect to.
+    /// The connection string of the Azure Cosmos DB server database to connect to.
     /// </summary>
     public string? ConnectionString { get; set; }
 

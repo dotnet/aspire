@@ -5,7 +5,7 @@ using Aspire.Components.Common.Tests;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-namespace Aspire.Azure.EntityFrameworkCore.CosmosDB.Tests;
+namespace Aspire.Azure.Data.Cosmos.EntityFrameworkCore.Tests;
 
 public class ConformanceTests_NoPooling : ConformanceTests_Pooling
 {

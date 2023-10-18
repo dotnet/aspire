@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Azure.CosmosDB;
+using Aspire.Hosting.Azure.Data.Cosmos;
 using System.Text.Json;
 
 namespace Aspire.Hosting;
@@ -21,13 +21,13 @@ public static class AzureCosmosDBCloudApplicationBuilderExtensions
 
     private static void WriteCosmosDBConnectionToManifest(Utf8JsonWriter jsonWriter, CosmosDBConnectionResource cosmosDbConnection)
     {
-        jsonWriter.WriteString("type", "azure.cosmosdb.connection.v1");
+        jsonWriter.WriteString("type", "azure.data.cosmos.connection.v1");
         jsonWriter.WriteString("connectionString", cosmosDbConnection.GetConnectionString());
     }
 
     private static void WriteCosmosDBDatabaseToManifest(Utf8JsonWriter jsonWriter, CosmosDatabaseResource cosmosDatabase)
     {
-        jsonWriter.WriteString("type", "azure.cosmosdb.database.v1");
+        jsonWriter.WriteString("type", "azure.data.cosmos.database.v1");
         jsonWriter.WriteString("parent", cosmosDatabase.Parent.Name);
         jsonWriter.WriteString("databaseName", cosmosDatabase.Name);
     }
@@ -49,7 +49,7 @@ public static class AzureCosmosDBCloudApplicationBuilderExtensions
     {
         return builder
             .WithReference(cosmosDatabaseResource)
-            .WithEnvironment("Aspire.Azure.EntityFrameworkCore.CosmosDB:DatabaseName", cosmosDatabaseResource.Resource.Name);
+            .WithEnvironment("Aspire.Azure.Data.Cosmos.EntityFrameworkCore:DatabaseName", cosmosDatabaseResource.Resource.Name);
     }
 
 }

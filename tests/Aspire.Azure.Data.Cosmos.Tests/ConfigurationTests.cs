@@ -3,7 +3,7 @@
 
 using Xunit;
 
-namespace Aspire.Azure.CosmosDB.Tests;
+namespace Aspire.Azure.Data.Cosmos.Tests;
 
 public class ConfigurationTests
 {

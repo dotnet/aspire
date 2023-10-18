@@ -1,15 +1,15 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-namespace Aspire.Azure.CosmosDB;
+namespace Aspire.Azure.Data.Cosmos;
 
 /// <summary>
-/// The options relevant to accessing Azure CosmosDB.
+/// The options relevant to accessing Azure Cosmos DB.
 /// </summary>
 public sealed class AzureCosmosDBOptions
 {
     /// <summary>
-    /// Gets or sets the connection string of the Azure CosmosDB database to connect to.
+    /// Gets or sets the connection string of the Azure Cosmos database to connect to.
     /// </summary>
     public string? ConnectionString { get; set; }
 

@@ -1,12 +1,12 @@
 {
   "type": "object",
   "properties": {
-    "Aspire.Azure.CosmosDB": {
+    "Aspire.Azure.Data.Cosmos": {
       "type": "object",
       "properties": {
         "ConnectionString": {
           "type": "string",
-          "description": "Gets or sets the connection string of the Azure CosmosDB to connect to."
+          "description": "Gets or sets the connection string of the Azure Cosmos DB to connect to."
         },
         "HealthChecks": {
           "type": "boolean",

@@ -9,14 +9,14 @@ using Microsoft.Extensions.Hosting;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
 
-namespace Aspire.Azure.EntityFrameworkCore.CosmosDB;
+namespace Aspire.Azure.Data.Cosmos.EntityFrameworkCore;
 
 /// <summary>
-/// Extension methods for configuring EntityFrameworkCore DbContext to Azure CosmosDB
+/// Extension methods for configuring EntityFrameworkCore DbContext to Azure Cosmos DB
 /// </summary>
 public static class AspireAzureEFCoreCosmosDBExtensions
 {
-    private const string DefaultConfigSectionName = "Aspire.Azure.EntityFrameworkCore.CosmosDB";
+    private const string DefaultConfigSectionName = "Aspire.Azure.Data.Cosmos.EntityFrameworkCore";
     private const DynamicallyAccessedMemberTypes RequiredByEF = DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties;
 
     /// <summary>

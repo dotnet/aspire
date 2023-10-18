@@ -10,7 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Xunit;
 
-namespace Aspire.Azure.EntityFrameworkCore.CosmosDB.Tests;
+namespace Aspire.Azure.Data.Cosmos.EntityFrameworkCore.Tests;
 
 public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, AzureEntityFrameworkCoreCosmosDBSettings>
 {
@@ -31,9 +31,9 @@ public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, AzureEnt
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[]
         {
-            new KeyValuePair<string, string?>("Aspire.Azure.EntityFrameworkCore.CosmosDB:ConnectionString",
+            new KeyValuePair<string, string?>("Aspire.Azure.Data.Cosmos.EntityFrameworkCore:ConnectionString",
                 "Host=fake;Database=catalog"),
-            new KeyValuePair<string, string?>("Aspire.Azure.EntityFrameworkCore.CosmosDB:DatabaseName",
+            new KeyValuePair<string, string?>("Aspire.Azure.Data.Cosmos.EntityFrameworkCore:DatabaseName",
                 "TestDatabase"),
         });
 
@@ -50,16 +50,20 @@ public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, AzureEnt
         => options.Metrics = enabled;
 
     protected override string JsonSchemaPath
-        => "src/Components/Aspire.Azure.EntityFrameworkCore.CosmosDB/ConfigurationSchema.json";
+        => "src/Components/Aspire.Azure.Data.Cosmos.EntityFrameworkCore/ConfigurationSchema.json";
 
     protected override string ValidJsonConfig => """
         {
           "Aspire": {
             "Azure": {
-              "CosmosDB": {
-                  "ConnectionString": "YOUR_CONNECTION_STRING",
-                  "Tracing": true,
-                  "Metrics": true
+              "Data": {
+                "Cosmos": {
+                  "EntityFrameworkCore": {
+                    "ConnectionString": "YOUR_CONNECTION_STRING",
+                    "Tracing": true,
+                    "Metrics": true
+                  }
+                }
               }
             }
           }

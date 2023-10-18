@@ -3,7 +3,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 
-namespace Aspire.Hosting.Azure.CosmosDB;
+namespace Aspire.Hosting.Azure.Data.Cosmos;
 
 public class CosmosDatabaseResource(string name, CosmosDBConnectionResource parent)
     : DistributedApplicationResource(name), IDistributedApplicationResourceWithParent<CosmosDBConnectionResource>, IDistributedApplicationResourceWithConnectionString
