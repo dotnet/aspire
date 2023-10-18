@@ -46,9 +46,9 @@
                     </Panel1>
                     <Panel2>
                         <div class="metrics-content">
-                            @if (_selectedInstrument != null)
+                            @if (_selectedApplication.Id != null && _selectedMeter != null && _selectedInstrument != null)
                             {
-                                <ChartContainer ApplicationId="@(_selectedApplication.Id)" MeterName="@(_selectedMeter?.MeterName)" InstrumentName="@(_selectedInstrument.Name)" Duration="_selectedDuration.Duration" />
+                                <ChartContainer ApplicationId="@(_selectedApplication.Id)" MeterName="@(_selectedMeter.MeterName)" InstrumentName="@(_selectedInstrument.Name)" Duration="_selectedDuration.Duration" />
                             }
                             else if (_selectedMeter != null)
                             {
