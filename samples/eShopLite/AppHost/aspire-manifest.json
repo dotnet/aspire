@@ -1,16 +1,5 @@
 {
   "resources": {
-    "grafana": {
-      "type": "container.v1",
-      "image": "grafana/grafana:latest",
-      "bindings": {
-        "grafana-http": {
-          "scheme": "http",
-          "protocol": "tcp",
-          "transport": "http"
-        }
-      }
-    },
     "postgres": {
       "type": "postgres.server.v1"
     },
@@ -25,6 +14,8 @@
       "type": "project.v1",
       "path": "..\\CatalogService\\CatalogService.csproj",
       "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
         "ConnectionStrings__catalog": "{catalog.connectionString}"
       },
       "bindings": {
@@ -50,6 +41,8 @@
       "type": "project.v1",
       "path": "..\\BasketService\\BasketService.csproj",
       "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
         "ConnectionStrings__basketCache": "{basketCache.connectionString}",
         "ConnectionStrings__messaging": "{messaging.connectionString}"
       },
@@ -70,6 +63,8 @@
       "type": "project.v1",
       "path": "..\\MyFrontend\\MyFrontend.csproj",
       "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
         "services__basketservice__0": "{basketservice.bindings.http.url}",
         "services__basketservice__1": "{basketservice.bindings.https.url}",
         "services__catalogservice__0": "{catalogservice.bindings.http.url}"
@@ -91,6 +86,8 @@
       "type": "project.v1",
       "path": "..\\OrderProcessor\\OrderProcessor.csproj",
       "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
         "ConnectionStrings__messaging": "{messaging.connectionString}"
       },
       "bindings": {
@@ -110,6 +107,8 @@
       "type": "project.v1",
       "path": "..\\ApiGateway\\ApiGateway.csproj",
       "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
         "services__basketservice__0": "{basketservice.bindings.http.url}",
         "services__basketservice__1": "{basketservice.bindings.https.url}",
         "services__catalogservice__0": "{catalogservice.bindings.http.url}",
@@ -125,17 +124,6 @@
           "scheme": "https",
           "protocol": "tcp",
           "transport": "http"
-        }
-      }
-    },
-    "prometheus": {
-      "type": "container.v1",
-      "image": "prom/prometheus:latest",
-      "bindings": {
-        "tcp": {
-          "scheme": "tcp",
-          "protocol": "tcp",
-          "transport": "tcp"
         }
       }
     }

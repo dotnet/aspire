@@ -14,6 +14,10 @@ public static class ProjectResourceBuilderExtensions
     {
         var project = new ProjectResource(name);
         var projectBuilder = builder.AddResource(project);
+        // We only want to turn these on for .NET projects, ConfigureOtlpEnvironment works for any resource type that
+        // implements IDistributedApplicationResourceWithEnvironment.
+        projectBuilder.WithEnvironment("OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES", "true");
+        projectBuilder.WithEnvironment("OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES", "true");
         projectBuilder.ConfigureOtlpEnvironment();
         projectBuilder.ConfigureConsoleLogs();
         var serviceMetadata = new TProject();
