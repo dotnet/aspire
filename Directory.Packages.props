@@ -72,10 +72,10 @@
     <PackageVersion Include="Npgsql.DependencyInjection" Version="8.0.0-rc.2" />
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.0-rc.2" />
     <PackageVersion Include="Npgsql.OpenTelemetry" Version="8.0.0-rc.2" />
-    <PackageVersion Include="OpenTelemetry.Exporter.InMemory" Version="1.6.0" />
-    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.6.0" />
+    <PackageVersion Include="OpenTelemetry.Exporter.InMemory" Version="1.7.0-alpha.1" />
+    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.7.0-alpha.1" />
     <PackageVersion Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" Version="1.6.0-rc.1" />
-    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.6.0" />
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.7.0-alpha.1" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.5.1-beta.1" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.EntityFrameworkCore" Version="1.0.0-beta.7" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.EventCounters" Version="1.5.1-alpha.1" />

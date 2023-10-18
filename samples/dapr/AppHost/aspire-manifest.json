@@ -3,7 +3,10 @@
     "servicea": {
       "type": "project.v1",
       "path": "..\\ServiceA\\DaprServiceA.csproj",
-      "env": {},
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true"
+      },
       "bindings": {
         "http": {
           "scheme": "http",
@@ -20,7 +23,10 @@
     "serviceb": {
       "type": "project.v1",
       "path": "..\\ServiceB\\DaprServiceB.csproj",
-      "env": {},
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true"
+      },
       "bindings": {
         "http": {
           "scheme": "http",
@@ -36,10 +42,7 @@
     },
     "service-a": {
       "type": "executable.v1",
-      "env": {
-        "OTEL_EXPORTER_OTLP_INSECURE": "true",
-        "OTEL_EXPORTER_OTLP_PROTOCOL": "grpc"
-      },
+      "env": {},
       "bindings": {
         "grpc": {
           "scheme": "tcp",
@@ -60,10 +63,7 @@
     },
     "service-b": {
       "type": "executable.v1",
-      "env": {
-        "OTEL_EXPORTER_OTLP_INSECURE": "true",
-        "OTEL_EXPORTER_OTLP_PROTOCOL": "grpc"
-      },
+      "env": {},
       "bindings": {
         "grpc": {
           "scheme": "tcp",
