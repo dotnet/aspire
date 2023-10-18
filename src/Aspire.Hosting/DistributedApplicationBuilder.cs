@@ -71,24 +71,15 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         
     }
 
-    public Dictionary<IDistributedApplicationResource, object> resourceBuilders = new();
-
     public IDistributedApplicationResourceBuilder<T> AddResource<T>(T resource) where T : IDistributedApplicationResource
     {
-        // NOTE: This method is designed to be idempotent. Occasionally libraries will need to
-        //       get access to a pre-existing builder that is wrapping a resource. We store
-        //       references to all the builders we create so that if someone calls add resource
-        //       on a resource that is already in the model we return the existing builder.
-        if (resourceBuilders.TryGetValue(resource, out var existingBuilder))
+        if (Resources.Any(r => r.Name == resource.Name))
         {
-            return (IDistributedApplicationResourceBuilder<T>)existingBuilder;
+            throw new DistributedApplicationException("Cannot have two resources with the same name.");
         }
-        else
-        {
-            Resources.Add(resource);
-            var builder = new DistributedApplicationResourceBuilder<T>(this, resource);
-            resourceBuilders.Add(resource, builder);
-            return builder;
-        }
+
+        Resources.Add(resource);
+        var builder = new DistributedApplicationResourceBuilder<T>(this, resource);
+        return builder;
     }
 }
