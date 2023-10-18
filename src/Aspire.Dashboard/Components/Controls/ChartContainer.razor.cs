@@ -39,6 +39,7 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
 
     protected override void OnInitialized()
     {
+        // Update the graph every 200ms. This displays the latest data and moves time forward.
         _tickTimer = new PeriodicTimer(TimeSpan.FromSeconds(0.2));
         _tickTask = Task.Run(UpdateDataAsync);
     }
@@ -50,14 +51,14 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
         // Wait for UpdateData to complete.
         if (_tickTask is { } t)
         {
-            await t.ConfigureAwait(false);
+            await t;
         }
     }
 
     private async Task UpdateDataAsync()
     {
         var timer = _tickTimer;
-        while (await timer!.WaitForNextTickAsync().ConfigureAwait(false))
+        while (await timer!.WaitForNextTickAsync())
         {
             _instrument = GetInstrument();
 
@@ -65,7 +66,7 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
             {
                 // Re-render the entire control if the number of dimensions has changed.
                 _renderedDimensionsCount = _instrument.Dimensions.Count;
-                await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+                await InvokeAsync(StateHasChanged);
             }
             else
             {

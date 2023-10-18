@@ -75,7 +75,7 @@ public partial class Metrics : IDisposable
 
     protected override void OnParametersSet()
     {
-        _selectedApplication = _applications.SingleOrDefault(e => e.Id == ApplicationInstanceId) ?? _applications.ElementAtOrDefault(1) ?? s_selectApplication;
+        _selectedApplication = _applications.SingleOrDefault(e => e.Id == ApplicationInstanceId) ?? s_selectApplication;
         ViewModel.ApplicationServiceId = _selectedApplication.Id;
         _instruments = !string.IsNullOrEmpty(_selectedApplication.Id) ? TelemetryRepository.GetInstrumentsSummary(_selectedApplication.Id) : null;
 
@@ -105,10 +105,12 @@ public partial class Metrics : IDisposable
         UpdateSubscription();
     }
 
-    private Task HandleSelectedApplicationChangedAsync()
+    private async Task HandleSelectedApplicationChangedAsync()
     {
-        NavigationManager.NavigateTo($"/Metrics/{_selectedApplication.Id}");
-        return Task.CompletedTask;
+        var state = new MetricsSelectedState { ApplicationId = _selectedApplication.Id };
+
+        NavigateTo(state);
+        await ProtectedSessionStore.SetAsync(MetricsSelectedState.Key, state);
     }
 
     private sealed class MetricsSelectedState
