@@ -6,6 +6,8 @@ public class CustomerBasket
 
     public List<BasketItem> Items { get; set; } = new();
 
+    public int TotalItemCount => Items.Sum(i => i.Quantity);
+
     public CustomerBasket()
     {
     }
