@@ -12,6 +12,13 @@ using Microsoft.Extensions.Hosting;
 
 namespace Aspire.Hosting;
 
+public enum DockerHealthCheckFailures : int
+{
+    Unresponsive = 125, // Invocation of Docker CLI test command did not finish within expected time period.
+    Unhealthy = 126,    // The Docker CLI test command returned an error exit code.
+    PrerequisiteMissing = 127 // We could not invoke Docker CLI, Docker may be missing from the machine.
+}
+
 [DebuggerDisplay("{_host}")]
 public class DistributedApplication : IHost, IAsyncDisposable
 {
@@ -42,7 +49,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
         return ((IAsyncDisposable)_host).DisposeAsync();
     }
 
-    private const int WaitTimeForDockerInfoResponseInSeconds = 10;
+    private const int WaitTimeForDockerTestCommandInSeconds = 10;
 
     private void EnsureDockerIfNecessary()
     {
@@ -58,34 +65,37 @@ public class DistributedApplication : IHost, IAsyncDisposable
 
         try
         {
+            var dockerCommandArgs = "ps --latest --quiet";
             var dockerStartInfo = new ProcessStartInfo()
             {
                 FileName = FileUtil.FindFullPathFromPath("docker"),
-                Arguments = "ps --latest --quiet",
+                Arguments = dockerCommandArgs,
                 UseShellExecute = true,
                 WindowStyle = ProcessWindowStyle.Hidden
             };
             var process = System.Diagnostics.Process.Start(dockerStartInfo);
-            if (process is { } && process.WaitForExit(TimeSpan.FromSeconds(WaitTimeForDockerInfoResponseInSeconds)))
+            if (process is { } && process.WaitForExit(TimeSpan.FromSeconds(WaitTimeForDockerTestCommandInSeconds)))
             {
                 if (process.ExitCode != 0)
                 {
-                    throw new DistributedApplicationException(
-                        string.Format(
-                            CultureInfo.InvariantCulture,
-                            Resources.DockerUnhealthyExceptionMessage,
-                            process.ExitCode)
-                        );
+                    Console.Error.WriteLine(string.Format(
+                        CultureInfo.InvariantCulture,
+                        Resources.DockerUnhealthyExceptionMessage,
+                        $"docker {dockerCommandArgs}",
+                        process.ExitCode
+                    ));
+                    Environment.Exit((int)DockerHealthCheckFailures.Unhealthy);
                 }
             }
             else
             {
-                throw new DistributedApplicationException(
-                    string.Format(
-                        CultureInfo.InvariantCulture,
-                        Resources.DockerUnresponsiveExceptionMessage,
-                        WaitTimeForDockerInfoResponseInSeconds)
-                    );
+                Console.Error.WriteLine(string.Format(
+                    CultureInfo.InvariantCulture,
+                    Resources.DockerUnresponsiveExceptionMessage,
+                    $"docker {dockerCommandArgs}",
+                    WaitTimeForDockerTestCommandInSeconds
+                ));
+                Environment.Exit((int)DockerHealthCheckFailures.Unresponsive);
             }
 
             // If we get to here all is good!
@@ -93,9 +103,12 @@ public class DistributedApplication : IHost, IAsyncDisposable
         }
         catch (Exception ex) when (ex is not DistributedApplicationException)
         {
-            throw new DistributedApplicationException(
-                Resources.DockerPrerequisiteMissingExceptionMessage,
-                ex);
+            Console.Error.WriteLine(string.Format(
+                    CultureInfo.InvariantCulture,
+                    Resources.DockerPrerequisiteMissingExceptionMessage,
+                    ex.ToString()
+                ));
+            Environment.Exit((int)DockerHealthCheckFailures.PrerequisiteMissing);
         }
         finally
         {
