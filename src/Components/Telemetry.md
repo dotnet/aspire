@@ -9,6 +9,36 @@ Aspire.Azure.Data.Tables:
 - Metric names:
   - none (currently not supported by the Azure SDK)
 
+Aspire.Azure.Data.Cosmos:
+- Log categories:
+  - "Azure-Cosmos-Operation-Request-Diagnostics"
+- Activity source names:
+  - "Azure.Cosmos.Operation"
+- Metric names:
+
+Aspire.Azure.Data.Cosmos.EntityFramework:
+- Log categories:
+  - "Azure-Cosmos-Operation-Request-Diagnostics"
+  - "Microsoft.EntityFrameworkCore.Infrastructure",
+  - "Microsoft.EntityFrameworkCore.ChangeTracking",
+  - "Microsoft.EntityFrameworkCore.Infrastructure",
+  - "Microsoft.EntityFrameworkCore.Database.Command",
+  - "Microsoft.EntityFrameworkCore.Query",
+- Activity source names:
+  - "Azure.Cosmos.Operation"
+- Metric names:
+  - "Microsoft.EntityFrameworkCore":
+    - "ec_Microsoft_EntityFrameworkCore_active_db_contexts"
+    - "ec_Microsoft_EntityFrameworkCore_total_queries"
+    - "ec_Microsoft_EntityFrameworkCore_queries_per_second"
+    - "ec_Microsoft_EntityFrameworkCore_total_save_changes"
+    - "ec_Microsoft_EntityFrameworkCore_save_changes_per_second"
+    - "ec_Microsoft_EntityFrameworkCore_compiled_query_cache_hit_rate"
+    - "ec_Microsoft_Entity_total_execution_strategy_operation_failures"
+    - "ec_Microsoft_E_execution_strategy_operation_failures_per_second"
+    - "ec_Microsoft_EntityFramew_total_optimistic_concurrency_failures"
+    - "ec_Microsoft_EntityF_optimistic_concurrency_failures_per_second"
+
 Aspire.Azure.Messaging.ServiceBus:
 - Log categories:
   - "Azure.Core"
