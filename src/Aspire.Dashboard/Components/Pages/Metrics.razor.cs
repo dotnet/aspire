@@ -26,10 +26,11 @@ public partial class Metrics : IDisposable
         new MetricsDurationViewModel { Text = "Last 12 hours", Duration = TimeSpan.FromHours(12) },
         new MetricsDurationViewModel { Text = "Last 24 hours", Duration = TimeSpan.FromHours(24) },
     };
+    private static readonly TimeSpan s_defaultDuration = TimeSpan.FromMinutes(5);
 
     private List<ApplicationViewModel> _applications = default!;
     private ApplicationViewModel _selectedApplication = s_selectApplication;
-    private MetricsDurationViewModel _selectedDuration = s_durations[0];
+    private MetricsDurationViewModel _selectedDuration = s_durations.Single(d => d.Duration == s_defaultDuration);
     private Subscription? _applicationsSubscription;
     private Subscription? _metricsSubscription;
     private List<OtlpInstrument>? _instruments;
