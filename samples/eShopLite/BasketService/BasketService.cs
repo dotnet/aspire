@@ -23,10 +23,6 @@ public class BasketService(IBasketRepository repository, IConfiguration configur
         {
             return MapToCustomerBasketResponse(data);
         }
-        else
-        {
-            context.Status = new Status(StatusCode.NotFound, $"Basket with id {request.Id} does not exist");
-        }
 
         return new CustomerBasketResponse();
     }
@@ -36,14 +32,12 @@ public class BasketService(IBasketRepository repository, IConfiguration configur
         var customerBasket = MapToCustomerBasket(request);
         var response = await _repository.UpdateBasketAsync(customerBasket);
 
-        if (response != null)
+        if (response is null)
         {
-            return MapToCustomerBasketResponse(response);
+            throw new RpcException(new Status(StatusCode.NotFound, $"Basket with buyer id {request.BuyerId} does not exist"));
         }
 
-        context.Status = new Status(StatusCode.NotFound, $"Basket with buyer id {request.BuyerId} do not exist");
-
-        return null;
+        return MapToCustomerBasketResponse(response);
     }
 
     public override async Task<CheckoutCustomerBasketResponse> CheckoutBasket(CheckoutCustomerBasketRequest request, ServerCallContext context)
@@ -53,8 +47,7 @@ public class BasketService(IBasketRepository repository, IConfiguration configur
 
         if (basket is null)
         {
-            context.Status = new Status(StatusCode.NotFound, $"Basket with id {buyerId} does not exist");
-            return new();
+            throw new RpcException(new Status(StatusCode.NotFound, $"Basket with buyer id {request.BuyerId} does not exist"));
         }
 
         var order = new Order()
