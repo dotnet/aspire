@@ -67,7 +67,7 @@
                     </TemplateColumn>
                     <PropertyColumn Title="Duration" Property="@(context => DurationFormatter.FormatDuration(context.Duration))" />
                     <TemplateColumn>
-                        <FluentButton Appearance="Appearance.Lightweight" OnClick="() => SelectTraceAsync(context)">View</FluentButton>
+                        <FluentAnchor Appearance="Appearance.Lightweight" Href="@($"/Trace/{context.TraceId}")">View</FluentAnchor>
                     </TemplateColumn>
                 </ChildContent>
                 <EmptyContent>

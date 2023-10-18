@@ -108,12 +108,6 @@ public partial class Traces
         }
     }
 
-    private Task SelectTraceAsync(OtlpTrace trace)
-    {
-        NavigationManager.NavigateTo($"/Trace/{trace.TraceId}");
-        return Task.CompletedTask;
-    }
-
     private void HandleFilter(ChangeEventArgs args)
     {
         if (args.Value is string newFilter)
