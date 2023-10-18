@@ -4,10 +4,9 @@
 @using Microsoft.AspNetCore.Http
 @inject IDashboardViewModelService dashboardViewModelService
 @inject IDialogService dialogService
-@inject GlobalState GlobalState
 @inherits LayoutComponentBase
 
-<div @ref="_container" id="mainlayout-container">
+<div>
     <FluentLayout>
         <FluentHeader>
             <div class="header-title">

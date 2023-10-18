@@ -84,7 +84,7 @@ window.updateFluentSelectDisplayValue = function (fluentSelect) {
 
 function getThemeColors() {
     // Get colors from the current light/dark theme.
-    var style = getComputedStyle(document.getElementById("mainlayout-container"));
+    var style = getComputedStyle(document.body);
     return {
         backgroundColor: style.getPropertyValue("--fill-color"),
         textColor: style.getPropertyValue("--neutral-foreground-rest")
