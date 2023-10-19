@@ -5,6 +5,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 
 namespace Aspire.Hosting.Publishing;
+
 internal sealed class Http2TransportMutationHook : IDistributedApplicationLifecycleHook
 {
     public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
