@@ -212,6 +212,7 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
                                 envVars.Add(new EnvVar { Name = parts[0], Value = parts[1] });
                             }
                         }
+                        containerViewModel.Environment.Clear();
                         FillEnvironmentVariables(containerViewModel.Environment, envVars, envVars);
                     }
                 }
