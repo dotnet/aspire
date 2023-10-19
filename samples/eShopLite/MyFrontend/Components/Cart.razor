@@ -30,7 +30,7 @@
 
         if (basket is not null)
         {
-            itemsInCart = basket.Items.Count;
+            itemsInCart = basket.TotalItemCount;
         }
         basketIsAvailable = isAvailable;
         await BasketAvailabilityChanged.InvokeAsync(basketIsAvailable);
