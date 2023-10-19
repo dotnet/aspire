@@ -22,27 +22,7 @@ public sealed class SpanWaterfallViewModel
         // Fall back to the span name if we can't find anything.
         if (Span.Kind == OtlpSpanKind.Client)
         {
-            if (!string.IsNullOrEmpty(OtlpHelpers.GetValue(Span.Attributes, "rpc.system")))
-            {
-                var rpcSystem = OtlpHelpers.GetValue(Span.Attributes, "rpc.system");
-                var rpcService = OtlpHelpers.GetValue(Span.Attributes, "rpc.service");
-                var rpcMethod = OtlpHelpers.GetValue(Span.Attributes, "rpc.method");
-
-                if (string.Equals(rpcSystem, "grpc", StringComparison.OrdinalIgnoreCase))
-                {
-                    var grpcStatusCode = OtlpHelpers.GetValue(Span.Attributes, "rpc.grpc.status_code");
-
-                    var summary = $"GRPC {rpcService}/{rpcMethod}";
-                    if (!string.IsNullOrEmpty(grpcStatusCode) && Enum.TryParse<StatusCode>(grpcStatusCode, out var statusCode))
-                    {
-                        summary += $" {statusCode}";
-                    }
-                    return summary;
-                }
-
-                return $"RPC {rpcSystem} {rpcService}/{rpcMethod}";
-            }
-            else if (!string.IsNullOrEmpty(OtlpHelpers.GetValue(Span.Attributes, "http.method")))
+            if (!string.IsNullOrEmpty(OtlpHelpers.GetValue(Span.Attributes, "http.method")))
             {
                 var httpMethod = OtlpHelpers.GetValue(Span.Attributes, "http.method");
                 var statusCode = OtlpHelpers.GetValue(Span.Attributes, "http.status_code");
@@ -53,7 +33,35 @@ public sealed class SpanWaterfallViewModel
             {
                 var dbSystem = OtlpHelpers.GetValue(Span.Attributes, "db.system");
 
-                return $"DATA {dbSystem?.ToUpperInvariant()} {Span.Name}";
+                return $"DATA {dbSystem} {Span.Name}";
+            }
+            else if (!string.IsNullOrEmpty(OtlpHelpers.GetValue(Span.Attributes, "rpc.system")))
+            {
+                var rpcSystem = OtlpHelpers.GetValue(Span.Attributes, "rpc.system");
+                var rpcService = OtlpHelpers.GetValue(Span.Attributes, "rpc.service");
+                var rpcMethod = OtlpHelpers.GetValue(Span.Attributes, "rpc.method");
+
+                if (string.Equals(rpcSystem, "grpc", StringComparison.OrdinalIgnoreCase))
+                {
+                    var grpcStatusCode = OtlpHelpers.GetValue(Span.Attributes, "rpc.grpc.status_code");
+
+                    var summary = $"RPC {rpcService}/{rpcMethod}";
+                    if (!string.IsNullOrEmpty(grpcStatusCode) && Enum.TryParse<StatusCode>(grpcStatusCode, out var statusCode))
+                    {
+                        summary += $" {statusCode}";
+                    }
+                    return summary;
+                }
+
+                return $"RPC {rpcSystem} {rpcService}/{rpcMethod}";
+            }
+            else if (!string.IsNullOrEmpty(OtlpHelpers.GetValue(Span.Attributes, "messaging.system")))
+            {
+                var messagingSystem = OtlpHelpers.GetValue(Span.Attributes, "messaging.system");
+                var messagingOperation = OtlpHelpers.GetValue(Span.Attributes, "messaging.operation");
+                var destinationName = OtlpHelpers.GetValue(Span.Attributes, "messaging.destination.name");
+
+                return $"MSG {messagingSystem} {messagingOperation} {destinationName}";
             }
         }
 

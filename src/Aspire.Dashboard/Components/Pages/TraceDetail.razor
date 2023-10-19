@@ -87,7 +87,7 @@
                             <div class="span-container" style="grid-template-columns: @context.LeftOffset.ToString("F2")% @context.Width.ToString("F2")% min-content;">
                                 <div class="span-bar" @onclick="() => OnShowProperties(context)" style="grid-column: 2; background: @ColorGenerator.Instance.GetColorHexByKey(context.Span.Source.ApplicationName);"></div>
                                 <div class="span-bar-label @(context.LabelIsRight ? "span-bar-label-right" : "span-bar-label-left")" @onclick="() => OnShowProperties(context)">
-                                    <span class="span-bar-label-detail">@context.Span.Source.ApplicationName: @context.Span.Name</span>
+                                    <span class="span-bar-label-detail">@context.Span.Source.ApplicationName: @context.GetDisplaySummary()</span>
                                     <span>@DurationFormatter.FormatDuration(context.Span.Duration)</span>
                                 </div>
                             </div>
