@@ -17,6 +17,9 @@ public sealed class SpanWaterfallViewModel
 
     public string GetDisplaySummary()
     {
+        // Use attributes on the span to calculate a friendly summary.
+        // Optimize for common cases: HTTP, RPC, DATA, etc.
+        // Fall back to the span name if we can't find anything.
         if (Span.Kind == OtlpSpanKind.Client)
         {
             if (!string.IsNullOrEmpty(OtlpHelpers.GetValue(Span.Attributes, "rpc.system")))
