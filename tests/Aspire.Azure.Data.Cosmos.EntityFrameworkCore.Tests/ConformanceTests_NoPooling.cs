@@ -11,12 +11,12 @@ public class ConformanceTests_NoPooling : ConformanceTests_Pooling
 {
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Scoped;
 
-    protected override void RegisterComponent(HostApplicationBuilder builder, Action<AzureEntityFrameworkCoreCosmosDBSettings>? configure = null, string? key = null)
+    protected override void RegisterComponent(HostApplicationBuilder builder, Action<AzureDataCosmosEntityFrameworkCoreSettings>? configure = null, string? key = null)
     {
-        builder.AddCosmosDBEntityFrameworkDBContext<TestDbContext>("cosmosdb", options =>
+        builder.AddCosmosDBEntityFrameworkDBContext<TestDbContext>("cosmosdb", settings =>
         {
-            options.DbContextPooling = false;
-            configure?.Invoke(options);
+            settings.DbContextPooling = false;
+            configure?.Invoke(settings);
         });
     }
 }

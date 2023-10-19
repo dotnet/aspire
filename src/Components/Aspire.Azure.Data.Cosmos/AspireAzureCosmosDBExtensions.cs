@@ -23,16 +23,16 @@ public static class AspireAzureCosmosDBExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="connectionName">The connection name to use to find a connection string.</param>
-    /// <param name="configure">An optional method that can be used for customizing options. It's invoked after the settings are read from the configuration.</param>
+    /// <param name="configure">An optional method that can be used for customizing settings. It's invoked after the settings are read from the configuration.</param>
     /// <exception cref="InvalidOperationException">If required ConnectionString is not provided in configuration section</exception>
     public static void AddAzureCosmosDB(
         this IHostApplicationBuilder builder,
         string connectionName,
-        Action<AzureCosmosDBOptions>? configure = null)
+        Action<AzureDataCosmosSettings>? configure = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        AzureCosmosDBOptions settings = new();
+        AzureDataCosmosSettings settings = new();
         builder.Configuration.GetSection(DefaultConfigSectionName).Bind(settings);
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)

@@ -4,9 +4,9 @@
 namespace Aspire.Azure.Data.Cosmos.EntityFrameworkCore;
 
 /// <summary>
-/// The options relevant to accessing Azure Cosmos DB database using EntityFrameworkCore.
+/// The settings relevant to accessing Azure Cosmos DB database using EntityFrameworkCore.
 /// </summary>
-public sealed class AzureEntityFrameworkCoreCosmosDBSettings
+public sealed class AzureDataCosmosEntityFrameworkCoreSettings
 {
     /// <summary>
     /// The connection string of the Azure Cosmos DB server database to connect to.

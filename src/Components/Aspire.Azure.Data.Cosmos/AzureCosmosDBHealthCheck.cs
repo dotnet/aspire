@@ -11,13 +11,13 @@ namespace Aspire.Azure.Data.Cosmos;
 /// </summary>
 internal sealed class AzureCosmosDBHealthCheck : IHealthCheck
 {
-    private readonly AzureCosmosDBOptions _dbOptions;
+    private readonly AzureDataCosmosSettings _settings;
 
-    public AzureCosmosDBHealthCheck(AzureCosmosDBOptions dbOptions)
+    public AzureCosmosDBHealthCheck(AzureDataCosmosSettings settings)
     {
-        ArgumentNullException.ThrowIfNull(dbOptions);
+        ArgumentNullException.ThrowIfNull(settings);
 
-        _dbOptions = dbOptions;
+        _settings = settings;
     }
 
     /// <inheritdoc />
@@ -25,7 +25,7 @@ internal sealed class AzureCosmosDBHealthCheck : IHealthCheck
     {
         try
         {
-            using (CosmosClient cosmosClient = new CosmosClient(_dbOptions.ConnectionString))
+            using (CosmosClient cosmosClient = new CosmosClient(_settings.ConnectionString))
             {
                 var accountProperties = await cosmosClient.ReadAccountAsync().ConfigureAwait(false);
                 if (accountProperties is not null)

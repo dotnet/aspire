@@ -9,17 +9,17 @@ public class ConfigurationTests
 {
     [Fact]
     public void ConnectionStringIsNullByDefault()
-        => Assert.Null(new AzureCosmosDBOptions().ConnectionString);
+        => Assert.Null(new AzureDataCosmosSettings().ConnectionString);
 
     [Fact]
     public void HealthCheckIsEnabledByDefault()
-        => Assert.True(new AzureCosmosDBOptions().HealthChecks);
+        => Assert.True(new AzureDataCosmosSettings().HealthChecks);
 
     [Fact]
     public void TracingIsEnabledByDefault()
-        => Assert.True(new AzureCosmosDBOptions().Tracing);
+        => Assert.True(new AzureDataCosmosSettings().Tracing);
 
     [Fact]
     public void MetricsAreEnabledByDefault()
-        => Assert.True(new AzureCosmosDBOptions().Metrics);
+        => Assert.True(new AzureDataCosmosSettings().Metrics);
 }
