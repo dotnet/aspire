@@ -48,7 +48,8 @@
                                     <a href="@endpoint" target="_blank">@endpoint</a>
                                 }
                                 @* If we're expecting more, say Starting..., unless the app isn't running anymore *@
-                                if (context.State != FinishedState && context.ExpectedEndpointsCount > context.Endpoints.Count)
+                                if (context.State != FinishedState
+                                && (context.ExpectedEndpointsCount is null || context.ExpectedEndpointsCount > context.Endpoints.Count))
                                 {
                                     <span>Starting...</span>
                                 }
