@@ -4,7 +4,6 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Configuration.Json;
 using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Publishing;
@@ -22,7 +21,7 @@ internal sealed class AutomaticManifestPublisherBindingInjectionHook(IOptions<Pu
         configBuilder.AddJsonFile(appSettingsPath, optional: true);
         configBuilder.AddJsonFile(appSettingsEnvironmentPath, optional: true);
         var config = configBuilder.Build();
-        var protocol = config.GetValue<string>("Kestrel:EndpointDefaults:Protocols");
+        var protocol = config["Kestrel:EndpointDefaults:Protocols"];
         return protocol == "Http2";
     }
 
@@ -37,18 +36,8 @@ internal sealed class AutomaticManifestPublisherBindingInjectionHook(IOptions<Pu
 
         foreach (var projectResource in projectResources)
         {
-            ConfigurationBuilder b = new ConfigurationBuilder();
+            var isHttp2ConfiguredInAppSettings = IsKestrelHttp2ConfigurationPresent(projectResource);
 
-            var projectMetadata = projectResource.GetServiceMetadata();
-            var projectPath = projectMetadata.ProjectPath;
-            var projectDirectory = Path.GetDirectoryName(projectPath);
-
-            var configSource = new JsonConfigurationSource();
-            configSource.Path = Path.Combine(projectDirectory!, "appsettings.json");
-            var provider = configSource.Build(b);
-
-            // TODO: Add logic here that analyzes each project and figures out the best
-            //       bindings to automatically add.
             if (!projectResource.Annotations.OfType<ServiceBindingAnnotation>().Any(sb => sb.UriScheme == "http" || sb.Name == "http"))
             {
                 var httpBinding = new ServiceBindingAnnotation(
@@ -56,7 +45,7 @@ internal sealed class AutomaticManifestPublisherBindingInjectionHook(IOptions<Pu
                     uriScheme: "http"
                     );
                 projectResource.Annotations.Add(httpBinding);
-                httpBinding.Transport = IsKestrelHttp2ConfigurationPresent(projectResource) ? "http2" : httpBinding.Transport;
+                httpBinding.Transport = isHttp2ConfiguredInAppSettings ? "http2" : httpBinding.Transport;
             }
 
             if (!projectResource.Annotations.OfType<ServiceBindingAnnotation>().Any(sb => sb.UriScheme == "https" || sb.Name == "https"))
@@ -66,7 +55,7 @@ internal sealed class AutomaticManifestPublisherBindingInjectionHook(IOptions<Pu
                     uriScheme: "https"
                     );
                 projectResource.Annotations.Add(httpsBinding);
-                httpsBinding.Transport = IsKestrelHttp2ConfigurationPresent(projectResource) ? "http2" : httpsBinding.Transport;
+                httpsBinding.Transport = isHttp2ConfiguredInAppSettings ? "http2" : httpsBinding.Transport;
             }
         }
 
