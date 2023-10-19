@@ -154,4 +154,9 @@ public static class ResourceBuilderExtensions
     {
         return builder.Resource.GetEndpoint(name);
     }
+
+    public static IDistributedApplicationResourceBuilder<T> AsHttp2Service<T>(this IDistributedApplicationResourceBuilder<T> builder) where T : IDistributedApplicationResourceWithBindings
+    {
+        return builder.WithAnnotation(new Http2ServiceAnnotation());
+    }
 }

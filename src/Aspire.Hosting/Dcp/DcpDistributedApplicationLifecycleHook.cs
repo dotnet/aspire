@@ -30,7 +30,6 @@ public sealed class DcpDistributedApplicationLifecycleHook(IOptions<PublishingOp
         // Automatically add ServiceBindingAnnotations to project resources based on ApplicationUrl set in the launch profile.
         foreach (var projectResource in model.Resources.OfType<ProjectResource>())
         {
-
             var selectedLaunchProfileName = projectResource.SelectLaunchProfileName();
             if (selectedLaunchProfileName is null)
             {
