@@ -11,9 +11,8 @@ using Microsoft.Fast.Components.FluentUI;
 
 namespace Aspire.Dashboard.Components.Pages;
 
-public partial class Metrics : IDisposable
+public partial class Metrics : IAsyncDisposable
 {
-    private static readonly ApplicationViewModel s_selectApplication = new ApplicationViewModel { Id = null, Name = "Select service..." };
     private static readonly List<MetricsDurationViewModel> s_durations = new List<MetricsDurationViewModel>
     {
         new MetricsDurationViewModel { Text = "Last 1 minute", Duration = TimeSpan.FromMinutes(1) },
@@ -28,18 +27,31 @@ public partial class Metrics : IDisposable
     };
     private static readonly TimeSpan s_defaultDuration = TimeSpan.FromMinutes(5);
 
-    private List<ApplicationViewModel> _applications = default!;
-    private ApplicationViewModel _selectedApplication = s_selectApplication;
     private MetricsDurationViewModel _selectedDuration = s_durations.Single(d => d.Duration == s_defaultDuration);
-    private Subscription? _applicationsSubscription;
     private Subscription? _metricsSubscription;
     private List<OtlpInstrument>? _instruments;
     private FluentTreeItem? _selectedTreeItem;
     private OtlpMeter? _selectedMeter;
     private OtlpInstrument? _selectedInstrument;
+    private ProjectViewModel? _selectedProject;
+    private ResourceSelectorViewModel<ProjectViewModel> _resourceSelectorViewModel = default!;
+
+    private ProjectViewModel? SelectedProject
+    {
+        get => _selectedProject;
+        set
+        {
+            if (_selectedProject != value)
+            {
+                _selectedProject = value;
+                ViewModel.ApplicationServiceId = _selectedProject?.Uid;
+                UpdateSubscription();
+            }
+        }
+    }
 
     [Parameter]
-    public string? ApplicationInstanceId { get; set; }
+    public string? ApplicationName { get; set; }
 
     [Parameter]
     public string? MeterName { get; set; }
@@ -66,23 +78,25 @@ public partial class Metrics : IDisposable
     [Inject]
     public required TracesViewModel ViewModel { get; set; }
 
-    protected override Task OnInitializedAsync()
+    protected override async Task OnInitializedAsync()
     {
-        UpdateApplications();
-        _applicationsSubscription = TelemetryRepository.OnNewApplications(() => InvokeAsync(() =>
+        _resourceSelectorViewModel = new ResourceSelectorViewModel<ProjectViewModel>()
         {
-            UpdateApplications();
-            StateHasChanged();
-        }));
-        return Task.CompletedTask;
+            ResourceGetter = DashboardViewModelService.GetProjectsAsync,
+            ResourceWatcher = ct => DashboardViewModelService.WatchProjectsAsync(cancellationToken: ct),
+            ResourcesLoaded = ProjectsLoaded,
+            SelectedResourceChanged = HandleSelectedApplicationChangedAsync,
+            UnselectedText = "Select service..."
+        };
+        await _resourceSelectorViewModel.InitializeAsync();
     }
 
-    protected override void OnParametersSet()
+    protected override async Task OnParametersSetAsync()
     {
         _selectedDuration = s_durations.SingleOrDefault(d => (int)d.Duration.TotalMinutes == DurationMinutes) ?? s_durations.Single(d => d.Duration == s_defaultDuration);
-        _selectedApplication = _applications.SingleOrDefault(e => e.Id == ApplicationInstanceId) ?? s_selectApplication;
-        ViewModel.ApplicationServiceId = _selectedApplication.Id;
-        _instruments = !string.IsNullOrEmpty(_selectedApplication.Id) ? TelemetryRepository.GetInstrumentsSummary(_selectedApplication.Id) : null;
+		await _resourceSelectorViewModel.LoadedAsync;
+
+        _instruments = !string.IsNullOrEmpty(SelectedProject?.Uid) ? TelemetryRepository.GetInstrumentsSummary(SelectedProject.Uid) : null;
 
         _selectedMeter = null;
         _selectedInstrument = null;
@@ -93,7 +107,7 @@ public partial class Metrics : IDisposable
             {
                 _selectedInstrument = TelemetryRepository.GetInstrument(new GetInstrumentRequest
                 {
-                    ApplicationServiceId = ApplicationInstanceId!,
+                    ApplicationServiceId = SelectedProject!.Uid,
                     MeterName = MeterName,
                     InstrumentName = InstrumentName
                 });
@@ -103,16 +117,10 @@ public partial class Metrics : IDisposable
         UpdateSubscription();
     }
 
-    private void UpdateApplications()
+    public async Task HandleSelectedApplicationChangedAsync(ProjectViewModel? project)
     {
-        _applications = TelemetryRepository.GetApplications().Select(a => new ApplicationViewModel { Id = a.InstanceId, Name = a.ApplicationName }).ToList();
-        _applications.Insert(0, s_selectApplication);
-        UpdateSubscription();
-    }
-
-    private async Task HandleSelectedApplicationChangedAsync()
-    {
-        var state = new MetricsSelectedState { ApplicationId = _selectedApplication.Id, DurationMinutes = (int)_selectedDuration.Duration.TotalMinutes };
+        SelectedProject = project;
+        var state = new MetricsSelectedState { ApplicationName = SelectedProject?.Name };
 
         NavigateTo(state);
         await ProtectedSessionStore.SetAsync(MetricsSelectedState.Key, state);
@@ -120,7 +128,7 @@ public partial class Metrics : IDisposable
 
     private async Task HandleSelectedDurationChangedAsync()
     {
-        var state = new MetricsSelectedState { ApplicationId = _selectedApplication.Id, DurationMinutes = (int)_selectedDuration.Duration.TotalMinutes, InstrumentName = InstrumentName, MeterName = MeterName };
+        var state = new MetricsSelectedState { ApplicationId = SelectedProject?.Name, DurationMinutes = (int)_selectedDuration.Duration.TotalMinutes, InstrumentName = InstrumentName, MeterName = MeterName };
 
         NavigateTo(state);
         await ProtectedSessionStore.SetAsync(MetricsSelectedState.Key, state);
@@ -129,7 +137,7 @@ public partial class Metrics : IDisposable
     private sealed class MetricsSelectedState
     {
         public const string Key = "Metrics_SelectState";
-        public string? ApplicationId { get; set; }
+        public string? ApplicationName { get; set; }
         public string? MeterName { get; set; }
         public string? InstrumentName { get; set; }
         public int DurationMinutes { get; set; }
@@ -141,15 +149,15 @@ public partial class Metrics : IDisposable
 
         if (_selectedTreeItem?.Data is OtlpMeter meter)
         {
-            state = new MetricsSelectedState { ApplicationId = _selectedApplication.Id, DurationMinutes = (int)_selectedDuration.Duration.TotalMinutes, MeterName = meter.MeterName };
+            state = new MetricsSelectedState { ApplicationName = SelectedProject?.Name, DurationMinutes = (int)_selectedDuration.Duration.TotalMinutes, MeterName = meter.MeterName };
         }
         else if (_selectedTreeItem?.Data is OtlpInstrument instrument)
         {
-            state = new MetricsSelectedState { ApplicationId = _selectedApplication.Id, DurationMinutes = (int)_selectedDuration.Duration.TotalMinutes, MeterName = instrument.Parent.MeterName, InstrumentName = instrument.Name };
+            state = new MetricsSelectedState { ApplicationName = SelectedProject?.Name, DurationMinutes = (int)_selectedDuration.Duration.TotalMinutes, MeterName = instrument.Parent.MeterName, InstrumentName = instrument.Name };
         }
         else
         {
-            state = new MetricsSelectedState { ApplicationId = _selectedApplication.Id, DurationMinutes = (int)_selectedDuration.Duration.TotalMinutes };
+            state = new MetricsSelectedState { ApplicationName = SelectedProject?.Name, DurationMinutes = (int)_selectedDuration.Duration.TotalMinutes };
         }
 
         NavigateTo(state);
@@ -163,16 +171,16 @@ public partial class Metrics : IDisposable
         {
             if (state.InstrumentName != null)
             {
-                url = $"/Metrics/{state.ApplicationId}/Meter/{state.MeterName}/Instrument/{state.InstrumentName}";
+                url = $"/Metrics/{state.ApplicationName}/Meter/{state.MeterName}/Instrument/{state.InstrumentName}";
             }
             else
             {
-                url = $"/Metrics/{state.ApplicationId}/Meter/{state.MeterName}";
+                url = $"/Metrics/{state.ApplicationName}/Meter/{state.MeterName}";
             }
         }
         else if (state.ApplicationId != null)
         {
-            url = $"/Metrics/{state.ApplicationId}";
+            url = $"/Metrics/{state.ApplicationName}";
         }
         else
         {
@@ -190,12 +198,12 @@ public partial class Metrics : IDisposable
     private void UpdateSubscription()
     {
         // Subscribe to updates.
-        if (_metricsSubscription is null || _metricsSubscription.ApplicationId != _selectedApplication.Id)
+        if (_metricsSubscription is null || _metricsSubscription.ApplicationId != SelectedProject?.Uid)
         {
             _metricsSubscription?.Dispose();
-            _metricsSubscription = TelemetryRepository.OnNewMetrics(_selectedApplication.Id, async () =>
+            _metricsSubscription = TelemetryRepository.OnNewMetrics(SelectedProject?.Uid, async () =>
             {
-                var selectedApplicationId = _selectedApplication.Id;
+                var selectedApplicationId = SelectedProject?.Uid;
                 if (!string.IsNullOrEmpty(selectedApplicationId))
                 {
                     // If there are more instruments than before then update the UI.
@@ -211,6 +219,16 @@ public partial class Metrics : IDisposable
         }
     }
 
+    public async Task ProjectsLoaded(ResourcesLoadedEventArgs<ProjectViewModel> args)
+    {
+        if (!string.IsNullOrEmpty(ApplicationName))
+        {
+            args.SelectedItem = args.Resources.SingleOrDefault(r => r.Resource?.Name == ApplicationName);
+            SelectedProject = args.SelectedItem?.Resource;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -223,9 +241,9 @@ public partial class Metrics : IDisposable
         }
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
-        _applicationsSubscription?.Dispose();
         _metricsSubscription?.Dispose();
+        await _resourceSelectorViewModel.DisposeAsync();
     }
 }

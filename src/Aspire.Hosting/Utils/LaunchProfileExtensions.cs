@@ -61,7 +61,9 @@ internal static class LaunchProfileExtensions
             return null;
         }
 
-        using var stream = new FileStream(launchSettingsFilePath, FileMode.Open);
+        // We just need to read from the launch settings. Allow other readers. This prevents us from locking the file
+        // which is important in the situation where there are concurrent calls to this method.
+        using var stream = new FileStream(launchSettingsFilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
         var settings = JsonSerializer.Deserialize(stream, LaunchSetttingsSerializerContext.Default.LaunchSettings);
         return settings;
     }

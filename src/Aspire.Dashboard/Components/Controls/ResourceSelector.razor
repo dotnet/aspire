@@ -1,0 +1,12 @@
+﻿@namespace Aspire.Dashboard.Components
+@typeparam TResource
+
+@using Aspire.Dashboard.Model
+
+<FluentSelect TOption="ResourceSelectItem<TResource>"
+              Items="ViewModel.GetResources()"
+              OptionText="@(c => c.Text)"
+              OptionValue="@(c => c.Text)"
+              @bind-SelectedOption="ViewModel.SelectedItem"
+              @bind-SelectedOption:after="SelectedOptionChangedAsync"
+              AriaLabel="@SelectResourceTitle" />

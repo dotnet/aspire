@@ -1,7 +1,8 @@
-﻿@page "/Metrics/{applicationInstanceId?}"
-@page "/Metrics/{applicationInstanceId}/Meter/{meterName}"
-@page "/Metrics/{applicationInstanceId}/Meter/{meterName}/Instrument/{instrumentName}"
+﻿@page "/Metrics/{applicationName?}"
+@page "/Metrics/{applicationName}/Meter/{meterName}"
+@page "/Metrics/{applicationName}/Meter/{meterName}/Instrument/{instrumentName}"
 
+@using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Model.Otlp
 
 <PageTitle>@DashboardViewModelService.ApplicationName Metrics</PageTitle>
@@ -11,13 +12,9 @@
 <div>
     <FluentStack Orientation="Orientation.Vertical">
         <FluentToolbar Orientation="Orientation.Horizontal">
-            <FluentSelect TOption="ApplicationViewModel"
-                          Items="@_applications"
-                          OptionValue="@(c => c.Id)"
-                          OptionText="@(c => c.Name)"
-                          @bind-SelectedOption="_selectedApplication"
-                          @bind-SelectedOption:after="HandleSelectedApplicationChangedAsync"
-                          AriaLabel="Select an Application"/>
+            <ResourceSelector TResource="ProjectViewModel"
+                              ViewModel="_resourceSelectorViewModel"
+                              SelectResourceTitle="Select an Application" />
             <FluentIcon slot="end" Icon="Icons.Regular.Size20.Clock" Style="margin-right:5px;" />
             <FluentSelect slot="end" TOption="MetricsDurationViewModel"
                           Items="@s_durations"
@@ -47,11 +44,11 @@
                     </Panel1>
                     <Panel2>
                         <div class="metrics-content">
-                            @if (_selectedApplication.Id != null && _selectedMeter != null && _selectedInstrument != null)
+                            @if (SelectedProject?.Uid != null && _selectedMeter != null && _selectedInstrument != null)
                             {
-                                <ChartContainer ApplicationId="@(_selectedApplication.Id)" MeterName="@(_selectedMeter.MeterName)" InstrumentName="@(_selectedInstrument.Name)" Duration="_selectedDuration.Duration" />
+                                <ChartContainer ApplicationId="@(SelectedProject.Uid)" MeterName="@(_selectedMeter.MeterName)" InstrumentName="@(_selectedInstrument.Name)" Duration="_selectedDuration.Duration" />
                             }
-                            else if (_selectedMeter != null)
+                            else if (SelectedProject?.Uid != null && _selectedMeter != null)
                             {
                                 <h3>@_selectedMeter.MeterName</h3>
                                 <table style="max-width:1100px;">
@@ -59,7 +56,7 @@
                                     {
                                         <tr>
                                             <td>
-                                                <FluentAnchor Href="@($"/Metrics/{_selectedApplication.Id}/Meter/{item.Parent.MeterName}/Instrument/{item.Name}")" Appearance="Appearance.Lightweight">@item.Name</FluentAnchor>
+                                                <FluentAnchor Href="@($"/Metrics/{SelectedProject.Name}/Meter/{item.Parent.MeterName}/Instrument/{item.Name}")" Appearance="Appearance.Lightweight">@item.Name</FluentAnchor>
                                             </td>
                                             <td>@item.Description</td>
                                         </tr>

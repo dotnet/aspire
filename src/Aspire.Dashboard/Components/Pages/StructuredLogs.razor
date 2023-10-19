@@ -1,4 +1,4 @@
-﻿@page "/StructuredLogs/{applicationInstanceId?}"
+﻿@page "/StructuredLogs/{applicationName?}"
 @using Aspire.Dashboard.Components.Dialogs
 @using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Model.Otlp
@@ -6,10 +6,6 @@
 @using Aspire.Dashboard.Otlp.Storage
 @using Microsoft.Fast.Components.FluentUI
 @using System.Web
-@inject NavigationManager NavigationManager
-@inject IDashboardViewModelService DashboardViewModelService
-@inject IJSRuntime JS
-@implements IDisposable
 
 <PageTitle>@DashboardViewModelService.ApplicationName Structured Logs</PageTitle>
 
@@ -17,12 +13,9 @@
 <div>
     <FluentStack Orientation="Orientation.Vertical">
         <FluentToolbar Orientation="Orientation.Horizontal">
-            <FluentSelect TOption="ApplicationViewModel"
-                          Items="@_applications"
-                          OptionValue="@(c => c.Id)"
-                          OptionText="@(c => c.Name)"
-                          @bind-SelectedOption="_selectedApplication"
-                          @bind-SelectedOption:after="HandleSelectedApplicationChangedAsync" />
+            <ResourceSelector TResource="ProjectViewModel"
+                              ViewModel="_resourceSelectorViewModel"
+                              SelectResourceTitle="Select an Application" />
             <FluentSearch @bind-Value="_filter"
                           @oninput="HandleFilter"
                           AfterBindValue="HandleClear"

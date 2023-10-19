@@ -32,11 +32,11 @@ public partial class DashboardViewModelService : IDashboardViewModelService, IDi
 
     public string ApplicationName => _applicationName;
 
-    public async Task<List<ContainerViewModel>> GetContainersAsync()
+    public async Task<List<ContainerViewModel>> GetContainersAsync(CancellationToken cancellationToken = default)
     {
-        var containers = await _kubernetesService.ListAsync<Container>().ConfigureAwait(false);
-        var endpoints = await _kubernetesService.ListAsync<Endpoint>().ConfigureAwait(false);
-        var services = await _kubernetesService.ListAsync<Service>().ConfigureAwait(false);
+        var containers = await _kubernetesService.ListAsync<Container>(cancellationToken: cancellationToken).ConfigureAwait(false);
+        var endpoints = await _kubernetesService.ListAsync<Endpoint>(cancellationToken: cancellationToken).ConfigureAwait(false);
+        var services = await _kubernetesService.ListAsync<Service>(cancellationToken: cancellationToken).ConfigureAwait(false);
 
         var results = containers.Select(e => ConvertToContainerViewModel(_applicationModel, services, endpoints, e))
             .OrderBy(e => e.Name).ToList();
@@ -46,22 +46,22 @@ public partial class DashboardViewModelService : IDashboardViewModelService, IDi
         return results;
     }
 
-    public async Task<List<ExecutableViewModel>> GetExecutablesAsync()
+    public async Task<List<ExecutableViewModel>> GetExecutablesAsync(CancellationToken cancellationToken = default)
     {
-        var executables = await _kubernetesService.ListAsync<Executable>().ConfigureAwait(false);
-        var endpoints = await _kubernetesService.ListAsync<Endpoint>().ConfigureAwait(false);
-        var services = await _kubernetesService.ListAsync<Service>().ConfigureAwait(false);
+        var executables = await _kubernetesService.ListAsync<Executable>(cancellationToken: cancellationToken).ConfigureAwait(false);
+        var endpoints = await _kubernetesService.ListAsync<Endpoint>(cancellationToken: cancellationToken).ConfigureAwait(false);
+        var services = await _kubernetesService.ListAsync<Service>(cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return executables.Where(executable => executable.Metadata.Annotations?.ContainsKey(Executable.CSharpProjectPathAnnotation) == false)
             .Select(e => ConvertToExecutableViewModel(_applicationModel, services, endpoints, e))
             .ToList();
     }
 
-    public async Task<List<ProjectViewModel>> GetProjectsAsync()
+    public async Task<List<ProjectViewModel>> GetProjectsAsync(CancellationToken cancellationToken = default)
     {
-        var executables = await _kubernetesService.ListAsync<Executable>().ConfigureAwait(false);
-        var endpoints = await _kubernetesService.ListAsync<Endpoint>().ConfigureAwait(false);
-        var services = await _kubernetesService.ListAsync<Service>().ConfigureAwait(false);
+        var executables = await _kubernetesService.ListAsync<Executable>(cancellationToken: cancellationToken).ConfigureAwait(false);
+        var endpoints = await _kubernetesService.ListAsync<Endpoint>(cancellationToken: cancellationToken).ConfigureAwait(false);
+        var services = await _kubernetesService.ListAsync<Service>(cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return executables.Where(executable => executable.Metadata.Annotations?.ContainsKey(Executable.CSharpProjectPathAnnotation) == true)
             .Select(e => ConvertToProjectViewModel(_applicationModel, services, endpoints, e))
@@ -126,6 +126,7 @@ public partial class DashboardViewModelService : IDashboardViewModelService, IDi
         {
             Name = container.Metadata.Name,
             NamespacedName = new(container.Metadata.Name, null),
+            Uid = container.Metadata.Uid,
             ContainerId = container.Status?.ContainerId,
             CreationTimeStamp = container.Metadata.CreationTimestamp?.ToLocalTime(),
             Image = container.Spec.Image!,
@@ -213,6 +214,7 @@ public partial class DashboardViewModelService : IDashboardViewModelService, IDi
         {
             Name = executable.Metadata.Name,
             NamespacedName = new(executable.Metadata.Name, null),
+            Uid = executable.Metadata.Uid,
             CreationTimeStamp = executable.Metadata?.CreationTimestamp?.ToLocalTime(),
             ExecutablePath = executable.Spec.ExecutablePath,
             WorkingDirectory = executable.Spec.WorkingDirectory,
@@ -240,6 +242,7 @@ public partial class DashboardViewModelService : IDashboardViewModelService, IDi
         {
             Name = executable.Metadata!.Name,
             NamespacedName = new(executable.Metadata.Name, null),
+            Uid = executable.Metadata.Uid,
             CreationTimeStamp = executable.Metadata?.CreationTimestamp?.ToLocalTime(),
             ProjectPath = executable.Metadata?.Annotations?[Executable.CSharpProjectPathAnnotation] ?? "",
             State = executable.Status?.State,

@@ -11,21 +11,30 @@ using Microsoft.Fast.Components.FluentUI;
 using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Pages;
-public partial class StructuredLogs
-{
-    private static readonly ApplicationViewModel s_allApplication = new ApplicationViewModel { Id = null, Name = "(All)" };
 
+public partial class StructuredLogs : IAsyncDisposable
+{
     private TotalItemsFooter _totalItemsFooter = default!;
-    private List<ApplicationViewModel> _applications = default!;
-    private ApplicationViewModel _selectedApplication = s_allApplication;
-    private Subscription? _applicationsSubscription;
     private Subscription? _logsSubscription;
     private bool _applicationChanged;
     private CancellationTokenSource? _filterCts;
     private string _filter = string.Empty;
+    private ProjectViewModel? _selectedProject;
+    private ResourceSelectorViewModel<ProjectViewModel> _resourceSelectorViewModel = default!;
+
+    private ProjectViewModel? SelectedProject
+    {
+        get => _selectedProject;
+        set
+        {
+            _selectedProject = value;
+            ViewModel.ApplicationServiceId = _selectedProject?.Uid;
+            UpdateSubscription();
+        }
+    }
 
     [Parameter]
-    public string? ApplicationInstanceId { get; set; }
+    public string? ApplicationName { get; set; }
 
     [Inject]
     public required TelemetryRepository TelemetryRepository { get; set; }
@@ -36,6 +45,15 @@ public partial class StructuredLogs
     [Inject]
     public required IDialogService DialogService { get; set; }
 
+    [Inject]
+    public required NavigationManager NavigationManager { get; set; }
+
+    [Inject]
+    public required IDashboardViewModelService DashboardViewModelService { get; set; }
+
+    [Inject]
+    public required IJSRuntime JS { get; set; }
+
     [Parameter]
     [SupplyParameterFromQuery]
     public string? TraceId { get; set; }
@@ -44,8 +62,10 @@ public partial class StructuredLogs
     [SupplyParameterFromQuery]
     public string? SpanId { get; set; }
 
-    private ValueTask<GridItemsProviderResult<OtlpLogEntry>> GetData(GridItemsProviderRequest<OtlpLogEntry> request)
+    private async ValueTask<GridItemsProviderResult<OtlpLogEntry>> GetData(GridItemsProviderRequest<OtlpLogEntry> request)
     {
+        await _resourceSelectorViewModel.LoadedAsync;
+
         ViewModel.StartIndex = request.StartIndex;
         ViewModel.Count = request.Count;
 
@@ -55,10 +75,10 @@ public partial class StructuredLogs
         // The workaround is to put the count inside a control and explicitly update and refresh the control.
         _totalItemsFooter.SetTotalItemCount(logs.TotalItemCount);
 
-        return ValueTask.FromResult(GridItemsProviderResult.From(logs.Items, logs.TotalItemCount));
+        return GridItemsProviderResult.From(logs.Items, logs.TotalItemCount);
     }
 
-    protected override Task OnInitializedAsync()
+    protected override async Task OnInitializedAsync()
     {
         if (!string.IsNullOrEmpty(TraceId))
         {
@@ -69,32 +89,21 @@ public partial class StructuredLogs
             ViewModel.AddFilter(new LogFilter { Field = "SpanId", Condition = FilterCondition.Equals, Value = SpanId });
         }
 
-        UpdateApplications();
-        _applicationsSubscription = TelemetryRepository.OnNewApplications(() => InvokeAsync(() =>
+        _resourceSelectorViewModel = new ResourceSelectorViewModel<ProjectViewModel>()
         {
-            UpdateApplications();
-            StateHasChanged();
-        }));
-
-        return Task.CompletedTask;
+            ResourceGetter = DashboardViewModelService.GetProjectsAsync,
+            ResourceWatcher = ct => DashboardViewModelService.WatchProjectsAsync(cancellationToken: ct),
+            ResourcesLoaded = ProjectsLoaded,
+            SelectedResourceChanged = HandleSelectedApplicationChangedAsync,
+            UnselectedText = "(All)"
+        };
+        await _resourceSelectorViewModel.InitializeAsync();
     }
 
-    protected override void OnParametersSet()
+    public Task HandleSelectedApplicationChangedAsync(ProjectViewModel? project)
     {
-        _selectedApplication = _applications.SingleOrDefault(e => e.Id == ApplicationInstanceId) ?? s_allApplication;
-        ViewModel.ApplicationServiceId = _selectedApplication.Id;
-        UpdateSubscription();
-    }
-
-    private void UpdateApplications()
-    {
-        _applications = TelemetryRepository.GetApplications().Select(a => new ApplicationViewModel { Id = a.InstanceId, Name = a.ApplicationName }).ToList();
-        _applications.Insert(0, s_allApplication);
-    }
-
-    private Task HandleSelectedApplicationChangedAsync()
-    {
-        NavigationManager.NavigateTo($"/StructuredLogs/{_selectedApplication.Id}");
+        SelectedProject = project;
+        NavigationManager.NavigateTo($"/StructuredLogs/{project?.Name}");
         _applicationChanged = true;
 
         return Task.CompletedTask;
@@ -103,14 +112,24 @@ public partial class StructuredLogs
     private void UpdateSubscription()
     {
         // Subscribe to updates.
-        if (_logsSubscription is null || _logsSubscription.ApplicationId != _selectedApplication.Id)
+        if (_logsSubscription is null || _logsSubscription.ApplicationId != SelectedProject?.Uid)
         {
             _logsSubscription?.Dispose();
-            _logsSubscription = TelemetryRepository.OnNewLogs(_selectedApplication.Id, async () =>
+            _logsSubscription = TelemetryRepository.OnNewLogs(SelectedProject?.Uid, async () =>
             {
                 ViewModel.ClearData();
                 await InvokeAsync(StateHasChanged);
             });
+        }
+    }
+
+    public async Task ProjectsLoaded(ResourcesLoadedEventArgs<ProjectViewModel> args)
+    {
+        if (!string.IsNullOrEmpty(ApplicationName))
+        {
+            args.SelectedItem = args.Resources.SingleOrDefault(r => r.Resource?.Name == ApplicationName);
+            SelectedProject = args.SelectedItem?.Resource;
+            await InvokeAsync(StateHasChanged);
         }
     }
 
@@ -136,7 +155,7 @@ public partial class StructuredLogs
 
     private async Task OpenFilterAsync(LogFilter? entry)
     {
-        var logPropertyKeys = TelemetryRepository.GetLogPropertyKeys(_selectedApplication.Id);
+        var logPropertyKeys = TelemetryRepository.GetLogPropertyKeys(SelectedProject?.Uid);
 
         var title = entry is not null ? "Edit Filter" : "Add Filter";
         var parameters = new DialogParameters
@@ -210,10 +229,10 @@ public partial class StructuredLogs
         }
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
-        _applicationsSubscription?.Dispose();
         _logsSubscription?.Dispose();
         _filterCts?.Dispose();
+        await _resourceSelectorViewModel.DisposeAsync();
     }
 }

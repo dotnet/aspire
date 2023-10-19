@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Microsoft.AspNetCore.Components;
@@ -10,21 +9,33 @@ using Microsoft.Fast.Components.FluentUI;
 using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Pages;
-public partial class Traces
-{
-    private static readonly ApplicationViewModel s_allApplication = new ApplicationViewModel { Id = null, Name = "(All)" };
 
+public partial class Traces : IAsyncDisposable
+{
     private TotalItemsFooter _totalItemsFooter = default!;
-    private List<ApplicationViewModel> _applications = default!;
-    private ApplicationViewModel _selectedApplication = s_allApplication;
-    private Subscription? _applicationsSubscription;
     private Subscription? _tracesSubscription;
     private bool _applicationChanged;
     private CancellationTokenSource? _filterCts;
     private string _filter = string.Empty;
+    private ProjectViewModel? _selectedProject;
+    private ResourceSelectorViewModel<ProjectViewModel> _resourceSelectorViewModel = default!;
+
+    private ProjectViewModel? SelectedProject
+    {
+        get => _selectedProject;
+        set
+        {
+            if (_selectedProject != value)
+            {
+                _selectedProject = value;
+                ViewModel.ApplicationServiceId = _selectedProject?.Uid;
+                UpdateSubscription();
+            }
+        }
+    }
 
     [Parameter]
-    public string? ApplicationInstanceId { get; set; }
+    public string? ApplicationName { get; set; }
 
     [Inject]
     public required TelemetryRepository TelemetryRepository { get; set; }
@@ -34,6 +45,15 @@ public partial class Traces
 
     [Inject]
     public required IDialogService DialogService { get; set; }
+
+    [Inject]
+    public required NavigationManager NavigationManager { get; set; }
+
+    [Inject]
+    public required IDashboardViewModelService DashboardViewModelService { get; set; }
+
+    [Inject]
+    public required IJSRuntime JS { get; set; }
 
     private string GetRowStyle(OtlpTrace trace)
     {
@@ -60,35 +80,33 @@ public partial class Traces
         return ValueTask.FromResult(GridItemsProviderResult.From(traces.Items, traces.TotalItemCount));
     }
 
-    protected override Task OnInitializedAsync()
+    protected override async Task OnInitializedAsync()
     {
-        UpdateApplications();
-        _applicationsSubscription = TelemetryRepository.OnNewApplications(() => InvokeAsync(() =>
+        _resourceSelectorViewModel = new ResourceSelectorViewModel<ProjectViewModel>()
         {
-            UpdateApplications();
-            StateHasChanged();
-        }));
-
-        return Task.CompletedTask;
+            ResourceGetter = DashboardViewModelService.GetProjectsAsync,
+            ResourceWatcher = ct => DashboardViewModelService.WatchProjectsAsync(cancellationToken: ct),
+            ResourcesLoaded = ProjectsLoaded,
+            SelectedResourceChanged = HandleSelectedApplicationChangedAsync,
+            UnselectedText = "(All)"
+        };
+        await _resourceSelectorViewModel.InitializeAsync();
     }
 
-    protected override void OnParametersSet()
+    public async Task ProjectsLoaded(ResourcesLoadedEventArgs<ProjectViewModel> args)
     {
-        _selectedApplication = _applications.SingleOrDefault(e => e.Id == ApplicationInstanceId) ?? s_allApplication;
-        ViewModel.ApplicationServiceId = _selectedApplication.Id;
-        UpdateSubscription();
+        if (!string.IsNullOrEmpty(ApplicationName))
+        {
+            args.SelectedItem = args.Resources.SingleOrDefault(r => r.Resource?.Name == ApplicationName);
+            SelectedProject = args.SelectedItem?.Resource;
+            await InvokeAsync(StateHasChanged);
+        }
     }
 
-    private void UpdateApplications()
+    public Task HandleSelectedApplicationChangedAsync(ProjectViewModel? project)
     {
-        _applications = TelemetryRepository.GetApplications().Select(a => new ApplicationViewModel { Id = a.InstanceId, Name = a.ApplicationName }).ToList();
-        _applications.Insert(0, s_allApplication);
-        UpdateSubscription();
-    }
-
-    private Task HandleSelectedApplicationChangedAsync()
-    {
-        NavigationManager.NavigateTo($"/Traces/{_selectedApplication.Id}");
+        SelectedProject = project;
+        NavigationManager.NavigateTo($"/Traces/{project?.Name}");
         _applicationChanged = true;
 
         return Task.CompletedTask;
@@ -97,10 +115,10 @@ public partial class Traces
     private void UpdateSubscription()
     {
         // Subscribe to updates.
-        if (_tracesSubscription is null || _tracesSubscription.ApplicationId != _selectedApplication.Id)
+        if (_tracesSubscription is null || _tracesSubscription.ApplicationId != SelectedProject?.Uid)
         {
             _tracesSubscription?.Dispose();
-            _tracesSubscription = TelemetryRepository.OnNewTraces(_selectedApplication.Id, async () =>
+            _tracesSubscription = TelemetryRepository.OnNewTraces(SelectedProject?.Uid, async () =>
             {
                 ViewModel.ClearData();
                 await InvokeAsync(StateHasChanged);
@@ -143,9 +161,9 @@ public partial class Traces
         await JS.InvokeVoidAsync("initializeContinuousScroll");
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
-        _applicationsSubscription?.Dispose();
         _tracesSubscription?.Dispose();
+        await _resourceSelectorViewModel.DisposeAsync();
     }
 }
