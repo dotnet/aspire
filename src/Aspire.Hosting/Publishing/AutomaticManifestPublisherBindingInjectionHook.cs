@@ -17,8 +17,10 @@ internal sealed class AutomaticManifestPublisherBindingInjectionHook(IOptions<Pu
         var serviceMetadata = projectResource.GetServiceMetadata();
         var projectDirectoryPath = Path.GetDirectoryName(serviceMetadata.ProjectPath);
         var appSettingsPath = Path.Combine(projectDirectoryPath!, "appsettings.json");
+        var appSettingsEnvironmentPath = Path.Combine(projectDirectoryPath!, $"appsettings.{Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT")}.json");
         var configBuilder = new ConfigurationBuilder();
-        configBuilder.AddJsonFile(appSettingsPath);
+        configBuilder.AddJsonFile(appSettingsPath, optional: true);
+        configBuilder.AddJsonFile(appSettingsEnvironmentPath, optional: true);
         var config = configBuilder.Build();
         var protocol = config.GetValue<string>("Kestrel:EndpointDefaults:Protocols");
         return protocol == "Http2";
