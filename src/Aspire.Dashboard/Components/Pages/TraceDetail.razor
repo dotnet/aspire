@@ -45,7 +45,7 @@
 
             <FluentDataGrid Class="trace-view-grid" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="SpanWaterfallViewModel" RowClass="@GetRowClass" GridTemplateColumns="2fr 6fr">
                 <TemplateColumn Title="Name">
-                    <div class="col-long-content" title="@($"{context.Span.Source.ApplicationName}: {context.Span.Name}")">
+                    <div class="col-long-content" title="@($"{context.Span.Source.ApplicationName}: {context.GetDisplaySummary()}")">
                         <span style="@($"margin-left: {(context.Depth - 1) * 15}px; border-left-width: 5px; border-left-style: solid; border-left-color: {ColorGenerator.Instance.GetColorHexByKey(context.Span.Source.ApplicationName)}; padding-left: 5px;")">
                             @if (context.Span.Status == OtlpSpanStatusCode.Error)
                             {
@@ -59,7 +59,7 @@
                                     @context.UninstrumentedPeer
                                 </span>
                             }
-                            <span class="span-row-name">@context.Span.Name</span>
+                            <span class="span-row-name">@context.GetDisplaySummary()</span>
                         </span>
                     </div>
                 </TemplateColumn>

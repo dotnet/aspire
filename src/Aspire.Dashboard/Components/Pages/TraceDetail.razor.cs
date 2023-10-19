@@ -137,7 +137,7 @@ public partial class TraceDetail
 
     private async Task OnShowProperties(SpanWaterfallViewModel viewModel)
     {
-        var entryProperties = viewModel.Span.Attributes
+        var entryProperties = viewModel.Span.AllProperties()
             .Select(kvp => new SpanPropertyViewModel { Name = kvp.Key, Value = kvp.Value })
             .ToList();
 
