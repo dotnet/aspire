@@ -53,6 +53,7 @@ stages:
       enablePublishUsingPipelines: true
       publishAssetsImmediately: true
       enablePublishTestResults: true
+      # enableSourceBuild: true   Once the repo is public and we no longer depend on an internal feed, we should uncomment this line in order to enable SourceBuild CI leg.
       testResultsFormat: vstest
       enableSourceIndex: false
       workspace:
