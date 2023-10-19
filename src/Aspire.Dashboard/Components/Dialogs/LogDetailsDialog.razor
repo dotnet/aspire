@@ -14,18 +14,14 @@
                             slot="end" />
         </FluentToolbar>
         <div class="dialog-grid-container">
-            <FluentDataGrid Items="@FilteredItems"
-                            ResizableColumns="true"
-                            Style="width:100%"
-                            GenerateHeader="GenerateHeaderOption.Sticky"
-                            GridTemplateColumns="1fr 2fr">
-                <TemplateColumn Title="Name" Class="nameColumn" SortBy="@_nameSort" Sortable="true">
-                    <GridValue Value="@context.Name" HighlightText="@_filter" />
-                </TemplateColumn>
-                <TemplateColumn Title="Value" Class="valueColumn" SortBy="@_valueSort" Sortable="true">
-                    <GridValue Value="@context.Value" HighlightText="@_filter" />
-                </TemplateColumn>
-            </FluentDataGrid>
+            <PropertyGrid TItem="LogEntryPropertyViewModel"
+                          Items="@FilteredItems"
+                          GridTemplateColumns="1fr 2fr"
+                          NameColumnValue="(vm) => vm.Name"
+                          ValueColumnValue="(vm) => vm.Value"
+                          NameSort="_nameSort"
+                          ValueSort="_valueSort"
+                          HighlightText="@_filter" />
         </div>
     </FluentStack>
 </FluentDialogBody>

@@ -79,10 +79,4 @@ public partial class EnvironmentVariables
             }
         }
     }
-
-    private void OnIsMaskedChanged(EnvironmentVariableViewModel vm, bool newValue)
-    {
-        vm.IsValueMasked = newValue;
-        CheckAllMaskStates();
-    }
 }
