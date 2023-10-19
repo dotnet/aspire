@@ -2,10 +2,9 @@
 @using Aspire.Dashboard.Otlp.Model
 @using Microsoft.Fast.Components.FluentUI;
 @implements IDialogContentComponent<SpanDetailsDialogViewModel>
-@inject IJSRuntime JS
 
-<FluentDialogBody>
-    <div class="GridContainer">
+<div>
+    <FluentDialogBody>
         <FluentStack Orientation="Orientation.Vertical">
             <FluentToolbar Orientation="Orientation.Horizontal">
                 <div>
@@ -29,43 +28,17 @@
                               AfterBindValue="HandleClear"
                               slot="end" />
             </FluentToolbar>
-            <FluentDataGrid Items="@FilteredItems"
-                            ResizableColumns="true"
-                            Style="width:100%"
-                            GenerateHeader="GenerateHeaderOption.Sticky"
-                            GridTemplateColumns="1fr 2fr">
-                <TemplateColumn Title="Name" Class="nameColumn" SortBy="@_nameSort" Sortable="true">
-                    <FluentStack Orientation="Orientation.Horizontal">
-                        <span class="cellText">
-                            <FluentHighlighter HighlightedText="@_filter" Text="@context.Name" />
-                        </span>
-                        @{
-                            var anchor = "name-" + context.Name;
-                        }
-                        <FluentButton Appearance="Appearance.Lightweight"
-                                      Id="@anchor"
-                                      IconEnd="@(new Icons.Regular.Size16.Copy())"
-                                      Class="defaultHidden"
-                                      OnClick="async () => await CopyTextToClipboardAsync(context.Name, anchor)" />
-                        <FluentTooltip Anchor="@anchor" Position="TooltipPosition.Top">@PreCopyText</FluentTooltip>
-                        </FluentStack>
+            <div class="dialog-grid-container">
+                <FluentDataGrid Items="@FilteredItems"
+                                ResizableColumns="true"
+                                Style="width:100%"
+                                GenerateHeader="GenerateHeaderOption.Sticky"
+                                GridTemplateColumns="1fr 2fr">
+                    <TemplateColumn Title="Name" Class="nameColumn" SortBy="@_nameSort" Sortable="true">
+                        <GridValue Value="@context.Name" HighlightText="@_filter" />
                     </TemplateColumn>
                     <TemplateColumn Title="Value" Class="valueColumn" SortBy="@_valueSort" Sortable="true">
-                        <FluentStack Orientation="Orientation.Horizontal">
-                            <span class="cellText">
-                                <FluentHighlighter HighlightedText="@_filter" Text="@context.Value" />
-                            </span>
-                            @{
-                            var anchor = "copy-" + context.Name;
-                        }
-                        <FluentButton Appearance="Appearance.Lightweight"
-                                      Id="@anchor"
-                                      IconEnd="@(new Icons.Regular.Size16.Copy())"
-                                      Class="defaultHidden"
-                                      Title="Copy to Clipboard"
-                                      OnClick="async () => await CopyTextToClipboardAsync(context.Value, anchor)" />
-                        <FluentTooltip Anchor="@anchor" Position="TooltipPosition.Top">@PreCopyText</FluentTooltip>
-                        </FluentStack>
+                        <GridValue Value="@context.Value" HighlightText="@_filter" />
                     </TemplateColumn>
                 </FluentDataGrid>
                 <h4>Application</h4>
@@ -75,39 +48,13 @@
                                 GenerateHeader="GenerateHeaderOption.Sticky"
                                 GridTemplateColumns="1fr 2fr">
                     <TemplateColumn Title="Name" Class="nameColumn">
-                        <FluentStack Orientation="Orientation.Horizontal">
-                            <span class="cellText">
-                                <FluentHighlighter HighlightedText="@_filter" Text="@context.Name" />
-                            </span>
-                            @{
-                            var anchor = "name-" + context.Name;
-                        }
-                        <FluentButton Appearance="Appearance.Lightweight"
-                                      Id="@anchor"
-                                      IconEnd="@(new Icons.Regular.Size16.Copy())"
-                                      Class="defaultHidden"
-                                      OnClick="async () => await CopyTextToClipboardAsync(context.Name, anchor)" />
-                        <FluentTooltip Anchor="@anchor" Position="TooltipPosition.Top">@PreCopyText</FluentTooltip>
-                        </FluentStack>
+                        <GridValue Value="@context.Name" HighlightText="@_filter" />
                     </TemplateColumn>
                     <TemplateColumn Title="Value" Class="valueColumn">
-                        <FluentStack Orientation="Orientation.Horizontal">
-                            <span class="cellText">
-                                <FluentHighlighter HighlightedText="@_filter" Text="@context.Value" />
-                            </span>
-                            @{
-                            var anchor = "copy-" + context.Name;
-                        }
-                        <FluentButton Appearance="Appearance.Lightweight"
-                                      Id="@anchor"
-                                      IconEnd="@(new Icons.Regular.Size16.Copy())"
-                                      Class="defaultHidden"
-                                      Title="Copy to Clipboard"
-                                      OnClick="async () => await CopyTextToClipboardAsync(context.Value, anchor)" />
-                        <FluentTooltip Anchor="@anchor" Position="TooltipPosition.Top">@PreCopyText</FluentTooltip>
-                        </FluentStack>
+                        <GridValue Value="@context.Value" HighlightText="@_filter" />
                     </TemplateColumn>
                 </FluentDataGrid>
-            </FluentStack>
-        </div>
+            </div>
+        </FluentStack>
     </FluentDialogBody>
+</div>

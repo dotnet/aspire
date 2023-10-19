@@ -4,7 +4,6 @@
 using Aspire.Dashboard.Model;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Fast.Components.FluentUI;
-using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Dialogs;
 public partial class EnvironmentVariables
@@ -21,9 +20,6 @@ public partial class EnvironmentVariables
             (vm.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) ||
             vm.Value?.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) == true)
         )?.AsQueryable();
-
-    private const string PreCopyText = "Copy to clipboard";
-    private const string PostCopyText = "Copied!";
 
     private string _filter = "";
     private bool _defaultMasked = true;
@@ -46,12 +42,6 @@ public partial class EnvironmentVariables
                 vm.IsValueMasked = _defaultMasked;
             }
         }
-    }
-
-    private void ToggleMaskState(EnvironmentVariableViewModel vm)
-    {
-        vm.IsValueMasked = !vm.IsValueMasked;
-        CheckAllMaskStates();
     }
 
     private void HandleFilter(ChangeEventArgs args)
@@ -90,8 +80,9 @@ public partial class EnvironmentVariables
         }
     }
 
-    private async Task CopyTextToClipboardAsync(string? text, string id)
+    private void OnIsMaskedChanged(EnvironmentVariableViewModel vm, bool newValue)
     {
-        await JS.InvokeVoidAsync("copyTextToClipboard", id, text, PreCopyText, PostCopyText);
+        vm.IsValueMasked = newValue;
+        CheckAllMaskStates();
     }
 }
