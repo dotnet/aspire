@@ -223,7 +223,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model) : I
         foreach (var executable in modelExecutableResources)
         {
             var exeName = GetObjectNameForResource(executable);
-            var exePath = Path.GetFullPath(executable.Command);
+            var exePath = executable.Command;
             var exe = Executable.Create(exeName, exePath);
 
             exe.Spec.WorkingDirectory = executable.WorkingDirectory;
