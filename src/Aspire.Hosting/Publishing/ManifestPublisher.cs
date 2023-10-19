@@ -50,32 +50,38 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, IHo
 
     private void WriteResource(IDistributedApplicationResource resource, Utf8JsonWriter jsonWriter)
     {
-        jsonWriter.WriteStartObject(resource.Name);
-
         // First see if the resource has a callback annotation with overrides the behavior for rendering
         // out the JSON. If so use that callback, otherwise use the fallback logic that we have.
         if (resource.TryGetLastAnnotation<ManifestPublishingCallbackAnnotation>(out var manifestPublishingCallbackAnnotation))
         {
-            manifestPublishingCallbackAnnotation.Callback(jsonWriter);
+            if (manifestPublishingCallbackAnnotation.Callback != null)
+            {
+                WriteResourceObject(resource, () => manifestPublishingCallbackAnnotation.Callback(jsonWriter));
+            }
         }
         else if (resource is ContainerResource container)
         {
-            WriteContainer(container, jsonWriter);
+            WriteResourceObject(container, () => WriteContainer(container, jsonWriter));
         }
         else if (resource is ProjectResource project)
         {
-            WriteProject(project, jsonWriter);
+            WriteResourceObject(project, () => WriteProject(project, jsonWriter));
         }
         else if (resource is ExecutableResource executable)
         {
-            WriteExecutable(executable, jsonWriter);
+            WriteResourceObject(executable, () => WriteExecutable(executable, jsonWriter));
         }
         else
         {
-            WriteError(jsonWriter);
+            WriteResourceObject(resource, () => WriteError(jsonWriter));
         }
 
-        jsonWriter.WriteEndObject();
+        void WriteResourceObject<T>(T resource, Action action) where T: IDistributedApplicationResource
+        {
+            jsonWriter.WriteStartObject(resource.Name);
+            action();
+            jsonWriter.WriteEndObject();
+        }
     }
 
     private static void WriteError(Utf8JsonWriter jsonWriter)

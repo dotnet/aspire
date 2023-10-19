@@ -159,4 +159,14 @@ public static class ResourceBuilderExtensions
     {
         return builder.WithAnnotation(new Http2ServiceAnnotation());
     }
+
+    public static IDistributedApplicationResourceBuilder<T> ExcludeFromManifest<T>(this IDistributedApplicationResourceBuilder<T> builder) where T : IDistributedApplicationResource
+    {
+        foreach (var annotation in builder.Resource.Annotations.OfType<ManifestPublishingCallbackAnnotation>())
+        {
+            builder.Resource.Annotations.Remove(annotation);
+        }
+
+        return builder.WithAnnotation(ManifestPublishingCallbackAnnotation.Ignore);
+    }
 }
