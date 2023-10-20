@@ -17,6 +17,8 @@ builder.Services.AddRazorComponents();
 
 var app = builder.Build();
 
+_ = "Hu";
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/error", createScopeForErrors: true);
