@@ -91,6 +91,24 @@ function getThemeColors() {
     };
 }
 
+function fixTraceLineRendering(chartDiv) {
+    // In stack area charts Plotly orders traces so the top line area overwrites the line of areas below it.
+    // This isn't the effect we want. When the P50, P90 and P99 values are the same, the line displayed is P99
+    // on the P50 area.
+    //
+    // The fix is to reverse the order of traces so the correct line is on top. There isn't a way to do this
+    // with CSS because SVG doesn't support z-index. Node order is what determines the rendering order.
+    //
+    // https://github.com/plotly/plotly.js/issues/6579
+    var parent = chartDiv.querySelector(".scatterlayer");
+
+    if (parent.childNodes.length > 0) {
+        for (var i = 1; i < parent.childNodes.length; i++) {
+            parent.insertBefore(parent.childNodes[i], parent.firstChild);
+        }
+    }
+}
+
 window.updateChart = function (id, traces, xValues, rangeStartTime, rangeEndTime) {
     var chartContainerDiv = document.getElementById(id);
     var chartDiv = chartContainerDiv.firstChild;
@@ -123,6 +141,8 @@ window.updateChart = function (id, traces, xValues, rangeStartTime, rangeEndTime
     };
 
     Plotly.update(chartDiv, data, layout);
+
+    fixTraceLineRendering(chartDiv);
 };
 
 window.initializeChart = function (id, traces, xValues, rangeStartTime, rangeEndTime) {
@@ -144,7 +164,6 @@ window.initializeChart = function (id, traces, xValues, rangeStartTime, rangeEnd
             name: name,
             text: traces[i].tooltips,
             hoverinfo: 'text',
-            line: { width: 0 },
             stackgroup: "one"
         };
         data.push(t);
@@ -182,5 +201,7 @@ window.initializeChart = function (id, traces, xValues, rangeStartTime, rangeEnd
     var options = { scrollZoom: false, displayModeBar: false };
 
     Plotly.newPlot(chartDiv, data, layout, options);
+
+    fixTraceLineRendering(chartDiv);
 };
 
