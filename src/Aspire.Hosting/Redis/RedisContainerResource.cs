@@ -14,7 +14,7 @@ public class RedisContainerResource(string name) : ContainerResource(name), IRed
     /// <summary>
     /// Gets the connection string for the Redis server.
     /// </summary>
-    /// <returns>A connection string for the redis server in the form "host:port". </returns>
+    /// <returns>A connection string for the redis server in the form "host:port".</returns>
     public string GetConnectionString()
     {
         if (!this.TryGetAnnotationsOfType<AllocatedEndpointAnnotation>(out var allocatedEndpoints))

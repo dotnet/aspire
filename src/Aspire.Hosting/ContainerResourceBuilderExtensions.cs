@@ -44,6 +44,7 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="hostPort">The host machine port.</param>
     /// <param name="scheme">The scheme e.g http/https/amqp</param>
     /// <param name="name">The name of the binding.</param>
+    /// <returns>The <see cref="IDistributedApplicationResourceBuilder{T}"/>.</returns>
     public static IDistributedApplicationResourceBuilder<T> WithServiceBinding<T>(this IDistributedApplicationResourceBuilder<T> builder, int containerPort, int? hostPort = null, string? scheme = null, string? name = null) where T : IDistributedApplicationResource
     {
         if (builder.Resource.Annotations.OfType<ServiceBindingAnnotation>().Any(sb => sb.Name == name))
@@ -69,7 +70,8 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="source">The source path of the volume. This is the physical location on the host.</param>
     /// <param name="target">The target path in the container.</param>
     /// <param name="type">The type of volume mount.</param>
-    /// <param name="isReadOnly">determines if this is a read only mount.</param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read only mount.</param>
+    /// <returns>The <see cref="IDistributedApplicationResourceBuilder{T}"/>.</returns>
     public static IDistributedApplicationResourceBuilder<T> WithVolumeMount<T>(this IDistributedApplicationResourceBuilder<T> builder, string source, string target, VolumeMountType type = default, bool isReadOnly = false) where T : ContainerResource
     {
         var annotation = new VolumeMountAnnotation(source, target, type, isReadOnly);

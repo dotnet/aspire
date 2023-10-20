@@ -13,12 +13,12 @@ public static class PostgresBuilderExtensions
     private const string PasswordEnvVarName = "POSTGRES_PASSWORD";
 
     /// <summary>
-    /// Adds a Postgres container to the application model. The default image is "postgres" and the tag is "latest".
+    /// Adds a PostgreSQL container to the application model. The default image is "postgres" and the tag is "latest".
     /// </summary>
-    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/></param>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <param name="port">The host port for postgres.</param>
-    /// <param name="password">The password for the postgres container. Defaults to a random password.</param>
+    /// <param name="port">The host port for PostgreSQL.</param>
+    /// <param name="password">The password for the PostgreSQL container. Defaults to a random password.</param>
     /// <returns>A reference to the <see cref="IDistributedApplicationResourceBuilder{PostgresContainerResource}"/>.</returns>
     public static IDistributedApplicationResourceBuilder<PostgresContainerResource> AddPostgresContainer(this IDistributedApplicationBuilder builder, string name, int? port = null, string? password = null)
     {
@@ -33,11 +33,11 @@ public static class PostgresBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a Postgres connection to the application model. Connection strings can also be read from the connection string section of the configuration using the name of the resource.
+    /// Adds a PostgreSQL connection to the application model. Connection strings can also be read from the connection string section of the configuration using the name of the resource.
     /// </summary>
-    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/></param>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <param name="connectionString">The postgres connection string (optional)</param>
+    /// <param name="connectionString">The PostgreSQL connection string (optional).</param>
     /// <returns>A reference to the <see cref="IDistributedApplicationResourceBuilder{PostgresConnectionResource}"/>.</returns>
     public static IDistributedApplicationResourceBuilder<PostgresConnectionResource> AddPostgresConnection(this IDistributedApplicationBuilder builder, string name, string? connectionString = null)
     {
@@ -48,9 +48,9 @@ public static class PostgresBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a Postgres database to the application model.
+    /// Adds a PostgreSQL database to the application model.
     /// </summary>
-    /// <param name="builder">The postgres server resource builder.</param>
+    /// <param name="builder">The PostgreSQL server resource builder.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <returns>A reference to the <see cref="IDistributedApplicationResourceBuilder{PostgresDatabaseResource}"/>.</returns>
     public static IDistributedApplicationResourceBuilder<PostgresDatabaseResource> AddDatabase(this IDistributedApplicationResourceBuilder<PostgresContainerResource> builder, string name)

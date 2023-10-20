@@ -77,7 +77,7 @@ public static class AzureResourceExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource.</param>
-    /// <returns>A reference to the <see cref="IDistributedApplicationResourceBuilder{AzureServiceBusResource}"/>.</returns>
+    /// <returns>A reference to the <see cref="IDistributedApplicationResourceBuilder{AzureStorageResource}"/>.</returns>
     public static IDistributedApplicationResourceBuilder<AzureStorageResource> AddAzureStorage(this IDistributedApplicationBuilder builder, string name)
     {
         var resource = new AzureStorageResource(name);
