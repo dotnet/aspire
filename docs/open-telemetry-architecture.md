@@ -42,7 +42,7 @@ Aspire F5 debugging workflow:
   * OTEL environment variables are automatically added to .NET projects during app configuration.
   * DCP provides the name (`OTEL_SERVICE_NAME`) and ID (`OTEL_RESOURCE_ATTRIBUTES`) of the app in exported telemetry.
   * The OTLP endpoint is an HTTP/2 port started by the dashboard (`OTEL_EXPORTER_OTLP_ENDPOINT`). That tells projects to export telemetry back to the dashboard.
-  * Fast export intervals so data is quickly available in the dashboard. Small values are used in local development to prioritize dashboard responsiveness over efficient.
+  * Small export intervals (`OTEL_BSP_SCHEDULE_DELAY`, `OTEL_BLRP_SCHEDULE_DELAY`, `OTEL_METRIC_EXPORT_INTERVAL`) so data is quickly available in the dashboard. Small values are used in local development to prioritize dashboard responsiveness over efficiency.
 * The DCP starts configured projects, containers, and executables.
 * Once started, apps send telemetry to the dashboard.
 * Dashboard displays near real-time telemetry of all Aspire apps.
