@@ -1,6 +1,8 @@
 # Aspire OpenTelemetry architecture
 
-Aspire apps are configured by default to collect and export telemetry using [OpenTelemetry (OTEL)](https://opentelemetry.io/). Additionally, Aspire local development includes UI in the dashboard for viewing OTEL data.
+An Aspire goal is apps are easy to debug and diagnose. Towards this goal, Aspire apps are configured by default to collect and export telemetry using [OpenTelemetry (OTEL)](https://opentelemetry.io/). Additionally, Aspire local development includes UI in the dashboard for viewing OTEL data.
+
+This document details how OpenTelemtry is used in Aspire apps.
 
 ## Telemetry types
 
