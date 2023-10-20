@@ -16,17 +16,17 @@ Install the Aspire SQL Server SqlClient library with [NuGet][nuget]:
 dotnet add package Aspire.Microsoft.Data.SqlClient
 ```
 
-## Usage Example
+## Usage example
 
-In the `Program.cs` file of your project, call the `AddSqlServerClient` extension method to register a `SqlConnection` for use via the dependency injection container. The method takes a connection name parameter.
+In the _Program.cs_ file of your project, call the `AddSqlServerClient` extension method to register a `SqlConnection` for use via the dependency injection container. The method takes a connection name parameter.
 
-```cs
+```csharp
 builder.AddSqlServerClient("sqldata");
 ```
 
 You can then retrieve the `SqlConnection` instance using dependency injection. For example, to retrieve the connection from a Web API controller:
 
-```cs
+```csharp
 private readonly SqlConnection _connection;
 
 public ProductsController(SqlConnection connection)
@@ -43,7 +43,7 @@ The Aspire SqlClient component provides multiple options to configure the SQL co
 
 When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddSqlServerClient()`:
 
-```cs
+```csharp
 builder.AddSqlServerClient("myConnection");
 ```
 
@@ -82,24 +82,24 @@ The Aspire SqlClient component supports [Microsoft.Extensions.Configuration](htt
 
 Also you can pass the `Action<MicrosoftDataSqlClientSettings> configureSettings` delegate to set up some or all the options inline, for example to disable health checks from code:
 
-```cs
+```csharp
     builder.AddSqlServerClient("sqldata", settings => settings.HealthChecks = false);
 ```
 
-## AppHost Extensions
+## AppHost extensions
 
 In your AppHost project, register a SqlServer container and consume the connection using the following methods:
 
-```cs
+```csharp
 var sql = builder.AddSqlServerContainer("sql").AddDatabase("sqldata");
 
 var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(sql);
 ```
 
-`.WithReference` configures a connection in the `MyService` project named `sqldata`. In the `Program.cs` file of `MyService`, the sql connection can be consumed using:
+The `WithReference` method configures a connection in the `MyService` project named `sqldata`. In the _Program.cs_ file of `MyService`, the sql connection can be consumed using:
 
-```cs
+```csharp
 builder.AddSqlServerClient("sqldata");
 ```
 
@@ -109,6 +109,6 @@ builder.AddSqlServerClient("sqldata");
 * https://learn.microsoft.com/dotnet/api/system.data.sqlclient.sqlconnection
 * https://github.com/dotnet/aspire/tree/main/src/Components/README.md
 
-## Feedback & Contributing
+## Feedback & contributing
 
 https://github.com/dotnet/aspire

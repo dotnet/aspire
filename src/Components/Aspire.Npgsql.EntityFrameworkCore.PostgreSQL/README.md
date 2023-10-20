@@ -16,17 +16,17 @@ Install the Aspire PostgreSQL EntityFrameworkCore Npgsql library with [NuGet][nu
 dotnet add package Aspire.Npgsql.EntityFrameworkCore.PostgreSQL
 ```
 
-## Usage Example
+## Usage example
 
-In the `Program.cs` file of your project, call the `AddNpgsqlDbContext` extension method to register a `DbContext` for use via the dependency injection container. The method takes a connection name parameter.
+In the _Program.cs_ file of your project, call the `AddNpgsqlDbContext` extension method to register a `DbContext` for use via the dependency injection container. The method takes a connection name parameter.
 
-```cs
+```csharp
 builder.AddNpgsqlDbContext<MyDbContext>("postgresdb");
 ```
 
 You can then retrieve the `MyDbContext` instance using dependency injection. For example, to retrieve the context from a Web API controller:
 
-```cs
+```csharp
 private readonly MyDbContext _context;
 
 public ProductsController(MyDbContext context)
@@ -43,7 +43,7 @@ The Aspire PostgreSQL EntityFrameworkCore Npgsql component provides multiple opt
 
 When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddNpgsqlDbContext()`:
 
-```cs
+```csharp
 builder.AddNpgsqlDbContext<MyDbContext>("myConnection");
 ```
 
@@ -83,24 +83,24 @@ The Aspire PostgreSQL EntityFrameworkCore Npgsql component supports [Microsoft.E
 
 Also you can pass the `Action<NpgsqlEntityFrameworkCorePostgreSQLSettings> configureSettings` delegate to set up some or all the options inline, for example to disable health checks from code:
 
-```cs
+```csharp
     builder.AddNpgsqlDbContext<MyDbContext>("postgresdb", settings => settings.HealthChecks = false);
 ```
 
-## AppHost Extensions
+## AppHost extensions
 
 In your AppHost project, register a Postgres container and consume the connection using the following methods:
 
-```cs
+```csharp
 var postgresdb = builder.AddPostgresContainer("pg").AddDatabase("postgresdb");
 
 var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(postgresdb);
 ```
 
-`.WithReference` configures a connection in the `MyService` project named `postgresdb`. In the `Program.cs` file of `MyService`, the database connection can be consumed using:
+The `WithReference` method configures a connection in the `MyService` project named `postgresdb`. In the _Program.cs_ file of `MyService`, the database connection can be consumed using:
 
-```cs
+```csharp
 builder.AddNpgsqlDbContext<MyDbContext>("postgresdb");
 ```
 
@@ -109,6 +109,6 @@ builder.AddNpgsqlDbContext<MyDbContext>("postgresdb");
 * https://learn.microsoft.com/ef/core/
 * https://github.com/dotnet/aspire/tree/main/src/Components/README.md
 
-## Feedback & Contributing
+## Feedback & contributing
 
 https://github.com/dotnet/aspire
