@@ -1,6 +1,6 @@
 # Aspire OpenTelemetry architecture
 
-An Aspire goal is apps are easy to debug and diagnose. To this end, Aspire apps are configured by default to collect and export telemetry using [OpenTelemetry (OTEL)](https://opentelemetry.io/). Additionally, Aspire local development includes UI in the dashboard for viewing OTEL data. Telemetry just works and is easy to use.
+One of Aspire's objectives is to ensure that apps are straightforward to debug and diagnose. By default, Aspire apps are configured to collect and export telemetry using [OpenTelemetry (OTEL)](https://opentelemetry.io/). Additionally, Aspire local development includes UI in the dashboard for viewing OTEL data. Telemetry just works and is easy to use.
 
 This document details how OpenTelemtry is used in Aspire apps.
 
@@ -8,17 +8,17 @@ This document details how OpenTelemtry is used in Aspire apps.
 
 OTEL is focused on three kinds of telemetry: structured logging, tracing, and metrics. .NET libraries and apps have APIs for recording each kind of telemetry:
 
-* Structured logging - Log entries from `ILogger`.
-* Tracing - Distributed tracing from `Activity`.
-* Metrics - Numeric values from `Meter`/`Instrument<T>`.
+* Structured logging: Log entries from `ILogger`.
+* Tracing: Distributed tracing from `Activity`.
+* Metrics: Numeric values from `Meter` and `Instrument<T>`.
 
 When an OpenTelemetry SDK is configured in an app, it receives data from these APIs.
 
 ## OpenTelemetry SDK
 
-The [.NET OpenTelemetry SDK](https://github.com/open-telemetry/opentelemetry-dotnet) provides functionality to collect values from the .NET APIs listed above (`ILogger`, `Activity`, and `Meter`/`Instrument<T>`) and then export telemetry to a data store or reporting tool. Telemetry is exported using [OpenTelemetry protocol (OTLP)](https://opentelemetry.io/docs/specs/otel/protocol/). OTLP is a standard scheme for sending telemetry data using REST or gRPC.
+The [.NET OpenTelemetry SDK](https://github.com/open-telemetry/opentelemetry-dotnet) offers features for gathering data from several .NET APIs, including `ILogger`, `Activity`, `Meter`, and `Instrument<T>`. It then facilitates the export of this telemetry data to a data store or reporting tool. The telemetry export mechanism relies on the [OpenTelemetry protocol (OTLP)](https://opentelemetry.io/docs/specs/otel/protocol/), which serves as a standardized approach for transmitting telemetry data through REST or gRPC.
 
-.NET projects setup the .NET OpenTelemetry SDK using the service defaults project. Aspire templates automatically create the service defaults, and .NET Aspire apps call it at startup. The service defaults enable collecting and exporting telemetry for .NET apps.
+.NET projects setup the .NET OpenTelemetry SDK using the _service defaults_ project. Aspire templates automatically create the service defaults, and Aspire apps call it at startup. The service defaults enable collecting and exporting telemetry for .NET apps.
 
 ## OpenTelemetry environment variables
 
@@ -36,11 +36,11 @@ The environment variables are automatically set in local development.
 
 The Aspire dashboard provides UI for viewing the telemetry of apps. Telemetry data is sent to the dashboard using OTLP, and the dashboard implements an OTLP server to receive telemetry data and store it in memory. The dashboard UI presents telemetry stored in memory.
 
-Aspire F5 debugging workflow:
+Aspire debugging workflow:
 
-* Developer starts the Aspire app with debugging.
+* Developer starts the Aspire app with debugging, presses <kbd>F5</kbd>.
 * Aspire dashboard and developer control plane (DCP) start.
-* App configuration is run in the DevHost project.
+* App configuration is run in the _DevHost_ project.
   * OTEL environment variables are automatically added to .NET projects during app configuration.
   * DCP provides the name (`OTEL_SERVICE_NAME`) and ID (`OTEL_RESOURCE_ATTRIBUTES`) of the app in exported telemetry.
   * The OTLP endpoint is an HTTP/2 port started by the dashboard (`OTEL_EXPORTER_OTLP_ENDPOINT`). That tells projects to export telemetry back to the dashboard.
