@@ -5,8 +5,16 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Redis;
 
+/// <summary>
+/// A resource that represents a Redis container.
+/// </summary>
+/// <param name="name">The name of the resource.</param>
 public class RedisContainerResource(string name) : ContainerResource(name), IRedisResource
 {
+    /// <summary>
+    /// Gets the connection string for the Redis server.
+    /// </summary>
+    /// <returns>A connection string for the redis server in the form "host:port".</returns>
     public string GetConnectionString()
     {
         if (!this.TryGetAnnotationsOfType<AllocatedEndpointAnnotation>(out var allocatedEndpoints))

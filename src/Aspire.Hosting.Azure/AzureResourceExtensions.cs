@@ -9,6 +9,12 @@ namespace Aspire.Hosting;
 
 public static class AzureResourceExtensions
 {
+    /// <summary>
+    /// Adds an Azure Key Vault resource to the application model.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <returns>A reference to the <see cref="IDistributedApplicationResourceBuilder{AzureKeyVaultResource}"/>.</returns>
     public static IDistributedApplicationResourceBuilder<AzureKeyVaultResource> AddAzureKeyVault(this IDistributedApplicationBuilder builder, string name)
     {
         var keyVault = new AzureKeyVaultResource(name);
@@ -21,6 +27,14 @@ public static class AzureResourceExtensions
         jsonWriter.WriteString("type", "azure.keyvault.v1");
     }
 
+    /// <summary>
+    /// Adds an Azure Service Bus resource to the application model.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <param name="queueNames">A list of queue names associated with this service bus resource.</param>
+    /// <param name="topicNames">A list of topic names associated with this service bus resource.</param>
+    /// <returns>A reference to the <see cref="IDistributedApplicationResourceBuilder{AzureServiceBusResource}"/>.</returns>
     public static IDistributedApplicationResourceBuilder<AzureServiceBusResource> AddAzureServiceBus(this IDistributedApplicationBuilder builder, string name, string[]? queueNames = null, string[]? topicNames = null)
     {
         var resource = new AzureServiceBusResource(name)
@@ -58,6 +72,12 @@ public static class AzureResourceExtensions
         }
     }
 
+    /// <summary>
+    /// Adds an Azure Storage resource to the application model. This resource can be used to create Azure blob, table, and queue resources.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource.</param>
+    /// <returns>A reference to the <see cref="IDistributedApplicationResourceBuilder{AzureStorageResource}"/>.</returns>
     public static IDistributedApplicationResourceBuilder<AzureStorageResource> AddAzureStorage(this IDistributedApplicationBuilder builder, string name)
     {
         var resource = new AzureStorageResource(name);
@@ -70,6 +90,12 @@ public static class AzureResourceExtensions
         jsonWriter.WriteString("type", "azure.storage.v1");
     }
 
+    /// <summary>
+    /// Adds an Azure blob storage resource to the application model. This resource requires an <see cref="AzureStorageResource"/> to be added to the application model.
+    /// </summary>
+    /// <param name="storageBuilder">The Azure storage resource builder.</param>
+    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <returns>A reference to the <see cref="IDistributedApplicationResourceBuilder{AzureBlobStorageResource}"/>.</returns>
     public static IDistributedApplicationResourceBuilder<AzureBlobStorageResource> AddBlobs(this IDistributedApplicationResourceBuilder<AzureStorageResource> storageBuilder, string name)
     {
         var resource = new AzureBlobStorageResource(name, storageBuilder.Resource);
@@ -83,6 +109,12 @@ public static class AzureResourceExtensions
         json.WriteString("parent", resource.Parent.Name);
     }
 
+    /// <summary>
+    /// Adds an Azure table storage resource to the application model. This resource requires an <see cref="AzureStorageResource"/> to be added to the application model.
+    /// </summary>
+    /// <param name="storageBuilder">The Azure storage resource builder.</param>
+    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <returns>A reference to the <see cref="IDistributedApplicationResourceBuilder{AzureTableStorageResource}"/>.</returns>
     public static IDistributedApplicationResourceBuilder<AzureTableStorageResource> AddTables(this IDistributedApplicationResourceBuilder<AzureStorageResource> storageBuilder, string name)
     {
         var resource = new AzureTableStorageResource(name, storageBuilder.Resource);
@@ -96,6 +128,12 @@ public static class AzureResourceExtensions
         json.WriteString("parent", resource.Parent.Name);
     }
 
+    /// <summary>
+    /// Adds an Azure queue storage resource to the application model. This resource requires an <see cref="AzureStorageResource"/> to be added to the application model.
+    /// </summary>
+    /// <param name="storageBuilder">The Azure storage resource builder.</param>
+    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <returns>A reference to the <see cref="IDistributedApplicationResourceBuilder{AzureQueueStorageResource}"/>.</returns>
     public static IDistributedApplicationResourceBuilder<AzureQueueStorageResource> AddQueues(this IDistributedApplicationResourceBuilder<AzureStorageResource> storageBuilder, string name)
     {
         var resource = new AzureQueueStorageResource(name, storageBuilder.Resource);

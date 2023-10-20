@@ -8,11 +8,26 @@ namespace Aspire.Hosting;
 
 public static class ContainerResourceBuilderExtensions
 {
-    public static IDistributedApplicationResourceBuilder<ContainerResource> AddContainer(this IDistributedApplicationBuilder builder, string name,  string image)
+    /// <summary>
+    /// Adds a container resource to the application. Uses the "latest" tag.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource.</param>
+    /// <param name="image">The container image name. The tag is assumed to be "latest".</param>
+    /// <returns>The <see cref="IDistributedApplicationResourceBuilder{ContainerResource}"/> for chaining.</returns>
+    public static IDistributedApplicationResourceBuilder<ContainerResource> AddContainer(this IDistributedApplicationBuilder builder, string name, string image)
     {
         return builder.AddContainer(name, image, "latest");
     }
 
+    /// <summary>
+    /// Adds a container resource to the application.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource.</param>
+    /// <param name="image">The container image name.</param>
+    /// <param name="tag">The container image tag.</param>
+    /// <returns>The <see cref="IDistributedApplicationResourceBuilder{ContainerResource}"/> for chaining.</returns>
     public static IDistributedApplicationResourceBuilder<ContainerResource> AddContainer(this IDistributedApplicationBuilder builder, string name, string image, string tag)
     {
         var container = new ContainerResource(name);
@@ -20,7 +35,17 @@ public static class ContainerResourceBuilderExtensions
                       .WithAnnotation(new ContainerImageAnnotation { Image = image, Tag = tag });
     }
 
-    public static IDistributedApplicationResourceBuilder<T> WithServiceBinding<T>(this IDistributedApplicationResourceBuilder<T> builder, int containerPort, int? hostPort = null, string? scheme = null, string? name = null) where T: IDistributedApplicationResource
+    /// <summary>
+    /// Adds a binding to expose an endpoint on a resource.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resoure builder.</param>
+    /// <param name="containerPort">The container port.</param>
+    /// <param name="hostPort">The host machine port.</param>
+    /// <param name="scheme">The scheme e.g http/https/amqp</param>
+    /// <param name="name">The name of the binding.</param>
+    /// <returns>The <see cref="IDistributedApplicationResourceBuilder{T}"/>.</returns>
+    public static IDistributedApplicationResourceBuilder<T> WithServiceBinding<T>(this IDistributedApplicationResourceBuilder<T> builder, int containerPort, int? hostPort = null, string? scheme = null, string? name = null) where T : IDistributedApplicationResource
     {
         if (builder.Resource.Annotations.OfType<ServiceBindingAnnotation>().Any(sb => sb.Name == name))
         {
@@ -37,7 +62,17 @@ public static class ContainerResourceBuilderExtensions
         return builder.WithAnnotation(annotation);
     }
 
-    public static IDistributedApplicationResourceBuilder<T> WithVolumeMount<T>(this IDistributedApplicationResourceBuilder<T> builder, string source, string target, VolumeMountType type = default, bool isReadOnly = false) where T: ContainerResource
+    /// <summary>
+    /// Adds a volume mount to a container resource.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resoure builder.</param>
+    /// <param name="source">The source path of the volume. This is the physical location on the host.</param>
+    /// <param name="target">The target path in the container.</param>
+    /// <param name="type">The type of volume mount.</param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
+    /// <returns>The <see cref="IDistributedApplicationResourceBuilder{T}"/>.</returns>
+    public static IDistributedApplicationResourceBuilder<T> WithVolumeMount<T>(this IDistributedApplicationResourceBuilder<T> builder, string source, string target, VolumeMountType type = default, bool isReadOnly = false) where T : ContainerResource
     {
         var annotation = new VolumeMountAnnotation(source, target, type, isReadOnly);
         return builder.WithAnnotation(annotation);

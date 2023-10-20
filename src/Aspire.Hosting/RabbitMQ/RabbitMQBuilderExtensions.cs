@@ -10,6 +10,14 @@ namespace Aspire.Hosting;
 
 public static class RabbitMQBuilderExtensions
 {
+    /// <summary>
+    /// Adds a RabbitMQ container to the application. The default image name is "rabbitmq" and the default tag is "3-management".
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <param name="port">The host port of RabbitMQ.</param>
+    /// <param name="password">The password for RabbitMQ. The default is "guest".</param>
+    /// <returns>A reference to the <see cref="IDistributedApplicationResourceBuilder{RabbitMQContainerResource}"/>.</returns>
     public static IDistributedApplicationResourceBuilder<RabbitMQContainerResource> AddRabbitMQContainer(this IDistributedApplicationBuilder builder, string name, int? port = null, string? password = null)
     {
         var rabbitMq = new RabbitMQContainerResource(name, password);
@@ -22,6 +30,13 @@ public static class RabbitMQBuilderExtensions
                        .WithEnvironment("RABBITMQ_DEFAULT_PASS", () => rabbitMq.Password ?? "guest");
     }
 
+    /// <summary>
+    /// Adds a RabbitMQ connection resource to the application.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <param name="connectionString">A RabbitMQ connection string.</param>
+    /// <returns>A reference to the <see cref="IDistributedApplicationResourceBuilder{RabbitMQConnectionResource}"/>.</returns>
     public static IDistributedApplicationResourceBuilder<RabbitMQConnectionResource> AddRabbitMQConnection(this IDistributedApplicationBuilder builder, string name, string? connectionString = null)
     {
         var rabbitMqConnection = new RabbitMQConnectionResource(name, connectionString);
