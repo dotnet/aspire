@@ -3,6 +3,7 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <RuntimeVersion>8.0.0-rtm.23511.16</RuntimeVersion>
     <AspNetCoreVersion>8.0.0-rtm.23512.20</AspNetCoreVersion>
+    <EfCoreVersion>8.0.0-rtm.23512.13</EfCoreVersion>
   </PropertyGroup>
   <ItemGroup>
     <!-- Azure SDK for .NET dependencies -->
@@ -42,7 +43,9 @@
     <!-- sql client dependencies -->
     <PackageVersion Include="Microsoft.Data.SqlClient" Version="5.1.1" />
     <!-- efcore dependencies -->
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.0-rtm.23512.13" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="$(EfCoreVersion)" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="$(EfCoreVersion)" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Tools" Version="$(EfCoreVersion)" />
     <!-- runtime dependencies-->
     <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="$(RuntimeVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="$(RuntimeVersion)" />

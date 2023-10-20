@@ -3,11 +3,11 @@
     "postgres": {
       "type": "postgres.server.v1"
     },
-    "catalog": {
+    "catalogdb": {
       "type": "postgres.database.v1",
       "parent": "postgres"
     },
-    "basketCache": {
+    "basketcache": {
       "type": "redis.v1"
     },
     "catalogservice": {
@@ -16,7 +16,7 @@
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
-        "ConnectionStrings__catalog": "{catalog.connectionString}"
+        "ConnectionStrings__catalogdb": "{catalogdb.connectionString}"
       },
       "bindings": {
         "http": {
@@ -43,7 +43,7 @@
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
-        "ConnectionStrings__basketCache": "{basketCache.connectionString}",
+        "ConnectionStrings__basketcache": "{basketcache.connectionString}",
         "ConnectionStrings__messaging": "{messaging.connectionString}"
       },
       "bindings": {
@@ -59,7 +59,7 @@
         }
       }
     },
-    "myfrontend": {
+    "frontend": {
       "type": "project.v1",
       "path": "..\\MyFrontend\\MyFrontend.csproj",
       "env": {
@@ -113,6 +113,27 @@
         "services__basketservice__1": "{basketservice.bindings.https.url}",
         "services__catalogservice__0": "{catalogservice.bindings.http.url}",
         "services__catalogservice__1": "{catalogservice.bindings.https.url}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http"
+        }
+      }
+    },
+    "catalogdbapp": {
+      "type": "project.v1",
+      "path": "..\\CatalogDb\\CatalogDb.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "ConnectionStrings__catalogdb": "{catalogdb.connectionString}"
       },
       "bindings": {
         "http": {

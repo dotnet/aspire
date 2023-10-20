@@ -133,6 +133,13 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Azure.Provis
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "eShopLite", "eShopLite", "{A68BA1A5-1604-433D-9778-DC0199831C2A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CatalogDb", "samples\eShopLite\CatalogDb\CatalogDb.csproj", "{A84C4EE3-2601-4804-BCDC-E9948E164A22}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{991DB378-6CB5-4441-BFC3-657400690FC3}"
+	ProjectSection(SolutionItems) = preProject
+		Directory.Packages.props = Directory.Packages.props
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -359,6 +366,10 @@ Global
 		{D4BD974F-6505-43FC-A94E-2019F0DB5D5D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D4BD974F-6505-43FC-A94E-2019F0DB5D5D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D4BD974F-6505-43FC-A94E-2019F0DB5D5D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A84C4EE3-2601-4804-BCDC-E9948E164A22}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A84C4EE3-2601-4804-BCDC-E9948E164A22}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A84C4EE3-2601-4804-BCDC-E9948E164A22}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A84C4EE3-2601-4804-BCDC-E9948E164A22}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -423,6 +434,7 @@ Global
 		{E2EC79D0-80F7-4471-9613-D7C8C3D52F95} = {B80354C7-BE58-43F6-8928-9F3A74AB7F47}
 		{D4BD974F-6505-43FC-A94E-2019F0DB5D5D} = {B80354C7-BE58-43F6-8928-9F3A74AB7F47}
 		{A68BA1A5-1604-433D-9778-DC0199831C2A} = {D173887B-AF42-4576-B9C1-96B9E9B3D9C0}
+		{A84C4EE3-2601-4804-BCDC-E9948E164A22} = {A68BA1A5-1604-433D-9778-DC0199831C2A}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6DCEDFEC-988E-4CB3-B45B-191EB5086E0C}
