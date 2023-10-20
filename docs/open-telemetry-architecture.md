@@ -10,7 +10,7 @@ Libraries and apps record values using .NET APIs for three kinds of telemetry:
 
 * Structured logging - Log entries from `ILogger`.
 * Tracing - Distributed tracing from `Activity`.
-* Metrics - Numeric values from `Instrument<T>`.
+* Metrics - Numeric values from `Meter`/`Instrument<T>`.
 
 ## OpenTelemetry SDK
 
