@@ -14,7 +14,7 @@ Libraries and apps record values using .NET APIs for three kinds of telemetry:
 
 ## OpenTelemetry SDK
 
-The .NET OpenTelemetry SDK provides functionality to collect values from the .NET APIs listed above (`ILogger`, `Activity`, and `Instrument<T>`) and then export telemetry to a data store or reporting tool. Telemetry is exported using [OpenTelemetry protocol (OTLP)](https://opentelemetry.io/docs/specs/otel/protocol/). OTLP is a standard scheme for sending telemetry data using REST or gRPC.
+The .NET OpenTelemetry SDK provides functionality to collect values from the .NET APIs listed above (`ILogger`, `Activity`, and `Meter`/`Instrument<T>`) and then export telemetry to a data store or reporting tool. Telemetry is exported using [OpenTelemetry protocol (OTLP)](https://opentelemetry.io/docs/specs/otel/protocol/). OTLP is a standard scheme for sending telemetry data using REST or gRPC.
 
 .NET projects configure the .NET OpenTelemetry SDK using the service defaults project. Aspire templates automatically create the service defaults, and .NET Aspire apps call it at startup. The service defaults enable collecting and exporting telemetry for .NET apps.
 
