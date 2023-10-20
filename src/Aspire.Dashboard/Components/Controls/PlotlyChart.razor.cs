@@ -199,6 +199,7 @@ public partial class PlotlyChart : ComponentBase
                     var histogramValue = GetHistogramValue(metric);
 
                     // Only use the first recorded entry if it is the beginning of data.
+                    // We can verify the first entry is the beginning of data by checking if the number of buckets equals the total count.
                     if (i == 0 && CountBuckets(histogramValue) != histogramValue.Count)
                     {
                         continue;
