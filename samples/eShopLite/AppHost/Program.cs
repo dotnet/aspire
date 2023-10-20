@@ -14,8 +14,7 @@ var serviceBus = builder.AddAzureServiceBus("messaging", queueNames: ["orders"])
 
 var basket = builder.AddProject<Projects.BasketService>("basketservice")
                     .WithReference(redis)
-                    .WithReference(serviceBus, optional: true)
-                    .AsHttp2Service();
+                    .WithReference(serviceBus, optional: true);
 
 builder.AddProject<Projects.MyFrontend>("myfrontend")
        .WithReference(basket)
