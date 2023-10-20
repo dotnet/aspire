@@ -61,9 +61,16 @@ fluent-dialog::part(control) {
     background: var(--neutral-layer-floating);
 }
 
+fluent-dialog fluent-toolbar {
+    background-color: var(--neutral-layer-floating);
+}
+
 /* Changing the dialog's fill color means stealth buttons on the dialog have the wrong background,
    so change it to match */
-fluent-dialog fluent-button[appearance=stealth]:not(:hover)::part(control) {
+fluent-dialog fluent-button[appearance=stealth]:not(:hover)::part(control),
+fluent-dialog fluent-button[appearance=lightweight]:not(:hover)::part(control),
+fluent-dialog fluent-anchor[appearance=stealth]:not(:hover)::part(control),
+fluent-dialog fluent-anchor[appearance=lightweight]:not(:hover)::part(control) {
     background: var(--neutral-layer-floating);
 }
 
@@ -71,4 +78,11 @@ fluent-dialog fluent-button[appearance=stealth]:not(:hover)::part(control) {
    now have the wrong background. So change that back */
 fluent-dialog fluent-data-grid-cell[cell-type=columnheader] fluent-button[appearance=stealth]:not(:hover)::part(control) {
     background: var(--fill-layer);
+}
+
+.dialog-grid-container {
+    width: 1000px;
+    height: 500px;
+    overflow-x: auto;
+    overflow-y: auto;
 }

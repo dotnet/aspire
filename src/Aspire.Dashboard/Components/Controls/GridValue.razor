@@ -1,0 +1,32 @@
+﻿@inject IJSRuntime JS
+
+<div class="@GetContainerClass()">
+    @if (EnableMasking && IsMasked)
+    {
+        <span class="cellText">
+            &#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;
+        </span>
+    }
+    else
+    {
+        <span class="cellText" title="@Value">
+            <FluentHighlighter HighlightedText="@HighlightText"
+                               Text="@Value" />
+        </span>
+    }
+    @if (EnableMasking)
+    {
+        <FluentButton Appearance="Appearance.Lightweight"
+                      IconEnd="@(IsMasked ? _unmaskIcon : _maskIcon)"
+                      Title="@(IsMasked ? "Show Value" : "Hide Value")"
+                      OnClick="ToggleMaskStateAsync"
+                      aria-label="@(IsMasked ? "Show Value" : "Hide Value")" />
+    }
+    <FluentButton Appearance="Appearance.Lightweight"
+                  Id="@_anchorId"
+                  IconEnd="@(new Icons.Regular.Size16.Copy())"
+                  Class="defaultHidden"
+                  @onclick="@(() => CopyTextToClipboardAsync(Value, @_anchorId))"
+                  aria-label="Copy to Clipboard" />
+    <FluentTooltip Anchor="@_anchorId" Position="TooltipPosition.Top">@PreCopyText</FluentTooltip>
+</div>

@@ -1,90 +1,46 @@
 ﻿@using Aspire.Dashboard.Model
 @implements IDialogContentComponent<EnvironmentVariablesDialogViewModel>
-@inject IJSRuntime JS
 
-<FluentDialogBody>
-    <div class="GridContainer">
+<div>
+    <FluentDialogBody>
         <FluentStack Orientation="Orientation.Vertical">
             <FluentToolbar Orientation="Orientation.Horizontal">
                 @if (Content?.ShowSpecOnlyToggle == true)
                 {
                     <FluentButton Appearance="Appearance.Lightweight"
-                                  IconEnd="@(_showAll ? _showSpecOnlyIcon : _showAllIcon)"
-                                  Title="@(_showAll ? "Show Spec Only" : "Show All")"
-                                  aria-label="@(_showAll ? "Show Spec Only" : "Show All")"
-                                  OnClick="() => _showAll = !_showAll"
-                                  slot="end" />
+                                    IconEnd="@(_showAll ? _showSpecOnlyIcon : _showAllIcon)"
+                                    Title="@(_showAll ? "Show Spec Only" : "Show All")"
+                                    aria-label="@(_showAll ? "Show Spec Only" : "Show All")"
+                                    OnClick="() => _showAll = !_showAll"
+                                    slot="end" />
                 }
                 <FluentButton Appearance="Appearance.Lightweight"
-                              IconEnd="@(_defaultMasked ? _unmaskIcon : _maskIcon)"
-                              Title="@(_defaultMasked ? "Show Values" : "Hide Values")"
-                              aria-label="@(_defaultMasked ? "Show Values" : "Hide Values")"
-                              OnClick="ToggleMaskState"
-                              slot="end" />
+                                IconEnd="@(_defaultMasked ? _unmaskIcon : _maskIcon)"
+                                Title="@(_defaultMasked ? "Show Values" : "Hide Values")"
+                                aria-label="@(_defaultMasked ? "Show Values" : "Hide Values")"
+                                OnClick="ToggleMaskState"
+                                slot="end" />
                 <FluentSearch Placeholder="Filter..."
-                              Immediate="true"
-                              Autofocus="true"
-                              @bind-Value="_filter"
-                              @oninput="HandleFilter"
-                              AfterBindValue="HandleClear"
-                              slot="end" />
+                                Immediate="true"
+                                Autofocus="true"
+                                @bind-Value="_filter"
+                                @oninput="HandleFilter"
+                                AfterBindValue="HandleClear"
+                                slot="end" />
             </FluentToolbar>
-            <FluentDataGrid Items="@FilteredItems"
-                            ResizableColumns="true"
-                            Style="width:100%"
-                            GenerateHeader="GenerateHeaderOption.Sticky"
-                            GridTemplateColumns="1fr 1fr">
-                <TemplateColumn Title="Name" Class="nameColumn" SortBy="@_nameSort" Sortable="true" Tooltip="true" >
-                    <FluentStack Orientation="Orientation.Horizontal">
-                        <span class="cellText" title="@context.Name">
-                            <FluentHighlighter HighlightedText="@_filter"
-                                               Text="@context.Name" />
-                        </span>
-                        @{
-                            var anchor = "name-" + context.Name;
-                        }
-                        <FluentButton Appearance="Appearance.Lightweight"
-                                      Id="@anchor"
-                                      IconEnd="@(new Icons.Regular.Size16.Copy())"
-                                      Class="defaultHidden"
-                                      @onclick="@(() => CopyTextToClipboardAsync(context.Name, @anchor))" />
-                        <FluentTooltip Anchor="@anchor" Position="TooltipPosition.Top">@PreCopyText</FluentTooltip>
-                    </FluentStack>
-                </TemplateColumn>
-                <TemplateColumn Title="Value" Class="valueColumn" SortBy="@_valueSort" Sortable="true">
-                    <FluentStack Orientation="Orientation.Horizontal" Width="400px;">
-                        @if (context.IsValueMasked)
-                        {
-                            <span class="cellText">
-                                &#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;
-                            </span>
-                        }
-                        else
-                        {
-                            <span class="cellText" title="@context.Value">
-                                <FluentHighlighter HighlightedText="@_filter"
-                                                   Text="@context.Value" />
-                            </span>
-                        }
-                        <FluentButton Appearance="Appearance.Lightweight"
-                                      IconEnd="@(context.IsValueMasked ? _unmaskIcon : _maskIcon)"
-                                      Title="@(context.IsValueMasked ? "Show Value" : "Hide Value")"
-                                      OnClick="() => ToggleMaskState(context)"
-                                      aria-label="@(context.IsValueMasked ? "Show Value" : "Hide Value")" />
-                        @{
-                            var anchor = "copy-" + context.Name;
-                        }
-                        <FluentButton Appearance="Appearance.Lightweight"
-                                      Id="@anchor"
-                                      IconEnd="@(new Icons.Regular.Size16.Copy())"
-                                      Class="defaultHidden"
-                                      @onclick="@(() => CopyTextToClipboardAsync(context.Value, @anchor))"
-                                      aria-label="Copy to Clipboard" />
-                        <FluentTooltip Anchor="@anchor" Position="TooltipPosition.Top">@PreCopyText</FluentTooltip>
-                    </FluentStack>
-                </TemplateColumn>
-            </FluentDataGrid>
+            <div class="dialog-grid-container">
+                <PropertyGrid TItem="EnvironmentVariableViewModel"
+                              Items="@FilteredItems"
+                              NameColumnValue="(vm) => vm.Name"
+                              ValueColumnValue="(vm) => vm.Value"
+                              NameSort="_nameSort"
+                              ValueSort="_valueSort"
+                              EnableValueMasking="true"
+                              GetIsItemMasked="(vm) => vm.IsValueMasked"
+                              SetIsItemMasked="(vm, newValue) => vm.IsValueMasked = newValue"
+                              IsMaskedChanged="@CheckAllMaskStates"
+                              HighlightText="@_filter" />
+            </div>
         </FluentStack>
-
-    </div>
-</FluentDialogBody>
+    </FluentDialogBody>
+</div>
