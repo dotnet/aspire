@@ -4,7 +4,7 @@
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
-namespace Aspire.Azure.Data.Cosmos;
+namespace Aspire.Microsoft.Azure.Cosmos;
 
 /// <summary>
 /// A health check for Azure CosmosDB.

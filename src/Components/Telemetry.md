@@ -9,14 +9,14 @@ Aspire.Azure.Data.Tables:
 - Metric names:
   - none (currently not supported by the Azure SDK)
 
-Aspire.Azure.Data.Cosmos:
+Aspire.Microsoft.Azure.Cosmos:
 - Log categories:
   - "Azure-Cosmos-Operation-Request-Diagnostics"
 - Activity source names:
   - "Azure.Cosmos.Operation"
 - Metric names:
 
-Aspire.Azure.Data.Cosmos.EntityFramework:
+Aspire.Microsoft.Azure.Cosmos.EntityFramework:
 - Log categories:
   - "Azure-Cosmos-Operation-Request-Diagnostics"
   - "Microsoft.EntityFrameworkCore.Infrastructure",

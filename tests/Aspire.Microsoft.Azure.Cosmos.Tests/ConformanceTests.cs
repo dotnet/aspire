@@ -7,7 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-namespace Aspire.Azure.Data.Cosmos.Tests;
+namespace Aspire.Microsoft.Azure.Cosmos.Tests;
 
 public class ConformanceTests : ConformanceTests<CosmosClient, AzureDataCosmosSettings>
 {
@@ -21,7 +21,7 @@ public class ConformanceTests : ConformanceTests<CosmosClient, AzureDataCosmosSe
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[1]
         {
-            new KeyValuePair<string, string?>(CreateConfigKey("Aspire.Azure.Data.Cosmos", key, "ConnectionString"),
+            new KeyValuePair<string, string?>(CreateConfigKey("Aspire.Microsoft.Azure.Cosmos", key, "ConnectionString"),
                 "AccountEndpoint=https://example.documents.azure.com:443/;AccountKey=fake;")
         });
 
@@ -38,13 +38,13 @@ public class ConformanceTests : ConformanceTests<CosmosClient, AzureDataCosmosSe
         => options.Metrics = enabled;
 
     protected override string JsonSchemaPath
-        => "src/Components/Aspire.Azure.Data.Cosmos/ConfigurationSchema.json";
+        => "src/Components/Aspire.Microsoft.Azure.Cosmos/ConfigurationSchema.json";
 
     protected override string ValidJsonConfig => """
         {
           "Aspire": {
-            "Azure": {
-              "Data": {
+            "Microsoft": {
+              "Azure": {
                 "Cosmos": {
                   "ConnectionString": "YOUR_CONNECTION_STRING",
                   "HealthChecks": false,

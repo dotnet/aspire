@@ -1,7 +1,7 @@
 {
   "type": "object",
   "properties": {
-    "Aspire.Azure.Data.Cosmos": {
+    "Aspire.Microsoft.Azure.Cosmos": {
       "type": "object",
       "properties": {
         "ConnectionString": {

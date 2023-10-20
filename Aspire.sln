@@ -133,13 +133,13 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Azure.Provis
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "eShopLite", "eShopLite", "{A68BA1A5-1604-433D-9778-DC0199831C2A}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Azure.Data.Cosmos", "src\Components\Aspire.Azure.Data.Cosmos\Aspire.Azure.Data.Cosmos.csproj", "{23298562-C1D4-41CD-83FE-426C94FEE35F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Microsoft.Azure.Cosmos", "src\Components\Aspire.Microsoft.Azure.Cosmos\Aspire.Microsoft.Azure.Cosmos.csproj", "{23298562-C1D4-41CD-83FE-426C94FEE35F}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Azure.Data.Cosmos.EntityFrameworkCore", "src\Components\Aspire.Azure.Data.Cosmos.EntityFrameworkCore\Aspire.Azure.Data.Cosmos.EntityFrameworkCore.csproj", "{00C9BA50-2AFB-4D9C-A2D6-8154BCCD0A63}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Microsoft.EntityFrameworkCore.Cosmos", "src\Components\Aspire.Microsoft.EntityFrameworkCore.Cosmos\Aspire.Microsoft.EntityFrameworkCore.Cosmos.csproj", "{00C9BA50-2AFB-4D9C-A2D6-8154BCCD0A63}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Azure.Data.Cosmos.Tests", "tests\Aspire.Azure.Data.Cosmos.Tests\Aspire.Azure.Data.Cosmos.Tests.csproj", "{A5836BC1-6A45-4BB6-9D22-A7F750890AB8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Microsoft.Azure.Cosmos.Tests", "tests\Aspire.Microsoft.Azure.Cosmos.Tests\Aspire.Microsoft.Azure.Cosmos.Tests.csproj", "{A5836BC1-6A45-4BB6-9D22-A7F750890AB8}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Azure.Data.Cosmos.EntityFrameworkCore.Tests", "tests\Aspire.Azure.Data.Cosmos.EntityFrameworkCore.Tests\Aspire.Azure.Data.Cosmos.EntityFrameworkCore.Tests.csproj", "{FDA02617-9C49-4DA8-A43A-A34DBA9B8596}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Microsoft.EntityFrameworkCore.Cosmos.Tests", "tests\Aspire.Microsoft.EntityFrameworkCore.Cosmos.Tests\Aspire.Microsoft.EntityFrameworkCore.Cosmos.Tests.csproj", "{FDA02617-9C49-4DA8-A43A-A34DBA9B8596}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

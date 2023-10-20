@@ -1,4 +1,4 @@
-using Aspire.Azure.Data.Cosmos.EntityFrameworkCore;
+using Aspire.Microsoft.EntityFrameworkCore.Cosmos;
 using CatalogService;
 
 var builder = WebApplication.CreateBuilder(args);

@@ -8,14 +8,14 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using OpenTelemetry.Metrics;
 
-namespace Aspire.Azure.Data.Cosmos;
+namespace Aspire.Microsoft.Azure.Cosmos;
 
 /// <summary>
 /// Azure CosmosDB extension
 /// </summary>
 public static class AspireAzureCosmosDBExtensions
 {
-    public const string DefaultConfigSectionName = "Aspire.Azure.Data.Cosmos";
+    public const string DefaultConfigSectionName = "Aspire.Microsoft.Azure.Cosmos";
 
     /// <summary>
     /// Registers 'Scoped' <see cref="CosmosClient" /> factory for connecting Azure Cosmos DB.

@@ -10,7 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Xunit;
 
-namespace Aspire.Azure.Data.Cosmos.EntityFrameworkCore.Tests;
+namespace Aspire.Microsoft.EntityFrameworkCore.Cosmos.Tests;
 
 public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, AzureDataCosmosEntityFrameworkCoreSettings>
 {
@@ -31,9 +31,9 @@ public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, AzureDat
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[]
         {
-            new KeyValuePair<string, string?>("Aspire.Azure.Data.Cosmos.EntityFrameworkCore:ConnectionString",
+            new KeyValuePair<string, string?>("Aspire.Microsoft.EntityFrameworkCore.Cosmos:ConnectionString",
                 "Host=fake;Database=catalog"),
-            new KeyValuePair<string, string?>("Aspire.Azure.Data.Cosmos.EntityFrameworkCore:DatabaseName",
+            new KeyValuePair<string, string?>("Aspire.Microsoft.EntityFrameworkCore.Cosmos:DatabaseName",
                 "TestDatabase"),
         });
 
@@ -50,19 +50,17 @@ public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, AzureDat
         => options.Metrics = enabled;
 
     protected override string JsonSchemaPath
-        => "src/Components/Aspire.Azure.Data.Cosmos.EntityFrameworkCore/ConfigurationSchema.json";
+        => "src/Components/Aspire.Microsoft.EntityFrameworkCore.Cosmos/ConfigurationSchema.json";
 
     protected override string ValidJsonConfig => """
         {
           "Aspire": {
-            "Azure": {
-              "Data": {
+            "Microsoft": {
+              "EntityFrameworkCore": {
                 "Cosmos": {
-                  "EntityFrameworkCore": {
-                    "ConnectionString": "YOUR_CONNECTION_STRING",
-                    "Tracing": true,
-                    "Metrics": true
-                  }
+                  "ConnectionString": "YOUR_CONNECTION_STRING",
+                  "Tracing": true,
+                  "Metrics": true
                 }
               }
             }
