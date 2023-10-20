@@ -20,7 +20,6 @@
     <PackageVersion Include="Azure.ResourceManager.Storage" Version="1.1.1" />
     <PackageVersion Include="Azure.ResourceManager.Authorization" Version="1.1.0-beta.1" />
     <!-- ASP.NET Core dependencies -->
-    <PackageVersion Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="$(AspNetCoreVersion)" />
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="$(AspNetCoreVersion)" />
     <PackageVersion Include="Microsoft.AspNetCore.OutputCaching.StackExchangeRedis" Version="$(AspNetCoreVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="$(AspNetCoreVersion)" />
