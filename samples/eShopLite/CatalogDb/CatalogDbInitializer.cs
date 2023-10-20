@@ -1,38 +1,73 @@
+using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 
-namespace CatalogService;
+namespace CatalogDb;
 
-internal static class CatalogContextSeed
+internal sealed class CatalogDbInitializer(IServiceProvider serviceProvider, ILogger<CatalogDbInitializer> logger)
+    : BackgroundService
 {
-    public static async Task InitializeDatabaseAsync(this IServiceProvider serviceProvider)
+    protected override async Task ExecuteAsync(CancellationToken cancellationToken)
     {
         using var scope = serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<CatalogDbContext>();
-        var delayMs = 1000;
+
+        await InitializeDatabaseAsync(dbContext, cancellationToken);
+    }
+
+    private async Task InitializeDatabaseAsync(CatalogDbContext dbContext, CancellationToken cancellationToken)
+    {
+        var delayMs = 500;
         var retries = 0;
-        var maxRetryCount = 10;
+        var maxRetryCount = 3;
+        var sw = Stopwatch.StartNew();
 
         while (true)
         {
             try
             {
-                await dbContext.Database.MigrateAsync();
+                if (retries > 0)
+                {
+                    await Task.Delay(delayMs, cancellationToken);
+                }
+
+                logger.LogInformation("Attempting to apply database migrations (attempt {Attempt} of {MaxRetryCount})", retries + 1, maxRetryCount);
+
+                await dbContext.Database.MigrateAsync(cancellationToken);
+
+                logger.LogInformation("Successfully applied database migrations in {ElapsedMilliseconds}ms", sw.ElapsedMilliseconds);
                 break;
             }
-            catch when (retries < maxRetryCount)
+            catch (TaskCanceledException)
             {
-                await Task.Delay(delayMs);
+                if (retries == 0)
+                {
+                    logger.LogError("Database migration was canceled after {ElapsedMilliseconds}ms", sw.ElapsedMilliseconds);
+                }
+                else
+                {
+                    logger.LogError("Database migration was canceled after {Retries} retries", retries);
+                }
+                throw;
+            }
+            catch (Exception ex) when (retries < maxRetryCount)
+            {
+                logger.LogError(ex, "Failed to apply database migrations. Retrying in {DelayMs}ms", delayMs);
+
                 delayMs *= 2;
             }
 
             retries++;
         }
 
-        await SeedAsync(dbContext);
+        await SeedAsync(dbContext, cancellationToken);
+
+        logger.LogInformation("Database initialization completed after {ElapsedMilliseconds}ms", sw.ElapsedMilliseconds);
     }
 
-    private static async Task SeedAsync(CatalogDbContext context)
+    private async Task SeedAsync(CatalogDbContext dbContext, CancellationToken cancellationToken)
     {
+        logger.LogInformation("Seeding database");
+
         static List<CatalogBrand> GetPreconfiguredCatalogBrands()
         {
             return [
@@ -65,7 +100,7 @@ internal static class CatalogContextSeed
 
             return [
                 new() { CatalogType = tshirt, CatalogBrand = dotNet, AvailableStock = 100, Description = ".NET Bot Black Hoodie", Name = ".NET Bot Black Hoodie", Price = 19.5M, PictureFileName = "1.png" },
-                new() { CatalogType = mug, CatalogBrand = dotNet, AvailableStock = 100, Description = ".NET Black & White Mug", Name = ".NET Black & White Mug", Price = 8.50M, PictureFileName = "2.png" },
+                new() { CatalogType = mug, CatalogBrand = dotNet, AvailableStock = 100, Description = ".NET Black & White Mug", Name = ".NET Black & White Mug", Price= 8.50M, PictureFileName = "2.png" },
                 new() { CatalogType = tshirt, CatalogBrand = other, AvailableStock = 100, Description = "Prism White T-Shirt", Name = "Prism White T-Shirt", Price = 12, PictureFileName = "3.png" },
                 new() { CatalogType = tshirt, CatalogBrand = dotNet, AvailableStock = 100, Description = ".NET Foundation T-shirt", Name = ".NET Foundation T-shirt", Price = 12, PictureFileName = "4.png" },
                 new() { CatalogType = sheet, CatalogBrand = other, AvailableStock = 100, Description = "Roslyn Red Sheet", Name = "Roslyn Red Sheet", Price = 8.5M, PictureFileName = "5.png" },
@@ -79,25 +114,34 @@ internal static class CatalogContextSeed
             ];
         }
 
-        if (!context.CatalogBrands.Any())
+        if (!dbContext.CatalogBrands.Any())
         {
-            await context.CatalogBrands.AddRangeAsync(GetPreconfiguredCatalogBrands());
+            var brands = GetPreconfiguredCatalogBrands();
+            await dbContext.CatalogBrands.AddRangeAsync(brands, cancellationToken);
 
-            await context.SaveChangesAsync();
+            logger.LogInformation("Seeding {CatalogBrandCount} catalog brands", brands.Count);
+
+            await dbContext.SaveChangesAsync(cancellationToken);
         }
 
-        if (!context.CatalogTypes.Any())
+        if (!dbContext.CatalogTypes.Any())
         {
-            await context.CatalogTypes.AddRangeAsync(GetPreconfiguredCatalogTypes());
+            var types = GetPreconfiguredCatalogTypes();
+            await dbContext.CatalogTypes.AddRangeAsync(types, cancellationToken);
 
-            await context.SaveChangesAsync();
+            logger.LogInformation("Seeding {CatalogTypeCount} catalog item types", types.Count);
+
+            await dbContext.SaveChangesAsync(cancellationToken);
         }
 
-        if (!context.CatalogItems.Any())
+        if (!dbContext.CatalogItems.Any())
         {
-            await context.CatalogItems.AddRangeAsync(GetPreconfiguredItems(context.CatalogBrands, context.CatalogTypes));
+            var items = GetPreconfiguredItems(dbContext.CatalogBrands, dbContext.CatalogTypes);
+            await dbContext.CatalogItems.AddRangeAsync(items, cancellationToken);
 
-            await context.SaveChangesAsync();
+            logger.LogInformation("Seeding {CatalogItemCount} catalog items", items.Count);
+
+            await dbContext.SaveChangesAsync(cancellationToken);
         }
     }
 }

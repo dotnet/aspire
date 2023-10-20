@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace CatalogService.Migrations;
+namespace CatalogDb.Migrations;
 
 /// <inheritdoc />
 public partial class Initial : Migration
