@@ -28,7 +28,7 @@ public abstract partial class ResourceLogsBase<TResource> : ComponentBase, IAsyn
     protected abstract string SelectResourceTitle { get; }
     protected virtual bool ConvertTimestampsFromUtc => false;
 
-    protected abstract Task<List<TResource>> GetResources(IDashboardViewModelService dashboardViewModelService);
+    protected abstract ValueTask<List<TResource>> GetResources(IDashboardViewModelService dashboardViewModelService);
     protected abstract IAsyncEnumerable<ResourceChanged<TResource>> WatchResources(
         IDashboardViewModelService dashboardViewModelService,
         IEnumerable<NamespacedName> initialList,
