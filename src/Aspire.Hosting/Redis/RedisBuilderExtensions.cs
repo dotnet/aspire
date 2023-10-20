@@ -10,6 +10,13 @@ namespace Aspire.Hosting;
 
 public static class RedisBuilderExtensions
 {
+    /// <summary>
+    /// Adds a Redis container to the application model. The default image is "redis" and tag is "latest".
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <param name="port">The host port for the redis server.</param>
+    /// <returns>A reference to the <see cref="IDistributedApplicationResourceBuilder{RedisContainerResource}"/>.</returns>
     public static IDistributedApplicationResourceBuilder<RedisContainerResource> AddRedisContainer(this IDistributedApplicationBuilder builder, string name, int? port = null)
     {
         var redis = new RedisContainerResource(name);
@@ -19,6 +26,13 @@ public static class RedisBuilderExtensions
                       .WithAnnotation(new ContainerImageAnnotation { Image = "redis", Tag = "latest" });
     }
 
+    /// <summary>
+    /// Adds a Redis connection to the application model. Connection strings can also be read from the connection string section of the configuration using the name of the resource.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <param name="connectionString">The connection string.</param>
+    /// <returns>A reference to the <see cref="IDistributedApplicationResourceBuilder{RedisResource}"/>.</returns>
     public static IDistributedApplicationResourceBuilder<RedisResource> AddRedis(this IDistributedApplicationBuilder builder, string name, string? connectionString = null)
     {
         var redis = new RedisResource(name, connectionString);

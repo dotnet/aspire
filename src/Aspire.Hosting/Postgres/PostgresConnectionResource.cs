@@ -5,9 +5,18 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Postgres;
 
+/// <summary>
+/// A resource that represents a Postgres connection.
+/// </summary>
+/// <param name="name">The name of the resource.</param>
+/// <param name="connectionString">The postgres connection string.</param>
 public class PostgresConnectionResource(string name, string? connectionString) : DistributedApplicationResource(name), IPostgresResource
 {
     private readonly string? _connectionString = connectionString;
 
+    /// <summary>
+    /// Gets the connection string for the Postgres server.
+    /// </summary>
+    /// <returns>The specified connection string.</returns>
     public string? GetConnectionString() => _connectionString;
 }

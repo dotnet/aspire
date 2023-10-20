@@ -5,10 +5,22 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.RabbitMQ;
 
+/// <summary>
+/// A resource that represents a RabbitMQ container.
+/// </summary>
+/// <param name="name">The name of the resource.</param>
+/// <param name="password">The RabbitMQ server password.</param>
 public class RabbitMQContainerResource(string name, string? password) : ContainerResource(name), IDistributedApplicationResourceWithConnectionString
 {
+    /// <summary>
+    /// The RabbitMQ server password.
+    /// </summary>
     public string? Password { get; } = password;
 
+    /// <summary>
+    /// Gets the connection string for the RabbitMQ server.
+    /// </summary>
+    /// <returns>A connection string for the RabbitMQ server in the form "amqp://guest:password@host:port".</returns>
     public string? GetConnectionString()
     {
         if (!this.TryGetAllocatedEndPoints(out var allocatedEndpoints))

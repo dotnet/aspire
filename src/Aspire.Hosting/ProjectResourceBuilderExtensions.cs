@@ -10,6 +10,13 @@ namespace Aspire.Hosting;
 
 public static class ProjectResourceBuilderExtensions
 {
+    /// <summary>
+    /// Adds a .NET project to the application model. By default, this will exist in a Projects namespace. e.g. Projects.MyProject.
+    /// If the project is not in a Projects namespace, make sure a project reference is added from the AppHost project to the target project.
+    /// </summary>
+    /// <typeparam name="TProject">A type that represents the project reference.</typeparam>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource. This name will be used for service discovery when referenced in a dependency.</param>
     public static IDistributedApplicationResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, string name) where TProject : IServiceMetadata, new()
     {
         var project = new ProjectResource(name);
@@ -18,24 +25,40 @@ public static class ProjectResourceBuilderExtensions
         // implements IDistributedApplicationResourceWithEnvironment.
         projectBuilder.WithEnvironment("OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES", "true");
         projectBuilder.WithEnvironment("OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES", "true");
-        projectBuilder.ConfigureOtlpEnvironment();
+        projectBuilder.WithOtlpExporter();
         projectBuilder.ConfigureConsoleLogs();
         var serviceMetadata = new TProject();
         projectBuilder.WithAnnotation(serviceMetadata);
         return projectBuilder;
     }
 
+    /// <summary>
+    /// Configures how many replicas of the project should be created for the project.
+    /// </summary>
+    /// <param name="builder">The project resource builder.</param>
+    /// <param name="replicas">The number of replicas.</param>
     public static IDistributedApplicationResourceBuilder<ProjectResource> WithReplicas(this IDistributedApplicationResourceBuilder<ProjectResource> builder, int replicas)
     {
         builder.WithAnnotation(new ReplicaAnnotation(replicas));
         return builder;
     }
+
+    /// <summary>
+    /// Configures how many replicas of the project should be created for the project.
+    /// </summary>
+    /// <param name="builder">The executable resource builder.</param>
+    /// <param name="replicas">The number of replicas.</param>
     public static IDistributedApplicationResourceBuilder<ExecutableResource> WithReplicas(this IDistributedApplicationResourceBuilder<ExecutableResource> builder, int replicas)
     {
         builder.WithAnnotation(new ReplicaAnnotation(replicas));
         return builder;
     }
 
+    /// <summary>
+    /// Configures which launch profile should be used when running the project.
+    /// </summary>
+    /// <param name="builder">The project resource builder.</param>
+    /// <param name="launchProfileName">The name of the launch profile to use for execution.</param>
     public static IDistributedApplicationResourceBuilder<ProjectResource> WithLaunchProfile(this IDistributedApplicationResourceBuilder<ProjectResource> builder, string launchProfileName)
     {
         ArgumentException.ThrowIfNullOrEmpty(launchProfileName);
