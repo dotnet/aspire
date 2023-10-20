@@ -14,9 +14,12 @@ internal sealed class AutomaticManifestPublisherBindingInjectionHook(IOptions<Pu
     private static bool IsKestrelHttp2ConfigurationPresent(ProjectResource projectResource)
     {
         var serviceMetadata = projectResource.GetServiceMetadata();
-        var projectDirectoryPath = Path.GetDirectoryName(serviceMetadata.ProjectPath);
-        var appSettingsPath = Path.Combine(projectDirectoryPath!, "appsettings.json");
-        var appSettingsEnvironmentPath = Path.Combine(projectDirectoryPath!, $"appsettings.{Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT")}.json");
+
+        var projectDirectoryPath = Path.GetDirectoryName(serviceMetadata.ProjectPath)!;
+        var appSettingsPath = Path.Combine(projectDirectoryPath, "appsettings.json");
+        var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT");
+        var appSettingsEnvironmentPath = Path.Combine(projectDirectoryPath, $"appsettings.{env}.json");
+
         var configBuilder = new ConfigurationBuilder();
         configBuilder.AddJsonFile(appSettingsPath, optional: true);
         configBuilder.AddJsonFile(appSettingsEnvironmentPath, optional: true);
