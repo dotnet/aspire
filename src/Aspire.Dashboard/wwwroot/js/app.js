@@ -98,6 +98,8 @@ function fixTraceLineRendering(chartDiv) {
     //
     // The fix is to reverse the order of traces so the correct line is on top. There isn't a way to do this
     // with CSS because SVG doesn't support z-index. Node order is what determines the rendering order.
+    //
+    // https://github.com/plotly/plotly.js/issues/6579
     var parent = chartDiv.querySelector(".scatterlayer");
 
     if (parent.childNodes.length > 0) {
