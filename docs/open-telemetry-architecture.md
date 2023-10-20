@@ -53,7 +53,7 @@ Aspire F5 debugging workflow:
 
 Aspire deployment environments should configure OTEL environment variables that make sense for their environment. For example, `OTEL_EXPORTER_OTLP_ENDPOINT` should be configured to the environment's local OTLP collector or monitoring service.
 
-OTLP exporting is disabled if `OTEL_EXPORTER_OTLP_ENDPOINT` isn't configured.
+Aspire telemetry works best in environments that support OTLP. OTLP exporting is disabled if `OTEL_EXPORTER_OTLP_ENDPOINT` isn't configured.
 
 ## Non-.NET apps
 
