@@ -162,7 +162,6 @@ window.initializeChart = function (id, traces, xValues, rangeStartTime, rangeEnd
             name: name,
             text: traces[i].tooltips,
             hoverinfo: 'text',
-            line: { width: 2 },
             stackgroup: "one"
         };
         data.push(t);
