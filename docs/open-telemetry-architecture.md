@@ -40,7 +40,7 @@ Aspire debugging workflow:
 
 * Developer starts the Aspire app with debugging, presses <kbd>F5</kbd>.
 * Aspire dashboard and developer control plane (DCP) start.
-* App configuration is run in the _DevHost_ project.
+* App configuration is run in the _AppHost_ project.
   * OTEL environment variables are automatically added to .NET projects during app configuration.
   * DCP provides the name (`OTEL_SERVICE_NAME`) and ID (`OTEL_RESOURCE_ATTRIBUTES`) of the app in exported telemetry.
   * The OTLP endpoint is an HTTP/2 port started by the dashboard (`OTEL_EXPORTER_OTLP_ENDPOINT`). That tells projects to export telemetry back to the dashboard.
