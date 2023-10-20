@@ -1,26 +1,28 @@
 # Aspire OpenTelemetry architecture
 
-An Aspire goal is apps are easy to debug and diagnose. Towards this goal, Aspire apps are configured by default to collect and export telemetry using [OpenTelemetry (OTEL)](https://opentelemetry.io/). Additionally, Aspire local development includes UI in the dashboard for viewing OTEL data.
+An Aspire goal is apps are easy to debug and diagnose. To this end, Aspire apps are configured by default to collect and export telemetry using [OpenTelemetry (OTEL)](https://opentelemetry.io/). Additionally, Aspire local development includes UI in the dashboard for viewing OTEL data. Telemetry just works and is easy to use.
 
 This document details how OpenTelemtry is used in Aspire apps.
 
 ## Telemetry types
 
-Libraries and apps record values using .NET APIs for three kinds of telemetry:
+OTEL is focused on three kinds of telemetry: structured logging, tracing, and metrics. .NET libraries and apps have APIs for recording each kind of telemetry:
 
 * Structured logging - Log entries from `ILogger`.
 * Tracing - Distributed tracing from `Activity`.
 * Metrics - Numeric values from `Meter`/`Instrument<T>`.
 
+When an OpenTelemetry SDK is configured in an app, it receives data from these APIs.
+
 ## OpenTelemetry SDK
 
-The .NET OpenTelemetry SDK provides functionality to collect values from the .NET APIs listed above (`ILogger`, `Activity`, and `Meter`/`Instrument<T>`) and then export telemetry to a data store or reporting tool. Telemetry is exported using [OpenTelemetry protocol (OTLP)](https://opentelemetry.io/docs/specs/otel/protocol/). OTLP is a standard scheme for sending telemetry data using REST or gRPC.
+The [.NET OpenTelemetry SDK](https://github.com/open-telemetry/opentelemetry-dotnet) provides functionality to collect values from the .NET APIs listed above (`ILogger`, `Activity`, and `Meter`/`Instrument<T>`) and then export telemetry to a data store or reporting tool. Telemetry is exported using [OpenTelemetry protocol (OTLP)](https://opentelemetry.io/docs/specs/otel/protocol/). OTLP is a standard scheme for sending telemetry data using REST or gRPC.
 
-.NET projects configure the .NET OpenTelemetry SDK using the service defaults project. Aspire templates automatically create the service defaults, and .NET Aspire apps call it at startup. The service defaults enable collecting and exporting telemetry for .NET apps.
+.NET projects setup the .NET OpenTelemetry SDK using the service defaults project. Aspire templates automatically create the service defaults, and .NET Aspire apps call it at startup. The service defaults enable collecting and exporting telemetry for .NET apps.
 
 ## OpenTelemetry environment variables
 
-Environment variables configure almost all OTEL settings. OTEL has a [list of known environment variables](https://opentelemetry.io/docs/specs/otel/configuration/sdk-environment-variables/) that configure the most important behavior for collecting and exporting telemetry. OTEL SDKs, including the .NET SDK, support reading these variables.
+OTEL has a [list of known environment variables](https://opentelemetry.io/docs/specs/otel/configuration/sdk-environment-variables/) that configure the most important behavior for collecting and exporting telemetry. OTEL SDKs, including the .NET SDK, support reading these variables.
 
 Aspire apps launch with environment variables that configure the name and ID of the app in exported telemetry and set the address endpoint of the OTLP server to export data. For example:
 
@@ -28,7 +30,7 @@ Aspire apps launch with environment variables that configure the name and ID of 
 * `OTEL_RESOURCE_ATTRIBUTES` = service.instance.id=1a5f9c1e-e5ba-451b-95ee-ced1ee89c168
 * `OTEL_EXPORTER_OTLP_ENDPOINT` = http://localhost:4318
 
-OTLP exporting is disabled if `OTEL_EXPORTER_OTLP_ENDPOINT` isn't configured.
+The environment variables are automatically set in local development.
 
 ## Aspire local development
 
@@ -50,3 +52,9 @@ Aspire F5 debugging workflow:
 ## Aspire deployment
 
 Aspire deployment environments should configure OTEL environment variables that make sense for their environment. For example, `OTEL_EXPORTER_OTLP_ENDPOINT` should be configured to the environment's local OTLP collector or monitoring service.
+
+OTLP exporting is disabled if `OTEL_EXPORTER_OTLP_ENDPOINT` isn't configured.
+
+## Non-.NET apps
+
+OTEL isn't limited to .NET projects. Apps and containers that include OTEL can be passed environment variables to configure exporting telemetry. For example, the dapr sidecar (written in golang) includes OTEL and standard OTEL environment variables can be used to enable telemetry.
