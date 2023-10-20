@@ -143,6 +143,7 @@ public static class ResourceBuilderExtensions
     /// <typeparam name="TSource">The source project resource.</typeparam>
     /// <param name="builder">The resource where the service discovery information will be injected.</param>
     /// <param name="source">The resource from which to extract service bindings.</param>
+    /// <returns>A reference to the <see cref="IDistributedApplicationResourceBuilder{TDestination}"/>.</returns>
     public static IDistributedApplicationResourceBuilder<TDestination> WithReference<TDestination, TSource>(this IDistributedApplicationResourceBuilder<TDestination> builder, IDistributedApplicationResourceBuilder<TSource> source)
         where TDestination : IDistributedApplicationResourceWithEnvironment where TSource : ProjectResource
     {
