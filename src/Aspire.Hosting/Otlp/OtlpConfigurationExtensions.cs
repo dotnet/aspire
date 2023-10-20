@@ -49,6 +49,8 @@ public static class OtlpConfigurationExtensions
     /// 2. It sets the service name and instance id to the resource name and UID. Values are injected by the orchestrator.
     /// 3. It sets a small batch schedule delay in development. This reduces the delay that OTLP exporter waits to sends telemetry and makes the dashboard telemetry pages responsive.
     /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
     /// <returns>The <see cref="IDistributedApplicationResourceBuilder{T}"/>.</returns>
     public static IDistributedApplicationResourceBuilder<T> WithOtlpExporter<T>(this IDistributedApplicationResourceBuilder<T> builder) where T : IDistributedApplicationResourceWithEnvironment
     {
