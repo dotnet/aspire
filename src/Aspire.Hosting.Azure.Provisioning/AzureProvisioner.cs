@@ -191,9 +191,10 @@ internal sealed class AzureProvisioner(IOptions<PublishingOptions> options, ICon
             if (c is AzureStorageResource storage)
             {
                 // Storage isn't a connection string because it has multiple endpoints
-                var tableUrl = configuration[$"Azure:Storage:{storage.Name}:TableUri"];
-                var blobUrl = configuration[$"Azure:Storage:{storage.Name}:BlobUri"];
-                var queueUrl = configuration[$"Azure:Storage:{storage.Name}:QueueUri"];
+                var storageSection = configuration.GetSection($"Azure:Storage:{storage.Name}");
+                var tableUrl = storageSection["TableUri"];
+                var blobUrl = storageSection["BlobUri"];
+                var queueUrl = storageSection["QueueUri"];
 
                 // If any of these is null then we need to create/get the storage account
                 if (tableUrl is not null && blobUrl is not null && queueUrl is not null)
