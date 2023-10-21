@@ -1,7 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Reflection;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Publishing;
@@ -18,6 +20,7 @@ using Azure.ResourceManager.ServiceBus;
 using Azure.ResourceManager.Storage;
 using Azure.ResourceManager.Storage.Models;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration.UserSecrets;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -27,7 +30,7 @@ namespace Aspire.Hosting.Azure;
 // Provisions azure resources for development purposes
 internal sealed class AzureProvisioner(IOptions<PublishingOptions> options, IConfiguration configuration, IHostEnvironment environment, ILogger<AzureProvisioner> logger) : IDistributedApplicationLifecycleHook
 {
-    private const string Key = "aspire-resource-name";
+    private const string AspireResourceNameTag = "aspire-resource-name";
 
     public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
@@ -70,174 +73,313 @@ internal sealed class AzureProvisioner(IOptions<PublishingOptions> options, ICon
 
         var armClient = new ArmClient(credential, subscriptionId);
 
-        logger.LogInformation("Getting default subscription...");
-
-        var subscription = await armClient.GetDefaultSubscriptionAsync(cancellationToken).ConfigureAwait(false);
-
-        logger.LogInformation("Default subscription: {name} ({subscriptionId})", subscription.Data.DisplayName, subscription.Id);
-
-        // Name of the resource group to create based on the machine name and application name
-        var (resourceGroupName, createIfNoExists) = configuration["Azure:ResourceGroup"] switch
+        var subscriptionLazy = new Lazy<Task<SubscriptionResource>>(async () =>
         {
-            null => ($"{Environment.MachineName.ToLowerInvariant()}-{environment.ApplicationName.ToLowerInvariant()}-rg", true),
-            string rg => (rg, false)
-        };
+            logger.LogInformation("Getting default subscription...");
 
-        var resourceGroups = subscription.GetResourceGroups();
-        ResourceGroupResource? resourceGroup;
+            var value = await armClient.GetDefaultSubscriptionAsync(cancellationToken).ConfigureAwait(false);
 
-        try
+            logger.LogInformation("Default subscription: {name} ({subscriptionId})", value.Data.DisplayName, value.Id);
+
+            return value;
+        });
+
+        Lazy<Task<(ResourceGroupResource, AzureLocation)>> resourceGroupAndLocationLazy = new(async () =>
         {
-            var response = await resourceGroups.GetAsync(resourceGroupName, cancellationToken).ConfigureAwait(false);
-            resourceGroup = response.Value;
-            location = resourceGroup.Data.Location;
-
-            logger.LogInformation("Using existing resource group {rgName}.", resourceGroup.Data.Name);
-        }
-        catch (Exception)
-        {
-            if (!createIfNoExists)
+            // Name of the resource group to create based on the machine name and application name
+            var (resourceGroupName, createIfNoExists) = configuration["Azure:ResourceGroup"] switch
             {
-                throw;
+                null => ($"{Environment.MachineName.ToLowerInvariant()}-{environment.ApplicationName.ToLowerInvariant()}-rg", true),
+                string rg => (rg, false)
+            };
+
+            var subscription = await subscriptionLazy.Value.ConfigureAwait(false);
+
+            var resourceGroups = subscription.GetResourceGroups();
+            ResourceGroupResource? resourceGroup = null;
+            AzureLocation? location = null;
+            try
+            {
+                var response = await resourceGroups.GetAsync(resourceGroupName, cancellationToken).ConfigureAwait(false);
+                resourceGroup = response.Value;
+                location = resourceGroup.Data.Location;
+
+                logger.LogInformation("Using existing resource group {rgName}.", resourceGroup.Data.Name);
+            }
+            catch (Exception)
+            {
+                if (!createIfNoExists)
+                {
+                    throw;
+                }
+
+                // REVIEW: Is it possible to do this without an exception?
+
+                logger.LogInformation("Creating resource group {rgName} in {location}...", resourceGroupName, location);
+
+                var rgData = new ResourceGroupData(location!.Value);
+                rgData.Tags.Add("aspire", "true");
+                var operation = await resourceGroups.CreateOrUpdateAsync(WaitUntil.Completed, resourceGroupName, rgData, cancellationToken).ConfigureAwait(false);
+                resourceGroup = operation.Value;
+
+                logger.LogInformation("Resource group {rgName} created.", resourceGroup.Data.Name);
             }
 
-            // REVIEW: Is it possible to do this without an exception?
+            return (resourceGroup, location.Value);
+        });
 
-            logger.LogInformation("Creating resource group {rgName} in {location}...", resourceGroupName, location);
+        var principalIdLazy = new Lazy<Task<Guid>>(async () => Guid.Parse(await GetUserPrincipalAsync(credential, cancellationToken).ConfigureAwait(false)));
 
-            var rgData = new ResourceGroupData(location);
-            rgData.Tags.Add("aspire", "true");
-            var operation = await resourceGroups.CreateOrUpdateAsync(WaitUntil.Completed, resourceGroupName, rgData, cancellationToken).ConfigureAwait(false);
-            resourceGroup = operation.Value;
-
-            logger.LogInformation("Resource group {rgName} created.", resourceGroup.Data.Name);
-        }
-
-        var principalId = Guid.Parse(await GetUserPrincipalAsync(credential, cancellationToken).ConfigureAwait(false));
-
-        // Create a dictionary from resource name to StorageAccountResource using the tag aspire-resource-name to find the storage account
-        var storageAccounts = resourceGroup.GetStorageAccounts();
-        var resourceNameToStorageAccountMap = new Dictionary<string, StorageAccountResource>();
-
-        await foreach (var a in storageAccounts.GetAllAsync(cancellationToken: cancellationToken))
+        var resourceMapLazy = new Lazy<Task<Dictionary<string, ArmResource>>>(async () =>
         {
-            if (a.Data.Tags.TryGetValue("aspire-resource-name", out var aspireName))
-            {
-                resourceNameToStorageAccountMap.Add(aspireName, a);
-            }
-        }
+            var resourceMap = new Dictionary<string, ArmResource>();
 
-        var serviceBusNamespaces = resourceGroup.GetServiceBusNamespaces();
-        var resourceNameToServiceBusNamespaceMap = new Dictionary<string, ServiceBusNamespaceResource>();
+            var (resourceGroup, _) = await resourceGroupAndLocationLazy.Value.ConfigureAwait(false);
 
-        await foreach (var ns in serviceBusNamespaces.GetAllAsync(cancellationToken: cancellationToken))
-        {
-            if (ns.Data.Tags.TryGetValue("aspire-resource-name", out var aspireName))
-            {
-                resourceNameToServiceBusNamespaceMap.Add(aspireName, ns);
-            }
-        }
+            await PopulateExistingAspireResources(
+                 resourceGroup,
+                 (rg, token) => rg.GetKeyVaults().GetAllAsync(cancellationToken: token),
+                 kv => kv.Data.Tags,
+                 resourceMap,
+                 cancellationToken).ConfigureAwait(false);
 
-        var keyVaults = resourceGroup.GetKeyVaults();
-        var resourceNameToKeyVaultMap = new Dictionary<string, KeyVaultResource>();
+            await PopulateExistingAspireResources(
+                resourceGroup,
+                (rg, token) => rg.GetServiceBusNamespaces().GetAllAsync(cancellationToken: token),
+                ns => ns.Data.Tags,
+                resourceMap,
+                cancellationToken).ConfigureAwait(false);
 
-        await foreach (var kv in keyVaults.GetAllAsync(cancellationToken: cancellationToken))
-        {
-            if (kv.Data.Tags.TryGetValue(Key, out var aspireName))
-            {
-                resourceNameToKeyVaultMap.Add(aspireName, kv);
-            }
-        }
+            await PopulateExistingAspireResources(
+                resourceGroup,
+                (rg, token) => rg.GetStorageAccounts().GetAllAsync(cancellationToken: token),
+                sa => sa.Data.Tags,
+                resourceMap,
+                cancellationToken).ConfigureAwait(false);
+
+            return resourceMap;
+        });
 
         var tasks = new List<Task>();
 
+        // Try to find the user secrets path
+        // we're going to cache access tokens in the user secrets file
+        // to speed up credential acquisition.
+        static string? GetUserSecretsPath()
+        {
+            return Assembly.GetEntryAssembly()?.GetCustomAttribute<UserSecretsIdAttribute>()?.UserSecretsId switch
+            {
+                null => Environment.GetEnvironmentVariable("DOTNET_USER_SECRETS_ID"),
+                string id => UserSecretsPathHelper.GetSecretsPathFromSecretsId(id)
+            };
+        }
+
+        var userSecretsPath = GetUserSecretsPath();
+
+        ResourceGroupResource? resourceGroup = null;
+        SubscriptionResource? subscription = null;
+        Dictionary<string, ArmResource>? resourceMap = null;
+        Guid? principalId = default;
+        var usedResources = new HashSet<string>();
+
+        var userSecrets = userSecretsPath is null ? [] : JsonNode.Parse(File.ReadAllText(userSecretsPath))!.AsObject();
+
         foreach (var c in azureResources)
         {
+            usedResources.Add(c.Name);
+
             if (c is AzureStorageResource storage)
             {
+                // Storage isn't a connection string because it has multiple endpoints
+                var tableUrl = configuration[$"Azure:Storage:{storage.Name}:TableUri"];
+                var blobUrl = configuration[$"Azure:Storage:{storage.Name}:BlobUri"];
+                var queueUrl = configuration[$"Azure:Storage:{storage.Name}:QueueUri"];
+
+                // If any of these is null then we need to create/get the storage account
+                if (tableUrl is not null && blobUrl is not null && queueUrl is not null)
+                {
+                    logger.LogInformation("Using connection information stored in user secrets for {storageName}.", storage.Name);
+
+                    storage.TableUri = new Uri(tableUrl);
+                    storage.BlobUri = new Uri(blobUrl);
+                    storage.QueueUri = new Uri(queueUrl);
+
+                    continue;
+                }
+
+                subscription ??= await subscriptionLazy.Value.ConfigureAwait(false);
+
+                if (resourceGroup is null)
+                {
+                    (resourceGroup, location) = await resourceGroupAndLocationLazy.Value.ConfigureAwait(false);
+                }
+
+                resourceMap ??= await resourceMapLazy.Value.ConfigureAwait(false);
+                principalId ??= await principalIdLazy.Value.ConfigureAwait(false);
+
                 var task = CreateStorageAccountAsync(armClient,
                     subscription,
-                    storageAccounts,
-                    resourceNameToStorageAccountMap,
+                    resourceGroup,
+                    resourceMap,
                     location,
                     storage,
-                    principalId,
+                    principalId.Value,
+                    userSecrets,
                     cancellationToken);
 
                 tasks.Add(task);
-
-                resourceNameToStorageAccountMap.Remove(c.Name);
             }
 
             if (c is AzureServiceBusResource serviceBus)
             {
+                var serviceBusEndpoint = configuration.GetConnectionString(serviceBus.Name);
+
+                if (serviceBusEndpoint is not null)
+                {
+                    logger.LogInformation("Using connection information stored in user secrets for {serviceBusName}.", serviceBus.Name);
+
+                    serviceBus.ServiceBusEndpoint = serviceBusEndpoint;
+
+                    continue;
+                }
+
+                subscription ??= await subscriptionLazy.Value.ConfigureAwait(false);
+
+                if (resourceGroup is null)
+                {
+                    (resourceGroup, location) = await resourceGroupAndLocationLazy.Value.ConfigureAwait(false);
+                }
+
+                resourceMap ??= await resourceMapLazy.Value.ConfigureAwait(false);
+                principalId ??= await principalIdLazy.Value.ConfigureAwait(false);
+
                 var task = CreateServiceBusAsync(armClient,
-                    subscription,
-                    serviceBusNamespaces,
-                    resourceNameToServiceBusNamespaceMap,
+                    await subscriptionLazy.Value.ConfigureAwait(false),
+                    resourceGroup,
+                    resourceMap,
                     location,
                     serviceBus,
-                    principalId,
+                    principalId.Value,
+                    userSecrets,
                     cancellationToken);
 
                 tasks.Add(task);
-
-                resourceNameToServiceBusNamespaceMap.Remove(c.Name);
             }
 
             if (c is AzureKeyVaultResource keyVault)
             {
+                var vaultUri = configuration.GetConnectionString(keyVault.Name);
+
+                if (vaultUri is not null)
+                {
+                    logger.LogInformation("Using connection information stored in user secrets for {keyVaultName}.", keyVault.Name);
+
+                    keyVault.VaultUri = new(vaultUri);
+
+                    continue;
+                }
+
+                subscription ??= await subscriptionLazy.Value.ConfigureAwait(false);
+
+                if (resourceGroup is null)
+                {
+                    (resourceGroup, location) = await resourceGroupAndLocationLazy.Value.ConfigureAwait(false);
+                }
+
+                resourceMap ??= await resourceMapLazy.Value.ConfigureAwait(false);
+                principalId ??= await principalIdLazy.Value.ConfigureAwait(false);
+
                 var task = CreateKeyVaultAsync(armClient,
                     subscription,
-                    keyVaults,
-                    resourceNameToKeyVaultMap,
+                    resourceGroup,
+                    resourceMap,
                     location,
                     keyVault,
-                    principalId,
+                    principalId.Value,
+                    userSecrets,
                     cancellationToken);
 
                 tasks.Add(task);
-
-                resourceNameToKeyVaultMap.Remove(c.Name);
             }
         }
 
-        await Task.WhenAll(tasks).ConfigureAwait(false);
-
-        // Clean up any left over resources that are no longer in the model
-        foreach (var (name, sa) in resourceNameToStorageAccountMap)
+        if (tasks.Count > 0)
         {
-            logger.LogInformation("Deleting storage account {accountName} which maps to resource name {name}.", sa.Id, name);
+            await Task.WhenAll(tasks).ConfigureAwait(false);
 
-            await sa.DeleteAsync(WaitUntil.Started, cancellationToken).ConfigureAwait(false);
+            // If we created any resources then save the user secrets
+            if (userSecretsPath is not null)
+            {
+                File.WriteAllText(userSecretsPath, userSecrets.ToString());
+
+                logger.LogInformation("Azure resource connection strings saved to user secrets.");
+            }
         }
 
-        foreach (var (name, ns) in resourceNameToServiceBusNamespaceMap)
+        // Do this in the background to avoid blocking startup
+        _ = Task.Run(async () =>
         {
-            logger.LogInformation("Deleting service bus namespace {namespaceName} which maps to resource name {name}.", ns.Id, name);
+            logger.LogInformation("Cleaning up unused resources...");
 
-            await ns.DeleteAsync(WaitUntil.Started, cancellationToken).ConfigureAwait(false);
-        }
+            resourceMap ??= await resourceMapLazy.Value.ConfigureAwait(false);
 
-        foreach (var (name, kv) in resourceNameToKeyVaultMap)
+            // Clean up any left over resources that are no longer in the model
+            foreach (var (name, sa) in resourceMap)
+            {
+                if (usedResources.Contains(name))
+                {
+                    continue;
+                }
+
+                var response = await armClient.GetGenericResources().GetAsync(sa.Id, cancellationToken).ConfigureAwait(false);
+
+                logger.LogInformation("Deleting unused resource {keyVaultName} which maps to resource name {name}.", sa.Id, name);
+
+                await response.Value.DeleteAsync(WaitUntil.Started, cancellationToken).ConfigureAwait(false);
+            }
+        },
+        cancellationToken);
+    }
+
+    private static async Task PopulateExistingAspireResources<TResource>(
+        ResourceGroupResource resourceGroup,
+        Func<ResourceGroupResource, CancellationToken, IAsyncEnumerable<TResource>> getCollection,
+        Func<TResource, IDictionary<string, string>> getTags,
+        Dictionary<string, ArmResource> map,
+        CancellationToken cancellationToken)
+        where TResource : ArmResource
+    {
+        await foreach (var r in getCollection(resourceGroup, cancellationToken))
         {
-            logger.LogInformation("Deleting key vault {keyVaultName} which maps to resource name {name}.", kv.Id, name);
-
-            await kv.DeleteAsync(WaitUntil.Started, cancellationToken).ConfigureAwait(false);
+            var tags = getTags(r);
+            if (tags.TryGetValue(AspireResourceNameTag, out var aspireResourceName))
+            {
+                map[aspireResourceName] = r;
+            }
         }
     }
 
     private async Task CreateKeyVaultAsync(
         ArmClient armClient,
         SubscriptionResource subscription,
-        KeyVaultCollection keyVaults,
-        Dictionary<string, KeyVaultResource> resourceNameToKeyVaultMap,
+        ResourceGroupResource resourceGroup,
+        Dictionary<string, ArmResource> resourceMap,
         AzureLocation location,
         AzureKeyVaultResource keyVault,
         Guid principalId,
+        JsonObject userSecrets,
         CancellationToken cancellationToken)
     {
-        resourceNameToKeyVaultMap.TryGetValue(keyVault.Name, out var keyVaultResource);
+        resourceMap.TryGetValue(keyVault.Name, out var azureResource);
+
+        if (azureResource is not null && azureResource is not KeyVaultResource)
+        {
+            logger.LogWarning("Resource {resourceName} is not a key vault resource. Deleting it.", keyVault.Name);
+
+            await armClient.GetGenericResource(azureResource.Id).DeleteAsync(WaitUntil.Started, cancellationToken).ConfigureAwait(false);
+        }
+
+        var keyVaultResource = azureResource as KeyVaultResource;
 
         if (keyVaultResource is null)
         {
@@ -253,15 +395,18 @@ internal sealed class AzureProvisioner(IOptions<PublishingOptions> options, ICon
                 EnableRbacAuthorization = true
             };
             var parameters = new KeyVaultCreateOrUpdateContent(location, properties);
-            parameters.Tags.Add("aspire-resource-name", keyVault.Name);
+            parameters.Tags.Add(AspireResourceNameTag, keyVault.Name);
 
-            var operation = await keyVaults.CreateOrUpdateAsync(WaitUntil.Completed, vaultName, parameters, cancellationToken).ConfigureAwait(false);
+            var operation = await resourceGroup.GetKeyVaults().CreateOrUpdateAsync(WaitUntil.Completed, vaultName, parameters, cancellationToken).ConfigureAwait(false);
             keyVaultResource = operation.Value;
 
             logger.LogInformation("Key vault {vaultName} created.", keyVaultResource.Data.Name);
         }
 
         keyVault.VaultUri = keyVaultResource.Data.Properties.VaultUri;
+
+        var connectionStrings = userSecrets.Prop("ConnectionStrings");
+        connectionStrings[keyVault.Name] = keyVault.VaultUri.ToString();
 
         // Key Vault Administrator
         // https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles#key-vault-administrator
@@ -273,14 +418,24 @@ internal sealed class AzureProvisioner(IOptions<PublishingOptions> options, ICon
     private async Task CreateServiceBusAsync(
         ArmClient armClient,
         SubscriptionResource subscription,
-        ServiceBusNamespaceCollection serviceBusNamespaces,
-        Dictionary<string, ServiceBusNamespaceResource> resourceNameToServiceBusNamespaceMap,
+        ResourceGroupResource resourceGroup,
+        Dictionary<string, ArmResource> resourceMap,
         AzureLocation location,
         AzureServiceBusResource resource,
         Guid principalId,
+        JsonObject userSecrets,
         CancellationToken cancellationToken)
     {
-        resourceNameToServiceBusNamespaceMap.TryGetValue(resource.Name, out var serviceBusNamespace);
+        resourceMap.TryGetValue(resource.Name, out var azureResource);
+
+        if (azureResource is not null && azureResource is not ServiceBusNamespaceResource)
+        {
+            logger.LogWarning("Resource {resourceName} is not a service bus namespace. Deleting it.", resource.Name);
+
+            await armClient.GetGenericResource(azureResource.Id).DeleteAsync(WaitUntil.Started, cancellationToken).ConfigureAwait(false);
+        }
+
+        var serviceBusNamespace = azureResource as ServiceBusNamespaceResource;
 
         if (serviceBusNamespace is null)
         {
@@ -290,10 +445,10 @@ internal sealed class AzureProvisioner(IOptions<PublishingOptions> options, ICon
             logger.LogInformation("Creating service bus namespace {namespace} in {location}...", namespaceName, location);
 
             var parameters = new ServiceBusNamespaceData(location);
-            parameters.Tags.Add("aspire-resource-name", resource.Name);
+            parameters.Tags.Add(AspireResourceNameTag, resource.Name);
 
             // Now we can create a storage account with defined account name and parameters
-            var operation = await serviceBusNamespaces.CreateOrUpdateAsync(WaitUntil.Completed, namespaceName, parameters, cancellationToken).ConfigureAwait(false);
+            var operation = await resourceGroup.GetServiceBusNamespaces().CreateOrUpdateAsync(WaitUntil.Completed, namespaceName, parameters, cancellationToken).ConfigureAwait(false);
             serviceBusNamespace = operation.Value;
 
             logger.LogInformation("Service bus namespace {namespace} created.", serviceBusNamespace.Data.Name);
@@ -302,6 +457,9 @@ internal sealed class AzureProvisioner(IOptions<PublishingOptions> options, ICon
         // This is the full uri to the service bus namespace e.g https://namespace.servicebus.windows.net:443/
         // the connection strings for the app need the host name only
         resource.ServiceBusEndpoint = new Uri(serviceBusNamespace.Data.ServiceBusEndpoint).Host;
+
+        var connectionStrings = userSecrets.Prop("ConnectionStrings");
+        connectionStrings[resource.Name] = resource.ServiceBusEndpoint;
 
         // Now create the queues
         var queues = serviceBusNamespace.GetServiceBusQueues();
@@ -367,14 +525,24 @@ internal sealed class AzureProvisioner(IOptions<PublishingOptions> options, ICon
     private async Task CreateStorageAccountAsync(
         ArmClient armClient,
         SubscriptionResource subscription,
-        StorageAccountCollection storageAccounts,
-        Dictionary<string, StorageAccountResource> resourceNameToStorageAccountMap,
+        ResourceGroupResource resourceGroupResource,
+        Dictionary<string, ArmResource> resourceMap,
         AzureLocation location,
         AzureStorageResource resource,
         Guid principalId,
+        JsonObject userSecrets,
         CancellationToken cancellationToken)
     {
-        resourceNameToStorageAccountMap.TryGetValue(resource.Name, out var storageAccount);
+        resourceMap.TryGetValue(resource.Name, out var azureResource);
+
+        if (azureResource is not null && azureResource is not StorageAccountResource)
+        {
+            logger.LogWarning("Resource {resourceName} is not a storage account. Deleting it.", resource.Name);
+
+            await armClient.GetGenericResource(azureResource.Id).DeleteAsync(WaitUntil.Started, cancellationToken).ConfigureAwait(false);
+        }
+
+        var storageAccount = azureResource as StorageAccountResource;
 
         if (storageAccount is null)
         {
@@ -387,10 +555,10 @@ internal sealed class AzureProvisioner(IOptions<PublishingOptions> options, ICon
             var sku = new StorageSku(StorageSkuName.StandardGrs);
             var kind = StorageKind.Storage;
             var parameters = new StorageAccountCreateOrUpdateContent(sku, kind, location);
-            parameters.Tags.Add("aspire-resource-name", resource.Name);
+            parameters.Tags.Add(AspireResourceNameTag, resource.Name);
 
             // Now we can create a storage account with defined account name and parameters
-            var accountCreateOperation = await storageAccounts.CreateOrUpdateAsync(WaitUntil.Completed, accountName, parameters, cancellationToken).ConfigureAwait(false);
+            var accountCreateOperation = await resourceGroupResource.GetStorageAccounts().CreateOrUpdateAsync(WaitUntil.Completed, accountName, parameters, cancellationToken).ConfigureAwait(false);
             storageAccount = accountCreateOperation.Value;
 
             logger.LogInformation("Storage account {accountName} created.", storageAccount.Data.Name);
@@ -399,6 +567,11 @@ internal sealed class AzureProvisioner(IOptions<PublishingOptions> options, ICon
         resource.BlobUri = storageAccount.Data.PrimaryEndpoints.BlobUri;
         resource.TableUri = storageAccount.Data.PrimaryEndpoints.TableUri;
         resource.QueueUri = storageAccount.Data.PrimaryEndpoints.QueueUri;
+
+        var resourceEntry = userSecrets.Prop("Azure").Prop("Storage").Prop(resource.Name);
+        resourceEntry["BlobUri"] = resource.BlobUri.ToString();
+        resourceEntry["TableUri"] = resource.TableUri.ToString();
+        resourceEntry["QueueUri"] = resource.QueueUri.ToString();
 
         // Storage Queue Data Contributor
         // https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles#storage-queue-data-contributor
