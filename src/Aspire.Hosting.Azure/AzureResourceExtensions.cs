@@ -131,13 +131,13 @@ public static class AzureResourceExtensions
     /// <summary>
     /// Adds an Azure queue storage resource to the application model. This resource requires an <see cref="AzureStorageResource"/> to be added to the application model.
     /// </summary>
-    /// <param name="storageBuilder">The Azure storage resource builder.</param>
+    /// <param name="builder">The Azure storage resource builder.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <returns>A reference to the <see cref="IDistributedApplicationResourceBuilder{AzureQueueStorageResource}"/>.</returns>
-    public static IDistributedApplicationResourceBuilder<AzureQueueStorageResource> AddQueues(this IDistributedApplicationResourceBuilder<AzureStorageResource> storageBuilder, string name)
+    public static IDistributedApplicationResourceBuilder<AzureQueueStorageResource> AddQueues(this IDistributedApplicationResourceBuilder<AzureStorageResource> builder, string name)
     {
-        var resource = new AzureQueueStorageResource(name, storageBuilder.Resource);
-        return storageBuilder.ApplicationBuilder.AddResource(resource)
+        var resource = new AzureQueueStorageResource(name, builder.Resource);
+        return builder.ApplicationBuilder.AddResource(resource)
                              .WithAnnotation(new ManifestPublishingCallbackAnnotation(json => WriteQueueStorageToManifest(json, resource)));
     }
 
@@ -145,5 +145,23 @@ public static class AzureResourceExtensions
     {
         json.WriteString("type", "azure.storage.queue.v1");
         json.WriteString("parent", resource.Parent.Name);
+    }
+
+    /// <summary>
+    /// Adds an Azure Redis resource to the application model.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <returns>A reference to the <see cref="IDistributedApplicationResourceBuilder{AzureRedisResource}"/>.</returns>
+    public static IDistributedApplicationResourceBuilder<AzureRedisResource> AddAzureRedis(this IDistributedApplicationBuilder builder, string name)
+    {
+        var resource = new AzureRedisResource(name);
+        return builder.AddResource(resource)
+            .WithAnnotation(new ManifestPublishingCallbackAnnotation(WriteAzureRedisToManifest));
+    }
+
+    private static void WriteAzureRedisToManifest(Utf8JsonWriter writer)
+    {
+        writer.WriteString("type", "azure.redis.v1");
     }
 }
