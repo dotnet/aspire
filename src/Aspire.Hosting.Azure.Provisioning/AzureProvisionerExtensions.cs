@@ -25,7 +25,7 @@ public static class AzureProvisionerExtensions
 
         // We're adding 2 because there's no easy way to enumerate all keys and all service types
         builder.AddAzureProvisioner<AzureKeyVaultResource, KeyVaultProvisoner>();
-        builder.AddResourceEnumerator((resourceGroup) => resourceGroup.GetKeyVaults(), resource => resource.Data.Tags);
+        builder.AddResourceEnumerator(resourceGroup => resourceGroup.GetKeyVaults(), resource => resource.Data.Tags);
 
         builder.AddAzureProvisioner<AzureStorageResource, StorageProvisioner>();
         builder.AddResourceEnumerator(resourceGroup => resourceGroup.GetStorageAccounts(), resource => resource.Data.Tags);
