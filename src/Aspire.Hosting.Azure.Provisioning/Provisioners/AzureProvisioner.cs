@@ -153,9 +153,7 @@ internal sealed class AzureProvisioner(
 
         var tasks = new List<Task>();
 
-        // Try to find the user secrets path
-        // we're going to cache access tokens in the user secrets file
-        // to speed up credential acquisition.
+        // Try to find the user secrets path so that provisioners can persist connection information.
         static string? GetUserSecretsPath()
         {
             return Assembly.GetEntryAssembly()?.GetCustomAttribute<UserSecretsIdAttribute>()?.UserSecretsId switch

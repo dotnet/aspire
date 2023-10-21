@@ -20,6 +20,7 @@
     <PackageVersion Include="Azure.ResourceManager.ServiceBus" Version="1.1.0-beta.3" />
     <PackageVersion Include="Azure.ResourceManager.Storage" Version="1.1.1" />
     <PackageVersion Include="Azure.ResourceManager.Authorization" Version="1.1.0-beta.1" />
+    <PackageVersion Include="Azure.ResourceManager.Redis" Version="1.2.0" />
     <!-- ASP.NET Core dependencies -->
     <PackageVersion Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="$(AspNetCoreVersion)" />
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="$(AspNetCoreVersion)" />

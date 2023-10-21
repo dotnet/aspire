@@ -6,6 +6,7 @@ using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Lifecycle;
 using Azure.ResourceManager;
 using Azure.ResourceManager.KeyVault;
+using Azure.ResourceManager.Redis;
 using Azure.ResourceManager.Resources;
 using Azure.ResourceManager.ServiceBus;
 using Azure.ResourceManager.Storage;
@@ -32,6 +33,9 @@ public static class AzureProvisionerExtensions
 
         builder.AddAzureProvisioner<AzureServiceBusResource, ServiceBusProvisioner>();
         builder.AddResourceEnumerator(resourceGroup => resourceGroup.GetServiceBusNamespaces(), resource => resource.Data.Tags);
+
+        builder.AddAzureProvisioner<AzureRedisResource, AzureRedisProvisioner>();
+        builder.AddResourceEnumerator(resourceGroup => resourceGroup.GetAllRedis(), resource => resource.Data.Tags);
         return builder;
     }
 
