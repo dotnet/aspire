@@ -25,7 +25,7 @@ internal sealed class ServiceBusProvisioner(ILogger<ServiceBusProvisioner> logge
         return false;
     }
 
-    public override async Task CreateResourceAsync(
+    public override async Task GetOrCreateResourceAsync(
         ArmClient armClient,
         SubscriptionResource subscription,
         ResourceGroupResource resourceGroup,

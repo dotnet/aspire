@@ -16,7 +16,7 @@ internal interface IAzuresourceProvisioner
 {
     bool ConfigureResource(IConfiguration configuration, IAzureResource resource);
 
-    Task CreateResourceAsync(
+    Task GetOrCreateResourceAsync(
         ArmClient armClient,
         SubscriptionResource subscription,
         ResourceGroupResource resourceGroup,
@@ -34,7 +34,7 @@ internal abstract class AzureResourceProvisioner<TResource> : IAzuresourceProvis
     bool IAzuresourceProvisioner.ConfigureResource(IConfiguration configuration, IAzureResource resource) =>
         ConfigureResource(configuration, (TResource)resource);
 
-    Task IAzuresourceProvisioner.CreateResourceAsync(
+    Task IAzuresourceProvisioner.GetOrCreateResourceAsync(
         ArmClient armClient,
         SubscriptionResource subscription,
         ResourceGroupResource resourceGroup,
@@ -44,11 +44,11 @@ internal abstract class AzureResourceProvisioner<TResource> : IAzuresourceProvis
         Guid principalId,
         JsonObject userSecrets,
         CancellationToken cancellationToken)
-        => CreateResourceAsync(armClient, subscription, resourceGroup, resourceMap, location, (TResource)resource, principalId, userSecrets, cancellationToken);
+        => GetOrCreateResourceAsync(armClient, subscription, resourceGroup, resourceMap, location, (TResource)resource, principalId, userSecrets, cancellationToken);
 
     public abstract bool ConfigureResource(IConfiguration configuration, TResource resource);
 
-    public abstract Task CreateResourceAsync(
+    public abstract Task GetOrCreateResourceAsync(
         ArmClient armClient,
         SubscriptionResource subscription,
         ResourceGroupResource resourceGroup,

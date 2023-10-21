@@ -26,7 +26,7 @@ internal sealed class KeyVaultProvisoner(ILogger<KeyVaultProvisoner> logger) : A
         return false;
     }
 
-    public override async Task CreateResourceAsync(
+    public override async Task GetOrCreateResourceAsync(
         ArmClient armClient,
         SubscriptionResource subscription,
         ResourceGroupResource resourceGroup,

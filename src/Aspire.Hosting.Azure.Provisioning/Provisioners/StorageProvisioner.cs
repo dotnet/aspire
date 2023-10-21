@@ -35,7 +35,7 @@ internal sealed class StorageProvisioner(ILogger<StorageProvisioner> logger) : A
         return false;
     }
 
-    public override async Task CreateResourceAsync(
+    public override async Task GetOrCreateResourceAsync(
         ArmClient armClient,
         SubscriptionResource subscription,
         ResourceGroupResource resourceGroup,

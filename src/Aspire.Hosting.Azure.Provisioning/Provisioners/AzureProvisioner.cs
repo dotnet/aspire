@@ -12,10 +12,7 @@ using Azure;
 using Azure.Core;
 using Azure.Identity;
 using Azure.ResourceManager;
-using Azure.ResourceManager.KeyVault;
 using Azure.ResourceManager.Resources;
-using Azure.ResourceManager.ServiceBus;
-using Azure.ResourceManager.Storage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.UserSecrets;
 using Microsoft.Extensions.DependencyInjection;
@@ -26,7 +23,13 @@ using Microsoft.Extensions.Options;
 namespace Aspire.Hosting.Azure;
 
 // Provisions azure resources for development purposes
-internal sealed class AzureProvisioner(IOptions<PublishingOptions> options, IConfiguration configuration, IHostEnvironment environment, ILogger<AzureProvisioner> logger, IServiceProvider serviceProvider) : IDistributedApplicationLifecycleHook
+internal sealed class AzureProvisioner(
+    IOptions<PublishingOptions> options,
+    IConfiguration configuration,
+    IHostEnvironment environment,
+    ILogger<AzureProvisioner> logger,
+    IServiceProvider serviceProvider,
+    IEnumerable<IAzureResourceEnumerator> resourceEnumerators) : IDistributedApplicationLifecycleHook
 {
     internal const string AspireResourceNameTag = "aspire-resource-name";
 
@@ -134,26 +137,16 @@ internal sealed class AzureProvisioner(IOptions<PublishingOptions> options, ICon
 
             var (resourceGroup, _) = await resourceGroupAndLocationLazy.Value.ConfigureAwait(false);
 
-            await PopulateExistingAspireResources(
-                 resourceGroup,
-                 (rg, token) => rg.GetKeyVaults().GetAllAsync(cancellationToken: token),
-                 kv => kv.Data.Tags,
-                 resourceMap,
-                 cancellationToken).ConfigureAwait(false);
-
-            await PopulateExistingAspireResources(
-                resourceGroup,
-                (rg, token) => rg.GetServiceBusNamespaces().GetAllAsync(cancellationToken: token),
-                ns => ns.Data.Tags,
-                resourceMap,
-                cancellationToken).ConfigureAwait(false);
-
-            await PopulateExistingAspireResources(
-                resourceGroup,
-                (rg, token) => rg.GetStorageAccounts().GetAllAsync(cancellationToken: token),
-                sa => sa.Data.Tags,
-                resourceMap,
-                cancellationToken).ConfigureAwait(false);
+            // Enumerate all known resources and look for aspire tags
+            foreach (var enumerator in resourceEnumerators)
+            {
+                await PopulateExistingAspireResources(
+                     resourceGroup,
+                     enumerator.GetResources,
+                     enumerator.GetTags,
+                     resourceMap,
+                     cancellationToken).ConfigureAwait(false);
+            }
 
             return resourceMap;
         });
@@ -182,21 +175,21 @@ internal sealed class AzureProvisioner(IOptions<PublishingOptions> options, ICon
 
         var userSecrets = userSecretsPath is null ? [] : JsonNode.Parse(File.ReadAllText(userSecretsPath))!.AsObject();
 
-        foreach (var c in azureResources)
+        foreach (var resource in azureResources)
         {
-            usedResources.Add(c.Name);
+            usedResources.Add(resource.Name);
 
-            var provisoner = serviceProvider.GetKeyedService<IAzuresourceProvisioner>(c.GetType());
+            var provisoner = serviceProvider.GetKeyedService<IAzuresourceProvisioner>(resource.GetType());
 
             if (provisoner is null)
             {
-                logger.LogWarning("No provisioner found for {resourceType} skipping.", c.GetType().Name);
+                logger.LogWarning("No provisioner found for {resourceType} skipping.", resource.GetType().Name);
                 continue;
             }
 
-            if (provisoner.ConfigureResource(configuration, c))
+            if (provisoner.ConfigureResource(configuration, resource))
             {
-                logger.LogInformation("Using connection information stored in user secrets for {resourceName}.", c.Name);
+                logger.LogInformation("Using connection information stored in user secrets for {resourceName}.", resource.Name);
 
                 continue;
             }
@@ -211,12 +204,12 @@ internal sealed class AzureProvisioner(IOptions<PublishingOptions> options, ICon
             resourceMap ??= await resourceMapLazy.Value.ConfigureAwait(false);
             principalId ??= await principalIdLazy.Value.ConfigureAwait(false);
 
-            var task = provisoner.CreateResourceAsync(armClient,
+            var task = provisoner.GetOrCreateResourceAsync(armClient,
                     subscription,
                     resourceGroup,
                     resourceMap,
                     location,
-                    c,
+                    resource,
                     principalId.Value,
                     userSecrets,
                     cancellationToken);
@@ -264,13 +257,13 @@ internal sealed class AzureProvisioner(IOptions<PublishingOptions> options, ICon
 
     private static async Task PopulateExistingAspireResources<TResource>(
         ResourceGroupResource resourceGroup,
-        Func<ResourceGroupResource, CancellationToken, IAsyncEnumerable<TResource>> getCollection,
+        Func<ResourceGroupResource, IAsyncEnumerable<TResource>> getCollection,
         Func<TResource, IDictionary<string, string>> getTags,
         Dictionary<string, ArmResource> map,
         CancellationToken cancellationToken)
         where TResource : ArmResource
     {
-        await foreach (var r in getCollection(resourceGroup, cancellationToken))
+        await foreach (var r in getCollection(resourceGroup).WithCancellation(cancellationToken))
         {
             var tags = getTags(r);
             if (tags.TryGetValue(AspireResourceNameTag, out var aspireResourceName))
