@@ -12,7 +12,7 @@ using Azure;
 
 namespace Aspire.Hosting.Azure.Provisioning;
 
-internal interface IAzuresourceProvisioner
+internal interface IAzureResourceProvisioner
 {
     bool ConfigureResource(IConfiguration configuration, IAzureResource resource);
 
@@ -28,13 +28,13 @@ internal interface IAzuresourceProvisioner
         CancellationToken cancellationToken);
 }
 
-internal abstract class AzureResourceProvisioner<TResource> : IAzuresourceProvisioner
+internal abstract class AzureResourceProvisioner<TResource> : IAzureResourceProvisioner
     where TResource : IAzureResource
 {
-    bool IAzuresourceProvisioner.ConfigureResource(IConfiguration configuration, IAzureResource resource) =>
+    bool IAzureResourceProvisioner.ConfigureResource(IConfiguration configuration, IAzureResource resource) =>
         ConfigureResource(configuration, (TResource)resource);
 
-    Task IAzuresourceProvisioner.GetOrCreateResourceAsync(
+    Task IAzureResourceProvisioner.GetOrCreateResourceAsync(
         ArmClient armClient,
         SubscriptionResource subscription,
         ResourceGroupResource resourceGroup,

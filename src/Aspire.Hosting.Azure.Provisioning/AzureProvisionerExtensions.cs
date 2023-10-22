@@ -24,6 +24,10 @@ public static class AzureProvisionerExtensions
     {
         builder.Services.AddLifecycleHook<AzureProvisioner>();
 
+        // Attempt to read azure configuration from configuration
+        builder.Services.AddOptions<AzureProvisinerOptions>()
+            .BindConfiguration("Azure");
+
         // We're adding 2 because there's no easy way to enumerate all keys and all service types
         builder.AddAzureProvisioner<AzureKeyVaultResource, KeyVaultProvisoner>();
         builder.AddResourceEnumerator(resourceGroup => resourceGroup.GetKeyVaults(), resource => resource.Data.Tags);
@@ -44,7 +48,7 @@ public static class AzureProvisionerExtensions
         where TProvisioner : AzureResourceProvisioner<TResource>
     {
         // This lets us avoid using open generics in the caller, we can use keyed lookup instead
-        builder.Services.AddKeyedSingleton<IAzuresourceProvisioner, TProvisioner>(typeof(TResource));
+        builder.Services.AddKeyedSingleton<IAzureResourceProvisioner, TProvisioner>(typeof(TResource));
         return builder;
     }
 
