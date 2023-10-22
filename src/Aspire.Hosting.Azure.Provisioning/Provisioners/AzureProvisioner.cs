@@ -24,7 +24,8 @@ namespace Aspire.Hosting.Azure;
 
 // Provisions azure resources for development purposes
 internal sealed class AzureProvisioner(
-    IOptions<PublishingOptions> options,
+    IOptions<AzureProvisinerOptions> options,
+    IOptions<PublishingOptions> publishingOptions,
     IConfiguration configuration,
     IHostEnvironment environment,
     ILogger<AzureProvisioner> logger,
@@ -33,10 +34,12 @@ internal sealed class AzureProvisioner(
 {
     internal const string AspireResourceNameTag = "aspire-resource-name";
 
+    private readonly AzureProvisinerOptions _options = options.Value;
+
     public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
         // TODO: Make this more general purpose
-        if (options.Value.Publisher == "manifest")
+        if (publishingOptions.Value.Publisher == "manifest")
         {
             return;
         }
@@ -65,8 +68,8 @@ internal sealed class AzureProvisioner(
     {
         var credential = new DefaultAzureCredential();
 
-        var subscriptionId = configuration["Azure:SubscriptionId"] ?? throw new MissingConfigurationException("An azure subscription id is required. Set the Azure:SubscriptionId configuration value.");
-        var location = configuration["Azure:Location"] switch
+        var subscriptionId = _options.SubscriptionId ?? throw new MissingConfigurationException("An azure subscription id is required. Set the Azure:SubscriptionId configuration value.");
+        var location = _options.Location switch
         {
             null => throw new MissingConfigurationException("An azure location/region is required. Set the Azure:Location configuration value."),
             string loc => new AzureLocation(loc)
@@ -88,7 +91,7 @@ internal sealed class AzureProvisioner(
         Lazy<Task<(ResourceGroupResource, AzureLocation)>> resourceGroupAndLocationLazy = new(async () =>
         {
             // Name of the resource group to create based on the machine name and application name
-            var (resourceGroupName, createIfNoExists) = configuration["Azure:ResourceGroup"] switch
+            var (resourceGroupName, createIfNoExists) = _options.ResourceGroup switch
             {
                 null => ($"{Environment.MachineName.ToLowerInvariant()}-{environment.ApplicationName.ToLowerInvariant()}-rg", true),
                 string rg => (rg, false)
@@ -177,7 +180,7 @@ internal sealed class AzureProvisioner(
         {
             usedResources.Add(resource.Name);
 
-            var provisoner = serviceProvider.GetKeyedService<IAzuresourceProvisioner>(resource.GetType());
+            var provisoner = serviceProvider.GetKeyedService<IAzureResourceProvisioner>(resource.GetType());
 
             if (provisoner is null)
             {
