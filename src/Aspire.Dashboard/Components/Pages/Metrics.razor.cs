@@ -77,7 +77,7 @@ public partial class Metrics : IDisposable
         return Task.CompletedTask;
     }
 
-    protected override Task OnParametersSetAsync()
+    protected override void OnParametersSet()
     {
         _selectedDuration = s_durations.SingleOrDefault(d => (int)d.Duration.TotalMinutes == DurationMinutes) ?? s_durations.Single(d => d.Duration == s_defaultDuration);
         _selectedApplication = _applications.SingleOrDefault(e => e.Id == ApplicationInstanceId) ?? s_selectApplication;
@@ -100,8 +100,7 @@ public partial class Metrics : IDisposable
             }
         }
 
-        UpdateSubscription();
-        return Task.CompletedTask;
+        UpdateSubscription()
     }
 
     private void UpdateApplications()
