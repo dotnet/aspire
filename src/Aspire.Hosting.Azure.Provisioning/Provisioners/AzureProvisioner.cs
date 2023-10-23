@@ -66,7 +66,13 @@ internal sealed class AzureProvisioner(
 
     private async Task ProvisionAzureResources(IConfiguration configuration, IHostEnvironment environment, ILogger<AzureProvisioner> logger, IEnumerable<IAzureResource> azureResources, CancellationToken cancellationToken)
     {
-        var credential = new DefaultAzureCredential();
+        var credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions()
+        {
+            ExcludeManagedIdentityCredential = true,
+            ExcludeWorkloadIdentityCredential = true,
+            ExcludeAzurePowerShellCredential = true,
+            CredentialProcessTimeout = TimeSpan.FromSeconds(5)
+        });
 
         var subscriptionId = _options.SubscriptionId ?? throw new MissingConfigurationException("An azure subscription id is required. Set the Azure:SubscriptionId configuration value.");
         var location = _options.Location switch
