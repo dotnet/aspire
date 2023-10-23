@@ -100,7 +100,7 @@ public partial class Metrics : IDisposable
             }
         }
 
-        UpdateSubscription()
+        UpdateSubscription();
     }
 
     private void UpdateApplications()
