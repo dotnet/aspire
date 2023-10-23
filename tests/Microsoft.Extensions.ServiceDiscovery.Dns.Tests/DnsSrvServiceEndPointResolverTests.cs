@@ -101,7 +101,7 @@ public class DnsSrvServiceEndPointResolverTests
         var services = new ServiceCollection()
             .AddSingleton<IDnsQuery>(dnsClientMock)
             .AddServiceDiscoveryCore()
-            .AddDnsSrvServiceEndPointResolver(optionsBuilder => optionsBuilder.Configure(options => options.QuerySuffix = ".ns"))
+            .AddDnsSrvServiceEndPointResolver(options => options.QuerySuffix = ".ns")
             .BuildServiceProvider();
         var resolverFactory = services.GetRequiredService<ServiceEndPointResolverFactory>();
         ServiceEndPointResolver resolver;
@@ -170,14 +170,14 @@ public class DnsSrvServiceEndPointResolverTests
         if (dnsFirst)
         {
             serviceCollection
-            .AddDnsSrvServiceEndPointResolver(optionsBuilder => optionsBuilder.Configure(options => options.QuerySuffix = ".ns"))
+            .AddDnsSrvServiceEndPointResolver(options => options.QuerySuffix = ".ns")
             .AddConfigurationServiceEndPointResolver();
         }
         else
         {
             serviceCollection
             .AddConfigurationServiceEndPointResolver()
-            .AddDnsSrvServiceEndPointResolver(optionsBuilder => optionsBuilder.Configure(options => options.QuerySuffix = ".ns"));
+            .AddDnsSrvServiceEndPointResolver(options => options.QuerySuffix = ".ns");
         };
         var services = serviceCollection.BuildServiceProvider();
         var resolverFactory = services.GetRequiredService<ServiceEndPointResolverFactory>();

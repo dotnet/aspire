@@ -109,6 +109,8 @@ internal sealed partial class DnsSrvServiceEndPointResolverProvider(
             return default;
         }
 
+        // See https://manpages.debian.org/bookworm/manpages/resolv.conf.5.en.html#search for the format of /etc/resolv.conf's search option.
+        // In our case, we are interested in determining the domain name.
         var lines = File.ReadAllLines(s_resolveConfPath);
         foreach (var line in lines)
         {
