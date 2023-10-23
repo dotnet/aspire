@@ -10,8 +10,10 @@
     <FluentLayout>
         <FluentHeader>
             <div class="header-title">
-                <FluentIcon Value="@(new AspireIcons.Size32.Logo())" Style="height: 32px;"></FluentIcon>
-                <span>@dashboardViewModelService.ApplicationName Dashboard</span>
+                <FluentAnchor Appearance="Appearance.Stealth" Href="/">
+                    <FluentIcon Value="@(new AspireIcons.Size32.Logo())" Style="height: 32px;"></FluentIcon>
+                    <span class="app-name">@dashboardViewModelService.ApplicationName Dashboard</span>
+                </FluentAnchor>
             </div>
             <div class="header-right">
                 <FluentButton Appearance="Appearance.Stealth" OnClick="LaunchSettings" IconEnd="@(new Icons.Regular.Size24.Settings())"
