@@ -9,6 +9,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using OpenTelemetry.Proto.Common.V1;
 using OpenTelemetry.Proto.Logs.V1;
+using OpenTelemetry.Proto.Metrics.V1;
 using OpenTelemetry.Proto.Resource.V1;
 using OpenTelemetry.Proto.Trace.V1;
 using Xunit;
@@ -31,9 +32,72 @@ internal static class TestHelpers
         return OtlpHelpers.ToHexString(id);
     }
 
-    public static InstrumentationScope CreateScope()
+    public static InstrumentationScope CreateScope(string? name = null)
     {
-        return new InstrumentationScope() { Name = "TestScope" };
+        return new InstrumentationScope() { Name = name ?? "TestScope" };
+    }
+
+    public static Metric CreateHistogramMetric(string metricName, DateTime startTime)
+    {
+        return new Metric
+        {
+            Name = metricName,
+            Description = "Test metric description",
+            Unit = "widget",
+            Histogram = new Histogram
+            {
+                AggregationTemporality = AggregationTemporality.Cumulative,
+                DataPoints =
+                {
+                    new HistogramDataPoint
+                    {
+                        Count = 1,
+                        Sum = 1,
+                        ExplicitBounds = { 1, 2, 3 },
+                        BucketCounts = { 1, 2, 3 },
+                        TimeUnixNano = DateTimeToUnixNanoseconds(startTime)
+                    }
+                }
+            }
+        };
+    }
+
+    public static Metric CreateSumMetric(string metricName, DateTime startTime, KeyValuePair<string, string>[]? attributes = null)
+    {
+        return new Metric
+        {
+            Name = metricName,
+            Description = "Test metric description",
+            Unit = "widget",
+            Sum = new Sum
+            {
+                AggregationTemporality = AggregationTemporality.Cumulative,
+                IsMonotonic = true,
+                DataPoints =
+                {
+                    CreateNumberPoint(startTime, attributes)
+                }
+            }
+        };
+    }
+
+    private static NumberDataPoint CreateNumberPoint(DateTime startTime, KeyValuePair<string, string>[]? attributes = null)
+    {
+        var point = new NumberDataPoint
+        {
+            AsInt = 1,
+            StartTimeUnixNano = DateTimeToUnixNanoseconds(startTime),
+            TimeUnixNano = DateTimeToUnixNanoseconds(startTime)
+        };
+        if (attributes != null)
+        {
+            foreach (var attribute in attributes)
+            {
+                point.Attributes.Add(new KeyValue { Key = attribute.Key, Value = new AnyValue { StringValue = attribute.Value } });
+            }
+        }
+
+        return point;
     }
 
     public static Span CreateSpan(string traceId, string spanId, DateTime startTime, DateTime endTime, string? parentSpanId = null)
@@ -84,11 +148,11 @@ internal static class TestHelpers
         return new TelemetryRepository(new ConfigurationManager(), NullLoggerFactory.Instance);
     }
 
-    private static ulong DateTimeToUnixNanoseconds(DateTime dateTime)
+    public static ulong DateTimeToUnixNanoseconds(DateTime dateTime)
     {
         var unixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         var timeSinceEpoch = dateTime.ToUniversalTime() - unixEpoch;
 
-        return (ulong)timeSinceEpoch.Ticks / 100;
+        return (ulong)timeSinceEpoch.Ticks * 100;
     }
 }

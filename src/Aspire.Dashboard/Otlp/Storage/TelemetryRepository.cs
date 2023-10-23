@@ -346,7 +346,7 @@ public class TelemetryRepository
         return false;
     }
 
-    internal void AddMetrics(AddContext context, RepeatedField<ResourceMetrics> resourceMetrics)
+    public void AddMetrics(AddContext context, RepeatedField<ResourceMetrics> resourceMetrics)
     {
         foreach (var rm in resourceMetrics)
         {
