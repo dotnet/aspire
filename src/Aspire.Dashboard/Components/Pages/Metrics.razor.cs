@@ -77,7 +77,7 @@ public partial class Metrics : IDisposable
         return Task.CompletedTask;
     }
 
-    protected override async Task OnParametersSetAsync()
+    protected override Task OnParametersSetAsync()
     {
         _selectedDuration = s_durations.SingleOrDefault(d => (int)d.Duration.TotalMinutes == DurationMinutes) ?? s_durations.Single(d => d.Duration == s_defaultDuration);
         _selectedApplication = _applications.SingleOrDefault(e => e.Id == ApplicationInstanceId) ?? s_selectApplication;
@@ -101,9 +101,7 @@ public partial class Metrics : IDisposable
         }
 
         UpdateSubscription();
-
-        var state = new MetricsSelectedState { ApplicationId = ApplicationInstanceId, MeterName = MeterName, InstrumentName = InstrumentName, DurationMinutes = DurationMinutes };
-        await ProtectedSessionStore.SetAsync(MetricsSelectedState.Key, state);
+        return Task.CompletedTask;
     }
 
     private void UpdateApplications()
@@ -182,9 +180,9 @@ public partial class Metrics : IDisposable
             url = $"/Metrics";
         }
 
-        if (_selectedDuration.Duration != s_defaultDuration)
+        if (state.DurationMinutes != (int)s_defaultDuration.TotalMinutes)
         {
-            url += $"?duration={_selectedDuration.Duration.TotalMinutes}";
+            url += $"?duration={state.DurationMinutes}";
         }
 
         NavigationManager.NavigateTo(url);
