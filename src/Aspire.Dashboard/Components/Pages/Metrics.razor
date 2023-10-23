@@ -23,6 +23,7 @@
                           Items="@s_durations"
                           OptionText="@(c => c.Text)"
                           @bind-SelectedOption="_selectedDuration"
+                          @bind-SelectedOption:after="HandleSelectedDurationChangedAsync"
                           AriaLabel="Select a Duration"/>
         </FluentToolbar>
         <div class="page-content-area">
