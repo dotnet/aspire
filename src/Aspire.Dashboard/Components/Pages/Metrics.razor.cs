@@ -128,7 +128,7 @@ public partial class Metrics : IAsyncDisposable
 
     private async Task HandleSelectedDurationChangedAsync()
     {
-        var state = new MetricsSelectedState { ApplicationId = SelectedProject?.Name, DurationMinutes = (int)_selectedDuration.Duration.TotalMinutes, InstrumentName = InstrumentName, MeterName = MeterName };
+        var state = new MetricsSelectedState { ApplicationName = SelectedProject?.Name, DurationMinutes = (int)_selectedDuration.Duration.TotalMinutes, InstrumentName = InstrumentName, MeterName = MeterName };
 
         NavigateTo(state);
         await ProtectedSessionStore.SetAsync(MetricsSelectedState.Key, state);
@@ -178,7 +178,7 @@ public partial class Metrics : IAsyncDisposable
                 url = $"/Metrics/{state.ApplicationName}/Meter/{state.MeterName}";
             }
         }
-        else if (state.ApplicationId != null)
+        else if (state.ApplicationName != null)
         {
             url = $"/Metrics/{state.ApplicationName}";
         }
