@@ -140,7 +140,7 @@ internal abstract class ViewModelCache<TResource, TViewModel>
         ResourceViewModel resourceViewModel)
     {
         resourceViewModel.Endpoints.AddRange(
-            endpoints.Where(ep => ep.Metadata.OwnerReferences.Any(or => or.Kind == resource.Kind && or.Name == resource.Metadata.Name))
+            endpoints.Where(ep => ep.Metadata.OwnerReferences?.Any(or => or.Kind == resource.Kind && or.Name == resource.Metadata.Name) == true)
             .Select(ep =>
             {
                 var matchingService = services.SingleOrDefault(s => s.Metadata.Name == ep.Spec.ServiceName);
@@ -170,7 +170,7 @@ internal abstract class ViewModelCache<TResource, TViewModel>
     protected static int? GetExpectedEndpointsCount(IEnumerable<Service> services, CustomResource resource)
     {
         var expectedCount = 0;
-        if (resource.Metadata.Annotations is not null && resource.Metadata.Annotations.TryGetValue(CustomResource.ServiceProducerAnnotation, out var servicesProducedAnnotationJson))
+        if (resource.Metadata.Annotations?.TryGetValue(CustomResource.ServiceProducerAnnotation, out var servicesProducedAnnotationJson) == true)
         {
             var serviceProducerAnnotations = JsonSerializer.Deserialize<ServiceProducerAnnotation[]>(servicesProducedAnnotationJson);
             if (serviceProducerAnnotations is not null)
@@ -187,7 +187,7 @@ internal abstract class ViewModelCache<TResource, TViewModel>
                         return null;
                     }
 
-                    if (matchingService.Metadata.Annotations.TryGetValue(CustomResource.UriSchemeAnnotation, out var uriScheme)
+                    if (matchingService.Metadata.Annotations?.TryGetValue(CustomResource.UriSchemeAnnotation, out var uriScheme) == true
                         && (string.Equals(uriScheme, "http", StringComparison.OrdinalIgnoreCase)
                             || string.Equals(uriScheme, "https", StringComparison.OrdinalIgnoreCase)))
                     {
@@ -310,7 +310,7 @@ internal abstract class ViewModelCache<TResource, TViewModel>
                     when ProcessChange(_endpointsMap, watchEventType, endpoint):
 
                         var matchingResource = _resourceMap.Values.FirstOrDefault(
-                            e => endpoint.Metadata.OwnerReferences.Any(or => or.Kind == e.Kind && or.Name == e.Metadata.Name));
+                            e => endpoint.Metadata.OwnerReferences?.Any(or => or.Kind == e.Kind && or.Name == e.Metadata.Name) == true);
 
                         if (matchingResource is not null)
                         {
@@ -324,7 +324,7 @@ internal abstract class ViewModelCache<TResource, TViewModel>
                     case Service service
                     when ProcessChange(_servicesMap, watchEventType, service):
 
-                        if (service.Metadata.Annotations.TryGetValue(CustomResource.UriSchemeAnnotation, out var uriScheme)
+                        if (service.Metadata.Annotations?.TryGetValue(CustomResource.UriSchemeAnnotation, out var uriScheme) == true
                             && (string.Equals(uriScheme, "http", StringComparison.OrdinalIgnoreCase)
                                 || string.Equals(uriScheme, "https", StringComparison.OrdinalIgnoreCase)))
                         {
@@ -406,8 +406,7 @@ internal abstract class ViewModelCache<TResource, TViewModel>
             {
                 _resourceAssociatedServicesMap.Remove(resource.Metadata.Name);
             }
-            else if (resource.Metadata.Annotations is not null && resource.Metadata.Annotations
-                .TryGetValue(CustomResource.ServiceProducerAnnotation, out var servicesProducedAnnotationJson))
+            else if (resource.Metadata.Annotations?.TryGetValue(CustomResource.ServiceProducerAnnotation, out var servicesProducedAnnotationJson) == true)
             {
                 var serviceProducerAnnotations = JsonSerializer.Deserialize<ServiceProducerAnnotation[]>(servicesProducedAnnotationJson);
                 if (serviceProducerAnnotations is not null)
