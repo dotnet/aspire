@@ -4,7 +4,6 @@
 using System.Collections;
 using Aspire.Components.Common.Tests;
 using Aspire.Components.ConformanceTests;
-using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.DotNet.RemoteExecutor;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Internal;
@@ -144,21 +143,6 @@ public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, NpgsqlEn
         TestDbContext? dbContext = host.Services.GetService<TestDbContext>();
 
         Assert.NotNull(dbContext);
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void DatabaseDeveloperPageExceptionFilterIsRegisteredOnlyForDevelopmentEnvironment(bool isDevEnv)
-    {
-        HostApplicationBuilderSettings? hostSettings = isDevEnv
-            ? new() { EnvironmentName = Environments.Development }
-            : null;
-
-        using IHost host = CreateHostWithComponent(hostSettings: hostSettings);
-
-        IDeveloperPageExceptionFilter? exceptionPage = host.Services.GetService<IDeveloperPageExceptionFilter>();
-        Assert.Equal(isDevEnv, exceptionPage is not null);
     }
 
     [ConditionalFact]

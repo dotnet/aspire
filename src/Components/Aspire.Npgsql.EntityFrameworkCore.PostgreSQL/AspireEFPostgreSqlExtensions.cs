@@ -67,14 +67,6 @@ public static partial class AspireEFPostgreSqlExtensions
 
         configureSettings?.Invoke(settings);
 
-        if (builder.Environment.IsDevelopment())
-        {
-            // calling UseDeveloperExceptionPage is the responsibility of the app, not Component
-#pragma warning disable IL3050 // TODO: https://github.com/dotnet/aspire/issues/146 should remove this line
-            builder.Services.AddDatabaseDeveloperPageExceptionFilter();
-#pragma warning restore IL3050
-        }
-
         builder.Services.AddNpgsqlDataSource(settings.ConnectionString ?? string.Empty, builder =>
         {
             // delay validating the ConnectionString until the DataSource is requested. This ensures an exception doesn't happen until a Logger is established.
