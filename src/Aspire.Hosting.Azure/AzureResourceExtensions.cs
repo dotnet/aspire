@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Net.Sockets;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
 
@@ -99,10 +100,10 @@ public static class AzureResourceExtensions
     {
         var resource = new AzureBlobStorageResource(name, storageBuilder.Resource);
         return storageBuilder.ApplicationBuilder.AddResource(resource)
-                             .WithAnnotation(new ManifestPublishingCallbackAnnotation(json => WriteBlobStoragToManifest(json, resource)));
+                             .WithAnnotation(new ManifestPublishingCallbackAnnotation(json => WriteBlobStorageToManifest(json, resource)));
     }
 
-    private static void WriteBlobStoragToManifest(Utf8JsonWriter json, AzureBlobStorageResource resource)
+    private static void WriteBlobStorageToManifest(Utf8JsonWriter json, AzureBlobStorageResource resource)
     {
         json.WriteString("type", "azure.storage.blob.v1");
         json.WriteString("parent", resource.Parent.Name);
@@ -144,6 +145,22 @@ public static class AzureResourceExtensions
     {
         json.WriteString("type", "azure.storage.queue.v1");
         json.WriteString("parent", resource.Parent.Name);
+    }
+
+    /// <summary>
+    /// Configures an Azure Storage resource to be emulated using Azurite. This resource requires an <see cref="AzureStorageResource"/> to be added to the application model.
+    /// </summary>
+    /// <param name="builder">The Azure storage resource builder.</param>
+    /// <param name="blobPort">The port used for the blob endpoint.</param>
+    /// <param name="queuePort">The port used for the queue endpoint.</param>
+    /// <param name="tablePort">The port used for the table endpoint.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{AzureQueueStorageResource}"/>.</returns>
+    public static IDistributedApplicationResourceBuilder<AzureStorageResource> UseEmulator(this IDistributedApplicationResourceBuilder<AzureStorageResource> storageBuilder, int? blobPort = null, int? queuePort = null, int? tablePort = null)
+    {
+        return storageBuilder.WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, name: "blob", port: blobPort, containerPort: 10000))
+                             .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, name: "queue", port: queuePort, containerPort: 10001))
+                             .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, name: "table", port: tablePort, containerPort: 10002))
+                             .WithAnnotation(new ContainerImageAnnotation { Image = "mcr.microsoft.com/azure-storage/azurite", Tag = "latest" });
     }
 
     /// <summary>
