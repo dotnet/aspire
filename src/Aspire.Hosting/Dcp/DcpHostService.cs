@@ -12,6 +12,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp.Process;
 using Aspire.Hosting.Publishing;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -30,7 +31,8 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
     private readonly DashboardWebApplication _dashboard;
     private readonly IOptions<PublishingOptions> _publishingOptions;
 
-    public DcpHostService(DistributedApplicationModel applicationModel, ILoggerFactory loggerFactory, IOptions<PublishingOptions> publishingOptions, ApplicationExecutor appExecutor)
+    public DcpHostService(DistributedApplicationModel applicationModel, ILoggerFactory loggerFactory,
+        IOptions<PublishingOptions> publishingOptions, ApplicationExecutor appExecutor, IConfiguration configuration)
     {
         _applicationModel = applicationModel;
         _loggerFactory = loggerFactory;
@@ -42,7 +44,7 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
         {
             serviceCollection.AddSingleton(_applicationModel);
             serviceCollection.AddSingleton<IDashboardViewModelService, DashboardViewModelService>();
-        });
+        }, configuration);
     }
 
     public async Task StartAsync(CancellationToken cancellationToken = default)

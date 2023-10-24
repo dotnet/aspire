@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Fast.Components.FluentUI;
@@ -27,13 +28,13 @@ public class DashboardWebApplication : IHostedService
     private readonly bool _isAllHttps;
     private readonly WebApplication _app;
 
-    public DashboardWebApplication(Action<IServiceCollection> configureServices)
+    public DashboardWebApplication(Action<IServiceCollection> configureServices, IConfiguration configuration)
     {
         var builder = WebApplication.CreateBuilder();
 
-        var dashboardUris = GetAddressUris(DashboardUrlVariableName, DashboardUrlDefaultValue);
+        var dashboardUris = GetAddressUris(DashboardUrlVariableName, DashboardUrlDefaultValue, configuration);
         var dashboardHttpsPort = dashboardUris.FirstOrDefault(IsHttps)?.Port;
-        var otlpUris = GetAddressUris(DashboardOtlpUrlVariableName, DashboardOtlpUrlDefaultValue);
+        var otlpUris = GetAddressUris(DashboardOtlpUrlVariableName, DashboardOtlpUrlDefaultValue, configuration);
 
         if (otlpUris.Length > 1)
         {
@@ -121,9 +122,9 @@ public class DashboardWebApplication : IHostedService
         _app.MapGrpcService<OtlpLogsService>();
     }
 
-    private static Uri[] GetAddressUris(string variableName, string defaultValue)
+    private static Uri[] GetAddressUris(string variableName, string defaultValue, IConfiguration configuration)
     {
-        var urls = Environment.GetEnvironmentVariable(variableName) ?? defaultValue;
+        var urls = configuration.GetValue<string?>(variableName) ?? defaultValue;
         try
         {
             return urls.Split(';').Select(url => new Uri(url)).ToArray();

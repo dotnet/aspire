@@ -10,6 +10,8 @@ namespace Aspire.Hosting.Tests;
 
 public class DistributedApplicationTests
 {
+    private static int s_port = 6000;
+
     [Fact]
     public async void RegisteredLifecycleHookIsExecutedWhenRunAsynchronously()
     {
@@ -106,7 +108,8 @@ public class DistributedApplicationTests
         var cts = new CancellationTokenSource();
         cts.CancelAfter(TimeSpan.FromMinutes(1));
 
-        var testProgram = new TestProgram([]);
+        var testProgram = new TestProgram([$"ASPNETCORE_URLS=http://localhost:{Interlocked.Increment(ref s_port)}",
+            $"DOTNET_DASHBOARD_OTLP_ENDPOINT_URL=http://localhost:{Interlocked.Increment(ref s_port)}"]);
         var pendingRun = testProgram.RunAsync(cts.Token);
 
         // Make sure each service is running
@@ -128,7 +131,8 @@ public class DistributedApplicationTests
 
         var replicaCount = 3;
 
-        var testProgram = new TestProgram([]);
+        var testProgram = new TestProgram([$"ASPNETCORE_URLS=http://localhost:{Interlocked.Increment(ref s_port)}",
+            $"DOTNET_DASHBOARD_OTLP_ENDPOINT_URL=http://localhost:{Interlocked.Increment(ref s_port)}"]);
         testProgram.ServiceBBuilder.WithReplicas(replicaCount);
 
         var pendingRun = testProgram.RunAsync(cts.Token);
