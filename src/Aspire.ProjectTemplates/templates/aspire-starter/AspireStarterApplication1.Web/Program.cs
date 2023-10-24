@@ -17,7 +17,11 @@ builder.Services.AddRazorComponents()
 builder.Services.AddOutputCache();
 
 #endif
+#if (HasHttpsProfile)
+builder.Services.AddHttpClient<WeatherApiClient>(client=> client.BaseAddress = new("https://apiservice"));
+#else
 builder.Services.AddHttpClient<WeatherApiClient>(client=> client.BaseAddress = new("http://apiservice"));
+#endif
 
 var app = builder.Build();
 
