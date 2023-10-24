@@ -143,6 +143,22 @@
         "fallbackVariableName": "appOtlpHttpsPortGenerated"
       },
       "replaces": "18000"
+    },
+    "skipRestore": {
+      "type": "parameter",
+      "datatype": "bool",
+      "description": "If specified, skips the automatic restore of the project on create.",
+      "defaultValue": "false"
+    },
+    "HasHttpsProfile": {
+      "type": "computed",
+      "value": "(!NoHttps)"
+    },
+    "NoHttps": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Whether to turn off HTTPS."
     }
   },
   "primaryOutputs": [
