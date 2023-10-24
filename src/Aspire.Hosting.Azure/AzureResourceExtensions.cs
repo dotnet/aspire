@@ -155,9 +155,9 @@ public static class AzureResourceExtensions
     /// <param name="queuePort">The port used for the queue endpoint.</param>
     /// <param name="tablePort">The port used for the table endpoint.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{AzureQueueStorageResource}"/>.</returns>
-    public static IDistributedApplicationResourceBuilder<AzureStorageResource> UseEmulator(this IDistributedApplicationResourceBuilder<AzureStorageResource> storageBuilder, int? blobPort = null, int? queuePort = null, int? tablePort = null)
+    public static IResourceBuilder<AzureStorageResource> UseEmulator(this IResourceBuilder<AzureStorageResource> builder, int? blobPort = null, int? queuePort = null, int? tablePort = null)
     {
-        return storageBuilder.WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, name: "blob", port: blobPort, containerPort: 10000))
+        return builder.WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, name: "blob", port: blobPort, containerPort: 10000))
                              .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, name: "queue", port: queuePort, containerPort: 10001))
                              .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, name: "table", port: tablePort, containerPort: 10002))
                              .WithAnnotation(new ContainerImageAnnotation { Image = "mcr.microsoft.com/azure-storage/azurite", Tag = "latest" });

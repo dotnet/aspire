@@ -194,6 +194,12 @@ internal sealed class AzureProvisioner(
                 continue;
             }
 
+            if (!provisoner.ShouldProvision(configuration, resource))
+            {
+                logger.LogInformation("Skipping {resourceName} because it is not configured to be provisioned.", resource.Name);
+                continue;
+            }
+
             if (provisoner.ConfigureResource(configuration, resource))
             {
                 logger.LogInformation("Using connection information stored in user secrets for {resourceName}.", resource.Name);
