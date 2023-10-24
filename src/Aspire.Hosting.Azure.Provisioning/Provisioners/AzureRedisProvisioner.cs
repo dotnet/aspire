@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Text.Json.Nodes;
+using Aspire.Hosting.ApplicationModel;
 using Azure;
 using Azure.Core;
 using Azure.ResourceManager;
@@ -11,6 +12,8 @@ using Azure.ResourceManager.Redis.Models;
 using Azure.ResourceManager.Resources;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+
+using RedisArmResource = Azure.ResourceManager.Redis.RedisResource;
 
 namespace Aspire.Hosting.Azure.Provisioning;
 
@@ -41,14 +44,14 @@ internal sealed class AzureRedisProvisioner(ILogger<AzureRedisProvisioner> logge
 
         resourceMap.TryGetValue(resource.Name, out var azureResource);
 
-        if (azureResource is not null && azureResource is not RedisResource)
+        if (azureResource is not null && azureResource is not RedisArmResource)
         {
             logger.LogWarning("Resource {resourceName} is not a redis resource. Deleting it.", resource.Name);
 
             await armClient.GetGenericResource(azureResource.Id).DeleteAsync(WaitUntil.Started, cancellationToken).ConfigureAwait(false);
         }
 
-        var redisResource = azureResource as RedisResource;
+        var redisResource = azureResource as RedisArmResource;
 
         if (redisResource is null)
         {

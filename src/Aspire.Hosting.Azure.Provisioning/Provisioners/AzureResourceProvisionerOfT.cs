@@ -9,6 +9,7 @@ using Microsoft.Extensions.Configuration;
 using Azure.ResourceManager.Authorization.Models;
 using Azure.ResourceManager.Authorization;
 using Azure;
+using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Azure.Provisioning;
 

@@ -10,6 +10,7 @@ using Azure.ResourceManager.Storage.Models;
 using Azure.ResourceManager.Storage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Azure.Provisioning;
 

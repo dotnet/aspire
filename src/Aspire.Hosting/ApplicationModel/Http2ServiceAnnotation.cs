@@ -6,6 +6,6 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Internal marker
 /// </summary>
-internal sealed class Http2ServiceAnnotation : IDistributedApplicationResourceAnnotation
+internal sealed class Http2ServiceAnnotation : IResourceAnnotation
 {
 }

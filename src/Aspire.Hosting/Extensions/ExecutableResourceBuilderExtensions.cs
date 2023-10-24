@@ -15,8 +15,8 @@ public static class ExecutableResourceBuilderExtensions
     /// <param name="command">The executable path. This can be a fully qualified path or a executable to run from the shell/command line.</param>
     /// <param name="workingDirectory">The working directory of the executable.</param>
     /// <param name="args">The arguments to the executable.</param>
-    /// <returns>The <see cref="IDistributedApplicationResourceBuilder{ExecutableResource}"/>.</returns>
-    public static IDistributedApplicationResourceBuilder<ExecutableResource> AddExecutable(this IDistributedApplicationBuilder builder, string name, string command, string workingDirectory, params string[]? args)
+    /// <returns>The <see cref="IResourceBuilder{ExecutableResource}"/>.</returns>
+    public static IResourceBuilder<ExecutableResource> AddExecutable(this IDistributedApplicationBuilder builder, string name, string command, string workingDirectory, params string[]? args)
     {
         var executable = new ExecutableResource(name, command, workingDirectory, args);
         return builder.AddResource(executable);

@@ -17,6 +17,6 @@ public class DitributedApplicationBuilderTests
             testProgram.AppBuilder.AddPostgresContainer("x");
         });
 
-        Assert.Equal("Cannot add resource of type 'Aspire.Hosting.Postgres.PostgresContainerResource' with name 'x' because resource of type 'Aspire.Hosting.Redis.RedisContainerResource' with that name already exists.", ex.Message);
+        Assert.Equal("Cannot add resource of type 'Aspire.Hosting.ApplicationModel.PostgresContainerResource' with name 'x' because resource of type 'Aspire.Hosting.ApplicationModel.RedisContainerResource' with that name already exists.", ex.Message);
     }
 }

@@ -17,8 +17,8 @@ public static class ProjectResourceBuilderExtensions
     /// <typeparam name="TProject">A type that represents the project reference.</typeparam>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used for service discovery when referenced in a dependency.</param>
-    /// <returns>A reference to the <see cref="IDistributedApplicationResourceBuilder{ProjectResource}"/>.</returns>
-    public static IDistributedApplicationResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, string name) where TProject : IServiceMetadata, new()
+    /// <returns>A reference to the <see cref="IResourceBuilder{ProjectResource}"/>.</returns>
+    public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, string name) where TProject : IServiceMetadata, new()
     {
         var project = new ProjectResource(name);
         var projectBuilder = builder.AddResource(project);
@@ -38,8 +38,8 @@ public static class ProjectResourceBuilderExtensions
     /// </summary>
     /// <param name="builder">The project resource builder.</param>
     /// <param name="replicas">The number of replicas.</param>
-    /// <returns>A reference to the <see cref="IDistributedApplicationResourceBuilder{ProjectResource}"/>.</returns>
-    public static IDistributedApplicationResourceBuilder<ProjectResource> WithReplicas(this IDistributedApplicationResourceBuilder<ProjectResource> builder, int replicas)
+    /// <returns>A reference to the <see cref="IResourceBuilder{ProjectResource}"/>.</returns>
+    public static IResourceBuilder<ProjectResource> WithReplicas(this IResourceBuilder<ProjectResource> builder, int replicas)
     {
         builder.WithAnnotation(new ReplicaAnnotation(replicas));
         return builder;
@@ -50,8 +50,8 @@ public static class ProjectResourceBuilderExtensions
     /// </summary>
     /// <param name="builder">The executable resource builder.</param>
     /// <param name="replicas">The number of replicas.</param>
-    /// <returns>A reference to the <see cref="IDistributedApplicationResourceBuilder{ExecutableResource}"/>.</returns>
-    public static IDistributedApplicationResourceBuilder<ExecutableResource> WithReplicas(this IDistributedApplicationResourceBuilder<ExecutableResource> builder, int replicas)
+    /// <returns>A reference to the <see cref="IResourceBuilder{ExecutableResource}"/>.</returns>
+    public static IResourceBuilder<ExecutableResource> WithReplicas(this IResourceBuilder<ExecutableResource> builder, int replicas)
     {
         builder.WithAnnotation(new ReplicaAnnotation(replicas));
         return builder;
@@ -62,8 +62,8 @@ public static class ProjectResourceBuilderExtensions
     /// </summary>
     /// <param name="builder">The project resource builder.</param>
     /// <param name="launchProfileName">The name of the launch profile to use for execution.</param>
-    /// <returns>A reference to the <see cref="IDistributedApplicationResourceBuilder{ProjectResource}"/>.</returns>
-    public static IDistributedApplicationResourceBuilder<ProjectResource> WithLaunchProfile(this IDistributedApplicationResourceBuilder<ProjectResource> builder, string launchProfileName)
+    /// <returns>A reference to the <see cref="IResourceBuilder{ProjectResource}"/>.</returns>
+    public static IResourceBuilder<ProjectResource> WithLaunchProfile(this IResourceBuilder<ProjectResource> builder, string launchProfileName)
     {
         ArgumentException.ThrowIfNullOrEmpty(launchProfileName);
 

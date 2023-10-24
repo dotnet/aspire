@@ -3,7 +3,7 @@
 
 namespace Aspire.Hosting.ApplicationModel;
 
-public class EnvironmentCallbackAnnotation : IDistributedApplicationResourceAnnotation
+public class EnvironmentCallbackAnnotation : IResourceAnnotation
 {
     public EnvironmentCallbackAnnotation(string name, Func<string> callback)
     {

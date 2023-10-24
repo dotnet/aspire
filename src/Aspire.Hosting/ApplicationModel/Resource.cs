@@ -6,7 +6,7 @@ using System.Diagnostics;
 namespace Aspire.Hosting.ApplicationModel;
 
 [DebuggerDisplay("{DebuggerToString(),nq}")]
-public abstract class DistributedApplicationResource(string name) : IDistributedApplicationResource
+public abstract class Resource(string name) : IResource
 {
     public string Name { get; } = name;
     public ResourceMetadataCollection Annotations { get; } = new ResourceMetadataCollection();

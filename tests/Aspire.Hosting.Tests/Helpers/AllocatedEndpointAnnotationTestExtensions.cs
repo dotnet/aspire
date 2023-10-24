@@ -6,7 +6,7 @@ using Aspire.Hosting.ApplicationModel;
 namespace Aspire.Hosting.Tests.Helpers;
 public static class AllocatedEndpointAnnotationTestExtensions
 {
-    public static async Task<string> HttpGetPidAsync(this IDistributedApplicationResourceBuilder<ProjectResource> builder, string bindingName, CancellationToken cancellationToken)
+    public static async Task<string> HttpGetPidAsync(this IResourceBuilder<ProjectResource> builder, string bindingName, CancellationToken cancellationToken)
     {
         var client = new HttpClient(new SocketsHttpHandler()
         {

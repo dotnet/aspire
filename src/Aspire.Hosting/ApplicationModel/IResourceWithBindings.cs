@@ -3,7 +3,10 @@
 
 namespace Aspire.Hosting.ApplicationModel;
 
-public interface IDistributedApplicationResourceCollection : IList<IDistributedApplicationResource>
+public interface IResourceWithBindings : IResource
 {
+    public EndpointReference GetEndpoint(string bindingName)
+    {
+        return new EndpointReference(this, bindingName);
+    }
 }
-

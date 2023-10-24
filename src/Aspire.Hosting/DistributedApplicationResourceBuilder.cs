@@ -5,12 +5,12 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting;
 
-internal sealed class DistributedApplicationResourceBuilder<T>(IDistributedApplicationBuilder applicationBuilder, T resource) : IDistributedApplicationResourceBuilder<T> where T : IDistributedApplicationResource
+internal sealed class DistributedApplicationResourceBuilder<T>(IDistributedApplicationBuilder applicationBuilder, T resource) : IResourceBuilder<T> where T : IResource
 {
     public T Resource { get; } = resource;
     public IDistributedApplicationBuilder ApplicationBuilder { get; } = applicationBuilder;
 
-    public IDistributedApplicationResourceBuilder<T> WithAnnotation<TAnnotation>(TAnnotation annotation) where TAnnotation : IDistributedApplicationResourceAnnotation
+    public IResourceBuilder<T> WithAnnotation<TAnnotation>(TAnnotation annotation) where TAnnotation : IResourceAnnotation
     {
         Resource.Annotations.Add(annotation);
         return this;
