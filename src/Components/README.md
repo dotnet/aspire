@@ -23,7 +23,7 @@ Aspire components are classic .NET NuGet packages which are designed as highly u
 - Each component should expose an optional lambda that accepts an instance of given settings type. By doing that, we provide the users with a possibility to override the bound config values (make final changes).
 - When a mandatory config property is missing, an exception should be thrown, and it should contain information about the config path that was used to read it.
 
-```cs
+```csharp
 public static void AddAbc(this IHostApplicationBuilder builder, Action<AbcSettings>? configureSettings = null)
 {
     ArgumentNullException.ThrowIfNull(builder);
@@ -176,7 +176,7 @@ Aspire components offer integrated logging, metrics, and tracing using modern .N
 
 - If the underlying client library supports passwordless/[RBAC](https://learn.microsoft.com/azure/role-based-access-control/overview) authentication, which Credential to use should be configurable through the Aspire Settings object. For example:
 
-```C#
+```csharp
 builder.AddAzureServiceBus(settings =>
 {
     settings.Credential = 
@@ -205,7 +205,7 @@ builder.AddAzureServiceBus(settings =>
 
 - Alternatively, the ConnectionString should be able to be configured through the Aspire Settings object. For example:
 
-```C#
+```csharp
 builder.AddAzureServiceBus(settings =>
 {
     settings.ConnectionString = "xyz";

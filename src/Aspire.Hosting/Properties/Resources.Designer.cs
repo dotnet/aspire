@@ -61,7 +61,7 @@ namespace Aspire.Hosting.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Docker could not be found..
+        ///   Looks up a localized string similar to Docker could not be found. The error from Docker invocation was: {0}.
         /// </summary>
         internal static string DockerPrerequisiteMissingExceptionMessage {
             get {
@@ -70,7 +70,7 @@ namespace Aspire.Hosting.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Docker was found but appears to be unhealthy. Exit code for &apos;docker info&apos; was &apos;{0}&apos;..
+        ///   Looks up a localized string similar to Docker was found but appears to be unhealthy. Exit code for &apos;{0}&apos; was {1}..
         /// </summary>
         internal static string DockerUnhealthyExceptionMessage {
             get {
@@ -79,7 +79,7 @@ namespace Aspire.Hosting.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Docker was found but appears to be unresponsive. The command &apos;docker info&apos; did not return after &apos;{0}&apos; seconds..
+        ///   Looks up a localized string similar to Docker was found but appears to be unresponsive. The command &apos;{0}&apos; did not return after {1} seconds..
         /// </summary>
         internal static string DockerUnresponsiveExceptionMessage {
             get {

@@ -12,7 +12,7 @@ public abstract class ResourceViewModel
     public List<EnvironmentVariableViewModel> Environment { get; } = new();
     public required ILogSource LogSource { get; init; }
     public List<string> Endpoints { get; } = new();
-    public required int ExpectedEndpointsCount { get; init; }
+    public int? ExpectedEndpointsCount { get; init; }
 }
 
 public sealed record NamespacedName(string Name, string? Namespace);

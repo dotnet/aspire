@@ -118,13 +118,13 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="DockerPrerequisiteMissingExceptionMessage" xml:space="preserve">
-    <value>Docker could not be found.</value>
+    <value>Docker could not be found. The error from Docker invocation was: {0}</value>
   </data>
   <data name="DockerUnhealthyExceptionMessage" xml:space="preserve">
-    <value>Docker was found but appears to be unhealthy. Exit code for 'docker info' was '{0}'.</value>
+    <value>Docker was found but appears to be unhealthy. Exit code for '{0}' was {1}.</value>
   </data>
   <data name="DockerUnresponsiveExceptionMessage" xml:space="preserve">
-    <value>Docker was found but appears to be unresponsive. The command 'docker info' did not return after '{0}' seconds.</value>
+    <value>Docker was found but appears to be unresponsive. The command '{0}' did not return after {1} seconds.</value>
   </data>
   <data name="LaunchProfileIsSpecifiedButLaunchSettingsFileIsNotPresentExceptionMessage" xml:space="preserve">
     <value>Launch profile is specified but launch settings file is not present.</value>

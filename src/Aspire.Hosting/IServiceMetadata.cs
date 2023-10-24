@@ -5,7 +5,7 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting;
 
-public interface IServiceMetadata : IDistributedApplicationResourceAnnotation
+public interface IServiceMetadata : IResourceAnnotation
 {
     public string AssemblyName { get; }
     public string AssemblyPath { get; }

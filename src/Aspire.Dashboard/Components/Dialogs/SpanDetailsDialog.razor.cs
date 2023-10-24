@@ -4,7 +4,6 @@
 using Aspire.Dashboard.Model;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Fast.Components.FluentUI;
-using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Dialogs;
 public partial class SpanDetailsDialog
@@ -25,9 +24,6 @@ public partial class SpanDetailsDialog
                 vm.Value?.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) == true
         )?.AsQueryable();
 
-    private const string PreCopyText = "Copy to clipboard";
-    private const string PostCopyText = "Copied!";
-
     private string _filter = "";
 
     private readonly GridSort<SpanPropertyViewModel> _nameSort = GridSort<SpanPropertyViewModel>.ByAscending(vm => vm.Name);
@@ -44,10 +40,5 @@ public partial class SpanDetailsDialog
     private void HandleClear(string? value)
     {
         _filter = value ?? string.Empty;
-    }
-
-    private async Task CopyTextToClipboardAsync(string? text, string id)
-    {
-        await JS.InvokeVoidAsync("copyTextToClipboard", id, text, PreCopyText, PostCopyText);
     }
 }

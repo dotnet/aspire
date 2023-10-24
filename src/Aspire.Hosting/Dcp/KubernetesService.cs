@@ -23,7 +23,7 @@ public class KubernetesService : IDisposable
     private static GroupVersion GroupVersion => Model.Dcp.GroupVersion;
 
     private IKubernetes? _kubernetes;
-    private TimeSpan _maxRetryDuration = TimeSpan.FromMilliseconds(1000);
+    private TimeSpan _maxRetryDuration = TimeSpan.FromSeconds(5);
 
     public KubernetesService(TimeSpan maxRetryDuration)
     {
@@ -135,7 +135,6 @@ public class KubernetesService : IDisposable
 
     public async IAsyncEnumerable<(WatchEventType, T)> WatchAsync<T>(
         string? namespaceParameter = null,
-        IEnumerable<NamespacedName>? existingObjects = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
         where T : CustomResource
     {
@@ -166,17 +165,7 @@ public class KubernetesService : IDisposable
 
         await foreach (var item in result)
         {
-            var (watchEventType, obj) = item;
-
-            // Until the underlying API server starts returning resource version with the List calls, we need to
-            // check against the existing set to make sure we don't send Added events for objects we already
-            // know about.
-            if (watchEventType != WatchEventType.Added ||
-                existingObjects?.Any(o => string.Equals(obj.Metadata.Name, o.Name, StringComparison.Ordinal) &&
-                                          string.Equals(obj.Metadata.NamespaceProperty, o.Namespace, StringComparison.Ordinal)) != true)
-            {
-                yield return item;
-            }
+            yield return item;
         }
     }
 

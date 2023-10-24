@@ -193,18 +193,21 @@ public partial class PlotlyChart : ComponentBase
         {
             for (var i = dimension.Values.Count - 1; i >= 0; i--)
             {
-                if (i == 0)
-                {
-                    continue;
-                }
-
                 var metric = dimension.Values[i];
                 if (metric.Start >= start && metric.Start <= end)
                 {
                     var histogramValue = GetHistogramValue(metric);
+
+                    // Only use the first recorded entry if it is the beginning of data.
+                    // We can verify the first entry is the beginning of data by checking if the number of buckets equals the total count.
+                    if (i == 0 && CountBuckets(histogramValue) != histogramValue.Count)
+                    {
+                        continue;
+                    }
+
                     explicitBounds ??= histogramValue.ExplicitBounds;
 
-                    var previousHistogramValue = GetHistogramValue(dimension.Values[i - 1]);
+                    var previousHistogramValues = i > 0 ? GetHistogramValue(dimension.Values[i - 1]).Values : null;
 
                     if (currentBucketCounts is null)
                     {
@@ -218,8 +221,12 @@ public partial class PlotlyChart : ComponentBase
                     for (var valuesIndex = 0; valuesIndex < histogramValue.Values.Length; valuesIndex++)
                     {
                         var newValue = histogramValue.Values[valuesIndex];
-                        // Histogram values are culmulative, so subtract the previous value to get the diff.
-                        newValue -= previousHistogramValue.Values[valuesIndex];
+
+                        if (previousHistogramValues != null)
+                        {
+                            // Histogram values are culmulative, so subtract the previous value to get the diff.
+                            newValue -= previousHistogramValues[valuesIndex];
+                        }
 
                         currentBucketCounts[valuesIndex] += newValue;
                     }
@@ -237,6 +244,16 @@ public partial class PlotlyChart : ComponentBase
             }
         }
         return hasValue;
+    }
+
+    private static ulong CountBuckets(HistogramValue histogramValue)
+    {
+        ulong value = 0ul;
+        for (var i = 0; i < histogramValue.Values.Length; i++)
+        {
+            value += histogramValue.Values[i];
+        }
+        return value;
     }
 
     private static double? CalculatePercentile(int percentile, ulong[] counts, double[] explicitBounds)

@@ -1,5 +1,13 @@
 {
-  "type": "object",
+  "definitions": {
+    "logLevel": {
+      "properties": {
+        "Aspire.StackExchange.Redis": {
+          "$ref": "#/definitions/logLevelThreshold"
+        }
+      }
+    }
+  },
   "properties": {
     "Aspire": {
       "type": "object",
@@ -141,5 +149,6 @@
         }
       }
     }
-  }
+  },
+  "type": "object"
 }

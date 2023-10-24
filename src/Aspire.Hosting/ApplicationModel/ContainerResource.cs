@@ -3,6 +3,6 @@
 
 namespace Aspire.Hosting.ApplicationModel;
 
-public class ContainerResource(string name) : DistributedApplicationResource(name), IDistributedApplicationResourceWithEnvironment, IDistributedApplicationResourceWithBindings
+public class ContainerResource(string name) : Resource(name), IResourceWithEnvironment, IResourceWithBindings
 {
 }

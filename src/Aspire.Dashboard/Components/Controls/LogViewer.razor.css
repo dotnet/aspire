@@ -1,5 +1,5 @@
 .log-overflow {
-    height: calc(100vh - 165px);
+    height: 100%;
     width: 100%;
     overflow: auto;
     background-color: #0C0C0C;

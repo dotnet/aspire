@@ -3,12 +3,30 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Publishing;
 internal sealed class AutomaticManifestPublisherBindingInjectionHook(IOptions<PublishingOptions> publishingOptions) : IDistributedApplicationLifecycleHook
 {
     private readonly IOptions<PublishingOptions> _publishingOptions = publishingOptions;
+
+    private static bool IsKestrelHttp2ConfigurationPresent(ProjectResource projectResource)
+    {
+        var serviceMetadata = projectResource.GetServiceMetadata();
+
+        var projectDirectoryPath = Path.GetDirectoryName(serviceMetadata.ProjectPath)!;
+        var appSettingsPath = Path.Combine(projectDirectoryPath, "appsettings.json");
+        var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT");
+        var appSettingsEnvironmentPath = Path.Combine(projectDirectoryPath, $"appsettings.{env}.json");
+
+        var configBuilder = new ConfigurationBuilder();
+        configBuilder.AddJsonFile(appSettingsPath, optional: true);
+        configBuilder.AddJsonFile(appSettingsEnvironmentPath, optional: true);
+        var config = configBuilder.Build();
+        var protocol = config["Kestrel:EndpointDefaults:Protocols"];
+        return protocol == "Http2";
+    }
 
     public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
@@ -21,8 +39,8 @@ internal sealed class AutomaticManifestPublisherBindingInjectionHook(IOptions<Pu
 
         foreach (var projectResource in projectResources)
         {
-            // TODO: Add logic here that analyzes each project and figures out the best
-            //       bindings to automatically add.
+            var isHttp2ConfiguredInAppSettings = IsKestrelHttp2ConfigurationPresent(projectResource);
+
             if (!projectResource.Annotations.OfType<ServiceBindingAnnotation>().Any(sb => sb.UriScheme == "http" || sb.Name == "http"))
             {
                 var httpBinding = new ServiceBindingAnnotation(
@@ -30,6 +48,7 @@ internal sealed class AutomaticManifestPublisherBindingInjectionHook(IOptions<Pu
                     uriScheme: "http"
                     );
                 projectResource.Annotations.Add(httpBinding);
+                httpBinding.Transport = isHttp2ConfiguredInAppSettings ? "http2" : httpBinding.Transport;
             }
 
             if (!projectResource.Annotations.OfType<ServiceBindingAnnotation>().Any(sb => sb.UriScheme == "https" || sb.Name == "https"))
@@ -39,6 +58,7 @@ internal sealed class AutomaticManifestPublisherBindingInjectionHook(IOptions<Pu
                     uriScheme: "https"
                     );
                 projectResource.Annotations.Add(httpsBinding);
+                httpsBinding.Transport = isHttp2ConfiguredInAppSettings ? "http2" : httpsBinding.Transport;
             }
         }
 

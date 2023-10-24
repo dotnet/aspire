@@ -25,6 +25,7 @@ public abstract partial class ResourceLogsBase<TResource> : ComponentBase, IAsyn
     protected abstract string NoResourceSelectedMessage { get; }
     protected abstract string LogsNotAvailableMessage { get; }
     protected abstract string UrlPrefix { get; }
+    protected abstract string SelectResourceTitle { get; }
     protected virtual bool ConvertTimestampsFromUtc => false;
 
     protected abstract Task<List<TResource>> GetResources(IDashboardViewModelService dashboardViewModelService);
@@ -42,35 +43,43 @@ public abstract partial class ResourceLogsBase<TResource> : ComponentBase, IAsyn
     private CancellationTokenSource? _watchLogsTokenSource;
     private string _status = LogStatus.Initializing;
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         _status = LoadingResourcesMessage;
+    }
 
-        var initialList = await GetResources(DashboardViewModelService);
-
-        foreach (var result in initialList)
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
         {
-            _resourceNameMapping[result.Name] = result;
-        }
+            var initialList = await GetResources(DashboardViewModelService);
 
-        if (ResourceName is not null)
-        {
-            _selectedResource = initialList.FirstOrDefault(c => string.Equals(ResourceName, c.Name, StringComparison.Ordinal));
-        }
-        else if (initialList.Count > 0)
-        {
-            _selectedResource = initialList[0];
-        }
-
-        await LoadLogsAsync();
-
-        _ = Task.Run(async () =>
-        {
-            await foreach (var resourceChanged in WatchResources(DashboardViewModelService, initialList.Select(t => t.NamespacedName), _watchContainersTokenSource.Token))
+            foreach (var result in initialList)
             {
-                await OnResourceListChangedAsync(resourceChanged.ObjectChangeType, resourceChanged.Resource);
+                _resourceNameMapping[result.Name] = result;
             }
-        });
+
+            if (ResourceName is not null)
+            {
+                _selectedResource = initialList.FirstOrDefault(c => string.Equals(ResourceName, c.Name, StringComparison.Ordinal));
+            }
+            else if (initialList.Count > 0)
+            {
+                _selectedResource = initialList[0];
+            }
+
+            await LoadLogsAsync();
+
+            _ = Task.Run(async () =>
+            {
+                await foreach (var resourceChanged in WatchResources(DashboardViewModelService, initialList.Select(t => t.NamespacedName), _watchContainersTokenSource.Token))
+                {
+                    await OnResourceListChangedAsync(resourceChanged.ObjectChangeType, resourceChanged.Resource);
+                }
+            });
+
+            StateHasChanged();
+        }
     }
 
     private Task ClearLogsAsync()

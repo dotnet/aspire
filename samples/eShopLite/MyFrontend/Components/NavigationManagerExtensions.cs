@@ -10,7 +10,7 @@ public static class NavigationManagerExtensions
         {
             // The absolute URI must be of the form "{baseUri}something" (where baseUri ends with a slash),
             // and from that we return "something". If baseUri includes a path, we return that path too.
-            return new Uri(uri).AbsolutePath;
+            return new Uri(uri).PathAndQuery;
         }
 
         var message = $"The URI '{uri}' is not contained by the base URI '{navigationManager.BaseUri}'.";

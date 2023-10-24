@@ -2,11 +2,12 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
+
+namespace Microsoft.Extensions.Hosting;
 
 public static class Extensions
 {
@@ -42,7 +43,7 @@ public static class Extensions
             .WithMetrics(metrics =>
             {
                 metrics.AddRuntimeInstrumentation()
-                       .AddAspNetCore8Instrumentation();
+                       .AddBuiltInMeters();
             })
             .WithTracing(tracing =>
             {
@@ -66,8 +67,6 @@ public static class Extensions
     {
         var useOtlpExporter = !string.IsNullOrWhiteSpace(builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]);
 
-        // Note: OTEL_EXPORTER_OTLP_ENDPOINT env variable is automatically set as OtlpExporterOptions.Endpoint.
-        // https://github.com/open-telemetry/opentelemetry-dotnet/blob/7cb92d3b6dbad169048e5aa07939ef613f2587e2/src/OpenTelemetry.Exporter.OpenTelemetryProtocol/README.md?plain=1#L156
         if (useOtlpExporter)
         {
             builder.Services.Configure<OpenTelemetryLoggerOptions>(logging => logging.AddOtlpExporter());
@@ -75,12 +74,13 @@ public static class Extensions
             builder.Services.ConfigureOpenTelemetryTracerProvider(tracing => tracing.AddOtlpExporter());
         }
 
-        // Configure alternative exporters
-        builder.Services.AddOpenTelemetry()
-                        .WithMetrics(metrics => metrics.AddPrometheusExporter());
-        // Add additional exporters here:
-        // Note, Azure Monitor requires the Azure.Monitor.OpenTelemetry.Exporter NuGet package
-        //.UseAzureMonitor();
+        // Uncomment the following lines to enable the Prometheus exporter (requires the OpenTelemetry.Exporter.Prometheus.AspNetCore package)
+        // builder.Services.AddOpenTelemetry()
+        //    .WithMetrics(metrics => metrics.AddPrometheusExporter());
+
+        // Uncomment the following lines to enable the Azure Monitor exporter (requires the Azure.Monitor.OpenTelemetry.Exporter package)
+        // builder.Services.AddOpenTelemetry()
+        //    .UseAzureMonitor();
 
         return builder;
     }
@@ -96,8 +96,8 @@ public static class Extensions
 
     public static WebApplication MapDefaultEndpoints(this WebApplication app)
     {
-        // Enable Prometheus endpoint
-        app.MapPrometheusScrapingEndpoint();
+        // Uncomment the following line to enable the Prometheus endpoint (requires the OpenTelemetry.Exporter.Prometheus.AspNetCore package)
+        // app.MapPrometheusScrapingEndpoint();
 
         // All health checks must pass for app to be considered ready to accept traffic after starting
         app.MapHealthChecks("/readiness");
@@ -111,12 +111,9 @@ public static class Extensions
         return app;
     }
 
-    private static MeterProviderBuilder AddAspNetCore8Instrumentation(this MeterProviderBuilder meterProviderBuilder) =>
-        meterProviderBuilder
-            .AddMeter("Microsoft.AspNetCore.Hosting", "Microsoft.AspNetCore.Server.Kestrel", "System.Net.Http")
-            .AddView("http.server.request.duration",
-                new ExplicitBucketHistogramConfiguration
-                {
-                    Boundaries = [0, 0.005, 0.01, 0.025, 0.05, 0.075, 0.1, 0.25, 0.5, 0.75, 1, 2.5, 5, 7.5, 10]
-                });
+    private static MeterProviderBuilder AddBuiltInMeters(this MeterProviderBuilder meterProviderBuilder) =>
+        meterProviderBuilder.AddMeter(
+            "Microsoft.AspNetCore.Hosting",
+            "Microsoft.AspNetCore.Server.Kestrel",
+            "System.Net.Http");
 }

@@ -1,31 +1,22 @@
 {
   "resources": {
-    "grafana": {
-      "type": "container.v1",
-      "image": "grafana/grafana:latest",
-      "bindings": {
-        "grafana-http": {
-          "scheme": "http",
-          "protocol": "tcp",
-          "transport": "http"
-        }
-      }
-    },
     "postgres": {
       "type": "postgres.server.v1"
     },
-    "catalog": {
+    "catalogdb": {
       "type": "postgres.database.v1",
       "parent": "postgres"
     },
-    "basketCache": {
+    "basketcache": {
       "type": "redis.v1"
     },
     "catalogservice": {
       "type": "project.v1",
       "path": "..\\CatalogService\\CatalogService.csproj",
       "env": {
-        "ConnectionStrings__catalog": "{catalog.connectionString}"
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "ConnectionStrings__catalogdb": "{catalogdb.connectionString}"
       },
       "bindings": {
         "http": {
@@ -50,27 +41,30 @@
       "type": "project.v1",
       "path": "..\\BasketService\\BasketService.csproj",
       "env": {
-        "ConnectionStrings__basketCache": "{basketCache.connectionString}",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "ConnectionStrings__basketcache": "{basketcache.connectionString}",
         "ConnectionStrings__messaging": "{messaging.connectionString}"
       },
       "bindings": {
         "http": {
           "scheme": "http",
           "protocol": "tcp",
-          "transport": "http"
+          "transport": "http2"
         },
         "https": {
           "scheme": "https",
           "protocol": "tcp",
-          "transport": "http"
+          "transport": "http2"
         }
       }
     },
-    "myfrontend": {
+    "frontend": {
       "type": "project.v1",
       "path": "..\\MyFrontend\\MyFrontend.csproj",
       "env": {
-        "GRAFANA_URL": "{grafana.bindings.grafana-http}",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
         "services__basketservice__0": "{basketservice.bindings.http.url}",
         "services__basketservice__1": "{basketservice.bindings.https.url}",
         "services__catalogservice__0": "{catalogservice.bindings.http.url}"
@@ -92,6 +86,8 @@
       "type": "project.v1",
       "path": "..\\OrderProcessor\\OrderProcessor.csproj",
       "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
         "ConnectionStrings__messaging": "{messaging.connectionString}"
       },
       "bindings": {
@@ -111,6 +107,8 @@
       "type": "project.v1",
       "path": "..\\ApiGateway\\ApiGateway.csproj",
       "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
         "services__basketservice__0": "{basketservice.bindings.http.url}",
         "services__basketservice__1": "{basketservice.bindings.https.url}",
         "services__catalogservice__0": "{catalogservice.bindings.http.url}",
@@ -129,14 +127,24 @@
         }
       }
     },
-    "prometheus": {
-      "type": "container.v1",
-      "image": "prom/prometheus:latest",
+    "catalogdbapp": {
+      "type": "project.v1",
+      "path": "..\\CatalogDb\\CatalogDb.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "ConnectionStrings__catalogdb": "{catalogdb.connectionString}"
+      },
       "bindings": {
-        "tcp": {
-          "scheme": "tcp",
+        "http": {
+          "scheme": "http",
           "protocol": "tcp",
-          "transport": "tcp"
+          "transport": "http"
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http"
         }
       }
     }

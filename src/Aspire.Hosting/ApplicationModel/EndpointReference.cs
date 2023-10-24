@@ -3,9 +3,9 @@
 
 namespace Aspire.Hosting.ApplicationModel;
 
-public sealed class EndpointReference(IDistributedApplicationResourceWithBindings owner, string bindingName)
+public sealed class EndpointReference(IResourceWithBindings owner, string bindingName)
 {
-    public IDistributedApplicationResourceWithBindings Owner { get; } = owner;
+    public IResourceWithBindings Owner { get; } = owner;
     public string BindingName { get; } = bindingName;
 
     public string UriString
@@ -13,7 +13,7 @@ public sealed class EndpointReference(IDistributedApplicationResourceWithBinding
         get
         {
             var allocatedEndpoint = Owner.Annotations.OfType<AllocatedEndpointAnnotation>().SingleOrDefault(a => a.Name == BindingName);
-            return allocatedEndpoint?.UriString ?? $"{{{Owner.Name}.bindings.{BindingName}}}";
+            return allocatedEndpoint?.UriString ?? $"{{{Owner.Name}.bindings.{BindingName}.url}}";
         }
     }
 }

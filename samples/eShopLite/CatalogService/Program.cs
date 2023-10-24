@@ -1,4 +1,5 @@
 using Aspire.Microsoft.EntityFrameworkCore.Cosmos;
+using CatalogDb;
 using CatalogService;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -24,7 +25,5 @@ else
 
 app.MapCatalogApi();
 app.MapDefaultEndpoints();
-
-await app.Services.InitializeDatabaseAsync();
 
 app.Run();

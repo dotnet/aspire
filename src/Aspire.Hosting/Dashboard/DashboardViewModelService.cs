@@ -11,13 +11,12 @@ using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Dcp.Process;
 using Aspire.Hosting.Utils;
-using k8s;
 using Microsoft.Extensions.Hosting;
 using NamespacedName = Aspire.Dashboard.Model.NamespacedName;
 
 namespace Aspire.Hosting.Dashboard;
 
-public class DashboardViewModelService : IDashboardViewModelService, IDisposable
+public partial class DashboardViewModelService : IDashboardViewModelService, IDisposable
 {
     private const string AppHostSuffix = ".AppHost";
 
@@ -39,7 +38,8 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
         var endpoints = await _kubernetesService.ListAsync<Endpoint>().ConfigureAwait(false);
         var services = await _kubernetesService.ListAsync<Service>().ConfigureAwait(false);
 
-        var results = containers.Select(e => ConvertToContainerViewModel(e, services, endpoints)).OrderBy(e => e.Name).ToList();
+        var results = containers.Select(e => ConvertToContainerViewModel(_applicationModel, services, endpoints, e))
+            .OrderBy(e => e.Name).ToList();
 
         await Task.WhenAll(results.Select(FillEnvironmentVariablesFromDocker)).ConfigureAwait(false);
 
@@ -53,7 +53,7 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
         var services = await _kubernetesService.ListAsync<Service>().ConfigureAwait(false);
 
         return executables.Where(executable => executable.Metadata.Annotations?.ContainsKey(Executable.CSharpProjectPathAnnotation) == false)
-            .Select(e => ConvertToExecutableViewModel(e, services, endpoints))
+            .Select(e => ConvertToExecutableViewModel(_applicationModel, services, endpoints, e))
             .ToList();
     }
 
@@ -64,7 +64,7 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
         var services = await _kubernetesService.ListAsync<Service>().ConfigureAwait(false);
 
         return executables.Where(executable => executable.Metadata.Annotations?.ContainsKey(Executable.CSharpProjectPathAnnotation) == true)
-            .Select(e => ConvertToProjectViewModel(e, services, endpoints))
+            .Select(e => ConvertToProjectViewModel(_applicationModel, services, endpoints, e))
             .ToList();
     }
 
@@ -72,21 +72,16 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
         IEnumerable<NamespacedName>? existingContainers = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        var existingObjects = existingContainers?.Select(ec => new Dcp.Model.NamespacedName(ec.Name, ec.Namespace));
-        await foreach (var (watchEventType, container) in _kubernetesService.WatchAsync<Container>(existingObjects: existingObjects, cancellationToken: cancellationToken))
+        var watcher = new ViewModelWatcher<Container, ContainerViewModel>(
+            _kubernetesService,
+            _applicationModel,
+            existingContainers,
+            c => true,
+            ConvertToContainerViewModel);
+
+        await foreach (var tuple in watcher.WithCancellation(cancellationToken))
         {
-            var objectChangeType = ToObjectChangeType(watchEventType);
-            if (objectChangeType == ObjectChangeType.Other)
-            {
-                continue;
-            }
-
-            var endpoints = await _kubernetesService.ListAsync<Endpoint>(cancellationToken: cancellationToken).ConfigureAwait(false);
-            var services = await _kubernetesService.ListAsync<Service>(cancellationToken: cancellationToken).ConfigureAwait(false);
-            var containerViewModel = ConvertToContainerViewModel(container, services, endpoints);
-            await FillEnvironmentVariablesFromDocker(containerViewModel).ConfigureAwait(false);
-
-            yield return new ResourceChanged<ContainerViewModel>(objectChangeType, containerViewModel);
+            yield return tuple;
         }
     }
 
@@ -94,25 +89,16 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
         IEnumerable<NamespacedName>? existingExecutables = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        var existingObjects = existingExecutables?.Select(ec => new Dcp.Model.NamespacedName(ec.Name, ec.Namespace));
-        await foreach (var (watchEventType, executable) in _kubernetesService.WatchAsync<Executable>(existingObjects: existingObjects, cancellationToken: cancellationToken))
+        var watcher = new ViewModelWatcher<Executable, ExecutableViewModel>(
+            _kubernetesService,
+            _applicationModel,
+            existingExecutables,
+            e => e.Metadata.Annotations?.ContainsKey(Executable.CSharpProjectPathAnnotation) == false,
+            ConvertToExecutableViewModel);
+
+        await foreach (var tuple in watcher.WithCancellation(cancellationToken))
         {
-            var objectChangeType = ToObjectChangeType(watchEventType);
-            if (objectChangeType == ObjectChangeType.Other)
-            {
-                continue;
-            }
-
-            if (executable.Metadata.Annotations?.ContainsKey(Executable.CSharpProjectPathAnnotation) == true)
-            {
-                continue;
-            }
-
-            var endpoints = await _kubernetesService.ListAsync<Endpoint>(cancellationToken: cancellationToken).ConfigureAwait(false);
-            var services = await _kubernetesService.ListAsync<Service>(cancellationToken: cancellationToken).ConfigureAwait(false);
-            var executableViewModel = ConvertToExecutableViewModel(executable, services, endpoints);
-
-            yield return new ResourceChanged<ExecutableViewModel>(objectChangeType, executableViewModel);
+            yield return tuple;
         }
     }
 
@@ -120,29 +106,21 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
         IEnumerable<NamespacedName>? existingProjects = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        var existingObjects = existingProjects?.Select(ec => new Dcp.Model.NamespacedName(ec.Name, ec.Namespace));
-        await foreach (var (watchEventType, executable) in _kubernetesService.WatchAsync<Executable>(existingObjects: existingObjects, cancellationToken: cancellationToken))
+        var watcher = new ViewModelWatcher<Executable, ProjectViewModel>(
+            _kubernetesService,
+            _applicationModel,
+            existingProjects,
+            e => e.Metadata.Annotations?.ContainsKey(Executable.CSharpProjectPathAnnotation) == true,
+            ConvertToProjectViewModel);
+
+        await foreach (var tuple in watcher.WithCancellation(cancellationToken))
         {
-            var objectChangeType = ToObjectChangeType(watchEventType);
-            if (objectChangeType == ObjectChangeType.Other)
-            {
-                continue;
-            }
-
-            if (executable.Metadata.Annotations?.ContainsKey(Executable.CSharpProjectPathAnnotation) != true)
-            {
-                continue;
-            }
-
-            var endpoints = await _kubernetesService.ListAsync<Endpoint>(cancellationToken: cancellationToken).ConfigureAwait(false);
-            var services = await _kubernetesService.ListAsync<Service>(cancellationToken: cancellationToken).ConfigureAwait(false);
-            var projectViewModel = ConvertToProjectViewModel(executable, services, endpoints);
-
-            yield return new ResourceChanged<ProjectViewModel>(objectChangeType, projectViewModel);
+            yield return tuple;
         }
     }
 
-    private ContainerViewModel ConvertToContainerViewModel(Container container, List<Service> services, List<Endpoint> endpoints)
+    private static ContainerViewModel ConvertToContainerViewModel(
+        DistributedApplicationModel applicationModel, IEnumerable<Service> services, IEnumerable<Endpoint> endpoints, Container container)
     {
         var model = new ContainerViewModel
         {
@@ -153,7 +131,7 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
             Image = container.Spec.Image!,
             LogSource = new DockerContainerLogSource(container.Status!.ContainerId!),
             State = container.Status?.State,
-            ExpectedEndpointsCount = GetExpectedEndpointsCount(container, services)
+            ExpectedEndpointsCount = GetExpectedEndpointsCount(services, container)
         };
 
         if (container.Spec.Ports != null)
@@ -167,7 +145,7 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
             }
         }
 
-        FillEndpoints(services, endpoints, container, model);
+        FillEndpoints(applicationModel, services, endpoints, container, model);
 
         if (container.Spec.Env is not null)
         {
@@ -212,6 +190,7 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
                                 envVars.Add(new EnvVar { Name = parts[0], Value = parts[1] });
                             }
                         }
+                        containerViewModel.Environment.Clear();
                         FillEnvironmentVariables(containerViewModel.Environment, envVars, envVars);
                     }
                 }
@@ -227,7 +206,8 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
         }
     }
 
-    private ExecutableViewModel ConvertToExecutableViewModel(Executable executable, List<Service> services, List<Endpoint> endpoints)
+    private static ExecutableViewModel ConvertToExecutableViewModel(
+        DistributedApplicationModel applicationModel, IEnumerable<Service> services, IEnumerable<Endpoint> endpoints, Executable executable)
     {
         var model = new ExecutableViewModel
         {
@@ -240,10 +220,10 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
             State = executable.Status?.State,
             LogSource = new FileLogSource(executable.Status?.StdOutFile, executable.Status?.StdErrFile),
             ProcessId = executable.Status?.ProcessId,
-            ExpectedEndpointsCount = GetExpectedEndpointsCount(executable, services)
+            ExpectedEndpointsCount = GetExpectedEndpointsCount(services, executable)
         };
 
-        FillEndpoints(services, endpoints, executable, model);
+        FillEndpoints(applicationModel, services, endpoints, executable, model);
 
         if (executable.Status?.EffectiveEnv is not null)
         {
@@ -253,7 +233,8 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
         return model;
     }
 
-    private ProjectViewModel ConvertToProjectViewModel(Executable executable, List<Service> services, List<Endpoint> endpoints)
+    private static ProjectViewModel ConvertToProjectViewModel(
+        DistributedApplicationModel applicationModel, IEnumerable<Service> services, IEnumerable<Endpoint> endpoints, Executable executable)
     {
         var model = new ProjectViewModel
         {
@@ -264,10 +245,10 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
             State = executable.Status?.State,
             LogSource = new FileLogSource(executable.Status?.StdOutFile, executable.Status?.StdErrFile),
             ProcessId = executable.Status?.ProcessId,
-            ExpectedEndpointsCount = GetExpectedEndpointsCount(executable, services)
+            ExpectedEndpointsCount = GetExpectedEndpointsCount(services, executable)
         };
 
-        FillEndpoints(services, endpoints, executable, model);
+        FillEndpoints(applicationModel, services, endpoints, executable, model);
 
         if (executable.Status?.EffectiveEnv is not null)
         {
@@ -277,7 +258,12 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
         return model;
     }
 
-    private void FillEndpoints(List<Service> services, List<Endpoint> endpoints, CustomResource resource, ResourceViewModel resourceViewModel)
+    private static void FillEndpoints(
+        DistributedApplicationModel applicationModel,
+        IEnumerable<Service> services,
+        IEnumerable<Endpoint> endpoints,
+        CustomResource resource,
+        ResourceViewModel resourceViewModel)
     {
         resourceViewModel.Endpoints.AddRange(
             endpoints.Where(ep => ep.Metadata.OwnerReferences.Any(or => or.Kind == resource.Kind && or.Name == resource.Metadata.Name))
@@ -298,7 +284,7 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
 
                     // For project look into launch profile to append launch url
                     if (resourceViewModel is ProjectViewModel projectViewModel
-                        && _applicationModel.TryGetProjectWithPath(projectViewModel.ProjectPath, out var project)
+                        && applicationModel.TryGetProjectWithPath(projectViewModel.ProjectPath, out var project)
                         && project.GetEffectiveLaunchProfile() is LaunchProfile launchProfile
                         && launchProfile.LaunchUrl is string launchUrl)
                     {
@@ -314,7 +300,7 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
             .Where(e => !string.Equals(e, string.Empty, StringComparison.Ordinal)));
     }
 
-    private static int GetExpectedEndpointsCount(CustomResource resource, List<Service> services)
+    private static int? GetExpectedEndpointsCount(IEnumerable<Service> services, CustomResource resource)
     {
         var expectedCount = 0;
         if (resource.Metadata.Annotations is not null && resource.Metadata.Annotations.TryGetValue(CustomResource.ServiceProducerAnnotation, out var servicesProducedAnnotationJson))
@@ -325,8 +311,16 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
                 foreach (var serviceProducer in serviceProducerAnnotations)
                 {
                     var matchingService = services.SingleOrDefault(s => s.Metadata.Name == serviceProducer.ServiceName);
-                    if (matchingService is not null
-                        && matchingService.Metadata.Annotations.TryGetValue(CustomResource.UriSchemeAnnotation, out var uriScheme)
+
+                    if (matchingService is null)
+                    {
+                        // We don't have matching service so we cannot compute endpoint count completely
+                        // So we return -1 indicating that it is unknown.
+                        // Dashboard should show this as Starting
+                        return null;
+                    }
+
+                    if (matchingService.Metadata.Annotations.TryGetValue(CustomResource.UriSchemeAnnotation, out var uriScheme)
                         && (string.Equals(uriScheme, "http", StringComparison.OrdinalIgnoreCase)
                             || string.Equals(uriScheme, "https", StringComparison.OrdinalIgnoreCase)))
                     {
@@ -343,15 +337,6 @@ public class DashboardViewModelService : IDashboardViewModelService, IDisposable
     {
         _kubernetesService.Dispose();
     }
-
-    private static ObjectChangeType ToObjectChangeType(WatchEventType watchEventType)
-        => watchEventType switch
-        {
-            WatchEventType.Added => ObjectChangeType.Added,
-            WatchEventType.Modified => ObjectChangeType.Modified,
-            WatchEventType.Deleted => ObjectChangeType.Deleted,
-            _ => ObjectChangeType.Other
-        };
 
     private static void FillEnvironmentVariables(List<EnvironmentVariableViewModel> target, List<EnvVar> effectiveSource, List<EnvVar>? specSource)
     {

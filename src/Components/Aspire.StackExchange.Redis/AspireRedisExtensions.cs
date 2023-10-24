@@ -10,6 +10,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OpenTelemetry.Trace;
 using StackExchange.Redis;
+using StackExchange.Redis.Configuration;
 
 namespace Microsoft.Extensions.Hosting;
 
@@ -171,9 +172,25 @@ public static class AspireRedisExtensions
         {
             var connectionString = _settings.ConnectionString;
 
-            return connectionString is not null ?
+            var options = connectionString is not null ?
                 ConfigurationOptions.Parse(connectionString) :
                 base.CreateInstance(name);
+
+            if (options.Defaults.GetType() == typeof(DefaultOptionsProvider))
+            {
+                options.Defaults = new AspireDefaultOptionsProvider();
+            }
+
+            return options;
         }
+    }
+
+    /// <summary>
+    /// A Redis DefaultOptionsProvider for Aspire specific defaults.
+    /// </summary>
+    private sealed class AspireDefaultOptionsProvider : DefaultOptionsProvider
+    {
+        // Disable aborting on connect fail since we want to retry, even in local development.
+        public override bool AbortOnConnectFail => false;
     }
 }

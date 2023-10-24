@@ -16,7 +16,7 @@
     {
         <div class="metrics-filters-container">
             <div style="margin-left: 10px">
-                <h5>Dimensions</h5>
+                <h5>Filters</h5>
                 <table style="width:100%">
                     @foreach (var item in _viewModel.DimensionFilters)
                     {
@@ -26,6 +26,7 @@
                                 <FluentAutocomplete TOption="DimensionValueViewModel"
                                                     Width="250px"
                                                     Placeholder="Select filters"
+                                                    AriaLabel="Select filters"
                                                     OnOptionsSearch="item.OnSearchAsync"
                                                     OptionText="@(item => item.Name)"
                                                     @bind-SelectedOptions="item.SelectedValues"
