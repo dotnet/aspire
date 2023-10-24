@@ -4,7 +4,6 @@
 using System.Net.Sockets;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Redis;
 
 namespace Aspire.Hosting;
 
