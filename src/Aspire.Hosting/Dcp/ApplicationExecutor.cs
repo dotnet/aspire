@@ -48,8 +48,8 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model) : I
 {
     private const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
 
-    // These environment variables (coming from/associated with app host launch profile)
-    // never make sense for application service projects.
+    // These environment variables should never be inherited from app host;
+    // they only make sense if they come from a launch profile of a service project.
     private static readonly string[] s_doNotInheritEnvironmentVars =
     {
         "ASPNETCORE_URLS",
@@ -377,10 +377,11 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model) : I
                 if (er.ModelResource is ProjectResource project && project.SelectLaunchProfileName() is { } launchProfileName && project.GetLaunchSettings() is { } launchSettings)
                 {
                     ApplyLaunchProfile(er, config, launchProfileName, launchSettings);
-                } else
+                }
+                else
                 {
                     // If there is no launch profile, we want to make sure that certain environment variables are NOT inherited
-                    foreach(var envVar in s_doNotInheritEnvironmentVars)
+                    foreach (var envVar in s_doNotInheritEnvironmentVars)
                     {
                         config.Add(envVar, "");
                     }
