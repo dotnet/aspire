@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json.Nodes;
+using Aspire.Hosting.ApplicationModel;
 using Azure;
 using Azure.Core;
 using Azure.ResourceManager;

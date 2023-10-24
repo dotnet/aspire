@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Text.Json.Nodes;
+using Aspire.Hosting.ApplicationModel;
 using Azure;
 using Azure.Core;
 using Azure.ResourceManager;

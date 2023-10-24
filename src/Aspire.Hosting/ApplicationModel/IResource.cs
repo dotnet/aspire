@@ -3,7 +3,8 @@
 
 namespace Aspire.Hosting.ApplicationModel;
 
-public interface IAzureResource : IResource
+public interface IResource
 {
-
+    string Name { get; }
+    ResourceMetadataCollection Annotations { get; }
 }

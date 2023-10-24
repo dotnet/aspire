@@ -12,7 +12,7 @@ public static class OtlpConfigurationExtensions
     private const string DashboardOtlpUrlVariableName = "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL";
     private const string DashboardOtlpUrlDefaultValue = "http://localhost:18889";
 
-    public static void AddOtlpEnvironment(IDistributedApplicationResource resource, IConfiguration configuration, IHostEnvironment environment)
+    public static void AddOtlpEnvironment(IResource resource, IConfiguration configuration, IHostEnvironment environment)
     {
         // Configure OpenTelemetry in projects using environment variables.
         // https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/configuration/sdk-environment-variables.md
@@ -51,8 +51,8 @@ public static class OtlpConfigurationExtensions
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
-    /// <returns>The <see cref="IDistributedApplicationResourceBuilder{T}"/>.</returns>
-    public static IDistributedApplicationResourceBuilder<T> WithOtlpExporter<T>(this IDistributedApplicationResourceBuilder<T> builder) where T : IDistributedApplicationResourceWithEnvironment
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithOtlpExporter<T>(this IResourceBuilder<T> builder) where T : IResourceWithEnvironment
     {
         AddOtlpEnvironment(builder.Resource, builder.ApplicationBuilder.Configuration, builder.ApplicationBuilder.Environment);
         return builder;

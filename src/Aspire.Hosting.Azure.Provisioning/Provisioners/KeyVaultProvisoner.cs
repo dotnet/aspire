@@ -1,14 +1,15 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Azure.Core;
-using Azure.ResourceManager.Resources;
-using Azure.ResourceManager;
 using System.Text.Json.Nodes;
-using Microsoft.Extensions.Configuration;
-using Azure.ResourceManager.KeyVault.Models;
-using Azure.ResourceManager.KeyVault;
+using Aspire.Hosting.ApplicationModel;
 using Azure;
+using Azure.Core;
+using Azure.ResourceManager;
+using Azure.ResourceManager.KeyVault;
+using Azure.ResourceManager.KeyVault.Models;
+using Azure.ResourceManager.Resources;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Azure.Provisioning;

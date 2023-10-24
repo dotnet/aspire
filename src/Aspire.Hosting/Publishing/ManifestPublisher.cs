@@ -48,7 +48,7 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, IHo
         jsonWriter.WriteEndObject();
     }
 
-    private void WriteResource(IDistributedApplicationResource resource, Utf8JsonWriter jsonWriter)
+    private void WriteResource(IResource resource, Utf8JsonWriter jsonWriter)
     {
         // First see if the resource has a callback annotation with overrides the behavior for rendering
         // out the JSON. If so use that callback, otherwise use the fallback logic that we have.
@@ -76,7 +76,7 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, IHo
             WriteResourceObject(resource, () => WriteError(jsonWriter));
         }
 
-        void WriteResourceObject<T>(T resource, Action action) where T: IDistributedApplicationResource
+        void WriteResourceObject<T>(T resource, Action action) where T: IResource
         {
             jsonWriter.WriteStartObject(resource.Name);
             action();
@@ -89,7 +89,7 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, IHo
         jsonWriter.WriteString("error", "This resource does not support generation in the manifest.");
     }
 
-    private static void WriteServiceDiscoveryEnvironmentVariables(IDistributedApplicationResource resource, Utf8JsonWriter jsonWriter)
+    private static void WriteServiceDiscoveryEnvironmentVariables(IResource resource, Utf8JsonWriter jsonWriter)
     {
         var serviceReferenceAnnotations = resource.Annotations.OfType<ServiceReferenceAnnotation>();
 
@@ -120,7 +120,7 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, IHo
         }
     }
 
-    private static void WriteEnvironmentVariables(IDistributedApplicationResource resource, Utf8JsonWriter jsonWriter)
+    private static void WriteEnvironmentVariables(IResource resource, Utf8JsonWriter jsonWriter)
     {
         var config = new Dictionary<string, string>();
         var context = new EnvironmentCallbackContext("manifest", config);
@@ -144,7 +144,7 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, IHo
         }
     }
 
-    private static void WriteBindings(IDistributedApplicationResource resource, Utf8JsonWriter jsonWriter)
+    private static void WriteBindings(IResource resource, Utf8JsonWriter jsonWriter)
     {
         if (resource.TryGetServiceBindings(out var serviceBindings))
         {

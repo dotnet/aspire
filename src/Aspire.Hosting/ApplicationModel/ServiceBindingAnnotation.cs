@@ -7,7 +7,7 @@ using System.Net.Sockets;
 namespace Aspire.Hosting.ApplicationModel;
 
 [DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}")]
-public sealed class ServiceBindingAnnotation : IDistributedApplicationResourceAnnotation
+public sealed class ServiceBindingAnnotation : IResourceAnnotation
 {
     public ServiceBindingAnnotation(ProtocolType protocol, string? uriScheme = null, string? transport = null, string? name = null, int? port = null, int? containerPort = null, bool? isExternal = null)
     {

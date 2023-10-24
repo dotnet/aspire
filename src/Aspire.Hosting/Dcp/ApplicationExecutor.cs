@@ -10,12 +10,12 @@ namespace Aspire.Hosting.Dcp;
 
 internal class AppResource
 {
-    public IDistributedApplicationResource ModelResource { get; private set; }
+    public IResource ModelResource { get; private set; }
     public CustomResource DcpResource { get; private set; }
     public virtual List<ServiceAppResource> ServicesProduced { get; private set; } = new();
     public virtual List<ServiceAppResource> ServicesConsumed { get; private set; } = new();
 
-    public AppResource(IDistributedApplicationResource modelResource, CustomResource dcpResource)
+    public AppResource(IResource modelResource, CustomResource dcpResource)
     {
         this.ModelResource = modelResource;
         this.DcpResource = dcpResource;
@@ -37,7 +37,7 @@ internal sealed class ServiceAppResource : AppResource
         get { throw new InvalidOperationException("Service resources do not consume any services"); }
     }
 
-    public ServiceAppResource(IDistributedApplicationResource modelResource, Service service, ServiceBindingAnnotation sba) : base(modelResource, service)
+    public ServiceAppResource(IResource modelResource, Service service, ServiceBindingAnnotation sba) : base(modelResource, service)
     {
         ServiceBindingAnnotation = sba;
         DcpServiceProducerAnnotation = new(service.Metadata.Name);
@@ -177,7 +177,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model) : I
         // services produced by different resources).
         List<string> serviceNames = new();
 
-        void addServiceAppResource(Service svc, IDistributedApplicationResource producingResource, ServiceBindingAnnotation sba)
+        void addServiceAppResource(Service svc, IResource producingResource, ServiceBindingAnnotation sba)
         {
             svc.Spec.Protocol = PortProtocol.FromProtocolType(sba.Protocol);
             svc.Spec.AddressAllocationMode = AddressAllocationModes.IPv4Loopback;
@@ -542,7 +542,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model) : I
         }
     }
 
-    private void AddServicesProducedInfo(IDistributedApplicationResource modelResource, IAnnotationHolder dcpResource, AppResource appResource)
+    private void AddServicesProducedInfo(IResource modelResource, IAnnotationHolder dcpResource, AppResource appResource)
     {
         string modelResourceName = "(unknown)";
         try
@@ -627,7 +627,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model) : I
         _kubernetesService.Dispose();
     }
 
-    private static string GetObjectNameForResource(IDistributedApplicationResource resource, string suffix = "")
+    private static string GetObjectNameForResource(IResource resource, string suffix = "")
     {
         string maybeWithSuffix(string s) => string.IsNullOrWhiteSpace(suffix) ? s : $"{s}_{suffix}";
         return maybeWithSuffix(resource.Name);

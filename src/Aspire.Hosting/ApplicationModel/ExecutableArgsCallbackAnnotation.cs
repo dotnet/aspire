@@ -3,7 +3,7 @@
 
 namespace Aspire.Hosting.ApplicationModel;
 
-public class ExecutableArgsCallbackAnnotation : IDistributedApplicationResourceAnnotation
+public class ExecutableArgsCallbackAnnotation : IResourceAnnotation
 {
     public ExecutableArgsCallbackAnnotation(Action<IList<string>> callback)
     {

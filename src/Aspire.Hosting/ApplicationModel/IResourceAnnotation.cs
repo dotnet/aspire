@@ -3,7 +3,6 @@
 
 namespace Aspire.Hosting.ApplicationModel;
 
-public interface IDistributedApplicationResourceWithConnectionString : IDistributedApplicationResource
+public interface IResourceAnnotation
 {
-    public string? GetConnectionString();
 }

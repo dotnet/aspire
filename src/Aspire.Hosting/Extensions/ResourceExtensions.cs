@@ -5,9 +5,9 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Aspire.Hosting.ApplicationModel;
 
-public static class DistributedApplicationResourceExtensions
+public static class ResourceExtensions
 {
-    public static bool TryGetLastAnnotation<T>(this IDistributedApplicationResource resource, [NotNullWhen(true)] out T? annotation) where T : IDistributedApplicationResourceAnnotation
+    public static bool TryGetLastAnnotation<T>(this IResource resource, [NotNullWhen(true)] out T? annotation) where T : IResourceAnnotation
     {
         if (resource.Annotations.OfType<T>().LastOrDefault() is { } lastAnnotation)
         {
@@ -21,7 +21,7 @@ public static class DistributedApplicationResourceExtensions
         }
     }
 
-    public static bool TryGetAnnotationsOfType<T>(this IDistributedApplicationResource resource, [NotNullWhen(true)] out IEnumerable<T>? result) where T : IDistributedApplicationResourceAnnotation
+    public static bool TryGetAnnotationsOfType<T>(this IResource resource, [NotNullWhen(true)] out IEnumerable<T>? result) where T : IResourceAnnotation
     {
         var matchingTypeAnnotations = resource.Annotations.OfType<T>();
 
@@ -37,27 +37,27 @@ public static class DistributedApplicationResourceExtensions
         }
     }
 
-    public static bool TryGetEnvironmentVariables(this IDistributedApplicationResource resource, [NotNullWhen(true)] out IEnumerable<EnvironmentCallbackAnnotation>? environmentVariables)
+    public static bool TryGetEnvironmentVariables(this IResource resource, [NotNullWhen(true)] out IEnumerable<EnvironmentCallbackAnnotation>? environmentVariables)
     {
         return TryGetAnnotationsOfType(resource, out environmentVariables);
     }
 
-    public static bool TryGetVolumeMounts(this IDistributedApplicationResource resource, [NotNullWhen(true)] out IEnumerable<VolumeMountAnnotation>? volumeMounts)
+    public static bool TryGetVolumeMounts(this IResource resource, [NotNullWhen(true)] out IEnumerable<VolumeMountAnnotation>? volumeMounts)
     {
         return TryGetAnnotationsOfType<VolumeMountAnnotation>(resource, out volumeMounts);
     }
 
-    public static bool TryGetServiceBindings(this IDistributedApplicationResource resource, [NotNullWhen(true)] out IEnumerable<ServiceBindingAnnotation>? serviceBindings)
+    public static bool TryGetServiceBindings(this IResource resource, [NotNullWhen(true)] out IEnumerable<ServiceBindingAnnotation>? serviceBindings)
     {
         return TryGetAnnotationsOfType(resource, out serviceBindings);
     }
 
-    public static bool TryGetAllocatedEndPoints(this IDistributedApplicationResource resource, [NotNullWhen(true)] out IEnumerable<AllocatedEndpointAnnotation>? allocatedEndPoints)
+    public static bool TryGetAllocatedEndPoints(this IResource resource, [NotNullWhen(true)] out IEnumerable<AllocatedEndpointAnnotation>? allocatedEndPoints)
     {
         return TryGetAnnotationsOfType(resource, out allocatedEndPoints);
     }
 
-    public static bool TryGetContainerImageName(this IDistributedApplicationResource resource, [NotNullWhen(true)] out string? imageName)
+    public static bool TryGetContainerImageName(this IResource resource, [NotNullWhen(true)] out string? imageName)
     {
         if (resource.Annotations.OfType<ContainerImageAnnotation>().LastOrDefault() is { } imageAnnotation)
         {
@@ -71,7 +71,7 @@ public static class DistributedApplicationResourceExtensions
         return false;
     }
 
-    public static int GetReplicaCount(this IDistributedApplicationResource resource)
+    public static int GetReplicaCount(this IResource resource)
     {
         if (resource.TryGetLastAnnotation<ReplicaAnnotation>(out var replicaAnnotation))
         {

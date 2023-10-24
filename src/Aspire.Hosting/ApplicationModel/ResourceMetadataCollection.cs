@@ -5,6 +5,6 @@ using System.Collections.ObjectModel;
 
 namespace Aspire.Hosting.ApplicationModel;
 
-public sealed class ResourceMetadataCollection : Collection<IDistributedApplicationResourceAnnotation>
+public sealed class ResourceMetadataCollection : Collection<IResourceAnnotation>
 {
 }

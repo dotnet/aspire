@@ -3,6 +3,7 @@
 
 namespace Aspire.Hosting.ApplicationModel;
 
-public interface IDistributedApplicationResourceAnnotation
+public interface IResourceCollection : IList<IResource>
 {
 }
+

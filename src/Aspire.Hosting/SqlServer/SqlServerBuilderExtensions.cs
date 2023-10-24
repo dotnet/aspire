@@ -4,7 +4,6 @@
 using System.Net.Sockets;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.SqlServer;
 
 namespace Aspire.Hosting;
 
@@ -17,8 +16,8 @@ public static class SqlServerBuilderExtensions
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="password">The password of the SQL Server. By default, this will be randomly generated.</param>
     /// <param name="port">The host port for the SQL Server.</param>
-    /// <returns>A reference to the <see cref="IDistributedApplicationResourceBuilder{SqlServerContainerResource}"/>.</returns>
-    public static IDistributedApplicationResourceBuilder<SqlServerContainerResource> AddSqlServerContainer(this IDistributedApplicationBuilder builder, string name, string? password = null, int? port = null)
+    /// <returns>A reference to the <see cref="IResourceBuilder{SqlServerContainerResource}"/>.</returns>
+    public static IResourceBuilder<SqlServerContainerResource> AddSqlServerContainer(this IDistributedApplicationBuilder builder, string name, string? password = null, int? port = null)
     {
         password = password ?? Guid.NewGuid().ToString("N");
         var sqlServer = new SqlServerContainerResource(name, password);
@@ -37,8 +36,8 @@ public static class SqlServerBuilderExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="connectionString">The connection string.</param>
-    /// <returns>A reference to the <see cref="IDistributedApplicationResourceBuilder{SqlServerConnectionResource}"/>.</returns>
-    public static IDistributedApplicationResourceBuilder<SqlServerConnectionResource> AddSqlServerConnection(this IDistributedApplicationBuilder builder, string name, string? connectionString = null)
+    /// <returns>A reference to the <see cref="IResourceBuilder{SqlServerConnectionResource}"/>.</returns>
+    public static IResourceBuilder<SqlServerConnectionResource> AddSqlServerConnection(this IDistributedApplicationBuilder builder, string name, string? connectionString = null)
     {
         var sqlServerConnection = new SqlServerConnectionResource(name, connectionString);
 
@@ -68,8 +67,8 @@ public static class SqlServerBuilderExtensions
     /// </summary>
     /// <param name="builder">The SQL Server resource builders.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <returns>A reference to the <see cref="IDistributedApplicationResourceBuilder{SqlServerDatabaseResource}"/>.</returns>
-    public static IDistributedApplicationResourceBuilder<SqlServerDatabaseResource> AddDatabase(this IDistributedApplicationResourceBuilder<SqlServerContainerResource> builder, string name)
+    /// <returns>A reference to the <see cref="IResourceBuilder{SqlServerDatabaseResource}"/>.</returns>
+    public static IResourceBuilder<SqlServerDatabaseResource> AddDatabase(this IResourceBuilder<SqlServerContainerResource> builder, string name)
     {
         var sqlServerDatabase = new SqlServerDatabaseResource(name, builder.Resource);
         return builder.ApplicationBuilder.AddResource(sqlServerDatabase)

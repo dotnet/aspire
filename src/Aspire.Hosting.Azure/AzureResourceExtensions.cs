@@ -3,7 +3,6 @@
 
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Azure;
 
 namespace Aspire.Hosting;
 
@@ -14,8 +13,8 @@ public static class AzureResourceExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <returns>A reference to the <see cref="IDistributedApplicationResourceBuilder{AzureKeyVaultResource}"/>.</returns>
-    public static IDistributedApplicationResourceBuilder<AzureKeyVaultResource> AddAzureKeyVault(this IDistributedApplicationBuilder builder, string name)
+    /// <returns>A reference to the <see cref="IResourceBuilder{AzureKeyVaultResource}"/>.</returns>
+    public static IResourceBuilder<AzureKeyVaultResource> AddAzureKeyVault(this IDistributedApplicationBuilder builder, string name)
     {
         var keyVault = new AzureKeyVaultResource(name);
         return builder.AddResource(keyVault)
@@ -34,8 +33,8 @@ public static class AzureResourceExtensions
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="queueNames">A list of queue names associated with this service bus resource.</param>
     /// <param name="topicNames">A list of topic names associated with this service bus resource.</param>
-    /// <returns>A reference to the <see cref="IDistributedApplicationResourceBuilder{AzureServiceBusResource}"/>.</returns>
-    public static IDistributedApplicationResourceBuilder<AzureServiceBusResource> AddAzureServiceBus(this IDistributedApplicationBuilder builder, string name, string[]? queueNames = null, string[]? topicNames = null)
+    /// <returns>A reference to the <see cref="IResourceBuilder{AzureServiceBusResource}"/>.</returns>
+    public static IResourceBuilder<AzureServiceBusResource> AddAzureServiceBus(this IDistributedApplicationBuilder builder, string name, string[]? queueNames = null, string[]? topicNames = null)
     {
         var resource = new AzureServiceBusResource(name)
         {
@@ -77,8 +76,8 @@ public static class AzureResourceExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource.</param>
-    /// <returns>A reference to the <see cref="IDistributedApplicationResourceBuilder{AzureStorageResource}"/>.</returns>
-    public static IDistributedApplicationResourceBuilder<AzureStorageResource> AddAzureStorage(this IDistributedApplicationBuilder builder, string name)
+    /// <returns>A reference to the <see cref="IResourceBuilder{AzureStorageResource}"/>.</returns>
+    public static IResourceBuilder<AzureStorageResource> AddAzureStorage(this IDistributedApplicationBuilder builder, string name)
     {
         var resource = new AzureStorageResource(name);
         return builder.AddResource(resource)
@@ -95,8 +94,8 @@ public static class AzureResourceExtensions
     /// </summary>
     /// <param name="storageBuilder">The Azure storage resource builder.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <returns>A reference to the <see cref="IDistributedApplicationResourceBuilder{AzureBlobStorageResource}"/>.</returns>
-    public static IDistributedApplicationResourceBuilder<AzureBlobStorageResource> AddBlobs(this IDistributedApplicationResourceBuilder<AzureStorageResource> storageBuilder, string name)
+    /// <returns>A reference to the <see cref="IResourceBuilder{AzureBlobStorageResource}"/>.</returns>
+    public static IResourceBuilder<AzureBlobStorageResource> AddBlobs(this IResourceBuilder<AzureStorageResource> storageBuilder, string name)
     {
         var resource = new AzureBlobStorageResource(name, storageBuilder.Resource);
         return storageBuilder.ApplicationBuilder.AddResource(resource)
@@ -114,8 +113,8 @@ public static class AzureResourceExtensions
     /// </summary>
     /// <param name="storageBuilder">The Azure storage resource builder.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <returns>A reference to the <see cref="IDistributedApplicationResourceBuilder{AzureTableStorageResource}"/>.</returns>
-    public static IDistributedApplicationResourceBuilder<AzureTableStorageResource> AddTables(this IDistributedApplicationResourceBuilder<AzureStorageResource> storageBuilder, string name)
+    /// <returns>A reference to the <see cref="IResourceBuilder{AzureTableStorageResource}"/>.</returns>
+    public static IResourceBuilder<AzureTableStorageResource> AddTables(this IResourceBuilder<AzureStorageResource> storageBuilder, string name)
     {
         var resource = new AzureTableStorageResource(name, storageBuilder.Resource);
         return storageBuilder.ApplicationBuilder.AddResource(resource)
@@ -133,8 +132,8 @@ public static class AzureResourceExtensions
     /// </summary>
     /// <param name="builder">The Azure storage resource builder.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <returns>A reference to the <see cref="IDistributedApplicationResourceBuilder{AzureQueueStorageResource}"/>.</returns>
-    public static IDistributedApplicationResourceBuilder<AzureQueueStorageResource> AddQueues(this IDistributedApplicationResourceBuilder<AzureStorageResource> builder, string name)
+    /// <returns>A reference to the <see cref="IResourceBuilder{AzureQueueStorageResource}"/>.</returns>
+    public static IResourceBuilder<AzureQueueStorageResource> AddQueues(this IResourceBuilder<AzureStorageResource> builder, string name)
     {
         var resource = new AzureQueueStorageResource(name, builder.Resource);
         return builder.ApplicationBuilder.AddResource(resource)
@@ -152,8 +151,8 @@ public static class AzureResourceExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <returns>A reference to the <see cref="IDistributedApplicationResourceBuilder{AzureRedisResource}"/>.</returns>
-    public static IDistributedApplicationResourceBuilder<AzureRedisResource> AddAzureRedis(this IDistributedApplicationBuilder builder, string name)
+    /// <returns>A reference to the <see cref="IResourceBuilder{AzureRedisResource}"/>.</returns>
+    public static IResourceBuilder<AzureRedisResource> AddAzureRedis(this IDistributedApplicationBuilder builder, string name)
     {
         var resource = new AzureRedisResource(name);
         return builder.AddResource(resource)
