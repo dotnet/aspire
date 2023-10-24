@@ -26,4 +26,8 @@
     <PackageReference Include="Microsoft.Fast.Components.FluentUI.Icons" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Aspire.Dashboard.Tests"/>
+  </ItemGroup>
+
 </Project>

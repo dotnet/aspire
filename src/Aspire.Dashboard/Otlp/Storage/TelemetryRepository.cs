@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Dashboard.Otlp.Model;
 using Google.Protobuf.Collections;
 using Microsoft.Extensions.Configuration;
@@ -16,6 +17,8 @@ namespace Aspire.Dashboard.Otlp.Storage;
 
 public class TelemetryRepository
 {
+    private const int DefaultMaxTelemetryCount = 10_000;
+
     private int MaxOperationCount { get; init; }
     private int MaxLogCount { get; init; }
 
@@ -30,12 +33,12 @@ public class TelemetryRepository
     private readonly ConcurrentDictionary<string, OtlpApplication> _applications = new();
 
     private readonly ReaderWriterLockSlim _logsLock = new();
-    private readonly List<OtlpLogEntry> _logs = new();
+    private readonly CircularBuffer<OtlpLogEntry> _logs = new(DefaultMaxTelemetryCount);
     private readonly HashSet<(OtlpApplication Application, string PropertyKey)> _logPropertyKeys = new();
 
     private readonly ReaderWriterLockSlim _tracesLock = new();
     private readonly Dictionary<string, OtlpTraceScope> _traceScopes = new();
-    private readonly OtlpTraceCollection _traces = new();
+    private readonly CircularBuffer<OtlpTrace> _traces = new(DefaultMaxTelemetryCount);
 
     public TelemetryRepository(IConfiguration config, ILoggerFactory loggerFactory)
     {
@@ -454,7 +457,7 @@ public class TelemetryRepository
                         {
                             trace = lastTrace;
                         }
-                        else if (!_traces.TryGetValue(span.TraceId.Memory, out trace))
+                        else if (!TryGetTraceById(_traces, span.TraceId.Memory, out trace))
                         {
                             trace = new OtlpTrace(span.TraceId.Memory, traceScope);
                             newTrace = true;
@@ -532,6 +535,22 @@ public class TelemetryRepository
         finally
         {
             _tracesLock.ExitWriteLock();
+        }
+
+        static bool TryGetTraceById(CircularBuffer<OtlpTrace> traces, ReadOnlyMemory<byte> traceId, [NotNullWhen(true)] out OtlpTrace? trace)
+        {
+            var s = traceId.Span;
+            for (var i = traces.Count - 1; i >= 0; i--)
+            {
+                if (traces[i].Key.Span.SequenceEqual(s))
+                {
+                    trace = traces[i];
+                    return true;
+                }
+            }
+
+            trace = null;
+            return false;
         }
     }
 
