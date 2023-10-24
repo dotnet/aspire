@@ -5,8 +5,25 @@ using Aspire.Hosting.ApplicationModel;
 
 public class TestProgram
 {
+    private static int s_port = 6000;
+
     public TestProgram(string[] args)
     {
+        // Avoid port in use errors for tests running in the same process
+        if (!args.Any(s => s.Contains("ASPNETCORE_URLS")))
+        {
+            var newArr = new string[args.Length + 1];
+            Array.Copy(args, newArr, args.Length);
+            newArr[args.Length] = $"ASPNETCORE_URLS=http://localhost:{Interlocked.Increment(ref s_port)}";
+            args = newArr;
+        }
+        if (!args.Any(s => s.Contains("DOTNET_DASHBOARD_OTLP_ENDPOINT_URL")))
+        {
+            var newArr = new string[args.Length + 1];
+            Array.Copy(args, newArr, args.Length);
+            newArr[args.Length] = $"DOTNET_DASHBOARD_OTLP_ENDPOINT_URL=http://localhost:{Interlocked.Increment(ref s_port)}";
+            args = newArr;
+        }
         AppBuilder = DistributedApplication.CreateBuilder(args);
         ServiceABuilder = AppBuilder.AddProject<Projects.ServiceA>("servicea");
         ServiceBBuilder = AppBuilder.AddProject<Projects.ServiceB>("serviceb");
