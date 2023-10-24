@@ -49,6 +49,19 @@ public static class ResourceBuilderExtensions
         return builder.WithAnnotation(new EnvironmentCallbackAnnotation(callback));
     }
 
+    /// <summary>
+    /// Adds an environment variable to the resource with the binding for <paramref name="endpointReference"/>.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">The name of the environment variable.</param>
+    /// <param name="endpointReference">The endpoint from which to extract the service binding.</param>
+    /// <returns>A resource configured with the environment variable callback.</returns>
+    public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, EndpointReference endpointReference) where T : IResourceWithEnvironment
+    {
+        return builder.WithAnnotation(new EnvironmentCallbackAnnotation(name, () => endpointReference.UriString));
+    }
+
     private static bool ContainsAmbiguousEndpoints(IEnumerable<AllocatedEndpointAnnotation> endpoints)
     {
         // An ambiguous endpoint is where any scheme (
