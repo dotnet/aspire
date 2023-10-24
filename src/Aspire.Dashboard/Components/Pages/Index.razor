@@ -74,7 +74,7 @@
 
 @code
 {
-    protected override Task<List<ProjectViewModel>> GetResources(IDashboardViewModelService dashboardViewModelService)
+    protected override ValueTask<List<ProjectViewModel>> GetResources(IDashboardViewModelService dashboardViewModelService)
         => dashboardViewModelService.GetProjectsAsync();
 
     protected override IAsyncEnumerable<ResourceChanged<ProjectViewModel>> WatchResources(
