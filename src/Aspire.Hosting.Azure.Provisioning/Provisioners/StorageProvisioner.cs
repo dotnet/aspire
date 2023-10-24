@@ -36,6 +36,9 @@ internal sealed class StorageProvisioner(ILogger<StorageProvisioner> logger) : A
         return false;
     }
 
+    public override bool ShouldProvision(IConfiguration configuration, AzureStorageResource resource) =>
+        !resource.IsEmulator;
+
     public override async Task GetOrCreateResourceAsync(
         ArmClient armClient,
         SubscriptionResource subscription,
