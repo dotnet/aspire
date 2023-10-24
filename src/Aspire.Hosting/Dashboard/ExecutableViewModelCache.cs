@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Model;
@@ -27,7 +27,7 @@ internal sealed class ExecutableViewModelCache : ViewModelCache<Executable, Exec
         {
             Name = executable.Metadata.Name,
             NamespacedName = new(executable.Metadata.Name, null),
-            CreationTimeStamp = executable.Metadata?.CreationTimestamp?.ToLocalTime(),
+            CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToLocalTime(),
             ExecutablePath = executable.Spec.ExecutablePath,
             WorkingDirectory = executable.Spec.WorkingDirectory,
             Arguments = executable.Spec.Args,
