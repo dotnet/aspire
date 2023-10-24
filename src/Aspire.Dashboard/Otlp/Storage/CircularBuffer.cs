@@ -56,10 +56,13 @@ internal sealed class CircularBuffer<T> : IList<T>, ICollection<T>, IEnumerable<
 
     public void Insert(int index, T item)
     {
-        if (index > Count)
+        if (index == Count)
         {
-            throw new InvalidOperationException($"Cannot access index {index}. Buffer size is {Count}");
+            Add(item);
+            return;
         }
+
+        ValidateIndexInRange(index);
 
         if (IsFull)
         {
@@ -68,6 +71,7 @@ internal sealed class CircularBuffer<T> : IList<T>, ICollection<T>, IEnumerable<
                 // Item inserted at 0 is actually the "last" in the buffer and is removed.
                 return;
             }
+
             var internalIndex = InternalIndex(index);
 
             var data = CollectionsMarshal.AsSpan(_buffer);
@@ -93,12 +97,6 @@ internal sealed class CircularBuffer<T> : IList<T>, ICollection<T>, IEnumerable<
         }
         else
         {
-            if (_buffer.Count == 0 && index == 0)
-            {
-                _buffer.Add(item);
-                return;
-            }
-
             var internalIndex = index + _start;
             if (internalIndex > _buffer.Count)
             {

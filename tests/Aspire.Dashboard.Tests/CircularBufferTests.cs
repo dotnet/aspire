@@ -355,6 +355,15 @@ public class CircularBufferTests
             i => Assert.Equal("7", i),
             i => Assert.Equal("7.5", i),
             i => Assert.Equal("11", i));
+
+        b.Insert(5, "12");
+
+        Assert.Collection(b,
+            i => Assert.Equal("6.5", i),
+            i => Assert.Equal("7", i),
+            i => Assert.Equal("7.5", i),
+            i => Assert.Equal("11", i),
+            i => Assert.Equal("12", i));
     }
 
     [Fact]
