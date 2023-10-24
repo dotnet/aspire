@@ -59,7 +59,7 @@ public static class ResourceBuilderExtensions
     /// <returns>A resource configured with the environment variable callback.</returns>
     public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, EndpointReference endpointReference) where T : IResourceWithEnvironment
     {
-        return builder.WithAnnotation(new EnvironmentCallbackAnnotation(name, () => endpointReference.UriString ?? string.Empty));
+        return builder.WithAnnotation(new EnvironmentCallbackAnnotation(name, () => endpointReference.UriString));
     }
 
     private static bool ContainsAmbiguousEndpoints(IEnumerable<AllocatedEndpointAnnotation> endpoints)
