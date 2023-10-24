@@ -210,6 +210,13 @@ public class DnsSrvServiceEndPointResolverTests
                 Assert.Equal(new DnsEndPoint("localhost", 8080), initialResult.EndPoints[0].EndPoint);
                 Assert.Equal(new DnsEndPoint("remotehost", 9090), initialResult.EndPoints[1].EndPoint);
             }
+
+            Assert.All(initialResult.EndPoints, ep =>
+            {
+                var hostNameFeature = ep.Features.Get<IHostNameFeature>();
+                Assert.NotNull(hostNameFeature);
+                Assert.Equal("basket", hostNameFeature.HostName);
+            });
         }
     }
 

@@ -58,7 +58,7 @@ internal sealed partial class DnsSrvServiceEndPointResolverProvider(
 
         var portName = parts.EndPointName ?? "default";
         var srvQuery = $"_{portName}._tcp.{parts.Host}.{_querySuffix}";
-        resolver = new DnsSrvServiceEndPointResolver(serviceName, srvQuery, options, logger, dnsClient, timeProvider);
+        resolver = new DnsSrvServiceEndPointResolver(serviceName, srvQuery, hostName: parts.Host, options, logger, dnsClient, timeProvider);
         return true;
     }
 

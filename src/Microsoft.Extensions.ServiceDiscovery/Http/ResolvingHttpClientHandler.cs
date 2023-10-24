@@ -24,6 +24,7 @@ public class ResolvingHttpClientHandler(HttpServiceEndPointResolver resolver) : 
         {
             var result = await _resolver.GetEndpointAsync(request, cancellationToken).ConfigureAwait(false);
             request.RequestUri = ResolvingHttpDelegatingHandler.GetUriWithEndPoint(originalUri, result);
+            request.Headers.Host ??= result.Features.Get<IHostNameFeature>()?.HostName;
             epHealth = result.Features.Get<IEndPointHealthFeature>();
         }
 
