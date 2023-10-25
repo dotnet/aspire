@@ -121,7 +121,7 @@ internal sealed class CircularBuffer<T> : IList<T>, ICollection<T>, IEnumerable<
 
         var internalIndex = InternalIndex(index);
         _buffer.RemoveAt(internalIndex);
-        if (internalIndex <= _end)
+        if (internalIndex < _end)
         {
             Decrement(ref _end);
             _start = _end;

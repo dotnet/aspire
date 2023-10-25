@@ -388,7 +388,7 @@ public class CircularBufferTests
     }
 
     [Fact]
-    public void RemoveAtToZero()
+    public void RemoveAtStartToZero()
     {
         var b = CreateBuffer(5);
 
@@ -406,11 +406,72 @@ public class CircularBufferTests
         b.Add("11");
 
         b.RemoveAt(0);
-        b.RemoveAt(0);
-        b.RemoveAt(0);
-        b.RemoveAt(0);
-        b.RemoveAt(0);
+        Assert.Collection(b,
+            i => Assert.Equal("8", i),
+            i => Assert.Equal("9", i),
+            i => Assert.Equal("10", i),
+            i => Assert.Equal("11", i));
 
+        b.RemoveAt(0);
+        Assert.Collection(b,
+            i => Assert.Equal("9", i),
+            i => Assert.Equal("10", i),
+            i => Assert.Equal("11", i));
+
+        b.RemoveAt(0);
+        Assert.Collection(b,
+            i => Assert.Equal("10", i),
+            i => Assert.Equal("11", i));
+
+        b.RemoveAt(0);
+        Assert.Collection(b,
+            i => Assert.Equal("11", i));
+
+        b.RemoveAt(0);
+        Assert.Empty(b);
+    }
+
+    [Fact]
+    public void RemoveAtEndToZero()
+    {
+        var b = CreateBuffer(5);
+
+        b.Add("0");
+        b.Add("1");
+        b.Add("2");
+        b.Add("3");
+        b.Add("4");
+        b.Add("5");
+        b.Add("6");
+        b.Add("7");
+        b.Add("8");
+        b.Add("9");
+        b.Add("10");
+        b.Add("11");
+
+        b.RemoveAt(4);
+        Assert.Collection(b,
+            i => Assert.Equal("7", i),
+            i => Assert.Equal("8", i),
+            i => Assert.Equal("9", i),
+            i => Assert.Equal("10", i));
+
+        b.RemoveAt(3);
+        Assert.Collection(b,
+            i => Assert.Equal("7", i),
+            i => Assert.Equal("8", i),
+            i => Assert.Equal("9", i));
+
+        b.RemoveAt(2);
+        Assert.Collection(b,
+            i => Assert.Equal("7", i),
+            i => Assert.Equal("8", i));
+
+        b.RemoveAt(1);
+        Assert.Collection(b,
+            i => Assert.Equal("7", i));
+
+        b.RemoveAt(0);
         Assert.Empty(b);
     }
 }
