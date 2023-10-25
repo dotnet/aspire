@@ -1,58 +1,27 @@
 ﻿@using Aspire.Dashboard.Model
 @using Microsoft.Fast.Components.FluentUI;
 @implements IDialogContentComponent<List<LogEntryPropertyViewModel>>
-@inject IJSRuntime JS
 
 <FluentDialogBody>
-    <div class="GridContainer">
-        <FluentStack Orientation="Orientation.Vertical">
-            <FluentToolbar Orientation="Orientation.Horizontal">
-                <FluentSearch Placeholder="_filter..."
-                              Immediate="true"
-                              Autofocus="true"
-                              @bind-Value="_filter"
-                              @oninput="HandleFilter"
-                              AfterBindValue="HandleClear"
-                              slot="end" />
-            </FluentToolbar>
-            <FluentDataGrid Items="@FilteredItems"
-                            ResizableColumns="true"
-                            Style="width:100%"
-                            GenerateHeader="GenerateHeaderOption.Sticky"
-                            GridTemplateColumns="1fr 2fr">
-                <TemplateColumn Title="Name" Class="nameColumn" SortBy="@_nameSort" Sortable="true">
-                    <FluentStack Orientation="Orientation.Horizontal">
-                        <span class="cellText">
-                            <FluentHighlighter HighlightedText="@_filter" Text="@context.Name" />
-                        </span>
-                        @{
-                            var anchor = "name-" + context.Name;
-                        }
-                        <FluentButton Appearance="Appearance.Lightweight"
-                                      Id="@anchor"
-                                      IconEnd="@(new Icons.Regular.Size16.Copy())"
-                                      Class="defaultHidden"
-                                      OnClick="() => CopyTextToClipboardAsync(context.Name, anchor)" />
-                        <FluentTooltip Anchor="@anchor" Position="TooltipPosition.Top">@PreCopyText</FluentTooltip>
-                    </FluentStack>
-                </TemplateColumn>
-                <TemplateColumn Title="Value" Class="valueColumn" SortBy="@_valueSort" Sortable="true">
-                    <FluentStack Orientation="Orientation.Horizontal">
-                        <span class="cellText" title="@context.Value">
-                            <FluentHighlighter HighlightedText="@_filter" Text="@context.Value" />
-                        </span>
-                        @{
-                            var anchor = "copy-" + context.Name;
-                        }
-                        <FluentButton Appearance="Appearance.Lightweight"
-                                      Id="@anchor"
-                                      IconEnd="@(new Icons.Regular.Size16.Copy())"
-                                      Class="defaultHidden"
-                                      OnClick="() => CopyTextToClipboardAsync(context.Value, anchor)" />
-                        <FluentTooltip Anchor="@anchor" Position="TooltipPosition.Top">@PreCopyText</FluentTooltip>
-                    </FluentStack>
-                </TemplateColumn>
-            </FluentDataGrid>
-        </FluentStack>
-    </div>
+    <FluentStack Orientation="Orientation.Vertical">
+        <FluentToolbar Orientation="Orientation.Horizontal">
+            <FluentSearch Placeholder="Filter..."
+                            Immediate="true"
+                            Autofocus="true"
+                            @bind-Value="_filter"
+                            @oninput="HandleFilter"
+                            AfterBindValue="HandleClear"
+                            slot="end" />
+        </FluentToolbar>
+        <div class="dialog-grid-container">
+            <PropertyGrid TItem="LogEntryPropertyViewModel"
+                          Items="@FilteredItems"
+                          GridTemplateColumns="1fr 2fr"
+                          NameColumnValue="(vm) => vm.Name"
+                          ValueColumnValue="(vm) => vm.Value"
+                          NameSort="_nameSort"
+                          ValueSort="_valueSort"
+                          HighlightText="@_filter" />
+        </div>
+    </FluentStack>
 </FluentDialogBody>

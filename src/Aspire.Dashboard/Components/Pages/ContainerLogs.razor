@@ -19,7 +19,7 @@
     protected override string SelectResourceTitle => "Select a Container";
     protected override bool ConvertTimestampsFromUtc => true;
 
-    protected override Task<List<ContainerViewModel>> GetResources(IDashboardViewModelService dashboardViewModelService)
+    protected override ValueTask<List<ContainerViewModel>> GetResources(IDashboardViewModelService dashboardViewModelService)
         => dashboardViewModelService.GetContainersAsync();
 
     protected override IAsyncEnumerable<ResourceChanged<ContainerViewModel>> WatchResources(IDashboardViewModelService dashboardViewModelService, IEnumerable<NamespacedName>? initialList, CancellationToken cancellationToken)

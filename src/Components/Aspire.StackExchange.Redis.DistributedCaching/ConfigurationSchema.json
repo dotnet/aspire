@@ -1,0 +1,14 @@
+{
+  "definitions": {
+    "logLevel": {
+      "properties": {
+        "Microsoft.Extensions.Caching.StackExchangeRedis": {
+          "$ref": "#/definitions/logLevelThreshold"
+        }
+      }
+    }
+  },
+  "properties": {
+  },
+  "type": "object"
+}

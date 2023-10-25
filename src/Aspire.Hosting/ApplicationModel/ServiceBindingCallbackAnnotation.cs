@@ -3,7 +3,7 @@
 
 namespace Aspire.Hosting.ApplicationModel;
 
-internal sealed class ServiceBindingCallbackAnnotation(string publisherName, string bindingName, Func<ServiceBindingCallbackContext, ServiceBindingAnnotation>? callback) : IDistributedApplicationResourceAnnotation
+internal sealed class ServiceBindingCallbackAnnotation(string publisherName, string bindingName, Func<ServiceBindingCallbackContext, ServiceBindingAnnotation>? callback) : IResourceAnnotation
 {
     public string PublisherName { get; } = publisherName;
     public string BindingName { get; } = bindingName;

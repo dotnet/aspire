@@ -5,7 +5,8 @@ using System.Text.Json;
 
 namespace Aspire.Hosting.ApplicationModel;
 
-public class ManifestPublishingCallbackAnnotation(Action<Utf8JsonWriter> callback) : IDistributedApplicationResourceAnnotation
+public class ManifestPublishingCallbackAnnotation(Action<Utf8JsonWriter>? callback) : IResourceAnnotation
 {
-    public Action<Utf8JsonWriter> Callback { get; } = callback;
+    public Action<Utf8JsonWriter>? Callback { get; } = callback;
+    public static ManifestPublishingCallbackAnnotation Ignore { get; } = new ManifestPublishingCallbackAnnotation(null);
 }

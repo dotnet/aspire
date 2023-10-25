@@ -1,9 +1,10 @@
+using CatalogDb;
 using CatalogService;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
-builder.AddNpgsqlDbContext<CatalogDbContext>("catalog");
+builder.AddNpgsqlDbContext<CatalogDbContext>("catalogdb");
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddProblemDetails();
@@ -23,7 +24,5 @@ else
 
 app.MapCatalogApi();
 app.MapDefaultEndpoints();
-
-await app.Services.InitializeDatabaseAsync();
 
 app.Run();

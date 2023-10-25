@@ -22,7 +22,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
     public IServiceCollection Services => _innerBuilder.Services;
 
-    public IDistributedApplicationResourceCollection Resources { get; } = new DistributedApplicationResourceCollection();
+    public IResourceCollection Resources { get; } = new ResourceCollection();
 
     public DistributedApplicationBuilder(string[] args)
     {
@@ -41,6 +41,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         // Publishing support
         ConfigurePublishingOptions(args);
         _innerBuilder.Services.AddLifecycleHook<AutomaticManifestPublisherBindingInjectionHook>();
+        _innerBuilder.Services.AddLifecycleHook<Http2TransportMutationHook>();
         _innerBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, ManifestPublisher>("manifest");
         _innerBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, DcpPublisher>("dcp");
     }
@@ -71,24 +72,15 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         
     }
 
-    public Dictionary<IDistributedApplicationResource, object> resourceBuilders = new();
-
-    public IDistributedApplicationResourceBuilder<T> AddResource<T>(T resource) where T : IDistributedApplicationResource
+    public IResourceBuilder<T> AddResource<T>(T resource) where T : IResource
     {
-        // NOTE: This method is designed to be idempotent. Occasionally libraries will need to
-        //       get access to a pre-existing builder that is wrapping a resource. We store
-        //       references to all the builders we create so that if someone calls add resource
-        //       on a resource that is already in the model we return the existing builder.
-        if (resourceBuilders.TryGetValue(resource, out var existingBuilder))
+        if (Resources.FirstOrDefault(r => r.Name == resource.Name) is { } existingResource)
         {
-            return (IDistributedApplicationResourceBuilder<T>)existingBuilder;
+            throw new DistributedApplicationException($"Cannot add resource of type '{resource.GetType()}' with name '{resource.Name}' because resource of type '{existingResource.GetType()}' with that name already exists.");
         }
-        else
-        {
-            Resources.Add(resource);
-            var builder = new DistributedApplicationResourceBuilder<T>(this, resource);
-            resourceBuilders.Add(resource, builder);
-            return builder;
-        }
+
+        Resources.Add(resource);
+        var builder = new DistributedApplicationResourceBuilder<T>(this, resource);
+        return builder;
     }
 }

@@ -13,6 +13,7 @@
     <ProjectReference Include="..\..\..\src\Aspire.Hosting.Azure.Provisioning\Aspire.Hosting.Azure.Provisioning.csproj" />
     <ProjectReference Include="..\ApiGateway\ApiGateway.csproj" />
     <ProjectReference Include="..\BasketService\BasketService.csproj" />
+    <ProjectReference Include="..\CatalogDb\CatalogDb.csproj" />
     <ProjectReference Include="..\CatalogService\CatalogService.csproj" />
     <ProjectReference Include="..\MyFrontend\MyFrontend.csproj" />
     <ProjectReference Include="..\OrderProcessor\OrderProcessor.csproj" />

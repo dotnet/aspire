@@ -1,6 +1,6 @@
 # Aspire.StackExchange.Redis library
 
-Registers an [IConnectionMultiplexer](https://stackexchange.github.io/StackExchange.Redis/Basics) in the DI container for connecting to [Redis](https://redis.io/) server. Enables corresponding health check, logging, and telemetry.
+Registers an [IConnectionMultiplexer](https://stackexchange.github.io/StackExchange.Redis/Basics) in the DI container for connecting to [Redis](https://redis.io/)®* server. Enables corresponding health check, logging, and telemetry.
 
 ## Getting started
 
@@ -16,17 +16,17 @@ Install the Aspire StackExchange Redis library with [NuGet][nuget]:
 dotnet add package Aspire.StackExchange.Redis
 ```
 
-## Usage Example
+## Usage example
 
-In the `Program.cs` file of your project, call the `AddRedis` extension method to register an `IConnectionMultiplexer` for use via the dependency injection container. The method takes a connection name parameter.
+In the _Program.cs_ file of your project, call the `AddRedis` extension method to register an `IConnectionMultiplexer` for use via the dependency injection container. The method takes a connection name parameter.
 
-```cs
+```csharp
 builder.AddRedis("cache");
 ```
 
 You can then retrieve the `IConnectionMultiplexer` instance using dependency injection. For example, to retrieve the connection multiplexer from a Web API controller:
 
-```cs
+```csharp
 private readonly IConnectionMultiplexer _cache;
 
 public ProductsController(IConnectionMultiplexer cache)
@@ -45,7 +45,7 @@ The Aspire StackExchange Redis component provides multiple options to configure 
 
 When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddRedis()`:
 
-```cs
+```csharp
 builder.AddRedis("myRedisConnectionName");
 ```
 
@@ -86,30 +86,30 @@ The Redis component supports [Microsoft.Extensions.Configuration](https://learn.
 
 You can also pass the `Action<StackExchangeRedisSettings> configureSettings` delegate to set up some or all the options inline, for example to disable health checks from code:
 
-```cs
+```csharp
 builder.AddRedis("cache", settings => settings.HealthChecks = false);
 ```
 
 You can also setup the [ConfigurationOptions](https://stackexchange.github.io/StackExchange.Redis/Configuration.html#configuration-options) using the `Action<ConfigurationOptions> configureOptions` delegate parameter of the `AddRedis` method. For example to set the connection timeout:
 
-```cs
+```csharp
 builder.AddRedis("cache", configureOptions: options => options.ConnectTimeout = 3000);
 ```
 
-## AppHost Extensions
+## AppHost extensions
 
 In your AppHost project, register a Redis container and consume the connection using the following methods:
 
-```cs
+```csharp
 var redis = builder.AddRedisContainer("cache");
 
 var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(redis);
 ```
 
-`.WithReference` configures a connection in the `MyService` project named `cache`. In the `Program.cs` file of `MyService`, the redis connection can be consumed using:
+The `WithReference` method configures a connection in the `MyService` project named `cache`. In the _Program.cs_ file of `MyService`, the redis connection can be consumed using:
 
-```cs
+```csharp
 builder.AddRedis("cache");
 ```
 
@@ -118,6 +118,8 @@ builder.AddRedis("cache");
 * https://stackexchange.github.io/StackExchange.Redis/Basics
 * https://github.com/dotnet/aspire/tree/main/src/Components/README.md
 
-## Feedback & Contributing
+## Feedback & contributing
 
 https://github.com/dotnet/aspire
+
+_*Redis is a registered trademark of Redis Ltd. Any rights therein are reserved to Redis Ltd._

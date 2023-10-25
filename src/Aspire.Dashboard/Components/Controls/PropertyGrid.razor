@@ -1,0 +1,17 @@
+﻿@typeparam TItem
+
+<FluentDataGrid Items="@Items"
+                ResizableColumns="true"
+                Style="width:100%"
+                GenerateHeader="GenerateHeaderOption.Sticky"
+                GridTemplateColumns="@GridTemplateColumns">
+    <TemplateColumn Title="@NameColumnTitle" Class="nameColumn" SortBy="@NameSort" Sortable="@IsNameSortable">
+        <GridValue Value="@NameColumnValue(context)" HighlightText="@HighlightText" />
+    </TemplateColumn>
+    <TemplateColumn Title="@ValueColumnTitle" Class="valueColumn" SortBy="@ValueSort" Sortable="@IsValueSortable">
+        <GridValue Value="@ValueColumnValue(context)" HighlightText="@HighlightText"
+                   EnableMasking="@EnableValueMasking" IsMasked="@GetIsItemMasked(context)"
+                   IsMaskedChanged="(newValue) => OnIsMaskedChanged(context, newValue)" />
+    </TemplateColumn>
+</FluentDataGrid>
+

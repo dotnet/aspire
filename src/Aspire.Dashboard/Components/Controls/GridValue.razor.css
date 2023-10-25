@@ -1,0 +1,22 @@
+.container {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: calc((6 + (var(--design-unit) * var(--density))) * 1px);
+}
+
+.masking-enabled {
+    grid-template-columns: 1fr auto auto;
+}
+
+::deep .cellText {
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+
+::deep .defaultHidden {
+    visibility: hidden;
+}
+
+::deep:hover .defaultHidden {
+    visibility: visible;
+}

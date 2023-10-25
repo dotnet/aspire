@@ -22,6 +22,10 @@
       "apiServiceHttpsPort": {
         "isHidden": true
       },
+      "NoHttps": {
+        "longName": "no-https",
+        "shortName": ""
+      },
       "UseRedisCache": {
         "longName": "use-redis-cache",
         "shortName": ""

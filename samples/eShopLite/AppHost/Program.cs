@@ -2,30 +2,33 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 builder.AddAzureProvisioning();
 
-var catalogdb = builder.AddPostgresContainer("postgres").AddDatabase("catalog");
+var catalogDb = builder.AddPostgresContainer("postgres").AddDatabase("catalogdb");
 
-var redis = builder.AddRedisContainer("basketCache");
+var basketCache = builder.AddRedisContainer("basketcache");
 
-var catalog = builder.AddProject<Projects.CatalogService>("catalogservice")
-                     .WithReference(catalogdb)
+var catalogService = builder.AddProject<Projects.CatalogService>("catalogservice")
+                     .WithReference(catalogDb)
                      .WithReplicas(2);
 
-var serviceBus = builder.AddAzureServiceBus("messaging", queueNames: ["orders"]);
+var ordersQueue = builder.AddAzureServiceBus("messaging", queueNames: ["orders"]);
 
-var basket = builder.AddProject<Projects.BasketService>("basketservice")
-                    .WithReference(redis)
-                    .WithReference(serviceBus, optional: true);
+var basketService = builder.AddProject<Projects.BasketService>("basketservice")
+                    .WithReference(basketCache)
+                    .WithReference(ordersQueue, optional: true);
 
-builder.AddProject<Projects.MyFrontend>("myfrontend")
-       .WithReference(basket)
-       .WithReference(catalog.GetEndpoint("http"));
+builder.AddProject<Projects.MyFrontend>("frontend")
+       .WithReference(basketService)
+       .WithReference(catalogService.GetEndpoint("http"));
 
 builder.AddProject<Projects.OrderProcessor>("orderprocessor")
-       .WithReference(serviceBus, optional: true)
+       .WithReference(ordersQueue, optional: true)
        .WithLaunchProfile("OrderProcessor");
 
 builder.AddProject<Projects.ApiGateway>("apigateway")
-       .WithReference(basket)
-       .WithReference(catalog);
+       .WithReference(basketService)
+       .WithReference(catalogService);
+
+builder.AddProject<Projects.CatalogDb>("catalogdbapp")
+       .WithReference(catalogDb);
 
 builder.Build().Run();

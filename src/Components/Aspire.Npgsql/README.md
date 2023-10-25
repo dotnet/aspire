@@ -1,6 +1,6 @@
 # Aspire.Npgsql library
 
-Registers [NpgsqlDataSource](https://www.npgsql.org/doc/api/Npgsql.NpgsqlDataSource.html) in the DI container for connecting PostgreSQL database. Enables corresponding health check, metrics, logging and telemetry.
+Registers [NpgsqlDataSource](https://www.npgsql.org/doc/api/Npgsql.NpgsqlDataSource.html) in the DI container for connecting PostgreSQL®* database. Enables corresponding health check, metrics, logging and telemetry.
 
 ## Getting started
 
@@ -16,17 +16,17 @@ Install the Aspire PostgreSQL Npgsql library with [NuGet][nuget]:
 dotnet add package Aspire.Npgsql
 ```
 
-## Usage Example
+## Usage example
 
-In the `Program.cs` file of your project, call the `AddNpgsqlDataSource` extension method to register a `NpgsqlDataSource` for use via the dependency injection container. The method takes a connection name parameter.
+In the _Program.cs_ file of your project, call the `AddNpgsqlDataSource` extension method to register a `NpgsqlDataSource` for use via the dependency injection container. The method takes a connection name parameter.
 
-```cs
+```csharp
 builder.AddNpgsqlDataSource("postgresdb");
 ```
 
 You can then retrieve the `NpgsqlDataSource` instance using dependency injection. For example, to retrieve the data source from a Web API controller:
 
-```cs
+```csharp
 private readonly NpgsqlDataSource _dataSource;
 
 public ProductsController(NpgsqlDataSource dataSource)
@@ -43,7 +43,7 @@ The Aspire PostgreSQL Npgsql component provides multiple options to configure th
 
 When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddNpgsqlDataSource()`:
 
-```cs
+```csharp
 builder.AddNpgsqlDataSource("myConnection");
 ```
 
@@ -78,24 +78,24 @@ The Aspire PostgreSQL Npgsql component supports [Microsoft.Extensions.Configurat
 
 Also you can pass the `Action<NpgsqlSettings> configureSettings` delegate to set up some or all the options inline, for example to disable health checks from code:
 
-```cs
+```csharp
     builder.AddNpgsqlDataSource("postgresdb", settings => settings.HealthChecks = false);
 ```
 
-## AppHost Extensions
+## AppHost extensions
 
 In your AppHost project, register a Postgres container and consume the connection using the following methods:
 
-```cs
+```csharp
 var postgresdb = builder.AddPostgresContainer("pg").AddDatabase("postgresdb");
 
 var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(postgresdb);
 ```
 
-`.WithReference` configures a connection in the `MyService` project named `postgresdb`. In the `Program.cs` file of `MyService`, the database connection can be consumed using:
+The `WithReference` method configures a connection in the `MyService` project named `postgresdb`. In the _Program.cs_ file of `MyService`, the database connection can be consumed using:
 
-```cs
+```csharp
 builder.AddNpgsqlDataSource("postgresdb");
 ```
 
@@ -104,6 +104,8 @@ builder.AddNpgsqlDataSource("postgresdb");
 * https://www.npgsql.org/doc/basic-usage.html
 * https://github.com/dotnet/aspire/tree/main/src/Components/README.md
 
-## Feedback & Contributing
+## Feedback & contributing
 
 https://github.com/dotnet/aspire
+
+_*Postgres, PostgreSQL and the Slonik Logo are trademarks or registered trademarks of the PostgreSQL Community Association of Canada, and used with their permission._

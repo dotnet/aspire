@@ -27,17 +27,4 @@ public class DnsServiceEndPointResolverOptions
     /// Gets or sets the retry period growth factor.
     /// </summary>
     public double RetryBackOffFactor { get; set; } = 2;
-
-    /// <summary>
-    /// Gets or sets the default DNS namespace for services resolved via this provider.
-    /// </summary>
-    /// <remarks>
-    /// If not specified, the provider will attempt to infer the namespace.
-    /// </remarks>
-    public string? DnsNamespace { get; set; }
-
-    /// <summary>
-    /// Gets or sets a value indicating whether to use DNS SRV queries to discover host addresses and ports.
-    /// </summary>
-    public bool UseSrvQuery { get; set; }
 }

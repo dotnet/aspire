@@ -16,17 +16,17 @@ Install the Aspire SQL Server EntityFrameworkCore SqlClient library with [NuGet]
 dotnet add package Aspire.Microsoft.EntityFrameworkCore.SqlServer
 ```
 
-## Usage Example
+## Usage example
 
-In the `Program.cs` file of your project, call the `AddSqlServerDbContext` extension method to register a `DbContext` for use via the dependency injection container. The method takes a connection name parameter.
+In the _Program.cs_ file of your project, call the `AddSqlServerDbContext` extension method to register a `DbContext` for use via the dependency injection container. The method takes a connection name parameter.
 
-```cs
+```csharp
 builder.AddSqlServerDbContext<MyDbContext>("sqldata");
 ```
 
 You can then retrieve the `MyDbContext` instance using dependency injection. For example, to retrieve the context from a Web API controller:
 
-```cs
+```csharp
 private readonly MyDbContext _context;
 
 public ProductsController(MyDbContext context)
@@ -43,7 +43,7 @@ The Aspire SQL Server EntityFrameworkCore SqlClient component provides multiple 
 
 When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddSqlServerDbContext<TContext>()`:
 
-```cs
+```csharp
 builder.AddSqlServerDbContext<MyDbContext>("myConnection");
 ```
 
@@ -84,24 +84,24 @@ The Aspire SQL Server EntityFrameworkCore SqlClient component supports [Microsof
 
 Also you can pass the `Action<MicrosoftEntityFrameworkCoreSqlServerSettings> configureSettings` delegate to set up some or all the options inline, for example to disable health checks from code:
 
-```cs
+```csharp
     builder.AddSqlServerDbContext<MyDbContext>("sqldata", settings => settings.HealthChecks = false);
 ```
 
-## AppHost Extensions
+## AppHost extensions
 
 In your AppHost project, register a SqlServer container and consume the connection using the following methods:
 
-```cs
+```csharp
 var sql = builder.AddSqlServerContainer("sql").AddDatabase("sqldata");
 
 var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(sql);
 ```
 
-`.WithReference` configures a connection in the `MyService` project named `sqldata`. In the `Program.cs` file of `MyService`, the sql connection can be consumed using:
+The `WithReference` method configures a connection in the `MyService` project named `sqldata`. In the _Program.cs_ file of `MyService`, the sql connection can be consumed using:
 
-```cs
+```csharp
 builder.AddSqlServerDbContext<MyDbContext>("sqldata");
 ```
 
@@ -110,6 +110,6 @@ builder.AddSqlServerDbContext<MyDbContext>("sqldata");
 * https://learn.microsoft.com/ef/core/
 * https://github.com/dotnet/aspire/tree/main/src/Components/README.md
 
-## Feedback & Contributing
+## Feedback & contributing
 
 https://github.com/dotnet/aspire

@@ -13,13 +13,13 @@ public interface IDistributedApplicationBuilder
     public ConfigurationManager Configuration { get; }
     public IHostEnvironment Environment { get; }
     public IServiceCollection Services { get; }
-    public IDistributedApplicationResourceCollection Resources { get; }
+    public IResourceCollection Resources { get; }
 
     /// <summary>
     /// Adds a resource to the application.
     /// </summary>
     /// <returns></returns>
-    IDistributedApplicationResourceBuilder<T> AddResource<T>(T resource) where T : IDistributedApplicationResource;
+    IResourceBuilder<T> AddResource<T>(T resource) where T : IResource;
 
     DistributedApplication Build();
 }

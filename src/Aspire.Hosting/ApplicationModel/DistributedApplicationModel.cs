@@ -6,9 +6,9 @@ using System.Diagnostics;
 namespace Aspire.Hosting.ApplicationModel;
 
 [DebuggerDisplay("Name = {Name}, Resources = {Resources.Count}")]
-public class DistributedApplicationModel(IDistributedApplicationResourceCollection resources)
+public class DistributedApplicationModel(IResourceCollection resources)
 {
-    public IDistributedApplicationResourceCollection Resources { get; } = resources;
+    public IResourceCollection Resources { get; } = resources;
 
     public string? Name { get; set; }
 }

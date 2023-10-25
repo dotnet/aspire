@@ -96,6 +96,7 @@ public class TraceTests
                 }
             }
         });
+        Assert.Equal(0, addContext1.FailureCount);
 
         var addContext2 = new AddContext();
         repository.AddTraces(addContext2, new RepeatedField<ResourceSpans>()
@@ -116,6 +117,7 @@ public class TraceTests
                 }
             }
         });
+        Assert.Equal(0, addContext2.FailureCount);
 
         var applications = repository.GetApplications();
         Assert.Collection(applications,
@@ -165,6 +167,7 @@ public class TraceTests
                 }
             }
         });
+        Assert.Equal(0, addContext3.FailureCount);
 
         var traces2 = repository.GetTraces(new GetTracesRequest
         {

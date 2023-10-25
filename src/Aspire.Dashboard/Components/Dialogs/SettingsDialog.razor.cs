@@ -2,12 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.Fast.Components.FluentUI;
-using Microsoft.Fast.Components.FluentUI.DesignTokens;
 using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Dialogs;
 
-public partial class SettingsDialog : IDialogContentComponent
+public partial class SettingsDialog : IDialogContentComponent, IAsyncDisposable
 {
     private const float DarkThemeLuminance = 0.15f;
     private const float LightThemeLuminance = 0.95f;
@@ -17,24 +16,27 @@ public partial class SettingsDialog : IDialogContentComponent
 
     private string _currentSetting = ThemeSettingSystem;
 
+    private IJSObjectReference? _jsModule;
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            _currentSetting = await JS.InvokeAsync<string>("getThemeCookieValue");
+            _jsModule = await JS.InvokeAsync<IJSObjectReference>("import", "/_content/Aspire.Dashboard/js/theme.js");
+            _currentSetting = await _jsModule.InvokeAsync<string>("getThemeCookieValue");
             StateHasChanged();
         }
     }
 
     private async Task SettingChangedAsync(string newValue)
     {
-        var newLuminanceValue = await GetBaseLayerLuminanceForSetting(newValue);
+        if (_jsModule is not null)
+        {
+            var newLuminanceValue = await GetBaseLayerLuminanceForSetting(newValue);
 
-        // Need to set the accent base color swatch because our custom web components sources only sets
-        // the base color and the swatch will rever to the default if we don't set it explicitly here
-        await AccentBaseColor.SetValueFor(GlobalState.Container, "#512BD4".ToSwatch());
-        await BaseLayerLuminance.SetValueFor(GlobalState.Container, newLuminanceValue);
-        await JS.InvokeVoidAsync("setThemeCookie", newValue);
+            await _jsModule.InvokeVoidAsync("setDefaultBaseLayerLuminance", newLuminanceValue);
+            await _jsModule.InvokeVoidAsync("setThemeCookie", newValue);
+        }
 
         _currentSetting = newValue;
     }
@@ -57,14 +59,31 @@ public partial class SettingsDialog : IDialogContentComponent
 
     private async Task<float> GetSystemThemeLuminance()
     {
-        var systemTheme = await JS.InvokeAsync<string>("getSystemTheme");
-        if (systemTheme == ThemeSettingDark)
+        if (_jsModule is not null)
         {
-            return DarkThemeLuminance;
+            var systemTheme = await _jsModule.InvokeAsync<string>("getSystemTheme");
+            if (systemTheme == ThemeSettingDark)
+            {
+                return DarkThemeLuminance;
+            }
         }
-        else
+
+        return LightThemeLuminance;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
         {
-            return LightThemeLuminance;
+            if (_jsModule is not null)
+            {
+                await _jsModule.DisposeAsync();
+            }
+        }
+        catch (JSDisconnectedException)
+        {
+            // Per https://learn.microsoft.com/en-us/aspnet/core/blazor/javascript-interoperability/?view=aspnetcore-7.0#javascript-interop-calls-without-a-circuit
+            // this is one of the calls that will fail if the circuit is disconnected, and we just need to catch the exception so it doesn't pollute the logs
         }
     }
 }

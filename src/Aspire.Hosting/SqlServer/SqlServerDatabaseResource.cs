@@ -1,18 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.ApplicationModel;
+namespace Aspire.Hosting.ApplicationModel;
 
-namespace Aspire.Hosting.SqlServer;
-
-public class SqlServerDatabaseResource : ContainerResource, ISqlServerResource, IDistributedApplicationResourceWithParent<SqlServerContainerResource>
+public class SqlServerDatabaseResource(string name, SqlServerContainerResource sqlServerContainer) : ContainerResource(name), ISqlServerResource, IResourceWithParent<SqlServerContainerResource>
 {
-    public SqlServerDatabaseResource(string name, SqlServerContainerResource sqlServerContainer) : base(name)
-    {
-        Parent = sqlServerContainer;
-    }
-
-    public SqlServerContainerResource Parent { get; }
+    public SqlServerContainerResource Parent { get; } = sqlServerContainer;
 
     public string? GetConnectionString()
     {

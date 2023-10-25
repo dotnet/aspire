@@ -60,4 +60,31 @@ public class OtlpSpan
             Events = item.Events
         };
     }
+
+    public Dictionary<string, string> AllProperties()
+    {
+        var props = new Dictionary<string, string>
+        {
+            { "SpanId", SpanId },
+            { "Name", Name },
+            { "Kind", Kind.ToString() },
+        };
+
+        if (Status != OtlpSpanStatusCode.Unset)
+        {
+            props.Add("Status", Status.ToString());
+        }
+
+        if (!string.IsNullOrEmpty(StatusMessage))
+        {
+            props.Add("StatusMessage", StatusMessage);
+        }
+
+        foreach (var kv in Attributes)
+        {
+            props.TryAdd(kv.Key, kv.Value);
+        }
+
+        return props;
+    }
 }

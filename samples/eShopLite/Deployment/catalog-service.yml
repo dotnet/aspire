@@ -22,7 +22,7 @@ spec:
           - containerPort: 8080
           #- containerPort: 443
           env:
-          - name: ConnectionStrings__CatalogDb
+          - name: ConnectionStrings__catalog
             value: "Host=postgres-service;Database=catalog;Username=postgres;Password=postgres"
       terminationGracePeriodSeconds: 180
   minReadySeconds: 60

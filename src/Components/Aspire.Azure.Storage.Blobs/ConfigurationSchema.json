@@ -1,5 +1,19 @@
 {
-  "type": "object",
+  "definitions": {
+    "logLevel": {
+      "properties": {
+        "Azure": {
+          "$ref": "#/definitions/logLevelThreshold"
+        },
+        "Azure.Core": {
+          "$ref": "#/definitions/logLevelThreshold"
+        },
+        "Azure.Identity": {
+          "$ref": "#/definitions/logLevelThreshold"
+        }
+      }
+    }
+  },
   "properties": {
     "Aspire": {
       "type": "object",
@@ -89,5 +103,6 @@
         }
       }
     }
-  }
+  },
+  "type": "object"
 }

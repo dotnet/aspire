@@ -1,3 +1,5 @@
+using CatalogDb;
+
 namespace CatalogService;
 
 public static class CatalogApi

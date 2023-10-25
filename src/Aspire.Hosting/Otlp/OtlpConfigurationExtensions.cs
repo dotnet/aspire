@@ -12,7 +12,7 @@ public static class OtlpConfigurationExtensions
     private const string DashboardOtlpUrlVariableName = "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL";
     private const string DashboardOtlpUrlDefaultValue = "http://localhost:18889";
 
-    public static void AddOtlpEnvironment(IDistributedApplicationResource resource, IConfiguration configuration, IHostEnvironment environment)
+    public static void AddOtlpEnvironment(IResource resource, IConfiguration configuration, IHostEnvironment environment)
     {
         // Configure OpenTelemetry in projects using environment variables.
         // https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/configuration/sdk-environment-variables.md
@@ -43,7 +43,16 @@ public static class OtlpConfigurationExtensions
         }));
     }
 
-    public static IDistributedApplicationResourceBuilder<T> ConfigureOtlpEnvironment<T>(this IDistributedApplicationResourceBuilder<T> builder) where T : IDistributedApplicationResourceWithEnvironment
+    /// <summary>
+    /// Injects the appropriate environment variables to allow the resource to enable sending telemetry to the dashboard.
+    /// 1. It sets the OTLP endpoint to the value of the DOTNET_DASHBOARD_OTLP_ENDPOINT_URL environment variable.
+    /// 2. It sets the service name and instance id to the resource name and UID. Values are injected by the orchestrator.
+    /// 3. It sets a small batch schedule delay in development. This reduces the delay that OTLP exporter waits to sends telemetry and makes the dashboard telemetry pages responsive.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithOtlpExporter<T>(this IResourceBuilder<T> builder) where T : IResourceWithEnvironment
     {
         AddOtlpEnvironment(builder.Resource, builder.ApplicationBuilder.Configuration, builder.ApplicationBuilder.Environment);
         return builder;

@@ -45,7 +45,8 @@ public class BasketServiceClient(Basket.BasketClient client)
             basket.Items.Add(new BasketItem
             {
                 Id = Guid.NewGuid().ToString("N"),
-                ProductId = productId
+                ProductId = productId,
+                Quantity = 1
             });
         }
 

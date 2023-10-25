@@ -1,7 +1,7 @@
 <Project>
   <Import Sdk="Microsoft.NET.Sdk" Project="Sdk.props" />
 
-  <Import Project="../../src/Shared/Workload.targets" />
+  <Import Project="$(SharedDir)Workload.targets" />
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>

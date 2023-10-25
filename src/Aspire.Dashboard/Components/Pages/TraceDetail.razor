@@ -13,40 +13,41 @@
 
 @if (_trace != null)
 {
-    <h1 style="display:inline-block">@(_trace.FirstSpan.Source.ApplicationName): @_trace.FirstSpan.Name</h1>
-    <span class="trace-id">@_trace.TraceId.Substring(0, 7)</span>
+    <div class="trace-detail-layout">
+        <div class="trace-detail-header">
+            <h1 style="display:inline-block">@(_trace.FirstSpan.Source.ApplicationName): @_trace.FirstSpan.Name</h1>
+            <span class="trace-id">@_trace.TraceId.Substring(0, 7)</span>
+        </div>
+        <FluentToolbar Orientation="Orientation.Horizontal">
+            <div>
+                Trace Start <strong>@_trace.FirstSpan.StartTime.ToString("MMMM d yyyy"), @OtlpHelpers.FormatTimeStamp(_trace.FirstSpan.StartTime)</strong>
+            </div>
+            <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
+            <div>
+                Duration <strong>@DurationFormatter.FormatDuration(_trace.Duration)</strong>
+            </div>
+            <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
+            <div>
+                Services <strong>@_trace.Spans.GroupBy(s => s.Source).Count()</strong>
+            </div>
+            <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
+            <div>
+                Depth <strong>@_maxDepth</strong>
+            </div>
+            <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
+            <div>
+                Total Spans <strong>@_trace.Spans.Count</strong>
+            </div>
+            <FluentAnchor slot="end" Appearance="Appearance.Lightweight" Href="@($"/StructuredLogs?traceId={_trace.TraceId}")">View Logs</FluentAnchor>
+            <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
+            <FluentAnchor slot="end" Appearance="Appearance.Lightweight" Href="@($"/Traces")">Back</FluentAnchor>
+        </FluentToolbar>
 
-    <div>
-        <FluentStack Orientation="Orientation.Vertical">
-            <FluentToolbar Orientation="Orientation.Horizontal" Class="trace-view-toolbar">
-                <div>
-                    Trace Start <strong>@_trace.FirstSpan.StartTime.ToString("MMMM d yyyy"), @OtlpHelpers.FormatTimeStamp(_trace.FirstSpan.StartTime)</strong>
-                </div>
-                <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
-                <div>
-                    Duration <strong>@DurationFormatter.FormatDuration(_trace.Duration)</strong>
-                </div>
-                <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
-                <div>
-                    Services <strong>@_trace.Spans.GroupBy(s => s.Source).Count()</strong>
-                </div>
-                <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
-                <div>
-                    Depth <strong>@_maxDepth</strong>
-                </div>
-                <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
-                <div>
-                    Total Spans <strong>@_trace.Spans.Count</strong>
-                </div>
-                <FluentAnchor slot="end" Appearance="Appearance.Lightweight" Href="@($"/StructuredLogs?traceId={_trace.TraceId}")">View Logs</FluentAnchor>
-                <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
-                <FluentAnchor slot="end" Appearance="Appearance.Lightweight" Href="@($"/Traces")">Back</FluentAnchor>
-            </FluentToolbar>
-
+        <div class="datagrid-overflow-area">
             <FluentDataGrid Class="trace-view-grid" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="SpanWaterfallViewModel" RowClass="@GetRowClass" GridTemplateColumns="2fr 6fr">
                 <TemplateColumn Title="Name">
-                    <div class="col-long-content" title="@($"{context.Span.Source.ApplicationName}: {context.Span.Name}")">
-                        <span style="@($"margin-left: {(context.Depth - 1) * 15}px; border-left-width: 5px; border-left-style: solid; border-left-color: {ColorGenerator.Instance.GetColorHexByKey(context.Span.Source.ApplicationName)}; padding-left: 5px;")">
+                    <div class="col-long-content" title="@($"{context.Span.Source.ApplicationName}: {context.GetDisplaySummary()}")" @onclick="() => OnShowProperties(context)">
+                        <span class="span-name-container" style="@($"margin-left: {(context.Depth - 1) * 15}px; border-left-color: {ColorGenerator.Instance.GetColorHexByKey(context.Span.Source.ApplicationName)};")">
                             @if (context.Span.Status == OtlpSpanStatusCode.Error)
                             {
                                 <FluentIcon Icon="Icons.Filled.Size12.ErrorCircle" Color="Color.Error" Class="trace-tag-icon" />
@@ -59,7 +60,7 @@
                                     @context.UninstrumentedPeer
                                 </span>
                             }
-                            <span class="span-row-name">@context.Span.Name</span>
+                            <span class="span-row-name">@context.GetDisplaySummary()</span>
                         </span>
                     </div>
                 </TemplateColumn>
@@ -83,11 +84,11 @@
                         </div>
                     </HeaderCellItemTemplate>
                     <ChildContent>
-                        <div class="ticks">
+                        <div class="ticks" @onclick="() => OnShowProperties(context)">
                             <div class="span-container" style="grid-template-columns: @context.LeftOffset.ToString("F2")% @context.Width.ToString("F2")% min-content;">
-                                <div class="span-bar" @onclick="() => OnShowProperties(context)" style="grid-column: 2; background: @ColorGenerator.Instance.GetColorHexByKey(context.Span.Source.ApplicationName);"></div>
+                                <div class="span-bar" style="grid-column: 2; background: @ColorGenerator.Instance.GetColorHexByKey(context.Span.Source.ApplicationName);"></div>
                                 <div class="span-bar-label @(context.LabelIsRight ? "span-bar-label-right" : "span-bar-label-left")" @onclick="() => OnShowProperties(context)">
-                                    <span class="span-bar-label-detail">@context.Span.Source.ApplicationName: @context.Span.Name</span>
+                                    <span class="span-bar-label-detail">@context.Span.Source.ApplicationName: @context.GetDisplaySummary()</span>
                                     <span>@DurationFormatter.FormatDuration(context.Span.Duration)</span>
                                 </div>
                             </div>
@@ -100,7 +101,7 @@
                     </ChildContent>
                 </TemplateColumn>
             </FluentDataGrid>
-        </FluentStack>
+        </div>
     </div>
 }
 else

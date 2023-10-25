@@ -47,96 +47,6 @@ Aspire.Azure.Storage.Queues:
 - Metric names:
   - none (currently not supported by the Azure SDK)
 
-Aspire.Npgsql.EntityFrameworkCore.PostgreSQL:
-- Log categories:
-  - "Microsoft.EntityFrameworkCore.Infrastructure"
-  - "Microsoft.EntityFrameworkCore.ChangeTracking"
-  - "Microsoft.EntityFrameworkCore.Infrastructure"
-  - "Microsoft.EntityFrameworkCore.Database.Command"
-  - "Microsoft.EntityFrameworkCore.Query"
-  - "Microsoft.EntityFrameworkCore.Database.Transaction"
-  - "Microsoft.EntityFrameworkCore.Database.Connection"
-  - "Microsoft.EntityFrameworkCore.Model"
-  - "Microsoft.EntityFrameworkCore.Model.Validation"
-  - "Microsoft.EntityFrameworkCore.Update"
-  - "Microsoft.EntityFrameworkCore.Migrations"
-- Activity source names:
-  - "Npgsql"
-- Metric names:
-  - "Microsoft.EntityFrameworkCore":
-    - "ec_Microsoft_EntityFrameworkCore_active_db_contexts"
-    - "ec_Microsoft_EntityFrameworkCore_total_queries"
-    - "ec_Microsoft_EntityFrameworkCore_queries_per_second"
-    - "ec_Microsoft_EntityFrameworkCore_total_save_changes"
-    - "ec_Microsoft_EntityFrameworkCore_save_changes_per_second"
-    - "ec_Microsoft_EntityFrameworkCore_compiled_query_cache_hit_rate"
-    - "ec_Microsoft_Entity_total_execution_strategy_operation_failures"
-    - "ec_Microsoft_E_execution_strategy_operation_failures_per_second"
-    - "ec_Microsoft_EntityFramew_total_optimistic_concurrency_failures"
-    - "ec_Microsoft_EntityF_optimistic_concurrency_failures_per_second"
-  - "Npgsql":
-    - "ec_Npgsql_bytes_written_per_second"
-    - "ec_Npgsql_bytes_read_per_second"
-    - "ec_Npgsql_commands_per_second"
-    - "ec_Npgsql_total_commands"
-    - "ec_Npgsql_current_commands"
-    - "ec_Npgsql_failed_commands"
-    - "ec_Npgsql_prepared_commands_ratio"
-    - "ec_Npgsql_connection_pools"
-    - "ec_Npgsql_multiplexing_average_commands_per_batch"
-    - "ec_Npgsql_multiplexing_average_write_time_per_batch"
-
-Aspire.Npgsql:
-- Log categories:
-  - "Npgsql.Connection"
-  - "Npgsql.Command"
-  - "Npgsql.Transaction"
-  - "Npgsql.Copy"
-  - "Npgsql.Replication"
-  - "Npgsql.Exception"
-- Activity source names:
-  - "Npgsql"
-- Metric names:
-  - "Npgsql":
-    - "ec_Npgsql_bytes_written_per_second"
-    - "ec_Npgsql_bytes_read_per_second"
-    - "ec_Npgsql_commands_per_second"
-    - "ec_Npgsql_total_commands"
-    - "ec_Npgsql_current_commands"
-    - "ec_Npgsql_failed_commands"
-    - "ec_Npgsql_prepared_commands_ratio"
-    - "ec_Npgsql_connection_pools"
-    - "ec_Npgsql_multiplexing_average_commands_per_batch"
-    - "ec_Npgsql_multiplexing_average_write_time_per_batch"
-
-Aspire.Microsoft.EntityFrameworkCore.SqlServer:
-- Log categories:
-  - "Microsoft.EntityFrameworkCore.Infrastructure"
-  - "Microsoft.EntityFrameworkCore.ChangeTracking"
-  - "Microsoft.EntityFrameworkCore.Infrastructure"
-  - "Microsoft.EntityFrameworkCore.Database.Command"
-  - "Microsoft.EntityFrameworkCore.Query"
-  - "Microsoft.EntityFrameworkCore.Database.Transaction"
-  - "Microsoft.EntityFrameworkCore.Database.Connection"
-  - "Microsoft.EntityFrameworkCore.Model"
-  - "Microsoft.EntityFrameworkCore.Model.Validation"
-  - "Microsoft.EntityFrameworkCore.Update"
-  - "Microsoft.EntityFrameworkCore.Migrations"
-- Activity source names:
-  - "OpenTelemetry.Instrumentation.EntityFrameworkCore"
-- Metric names:
-  - "Microsoft.EntityFrameworkCore":
-    - "ec_Microsoft_EntityFrameworkCore_active_db_contexts"
-    - "ec_Microsoft_EntityFrameworkCore_total_queries"
-    - "ec_Microsoft_EntityFrameworkCore_queries_per_second"
-    - "ec_Microsoft_EntityFrameworkCore_total_save_changes"
-    - "ec_Microsoft_EntityFrameworkCore_save_changes_per_second"
-    - "ec_Microsoft_EntityFrameworkCore_compiled_query_cache_hit_rate"
-    - "ec_Microsoft_Entity_total_execution_strategy_operation_failures"
-    - "ec_Microsoft_E_execution_strategy_operation_failures_per_second"
-    - "ec_Microsoft_EntityFramew_total_optimistic_concurrency_failures"
-    - "ec_Microsoft_EntityF_optimistic_concurrency_failures_per_second"
-
 Aspire.Microsoft.Data.SqlClient:
 - Log categories:
   - none (the client does not provide an easy way to integrate it with logger factory)
@@ -160,6 +70,94 @@ Aspire.Microsoft.Data.SqlClient:
     - "number-of-free-connections"
     - "number-of-stasis-connections"
     - "number-of-reclaimed-connections"
+
+Aspire.Microsoft.EntityFrameworkCore.SqlServer:
+- Log categories:
+  - "Microsoft.EntityFrameworkCore.ChangeTracking"
+  - "Microsoft.EntityFrameworkCore.Database.Command"
+  - "Microsoft.EntityFrameworkCore.Database.Connection"
+  - "Microsoft.EntityFrameworkCore.Database.Transaction"
+  - "Microsoft.EntityFrameworkCore.Infrastructure"
+  - "Microsoft.EntityFrameworkCore.Migrations"
+  - "Microsoft.EntityFrameworkCore.Model"
+  - "Microsoft.EntityFrameworkCore.Model.Validation"
+  - "Microsoft.EntityFrameworkCore.Query"
+  - "Microsoft.EntityFrameworkCore.Update"
+- Activity source names:
+  - "OpenTelemetry.Instrumentation.EntityFrameworkCore"
+- Metric names:
+  - "Microsoft.EntityFrameworkCore":
+    - "ec_Microsoft_EntityFrameworkCore_active_db_contexts"
+    - "ec_Microsoft_EntityFrameworkCore_total_queries"
+    - "ec_Microsoft_EntityFrameworkCore_queries_per_second"
+    - "ec_Microsoft_EntityFrameworkCore_total_save_changes"
+    - "ec_Microsoft_EntityFrameworkCore_save_changes_per_second"
+    - "ec_Microsoft_EntityFrameworkCore_compiled_query_cache_hit_rate"
+    - "ec_Microsoft_Entity_total_execution_strategy_operation_failures"
+    - "ec_Microsoft_E_execution_strategy_operation_failures_per_second"
+    - "ec_Microsoft_EntityFramew_total_optimistic_concurrency_failures"
+    - "ec_Microsoft_EntityF_optimistic_concurrency_failures_per_second"
+
+Aspire.Npgsql:
+- Log categories:
+  - "Npgsql.Command"
+  - "Npgsql.Connection"
+  - "Npgsql.Copy"
+  - "Npgsql.Exception"
+  - "Npgsql.Replication"
+  - "Npgsql.Transaction"
+- Activity source names:
+  - "Npgsql"
+- Metric names:
+  - "Npgsql":
+    - "ec_Npgsql_bytes_written_per_second"
+    - "ec_Npgsql_bytes_read_per_second"
+    - "ec_Npgsql_commands_per_second"
+    - "ec_Npgsql_total_commands"
+    - "ec_Npgsql_current_commands"
+    - "ec_Npgsql_failed_commands"
+    - "ec_Npgsql_prepared_commands_ratio"
+    - "ec_Npgsql_connection_pools"
+    - "ec_Npgsql_multiplexing_average_commands_per_batch"
+    - "ec_Npgsql_multiplexing_average_write_time_per_batch"
+
+Aspire.Npgsql.EntityFrameworkCore.PostgreSQL:
+- Log categories:
+  - "Microsoft.EntityFrameworkCore.ChangeTracking"
+  - "Microsoft.EntityFrameworkCore.Database.Command"
+  - "Microsoft.EntityFrameworkCore.Database.Connection"
+  - "Microsoft.EntityFrameworkCore.Database.Transaction"
+  - "Microsoft.EntityFrameworkCore.Infrastructure"
+  - "Microsoft.EntityFrameworkCore.Migrations"
+  - "Microsoft.EntityFrameworkCore.Model"
+  - "Microsoft.EntityFrameworkCore.Model.Validation"
+  - "Microsoft.EntityFrameworkCore.Query"
+  - "Microsoft.EntityFrameworkCore.Update"
+- Activity source names:
+  - "Npgsql"
+- Metric names:
+  - "Microsoft.EntityFrameworkCore":
+    - "ec_Microsoft_EntityFrameworkCore_active_db_contexts"
+    - "ec_Microsoft_EntityFrameworkCore_total_queries"
+    - "ec_Microsoft_EntityFrameworkCore_queries_per_second"
+    - "ec_Microsoft_EntityFrameworkCore_total_save_changes"
+    - "ec_Microsoft_EntityFrameworkCore_save_changes_per_second"
+    - "ec_Microsoft_EntityFrameworkCore_compiled_query_cache_hit_rate"
+    - "ec_Microsoft_Entity_total_execution_strategy_operation_failures"
+    - "ec_Microsoft_E_execution_strategy_operation_failures_per_second"
+    - "ec_Microsoft_EntityFramew_total_optimistic_concurrency_failures"
+    - "ec_Microsoft_EntityF_optimistic_concurrency_failures_per_second"
+  - "Npgsql":
+    - "ec_Npgsql_bytes_written_per_second"
+    - "ec_Npgsql_bytes_read_per_second"
+    - "ec_Npgsql_commands_per_second"
+    - "ec_Npgsql_total_commands"
+    - "ec_Npgsql_current_commands"
+    - "ec_Npgsql_failed_commands"
+    - "ec_Npgsql_prepared_commands_ratio"
+    - "ec_Npgsql_connection_pools"
+    - "ec_Npgsql_multiplexing_average_commands_per_batch"
+    - "ec_Npgsql_multiplexing_average_write_time_per_batch"
 
 Aspire.StackExchange.Redis:
 - Log categories:

@@ -47,6 +47,10 @@ public partial class Metrics : IDisposable
     [Parameter]
     public string? InstrumentName { get; set; }
 
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "duration")]
+    public int DurationMinutes { get; set; }
+
     [Inject]
     public required NavigationManager NavigationManager { get; set; }
 
@@ -75,6 +79,7 @@ public partial class Metrics : IDisposable
 
     protected override void OnParametersSet()
     {
+        _selectedDuration = s_durations.SingleOrDefault(d => (int)d.Duration.TotalMinutes == DurationMinutes) ?? s_durations.Single(d => d.Duration == s_defaultDuration);
         _selectedApplication = _applications.SingleOrDefault(e => e.Id == ApplicationInstanceId) ?? s_selectApplication;
         ViewModel.ApplicationServiceId = _selectedApplication.Id;
         _instruments = !string.IsNullOrEmpty(_selectedApplication.Id) ? TelemetryRepository.GetInstrumentsSummary(_selectedApplication.Id) : null;
@@ -107,7 +112,15 @@ public partial class Metrics : IDisposable
 
     private async Task HandleSelectedApplicationChangedAsync()
     {
-        var state = new MetricsSelectedState { ApplicationId = _selectedApplication.Id };
+        var state = new MetricsSelectedState { ApplicationId = _selectedApplication.Id, DurationMinutes = (int)_selectedDuration.Duration.TotalMinutes };
+
+        NavigateTo(state);
+        await ProtectedSessionStore.SetAsync(MetricsSelectedState.Key, state);
+    }
+
+    private async Task HandleSelectedDurationChangedAsync()
+    {
+        var state = new MetricsSelectedState { ApplicationId = _selectedApplication.Id, DurationMinutes = (int)_selectedDuration.Duration.TotalMinutes, InstrumentName = InstrumentName, MeterName = MeterName };
 
         NavigateTo(state);
         await ProtectedSessionStore.SetAsync(MetricsSelectedState.Key, state);
@@ -119,6 +132,7 @@ public partial class Metrics : IDisposable
         public string? ApplicationId { get; set; }
         public string? MeterName { get; set; }
         public string? InstrumentName { get; set; }
+        public int DurationMinutes { get; set; }
     }
 
     private async Task HandleSelectedTreeItemChanged()
@@ -127,15 +141,15 @@ public partial class Metrics : IDisposable
 
         if (_selectedTreeItem?.Data is OtlpMeter meter)
         {
-            state = new MetricsSelectedState { ApplicationId = _selectedApplication.Id, MeterName = meter.MeterName };
+            state = new MetricsSelectedState { ApplicationId = _selectedApplication.Id, DurationMinutes = (int)_selectedDuration.Duration.TotalMinutes, MeterName = meter.MeterName };
         }
         else if (_selectedTreeItem?.Data is OtlpInstrument instrument)
         {
-            state = new MetricsSelectedState { ApplicationId = _selectedApplication.Id, MeterName = instrument.Parent.MeterName, InstrumentName = instrument.Name };
+            state = new MetricsSelectedState { ApplicationId = _selectedApplication.Id, DurationMinutes = (int)_selectedDuration.Duration.TotalMinutes, MeterName = instrument.Parent.MeterName, InstrumentName = instrument.Name };
         }
         else
         {
-            state = new MetricsSelectedState { ApplicationId = _selectedApplication.Id };
+            state = new MetricsSelectedState { ApplicationId = _selectedApplication.Id, DurationMinutes = (int)_selectedDuration.Duration.TotalMinutes };
         }
 
         NavigateTo(state);
@@ -144,21 +158,33 @@ public partial class Metrics : IDisposable
 
     private void NavigateTo(MetricsSelectedState state)
     {
+        string url;
         if (state.MeterName != null)
         {
             if (state.InstrumentName != null)
             {
-                NavigationManager.NavigateTo($"/Metrics/{state.ApplicationId}/Meter/{state.MeterName}/Instrument/{state.InstrumentName}");
+                url = $"/Metrics/{state.ApplicationId}/Meter/{state.MeterName}/Instrument/{state.InstrumentName}";
             }
             else
             {
-                NavigationManager.NavigateTo($"/Metrics/{state.ApplicationId}/Meter/{state.MeterName}");
+                url = $"/Metrics/{state.ApplicationId}/Meter/{state.MeterName}";
             }
+        }
+        else if (state.ApplicationId != null)
+        {
+            url = $"/Metrics/{state.ApplicationId}";
         }
         else
         {
-            NavigationManager.NavigateTo($"/Metrics/{state.ApplicationId}");
+            url = $"/Metrics";
         }
+
+        if (state.DurationMinutes != (int)s_defaultDuration.TotalMinutes)
+        {
+            url += $"?duration={state.DurationMinutes}";
+        }
+
+        NavigationManager.NavigateTo(url);
     }
 
     private void UpdateSubscription()
