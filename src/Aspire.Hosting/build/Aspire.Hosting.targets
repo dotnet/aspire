@@ -7,6 +7,10 @@
     <RunWorkingDirectory Condition=" '$(RunWorkingDirectory)' == '' and '$(EnableDefaultRunWorkingDirectory)' != 'false' ">$(MSBuildProjectDirectory)</RunWorkingDirectory>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectCapability Include="Aspire" Condition=" '$(IsAspireHost)' == 'true' " />
+  </ItemGroup>
+
   <!-- The purpose of this target is to take a list of the resolved project references and generate a set of items (ServiceMetadataSource) which contain
      code that we want to add to the orchestrator project for each referenced project. The metadata contains pointers to the project/assembly. -->
   <Target Name="GenerateServiceMetadataSources" DependsOnTargets="FindReferenceAssembliesForReferences" Inputs="@(ReferencePathWithRefAssemblies)" Outputs="@(ReferencePathWithRefAssemblies)">
