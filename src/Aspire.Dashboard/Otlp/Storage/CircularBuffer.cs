@@ -119,25 +119,12 @@ internal sealed class CircularBuffer<T> : IList<T>, ICollection<T>, IEnumerable<
     {
         ValidateIndexInRange(index);
 
-        if (IsFull)
+        var internalIndex = InternalIndex(index);
+        _buffer.RemoveAt(internalIndex);
+        if (internalIndex <= _end)
         {
-            var internalIndex = InternalIndex(index);
-            _buffer.RemoveAt(internalIndex);
-            if (internalIndex <= _end)
-            {
-                Decrement(ref _end);
-                _start = _end;
-            }
-        }
-        else
-        {
-            var internalIndex = InternalIndex(index);
-            _buffer.RemoveAt(internalIndex);
-            if (internalIndex <= _end)
-            {
-                Decrement(ref _end);
-                _start = _end;
-            }
+            Decrement(ref _end);
+            _start = _end;
         }
     }
 
@@ -234,12 +221,7 @@ internal sealed class CircularBuffer<T> : IList<T>, ICollection<T>, IEnumerable<
 
     private int InternalIndex(int index)
     {
-        var i = _start + index;
-        if (_buffer.Count != 0)
-        {
-            i = i % _buffer.Count;
-        }
-        return i;
+        return (_start + index) % _buffer.Count;
     }
 
     private void Increment(ref int index)

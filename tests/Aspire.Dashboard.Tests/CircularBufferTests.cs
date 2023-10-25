@@ -62,6 +62,27 @@ public class CircularBufferTests
     }
 
     [Fact]
+    public void InsertAtEndUntilFull()
+    {
+        var b = CreateBuffer(5);
+
+        b.Insert(0, "0");
+        b.Insert(1, "1");
+        b.Insert(2, "2");
+        b.Insert(3, "3");
+        b.Insert(4, "4");
+        b.Insert(5, "5");
+        b.Insert(5, "6");
+
+        Assert.Collection(b,
+            i => Assert.Equal("2", i),
+            i => Assert.Equal("3", i),
+            i => Assert.Equal("4", i),
+            i => Assert.Equal("5", i),
+            i => Assert.Equal("6", i));
+    }
+
+    [Fact]
     public void InsertAtPositionUntilFull()
     {
         var b = CreateBuffer(10);

@@ -19,9 +19,6 @@ public class TelemetryRepository
 {
     private const int DefaultMaxTelemetryCount = 10_000;
 
-    private int MaxOperationCount { get; init; }
-    private int MaxLogCount { get; init; }
-
     private readonly object _lock = new();
     private readonly ILogger _logger;
 
@@ -33,18 +30,19 @@ public class TelemetryRepository
     private readonly ConcurrentDictionary<string, OtlpApplication> _applications = new();
 
     private readonly ReaderWriterLockSlim _logsLock = new();
-    private readonly CircularBuffer<OtlpLogEntry> _logs = new(DefaultMaxTelemetryCount);
+    private readonly CircularBuffer<OtlpLogEntry> _logs;
     private readonly HashSet<(OtlpApplication Application, string PropertyKey)> _logPropertyKeys = new();
 
     private readonly ReaderWriterLockSlim _tracesLock = new();
     private readonly Dictionary<string, OtlpTraceScope> _traceScopes = new();
-    private readonly CircularBuffer<OtlpTrace> _traces = new(DefaultMaxTelemetryCount);
+    private readonly CircularBuffer<OtlpTrace> _traces;
 
     public TelemetryRepository(IConfiguration config, ILoggerFactory loggerFactory)
     {
         _logger = loggerFactory.CreateLogger(typeof(TelemetryRepository));
-        MaxOperationCount = config.GetValue(nameof(MaxOperationCount), 128);
-        MaxLogCount = config.GetValue(nameof(MaxLogCount), 4096);
+
+        _logs = new(config.GetValue("MaxLogCount", DefaultMaxTelemetryCount));
+        _traces = new(config.GetValue("MaxTraceCount", DefaultMaxTelemetryCount));
     }
 
     public List<OtlpApplication> GetApplications()
