@@ -3,7 +3,7 @@ using CatalogDb;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
-builder.AddNpgsqlDbContext<CatalogDbContext>("catalogdb");
+builder.AddCosmosDBEntityFrameworkDBContext<CatalogDbContext>("catalogdb");
 
 builder.Services.AddSingleton<CatalogDbInitializer>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<CatalogDbInitializer>());

@@ -9,10 +9,10 @@ namespace Aspire.Hosting;
 
 public static class AzureCosmosDBCloudApplicationBuilderExtensions
 {
-     public static IDistributedApplicationResourceBuilder<CosmosDBConnectionResource> AddAzureCosmosDB(
-         this IDistributedApplicationBuilder builder,
-         string name,
-         string? connectionString = null)
+    public static IResourceBuilder<CosmosDBConnectionResource> AddAzureCosmosDB(
+       this IDistributedApplicationBuilder builder,
+       string name,
+       string? connectionString = null)
     {
         var connection = new CosmosDBConnectionResource(name, connectionString);
         return builder.AddResource(connection)
@@ -32,7 +32,7 @@ public static class AzureCosmosDBCloudApplicationBuilderExtensions
         jsonWriter.WriteString("databaseName", cosmosDatabase.Name);
     }
 
-    public static IDistributedApplicationResourceBuilder<CosmosDatabaseResource> AddDatabase(this IDistributedApplicationResourceBuilder<CosmosDBConnectionResource> builder, string name)
+    public static IResourceBuilder<CosmosDatabaseResource> AddDatabase(this IResourceBuilder<CosmosDBConnectionResource> builder, string name)
     {
         var cosmosDatabase = new CosmosDatabaseResource(name, builder.Resource);
         return builder
@@ -42,10 +42,10 @@ public static class AzureCosmosDBCloudApplicationBuilderExtensions
                 (json) => WriteCosmosDBDatabaseToManifest(json, cosmosDatabase)));
     }
 
-    public static IDistributedApplicationResourceBuilder<TDestination> WithAzureCosmosDB<TDestination>(
-        this IDistributedApplicationResourceBuilder<TDestination> builder,
-        IDistributedApplicationResourceBuilder<CosmosDatabaseResource> cosmosDatabaseResource)
-        where TDestination : IDistributedApplicationResourceWithEnvironment
+    public static IResourceBuilder<TDestination> WithAzureCosmosDB<TDestination>(
+        this IResourceBuilder<TDestination> builder,
+        IResourceBuilder<CosmosDatabaseResource> cosmosDatabaseResource)
+        where TDestination : IResourceWithEnvironment
     {
         return builder
             .WithReference(cosmosDatabaseResource)

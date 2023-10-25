@@ -6,7 +6,7 @@ using Aspire.Hosting.ApplicationModel;
 namespace Aspire.Hosting.Azure.Data.Cosmos;
 
 public class CosmosDatabaseResource(string name, CosmosDBConnectionResource parent)
-    : DistributedApplicationResource(name), IDistributedApplicationResourceWithParent<CosmosDBConnectionResource>, IDistributedApplicationResourceWithConnectionString
+    : Resource(name), IResourceWithParent<CosmosDBConnectionResource>, IResourceWithConnectionString
 {
     public CosmosDBConnectionResource Parent { get; } = parent;
 

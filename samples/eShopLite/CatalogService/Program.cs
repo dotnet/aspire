@@ -1,4 +1,3 @@
-using Aspire.Microsoft.EntityFrameworkCore.Cosmos;
 using CatalogDb;
 using CatalogService;
 

@@ -28,6 +28,7 @@ builder.AddProject<Projects.ApiGateway>("apigateway")
        .WithReference(catalogService);
 
 builder.AddProject<Projects.CatalogDb>("catalogdbapp")
-       .WithReference(catalogDb);
+       .WithReference(catalogdb)
+       .WithEnvironment("Aspire.Microsoft.EntityFrameworkCore.Cosmos:DatabaseName", catalogdb.Resource.Name);
 
 builder.Build().Run();

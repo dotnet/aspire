@@ -10,7 +10,9 @@ internal sealed class CatalogDbInitializer(IServiceProvider serviceProvider, ILo
     {
         using var scope = serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<CatalogDbContext>();
-        await SeedAsync(dbContext);
+        var sw = Stopwatch.StartNew();
+
+        await SeedAsync(dbContext, cancellationToken);
 
         logger.LogInformation("Database initialization completed after {ElapsedMilliseconds}ms", sw.ElapsedMilliseconds);
     }
@@ -64,8 +66,9 @@ internal sealed class CatalogDbInitializer(IServiceProvider serviceProvider, ILo
                 new() { Id = 11, CatalogType = tshirt, CatalogBrand = other, AvailableStock = 100, Description = "Prism White TShirt", Name = "Prism White TShirt", Price = 12, PictureFileName = "12.png" }
             ];
         }
-        await context.Database.EnsureCreatedAsync();
-        if (context.CatalogBrands.FirstOrDefault() is null)
+
+        await dbContext.Database.EnsureCreatedAsync(cancellationToken);
+        if (dbContext.CatalogBrands.FirstOrDefault() is null)
         {
             var brands = GetPreconfiguredCatalogBrands();
             await dbContext.CatalogBrands.AddRangeAsync(brands, cancellationToken);
@@ -75,7 +78,7 @@ internal sealed class CatalogDbInitializer(IServiceProvider serviceProvider, ILo
             await dbContext.SaveChangesAsync(cancellationToken);
         }
 
-        if (context.CatalogTypes.FirstOrDefault() is null)
+        if (dbContext.CatalogTypes.FirstOrDefault() is null)
         {
             var types = GetPreconfiguredCatalogTypes();
             await dbContext.CatalogTypes.AddRangeAsync(types, cancellationToken);
@@ -85,7 +88,7 @@ internal sealed class CatalogDbInitializer(IServiceProvider serviceProvider, ILo
             await dbContext.SaveChangesAsync(cancellationToken);
         }
 
-        if (context.CatalogItems.FirstOrDefault() is null)
+        if (dbContext.CatalogItems.FirstOrDefault() is null)
         {
             var items = GetPreconfiguredItems(dbContext.CatalogBrands, dbContext.CatalogTypes);
             await dbContext.CatalogItems.AddRangeAsync(items, cancellationToken);
