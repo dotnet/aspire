@@ -17,6 +17,8 @@ public partial class TraceDetail
     private OtlpTrace? _trace;
     private OtlpSpan? _span;
     private Subscription? _tracesSubscription;
+    private List<SpanWaterfallViewModel>? _spanWaterfallViewModels;
+    private int _maxDepth;
 
     [Parameter]
     public required string TraceId { get; set; }
@@ -30,31 +32,32 @@ public partial class TraceDetail
     [Inject]
     public required TelemetryRepository TelemetryRepository { get; set; }
 
-    private int _maxDepth;
-
     private ValueTask<GridItemsProviderResult<SpanWaterfallViewModel>> GetData(GridItemsProviderRequest<SpanWaterfallViewModel> request)
     {
-        Debug.Assert(_trace != null);
+        Debug.Assert(_spanWaterfallViewModels != null);
 
+        return ValueTask.FromResult(new GridItemsProviderResult<SpanWaterfallViewModel>
+        {
+            Items = _spanWaterfallViewModels,
+            TotalItemCount = _spanWaterfallViewModels.Count
+        });
+    }
+
+    private static List<SpanWaterfallViewModel> CreateSpanWaterfallViewModels(OtlpTrace trace)
+    {
         var orderedSpans = new List<SpanWaterfallViewModel>();
         // There should be one root span but just in case, we'll add them all.
-        foreach (var rootSpan in _trace.Spans.Where(s => string.IsNullOrEmpty(s.ParentSpanId)).OrderBy(s => s.StartTime))
+        foreach (var rootSpan in trace.Spans.Where(s => string.IsNullOrEmpty(s.ParentSpanId)).OrderBy(s => s.StartTime))
         {
             AddSelfAndChildren(orderedSpans, rootSpan, depth: 1, CreateViewModel);
         }
         // Unparented spans.
-        foreach (var unparentedSpan in _trace.Spans.Where(s => !string.IsNullOrEmpty(s.ParentSpanId) && s.GetParentSpan() == null).OrderBy(s => s.StartTime))
+        foreach (var unparentedSpan in trace.Spans.Where(s => !string.IsNullOrEmpty(s.ParentSpanId) && s.GetParentSpan() == null).OrderBy(s => s.StartTime))
         {
             AddSelfAndChildren(orderedSpans, unparentedSpan, depth: 1, CreateViewModel);
         }
 
-        _maxDepth = orderedSpans.Max(s => s.Depth);
-
-        return ValueTask.FromResult(new GridItemsProviderResult<SpanWaterfallViewModel>
-        {
-            Items = orderedSpans,
-            TotalItemCount = orderedSpans.Count
-        });
+        return orderedSpans;
 
         static void AddSelfAndChildren(List<SpanWaterfallViewModel> orderedSpans, OtlpSpan span, int depth, Func<OtlpSpan, int, SpanWaterfallViewModel> createViewModel)
         {
@@ -112,6 +115,9 @@ public partial class TraceDetail
             _trace = TelemetryRepository.GetTrace(TraceId);
             if (_trace != null)
             {
+                _spanWaterfallViewModels = CreateSpanWaterfallViewModels(_trace);
+                _maxDepth = _spanWaterfallViewModels.Max(s => s.Depth);
+
                 if (_tracesSubscription is null || _tracesSubscription.ApplicationId != _trace.FirstSpan.Source.InstanceId)
                 {
                     _tracesSubscription?.Dispose();
