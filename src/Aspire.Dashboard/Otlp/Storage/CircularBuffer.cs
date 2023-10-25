@@ -68,26 +68,36 @@ internal sealed class CircularBuffer<T> : IList<T>, ICollection<T>, IEnumerable<
         {
             if (index == 0)
             {
-                // Item inserted at 0 is actually the "last" in the buffer and is removed.
+                // When full, the item inserted at 0 is always the "last" in the buffer and is removed.
                 return;
             }
 
             var internalIndex = InternalIndex(index);
 
             var data = CollectionsMarshal.AsSpan(_buffer);
-            // Data is shifted forward so save the last item to copy to the front.
-            var overflowItem = data[data.Length - 1];
 
-            // Shift data after index forward.
-            var changeIndex = _end + index;
-            if (changeIndex != data.Length)
+            // Shift data to make remove for insert.
+            if (internalIndex == 0)
             {
-                data.Slice(changeIndex, data.Length - changeIndex - 1).CopyTo(data.Slice(changeIndex + 1));
+                data.Slice(0, _end).CopyTo(data.Slice(1));
             }
+            else if (internalIndex > _end)
+            {
+                // Data is shifted forward so save the last item to copy to the front.
+                var overflowItem = data[data.Length - 1];
 
-            // Shift data before index forward and set overflow item to start.
-            data.Slice(0, _end).CopyTo(data.Slice(1));
-            data[0] = overflowItem;
+                var shiftLength = data.Length - internalIndex - 1;
+                data.Slice(internalIndex, shiftLength).CopyTo(data.Slice(internalIndex + 1));
+                if (shiftLength > 0 || internalIndex == _buffer.Count - 1)
+                {
+                    data.Slice(0, _end).CopyTo(data.Slice(1));
+                }
+                data[0] = overflowItem;
+            }
+            else
+            {
+                data.Slice(internalIndex, data.Length - internalIndex - 1).CopyTo(data.Slice(internalIndex + 1));
+            }
 
             // Set the actual item.
             data[internalIndex] = item;

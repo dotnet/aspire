@@ -243,14 +243,53 @@ public class CircularBufferTests
         b.Add("10");
         b.Add("11");
 
-        b.Insert(1, "7.5");
+        b.Insert(0, "6.5");
+        Assert.Collection(b,
+            i => Assert.Equal("7", i),
+            i => Assert.Equal("8", i),
+            i => Assert.Equal("9", i),
+            i => Assert.Equal("10", i),
+            i => Assert.Equal("11", i));
 
+        b.Insert(1, "7.5");
         Assert.Collection(b,
             i => Assert.Equal("7.5", i),
             i => Assert.Equal("8", i),
             i => Assert.Equal("9", i),
             i => Assert.Equal("10", i),
             i => Assert.Equal("11", i));
+
+        b.Insert(2, "8.5");
+        Assert.Collection(b,
+            i => Assert.Equal("8", i),
+            i => Assert.Equal("8.5", i),
+            i => Assert.Equal("9", i),
+            i => Assert.Equal("10", i),
+            i => Assert.Equal("11", i));
+
+        b.Insert(3, "9.5");
+        Assert.Collection(b,
+            i => Assert.Equal("8.5", i),
+            i => Assert.Equal("9", i),
+            i => Assert.Equal("9.5", i),
+            i => Assert.Equal("10", i),
+            i => Assert.Equal("11", i));
+
+        b.Insert(4, "10.5");
+        Assert.Collection(b,
+            i => Assert.Equal("9", i),
+            i => Assert.Equal("9.5", i),
+            i => Assert.Equal("10", i),
+            i => Assert.Equal("10.5", i),
+            i => Assert.Equal("11", i));
+
+        b.Insert(5, "11.5");
+        Assert.Collection(b,
+            i => Assert.Equal("9.5", i),
+            i => Assert.Equal("10", i),
+            i => Assert.Equal("10.5", i),
+            i => Assert.Equal("11", i),
+            i => Assert.Equal("11.5", i));
     }
 
     [Fact]
