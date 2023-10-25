@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.Build.NoTargets">
 
-  <Import Project="../Shared/Workload.targets" />
+  <Import Project="$(SharedDir)Workload.targets" />
 
   <PropertyGroup>
     <Description>.NET Aspire Hosting SDK. Enabled via &lt;IsAspireHost&gt;true&lt;/IsAspireHost&gt;.</Description>

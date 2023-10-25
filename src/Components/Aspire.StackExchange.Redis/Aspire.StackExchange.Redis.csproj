@@ -4,7 +4,8 @@
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
     <PackageTags>$(ComponentCachePackageTags) redis</PackageTags>
-    <Description>A generic Redis client that integrates with Aspire, including health checks, logging, and telemetry.</Description>
+    <Description>A generic Redis® client that integrates with Aspire, including health checks, logging, and telemetry.</Description>
+    <PackageIconFullPath>$(SharedDir)redis-cube-red_white-rgb.png</PackageIconFullPath>
   </PropertyGroup>
 
   <ItemGroup>
