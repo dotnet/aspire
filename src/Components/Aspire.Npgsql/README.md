@@ -1,6 +1,6 @@
 # Aspire.Npgsql library
 
-Registers [NpgsqlDataSource](https://www.npgsql.org/doc/api/Npgsql.NpgsqlDataSource.html) in the DI container for connecting PostgreSQL database. Enables corresponding health check, metrics, logging and telemetry.
+Registers [NpgsqlDataSource](https://www.npgsql.org/doc/api/Npgsql.NpgsqlDataSource.html) in the DI container for connecting PostgreSQL®* database. Enables corresponding health check, metrics, logging and telemetry.
 
 ## Getting started
 
@@ -107,3 +107,5 @@ builder.AddNpgsqlDataSource("postgresdb");
 ## Feedback & Contributing
 
 https://github.com/dotnet/aspire
+
+_*Postgres, PostgreSQL and the Slonik Logo are trademarks or registered trademarks of the PostgreSQL Community Association of Canada, and used with their permission._
