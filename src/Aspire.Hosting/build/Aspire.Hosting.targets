@@ -18,7 +18,7 @@
 
 namespace Projects%3B
 
-public class ]]>$([System.IO.Path]::GetFileNameWithoutExtension(%(ReferencePathWithRefAssemblies.Identity)).Replace(".", "_"))<![CDATA[ : IServiceMetadata
+public class ]]>$([System.IO.Path]::GetFileNameWithoutExtension(%(ReferencePathWithRefAssemblies.Identity)).Replace(".", "_").Replace("-", "_"))<![CDATA[ : IServiceMetadata
 {
   public string AssemblyName => """]]>$([System.IO.Path]::GetFileNameWithoutExtension(%(ReferencePathWithRefAssemblies.Identity)))<![CDATA["""%3B
   public string AssemblyPath => """]]>%(ReferencePathWithRefAssemblies.Identity)<![CDATA["""%3B

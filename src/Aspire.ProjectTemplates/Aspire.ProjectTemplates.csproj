@@ -41,8 +41,8 @@
 
     <WriteLinesToFile File="%(TemplateProjectFiles.DestinationFile)"
                       Lines="$([System.IO.File]::ReadAllText('%(TemplateProjectFiles.FullPath)')
-                                                 .Replace('&lt;REPLACE_WITH_LATEST_VERSION&gt;', '$(PackageVersion)')
-                                                 .Replace('&lt;REPLACE_WITH_EXTENSIONS_VERSION&gt;', '$(MicrosoftExtensionsHttpResiliencePackageVersion)'))"
+                                                 .Replace('!!REPLACE_WITH_LATEST_VERSION!!;', '$(PackageVersion)')
+                                                 .Replace('!!REPLACE_WITH_EXTENSIONS_VERSION!!', '$(MicrosoftExtensionsHttpResiliencePackageVersion)'))"
                       Overwrite="true" />
   </Target>
 
