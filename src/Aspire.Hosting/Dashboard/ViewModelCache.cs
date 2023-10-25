@@ -293,7 +293,7 @@ internal abstract class ViewModelCache<TResource, TViewModel>
                             {
                                 // Container is ready to be inspected
                                 // This task when returns will generate a notification in channel
-                                _ = Task.Run(() => ComputeEnvironmentVariablesFromDocker(container));
+                                _ = Task.Run(() => ComputeEnvironmentVariablesFromDocker(container, _cancellationToken));
                                 _resourcesWithTaskLaunched.Add(name);
                             }
                             // For containers we always send list of env vars which we may have computed earlier from docker command
@@ -350,7 +350,7 @@ internal abstract class ViewModelCache<TResource, TViewModel>
             return ValueTask.CompletedTask;
         }
 
-        private async Task ComputeEnvironmentVariablesFromDocker(Container container)
+        private async Task ComputeEnvironmentVariablesFromDocker(Container container, CancellationToken cancellationToken)
         {
             IAsyncDisposable? processDisposable = null;
             try
@@ -367,7 +367,7 @@ internal abstract class ViewModelCache<TResource, TViewModel>
 
                 (task, processDisposable) = ProcessUtil.Run(spec);
 
-                var exitCode = (await task.WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(false)).ExitCode;
+                var exitCode = (await task.WaitAsync(TimeSpan.FromSeconds(30), cancellationToken).ConfigureAwait(false)).ExitCode;
                 if (exitCode == 0)
                 {
                     var jsonArray = JsonNode.Parse(outputStringBuilder.ToString())?.AsArray();
