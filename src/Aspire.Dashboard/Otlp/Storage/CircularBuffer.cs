@@ -56,6 +56,7 @@ internal sealed class CircularBuffer<T> : IList<T>, ICollection<T>, IEnumerable<
 
     public void Insert(int index, T item)
     {
+        // TODO: There are a lot of branches in this method. Look into simplifying it.
         if (index == Count)
         {
             Add(item);
