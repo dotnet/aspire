@@ -53,7 +53,22 @@ internal abstract class ViewModelCache<TResource, TViewModel>
 
             while (await enumerator.MoveNextAsync().ConfigureAwait(false))
             {
-                _resourcesMap[enumerator.Current.Resource.Name] = enumerator.Current.Resource;
+                var (objectChangeType, resource) = enumerator.Current;
+                switch (objectChangeType)
+                {
+                    case ObjectChangeType.Added:
+                        _resourcesMap.Add(resource.Name, resource);
+                        break;
+
+                    case ObjectChangeType.Modified:
+                        _resourcesMap[resource.Name] = resource;
+                        break;
+
+                    case ObjectChangeType.Deleted:
+                        _resourcesMap.Remove(resource.Name);
+                        break;
+                }
+
                 await _publishingChannel.Writer.WriteAsync(enumerator.Current, cancellationToken).ConfigureAwait(false);
             }
         }, cancellationToken);
