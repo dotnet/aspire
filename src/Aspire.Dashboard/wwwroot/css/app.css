@@ -17,6 +17,9 @@ fluent-toolbar[orientation=horizontal] {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    height: 100%;
+    display: flex;
+    align-items: center;
 }
 
 .trace-tag-icon {
