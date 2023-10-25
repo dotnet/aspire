@@ -42,7 +42,7 @@ fluent-toolbar[orientation=horizontal] {
         TODO: Is there a better way to do this?
     */
     height: 100%;
-    width: 100%;
+    min-width: 100%;
     overflow: auto;
 }
 
