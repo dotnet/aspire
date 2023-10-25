@@ -133,3 +133,28 @@
     padding-left: 0.5rem;
     font-size: 12px;
 }
+
+::deep.trace-detail-layout {
+    display: grid;
+    grid-template-rows: auto auto 1fr;
+    height: 100%;
+    width: 100%;
+    grid-template-areas:
+        "head"
+        "toolbar"
+        "main";
+    gap: calc(var(--design-unit) * 2px);
+    padding-bottom: calc(var(--design-unit) * 2px);
+}
+
+::deep.trace-detail-layout > .trace-detail-header {
+    grid-area: head;
+}
+
+::deep.trace-detail-layout > fluent-toolbar {
+    grid-area: toolbar;
+}
+
+::deep.trace-detail-layout > .datagrid-overflow-area {
+    grid-area: main;
+}
