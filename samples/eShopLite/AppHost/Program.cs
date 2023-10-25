@@ -10,18 +10,18 @@ var catalogService = builder.AddProject<Projects.CatalogService>("catalogservice
                      .WithReference(catalogDb)
                      .WithReplicas(2);
 
-var ordersQueue = builder.AddAzureServiceBus("messaging", queueNames: ["orders"]);
+var ordersQueue = builder.AddRabbitMQContainer("messaging");
 
 var basketService = builder.AddProject<Projects.BasketService>("basketservice")
                     .WithReference(basketCache)
-                    .WithReference(ordersQueue, optional: true);
+                    .WithReference(ordersQueue);
 
 builder.AddProject<Projects.MyFrontend>("frontend")
        .WithReference(basketService)
        .WithReference(catalogService.GetEndpoint("http"));
 
 builder.AddProject<Projects.OrderProcessor>("orderprocessor")
-       .WithReference(ordersQueue, optional: true)
+       .WithReference(ordersQueue)
        .WithLaunchProfile("OrderProcessor");
 
 builder.AddProject<Projects.ApiGateway>("apigateway")

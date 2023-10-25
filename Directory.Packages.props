@@ -35,6 +35,7 @@
     <PackageVersion Include="AspNetCore.HealthChecks.Azure.Storage.Queues" Version="7.0.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.AzureServiceBus" Version="7.0.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.NpgSql" Version="7.0.0" />
+    <PackageVersion Include="AspNetCore.HealthChecks.Rabbitmq" Version="7.0.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.Redis" Version="7.0.1" />
     <PackageVersion Include="AspNetCore.HealthChecks.SqlServer" Version="7.0.0" />
     <!-- arcade dependencies -->
@@ -74,6 +75,8 @@
     <PackageVersion Include="Microsoft.Fast.Components.FluentUI.Icons" Version="3.2.2" />
     <PackageVersion Include="Npgsql.DependencyInjection" Version="8.0.0-rc.2" />
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.0-rc.2" />
+    <PackageVersion Include="Polly" Version="8.0.0" />
+    <PackageVersion Include="RabbitMQ.Client" Version="6.6.0" />
     <PackageVersion Include="StackExchange.Redis" Version="2.6.122" />
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="6.5.0" />
     <PackageVersion Include="Yarp.ReverseProxy" Version="2.1.0-preview.1.23428.7" />

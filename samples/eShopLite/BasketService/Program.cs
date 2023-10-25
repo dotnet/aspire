@@ -8,11 +8,7 @@ builder.Services.AddGrpc();
 builder.AddRedis("basketcache");
 builder.Services.AddTransient<IBasketRepository, RedisBasketRepository>();
 
-// When running for Development, don't fail at startup if the developer hasn't configured ServiceBus yet.
-if (!builder.Environment.IsDevelopment() || builder.Configuration.GetConnectionString("messaging") is not null)
-{
-    builder.AddAzureServiceBus("messaging");
-}
+builder.AddRabbitMQ("messaging");
 
 var app = builder.Build();
 
