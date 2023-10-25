@@ -6,6 +6,10 @@ using System.Runtime.InteropServices;
 
 namespace Aspire.Dashboard.Otlp.Storage;
 
+/// <summary>
+/// The circular buffer starts with an empty list and grows to a maximum size.
+/// When the buffer is full, adding or inserting a new item removes the first item in the buffer.
+/// </summary>
 internal sealed class CircularBuffer<T> : IList<T>, ICollection<T>, IEnumerable<T>, IEnumerable
 {
     // Internal for testing.
