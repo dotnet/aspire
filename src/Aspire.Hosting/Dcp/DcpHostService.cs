@@ -41,7 +41,7 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
         _dashboard = new DashboardWebApplication(serviceCollection =>
         {
             serviceCollection.AddSingleton(_applicationModel);
-            serviceCollection.AddSingleton<IDashboardViewModelService, DashboardViewModelService>();
+            serviceCollection.AddScoped<IDashboardViewModelService, DashboardViewModelService>();
         });
     }
 
