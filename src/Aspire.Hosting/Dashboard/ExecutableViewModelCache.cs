@@ -47,5 +47,5 @@ internal sealed class ExecutableViewModelCache : ViewModelCache<Executable, Exec
     }
 
     protected override bool FilterResource(Executable resource)
-        => resource.Metadata.Annotations?.ContainsKey(Executable.CSharpProjectPathAnnotation) == false;
+        => resource.Metadata.Annotations is null || !resource.Metadata.Annotations.ContainsKey(Executable.CSharpProjectPathAnnotation);
 }
