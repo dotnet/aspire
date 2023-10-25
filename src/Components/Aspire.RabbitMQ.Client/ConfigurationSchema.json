@@ -1,0 +1,15 @@
+{
+  "type": "object",
+  "properties": {
+    "Aspire": {
+      "type": "object",
+      "properties": {
+        "RabbitMQ": {
+          "type": "object",
+          "properties": {
+          }
+        }
+      }
+    }
+  }
+}

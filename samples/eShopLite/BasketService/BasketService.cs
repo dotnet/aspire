@@ -1,8 +1,9 @@
-using Azure.Messaging.ServiceBus;
+using System.Text.Json;
 using BasketService.Models;
 using BasketService.Repositories;
 using Grpc.Core;
 using GrpcBasket;
+using RabbitMQ.Client;
 namespace BasketService;
 
 public class BasketService(IBasketRepository repository, IConfiguration configuration, IServiceProvider serviceProvider, ILogger<BasketService> logger) : Basket.BasketBase
@@ -10,7 +11,7 @@ public class BasketService(IBasketRepository repository, IConfiguration configur
     private readonly IBasketRepository _repository = repository;
     private readonly IConfiguration _configuration = configuration;
     private readonly ILogger<BasketService> _logger = logger;
-    private ServiceBusClient? _serviceBusClient;
+    private IConnection? _messageConnection;
 
     public override async Task<CustomerBasketResponse> GetBasketById(BasketRequest request, ServerCallContext context)
     {
@@ -59,14 +60,14 @@ public class BasketService(IBasketRepository repository, IConfiguration configur
 
         _logger.LogInformation("Checking out {Count} item(s) for BuyerId: {BuyerId}.", order.Items.Count, buyerId);
 
-        _serviceBusClient ??= serviceProvider.GetService<ServiceBusClient>();
-        if (_serviceBusClient is null)
+        _messageConnection ??= serviceProvider.GetService<IConnection>();
+        if (_messageConnection is null)
         {
-            _logger.LogWarning("Azure ServiceBus is unavailable. Ensure you have configured it in AppHosts's config / user secrets under 'ConnectionStrings:messaging'.");
+            _logger.LogWarning("RabbitMQ is unavailable. Ensure you have configured it in AppHosts's config / user secrets under 'ConnectionStrings:messaging'.");
         }
         else
         {
-            const string configKeyName = "Aspire:Azure:Messaging:ServiceBus:OrderQueueName";
+            const string configKeyName = "Aspire:RabbitMQ:Client:OrderQueueName";
             string? queueName = _configuration[configKeyName];
             if (string.IsNullOrEmpty(queueName))
             {
@@ -74,11 +75,13 @@ public class BasketService(IBasketRepository repository, IConfiguration configur
                 return new();
             }
 
-            await using ServiceBusSender sender = _serviceBusClient.CreateSender(queueName);
-
-            var message = new ServiceBusMessage(new BinaryData(order));
-
-            await sender.SendMessageAsync(message);
+            using var channel = _messageConnection.CreateModel();
+            channel.QueueDeclare(queueName, exclusive: false);
+            channel.BasicPublish(
+                exchange: "",
+                routingKey: queueName,
+                basicProperties: null,
+                body: JsonSerializer.SerializeToUtf8Bytes(order));
         }
 
         await _repository.DeleteBasketAsync(buyerId);

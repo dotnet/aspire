@@ -1,0 +1,150 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System.Diagnostics;
+using System.Net.Sockets;
+using Aspire.RabbitMQ;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Polly;
+using RabbitMQ.Client;
+using RabbitMQ.Client.Exceptions;
+
+namespace Microsoft.Extensions.Hosting;
+
+/// <summary>
+/// Extension methods for connecting to a RabbitMQ message broker.
+/// </summary>
+public static class AspireRabbitMQExtensions
+{
+    private const string ActivitySourceName = "Aspire.RabbitMQ.Client";
+    private static readonly ActivitySource s_activitySource = new ActivitySource(ActivitySourceName);
+    private const string DefaultConfigSectionName = "Aspire:RabbitMQ:Client";
+
+    public static void AddRabbitMQ(this IHostApplicationBuilder builder, string connectionName, Action<RabbitMQClientSettings>? configureSettings = null, Action<IConnectionFactory>? configureConnectionFactory = null)
+        => AddRabbitMQ(builder, DefaultConfigSectionName, configureSettings, configureConnectionFactory, connectionName, serviceKey: null);
+
+    public static void AddKeyedRabbitMQ(this IHostApplicationBuilder builder, string name, Action<RabbitMQClientSettings>? configureSettings = null, Action<IConnectionFactory>? configureConnectionFactory = null)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
+        AddRabbitMQ(builder, $"{DefaultConfigSectionName}:{name}", configureSettings, configureConnectionFactory, connectionName: name, serviceKey: name);
+    }
+
+    private static void AddRabbitMQ(
+        IHostApplicationBuilder builder,
+        string configurationSectionName,
+        Action<RabbitMQClientSettings>? configureSettings,
+        Action<IConnectionFactory>? configureConnectionFactory,
+        string connectionName,
+        object? serviceKey)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        var settings = new RabbitMQClientSettings();
+        builder.Configuration.GetSection(configurationSectionName).Bind(settings);
+
+        if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
+        {
+            settings.ConnectionString = connectionString;
+        }
+
+        configureSettings?.Invoke(settings);
+
+        IConnectionFactory CreateConnectionFactory(IServiceProvider sp)
+        {
+            var connectionString = settings.ConnectionString;
+            if (string.IsNullOrEmpty(connectionString))
+            {
+                throw new InvalidOperationException($"ConnectionString is missing. It should be provided in 'ConnectionStrings:{connectionName}' or under the 'ConnectionString' key in '{configurationSectionName}' configuration section.");
+            }
+
+            // See https://www.rabbitmq.com/dotnet-api-guide.html
+            var factory = new ConnectionFactory
+            {
+                Uri = new(connectionString)
+            };
+
+            configureConnectionFactory?.Invoke(factory);
+
+            return factory;
+        }
+
+        if (serviceKey is null)
+        {
+            builder.Services.AddSingleton<IConnectionFactory>(CreateConnectionFactory);
+            builder.Services.AddSingleton<IConnection>(sp => CreateConnection(sp.GetRequiredService<IConnectionFactory>(), settings.MaxConnectRetryCount));
+        }
+        else
+        {
+            builder.Services.AddKeyedSingleton<IConnectionFactory>(serviceKey, (sp, _) => CreateConnectionFactory(sp));
+            builder.Services.AddKeyedSingleton<IConnection>(serviceKey, (sp, key) => CreateConnection(sp.GetRequiredKeyedService<IConnectionFactory>(key), settings.MaxConnectRetryCount));
+        }
+
+        if (settings.Tracing)
+        {
+            // Note that RabbitMQ.Client v6.6 doesn't have built-in support for tracing. See https://github.com/rabbitmq/rabbitmq-dotnet-client/pull/1261
+
+            builder.Services.AddOpenTelemetry()
+                .WithTracing(traceBuilder => traceBuilder.AddSource(ActivitySourceName));
+        }
+
+        if (settings.HealthChecks)
+        {
+            builder.Services.AddHealthChecks()
+                .AddRabbitMQ(
+                    (sp, options) =>
+                    {
+                        options.Connection = serviceKey is null ? sp.GetRequiredService<IConnection>() : sp.GetRequiredKeyedService<IConnection>(serviceKey);
+                    },
+                    name: serviceKey is null ? "RabbitMQ.Client" : $"RabbitMQ.Client_{connectionName}");
+        }
+    }
+
+    private static IConnection CreateConnection(IConnectionFactory factory, int retryCount)
+    {
+        var policy = Policy
+            .Handle<SocketException>().Or<BrokerUnreachableException>()
+            .WaitAndRetry(retryCount, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
+
+        using var activity = s_activitySource.StartActivity("rabbitmq connect", ActivityKind.Client);
+        AddRabbitMQTags(activity);
+
+        return policy.Execute(() =>
+        {
+            using var connectAttemptActivity = s_activitySource.StartActivity("rabbitmq connect attempt", ActivityKind.Client);
+            AddRabbitMQTags(connectAttemptActivity, "connect");
+
+            try
+            {
+                return factory.CreateConnection();
+            }
+            catch (Exception ex)
+            {
+                if (connectAttemptActivity is not null)
+                {
+                    connectAttemptActivity.AddTag("exception.message", ex.Message);
+                    connectAttemptActivity.AddTag("exception.stacktrace", ex.ToString());
+                    connectAttemptActivity.AddTag("exception.type", ex.GetType().FullName);
+                    connectAttemptActivity.SetStatus(ActivityStatusCode.Error);
+                }
+                throw;
+            }
+        });
+    }
+
+    private static void AddRabbitMQTags(Activity? activity, string? operation = null)
+    {
+        if (activity is null)
+        {
+            return;
+        }
+
+        activity.AddTag("messaging.system", "rabbitmq");
+        if (operation is not null)
+        {
+            activity.AddTag("messaging.operation", operation);
+        }
+    }
+}
