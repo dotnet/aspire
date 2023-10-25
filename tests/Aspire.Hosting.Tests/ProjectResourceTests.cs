@@ -119,6 +119,38 @@ public class ProjectResourceTests
         Assert.Contains(resource.Annotations, a => a.GetType().Name == "LaunchProfileAnnotation");
     }
 
+    [Fact]
+    public void WithLaunchProfileFailsIfProfileDoesNotExist()
+    {
+        var appBuilder = CreateBuilder();
+
+        var project = appBuilder.AddProject<Projects.ServiceA>("projectName");
+        var ex = Assert.Throws<DistributedApplicationException>(() => project.WithLaunchProfile("not-exist"));
+        Assert.Equal("Launch settings file does not contain 'not-exist' profile.", ex.Message);
+    }
+
+    [Fact]
+    public void WithLaunchProfileFailsIfFileDoesNotExist()
+    {
+        var appBuilder = CreateBuilder();
+
+        var project = appBuilder.AddProject<TestProject>("projectName");
+        var ex = Assert.Throws<DistributedApplicationException>(() => project.WithLaunchProfile("not-exist"));
+        Assert.Equal("Project file 'another-path' was not found.", ex.Message);
+    }
+
+    [Fact]
+    public void ProjectWithoutServiceMetadataFailsWithLaunchProfile()
+    {
+        var appBuilder = CreateBuilder();
+
+        var project = new ProjectResource("projectName");
+        var projectResource = appBuilder.AddResource(project);
+
+        var ex = Assert.Throws<DistributedApplicationException>(() => projectResource.WithLaunchProfile("not-exist"));
+        Assert.Equal("Project does not contain service metadata.", ex.Message);
+    }
+
     private IDistributedApplicationBuilder CreateBuilder()
     {
         var appBuilder = DistributedApplication.CreateBuilder(["--publisher", "manifest"]);
