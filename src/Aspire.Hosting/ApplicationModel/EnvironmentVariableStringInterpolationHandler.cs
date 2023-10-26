@@ -32,7 +32,7 @@ public struct EnvironmentVariableStringInterpolationHandler
         _parameters![_paramterCount++] = item;
     }
 
-    public void AppendFormatted<T>(Func<string> item)
+    public void AppendFormatted(Func<string> item)
     {
         var parameterName = $"{{{_paramterCount}}}";
         _builder.Append(parameterName);
