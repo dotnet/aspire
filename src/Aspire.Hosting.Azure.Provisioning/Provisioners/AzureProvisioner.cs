@@ -100,7 +100,7 @@ internal sealed class AzureProvisioner(
             var (resourceGroupName, createIfNotExists) = _options.ResourceGroup switch
             {
                 null => ($"{Environment.MachineName.ToLowerInvariant()}-{environment.ApplicationName.ToLowerInvariant()}-rg", true),
-                string rg => (rg, _options.CreateResourceGroup ?? false)
+                string rg => (rg, _options.AllowResourceGroupCreation ?? false)
             };
 
             var subscription = await subscriptionLazy.Value.ConfigureAwait(false);
