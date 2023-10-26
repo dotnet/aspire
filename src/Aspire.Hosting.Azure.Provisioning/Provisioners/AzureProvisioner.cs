@@ -97,10 +97,10 @@ internal sealed class AzureProvisioner(
         Lazy<Task<(ResourceGroupResource, AzureLocation)>> resourceGroupAndLocationLazy = new(async () =>
         {
             // Name of the resource group to create based on the machine name and application name
-            var (resourceGroupName, createIfNoExists) = _options.ResourceGroup switch
+            var (resourceGroupName, createIfNotExists) = _options.ResourceGroup switch
             {
                 null => ($"{Environment.MachineName.ToLowerInvariant()}-{environment.ApplicationName.ToLowerInvariant()}-rg", true),
-                string rg => (rg, false)
+                string rg => (rg, _options.CreateResourceGroup ?? false)
             };
 
             var subscription = await subscriptionLazy.Value.ConfigureAwait(false);
@@ -118,7 +118,7 @@ internal sealed class AzureProvisioner(
             }
             catch (Exception)
             {
-                if (!createIfNoExists)
+                if (!createIfNotExists)
                 {
                     throw;
                 }

@@ -9,5 +9,7 @@ internal sealed class AzureProvisinerOptions
 
     public string? ResourceGroup { get; set; }
 
+    public bool? CreateResourceGroup { get; set; }
+
     public string? Location { get; set; }
 }
