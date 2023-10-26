@@ -33,6 +33,19 @@ public static class ResourceBuilderExtensions
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <param name="name">The name of the environment variable.</param>
+    /// <param name="handler">The value of the environment variable.</param>
+    /// <returns>A resource configured with the specified environment variable.</returns>
+    public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, EnvironmentVariableStringInterpolationHandler handler) where T : IResource
+    {
+        return builder.WithAnnotation(new EnvironmentCallbackAnnotation(name, handler.GetValue));
+    }
+
+    /// <summary>
+    /// Adds an environment variable to the resource.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">The name of the environment variable.</param>
     /// <param name="callback">A callback that allows for deferred execution of a specific enviroment variable. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connetion strings, ports.</param>
     /// <returns>A resource configured with the specified environment variable.</returns>
     public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, Func<string> callback) where T : IResourceWithEnvironment
