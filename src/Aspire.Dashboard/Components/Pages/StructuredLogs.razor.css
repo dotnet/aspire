@@ -27,3 +27,15 @@
 ::deep.logs-layout > .total-items-footer {
     grid-area: foot;
 }
+
+::deep .log-row-critical {
+    background-color: var(--log-critical);
+}
+
+::deep .log-row-error {
+    background-color: var(--log-error);
+}
+
+::deep .log-row-warning {
+    background-color: var(--log-warning);
+}

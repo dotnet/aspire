@@ -73,8 +73,10 @@ function setInitialBaseLayerLuminance() {
 
     if (theme === themeSettingDark) {
         baseLayerLuminance.withDefault(darkThemeLuminance);
+        document.documentElement.setAttribute('data-theme', 'dark');
     } else /* Light */ {
         baseLayerLuminance.withDefault(lightThemeLuminance);
+        document.documentElement.setAttribute('data-theme', 'light');
     }
 }
 
