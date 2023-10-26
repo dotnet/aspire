@@ -11,7 +11,7 @@
 ::deep .cellText {
     text-overflow: ellipsis;
     overflow: hidden;
-    line-height: 30px; /* vertical center align text with button */
+    line-height: 30px; /* vertical center align text */
 }
 
 ::deep .defaultHidden {
