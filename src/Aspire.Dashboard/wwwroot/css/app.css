@@ -18,8 +18,6 @@ fluent-toolbar[orientation=horizontal] {
     text-overflow: ellipsis;
     white-space: nowrap;
     height: 100%;
-    display: flex;
-    align-items: center;
 }
 
 .trace-tag-icon {
@@ -132,7 +130,12 @@ fluent-dialog fluent-data-grid-cell[cell-type=columnheader] fluent-button[appear
     font-size: 12px;
 }
 
-.data-grid-cell {
-    display: flex;
+fluent-data-grid-row {
     align-items: center;
+}
+
+fluent-data-grid-cell .long-inner-content {
+    width: inherit;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
