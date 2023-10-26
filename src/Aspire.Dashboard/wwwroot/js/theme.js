@@ -30,12 +30,6 @@ export function getSystemTheme() {
  * @param {string} theme
  */
 export function setThemeCookie(theme) {
-    if (theme === themeSettingDark) {
-        document.documentElement.setAttribute('data-theme', 'dark');
-    } else /* Light */ {
-        document.documentElement.setAttribute('data-theme', 'light');
-    }
-
     document.cookie = `${currentThemeCookieName}=${theme}`;
 }
 
