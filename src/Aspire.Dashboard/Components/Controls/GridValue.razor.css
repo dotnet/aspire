@@ -2,6 +2,7 @@
     display: grid;
     grid-template-columns: 1fr auto;
     gap: calc((6 + (var(--design-unit) * var(--density))) * 1px);
+    align-items: center;
 }
 
 .masking-enabled {
