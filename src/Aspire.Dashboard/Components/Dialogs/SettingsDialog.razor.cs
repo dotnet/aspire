@@ -36,6 +36,7 @@ public partial class SettingsDialog : IDialogContentComponent, IAsyncDisposable
 
             await _jsModule.InvokeVoidAsync("setDefaultBaseLayerLuminance", newLuminanceValue);
             await _jsModule.InvokeVoidAsync("setThemeCookie", newValue);
+            await _jsModule.InvokeVoidAsync("setThemeOnDocument", newValue);
         }
 
         _currentSetting = newValue;

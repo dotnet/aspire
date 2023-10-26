@@ -197,6 +197,11 @@ public partial class StructuredLogs
         StateHasChanged();
     }
 
+    private static string GetRowClass(OtlpLogEntry entry)
+    {
+        return $"log-row-{entry.Severity.ToString().ToLowerInvariant()}";
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (_applicationChanged)

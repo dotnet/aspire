@@ -4,6 +4,7 @@
 @using Aspire.Dashboard.Model.Otlp
 @using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Otlp.Storage
+@using Microsoft.Extensions.Logging
 @using Microsoft.Fast.Components.FluentUI
 @using System.Web
 @inject NavigationManager NavigationManager
@@ -27,8 +28,7 @@
                       AfterBindValue="HandleClear"
                       Placeholder="Filter..."
                       slot="end" />
-        @* Temporary workaround for https://github.com/microsoft/fluentui-blazor/issues/811 *@
-        <fluent-divider orientation="vertical" role="separator" aria-orientation="vertical" slot="end"></fluent-divider>
+        <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
         <FluentLabel slot="end">Filters: </FluentLabel>
         @if (ViewModel.Filters.Count == 0)
         {
@@ -44,7 +44,7 @@
         <FluentButton slot="end" Appearance="Appearance.Stealth" aria-label="Add Filter" OnClick="() => OpenFilterAsync(null)"><FluentIcon Value="@(new Icons.Regular.Size16.Filter())" /></FluentButton>
     </FluentToolbar>
     <div class="datagrid-overflow-area continuous-scroll-overflow" tabindex="-1">
-        <FluentDataGrid Virtualize="true" GenerateHeader="GenerateHeaderOption.Sticky" ItemSize="48" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="OtlpLogEntry" GridTemplateColumns="1fr 1fr 1fr 5fr 0.8fr 0.8fr">
+        <FluentDataGrid Virtualize="true" RowClass="@GetRowClass" GenerateHeader="GenerateHeaderOption.Sticky" ItemSize="46" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="OtlpLogEntry" GridTemplateColumns="1fr 1fr 1fr 5fr 0.8fr 0.8fr">
             <ChildContent>
                 <TemplateColumn Title="Service">
                     <div class="col-long-content" title="@context.Application.ApplicationName">
@@ -53,7 +53,17 @@
                         </span>
                     </div>
                 </TemplateColumn>
-                <PropertyColumn Title="Severity" Property="@(context => context.Severity)" />
+                <TemplateColumn Title="Severity">
+                    @if (context.Severity is LogLevel.Error or LogLevel.Critical)
+                    {
+                        <FluentIcon Icon="Icons.Filled.Size16.ErrorCircle" Color="Color.Error" Class="logs-severity-icon" />
+                    }
+                    else if (context.Severity is LogLevel.Warning)
+                    {
+                        <FluentIcon Icon="Icons.Filled.Size16.Warning" Color="Color.Warning" Class="logs-severity-icon" />
+                    }
+                    @context.Severity
+                </TemplateColumn>
                 <PropertyColumn Title="Timestamp" Property="@(context => OtlpHelpers.FormatTimeStamp(context.TimeStamp))" />
                 <TemplateColumn Title="Message">
                     <div class="col-long-content" title="@context.Message">
