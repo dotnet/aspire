@@ -30,7 +30,25 @@ export function getSystemTheme() {
  * @param {string} theme
  */
 export function setThemeCookie(theme) {
+    if (theme === themeSettingDark) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+    } else /* Light */ {
+        document.documentElement.setAttribute('data-theme', 'light');
+    }
+
     document.cookie = `${currentThemeCookieName}=${theme}`;
+}
+
+/**
+ * Sets the document data-theme attribute to the specified value.
+ * @param {string} theme
+ */
+export function setThemeOnDocument(theme) {
+    if (theme === themeSettingDark) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+    } else /* Light */ {
+        document.documentElement.setAttribute('data-theme', 'light');
+    }
 }
 
 /**
@@ -73,11 +91,11 @@ function setInitialBaseLayerLuminance() {
 
     if (theme === themeSettingDark) {
         baseLayerLuminance.withDefault(darkThemeLuminance);
-        document.documentElement.setAttribute('data-theme', 'dark');
     } else /* Light */ {
         baseLayerLuminance.withDefault(lightThemeLuminance);
-        document.documentElement.setAttribute('data-theme', 'light');
     }
+
+    setThemeOnDocument(theme);
 }
 
 function setInitialAccentColor() {
