@@ -4,6 +4,7 @@
 @using Aspire.Dashboard.Model.Otlp
 @using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Otlp.Storage
+@using Microsoft.Extensions.Logging
 @using Microsoft.Fast.Components.FluentUI
 @using System.Web
 @inject NavigationManager NavigationManager
@@ -53,17 +54,15 @@
                     </div>
                 </TemplateColumn>
                 <TemplateColumn Title="Severity">
-                    <span>
-                        @if (context.Severity is Microsoft.Extensions.Logging.LogLevel.Error or Microsoft.Extensions.Logging.LogLevel.Critical)
-                        {
-                            <FluentIcon Icon="Icons.Filled.Size16.ErrorCircle" Color="Color.Error" Class="trace-tag-icon" />
-                        }
-                        else if (context.Severity is Microsoft.Extensions.Logging.LogLevel.Warning)
-                        {
-                            <FluentIcon Icon="Icons.Filled.Size16.Warning" Color="Color.Warning" Class="trace-tag-icon" />
-                        }
-                        @context.Severity
-                    </span>
+                    @if (context.Severity is LogLevel.Error or LogLevel.Critical)
+                    {
+                        <FluentIcon Icon="Icons.Filled.Size16.ErrorCircle" Color="Color.Error" Class="logs-severity-icon" />
+                    }
+                    else if (context.Severity is LogLevel.Warning)
+                    {
+                        <FluentIcon Icon="Icons.Filled.Size16.Warning" Color="Color.Warning" Class="logs-severity-icon" />
+                    }
+                    @context.Severity
                 </TemplateColumn>
                 <PropertyColumn Title="Timestamp" Property="@(context => OtlpHelpers.FormatTimeStamp(context.TimeStamp))" />
                 <TemplateColumn Title="Message">

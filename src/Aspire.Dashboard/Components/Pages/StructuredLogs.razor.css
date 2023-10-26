@@ -39,3 +39,8 @@
 ::deep .log-row-warning {
     background-color: var(--log-warning);
 }
+
+::deep .logs-severity-icon {
+    vertical-align: text-bottom;
+    margin-right: 3px;
+}
