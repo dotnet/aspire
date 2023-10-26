@@ -1,16 +1,16 @@
 # Aspire.RabbitMQ.Client library
 
-Registers [NpgsqlDataSource](https://www.npgsql.org/doc/api/Npgsql.NpgsqlDataSource.html) in the DI container for connecting PostgreSQL database. Enables corresponding health check, metrics, logging and telemetry.
+Registers an [IConnection](https://rabbitmq.github.io/rabbitmq-dotnet-client/api/RabbitMQ.Client.IConnection.html) in the DI container for connecting to a RabbitMQ server. Enables corresponding health check, logging and telemetry.
 
 ## Getting started
 
 ### Prerequisites
 
-- PostgreSQL database and connection string for accessing the database.
+- RabbitMQ server and the server hostname for connecting a client.
 
 ### Install the package
 
-Install the Aspire PostgreSQL Npgsql library with [NuGet][nuget]:
+Install the Aspire RabbitMQ library with [NuGet][nuget]:
 
 ```dotnetcli
 dotnet add package Aspire.RabbitMQ.Client
@@ -18,33 +18,33 @@ dotnet add package Aspire.RabbitMQ.Client
 
 ## Usage example
 
-In the _Program.cs_ file of your project, call the `AddNpgsqlDataSource` extension method to register a `NpgsqlDataSource` for use via the dependency injection container. The method takes a connection name parameter.
+In the _Program.cs_ file of your project, call the `AddRabbitMQ` extension method to register an `IConnection` for use via the dependency injection container. The method takes a connection name parameter.
 
 ```csharp
-builder.AddNpgsqlDataSource("postgresdb");
+builder.AddRabbitMQ("messaging");
 ```
 
-You can then retrieve the `NpgsqlDataSource` instance using dependency injection. For example, to retrieve the data source from a Web API controller:
+You can then retrieve the `IConnection` instance using dependency injection. For example, to retrieve the connection from a Web API controller:
 
 ```csharp
-private readonly NpgsqlDataSource _dataSource;
+private readonly IConnection _connection;
 
-public ProductsController(NpgsqlDataSource dataSource)
+public ProductsController(IConnection connection)
 {
-    _dataSource = dataSource;
+    _connection = connection;
 }
 ```
 
 ## Configuration
 
-The Aspire PostgreSQL Npgsql component provides multiple options to configure the database connection based on the requirements and conventions of your project.
+The Aspire RabbitMQ component provides multiple options to configure the connection based on the requirements and conventions of your project.
 
 ### Use a connection string
 
-When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddNpgsqlDataSource()`:
+When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddRabbitMQ()`:
 
 ```csharp
-builder.AddNpgsqlDataSource("myConnection");
+builder.AddRabbitMQ("myConnection");
 ```
 
 And then the connection string will be retrieved from the `ConnectionStrings` configuration section:
@@ -52,23 +52,24 @@ And then the connection string will be retrieved from the `ConnectionStrings` co
 ```json
 {
   "ConnectionStrings": {
-    "myConnection": "Host=myserver;Database=test"
+    "myConnection": "amqp://username:password@localhost:5672"
   }
 }
 ```
 
-See the [ConnectionString documentation](https://www.npgsql.org/doc/connection-string-parameters.html) for more information on how to format this connection string.
+See the [ConnectionString documentation](https://www.rabbitmq.com/uri-spec.html) for more information on how to format this connection string.
 
 ### Use configuration providers
 
-The Aspire PostgreSQL Npgsql component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `NpgsqlSettings` from configuration by using the `Aspire:Npgsql` key. Example `appsettings.json` that configures some of the options:
+The Aspire RabbitMQ component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `RabbitMQClientSettings` from configuration by using the `Aspire:RabbitMQ:Client` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {
   "Aspire": {
-    "Npgsql": {
-      "HealthChecks": false,
-      "Tracing": false
+    "RabbitMQ": {
+      "Client": {
+        "HealthChecks": false
+      }
     }
   }
 }
@@ -76,32 +77,38 @@ The Aspire PostgreSQL Npgsql component supports [Microsoft.Extensions.Configurat
 
 ### Use inline delegates
 
-Also you can pass the `Action<NpgsqlSettings> configureSettings` delegate to set up some or all the options inline, for example to disable health checks from code:
+Also you can pass the `Action<RabbitMQClientSettings> configureSettings` delegate to set up some or all the options inline, for example to disable health checks from code:
 
 ```csharp
-    builder.AddNpgsqlDataSource("postgresdb", settings => settings.HealthChecks = false);
+    builder.AddRabbitMQ("messaging", settings => settings.HealthChecks = false);
+```
+
+You can also setup the [IConnectionFactory](https://rabbitmq.github.io/rabbitmq-dotnet-client/api/RabbitMQ.Client.IConnectionFactory.html) using the `Action<IConnectionFactory> configureConnectionFactory` delegate parameter of the `AddRabbitMQ` method. For example to set the client provided name for connections:
+
+```csharp
+builder.AddRabbitMQ("messaging", configureConnectionFactory: factory => factory.ClientProvidedName = "MyApp");
 ```
 
 ## AppHost extensions
 
-In your AppHost project, register a Postgres container and consume the connection using the following methods:
+In your AppHost project, register a RabbitMQ container and consume the connection using the following methods:
 
 ```csharp
-var postgresdb = builder.AddPostgresContainer("pg").AddDatabase("postgresdb");
+var messaging = builder.AddRabbitMQContainer("messaging");
 
 var myService = builder.AddProject<Projects.MyService>()
-                       .WithReference(postgresdb);
+                       .WithReference(messaging);
 ```
 
-The `WithReference` method configures a connection in the `MyService` project named `postgresdb`. In the _Program.cs_ file of `MyService`, the database connection can be consumed using:
+The `WithReference` method configures a connection in the `MyService` project named `messaging`. In the _Program.cs_ file of `MyService`, the RabbitMQ connection can be consumed using:
 
 ```csharp
-builder.AddNpgsqlDataSource("postgresdb");
+builder.AddRabbitMQ("messaging");
 ```
 
 ## Additional documentation
 
-* https://www.npgsql.org/doc/basic-usage.html
+* https://rabbitmq.github.io/rabbitmq-dotnet-client/
 * https://github.com/dotnet/aspire/tree/main/src/Components/README.md
 
 ## Feedback & contributing

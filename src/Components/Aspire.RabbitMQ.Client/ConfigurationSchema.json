@@ -1,5 +1,4 @@
 {
-  "type": "object",
   "properties": {
     "Aspire": {
       "type": "object",
@@ -7,9 +6,34 @@
         "RabbitMQ": {
           "type": "object",
           "properties": {
+            "Client": {
+              "type": "object",
+              "properties": {
+                "ConnectionString": {
+                  "type": "string",
+                  "description": "Gets or sets the connection string of the Postgre SQL database to connect to."
+                },
+                "MaxConnectRetryCount": {
+                  "type": "integer",
+                  "description": "Gets or sets the maximum number of connect retry attempts. Set it to 0 to disable the retry mechanism.",
+                  "default": 5
+                },
+                "HealthChecks": {
+                  "type": "boolean",
+                  "description": "Gets or sets a boolean value that indicates whether the database health check is enabled or not.",
+                  "default": true
+                },
+                "Tracing": {
+                  "type": "boolean",
+                  "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.",
+                  "default": true
+                } 
+              }
+            }
           }
         }
       }
     }
-  }
+  },
+  "type": "object"
 }

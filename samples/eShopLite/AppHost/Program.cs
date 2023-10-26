@@ -10,18 +10,18 @@ var catalogService = builder.AddProject<Projects.CatalogService>("catalogservice
                      .WithReference(catalogDb)
                      .WithReplicas(2);
 
-var ordersQueue = builder.AddRabbitMQContainer("messaging");
+var messaging = builder.AddRabbitMQContainer("messaging");
 
 var basketService = builder.AddProject<Projects.BasketService>("basketservice")
                     .WithReference(basketCache)
-                    .WithReference(ordersQueue);
+                    .WithReference(messaging);
 
 builder.AddProject<Projects.MyFrontend>("frontend")
        .WithReference(basketService)
        .WithReference(catalogService.GetEndpoint("http"));
 
 builder.AddProject<Projects.OrderProcessor>("orderprocessor")
-       .WithReference(ordersQueue)
+       .WithReference(messaging)
        .WithLaunchProfile("OrderProcessor");
 
 builder.AddProject<Projects.ApiGateway>("apigateway")
