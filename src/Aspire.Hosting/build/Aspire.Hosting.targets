@@ -14,8 +14,8 @@
           Outputs="@(ReferencePathWithRefAssemblies)">
     <ItemGroup>
       <ServiceMetadataSource Include="%(ReferencePathWithRefAssemblies.Identity)" Condition="%(ReferencePathWithRefAssemblies.ReferenceSourceTarget) == 'ProjectReference'">
-        <ClassName Condition="%(ReferencePathWithRefAssemblies.ReferenceSourceTarget) == 'ProjectReference' And %(ReferencePathWithRefAssemblies.ServiceNameOverride) == ''">$([System.IO.Path]::GetFileNameWithoutExtension(%(ReferencePathWithRefAssemblies.Identity)).Replace(".", "_"))</ClassName>
-        <ClassName Condition="%(ReferencePathWithRefAssemblies.ReferenceSourceTarget) == 'ProjectReference' And %(ReferencePathWithRefAssemblies.ServiceNameOverride) != ''">$([System.String]::Copy(%(ReferencePathWithRefAssemblies.ServiceNameOverride)).Replace(".", "_"))</ClassName>
+        <ClassName Condition="%(ReferencePathWithRefAssemblies.ReferenceSourceTarget) == 'ProjectReference' And %(ReferencePathWithRefAssemblies.ServiceNameOverride) == ''">$([System.IO.Path]::GetFileNameWithoutExtension(%(ReferencePathWithRefAssemblies.Identity)).Replace(".", "_").Replace("-","_"))</ClassName>
+        <ClassName Condition="%(ReferencePathWithRefAssemblies.ReferenceSourceTarget) == 'ProjectReference' And %(ReferencePathWithRefAssemblies.ServiceNameOverride) != ''">$([System.String]::Copy(%(ReferencePathWithRefAssemblies.ServiceNameOverride)).Replace(".", "_").Replace("-","_"))</ClassName>
         <AssemblyName>$([System.IO.Path]::GetFileNameWithoutExtension(%(ReferencePathWithRefAssemblies.Identity)))</AssemblyName>
         <ProjectPath>$([System.IO.Path]::GetFullPath(%(ReferencePathWithRefAssemblies.ProjectReferenceOriginalItemSpec)))</ProjectPath>
         <Namespace>Projects</Namespace>
