@@ -66,7 +66,13 @@ internal sealed class AzureProvisioner(
 
     private async Task ProvisionAzureResources(IConfiguration configuration, IHostEnvironment environment, ILogger<AzureProvisioner> logger, IEnumerable<IAzureResource> azureResources, CancellationToken cancellationToken)
     {
-        var credential = new DefaultAzureCredential();
+        var credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions()
+        {
+            ExcludeManagedIdentityCredential = true,
+            ExcludeWorkloadIdentityCredential = true,
+            ExcludeAzurePowerShellCredential = true,
+            CredentialProcessTimeout = TimeSpan.FromSeconds(15)
+        });
 
         var subscriptionId = _options.SubscriptionId ?? throw new MissingConfigurationException("An azure subscription id is required. Set the Azure:SubscriptionId configuration value.");
         var location = _options.Location switch
@@ -101,7 +107,7 @@ internal sealed class AzureProvisioner(
 
             var resourceGroups = subscription.GetResourceGroups();
             ResourceGroupResource? resourceGroup = null;
-            AzureLocation? location = null;
+            AzureLocation location = new(_options.Location);
             try
             {
                 var response = await resourceGroups.GetAsync(resourceGroupName, cancellationToken).ConfigureAwait(false);
@@ -121,7 +127,7 @@ internal sealed class AzureProvisioner(
 
                 logger.LogInformation("Creating resource group {rgName} in {location}...", resourceGroupName, location);
 
-                var rgData = new ResourceGroupData(location!.Value);
+                var rgData = new ResourceGroupData(location);
                 rgData.Tags.Add("aspire", "true");
                 var operation = await resourceGroups.CreateOrUpdateAsync(WaitUntil.Completed, resourceGroupName, rgData, cancellationToken).ConfigureAwait(false);
                 resourceGroup = operation.Value;
@@ -129,7 +135,7 @@ internal sealed class AzureProvisioner(
                 logger.LogInformation("Resource group {rgName} created.", resourceGroup.Data.Name);
             }
 
-            return (resourceGroup, location.Value);
+            return (resourceGroup, location);
         });
 
         var principalIdLazy = new Lazy<Task<Guid>>(async () => Guid.Parse(await GetUserPrincipalAsync(credential, cancellationToken).ConfigureAwait(false)));
@@ -185,6 +191,12 @@ internal sealed class AzureProvisioner(
             if (provisoner is null)
             {
                 logger.LogWarning("No provisioner found for {resourceType} skipping.", resource.GetType().Name);
+                continue;
+            }
+
+            if (!provisoner.ShouldProvision(configuration, resource))
+            {
+                logger.LogInformation("Skipping {resourceName} because it is not configured to be provisioned.", resource.Name);
                 continue;
             }
 

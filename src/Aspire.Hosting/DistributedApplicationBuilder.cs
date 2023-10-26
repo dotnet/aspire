@@ -22,7 +22,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
     public IServiceCollection Services => _innerBuilder.Services;
 
-    public IDistributedApplicationResourceCollection Resources { get; } = new DistributedApplicationResourceCollection();
+    public IResourceCollection Resources { get; } = new ResourceCollection();
 
     public DistributedApplicationBuilder(string[] args)
     {
@@ -72,7 +72,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         
     }
 
-    public IDistributedApplicationResourceBuilder<T> AddResource<T>(T resource) where T : IDistributedApplicationResource
+    public IResourceBuilder<T> AddResource<T>(T resource) where T : IResource
     {
         if (Resources.FirstOrDefault(r => r.Name == resource.Name) is { } existingResource)
         {

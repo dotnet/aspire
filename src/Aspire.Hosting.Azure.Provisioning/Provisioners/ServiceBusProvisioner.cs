@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json.Nodes;
+using Aspire.Hosting.ApplicationModel;
 using Azure;
 using Azure.Core;
 using Azure.ResourceManager;
@@ -49,17 +50,40 @@ internal sealed class ServiceBusProvisioner(ILogger<ServiceBusProvisioner> logge
 
         if (serviceBusNamespace is null)
         {
-            // ^[a-zA-Z][a-zA-Z0-9-]*$
-            var namespaceName = Guid.NewGuid().ToString();
+            logger.LogInformation("Creating service bus namespace in {location}...", location);
 
-            logger.LogInformation("Creating service bus namespace {namespace} in {location}...", namespaceName, location);
+            var attempts = 0;
 
-            var parameters = new ServiceBusNamespaceData(location);
-            parameters.Tags.Add(AzureProvisioner.AspireResourceNameTag, resource.Name);
+            while (true)
+            {
+                try
+                {
+                    // ^[a-zA-Z][a-zA-Z0-9-]*$
+                    var namespaceName = Guid.NewGuid().ToString();
 
-            // Now we can create a storage account with defined account name and parameters
-            var operation = await resourceGroup.GetServiceBusNamespaces().CreateOrUpdateAsync(WaitUntil.Completed, namespaceName, parameters, cancellationToken).ConfigureAwait(false);
-            serviceBusNamespace = operation.Value;
+                    var parameters = new ServiceBusNamespaceData(location);
+                    parameters.Tags.Add(AzureProvisioner.AspireResourceNameTag, resource.Name);
+
+                    // Now we can create a storage account with defined account name and parameters
+                    var operation = await resourceGroup.GetServiceBusNamespaces().CreateOrUpdateAsync(WaitUntil.Completed, namespaceName, parameters, cancellationToken).ConfigureAwait(false);
+                    serviceBusNamespace = operation.Value;
+
+                    // Success
+                    break;
+                }
+                catch (RequestFailedException)
+                {
+                    // We've seen errors like
+                    // "The specified service namespace is invalid" when we know that guids are valid
+                    // service bus namespace names.
+                    if (attempts++ > 3)
+                    {
+                        throw;
+                    }
+
+                    await Task.Delay(500, cancellationToken).ConfigureAwait(false);
+                }
+            }
 
             logger.LogInformation("Service bus namespace {namespace} created.", serviceBusNamespace.Data.Name);
         }

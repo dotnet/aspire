@@ -14,10 +14,10 @@ using Xunit;
 namespace Microsoft.Extensions.ServiceDiscovery.Dns.Tests;
 
 /// <summary>
-/// Tests for <see cref="DnsServiceEndPointResolver"/> and <see cref="DnsServiceEndPointResolverProvider"/>.
+/// Tests for <see cref="DnsServiceEndPointResolverBase"/> and <see cref="DnsSrvServiceEndPointResolverProvider"/>.
 /// These also cover <see cref="ServiceEndPointResolver"/> and <see cref="ServiceEndPointResolverFactory"/> by extension.
 /// </summary>
-public class DnsServiceEndPointResolverTests
+public class DnsSrvServiceEndPointResolverTests
 {
     private sealed class FakeDnsClient : IDnsQuery
     {
@@ -101,7 +101,7 @@ public class DnsServiceEndPointResolverTests
         var services = new ServiceCollection()
             .AddSingleton<IDnsQuery>(dnsClientMock)
             .AddServiceDiscoveryCore()
-            .AddDnsSrvServiceEndPointResolver()
+            .AddDnsSrvServiceEndPointResolver(options => options.QuerySuffix = ".ns")
             .BuildServiceProvider();
         var resolverFactory = services.GetRequiredService<ServiceEndPointResolverFactory>();
         ServiceEndPointResolver resolver;
@@ -170,15 +170,15 @@ public class DnsServiceEndPointResolverTests
         if (dnsFirst)
         {
             serviceCollection
-            .AddDnsSrvServiceEndPointResolver()
+            .AddDnsSrvServiceEndPointResolver(options => options.QuerySuffix = ".ns")
             .AddConfigurationServiceEndPointResolver();
         }
         else
         {
             serviceCollection
             .AddConfigurationServiceEndPointResolver()
-            .AddDnsSrvServiceEndPointResolver();
-        }
+            .AddDnsSrvServiceEndPointResolver(options => options.QuerySuffix = ".ns");
+        };
         var services = serviceCollection.BuildServiceProvider();
         var resolverFactory = services.GetRequiredService<ServiceEndPointResolverFactory>();
         ServiceEndPointResolver resolver;
@@ -210,6 +210,13 @@ public class DnsServiceEndPointResolverTests
                 Assert.Equal(new DnsEndPoint("localhost", 8080), initialResult.EndPoints[0].EndPoint);
                 Assert.Equal(new DnsEndPoint("remotehost", 9090), initialResult.EndPoints[1].EndPoint);
             }
+
+            Assert.All(initialResult.EndPoints, ep =>
+            {
+                var hostNameFeature = ep.Features.Get<IHostNameFeature>();
+                Assert.NotNull(hostNameFeature);
+                Assert.Equal("basket", hostNameFeature.HostName);
+            });
         }
     }
 

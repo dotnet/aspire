@@ -3,9 +3,9 @@
 
 namespace Aspire.Hosting.ApplicationModel;
 
-public sealed class EndpointReference(IDistributedApplicationResourceWithBindings owner, string bindingName)
+public sealed class EndpointReference(IResourceWithBindings owner, string bindingName)
 {
-    public IDistributedApplicationResourceWithBindings Owner { get; } = owner;
+    public IResourceWithBindings Owner { get; } = owner;
     public string BindingName { get; } = bindingName;
 
     public string UriString

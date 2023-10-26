@@ -10,6 +10,7 @@ using Azure.ResourceManager.Storage.Models;
 using Azure.ResourceManager.Storage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Azure.Provisioning;
 
@@ -34,6 +35,9 @@ internal sealed class StorageProvisioner(ILogger<StorageProvisioner> logger) : A
         }
         return false;
     }
+
+    public override bool ShouldProvision(IConfiguration configuration, AzureStorageResource resource) =>
+        !resource.IsEmulator;
 
     public override async Task GetOrCreateResourceAsync(
         ArmClient armClient,

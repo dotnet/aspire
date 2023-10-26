@@ -43,6 +43,13 @@ public class ConfigurationServiceEndPointResolverTests
             Assert.Equal(ResolutionStatus.Success, initialResult.Status);
             var ep = Assert.Single(initialResult.EndPoints);
             Assert.Equal(new DnsEndPoint("localhost", 8080), ep.EndPoint);
+
+            Assert.All(initialResult.EndPoints, ep =>
+            {
+                var hostNameFeature = ep.Features.Get<IHostNameFeature>();
+                Assert.NotNull(hostNameFeature);
+                Assert.Equal("basket", hostNameFeature.HostName);
+            });
         }
     }
 
@@ -78,6 +85,13 @@ public class ConfigurationServiceEndPointResolverTests
             Assert.Equal(2, initialResult.EndPoints.Count);
             Assert.Equal(new DnsEndPoint("localhost", 8080), initialResult.EndPoints[0].EndPoint);
             Assert.Equal(new DnsEndPoint("remotehost", 9090), initialResult.EndPoints[1].EndPoint);
+
+            Assert.All(initialResult.EndPoints, ep =>
+            {
+                var hostNameFeature = ep.Features.Get<IHostNameFeature>();
+                Assert.NotNull(hostNameFeature);
+                Assert.Equal("basket", hostNameFeature.HostName);
+            });
         }
     }
 
@@ -115,6 +129,13 @@ public class ConfigurationServiceEndPointResolverTests
             Assert.Equal(2, initialResult.EndPoints.Count);
             Assert.Equal(new DnsEndPoint("localhost", 2222), initialResult.EndPoints[0].EndPoint);
             Assert.Equal(new DnsEndPoint("remotehost", 2222), initialResult.EndPoints[1].EndPoint);
+
+            Assert.All(initialResult.EndPoints, ep =>
+            {
+                var hostNameFeature = ep.Features.Get<IHostNameFeature>();
+                Assert.NotNull(hostNameFeature);
+                Assert.Equal("basket", hostNameFeature.HostName);
+            });
         }
     }
 

@@ -7,6 +7,10 @@
     <RunWorkingDirectory Condition=" '$(RunWorkingDirectory)' == '' and '$(EnableDefaultRunWorkingDirectory)' != 'false' ">$(MSBuildProjectDirectory)</RunWorkingDirectory>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectCapability Include="Aspire" Condition=" '$(IsAspireHost)' == 'true' " />
+  </ItemGroup>
+  
   <!-- Generate the data structures for doing the codegen for service references -->
   <Target Name="CreateServiceMetadataSources"
           DependsOnTargets="FindReferenceAssembliesForReferences"

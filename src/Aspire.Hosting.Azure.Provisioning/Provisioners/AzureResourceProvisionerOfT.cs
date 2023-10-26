@@ -9,12 +9,15 @@ using Microsoft.Extensions.Configuration;
 using Azure.ResourceManager.Authorization.Models;
 using Azure.ResourceManager.Authorization;
 using Azure;
+using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Azure.Provisioning;
 
 internal interface IAzureResourceProvisioner
 {
     bool ConfigureResource(IConfiguration configuration, IAzureResource resource);
+
+    bool ShouldProvision(IConfiguration configuration, IAzureResource resource);
 
     Task GetOrCreateResourceAsync(
         ArmClient armClient,
@@ -34,6 +37,9 @@ internal abstract class AzureResourceProvisioner<TResource> : IAzureResourceProv
     bool IAzureResourceProvisioner.ConfigureResource(IConfiguration configuration, IAzureResource resource) =>
         ConfigureResource(configuration, (TResource)resource);
 
+    bool IAzureResourceProvisioner.ShouldProvision(IConfiguration configuration, IAzureResource resource) =>
+        ShouldProvision(configuration, (TResource)resource);
+
     Task IAzureResourceProvisioner.GetOrCreateResourceAsync(
         ArmClient armClient,
         SubscriptionResource subscription,
@@ -47,6 +53,8 @@ internal abstract class AzureResourceProvisioner<TResource> : IAzureResourceProv
         => GetOrCreateResourceAsync(armClient, subscription, resourceGroup, resourceMap, location, (TResource)resource, principalId, userSecrets, cancellationToken);
 
     public abstract bool ConfigureResource(IConfiguration configuration, TResource resource);
+
+    public virtual bool ShouldProvision(IConfiguration configuration, TResource resource) => true;
 
     public abstract Task GetOrCreateResourceAsync(
         ArmClient armClient,

@@ -1,16 +1,14 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.ApplicationModel;
-
-namespace Aspire.Hosting.Postgres;
+namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
 /// A resource that represents a PostgreSQL connection.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 /// <param name="connectionString">The PostgreSQL connection string.</param>
-public class PostgresConnectionResource(string name, string? connectionString) : DistributedApplicationResource(name), IPostgresResource
+public class PostgresConnectionResource(string name, string? connectionString) : Resource(name), IPostgresResource
 {
     private readonly string? _connectionString = connectionString;
 

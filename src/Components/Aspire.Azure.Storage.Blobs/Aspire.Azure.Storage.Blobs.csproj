@@ -5,6 +5,7 @@
     <IsPackable>true</IsPackable>
     <PackageTags>$(ComponentAzurePackageTags) storage blobs blob</PackageTags>
     <Description>A client for Azure Blob Storage that integrates with Aspire, including health checks, logging and telemetry.</Description>
+    <PackageIconFullPath>$(SharedDir)AzureStorageContainer_256x.png</PackageIconFullPath>
   </PropertyGroup>
 
   <ItemGroup>

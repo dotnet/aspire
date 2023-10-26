@@ -22,7 +22,7 @@ spec:
           - containerPort: 8080
           - containerPort: 8443
           env:
-          - name: Aspire.StackExchange.Redis__EndPoints__0
+          - name: ConnectionStrings__basketCache
             value: "redis"
           - name: ASPNETCORE_URLS
             value: "https://+:8443;http://+:8080"

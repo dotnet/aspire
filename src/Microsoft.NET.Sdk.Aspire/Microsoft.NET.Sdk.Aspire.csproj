@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.Build.NoTargets/3.7.0">
 
-  <Import Project="../Shared/Workload.targets" />
+  <Import Project="$(SharedDir)Workload.targets" />
 
   <PropertyGroup>
     <PackageId>$(PackageId).Manifest-$(DotNetAspireManifestVersionBand)</PackageId>

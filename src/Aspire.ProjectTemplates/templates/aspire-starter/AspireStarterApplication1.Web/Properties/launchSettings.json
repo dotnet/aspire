@@ -9,6 +9,7 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
+    //#if (HasHttpsProfile)
     },
     "https": {
       "commandName": "Project",
@@ -19,5 +20,8 @@
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
     }
+    //#else
+    }
+    //#endif
   }
 }

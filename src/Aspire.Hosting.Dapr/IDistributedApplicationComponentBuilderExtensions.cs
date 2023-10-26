@@ -7,7 +7,7 @@ using Aspire.Hosting.Dapr;
 namespace Aspire.Hosting;
 
 /// <summary>
-/// Extensions to <see cref="IDistributedApplicationResourceBuilder{T}"/> related to Dapr.
+/// Extensions to <see cref="IResourceBuilder{T}"/> related to Dapr.
 /// </summary>
 public static class IDistributedApplicationResourceBuilderExtensions
 {
@@ -18,7 +18,7 @@ public static class IDistributedApplicationResourceBuilderExtensions
     /// <param name="builder">The resource builder instance.</param>
     /// <param name="appId">The ID for the application, used for service discovery.</param>
     /// <returns>The resource builder instance.</returns>
-    public static IDistributedApplicationResourceBuilder<T> WithDaprSidecar<T>(this IDistributedApplicationResourceBuilder<T> builder, string appId) where T : IDistributedApplicationResource
+    public static IResourceBuilder<T> WithDaprSidecar<T>(this IResourceBuilder<T> builder, string appId) where T : IResource
     {
         return builder.WithDaprSidecar(new DaprSidecarOptions { AppId = appId });
     }
@@ -30,7 +30,7 @@ public static class IDistributedApplicationResourceBuilderExtensions
     /// <param name="builder">The resource builder instance.</param>
     /// <param name="options">Options for configuring the Dapr sidecar, if any.</param>
     /// <returns>The resource builder instance.</returns>
-    public static IDistributedApplicationResourceBuilder<T> WithDaprSidecar<T>(this IDistributedApplicationResourceBuilder<T> builder, DaprSidecarOptions? options = null) where T : IDistributedApplicationResource
+    public static IResourceBuilder<T> WithDaprSidecar<T>(this IResourceBuilder<T> builder, DaprSidecarOptions? options = null) where T : IResource
     {
         builder.WithAnnotation(new DaprSidecarAnnotation { Options = options });
 

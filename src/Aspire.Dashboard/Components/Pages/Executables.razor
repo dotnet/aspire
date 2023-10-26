@@ -6,84 +6,82 @@
 
 <PageTitle>@DashboardViewModelService.ApplicationName Executables</PageTitle>
 
-<div>
-    <FluentStack Orientation="Orientation.Vertical">
-        <FluentToolbar Orientation="Orientation.Horizontal">
-            <h1 slot="label">Executables</h1>
-            <FluentSearch Placeholder="Filter..."
-                          Immediate="true"
-                          @bind-Value="filter"
-                          @oninput="HandleFilter"
-                          AfterBindValue="HandleClear"
-                          slot="end" />
-        </FluentToolbar>
-        <div class="datagrid-overflow-area" tabindex="-1">
-            <FluentDataGrid Items="@FilteredResources" ResizableColumns="true" GridTemplateColumns="2fr 1fr 2fr 1fr 4fr 4fr 4fr 2fr 1fr 1fr">
-                <ChildContent>
-                    <TemplateColumn Title="Name" Sortable="true" SortBy="@nameSort">
-                        <FluentHighlighter HighlightedText="@filter" Text="@context.Name" />
-                    </TemplateColumn>
-                    <PropertyColumn Property="@(e => e.State)" Sortable="true" />
-                    <PropertyColumn Property="@(c => c.CreationTimeStamp)" Title="Start Time" Sortable="true" />
-                    <PropertyColumn Property="@(c => c.ProcessId)" Title="Process Id" Sortable="true" />
-                    <TemplateColumn Title="Path" Sortable="true" SortBy="@executablePathSort">
-                        <div class="col-long-content" title="@context.ExecutablePath">
-                            <FluentHighlighter HighlightedText="@filter" Text="@context.ExecutablePath" />
-                        </div>
-                    </TemplateColumn>
-                    <TemplateColumn Title="Working Directory" Sortable="true" SortBy="@workingDirectorySort">
-                        <div class="col-long-content" title="@context.WorkingDirectory">
-                            <FluentHighlighter HighlightedText="@filter" Text="@context.WorkingDirectory" />
-                        </div>
-                    </TemplateColumn>
-                    <TemplateColumn Title="Arguments">
-                        <div class="col-long-content" title="@(context.Arguments != null ? string.Join(" ", context.Arguments) : string.Empty)">
-                            <FluentHighlighter HighlightedText="@filter" Text="@(context.Arguments != null ? string.Join(" ", context.Arguments) : string.Empty)" />
-                        </div>
-                    </TemplateColumn>
-                    <TemplateColumn Title="Endpoints" Sortable="false">
-                        <FluentStack Orientation="Orientation.Vertical">
-                            @* If we have no endpoints, and the app isn't running anymore or we're not expecting any, then just say None *@
-                            @if (context.Endpoints.Count == 0 && (context.State == FinishedState || context.ExpectedEndpointsCount == 0))
+<div class="content-layout-with-toolbar">
+    <FluentToolbar Orientation="Orientation.Horizontal">
+        <h1 slot="label">Executables</h1>
+        <FluentSearch Placeholder="Filter..."
+                        Immediate="true"
+                        @bind-Value="filter"
+                        @oninput="HandleFilter"
+                        AfterBindValue="HandleClear"
+                        slot="end" />
+    </FluentToolbar>
+    <div class="datagrid-overflow-area" tabindex="-1">
+        <FluentDataGrid Items="@FilteredResources" ResizableColumns="true" GridTemplateColumns="2fr 1fr 2fr 1fr 4fr 4fr 4fr 2fr 1fr 1fr">
+            <ChildContent>
+                <TemplateColumn Title="Name" Sortable="true" SortBy="@nameSort">
+                    <FluentHighlighter HighlightedText="@filter" Text="@context.Name" />
+                </TemplateColumn>
+                <PropertyColumn Property="@(e => e.State)" Sortable="true" />
+                <PropertyColumn Property="@(c => c.CreationTimeStamp)" Title="Start Time" Sortable="true" />
+                <PropertyColumn Property="@(c => c.ProcessId)" Title="Process Id" Sortable="true" />
+                <TemplateColumn Title="Path" Sortable="true" SortBy="@executablePathSort">
+                    <div class="col-long-content" title="@context.ExecutablePath">
+                        <FluentHighlighter HighlightedText="@filter" Text="@context.ExecutablePath" />
+                    </div>
+                </TemplateColumn>
+                <TemplateColumn Title="Working Directory" Sortable="true" SortBy="@workingDirectorySort">
+                    <div class="col-long-content" title="@context.WorkingDirectory">
+                        <FluentHighlighter HighlightedText="@filter" Text="@context.WorkingDirectory" />
+                    </div>
+                </TemplateColumn>
+                <TemplateColumn Title="Arguments">
+                    <div class="col-long-content" title="@(context.Arguments != null ? string.Join(" ", context.Arguments) : string.Empty)">
+                        <FluentHighlighter HighlightedText="@filter" Text="@(context.Arguments != null ? string.Join(" ", context.Arguments) : string.Empty)" />
+                    </div>
+                </TemplateColumn>
+                <TemplateColumn Title="Endpoints" Sortable="false">
+                    <FluentStack Orientation="Orientation.Vertical">
+                        @* If we have no endpoints, and the app isn't running anymore or we're not expecting any, then just say None *@
+                        @if (context.Endpoints.Count == 0 && (context.State == FinishedState || context.ExpectedEndpointsCount == 0))
+                        {
+                            <span>None</span>
+                        }
+                        else
+                        {
+                            @* If we have any, regardless of the state, go ahead and display them *@
+                            foreach (var endpoint in context.Endpoints.OrderBy(e => e))
                             {
-                                <span>None</span>
+                                <a href="@endpoint" target="_blank">@endpoint</a>
                             }
-                            else
+                            @* If we're expecting more, say Starting..., unless the app isn't running anymore *@
+                            if (context.State != FinishedState
+                            && (context.ExpectedEndpointsCount is null || context.ExpectedEndpointsCount > context.Endpoints.Count))
                             {
-                                @* If we have any, regardless of the state, go ahead and display them *@
-                                foreach (var endpoint in context.Endpoints.OrderBy(e => e))
-                                {
-                                    <a href="@endpoint" target="_blank">@endpoint</a>
-                                }
-                                @* If we're expecting more, say Starting..., unless the app isn't running anymore *@
-                                if (context.State != FinishedState
-                                && (context.ExpectedEndpointsCount is null || context.ExpectedEndpointsCount > context.Endpoints.Count))
-                                {
-                                    <span>Starting...</span>
-                                }
+                                <span>Starting...</span>
                             }
-                        </FluentStack>
-                    </TemplateColumn>
-                    <TemplateColumn Title="Environment" Sortable="false">
-                        <FluentButton Appearance="Appearance.Lightweight"
-                                      Disabled="@(!context.Environment.Any())"
-                                      Title="@(context.Environment.Any() ? "View" : "No Environment Variables")"
-                                      OnClick="async() => await ShowEnvironmentVariables(context)">View</FluentButton>
-                    </TemplateColumn>
-                    <TemplateColumn Title="Logs">
-                        <FluentAnchor Appearance="Appearance.Lightweight" Href="@($"/ExecutableLogs/{context.Name}")">View</FluentAnchor>
-                    </TemplateColumn>
-                </ChildContent>
-                <EmptyContent>
-                    <FluentIcon Icon="Icons.Regular.Size24.AppGeneric" />&nbsp;No running executables found
-                </EmptyContent>
-            </FluentDataGrid>
-        </div>
-    </FluentStack>
+                        }
+                    </FluentStack>
+                </TemplateColumn>
+                <TemplateColumn Title="Environment" Sortable="false">
+                    <FluentButton Appearance="Appearance.Lightweight"
+                                    Disabled="@(!context.Environment.Any())"
+                                    Title="@(context.Environment.Any() ? "View" : "No Environment Variables")"
+                                    OnClick="async() => await ShowEnvironmentVariables(context)">View</FluentButton>
+                </TemplateColumn>
+                <TemplateColumn Title="Logs">
+                    <FluentAnchor Appearance="Appearance.Lightweight" Href="@($"/ExecutableLogs/{context.Name}")">View</FluentAnchor>
+                </TemplateColumn>
+            </ChildContent>
+            <EmptyContent>
+                <FluentIcon Icon="Icons.Regular.Size24.AppGeneric" />&nbsp;No running executables found
+            </EmptyContent>
+        </FluentDataGrid>
+    </div>
 </div>
 
 @code {
-    protected override Task<List<ExecutableViewModel>> GetResources(IDashboardViewModelService dashboardViewModelService)
+    protected override ValueTask<List<ExecutableViewModel>> GetResources(IDashboardViewModelService dashboardViewModelService)
         => dashboardViewModelService.GetExecutablesAsync();
 
     protected override IAsyncEnumerable<ResourceChanged<ExecutableViewModel>> WatchResources(

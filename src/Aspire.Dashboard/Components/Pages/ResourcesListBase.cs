@@ -20,7 +20,7 @@ public abstract class ResourcesListBase<TResource> : ComponentBase
     [Inject]
     public required EnvironmentVariablesDialogService EnvironmentVariablesDialogService { get; init; }
 
-    protected abstract Task<List<TResource>> GetResources(IDashboardViewModelService dashboardViewModelService);
+    protected abstract ValueTask<List<TResource>> GetResources(IDashboardViewModelService dashboardViewModelService);
     protected abstract IAsyncEnumerable<ResourceChanged<TResource>> WatchResources(
         IDashboardViewModelService dashboardViewModelService,
         IEnumerable<NamespacedName> initialList,

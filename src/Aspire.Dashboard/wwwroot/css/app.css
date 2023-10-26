@@ -1,4 +1,4 @@
-fluent-toolbar fluent-switch,
+ fluent-toolbar fluent-switch,
 fluent-toolbar p {
     margin-inline-end: 15px;
 }
@@ -17,6 +17,9 @@ fluent-toolbar[orientation=horizontal] {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    height: 100%;
+    display: flex;
+    align-items: center;
 }
 
 .trace-tag-icon {
@@ -41,8 +44,8 @@ fluent-toolbar[orientation=horizontal] {
         Height of the browser - static height for other content
         TODO: Is there a better way to do this?
     */
-    height: calc(100vh - 225px);
-    width: 100%;
+    height: 100%;
+    min-width: 100%;
     overflow: auto;
 }
 
@@ -85,4 +88,23 @@ fluent-dialog fluent-data-grid-cell[cell-type=columnheader] fluent-button[appear
     height: 500px;
     overflow-x: auto;
     overflow-y: auto;
+}
+
+.content-layout-with-toolbar {
+    height: 100%;
+    width: 100%;
+    display: grid;
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+        "toolbar"
+        "main";
+    padding: calc(var(--design-unit) * 2px);
+}
+
+.content-layout-with-toolbar > fluent-toolbar {
+    grid-area: toolbar;
+}
+
+.content-layout-with-toolbar > .datagrid-overflow-area {
+    grid-area: main;
 }

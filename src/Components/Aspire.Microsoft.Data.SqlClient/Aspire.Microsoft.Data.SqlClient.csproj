@@ -7,6 +7,7 @@
     <IsAotCompatible>true</IsAotCompatible>
     <PackageTags>$(ComponentDatabasePackageTags) sqlserver sql</PackageTags>
     <Description>A Microsoft SQL Server client that integrates with Aspire, including health checks, metrics and telemetry.</Description>
+    <PackageIconFullPath>$(SharedDir)SQL_256x.png</PackageIconFullPath>
   </PropertyGroup>
 
   <ItemGroup>

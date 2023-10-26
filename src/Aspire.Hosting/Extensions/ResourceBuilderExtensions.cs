@@ -19,7 +19,7 @@ public static class ResourceBuilderExtensions
     /// <param name="name">The name of the environment variable.</param>
     /// <param name="value">The value of the environment variable.</param>
     /// <returns>A resource configured with the specified environment variable.</returns>
-    public static IDistributedApplicationResourceBuilder<T> WithEnvironment<T>(this IDistributedApplicationResourceBuilder<T> builder, string name, string? value) where T : IDistributedApplicationResource
+    public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, string? value) where T : IResource
     {
         return builder.WithAnnotation(new EnvironmentCallbackAnnotation(name, () => value ?? string.Empty));
     }
@@ -32,7 +32,7 @@ public static class ResourceBuilderExtensions
     /// <param name="name">The name of the environment variable.</param>
     /// <param name="callback">A callback that allows for deferred execution of a specific enviroment variable. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connetion strings, ports.</param>
     /// <returns>A resource configured with the specified environment variable.</returns>
-    public static IDistributedApplicationResourceBuilder<T> WithEnvironment<T>(this IDistributedApplicationResourceBuilder<T> builder, string name, Func<string> callback) where T : IDistributedApplicationResourceWithEnvironment
+    public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, Func<string> callback) where T : IResourceWithEnvironment
     {
         return builder.WithAnnotation(new EnvironmentCallbackAnnotation(name, callback));
     }
@@ -44,9 +44,22 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="callback">A callback that allows for deferred execution for computing many enviroment variables. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connetion strings, ports.</param>
     /// <returns>A resource configured with the environment variable callback.</returns>
-    public static IDistributedApplicationResourceBuilder<T> WithEnvironment<T>(this IDistributedApplicationResourceBuilder<T> builder, Action<EnvironmentCallbackContext> callback) where T : IDistributedApplicationResourceWithEnvironment
+    public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, Action<EnvironmentCallbackContext> callback) where T : IResourceWithEnvironment
     {
         return builder.WithAnnotation(new EnvironmentCallbackAnnotation(callback));
+    }
+
+    /// <summary>
+    /// Adds an environment variable to the resource with the binding for <paramref name="endpointReference"/>.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">The name of the environment variable.</param>
+    /// <param name="endpointReference">The endpoint from which to extract the service binding.</param>
+    /// <returns>A resource configured with the environment variable callback.</returns>
+    public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, EndpointReference endpointReference) where T : IResourceWithEnvironment
+    {
+        return builder.WithAnnotation(new EnvironmentCallbackAnnotation(name, () => endpointReference.UriString));
     }
 
     private static bool ContainsAmbiguousEndpoints(IEnumerable<AllocatedEndpointAnnotation> endpoints)
@@ -87,7 +100,7 @@ public static class ResourceBuilderExtensions
     /// The format of the environment variable will be "ConnectionStrings__{sourceResourceName}={connectionString}."
     /// <para>
     /// Each resource defines the format of the connection string value. The
-    /// underlying connection string value can be retrieved using <see cref="IDistributedApplicationResourceWithConnectionString.GetConnectionString"/>.
+    /// underlying connection string value can be retrieved using <see cref="IResourceWithConnectionString.GetConnectionString"/>.
     /// </para>
     /// <para>
     /// Connection strings are also resolved by the configuration system (appSettings.json in the AppHost project, or environment variables). If a connection string is not found on the resource, the configuration system will be queried for a connection string
@@ -100,9 +113,9 @@ public static class ResourceBuilderExtensions
     /// <param name="connectionName">An override of the source resource's name for the connection string. The resulting connection string will be "ConnectionStrings__connectionName" if this is not null.</param>
     /// <param name="optional"><see langword="true"/> to allow a missing connection string; <see langword="false"/> to throw an exception if the connection string is not found.</param>
     /// <exception cref="DistributedApplicationException">Throws an exception if the connection string resolves to null. It can be null if the resource has no connection string, and if the configurtion has no connection string for the source resource.</exception>
-    /// <returns>A reference to the <see cref="IDistributedApplicationResourceBuilder{TDestination}"/>.</returns>
-    public static IDistributedApplicationResourceBuilder<TDestination> WithReference<TDestination>(this IDistributedApplicationResourceBuilder<TDestination> builder, IDistributedApplicationResourceBuilder<IDistributedApplicationResourceWithConnectionString> source, string? connectionName = null, bool optional = false)
-        where TDestination : IDistributedApplicationResourceWithEnvironment
+    /// <returns>A reference to the <see cref="IResourceBuilder{TDestination}"/>.</returns>
+    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IResourceWithConnectionString> source, string? connectionName = null, bool optional = false)
+        where TDestination : IResourceWithEnvironment
     {
         var resource = source.Resource;
         connectionName ??= resource.Name;
@@ -143,9 +156,9 @@ public static class ResourceBuilderExtensions
     /// <typeparam name="TSource">The source project resource.</typeparam>
     /// <param name="builder">The resource where the service discovery information will be injected.</param>
     /// <param name="source">The resource from which to extract service bindings.</param>
-    /// <returns>A reference to the <see cref="IDistributedApplicationResourceBuilder{TDestination}"/>.</returns>
-    public static IDistributedApplicationResourceBuilder<TDestination> WithReference<TDestination, TSource>(this IDistributedApplicationResourceBuilder<TDestination> builder, IDistributedApplicationResourceBuilder<TSource> source)
-        where TDestination : IDistributedApplicationResourceWithEnvironment where TSource : ProjectResource
+    /// <returns>A reference to the <see cref="IResourceBuilder{TDestination}"/>.</returns>
+    public static IResourceBuilder<TDestination> WithReference<TDestination, TSource>(this IResourceBuilder<TDestination> builder, IResourceBuilder<TSource> source)
+        where TDestination : IResourceWithEnvironment where TSource : ProjectResource
     {
         ApplyBinding(builder, source.Resource);
         return builder;
@@ -158,16 +171,16 @@ public static class ResourceBuilderExtensions
     /// <typeparam name="TDestination">The destination resource.</typeparam>
     /// <param name="builder">The resource where the service discovery information will be injected.</param>
     /// <param name="endpointReference">The endpoint from which to extract the service binding.</param>
-    /// <returns>A reference to the <see cref="IDistributedApplicationResourceBuilder{TDestination}"/>.</returns>
-    public static IDistributedApplicationResourceBuilder<TDestination> WithReference<TDestination>(this IDistributedApplicationResourceBuilder<TDestination> builder, EndpointReference endpointReference)
-        where TDestination : IDistributedApplicationResourceWithEnvironment
+    /// <returns>A reference to the <see cref="IResourceBuilder{TDestination}"/>.</returns>
+    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, EndpointReference endpointReference)
+        where TDestination : IResourceWithEnvironment
     {
         ApplyBinding(builder, endpointReference.Owner, endpointReference.BindingName);
         return builder;
     }
 
-    private static void ApplyBinding<T>(IDistributedApplicationResourceBuilder<T> builder, IDistributedApplicationResourceWithBindings resourceWithBindings, string? bindingName = null)
-        where T : IDistributedApplicationResourceWithEnvironment
+    private static void ApplyBinding<T>(IResourceBuilder<T> builder, IResourceWithBindings resourceWithBindings, string? bindingName = null)
+        where T : IResourceWithEnvironment
     {
         // When adding a service reference we get to see whether there is a ServiceReferencesAnnotation
         // on the resource, if there is then it means we have already been here before and we can just
@@ -175,7 +188,7 @@ public static class ResourceBuilderExtensions
         // in a single pass. There is one ServiceReferenceAnnotation per service binding source.
         var serviceReferenceAnnotation = builder.Resource.Annotations
             .OfType<ServiceReferenceAnnotation>()
-            .Where(sra => sra.Resource == (IDistributedApplicationResource)resourceWithBindings)
+            .Where(sra => sra.Resource == resourceWithBindings)
             .SingleOrDefault();
 
         if (serviceReferenceAnnotation == null)
@@ -199,7 +212,7 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Exposes an endpoint on a resource. This binding reference can be retrieved using <see cref="GetEndpoint{T}(IDistributedApplicationResourceBuilder{T}, string)"/>.
+    /// Exposes an endpoint on a resource. This binding reference can be retrieved using <see cref="GetEndpoint{T}(IResourceBuilder{T}, string)"/>.
     /// The binding name will be the scheme name if not specified.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
@@ -207,9 +220,9 @@ public static class ResourceBuilderExtensions
     /// <param name="hostPort">The host port.</param>
     /// <param name="scheme">The scheme e.g. (http/https)</param>
     /// <param name="name">The name of the binding.</param>
-    /// <returns>The <see cref="IDistributedApplicationResourceBuilder{T}"/>.</returns>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <exception cref="DistributedApplicationException">Throws an exception if the a binding with the same name already exists on the specified resource.</exception>
-    public static IDistributedApplicationResourceBuilder<T> WithServiceBinding<T>(this IDistributedApplicationResourceBuilder<T> builder, int? hostPort = null, string? scheme = null, string? name = null) where T : IDistributedApplicationResource
+    public static IResourceBuilder<T> WithServiceBinding<T>(this IResourceBuilder<T> builder, int? hostPort = null, string? scheme = null, string? name = null) where T : IResource
     {
         if (builder.Resource.Annotations.OfType<ServiceBindingAnnotation>().Any(sb => sb.Name == name))
         {
@@ -221,14 +234,14 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Gets an <see cref="EndpointReference"/> by name from the resource. These endpoints are declared either using <see cref="WithServiceBinding{T}(IDistributedApplicationResourceBuilder{T}, int?, string?, string?)"/> or by launch settings (for project resources).
-    /// The <see cref="EndpointReference"/> can be used to resolve the address of the endpoint in <see cref="WithEnvironment{T}(IDistributedApplicationResourceBuilder{T}, Action{EnvironmentCallbackContext})"/>.
+    /// Gets an <see cref="EndpointReference"/> by name from the resource. These endpoints are declared either using <see cref="WithServiceBinding{T}(IResourceBuilder{T}, int?, string?, string?)"/> or by launch settings (for project resources).
+    /// The <see cref="EndpointReference"/> can be used to resolve the address of the endpoint in <see cref="WithEnvironment{T}(IResourceBuilder{T}, Action{EnvironmentCallbackContext})"/>.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The the resource builder.</param>
     /// <param name="name">The name of the service binding.</param>
     /// <returns>An <see cref="EndpointReference"/> that can be used to resolve the address of the endpoint after resource allocation has occurred.</returns>
-    public static EndpointReference GetEndpoint<T>(this IDistributedApplicationResourceBuilder<T> builder, string name) where T : IDistributedApplicationResourceWithBindings
+    public static EndpointReference GetEndpoint<T>(this IResourceBuilder<T> builder, string name) where T : IResourceWithBindings
     {
         return builder.Resource.GetEndpoint(name);
     }
@@ -238,8 +251,8 @@ public static class ResourceBuilderExtensions
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
-    /// <returns>The <see cref="IDistributedApplicationResourceBuilder{T}"/>.</returns>
-    public static IDistributedApplicationResourceBuilder<T> AsHttp2Service<T>(this IDistributedApplicationResourceBuilder<T> builder) where T : IDistributedApplicationResourceWithBindings
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> AsHttp2Service<T>(this IResourceBuilder<T> builder) where T : IResourceWithBindings
     {
         return builder.WithAnnotation(new Http2ServiceAnnotation());
     }
@@ -249,8 +262,8 @@ public static class ResourceBuilderExtensions
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource to exclude.</param>
-    /// <returns>The <see cref="IDistributedApplicationResourceBuilder{T}"/>.</returns>
-    public static IDistributedApplicationResourceBuilder<T> ExcludeFromManifest<T>(this IDistributedApplicationResourceBuilder<T> builder) where T : IDistributedApplicationResource
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> ExcludeFromManifest<T>(this IResourceBuilder<T> builder) where T : IResource
     {
         foreach (var annotation in builder.Resource.Annotations.OfType<ManifestPublishingCallbackAnnotation>())
         {

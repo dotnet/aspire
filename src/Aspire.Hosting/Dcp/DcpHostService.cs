@@ -41,13 +41,13 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
         _dashboard = new DashboardWebApplication(serviceCollection =>
         {
             serviceCollection.AddSingleton(_applicationModel);
-            serviceCollection.AddSingleton<IDashboardViewModelService, DashboardViewModelService>();
+            serviceCollection.AddScoped<IDashboardViewModelService, DashboardViewModelService>();
         });
     }
 
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
-        if (_publishingOptions.Value.Publisher is not null  && _publishingOptions.Value.Publisher != "dcp")
+        if (_publishingOptions.Value.Publisher is not null && _publishingOptions.Value.Publisher != "dcp")
         {
             return;
         }

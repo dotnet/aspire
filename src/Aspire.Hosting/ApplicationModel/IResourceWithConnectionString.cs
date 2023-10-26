@@ -3,7 +3,7 @@
 
 namespace Aspire.Hosting.ApplicationModel;
 
-public interface IDistributedApplicationResourceWithParent<T> : IDistributedApplicationResource where T : IDistributedApplicationResource
+public interface IResourceWithConnectionString : IResource
 {
-    public T Parent { get; }
+    public string? GetConnectionString();
 }
