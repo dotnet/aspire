@@ -35,11 +35,9 @@
         <FluentDataGrid Virtualize="true" RowStyle="@GetRowStyle" GenerateHeader="GenerateHeaderOption.Sticky" ItemSize="46" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="OtlpTrace" GridTemplateColumns="0.8fr 2fr 3fr 0.5fr 0.5fr">
             <ChildContent>
                 <PropertyColumn Title="Timestamp" Property="@(context => OtlpHelpers.FormatTimeStamp(context.FirstSpan.StartTime))" />
-                <TemplateColumn Title="Name">
-                    <div class="col-long-content" title="@($"{context.FullName}: {OtlpHelpers.ToShortenedId(context.TraceId)}")">
-                        <span><FluentHighlighter HighlightedText="@(ViewModel.FilterText)" Text="@(context.FullName)" /></span>
-                        <span class="trace-id">@OtlpHelpers.ToShortenedId(context.TraceId)</span>
-                    </div>
+                <TemplateColumn Title="Name" Tooltip="true" TooltipText="@((t) => $"{t.FullName}: {OtlpHelpers.ToShortenedId(t.TraceId)}")">
+                    <span><FluentHighlighter HighlightedText="@(ViewModel.FilterText)" Text="@(context.FullName)" /></span>
+                    <span class="trace-id">@OtlpHelpers.ToShortenedId(context.TraceId)</span>
                 </TemplateColumn>
                 <TemplateColumn Title="Spans">
                     <FluentOverflow>
