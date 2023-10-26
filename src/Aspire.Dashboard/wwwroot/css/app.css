@@ -118,3 +118,8 @@ fluent-dialog fluent-data-grid-cell[cell-type=columnheader] fluent-button[appear
     padding-left: 0.5rem;
     font-size: 12px;
 }
+
+.data-grid-cell {
+    display: flex;
+    align-items: center;
+}
