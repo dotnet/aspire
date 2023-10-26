@@ -98,6 +98,11 @@ fluent-dialog fluent-data-grid-cell[cell-type=columnheader] fluent-button[appear
     overflow-y: auto;
 }
 
+.dialog-grid-container .empty-content {
+    width: 100%;
+    height: 46px;
+}
+
 .dialog-grid-container h4 {
     margin: 0.75rem;
 }
