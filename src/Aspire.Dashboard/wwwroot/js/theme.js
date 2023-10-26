@@ -38,6 +38,11 @@ export function setThemeCookie(theme) {
  * @param {string} theme
  */
 export function setThemeOnDocument(theme) {
+
+    if (!theme || theme === themeSettingSystem) {
+        theme = getSystemTheme();
+    }
+
     if (theme === themeSettingDark) {
         document.documentElement.setAttribute('data-theme', 'dark');
     } else /* Light */ {
