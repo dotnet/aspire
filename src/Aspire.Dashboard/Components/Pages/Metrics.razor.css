@@ -59,3 +59,29 @@
 ::deep .metrics-content {
     margin-left: 10px;
 }
+
+::deep.metrics-layout {
+    display: grid;
+    grid-template-rows: auto auto 1fr;
+    height: 100%;
+    width: 100%;
+    grid-template-areas:
+        "head"
+        "toolbar"
+        "main";
+    gap: calc(var(--design-unit) * 2px);
+    padding: calc(var(--design-unit) * 2px);
+}
+
+::deep.metrics-layout > h1 {
+    grid-area: head;
+    padding: calc(var(--design-unit) * 1px);
+}
+
+::deep.metrics-layout > fluent-toolbar {
+    grid-area: toolbar;
+}
+
+::deep.metrics-layout > .page-content-area {
+    grid-area: main;
+}
