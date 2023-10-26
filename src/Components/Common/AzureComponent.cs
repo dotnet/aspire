@@ -4,7 +4,6 @@
 using System.Diagnostics;
 using Azure.Core;
 using Azure.Core.Extensions;
-using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -27,6 +26,10 @@ internal abstract class AzureComponent<TSettings, TClient, TClientOptions>
 
     protected abstract TokenCredential? GetTokenCredential(TSettings settings);
 
+    protected abstract void BindSettingsToConfiguration(TSettings settings, IConfiguration configuration);
+
+    protected abstract void BindClientOptionsToConfiguration(IAzureClientBuilder<TClient, TClientOptions> clientBuilder, IConfiguration configuration);
+
     protected abstract IAzureClientBuilder<TClient, TClientOptions> AddClient<TBuilder>(TBuilder azureFactoryBuilder, TSettings settings, string connectionName, string configurationSectionName)
         where TBuilder : IAzureClientFactoryBuilder, IAzureClientFactoryBuilderWithCredential;
 
@@ -48,7 +51,7 @@ internal abstract class AzureComponent<TSettings, TClient, TClientOptions>
         var configSection = builder.Configuration.GetSection(configurationSectionName);
 
         var settings = new TSettings();
-        configSection.Bind(settings);
+        BindSettingsToConfiguration(settings, configSection);
 
         Debug.Assert(settings is IConnectionStringSettings, $"The settings object should implement {nameof(IConnectionStringSettings)}.");
         if (settings is IConnectionStringSettings csSettings &&
@@ -73,21 +76,21 @@ internal abstract class AzureComponent<TSettings, TClient, TClientOptions>
 
         builder.Services.AddAzureClients(azureFactoryBuilder =>
         {
-            var secretClientBuilder = AddClient(azureFactoryBuilder, settings, connectionName, configurationSectionName);
+            var clientBuilder = AddClient(azureFactoryBuilder, settings, connectionName, configurationSectionName);
 
             if (GetTokenCredential(settings) is { } credential)
             {
-                secretClientBuilder.WithCredential(credential);
+                clientBuilder.WithCredential(credential);
             }
 
-            secretClientBuilder.ConfigureOptions(configSection.GetSection("ClientOptions"));
+            BindClientOptionsToConfiguration(clientBuilder, configSection.GetSection("ClientOptions"));
 
-            configureClientBuilder?.Invoke(secretClientBuilder);
+            configureClientBuilder?.Invoke(clientBuilder);
 
             if (!string.IsNullOrEmpty(serviceKey))
             {
                 // Set the name for the client registration.
-                secretClientBuilder.WithName(serviceKey);
+                clientBuilder.WithName(serviceKey);
 
                 // To resolve named clients IAzureClientFactory{TClient}.CreateClient needs to be used.
                 builder.Services.AddKeyedSingleton(serviceKey,
