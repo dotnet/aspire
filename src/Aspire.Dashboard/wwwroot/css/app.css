@@ -90,6 +90,10 @@ fluent-dialog fluent-data-grid-cell[cell-type=columnheader] fluent-button[appear
     overflow-y: auto;
 }
 
+.dialog-grid-container h4 {
+    margin: 0.75rem;
+}
+
 .content-layout-with-toolbar {
     height: 100%;
     width: 100%;
@@ -107,4 +111,10 @@ fluent-dialog fluent-data-grid-cell[cell-type=columnheader] fluent-button[appear
 
 .content-layout-with-toolbar > .datagrid-overflow-area {
     grid-area: main;
+}
+
+.span-id {
+    color: rgb(136, 136, 136);
+    padding-left: 0.5rem;
+    font-size: 12px;
 }

@@ -11,6 +11,9 @@ public partial class SpanDetailsDialog
     [Parameter]
     public SpanDetailsDialogViewModel Content { get; set; } = default!;
 
+    [CascadingParameter]
+    public FluentDialog? Dialog { get; set; }
+
     private IQueryable<SpanPropertyViewModel>? FilteredItems =>
         Content.Properties.Where(vm =>
             vm.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) ||

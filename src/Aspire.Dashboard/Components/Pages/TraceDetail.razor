@@ -16,7 +16,7 @@
     <div class="trace-detail-layout">
         <div class="trace-detail-header">
             <h1 style="display:inline-block">@(_trace.FirstSpan.Source.ApplicationName): @_trace.FirstSpan.Name</h1>
-            <span class="trace-id">@_trace.TraceId.Substring(0, 7)</span>
+            <span class="trace-id">@OtlpHelpers.ToShortenedId(_trace.TraceId)</span>
         </div>
         <FluentToolbar Orientation="Orientation.Horizontal">
             <div>
