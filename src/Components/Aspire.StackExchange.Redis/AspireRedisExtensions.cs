@@ -26,7 +26,7 @@ public static class AspireRedisExtensions
     /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="StackExchangeRedisSettings"/>. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureOptions">An optional method that can be used for customizing the <see cref="ConfigurationOptions"/>. It's invoked after the options are read from the configuration.</param>
-    /// <remarks>Reads the configuration from "Aspire.StackExchange.Redis" section.</remarks>
+    /// <remarks>Reads the configuration from "Aspire:StackExchange:Redis" section.</remarks>
     public static void AddRedis(this IHostApplicationBuilder builder, string connectionName, Action<StackExchangeRedisSettings>? configureSettings = null, Action<ConfigurationOptions>? configureOptions = null)
         => AddRedis(builder, DefaultConfigSectionName, configureSettings, configureOptions, connectionName, serviceKey: null);
 
@@ -38,7 +38,7 @@ public static class AspireRedisExtensions
     /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="StackExchangeRedisSettings"/>. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureOptions">An optional method that can be used for customizing the <see cref="ConfigurationOptions"/>. It's invoked after the options are read from the configuration.</param>
-    /// <remarks>Reads the configuration from "Aspire.StackExchange.Redis:{name}" section.</remarks>
+    /// <remarks>Reads the configuration from "Aspire:StackExchange:Redis:{name}" section.</remarks>
     public static void AddKeyedRedis(this IHostApplicationBuilder builder, string name, Action<StackExchangeRedisSettings>? configureSettings = null, Action<ConfigurationOptions>? configureOptions = null)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);

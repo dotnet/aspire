@@ -3,7 +3,7 @@
 
 using System.Diagnostics;
 using System.Net.Sockets;
-using Aspire.RabbitMQ;
+using Aspire.RabbitMQ.Client;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -22,9 +22,27 @@ public static class AspireRabbitMQExtensions
     private static readonly ActivitySource s_activitySource = new ActivitySource(ActivitySourceName);
     private const string DefaultConfigSectionName = "Aspire:RabbitMQ:Client";
 
+    /// <summary>
+    /// Registers <see cref="IConnection"/> as a singleton in the services provided by the <paramref name="builder"/>.
+    /// Enables retries, corresponding health check, logging, and telemetry.
+    /// </summary>
+    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
+    /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
+    /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="RabbitMQClientSettings"/>. It's invoked after the settings are read from the configuration.</param>
+    /// <param name="configureConnectionFactory">An optional method that can be used for customizing the <see cref="IConnectionFactory"/>. It's invoked after the options are read from the configuration.</param>
+    /// <remarks>Reads the configuration from "Aspire:RabbitMQ:Client" section.</remarks>
     public static void AddRabbitMQ(this IHostApplicationBuilder builder, string connectionName, Action<RabbitMQClientSettings>? configureSettings = null, Action<IConnectionFactory>? configureConnectionFactory = null)
         => AddRabbitMQ(builder, DefaultConfigSectionName, configureSettings, configureConnectionFactory, connectionName, serviceKey: null);
 
+    /// <summary>
+    /// Registers <see cref="IConnection"/> as a keyed singleton for the given <paramref name="name"/> in the services provided by the <paramref name="builder"/>.
+    /// Enables retries, corresponding health check, logging, and telemetry.
+    /// </summary>
+    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
+    /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection string from the ConnectionStrings configuration section.</param>
+    /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="RabbitMQClientSettings"/>. It's invoked after the settings are read from the configuration.</param>
+    /// <param name="configureConnectionFactory">An optional method that can be used for customizing the <see cref="IConnectionFactory"/>. It's invoked after the options are read from the configuration.</param>
+    /// <remarks>Reads the configuration from "Aspire:RabbitMQ:Client:{name}" section.</remarks>
     public static void AddKeyedRabbitMQ(this IHostApplicationBuilder builder, string name, Action<RabbitMQClientSettings>? configureSettings = null, Action<IConnectionFactory>? configureConnectionFactory = null)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
@@ -42,8 +60,10 @@ public static class AspireRabbitMQExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
+        var configSection = builder.Configuration.GetSection(configurationSectionName);
+
         var settings = new RabbitMQClientSettings();
-        builder.Configuration.GetSection(configurationSectionName).Bind(settings);
+        configSection.Bind(settings);
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {
@@ -55,16 +75,17 @@ public static class AspireRabbitMQExtensions
         IConnectionFactory CreateConnectionFactory(IServiceProvider sp)
         {
             var connectionString = settings.ConnectionString;
-            if (string.IsNullOrEmpty(connectionString))
-            {
-                throw new InvalidOperationException($"ConnectionString is missing. It should be provided in 'ConnectionStrings:{connectionName}' or under the 'ConnectionString' key in '{configurationSectionName}' configuration section.");
-            }
 
-            // See https://www.rabbitmq.com/dotnet-api-guide.html
-            var factory = new ConnectionFactory
+            var factory = new ConnectionFactory();
+
+            var configurationOptionsSection = configSection.GetSection("ConnectionFactory");
+            configurationOptionsSection.Bind(factory);
+
+            // the connection string from settings should win over the one from the ConnectionFactory section
+            if (!string.IsNullOrEmpty(connectionString))
             {
-                Uri = new(connectionString)
-            };
+                factory.Uri = new(connectionString);
+            }
 
             configureConnectionFactory?.Invoke(factory);
 
