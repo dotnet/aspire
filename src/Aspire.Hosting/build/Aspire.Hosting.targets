@@ -41,13 +41,13 @@ public class ]]>%(ClassName)<![CDATA[ : IServiceMetadata
       </ServiceMetadataSource>
     </ItemGroup>
 
-
     <WriteLinesToFile
       File="$(IntermediateOutputPath)Aspire\references\%(ServiceMetadataSource.AssemblyName).ServiceMetadata.g.cs"
       Overwrite="true"
       Lines="%(ServiceMetadataSource.Source)"
       Encoding="Unicode"
       Condition="%(ServiceMetadataSource.AssemblyName) != ''"
+      WriteOnlyWhenDifferent="true"
       />
     <ItemGroup>
       <FileWrites Include="$(IntermediateOutputPath)Aspire\references\%(ServiceMetadataSource.AssemblyName).ServiceMetadata.g.cs" />
