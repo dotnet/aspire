@@ -5,12 +5,13 @@
   <PropertyGroup>
     <!-- Similar to ASP.NET Core and Worker apps, set the default CWD of orchestrator projects to be the project directory. -->
     <RunWorkingDirectory Condition=" '$(RunWorkingDirectory)' == '' and '$(EnableDefaultRunWorkingDirectory)' != 'false' ">$(MSBuildProjectDirectory)</RunWorkingDirectory>
+    <_AspireIntermediatePath>$(IntermediateOutputPath)Aspire\</_AspireIntermediatePath>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectCapability Include="Aspire" Condition=" '$(IsAspireHost)' == 'true' " />
   </ItemGroup>
-  
+
   <!-- Generate the data structures for doing the codegen for service references -->
   <Target Name="CreateServiceMetadataSources"
           DependsOnTargets="FindReferenceAssembliesForReferences"
@@ -46,7 +47,7 @@ public class ]]>%(ClassName)<![CDATA[ : IServiceMetadata
     </ItemGroup>
 
     <WriteLinesToFile
-      File="$(IntermediateOutputPath)Aspire\references\%(ServiceMetadataSource.AssemblyName).ServiceMetadata.g.cs"
+      File="$(_AspireIntermediatePath)references\%(ServiceMetadataSource.AssemblyName).ServiceMetadata.g.cs"
       Overwrite="true"
       Lines="%(ServiceMetadataSource.Source)"
       Encoding="Unicode"
@@ -54,9 +55,9 @@ public class ]]>%(ClassName)<![CDATA[ : IServiceMetadata
       WriteOnlyWhenDifferent="true"
       />
     <ItemGroup>
-      <FileWrites Include="$(IntermediateOutputPath)Aspire\references\%(ServiceMetadataSource.AssemblyName).ServiceMetadata.g.cs" />
+      <FileWrites Include="$(_AspireIntermediatePath)references\%(ServiceMetadataSource.AssemblyName).ServiceMetadata.g.cs" />
       <Compile
-        Include="$(IntermediateOutputPath)Aspire\references\%(ServiceMetadataSource.AssemblyName).ServiceMetadata.g.cs"
+        Include="$(_AspireIntermediatePath)references\%(ServiceMetadataSource.AssemblyName).ServiceMetadata.g.cs"
         Condition="%(ServiceMetadataSource.AssemblyName) != ''"
         />
     </ItemGroup>
@@ -99,5 +100,27 @@ public class ]]>%(ClassName)<![CDATA[ : IServiceMetadata
         <_Parameter2>$(DcpBinPath)</_Parameter2>
       </AssemblyAttribute>
     </ItemGroup>
+  </Target>
+
+  <PropertyGroup>
+    <AspirePublisher Condition="'(AspirePublisher)' == ''">manifest</AspirePublisher>
+    <AspireManifestPublishOutputPath Condition="'$(AspireManifestPublishOutputPath)' == ''">$(_AspireIntermediatePath)manifest.json</AspireManifestPublishOutputPath>
+  </PropertyGroup>
+
+  <!-- Entrypoint to allow for generation of an aspire manifest to a given location -->
+  <Target Name="GenerateAspireManifest" DependsOnTargets="Build" Inputs="$(TargetFileName)" Outputs="$(AspireManifestPublishOutputPath)">
+    <ItemGroup>
+      <_AspireManifestPublishArg Include="%22$(DOTNET_HOST_PATH)%22; %22$(TargetPath)%22;"/>
+      <_AspireManifestPublishArg Include="--publisher; $(AspirePublisher);" />
+      <_AspireManifestPublishArg Include="--output-path; %22$(AspireManifestPublishOutputPath)%22" />
+    </ItemGroup>
+
+    <Exec Command="@(_AspireManifestPublishArg, ' ')"
+      ConsoleToMsBuild="true"
+      IgnoreStandardErrorWarningFormat="true"
+      EchoOff="true"
+      StandardOutputImportance="low"
+      StandardErrorImportance="low"
+      />
   </Target>
 </Project>
