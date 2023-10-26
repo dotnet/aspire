@@ -18,7 +18,9 @@ fluent-toolbar[orientation=horizontal] {
     text-overflow: ellipsis;
     white-space: nowrap;
     height: 100%;
-    display: flex;
+}
+
+fluent-data-grid-row[row-type="default"] {
     align-items: center;
 }
 
@@ -128,6 +130,4 @@ fluent-dialog fluent-data-grid-cell[cell-type=columnheader] fluent-button[appear
 }
 
 .data-grid-cell {
-    display: flex;
-    align-items: center;
 }
