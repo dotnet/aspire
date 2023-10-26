@@ -9,6 +9,96 @@
             "Client": {
               "type": "object",
               "properties": {
+                "ConnectionFactory": {
+                  "type": "object",
+                  "description": "The options relevant for creating a RabbitMQ connection.",
+                  "properties": {
+                    "AutomaticRecoveryEnabled": {
+                      "type": "boolean",
+                      "description": "Set to false to disable automatic connection recovery.",
+                      "default": true
+                    },
+                    "DispatchConsumersAsync": {
+                      "type": "boolean",
+                      "description": "Set to true will enable a asynchronous consumer dispatcher which is compatible with IAsyncBasicConsumer.",
+                      "default": false
+                    },
+                    "ConsumerDispatchConcurrency": {
+                      "type": "integer",
+                      "description": "Set to a value greater than one to enable concurrent processing. For a concurrency greater than one IBasicConsumer will be offloaded to the worker thread pool so it is important to choose the value for the concurrency wisely to avoid thread pool overloading. IAsyncBasicConsumer can handle concurrency much more efficiently due to the non-blocking nature of the consumer.",
+                      "default": 1
+                    },
+                    "HostName": {
+                      "type": "string",
+                      "description": "The host to connect to."
+                    },
+                    "NetworkRecoveryInterval": {
+                      "type": "string",
+                      "description": "Amount of time client will wait for before re-trying to recover connection."
+                    },
+                    "HandshakeContinuationTimeout": {
+                      "type": "string",
+                      "description": "Amount of time protocol handshake operations are allowed to take before timing out."
+                    },
+                    "ContinuationTimeout": {
+                      "type": "string",
+                      "description": "Amount of time protocol  operations (e.g. <code>queue.declare</code>) are allowed to take before timing out."
+                    },
+                    "Port": {
+                      "type": "integer",
+                      "description": "The port to connect on. AmqpTcpEndpoint.UseDefaultPort indicates the default for the protocol should be used."
+                    },
+                    "RequestedConnectionTimeout": {
+                      "type": "string",
+                      "description": "Timeout setting for connection attempts."
+                    },
+                    "SocketReadTimeout": {
+                      "type": "string",
+                      "description": "Timeout setting for socket read operations."
+                    },
+                    "SocketWriteTimeout": {
+                      "type": "string",
+                      "description": "Timeout setting for socket write operations."
+                    },
+                    "TopologyRecoveryEnabled": {
+                      "type": "boolean",
+                      "description": "Set to false to make automatic connection recovery not recover topology (exchanges, queues, bindings, etc).",
+                      "default": true
+                    },
+                    "UserName": {
+                      "type": "string",
+                      "description": "Username to use when authenticating to the server."
+                    },
+                    "Password": {
+                      "type": "string",
+                      "description": "Password to use when authenticating to the server."
+                    },
+                    "RequestedChannelMax": {
+                      "type": "integer",
+                      "description": "Maximum channel number to ask for."
+                    },
+                    "RequestedFrameMax": {
+                      "type": "integer",
+                      "description": "Frame-max parameter to ask for (in bytes)."
+                    },
+                    "VirtualHost": {
+                      "type": "string",
+                      "description": "Virtual host to access during this connection."
+                    },
+                    "MaxMessageSize": {
+                      "type": "string",
+                      "description": "Maximum allowed message size, in bytes, from RabbitMQ. Corresponds to the <code>rabbit.max_message_size</code> setting."
+                    },
+                    "Uri": {
+                      "type": "string",
+                      "description": "The uri to use for the connection."
+                    },
+                    "ClientProvidedName": {
+                      "type": "string",
+                      "description": "Default client provided name to be used for connections."
+                    }
+                  }
+                },
                 "ConnectionString": {
                   "type": "string",
                   "description": "Gets or sets the connection string of the Postgre SQL database to connect to."
@@ -27,7 +117,7 @@
                   "type": "boolean",
                   "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.",
                   "default": true
-                } 
+                }
               }
             }
           }

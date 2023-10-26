@@ -17,7 +17,7 @@ As part of the Aspire November preview, we want to include a set of Aspire Compo
 | Azure Redis                             |                                      |                           |                                                        |                             |                     |                     |                     |                                 |
 | StackExchange.Redis.DistributedCaching  |                  ✅                  |             ✅             |                           N/A                            |              ✅              |          ✅          |        ✅            |         ❌           |              ✅                  |
 | StackExchange.Redis.OutputCaching       |                  ✅                  |             ✅             |                           N/A                            |              ✅              |          ✅          |        ✅            |         ❌           |              ✅                  |
-| RabbitMQ                                |                                      |                           |                                                        |                             |                     |                     |                     |                                 |
+| RabbitMQ                                |                  ✅                  |             ✅             |                           ✅                            |              ✅              |                      |                      |         ❌           |              ✅                  |
 
 Nomenclature used in the table above:
 

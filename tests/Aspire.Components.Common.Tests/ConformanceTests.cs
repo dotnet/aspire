@@ -357,7 +357,7 @@ public abstract class ConformanceTests<TService, TOptions>
     /// Ensures that when the connection information is missing, an exception isn't thrown before the host
     /// is built, so any exception can be logged with ILogger.
     /// </summary>
-    [Theory]
+    [ConditionalTheory]
     [InlineData(true)]
     [InlineData(false)]
     public void ConnectionInformationIsDelayValidated(bool useKey)
