@@ -149,7 +149,7 @@ public partial class TraceDetail
 
         var parameters = new DialogParameters
         {
-            Title = viewModel.GetDisplaySummary(),
+            Title = $"{viewModel.Span.Source.ApplicationName}: {viewModel.GetDisplaySummary()}",
             Width = "auto",
             Height = "auto",
             TrapFocus = true,

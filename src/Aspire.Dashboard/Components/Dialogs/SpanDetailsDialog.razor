@@ -3,6 +3,11 @@
 @using Microsoft.Fast.Components.FluentUI;
 @implements IDialogContentComponent<SpanDetailsDialogViewModel>
 
+<FluentDialogHeader>
+    <h3 style="display:inline-block;">@Dialog?.Instance.Parameters.Title</h3>
+    <span class="span-id">@OtlpHelpers.ToShortenedId(Content.Span.SpanId)</span>
+</FluentDialogHeader>
+
 <div>
     <FluentDialogBody>
         <FluentStack Orientation="Orientation.Vertical">

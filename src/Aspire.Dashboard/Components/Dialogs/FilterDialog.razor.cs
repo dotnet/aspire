@@ -8,9 +8,9 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.Fast.Components.FluentUI;
 
 namespace Aspire.Dashboard.Components.Dialogs;
+
 public partial class FilterDialog
 {
-
     [CascadingParameter]
     public FluentDialog? Dialog { get; set; }
 
@@ -40,15 +40,7 @@ public partial class FilterDialog
         }
     }
 
-    public List<string> Parameters
-    {
-        get
-        {
-            var result = new List<string> { "Message", "Application", "TraceId", "SpanId", "ParentId", "OriginalFormat" };
-            result.AddRange(Content.LogPropertyKeys);
-            return result;
-        }
-    }
+    public List<string> Parameters => LogFilter.GetAllPropertyNames(Content.LogPropertyKeys);
 
     public Dictionary<FilterCondition, string> Conditions
     {

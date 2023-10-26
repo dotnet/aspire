@@ -273,7 +273,7 @@ public class TelemetryRepository
             }
 
             var keys = applicationKeys.Select(keys => keys.PropertyKey).Distinct();
-            return keys.ToList();
+            return keys.OrderBy(k => k).ToList();
         }
         finally
         {
