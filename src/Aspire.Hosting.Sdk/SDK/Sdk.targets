@@ -21,6 +21,10 @@
 
   <!-- *** END ***  -->
 
+  <Target Name="AspireCapabilityCheck" BeforeTargets="PrepareForBuild">
+    <Error Text="$(MSBuildProjectName) is an Aspire Host project but is missing necessary dependencies. Are you missing a PackageReference to Aspire.Hosting?" Condition="!@(ProjectCapability->AnyHaveMetadataValue('Identity', 'Aspire'))" />
+  </Target>
+
   <!--
   This SDK comes from a workload pack, so normally should only be referenced from
   the WorkloadManifest.targets so as not to cause workload restore to require multiple
