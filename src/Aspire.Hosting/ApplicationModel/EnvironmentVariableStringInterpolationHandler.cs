@@ -32,6 +32,13 @@ public struct EnvironmentVariableStringInterpolationHandler
         _parameters![_paramterCount++] = item;
     }
 
+    public void AppendFormatted<T>(Func<string> item)
+    {
+        var parameterName = $"{{{_paramterCount}}}";
+        _builder.Append(parameterName);
+        _parameters![_paramterCount++] = item;
+    }
+
     internal string GetValue()
     {
         if (_parameters is null)
@@ -45,6 +52,7 @@ public struct EnvironmentVariableStringInterpolationHandler
         {
             transformed[at++] = p switch
             {
+                Func<string> d => d(),
                 IResourceWithConnectionString resource => resource.GetConnectionString(),
                 EndpointReference reference => reference.UriString,
                 _ => p?.ToString()

@@ -22,7 +22,8 @@ builder.AddProject<Projects.MyFrontend>("frontend")
        .WithReference(basketService)
        .WithReference(endpoint)
        .WithEnvironment("ENV_DB", $"{catalogDb.Resource}")
-       .WithEnvironment("ENV_URI", $"{endpoint}");
+       .WithEnvironment("ENV_URI", $"{endpoint}")
+       .WithEnvironment("ENV_DBCONN", $"{catalogDb.Resource.GetConnectionString}");
 
 builder.AddProject<Projects.OrderProcessor>("orderprocessor")
        .WithReference(messaging)
