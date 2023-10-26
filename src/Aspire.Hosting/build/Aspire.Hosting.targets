@@ -10,61 +10,70 @@
   <ItemGroup>
     <ProjectCapability Include="Aspire" Condition=" '$(IsAspireHost)' == 'true' " />
   </ItemGroup>
-
-  <!-- The purpose of this target is to take a list of the resolved project references and generate a set of items (ServiceMetadataSource) which contain
-     code that we want to add to the orchestrator project for each referenced project. The metadata contains pointers to the project/assembly. -->
-  <Target Name="GenerateServiceMetadataSources" DependsOnTargets="FindReferenceAssembliesForReferences" Inputs="@(ReferencePathWithRefAssemblies)" Outputs="@(ReferencePathWithRefAssemblies)">
+  
+  <!-- Generate the data structures for doing the codegen for service references -->
+  <Target Name="CreateServiceMetadataSources"
+          DependsOnTargets="FindReferenceAssembliesForReferences"
+          Inputs="@(ReferencePathWithRefAssemblies)"
+          Outputs="@(ReferencePathWithRefAssemblies)">
     <ItemGroup>
-      <ServiceMetadataSource Include="%(ReferencePathWithRefAssemblies.Identity)" Condition="%(ReferencePathWithRefAssemblies.ReferenceSourceTarget) == 'ProjectReference' And %(ReferencePathWithRefAssemblies.ServiceNameOverride) == ''">
+      <ServiceMetadataSource Include="%(ReferencePathWithRefAssemblies.Identity)" Condition="%(ReferencePathWithRefAssemblies.ReferenceSourceTarget) == 'ProjectReference'">
+        <ClassName Condition="%(ReferencePathWithRefAssemblies.ReferenceSourceTarget) == 'ProjectReference' And %(ReferencePathWithRefAssemblies.ServiceNameOverride) == ''">$([System.IO.Path]::GetFileNameWithoutExtension(%(ReferencePathWithRefAssemblies.Identity)).Replace(".", "_").Replace("-","_"))</ClassName>
+        <ClassName Condition="%(ReferencePathWithRefAssemblies.ReferenceSourceTarget) == 'ProjectReference' And %(ReferencePathWithRefAssemblies.ServiceNameOverride) != ''">$([System.String]::Copy(%(ReferencePathWithRefAssemblies.ServiceNameOverride)).Replace(".", "_").Replace("-","_"))</ClassName>
         <AssemblyName>$([System.IO.Path]::GetFileNameWithoutExtension(%(ReferencePathWithRefAssemblies.Identity)))</AssemblyName>
-        <Source>
-          <![CDATA[using System%3B
-
-namespace Projects%3B
-
-public class ]]>$([System.IO.Path]::GetFileNameWithoutExtension(%(ReferencePathWithRefAssemblies.Identity)).Replace(".", "_").Replace("-", "_"))<![CDATA[ : IServiceMetadata
-{
-  public string AssemblyName => """]]>$([System.IO.Path]::GetFileNameWithoutExtension(%(ReferencePathWithRefAssemblies.Identity)))<![CDATA["""%3B
-  public string AssemblyPath => """]]>%(ReferencePathWithRefAssemblies.Identity)<![CDATA["""%3B
-  public string ProjectPath => """]]>$([System.IO.Path]::GetFullPath(%(ReferencePathWithRefAssemblies.ProjectReferenceOriginalItemSpec)))<![CDATA["""%3B
-}]]>
-        </Source>
+        <ProjectPath>$([System.IO.Path]::GetFullPath(%(ReferencePathWithRefAssemblies.ProjectReferenceOriginalItemSpec)))</ProjectPath>
+        <Namespace>Projects</Namespace>
       </ServiceMetadataSource>
-      <ServiceMetadataSource Include="%(ReferencePathWithRefAssemblies.Identity)" Condition="%(ReferencePathWithRefAssemblies.ReferenceSourceTarget) == 'ProjectReference' And %(ReferencePathWithRefAssemblies.ServiceNameOverride) != ''">
-				<AssemblyName>$([System.IO.Path]::GetFileNameWithoutExtension(%(ReferencePathWithRefAssemblies.Identity)))</AssemblyName>
-				<Source>
-					<![CDATA[using System%3B
-
-namespace Projects%3B
-
-public class ]]>%(ReferencePathWithRefAssemblies.ServiceNameOverride)<![CDATA[ : IServiceMetadata
-{
-  public string AssemblyName => """]]>$([System.IO.Path]::GetFileNameWithoutExtension(%(ReferencePathWithRefAssemblies.Identity)))<![CDATA["""%3B
-  public string AssemblyPath => """]]>%(ReferencePathWithRefAssemblies.Identity)<![CDATA["""%3B
-  public string ProjectPath => """]]>$([System.IO.Path]::GetFullPath(%(ReferencePathWithRefAssemblies.ProjectReferenceOriginalItemSpec)))<![CDATA["""%3B
-}]]>
-				</Source>
-			</ServiceMetadataSource>
 		</ItemGroup>
   </Target>
 
-  <!-- The purpose of this target is to take all of the generated service meta data and write them to the intermediate build directory
-     and reference them for compilation. There will be a AssemblyName.ServiceMetadata.g.cs file for each referenced project. -->
-  <Target Name="WriteServiceMetadataSources" DependsOnTargets="GenerateServiceMetadataSources" BeforeTargets="CoreCompile">
+  <Target Name="_CSharpWriteServiceMetadataSources" DependsOnTargets="CreateServiceMetadataSources" Condition="'$(Language)' == 'C#'">
+    <ItemGroup>
+      <ServiceMetadataSource Update="@(ServiceMetadataSource)">
+        <Source>
+        <![CDATA[using System%3B
+
+namespace ]]>%(Namespace)<![CDATA[%3B
+
+public class ]]>%(ClassName)<![CDATA[ : IServiceMetadata
+{
+  public string AssemblyName => """]]>%(AssemblyName)<![CDATA["""%3B
+  public string AssemblyPath => """]]>%(Identity)<![CDATA["""%3B
+  public string ProjectPath => """]]>%(ProjectPath)<![CDATA["""%3B
+}]]>
+        </Source>
+      </ServiceMetadataSource>
+    </ItemGroup>
+
     <WriteLinesToFile
       File="$(IntermediateOutputPath)Aspire\references\%(ServiceMetadataSource.AssemblyName).ServiceMetadata.g.cs"
       Overwrite="true"
       Lines="%(ServiceMetadataSource.Source)"
       Encoding="Unicode"
       Condition="%(ServiceMetadataSource.AssemblyName) != ''"
+      WriteOnlyWhenDifferent="true"
       />
     <ItemGroup>
+      <FileWrites Include="$(IntermediateOutputPath)Aspire\references\%(ServiceMetadataSource.AssemblyName).ServiceMetadata.g.cs" />
       <Compile
         Include="$(IntermediateOutputPath)Aspire\references\%(ServiceMetadataSource.AssemblyName).ServiceMetadata.g.cs"
         Condition="%(ServiceMetadataSource.AssemblyName) != ''"
         />
     </ItemGroup>
   </Target>
+
+  <Target Name="_WarnOnUnsupportedLanguage" Condition="'$(Language)' != 'C#'">
+    <Warning Code="ASPIRE001" Text="The '$(Language)' language isn't fully supported by Aspire - some code generation targets will not run, so will require manual authoring." />
+  </Target>
+
+  <PropertyGroup>
+    <!-- Easy extension point for adding new languages' write support. -->
+    <_WriteServiceMetadataSourcesDependsOn>_CSharpWriteServiceMetadataSources;_WarnOnUnsupportedLanguage</_WriteServiceMetadataSourcesDependsOn>
+  </PropertyGroup>
+
+  <!-- The purpose of this target is to take all of the generated service meta data and write them to the intermediate build directory
+     and reference them for compilation. There will be a AssemblyName.ServiceMetadata.g.cs file for each referenced project. -->
+  <Target Name="WriteServiceMetadataSources" DependsOnTargets="$(_WriteServiceMetadataSourcesDependsOn)" BeforeTargets="CoreCompile" />
 
   <!-- This target registers the location of the Aspire orchestration dependencies -->
   <Target Name="SetOrchestrationDiscoveryAttributes" BeforeTargets="GetAssemblyAttributes">
