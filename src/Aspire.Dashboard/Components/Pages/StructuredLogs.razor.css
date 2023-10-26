@@ -9,11 +9,12 @@
         "main"
         "foot";
     gap: calc(var(--design-unit) * 2px);
-    padding-bottom: calc(var(--design-unit) * 2px);
+    padding: calc(var(--design-unit) * 2px);
 }
 
 ::deep.logs-layout > h1 {
     grid-area: head;
+    padding: calc(var(--design-unit) * 1px);
 }
 
 ::deep.logs-layout > fluent-toolbar {
@@ -26,4 +27,21 @@
 
 ::deep.logs-layout > .total-items-footer {
     grid-area: foot;
+}
+
+::deep .log-row-critical {
+    background-color: var(--log-critical);
+}
+
+::deep .log-row-error {
+    background-color: var(--log-error);
+}
+
+::deep .log-row-warning {
+    background-color: var(--log-warning);
+}
+
+::deep .logs-severity-icon {
+    vertical-align: text-bottom;
+    margin-right: 3px;
 }

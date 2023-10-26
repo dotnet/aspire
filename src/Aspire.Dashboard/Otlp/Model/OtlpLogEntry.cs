@@ -88,7 +88,7 @@ public class OtlpLogEntry
     {
         var props = new Dictionary<string, string>
         {
-            { "Application", Application.UniqueApplicationName },
+            { "Application", Application.ApplicationName },
             { "Severity", Severity.ToString() },
             { "Message", Message },
             { "TraceId", TraceId },

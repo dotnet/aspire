@@ -18,7 +18,6 @@ public class OtlpApplication
 
     public string ApplicationName { get; }
     public string InstanceId { get; }
-    public int Suffix { get; }
 
     private readonly ReaderWriterLockSlim _metricsLock = new();
     private readonly Dictionary<string, OtlpMeter> _meters = new();
@@ -60,7 +59,6 @@ public class OtlpApplication
             //
             InstanceId = ApplicationName;
         }
-        Suffix = applications.Where(a => a.Value.ApplicationName == ApplicationName).Count();
         _logger = logger;
     }
 
@@ -77,8 +75,6 @@ public class OtlpApplication
 
         return props;
     }
-
-    public string UniqueApplicationName => $"{ApplicationName}-{Suffix}";
 
     public void AddMetrics(AddContext context, RepeatedField<ScopeMetrics> scopeMetrics)
     {
