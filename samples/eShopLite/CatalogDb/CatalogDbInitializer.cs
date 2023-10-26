@@ -6,11 +6,16 @@ namespace CatalogDb;
 internal sealed class CatalogDbInitializer(IServiceProvider serviceProvider, ILogger<CatalogDbInitializer> logger)
     : BackgroundService
 {
+    public const string ActivitySourceName = "Migrations";
+
+    private readonly ActivitySource _activitySource = new(ActivitySourceName);
+
     protected override async Task ExecuteAsync(CancellationToken cancellationToken)
     {
         using var scope = serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<CatalogDbContext>();
         var sw = Stopwatch.StartNew();
+        using var activity = _activitySource.StartActivity("Migrating catalog database", ActivityKind.Client);
 
         await SeedAsync(dbContext, cancellationToken);
 

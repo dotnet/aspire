@@ -18,3 +18,34 @@
 .trace-service-tag {
     border-left-width: 15px;
 }
+
+::deep.traces-layout {
+    display: grid;
+    grid-template-rows: auto auto 1fr auto;
+    height: 100%;
+    width: 100%;
+    grid-template-areas:
+        "head"
+        "toolbar"
+        "main"
+        "foot";
+    gap: calc(var(--design-unit) * 2px);
+    padding: calc(var(--design-unit) * 2px);
+}
+
+::deep.traces-layout > h1 {
+    grid-area: head;
+    padding: calc(var(--design-unit) * 1px);
+}
+
+::deep.traces-layout > fluent-toolbar {
+    grid-area: toolbar;
+}
+
+::deep.traces-layout > .datagrid-overflow-area {
+    grid-area: main;
+}
+
+::deep.traces-layout > .total-items-footer {
+    grid-area: foot;
+}

@@ -14,6 +14,13 @@ public class LogFilter
     public string Value { get; set; } = default!;
     public string FilterText => $"{Field} {ConditionToString(Condition)} {Value}";
 
+    public static List<string> GetAllPropertyNames(List<string> propertyKeys)
+    {
+        var result = new List<string> { "Message", "Application", "TraceId", "SpanId", "ParentId", "OriginalFormat" };
+        result.AddRange(propertyKeys);
+        return result;
+    }
+
     public static string ConditionToString(FilterCondition c) =>
         c switch
         {
@@ -75,7 +82,7 @@ public class LogFilter
         return Field switch
         {
             "Message" => x.Message,
-            "Application" => x.Application.UniqueApplicationName,
+            "Application" => x.Application.ApplicationName,
             "TraceId" => x.TraceId,
             "SpanId" => x.SpanId,
             "ParentId" => x.ParentId,

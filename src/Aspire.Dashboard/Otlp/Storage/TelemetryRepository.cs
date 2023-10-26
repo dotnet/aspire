@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Dashboard.Otlp.Model;
 using Google.Protobuf.Collections;
 using Microsoft.Extensions.Configuration;
@@ -16,8 +17,7 @@ namespace Aspire.Dashboard.Otlp.Storage;
 
 public class TelemetryRepository
 {
-    private int MaxOperationCount { get; init; }
-    private int MaxLogCount { get; init; }
+    private const int DefaultMaxTelemetryCount = 10_000;
 
     private readonly object _lock = new();
     private readonly ILogger _logger;
@@ -30,18 +30,19 @@ public class TelemetryRepository
     private readonly ConcurrentDictionary<string, OtlpApplication> _applications = new();
 
     private readonly ReaderWriterLockSlim _logsLock = new();
-    private readonly List<OtlpLogEntry> _logs = new();
+    private readonly CircularBuffer<OtlpLogEntry> _logs;
     private readonly HashSet<(OtlpApplication Application, string PropertyKey)> _logPropertyKeys = new();
 
     private readonly ReaderWriterLockSlim _tracesLock = new();
     private readonly Dictionary<string, OtlpTraceScope> _traceScopes = new();
-    private readonly OtlpTraceCollection _traces = new();
+    private readonly CircularBuffer<OtlpTrace> _traces;
 
     public TelemetryRepository(IConfiguration config, ILoggerFactory loggerFactory)
     {
         _logger = loggerFactory.CreateLogger(typeof(TelemetryRepository));
-        MaxOperationCount = config.GetValue(nameof(MaxOperationCount), 128);
-        MaxLogCount = config.GetValue(nameof(MaxLogCount), 4096);
+
+        _logs = new(config.GetValue("MaxLogCount", DefaultMaxTelemetryCount));
+        _traces = new(config.GetValue("MaxTraceCount", DefaultMaxTelemetryCount));
     }
 
     public List<OtlpApplication> GetApplications()
@@ -272,7 +273,7 @@ public class TelemetryRepository
             }
 
             var keys = applicationKeys.Select(keys => keys.PropertyKey).Distinct();
-            return keys.ToList();
+            return keys.OrderBy(k => k).ToList();
         }
         finally
         {
@@ -454,7 +455,7 @@ public class TelemetryRepository
                         {
                             trace = lastTrace;
                         }
-                        else if (!_traces.TryGetValue(span.TraceId.Memory, out trace))
+                        else if (!TryGetTraceById(_traces, span.TraceId.Memory, out trace))
                         {
                             trace = new OtlpTrace(span.TraceId.Memory, traceScope);
                             newTrace = true;
@@ -532,6 +533,22 @@ public class TelemetryRepository
         finally
         {
             _tracesLock.ExitWriteLock();
+        }
+
+        static bool TryGetTraceById(CircularBuffer<OtlpTrace> traces, ReadOnlyMemory<byte> traceId, [NotNullWhen(true)] out OtlpTrace? trace)
+        {
+            var s = traceId.Span;
+            for (var i = traces.Count - 1; i >= 0; i--)
+            {
+                if (traces[i].Key.Span.SequenceEqual(s))
+                {
+                    trace = traces[i];
+                    return true;
+                }
+            }
+
+            trace = null;
+            return false;
         }
     }
 

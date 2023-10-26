@@ -10,7 +10,7 @@
   "defaultName": "AspireApp",
   "description": "A project template for creating an empty Aspire app.",
   "shortName": "aspire",
-  "sourceName": "AspireApplication1",
+  "sourceName": "AspireApplication-1",
   "preferNameDirectory": true,
   "tags": {
     "language": "C#",
@@ -143,18 +143,34 @@
         "fallbackVariableName": "appOtlpHttpsPortGenerated"
       },
       "replaces": "18000"
+    },
+    "skipRestore": {
+      "type": "parameter",
+      "datatype": "bool",
+      "description": "If specified, skips the automatic restore of the project on create.",
+      "defaultValue": "false"
+    },
+    "HasHttpsProfile": {
+      "type": "computed",
+      "value": "(!NoHttps)"
+    },
+    "NoHttps": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Whether to turn off HTTPS."
     }
   },
   "primaryOutputs": [
     {
-      "path": "AspireApplication1.sln",
+      "path": "AspireApplication-1.sln",
       "condition": "(hostIdentifier != \"vs\")"
     },
     {
-      "path": "AspireApplication1.AppHost\\AspireApplication1.AppHost.csproj"
+      "path": "AspireApplication-1.AppHost\\AspireApplication-1.AppHost.csproj"
     },
     {
-      "path": "AspireApplication1.ServiceDefaults\\AspireApplication1.ServiceDefaults.csproj"
+      "path": "AspireApplication-1.ServiceDefaults\\AspireApplication-1.ServiceDefaults.csproj"
     }
   ],
   "postActions": [

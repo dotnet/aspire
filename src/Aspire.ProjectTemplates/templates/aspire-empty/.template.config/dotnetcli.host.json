@@ -4,11 +4,19 @@
       "Framework": {
         "longName": "framework"
       },
+      "skipRestore": {
+        "longName": "no-restore",
+        "shortName": ""
+      },
       "appHttpPort": {
         "isHidden": true
       },
       "appHttpsPort": {
         "isHidden": true
+      },
+      "NoHttps": {
+        "longName": "no-https",
+        "shortName": ""
       }
     },
     "usageExamples": [ ]

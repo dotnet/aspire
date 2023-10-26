@@ -1,0 +1,47 @@
+::deep.logs-layout {
+    display: grid;
+    grid-template-rows: auto auto 1fr auto;
+    height: 100%;
+    width: 100%;
+    grid-template-areas:
+        "head"
+        "toolbar"
+        "main"
+        "foot";
+    gap: calc(var(--design-unit) * 2px);
+    padding: calc(var(--design-unit) * 2px);
+}
+
+::deep.logs-layout > h1 {
+    grid-area: head;
+    padding: calc(var(--design-unit) * 1px);
+}
+
+::deep.logs-layout > fluent-toolbar {
+    grid-area: toolbar;
+}
+
+::deep.logs-layout > .datagrid-overflow-area {
+    grid-area: main;
+}
+
+::deep.logs-layout > .total-items-footer {
+    grid-area: foot;
+}
+
+::deep .log-row-critical {
+    background-color: var(--log-critical);
+}
+
+::deep .log-row-error {
+    background-color: var(--log-error);
+}
+
+::deep .log-row-warning {
+    background-color: var(--log-warning);
+}
+
+::deep .logs-severity-icon {
+    vertical-align: text-bottom;
+    margin-right: 3px;
+}

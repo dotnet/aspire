@@ -19,28 +19,22 @@
     <div class="datagrid-overflow-area" tabindex="-1">
         <FluentDataGrid Items="@FilteredResources" ResizableColumns="true" GridTemplateColumns="2fr 1fr 2fr 1fr 4fr 4fr 4fr 2fr 1fr 1fr">
             <ChildContent>
-                <TemplateColumn Title="Name" Sortable="true" SortBy="@nameSort">
+                <TemplateColumn Title="Name" Sortable="true" SortBy="@nameSort" Tooltip="true" TooltipText="(e) => e.Name" Class="data-grid-cell">
                     <FluentHighlighter HighlightedText="@filter" Text="@context.Name" />
                 </TemplateColumn>
-                <PropertyColumn Property="@(e => e.State)" Sortable="true" />
-                <PropertyColumn Property="@(c => c.CreationTimeStamp)" Title="Start Time" Sortable="true" />
-                <PropertyColumn Property="@(c => c.ProcessId)" Title="Process Id" Sortable="true" />
-                <TemplateColumn Title="Path" Sortable="true" SortBy="@executablePathSort">
-                    <div class="col-long-content" title="@context.ExecutablePath">
-                        <FluentHighlighter HighlightedText="@filter" Text="@context.ExecutablePath" />
-                    </div>
+                <PropertyColumn Property="@(e => e.State)" Sortable="true" Tooltip="true" Class="data-grid-cell" />
+                <PropertyColumn Property="@(c => c.CreationTimeStamp)" Title="Start Time" Sortable="true" Tooltip="true" Class="data-grid-cell" />
+                <PropertyColumn Property="@(c => c.ProcessId)" Title="Process Id" Sortable="true" Tooltip="true" Class="data-grid-cell" />
+                <TemplateColumn Title="Path" Sortable="true" SortBy="@executablePathSort" Tooltip="true" TooltipText="(e) => e.ExecutablePath" Class="data-grid-cell">
+                    <FluentHighlighter HighlightedText="@filter" Text="@context.ExecutablePath" />
                 </TemplateColumn>
-                <TemplateColumn Title="Working Directory" Sortable="true" SortBy="@workingDirectorySort">
-                    <div class="col-long-content" title="@context.WorkingDirectory">
-                        <FluentHighlighter HighlightedText="@filter" Text="@context.WorkingDirectory" />
-                    </div>
+                <TemplateColumn Title="Working Directory" Sortable="true" SortBy="@workingDirectorySort" Tooltip="true" TooltipText="(e) => e.WorkingDirectory" Class="data-grid-cell">
+                    <FluentHighlighter HighlightedText="@filter" Text="@context.WorkingDirectory" />
                 </TemplateColumn>
-                <TemplateColumn Title="Arguments">
-                    <div class="col-long-content" title="@(context.Arguments != null ? string.Join(" ", context.Arguments) : string.Empty)">
-                        <FluentHighlighter HighlightedText="@filter" Text="@(context.Arguments != null ? string.Join(" ", context.Arguments) : string.Empty)" />
-                    </div>
+                <TemplateColumn Title="Arguments" Tooltip="true" TooltipText="@((e) => e.Arguments != null ? string.Join(" ", e.Arguments) : string.Empty)" Class="data-grid-cell">
+                    <FluentHighlighter HighlightedText="@filter" Text="@(context.Arguments != null ? string.Join(" ", context.Arguments) : string.Empty)" />
                 </TemplateColumn>
-                <TemplateColumn Title="Endpoints" Sortable="false">
+                <TemplateColumn Title="Endpoints" Sortable="false" Class="data-grid-cell">
                     <FluentStack Orientation="Orientation.Vertical">
                         @* If we have no endpoints, and the app isn't running anymore or we're not expecting any, then just say None *@
                         @if (context.Endpoints.Count == 0 && (context.State == FinishedState || context.ExpectedEndpointsCount == 0))
@@ -63,13 +57,13 @@
                         }
                     </FluentStack>
                 </TemplateColumn>
-                <TemplateColumn Title="Environment" Sortable="false">
+                <TemplateColumn Title="Environment" Sortable="false" Class="data-grid-cell">
                     <FluentButton Appearance="Appearance.Lightweight"
                                     Disabled="@(!context.Environment.Any())"
                                     Title="@(context.Environment.Any() ? "View" : "No Environment Variables")"
                                     OnClick="async() => await ShowEnvironmentVariables(context)">View</FluentButton>
                 </TemplateColumn>
-                <TemplateColumn Title="Logs">
+                <TemplateColumn Title="Logs" Class="data-grid-cell">
                     <FluentAnchor Appearance="Appearance.Lightweight" Href="@($"/ExecutableLogs/{context.Name}")">View</FluentAnchor>
                 </TemplateColumn>
             </ChildContent>
@@ -81,7 +75,7 @@
 </div>
 
 @code {
-    protected override Task<List<ExecutableViewModel>> GetResources(IDashboardViewModelService dashboardViewModelService)
+    protected override ValueTask<List<ExecutableViewModel>> GetResources(IDashboardViewModelService dashboardViewModelService)
         => dashboardViewModelService.GetExecutablesAsync();
 
     protected override IAsyncEnumerable<ResourceChanged<ExecutableViewModel>> WatchResources(

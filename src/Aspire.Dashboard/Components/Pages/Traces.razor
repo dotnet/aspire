@@ -14,67 +14,65 @@
 
 <PageTitle>@DashboardViewModelService.ApplicationName Traces</PageTitle>
 
-<h1>Traces</h1>
 
-<div>
-    <FluentStack Orientation="Orientation.Vertical">
-        <FluentToolbar Orientation="Orientation.Horizontal">
-            <FluentSelect TOption="ApplicationViewModel"
-                          Items="@_applications"
-                          OptionValue="@(c => c.Id)"
-                          OptionText="@(c => c.Name)"
-                          @bind-SelectedOption="_selectedApplication"
-                          @bind-SelectedOption:after="HandleSelectedApplicationChangedAsync"
-                          AriaLabel="Select an Application"/>
-            <FluentSearch @bind-Value="_filter"
-                          @oninput="HandleFilter"
-                          AfterBindValue="HandleClear"
-                          Placeholder="Filter..."
-                          slot="end" />
-        </FluentToolbar>
-        <div class="datagrid-overflow-area continuous-scroll-overflow" tabindex="-1">
-            <FluentDataGrid Virtualize="true" RowStyle="@GetRowStyle" GenerateHeader="GenerateHeaderOption.Sticky" ItemSize="48" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="OtlpTrace" GridTemplateColumns="0.8fr 2fr 3fr 0.5fr 0.5fr">
-                <ChildContent>
-                    <PropertyColumn Title="Timestamp" Property="@(context => OtlpHelpers.FormatTimeStamp(context.FirstSpan.StartTime))" />
-                    <TemplateColumn Title="Name">
-                        <div class="col-long-content" title="@($"{context.FullName}: {OtlpHelpers.ToShortenedId(context.TraceId)}")">
-                            <span><FluentHighlighter HighlightedText="@(ViewModel.FilterText)" Text="@(context.FullName)" /></span>
-                            <span class="trace-id">@OtlpHelpers.ToShortenedId(context.TraceId)</span>
-                        </div>
-                    </TemplateColumn>
-                    <TemplateColumn Title="Spans">
-                        <FluentOverflow>
-                            <ChildContent>
-                                @foreach (var item in context.Spans.GroupBy(s => s.Source).OrderBy(g => g.Key.ApplicationName))
-                                {
-                                    <FluentOverflowItem>
-                                        <span class="trace-tag trace-service-tag" style="border-left-color: @(ColorGenerator.Instance.GetColorHexByKey(item.Key.ApplicationName));">
-                                            @if (item.Any(s => s.Status == OtlpSpanStatusCode.Error))
-                                            {
-                                                <FluentIcon Icon="Icons.Filled.Size12.ErrorCircle" Color="Color.Error" Class="trace-tag-icon" />
-                                            }
-                                            @item.Key.ApplicationName (@item.Count())
-                                        </span>
-                                    </FluentOverflowItem>
-                                }
-                            </ChildContent>
-                            <MoreButtonTemplate Context="another_name">
-                                <span class="trace-tag">
-                                    @($"+{another_name.ItemsOverflow.Count()}")
-                                </span>
-                            </MoreButtonTemplate>
-                        </FluentOverflow>
-                    </TemplateColumn>
-                    <PropertyColumn Title="Duration" Property="@(context => DurationFormatter.FormatDuration(context.Duration))" />
-                    <TemplateColumn>
-                        <FluentAnchor Appearance="Appearance.Lightweight" Href="@($"/Trace/{context.TraceId}")">View</FluentAnchor>
-                    </TemplateColumn>
-                </ChildContent>
-                <EmptyContent>
-                    <FluentIcon Icon="Icons.Regular.Size24.GanttChart" />&nbsp;No traces found
-                </EmptyContent>
-            </FluentDataGrid>
-        </div>
-        <TotalItemsFooter @ref="_totalItemsFooter" />
-    </FluentStack>
+<div class="traces-layout">
+    <h1>Traces</h1>
+    <FluentToolbar Orientation="Orientation.Horizontal">
+        <FluentSelect TOption="ApplicationViewModel"
+                      Items="@_applications"
+                      OptionValue="@(c => c.Id)"
+                      OptionText="@(c => c.Name)"
+                      @bind-SelectedOption="_selectedApplication"
+                      @bind-SelectedOption:after="HandleSelectedApplicationChangedAsync"
+                      AriaLabel="Select an Application"/>
+        <FluentSearch @bind-Value="_filter"
+                      @oninput="HandleFilter"
+                      AfterBindValue="HandleClear"
+                      Placeholder="Filter..."
+                      slot="end" />
+    </FluentToolbar>
+    <div class="datagrid-overflow-area continuous-scroll-overflow" tabindex="-1">
+        <FluentDataGrid Virtualize="true" RowStyle="@GetRowStyle" GenerateHeader="GenerateHeaderOption.Sticky" ItemSize="46" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="OtlpTrace" GridTemplateColumns="0.8fr 2fr 3fr 0.5fr 0.5fr">
+            <ChildContent>
+                <PropertyColumn Title="Timestamp" Property="@(context => OtlpHelpers.FormatTimeStamp(context.FirstSpan.StartTime))" />
+                <TemplateColumn Title="Name">
+                    <div class="col-long-content" title="@($"{context.FullName}: {OtlpHelpers.ToShortenedId(context.TraceId)}")">
+                        <span><FluentHighlighter HighlightedText="@(ViewModel.FilterText)" Text="@(context.FullName)" /></span>
+                        <span class="trace-id">@OtlpHelpers.ToShortenedId(context.TraceId)</span>
+                    </div>
+                </TemplateColumn>
+                <TemplateColumn Title="Spans">
+                    <FluentOverflow>
+                        <ChildContent>
+                            @foreach (var item in context.Spans.GroupBy(s => s.Source).OrderBy(g => g.Key.ApplicationName))
+                            {
+                                <FluentOverflowItem>
+                                    <span class="trace-tag trace-service-tag" style="border-left-color: @(ColorGenerator.Instance.GetColorHexByKey(item.Key.ApplicationName));">
+                                        @if (item.Any(s => s.Status == OtlpSpanStatusCode.Error))
+                                        {
+                                            <FluentIcon Icon="Icons.Filled.Size12.ErrorCircle" Color="Color.Error" Class="trace-tag-icon" />
+                                        }
+                                        @item.Key.ApplicationName (@item.Count())
+                                    </span>
+                                </FluentOverflowItem>
+                            }
+                        </ChildContent>
+                        <MoreButtonTemplate Context="another_name">
+                            <span class="trace-tag">
+                                @($"+{another_name.ItemsOverflow.Count()}")
+                            </span>
+                        </MoreButtonTemplate>
+                    </FluentOverflow>
+                </TemplateColumn>
+                <PropertyColumn Title="Duration" Property="@(context => DurationFormatter.FormatDuration(context.Duration))" />
+                <TemplateColumn>
+                    <FluentAnchor Appearance="Appearance.Lightweight" Href="@($"/Trace/{context.TraceId}")">View</FluentAnchor>
+                </TemplateColumn>
+            </ChildContent>
+            <EmptyContent>
+                <FluentIcon Icon="Icons.Regular.Size24.GanttChart" />&nbsp;No traces found
+            </EmptyContent>
+        </FluentDataGrid>
+    </div>
+    <TotalItemsFooter @ref="_totalItemsFooter" />
 </div>

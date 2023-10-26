@@ -1,6 +1,6 @@
 # Aspire.Npgsql.EntityFrameworkCore.PostgreSQL library
 
-Registers [EntityFrameworkCore](https://learn.microsoft.com/en-us/ef/core/) [DbContext](https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbcontext) in the DI container for connecting PostgreSQL database. Enables connection pooling, health check, logging and telemetry.
+Registers [EntityFrameworkCore](https://learn.microsoft.com/en-us/ef/core/) [DbContext](https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbcontext) in the DI container for connecting PostgreSQL®* database. Enables connection pooling, health check, logging and telemetry.
 
 ## Getting started
 
@@ -112,3 +112,5 @@ builder.AddNpgsqlDbContext<MyDbContext>("postgresdb");
 ## Feedback & contributing
 
 https://github.com/dotnet/aspire
+
+_*Postgres, PostgreSQL and the Slonik Logo are trademarks or registered trademarks of the PostgreSQL Community Association of Canada, and used with their permission._

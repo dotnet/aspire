@@ -15,7 +15,7 @@
   "defaultName": "AspireApp",
   "description": "A project template for creating an Aspire app with a Blazor web frontend and web API backend service, optionally using Redis for caching.",
   "shortName": "aspire-starter",
-  "sourceName": "AspireStarterApplication1",
+  "sourceName": "AspireStarterApplication-1",
   "preferNameDirectory": false,
   "tags": {
     "language": "C#",
@@ -245,24 +245,40 @@
         "fallbackVariableName": "apiSerivceHttpsPortGenerated"
       },
       "replaces": "7301"
+    },
+    "skipRestore": {
+      "type": "parameter",
+      "datatype": "bool",
+      "description": "If specified, skips the automatic restore of the project on create.",
+      "defaultValue": "false"
+    },
+    "HasHttpsProfile": {
+      "type": "computed",
+      "value": "(!NoHttps)"
+    },
+    "NoHttps": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "Whether to turn off HTTPS."
     }
   },
   "primaryOutputs": [
     {
-      "path": "AspireApplication1.sln",
+      "path": "AspireApplication.1.sln",
       "condition": "(hostIdentifier != \"vs\")"
     },
     {
-      "path": "AspireStarterApplication1.AppHost\\AspireStarterApplication1.AppHost.csproj"
+      "path": "AspireStarterApplication-1.AppHost\\AspireStarterApplication-1.AppHost.csproj"
     },
     {
-      "path": "AspireStarterApplication1.ServiceDefaults\\AspireStarterApplication1.ServiceDefaults.csproj"
+      "path": "AspireStarterApplication-1.ServiceDefaults\\AspireStarterApplication-1.ServiceDefaults.csproj"
     },
     {
-      "path": "AspireStarterApplication1.ApiService\\AspireStarterApplication1.ApiService.csproj"
+      "path": "AspireStarterApplication-1.ApiService\\AspireStarterApplication-1.ApiService.csproj"
     },
     {
-      "path": "AspireStarterApplication1.Web\\AspireStarterApplication1.Web.csproj"
+      "path": "AspireStarterApplication-1.Web\\AspireStarterApplication-1.Web.csproj"
     }
   ],
   "postActions": [

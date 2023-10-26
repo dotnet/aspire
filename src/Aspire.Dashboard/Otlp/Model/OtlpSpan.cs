@@ -80,7 +80,7 @@ public class OtlpSpan
             props.Add("StatusMessage", StatusMessage);
         }
 
-        foreach (var kv in Attributes)
+        foreach (var kv in Attributes.OrderBy(a => a.Key))
         {
             props.TryAdd(kv.Key, kv.Value);
         }

@@ -41,6 +41,7 @@
 
 ::deep.layout > .body-content {
     grid-area: main;
+    overflow-x: auto; /* allow horizontal scrolling */
 }
 
 ::deep .header-right {
