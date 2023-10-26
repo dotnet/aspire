@@ -291,18 +291,22 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model) : I
                 exeSpec.ExecutionType = ExecutionType.Process;
                 if (Environment.GetEnvironmentVariable("DOTNET_WATCH") != "1")
                 {
-                    exeSpec.Args = new List<string> {
+                    exeSpec.Args = [
                         "run",
                         "--no-build",
-                        "--project", projectMetadata.ProjectPath,
-                    };
+                        "--project",
+                        projectMetadata.ProjectPath,
+                    ];
                 }
                 else
                 {
-                    exeSpec.Args = new List<string> {
+                    exeSpec.Args = [
                         "watch",
-                        "--project", projectMetadata.ProjectPath
-                    };
+                        "--non-interactive",
+                        "--no-hot-reload",
+                        "--project",
+                        projectMetadata.ProjectPath
+                    ];
                 }
 
                 // We pretty much always want to suppress the normal launch profile handling
