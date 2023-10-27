@@ -17,13 +17,13 @@
                         slot="end" />
     </FluentToolbar>
     <div class="datagrid-overflow-area" tabindex="-1">
-        <FluentDataGrid Items="@FilteredResources" ResizableColumns="true" GridTemplateColumns="2fr 1fr 2fr 1fr 4fr 2fr 1fr 1fr" >
+        <FluentDataGrid Items="@FilteredResources" ResizableColumns="true" GridTemplateColumns="2fr 1.2fr 2fr 1fr 4fr 2fr 1fr 1fr" >
             <ChildContent>
                 <TemplateColumn Title="Name" Sortable="true" SortBy="@nameSort" Tooltip="true" TooltipText="(p) => p.Name">
                     <FluentHighlighter HighlightedText="@filter" Text="@context.Name" />
                 </TemplateColumn>
-                <TemplateColumn Title="State" Sortable="true" SortBy="@stateSort" Tooltip="true" TooltipText="(p) => p.State">
-                    <div style="display:flex;justify-content: space-between;">
+                <TemplateColumn Title="State" Sortable="true" SortBy="@stateSort">
+                    <div style="display:flex;justify-content: space-between;align-items: center;">
                         @context.State
 
                         @{
@@ -32,8 +32,9 @@
                         }
                         @if (unviewedCount > 0)
                         {
+                            var badgeText = (unviewedCount > 9) ? "9+" : unviewedCount.ToString();
                             <div @onclick="@(() => ViewErrorStructuredLogs(context))" style="padding: 0 3px; cursor:pointer;">
-                                <FluentBadge Appearance="Appearance.Accent" slot="end">@unviewedCount</FluentBadge>
+                                <FluentBadge title="@($"{unviewedCount} error logs")" Appearance="Appearance.Accent" Circular="true" Fill="error" slot="end">@badgeText</FluentBadge>
                             </div>
                         }
                     </div>

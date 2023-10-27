@@ -28,6 +28,8 @@ fluent-toolbar[orientation=horizontal] {
     --log-critical: #F8ECEB;
     --log-error: #F8ECEB;
     --log-warning: #FBF3DD;
+    --badge-fill-error: var(--error);
+    --badge-color-error: var(--foreground-on-accent-rest);
 }
 
 [data-theme="dark"] {
