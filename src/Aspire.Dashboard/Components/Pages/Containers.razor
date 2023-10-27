@@ -17,10 +17,13 @@
                         slot="end" />
     </FluentToolbar>
     <div class="datagrid-overflow-area" tabindex="-1">
-        <FluentDataGrid Items="@FilteredResources" ResizableColumns="true" GridTemplateColumns="2fr 1fr 2fr 3fr 1fr 2fr 1fr 1fr">
+        <FluentDataGrid Items="@FilteredResources" ResizableColumns="true" GridTemplateColumns="2fr 2fr 2fr 2fr 2fr 1fr 2fr 1fr 1fr">
             <ChildContent>
                 <TemplateColumn Title="Name" Sortable="true" SortBy="@nameSort" Tooltip="true" TooltipText="(c) => c.Name">
                     <FluentHighlighter HighlightedText="@filter" Text="@context.Name" />
+                </TemplateColumn>
+                <TemplateColumn Title="Container ID">
+                    <GridValue HighlightText="@filter" Value="@context.ContainerId" />
                 </TemplateColumn>
                 <PropertyColumn Property="@(e => e.State)" Sortable="true" Tooltip="true" />
                 <PropertyColumn Property="@(c => c.CreationTimeStamp)" Title="Start Time" Sortable="true" Tooltip="true" />
