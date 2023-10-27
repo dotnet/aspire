@@ -1,5 +1,13 @@
 {
-  "type": "object",
+  "definitions": {
+    "logLevel": {
+      "properties": {
+        "Azure-Cosmos-Operation-Request-Diagnostics": {
+          "$ref": "#/definitions/logLevelThreshold"
+        }
+      }
+    }
+  },
   "properties": {
     "Aspire.Microsoft.Azure.Cosmos": {
       "type": "object",
@@ -22,5 +30,6 @@
         }
       }
     }
-  }
+  },
+  "type": "object"
 }
