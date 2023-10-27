@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Reflection;
+using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting.Dcp;
@@ -38,12 +39,19 @@ public sealed class DcpOptions
     /// </example>
     public string? BinPath { get; set; }
 
-    public void ApplyApplicationConfiguration(DistributedApplicationOptions appOptions, IConfiguration configuration)
+    public void ApplyApplicationConfiguration(DistributedApplicationOptions appOptions, IConfiguration dcpPublisherConfiguration, IConfiguration publishingConfiguration)
     {
-        if (!string.IsNullOrEmpty(configuration[nameof(CliPath)]))
+        string? publisher = publishingConfiguration[nameof(PublishingOptions.Publisher)];
+        if (publisher is not null && publisher != "dcp")
+        {
+            // If DCP is not set as the publisher, don't calculate the DCP config
+            return;
+        }
+
+        if (!string.IsNullOrEmpty(dcpPublisherConfiguration[nameof(CliPath)]))
         {
             // If an explicit path to DCP was provided from configuration, don't try to resolve via assembly attributes
-            CliPath = configuration[nameof(CliPath)];
+            CliPath = dcpPublisherConfiguration[nameof(CliPath)];
         }
         else
         {

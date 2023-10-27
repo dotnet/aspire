@@ -34,7 +34,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddHostedService<DistributedApplicationRunner>();
 
         // DCP stuff
-        ConfigureDcpOptions(options);
         _innerBuilder.Services.AddLifecycleHook<DcpDistributedApplicationLifecycleHook>();
         _innerBuilder.Services.AddSingleton<ApplicationExecutor>();
         _innerBuilder.Services.AddHostedService<DcpHostService>();
@@ -47,25 +46,23 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, DcpPublisher>("dcp");
     }
 
-    private void ConfigureDcpOptions(DistributedApplicationOptions options)
-    {
-        var switchMappings = new Dictionary<string, string>()
-        {
-            { "--dcp-cli-path", "DcpPublisher:CliPath" },
-        };
-        _innerBuilder.Configuration.AddCommandLine(options.Args ?? [], switchMappings);
-        _innerBuilder.Services.Configure<DcpOptions>(o => o.ApplyApplicationConfiguration(options, _innerBuilder.Configuration.GetSection(DcpOptions.DcpPublisher)));
-    }
-
     private void ConfigurePublishingOptions(DistributedApplicationOptions options)
     {
         var switchMappings = new Dictionary<string, string>()
         {
             { "--publisher", "Publishing:Publisher" },
-            { "--output-path", "Publishing:OutputPath" }
+            { "--output-path", "Publishing:OutputPath" },
+            { "--dcp-cli-path", "DcpPublisher:CliPath" },
         };
         _innerBuilder.Configuration.AddCommandLine(options.Args ?? [], switchMappings);
         _innerBuilder.Services.Configure<PublishingOptions>(_innerBuilder.Configuration.GetSection(PublishingOptions.Publishing));
+        _innerBuilder.Services.Configure<DcpOptions>(
+            o => o.ApplyApplicationConfiguration(
+                options,
+                dcpPublisherConfiguration: _innerBuilder.Configuration.GetSection(DcpOptions.DcpPublisher),
+                publishingConfiguration: _innerBuilder.Configuration.GetSection(PublishingOptions.Publishing)
+            )
+        );
     }
 
     public DistributedApplication Build()
