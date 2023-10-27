@@ -18,30 +18,64 @@ public static class AspireAzureCosmosDBExtensions
     public const string DefaultConfigSectionName = "Aspire.Microsoft.Azure.Cosmos";
 
     /// <summary>
-    /// Registers 'Scoped' <see cref="CosmosClient" /> factory for connecting Azure Cosmos DB.
+    /// Registers <see cref="CosmosClient" /> as a singleton in the services provided by the <paramref name="builder"/>.
     /// Configures health check, logging and telemetry for the <see cref="CosmosClient" />.
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="connectionName">The connection name to use to find a connection string.</param>
-    /// <param name="configure">An optional method that can be used for customizing settings. It's invoked after the settings are read from the configuration.</param>
+    /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureDataCosmosSettings"/>. It's invoked after the settings are read from the configuration.</param>
     /// <exception cref="InvalidOperationException">If required ConnectionString is not provided in configuration section</exception>
     public static void AddAzureCosmosDB(
         this IHostApplicationBuilder builder,
         string connectionName,
-        Action<AzureDataCosmosSettings>? configure = null)
+        Action<AzureDataCosmosSettings>? configureSettings = null)
+    {
+        AddAzureCosmosDB(builder, DefaultConfigSectionName, configureSettings, connectionName, serviceKey: null);
+    }
+
+    /// <summary>
+    /// Registers <see cref="CosmosClient" /> as a singleton for given <paramref name="name" /> in the services provided by the <paramref name="builder"/>.
+    /// Configures health check, logging and telemetry for the <see cref="CosmosClient" />.
+    /// </summary>
+    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
+    /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection string from the ConnectionStrings configuration section.</param>
+    /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureDataCosmosSettings"/>. It's invoked after the settings are read from the configuration.</param>
+    /// <exception cref="InvalidOperationException">If required ConnectionString is not provided in configuration section</exception>
+    public static void AddKeyedAzureCosmosDB(
+        this IHostApplicationBuilder builder,
+        string name,
+        Action<AzureDataCosmosSettings>? configureSettings = null)
+    {
+        AddAzureCosmosDB(builder, $"{DefaultConfigSectionName}:{name}", configureSettings, connectionName: name, serviceKey: name);
+    }
+
+    private static void AddAzureCosmosDB(
+        this IHostApplicationBuilder builder,
+        string configurationSectionName,
+        Action<AzureDataCosmosSettings>? configureSettings,
+        string connectionName,
+        string? serviceKey)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
         AzureDataCosmosSettings settings = new();
-        builder.Configuration.GetSection(DefaultConfigSectionName).Bind(settings);
+        builder.Configuration.GetSection(configurationSectionName).Bind(settings);
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {
             settings.ConnectionString = connectionString;
         }
-        configure?.Invoke(settings);
+        configureSettings?.Invoke(settings);
 
-        builder.Services.AddScoped(_ => ConfigureDb());
+        if (serviceKey is null)
+        {
+            builder.Services.AddSingleton(_ => ConfigureDb());
+
+        }
+        else
+        {
+            builder.Services.AddKeyedSingleton(serviceKey, (sp, key) => ConfigureDb());
+        }
 
         if (settings.Tracing)
         {
