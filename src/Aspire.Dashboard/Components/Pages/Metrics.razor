@@ -10,6 +10,7 @@
     <h1>Metrics</h1>
     <FluentToolbar Orientation="Orientation.Horizontal">
         <FluentSelect TOption="SelectViewModel<string>"
+                      Items="@_applications"
                       OptionText="@(c => c.Name)"
                       @bind-SelectedOption="_selectedApplication"
                       @bind-SelectedOption:after="HandleSelectedApplicationChangedAsync"
