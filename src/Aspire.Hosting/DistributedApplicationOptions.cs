@@ -11,9 +11,4 @@ public sealed class DistributedApplicationOptions
     public string[]? Args { get; set; }
 
     public string? AssemblyName { get; set; }
-
-    public void CopyTo(DistributedApplicationOptions options)
-    {
-        options.AssemblyName = this.AssemblyName;
-    }
 }

@@ -41,7 +41,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         // Publishing support
         ConfigurePublishingOptions(options);
-        _innerBuilder.Services.Configure<DistributedApplicationOptions>(options.CopyTo);
         _innerBuilder.Services.AddLifecycleHook<AutomaticManifestPublisherBindingInjectionHook>();
         _innerBuilder.Services.AddLifecycleHook<Http2TransportMutationHook>();
         _innerBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, ManifestPublisher>("manifest");
