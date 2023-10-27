@@ -55,7 +55,7 @@
            these must be updated. -->
       <_ComponentResources Include="aspire" Title=".NET Aspire SDK (Preview)"
                            Description=".NET Aspire SDK (Preview)"
-                           Advertise="true"/>
+                           AdvertisePackage="true"/>
       <_ComponentResources Include="aspire-host-runtime" Title=".NET Aspire SDK Hosts"
                            Description=".NET Aspire SDK Hosts"/>
       <ComponentResources Include="@(_ComponentResources)" Version="$(FileVersion)"/>
