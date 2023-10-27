@@ -11,7 +11,7 @@ using Xunit;
 
 namespace Aspire.Hosting.Tests;
 
-public class DitributedApplicationBuilderTests
+public class DistributedApplicationBuilderTests
 {
     [Fact]
     public void AddingTwoResourcesWithSameNameThrows()
