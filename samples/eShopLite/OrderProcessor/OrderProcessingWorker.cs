@@ -23,7 +23,7 @@ public class OrderProcessingWorker : BackgroundService
 
     protected override Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _ = Task.Factory.StartNew(() =>
+        return Task.Factory.StartNew(() =>
         {
             const string configKeyName = "Aspire:RabbitMQ:Client:OrderQueueName";
             string queueName = _config[configKeyName] ?? "orders";
@@ -40,21 +40,14 @@ public class OrderProcessingWorker : BackgroundService
                                          autoAck: true,
                                          consumer: consumer);
         }, stoppingToken, TaskCreationOptions.LongRunning, TaskScheduler.Current);
-
-        return Task.CompletedTask;
     }
 
-    //public override async Task StopAsync(CancellationToken cancellationToken)
-    //{
-    //    await base.StopAsync(cancellationToken);
+    public override async Task StopAsync(CancellationToken cancellationToken)
+    {
+       await base.StopAsync(cancellationToken);
 
-    //    if (_messageProcessor is not null)
-    //    {
-    //        await _messageProcessor.StopProcessingAsync(cancellationToken);
-
-    //        await _messageProcessor.DisposeAsync();
-    //    }
-    //}
+        _messageChannel?.Dispose();
+    }
 
     private void ProcessMessageAsync(object? sender, BasicDeliverEventArgs args)
     {
@@ -80,10 +73,4 @@ public class OrderProcessingWorker : BackgroundService
             ProductCount:{Count}
             """, order.Id, order.BuyerId, order.Items.Count);
     }
-
-    //private Task ProcessErrorAsync(ProcessErrorEventArgs arg)
-    //{
-    //    _logger.LogError(arg.Exception, "Error processing a message. ErrorSource={errorSource}, EntityPath={entityPath}.", arg.ErrorSource, arg.EntityPath);
-    //    return Task.CompletedTask;
-    //}
 }
