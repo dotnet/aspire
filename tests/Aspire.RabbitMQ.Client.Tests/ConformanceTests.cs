@@ -32,7 +32,17 @@ public class ConformanceTests : ConformanceTests<IConnection, RabbitMQClientSett
           "Aspire": {
             "RabbitMQ": {
               "Client": {
-                "ConnectionString": "YOUR_ENDPOINT",
+                "ConnectionFactory": {
+                  "AutomaticRecoveryEnabled": false,
+                  "ConsumerDispatchConcurrency": 2,
+                  "Ssl": {
+                    "AcceptablePolicyErrors": "None",
+                    "Enabled": false,
+                    "Version": "Tls13"
+                  }
+                },
+                "ConnectionString": "amqp://localhost:5672",
+                "MaxConnectRetryCount": 10,
                 "HealthChecks": true,
                 "Tracing": false
               }
@@ -43,7 +53,11 @@ public class ConformanceTests : ConformanceTests<IConnection, RabbitMQClientSett
 
     protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
         {
-            ("""{"Aspire": { "RabbitMQ": { "Client":{ "ClientFactory": "YOUR_OPTION"}}}}""", "Value is \"string\" but should be \"object\""),
+            ("""{"Aspire": { "RabbitMQ": { "Client":{ "ConnectionFactory": "YOUR_OPTION"}}}}""", "Value is \"string\" but should be \"object\""),
+            ("""{"Aspire": { "RabbitMQ": { "Client":{ "ConnectionFactory": { "AmqpUriSslProtocols": "Fast"}}}}}""", "Value should match one of the values specified by the enum"),
+            ("""{"Aspire": { "RabbitMQ": { "Client":{ "ConnectionFactory": { "Ssl":{ "AcceptablePolicyErrors": "Fast"}}}}}}""", "Value should match one of the values specified by the enum"),
+            ("""{"Aspire": { "RabbitMQ": { "Client":{ "ConnectionFactory": { "Ssl":{ "Version": "Fast"}}}}}}""", "Value should match one of the values specified by the enum"),
+            ("""{"Aspire": { "RabbitMQ": { "Client":{ "ConnectionFactory": { "RequestedConnectionTimeout": "3S"}}}}}""", "Value does not match format \"duration\"")
         };
 
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null) =>
@@ -72,12 +86,13 @@ public class ConformanceTests : ConformanceTests<IConnection, RabbitMQClientSett
 
     protected override void TriggerActivity(IConnection service)
     {
-        // TODO
-        //var channel = service.CreateModel();
-
-        //string id = Guid.NewGuid().ToString();
-        //database.StringSet(id, "hello");
-        //database.KeyDelete(id);
+        var channel = service.CreateModel();
+        channel.QueueDeclare("test-queue", exclusive: false);
+        channel.BasicPublish(
+            exchange: "",
+            routingKey: "test-queue",
+            basicProperties: null,
+            body: "hello world"u8.ToArray());
     }
 
     protected override void SetupConnectionInformationIsDelayValidated()
