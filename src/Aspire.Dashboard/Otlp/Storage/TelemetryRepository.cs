@@ -15,12 +15,6 @@ using static OpenTelemetry.Proto.Trace.V1.Span.Types;
 
 namespace Aspire.Dashboard.Otlp.Storage;
 
-public enum SubscriptionType
-{
-    Read,
-    Listen
-}
-
 public class TelemetryRepository
 {
     private const int DefaultMaxTelemetryCount = 10_000;

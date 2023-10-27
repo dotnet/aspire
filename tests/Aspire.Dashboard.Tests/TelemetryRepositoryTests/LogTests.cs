@@ -210,7 +210,7 @@ public class LogTests
 
         // Act 2
         var newLogsTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        repository.OnNewLogs(applications[0].InstanceId, () =>
+        repository.OnNewLogs(applications[0].InstanceId, SubscriptionType.Read, () =>
         {
             newLogsTcs.TrySetResult();
             return Task.CompletedTask;
