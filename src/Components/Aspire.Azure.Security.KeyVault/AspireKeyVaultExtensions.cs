@@ -9,6 +9,7 @@ using Azure.Extensions.AspNetCore.Configuration.Secrets;
 using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
 using HealthChecks.Azure.KeyVault.Secrets;
+using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -130,6 +131,18 @@ public static class AspireKeyVaultExtensions
 
         protected override IHealthCheck CreateHealthCheck(SecretClient client, AzureSecurityKeyVaultSettings settings)
             => new AzureKeyVaultSecretsHealthCheck(client, new AzureKeyVaultSecretOptions());
+
+        protected override void BindClientOptionsToConfiguration(IAzureClientBuilder<SecretClient, SecretClientOptions> clientBuilder, IConfiguration configuration)
+        {
+#pragma warning disable IDE0200 // Remove unnecessary lambda expression - needed so the ConfigBinder Source Generator works
+            clientBuilder.ConfigureOptions(options => configuration.Bind(options));
+#pragma warning restore IDE0200
+        }
+
+        protected override void BindSettingsToConfiguration(AzureSecurityKeyVaultSettings settings, IConfiguration configuration)
+        {
+            configuration.Bind(settings);
+        }
 
         protected override bool GetHealthCheckEnabled(AzureSecurityKeyVaultSettings settings)
             => settings.HealthChecks;
