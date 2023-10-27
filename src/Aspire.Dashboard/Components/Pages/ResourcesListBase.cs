@@ -8,7 +8,7 @@ using Microsoft.Fast.Components.FluentUI;
 
 namespace Aspire.Dashboard.Components.Pages;
 
-public abstract class ResourcesListBase<TResource> : ComponentBase
+public abstract class ResourcesListBase<TResource> : ComponentBase, IDisposable
     where TResource : ResourceViewModel
 {
     // Ideally we'd be pulling this from Aspire.Hosting.Dcp.Model.ExecutableStates,
@@ -35,6 +35,7 @@ public abstract class ResourcesListBase<TResource> : ComponentBase
     protected IQueryable<TResource>? FilteredResources => _resourcesMap.Values.Where(Filter).OrderBy(e => e.Name).AsQueryable();
 
     protected GridSort<TResource> nameSort = GridSort<TResource>.ByAscending(p => p.Name);
+    protected GridSort<TResource> stateSort = GridSort<TResource>.ByAscending(p => p.State);
 
     protected override async Task OnInitializedAsync()
     {
@@ -86,10 +87,19 @@ public abstract class ResourcesListBase<TResource> : ComponentBase
         await InvokeAsync(StateHasChanged);
     }
 
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _watchTaskCancellationTokenSource.Cancel();
+            _watchTaskCancellationTokenSource.Dispose();
+        }
+    }
+
     public void Dispose()
     {
-        _watchTaskCancellationTokenSource.Cancel();
-        _watchTaskCancellationTokenSource.Dispose();
+        Dispose(true);
+        GC.SuppressFinalize(this);
     }
 
     protected void HandleFilter(ChangeEventArgs args)

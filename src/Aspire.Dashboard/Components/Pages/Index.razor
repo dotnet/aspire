@@ -22,10 +22,25 @@
                 <TemplateColumn Title="Name" Sortable="true" SortBy="@nameSort" Tooltip="true" TooltipText="(p) => p.Name">
                     <FluentHighlighter HighlightedText="@filter" Text="@context.Name" />
                 </TemplateColumn>
-                <PropertyColumn Property="@(e => e.State)" Sortable="true" Tooltip="true" />
+                <TemplateColumn Title="State" Sortable="true" SortBy="@stateSort" Tooltip="true" TooltipText="(p) => p.State">
+                    <div style="display:flex;justify-content: space-between;">
+                        @context.State
+
+                        @{
+                            // TODO: This takes a read lock and is inefficent (N+1). Consider refactoring to get all counts in one query.
+                            var unviewedCount = TelemetryRepository.GetUnviewedErrorLogsCount(context.Uid);
+                        }
+                        @if (unviewedCount > 0)
+                        {
+                            <div @onclick="@(() => ViewErrorStructuredLogs(context))" style="padding: 0 3px; cursor:pointer;">
+                                <FluentBadge Appearance="Appearance.Accent" slot="end">@unviewedCount</FluentBadge>
+                            </div>
+                        }
+                    </div>
+                </TemplateColumn>
                 <PropertyColumn Property="@(c => c.CreationTimeStamp)" Title="Start Time" Sortable="true" Tooltip="true" />
                 <PropertyColumn Property="@(c => c.ProcessId)" Title="Process Id" Sortable="true" Tooltip="true" />
-                <TemplateColumn Title="Source Location" Sortable="true" SortBy="@projectPathSort" Tooltip="true" TooltipText="(p) => p.ProjectPath">
+                <TemplateColumn Title="Source Location" Sortable="true" SortBy="@_projectPathSort" Tooltip="true" TooltipText="(p) => p.ProjectPath">
                     <FluentHighlighter HighlightedText="@filter" Text="@context.ProjectPath" />
                 </TemplateColumn>
                 <TemplateColumn Title="Endpoints" Sortable="false">
@@ -67,21 +82,3 @@
         </FluentDataGrid>
     </div>
 </div>
-
-@code
-{
-    protected override ValueTask<List<ProjectViewModel>> GetResources(IDashboardViewModelService dashboardViewModelService)
-        => dashboardViewModelService.GetProjectsAsync();
-
-    protected override IAsyncEnumerable<ResourceChanged<ProjectViewModel>> WatchResources(
-    IDashboardViewModelService dashboardViewModelService,
-        IEnumerable<NamespacedName> initialList,
-        CancellationToken cancellationToken)
-        => dashboardViewModelService.WatchProjectsAsync(initialList, cancellationToken);
-
-    protected override bool Filter(ProjectViewModel resource)
-        => resource.Name.Contains(filter, StringComparison.CurrentCultureIgnoreCase)
-        || resource.ProjectPath.Contains(filter, StringComparison.CurrentCultureIgnoreCase);
-
-    private GridSort<ProjectViewModel> projectPathSort = GridSort<ProjectViewModel>.ByAscending(p => p.ProjectPath);
-}

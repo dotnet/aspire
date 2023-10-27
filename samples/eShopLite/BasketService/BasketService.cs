@@ -18,6 +18,9 @@ public class BasketService(IBasketRepository repository, IConfiguration configur
         // Uncomment to force a delay for testing resiliency, etc.
         //await Task.Delay(5000);
 
+        var factory = context.GetHttpContext().RequestServices.GetRequiredService<ILogger<BasketService>>();
+        factory.LogError("Test error");
+
         var data = await _repository.GetBasketAsync(request.Id);
 
         if (data != null)

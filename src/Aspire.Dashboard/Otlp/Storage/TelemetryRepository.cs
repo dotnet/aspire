@@ -15,6 +15,12 @@ using static OpenTelemetry.Proto.Trace.V1.Span.Types;
 
 namespace Aspire.Dashboard.Otlp.Storage;
 
+public enum SubscriptionType
+{
+    Read,
+    Listen
+}
+
 public class TelemetryRepository
 {
     private const int DefaultMaxTelemetryCount = 10_000;
@@ -32,6 +38,7 @@ public class TelemetryRepository
     private readonly ReaderWriterLockSlim _logsLock = new();
     private readonly CircularBuffer<OtlpLogEntry> _logs;
     private readonly HashSet<(OtlpApplication Application, string PropertyKey)> _logPropertyKeys = new();
+    private readonly Dictionary<OtlpApplication, int> _applicationUnviewedErrorLogs = new();
 
     private readonly ReaderWriterLockSlim _tracesLock = new();
     private readonly Dictionary<string, OtlpTraceScope> _traceScopes = new();
@@ -54,6 +61,61 @@ public class TelemetryRepository
         }
         applications.Sort((a, b) => string.Compare(a.ApplicationName, b.ApplicationName, StringComparison.OrdinalIgnoreCase));
         return applications;
+    }
+
+    public int GetUnviewedErrorLogsCount(string? instanceId)
+    {
+        _logsLock.EnterReadLock();
+
+        try
+        {
+            if (string.IsNullOrEmpty(instanceId))
+            {
+                return _applicationUnviewedErrorLogs.Sum(kvp => kvp.Value);
+            }
+            var application = GetApplications().FirstOrDefault(a => a.InstanceId == instanceId);
+            if (application is not null)
+            {
+                _applicationUnviewedErrorLogs.TryGetValue(application, out var count);
+                return count;
+            }
+            else
+            {
+                return 0;
+            }
+        }
+        finally
+        {
+            _logsLock.ExitReadLock();
+        }
+    }
+
+    internal void MarkViewedErrorLogs(string? instanceId)
+    {
+        _logsLock.EnterWriteLock();
+
+        try
+        {
+            if (string.IsNullOrEmpty(instanceId) && _applicationUnviewedErrorLogs.Count > 0)
+            {
+                _applicationUnviewedErrorLogs.Clear();
+                RaiseSubscriptionChanged(_logSubscriptions);
+                return;
+            }
+            var application = GetApplications().FirstOrDefault(a => a.InstanceId == instanceId);
+            if (application is not null)
+            {
+                if (_applicationUnviewedErrorLogs.Remove(application))
+                {
+                    RaiseSubscriptionChanged(_logSubscriptions);
+                }
+                return;
+            }
+        }
+        finally
+        {
+            _logsLock.ExitWriteLock();
+        }
     }
 
     public OtlpApplication GetOrAddApplication(Resource resource)
@@ -96,28 +158,28 @@ public class TelemetryRepository
 
     public Subscription OnNewApplications(Func<Task> callback)
     {
-        return AddSubscription(string.Empty, callback, _applicationSubscriptions);
+        return AddSubscription(string.Empty, SubscriptionType.Read, callback, _applicationSubscriptions);
     }
 
-    public Subscription OnNewLogs(string? applicationId, Func<Task> callback)
+    public Subscription OnNewLogs(string? applicationId, SubscriptionType subscriptionType, Func<Task> callback)
     {
-        return AddSubscription(applicationId, callback, _logSubscriptions);
+        return AddSubscription(applicationId, subscriptionType, callback, _logSubscriptions);
     }
 
-    public Subscription OnNewMetrics(string? applicationId, Func<Task> callback)
+    public Subscription OnNewMetrics(string? applicationId, SubscriptionType subscriptionType, Func<Task> callback)
     {
-        return AddSubscription(applicationId, callback, _metricsSubscriptions);
+        return AddSubscription(applicationId, subscriptionType, callback, _metricsSubscriptions);
     }
 
-    public Subscription OnNewTraces(string? applicationId, Func<Task> callback)
+    public Subscription OnNewTraces(string? applicationId, SubscriptionType subscriptionType, Func<Task> callback)
     {
-        return AddSubscription(applicationId, callback, _tracesSubscriptions);
+        return AddSubscription(applicationId, subscriptionType, callback, _tracesSubscriptions);
     }
 
-    private Subscription AddSubscription(string? applicationId, Func<Task> callback, List<Subscription> subscriptions)
+    private Subscription AddSubscription(string? applicationId, SubscriptionType subscriptionType, Func<Task> callback, List<Subscription> subscriptions)
     {
         Subscription? subscription = null;
-        subscription = new Subscription(applicationId, callback, () =>
+        subscription = new Subscription(applicationId, subscriptionType, callback, () =>
         {
             lock (_lock)
             {
@@ -208,6 +270,22 @@ public class TelemetryRepository
                         if (!added)
                         {
                             _logs.Insert(0, logEntry);
+                        }
+
+                        // For log entries error and above, increment the unviewed count if there are no read log subscriptions for the application.
+                        if (logEntry.Severity >= LogLevel.Error)
+                        {
+                            if (!_logSubscriptions.Any(s => s.SubscriptionType == SubscriptionType.Read && (s.ApplicationId == application.InstanceId || s.ApplicationId == null)))
+                            {
+                                if (_applicationUnviewedErrorLogs.TryGetValue(application, out var count))
+                                {
+                                    _applicationUnviewedErrorLogs[application] = ++count;
+                                }
+                                else
+                                {
+                                    _applicationUnviewedErrorLogs.Add(application, 1);
+                                }
+                            }
                         }
 
                         foreach (var kvp in logEntry.Properties)
