@@ -7,17 +7,21 @@ using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Logging;
 using Microsoft.Fast.Components.FluentUI;
 using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Pages;
+
 public partial class StructuredLogs
 {
-    private static readonly ApplicationViewModel s_allApplication = new ApplicationViewModel { Id = null, Name = "(All)" };
+    private static readonly SelectViewModel<string> s_allApplication = new SelectViewModel<string> { Id = null, Name = "(All)" };
 
     private TotalItemsFooter _totalItemsFooter = default!;
-    private List<ApplicationViewModel> _applications = default!;
-    private ApplicationViewModel _selectedApplication = s_allApplication;
+    private List<SelectViewModel<string>> _applications = default!;
+    private List<SelectViewModel<LogLevel>> _logLevels = default!;
+    private SelectViewModel<string> _selectedApplication = s_allApplication;
+    private SelectViewModel<LogLevel> _selectedLogLevel = default!;
     private Subscription? _applicationsSubscription;
     private Subscription? _logsSubscription;
     private bool _applicationChanged;
@@ -69,6 +73,18 @@ public partial class StructuredLogs
             ViewModel.AddFilter(new LogFilter { Field = "SpanId", Condition = FilterCondition.Equals, Value = SpanId });
         }
 
+        _logLevels = new List<SelectViewModel<LogLevel>>
+        {
+            new SelectViewModel<LogLevel> { Id = LogLevel.Trace, Name = "(All)" },
+            new SelectViewModel<LogLevel> { Id = LogLevel.Trace, Name = "Trace" },
+            new SelectViewModel<LogLevel> { Id = LogLevel.Debug, Name = "Debug" },
+            new SelectViewModel<LogLevel> { Id = LogLevel.Information, Name = "Information" },
+            new SelectViewModel<LogLevel> { Id = LogLevel.Warning, Name = "Warning" },
+            new SelectViewModel<LogLevel> { Id = LogLevel.Error, Name = "Error" },
+            new SelectViewModel<LogLevel> { Id = LogLevel.Critical, Name = "Critical" },
+        };
+        _selectedLogLevel = _logLevels[0];
+
         UpdateApplications();
         _applicationsSubscription = TelemetryRepository.OnNewApplications(() => InvokeAsync(() =>
         {
@@ -88,13 +104,21 @@ public partial class StructuredLogs
 
     private void UpdateApplications()
     {
-        _applications = TelemetryRepository.GetApplications().Select(a => new ApplicationViewModel { Id = a.InstanceId, Name = a.ApplicationName }).ToList();
+        _applications = TelemetryRepository.GetApplications().Select(a => new SelectViewModel<string> { Id = a.InstanceId, Name = a.ApplicationName }).ToList();
         _applications.Insert(0, s_allApplication);
     }
 
     private Task HandleSelectedApplicationChangedAsync()
     {
         NavigationManager.NavigateTo($"/StructuredLogs/{_selectedApplication.Id}");
+        _applicationChanged = true;
+
+        return Task.CompletedTask;
+    }
+
+    private Task HandleSelectedLogLevelChangedAsync()
+    {
+        ViewModel.LogLevel = _selectedLogLevel.Id;
         _applicationChanged = true;
 
         return Task.CompletedTask;
