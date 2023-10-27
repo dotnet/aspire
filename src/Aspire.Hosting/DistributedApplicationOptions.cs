@@ -8,7 +8,13 @@ namespace Aspire.Hosting;
 /// </summary>
 public sealed class DistributedApplicationOptions
 {
+    /// <summary>
+    /// The command line arguments.
+    /// </summary>
     public string[]? Args { get; set; }
 
+    /// <summary>
+    /// The AssemblyName of the AppHost project for loading configuration attributes; if not set defaults to Assembly.GetEntryAssembly().
+    /// </summary>
     public string? AssemblyName { get; set; }
 }
