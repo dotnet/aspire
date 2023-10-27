@@ -24,13 +24,16 @@ public static class AspireAzureCosmosDBExtensions
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="connectionName">The connection name to use to find a connection string.</param>
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureDataCosmosSettings"/>. It's invoked after the settings are read from the configuration.</param>
+    /// <param name="configureClientOptions">An optional method that can be used for customizing the <see cref="CosmosClientOptions"/>.</param>
+    /// <remarks>Reads the configuration from "Aspire.Microsoft.Azure.Cosmos" section.</remarks>
     /// <exception cref="InvalidOperationException">If required ConnectionString is not provided in configuration section</exception>
     public static void AddAzureCosmosDB(
         this IHostApplicationBuilder builder,
         string connectionName,
-        Action<AzureDataCosmosSettings>? configureSettings = null)
+        Action<AzureDataCosmosSettings>? configureSettings = null,
+        Action<CosmosClientOptions>? configureClientOptions = null)
     {
-        AddAzureCosmosDB(builder, DefaultConfigSectionName, configureSettings, connectionName, serviceKey: null);
+        AddAzureCosmosDB(builder, DefaultConfigSectionName, configureSettings, configureClientOptions, connectionName, serviceKey: null);
     }
 
     /// <summary>
@@ -40,19 +43,23 @@ public static class AspireAzureCosmosDBExtensions
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureDataCosmosSettings"/>. It's invoked after the settings are read from the configuration.</param>
+    /// <param name="configureClientOptions">An optional method that can be used for customizing the <see cref="CosmosClientOptions"/>.</param>
+    /// <remarks>Reads the configuration from "Aspire.Microsoft.Azure.Cosmos:{name}" section.</remarks>
     /// <exception cref="InvalidOperationException">If required ConnectionString is not provided in configuration section</exception>
     public static void AddKeyedAzureCosmosDB(
         this IHostApplicationBuilder builder,
         string name,
-        Action<AzureDataCosmosSettings>? configureSettings = null)
+        Action<AzureDataCosmosSettings>? configureSettings = null,
+        Action<CosmosClientOptions>? configureClientOptions = null)
     {
-        AddAzureCosmosDB(builder, $"{DefaultConfigSectionName}:{name}", configureSettings, connectionName: name, serviceKey: name);
+        AddAzureCosmosDB(builder, $"{DefaultConfigSectionName}:{name}", configureSettings, configureClientOptions, connectionName: name, serviceKey: name);
     }
 
     private static void AddAzureCosmosDB(
         this IHostApplicationBuilder builder,
         string configurationSectionName,
         Action<AzureDataCosmosSettings>? configureSettings,
+        Action<CosmosClientOptions>? configureClientOptions,
         string connectionName,
         string? serviceKey)
     {
@@ -65,16 +72,17 @@ public static class AspireAzureCosmosDBExtensions
         {
             settings.ConnectionString = connectionString;
         }
+
         configureSettings?.Invoke(settings);
+        var clientOptions = new CosmosClientOptions();
 
-        if (serviceKey is null)
+        if (settings.Tracing || settings.Metrics)
         {
-            builder.Services.AddSingleton(_ => ConfigureDb());
-
+            clientOptions.CosmosClientTelemetryOptions.DisableDistributedTracing = false;
         }
         else
         {
-            builder.Services.AddKeyedSingleton(serviceKey, (sp, key) => ConfigureDb());
+            clientOptions.CosmosClientTelemetryOptions.DisableDistributedTracing = true;
         }
 
         if (settings.Tracing)
@@ -107,6 +115,17 @@ public static class AspireAzureCosmosDBExtensions
                     timeout: default));
         }
 
+        configureClientOptions?.Invoke(clientOptions);
+
+        if (serviceKey is null)
+        {
+            builder.Services.AddSingleton(_ => ConfigureDb());
+        }
+        else
+        {
+            builder.Services.AddKeyedSingleton(serviceKey, (sp, key) => ConfigureDb());
+        }
+
         CosmosClient ConfigureDb()
         {
             if (string.IsNullOrEmpty(settings.ConnectionString))
@@ -114,7 +133,7 @@ public static class AspireAzureCosmosDBExtensions
                 throw new InvalidOperationException($"ConnectionString is missing. It should be provided in 'ConnectionStrings:{connectionName}' or under the 'ConnectionString' key in '{configurationSectionName}' configuration section.");
             }
 
-            return new CosmosClient(settings.ConnectionString);
+            return new CosmosClient(settings.ConnectionString, clientOptions);
         }
     }
 }
