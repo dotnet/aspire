@@ -75,6 +75,7 @@ public partial class StructuredLogs
 
         _logLevels = new List<SelectViewModel<LogLevel>>
         {
+            new SelectViewModel<LogLevel> { Id = LogLevel.Trace, Name = "(All)" },
             new SelectViewModel<LogLevel> { Id = LogLevel.Trace, Name = "Trace" },
             new SelectViewModel<LogLevel> { Id = LogLevel.Debug, Name = "Debug" },
             new SelectViewModel<LogLevel> { Id = LogLevel.Information, Name = "Information" },
