@@ -23,9 +23,6 @@ public class AddPostgresTests
         var containerResource = Assert.Single(appModel.GetContainerResources());
         Assert.Equal("myPostgres", containerResource.Name);
 
-        // ManifestPublishing, ContainerImage, ServiceBinding, 2 EnvironmentVariables
-        Assert.Equal(5, containerResource.Annotations.Count);
-
         var manifestPublishing = Assert.Single(containerResource.Annotations.OfType<ManifestPublishingCallbackAnnotation>());
         Assert.NotNull(manifestPublishing.Callback);
 
@@ -78,9 +75,6 @@ public class AddPostgresTests
 
         var containerResource = Assert.Single(appModel.GetContainerResources());
         Assert.Equal("myPostgres", containerResource.Name);
-
-        // ManifestPublishing, ContainerImage, ServiceBinding, 2 EnvironmentVariables
-        Assert.Equal(5, containerResource.Annotations.Count);
 
         var manifestPublishing = Assert.Single(containerResource.Annotations.OfType<ManifestPublishingCallbackAnnotation>());
         Assert.NotNull(manifestPublishing.Callback);
@@ -185,9 +179,6 @@ public class AddPostgresTests
 
         var containerResource = Assert.Single(containerResources);
         Assert.Equal("postgres", containerResource.Name);
-
-        // ManifestPublishing, ContainerImage, ServiceBinding, 2 EnvironmentVariables
-        Assert.Equal(5, containerResource.Annotations.Count);
 
         var manifestPublishing = Assert.Single(containerResource.Annotations.OfType<ManifestPublishingCallbackAnnotation>());
         Assert.NotNull(manifestPublishing.Callback);

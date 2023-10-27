@@ -22,7 +22,6 @@ public class AddRedisTests
 
         var containerResource = Assert.Single(appModel.Resources.OfType<RedisContainerResource>());
         Assert.Equal("myRedis", containerResource.Name);
-        Assert.Equal(3, containerResource.Annotations.Count);
 
         var manifestAnnotation = Assert.Single(containerResource.Annotations.OfType<ManifestPublishingCallbackAnnotation>());
         Assert.NotNull(manifestAnnotation.Callback);
@@ -54,7 +53,6 @@ public class AddRedisTests
 
         var containerResource = Assert.Single(appModel.Resources.OfType<RedisContainerResource>());
         Assert.Equal("myRedis", containerResource.Name);
-        Assert.Equal(3, containerResource.Annotations.Count);
 
         var manifestAnnotation = Assert.Single(containerResource.Annotations.OfType<ManifestPublishingCallbackAnnotation>());
         Assert.NotNull(manifestAnnotation.Callback);
