@@ -33,7 +33,13 @@ public class DistributedApplication : IHost, IAsyncDisposable
 
     public static IDistributedApplicationBuilder CreateBuilder(string[] args)
     {
-        var builder = new DistributedApplicationBuilder(args);
+        var builder = new DistributedApplicationBuilder(new DistributedApplicationOptions() { Args = args });
+        return builder;
+    }
+
+    public static IDistributedApplicationBuilder CreateBuilder(DistributedApplicationOptions options)
+    {
+        var builder = new DistributedApplicationBuilder(options);
         return builder;
     }
 
