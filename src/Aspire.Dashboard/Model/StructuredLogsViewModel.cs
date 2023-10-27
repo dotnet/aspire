@@ -67,7 +67,7 @@ public class StructuredLogsViewModel
             {
                 filters.Add(new LogFilter { Field = "Message", Condition = FilterCondition.Contains, Value = FilterText });
             }
-            if (_logLevel != null)
+            if (_logLevel != null && _logLevel != Microsoft.Extensions.Logging.LogLevel.Trace)
             {
                 filters.Add(new LogFilter { Field = "Severity", Condition = FilterCondition.GreaterThanOrEqual, Value = _logLevel.Value.ToString() });
             }

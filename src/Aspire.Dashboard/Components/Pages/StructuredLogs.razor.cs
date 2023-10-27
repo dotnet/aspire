@@ -16,13 +16,12 @@ namespace Aspire.Dashboard.Components.Pages;
 public partial class StructuredLogs
 {
     private static readonly SelectViewModel<string> s_allApplication = new SelectViewModel<string> { Id = null, Name = "(All)" };
-    //private static readonly SelectViewModel<LogLevel?> s_selectLogLevel = new SelectViewModel<LogLevel?> { Id = null, Name = "Select severity..." };
 
     private TotalItemsFooter _totalItemsFooter = default!;
     private List<SelectViewModel<string>> _applications = default!;
-    private List<SelectViewModel<LogLevel?>> _logLevels = default!;
+    private List<SelectViewModel<LogLevel>> _logLevels = default!;
     private SelectViewModel<string> _selectedApplication = s_allApplication;
-    private SelectViewModel<LogLevel?> _selectedLogLevel = default!;
+    private SelectViewModel<LogLevel> _selectedLogLevel = default!;
     private Subscription? _applicationsSubscription;
     private Subscription? _logsSubscription;
     private bool _applicationChanged;
@@ -74,14 +73,14 @@ public partial class StructuredLogs
             ViewModel.AddFilter(new LogFilter { Field = "SpanId", Condition = FilterCondition.Equals, Value = SpanId });
         }
 
-        _logLevels = new List<SelectViewModel<LogLevel?>>
+        _logLevels = new List<SelectViewModel<LogLevel>>
         {
-            new SelectViewModel<LogLevel?> { Id = LogLevel.Trace, Name = "Trace" },
-            new SelectViewModel<LogLevel?> { Id = LogLevel.Debug, Name = "Debug" },
-            new SelectViewModel<LogLevel?> { Id = LogLevel.Information, Name = "Information" },
-            new SelectViewModel<LogLevel?> { Id = LogLevel.Warning, Name = "Warning" },
-            new SelectViewModel<LogLevel?> { Id = LogLevel.Error, Name = "Error" },
-            new SelectViewModel<LogLevel?> { Id = LogLevel.Critical, Name = "Critical" },
+            new SelectViewModel<LogLevel> { Id = LogLevel.Trace, Name = "Trace" },
+            new SelectViewModel<LogLevel> { Id = LogLevel.Debug, Name = "Debug" },
+            new SelectViewModel<LogLevel> { Id = LogLevel.Information, Name = "Information" },
+            new SelectViewModel<LogLevel> { Id = LogLevel.Warning, Name = "Warning" },
+            new SelectViewModel<LogLevel> { Id = LogLevel.Error, Name = "Error" },
+            new SelectViewModel<LogLevel> { Id = LogLevel.Critical, Name = "Critical" },
         };
         _selectedLogLevel = _logLevels[0];
 
