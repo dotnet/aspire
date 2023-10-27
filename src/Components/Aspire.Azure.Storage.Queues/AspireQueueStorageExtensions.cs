@@ -1,14 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-global using Microsoft.Extensions.Azure;
-
 using Aspire.Azure.Common;
 using Aspire.Azure.Storage.Queues;
 using Azure.Core;
 using Azure.Core.Extensions;
 using Azure.Storage.Queues;
 using HealthChecks.Azure.Storage.Queues;
+using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;

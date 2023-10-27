@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-global using Microsoft.Extensions.Azure;
-
 using Aspire.Azure.Common;
 using Aspire.Azure.Security.KeyVault;
 using Azure.Core;
@@ -11,6 +9,7 @@ using Azure.Extensions.AspNetCore.Configuration.Secrets;
 using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
 using HealthChecks.Azure.KeyVault.Secrets;
+using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;

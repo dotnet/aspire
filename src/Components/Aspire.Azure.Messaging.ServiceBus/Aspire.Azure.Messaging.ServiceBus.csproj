@@ -3,10 +3,12 @@
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
+    <!-- AOT-compat blocked by https://github.com/dotnet/runtime/issues/93498, extern alias doesn't work because Pdb2Pdb extern error -->
+    <EnableConfigurationBindingGenerator>false</EnableConfigurationBindingGenerator>
+    <IsAotCompatible>false</IsAotCompatible>
     <PackageTags>$(ComponentAzurePackageTags) servicebus amqp</PackageTags>
     <Description>A client for Azure Service Bus that integrates with Aspire, including health checks, logging and telemetry.</Description>
     <PackageIconFullPath>$(SharedDir)AzureServiceBus_256x.png</PackageIconFullPath>
-    <NoWarn>$(NoWarn);SYSLIB1100;SYSLIB1101</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,10 +18,8 @@
   <ItemGroup>
     <PackageReference Include="AspNetCore.HealthChecks.AzureServiceBus" />
     <PackageReference Include="Azure.Identity" />
-    <!-- Aliases works around https://github.com/dotnet/runtime/issues/93498 -->
-    <PackageReference Include="Azure.Messaging.EventHubs" Aliases="Unused" />
-    <PackageReference Include="Azure.Messaging.ServiceBus" Aliases="AzureMessagingServiceBus" />
-    <PackageReference Include="Microsoft.Extensions.Azure" Aliases="ExtensionsAzure" />
+    <PackageReference Include="Azure.Messaging.ServiceBus" />
+    <PackageReference Include="Microsoft.Extensions.Azure" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />

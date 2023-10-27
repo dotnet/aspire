@@ -1,18 +1,14 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-// workaround https://github.com/dotnet/runtime/issues/93498
-extern alias AzureMessagingServiceBus;
-extern alias ExtensionsAzure;
-global using AzureMessagingServiceBus.Azure.Messaging.ServiceBus;
-global using ExtensionsAzure.Microsoft.Extensions.Azure;
-
 using Aspire.Azure.Common;
 using Aspire.Azure.Messaging.ServiceBus;
 using Azure.Core;
 using Azure.Core.Extensions;
+using Azure.Messaging.ServiceBus;
 using HealthChecks.AzureServiceBus;
 using HealthChecks.AzureServiceBus.Configuration;
+using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
