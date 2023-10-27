@@ -8,35 +8,54 @@ namespace Aspire.Hosting.Dcp;
 
 public sealed class DcpOptions
 {
-    private const string DcpCliPathMetadataKey = "dcpclipath";
-    private const string DcpExtensionsPathMetadataKey = "dcpextensionspath";
-    private const string DcpBinPathMetadataKey = "dcpbinpath";
+    private const string DcpCliPathMetadataKey = "DcpCliPath";
+    private const string DcpExtensionsPathMetadataKey = "DcpExtensionsPath";
+    private const string DcpBinPathMetadataKey = "DcpBinPath";
 
-    public static string DCP = nameof(DCP);
+    public static string DcpPublisher = nameof(DcpPublisher);
 
-    public string? DcpCliPath { get; set; }
+    /// <summary>
+    /// The path to the DCP executable used for Aspire orchestration
+    /// </summary>
+    /// <example>
+    /// C:\Program Files\dotnet\packs\Aspire.Hosting.Orchestration.win-x64\8.0.0-preview.1.23518.6\tools\dcp.exe
+    /// </example>
+    public string? CliPath { get; set; }
 
-    public string? DcpExtensionsPath { get; set; }
+    /// <summary>
+    /// Optional path to a folder container the DCP extension assemblies (dcpd, dcpctrl, etc.)
+    /// </summary>
+    /// <example>
+    /// C:\Program Files\dotnet\packs\Aspire.Hosting.Orchestration.win-x64\8.0.0-preview.1.23518.6\tools\ext\
+    /// </example>
+    public string? ExtensionsPath { get; set; }
 
-    public string? DcpBinPath { get; set; }
+    /// <summary>
+    /// Optional path to a folder containing additional DCP binaries (traefik, etc.)
+    /// </summary>
+    /// <example>
+    /// C:\Program Files\dotnet\packs\Aspire.Hosting.Orchestration.win-x64\8.0.0-preview.1.23518.6\tools\ext\bin\
+    /// </example>
+    public string? BinPath { get; set; }
 
     public void ApplyApplicationConfiguration(DistributedApplicationOptions appOptions, IConfiguration configuration)
     {
-        if (!string.IsNullOrEmpty(configuration["Dcp"]))
+        if (!string.IsNullOrEmpty(configuration["CliPath"]))
         {
             // If an explicit path to DCP was provided from configuration, don't try to resolve via assembly attributes
-            DcpCliPath = configuration["Dcp"];
+            CliPath = configuration["Path"];
         }
         else
         {
             // Calculate DCP locations from configuration options
-            Assembly? appHostAssembly;
+            Assembly? appHostAssembly = Assembly.GetEntryAssembly();
             if (!string.IsNullOrEmpty(appOptions.AssemblyName))
             {
                 try
                 {
                     // Find an assembly in the current AppDomain with the given name
-                    appHostAssembly = AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(assembly => string.Equals(assembly.GetName().Name, appOptions.AssemblyName, StringComparison.Ordinal));
+                    appHostAssembly = Assembly.Load(appOptions.AssemblyName);
+                    Console.WriteLine(appHostAssembly?.FullName);
                     if (appHostAssembly == null)
                     {
                         throw new FileNotFoundException("No assembly with name '{appOptions.AssemblyName}' exists in the current AppDomain.");
@@ -48,14 +67,14 @@ public sealed class DcpOptions
                 }
             }
 
-            appHostAssembly = Assembly.GetEntryAssembly();
+            
             IEnumerable<AssemblyMetadataAttribute>? assemblyMetadata = appHostAssembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
-            DcpCliPath = GetMetadataValue(assemblyMetadata, DcpCliPathMetadataKey);
-            DcpExtensionsPath = GetMetadataValue(assemblyMetadata, DcpExtensionsPathMetadataKey);
-            DcpBinPath = GetMetadataValue(assemblyMetadata, DcpBinPathMetadataKey);
+            CliPath = GetMetadataValue(assemblyMetadata, DcpCliPathMetadataKey);
+            ExtensionsPath = GetMetadataValue(assemblyMetadata, DcpExtensionsPathMetadataKey);
+            BinPath = GetMetadataValue(assemblyMetadata, DcpBinPathMetadataKey);
         }
 
-        if (string.IsNullOrEmpty(DcpCliPath))
+        if (string.IsNullOrEmpty(CliPath))
         {
             throw new InvalidOperationException($"Could not resolve the path to the Aspire application host. The application cannot be run without it.");
         }

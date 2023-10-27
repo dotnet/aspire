@@ -28,16 +28,16 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger _logger;
     private readonly DashboardWebApplication _dashboard;
-    private readonly IOptions<DcpOptions> _dcpOptions;
-    private readonly IOptions<PublishingOptions> _publishingOptions;
+    private readonly DcpOptions _dcpOptions;
+    private readonly PublishingOptions _publishingOptions;
 
     public DcpHostService(DistributedApplicationModel applicationModel, ILoggerFactory loggerFactory, IOptions<DcpOptions> dcpOptions, IOptions<PublishingOptions> publishingOptions, ApplicationExecutor appExecutor)
     {
         _applicationModel = applicationModel;
         _loggerFactory = loggerFactory;
         _logger = loggerFactory.CreateLogger<DcpHostService>();
-        _dcpOptions = dcpOptions;
-        _publishingOptions = publishingOptions;
+        _dcpOptions = dcpOptions.Value;
+        _publishingOptions = publishingOptions.Value;
         _appExecutor = appExecutor;
 
         _dashboard = new DashboardWebApplication(serviceCollection =>
@@ -49,7 +49,7 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
 
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
-        if (_publishingOptions.Value.Publisher is not null && _publishingOptions.Value.Publisher != "dcp")
+        if (_publishingOptions.Publisher is not null && _publishingOptions.Publisher != "dcp")
         {
             return;
         }
@@ -61,7 +61,7 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
 
     public async Task StopAsync(CancellationToken cancellationToken = default)
     {
-        if (_publishingOptions.Value.Publisher != "dcp" || _publishingOptions.Value.Publisher is not null)
+        if (_publishingOptions.Publisher != "dcp" || _publishingOptions.Publisher is not null)
         {
             return;
         }
@@ -121,7 +121,7 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
 
     private ProcessSpec CreateDcpProcessSpec()
     {
-        string? dcpExePath = _dcpOptions.Value.DcpCliPath;
+        string? dcpExePath = _dcpOptions.CliPath;
         if (!File.Exists(dcpExePath))
         {
             throw new FileNotFoundException("The Aspire application host is not installed. The application cannot be run without it.", dcpExePath);
@@ -147,14 +147,14 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
             }
         }
 
-        if (!string.IsNullOrEmpty(_dcpOptions.Value.DcpExtensionsPath))
+        if (!string.IsNullOrEmpty(_dcpOptions.ExtensionsPath))
         {
-            dcpProcessSpec.EnvironmentVariables.Add("DCP_EXTENSIONS_PATH", _dcpOptions.Value.DcpExtensionsPath);
+            dcpProcessSpec.EnvironmentVariables.Add("DCP_EXTENSIONS_PATH", _dcpOptions.ExtensionsPath);
         }
 
-        if (!string.IsNullOrEmpty(_dcpOptions.Value.DcpBinPath))
+        if (!string.IsNullOrEmpty(_dcpOptions.BinPath))
         {
-            dcpProcessSpec.EnvironmentVariables.Add("DCP_BIN_PATH", _dcpOptions.Value.DcpBinPath);
+            dcpProcessSpec.EnvironmentVariables.Add("DCP_BIN_PATH", _dcpOptions.BinPath);
         }
 
         // Set an environment variable to contain session info that should be deleted when DCP is done

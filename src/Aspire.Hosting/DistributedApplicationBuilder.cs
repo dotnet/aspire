@@ -51,10 +51,10 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     {
         var switchMappings = new Dictionary<string, string>()
         {
-            { "--dcp", "DCP:Dcp" },
+            { "--dcp-cli-path", "DcpPublisher:CliPath" },
         };
         _innerBuilder.Configuration.AddCommandLine(options.Args ?? [], switchMappings);
-        _innerBuilder.Services.Configure<DcpOptions>(o => o.ApplyApplicationConfiguration(options, _innerBuilder.Configuration.GetSection(DcpOptions.DCP)));
+        _innerBuilder.Services.Configure<DcpOptions>(o => o.ApplyApplicationConfiguration(options, _innerBuilder.Configuration.GetSection(DcpOptions.DcpPublisher)));
     }
 
     private void ConfigurePublishingOptions(DistributedApplicationOptions options)
