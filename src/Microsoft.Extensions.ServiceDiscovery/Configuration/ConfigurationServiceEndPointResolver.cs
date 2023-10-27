@@ -124,7 +124,11 @@ internal sealed partial class ConfigurationServiceEndPointResolver : IServiceEnd
     private ServiceEndPoint CreateEndPoint(EndPoint endPoint)
     {
         var serviceEndPoint = ServiceEndPoint.Create(endPoint);
-        serviceEndPoint.Features.Set<IHostNameFeature>(this);
+        if (_options.Value.ApplyHostNameMetadata(serviceEndPoint))
+        {
+            serviceEndPoint.Features.Set<IHostNameFeature>(this);
+        }
+
         return serviceEndPoint;
     }
 
