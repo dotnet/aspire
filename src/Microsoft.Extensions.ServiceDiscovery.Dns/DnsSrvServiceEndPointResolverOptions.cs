@@ -35,4 +35,9 @@ public class DnsSrvServiceEndPointResolverOptions
     /// If not specified, the provider will attempt to infer the namespace.
     /// </remarks>
     public string? QuerySuffix { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether to add the host as metadata to the resolved endpoints. Defaults to <c>false</c>.
+    /// </summary>
+    public bool AddHostAsMetadata { get; set; }
 }

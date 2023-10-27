@@ -12,4 +12,9 @@ public class ConfigurationServiceEndPointResolverOptions
     /// The name of the configuration section which contains service endpoints. Defaults to <c>"Services"</c>.
     /// </summary>
     public string? SectionName { get; set; } = "Services";
+
+    /// <summary>
+    /// Gets or sets a value indicating whether to add the host as metadata to the resolved endpoints. Defaults to <c>false</c>.
+    /// </summary>
+    public bool AddHostAsMetadata { get; set; }
 }

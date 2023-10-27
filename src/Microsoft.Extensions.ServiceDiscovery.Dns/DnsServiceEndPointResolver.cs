@@ -31,7 +31,11 @@ internal sealed partial class DnsServiceEndPointResolver(
         foreach (var address in addresses)
         {
             var endPoint = ServiceEndPoint.Create(new IPEndPoint(address, 0));
-            endPoint.Features.Set<IHostNameFeature>(this);
+            if (options.CurrentValue.AddHostAsMetadata)
+            {
+                endPoint.Features.Set<IHostNameFeature>(this);
+            }
+
             endPoints.Add(endPoint);
         }
 

@@ -120,6 +120,12 @@ public class DnsSrvServiceEndPointResolverTests
             Assert.Equal(new IPEndPoint(IPAddress.Parse("10.10.10.10"), 8888), eps[0].EndPoint);
             Assert.Equal(new IPEndPoint(IPAddress.IPv6Loopback, 9999), eps[1].EndPoint);
             Assert.Equal(new DnsEndPoint("remotehost", 7777), eps[2].EndPoint);
+
+            Assert.All(initialResult.EndPoints, ep =>
+            {
+                var hostNameFeature = ep.Features.Get<IHostNameFeature>();
+                Assert.Null(hostNameFeature);
+            });
         }
     }
 
@@ -170,7 +176,11 @@ public class DnsSrvServiceEndPointResolverTests
         if (dnsFirst)
         {
             serviceCollection
-            .AddDnsSrvServiceEndPointResolver(options => options.QuerySuffix = ".ns")
+            .AddDnsSrvServiceEndPointResolver(options =>
+            {
+                options.QuerySuffix = ".ns";
+                options.AddHostAsMetadata = true;
+            })
             .AddConfigurationServiceEndPointResolver();
         }
         else
@@ -202,6 +212,13 @@ public class DnsSrvServiceEndPointResolverTests
                 Assert.Equal(new IPEndPoint(IPAddress.Parse("10.10.10.10"), 8888), eps[0].EndPoint);
                 Assert.Equal(new IPEndPoint(IPAddress.IPv6Loopback, 9999), eps[1].EndPoint);
                 Assert.Equal(new DnsEndPoint("remotehost", 7777), eps[2].EndPoint);
+
+                Assert.All(initialResult.EndPoints, ep =>
+                {
+                    var hostNameFeature = ep.Features.Get<IHostNameFeature>();
+                    Assert.NotNull(hostNameFeature);
+                    Assert.Equal("basket", hostNameFeature.HostName);
+                });
             }
             else
             {
@@ -209,14 +226,13 @@ public class DnsSrvServiceEndPointResolverTests
                 Assert.Equal(2, initialResult.EndPoints.Count);
                 Assert.Equal(new DnsEndPoint("localhost", 8080), initialResult.EndPoints[0].EndPoint);
                 Assert.Equal(new DnsEndPoint("remotehost", 9090), initialResult.EndPoints[1].EndPoint);
-            }
 
-            Assert.All(initialResult.EndPoints, ep =>
-            {
-                var hostNameFeature = ep.Features.Get<IHostNameFeature>();
-                Assert.NotNull(hostNameFeature);
-                Assert.Equal("basket", hostNameFeature.HostName);
-            });
+                Assert.All(initialResult.EndPoints, ep =>
+                {
+                    var hostNameFeature = ep.Features.Get<IHostNameFeature>();
+                    Assert.Null(hostNameFeature);
+                });
+            }
         }
     }
 
