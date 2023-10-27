@@ -76,9 +76,10 @@ internal sealed partial class ConfigurationServiceEndPointResolver : IServiceEnd
 
         // Read the endpoint from the configuration.
         // First check if there is a collection of sections
-        if (section.GetChildren().Any())
+        var children = section.GetChildren();
+        if (children.Any())
         {
-            var values = section.Get<List<string>>();
+            var values = children.Select(c => c.Value!).Where(s => !string.IsNullOrEmpty(s)).ToList();
             if (values is { Count: > 0 })
             {
                 // Use schemes if any of the URIs have a scheme set.
