@@ -40,10 +40,10 @@ public sealed class DcpOptions
 
     public void ApplyApplicationConfiguration(DistributedApplicationOptions appOptions, IConfiguration configuration)
     {
-        if (!string.IsNullOrEmpty(configuration["CliPath"]))
+        if (!string.IsNullOrEmpty(configuration[nameof(CliPath)]))
         {
             // If an explicit path to DCP was provided from configuration, don't try to resolve via assembly attributes
-            CliPath = configuration["Path"];
+            CliPath = configuration[nameof(CliPath)];
         }
         else
         {
