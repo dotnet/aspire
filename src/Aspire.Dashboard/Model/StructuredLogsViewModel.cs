@@ -4,6 +4,7 @@
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Dashboard.Model;
 
@@ -17,6 +18,7 @@ public class StructuredLogsViewModel
     private string _filterText = string.Empty;
     private int _logsStartIndex;
     private int? _logsCount;
+    private LogLevel? _logLevel;
 
     public StructuredLogsViewModel(TelemetryRepository telemetryRepository)
     {
@@ -42,6 +44,7 @@ public class StructuredLogsViewModel
     }
     public int StartIndex { get => _logsStartIndex; set => SetValue(ref _logsStartIndex, value); }
     public int? Count { get => _logsCount; set => SetValue(ref _logsCount, value); }
+    public LogLevel? LogLevel { get => _logLevel; set => SetValue(ref _logLevel, value); }
 
     private void SetValue<T>(ref T field, T value)
     {
@@ -63,6 +66,10 @@ public class StructuredLogsViewModel
             if (!string.IsNullOrWhiteSpace(FilterText))
             {
                 filters.Add(new LogFilter { Field = "Message", Condition = FilterCondition.Contains, Value = FilterText });
+            }
+            if (_logLevel != null)
+            {
+                filters.Add(new LogFilter { Field = "Severity", Condition = FilterCondition.GreaterThanOrEqual, Value = _logLevel.Value.ToString() });
             }
 
             logs = _telemetryRepository.GetLogs(new GetLogsContext

@@ -17,9 +17,8 @@
 <div class="logs-layout">
     <h1>Structured Logs</h1>
     <FluentToolbar Orientation="Orientation.Horizontal">
-        <FluentSelect TOption="ApplicationViewModel"
+        <FluentSelect TOption="SelectViewModel<string>"
                       Items="@_applications"
-                      OptionValue="@(c => c.Id)"
                       OptionText="@(c => c.Name)"
                       @bind-SelectedOption="_selectedApplication"
                       @bind-SelectedOption:after="HandleSelectedApplicationChangedAsync" />
@@ -27,6 +26,17 @@
                       @oninput="HandleFilter"
                       AfterBindValue="HandleClear"
                       Placeholder="Filter..."
+                      slot="end" />
+        <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
+        <span slot="end">Level:</span>
+        <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
+        <FluentSelect TOption="SelectViewModel<LogLevel?>"
+                      Items="@_logLevels"
+                      OptionText="@(c => c.Name)"
+                      @bind-SelectedOption="_selectedLogLevel"
+                      @bind-SelectedOption:after="HandleSelectedLogLevelChangedAsync"
+                      Width="120px"
+                      Style="min-width: auto;"
                       slot="end" />
         <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
         <FluentLabel slot="end">Filters: </FluentLabel>
@@ -51,7 +61,7 @@
                         @context.Application.ApplicationName
                     </span>
                 </TemplateColumn>
-                <TemplateColumn Title="Severity">
+                <TemplateColumn Title="Level">
                     @if (context.Severity is LogLevel.Error or LogLevel.Critical)
                     {
                         <FluentIcon Icon="Icons.Filled.Size16.ErrorCircle" Color="Color.Error" Class="logs-severity-icon" />

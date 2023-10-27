@@ -18,7 +18,7 @@
 <div class="traces-layout">
     <h1>Traces</h1>
     <FluentToolbar Orientation="Orientation.Horizontal">
-        <FluentSelect TOption="ApplicationViewModel"
+        <FluentSelect TOption="SelectViewModel<string>"
                       Items="@_applications"
                       OptionValue="@(c => c.Id)"
                       OptionText="@(c => c.Name)"
