@@ -179,7 +179,7 @@ public class DnsSrvServiceEndPointResolverTests
             .AddDnsSrvServiceEndPointResolver(options =>
             {
                 options.QuerySuffix = ".ns";
-                options.AddHostAsMetadata = true;
+                options.ApplyHostNameMetadata = _ => true;
             })
             .AddConfigurationServiceEndPointResolver();
         }

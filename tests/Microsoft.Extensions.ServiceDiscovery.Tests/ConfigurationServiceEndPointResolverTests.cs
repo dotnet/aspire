@@ -67,7 +67,7 @@ public class ConfigurationServiceEndPointResolverTests
         var services = new ServiceCollection()
             .AddSingleton<IConfiguration>(config.Build())
             .AddServiceDiscoveryCore()
-            .AddConfigurationServiceEndPointResolver(options => options.AddHostAsMetadata = true)
+            .AddConfigurationServiceEndPointResolver(options => options.ApplyHostNameMetadata = _ => true)
             .BuildServiceProvider();
         var resolverFactory = services.GetRequiredService<ServiceEndPointResolverFactory>();
         ServiceEndPointResolver resolver;

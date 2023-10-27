@@ -14,7 +14,7 @@ public class ConfigurationServiceEndPointResolverOptions
     public string? SectionName { get; set; } = "Services";
 
     /// <summary>
-    /// Gets or sets a value indicating whether to add the host as metadata to the resolved endpoints. Defaults to <c>false</c>.
+    /// Gets or sets a delegate used to determine whether to apply host name metadata to each resolved endpoint. Defaults to <c>false</c>.
     /// </summary>
-    public bool AddHostAsMetadata { get; set; }
+    public Func<ServiceEndPoint, bool> ApplyHostNameMetadata { get; set; } = _ => false;
 }

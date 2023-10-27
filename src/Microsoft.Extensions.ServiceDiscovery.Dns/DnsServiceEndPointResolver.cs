@@ -30,13 +30,13 @@ internal sealed partial class DnsServiceEndPointResolver(
         var addresses = await System.Net.Dns.GetHostAddressesAsync(hostName, ShutdownToken).ConfigureAwait(false);
         foreach (var address in addresses)
         {
-            var endPoint = ServiceEndPoint.Create(new IPEndPoint(address, 0));
-            if (options.CurrentValue.AddHostAsMetadata)
+            var serviceEndPoint = ServiceEndPoint.Create(new IPEndPoint(address, 0));
+            if (options.CurrentValue.ApplyHostNameMetadata(serviceEndPoint))
             {
-                endPoint.Features.Set<IHostNameFeature>(this);
+                serviceEndPoint.Features.Set<IHostNameFeature>(this);
             }
 
-            endPoints.Add(endPoint);
+            endPoints.Add(serviceEndPoint);
         }
 
         if (endPoints.Count == 0)
