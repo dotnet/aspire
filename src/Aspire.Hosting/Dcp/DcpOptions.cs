@@ -63,7 +63,6 @@ public sealed class DcpOptions
                 {
                     // Find an assembly in the current AppDomain with the given name
                     appHostAssembly = Assembly.Load(appOptions.AssemblyName);
-                    Console.WriteLine(appHostAssembly?.FullName);
                     if (appHostAssembly == null)
                     {
                         throw new FileNotFoundException("No assembly with name '{appOptions.AssemblyName}' exists in the current AppDomain.");
