@@ -111,7 +111,7 @@ public static class AspireAzureCosmosDBExtensions
         {
             if (string.IsNullOrEmpty(settings.ConnectionString))
             {
-                throw new InvalidOperationException($"ConnectionString is missing. It should be provided under 'ConnectionString' key in '{DefaultConfigSectionName}' configuration section.");
+                throw new InvalidOperationException($"ConnectionString is missing. It should be provided in 'ConnectionStrings:{connectionName}' or under the 'ConnectionString' key in '{configurationSectionName}' configuration section.");
             }
 
             return new CosmosClient(settings.ConnectionString);
