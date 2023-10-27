@@ -24,9 +24,9 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
     public IResourceCollection Resources { get; } = new ResourceCollection();
 
-    public DistributedApplicationBuilder(string[] args)
+    public DistributedApplicationBuilder(DistributedApplicationOptions options)
     {
-        _args = args;
+        _args = options.Args ?? [];
         _innerBuilder = new HostApplicationBuilder();
 
         // Core things
@@ -34,26 +34,38 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddHostedService<DistributedApplicationRunner>();
 
         // DCP stuff
+        ConfigureDcpOptions(options);
         _innerBuilder.Services.AddLifecycleHook<DcpDistributedApplicationLifecycleHook>();
         _innerBuilder.Services.AddSingleton<ApplicationExecutor>();
         _innerBuilder.Services.AddHostedService<DcpHostService>();
 
         // Publishing support
-        ConfigurePublishingOptions(args);
+        ConfigurePublishingOptions(options);
+        _innerBuilder.Services.Configure<DistributedApplicationOptions>(options.CopyTo);
         _innerBuilder.Services.AddLifecycleHook<AutomaticManifestPublisherBindingInjectionHook>();
         _innerBuilder.Services.AddLifecycleHook<Http2TransportMutationHook>();
         _innerBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, ManifestPublisher>("manifest");
         _innerBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, DcpPublisher>("dcp");
     }
 
-    private void ConfigurePublishingOptions(string[] args)
+    private void ConfigureDcpOptions(DistributedApplicationOptions options)
+    {
+        var switchMappings = new Dictionary<string, string>()
+        {
+            { "--dcp", "DCP:Dcp" },
+        };
+        _innerBuilder.Configuration.AddCommandLine(options.Args ?? [], switchMappings);
+        _innerBuilder.Services.Configure<DcpOptions>(o => o.ApplyApplicationConfiguration(options, _innerBuilder.Configuration.GetSection(DcpOptions.DCP)));
+    }
+
+    private void ConfigurePublishingOptions(DistributedApplicationOptions options)
     {
         var switchMappings = new Dictionary<string, string>()
         {
             { "--publisher", "Publishing:Publisher" },
             { "--output-path", "Publishing:OutputPath" }
         };
-        _innerBuilder.Configuration.AddCommandLine(args, switchMappings);
+        _innerBuilder.Configuration.AddCommandLine(options.Args ?? [], switchMappings);
         _innerBuilder.Services.Configure<PublishingOptions>(_innerBuilder.Configuration.GetSection(PublishingOptions.Publishing));
     }
 
