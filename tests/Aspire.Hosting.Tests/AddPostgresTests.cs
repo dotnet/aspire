@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
-using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -13,7 +12,7 @@ public class AddPostgresTests
     [Fact]
     public void AddPostgresWithDefaultsAddsAnnotationMetadata()
     {
-        var appBuilder = DistributedApplication.CreateBuilder([]);
+        var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddPostgresContainer("myPostgres");
 
         var app = appBuilder.Build();
@@ -66,7 +65,7 @@ public class AddPostgresTests
     [Fact]
     public void AddPostgresAddsAnnotationMetadata()
     {
-        var appBuilder = DistributedApplication.CreateBuilder([]);
+        var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddPostgresContainer("myPostgres", 1234, "pass");
 
         var app = appBuilder.Build();
@@ -119,7 +118,7 @@ public class AddPostgresTests
     [Fact]
     public void PostgresCreatesConnectionString()
     {
-        var appBuilder = DistributedApplication.CreateBuilder([]);
+        var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddPostgresContainer("postgres")
             .WithAnnotation(
             new AllocatedEndpointAnnotation("mybinding",
@@ -142,7 +141,7 @@ public class AddPostgresTests
     [Fact]
     public void PostgresCreatesConnectionStringWithDatabase()
     {
-        var appBuilder = DistributedApplication.CreateBuilder([]);
+        var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddPostgresContainer("postgres")
             .WithAnnotation(
             new AllocatedEndpointAnnotation("mybinding",
@@ -169,7 +168,7 @@ public class AddPostgresTests
     [Fact]
     public void AddDatabaseToPostgresAddsAnnotationMetadata()
     {
-        var appBuilder = DistributedApplication.CreateBuilder([]);
+        var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddPostgresContainer("postgres", 1234, "pass").AddDatabase("db");
 
         var app = appBuilder.Build();
@@ -223,7 +222,7 @@ public class AddPostgresTests
     [Fact]
     public void AddPostgresConnectionAddsMetadata()
     {
-        var appBuilder = DistributedApplication.CreateBuilder([]);
+        var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddPostgresConnection("myPostgres", "endpoint");
 
         var app = appBuilder.Build();

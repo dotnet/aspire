@@ -44,7 +44,7 @@ internal sealed class ServiceAppResource : AppResource
     }
 }
 
-internal sealed class ApplicationExecutor(DistributedApplicationModel model) : IDisposable
+internal sealed class ApplicationExecutor(DistributedApplicationModel model, KubernetesService kubernetesService)
 {
     private const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
 
@@ -60,7 +60,6 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model) : I
 
     private readonly DistributedApplicationModel _model = model;
     private readonly List<AppResource> _appResources = new();
-    private readonly KubernetesService _kubernetesService = new();
 
     public async Task RunApplicationAsync(CancellationToken cancellationToken = default)
     {
@@ -116,7 +115,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model) : I
             }
 
             // We do not specify the initial list version, so the watcher will give us all updates to Service objects.
-            IAsyncEnumerable<(WatchEventType, Service)> serviceChangeEnumerator = _kubernetesService.WatchAsync<Service>(cancellationToken: cancellationToken);
+            IAsyncEnumerable<(WatchEventType, Service)> serviceChangeEnumerator = kubernetesService.WatchAsync<Service>(cancellationToken: cancellationToken);
             await foreach (var (evt, updated) in serviceChangeEnumerator)
             {
                 if (evt == WatchEventType.Bookmark) { continue; } // Bookmarks do not contain any data.
@@ -354,11 +353,11 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model) : I
                 {
                     case Executable exe:
                         spec = exe.Spec;
-                        createResource = async () => await _kubernetesService.CreateAsync(exe, cancellationToken).ConfigureAwait(false);
+                        createResource = async () => await kubernetesService.CreateAsync(exe, cancellationToken).ConfigureAwait(false);
                         break;
                     case ExecutableReplicaSet ers:
                         spec = ers.Spec.Template.Spec;
-                        createResource = async () => await _kubernetesService.CreateAsync(ers, cancellationToken).ConfigureAwait(false);
+                        createResource = async () => await kubernetesService.CreateAsync(ers, cancellationToken).ConfigureAwait(false);
                         break;
                     default:
                         throw new InvalidOperationException($"Expected an Executable-like resource, but got {er.DcpResource.Kind} instead");
@@ -553,7 +552,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model) : I
                     }
                 }
 
-                var createdContainer = await _kubernetesService.CreateAsync(dcpContainerResource, cancellationToken).ConfigureAwait(false);
+                var createdContainer = await kubernetesService.CreateAsync(dcpContainerResource, cancellationToken).ConfigureAwait(false);
                 var dcpResourceAnnotation = new DcpResourceAnnotation(createdContainer.Metadata.NamespaceProperty, createdContainer.Metadata.Name, createdContainer.Kind);
                 cr.ModelResource.Annotations.Add(dcpResourceAnnotation);
             }
@@ -619,7 +618,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model) : I
         // CONSIDER batched creation
         foreach (var res in resourcesToCreate)
         {
-            await _kubernetesService.CreateAsync(res, cancellationToken).ConfigureAwait(false);
+            await kubernetesService.CreateAsync(res, cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -635,18 +634,13 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model) : I
         {
             try
             {
-                await _kubernetesService.DeleteAsync<RT>(res.Metadata.Name, res.Metadata.NamespaceProperty, cancellationToken).ConfigureAwait(false);
+                await kubernetesService.DeleteAsync<RT>(res.Metadata.Name, res.Metadata.NamespaceProperty, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Could not stop {resourceName} '{res.Metadata.Name}': {ex}");
             }
         }
-    }
-
-    public void Dispose()
-    {
-        _kubernetesService.Dispose();
     }
 
     private static string GetObjectNameForResource(IResource resource, string suffix = "")

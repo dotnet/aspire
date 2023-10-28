@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
-using Aspire.Hosting.ApplicationModel;
 using Xunit;
 
 namespace Aspire.Hosting.Tests;
@@ -12,7 +11,7 @@ public class WithReferenceTests
     [Fact]
     public void ResourceWithSingleServiceBindingProducesSimplifiedEnvironmentVariables()
     {
-        var testProgram = new TestProgram([]);
+        var testProgram = CreateTestProgram();
 
         // Create a binding and its metching annotation (simulating DCP behavior)
         testProgram.ServiceABuilder.WithServiceBinding(1000, 2000, "https", "mybinding");
@@ -48,7 +47,7 @@ public class WithReferenceTests
     [Fact]
     public void ResourceWithConflictingServiceBindingsProducesFullyScopedEnvironmentVariables()
     {
-        var testProgram = new TestProgram([]);
+        var testProgram = CreateTestProgram();
 
         // Create a binding and its matching annotation (simulating DCP behavior)
         testProgram.ServiceABuilder.WithServiceBinding(1000, 2000, "https", "mybinding");
@@ -97,7 +96,7 @@ public class WithReferenceTests
     [Fact]
     public void ResourceWithNonConflictingServiceBindingsProducesAllVariantsOfEnvironmentVariables()
     {
-        var testProgram = new TestProgram([]);
+        var testProgram = CreateTestProgram();
 
         // Create a binding and its matching annotation (simulating DCP behavior)
         testProgram.ServiceABuilder.WithServiceBinding(1000, 2000, "https", "mybinding");
@@ -148,7 +147,7 @@ public class WithReferenceTests
     [Fact]
     public void ResourceWithConflictingBindingsProducesAllBindingsEnvironmentVariables()
     {
-        var testProgram = new TestProgram([]);
+        var testProgram = CreateTestProgram();
 
         // Create a binding and its metching annotation (simulating DCP behavior)
         testProgram.ServiceABuilder.WithServiceBinding(1000, 2000, "https", "mybinding");
@@ -193,7 +192,7 @@ public class WithReferenceTests
     [Fact]
     public void ResourceWithBindingsProducesAllBindingsEnvironmentVariables()
     {
-        var testProgram = new TestProgram([]);
+        var testProgram = CreateTestProgram();
 
         // Create a binding and its metching annotation (simulating DCP behavior)
         testProgram.ServiceABuilder.WithServiceBinding(1000, 2000, "https", "mybinding");
@@ -240,7 +239,7 @@ public class WithReferenceTests
     [Fact]
     public void ConnectionStringResourceThrowsWhenMissingConnectionString()
     {
-        var testProgram = new TestProgram([]);
+        var testProgram = CreateTestProgram();
 
         // Get the service provider.
         var resource = testProgram.AppBuilder.AddResource(new TestResource("resource"));
@@ -265,7 +264,7 @@ public class WithReferenceTests
     [Fact]
     public void ConnectionStringResourceOptionalWithMissingConnectionString()
     {
-        var testProgram = new TestProgram([]);
+        var testProgram = CreateTestProgram();
 
         // Get the service provider.
         var resource = testProgram.AppBuilder.AddResource(new TestResource("resource"));
@@ -290,7 +289,7 @@ public class WithReferenceTests
     [Fact]
     public void ConnectionStringResourceWithConnectionString()
     {
-        var testProgram = new TestProgram([]);
+        var testProgram = CreateTestProgram();
 
         // Get the service provider.
         var resource = testProgram.AppBuilder.AddResource(new TestResource("resource")
@@ -319,7 +318,7 @@ public class WithReferenceTests
     [Fact]
     public void ConnectionStringResourceWithConnectionStringOverwriteName()
     {
-        var testProgram = new TestProgram([]);
+        var testProgram = CreateTestProgram();
 
         // Get the service provider.
         var resource = testProgram.AppBuilder.AddResource(new TestResource("resource")
@@ -348,7 +347,7 @@ public class WithReferenceTests
     [Fact]
     public void ConnectionStringResourceMissingConnectionStringFallbackToConfig()
     {
-        var testProgram = new TestProgram([]);
+        var testProgram = CreateTestProgram();
 
         // Get the service provider.
         var resource = testProgram.AppBuilder.AddResource(new TestResource("resource"));
@@ -371,6 +370,8 @@ public class WithReferenceTests
         Assert.Equal(1, servicesKeysCount);
         Assert.Contains(config, kvp => kvp.Key == "ConnectionStrings__resource" && kvp.Value == "test");
     }
+
+    private static TestProgram CreateTestProgram(string[]? args = null) => TestProgram.Create<WithReferenceTests>(args);
 
     private sealed class TestResource(string name) : IResourceWithConnectionString
     {
