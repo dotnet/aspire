@@ -2,11 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
-using Aspire.Hosting.Properties;
-using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -30,6 +27,8 @@ public class DistributedApplication : IHost, IAsyncDisposable
         _host = host;
         _args = args;
     }
+
+    public static IDistributedApplicationBuilder CreateBuilder() => CreateBuilder([]);
 
     public static IDistributedApplicationBuilder CreateBuilder(string[] args)
     {
@@ -55,92 +54,21 @@ public class DistributedApplication : IHost, IAsyncDisposable
         return ((IAsyncDisposable)_host).DisposeAsync();
     }
 
-    private const int WaitTimeForDockerTestCommandInSeconds = 10;
-
-    private void EnsureDockerIfNecessary()
+    public async Task StartAsync(CancellationToken cancellationToken = default)
     {
-        // If we don't have any respirces that need a container  then we
-        // don't need to check for Docker.
-        var appModel = this.Services.GetRequiredService<DistributedApplicationModel>();
-        if (!appModel.Resources.Any(c => c.Annotations.OfType<ContainerImageAnnotation>().Any()))
-        {
-            return;
-        }
+        await ExecuteBeforeStartHooksAsync(cancellationToken).ConfigureAwait(false);
+        await _host.StartAsync(cancellationToken).ConfigureAwait(false);
+    }
 
-        AspireEventSource.Instance.DockerHealthCheckStart();
-
-        try
-        {
-            var dockerCommandArgs = "ps --latest --quiet";
-            var dockerStartInfo = new ProcessStartInfo()
-            {
-                FileName = FileUtil.FindFullPathFromPath("docker"),
-                Arguments = dockerCommandArgs,
-                UseShellExecute = true,
-                WindowStyle = ProcessWindowStyle.Hidden
-            };
-            var process = System.Diagnostics.Process.Start(dockerStartInfo);
-            if (process is { } && process.WaitForExit(TimeSpan.FromSeconds(WaitTimeForDockerTestCommandInSeconds)))
-            {
-                if (process.ExitCode != 0)
-                {
-                    Console.Error.WriteLine(string.Format(
-                        CultureInfo.InvariantCulture,
-                        Resources.DockerUnhealthyExceptionMessage,
-                        $"docker {dockerCommandArgs}",
-                        process.ExitCode
-                    ));
-                    Environment.Exit((int)DockerHealthCheckFailures.Unhealthy);
-                }
-            }
-            else
-            {
-                Console.Error.WriteLine(string.Format(
-                    CultureInfo.InvariantCulture,
-                    Resources.DockerUnresponsiveExceptionMessage,
-                    $"docker {dockerCommandArgs}",
-                    WaitTimeForDockerTestCommandInSeconds
-                ));
-                Environment.Exit((int)DockerHealthCheckFailures.Unresponsive);
-            }
-
-            // If we get to here all is good!
-
-        }
-        catch (Exception ex) when (ex is not DistributedApplicationException)
-        {
-            Console.Error.WriteLine(string.Format(
-                    CultureInfo.InvariantCulture,
-                    Resources.DockerPrerequisiteMissingExceptionMessage,
-                    ex.ToString()
-                ));
-            Environment.Exit((int)DockerHealthCheckFailures.PrerequisiteMissing);
-        }
-        finally
-        {
-            AspireEventSource.Instance?.DockerHealthCheckStop();
-        }
+    public async Task StopAsync(CancellationToken cancellationToken = default)
+    {
+        await _host.StopAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async Task RunAsync(CancellationToken cancellationToken = default)
     {
-        try
-        {
-            EnsureDockerIfNecessary();
-            await ExecuteBeforeStartHooksAsync(cancellationToken).ConfigureAwait(false);
-            await _host.RunAsync(cancellationToken).ConfigureAwait(false);
-        }
-        finally
-        {
-            if (_host is IAsyncDisposable asyncDisposable)
-            {
-                await asyncDisposable.DisposeAsync().ConfigureAwait(false);
-            }
-            else
-            {
-                _host.Dispose();
-            }
-        }
+        await ExecuteBeforeStartHooksAsync(cancellationToken).ConfigureAwait(false);
+        await _host.RunAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public void Run()
@@ -168,8 +96,8 @@ public class DistributedApplication : IHost, IAsyncDisposable
         }
     }
 
-    Task IHost.StartAsync(CancellationToken cancellationToken) => _host.StartAsync(cancellationToken);
+    Task IHost.StartAsync(CancellationToken cancellationToken) => StartAsync(cancellationToken);
 
-    Task IHost.StopAsync(CancellationToken cancellationToken) => _host.StopAsync(cancellationToken);
+    Task IHost.StopAsync(CancellationToken cancellationToken) => StopAsync(cancellationToken);
 }
 

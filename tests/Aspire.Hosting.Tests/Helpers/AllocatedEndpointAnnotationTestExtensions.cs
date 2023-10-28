@@ -1,18 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.ApplicationModel;
-
 namespace Aspire.Hosting.Tests.Helpers;
 public static class AllocatedEndpointAnnotationTestExtensions
 {
-    public static async Task<string> HttpGetPidAsync(this IResourceBuilder<ProjectResource> builder, string bindingName, CancellationToken cancellationToken)
+    public static async Task<string> HttpGetPidAsync(this IResourceBuilder<ProjectResource> builder, HttpClient client, string bindingName, CancellationToken cancellationToken)
     {
-        var client = new HttpClient(new SocketsHttpHandler()
-        {
-            PooledConnectionLifetime = TimeSpan.FromSeconds(5)
-        });
-
         while (true)
         {
             try

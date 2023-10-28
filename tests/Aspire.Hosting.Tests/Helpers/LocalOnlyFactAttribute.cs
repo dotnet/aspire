@@ -4,6 +4,7 @@
 using Xunit;
 
 namespace Aspire.Hosting.Tests.Helpers;
+
 public class LocalOnlyFactAttribute : FactAttribute
 {
     public override string Skip
