@@ -121,7 +121,7 @@ public partial class TraceDetail
                 if (_tracesSubscription is null || _tracesSubscription.ApplicationId != _trace.FirstSpan.Source.InstanceId)
                 {
                     _tracesSubscription?.Dispose();
-                    _tracesSubscription = TelemetryRepository.OnNewTraces(_trace.FirstSpan.Source.InstanceId, () => InvokeAsync(() =>
+                    _tracesSubscription = TelemetryRepository.OnNewTraces(_trace.FirstSpan.Source.InstanceId, SubscriptionType.Read, () => InvokeAsync(() =>
                     {
                         UpdateDetailViewData();
                         StateHasChanged();

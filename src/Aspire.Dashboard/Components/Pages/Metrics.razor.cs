@@ -193,7 +193,7 @@ public partial class Metrics : IDisposable
         if (_metricsSubscription is null || _metricsSubscription.ApplicationId != _selectedApplication.Id)
         {
             _metricsSubscription?.Dispose();
-            _metricsSubscription = TelemetryRepository.OnNewMetrics(_selectedApplication.Id, async () =>
+            _metricsSubscription = TelemetryRepository.OnNewMetrics(_selectedApplication.Id, SubscriptionType.Read, async () =>
             {
                 var selectedApplicationId = _selectedApplication.Id;
                 if (!string.IsNullOrEmpty(selectedApplicationId))

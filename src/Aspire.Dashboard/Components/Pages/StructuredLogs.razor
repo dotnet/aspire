@@ -30,7 +30,7 @@
         <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
         <span slot="end">Level:</span>
         <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
-        <FluentSelect TOption="SelectViewModel<LogLevel>"
+        <FluentSelect TOption="SelectViewModel<LogLevel?>"
                       Items="@_logLevels"
                       OptionText="@(c => c.Name)"
                       @bind-SelectedOption="_selectedLogLevel"
