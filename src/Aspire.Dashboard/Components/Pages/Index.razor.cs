@@ -8,14 +8,8 @@ namespace Aspire.Dashboard.Components.Pages;
 
 public partial class Index : ResourcesListBase<ProjectViewModel>
 {
-    protected override ValueTask<List<ProjectViewModel>> GetResources(IDashboardViewModelService dashboardViewModelService)
-        => dashboardViewModelService.GetProjectsAsync();
-
-    protected override IAsyncEnumerable<ResourceChanged<ProjectViewModel>> WatchResources(
-        IDashboardViewModelService dashboardViewModelService,
-        IEnumerable<NamespacedName> initialList,
-        CancellationToken cancellationToken)
-        => dashboardViewModelService.WatchProjectsAsync(initialList, cancellationToken);
+    protected override ViewModelMonitor<ProjectViewModel> GetViewModelMonitor(IDashboardViewModelService dashboardViewModelService)
+        => dashboardViewModelService.GetProjects();
 
     protected override bool Filter(ProjectViewModel resource)
         => resource.Name.Contains(filter, StringComparison.CurrentCultureIgnoreCase)

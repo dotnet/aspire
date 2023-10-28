@@ -79,14 +79,8 @@
 </div>
 
 @code {
-    protected override ValueTask<List<ContainerViewModel>> GetResources(IDashboardViewModelService dashboardViewModelService)
-        => dashboardViewModelService.GetContainersAsync();
-
-    protected override IAsyncEnumerable<ResourceChanged<ContainerViewModel>> WatchResources(
-    IDashboardViewModelService dashboardViewModelService,
-        IEnumerable<NamespacedName> initialList,
-        CancellationToken cancellationToken)
-        => dashboardViewModelService.WatchContainersAsync(initialList, cancellationToken);
+    protected override ViewModelMonitor<ContainerViewModel> GetViewModelMonitor(IDashboardViewModelService dashboardViewModelService)
+        => dashboardViewModelService.GetContainers();
 
     protected override bool Filter(ContainerViewModel resource)
         => resource.Name.Contains(filter, StringComparison.CurrentCultureIgnoreCase)
