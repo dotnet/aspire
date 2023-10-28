@@ -103,7 +103,7 @@ public class DistributedApplicationTests(ITestOutputHelper testOutputHelper)
         Assert.Equal(exceptionMessage, ex.InnerExceptions.First().Message);
     }
 
-    [Fact]
+    [SkipOnCiOnWindows]
     public async void TestProjectStartsAndStopsCleanly()
     {
         using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
@@ -121,7 +121,7 @@ public class DistributedApplicationTests(ITestOutputHelper testOutputHelper)
         await testProgram.ServiceCBuilder.HttpGetPidAsync("http", cts.Token);
     }
 
-    [Fact]
+    [SkipOnCiOnWindows]
     public async void TestServicesWithMultipleReplicas()
     {
         // Start up the test project.

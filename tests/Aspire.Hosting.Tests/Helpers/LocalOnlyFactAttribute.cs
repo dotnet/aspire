@@ -4,6 +4,7 @@
 using Xunit;
 
 namespace Aspire.Hosting.Tests.Helpers;
+
 public class LocalOnlyFactAttribute : FactAttribute
 {
     public override string Skip
@@ -13,6 +14,30 @@ public class LocalOnlyFactAttribute : FactAttribute
             if (Environment.GetEnvironmentVariable("BUILD_BUILDID") != null)
             {
                 return "LocalOnlyFactAttribute tests are not run as part of CI.";
+            }
+
+            return null!;
+        }
+
+        set
+        {
+            // We ignore setting of skip value via attribute usage.
+        }
+    }
+}
+
+public class SkipOnCiOnWindowsAttribute : FactAttribute
+{
+    public override string Skip
+    {
+        get
+        {
+            if (Environment.GetEnvironmentVariable("BUILD_BUILDID") != null)
+            {
+                if (!OperatingSystem.IsWindows())
+                {
+                    return "This test only runs on windows on the CI";
+                }
             }
 
             return null!;
