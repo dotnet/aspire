@@ -287,6 +287,8 @@ public class TelemetryRepository
                         }
 
                         // For log entries error and above, increment the unviewed count if there are no read log subscriptions for the application.
+                        // We don't increment the count if there are active read subscriptions because the count will be quickly decremented when the subscription callback is run.
+                        // Notifiying the user there are errors and then immediately clearing the notification is confusing.
                         if (logEntry.Severity >= LogLevel.Error)
                         {
                             if (!_logSubscriptions.Any(s => s.SubscriptionType == SubscriptionType.Read && (s.ApplicationId == application.InstanceId || s.ApplicationId == null)))

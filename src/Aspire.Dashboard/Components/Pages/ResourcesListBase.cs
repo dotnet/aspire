@@ -65,7 +65,7 @@ public abstract class ResourcesListBase<TResource> : ComponentBase, IDisposable
             }
         });
 
-        _logsSubscription = TelemetryRepository.OnNewLogs(null, SubscriptionType.Listen, async () =>
+        _logsSubscription = TelemetryRepository.OnNewLogs(null, SubscriptionType.Other, async () =>
         {
             _applicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
             await InvokeAsync(StateHasChanged);
