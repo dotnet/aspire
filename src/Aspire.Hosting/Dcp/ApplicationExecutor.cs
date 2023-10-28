@@ -5,6 +5,7 @@ using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp.Model;
 using k8s;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Dcp;
 
@@ -44,7 +45,7 @@ internal sealed class ServiceAppResource : AppResource
     }
 }
 
-internal sealed class ApplicationExecutor(DistributedApplicationModel model, KubernetesService kubernetesService)
+internal sealed class ApplicationExecutor(DistributedApplicationModel model, KubernetesService kubernetesService, DistributedApplicationOptions options, ILoggerFactory loggerFactory)
 {
     private const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
 
@@ -85,6 +86,30 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
     {
         try
         {
+            if (options.WriteLogsToLoggerOnShutdown)
+            {
+                foreach (var e in await kubernetesService.ListAsync<Executable>(cancellationToken: cancellationToken).ConfigureAwait(false))
+                {
+                    var logger = loggerFactory.CreateLogger(e.Metadata.Name);
+
+                    if (e.Status?.StdErrFile is string stdErrPath)
+                    {
+                        using var fileStream = File.Open(stdErrPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+
+                        await LogAllLines(logger, fileStream, cancellationToken).ConfigureAwait(false);
+                    }
+
+                    if (e.Status?.StdOutFile is string stdOutPath)
+                    {
+                        using var fileStream = File.Open(stdOutPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+
+                        await LogAllLines(logger, fileStream, cancellationToken).ConfigureAwait(false);
+                    }
+                }
+
+                // TODO: Containers are more involved. We need to use the dashboard logic here.
+            }
+
             AspireEventSource.Instance.DcpModelCleanupStart();
             await DeleteResourcesAsync<ExecutableReplicaSet>("project", cancellationToken).ConfigureAwait(false);
             await DeleteResourcesAsync<Executable>("project", cancellationToken).ConfigureAwait(false);
@@ -95,6 +120,18 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
         {
             AspireEventSource.Instance.DcpModelCleanupStop();
             _appResources.Clear();
+        }
+    }
+
+    private static async Task LogAllLines(ILogger logger, FileStream fileStream, CancellationToken cancellationToken)
+    {
+        // Log each line separately to avoid losing the line breaks.
+        var streamReader = new StreamReader(fileStream);
+
+        string? line;
+        while ((line = await streamReader.ReadLineAsync(cancellationToken).ConfigureAwait(false)) is not null)
+        {
+            logger.Log(LogLevel.Information, 0, line, null, (s, e) => s);
         }
     }
 

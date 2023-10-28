@@ -23,5 +23,10 @@ public sealed class DistributedApplicationOptions
     /// </summary>
     public bool DisableDashboard { get; set; }
 
+    /// <summary>
+    /// Logs each of the service's logs to ILogger on shutdown.
+    /// </summary>
+    public bool WriteLogsToLoggerOnShutdown { get; set; }
+
     internal bool DashboardEnabled => !DisableDashboard;
 }
