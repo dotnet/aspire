@@ -189,6 +189,14 @@ Aspire.Npgsql.EntityFrameworkCore.PostgreSQL:
     - "ec_Npgsql_multiplexing_average_commands_per_batch"
     - "ec_Npgsql_multiplexing_average_write_time_per_batch"
 
+Aspire.RabbitMQ.Client:
+- Log categories:
+  - TODO
+- Activity source names:
+  - "Aspire.RabbitMQ.Client"
+- Metric names:
+  - none (currently not supported by RabbitMQ.Client library)
+
 Aspire.StackExchange.Redis:
 - Log categories:
   - "Aspire.StackExchange.Redis" (this name is defined by our component, we can change it)

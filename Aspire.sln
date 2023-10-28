@@ -140,12 +140,17 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Microsoft.Azure.Cosmos.Tests", "tests\Aspire.Microsoft.Azure.Cosmos.Tests\Aspire.Microsoft.Azure.Cosmos.Tests.csproj", "{A5836BC1-6A45-4BB6-9D22-A7F750890AB8}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Microsoft.EntityFrameworkCore.Cosmos.Tests", "tests\Aspire.Microsoft.EntityFrameworkCore.Cosmos.Tests\Aspire.Microsoft.EntityFrameworkCore.Cosmos.Tests.csproj", "{FDA02617-9C49-4DA8-A43A-A34DBA9B8596}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CatalogDb", "samples\eShopLite\CatalogDb\CatalogDb.csproj", "{A84C4EE3-2601-4804-BCDC-E9948E164A22}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{991DB378-6CB5-4441-BFC3-657400690FC3}"
 	ProjectSection(SolutionItems) = preProject
 		Directory.Packages.props = Directory.Packages.props
 	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.RabbitMQ.Client", "src\Components\Aspire.RabbitMQ.Client\Aspire.RabbitMQ.Client.csproj", "{4D8A92AB-4E77-4965-AD8E-8E206DCE66A4}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.RabbitMQ.Client.Tests", "tests\Aspire.RabbitMQ.Client.Tests\Aspire.RabbitMQ.Client.Tests.csproj", "{165411FE-755E-4869-A756-F87F455860AC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -393,6 +398,14 @@ Global
 		{A84C4EE3-2601-4804-BCDC-E9948E164A22}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A84C4EE3-2601-4804-BCDC-E9948E164A22}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A84C4EE3-2601-4804-BCDC-E9948E164A22}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4D8A92AB-4E77-4965-AD8E-8E206DCE66A4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4D8A92AB-4E77-4965-AD8E-8E206DCE66A4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4D8A92AB-4E77-4965-AD8E-8E206DCE66A4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4D8A92AB-4E77-4965-AD8E-8E206DCE66A4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{165411FE-755E-4869-A756-F87F455860AC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{165411FE-755E-4869-A756-F87F455860AC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{165411FE-755E-4869-A756-F87F455860AC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{165411FE-755E-4869-A756-F87F455860AC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -462,6 +475,8 @@ Global
 		{A5836BC1-6A45-4BB6-9D22-A7F750890AB8} = {4981B3A5-4AFD-4191-BF7D-8692D9783D60}
 		{FDA02617-9C49-4DA8-A43A-A34DBA9B8596} = {4981B3A5-4AFD-4191-BF7D-8692D9783D60}
 		{A84C4EE3-2601-4804-BCDC-E9948E164A22} = {A68BA1A5-1604-433D-9778-DC0199831C2A}
+		{4D8A92AB-4E77-4965-AD8E-8E206DCE66A4} = {27381127-6C45-4B4C-8F18-41FF48DFE4B2}
+		{165411FE-755E-4869-A756-F87F455860AC} = {4981B3A5-4AFD-4191-BF7D-8692D9783D60}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6DCEDFEC-988E-4CB3-B45B-191EB5086E0C}
