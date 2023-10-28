@@ -4,7 +4,7 @@
 namespace Aspire.Npgsql;
 
 /// <summary>
-/// The options relevant to accessing PostgreSQL database using Npgsql.
+/// Provides the client configuration settings for connecting to a PostgreSQL database using Npgsql.
 /// </summary>
 public sealed class NpgsqlSettings
 {

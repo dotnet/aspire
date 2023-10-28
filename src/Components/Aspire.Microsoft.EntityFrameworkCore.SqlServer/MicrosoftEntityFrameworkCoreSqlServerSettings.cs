@@ -4,7 +4,7 @@
 namespace Aspire.Microsoft.EntityFrameworkCore.SqlServer;
 
 /// <summary>
-/// The options relevant to accessing SQL Server database using EntityFrameworkCore.
+/// Provides the client configuration settings for connecting to a SQL Server database using EntityFrameworkCore.
 /// </summary>
 public sealed class MicrosoftEntityFrameworkCoreSqlServerSettings
 {
