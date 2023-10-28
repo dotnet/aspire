@@ -106,47 +106,64 @@ public class DistributedApplicationTests(ITestOutputHelper testOutputHelper)
     [SkipOnCiOnWindows]
     public async void TestProjectStartsAndStopsCleanly()
     {
-        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
-
         var testProgram = CreateTestProgram();
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
 
+        testProgram.AppBuilder.Services
+            .AddHttpClient()
+            .ConfigureHttpClientDefaults(b =>
+            {
+                b.UseSocketsHttpHandler((handler, sp) => handler.PooledConnectionLifetime = TimeSpan.FromSeconds(5));
+            });
+
         await using var app = testProgram.Build();
+
+        var client = app.Services.GetRequiredService<IHttpClientFactory>().CreateClient();
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
 
         await app.StartAsync(cts.Token);
 
         // Make sure each service is running
-        await testProgram.ServiceABuilder.HttpGetPidAsync("http", cts.Token);
-        await testProgram.ServiceBBuilder.HttpGetPidAsync("http", cts.Token);
-        await testProgram.ServiceCBuilder.HttpGetPidAsync("http", cts.Token);
+        await testProgram.ServiceABuilder.HttpGetPidAsync(client, "http", cts.Token);
+        await testProgram.ServiceBBuilder.HttpGetPidAsync(client, "http", cts.Token);
+        await testProgram.ServiceCBuilder.HttpGetPidAsync(client, "http", cts.Token);
     }
 
     [SkipOnCiOnWindows]
     public async void TestServicesWithMultipleReplicas()
     {
-        // Start up the test project.
-        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
-
         var replicaCount = 3;
 
         var testProgram = CreateTestProgram();
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
 
+        testProgram.AppBuilder.Services
+            .AddHttpClient()
+            .ConfigureHttpClientDefaults(b =>
+            {
+                b.UseSocketsHttpHandler((handler, sp) => handler.PooledConnectionLifetime = TimeSpan.FromSeconds(5));
+            });
+
         testProgram.ServiceBBuilder.WithReplicas(replicaCount);
 
         await using var app = testProgram.Build();
 
+        var client = app.Services.GetRequiredService<IHttpClientFactory>().CreateClient();
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
+
         await app.StartAsync(cts.Token);
 
         // Make sure services A and C are running
-        await testProgram.ServiceABuilder.HttpGetPidAsync("http", cts.Token);
-        await testProgram.ServiceCBuilder.HttpGetPidAsync("http", cts.Token);
+        await testProgram.ServiceABuilder.HttpGetPidAsync(client, "http", cts.Token);
+        await testProgram.ServiceCBuilder.HttpGetPidAsync(client, "http", cts.Token);
 
         // We should get 3 distinct PIDs from service B
         Dictionary<int, bool> pids = [];
         while (true)
         {
-            var pid = await testProgram.ServiceBBuilder.HttpGetPidAsync("http", cts.Token);
+            var pid = await testProgram.ServiceBBuilder.HttpGetPidAsync(client, "http", cts.Token);
             if (!string.IsNullOrEmpty(pid))
             {
                 pids[int.Parse(pid, CultureInfo.InvariantCulture)] = true;
