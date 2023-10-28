@@ -151,7 +151,7 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
         string? dcpExePath = _dcpOptions.CliPath;
         if (!File.Exists(dcpExePath))
         {
-            throw new FileNotFoundException("The Aspire application host is not installed. The application cannot be run without it.", dcpExePath);
+            throw new FileNotFoundException($"The Aspire application host is not installed at \"{dcpExePath}\". The application cannot be run without it.", dcpExePath);
         }
 
         ProcessSpec dcpProcessSpec = new ProcessSpec(dcpExePath)
