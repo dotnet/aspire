@@ -23,20 +23,9 @@
                     <FluentHighlighter HighlightedText="@filter" Text="@context.Name" />
                 </TemplateColumn>
                 <TemplateColumn Title="State" Sortable="true" SortBy="@stateSort">
-                    <div style="display:flex;justify-content: space-between;align-items: center;">
+                    <div class="resource-state-container">
                         @context.State
-
-                        @{
-                            // TODO: This takes a read lock and is inefficent (N+1). Consider refactoring to get all counts in one query.
-                            var unviewedCount = TelemetryRepository.GetUnviewedErrorLogsCount(context.Uid);
-                        }
-                        @if (unviewedCount > 0)
-                        {
-                            var badgeText = (unviewedCount > 9) ? "9+" : unviewedCount.ToString();
-                            <div @onclick="@(() => ViewErrorStructuredLogs(context))" style="padding: 0 3px; cursor:pointer;">
-                                <FluentBadge title="@($"{unviewedCount} error logs")" Appearance="Appearance.Accent" Circular="true" Fill="error" slot="end">@badgeText</FluentBadge>
-                            </div>
-                        }
+                        <UnreadLogErrorsBadge UnviewedCount="@GetUnviewedErrorCount(context)" OnClick="@(() => ViewErrorStructuredLogs(context))" />
                     </div>
                 </TemplateColumn>
                 <PropertyColumn Property="@(c => c.CreationTimeStamp)" Title="Start Time" Sortable="true" Tooltip="true" />

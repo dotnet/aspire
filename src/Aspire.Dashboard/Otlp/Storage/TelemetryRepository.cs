@@ -57,6 +57,26 @@ public class TelemetryRepository
         return applications;
     }
 
+    public OtlpApplication? GetApplication(string instanceId)
+    {
+        _applications.TryGetValue(instanceId, out var application);
+        return application;
+    }
+
+    public Dictionary<OtlpApplication, int> GetApplicationUnviewedErrorLogsCount()
+    {
+        _logsLock.EnterReadLock();
+
+        try
+        {
+            return _applicationUnviewedErrorLogs.ToDictionary();
+        }
+        finally
+        {
+            _logsLock.ExitReadLock();
+        }
+    }
+
     public int GetUnviewedErrorLogsCount(string? instanceId)
     {
         _logsLock.EnterReadLock();

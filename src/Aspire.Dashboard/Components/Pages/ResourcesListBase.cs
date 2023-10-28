@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Otlp.Model;
+using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Fast.Components.FluentUI;
@@ -15,10 +17,17 @@ public abstract class ResourcesListBase<TResource> : ComponentBase, IDisposable
     // but unfortunately the reference goes the other way
     protected const string FinishedState = "Finished";
 
+    private Subscription? _logsSubscription;
+    private Dictionary<OtlpApplication, int>? _applicationUnviewedErrorCounts;
+
     [Inject]
     public required IDashboardViewModelService DashboardViewModelService { get; init; }
     [Inject]
     public required EnvironmentVariablesDialogService EnvironmentVariablesDialogService { get; init; }
+    [Inject]
+    public required TelemetryRepository TelemetryRepository { get; init; }
+    [Inject]
+    public required NavigationManager NavigationManager { get; set; }
 
     protected abstract ValueTask<List<TResource>> GetResources(IDashboardViewModelService dashboardViewModelService);
     protected abstract IAsyncEnumerable<ResourceChanged<TResource>> WatchResources(
@@ -39,6 +48,8 @@ public abstract class ResourcesListBase<TResource> : ComponentBase, IDisposable
 
     protected override async Task OnInitializedAsync()
     {
+        _applicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
+
         var resources = await GetResources(DashboardViewModelService);
         foreach (var resource in resources)
         {
@@ -53,6 +64,33 @@ public abstract class ResourcesListBase<TResource> : ComponentBase, IDisposable
                 await OnResourceListChanged(resourceChanged.ObjectChangeType, resourceChanged.Resource);
             }
         });
+
+        _logsSubscription = TelemetryRepository.OnNewLogs(null, SubscriptionType.Listen, async () =>
+        {
+            _applicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
+            await InvokeAsync(StateHasChanged);
+        });
+    }
+
+    protected int GetUnviewedErrorCount(TResource resource)
+    {
+        if (_applicationUnviewedErrorCounts is null)
+        {
+            return 0;
+        }
+
+        var application = TelemetryRepository.GetApplication(resource.Uid);
+        if (application is null)
+        {
+            return 0;
+        }
+
+        if (!_applicationUnviewedErrorCounts.TryGetValue(application, out var count))
+        {
+            return 0;
+        }
+
+        return count;
     }
 
     protected async Task ShowEnvironmentVariables(TResource resource)
@@ -93,6 +131,7 @@ public abstract class ResourcesListBase<TResource> : ComponentBase, IDisposable
         {
             _watchTaskCancellationTokenSource.Cancel();
             _watchTaskCancellationTokenSource.Dispose();
+            _logsSubscription?.Dispose();
         }
     }
 
@@ -113,5 +152,10 @@ public abstract class ResourcesListBase<TResource> : ComponentBase, IDisposable
     protected void HandleClear(string? value)
     {
         filter = value ?? string.Empty;
+    }
+
+    protected void ViewErrorStructuredLogs(TResource resource)
+    {
+        NavigationManager.NavigateTo($"/StructuredLogs/{resource.Uid}?level=error");
     }
 }

@@ -25,7 +25,12 @@
                 <TemplateColumn Title="Container ID">
                     <GridValue HighlightText="@filter" Value="@context.ContainerId" />
                 </TemplateColumn>
-                <PropertyColumn Property="@(e => e.State)" Sortable="true" Tooltip="true" />
+                <TemplateColumn Title="State" Sortable="true" SortBy="@stateSort">
+                    <div class="resource-state-container">
+                        @context.State
+                        <UnreadLogErrorsBadge UnviewedCount="@GetUnviewedErrorCount(context)" OnClick="@(() => ViewErrorStructuredLogs(context))" />
+                    </div>
+                </TemplateColumn>
                 <PropertyColumn Property="@(c => c.CreationTimeStamp)" Title="Start Time" Sortable="true" Tooltip="true" />
                 <TemplateColumn Title="Container Image" Sortable="true" SortBy="@imageSort" Tooltip="true" TooltipText="(c) => c.Image">
                     <FluentHighlighter HighlightedText="@filter" Text="@context.Image" />

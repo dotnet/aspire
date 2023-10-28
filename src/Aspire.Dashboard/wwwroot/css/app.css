@@ -141,3 +141,14 @@ fluent-data-grid-cell .long-inner-content {
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
+.resource-state-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.resource-error-badge {
+    padding: 0 3px;
+    cursor: pointer;
+}
