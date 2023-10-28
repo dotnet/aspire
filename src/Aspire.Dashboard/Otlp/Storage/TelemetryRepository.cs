@@ -110,13 +110,16 @@ public class TelemetryRepository
 
         try
         {
-            if (string.IsNullOrEmpty(instanceId) && _applicationUnviewedErrorLogs.Count > 0)
+            if (string.IsNullOrEmpty(instanceId))
             {
-                _applicationUnviewedErrorLogs.Clear();
-                RaiseSubscriptionChanged(_logSubscriptions);
+                if (_applicationUnviewedErrorLogs.Count > 0)
+                {
+                    _applicationUnviewedErrorLogs.Clear();
+                    RaiseSubscriptionChanged(_logSubscriptions);
+                }
                 return;
             }
-            var application = GetApplications().FirstOrDefault(a => a.InstanceId == instanceId);
+            var application = GetApplication(instanceId);
             if (application is not null)
             {
                 if (_applicationUnviewedErrorLogs.Remove(application))
