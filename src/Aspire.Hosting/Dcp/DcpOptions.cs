@@ -56,7 +56,7 @@ public sealed class DcpOptions
         else
         {
             // Calculate DCP locations from configuration options
-            Assembly? appHostAssembly = Assembly.GetEntryAssembly();
+            var appHostAssembly = Assembly.GetEntryAssembly();
             if (!string.IsNullOrEmpty(appOptions.AssemblyName))
             {
                 try
@@ -75,7 +75,7 @@ public sealed class DcpOptions
             }
 
             
-            IEnumerable<AssemblyMetadataAttribute>? assemblyMetadata = appHostAssembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
+            var assemblyMetadata = appHostAssembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
             CliPath = GetMetadataValue(assemblyMetadata, DcpCliPathMetadataKey);
             ExtensionsPath = GetMetadataValue(assemblyMetadata, DcpExtensionsPathMetadataKey);
             BinPath = GetMetadataValue(assemblyMetadata, DcpBinPathMetadataKey);

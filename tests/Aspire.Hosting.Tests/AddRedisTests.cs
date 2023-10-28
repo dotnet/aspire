@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
-using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -13,7 +12,7 @@ public class AddRedisTests
     [Fact]
     public void AddRedisContainerWithDefaultsAddsAnnotationMetadata()
     {
-        var appBuilder = DistributedApplication.CreateBuilder([]);
+        var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddRedisContainer("myRedis");
 
         var app = appBuilder.Build();
@@ -44,7 +43,7 @@ public class AddRedisTests
     [Fact]
     public void AddRedisContainerAddsAnnotationMetadata()
     {
-        var appBuilder = DistributedApplication.CreateBuilder([]);
+        var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddRedisContainer("myRedis", 9813);
 
         var app = appBuilder.Build();
@@ -75,7 +74,7 @@ public class AddRedisTests
     [Fact]
     public void RedisCreatesConnectionString()
     {
-        var appBuilder = DistributedApplication.CreateBuilder([]);
+        var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddRedisContainer("myRedis")
             .WithAnnotation(
             new AllocatedEndpointAnnotation("mybinding",
@@ -97,7 +96,7 @@ public class AddRedisTests
     [Fact]
     public void AddRedisAddsMetadata()
     {
-        var appBuilder = DistributedApplication.CreateBuilder([]);
+        var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddRedis("myRedis", "endpoint");
 
         var app = appBuilder.Build();

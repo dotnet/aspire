@@ -5,19 +5,13 @@ using System.Globalization;
 
 namespace Aspire.Hosting.Dcp;
 
-internal static class Locations
+internal sealed class Locations(string basePath)
 {
-    public static string DcpTempDir
-    {
-        get
-        {
-            return Path.Join(Path.GetTempPath(), "aspire");
-        }
-    }
+    public string DcpTempDir => Path.Join(basePath, "aspire");
 
-    public static string DcpSessionDir => Path.Combine(DcpTempDir, "session", Environment.ProcessId.ToString(CultureInfo.InvariantCulture));
+    public string DcpSessionDir => Path.Combine(DcpTempDir, "session", Environment.ProcessId.ToString(CultureInfo.InvariantCulture));
 
-    public static string DcpKubeconfigPath => Path.Combine(DcpSessionDir, "kubeconfig");
+    public string DcpKubeconfigPath => Path.Combine(DcpSessionDir, "kubeconfig");
 
-    public static string DcpLogSocket => Path.Combine(DcpSessionDir, "output.sock");
+    public string DcpLogSocket => Path.Combine(DcpSessionDir, "output.sock");
 }

@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -12,7 +11,7 @@ public class ContainerResourceTests
     [Fact]
     public void AddContainerAddsAnnotationMetadata()
     {
-        var appBuilder = DistributedApplication.CreateBuilder([]);
+        var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddContainer("container", "none");
 
         var app = appBuilder.Build();
@@ -31,7 +30,7 @@ public class ContainerResourceTests
     [Fact]
     public void AddContainerAddsAnnotationMetadataWithTag()
     {
-        var appBuilder = DistributedApplication.CreateBuilder([]);
+        var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddContainer("container", "none", "nightly");
 
         var app = appBuilder.Build();

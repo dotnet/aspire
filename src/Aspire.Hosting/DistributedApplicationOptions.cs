@@ -17,4 +17,11 @@ public sealed class DistributedApplicationOptions
     /// The AssemblyName of the AppHost project for loading configuration attributes; if not set defaults to Assembly.GetEntryAssembly().
     /// </summary>
     public string? AssemblyName { get; set; }
+
+    /// <summary>
+    /// Determines whether the dashboard is disabled.
+    /// </summary>
+    public bool DisableDashboard { get; set; }
+
+    internal bool DashboardEnabled => !DisableDashboard;
 }

@@ -32,11 +32,17 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         // Core things
         _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Resources));
         _innerBuilder.Services.AddHostedService<DistributedApplicationRunner>();
+        _innerBuilder.Services.AddSingleton(options);
 
         // DCP stuff
         _innerBuilder.Services.AddLifecycleHook<DcpDistributedApplicationLifecycleHook>();
         _innerBuilder.Services.AddSingleton<ApplicationExecutor>();
         _innerBuilder.Services.AddHostedService<DcpHostService>();
+
+        // We need a unique path per application instance
+        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        _innerBuilder.Services.AddSingleton(new Locations(path));
+        _innerBuilder.Services.AddSingleton<KubernetesService>();
 
         // Publishing support
         ConfigurePublishingOptions(options);
