@@ -135,6 +135,216 @@ public class LogTests
     }
 
     [Fact]
+    public void AddLogs_Error_UnviewedCount()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        // Act
+        var addContext = new AddContext();
+        repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(instanceId: "1"),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        LogRecords =
+                        {
+                            CreateLogRecord(time: s_testTime.AddMinutes(1), message: "1", severity: SeverityNumber.Trace),
+                            CreateLogRecord(time: s_testTime.AddMinutes(2), message: "2", severity: SeverityNumber.Debug),
+                            CreateLogRecord(time: s_testTime.AddMinutes(3), message: "3", severity: SeverityNumber.Info),
+                            CreateLogRecord(time: s_testTime.AddMinutes(4), message: "4", severity: SeverityNumber.Warn),
+                            CreateLogRecord(time: s_testTime.AddMinutes(5), message: "5", severity: SeverityNumber.Error),
+                            CreateLogRecord(time: s_testTime.AddMinutes(6), message: "6", severity: SeverityNumber.Fatal)
+                        }
+                    }
+                }
+            },
+            new ResourceLogs
+            {
+                Resource = CreateResource(instanceId: "2"),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        LogRecords =
+                        {
+                            CreateLogRecord(time: s_testTime.AddMinutes(1), message: "1", severity: SeverityNumber.Fatal)
+                        }
+                    }
+                }
+            }
+        });
+
+        // Assert
+        Assert.Equal(0, addContext.FailureCount);
+
+        var unviewedCounts1 = repository.GetApplicationUnviewedErrorLogsCount();
+
+        Assert.True(unviewedCounts1.TryGetValue(repository.GetApplication("1")!, out var unviewedCount1));
+        Assert.Equal(2, unviewedCount1);
+
+        Assert.True(unviewedCounts1.TryGetValue(repository.GetApplication("2")!, out var unviewedCount2));
+        Assert.Equal(1, unviewedCount2);
+
+        repository.MarkViewedErrorLogs("1");
+
+        var unviewedCounts2 = repository.GetApplicationUnviewedErrorLogsCount();
+
+        Assert.False(unviewedCounts2.TryGetValue(repository.GetApplication("1")!, out _));
+
+        Assert.True(unviewedCounts2.TryGetValue(repository.GetApplication("2")!, out unviewedCount2));
+        Assert.Equal(1, unviewedCount2);
+
+        repository.MarkViewedErrorLogs(null);
+
+        var unviewedCounts3 = repository.GetApplicationUnviewedErrorLogsCount();
+
+        Assert.False(unviewedCounts3.TryGetValue(repository.GetApplication("1")!, out _));
+        Assert.False(unviewedCounts3.TryGetValue(repository.GetApplication("2")!, out _));
+    }
+
+    [Fact]
+    public void AddLogs_Error_UnviewedCount_WithReadSubscriptionAll()
+    {
+        // Arrange
+        var repository = CreateRepository();
+        using var subscription = repository.OnNewLogs(applicationId: null, SubscriptionType.Read, () => Task.CompletedTask);
+
+        // Act
+        var addContext = new AddContext();
+        repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(instanceId: "1"),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        LogRecords =
+                        {
+                            CreateLogRecord(time: s_testTime.AddMinutes(1), message: "1", severity: SeverityNumber.Error),
+                        }
+                    }
+                }
+            },
+            new ResourceLogs
+            {
+                Resource = CreateResource(instanceId: "2"),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        LogRecords =
+                        {
+                            CreateLogRecord(time: s_testTime.AddMinutes(1), message: "1", severity: SeverityNumber.Fatal)
+                        }
+                    }
+                }
+            }
+        });
+
+        // Assert
+        Assert.Equal(0, addContext.FailureCount);
+
+        var unviewedCounts = repository.GetApplicationUnviewedErrorLogsCount();
+
+        Assert.False(unviewedCounts.TryGetValue(repository.GetApplication("1")!, out _));
+        Assert.False(unviewedCounts.TryGetValue(repository.GetApplication("2")!, out _));
+    }
+
+    [Fact]
+    public void AddLogs_Error_UnviewedCount_WithReadSubscriptionOneApp()
+    {
+        // Arrange
+        var repository = CreateRepository();
+        using var subscription = repository.OnNewLogs(applicationId: "1", SubscriptionType.Read, () => Task.CompletedTask);
+
+        // Act
+        var addContext = new AddContext();
+        repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(instanceId: "1"),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        LogRecords =
+                        {
+                            CreateLogRecord(time: s_testTime.AddMinutes(1), message: "1", severity: SeverityNumber.Error),
+                        }
+                    }
+                }
+            },
+            new ResourceLogs
+            {
+                Resource = CreateResource(instanceId: "2"),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        LogRecords =
+                        {
+                            CreateLogRecord(time: s_testTime.AddMinutes(1), message: "1", severity: SeverityNumber.Fatal)
+                        }
+                    }
+                }
+            }
+        });
+
+        // Assert
+        Assert.Equal(0, addContext.FailureCount);
+
+        var unviewedCounts = repository.GetApplicationUnviewedErrorLogsCount();
+
+        Assert.False(unviewedCounts.TryGetValue(repository.GetApplication("1")!, out _));
+        Assert.True(unviewedCounts.TryGetValue(repository.GetApplication("2")!, out var unviewedCount));
+        Assert.Equal(1, unviewedCount);
+    }
+
+    [Fact]
+    public void AddLogs_Error_UnviewedCount_WithNonReadSubscription()
+    {
+        // Arrange
+        var repository = CreateRepository();
+        using var subscription = repository.OnNewLogs(applicationId: null, SubscriptionType.Other, () => Task.CompletedTask);
+
+        // Act
+        var addContext = new AddContext();
+        repository.AddLogs(addContext, new RepeatedField<ResourceLogs>()
+        {
+            new ResourceLogs
+            {
+                Resource = CreateResource(instanceId: "1"),
+                ScopeLogs =
+                {
+                    new ScopeLogs
+                    {
+                        LogRecords =
+                        {
+                            CreateLogRecord(time: s_testTime.AddMinutes(1), message: "1", severity: SeverityNumber.Error),
+                        }
+                    }
+                }
+            }
+        });
+
+        // Assert
+        Assert.Equal(0, addContext.FailureCount);
+
+        var unviewedCounts = repository.GetApplicationUnviewedErrorLogsCount();
+
+        Assert.True(unviewedCounts.TryGetValue(repository.GetApplication("1")!, out var unviewedCount));
+        Assert.Equal(1, unviewedCount);
+    }
+
+    [Fact]
     private void GetLogs_UnknownApplication()
     {
         // Arrange
@@ -210,7 +420,7 @@ public class LogTests
 
         // Act 2
         var newLogsTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        repository.OnNewLogs(applications[0].InstanceId, () =>
+        repository.OnNewLogs(applications[0].InstanceId, SubscriptionType.Read, () =>
         {
             newLogsTcs.TrySetResult();
             return Task.CompletedTask;

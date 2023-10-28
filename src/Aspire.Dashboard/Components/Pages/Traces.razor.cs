@@ -100,7 +100,7 @@ public partial class Traces
         if (_tracesSubscription is null || _tracesSubscription.ApplicationId != _selectedApplication.Id)
         {
             _tracesSubscription?.Dispose();
-            _tracesSubscription = TelemetryRepository.OnNewTraces(_selectedApplication.Id, async () =>
+            _tracesSubscription = TelemetryRepository.OnNewTraces(_selectedApplication.Id, SubscriptionType.Read, async () =>
             {
                 ViewModel.ClearData();
                 await InvokeAsync(StateHasChanged);
