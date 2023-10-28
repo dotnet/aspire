@@ -5,7 +5,6 @@ using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp.Model;
 using k8s;
-using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Dcp;
 
@@ -96,18 +95,6 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
         {
             AspireEventSource.Instance.DcpModelCleanupStop();
             _appResources.Clear();
-        }
-    }
-
-    private static async Task LogAllLines(ILogger logger, FileStream fileStream, CancellationToken cancellationToken)
-    {
-        // Log each line separately to avoid losing the line breaks.
-        var streamReader = new StreamReader(fileStream);
-
-        string? line;
-        while ((line = await streamReader.ReadLineAsync(cancellationToken).ConfigureAwait(false)) is not null)
-        {
-            logger.Log(LogLevel.Information, 0, line, null, (s, e) => s);
         }
     }
 
