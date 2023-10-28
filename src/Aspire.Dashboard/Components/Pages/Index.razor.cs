@@ -12,7 +12,7 @@ public partial class Index : ResourcesListBase<ProjectViewModel>
         => dashboardViewModelService.GetProjectsAsync();
 
     protected override IAsyncEnumerable<ResourceChanged<ProjectViewModel>> WatchResources(
-    IDashboardViewModelService dashboardViewModelService,
+        IDashboardViewModelService dashboardViewModelService,
         IEnumerable<NamespacedName> initialList,
         CancellationToken cancellationToken)
         => dashboardViewModelService.WatchProjectsAsync(initialList, cancellationToken);
