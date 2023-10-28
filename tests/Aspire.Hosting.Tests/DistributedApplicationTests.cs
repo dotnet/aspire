@@ -103,7 +103,7 @@ public class DistributedApplicationTests(ITestOutputHelper testOutputHelper)
         Assert.Equal(exceptionMessage, ex.InnerExceptions.First().Message);
     }
 
-    [SkipOnCiOnWindows]
+    [LocalOnlyFact]
     public async void TestProjectStartsAndStopsCleanly()
     {
         var testProgram = CreateTestProgram();
@@ -130,7 +130,7 @@ public class DistributedApplicationTests(ITestOutputHelper testOutputHelper)
         await testProgram.ServiceCBuilder.HttpGetPidAsync(client, "http", cts.Token);
     }
 
-    [SkipOnCiOnWindows]
+    [LocalOnlyFact]
     public async void TestServicesWithMultipleReplicas()
     {
         var replicaCount = 3;

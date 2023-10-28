@@ -7,7 +7,7 @@ public class TestProgram
 {
     private TestProgram(string[] args, Assembly assembly)
     {
-        AppBuilder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions { Args = args, DisableDashboard = true, AssemblyName = assembly.FullName, WriteLogsToLoggerOnShutdown = true });
+        AppBuilder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions { Args = args, DisableDashboard = true, AssemblyName = assembly.FullName });
         ServiceABuilder = AppBuilder.AddProject<Projects.ServiceA>("servicea");
         ServiceBBuilder = AppBuilder.AddProject<Projects.ServiceB>("serviceb");
         ServiceCBuilder = AppBuilder.AddProject<Projects.ServiceC>("servicec");
