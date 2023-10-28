@@ -43,65 +43,70 @@
             <FluentAnchor slot="end" Appearance="Appearance.Lightweight" Href="@($"/Traces")">Back</FluentAnchor>
         </FluentToolbar>
 
-        <div class="datagrid-overflow-area">
-            <FluentDataGrid Class="trace-view-grid" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="SpanWaterfallViewModel" RowClass="@GetRowClass" GridTemplateColumns="2fr 6fr">
-                <TemplateColumn Title="Name">
-                    <div class="col-long-content" title="@($"{context.Span.Source.ApplicationName}: {context.GetDisplaySummary()}")" @onclick="() => OnShowProperties(context)">
-                        <span class="span-name-container" style="@($"margin-left: {(context.Depth - 1) * 15}px; border-left-color: {ColorGenerator.Instance.GetColorHexByKey(context.Span.Source.ApplicationName)};")">
-                            @if (context.Span.Status == OtlpSpanStatusCode.Error)
-                            {
-                                <FluentIcon Icon="Icons.Filled.Size12.ErrorCircle" Color="Color.Error" Class="trace-tag-icon" />
-                            }
-                            @context.Span.Source.ApplicationName
-                            @if (!string.IsNullOrEmpty(context.UninstrumentedPeer))
-                            {
-                                <span class="uninstrumented-peer">
-                                    <FluentIcon Style="@($"fill: {ColorGenerator.Instance.GetColorHexByKey(context.UninstrumentedPeer)};")" Icon="Icons.Filled.Size16.ArrowCircleRight" Class="uninstrumented-peer-icon" />
-                                    @context.UninstrumentedPeer
-                                </span>
-                            }
-                            <span class="span-row-name">@context.GetDisplaySummary()</span>
-                        </span>
-                    </div>
-                </TemplateColumn>
-                <TemplateColumn>
-                    <HeaderCellItemTemplate>
-                        <div class="ticks">
-                            <div class="tick" style="grid-column: 1;"></div>
-                            <span class="tick-label" style="grid-column: 1;">@DurationFormatter.FormatDuration(TimeSpan.Zero)</span>
-
-                            <div class="tick" style="grid-column: 2;"></div>
-                            <span class="tick-label" style="grid-column: 2;">@DurationFormatter.FormatDuration(_trace.Duration / 4)</span>
-
-                            <div class="tick" style="grid-column: 3;"></div>
-                            <span class="tick-label" style="grid-column: 3;">@DurationFormatter.FormatDuration(_trace.Duration / 4 * 2)</span>
-
-                            <div class="tick" style="grid-column: 4;"></div>
-                            <span class="tick-label" style="grid-column: 4;">@DurationFormatter.FormatDuration(_trace.Duration / 4 * 3)</span>
-
-                            <span class="tick-label end-tick" style="grid-column: 4;">@DurationFormatter.FormatDuration(_trace.Duration)</span>
-                            <div class="tick" style="grid-column: 5;"></div>
+        <SummaryDetailsView DetailsTitle="@(SelectedSpan?.Title)" ShowDetails="SelectedSpan is not null" OnDismiss="() => SelectedSpan = null">
+            <Summary>
+                <FluentDataGrid Class="trace-view-grid" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="SpanWaterfallViewModel" RowClass="@GetRowClass" GridTemplateColumns="2fr 6fr">
+                    <TemplateColumn Title="Name">
+                        <div class="col-long-content" title="@($"{context.Span.Source.ApplicationName}: {context.GetDisplaySummary()}")" @onclick="() => OnShowProperties(context)">
+                            <span class="span-name-container" style="@($"margin-left: {(context.Depth - 1) * 15}px; border-left-color: {ColorGenerator.Instance.GetColorHexByKey(context.Span.Source.ApplicationName)};")">
+                                @if (context.Span.Status == OtlpSpanStatusCode.Error)
+                                {
+                                    <FluentIcon Icon="Icons.Filled.Size12.ErrorCircle" Color="Color.Error" Class="trace-tag-icon" />
+                                }
+                                @context.Span.Source.ApplicationName
+                                @if (!string.IsNullOrEmpty(context.UninstrumentedPeer))
+                                {
+                                    <span class="uninstrumented-peer">
+                                        <FluentIcon Style="@($"fill: {ColorGenerator.Instance.GetColorHexByKey(context.UninstrumentedPeer)};")" Icon="Icons.Filled.Size16.ArrowCircleRight" Class="uninstrumented-peer-icon" />
+                                        @context.UninstrumentedPeer
+                                    </span>
+                                }
+                                <span class="span-row-name">@context.GetDisplaySummary()</span>
+                            </span>
                         </div>
-                    </HeaderCellItemTemplate>
-                    <ChildContent>
-                        <div class="ticks" @onclick="() => OnShowProperties(context)">
-                            <div class="span-container" style="grid-template-columns: @context.LeftOffset.ToString("F2")% @context.Width.ToString("F2")% min-content;">
-                                <div class="span-bar" style="grid-column: 2; background: @ColorGenerator.Instance.GetColorHexByKey(context.Span.Source.ApplicationName);"></div>
-                                <div class="span-bar-label @(context.LabelIsRight ? "span-bar-label-right" : "span-bar-label-left")">
-                                    <span class="span-bar-label-detail">@context.Span.Source.ApplicationName: @context.GetDisplaySummary()</span>
-                                    <span>@DurationFormatter.FormatDuration(context.Span.Duration)</span>
-                                </div>
+                    </TemplateColumn>
+                    <TemplateColumn>
+                        <HeaderCellItemTemplate>
+                            <div class="ticks">
+                                <div class="tick" style="grid-column: 1;"></div>
+                                <span class="tick-label" style="grid-column: 1;">@DurationFormatter.FormatDuration(TimeSpan.Zero)</span>
+
+                                <div class="tick" style="grid-column: 2;"></div>
+                                <span class="tick-label" style="grid-column: 2;">@DurationFormatter.FormatDuration(_trace.Duration / 4)</span>
+
+                                <div class="tick" style="grid-column: 3;"></div>
+                                <span class="tick-label" style="grid-column: 3;">@DurationFormatter.FormatDuration(_trace.Duration / 4 * 2)</span>
+
+                                <div class="tick" style="grid-column: 4;"></div>
+                                <span class="tick-label" style="grid-column: 4;">@DurationFormatter.FormatDuration(_trace.Duration / 4 * 3)</span>
+
+                                <span class="tick-label end-tick" style="grid-column: 4;">@DurationFormatter.FormatDuration(_trace.Duration)</span>
+                                <div class="tick" style="grid-column: 5;"></div>
                             </div>
-                            <div class="tick" style="grid-column: 1;"></div>
-                            <div class="tick" style="grid-column: 2;"></div>
-                            <div class="tick" style="grid-column: 3;"></div>
-                            <div class="tick" style="grid-column: 4;"></div>
-                            <div class="tick" style="grid-column: 5;"></div>
-                        </div>
-                    </ChildContent>
-                </TemplateColumn>
-            </FluentDataGrid>
-        </div>
+                        </HeaderCellItemTemplate>
+                        <ChildContent>
+                            <div class="ticks" @onclick="() => OnShowProperties(context)">
+                                <div class="span-container" style="grid-template-columns: @context.LeftOffset.ToString("F2")% @context.Width.ToString("F2")% min-content;">
+                                    <div class="span-bar" style="grid-column: 2; background: @ColorGenerator.Instance.GetColorHexByKey(context.Span.Source.ApplicationName);"></div>
+                                    <div class="span-bar-label @(context.LabelIsRight ? "span-bar-label-right" : "span-bar-label-left")">
+                                        <span class="span-bar-label-detail">@context.Span.Source.ApplicationName: @context.GetDisplaySummary()</span>
+                                        <span>@DurationFormatter.FormatDuration(context.Span.Duration)</span>
+                                    </div>
+                                </div>
+                                <div class="tick" style="grid-column: 1;"></div>
+                                <div class="tick" style="grid-column: 2;"></div>
+                                <div class="tick" style="grid-column: 3;"></div>
+                                <div class="tick" style="grid-column: 4;"></div>
+                                <div class="tick" style="grid-column: 5;"></div>
+                            </div>
+                        </ChildContent>
+                    </TemplateColumn>
+                </FluentDataGrid>
+            </Summary>
+            <Details>
+                <SpanDetails ViewModel="SelectedSpan" />
+            </Details>
+        </SummaryDetailsView>
     </div>
 }
 else

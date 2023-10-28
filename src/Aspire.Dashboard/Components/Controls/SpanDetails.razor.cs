@@ -5,23 +5,20 @@ using Aspire.Dashboard.Model;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 
-namespace Aspire.Dashboard.Components.Dialogs;
-public partial class SpanDetailsDialog
+namespace Aspire.Dashboard.Components.Controls;
+public partial class SpanDetails
 {
     [Parameter]
-    public SpanDetailsDialogViewModel Content { get; set; } = default!;
-
-    [CascadingParameter]
-    public FluentDialog? Dialog { get; set; }
+    public SpanDetailsViewModel ViewModel { get; set; } = default!;
 
     private IQueryable<SpanPropertyViewModel>? FilteredItems =>
-        Content.Properties.Where(vm =>
+        ViewModel.Properties.Where(vm =>
             vm.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) ||
             vm.Value?.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) == true
         )?.AsQueryable();
 
     private IQueryable<SpanPropertyViewModel>? FilteredApplicationItems =>
-        Content.Span.Source.AllProperties().Select(p => new SpanPropertyViewModel { Name = p.Key, Value = p.Value })
+        ViewModel.Span.Source.AllProperties().Select(p => new SpanPropertyViewModel { Name = p.Key, Value = p.Value })
             .Where(vm =>
                 vm.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) ||
                 vm.Value?.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) == true

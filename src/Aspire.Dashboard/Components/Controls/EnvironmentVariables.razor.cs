@@ -5,17 +5,20 @@ using Aspire.Dashboard.Model;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 
-namespace Aspire.Dashboard.Components.Dialogs;
+namespace Aspire.Dashboard.Components.Controls;
 public partial class EnvironmentVariables
 {
 
+    [Parameter, EditorRequired]
+    public IEnumerable<EnvironmentVariableViewModel>? Items { get; set; }
+
     [Parameter]
-    public EnvironmentVariablesDialogViewModel? Content { get; set; }
+    public bool ShowSpecOnlyToggle { get; set; }
 
     private bool _showAll;
 
     private IQueryable<EnvironmentVariableViewModel>? FilteredItems =>
-        Content?.EnvironmentVariables?.Where(vm =>
+        Items?.Where(vm =>
             (_showAll || vm.FromSpec) &&
             (vm.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) ||
             vm.Value?.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) == true)
@@ -35,9 +38,9 @@ public partial class EnvironmentVariables
     private void ToggleMaskState()
     {
         _defaultMasked = !_defaultMasked;
-        if (Content is not null)
+        if (Items is not null)
         {
-            foreach (var vm in Content.EnvironmentVariables)
+            foreach (var vm in Items)
             {
                 vm.IsValueMasked = _defaultMasked;
             }
@@ -59,11 +62,11 @@ public partial class EnvironmentVariables
 
     private void CheckAllMaskStates()
     {
-        if (Content is not null)
+        if (Items is not null)
         {
             var foundMasked = false;
             var foundUnmasked = false;
-            foreach (var vm in Content.EnvironmentVariables)
+            foreach (var vm in Items)
             {
                 foundMasked |= vm.IsValueMasked;
                 foundUnmasked |= !vm.IsValueMasked;
