@@ -78,6 +78,11 @@ public class ConformanceTests : ConformanceTests<IConnection, RabbitMQClientSett
     protected override void SetHealthCheck(RabbitMQClientSettings settings, bool enabled)
         => settings.HealthChecks = enabled;
 
+    protected override void DisableRetries(RabbitMQClientSettings options)
+    {
+        options.MaxConnectRetryCount = 0;
+    }
+
     protected override void SetTracing(RabbitMQClientSettings settings, bool enabled)
         => settings.Tracing = enabled;
 

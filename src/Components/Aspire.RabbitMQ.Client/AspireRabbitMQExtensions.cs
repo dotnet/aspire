@@ -4,8 +4,10 @@
 using System.Diagnostics;
 using System.Net.Sockets;
 using Aspire.RabbitMQ.Client;
+using HealthChecks.RabbitMQ;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 using Polly;
 using RabbitMQ.Client;
@@ -113,13 +115,34 @@ public static class AspireRabbitMQExtensions
 
         if (settings.HealthChecks)
         {
-            builder.Services.AddHealthChecks()
-                .AddRabbitMQ(
-                    (sp, options) =>
+            var hcBuilder = builder.Services.AddHealthChecks();
+
+            hcBuilder.Add(new HealthCheckRegistration(
+                serviceKey is null ? "RabbitMQ.Client" : $"RabbitMQ.Client_{connectionName}",
+                sp =>
+                {
+                    try
                     {
+                        // if the IConnection can't be resolved, make a health check that will fail
+                        var options = new RabbitMQHealthCheckOptions();
                         options.Connection = serviceKey is null ? sp.GetRequiredService<IConnection>() : sp.GetRequiredKeyedService<IConnection>(serviceKey);
-                    },
-                    name: serviceKey is null ? "RabbitMQ.Client" : $"RabbitMQ.Client_{connectionName}");
+                        return new RabbitMQHealthCheck(options);
+                    }
+                    catch (Exception ex)
+                    {
+                        return new FailedHealthCheck(ex);
+                    }
+                },
+                failureStatus: default,
+                tags: default));
+        }
+    }
+
+    private sealed class FailedHealthCheck(Exception ex) : IHealthCheck
+    {
+        public Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new HealthCheckResult(context.Registration.FailureStatus, exception: ex));
         }
     }
 
