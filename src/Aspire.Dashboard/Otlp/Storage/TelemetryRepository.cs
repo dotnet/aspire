@@ -112,6 +112,7 @@ public class TelemetryRepository
         {
             if (string.IsNullOrEmpty(instanceId))
             {
+                // Mark all logs as viewed.
                 if (_applicationUnviewedErrorLogs.Count > 0)
                 {
                     _applicationUnviewedErrorLogs.Clear();
@@ -122,6 +123,7 @@ public class TelemetryRepository
             var application = GetApplication(instanceId);
             if (application is not null)
             {
+                // Mark one application logs as viewed.
                 if (_applicationUnviewedErrorLogs.Remove(application))
                 {
                     RaiseSubscriptionChanged(_logSubscriptions);
