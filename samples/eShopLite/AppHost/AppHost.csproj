@@ -12,12 +12,12 @@
     <ProjectReference Include="..\..\..\src\Aspire.Hosting\Aspire.Hosting.csproj" />
     <ProjectReference Include="..\..\..\src\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />
     <ProjectReference Include="..\..\..\src\Aspire.Hosting.Azure.Provisioning\Aspire.Hosting.Azure.Provisioning.csproj" />
-    <ProjectReference Include="..\ApiGateway\ApiGateway.csproj" />
-    <ProjectReference Include="..\BasketService\BasketService.csproj" />
-    <ProjectReference Include="..\CatalogDb\CatalogDb.csproj" />
-    <ProjectReference Include="..\CatalogService\CatalogService.csproj" />
-    <ProjectReference Include="..\MyFrontend\MyFrontend.csproj" />
-    <ProjectReference Include="..\OrderProcessor\OrderProcessor.csproj" />
+    <ProjectReference Include="..\ApiGateway\ApiGateway.csproj" Containerize="true" />
+    <ProjectReference Include="..\BasketService\BasketService.csproj" Containerize="true"/>
+    <ProjectReference Include="..\CatalogDb\CatalogDb.csproj" Containerize="true"/>
+    <ProjectReference Include="..\CatalogService\CatalogService.csproj" Containerize="true"/>
+    <ProjectReference Include="..\MyFrontend\MyFrontend.csproj" Containerize="true"/>
+    <ProjectReference Include="..\OrderProcessor\OrderProcessor.csproj" Containerize="true"/>
   </ItemGroup>
 
 </Project>

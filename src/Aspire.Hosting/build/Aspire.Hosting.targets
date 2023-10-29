@@ -123,4 +123,15 @@ public class ]]>%(ClassName)<![CDATA[ : IServiceMetadata
       StandardErrorImportance="low"
       />
   </Target>
+
+  <Target Name="PublishAllReferencedApplications">
+    <ItemGroup>
+      <_ProjectsToPublish Include="@(ProjectReference)" Condition="'%(ProjectReference.Containerize)' == 'true'" />
+    </ItemGroup>
+
+    <MSBuild
+        Projects="@(_ProjectsToPublish)"
+        Targets="Publish;PublishContainer"
+        BuildInParallel="true" />
+  </Target>
 </Project>
