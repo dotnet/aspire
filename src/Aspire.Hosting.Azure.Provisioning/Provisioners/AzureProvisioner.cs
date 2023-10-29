@@ -180,7 +180,7 @@ internal sealed class AzureProvisioner(
         Guid? principalId = default;
         var usedResources = new HashSet<string>();
 
-        var userSecrets = userSecretsPath is null ? [] : JsonNode.Parse(File.ReadAllText(userSecretsPath))!.AsObject();
+        var userSecrets = userSecretsPath is null || !File.Exists(userSecretsPath) ? [] : JsonNode.Parse(File.ReadAllText(userSecretsPath))!.AsObject();
 
         foreach (var resource in azureResources)
         {
@@ -237,6 +237,8 @@ internal sealed class AzureProvisioner(
             // If we created any resources then save the user secrets
             if (userSecretsPath is not null)
             {
+                // Ensure directory exists before attempting to create secrets file
+                Directory.CreateDirectory(Path.GetDirectoryName(userSecretsPath)!);
                 File.WriteAllText(userSecretsPath, userSecrets.ToString());
 
                 logger.LogInformation("Azure resource connection strings saved to user secrets.");
