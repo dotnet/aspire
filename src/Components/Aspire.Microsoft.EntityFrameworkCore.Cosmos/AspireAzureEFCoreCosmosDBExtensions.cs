@@ -29,16 +29,16 @@ public static class AspireAzureEFCoreCosmosDBExtensions
     /// <param name="databaseName">The name of the database to use within the Azure Cosmos DB account.</param>
     /// <param name="configure">An optional delegate that can be used for customizing settings. It's invoked after the settings are read from the configuration.</param>
     /// <exception cref="ArgumentNullException">Thrown if mandatory <paramref name="builder"/> is null.</exception>
-    /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="AzureEntityFrameworkCoreCosmosDBSettings.ConnectionString"/> is not provided.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="EntityFrameworkCoreCosmosDBSettings.ConnectionString"/> is not provided.</exception>
     public static void AddCosmosDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
         this IHostApplicationBuilder builder,
         string connectionName,
         string databaseName,
-        Action<AzureEntityFrameworkCoreCosmosDBSettings>? configure = null) where TContext : DbContext
+        Action<EntityFrameworkCoreCosmosDBSettings>? configure = null) where TContext : DbContext
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        AzureEntityFrameworkCoreCosmosDBSettings settings = new();
+        EntityFrameworkCoreCosmosDBSettings settings = new();
         var typeSpecificSectionName = $"{DefaultConfigSectionName}:{typeof(TContext).Name}";
         var typeSpecificConfigurationSection = builder.Configuration.GetSection(typeSpecificSectionName);
         if (typeSpecificConfigurationSection.Exists()) // https://github.com/dotnet/runtime/issues/91380
