@@ -35,7 +35,7 @@ public class ConformanceTests : ConformanceTests<CosmosClient, AzureCosmosDBSett
         => options.Tracing = enabled;
 
     protected override void SetMetrics(AzureCosmosDBSettings options, bool enabled)
-        => options.Metrics = enabled;
+        => throw new NotImplementedException();
 
     protected override string JsonSchemaPath
         => "src/Components/Aspire.Microsoft.Azure.Cosmos/ConfigurationSchema.json";
@@ -47,9 +47,7 @@ public class ConformanceTests : ConformanceTests<CosmosClient, AzureCosmosDBSett
               "Azure": {
                 "Cosmos": {
                   "ConnectionString": "YOUR_CONNECTION_STRING",
-                  "HealthChecks": false,
-                  "Tracing": true,
-                  "Metrics": true
+                  "Tracing": true
                 }
               }
             }

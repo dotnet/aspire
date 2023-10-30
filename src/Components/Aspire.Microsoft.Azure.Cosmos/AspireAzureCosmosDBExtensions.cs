@@ -5,7 +5,6 @@ using Aspire.Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using OpenTelemetry.Metrics;
 
 namespace Microsoft.Extensions.Hosting;
 
@@ -75,31 +74,16 @@ public static class AspireAzureCosmosDBExtensions
         configureSettings?.Invoke(settings);
         var clientOptions = new CosmosClientOptions();
 
-        if (settings.Tracing || settings.Metrics)
-        {
-            clientOptions.CosmosClientTelemetryOptions.DisableDistributedTracing = false;
-        }
-        else
-        {
-            clientOptions.CosmosClientTelemetryOptions.DisableDistributedTracing = true;
-        }
+        // Needs to be enabled for either logging or tracing to work.
+        clientOptions.CosmosClientTelemetryOptions.DisableDistributedTracing = false;
 
         if (settings.Tracing)
         {
+            clientOptions.CosmosClientTelemetryOptions.DisableDistributedTracing = false;
+
             builder.Services.AddOpenTelemetry().WithTracing(tracerProviderBuilder =>
             {
                 tracerProviderBuilder.AddSource("Azure.Cosmos.Operation");
-            });
-        }
-
-        if (settings.Metrics)
-        {
-            builder.Services.AddOpenTelemetry().WithMetrics(meterProviderBuilder =>
-            {
-                meterProviderBuilder.AddEventCountersInstrumentation(eventCountersInstrumentationOptions =>
-                {
-                    eventCountersInstrumentationOptions.AddEventSources("Azure-Cosmos-Operation-Request-Diagnostics");
-                });
             });
         }
 

@@ -14,8 +14,4 @@ public class ConfigurationTests
     [Fact]
     public void TracingIsEnabledByDefault()
         => Assert.True(new AzureCosmosDBSettings().Tracing);
-
-    [Fact]
-    public void MetricsAreEnabledByDefault()
-        => Assert.True(new AzureCosmosDBSettings().Metrics);
 }

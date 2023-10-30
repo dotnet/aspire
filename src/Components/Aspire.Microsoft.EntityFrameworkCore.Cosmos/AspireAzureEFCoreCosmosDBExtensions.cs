@@ -79,7 +79,7 @@ public static class AspireAzureEFCoreCosmosDBExtensions
                 meterProviderBuilder.AddEventCountersInstrumentation(eventCountersInstrumentationOptions =>
                 {
                     // https://github.com/dotnet/efcore/blob/main/src/EFCore/Infrastructure/EntityFrameworkEventSource.cs#L45
-                    eventCountersInstrumentationOptions.AddEventSources("Microsoft.EntityFrameworkCore", "Azure-Cosmos-Operation-Request-Diagnostics");
+                    eventCountersInstrumentationOptions.AddEventSources("Microsoft.EntityFrameworkCore");
                 });
             });
         }

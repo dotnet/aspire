@@ -28,10 +28,6 @@
                     "Tracing": {
                       "type": "boolean",
                       "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not."
-                    },
-                    "Metrics": {
-                      "type": "boolean",
-                      "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not."
                     }
                   }
                 }
