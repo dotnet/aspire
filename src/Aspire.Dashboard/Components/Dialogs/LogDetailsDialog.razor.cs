@@ -3,7 +3,7 @@
 
 using Aspire.Dashboard.Model;
 using Microsoft.AspNetCore.Components;
-using Microsoft.Fast.Components.FluentUI;
+using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Components.Dialogs;
 public partial class LogDetailsDialog
@@ -30,8 +30,8 @@ public partial class LogDetailsDialog
         }
     }
 
-    private void HandleClear(string? value)
+    private void HandleClear()
     {
-        _filter = value ?? string.Empty;
+        _filter = string.Empty;
     }
 }

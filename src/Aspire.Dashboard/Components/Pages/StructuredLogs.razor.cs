@@ -7,7 +7,7 @@ using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Microsoft.AspNetCore.Components;
-using Microsoft.Fast.Components.FluentUI;
+using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Pages;
@@ -190,7 +190,7 @@ public partial class StructuredLogs
         }
     }
 
-    private void HandleClear(string value)
+    private void HandleClear()
     {
         _filterCts?.Cancel();
         ViewModel.FilterText = string.Empty;

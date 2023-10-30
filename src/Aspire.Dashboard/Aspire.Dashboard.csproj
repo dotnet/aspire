@@ -22,8 +22,8 @@
   <ItemGroup>
     <PackageReference Include="Grpc.AspNetCore" />
     <PackageReference Include="Humanizer.Core" />
-    <PackageReference Include="Microsoft.Fast.Components.FluentUI" />
-    <PackageReference Include="Microsoft.Fast.Components.FluentUI.Icons" />
+    <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components" />
+    <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components.Icons" />
   </ItemGroup>
 
   <ItemGroup>

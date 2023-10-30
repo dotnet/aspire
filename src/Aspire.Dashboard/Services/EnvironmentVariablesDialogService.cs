@@ -3,7 +3,7 @@
 
 using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Model;
-using Microsoft.Fast.Components.FluentUI;
+using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Services;
 
