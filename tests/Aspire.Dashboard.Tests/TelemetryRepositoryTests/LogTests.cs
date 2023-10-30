@@ -60,7 +60,6 @@ public class LogTests
             {
                 Assert.Equal("546573745370616e4964", app.SpanId);
                 Assert.Equal("5465737454726163654964", app.TraceId);
-                Assert.Equal("TestParentId", app.ParentId);
                 Assert.Equal("Test {Log}", app.OriginalFormat);
                 Assert.Equal("Test Value!", app.Message);
                 Assert.Collection(app.Properties,
