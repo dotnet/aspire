@@ -7,30 +7,30 @@ using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
-using Microsoft.Fast.Components.FluentUI;
+using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Components.Pages;
 
 public partial class Metrics : IDisposable
 {
-    private static readonly ApplicationViewModel s_selectApplication = new ApplicationViewModel { Id = null, Name = "Select service..." };
-    private static readonly List<MetricsDurationViewModel> s_durations = new List<MetricsDurationViewModel>
+    private static readonly SelectViewModel<string> s_selectApplication = new SelectViewModel<string> { Id = null, Name = "Select service..." };
+    private static readonly List<SelectViewModel<TimeSpan>> s_durations = new List<SelectViewModel<TimeSpan>>
     {
-        new MetricsDurationViewModel { Text = "Last 1 minute", Duration = TimeSpan.FromMinutes(1) },
-        new MetricsDurationViewModel { Text = "Last 5 minutes", Duration = TimeSpan.FromMinutes(5) },
-        new MetricsDurationViewModel { Text = "Last 15 minutes", Duration = TimeSpan.FromMinutes(15) },
-        new MetricsDurationViewModel { Text = "Last 30 minutes", Duration = TimeSpan.FromMinutes(30) },
-        new MetricsDurationViewModel { Text = "Last 1 hour", Duration = TimeSpan.FromHours(1) },
-        new MetricsDurationViewModel { Text = "Last 3 hours", Duration = TimeSpan.FromHours(3) },
-        new MetricsDurationViewModel { Text = "Last 6 hours", Duration = TimeSpan.FromHours(6) },
-        new MetricsDurationViewModel { Text = "Last 12 hours", Duration = TimeSpan.FromHours(12) },
-        new MetricsDurationViewModel { Text = "Last 24 hours", Duration = TimeSpan.FromHours(24) },
+        new SelectViewModel<TimeSpan> { Name = "Last 1 minute", Id = TimeSpan.FromMinutes(1) },
+        new SelectViewModel<TimeSpan> { Name = "Last 5 minutes", Id = TimeSpan.FromMinutes(5) },
+        new SelectViewModel<TimeSpan> { Name = "Last 15 minutes", Id = TimeSpan.FromMinutes(15) },
+        new SelectViewModel<TimeSpan> { Name = "Last 30 minutes", Id = TimeSpan.FromMinutes(30) },
+        new SelectViewModel<TimeSpan> { Name = "Last 1 hour", Id = TimeSpan.FromHours(1) },
+        new SelectViewModel<TimeSpan> { Name = "Last 3 hours", Id = TimeSpan.FromHours(3) },
+        new SelectViewModel<TimeSpan> { Name = "Last 6 hours", Id = TimeSpan.FromHours(6) },
+        new SelectViewModel<TimeSpan> { Name = "Last 12 hours", Id = TimeSpan.FromHours(12) },
+        new SelectViewModel<TimeSpan> { Name = "Last 24 hours", Id = TimeSpan.FromHours(24) },
     };
     private static readonly TimeSpan s_defaultDuration = TimeSpan.FromMinutes(5);
 
-    private List<ApplicationViewModel> _applications = default!;
-    private ApplicationViewModel _selectedApplication = s_selectApplication;
-    private MetricsDurationViewModel _selectedDuration = s_durations.Single(d => d.Duration == s_defaultDuration);
+    private List<SelectViewModel<string>> _applications = default!;
+    private SelectViewModel<string> _selectedApplication = s_selectApplication;
+    private SelectViewModel<TimeSpan> _selectedDuration = s_durations.Single(d => d.Id == s_defaultDuration);
     private Subscription? _applicationsSubscription;
     private Subscription? _metricsSubscription;
     private List<OtlpInstrument>? _instruments;
@@ -79,7 +79,7 @@ public partial class Metrics : IDisposable
 
     protected override void OnParametersSet()
     {
-        _selectedDuration = s_durations.SingleOrDefault(d => (int)d.Duration.TotalMinutes == DurationMinutes) ?? s_durations.Single(d => d.Duration == s_defaultDuration);
+        _selectedDuration = s_durations.SingleOrDefault(d => (int)d.Id.TotalMinutes == DurationMinutes) ?? s_durations.Single(d => d.Id == s_defaultDuration);
         _selectedApplication = _applications.SingleOrDefault(e => e.Id == ApplicationInstanceId) ?? s_selectApplication;
         ViewModel.ApplicationServiceId = _selectedApplication.Id;
         _instruments = !string.IsNullOrEmpty(_selectedApplication.Id) ? TelemetryRepository.GetInstrumentsSummary(_selectedApplication.Id) : null;
@@ -105,14 +105,14 @@ public partial class Metrics : IDisposable
 
     private void UpdateApplications()
     {
-        _applications = TelemetryRepository.GetApplications().Select(a => new ApplicationViewModel { Id = a.InstanceId, Name = a.ApplicationName }).ToList();
+        _applications = TelemetryRepository.GetApplications().Select(a => new SelectViewModel<string> { Id = a.InstanceId, Name = a.ApplicationName }).ToList();
         _applications.Insert(0, s_selectApplication);
         UpdateSubscription();
     }
 
     private async Task HandleSelectedApplicationChangedAsync()
     {
-        var state = new MetricsSelectedState { ApplicationId = _selectedApplication.Id, DurationMinutes = (int)_selectedDuration.Duration.TotalMinutes };
+        var state = new MetricsSelectedState { ApplicationId = _selectedApplication.Id, DurationMinutes = (int)_selectedDuration.Id.TotalMinutes };
 
         NavigateTo(state);
         await ProtectedSessionStore.SetAsync(MetricsSelectedState.Key, state);
@@ -120,7 +120,7 @@ public partial class Metrics : IDisposable
 
     private async Task HandleSelectedDurationChangedAsync()
     {
-        var state = new MetricsSelectedState { ApplicationId = _selectedApplication.Id, DurationMinutes = (int)_selectedDuration.Duration.TotalMinutes, InstrumentName = InstrumentName, MeterName = MeterName };
+        var state = new MetricsSelectedState { ApplicationId = _selectedApplication.Id, DurationMinutes = (int)_selectedDuration.Id.TotalMinutes, InstrumentName = InstrumentName, MeterName = MeterName };
 
         NavigateTo(state);
         await ProtectedSessionStore.SetAsync(MetricsSelectedState.Key, state);
@@ -141,15 +141,15 @@ public partial class Metrics : IDisposable
 
         if (_selectedTreeItem?.Data is OtlpMeter meter)
         {
-            state = new MetricsSelectedState { ApplicationId = _selectedApplication.Id, DurationMinutes = (int)_selectedDuration.Duration.TotalMinutes, MeterName = meter.MeterName };
+            state = new MetricsSelectedState { ApplicationId = _selectedApplication.Id, DurationMinutes = (int)_selectedDuration.Id.TotalMinutes, MeterName = meter.MeterName };
         }
         else if (_selectedTreeItem?.Data is OtlpInstrument instrument)
         {
-            state = new MetricsSelectedState { ApplicationId = _selectedApplication.Id, DurationMinutes = (int)_selectedDuration.Duration.TotalMinutes, MeterName = instrument.Parent.MeterName, InstrumentName = instrument.Name };
+            state = new MetricsSelectedState { ApplicationId = _selectedApplication.Id, DurationMinutes = (int)_selectedDuration.Id.TotalMinutes, MeterName = instrument.Parent.MeterName, InstrumentName = instrument.Name };
         }
         else
         {
-            state = new MetricsSelectedState { ApplicationId = _selectedApplication.Id, DurationMinutes = (int)_selectedDuration.Duration.TotalMinutes };
+            state = new MetricsSelectedState { ApplicationId = _selectedApplication.Id, DurationMinutes = (int)_selectedDuration.Id.TotalMinutes };
         }
 
         NavigateTo(state);
@@ -193,7 +193,7 @@ public partial class Metrics : IDisposable
         if (_metricsSubscription is null || _metricsSubscription.ApplicationId != _selectedApplication.Id)
         {
             _metricsSubscription?.Dispose();
-            _metricsSubscription = TelemetryRepository.OnNewMetrics(_selectedApplication.Id, async () =>
+            _metricsSubscription = TelemetryRepository.OnNewMetrics(_selectedApplication.Id, SubscriptionType.Read, async () =>
             {
                 var selectedApplicationId = _selectedApplication.Id;
                 if (!string.IsNullOrEmpty(selectedApplicationId))

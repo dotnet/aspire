@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Microsoft.Fast.Components.FluentUI;
+using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Dialogs;
@@ -36,6 +36,7 @@ public partial class SettingsDialog : IDialogContentComponent, IAsyncDisposable
 
             await _jsModule.InvokeVoidAsync("setDefaultBaseLayerLuminance", newLuminanceValue);
             await _jsModule.InvokeVoidAsync("setThemeCookie", newValue);
+            await _jsModule.InvokeVoidAsync("setThemeOnDocument", newValue);
         }
 
         _currentSetting = newValue;

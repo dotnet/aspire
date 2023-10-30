@@ -3,13 +3,16 @@
 
 using Aspire.Dashboard.Model;
 using Microsoft.AspNetCore.Components;
-using Microsoft.Fast.Components.FluentUI;
+using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Components.Dialogs;
 public partial class SpanDetailsDialog
 {
     [Parameter]
     public SpanDetailsDialogViewModel Content { get; set; } = default!;
+
+    [CascadingParameter]
+    public FluentDialog? Dialog { get; set; }
 
     private IQueryable<SpanPropertyViewModel>? FilteredItems =>
         Content.Properties.Where(vm =>
@@ -37,8 +40,8 @@ public partial class SpanDetailsDialog
         }
     }
 
-    private void HandleClear(string? value)
+    private void HandleClear()
     {
-        _filter = value ?? string.Empty;
+        _filter = string.Empty;
     }
 }

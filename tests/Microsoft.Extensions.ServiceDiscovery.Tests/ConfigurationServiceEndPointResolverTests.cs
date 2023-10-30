@@ -47,8 +47,7 @@ public class ConfigurationServiceEndPointResolverTests
             Assert.All(initialResult.EndPoints, ep =>
             {
                 var hostNameFeature = ep.Features.Get<IHostNameFeature>();
-                Assert.NotNull(hostNameFeature);
-                Assert.Equal("basket", hostNameFeature.HostName);
+                Assert.Null(hostNameFeature);
             });
         }
     }
@@ -68,7 +67,7 @@ public class ConfigurationServiceEndPointResolverTests
         var services = new ServiceCollection()
             .AddSingleton<IConfiguration>(config.Build())
             .AddServiceDiscoveryCore()
-            .AddConfigurationServiceEndPointResolver()
+            .AddConfigurationServiceEndPointResolver(options => options.ApplyHostNameMetadata = _ => true)
             .BuildServiceProvider();
         var resolverFactory = services.GetRequiredService<ServiceEndPointResolverFactory>();
         ServiceEndPointResolver resolver;
@@ -133,8 +132,7 @@ public class ConfigurationServiceEndPointResolverTests
             Assert.All(initialResult.EndPoints, ep =>
             {
                 var hostNameFeature = ep.Features.Get<IHostNameFeature>();
-                Assert.NotNull(hostNameFeature);
-                Assert.Equal("basket", hostNameFeature.HostName);
+                Assert.Null(hostNameFeature);
             });
         }
     }

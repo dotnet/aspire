@@ -4,7 +4,7 @@
 namespace Aspire.Microsoft.Data.SqlClient;
 
 /// <summary>
-/// The options relevant to accessing SQL Server database using SqlClient.
+/// Provides the client configuration settings for connecting to a SQL Server database using SqlClient.
 /// </summary>
 public sealed class MicrosoftDataSqlClientSettings
 {

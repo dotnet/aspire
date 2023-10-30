@@ -17,40 +17,41 @@
                         slot="end" />
     </FluentToolbar>
     <div class="datagrid-overflow-area" tabindex="-1">
-        <FluentDataGrid Items="@FilteredResources" ResizableColumns="true" GridTemplateColumns="2fr 1fr 2fr 1fr 4fr 2fr 1fr 1fr">
+        <FluentDataGrid Items="@FilteredResources" ResizableColumns="true" GridTemplateColumns="2fr 1.2fr 2fr 1fr 4fr 2fr 1fr 1fr" >
             <ChildContent>
-                <TemplateColumn Title="Name" Sortable="true" SortBy="@nameSort">
-                    <div class="col-long-content" title="@context.Name">
-                        <FluentHighlighter HighlightedText="@filter" Text="@context.Name" />
+                <TemplateColumn Title="Name" Sortable="true" SortBy="@nameSort" Tooltip="true" TooltipText="(p) => p.Name">
+                    <FluentHighlighter HighlightedText="@filter" Text="@context.Name" />
+                </TemplateColumn>
+                <TemplateColumn Title="State" Sortable="true" SortBy="@stateSort">
+                    <div class="resource-state-container">
+                        @context.State
+                        <UnreadLogErrorsBadge UnviewedCount="@GetUnviewedErrorCount(context)" OnClick="@(() => ViewErrorStructuredLogs(context))" />
                     </div>
                 </TemplateColumn>
-                <PropertyColumn Property="@(e => e.State)" Sortable="true" />
-                <PropertyColumn Property="@(c => c.CreationTimeStamp)" Title="Start Time" Sortable="true" />
-                <PropertyColumn Property="@(c => c.ProcessId)" Title="Process Id" Sortable="true" />
-                <TemplateColumn Title="Source Location" Sortable="true" SortBy="@projectPathSort">
-                    <div class="col-long-content" title="@context.ProjectPath">
-                        <FluentHighlighter HighlightedText="@filter" Text="@context.ProjectPath" />
-                    </div>
+                <PropertyColumn Property="@(c => c.CreationTimeStamp)" Title="Start Time" Sortable="true" Tooltip="true" />
+                <PropertyColumn Property="@(c => c.ProcessId)" Title="Process Id" Sortable="true" Tooltip="true" />
+                <TemplateColumn Title="Source Location" Sortable="true" SortBy="@_projectPathSort" Tooltip="true" TooltipText="(p) => p.ProjectPath">
+                    <FluentHighlighter HighlightedText="@filter" Text="@context.ProjectPath" />
                 </TemplateColumn>
                 <TemplateColumn Title="Endpoints" Sortable="false">
                     <FluentStack Orientation="Orientation.Vertical">
                         @* If we have no endpoints, and the app isn't running anymore or we're not expecting any, then just say None *@
                         @if (context.Endpoints.Count == 0 && (context.State == FinishedState || context.ExpectedEndpointsCount == 0))
                         {
-                            <span>None</span>
+                            <span class="long-inner-content">None</span>
                         }
                         else
                         {
                             @* If we have any, regardless of the state, go ahead and display them *@
                             foreach (var endpoint in context.Endpoints.OrderBy(e => e))
                             {
-                                <a href="@endpoint" target="_blank">@endpoint</a>
+                                <a href="@endpoint" target="_blank" class="long-inner-content">@endpoint</a>
                             }
                             @* If we're expecting more, say Starting..., unless the app isn't running anymore *@
                             if (context.State != FinishedState
                             && (context.ExpectedEndpointsCount is null || context.ExpectedEndpointsCount > context.Endpoints.Count))
                             {
-                                <span>Starting...</span>
+                                <span class="long-inner-content">Starting...</span>
                             }
                         }
                     </FluentStack>
@@ -71,21 +72,3 @@
         </FluentDataGrid>
     </div>
 </div>
-
-@code
-{
-    protected override ValueTask<List<ProjectViewModel>> GetResources(IDashboardViewModelService dashboardViewModelService)
-        => dashboardViewModelService.GetProjectsAsync();
-
-    protected override IAsyncEnumerable<ResourceChanged<ProjectViewModel>> WatchResources(
-    IDashboardViewModelService dashboardViewModelService,
-        IEnumerable<NamespacedName> initialList,
-        CancellationToken cancellationToken)
-        => dashboardViewModelService.WatchProjectsAsync(initialList, cancellationToken);
-
-    protected override bool Filter(ProjectViewModel resource)
-        => resource.Name.Contains(filter, StringComparison.CurrentCultureIgnoreCase)
-        || resource.ProjectPath.Contains(filter, StringComparison.CurrentCultureIgnoreCase);
-
-    private GridSort<ProjectViewModel> projectPathSort = GridSort<ProjectViewModel>.ByAscending(p => p.ProjectPath);
-}

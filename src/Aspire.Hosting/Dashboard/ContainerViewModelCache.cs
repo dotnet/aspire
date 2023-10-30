@@ -26,6 +26,7 @@ internal sealed class ContainerViewModelCache : ViewModelCache<Container, Contai
         var model = new ContainerViewModel
         {
             Name = container.Metadata.Name,
+            Uid = container.Metadata.Uid,
             NamespacedName = new(container.Metadata.Name, null),
             ContainerId = container.Status?.ContainerId,
             CreationTimeStamp = container.Metadata.CreationTimestamp?.ToLocalTime(),

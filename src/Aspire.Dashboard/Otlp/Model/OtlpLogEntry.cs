@@ -17,7 +17,6 @@ public class OtlpLogEntry
     public string Message { get; }
     public string SpanId { get; }
     public string TraceId { get; }
-    public string? ParentId { get; }
     public string? OriginalFormat { get; }
     public OtlpApplication Application { get; }
 
@@ -30,9 +29,6 @@ public class OtlpLogEntry
             {
                 case "{OriginalFormat}":
                     OriginalFormat = kv.Value.GetString();
-                    break;
-                case "ParentId":
-                    ParentId = kv.Value.GetString();
                     break;
                 case "SpanId":
                 case "TraceId":
@@ -88,22 +84,14 @@ public class OtlpLogEntry
     {
         var props = new Dictionary<string, string>
         {
-            { "Application", Application.UniqueApplicationName },
-            { "Severity", Severity.ToString() },
-            { "Message", Message },
-            { "TraceId", TraceId },
-            { "SpanId", SpanId }
+            { "Application", Application.ApplicationName },
+            { "Level", Severity.ToString() },
+            { "Message", Message }
         };
 
-        if (ParentId != null)
-        {
-            props.Add("ParentId", ParentId);
-        }
-
-        if (OriginalFormat != null)
-        {
-            props.Add("OriginalFormat", OriginalFormat);
-        }
+        AddOptionalValue("TraceId", TraceId, props);
+        AddOptionalValue("SpanId", SpanId, props);
+        AddOptionalValue("OriginalFormat", OriginalFormat, props);
 
         foreach (var kv in Properties)
         {
@@ -111,6 +99,13 @@ public class OtlpLogEntry
         }
 
         return props;
+
+        static void AddOptionalValue(string name, string? value, Dictionary<string, string> props)
+        {
+            if (!string.IsNullOrEmpty(value))
+            {
+                props.Add(name, value);
+            }
+        }
     }
 }
-

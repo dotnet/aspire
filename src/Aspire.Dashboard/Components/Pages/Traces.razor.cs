@@ -6,17 +6,17 @@ using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Microsoft.AspNetCore.Components;
-using Microsoft.Fast.Components.FluentUI;
+using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Pages;
 public partial class Traces
 {
-    private static readonly ApplicationViewModel s_allApplication = new ApplicationViewModel { Id = null, Name = "(All)" };
+    private static readonly SelectViewModel<string> s_allApplication = new SelectViewModel<string> { Id = null, Name = "(All)" };
 
     private TotalItemsFooter _totalItemsFooter = default!;
-    private List<ApplicationViewModel> _applications = default!;
-    private ApplicationViewModel _selectedApplication = s_allApplication;
+    private List<SelectViewModel<string>> _applications = default!;
+    private SelectViewModel<string> _selectedApplication = s_allApplication;
     private Subscription? _applicationsSubscription;
     private Subscription? _tracesSubscription;
     private bool _applicationChanged;
@@ -81,7 +81,7 @@ public partial class Traces
 
     private void UpdateApplications()
     {
-        _applications = TelemetryRepository.GetApplications().Select(a => new ApplicationViewModel { Id = a.InstanceId, Name = a.ApplicationName }).ToList();
+        _applications = TelemetryRepository.GetApplications().Select(a => new SelectViewModel<string> { Id = a.InstanceId, Name = a.ApplicationName }).ToList();
         _applications.Insert(0, s_allApplication);
         UpdateSubscription();
     }
@@ -100,7 +100,7 @@ public partial class Traces
         if (_tracesSubscription is null || _tracesSubscription.ApplicationId != _selectedApplication.Id)
         {
             _tracesSubscription?.Dispose();
-            _tracesSubscription = TelemetryRepository.OnNewTraces(_selectedApplication.Id, async () =>
+            _tracesSubscription = TelemetryRepository.OnNewTraces(_selectedApplication.Id, SubscriptionType.Read, async () =>
             {
                 ViewModel.ClearData();
                 await InvokeAsync(StateHasChanged);
@@ -126,7 +126,7 @@ public partial class Traces
         }
     }
 
-    private void HandleClear(string value)
+    private void HandleClear()
     {
         _filterCts?.Cancel();
         ViewModel.FilterText = string.Empty;

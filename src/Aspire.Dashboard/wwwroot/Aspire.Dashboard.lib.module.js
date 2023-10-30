@@ -1,4 +1,4 @@
-import * as LibraryExports from "/_content/Microsoft.Fast.Components.FluentUI/Microsoft.Fast.Components.FluentUI.lib.module.js";
+import * as LibraryExports from "/_content/Microsoft.FluentUI.AspNetCore.Components/Microsoft.FluentUI.AspNetCore.Components.lib.module.js";
 
 export function beforeServerStart(options, extensions) {
     LibraryExports.beforeStart(options, extensions);

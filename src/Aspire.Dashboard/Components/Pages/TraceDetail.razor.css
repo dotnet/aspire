@@ -90,7 +90,7 @@
     border-left-width: 5px;
     border-left-style: solid;
     padding-left: 5px;
-    line-height: 16px;
+    line-height: 28px;
 }
 
 ::deep .span-container {
@@ -155,11 +155,12 @@
         "toolbar"
         "main";
     gap: calc(var(--design-unit) * 2px);
-    padding-bottom: calc(var(--design-unit) * 2px);
+    padding: calc(var(--design-unit) * 2px);
 }
 
 ::deep.trace-detail-layout > .trace-detail-header {
     grid-area: head;
+    padding: calc(var(--design-unit) * 1px);
 }
 
 ::deep.trace-detail-layout > fluent-toolbar {

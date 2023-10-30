@@ -18,8 +18,6 @@ fluent-toolbar[orientation=horizontal] {
     text-overflow: ellipsis;
     white-space: nowrap;
     height: 100%;
-    display: flex;
-    align-items: center;
 }
 
 .trace-tag-icon {
@@ -27,7 +25,17 @@ fluent-toolbar[orientation=horizontal] {
 }
 
 :root {
-    --duration-color: rgb(215, 231, 234);
+    --log-critical: #F8ECEB;
+    --log-error: #F8ECEB;
+    --log-warning: #FBF3DD;
+    --badge-fill-error: var(--error);
+    --badge-color-error: var(--foreground-on-accent-rest);
+}
+
+[data-theme="dark"] {
+    --log-critical: #493634;
+    --log-error: #493634;
+    --log-warning: #3F3A2B;
 }
 
 .page-content-area {
@@ -90,6 +98,15 @@ fluent-dialog fluent-data-grid-cell[cell-type=columnheader] fluent-button[appear
     overflow-y: auto;
 }
 
+.dialog-grid-container .empty-content {
+    width: 100%;
+    height: 46px;
+}
+
+.dialog-grid-container h4 {
+    margin: 0.75rem;
+}
+
 .content-layout-with-toolbar {
     height: 100%;
     width: 100%;
@@ -107,4 +124,31 @@ fluent-dialog fluent-data-grid-cell[cell-type=columnheader] fluent-button[appear
 
 .content-layout-with-toolbar > .datagrid-overflow-area {
     grid-area: main;
+}
+
+.span-id {
+    color: rgb(136, 136, 136);
+    padding-left: 0.5rem;
+    font-size: 12px;
+}
+
+fluent-data-grid-row {
+    align-items: center;
+}
+
+fluent-data-grid-cell .long-inner-content {
+    width: inherit;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.resource-state-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.resource-error-badge {
+    padding: 0 3px;
+    cursor: pointer;
 }

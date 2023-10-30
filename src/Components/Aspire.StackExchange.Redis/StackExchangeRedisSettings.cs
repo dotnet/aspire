@@ -3,6 +3,9 @@
 
 namespace Aspire.StackExchange.Redis;
 
+/// <summary>
+/// Provides the client configuration settings for connecting to a Redis server.
+/// </summary>
 public sealed class StackExchangeRedisSettings
 {
     /// <summary>

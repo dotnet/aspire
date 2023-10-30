@@ -1,18 +1,27 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using System.Globalization;
 using Aspire.Dashboard.Otlp.Model;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Dashboard.Model.Otlp;
 
+[DebuggerDisplay("{FilterText,nq}")]
 public class LogFilter
 {
     public string Field { get; set; } = default!;
     public FilterCondition Condition { get; set; }
     public string Value { get; set; } = default!;
     public string FilterText => $"{Field} {ConditionToString(Condition)} {Value}";
+
+    public static List<string> GetAllPropertyNames(List<string> propertyKeys)
+    {
+        var result = new List<string> { "Message", "Application", "TraceId", "SpanId", "OriginalFormat" };
+        result.AddRange(propertyKeys);
+        return result;
+    }
 
     public static string ConditionToString(FilterCondition c) =>
         c switch
@@ -75,42 +84,30 @@ public class LogFilter
         return Field switch
         {
             "Message" => x.Message,
-            "Application" => x.Application.UniqueApplicationName,
+            "Application" => x.Application.ApplicationName,
             "TraceId" => x.TraceId,
             "SpanId" => x.SpanId,
-            "ParentId" => x.ParentId,
             "OriginalFormat" => x.OriginalFormat,
             _ => x.Properties.GetValue(Field)
         };
     }
 
-    public override string ToString() => $"{Field} {ConditionToString(Condition)} {Value}";
-
     public IEnumerable<OtlpLogEntry> Apply(IEnumerable<OtlpLogEntry> input)
     {
         switch (Field)
         {
-            case "Timestamp":
+            case nameof(OtlpLogEntry.TimeStamp):
                 {
                     var date = DateTime.Parse(Value, CultureInfo.InvariantCulture);
                     var func = ConditionToFuncDate(Condition);
                     return input.Where(x => func(x.TimeStamp, date));
                 }
-            case "Severity":
+            case nameof(OtlpLogEntry.Severity):
                 {
                     var func = ConditionToFuncNumber(Condition);
                     if (Enum.TryParse<LogLevel>(Value, true, out var value))
                     {
                         return input.Where(x => func((int)x.Severity, (double)value));
-                    }
-                    return input;
-                }
-            case "Flags":
-                {
-                    var func = ConditionToFuncNumber(Condition);
-                    if (double.TryParse(Value, out var value))
-                    {
-                        return input.Where(x => func(x.Flags, value));
                     }
                     return input;
                 }
@@ -120,17 +117,4 @@ public class LogFilter
                 }
         }
     }
-
 }
-public enum FilterCondition
-{
-    Equals,
-    Contains,
-    GreaterThan,
-    LessThan,
-    GreaterThanOrEqual,
-    LessThanOrEqual,
-    NotEqual,
-    NotContains
-}
-

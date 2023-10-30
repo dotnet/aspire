@@ -8,7 +8,7 @@ using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Microsoft.AspNetCore.Components;
-using Microsoft.Fast.Components.FluentUI;
+using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Components.Pages;
 
@@ -121,7 +121,7 @@ public partial class TraceDetail
                 if (_tracesSubscription is null || _tracesSubscription.ApplicationId != _trace.FirstSpan.Source.InstanceId)
                 {
                     _tracesSubscription?.Dispose();
-                    _tracesSubscription = TelemetryRepository.OnNewTraces(_trace.FirstSpan.Source.InstanceId, () => InvokeAsync(() =>
+                    _tracesSubscription = TelemetryRepository.OnNewTraces(_trace.FirstSpan.Source.InstanceId, SubscriptionType.Read, () => InvokeAsync(() =>
                     {
                         UpdateDetailViewData();
                         StateHasChanged();
@@ -149,7 +149,7 @@ public partial class TraceDetail
 
         var parameters = new DialogParameters
         {
-            Title = viewModel.Span.Name,
+            Title = $"{viewModel.Span.Source.ApplicationName}: {viewModel.GetDisplaySummary()}",
             Width = "auto",
             Height = "auto",
             TrapFocus = true,

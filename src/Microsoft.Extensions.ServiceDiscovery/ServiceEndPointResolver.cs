@@ -202,6 +202,20 @@ public sealed class ServiceEndPointResolver(
         // If there was an error, the cache must be invalid.
         Debug.Assert(error is null || newCacheState is CacheStatus.Invalid);
 
+        // To ensure coherence between the value returned by calls made to GetEndPointsAsync and value passed to the callback,
+        // we invalidate the cache before invoking the callback. This causes callers to wait on the refresh task
+        // before receiving the updated value. An alternative approach is to lock access to _cachedEndPoints, but
+        // that will have more overhead in the common case.
+        if (newCacheState is CacheStatus.Valid)
+        {
+            Interlocked.Exchange(ref _cachedEndPoints, null);
+        }
+
+        if (OnEndPointsUpdated is { } callback)
+        {
+            callback(new(newEndPoints, status));
+        }
+
         lock (_lock)
         {
             if (newCacheState is CacheStatus.Valid)
@@ -211,11 +225,6 @@ public sealed class ServiceEndPointResolver(
             }
 
             _cacheState = newCacheState;
-        }
-
-        if (OnEndPointsUpdated is { } callback)
-        {
-            callback(new(newEndPoints, status));
         }
 
         if (error is not null)

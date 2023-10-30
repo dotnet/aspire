@@ -2,7 +2,7 @@ import {
     accentBaseColor,
     baseLayerLuminance,
     SwatchRGB
-} from "/_content/Microsoft.Fast.Components.FluentUI/js/web-components-v2.5.16.min.js";
+} from "/_content/Microsoft.FluentUI.AspNetCore.Components/js/web-components-v2.5.16.min.js";
 
 const currentThemeCookieName = "currentTheme";
 const themeSettingSystem = "System";
@@ -31,6 +31,23 @@ export function getSystemTheme() {
  */
 export function setThemeCookie(theme) {
     document.cookie = `${currentThemeCookieName}=${theme}`;
+}
+
+/**
+ * Sets the document data-theme attribute to the specified value.
+ * @param {string} theme
+ */
+export function setThemeOnDocument(theme) {
+
+    if (!theme || theme === themeSettingSystem) {
+        theme = getSystemTheme();
+    }
+
+    if (theme === themeSettingDark) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+    } else /* Light */ {
+        document.documentElement.setAttribute('data-theme', 'light');
+    }
 }
 
 /**
@@ -76,6 +93,8 @@ function setInitialBaseLayerLuminance() {
     } else /* Light */ {
         baseLayerLuminance.withDefault(lightThemeLuminance);
     }
+
+    setThemeOnDocument(theme);
 }
 
 function setInitialAccentColor() {

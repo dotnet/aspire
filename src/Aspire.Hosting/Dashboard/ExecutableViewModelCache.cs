@@ -26,6 +26,7 @@ internal sealed class ExecutableViewModelCache : ViewModelCache<Executable, Exec
         var model = new ExecutableViewModel
         {
             Name = executable.Metadata.Name,
+            Uid = executable.Metadata.Uid,
             NamespacedName = new(executable.Metadata.Name, null),
             CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToLocalTime(),
             ExecutablePath = executable.Spec.ExecutablePath,

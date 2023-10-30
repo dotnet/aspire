@@ -5,62 +5,76 @@
   <PropertyGroup>
     <!-- Similar to ASP.NET Core and Worker apps, set the default CWD of orchestrator projects to be the project directory. -->
     <RunWorkingDirectory Condition=" '$(RunWorkingDirectory)' == '' and '$(EnableDefaultRunWorkingDirectory)' != 'false' ">$(MSBuildProjectDirectory)</RunWorkingDirectory>
+    <_AspireIntermediatePath>$(IntermediateOutputPath)Aspire\</_AspireIntermediatePath>
   </PropertyGroup>
 
-  <!-- The purpose of this target is to take a list of the resolved project references and generate a set of items (ServiceMetadataSource) which contain
-     code that we want to add to the orchestrator project for each referenced project. The metadata contains pointers to the project/assembly. -->
-  <Target Name="GenerateServiceMetadataSources" DependsOnTargets="FindReferenceAssembliesForReferences" Inputs="@(ReferencePathWithRefAssemblies)" Outputs="@(ReferencePathWithRefAssemblies)">
+  <ItemGroup>
+    <ProjectCapability Include="Aspire" Condition=" '$(IsAspireHost)' == 'true' " />
+  </ItemGroup>
+
+  <!-- Generate the data structures for doing the codegen for service references -->
+  <Target Name="CreateServiceMetadataSources"
+          DependsOnTargets="FindReferenceAssembliesForReferences"
+          Inputs="@(ReferencePathWithRefAssemblies)"
+          Outputs="@(ReferencePathWithRefAssemblies)">
     <ItemGroup>
-      <ServiceMetadataSource Include="%(ReferencePathWithRefAssemblies.Identity)" Condition="%(ReferencePathWithRefAssemblies.ReferenceSourceTarget) == 'ProjectReference' And %(ReferencePathWithRefAssemblies.ServiceNameOverride) == ''">
+      <ServiceMetadataSource Include="%(ReferencePathWithRefAssemblies.Identity)" Condition="%(ReferencePathWithRefAssemblies.ReferenceSourceTarget) == 'ProjectReference'">
+        <ClassName Condition="%(ReferencePathWithRefAssemblies.ReferenceSourceTarget) == 'ProjectReference' And %(ReferencePathWithRefAssemblies.ServiceNameOverride) == ''">$([System.IO.Path]::GetFileNameWithoutExtension(%(ReferencePathWithRefAssemblies.Identity)).Replace(".", "_").Replace("-","_"))</ClassName>
+        <ClassName Condition="%(ReferencePathWithRefAssemblies.ReferenceSourceTarget) == 'ProjectReference' And %(ReferencePathWithRefAssemblies.ServiceNameOverride) != ''">$([System.String]::Copy(%(ReferencePathWithRefAssemblies.ServiceNameOverride)).Replace(".", "_").Replace("-","_"))</ClassName>
         <AssemblyName>$([System.IO.Path]::GetFileNameWithoutExtension(%(ReferencePathWithRefAssemblies.Identity)))</AssemblyName>
-        <Source>
-          <![CDATA[using System%3B
-
-namespace Projects%3B
-
-public class ]]>$([System.IO.Path]::GetFileNameWithoutExtension(%(ReferencePathWithRefAssemblies.Identity)).Replace(".", "_"))<![CDATA[ : IServiceMetadata
-{
-  public string AssemblyName => """]]>$([System.IO.Path]::GetFileNameWithoutExtension(%(ReferencePathWithRefAssemblies.Identity)))<![CDATA["""%3B
-  public string AssemblyPath => """]]>%(ReferencePathWithRefAssemblies.Identity)<![CDATA["""%3B
-  public string ProjectPath => """]]>$([System.IO.Path]::GetFullPath(%(ReferencePathWithRefAssemblies.ProjectReferenceOriginalItemSpec)))<![CDATA["""%3B
-}]]>
-        </Source>
+        <ProjectPath>$([System.IO.Path]::GetFullPath(%(ReferencePathWithRefAssemblies.ProjectReferenceOriginalItemSpec)))</ProjectPath>
+        <Namespace>Projects</Namespace>
       </ServiceMetadataSource>
-      <ServiceMetadataSource Include="%(ReferencePathWithRefAssemblies.Identity)" Condition="%(ReferencePathWithRefAssemblies.ReferenceSourceTarget) == 'ProjectReference' And %(ReferencePathWithRefAssemblies.ServiceNameOverride) != ''">
-				<AssemblyName>$([System.IO.Path]::GetFileNameWithoutExtension(%(ReferencePathWithRefAssemblies.Identity)))</AssemblyName>
-				<Source>
-					<![CDATA[using System%3B
-
-namespace Projects%3B
-
-public class ]]>%(ReferencePathWithRefAssemblies.ServiceNameOverride)<![CDATA[ : IServiceMetadata
-{
-  public string AssemblyName => """]]>$([System.IO.Path]::GetFileNameWithoutExtension(%(ReferencePathWithRefAssemblies.Identity)))<![CDATA["""%3B
-  public string AssemblyPath => """]]>%(ReferencePathWithRefAssemblies.Identity)<![CDATA["""%3B
-  public string ProjectPath => """]]>$([System.IO.Path]::GetFullPath(%(ReferencePathWithRefAssemblies.ProjectReferenceOriginalItemSpec)))<![CDATA["""%3B
-}]]>
-				</Source>
-			</ServiceMetadataSource>
 		</ItemGroup>
   </Target>
 
-  <!-- The purpose of this target is to take all of the generated service meta data and write them to the intermediate build directory
-     and reference them for compilation. There will be a AssemblyName.ServiceMetadata.g.cs file for each referenced project. -->
-  <Target Name="WriteServiceMetadataSources" DependsOnTargets="GenerateServiceMetadataSources" BeforeTargets="CoreCompile">
+  <Target Name="_CSharpWriteServiceMetadataSources" DependsOnTargets="CreateServiceMetadataSources" Condition="'$(Language)' == 'C#'">
+    <ItemGroup>
+      <ServiceMetadataSource Update="@(ServiceMetadataSource)">
+        <Source>
+        <![CDATA[using System%3B
+
+namespace ]]>%(Namespace)<![CDATA[%3B
+
+public class ]]>%(ClassName)<![CDATA[ : IServiceMetadata
+{
+  public string AssemblyName => """]]>%(AssemblyName)<![CDATA["""%3B
+  public string AssemblyPath => """]]>%(Identity)<![CDATA["""%3B
+  public string ProjectPath => """]]>%(ProjectPath)<![CDATA["""%3B
+}]]>
+        </Source>
+      </ServiceMetadataSource>
+    </ItemGroup>
+
     <WriteLinesToFile
-      File="$(IntermediateOutputPath)Aspire\references\%(ServiceMetadataSource.AssemblyName).ServiceMetadata.g.cs"
+      File="$(_AspireIntermediatePath)references\%(ServiceMetadataSource.AssemblyName).ServiceMetadata.g.cs"
       Overwrite="true"
       Lines="%(ServiceMetadataSource.Source)"
       Encoding="Unicode"
       Condition="%(ServiceMetadataSource.AssemblyName) != ''"
+      WriteOnlyWhenDifferent="true"
       />
     <ItemGroup>
+      <FileWrites Include="$(_AspireIntermediatePath)references\%(ServiceMetadataSource.AssemblyName).ServiceMetadata.g.cs" />
       <Compile
-        Include="$(IntermediateOutputPath)Aspire\references\%(ServiceMetadataSource.AssemblyName).ServiceMetadata.g.cs"
+        Include="$(_AspireIntermediatePath)references\%(ServiceMetadataSource.AssemblyName).ServiceMetadata.g.cs"
         Condition="%(ServiceMetadataSource.AssemblyName) != ''"
         />
     </ItemGroup>
   </Target>
+
+  <Target Name="_WarnOnUnsupportedLanguage" Condition="'$(Language)' != 'C#'">
+    <Warning Code="ASPIRE001" Text="The '$(Language)' language isn't fully supported by Aspire - some code generation targets will not run, so will require manual authoring." />
+  </Target>
+
+  <PropertyGroup>
+    <!-- Easy extension point for adding new languages' write support. -->
+    <_WriteServiceMetadataSourcesDependsOn>_CSharpWriteServiceMetadataSources;_WarnOnUnsupportedLanguage</_WriteServiceMetadataSourcesDependsOn>
+  </PropertyGroup>
+
+  <!-- The purpose of this target is to take all of the generated service meta data and write them to the intermediate build directory
+     and reference them for compilation. There will be a AssemblyName.ServiceMetadata.g.cs file for each referenced project. -->
+  <Target Name="WriteServiceMetadataSources" DependsOnTargets="$(_WriteServiceMetadataSourcesDependsOn)" BeforeTargets="CoreCompile" />
 
   <!-- This target registers the location of the Aspire orchestration dependencies -->
   <Target Name="SetOrchestrationDiscoveryAttributes" BeforeTargets="GetAssemblyAttributes">
@@ -86,5 +100,27 @@ public class ]]>%(ReferencePathWithRefAssemblies.ServiceNameOverride)<![CDATA[ :
         <_Parameter2>$(DcpBinPath)</_Parameter2>
       </AssemblyAttribute>
     </ItemGroup>
+  </Target>
+
+  <PropertyGroup>
+    <AspirePublisher Condition="'(AspirePublisher)' == ''">manifest</AspirePublisher>
+    <AspireManifestPublishOutputPath Condition="'$(AspireManifestPublishOutputPath)' == ''">$(_AspireIntermediatePath)manifest.json</AspireManifestPublishOutputPath>
+  </PropertyGroup>
+
+  <!-- Entrypoint to allow for generation of an aspire manifest to a given location -->
+  <Target Name="GenerateAspireManifest" DependsOnTargets="Build" Inputs="$(TargetFileName)" Outputs="$(AspireManifestPublishOutputPath)">
+    <ItemGroup>
+      <_AspireManifestPublishArg Include="%22$(DOTNET_HOST_PATH)%22; %22$(TargetPath)%22;"/>
+      <_AspireManifestPublishArg Include="--publisher; $(AspirePublisher);" />
+      <_AspireManifestPublishArg Include="--output-path; %22$(AspireManifestPublishOutputPath)%22" />
+    </ItemGroup>
+
+    <Exec Command="@(_AspireManifestPublishArg, ' ')"
+      ConsoleToMsBuild="true"
+      IgnoreStandardErrorWarningFormat="true"
+      EchoOff="true"
+      StandardOutputImportance="low"
+      StandardErrorImportance="low"
+      />
   </Target>
 </Project>

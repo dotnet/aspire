@@ -1,0 +1,18 @@
+﻿@namespace Aspire.Dashboard.Components
+
+@if (UnviewedCount > 0)
+{
+    <div @onclick="OnClick" class="resource-error-badge">
+        <FluentBadge title="@($"{UnviewedCount} error logs")" Appearance="Appearance.Accent" Circular="true" Fill="error" slot="end">
+            @((UnviewedCount > 9) ? "9+" : UnviewedCount.ToString())
+        </FluentBadge>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public EventCallback<MouseEventArgs> OnClick { get; set; }
+
+    [Parameter]
+    public int UnviewedCount { get; set; }
+}

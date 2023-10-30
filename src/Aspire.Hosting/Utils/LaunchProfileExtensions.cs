@@ -61,7 +61,7 @@ internal static class LaunchProfileExtensions
             return null;
         }
 
-        using var stream = new FileStream(launchSettingsFilePath, FileMode.Open);
+        using var stream = File.OpenRead(launchSettingsFilePath);
         var settings = JsonSerializer.Deserialize(stream, LaunchSetttingsSerializerContext.Default.LaunchSettings);
         return settings;
     }

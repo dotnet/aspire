@@ -17,17 +17,25 @@
                         slot="end" />
     </FluentToolbar>
     <div class="datagrid-overflow-area" tabindex="-1">
-        <FluentDataGrid Items="@FilteredResources" ResizableColumns="true" GridTemplateColumns="2fr 1fr 2fr 3fr 1fr 2fr 1fr 1fr">
+        <FluentDataGrid Items="@FilteredResources" ResizableColumns="true" GridTemplateColumns="2fr 2fr 2fr 2fr 2fr 1fr 2fr 1fr 1fr">
             <ChildContent>
-                <TemplateColumn Title="Name" Sortable="true" SortBy="@nameSort">
+                <TemplateColumn Title="Name" Sortable="true" SortBy="@nameSort" Tooltip="true" TooltipText="(c) => c.Name">
                     <FluentHighlighter HighlightedText="@filter" Text="@context.Name" />
                 </TemplateColumn>
-                <PropertyColumn Property="@(e => e.State)" Sortable="true" />
-                <PropertyColumn Property="@(c => c.CreationTimeStamp)" Title="Start Time" Sortable="true" />
-                <TemplateColumn Title="Container Image" Sortable="true" SortBy="@imageSort">
+                <TemplateColumn Title="Container ID">
+                    <GridValue HighlightText="@filter" Value="@context.ContainerId" />
+                </TemplateColumn>
+                <TemplateColumn Title="State" Sortable="true" SortBy="@stateSort">
+                    <div class="resource-state-container">
+                        @context.State
+                        <UnreadLogErrorsBadge UnviewedCount="@GetUnviewedErrorCount(context)" OnClick="@(() => ViewErrorStructuredLogs(context))" />
+                    </div>
+                </TemplateColumn>
+                <PropertyColumn Property="@(c => c.CreationTimeStamp)" Title="Start Time" Sortable="true" Tooltip="true" />
+                <TemplateColumn Title="Container Image" Sortable="true" SortBy="@imageSort" Tooltip="true" TooltipText="(c) => c.Image">
                     <FluentHighlighter HighlightedText="@filter" Text="@context.Image" />
                 </TemplateColumn>
-                <TemplateColumn Title="Ports" Sortable="false">
+                <TemplateColumn Title="Ports" Sortable="false" Tooltip="true" TooltipText="@((c) => string.Join(";", c.Ports.Select(e => e.ToString())))">
                     <span>@string.Join(";", context.Ports.Select(e => e.ToString()))</span>
                 </TemplateColumn>
                 <TemplateColumn Title="Endpoints" Sortable="false">
@@ -35,20 +43,20 @@
                         @* If we have no endpoints, and the app isn't running anymore or we're not expecting any, then just say None *@
                         @if (context.Endpoints.Count == 0 && (context.State == FinishedState || context.ExpectedEndpointsCount == 0))
                         {
-                            <span>None</span>
+                            <span class="long-inner-content">None</span>
                         }
                         else
                         {
                             @* If we have any, regardless of the state, go ahead and display them *@
                             foreach (var endpoint in context.Endpoints.OrderBy(e => e))
                             {
-                                <a href="@endpoint" target="_blank">@endpoint</a>
+                                <a href="@endpoint" target="_blank" class="long-inner-content">@endpoint</a>
                             }
                             @* If we're expecting more, say Starting..., unless the app isn't running anymore *@
                             if (context.State != FinishedState
                             && (context.ExpectedEndpointsCount is null || context.ExpectedEndpointsCount > context.Endpoints.Count))
                             {
-                                <span>Starting...</span>
+                                <span class="long-inner-content">Starting...</span>
                             }
                         }
                     </FluentStack>
@@ -64,7 +72,7 @@
                 </TemplateColumn>
             </ChildContent>
             <EmptyContent>
-                <FluentIcon Icon="Icons.Regular.Size24.BinFull" />&nbsp;No running containers found
+                    <FluentIcon Icon="Icons.Regular.Size24.BinFull" />&nbsp;No running containers found
             </EmptyContent>
         </FluentDataGrid>
     </div>

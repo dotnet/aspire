@@ -25,7 +25,7 @@
                                 Autofocus="true"
                                 @bind-Value="_filter"
                                 @oninput="HandleFilter"
-                                AfterBindValue="HandleClear"
+                                @bind-Value:after="HandleClear"
                                 slot="end" />
             </FluentToolbar>
             <div class="dialog-grid-container">

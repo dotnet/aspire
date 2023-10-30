@@ -1,7 +1,12 @@
 ﻿@using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Otlp.Model
-@using Microsoft.Fast.Components.FluentUI;
+@using Microsoft.FluentUI.AspNetCore.Components;
 @implements IDialogContentComponent<SpanDetailsDialogViewModel>
+
+<FluentDialogHeader>
+    <h3 style="display:inline-block;">@Dialog?.Instance.Parameters.Title</h3>
+    <span class="span-id">@OtlpHelpers.ToShortenedId(Content.Span.SpanId)</span>
+</FluentDialogHeader>
 
 <div>
     <FluentDialogBody>
@@ -25,7 +30,7 @@
                               Autofocus="true"
                               @bind-Value="_filter"
                               @oninput="HandleFilter"
-                              AfterBindValue="HandleClear"
+                              @bind-Value:after="HandleClear"
                               slot="end" />
             </FluentToolbar>
             <div class="dialog-grid-container">

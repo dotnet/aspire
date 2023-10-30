@@ -5,18 +5,21 @@ using System.Globalization;
 using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Lifecycle;
 using Xunit;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Tests;
 
-public class DistributedApplicationTests
+public class DistributedApplicationTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     public async void RegisteredLifecycleHookIsExecutedWhenRunAsynchronously()
     {
         var exceptionMessage = "Exception from lifecycle hook to prove it ran!";
 
-        var testProgram = new TestProgram([]);
-        testProgram.AppBuilder.Services.AddLifecycleHook<CallbackLifecycleHook>((sp) =>
+        var testProgram = CreateTestProgram();
+        testProgram.AppBuilder.Services.AddLifecycleHook((sp) =>
         {
             return new CallbackLifecycleHook((appModel, cancellationToken) =>
             {
@@ -43,10 +46,10 @@ public class DistributedApplicationTests
 
         var signal = (FirstHookExecuted: false, SecondHookExecuted: false);
 
-        var testProgram = new TestProgram([]);
+        var testProgram = CreateTestProgram();
 
         // Lifecycle hook 1
-        testProgram.AppBuilder.Services.AddLifecycleHook<CallbackLifecycleHook>((sp) =>
+        testProgram.AppBuilder.Services.AddLifecycleHook((sp) =>
         {
             return new CallbackLifecycleHook((app, cancellationToken) =>
             {
@@ -56,7 +59,7 @@ public class DistributedApplicationTests
         });
 
         // Lifecycle hook 2
-        testProgram.AppBuilder.Services.AddLifecycleHook<CallbackLifecycleHook>((sp) =>
+        testProgram.AppBuilder.Services.AddLifecycleHook((sp) =>
         {
             return new CallbackLifecycleHook((app, cancellationToken) =>
             {
@@ -84,8 +87,8 @@ public class DistributedApplicationTests
     {
         var exceptionMessage = "Exception from lifecycle hook to prove it ran!";
 
-        var testProgram = new TestProgram([]);
-        testProgram.AppBuilder.Services.AddLifecycleHook<CallbackLifecycleHook>((sp) =>
+        var testProgram = CreateTestProgram();
+        testProgram.AppBuilder.Services.AddLifecycleHook((sp) =>
         {
             return new CallbackLifecycleHook((appModel, cancellationToken) =>
             {
@@ -103,45 +106,64 @@ public class DistributedApplicationTests
     [LocalOnlyFact]
     public async void TestProjectStartsAndStopsCleanly()
     {
-        var cts = new CancellationTokenSource();
-        cts.CancelAfter(TimeSpan.FromMinutes(1));
+        var testProgram = CreateTestProgram();
+        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
 
-        var testProgram = new TestProgram([]);
-        var pendingRun = testProgram.RunAsync(cts.Token);
+        testProgram.AppBuilder.Services
+            .AddHttpClient()
+            .ConfigureHttpClientDefaults(b =>
+            {
+                b.UseSocketsHttpHandler((handler, sp) => handler.PooledConnectionLifetime = TimeSpan.FromSeconds(5));
+            });
+
+        await using var app = testProgram.Build();
+
+        var client = app.Services.GetRequiredService<IHttpClientFactory>().CreateClient();
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
+
+        await app.StartAsync(cts.Token);
 
         // Make sure each service is running
-        await testProgram.ServiceABuilder.HttpGetPidAsync("http", cts.Token);
-        await testProgram.ServiceBBuilder.HttpGetPidAsync("http", cts.Token);
-        await testProgram.ServiceCBuilder.HttpGetPidAsync("http", cts.Token);
-
-        // Shut it all down.
-        cts.Cancel();
-        await pendingRun;
+        await testProgram.ServiceABuilder.HttpGetPidAsync(client, "http", cts.Token);
+        await testProgram.ServiceBBuilder.HttpGetPidAsync(client, "http", cts.Token);
+        await testProgram.ServiceCBuilder.HttpGetPidAsync(client, "http", cts.Token);
     }
 
     [LocalOnlyFact]
     public async void TestServicesWithMultipleReplicas()
     {
-        // Start up the test project.
-        var cts = new CancellationTokenSource();
-        cts.CancelAfter(TimeSpan.FromMinutes(1));
-
         var replicaCount = 3;
 
-        var testProgram = new TestProgram([]);
+        var testProgram = CreateTestProgram();
+        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
+
+        testProgram.AppBuilder.Services
+            .AddHttpClient()
+            .ConfigureHttpClientDefaults(b =>
+            {
+                b.UseSocketsHttpHandler((handler, sp) => handler.PooledConnectionLifetime = TimeSpan.FromSeconds(5));
+            });
+
         testProgram.ServiceBBuilder.WithReplicas(replicaCount);
 
-        var pendingRun = testProgram.RunAsync(cts.Token);
+        await using var app = testProgram.Build();
+
+        var client = app.Services.GetRequiredService<IHttpClientFactory>().CreateClient();
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
+
+        await app.StartAsync(cts.Token);
 
         // Make sure services A and C are running
-        await testProgram.ServiceABuilder.HttpGetPidAsync("http", cts.Token);
-        await testProgram.ServiceCBuilder.HttpGetPidAsync("http", cts.Token);
+        await testProgram.ServiceABuilder.HttpGetPidAsync(client, "http", cts.Token);
+        await testProgram.ServiceCBuilder.HttpGetPidAsync(client, "http", cts.Token);
 
         // We should get 3 distinct PIDs from service B
-        Dictionary<int, bool> pids = new();
+        Dictionary<int, bool> pids = [];
         while (true)
         {
-            var pid = await testProgram.ServiceBBuilder.HttpGetPidAsync("http", cts.Token);
+            var pid = await testProgram.ServiceBBuilder.HttpGetPidAsync(client, "http", cts.Token);
             if (!string.IsNullOrEmpty(pid))
             {
                 pids[int.Parse(pid, CultureInfo.InvariantCulture)] = true;
@@ -152,9 +174,6 @@ public class DistributedApplicationTests
             }
             await Task.Delay(100, cts.Token);
         }
-
-        // Shut it all down.
-        cts.Cancel();
-        await pendingRun;
     }
+    private static TestProgram CreateTestProgram(string[]? args = null) => TestProgram.Create<DistributedApplicationTests>(args);
 }
