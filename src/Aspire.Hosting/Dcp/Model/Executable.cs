@@ -115,6 +115,8 @@ public class Executable : CustomResource<ExecutableSpec, ExecutableStatus>
     [JsonConstructor]
     public Executable(ExecutableSpec spec) : base(spec) { }
 
+    public bool IsCSharpProject() => Metadata.Annotations?.ContainsKey(CSharpProjectPathAnnotation) == true;
+
     public static Executable Create(string name, string executablePath)
     {
         var exe = new Executable(new ExecutableSpec

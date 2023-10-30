@@ -18,9 +18,6 @@
     protected override string UrlPrefix => "/ExecutableLogs";
     protected override string SelectResourceTitle => "Select an Executable";
 
-    protected override ValueTask<List<ExecutableViewModel>> GetResources(IDashboardViewModelService dashboardViewModelService)
-        => dashboardViewModelService.GetExecutablesAsync();
-
-    protected override IAsyncEnumerable<ResourceChanged<ExecutableViewModel>> WatchResources(IDashboardViewModelService dashboardViewModelService, IEnumerable<NamespacedName>? initialList, CancellationToken cancellationToken)
-        => dashboardViewModelService.WatchExecutablesAsync(initialList, cancellationToken);
+    protected override ViewModelMonitor<ExecutableViewModel> GetViewModelMonitor(IDashboardViewModelService dashboardViewModelService)
+        => dashboardViewModelService.GetExecutables();
 }

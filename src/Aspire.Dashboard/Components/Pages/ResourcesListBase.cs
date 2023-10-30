@@ -29,11 +29,7 @@ public abstract class ResourcesListBase<TResource> : ComponentBase, IDisposable
     [Inject]
     public required NavigationManager NavigationManager { get; set; }
 
-    protected abstract ValueTask<List<TResource>> GetResources(IDashboardViewModelService dashboardViewModelService);
-    protected abstract IAsyncEnumerable<ResourceChanged<TResource>> WatchResources(
-        IDashboardViewModelService dashboardViewModelService,
-        IEnumerable<NamespacedName> initialList,
-        CancellationToken cancellationToken);
+    protected abstract ViewModelMonitor<TResource> GetViewModelMonitor(IDashboardViewModelService dashboardViewModelService);
     protected abstract bool Filter(TResource resource);
     protected virtual bool ShowSpecOnlyToggle => true;
 
@@ -46,11 +42,12 @@ public abstract class ResourcesListBase<TResource> : ComponentBase, IDisposable
     protected GridSort<TResource> nameSort = GridSort<TResource>.ByAscending(p => p.Name);
     protected GridSort<TResource> stateSort = GridSort<TResource>.ByAscending(p => p.State);
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         _applicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
-
-        var resources = await GetResources(DashboardViewModelService);
+        var viewModelMonitor = GetViewModelMonitor(DashboardViewModelService);
+        var resources = viewModelMonitor.Snapshot;
+        var watch = viewModelMonitor.Watch;
         foreach (var resource in resources)
         {
             _resourcesMap.Add(resource.Name, resource);
@@ -58,8 +55,7 @@ public abstract class ResourcesListBase<TResource> : ComponentBase, IDisposable
 
         _ = Task.Run(async () =>
         {
-            await foreach (var resourceChanged in WatchResources(
-                DashboardViewModelService, resources.Select(e => e.NamespacedName), _watchTaskCancellationTokenSource.Token))
+            await foreach (var resourceChanged in watch.WithCancellation(_watchTaskCancellationTokenSource.Token))
             {
                 await OnResourceListChanged(resourceChanged.ObjectChangeType, resourceChanged.Resource);
             }
