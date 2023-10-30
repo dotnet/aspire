@@ -14,12 +14,6 @@ public sealed class AzureDataCosmosSettings
     public string? ConnectionString { get; set; }
 
     /// <summary>
-    /// <para>Gets or sets a boolean value that indicates whether the DbContext health check is enabled or not.</para>
-    /// <para>Enabled by default.</para>
-    /// </summary>
-    public bool HealthChecks { get; set; } = true;
-
-    /// <summary>
     /// <para>Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.</para>
     /// <para>Enabled by default.</para>
     /// </summary>

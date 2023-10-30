@@ -5,7 +5,6 @@ using Aspire.Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 using OpenTelemetry.Metrics;
 
 namespace Microsoft.Extensions.Hosting;
@@ -102,17 +101,6 @@ public static class AspireAzureCosmosDBExtensions
                     eventCountersInstrumentationOptions.AddEventSources("Azure-Cosmos-Operation-Request-Diagnostics");
                 });
             });
-        }
-
-        if (settings.HealthChecks)
-        {
-            builder.Services.AddHealthChecks()
-                .Add(new HealthCheckRegistration(
-                    "AzureCosmosDB",
-                    sp => new AzureCosmosDBHealthCheck(settings),
-                    failureStatus: default,
-                    tags: default,
-                    timeout: default));
         }
 
         configureClientOptions?.Invoke(clientOptions);

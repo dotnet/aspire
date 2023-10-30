@@ -12,10 +12,6 @@ public class ConfigurationTests
         => Assert.Null(new AzureDataCosmosSettings().ConnectionString);
 
     [Fact]
-    public void HealthCheckIsEnabledByDefault()
-        => Assert.True(new AzureDataCosmosSettings().HealthChecks);
-
-    [Fact]
     public void TracingIsEnabledByDefault()
         => Assert.True(new AzureDataCosmosSettings().Tracing);
 

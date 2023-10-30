@@ -29,7 +29,7 @@ public class ConformanceTests : ConformanceTests<CosmosClient, AzureDataCosmosSe
         => builder.AddAzureCosmosDB("cosmosdb", configure);
 
     protected override void SetHealthCheck(AzureDataCosmosSettings options, bool enabled)
-        => options.HealthChecks = enabled;
+        => throw new NotImplementedException();
 
     protected override void SetTracing(AzureDataCosmosSettings options, bool enabled)
         => options.Tracing = enabled;

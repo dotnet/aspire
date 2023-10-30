@@ -16,10 +16,6 @@
           "type": "string",
           "description": "Gets or sets the connection string of the Azure Cosmos DB to connect to."
         },
-        "HealthChecks": {
-          "type": "boolean",
-          "description": "Gets or sets a boolean value that indicates whether the health check is enabled or not."
-        },
         "Tracing": {
           "type": "boolean",
           "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not."
