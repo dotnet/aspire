@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "isRoot": true,
+  "tools": {
+    "dotnet-coverage": {
+      "version": "17.8.2",
+      "commands": [
+        "dotnet-coverage"
+      ]
+    },
+    "dotnet-reportgenerator-globaltool": {
+      "version": "5.1.19",
+      "commands": [
+        "reportgenerator"
+      ]
+    },
+    "PowerShell": {
+      "version": "7.3.3",
+      "commands": [
+        "pwsh"
+      ]
+    }
+  }
+}

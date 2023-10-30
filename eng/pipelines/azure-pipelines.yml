@@ -15,8 +15,14 @@ variables:
   - template: /eng/pipelines/common-variables.yml
   - template: /eng/common/templates/variables/pool-providers.yml
 
+  - name: _BuildConfig
+    value: Release
   - name: Build.Arcade.ArtifactsPath
     value: $(Build.SourcesDirectory)/artifacts/
+  - name: Build.Arcade.LogsPath
+    value: $(Build.Arcade.ArtifactsPath)log/$(_BuildConfig)/
+  - name: Build.Arcade.TestResultsPath
+    value: $(Build.Arcade.ArtifactsPath)TestResults/$(_BuildConfig)/
 
   # Produce test-signed build for PR and Public builds
   - ${{ if or(eq(variables['_RunAsPublic'], 'true'), eq(variables['Build.Reason'], 'PullRequest')) }}:
@@ -85,9 +91,12 @@ stages:
       enableSourceIndex: false
       workspace:
         clean: all
+
       jobs:
+
       - job: windows
-        timeoutInMinutes: 60
+        timeoutInMinutes: 30
+
         pool:
           name: $(DncEngInternalBuildPool)
           demands: ImageOverride -equals windows.vs2022preview.amd64
@@ -95,12 +104,6 @@ stages:
         variables:
           - name: _buildScript
             value: $(Build.SourcesDirectory)/build.cmd -ci
-          - name: _BuildConfig
-            value: Release
-          - name: Build.Arcade.LogsPath
-            value: $(Build.Arcade.ArtifactsPath)log/$(_BuildConfig)/
-          - name: Build.Arcade.TestResultsPath
-            value: $(Build.Arcade.ArtifactsPath)TestResults/$(_BuildConfig)/
 
         preSteps:
           - checkout: self
@@ -120,8 +123,8 @@ stages:
 
       - ${{ if eq(variables._RunAsPublic, True) }}:
         - job: linux
-          timeoutInMinutes: 60
-          container: LinuxContainer
+          timeoutInMinutes: 30
+
           pool:
             name: $(DncEngInternalBuildPool)
             demands: ImageOverride -equals build.ubuntu.2004.amd64
@@ -129,12 +132,6 @@ stages:
           variables:
             - name: _buildScript
               value: $(Build.SourcesDirectory)/build.sh --ci
-            - name: _BuildConfig
-              value: Debug
-            - name: Build.Arcade.LogsPath
-              value: $(Build.Arcade.ArtifactsPath)log/$(_BuildConfig)/
-            - name: Build.Arcade.TestResultsPath
-              value: $(Build.Arcade.ArtifactsPath)TestResults/$(_BuildConfig)/
 
           preSteps:
             - checkout: self
@@ -150,6 +147,49 @@ stages:
               repoLogPath: $(Build.Arcade.LogsPath)
               repoTestResultsPath: $(Build.Arcade.TestResultsPath)
               isWindows: false
+
+
+# ----------------------------------------------------------------
+# This stage performs quality gates checks
+# ----------------------------------------------------------------
+- stage: codecoverage
+  displayName: CodeCoverage
+  dependsOn: 
+    - build
+  condition: succeeded('build')
+  variables:
+  - template: /eng/common/templates/variables/pool-providers.yml
+  jobs:
+  - template: /eng/common/templates/jobs/jobs.yml
+    parameters:
+      enableMicrobuild: true
+      enableTelemetry: true
+      runAsPublic: false
+      workspace:
+        clean: all
+
+      # ----------------------------------------------------------------
+      # This stage downloads the code coverage reports from the build jobs,
+      # merges those and validates the combined test coverage.
+      # ----------------------------------------------------------------
+      jobs:
+      - job: CodeCoverageReport
+        timeoutInMinutes: 10
+
+        pool:
+          name: $(DncEngInternalBuildPool)
+          demands: ImageOverride -equals build.ubuntu.2004.amd64
+
+        preSteps:
+          - checkout: self
+            fetchDepth: 1
+            clean: true
+
+        steps:
+        - script: $(Build.SourcesDirectory)/build.sh --ci --restore
+          displayName: Init toolset
+
+        - template: /eng/pipelines/templates/VerifyCoverageReport.yml
 
 
 - ${{ if eq(variables._RunAsInternal, True) }}:
@@ -169,3 +209,4 @@ stages:
           -TsaCodebaseName $(_TsaCodebaseName)
           -TsaOnboard $(_TsaOnboard)
           -TsaPublish $(_TsaPublish)'
+
