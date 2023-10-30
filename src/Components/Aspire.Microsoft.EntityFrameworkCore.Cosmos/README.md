@@ -1,83 +1,113 @@
-# Aspire.SqlServer.EntityFrameworkCore.SqlClient library
+# Aspire.Microsoft.EntityFrameworkCore.Cosmos library
 
-Registers 'Scoped' [EntityFrameworkCore](https://learn.microsoft.com/en-us/ef/core/) `DbContext` service for connecting Azure SQL, MS SQL server database using [SqlClient](https://learn.microsoft.com/dotnet/api/microsoft.data.sqlclient). Configures the connection pooling, health check, logging and telemetry for the [DbContext](https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbcontext).
+Registers [EntityFrameworkCore](https://learn.microsoft.com/en-us/ef/core/) [DbContext](https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbcontext) in the DI container for connecting to Azure Cosmos DB. Enables connection pooling, logging and telemetry.
 
 ## Getting started
 
 ### Prerequisites
 
-- You need Azure SQL or MS SQL server database and connection string for accessing the database.
+- CosmosDB database and connection string for accessing the database.
 
 ### Install the package
 
-Install the Aspire SQL Server EntityFrameworkCore SqlClient library with [NuGet][nuget]:
+Install the Aspire Microsoft EntityFrameworkCore Cosmos library with [NuGet][nuget]:
 
 ```dotnetcli
-dotnet add package Aspire.SqlServer.EntityFrameworkCore.SqlClient
+dotnet add package Aspire.Microsoft.EntityFrameworkCore.Cosmos
 ```
 
-## Usage Example
+## Usage example
 
-Call `AddSqlServerEntityFrameworkDBContext` extension method to add the `DbContext`  with the desired configurations exposed with `MicrosoftEntityFrameworkCoreSqlServerSettings`. The library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It can load the configuration options from your `*.json` settings file, by default the section name is `Aspire.SqlServer.EntityFrameworkCore.SqlClient`, you can change the configuration section name by passing the optional parameter `configurationSectionName`. Example `appsettings.json` that configures some of the options:
+In the _Program.cs_ file of your project, call the `AddCosmosDbContext` extension method to register a `DbContext` for use via the dependency injection container. The method takes a connection name parameter.
+
+```csharp
+builder.AddCosmosDbContext<MyDbContext>("cosmosdb");
+```
+
+You can then retrieve the `MyDbContext` instance using dependency injection. For example, to retrieve the context from a Web API controller:
+
+```csharp
+private readonly MyDbContext _context;
+
+public ProductsController(MyDbContext context)
+{
+    _context = context;
+}
+```
+
+## Configuration
+
+The Aspire Microsoft EntityFrameworkCore Cosmos component provides multiple options to configure the database connection based on the requirements and conventions of your project.
+
+### Use a connection string
+
+When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddCosmosDbContext()`:
+
+```csharp
+builder.AddCosmosDbContext<MyDbContext>("myConnection");
+```
+
+And then the connection string will be retrieved from the `ConnectionStrings` configuration section:
 
 ```json
 {
-  "Aspire.SqlServer.EntityFrameworkCore.SqlClient": {
-      "ConnectionString": "YOUR_CONNECTIONSTRING",
-      "DbContextPooling": true,
-      "HealthChecks": false,
-      "Tracing": false,
-      "Metrics": true
+  "ConnectionStrings": {
+    "myConnection": "AccountEndpoint=https://{account_name}.documents.azure.com:443/;AccountKey={account_key};"
   }
 }
 ```
 
- If you already setup your configurations with the default name you can just call the method without passing any parameter.
+See the [ConnectionString documentation](https://learn.microsoft.com/azure/cosmos-db/nosql/how-to-dotnet-get-started#connect-with-a-connection-string) for more information.
 
-```cs
-    builder.AddSqlServerEntityFrameworkDBContext<YourDbContext>();
-```
+### Use configuration providers
 
-Otherwise call the `AddSqlServerEntityFrameworkDBContext` method with the `configurationSectionName` you have. Also you can pass the `Action<MicrosoftEntityFrameworkCoreSqlServerSettings>` delegate to set up some or all the options inline, for example to set the `ConnectionString`:
+The Aspire Microsoft EntityFrameworkCore Cosmos component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureEntityFrameworkCoreCosmosDBSettings` from configuration by using the `Aspire:Microsaoft:EntityFrameworkCore:Cosmos` key. Example `appsettings.json` that configures some of the options:
 
-```cs
-    builder.AddSqlServerEntityFrameworkDBContext<YourDbContext>(config => config.ConnectionString = "YOUR_CONNECTIONSTRING");
-```
-
-After adding the `YourDbContext` to the builder you can get a scoped `YourDbContext` instance using DI.
-
-Here are the configurable options with corresponding default values:
-
-```cs
-public sealed class MicrosoftEntityFrameworkCoreSqlServerSettings
+```json
 {
-    // Gets or sets the connection string of the SQL Server database to connect to. Note that this is the only option that is required to set.
-    public string? ConnectionString { get; set; }
-
-    // Gets or sets a boolean value that indicates whether the db context will be pooled or explicitly created every time it's requested.
-    public bool DbContextPooling { get; set; } = true;
-	
-    // Gets or sets the maximum number of retry attempts. Default value is 6, set it to 0 to disable the retry mechanism.
-    public int MaxRetryCount { get; set; } = 6;
-
-    // Gets or sets a boolean value that indicates whether the DbContext health check is enabled or not.
-    public bool HealthChecks { get; set; } = true;
-
-    // Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.
-    public bool Tracing { get; set; } = true;
-	
-    // Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not.
-    public bool Metrics { get; set; } = true;
-	
-    // The time in seconds to wait for the command to execute.
-    public int? Timeout { get; set; }
+  "Aspire": {
+    "Microsoft": {
+      "EntityFrameworkCore": {
+        "Cosmos": {
+          "DbContextPooling": true,
+          "Tracing": false
+        }
+      }
+    }
+  }
 }
+```
+
+### Use inline delegates
+
+Also you can pass the `Action<AzureEntityFrameworkCoreCosmosDBSettings> configureSettings` delegate to set up some or all the options inline, for example to disable tracing from code:
+
+```csharp
+    builder.AddCosmosDbContext<MyDbContext>("cosmosdb", settings => settings.Tracing = false);
+```
+
+## AppHost extensions
+
+In your AppHost project, add a Cosmos DB connection and consume the connection using the following methods::
+
+```csharp
+var cosmosdb = builder.AddAzureCosmosDB("cdb").AddDatabase("cosmosdb");
+
+var myService = builder.AddProject<Projects.MyService>()
+                       .WithReference(cosmosdb);
+```
+
+The `WithReference` method configures a connection in the `MyService` project named `cosmosdb`. In the _Program.cs_ file of `MyService`, the database connection can be consumed using:
+
+```csharp
+builder.AddCosmosDbContext<MyDbContext>("cosmosdb");
 ```
 
 ## Additional documentation
 
-https://github.com/dotnet/astra/tree/main/src/Components/README.md
+* https://learn.microsoft.com/ef/core/
+* https://github.com/dotnet/aspire/tree/main/src/Components/README.md
 
-## Feedback & Contributing
+## Feedback & contributing
 
-https://github.com/dotnet/astra
+https://github.com/dotnet/aspire

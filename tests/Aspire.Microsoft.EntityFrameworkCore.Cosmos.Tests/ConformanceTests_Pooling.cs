@@ -12,7 +12,7 @@ using Xunit;
 
 namespace Aspire.Microsoft.EntityFrameworkCore.Cosmos.Tests;
 
-public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, AzureDataCosmosEntityFrameworkCoreSettings>
+public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, AzureEntityFrameworkCoreCosmosDBSettings>
 {
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
@@ -37,16 +37,16 @@ public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, AzureDat
                 "TestDatabase"),
         });
 
-    protected override void RegisterComponent(HostApplicationBuilder builder, Action<AzureDataCosmosEntityFrameworkCoreSettings>? configure = null, string? key = null)
-        => builder.AddCosmosDBEntityFrameworkDBContext<TestDbContext>("cosmosdb", configure);
+    protected override void RegisterComponent(HostApplicationBuilder builder, Action<AzureEntityFrameworkCoreCosmosDBSettings>? configure = null, string? key = null)
+        => builder.AddCosmosDbContext<TestDbContext>("cosmosdb", configure);
 
-    protected override void SetHealthCheck(AzureDataCosmosEntityFrameworkCoreSettings options, bool enabled)
+    protected override void SetHealthCheck(AzureEntityFrameworkCoreCosmosDBSettings options, bool enabled)
         => throw new NotImplementedException();
 
-    protected override void SetTracing(AzureDataCosmosEntityFrameworkCoreSettings options, bool enabled)
+    protected override void SetTracing(AzureEntityFrameworkCoreCosmosDBSettings options, bool enabled)
         => options.Tracing = enabled;
 
-    protected override void SetMetrics(AzureDataCosmosEntityFrameworkCoreSettings options, bool enabled)
+    protected override void SetMetrics(AzureEntityFrameworkCoreCosmosDBSettings options, bool enabled)
         => options.Metrics = enabled;
 
     protected override string JsonSchemaPath
