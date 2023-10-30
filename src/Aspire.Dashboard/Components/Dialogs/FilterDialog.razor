@@ -4,19 +4,24 @@
 @using Microsoft.Fast.Components.FluentUI;
 @implements IDialogContentComponent<FilterDialogViewModel>
 
-<FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
-    <FluentCombobox Items=@Parameters @bind-Value="@Parameter" Width="100%" />
+<EditForm EditContext="@EditContext" OnValidSubmit="@Apply">
+    <DataAnnotationsValidator />
 
-    <FluentSelect TOption="FilterCondition" Items="@Conditions.Keys" @bind-SelectedOption="@Condition" OptionText="@(i => Conditions[i])" Width="100%" />
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
+        <FluentCombobox Placeholder="Field" Items=@Parameters @bind-Value="@_formModel.Parameter" Width="100%" Height="500px" />
 
-    <FluentTextField @bind-Value="Value" Placeholder="Value" />
+        <FluentSelect TOption="SelectViewModel<FilterCondition>" Items="@s_filterConditions" @bind-SelectedOption="@_formModel.Condition" OptionText="@(i => i.Name)" Width="100%" />
 
-    <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.Right">
-        <FluentButton OnClick="Cancel">Cancel</FluentButton>
-        <FluentButton Color="Color.Primary" OnClick="Apply">Apply Filter</FluentButton>
-        @if (Content is { })
-        {
-            <FluentButton Appearance="Appearance.Stealth" aria-label="Remove Filter" OnClick="Delete"><FluentIcon Value="@(new Icons.Regular.Size16.Delete())" /></FluentButton>
-        }
+        <FluentTextField @bind-Value="_formModel.Value" Placeholder="Value" />
+
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.Right">
+            <FluentButton OnClick="Cancel">Cancel</FluentButton>
+            <FluentButton Color="Color.Primary" Type="ButtonType.Submit">Apply Filter</FluentButton>
+            @if (Content.Filter is not null)
+            {
+                <FluentButton Appearance="Appearance.Stealth" aria-label="Remove Filter" OnClick="Delete"><FluentIcon Value="@(new Icons.Regular.Size16.Delete())" /></FluentButton>
+            }
+        </FluentStack>
     </FluentStack>
-</FluentStack>
+
+</EditForm>

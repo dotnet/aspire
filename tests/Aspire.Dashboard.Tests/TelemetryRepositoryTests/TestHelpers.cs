@@ -125,7 +125,6 @@ internal static class TestHelpers
             Attributes =
             {
                 new KeyValue { Key = "{OriginalFormat}", Value = new AnyValue { StringValue = "Test {Log}" } },
-                new KeyValue { Key = "ParentId", Value = new AnyValue { StringValue = "TestParentId" } },
                 new KeyValue { Key = "Log", Value = new AnyValue { StringValue = "Value!" } }
             }
         };
