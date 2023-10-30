@@ -21,7 +21,7 @@ public class ConformanceTests : ConformanceTests<CosmosClient, AzureDataCosmosSe
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[1]
         {
-            new KeyValuePair<string, string?>(CreateConfigKey("Aspire.Microsoft.Azure.Cosmos", key, "ConnectionString"),
+            new KeyValuePair<string, string?>(CreateConfigKey("Aspire:Microsoft:Azure:Cosmos", key, "ConnectionString"),
                 "AccountEndpoint=https://example.documents.azure.com:443/;AccountKey=fake;")
         });
 

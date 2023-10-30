@@ -14,7 +14,7 @@ namespace Microsoft.Extensions.Hosting;
 /// </summary>
 public static class AspireAzureCosmosDBExtensions
 {
-    public const string DefaultConfigSectionName = "Aspire.Microsoft.Azure.Cosmos";
+    public const string DefaultConfigSectionName = "Aspire:Microsoft:Azure:Cosmos";
 
     /// <summary>
     /// Registers <see cref="CosmosClient" /> as a singleton in the services provided by the <paramref name="builder"/>.
@@ -24,7 +24,7 @@ public static class AspireAzureCosmosDBExtensions
     /// <param name="connectionName">The connection name to use to find a connection string.</param>
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureDataCosmosSettings"/>. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureClientOptions">An optional method that can be used for customizing the <see cref="CosmosClientOptions"/>.</param>
-    /// <remarks>Reads the configuration from "Aspire.Microsoft.Azure.Cosmos" section.</remarks>
+    /// <remarks>Reads the configuration from "Aspire:Microsoft:Azure:Cosmos" section.</remarks>
     /// <exception cref="InvalidOperationException">If required ConnectionString is not provided in configuration section</exception>
     public static void AddAzureCosmosDB(
         this IHostApplicationBuilder builder,
@@ -43,7 +43,7 @@ public static class AspireAzureCosmosDBExtensions
     /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureDataCosmosSettings"/>. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureClientOptions">An optional method that can be used for customizing the <see cref="CosmosClientOptions"/>.</param>
-    /// <remarks>Reads the configuration from "Aspire.Microsoft.Azure.Cosmos:{name}" section.</remarks>
+    /// <remarks>Reads the configuration from "Aspire:Microsoft:Azure:Cosmos:{name}" section.</remarks>
     /// <exception cref="InvalidOperationException">If required ConnectionString is not provided in configuration section</exception>
     public static void AddKeyedAzureCosmosDB(
         this IHostApplicationBuilder builder,

@@ -31,9 +31,9 @@ public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, AzureEnt
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[]
         {
-            new KeyValuePair<string, string?>("Aspire.Microsoft.EntityFrameworkCore.Cosmos:ConnectionString",
+            new KeyValuePair<string, string?>("Aspire:Microsoft:EntityFrameworkCore:Cosmos:ConnectionString",
                 "Host=fake;Database=catalog"),
-            new KeyValuePair<string, string?>("Aspire.Microsoft.EntityFrameworkCore.Cosmos:DatabaseName",
+            new KeyValuePair<string, string?>("Aspire:Microsoft:EntityFrameworkCore:Cosmos:DatabaseName",
                 "TestDatabase"),
         });
 

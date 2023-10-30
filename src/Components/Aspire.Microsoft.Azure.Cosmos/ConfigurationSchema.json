@@ -9,23 +9,37 @@
     }
   },
   "properties": {
-    "Aspire.Microsoft.Azure.Cosmos": {
+    "Aspire": {
       "type": "object",
       "properties": {
-        "ConnectionString": {
-          "type": "string",
-          "description": "Gets or sets the connection string of the Azure Cosmos DB to connect to."
-        },
-        "Tracing": {
-          "type": "boolean",
-          "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not."
-        },
-        "Metrics": {
-          "type": "boolean",
-          "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not."
+        "Microsoft": {
+          "type": "object",
+          "properties": {
+            "Azure": {
+              "type": "object",
+              "properties": {
+                "Cosmos": {
+                  "type": "object",
+                  "properties": {
+                    "ConnectionString": {
+                      "type": "string",
+                      "description": "Gets or sets the connection string of the Azure Cosmos DB to connect to."
+                    },
+                    "Tracing": {
+                      "type": "boolean",
+                      "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not."
+                    },
+                    "Metrics": {
+                      "type": "boolean",
+                      "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not."
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
       }
     }
-  },
-  "type": "object"
+  }
 }

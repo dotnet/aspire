@@ -16,7 +16,7 @@ namespace Microsoft.Extensions.Hosting;
 /// </summary>
 public static class AspireAzureEFCoreCosmosDBExtensions
 {
-    private const string DefaultConfigSectionName = "Aspire.Microsoft.EntityFrameworkCore.Cosmos";
+    private const string DefaultConfigSectionName = "Aspire:Microsoft:EntityFrameworkCore:Cosmos";
     private const DynamicallyAccessedMemberTypes RequiredByEF = DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties;
 
     /// <summary>
