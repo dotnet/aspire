@@ -14,11 +14,6 @@ public sealed class AzureEntityFrameworkCoreCosmosDBSettings
     public string? ConnectionString { get; set; }
 
     /// <summary>
-    /// The database name to use to store entities in.
-    /// </summary>
-    public string? DatabaseName { get; set; }
-
-    /// <summary>
     /// Gets or sets a boolean value that indicates whether the db context will be pooled or explicitly created every time it's requested.
     /// </summary>
     public bool DbContextPooling { get; set; } = true;

@@ -33,12 +33,10 @@ public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, AzureEnt
         {
             new KeyValuePair<string, string?>("Aspire:Microsoft:EntityFrameworkCore:Cosmos:ConnectionString",
                 "Host=fake;Database=catalog"),
-            new KeyValuePair<string, string?>("Aspire:Microsoft:EntityFrameworkCore:Cosmos:DatabaseName",
-                "TestDatabase"),
         });
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<AzureEntityFrameworkCoreCosmosDBSettings>? configure = null, string? key = null)
-        => builder.AddCosmosDbContext<TestDbContext>("cosmosdb", configure);
+        => builder.AddCosmosDbContext<TestDbContext>("cosmosdb", "TestDatabase", configure);
 
     protected override void SetHealthCheck(AzureEntityFrameworkCoreCosmosDBSettings options, bool enabled)
         => throw new NotImplementedException();

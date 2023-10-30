@@ -13,7 +13,7 @@ public class ConformanceTests_NoPooling : ConformanceTests_Pooling
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<AzureEntityFrameworkCoreCosmosDBSettings>? configure = null, string? key = null)
     {
-        builder.AddCosmosDbContext<TestDbContext>("cosmosdb", settings =>
+        builder.AddCosmosDbContext<TestDbContext>("cosmosdb", "TestDatabase", settings =>
         {
             settings.DbContextPooling = false;
             configure?.Invoke(settings);

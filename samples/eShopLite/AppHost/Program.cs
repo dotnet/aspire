@@ -7,8 +7,7 @@ var catalogdb = builder.AddAzureCosmosDB("cosmosdb").AddDatabase("catalogdb");
 var basketCache = builder.AddRedisContainer("basketCache");
 
 var catalogService = builder.AddProject<Projects.CatalogService>("catalogservice")
-    .WithReference(catalogdb)
-    .WithEnvironment("Aspire:Microsoft:EntityFrameworkCore:Cosmos:DatabaseName", catalogdb.Resource.Name);
+    .WithReference(catalogdb);
 
 var ordersQueue = builder.AddAzureServiceBus("messaging", queueNames: ["orders"]);
 
@@ -29,7 +28,6 @@ builder.AddProject<Projects.ApiGateway>("apigateway")
        .WithReference(catalogService);
 
 builder.AddProject<Projects.CatalogDb>("catalogdbapp")
-       .WithReference(catalogdb)
-       .WithEnvironment("Aspire:Microsoft:EntityFrameworkCore:Cosmos:DatabaseName", catalogdb.Resource.Name);
+       .WithReference(catalogdb);
 
 builder.Build().Run();
