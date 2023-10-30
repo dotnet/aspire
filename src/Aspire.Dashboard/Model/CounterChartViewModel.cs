@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using Microsoft.Fast.Components.FluentUI;
+using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Model;
 

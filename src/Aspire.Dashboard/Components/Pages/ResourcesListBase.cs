@@ -6,7 +6,7 @@ using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Services;
 using Microsoft.AspNetCore.Components;
-using Microsoft.Fast.Components.FluentUI;
+using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Components.Pages;
 
