@@ -138,9 +138,9 @@ public abstract class ResourcesListBase<TResource> : ComponentBase, IDisposable
         }
     }
 
-    protected void HandleClear(string? value)
+    protected void HandleClear()
     {
-        filter = value ?? string.Empty;
+        filter = string.Empty;
     }
 
     protected void ViewErrorStructuredLogs(TResource resource)
