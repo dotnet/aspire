@@ -11,13 +11,13 @@
   <PropertyGroup>
     <!-- Package versions defined directly in <reporoot>/Directory.Packages.props -->
     <MicrosoftDotnetSdkInternalPackageVersion>8.0.100-rc.1.23422.1</MicrosoftDotnetSdkInternalPackageVersion>
-    <MicrosoftDeveloperControlPlanedarwinamd64PackageVersion>0.1.40</MicrosoftDeveloperControlPlanedarwinamd64PackageVersion>
-    <MicrosoftDeveloperControlPlanedarwinarm64PackageVersion>0.1.40</MicrosoftDeveloperControlPlanedarwinarm64PackageVersion>
-    <MicrosoftDeveloperControlPlanelinuxamd64PackageVersion>0.1.40</MicrosoftDeveloperControlPlanelinuxamd64PackageVersion>
-    <MicrosoftDeveloperControlPlanelinuxarm64PackageVersion>0.1.40</MicrosoftDeveloperControlPlanelinuxarm64PackageVersion>
-    <MicrosoftDeveloperControlPlanewindows386PackageVersion>0.1.40</MicrosoftDeveloperControlPlanewindows386PackageVersion>
-    <MicrosoftDeveloperControlPlanewindowsamd64PackageVersion>0.1.40</MicrosoftDeveloperControlPlanewindowsamd64PackageVersion>
-    <MicrosoftDeveloperControlPlanewindowsarm64PackageVersion>0.1.40</MicrosoftDeveloperControlPlanewindowsarm64PackageVersion>
+    <MicrosoftDeveloperControlPlanedarwinamd64PackageVersion>0.1.41-rc.0</MicrosoftDeveloperControlPlanedarwinamd64PackageVersion>
+    <MicrosoftDeveloperControlPlanedarwinarm64PackageVersion>0.1.41-rc.0</MicrosoftDeveloperControlPlanedarwinarm64PackageVersion>
+    <MicrosoftDeveloperControlPlanelinuxamd64PackageVersion>0.1.41-rc.0</MicrosoftDeveloperControlPlanelinuxamd64PackageVersion>
+    <MicrosoftDeveloperControlPlanelinuxarm64PackageVersion>0.1.41-rc.0</MicrosoftDeveloperControlPlanelinuxarm64PackageVersion>
+    <MicrosoftDeveloperControlPlanewindows386PackageVersion>0.1.41-rc.0</MicrosoftDeveloperControlPlanewindows386PackageVersion>
+    <MicrosoftDeveloperControlPlanewindowsamd64PackageVersion>0.1.41-rc.0</MicrosoftDeveloperControlPlanewindowsamd64PackageVersion>
+    <MicrosoftDeveloperControlPlanewindowsarm64PackageVersion>0.1.41-rc.0</MicrosoftDeveloperControlPlanewindowsarm64PackageVersion>
     <MicrosoftNETCoreAppRefPackageVersion>8.0.0-rc.1.23419.3</MicrosoftNETCoreAppRefPackageVersion>
     <MicrosoftmacOSSdkPackageVersion>13.3.8825-net8-rc1</MicrosoftmacOSSdkPackageVersion>
     <MicrosoftDotNetBuildTasksPackagingVersion>8.0.0-beta.23525.4</MicrosoftDotNetBuildTasksPackagingVersion>
