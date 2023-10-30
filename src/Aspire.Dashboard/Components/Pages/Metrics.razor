@@ -16,9 +16,9 @@
                       @bind-SelectedOption:after="HandleSelectedApplicationChangedAsync"
                       AriaLabel="Select an Application"/>
         <FluentIcon slot="end" Icon="Icons.Regular.Size20.Clock" Style="margin-right:5px;" />
-        <FluentSelect slot="end" TOption="MetricsDurationViewModel"
+        <FluentSelect slot="end" TOption="SelectViewModel<TimeSpan>"
                       Items="@s_durations"
-                      OptionText="@(c => c.Text)"
+                      OptionText="@(c => c.Name)"
                       @bind-SelectedOption="_selectedDuration"
                       @bind-SelectedOption:after="HandleSelectedDurationChangedAsync"
                       AriaLabel="Select a Duration"/>
@@ -46,7 +46,7 @@
                     <div class="metrics-content">
                         @if (_selectedApplication.Id != null && _selectedMeter != null && _selectedInstrument != null)
                         {
-                            <ChartContainer ApplicationId="@(_selectedApplication.Id)" MeterName="@(_selectedMeter.MeterName)" InstrumentName="@(_selectedInstrument.Name)" Duration="_selectedDuration.Duration" />
+                            <ChartContainer ApplicationId="@(_selectedApplication.Id)" MeterName="@(_selectedMeter.MeterName)" InstrumentName="@(_selectedInstrument.Name)" Duration="_selectedDuration.Id" />
                         }
                         else if (_selectedMeter != null)
                         {
