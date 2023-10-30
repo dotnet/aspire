@@ -4,7 +4,6 @@
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
-using Aspire.Dashboard.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 
@@ -23,15 +22,15 @@ public abstract class ResourcesListBase<TResource> : ComponentBase, IDisposable
     [Inject]
     public required IDashboardViewModelService DashboardViewModelService { get; init; }
     [Inject]
-    public required EnvironmentVariablesDialogService EnvironmentVariablesDialogService { get; init; }
-    [Inject]
     public required TelemetryRepository TelemetryRepository { get; init; }
     [Inject]
     public required NavigationManager NavigationManager { get; set; }
 
+    protected IEnumerable<EnvironmentVariableViewModel>? SelectedEnvironmentVariables { get; set; }
+    protected string? SelectedResourceName { get; set; }
+
     protected abstract ViewModelMonitor<TResource> GetViewModelMonitor(IDashboardViewModelService dashboardViewModelService);
     protected abstract bool Filter(TResource resource);
-    protected virtual bool ShowSpecOnlyToggle => true;
 
     private readonly Dictionary<string, TResource> _resourcesMap = new();
     private readonly CancellationTokenSource _watchTaskCancellationTokenSource = new();
@@ -89,16 +88,10 @@ public abstract class ResourcesListBase<TResource> : ComponentBase, IDisposable
         return count;
     }
 
-    protected async Task ShowEnvironmentVariables(TResource resource)
+    protected void ShowEnvironmentVariables(TResource resource)
     {
-        await EnvironmentVariablesDialogService.ShowDialogAsync(
-            source: resource.Name,
-            viewModel: new()
-            {
-                EnvironmentVariables = resource.Environment,
-                ShowSpecOnlyToggle = ShowSpecOnlyToggle
-            }
-        );
+        SelectedEnvironmentVariables = resource.Environment;
+        SelectedResourceName = resource.Name;
     }
 
     private async Task OnResourceListChanged(ObjectChangeType objectChangeType, TResource resource)
@@ -145,9 +138,9 @@ public abstract class ResourcesListBase<TResource> : ComponentBase, IDisposable
         }
     }
 
-    protected void HandleClear(string? value)
+    protected void HandleClear()
     {
-        filter = value ?? string.Empty;
+        filter = string.Empty;
     }
 
     protected void ViewErrorStructuredLogs(TResource resource)

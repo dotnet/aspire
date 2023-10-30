@@ -53,45 +53,50 @@
         }
         <FluentButton slot="end" Appearance="Appearance.Stealth" aria-label="Add Filter" OnClick="() => OpenFilterAsync(null)"><FluentIcon Value="@(new Icons.Regular.Size16.Filter())" /></FluentButton>
     </FluentToolbar>
-    <div class="datagrid-overflow-area continuous-scroll-overflow" tabindex="-1">
-        <FluentDataGrid Virtualize="true" RowClass="@GetRowClass" GenerateHeader="GenerateHeaderOption.Sticky" ItemSize="46" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="OtlpLogEntry" GridTemplateColumns="1fr 1fr 1fr 5fr 0.8fr 0.8fr">
-            <ChildContent>
-                <TemplateColumn Title="Service" Tooltip="true" TooltipText="(e) => e.Application.ApplicationName">
-                    <span style="padding-left:5px; border-left-width: 5px; border-left-style: solid; border-left-color: @(ColorGenerator.Instance.GetColorHexByKey(context.Application.ApplicationName));">
-                        @context.Application.ApplicationName
-                    </span>
-                </TemplateColumn>
-                <TemplateColumn Title="Level">
-                    @if (context.Severity is LogLevel.Error or LogLevel.Critical)
-                    {
-                        <FluentIcon Icon="Icons.Filled.Size16.ErrorCircle" Color="Color.Error" Class="logs-severity-icon" />
-                    }
-                    else if (context.Severity is LogLevel.Warning)
-                    {
-                        <FluentIcon Icon="Icons.Filled.Size16.Warning" Color="Color.Warning" Class="logs-severity-icon" />
-                    }
-                    @context.Severity
-                </TemplateColumn>
-                <PropertyColumn Title="Timestamp" Property="@(context => OtlpHelpers.FormatTimeStamp(context.TimeStamp))" Tooltip="true" />
-                <TemplateColumn Title="Message" Tooltip="true" TooltipText="(e) => e.Message">
-                    <FluentHighlighter HighlightedText="@(ViewModel.FilterText)" Text="@context.Message" />
-                </TemplateColumn>
-                <TemplateColumn Title="Trace">
-                    @if (!string.IsNullOrEmpty(context.TraceId))
-                    {
-                        <a href="@($"/Trace/{HttpUtility.UrlEncode(context.TraceId)}")" class="long-inner-content">
-                            @OtlpHelpers.ToShortenedId(context.TraceId)
-                        </a>
-                    }
-                </TemplateColumn>
-                <TemplateColumn Title="Details">
-                    <FluentButton Appearance="Appearance.Lightweight" OnClick="() => OnShowProperties(context)">View</FluentButton>
-                </TemplateColumn>
-            </ChildContent>
-            <EmptyContent>
-                <FluentIcon Icon="Icons.Regular.Size24.SlideTextSparkle" />&nbsp;No structured logs found
-            </EmptyContent>
-        </FluentDataGrid>
-    </div>
-    <TotalItemsFooter @ref="_totalItemsFooter" />
+    <SummaryDetailsView DetailsTitle="Log Entry Details" ShowDetails="SelectedLogEntryProperties is not null" OnDismiss="() => SelectedLogEntryProperties = null">
+        <Summary>
+            <FluentDataGrid Virtualize="true" RowClass="@GetRowClass" GenerateHeader="GenerateHeaderOption.Sticky" ItemSize="46" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="OtlpLogEntry" GridTemplateColumns="1fr 1fr 1fr 5fr 0.8fr 0.8fr">
+                <ChildContent>
+                    <TemplateColumn Title="Service" Tooltip="true" TooltipText="(e) => e.Application.ApplicationName">
+                        <span style="padding-left:5px; border-left-width: 5px; border-left-style: solid; border-left-color: @(ColorGenerator.Instance.GetColorHexByKey(context.Application.ApplicationName));">
+                            @context.Application.ApplicationName
+                        </span>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Level">
+                        @if (context.Severity is LogLevel.Error or LogLevel.Critical)
+                        {
+                            <FluentIcon Icon="Icons.Filled.Size16.ErrorCircle" Color="Color.Error" Class="logs-severity-icon" />
+                        }
+                        else if (context.Severity is LogLevel.Warning)
+                        {
+                            <FluentIcon Icon="Icons.Filled.Size16.Warning" Color="Color.Warning" Class="logs-severity-icon" />
+                        }
+                        @context.Severity
+                    </TemplateColumn>
+                    <PropertyColumn Title="Timestamp" Property="@(context => OtlpHelpers.FormatTimeStamp(context.TimeStamp))" Tooltip="true" />
+                    <TemplateColumn Title="Message" Tooltip="true" TooltipText="(e) => e.Message">
+                        <FluentHighlighter HighlightedText="@(ViewModel.FilterText)" Text="@context.Message" />
+                    </TemplateColumn>
+                    <TemplateColumn Title="Trace">
+                        @if (!string.IsNullOrEmpty(context.TraceId))
+                        {
+                            <a href="@($"/Trace/{HttpUtility.UrlEncode(context.TraceId)}")" class="long-inner-content">
+                                @OtlpHelpers.ToShortenedId(context.TraceId)
+                            </a>
+                        }
+                    </TemplateColumn>
+                    <TemplateColumn Title="Details">
+                        <FluentButton Appearance="Appearance.Lightweight" OnClick="() => OnShowProperties(context)">View</FluentButton>
+                    </TemplateColumn>
+                </ChildContent>
+                <EmptyContent>
+                    <FluentIcon Icon="Icons.Regular.Size24.SlideTextSparkle" />&nbsp;No structured logs found
+                </EmptyContent>
+            </FluentDataGrid>
+            <TotalItemsFooter @ref="_totalItemsFooter" />
+        </Summary>
+        <Details>
+            <StructuredLogDetails Items="@SelectedLogEntryProperties" />
+        </Details>
+    </SummaryDetailsView>
 </div>

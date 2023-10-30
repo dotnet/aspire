@@ -1,0 +1,23 @@
+﻿@using Aspire.Dashboard.Model
+
+<div class="structured-log-details-layout">
+    <FluentToolbar Orientation="Orientation.Horizontal">
+        <FluentSearch Placeholder="Filter..."
+                      Immediate="true"
+                      Autofocus="true"
+                      @bind-Value="_filter"
+                      @oninput="HandleFilter"
+                      @bind-Value:after="HandleClear"
+                      slot="end" />
+    </FluentToolbar>
+    <div class="property-grid-container">
+        <PropertyGrid TItem="LogEntryPropertyViewModel"
+                      Items="@FilteredItems"
+                      GridTemplateColumns="1fr 2fr"
+                      NameColumnValue="(vm) => vm.Name"
+                      ValueColumnValue="(vm) => vm.Value"
+                      NameSort="_nameSort"
+                      ValueSort="_valueSort"
+                      HighlightText="@_filter" />
+    </div>
+</div>

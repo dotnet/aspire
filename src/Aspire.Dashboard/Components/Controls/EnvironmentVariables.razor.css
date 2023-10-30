@@ -1,0 +1,19 @@
+::deep.environment-variables-layout {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+        "toolbar"
+        "main";
+    overflow: auto;
+}
+
+::deep.environment-variables-layout > fluent-toolbar {
+    grid-area: toolbar;
+}
+
+::deep .property-grid-container {
+    grid-area: main;
+    overflow: auto;
+    width: 100%;
+    height: 100%;
+}

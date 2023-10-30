@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
@@ -141,31 +140,22 @@ public partial class TraceDetail
         return (viewModel.Span.SpanId == _span?.SpanId) ? "selected-span" : string.Empty;
     }
 
-    private async Task OnShowProperties(SpanWaterfallViewModel viewModel)
+    public SpanDetailsViewModel? SelectedSpan { get; set; }
+
+    private void OnShowProperties(SpanWaterfallViewModel viewModel)
     {
         var entryProperties = viewModel.Span.AllProperties()
             .Select(kvp => new SpanPropertyViewModel { Name = kvp.Key, Value = kvp.Value })
             .ToList();
 
-        var parameters = new DialogParameters
-        {
-            Title = $"{viewModel.Span.Source.ApplicationName}: {viewModel.GetDisplaySummary()}",
-            Width = "auto",
-            Height = "auto",
-            TrapFocus = true,
-            Modal = true,
-            PrimaryAction = "Close",
-            PrimaryActionEnabled = true,
-            SecondaryAction = null,
-        };
-
-        var dialogViewModel = new SpanDetailsDialogViewModel
+        var spanDetailsViewModel = new SpanDetailsViewModel
         {
             Span = viewModel.Span,
-            Properties = entryProperties
+            Properties = entryProperties,
+            Title = $"{viewModel.Span.Source.ApplicationName}: {viewModel.GetDisplaySummary()} {OtlpHelpers.ToShortenedId(viewModel.Span.SpanId)}"
         };
 
-        await DialogService.ShowDialogAsync<SpanDetailsDialog>(dialogViewModel, parameters);
+        SelectedSpan = spanDetailsViewModel;
     }
 
     public void Dispose()

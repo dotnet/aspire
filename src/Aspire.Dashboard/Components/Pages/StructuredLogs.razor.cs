@@ -52,6 +52,8 @@ public partial class StructuredLogs
     [SupplyParameterFromQuery(Name = "level")]
     public string? LogLevelText { get; set; }
 
+    public IEnumerable<LogEntryPropertyViewModel>? SelectedLogEntryProperties { get; set; }
+
     private ValueTask<GridItemsProviderResult<OtlpLogEntry>> GetData(GridItemsProviderRequest<OtlpLogEntry> request)
     {
         ViewModel.StartIndex = request.StartIndex;
@@ -155,24 +157,12 @@ public partial class StructuredLogs
         }
     }
 
-    private async Task OnShowProperties(OtlpLogEntry entry)
+    private void OnShowProperties(OtlpLogEntry entry)
     {
-        var entryProperties = entry.AllProperties()
-            .Select(kvp => new LogEntryPropertyViewModel { Name = kvp.Key, Value = kvp.Value })
-            .ToList();
+        SelectedLogEntryProperties = entry.AllProperties()
+                                          .Select(kvp => new LogEntryPropertyViewModel { Name = kvp.Key, Value = kvp.Value })
+                                          .ToList();
 
-        var parameters = new DialogParameters
-        {
-            Title = "Log Entry Details",
-            Width = "auto",
-            Height = "auto",
-            TrapFocus = true,
-            Modal = true,
-            PrimaryAction = "Close",
-            PrimaryActionEnabled = true,
-            SecondaryAction = null,
-        };
-        await DialogService.ShowDialogAsync<LogDetailsDialog>(entryProperties, parameters);
     }
 
     private async Task OpenFilterAsync(LogFilter? entry)
