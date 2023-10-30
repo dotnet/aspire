@@ -68,7 +68,7 @@ internal sealed class KubernetesService(Locations locations) : IDisposable
            cancellationToken);
     }
 
-    public Task<List<T>> ListAsync<T>(string? namespaceParameter = null, CancellationToken cancellationToken = default)
+    public Task<CustomResourceList<T>> ListAsync<T>(string? namespaceParameter = null, CancellationToken cancellationToken = default)
         where T : CustomResource
     {
         var resourceType = GetResourceFor<T>();
@@ -91,7 +91,7 @@ internal sealed class KubernetesService(Locations locations) : IDisposable
                         resourceType,
                         cancellationToken: cancellationToken).ConfigureAwait(false);
 
-                return KubernetesJson.Deserialize<CustomResourceList<T>>(response.Body.ToString()).Items;
+                return KubernetesJson.Deserialize<CustomResourceList<T>>(response.Body.ToString());
             },
             cancellationToken);
     }
@@ -128,6 +128,7 @@ internal sealed class KubernetesService(Locations locations) : IDisposable
 
     public async IAsyncEnumerable<(WatchEventType, T)> WatchAsync<T>(
         string? namespaceParameter = null,
+        string? resourceVersion = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
         where T : CustomResource
     {
@@ -142,6 +143,7 @@ internal sealed class KubernetesService(Locations locations) : IDisposable
                         GroupVersion.Group,
                         GroupVersion.Version,
                         resourceType,
+                        resourceVersion: resourceVersion,
                         watch: true,
                         cancellationToken: cancellationToken)
                     : kubernetes.CustomObjects.ListNamespacedCustomObjectWithHttpMessagesAsync(
@@ -149,6 +151,7 @@ internal sealed class KubernetesService(Locations locations) : IDisposable
                         GroupVersion.Version,
                         namespaceParameter,
                         resourceType,
+                        resourceVersion: resourceVersion,
                         watch: true,
                         cancellationToken: cancellationToken);
 

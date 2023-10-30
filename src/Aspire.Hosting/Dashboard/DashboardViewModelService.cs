@@ -32,8 +32,8 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
     private readonly Channel<(WatchEventType, string, CustomResource?)> _kubernetesChangesChannel;
     private readonly Dictionary<string, Container> _containersMap = [];
     private readonly Dictionary<string, Executable> _executablesMap = [];
-    private readonly Dictionary<string, Service> _servicesMap = [];
-    private readonly Dictionary<string, Endpoint> _endpointsMap = [];
+    private Dictionary<string, Service> _servicesMap = [];
+    private Dictionary<string, Endpoint> _endpointsMap = [];
     private readonly Dictionary<(ResourceKind, string), List<string>> _resourceAssociatedServicesMap = [];
     private readonly ConcurrentDictionary<string, List<EnvVar>> _additionalEnvVarsMap = [];
     private readonly HashSet<string> _containersWithTaskStarted = [];
@@ -54,10 +54,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
         _cancellationToken = _cancellationTokenSource.Token;
         _kubernetesChangesChannel = Channel.CreateUnbounded<(WatchEventType, string, CustomResource?)>();
 
-        RunWatchTask<Executable>();
-        RunWatchTask<Service>();
-        RunWatchTask<Endpoint>();
-        RunWatchTask<Container>();
+        Task.Run(GetKubernetesData);
 
         _containerViewModelChangesChannel = Channel.CreateUnbounded<ResourceChanged<ContainerViewModel>>();
         _executableViewModelChangesChannel = Channel.CreateUnbounded<ResourceChanged<ExecutableViewModel>>();
@@ -76,13 +73,55 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
     public ViewModelMonitor<ExecutableViewModel> GetExecutables() => _executableViewModelProcessor.GetResourceMonitor();
     public ViewModelMonitor<ProjectViewModel> GetProjects() => _projectViewModelProcessor.GetResourceMonitor();
 
-    private void RunWatchTask<T>()
+    private async Task GetKubernetesData()
+    {
+        var servicesList = await _kubernetesService.ListAsync<Service>(cancellationToken: _cancellationToken).ConfigureAwait(false);
+        var endpointsList = await _kubernetesService.ListAsync<Endpoint>(cancellationToken: _cancellationToken).ConfigureAwait(false);
+        var containersList = await _kubernetesService.ListAsync<Container>(cancellationToken: _cancellationToken).ConfigureAwait(false);
+        var executablesList = await _kubernetesService.ListAsync<Executable>(cancellationToken: _cancellationToken).ConfigureAwait(false);
+
+        _servicesMap = servicesList.Items.ToDictionary(e => e.Metadata.Name);
+        _endpointsMap = endpointsList.Items.ToDictionary(e => e.Metadata.Name);
+        foreach (var container in containersList.Items)
+        {
+            await ProcessContainerChange(WatchEventType.Added, container).ConfigureAwait(false);
+        }
+
+        foreach (var executable in executablesList.Items)
+        {
+            if (executable.IsCSharpProject())
+            {
+                await ProcessProjectChange(WatchEventType.Added, executable).ConfigureAwait(false);
+            }
+            else
+            {
+                await ProcessExecutableChange(WatchEventType.Added, executable).ConfigureAwait(false);
+            }
+        }
+
+        RunWatchTask<Service>(servicesList.Metadata.ResourceVersion);
+        RunWatchTask<Endpoint>(endpointsList.Metadata.ResourceVersion);
+        RunWatchTask<Container>(containersList.Metadata.ResourceVersion);
+        RunWatchTask<Executable>(executablesList.Metadata.ResourceVersion);
+    }
+
+    private void RunWatchTask<T>(string? resourceVersion)
             where T : CustomResource
     {
+        using (var sw = new StreamWriter(new FileStream($"D:\\code\\aspire\\{typeof(T).Name}.txt", FileMode.Append)))
+        {
+            sw.WriteLine($"resourceVersion = {resourceVersion}");
+        }
+
         _ = Task.Run(async () =>
         {
-            await foreach (var tuple in _kubernetesService.WatchAsync<T>(cancellationToken: _cancellationToken))
+            await foreach (var tuple in _kubernetesService.WatchAsync<T>(
+                resourceVersion: resourceVersion, cancellationToken: _cancellationToken))
             {
+                using (var sw = new StreamWriter(new FileStream($"D:\\code\\aspire\\{typeof(T).Name}.txt", FileMode.Append)))
+                {
+                    sw.WriteLine($"{tuple.Item1} {tuple.Item2.Metadata.Name} {JsonSerializer.Serialize(tuple.Item2)}");
+                }
                 await _kubernetesChangesChannel.Writer.WriteAsync(
                     (tuple.Item1, tuple.Item2.Metadata.Name, tuple.Item2), _cancellationToken).ConfigureAwait(false);
             }
@@ -527,7 +566,13 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
             var exitCode = (await task.WaitAsync(TimeSpan.FromSeconds(30), _cancellationToken).ConfigureAwait(false)).ExitCode;
             if (exitCode == 0)
             {
-                var jsonArray = JsonNode.Parse(outputStringBuilder.ToString())?.AsArray();
+                var output = outputStringBuilder.ToString();
+                if (output == string.Empty)
+                {
+                    return;
+                }
+
+                var jsonArray = JsonNode.Parse(output)?.AsArray();
                 if (jsonArray is not null)
                 {
                     var envVars = new List<EnvVar>();
