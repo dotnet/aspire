@@ -5,14 +5,15 @@ using Aspire.Dashboard.Model;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 
-namespace Aspire.Dashboard.Components.Dialogs;
-public partial class LogDetailsDialog
+namespace Aspire.Dashboard.Components.Controls;
+
+public partial class StructuredLogDetails
 {
-    [Parameter]
-    public List<LogEntryPropertyViewModel> Content { get; set; } = default!;
+    [Parameter, EditorRequired]
+    public required IEnumerable<LogEntryPropertyViewModel> Items { get; set; }
 
     private IQueryable<LogEntryPropertyViewModel>? FilteredItems =>
-        Content?.Where(vm =>
+        Items?.Where(vm =>
             vm.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) ||
             vm.Value?.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) == true
         )?.AsQueryable();

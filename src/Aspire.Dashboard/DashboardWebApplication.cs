@@ -6,7 +6,6 @@ using Aspire.Dashboard.Components;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Grpc;
 using Aspire.Dashboard.Otlp.Storage;
-using Aspire.Dashboard.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
@@ -78,8 +77,6 @@ public class DashboardWebApplication : IHostedService
         });
 
         configureServices(builder.Services);
-
-        builder.Services.AddScoped<EnvironmentVariablesDialogService>();
 
         _app = builder.Build();
 

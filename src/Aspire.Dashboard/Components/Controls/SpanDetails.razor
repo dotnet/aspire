@@ -1,0 +1,46 @@
+﻿@using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Otlp.Model
+
+<div class="span-details-layout">
+    <FluentToolbar Orientation="Orientation.Horizontal">
+        <div>
+            Service <strong>@ViewModel.Span.Source.ApplicationName</strong>
+        </div>
+        <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
+        <div>
+            Duration <strong>@DurationFormatter.FormatDuration(ViewModel.Span.Duration)</strong>
+        </div>
+        <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
+        <div>
+            Start Time <strong>@DurationFormatter.FormatDuration(ViewModel.Span.StartTime - ViewModel.Span.Trace.FirstSpan.StartTime)</strong>
+        </div>
+        <FluentAnchor slot="end" Appearance="Appearance.Lightweight" Href="@($"/StructuredLogs?spanId={ViewModel.Span.SpanId}")">View Logs</FluentAnchor>
+        <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
+        <FluentSearch Placeholder="Filter..."
+                      Immediate="true"
+                      Autofocus="true"
+                      @bind-Value="_filter"
+                      @oninput="HandleFilter"
+                      @bind-Value:after="HandleClear"
+                      slot="end" />
+    </FluentToolbar>
+    <div class="property-grid-container">
+        <PropertyGrid TItem="SpanPropertyViewModel"
+                      Items="@FilteredItems"
+                      GridTemplateColumns="1fr 2fr"
+                      NameColumnValue="(vm) => vm.Name"
+                      ValueColumnValue="(vm) => vm.Value"
+                      NameSort="_nameSort"
+                      ValueSort="_valueSort"
+                      HighlightText="@_filter" />
+        <h4>Application</h4>
+        <PropertyGrid TItem="SpanPropertyViewModel"
+                      Items="@FilteredApplicationItems"
+                      GridTemplateColumns="1fr 2fr"
+                      NameColumnValue="(vm) => vm.Name"
+                      ValueColumnValue="(vm) => vm.Value"
+                      NameSort="_nameSort"
+                      ValueSort="_valueSort"
+                      HighlightText="@_filter" />
+    </div>
+</div>

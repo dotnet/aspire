@@ -1,0 +1,68 @@
+::deep.summary-details-container {
+    display: grid;
+    grid-template-areas:
+        "summary";
+    gap: calc(var(--design-unit) * 2px);
+    overflow: auto;
+}
+
+::deep.summary-details-container:not([data-orientation=Vertical]) {
+    grid-template-rows: 1fr;
+}
+
+::deep.summary-details-container[data-orientation=Vertical] {
+    grid-template-columns: 1fr;
+}
+
+::deep.summary-details-container[data-show-details]:not([data-orientation=Vertical]) {
+    grid-template-rows: 1fr 1fr;
+    grid-template-areas:
+        "summary"
+        "details";
+}
+
+::deep.summary-details-container[data-show-details][data-orientation=Vertical] {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+        "summary details";
+}
+
+::deep > .summary-container {
+    grid-area: summary;
+    height: 100%;
+    min-width: 100%;
+    overflow: auto;
+}
+
+::deep > .details-container {
+    grid-area: details;
+    overflow: auto;
+    display: grid;
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+        "head"
+        "main";
+}
+
+::deep.summary-details-container[data-orientation=Vertical] > .details-container {
+    border-left: solid 1px var(--neutral-layer-4);
+}
+
+::deep > .details-container > header {
+    height: auto;
+    grid-row-start: 1;
+    background-color: var(--neutral-layer-4);
+    color: var(--neutral-foreground-rest);
+}
+
+::deep > .details-container > header fluent-button[appearance=stealth]:not(:hover)::part(control) {
+    background-color: var(--neutral-layer-4);
+}
+
+::deep > .details-container > *:last-child {
+    grid-row-start: 2;
+}
+
+::deep .header-right {
+    margin-left: auto;
+}

@@ -167,6 +167,6 @@
     grid-area: toolbar;
 }
 
-::deep.trace-detail-layout > .datagrid-overflow-area {
+::deep.trace-detail-layout > .summary-details-container {
     grid-area: main;
 }
