@@ -28,11 +28,7 @@ public abstract partial class ResourceLogsBase<TResource> : ComponentBase, IAsyn
     protected abstract string SelectResourceTitle { get; }
     protected virtual bool ConvertTimestampsFromUtc => false;
 
-    protected abstract ValueTask<List<TResource>> GetResources(IDashboardViewModelService dashboardViewModelService);
-    protected abstract IAsyncEnumerable<ResourceChanged<TResource>> WatchResources(
-        IDashboardViewModelService dashboardViewModelService,
-        IEnumerable<NamespacedName> initialList,
-        CancellationToken cancellationToken);
+    protected abstract ViewModelMonitor<TResource> GetViewModelMonitor(IDashboardViewModelService dashboardViewModelService);
 
     private FluentSelect<TResource>? _resourceSelectComponent;
     private TResource? _selectedResource;
@@ -52,7 +48,9 @@ public abstract partial class ResourceLogsBase<TResource> : ComponentBase, IAsyn
     {
         if (firstRender)
         {
-            var initialList = await GetResources(DashboardViewModelService);
+            var viewModelMonitor = GetViewModelMonitor(DashboardViewModelService);
+            var initialList = viewModelMonitor.Snapshot;
+            var watch = viewModelMonitor.Watch;
 
             foreach (var result in initialList)
             {
@@ -72,7 +70,7 @@ public abstract partial class ResourceLogsBase<TResource> : ComponentBase, IAsyn
 
             _ = Task.Run(async () =>
             {
-                await foreach (var resourceChanged in WatchResources(DashboardViewModelService, initialList.Select(t => t.NamespacedName), _watchContainersTokenSource.Token))
+                await foreach (var resourceChanged in watch.WithCancellation(_watchContainersTokenSource.Token))
                 {
                     await OnResourceListChangedAsync(resourceChanged.ObjectChangeType, resourceChanged.Resource);
                 }
