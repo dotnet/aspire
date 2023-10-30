@@ -54,7 +54,7 @@ And then the connection string will be retrieved from the `ConnectionStrings` co
 
 #### Service URI
 
-The recommended approach is to use a ServiceUri, which works with the `AzureDataCosmosSettings.Credential` property to establish a connection. If no credential is configured, the [DefaultAzureCredential](https://learn.microsoft.com/dotnet/api/azure.identity.defaultazurecredential) is used.
+The recommended approach is to use a ServiceUri, which works with the `AzureCosmosDBSettings.Credential` property to establish a connection. If no credential is configured, the [DefaultAzureCredential](https://learn.microsoft.com/dotnet/api/azure.identity.defaultazurecredential) is used.
 
 ```json
 {
@@ -78,7 +78,7 @@ Alternatively, an [Azure Cosmos DB connection string](https://learn.microsoft.co
 
 ### Use configuration providers
 
-The Aspire Microsft Azure Cosmos DB library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureDataCosmosSettings` and `QueueClientOptions` from configuration by using the `Aspire:Microsoft:Azure:Cosmos` key. Example `appsettings.json` that configures some of the options:
+The Aspire Microsft Azure Cosmos DB library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureCosmosDBSettings` and `QueueClientOptions` from configuration by using the `Aspire:Microsoft:Azure:Cosmos` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {
@@ -96,7 +96,7 @@ The Aspire Microsft Azure Cosmos DB library supports [Microsoft.Extensions.Confi
 
 ### Use inline delegates
 
-You can also pass the `Action<AzureDataCosmosSettings> configureSettings` delegate to set up some or all the options inline, for example to disable tracing from code:
+You can also pass the `Action<AzureCosmosDBSettings> configureSettings` delegate to set up some or all the options inline, for example to disable tracing from code:
 
 ```csharp
     builder.AddAzureCosmosDB("cosmosConnectionName", settings => settings.Tracing = false);

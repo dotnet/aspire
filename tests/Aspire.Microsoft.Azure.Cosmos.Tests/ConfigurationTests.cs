@@ -9,13 +9,13 @@ public class ConfigurationTests
 {
     [Fact]
     public void ConnectionStringIsNullByDefault()
-        => Assert.Null(new AzureDataCosmosSettings().ConnectionString);
+        => Assert.Null(new AzureCosmosDBSettings().ConnectionString);
 
     [Fact]
     public void TracingIsEnabledByDefault()
-        => Assert.True(new AzureDataCosmosSettings().Tracing);
+        => Assert.True(new AzureCosmosDBSettings().Tracing);
 
     [Fact]
     public void MetricsAreEnabledByDefault()
-        => Assert.True(new AzureDataCosmosSettings().Metrics);
+        => Assert.True(new AzureCosmosDBSettings().Metrics);
 }

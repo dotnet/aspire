@@ -9,7 +9,7 @@ using Microsoft.Extensions.Hosting;
 
 namespace Aspire.Microsoft.Azure.Cosmos.Tests;
 
-public class ConformanceTests : ConformanceTests<CosmosClient, AzureDataCosmosSettings>
+public class ConformanceTests : ConformanceTests<CosmosClient, AzureCosmosDBSettings>
 {
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Scoped;
 
@@ -25,16 +25,16 @@ public class ConformanceTests : ConformanceTests<CosmosClient, AzureDataCosmosSe
                 "AccountEndpoint=https://example.documents.azure.com:443/;AccountKey=fake;")
         });
 
-    protected override void RegisterComponent(HostApplicationBuilder builder, Action<AzureDataCosmosSettings>? configure = null, string? key = null)
+    protected override void RegisterComponent(HostApplicationBuilder builder, Action<AzureCosmosDBSettings>? configure = null, string? key = null)
         => builder.AddAzureCosmosDB("cosmosdb", configure);
 
-    protected override void SetHealthCheck(AzureDataCosmosSettings options, bool enabled)
+    protected override void SetHealthCheck(AzureCosmosDBSettings options, bool enabled)
         => throw new NotImplementedException();
 
-    protected override void SetTracing(AzureDataCosmosSettings options, bool enabled)
+    protected override void SetTracing(AzureCosmosDBSettings options, bool enabled)
         => options.Tracing = enabled;
 
-    protected override void SetMetrics(AzureDataCosmosSettings options, bool enabled)
+    protected override void SetMetrics(AzureCosmosDBSettings options, bool enabled)
         => options.Metrics = enabled;
 
     protected override string JsonSchemaPath

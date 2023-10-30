@@ -6,7 +6,7 @@ namespace Aspire.Microsoft.Azure.Cosmos;
 /// <summary>
 /// The settings relevant to accessing Azure Cosmos DB.
 /// </summary>
-public sealed class AzureDataCosmosSettings
+public sealed class AzureCosmosDBSettings
 {
     /// <summary>
     /// Gets or sets the connection string of the Azure Cosmos database to connect to.
