@@ -96,7 +96,7 @@ foreach ($argument in $PSBoundParameters.Keys)
 {
   switch($argument)
   {
-    "testCoverage"           { Write-Host "here"; <# this argument is handled in this script only #> }
+    "testCoverage"           { <# this argument is handled in this script only #> }
     "os"                     { $arguments += " /p:TargetOS=$($PSBoundParameters[$argument])" }
     "properties"             { $arguments += " " + $properties }
     "verbosity"              { $arguments += " -$argument " + $($PSBoundParameters[$argument]) }
