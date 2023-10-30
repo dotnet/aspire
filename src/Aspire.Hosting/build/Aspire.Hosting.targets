@@ -129,9 +129,9 @@ public class ]]>%(ClassName)<![CDATA[ : IServiceMetadata
       <_ProjectsToPublish Include="@(ProjectReference)" Condition="'%(ProjectReference.Containerize)' == 'true'" />
     </ItemGroup>
 
+    <!-- Note that we're not publishing _in parallel_ here due to https://github.com/dotnet/sdk-container-builds/issues/344 -->
     <MSBuild
         Projects="@(_ProjectsToPublish)"
-        Targets="Publish;PublishContainer"
-        BuildInParallel="true" />
+        Targets="Publish;PublishContainer" />
   </Target>
 </Project>
