@@ -1,6 +1,8 @@
 using System.Diagnostics;
-using Azure.Messaging.ServiceBus;
+using System.Text.Json;
 using BasketService.Models;
+using RabbitMQ.Client;
+using RabbitMQ.Client.Events;
 
 namespace OrderProcessor;
 
@@ -8,59 +10,59 @@ public class OrderProcessingWorker : BackgroundService
 {
     private readonly ILogger<OrderProcessingWorker> _logger;
     private readonly IConfiguration _config;
-    private readonly ServiceBusClient? _client;
-    private ServiceBusProcessor? _messageProcessor;
+    private readonly IServiceProvider _serviceProvider;
+    private IConnection? _messageConnection;
+    private IModel? _messageChannel;
 
-    public OrderProcessingWorker(ILogger<OrderProcessingWorker> logger, IConfiguration config, ServiceBusClient? client = null)
+    public OrderProcessingWorker(ILogger<OrderProcessingWorker> logger, IConfiguration config, IServiceProvider serviceProvider)
     {
         _logger = logger;
         _config = config;
-        _client = client;
+        _serviceProvider = serviceProvider;
     }
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    protected override Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        if (_client is null)
+        return Task.Factory.StartNew(() =>
         {
-            _logger.LogCritical("Azure ServiceBus is unavailable. Ensure you have configured it in AppHost's config / user secrets under 'ConnectionStrings:messaging'.");
-            return;
-        }
+            const string configKeyName = "Aspire:RabbitMQ:Client:OrderQueueName";
+            string queueName = _config[configKeyName] ?? "orders";
 
-        const string configKeyName = "Aspire:Azure:Messaging:ServiceBus:OrderQueueName";
-        string queueName = _config[configKeyName] ?? "orders";
+            _messageConnection = _serviceProvider.GetRequiredService<IConnection>();
 
-        _messageProcessor = _client.CreateProcessor(queueName);
-        _messageProcessor.ProcessMessageAsync += ProcessMessageAsync;
-        _messageProcessor.ProcessErrorAsync += ProcessErrorAsync;
-        await _messageProcessor.StartProcessingAsync(stoppingToken);
+            _messageChannel = _messageConnection.CreateModel();
+            _messageChannel.QueueDeclare(queueName, exclusive: false);
+
+            var consumer = new EventingBasicConsumer(_messageChannel);
+            consumer.Received += ProcessMessageAsync;
+
+            _messageChannel.BasicConsume(queue: queueName,
+                                         autoAck: true,
+                                         consumer: consumer);
+        }, stoppingToken, TaskCreationOptions.LongRunning, TaskScheduler.Current);
     }
 
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
-        await base.StopAsync(cancellationToken);
+       await base.StopAsync(cancellationToken);
 
-        if (_messageProcessor is not null)
-        {
-            await _messageProcessor.StopProcessingAsync(cancellationToken);
-
-            await _messageProcessor.DisposeAsync();
-        }
+        _messageChannel?.Dispose();
     }
 
-    private Task ProcessMessageAsync(ProcessMessageEventArgs args)
+    private void ProcessMessageAsync(object? sender, BasicDeliverEventArgs args)
     {
         _logger.LogInformation($"Processing Order at: {DateTime.UtcNow}");
 
-        var message = args.Message;
+        var message = args.Body;
 
         if (_logger.IsEnabled(LogLevel.Debug))
         {
             _logger.LogDebug("""
                 MessageId:{MessageId}
                 MessageBody:{Body}
-                """, message.MessageId, message.Body);
+                """, args.BasicProperties.MessageId, message);
         }
-        var order = message.Body.ToObjectFromJson<Order>();
+        var order = JsonSerializer.Deserialize<Order>(message.Span) ?? new Order() { Id = "fake" };
 
         Activity.Current?.AddTag("order-id", order.Id);
         Activity.Current?.AddTag("product-count", order.Items.Count);
@@ -70,13 +72,5 @@ public class OrderProcessingWorker : BackgroundService
             BuyerId:{BuyerId}
             ProductCount:{Count}
             """, order.Id, order.BuyerId, order.Items.Count);
-
-        return Task.CompletedTask;
-    }
-
-    private Task ProcessErrorAsync(ProcessErrorEventArgs arg)
-    {
-        _logger.LogError(arg.Exception, "Error processing a message. ErrorSource={errorSource}, EntityPath={entityPath}.", arg.ErrorSource, arg.EntityPath);
-        return Task.CompletedTask;
     }
 }

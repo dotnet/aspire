@@ -11,33 +11,32 @@ using NamespacedName = Aspire.Dashboard.Model.NamespacedName;
 
 namespace Aspire.Hosting.Dashboard;
 
-public partial class DashboardViewModelService : IDashboardViewModelService, IAsyncDisposable
+internal sealed partial class DashboardViewModelService : IDashboardViewModelService, IAsyncDisposable
 {
     private const string AppHostSuffix = ".AppHost";
 
     private readonly DistributedApplicationModel _applicationModel;
     private readonly string _applicationName;
-    private readonly KubernetesService _kubernetesService = new();
     private readonly CancellationTokenSource _cancellationTokenSource = new();
 
     private readonly ViewModelCache<Container, ContainerViewModel> _containerViewModelCache;
     private readonly ViewModelCache<Executable, ExecutableViewModel> _executableViewModelCache;
     private readonly ViewModelCache<Executable, ProjectViewModel> _projectViewModelCache;
 
-    public DashboardViewModelService(DistributedApplicationModel applicationModel, IHostEnvironment hostEnvironment)
+    public DashboardViewModelService(DistributedApplicationModel applicationModel, KubernetesService kubernetesService, IHostEnvironment hostEnvironment)
     {
         _applicationModel = applicationModel;
         _applicationName = ComputeApplicationName(hostEnvironment.ApplicationName);
         _containerViewModelCache = new ContainerViewModelCache(
-            _kubernetesService,
+            kubernetesService,
             _applicationModel,
             _cancellationTokenSource.Token);
         _executableViewModelCache = new ExecutableViewModelCache(
-            _kubernetesService,
+            kubernetesService,
             _applicationModel,
             _cancellationTokenSource.Token);
         _projectViewModelCache = new ProjectViewModelCache(
-            _kubernetesService,
+            kubernetesService,
             _applicationModel,
             _cancellationTokenSource.Token);
     }
@@ -81,7 +80,6 @@ public partial class DashboardViewModelService : IDashboardViewModelService, IAs
     public async ValueTask DisposeAsync()
     {
         await _cancellationTokenSource.CancelAsync().ConfigureAwait(false);
-        _kubernetesService.Dispose();
     }
 
     private static string ComputeApplicationName(string applicationName)

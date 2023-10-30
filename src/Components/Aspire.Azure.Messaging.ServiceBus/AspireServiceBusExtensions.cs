@@ -8,6 +8,8 @@ using Azure.Core.Extensions;
 using Azure.Messaging.ServiceBus;
 using HealthChecks.AzureServiceBus;
 using HealthChecks.AzureServiceBus.Configuration;
+using Microsoft.Extensions.Azure;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
@@ -92,6 +94,18 @@ public static class AspireServiceBusExtensions
                         ConnectionString = settings.ConnectionString,
                         Credential = settings.Credential
                     });
+
+        protected override void BindClientOptionsToConfiguration(IAzureClientBuilder<ServiceBusClient, ServiceBusClientOptions> clientBuilder, IConfiguration configuration)
+        {
+#pragma warning disable IDE0200 // Remove unnecessary lambda expression - needed so the ConfigBinder Source Generator works
+            clientBuilder.ConfigureOptions(options => configuration.Bind(options));
+#pragma warning restore IDE0200
+        }
+
+        protected override void BindSettingsToConfiguration(AzureMessagingServiceBusSettings settings, IConfiguration config)
+        {
+            config.Bind(settings);
+        }
 
         protected override bool GetHealthCheckEnabled(AzureMessagingServiceBusSettings settings)
             => !string.IsNullOrEmpty(settings.HealthCheckQueueName) || !string.IsNullOrEmpty(settings.HealthCheckTopicName);

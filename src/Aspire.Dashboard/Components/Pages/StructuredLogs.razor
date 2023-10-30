@@ -16,9 +16,8 @@
 <div class="logs-layout">
     <h1>Structured Logs</h1>
     <FluentToolbar Orientation="Orientation.Horizontal">
-        <FluentSelect TOption="ApplicationViewModel"
+        <FluentSelect TOption="SelectViewModel<string>"
                       Items="@_applications"
-                      OptionValue="@(c => c.Id)"
                       OptionText="@(c => c.Name)"
                       @bind-SelectedOption="_selectedApplication"
                       @bind-SelectedOption:after="HandleSelectedApplicationChangedAsync" />
@@ -26,6 +25,17 @@
                       @oninput="HandleFilter"
                       @bind-Value:after="HandleClear"
                       Placeholder="Filter..."
+                      slot="end" />
+        <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
+        <span slot="end">Level:</span>
+        <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
+        <FluentSelect TOption="SelectViewModel<LogLevel?>"
+                      Items="@_logLevels"
+                      OptionText="@(c => c.Name)"
+                      @bind-SelectedOption="_selectedLogLevel"
+                      @bind-SelectedOption:after="HandleSelectedLogLevelChangedAsync"
+                      Width="120px"
+                      Style="min-width: auto;"
                       slot="end" />
         <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
         <FluentLabel slot="end">Filters: </FluentLabel>
@@ -38,6 +48,7 @@
             foreach (var filter in ViewModel.Filters)
             {
                 <FluentButton slot="end" Appearance="Appearance.Outline" OnClick="() => OpenFilterAsync(filter)">@filter.FilterText</FluentButton>
+                <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
             }
         }
         <FluentButton slot="end" Appearance="Appearance.Stealth" aria-label="Add Filter" OnClick="() => OpenFilterAsync(null)"><FluentIcon Value="@(new Icons.Regular.Size16.Filter())" /></FluentButton>
@@ -45,14 +56,12 @@
     <div class="datagrid-overflow-area continuous-scroll-overflow" tabindex="-1">
         <FluentDataGrid Virtualize="true" RowClass="@GetRowClass" GenerateHeader="GenerateHeaderOption.Sticky" ItemSize="46" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="OtlpLogEntry" GridTemplateColumns="1fr 1fr 1fr 5fr 0.8fr 0.8fr">
             <ChildContent>
-                <TemplateColumn Title="Service">
-                    <div class="col-long-content" title="@context.Application.ApplicationName">
-                        <span style="padding-left:5px; border-left-width: 5px; border-left-style: solid; border-left-color: @(ColorGenerator.Instance.GetColorHexByKey(context.Application.ApplicationName));">
-                            @context.Application.ApplicationName
-                        </span>
-                    </div>
+                <TemplateColumn Title="Service" Tooltip="true" TooltipText="(e) => e.Application.ApplicationName">
+                    <span style="padding-left:5px; border-left-width: 5px; border-left-style: solid; border-left-color: @(ColorGenerator.Instance.GetColorHexByKey(context.Application.ApplicationName));">
+                        @context.Application.ApplicationName
+                    </span>
                 </TemplateColumn>
-                <TemplateColumn Title="Severity">
+                <TemplateColumn Title="Level">
                     @if (context.Severity is LogLevel.Error or LogLevel.Critical)
                     {
                         <FluentIcon Icon="Icons.Filled.Size16.ErrorCircle" Color="Color.Error" Class="logs-severity-icon" />
@@ -63,18 +72,16 @@
                     }
                     @context.Severity
                 </TemplateColumn>
-                <PropertyColumn Title="Timestamp" Property="@(context => OtlpHelpers.FormatTimeStamp(context.TimeStamp))" />
-                <TemplateColumn Title="Message">
-                    <div class="col-long-content" title="@context.Message">
-                        <FluentHighlighter HighlightedText="@(ViewModel.FilterText)" Text="@context.Message" />
-                    </div>
+                <PropertyColumn Title="Timestamp" Property="@(context => OtlpHelpers.FormatTimeStamp(context.TimeStamp))" Tooltip="true" />
+                <TemplateColumn Title="Message" Tooltip="true" TooltipText="(e) => e.Message">
+                    <FluentHighlighter HighlightedText="@(ViewModel.FilterText)" Text="@context.Message" />
                 </TemplateColumn>
                 <TemplateColumn Title="Trace">
                     @if (!string.IsNullOrEmpty(context.TraceId))
                     {
-                        <FluentAnchor Appearance="Appearance.Hypertext" Href="@($"/Trace/{HttpUtility.UrlEncode(context.TraceId)}")">
+                        <a href="@($"/Trace/{HttpUtility.UrlEncode(context.TraceId)}")" class="long-inner-content">
                             @OtlpHelpers.ToShortenedId(context.TraceId)
-                        </FluentAnchor>
+                        </a>
                     }
                 </TemplateColumn>
                 <TemplateColumn Title="Details">

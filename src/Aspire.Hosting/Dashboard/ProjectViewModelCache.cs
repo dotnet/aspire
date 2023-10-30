@@ -26,6 +26,7 @@ internal sealed class ProjectViewModelCache : ViewModelCache<Executable, Project
         var model = new ProjectViewModel
         {
             Name = executable.Metadata.Name,
+            Uid = executable.Metadata.Uid,
             NamespacedName = new(executable.Metadata.Name, null),
             CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToLocalTime(),
             ProjectPath = executable.Metadata.Annotations?[Executable.CSharpProjectPathAnnotation] ?? "",

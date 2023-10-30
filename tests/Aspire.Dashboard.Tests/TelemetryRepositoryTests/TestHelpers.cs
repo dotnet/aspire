@@ -113,7 +113,7 @@ internal static class TestHelpers
         };
     }
 
-    public static LogRecord CreateLogRecord(DateTime? time = null, string? message = null)
+    public static LogRecord CreateLogRecord(DateTime? time = null, string? message = null, SeverityNumber? severity = null)
     {
         return new LogRecord
         {
@@ -121,24 +121,23 @@ internal static class TestHelpers
             TraceId = ByteString.CopyFrom(Convert.FromHexString("5465737454726163654964")),
             SpanId = ByteString.CopyFrom(Convert.FromHexString("546573745370616e4964")),
             TimeUnixNano = time != null ? DateTimeToUnixNanoseconds(time.Value) : 1000,
-            SeverityNumber = SeverityNumber.Info,
+            SeverityNumber = severity ?? SeverityNumber.Info,
             Attributes =
             {
                 new KeyValue { Key = "{OriginalFormat}", Value = new AnyValue { StringValue = "Test {Log}" } },
-                new KeyValue { Key = "ParentId", Value = new AnyValue { StringValue = "TestParentId" } },
                 new KeyValue { Key = "Log", Value = new AnyValue { StringValue = "Value!" } }
             }
         };
     }
 
-    public static Resource CreateResource()
+    public static Resource CreateResource(string? name = null, string? instanceId = null)
     {
         return new Resource()
         {
             Attributes =
             {
-                new KeyValue { Key = "service.name", Value = new AnyValue { StringValue = "TestService" } },
-                new KeyValue { Key = "service.instance.id", Value = new AnyValue { StringValue = "TestId" } }
+                new KeyValue { Key = "service.name", Value = new AnyValue { StringValue = name ?? "TestService" } },
+                new KeyValue { Key = "service.instance.id", Value = new AnyValue { StringValue = instanceId ?? "TestId" } }
             }
         };
     }

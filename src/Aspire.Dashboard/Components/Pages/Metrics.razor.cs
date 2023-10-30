@@ -13,7 +13,7 @@ namespace Aspire.Dashboard.Components.Pages;
 
 public partial class Metrics : IDisposable
 {
-    private static readonly ApplicationViewModel s_selectApplication = new ApplicationViewModel { Id = null, Name = "Select service..." };
+    private static readonly SelectViewModel<string> s_selectApplication = new SelectViewModel<string> { Id = null, Name = "Select service..." };
     private static readonly List<MetricsDurationViewModel> s_durations = new List<MetricsDurationViewModel>
     {
         new MetricsDurationViewModel { Text = "Last 1 minute", Duration = TimeSpan.FromMinutes(1) },
@@ -28,8 +28,8 @@ public partial class Metrics : IDisposable
     };
     private static readonly TimeSpan s_defaultDuration = TimeSpan.FromMinutes(5);
 
-    private List<ApplicationViewModel> _applications = default!;
-    private ApplicationViewModel _selectedApplication = s_selectApplication;
+    private List<SelectViewModel<string>> _applications = default!;
+    private SelectViewModel<string> _selectedApplication = s_selectApplication;
     private MetricsDurationViewModel _selectedDuration = s_durations.Single(d => d.Duration == s_defaultDuration);
     private Subscription? _applicationsSubscription;
     private Subscription? _metricsSubscription;
@@ -105,7 +105,7 @@ public partial class Metrics : IDisposable
 
     private void UpdateApplications()
     {
-        _applications = TelemetryRepository.GetApplications().Select(a => new ApplicationViewModel { Id = a.InstanceId, Name = a.ApplicationName }).ToList();
+        _applications = TelemetryRepository.GetApplications().Select(a => new SelectViewModel<string> { Id = a.InstanceId, Name = a.ApplicationName }).ToList();
         _applications.Insert(0, s_selectApplication);
         UpdateSubscription();
     }
@@ -193,7 +193,7 @@ public partial class Metrics : IDisposable
         if (_metricsSubscription is null || _metricsSubscription.ApplicationId != _selectedApplication.Id)
         {
             _metricsSubscription?.Dispose();
-            _metricsSubscription = TelemetryRepository.OnNewMetrics(_selectedApplication.Id, async () =>
+            _metricsSubscription = TelemetryRepository.OnNewMetrics(_selectedApplication.Id, SubscriptionType.Read, async () =>
             {
                 var selectedApplicationId = _selectedApplication.Id;
                 if (!string.IsNullOrEmpty(selectedApplicationId))

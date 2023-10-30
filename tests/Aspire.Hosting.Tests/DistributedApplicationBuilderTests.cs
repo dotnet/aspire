@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Publishing;
@@ -11,16 +10,16 @@ using Xunit;
 
 namespace Aspire.Hosting.Tests;
 
-public class DitributedApplicationBuilderTests
+public class DistributedApplicationBuilderTests
 {
     [Fact]
     public void AddingTwoResourcesWithSameNameThrows()
     {
         var ex = Assert.Throws<DistributedApplicationException>(() =>
         {
-            var testProgram = new TestProgram([]);
-            testProgram.AppBuilder.AddRedisContainer("x");
-            testProgram.AppBuilder.AddPostgresContainer("x");
+            var builder = DistributedApplication.CreateBuilder();
+            builder.AddRedisContainer("x");
+            builder.AddPostgresContainer("x");
         });
 
         Assert.Equal("Cannot add resource of type 'Aspire.Hosting.ApplicationModel.PostgresContainerResource' with name 'x' because resource of type 'Aspire.Hosting.ApplicationModel.RedisContainerResource' with that name already exists.", ex.Message);
@@ -29,7 +28,7 @@ public class DitributedApplicationBuilderTests
     [Fact]
     public void BuilderAddsDefaultServices()
     {
-        var appBuilder = DistributedApplication.CreateBuilder([]);
+        var appBuilder = DistributedApplication.CreateBuilder();
         var app = appBuilder.Build();
 
         Assert.NotNull(app.Services.GetRequiredKeyedService<IDistributedApplicationPublisher>("manifest"));
@@ -51,7 +50,7 @@ public class DitributedApplicationBuilderTests
     [Fact]
     public void BuilderAddsResourceToAddModel()
     {
-        var appBuilder = DistributedApplication.CreateBuilder([]);
+        var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddResource(new TestResource());
         var app = appBuilder.Build();
 

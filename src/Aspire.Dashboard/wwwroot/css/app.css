@@ -18,8 +18,6 @@ fluent-toolbar[orientation=horizontal] {
     text-overflow: ellipsis;
     white-space: nowrap;
     height: 100%;
-    display: flex;
-    align-items: center;
 }
 
 .trace-tag-icon {
@@ -30,6 +28,8 @@ fluent-toolbar[orientation=horizontal] {
     --log-critical: #F8ECEB;
     --log-error: #F8ECEB;
     --log-warning: #FBF3DD;
+    --badge-fill-error: var(--error);
+    --badge-color-error: var(--foreground-on-accent-rest);
 }
 
 [data-theme="dark"] {
@@ -98,6 +98,11 @@ fluent-dialog fluent-data-grid-cell[cell-type=columnheader] fluent-button[appear
     overflow-y: auto;
 }
 
+.dialog-grid-container .empty-content {
+    width: 100%;
+    height: 46px;
+}
+
 .dialog-grid-container h4 {
     margin: 0.75rem;
 }
@@ -127,7 +132,23 @@ fluent-dialog fluent-data-grid-cell[cell-type=columnheader] fluent-button[appear
     font-size: 12px;
 }
 
-.data-grid-cell {
-    display: flex;
+fluent-data-grid-row {
     align-items: center;
+}
+
+fluent-data-grid-cell .long-inner-content {
+    width: inherit;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.resource-state-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.resource-error-badge {
+    padding: 0 3px;
+    cursor: pointer;
 }

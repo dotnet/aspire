@@ -48,6 +48,8 @@ public abstract class ConformanceTests<TService, TOptions>
     // every Component has to support health checks, this property is a temporary workaround
     protected bool HealthChecksAreSupported => CheckIfImplemented(SetHealthCheck);
 
+    protected virtual void DisableRetries(TOptions options) { }
+
     protected bool TracingIsSupported => CheckIfImplemented(SetTracing);
 
     /// <summary>
@@ -301,7 +303,8 @@ public abstract class ConformanceTests<TService, TOptions>
     {
         SkipIfHealthChecksAreNotSupported();
 
-        using IHost host = CreateHostWithComponent(key: key);
+        // DisableRetries so the test doesn't take so long retrying when the server isn't available.
+        using IHost host = CreateHostWithComponent(configureComponent: DisableRetries, key: key);
 
         HealthCheckService healthCheckService = host.Services.GetRequiredService<HealthCheckService>();
 
@@ -357,7 +360,7 @@ public abstract class ConformanceTests<TService, TOptions>
     /// Ensures that when the connection information is missing, an exception isn't thrown before the host
     /// is built, so any exception can be logged with ILogger.
     /// </summary>
-    [Theory]
+    [ConditionalTheory]
     [InlineData(true)]
     [InlineData(false)]
     public void ConnectionInformationIsDelayValidated(bool useKey)

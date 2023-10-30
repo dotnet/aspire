@@ -7,17 +7,21 @@ using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Logging;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Pages;
+
 public partial class StructuredLogs
 {
-    private static readonly ApplicationViewModel s_allApplication = new ApplicationViewModel { Id = null, Name = "(All)" };
+    private static readonly SelectViewModel<string> s_allApplication = new SelectViewModel<string> { Id = null, Name = "(All)" };
 
     private TotalItemsFooter _totalItemsFooter = default!;
-    private List<ApplicationViewModel> _applications = default!;
-    private ApplicationViewModel _selectedApplication = s_allApplication;
+    private List<SelectViewModel<string>> _applications = default!;
+    private List<SelectViewModel<LogLevel?>> _logLevels = default!;
+    private SelectViewModel<string> _selectedApplication = s_allApplication;
+    private SelectViewModel<LogLevel?> _selectedLogLevel = default!;
     private Subscription? _applicationsSubscription;
     private Subscription? _logsSubscription;
     private bool _applicationChanged;
@@ -44,6 +48,10 @@ public partial class StructuredLogs
     [SupplyParameterFromQuery]
     public string? SpanId { get; set; }
 
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "level")]
+    public string? LogLevelText { get; set; }
+
     private ValueTask<GridItemsProviderResult<OtlpLogEntry>> GetData(GridItemsProviderRequest<OtlpLogEntry> request)
     {
         ViewModel.StartIndex = request.StartIndex;
@@ -54,6 +62,8 @@ public partial class StructuredLogs
         // Updating the total item count as a field doesn't work because it isn't updated with the grid.
         // The workaround is to put the count inside a control and explicitly update and refresh the control.
         _totalItemsFooter.SetTotalItemCount(logs.TotalItemCount);
+
+        TelemetryRepository.MarkViewedErrorLogs(ViewModel.ApplicationServiceId);
 
         return ValueTask.FromResult(GridItemsProviderResult.From(logs.Items, logs.TotalItemCount));
     }
@@ -69,6 +79,18 @@ public partial class StructuredLogs
             ViewModel.AddFilter(new LogFilter { Field = "SpanId", Condition = FilterCondition.Equals, Value = SpanId });
         }
 
+        _logLevels = new List<SelectViewModel<LogLevel?>>
+        {
+            new SelectViewModel<LogLevel?> { Id = null, Name = "(All)" },
+            new SelectViewModel<LogLevel?> { Id = LogLevel.Trace, Name = "Trace" },
+            new SelectViewModel<LogLevel?> { Id = LogLevel.Debug, Name = "Debug" },
+            new SelectViewModel<LogLevel?> { Id = LogLevel.Information, Name = "Information" },
+            new SelectViewModel<LogLevel?> { Id = LogLevel.Warning, Name = "Warning" },
+            new SelectViewModel<LogLevel?> { Id = LogLevel.Error, Name = "Error" },
+            new SelectViewModel<LogLevel?> { Id = LogLevel.Critical, Name = "Critical" },
+        };
+        _selectedLogLevel = _logLevels[0];
+
         UpdateApplications();
         _applicationsSubscription = TelemetryRepository.OnNewApplications(() => InvokeAsync(() =>
         {
@@ -83,18 +105,37 @@ public partial class StructuredLogs
     {
         _selectedApplication = _applications.SingleOrDefault(e => e.Id == ApplicationInstanceId) ?? s_allApplication;
         ViewModel.ApplicationServiceId = _selectedApplication.Id;
+
+        if (LogLevelText != null && Enum.TryParse<LogLevel>(LogLevelText, ignoreCase: true, out var logLevel))
+        {
+            _selectedLogLevel = _logLevels.SingleOrDefault(e => e.Id == logLevel) ?? _logLevels[0];
+        }
+        else
+        {
+            _selectedLogLevel = _logLevels[0];
+        }
+        ViewModel.LogLevel = _selectedLogLevel.Id;
+
         UpdateSubscription();
     }
 
     private void UpdateApplications()
     {
-        _applications = TelemetryRepository.GetApplications().Select(a => new ApplicationViewModel { Id = a.InstanceId, Name = a.ApplicationName }).ToList();
+        _applications = TelemetryRepository.GetApplications().Select(a => new SelectViewModel<string> { Id = a.InstanceId, Name = a.ApplicationName }).ToList();
         _applications.Insert(0, s_allApplication);
     }
 
     private Task HandleSelectedApplicationChangedAsync()
     {
-        NavigationManager.NavigateTo($"/StructuredLogs/{_selectedApplication.Id}");
+        NavigateTo(_selectedApplication.Id, _selectedLogLevel.Id);
+        _applicationChanged = true;
+
+        return Task.CompletedTask;
+    }
+
+    private Task HandleSelectedLogLevelChangedAsync()
+    {
+        NavigateTo(_selectedApplication.Id, _selectedLogLevel.Id);
         _applicationChanged = true;
 
         return Task.CompletedTask;
@@ -106,7 +147,7 @@ public partial class StructuredLogs
         if (_logsSubscription is null || _logsSubscription.ApplicationId != _selectedApplication.Id)
         {
             _logsSubscription?.Dispose();
-            _logsSubscription = TelemetryRepository.OnNewLogs(_selectedApplication.Id, async () =>
+            _logsSubscription = TelemetryRepository.OnNewLogs(_selectedApplication.Id, SubscriptionType.Read, async () =>
             {
                 ViewModel.ClearData();
                 await InvokeAsync(StateHasChanged);
@@ -195,6 +236,26 @@ public partial class StructuredLogs
         _filterCts?.Cancel();
         ViewModel.FilterText = string.Empty;
         StateHasChanged();
+    }
+
+    private void NavigateTo(string? applicationId, LogLevel? level)
+    {
+        string url;
+        if (applicationId != null)
+        {
+            url = $"/StructuredLogs/{applicationId}";
+        }
+        else
+        {
+            url = $"/StructuredLogs";
+        }
+
+        if (level != null)
+        {
+            url += $"?level={level.Value.ToString().ToLowerInvariant()}";
+        }
+
+        NavigationManager.NavigateTo(url);
     }
 
     private static string GetRowClass(OtlpLogEntry entry)
