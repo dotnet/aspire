@@ -2,7 +2,7 @@ import {
     accentBaseColor,
     baseLayerLuminance,
     SwatchRGB
-} from "/_content/Microsoft.Fast.Components.FluentUI/js/web-components-v2.5.16.min.js";
+} from "/_content/Microsoft.FluentUI.AspNetCore.Components/js/web-components-v2.5.16.min.js";
 
 const currentThemeCookieName = "currentTheme";
 const themeSettingSystem = "System";

@@ -4,7 +4,7 @@
 using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Model;
 using Microsoft.AspNetCore.Components;
-using Microsoft.Fast.Components.FluentUI;
+using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Pages;

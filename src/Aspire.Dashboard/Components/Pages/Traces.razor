@@ -5,7 +5,6 @@
 @using Aspire.Dashboard.Model.Otlp
 @using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Otlp.Storage
-@using Microsoft.Fast.Components.FluentUI
 @using System.Web
 @inject NavigationManager NavigationManager
 @inject IDashboardViewModelService DashboardViewModelService
@@ -27,7 +26,7 @@
                       AriaLabel="Select an Application"/>
         <FluentSearch @bind-Value="_filter"
                       @oninput="HandleFilter"
-                      AfterBindValue="HandleClear"
+                      @bind-Value:after="HandleClear"
                       Placeholder="Filter..."
                       slot="end" />
     </FluentToolbar>
