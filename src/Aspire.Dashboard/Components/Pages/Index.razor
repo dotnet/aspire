@@ -60,9 +60,9 @@
                     </TemplateColumn>
                     <TemplateColumn Title="Environment" Sortable="false">
                         <FluentButton Appearance="Appearance.Lightweight"
-                                        Disabled="@(!context.Environment.Any())"
-                                        Title="@(context.Environment.Any() ? "View" : "No Environment Variables")"
-                                        OnClick="() => ShowEnvironmentVariables(context)">View</FluentButton>
+                                      Disabled="@(!context.Environment.Any())"
+                                      Title="@(context.Environment.Any() ? "View" : "No Environment Variables")"
+                                      OnClick="() => ShowEnvironmentVariables(context)">View</FluentButton>
                     </TemplateColumn>
                     <TemplateColumn Title="Logs">
                         <FluentAnchor Appearance="Appearance.Lightweight" Href="@($"/ProjectLogs/{context.Name}")">View</FluentAnchor>

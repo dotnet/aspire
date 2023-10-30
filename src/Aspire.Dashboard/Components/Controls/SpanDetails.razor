@@ -17,30 +17,30 @@
         <FluentAnchor slot="end" Appearance="Appearance.Lightweight" Href="@($"/StructuredLogs?spanId={ViewModel.Span.SpanId}")">View Logs</FluentAnchor>
         <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
         <FluentSearch Placeholder="Filter..."
-                        Immediate="true"
-                        Autofocus="true"
-                        @bind-Value="_filter"
-                        @oninput="HandleFilter"
-                        @bind-Value:after="HandleClear"
-                        slot="end" />
+                      Immediate="true"
+                      Autofocus="true"
+                      @bind-Value="_filter"
+                      @oninput="HandleFilter"
+                      @bind-Value:after="HandleClear"
+                      slot="end" />
     </FluentToolbar>
     <div class="property-grid-container">
         <PropertyGrid TItem="SpanPropertyViewModel"
-                        Items="@FilteredItems"
-                        GridTemplateColumns="1fr 2fr"
-                        NameColumnValue="(vm) => vm.Name"
-                        ValueColumnValue="(vm) => vm.Value"
-                        NameSort="_nameSort"
-                        ValueSort="_valueSort"
-                        HighlightText="@_filter" />
+                      Items="@FilteredItems"
+                      GridTemplateColumns="1fr 2fr"
+                      NameColumnValue="(vm) => vm.Name"
+                      ValueColumnValue="(vm) => vm.Value"
+                      NameSort="_nameSort"
+                      ValueSort="_valueSort"
+                      HighlightText="@_filter" />
         <h4>Application</h4>
         <PropertyGrid TItem="SpanPropertyViewModel"
-                        Items="@FilteredApplicationItems"
-                        GridTemplateColumns="1fr 2fr"
-                        NameColumnValue="(vm) => vm.Name"
-                        ValueColumnValue="(vm) => vm.Value"
-                        NameSort="_nameSort"
-                        ValueSort="_valueSort"
-                        HighlightText="@_filter" />
+                      Items="@FilteredApplicationItems"
+                      GridTemplateColumns="1fr 2fr"
+                      NameColumnValue="(vm) => vm.Name"
+                      ValueColumnValue="(vm) => vm.Value"
+                      NameSort="_nameSort"
+                      ValueSort="_valueSort"
+                      HighlightText="@_filter" />
     </div>
 </div>
