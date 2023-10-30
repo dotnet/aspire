@@ -6,10 +6,11 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Components.Controls;
+
 public partial class SpanDetails
 {
-    [Parameter]
-    public SpanDetailsViewModel ViewModel { get; set; } = default!;
+    [Parameter, EditorRequired]
+    public required SpanDetailsViewModel ViewModel { get; set; }
 
     private IQueryable<SpanPropertyViewModel>? FilteredItems =>
         ViewModel.Properties.Where(vm =>

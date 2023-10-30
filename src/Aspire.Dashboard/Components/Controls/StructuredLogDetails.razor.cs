@@ -9,8 +9,8 @@ namespace Aspire.Dashboard.Components.Controls;
 
 public partial class StructuredLogDetails
 {
-    [Parameter]
-    public IEnumerable<LogEntryPropertyViewModel> Items { get; set; } = default!;
+    [Parameter, EditorRequired]
+    public required IEnumerable<LogEntryPropertyViewModel> Items { get; set; }
 
     private IQueryable<LogEntryPropertyViewModel>? FilteredItems =>
         Items?.Where(vm =>

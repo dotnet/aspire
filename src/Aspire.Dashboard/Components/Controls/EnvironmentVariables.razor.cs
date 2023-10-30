@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Components.Controls;
+
 public partial class EnvironmentVariables
 {
 

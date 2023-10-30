@@ -18,15 +18,13 @@ public partial class SummaryDetailsView
     public bool ShowDetails { get; set; }
 
     [Parameter, EditorRequired]
-    public string? DetailsTitle { get; set; }
+    public required string DetailsTitle { get; set; }
 
     [Parameter]
-    public Orientation Orientation { get => _orientation; set => _orientation = value; }
+    public Orientation Orientation { get; set; } = Orientation.Horizontal;
 
     [Parameter]
     public EventCallback OnDismiss { get; set; }
-
-    private Orientation _orientation = Orientation.Horizontal;
 
     private readonly Icon _splitHorizontalIcon = new Icons.Regular.Size16.SplitHorizontal();
     private readonly Icon _splitVerticalIcon = new Icons.Regular.Size16.SplitVertical();
@@ -38,13 +36,13 @@ public partial class SummaryDetailsView
 
     private void HandleToggleOrientation()
     {
-        if (_orientation == Orientation.Horizontal)
+        if (Orientation == Orientation.Horizontal)
         {
-            _orientation = Orientation.Vertical;
+            Orientation = Orientation.Vertical;
         }
         else
         {
-            _orientation = Orientation.Horizontal;
+            Orientation = Orientation.Horizontal;
         }
     }
 }
