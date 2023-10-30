@@ -7,7 +7,8 @@ var catalogdb = builder.AddAzureCosmosDB("cosmosdb").AddDatabase("catalogdb");
 var basketCache = builder.AddRedisContainer("basketCache");
 
 var catalogService = builder.AddProject<Projects.CatalogService>("catalogservice")
-    .WithAzureCosmosDB(catalogdb);
+    .WithReference(catalogdb)
+    .WithEnvironment("Aspire:Microsoft:EntityFrameworkCore:Cosmos:DatabaseName", catalogdb.Resource.Name);
 
 var ordersQueue = builder.AddAzureServiceBus("messaging", queueNames: ["orders"]);
 

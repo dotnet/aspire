@@ -41,15 +41,4 @@ public static class AzureCosmosDBCloudApplicationBuilderExtensions
             .WithAnnotation(new ManifestPublishingCallbackAnnotation(
                 (json) => WriteCosmosDBDatabaseToManifest(json, cosmosDatabase)));
     }
-
-    public static IResourceBuilder<TDestination> WithAzureCosmosDB<TDestination>(
-        this IResourceBuilder<TDestination> builder,
-        IResourceBuilder<CosmosDatabaseResource> cosmosDatabaseResource)
-        where TDestination : IResourceWithEnvironment
-    {
-        return builder
-            .WithReference(cosmosDatabaseResource)
-            .WithEnvironment("Aspire:Microsoft:EntityFrameworkCore:Cosmos:DatabaseName", cosmosDatabaseResource.Resource.Name);
-    }
-
 }
