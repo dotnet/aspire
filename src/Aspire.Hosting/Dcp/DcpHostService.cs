@@ -190,7 +190,7 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
         return dcpProcessSpec;
     }
 
-    private const int WaitTimeForDockerTestCommandInSeconds = 10;
+    private const int WaitTimeForDockerTestCommandInSeconds = 25;
 
     private void EnsureDockerIfNecessary()
     {
