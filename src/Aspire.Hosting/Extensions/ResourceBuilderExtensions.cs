@@ -107,7 +107,7 @@ public static class ResourceBuilderExtensions
     /// using the resource's name.
     /// </para>
     /// </summary>
-    /// <typeparam name="TDestination">The destintion resource.</typeparam>
+    /// <typeparam name="TDestination">The destination resource.</typeparam>
     /// <param name="builder">The resource where connection string will be injected.</param>
     /// <param name="source">The resource from which to extract the connection string.</param>
     /// <param name="connectionName">An override of the source resource's name for the connection string. The resulting connection string will be "ConnectionStrings__connectionName" if this is not null.</param>
