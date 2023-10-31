@@ -190,6 +190,8 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
         return dcpProcessSpec;
     }
 
+    // Docker goes to into resource saver mode after 5 minutes of not running a container (by default).
+    // While in this mode, the commands we use for the docker check take quite some time
     private const int WaitTimeForDockerTestCommandInSeconds = 25;
 
     private void EnsureDockerIfNecessary()
