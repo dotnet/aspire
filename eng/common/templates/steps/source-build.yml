@@ -14,6 +14,8 @@ parameters:
 
 steps:
 # Build. Keep it self-contained for simple reusability. (No source-build-specific job variables.)
+- ${{ if eq(variables['System.TeamProject'], 'internal') }}:
+  - task: NuGetAuthenticate@0
 - script: |
     set -x
     df -h
