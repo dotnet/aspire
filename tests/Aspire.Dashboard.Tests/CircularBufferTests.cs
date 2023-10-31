@@ -223,6 +223,83 @@ public class CircularBufferTests
             i => Assert.Equal("5", i),
             i => Assert.Equal("5.5", i),
             i => Assert.Equal("6", i));
+
+        b.Add("7");
+
+        Assert.Collection(b,
+            i => Assert.Equal("3", i),
+            i => Assert.Equal("5", i),
+            i => Assert.Equal("5.5", i),
+            i => Assert.Equal("6", i),
+            i => Assert.Equal("7", i));
+    }
+
+    [Fact]
+    public void RemoveAtMiddleUnderCapacity()
+    {
+        var b = CreateBuffer(10);
+
+        b.Add("0");
+        b.Add("1");
+        b.Add("2");
+        b.Add("3");
+        b.Add("4");
+        b.Add("5");
+        b.Add("6");
+
+        b.RemoveAt(2);
+
+        Assert.Collection(b,
+            i => Assert.Equal("0", i),
+            i => Assert.Equal("1", i),
+            i => Assert.Equal("3", i),
+            i => Assert.Equal("4", i),
+            i => Assert.Equal("5", i),
+            i => Assert.Equal("6", i));
+
+        b.Add("7");
+        b.RemoveAt(2);
+
+        Assert.Collection(b,
+            i => Assert.Equal("0", i),
+            i => Assert.Equal("1", i),
+            i => Assert.Equal("4", i),
+            i => Assert.Equal("5", i),
+            i => Assert.Equal("6", i),
+            i => Assert.Equal("7", i));
+
+        b.Add("8");
+        b.RemoveAt(4);
+
+        Assert.Collection(b,
+            i => Assert.Equal("0", i),
+            i => Assert.Equal("1", i),
+            i => Assert.Equal("4", i),
+            i => Assert.Equal("5", i),
+            i => Assert.Equal("7", i),
+            i => Assert.Equal("8", i));
+
+        b.Add("9");
+        b.RemoveAt(5);
+
+        Assert.Collection(b,
+            i => Assert.Equal("0", i),
+            i => Assert.Equal("1", i),
+            i => Assert.Equal("4", i),
+            i => Assert.Equal("5", i),
+            i => Assert.Equal("7", i),
+            i => Assert.Equal("9", i));
+
+        b.Add("10");
+        b.RemoveAt(0);
+
+        Assert.Collection(b,
+            i => Assert.Equal("1", i),
+            i => Assert.Equal("4", i),
+            i => Assert.Equal("5", i),
+            i => Assert.Equal("7", i),
+            i => Assert.Equal("9", i),
+            i => Assert.Equal("10", i));
     }
 
     [Fact]
