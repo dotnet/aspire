@@ -208,9 +208,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
                 case "Container":
                     if (_containersMap.TryGetValue(ownerReference.Name, out var container))
                     {
-                        var extraEnvVars = container.Status?.ContainerId is string containerId
-                            ? _additionalEnvVarsMap[containerId]
-                            : null;
+                        var extraEnvVars = GetContainerEnvVars(container.Status?.ContainerId);
                         var containerViewModel = ConvertToContainerViewModel(
                             _applicationModel, _servicesMap.Values, _endpointsMap.Values, container, extraEnvVars);
 
@@ -269,9 +267,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
                 case ResourceKind.Container:
                     if (_containersMap.TryGetValue(resourceName, out var container))
                     {
-                        var extraEnvVars = container.Status?.ContainerId is string containerId
-                            ? _additionalEnvVarsMap[containerId]
-                            : null;
+                        var extraEnvVars = GetContainerEnvVars(container.Status?.ContainerId);
                         var containerViewModel = ConvertToContainerViewModel(
                             _applicationModel, _servicesMap.Values, _endpointsMap.Values, container, extraEnvVars);
 
@@ -527,7 +523,13 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
             var exitCode = (await task.WaitAsync(TimeSpan.FromSeconds(30), _cancellationToken).ConfigureAwait(false)).ExitCode;
             if (exitCode == 0)
             {
-                var jsonArray = JsonNode.Parse(outputStringBuilder.ToString())?.AsArray();
+                var output = outputStringBuilder.ToString();
+                if (output == string.Empty)
+                {
+                    return;
+                }
+
+                var jsonArray = JsonNode.Parse(output)?.AsArray();
                 if (jsonArray is not null)
                 {
                     var envVars = new List<EnvVar>();
@@ -554,6 +556,9 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
             }
         }
     }
+
+    private List<EnvVar>? GetContainerEnvVars(string? containerId)
+        => containerId is not null && _additionalEnvVarsMap.TryGetValue(containerId, out var envVars) ? envVars : null;
 
     private static bool ProcessResourceChange<T>(Dictionary<string, T> map, WatchEventType watchEventType, T resource)
             where T : CustomResource
