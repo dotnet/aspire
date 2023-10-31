@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace Aspire.Dashboard.Otlp.Storage;
@@ -10,6 +11,8 @@ namespace Aspire.Dashboard.Otlp.Storage;
 /// The circular buffer starts with an empty list and grows to a maximum size.
 /// When the buffer is full, adding or inserting a new item removes the first item in the buffer.
 /// </summary>
+[DebuggerDisplay("Count = {Count}")]
+[DebuggerTypeProxy(typeof(CircularBuffer<>.CircularBufferDebugView))]
 internal sealed class CircularBuffer<T> : IList<T>, ICollection<T>, IEnumerable<T>, IEnumerable
 {
     // Internal for testing.
@@ -17,17 +20,21 @@ internal sealed class CircularBuffer<T> : IList<T>, ICollection<T>, IEnumerable<
     internal int _start;
     internal int _end;
 
-    public CircularBuffer(int capacity)
+    public CircularBuffer(int capacity) : this(new List<T>(), capacity, start: 0, end: 0)
+    {
+    }
+
+    internal CircularBuffer(List<T> buffer, int capacity, int start, int end)
     {
         if (capacity < 1)
         {
             throw new ArgumentException("Circular buffer must have a capacity greater than 0.", nameof(capacity));
         }
 
-        _buffer = new List<T>();
+        _buffer = buffer;
         Capacity = capacity;
-        _start = 0;
-        _end = 0;
+        _start = start;
+        _end = end;
     }
 
     public int Capacity { get; }
@@ -139,7 +146,10 @@ internal sealed class CircularBuffer<T> : IList<T>, ICollection<T>, IEnumerable<
         if (internalIndex < _end)
         {
             Decrement(ref _end);
-            _start = _end;
+            if (_start > 0)
+            {
+                _start = _end;
+            }
         }
     }
 
@@ -257,5 +267,13 @@ internal sealed class CircularBuffer<T> : IList<T>, ICollection<T>, IEnumerable<
         }
 
         --index;
+    }
+
+    private sealed class CircularBufferDebugView(CircularBuffer<T> collection)
+    {
+        private readonly CircularBuffer<T> _collection = collection;
+
+        [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+        public T[] Items => _collection.ToArray();
     }
 }
