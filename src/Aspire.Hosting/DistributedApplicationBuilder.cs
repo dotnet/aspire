@@ -40,7 +40,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddHostedService<DcpHostService>();
 
         // We need a unique path per application instance
-        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        var path = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
         _innerBuilder.Services.AddSingleton(new Locations(path));
         _innerBuilder.Services.AddSingleton<KubernetesService>();
 
@@ -83,7 +83,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         {
             AspireEventSource.Instance.DistributedApplicationBuildStop();
         }
-        
     }
 
     public IResourceBuilder<T> AddResource<T>(T resource) where T : IResource
