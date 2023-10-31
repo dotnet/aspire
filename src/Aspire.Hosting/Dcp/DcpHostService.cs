@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO.Pipelines;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Text;
 using Aspire.Dashboard;
 using Aspire.Dashboard.Model;
@@ -263,7 +264,14 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
         string? directoryName = Path.GetDirectoryName(socketPath);
         if (!string.IsNullOrEmpty(directoryName))
         {
-            Directory.CreateDirectory(directoryName, UnixFileMode.UserExecute | UnixFileMode.UserWrite | UnixFileMode.UserRead);
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                Directory.CreateDirectory(directoryName);
+            }
+            else
+            {
+                Directory.CreateDirectory(directoryName, UnixFileMode.UserExecute | UnixFileMode.UserWrite | UnixFileMode.UserRead);
+            }
         }
 
         Socket socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
