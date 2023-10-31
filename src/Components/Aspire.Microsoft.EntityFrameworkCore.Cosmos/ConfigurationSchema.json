@@ -39,9 +39,13 @@
                 "Cosmos": {
                   "type": "object",
                   "properties": {
+                    "AccountEndpoint": {
+                      "type": "string",
+                      "description": "Gets or sets the account endpoint of the Azure Cosmos DB account to connect to. Used along with \"Credential\" to establish the connection."
+                    },
                     "ConnectionString": {
                       "type": "string",
-                      "description": "Gets or sets the connection string of the SQL Server database to connect to."
+                      "description": "Gets or sets the connection string of the Azure Cosmos DB account to connect to."
                     },
                     "DbContextPooling": {
                       "type": "boolean",

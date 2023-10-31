@@ -3,6 +3,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Microsoft.EntityFrameworkCore.Cosmos;
+using Azure.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -52,7 +53,14 @@ public static class AspireAzureEFCoreCosmosDBExtensions
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {
-            settings.ConnectionString = connectionString;
+            if (Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))
+            {
+                settings.AccountEndpoint = uri;
+            }
+            else
+            {
+                settings.ConnectionString = connectionString;
+            }
         }
         configure?.Invoke(settings);
 
@@ -88,16 +96,31 @@ public static class AspireAzureEFCoreCosmosDBExtensions
 
         void ConfigureDbContext(DbContextOptionsBuilder dbContextOptionsBuilder)
         {
-            if (string.IsNullOrEmpty(settings.ConnectionString))
+            if (!string.IsNullOrEmpty(settings.ConnectionString))
             {
-                throw new InvalidOperationException($"ConnectionString is missing. It should be provided in 'ConnectionStrings:{connectionName}' or under the 'ConnectionString' key in '{DefaultConfigSectionName}' or '{typeSpecificSectionName}' configuration section.");
+                // We don't register logger factory, because there is no need to:
+                // https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.dbcontextoptionsbuilder.useloggerfactory?view=efcore-7.0#remarks
+                dbContextOptionsBuilder.UseCosmos(settings.ConnectionString, databaseName, builder =>
+                {
+                });
             }
-
-            // We don't register logger factory, because there is no need to:
-            // https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.dbcontextoptionsbuilder.useloggerfactory?view=efcore-7.0#remarks
-            dbContextOptionsBuilder.UseCosmos(settings.ConnectionString, databaseName, builder =>
+            else
             {
-            });
+                if (settings.AccountEndpoint is null)
+                {
+                    throw new InvalidOperationException(
+                        $"{nameof(settings.ConnectionString)} should be provided in 'ConnectionStrings:{connectionName}' or either " +
+                        $"{nameof(settings.ConnectionString)} or {nameof(settings.AccountEndpoint)} must be provided " +
+                        $"in '{DefaultConfigSectionName}' or '{typeSpecificSectionName}' configuration section.");
+                }
+
+                var credential = settings.Credential is null
+                    ? new DefaultAzureCredential()
+                    : settings.Credential;
+                dbContextOptionsBuilder.UseCosmos(settings.AccountEndpoint.OriginalString, credential, databaseName, builder =>
+                {
+                });
+            }
         }
     }
 }

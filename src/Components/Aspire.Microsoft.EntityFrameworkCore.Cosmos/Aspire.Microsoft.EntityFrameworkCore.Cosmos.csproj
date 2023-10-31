@@ -3,11 +3,12 @@
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
-    <IsAotCompatible>true</IsAotCompatible>
+    <EnableConfigurationBindingGenerator>false</EnableConfigurationBindingGenerator>
+    <IsAotCompatible>false</IsAotCompatible>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Azure.Identity" />
     <PackageReference Include="Microsoft.Azure.Cosmos" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Cosmos" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
