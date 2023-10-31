@@ -22,6 +22,7 @@ insert_final_newline = true
 [*.cs]
 indent_size = 4
 dotnet_sort_system_directives_first = true
+guidelines = 120
 
 # Don't use this. qualifier
 dotnet_style_qualification_for_field = false:suggestion

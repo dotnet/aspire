@@ -6,6 +6,7 @@ using Aspire.Hosting.Dcp.Model;
 using k8s;
 using k8s.Exceptions;
 using k8s.Models;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Dcp;
 
@@ -17,13 +18,22 @@ public enum DcpApiOperationType
     Watch = 4
 }
 
-internal sealed class KubernetesService(Locations locations) : IDisposable
+internal sealed class KubernetesService : IDisposable
 {
     private static readonly TimeSpan s_initialRetryDelay = TimeSpan.FromMilliseconds(100);
     private static GroupVersion GroupVersion => Model.Dcp.GroupVersion;
 
-    private IKubernetes? _kubernetes;
+    private readonly Locations _locations;
+    private readonly ILogger _logger;
+
+    private Kubernetes? _kubernetes;
     private TimeSpan _maxRetryDuration = TimeSpan.FromSeconds(5);
+
+    public KubernetesService(ILoggerFactory loggerFactory, Locations locations)
+    {
+        _locations = locations;
+        _logger = loggerFactory.CreateLogger<KubernetesService>();
+    }
 
     public TimeSpan MaxRetryDuration
     {
@@ -42,6 +52,15 @@ internal sealed class KubernetesService(Locations locations) : IDisposable
     {
         var resourceType = GetResourceFor<T>();
         var namespaceParameter = obj.Namespace();
+        if (namespaceParameter == null)
+        {
+            _logger.LogInformation("Creating {resourceType} object with name: {name}", resourceType, obj.Metadata.Name);
+        }
+        else
+        {
+            _logger.LogInformation("Creating {resourceType} object with name: {name} and namespace: {namespace}",
+                resourceType, obj.Metadata.Name, namespaceParameter);
+        }
 
         return ExecuteWithRetry(
            DcpApiOperationType.Create,
@@ -72,6 +91,15 @@ internal sealed class KubernetesService(Locations locations) : IDisposable
         where T : CustomResource
     {
         var resourceType = GetResourceFor<T>();
+        if (namespaceParameter == null)
+        {
+            _logger.LogInformation("Listing {resourceType} objects", resourceType);
+        }
+        else
+        {
+            _logger.LogInformation("Listing {resourceType} objects with namespace: {namespace}",
+                resourceType, namespaceParameter);
+        }
 
         return ExecuteWithRetry(
             DcpApiOperationType.List,
@@ -96,10 +124,20 @@ internal sealed class KubernetesService(Locations locations) : IDisposable
             cancellationToken);
     }
 
-    public Task<T> DeleteAsync<T>(string name, string? namespaceParameter = null, CancellationToken cancellationToken = default)
+    public Task<T> DeleteAsync<T>(
+        string name, string? namespaceParameter = null, CancellationToken cancellationToken = default)
         where T : CustomResource
     {
         var resourceType = GetResourceFor<T>();
+        if (namespaceParameter == null)
+        {
+            _logger.LogInformation("Deleting {resourceType} object with name: {name}", resourceType, name);
+        }
+        else
+        {
+            _logger.LogInformation("Deleting {resourceType} object with name: {name} and namespace: {namespace}",
+                resourceType, name, namespaceParameter);
+        }
 
         return ExecuteWithRetry(
             DcpApiOperationType.Delete,
@@ -132,6 +170,16 @@ internal sealed class KubernetesService(Locations locations) : IDisposable
         where T : CustomResource
     {
         var resourceType = GetResourceFor<T>();
+        if (namespaceParameter == null)
+        {
+            _logger.LogInformation("Starting watch for {resourceType} objects", resourceType);
+        }
+        else
+        {
+            _logger.LogInformation("Starting watch for {resourceType} objects with namespace: {namespace}",
+                resourceType, namespaceParameter);
+        }
+
         var result = await ExecuteWithRetry(
             DcpApiOperationType.Watch,
             resourceType,
@@ -177,12 +225,21 @@ internal sealed class KubernetesService(Locations locations) : IDisposable
         return kindWithResource.Resource;
     }
 
-    private Task<TResult> ExecuteWithRetry<TResult>(DcpApiOperationType operationType, string resourceType, Func<IKubernetes, TResult> operation, CancellationToken cancellationToken)
-    {
-        return ExecuteWithRetry<TResult>(operationType, resourceType, (IKubernetes kubernetes) => Task.FromResult(operation(kubernetes)), cancellationToken);
-    }
+    private Task<TResult> ExecuteWithRetry<TResult>(
+        DcpApiOperationType operationType,
+        string resourceType,
+        Func<IKubernetes, TResult> operation,
+        CancellationToken cancellationToken)
+        => ExecuteWithRetry(
+            operationType,
+            resourceType,
+            (IKubernetes kubernetes) => Task.FromResult(operation(kubernetes)), cancellationToken);
 
-    private async Task<TResult> ExecuteWithRetry<TResult>(DcpApiOperationType operationType, string resourceType, Func<IKubernetes, Task<TResult>> operation, CancellationToken cancellationToken)
+    private async Task<TResult> ExecuteWithRetry<TResult>(
+        DcpApiOperationType operationType,
+        string resourceType,
+        Func<IKubernetes, Task<TResult>> operation,
+        CancellationToken cancellationToken)
     {
         var currentTimestamp = DateTime.UtcNow;
         var delay = s_initialRetryDelay;
@@ -228,7 +285,8 @@ internal sealed class KubernetesService(Locations locations) : IDisposable
         {
             if (_kubernetes != null) { return; }
 
-            var config = KubernetesClientConfiguration.BuildConfigFromConfigFile(kubeconfigPath: locations.DcpKubeconfigPath, useRelativePaths: false);
+            var config = KubernetesClientConfiguration.BuildConfigFromConfigFile(
+                kubeconfigPath: _locations.DcpKubeconfigPath, useRelativePaths: false);
             _kubernetes = new Kubernetes(config);
         }
     }

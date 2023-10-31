@@ -194,7 +194,7 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
 
     private void EnsureDockerIfNecessary()
     {
-        // If we don't have any respirces that need a container  then we
+        // If we don't have any resources that need a container  then we
         // don't need to check for Docker.
         if (!_applicationModel.Resources.Any(c => c.Annotations.OfType<ContainerImageAnnotation>().Any()))
         {
