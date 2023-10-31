@@ -83,7 +83,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         {
             AspireEventSource.Instance.DistributedApplicationBuildStop();
         }
-
     }
 
     public IResourceBuilder<T> AddResource<T>(T resource) where T : IResource
