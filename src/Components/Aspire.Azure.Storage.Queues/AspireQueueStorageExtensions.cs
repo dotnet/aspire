@@ -72,9 +72,11 @@ public static class AspireQueueStorageExtensions
                     throw new InvalidOperationException($"A QueueServiceClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'ConnectionString' or 'ServiceUri' in the '{configurationSectionName}' configuration section.");
                 }
 
-                return !string.IsNullOrEmpty(connectionString) ? new QueueServiceClient(connectionString, options) :
-                    cred is not null ? new QueueServiceClient(settings.ServiceUri, cred, options) :
-                    new QueueServiceClient(settings.ServiceUri, options);
+                return !string.IsNullOrEmpty(connectionString)
+                    ? new QueueServiceClient(connectionString, options)
+                    : cred is not null
+                        ? new QueueServiceClient(settings.ServiceUri, cred, options)
+                        : new QueueServiceClient(settings.ServiceUri, options);
             }, requiresCredential: false);
         }
 
