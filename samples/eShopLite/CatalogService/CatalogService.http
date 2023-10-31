@@ -1,4 +1,4 @@
-@MyBackend_HostAddress = https://localhost:5237
+@MyBackend_HostAddress = http://localhost:5237
 
 GET {{MyBackend_HostAddress}}/api/v1/catalog/items/type/all/brand
 Accept: application/json
