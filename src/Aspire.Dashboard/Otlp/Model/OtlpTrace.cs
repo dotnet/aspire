@@ -73,6 +73,24 @@ public class OtlpTrace
         {
             _rootSpan = span;
         }
+
+        AssertSpanOrder();
+    }
+
+    [Conditional("DEBUG")]
+    private void AssertSpanOrder()
+    {
+        DateTime current = default;
+        for (var i = 0; i < Spans.Count; i++)
+        {
+            var span = Spans[i];
+            if (span.StartTime < current)
+            {
+                throw new InvalidOperationException($"Trace {TraceId} spans not in order at index {i}.");
+            }
+
+            current = span.StartTime;
+        }
     }
 
     public OtlpTrace(ReadOnlyMemory<byte> traceId, OtlpTraceScope traceScope)
