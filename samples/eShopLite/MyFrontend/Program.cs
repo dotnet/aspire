@@ -8,10 +8,10 @@ builder.AddServiceDefaults();
 
 builder.Services.AddHttpForwarderWithServiceDiscovery();
 
-builder.Services.AddHttpClient<CatalogServiceClient>(c => c.BaseAddress = new("http://catalogservice"));
+builder.Services.AddHttpClient<CatalogServiceClient>(c => c.BaseAddress = new("https://catalogservice"));
 
 builder.Services.AddSingleton<BasketServiceClient>()
-                .AddGrpcClient<Basket.BasketClient>(o => o.Address = new("http://basketservice"));
+                .AddGrpcClient<Basket.BasketClient>(o => o.Address = new("https://basketservice"));
 
 builder.Services.AddRazorComponents();
 
@@ -28,7 +28,7 @@ app.UseAntiforgery();
 
 app.MapRazorComponents<App>();
 
-app.MapForwarder("/catalog/images/{id}", "http://catalogservice", "/api/v1/catalog/items/{id}/image");
+app.MapForwarder("/catalog/images/{id}", "https://catalogservice", "/api/v1/catalog/items/{id}/image");
 
 app.MapDefaultEndpoints();
 

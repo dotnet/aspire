@@ -1,16 +1,5 @@
 {
   "profiles": {
-    "http": {
-      "commandName": "Project",
-      "launchBrowser": true,
-      "dotnetRunMessages": true,
-      "applicationUrl": "http://localhost:15888",
-      "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development",
-        "DOTNET_ENVIRONMENT": "Development",
-        "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL": "http://localhost:16031"
-      }
-    },
     "generate-manifest": {
       "commandName": "Project",
       "launchBrowser": true,
