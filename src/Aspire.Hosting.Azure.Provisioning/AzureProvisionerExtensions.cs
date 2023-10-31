@@ -6,6 +6,7 @@ using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Lifecycle;
 using Azure.ResourceManager;
+using Azure.ResourceManager.AppConfiguration;
 using Azure.ResourceManager.KeyVault;
 using Azure.ResourceManager.Redis;
 using Azure.ResourceManager.Resources;
@@ -41,6 +42,9 @@ public static class AzureProvisionerExtensions
 
         builder.AddAzureProvisioner<AzureRedisResource, AzureRedisProvisioner>();
         builder.AddResourceEnumerator(resourceGroup => resourceGroup.GetAllRedis(), resource => resource.Data.Tags);
+
+        builder.AddAzureProvisioner<AzureAppConfigurationResource, AppConfigurationProvisoner>();
+        builder.AddResourceEnumerator(resourceGroup => resourceGroup.GetAppConfigurationStores(), resource => resource.Data.Tags);
         return builder;
     }
 
