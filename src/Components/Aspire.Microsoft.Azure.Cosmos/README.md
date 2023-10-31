@@ -40,7 +40,7 @@ See the [Azure Cosmos DB documentation](https://learn.microsoft.com/dotnet/api/m
 
 ## Configuration
 
-The Aspire Azure Cosmos DB library provides multiple options to configure the Azure Cosmos DB connection based on the requirements and conventions of your project. Note that either a `ServiceUri` or a `ConnectionString` is a required to be supplied.
+The Aspire Azure Cosmos DB library provides multiple options to configure the Azure Cosmos DB connection based on the requirements and conventions of your project. Note that either an `AccountEndpoint` or a `ConnectionString` is a required to be supplied.
 
 ### Use a connection string
 
@@ -52,9 +52,9 @@ builder.AddAzureCosmosDB("cosmosConnectionName");
 
 And then the connection string will be retrieved from the `ConnectionStrings` configuration section. Two connection formats are supported:
 
-#### Service URI
+#### Account Endpoint
 
-The recommended approach is to use a ServiceUri, which works with the `AzureCosmosDBSettings.Credential` property to establish a connection. If no credential is configured, the [DefaultAzureCredential](https://learn.microsoft.com/dotnet/api/azure.identity.defaultazurecredential) is used.
+The recommended approach is to use an AccountEndpoint, which works with the `AzureCosmosDBSettings.Credential` property to establish a connection. If no credential is configured, the [DefaultAzureCredential](https://learn.microsoft.com/dotnet/api/azure.identity.defaultazurecredential) is used.
 
 ```json
 {
@@ -78,7 +78,7 @@ Alternatively, an [Azure Cosmos DB connection string](https://learn.microsoft.co
 
 ### Use configuration providers
 
-The Aspire Microsft Azure Cosmos DB library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureCosmosDBSettings` and `QueueClientOptions` from configuration by using the `Aspire:Microsoft:Azure:Cosmos` key. Example `appsettings.json` that configures some of the options:
+The Aspire Microsoft Azure Cosmos DB library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureCosmosDBSettings` and `QueueClientOptions` from configuration by using the `Aspire:Microsoft:Azure:Cosmos` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {

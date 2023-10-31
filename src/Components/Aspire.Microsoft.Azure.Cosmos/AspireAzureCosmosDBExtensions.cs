@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Microsoft.Azure.Cosmos;
+using Azure.Identity;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -68,7 +69,14 @@ public static class AspireAzureCosmosDBExtensions
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {
-            settings.ConnectionString = connectionString;
+            if (Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))
+            {
+                settings.AccountEndpoint = uri;
+            }
+            else
+            {
+                settings.ConnectionString = connectionString;
+            }
         }
 
         configureSettings?.Invoke(settings);
@@ -100,12 +108,22 @@ public static class AspireAzureCosmosDBExtensions
 
         CosmosClient ConfigureDb()
         {
-            if (string.IsNullOrEmpty(settings.ConnectionString))
+            if (!string.IsNullOrEmpty(settings.ConnectionString))
             {
-                throw new InvalidOperationException($"ConnectionString is missing. It should be provided in 'ConnectionStrings:{connectionName}' or under the 'ConnectionString' key in '{configurationSectionName}' configuration section.");
+                return new CosmosClient(settings.ConnectionString, clientOptions);
             }
-
-            return new CosmosClient(settings.ConnectionString, clientOptions);
+            else if (settings.AccountEndpoint is not null)
+            {
+                var credential = settings.Credential ?? new DefaultAzureCredential();
+                return new CosmosClient(settings.AccountEndpoint.OriginalString, credential, clientOptions);
+            }
+            else
+            {
+                throw new InvalidOperationException(
+                        $"{nameof(settings.ConnectionString)} should be provided in 'ConnectionStrings:{connectionName}' or either " +
+                        $"{nameof(settings.ConnectionString)} or {nameof(settings.AccountEndpoint)} must be provided " +
+                        $"in the '{configurationSectionName}' configuration section.");
+            }
         }
     }
 }
