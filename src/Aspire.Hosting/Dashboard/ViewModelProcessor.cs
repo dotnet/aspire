@@ -29,35 +29,48 @@ internal sealed class ViewModelProcessor<TViewModel>
             var snapshot = _snapshot.Values.ToList();
             var channel = Channel.CreateUnbounded<ResourceChanged<TViewModel>>();
             _subscribedChannels.Add(channel);
-            var enumerable = new ChangeEnumerable(channel);
+            var enumerable = new ChangeEnumerable(channel, RemoveChannel);
 
             return new ViewModelMonitor<TViewModel>(snapshot, enumerable);
+        }
+    }
+
+    private void RemoveChannel(Channel<ResourceChanged<TViewModel>> channel)
+    {
+        lock (_syncLock)
+        {
+            _subscribedChannels.Remove(channel);
         }
     }
 
     private sealed class ChangeEnumerable : IAsyncEnumerable<ResourceChanged<TViewModel>>
     {
         private readonly Channel<ResourceChanged<TViewModel>> _channel;
+        private readonly Action<Channel<ResourceChanged<TViewModel>>> _disposeAction;
 
-        public ChangeEnumerable(Channel<ResourceChanged<TViewModel>> channel)
+        public ChangeEnumerable(Channel<ResourceChanged<TViewModel>> channel, Action<Channel<ResourceChanged<TViewModel>>> disposeAction)
         {
             _channel = channel;
+            _disposeAction = disposeAction;
         }
 
         public IAsyncEnumerator<ResourceChanged<TViewModel>> GetAsyncEnumerator(CancellationToken cancellationToken = default)
         {
-            return new ChangeEnumerator(_channel, cancellationToken);
+            return new ChangeEnumerator(_channel, _disposeAction, cancellationToken);
         }
     }
 
     private sealed class ChangeEnumerator : IAsyncEnumerator<ResourceChanged<TViewModel>>
     {
         private readonly Channel<ResourceChanged<TViewModel>> _channel;
+        private readonly Action<Channel<ResourceChanged<TViewModel>>> _disposeAction;
         private readonly CancellationToken _cancellationToken;
 
-        public ChangeEnumerator(Channel<ResourceChanged<TViewModel>> channel, CancellationToken cancellationToken)
+        public ChangeEnumerator(
+            Channel<ResourceChanged<TViewModel>> channel, Action<Channel<ResourceChanged<TViewModel>>> disposeAction, CancellationToken cancellationToken)
         {
             _channel = channel;
+            _disposeAction = disposeAction;
             _cancellationToken = cancellationToken;
             Current = default!;
         }
@@ -66,6 +79,8 @@ internal sealed class ViewModelProcessor<TViewModel>
 
         public ValueTask DisposeAsync()
         {
+            _disposeAction(_channel);
+
             return ValueTask.CompletedTask;
         }
 
