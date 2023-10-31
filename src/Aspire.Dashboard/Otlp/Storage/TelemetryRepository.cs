@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Dashboard.Otlp.Model;
 using Google.Protobuf.Collections;
@@ -293,7 +294,7 @@ public class TelemetryRepository
 
                         // For log entries error and above, increment the unviewed count if there are no read log subscriptions for the application.
                         // We don't increment the count if there are active read subscriptions because the count will be quickly decremented when the subscription callback is run.
-                        // Notifiying the user there are errors and then immediately clearing the notification is confusing.
+                        // Notifying the user there are errors and then immediately clearing the notification is confusing.
                         if (logEntry.Severity >= LogLevel.Error)
                         {
                             if (!_logSubscriptions.Any(s => s.SubscriptionType == SubscriptionType.Read && (s.ApplicationId == application.InstanceId || s.ApplicationId == null)))
@@ -625,6 +626,8 @@ public class TelemetryRepository
                         context.FailureCount++;
                         _logger.LogInformation(ex, "Error adding span.");
                     }
+
+                    AssertTraceOrder();
                 }
 
             }
@@ -648,6 +651,22 @@ public class TelemetryRepository
 
             trace = null;
             return false;
+        }
+    }
+
+    [Conditional("DEBUG")]
+    private void AssertTraceOrder()
+    {
+        DateTime current = default;
+        for (var i = 0; i < _traces.Count; i++)
+        {
+            var trace = _traces[i];
+            if (trace.FirstSpan.StartTime < current)
+            {
+                throw new InvalidOperationException($"Traces not in order at index {i}.");
+            }
+
+            current = trace.FirstSpan.StartTime;
         }
     }
 
