@@ -7,9 +7,7 @@ namespace Aspire.Hosting.Dcp;
 
 internal sealed class Locations(string basePath)
 {
-    public string DcpTempDir => Path.Join(basePath, "aspire");
-
-    public string DcpSessionDir => Path.Combine(DcpTempDir, "session", Environment.ProcessId.ToString(CultureInfo.InvariantCulture));
+    public string DcpSessionDir => basePath;
 
     public string DcpKubeconfigPath => Path.Combine(DcpSessionDir, "kubeconfig");
 
