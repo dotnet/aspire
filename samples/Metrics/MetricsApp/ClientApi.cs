@@ -1,17 +1,24 @@
 namespace MetricsApp;
 
-public static class WeatherApi
+public static class ClientApi
 {
     private static readonly string[] s_summaries =
     [
         "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
     ];
 
-    public static void MapWeatherApi(this IEndpointRouteBuilder endpoints)
+    public static void MapClientApi(this IEndpointRouteBuilder endpoints)
     {
+        var configuration = endpoints.ServiceProvider.GetRequiredService<IConfiguration>();
+
         endpoints.MapGet("weather", async () =>
         {
             await Task.Delay(Random.Shared.Next(1000));
+
+            if (Random.Shared.Next(5) == 0)
+            {
+                throw new InvalidOperationException("Error getting weather data.");
+            }
 
             var results = Enumerable.Range(1, 5).Select(index => new WeatherForecast
             {
@@ -21,6 +28,14 @@ public static class WeatherApi
             }).ToArray();
             return results;
         }).RequireAuthorization();
+
+        endpoints.MapGet("startup", () =>
+        {
+            return new
+            {
+                GrafanaUrl = (string)configuration["GRAFANA_URL"]!
+            };
+        });
     }
 
     private sealed class WeatherForecast

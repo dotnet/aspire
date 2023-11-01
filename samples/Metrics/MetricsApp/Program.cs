@@ -34,11 +34,11 @@ app.MapPrometheusScrapingEndpoint();
 
 var api = app.MapGroup("/api");
 api.MapIdentityApi<MyUser>();
-api.MapWeatherApi();
+api.MapClientApi();
 
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Error");
+    app.UseExceptionHandler();
 }
 else
 {

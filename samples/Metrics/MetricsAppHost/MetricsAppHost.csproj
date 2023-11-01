@@ -10,7 +10,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\Aspire.Hosting\Aspire.Hosting.csproj" />
-    <ProjectReference Include="..\..\..\src\Aspire.Hosting.Dapr\Aspire.Hosting.Dapr.csproj" />
     <ProjectReference Include="..\MetricsApp\MetricsApp.csproj" />
   </ItemGroup>
 

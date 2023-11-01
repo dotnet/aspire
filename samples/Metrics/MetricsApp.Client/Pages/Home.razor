@@ -1,7 +1,31 @@
 ﻿@page "/"
+@inject HttpClient Http
 
 <PageTitle>Home</PageTitle>
 
-<h1>Hello, world!</h1>
+<h1>Hello, metrics!</h1>
 
-Welcome to your new app.
+@if (_grafanaUrl != null)
+{
+    <p>
+        View this app's Grafana dashboard at <a href="@_grafanaUrl" target="_blank">@_grafanaUrl</a>.
+    </p>
+}
+
+@code {
+    private static string? _grafanaUrl;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (_grafanaUrl == null)
+        {
+            var config = await Http.GetFromJsonAsync<Config>("api/startup");
+            _grafanaUrl = config!.GrafanaUrl;
+        }
+    }
+
+    private sealed class Config
+    {
+        public string? GrafanaUrl { get; set; }
+    }
+}

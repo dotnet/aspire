@@ -2,7 +2,7 @@ using System.Net.Http.Headers;
 
 namespace MetricsApp.Client.Auth;
 
-public class IdentityHttpHandler(HttpMessageHandler inner, IdentityAuthenticationStateProvider authenticationStateProvider) : DelegatingHandler(inner)
+public class IdentityHttpHandler(IdentityAuthenticationStateProvider authenticationStateProvider) : DelegatingHandler
 {
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {

@@ -8,11 +8,9 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
-builder.Services.AddScoped(sp =>
-{
-    var identityHandler = new IdentityHttpHandler(new HttpClientHandler(), sp.GetRequiredService<IdentityAuthenticationStateProvider>());
-    return new HttpClient(identityHandler) { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) };
-});
+builder.Services.AddHttpClient("", c => c.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress))
+    .AddHttpMessageHandler(sp => new IdentityHttpHandler(sp.GetRequiredService<IdentityAuthenticationStateProvider>()))
+    .AddStandardResilienceHandler();
 builder.Services.AddAuthorizationCore();
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddSingleton<IdentityAuthenticationStateProvider>();

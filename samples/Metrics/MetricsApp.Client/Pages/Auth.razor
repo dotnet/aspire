@@ -54,7 +54,11 @@
     private string? errorMessage;
 
     [SupplyParameterFromForm]
-    private InputModel Input { get; set; } = new();
+    private InputModel Input { get; set; } = new InputModel
+        {
+            Email = TestEmail,
+            Password = TestPassword
+        };
 
     public async Task LoginUser()
     {
