@@ -119,7 +119,7 @@ public static class AspireAzureCosmosDBExtensions
             else
             {
                 throw new InvalidOperationException(
-                        $"{A CosmosClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or either " +
+                        $"A CosmosClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or either " +
                         $"{nameof(settings.ConnectionString)} or {nameof(settings.AccountEndpoint)} must be provided " +
                         $"in the '{configurationSectionName}' configuration section.");
             }
