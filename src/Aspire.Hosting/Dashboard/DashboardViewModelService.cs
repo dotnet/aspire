@@ -15,6 +15,7 @@ using Aspire.Hosting.Dcp.Process;
 using Aspire.Hosting.Utils;
 using k8s;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Dashboard;
 
@@ -25,6 +26,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
     private readonly string _applicationName;
     private readonly KubernetesService _kubernetesService;
     private readonly DistributedApplicationModel _applicationModel;
+    private readonly ILogger _logger;
 
     private readonly CancellationTokenSource _cancellationTokenSource = new();
     private readonly CancellationToken _cancellationToken;
@@ -46,11 +48,13 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
     private readonly ViewModelProcessor<ExecutableViewModel> _executableViewModelProcessor;
     private readonly ViewModelProcessor<ProjectViewModel> _projectViewModelProcessor;
 
-    public DashboardViewModelService(DistributedApplicationModel applicationModel, KubernetesService kubernetesService, IHostEnvironment hostEnvironment)
+    public DashboardViewModelService(
+        DistributedApplicationModel applicationModel, KubernetesService kubernetesService, IHostEnvironment hostEnvironment, ILoggerFactory loggerFactory)
     {
         _applicationModel = applicationModel;
         _kubernetesService = kubernetesService;
         _applicationName = ComputeApplicationName(hostEnvironment.ApplicationName);
+        _logger = loggerFactory.CreateLogger<DashboardViewModelService>();
         _cancellationToken = _cancellationTokenSource.Token;
         _kubernetesChangesChannel = Channel.CreateUnbounded<(WatchEventType, string, CustomResource?)>();
 
@@ -81,51 +85,66 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
     {
         _ = Task.Run(async () =>
         {
-            await foreach (var tuple in _kubernetesService.WatchAsync<T>(cancellationToken: _cancellationToken))
+            try
             {
-                await _kubernetesChangesChannel.Writer.WriteAsync(
-                    (tuple.Item1, tuple.Item2.Metadata.Name, tuple.Item2), _cancellationToken).ConfigureAwait(false);
+                await foreach (var tuple in _kubernetesService.WatchAsync<T>(cancellationToken: _cancellationToken))
+                {
+                    await _kubernetesChangesChannel.Writer.WriteAsync(
+                        (tuple.Item1, tuple.Item2.Metadata.Name, tuple.Item2), _cancellationToken).ConfigureAwait(false);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Watch task over kubernetes resource of type: {resourceType} terminated", typeof(T).Name);
             }
         });
     }
 
     private async Task ProcessKubernetesChanges()
     {
-        await foreach (var tuple in _kubernetesChangesChannel.Reader.ReadAllAsync(_cancellationToken))
+        try
         {
-            var (watchEventType, name, resource) = tuple;
-            // resource is null when we get notification from the task which fetch docker env vars
-            // So we inject the resource from current copy of containersMap
-            // But this could change in future
-            Debug.Assert(resource is not null || _containersMap.ContainsKey(name),
-                "Received a change notification with null resource which doesn't correlate to existing container.");
-            resource ??= _containersMap[name];
-
-            switch (resource)
+            await foreach (var tuple in _kubernetesChangesChannel.Reader.ReadAllAsync(_cancellationToken))
             {
-                case Container container:
-                    await ProcessContainerChange(watchEventType, container).ConfigureAwait(false);
-                    break;
+                var (watchEventType, name, resource) = tuple;
+                // resource is null when we get notification from the task which fetch docker env vars
+                // So we inject the resource from current copy of containersMap
+                // But this could change in future
+                Debug.Assert(resource is not null || _containersMap.ContainsKey(name),
+                    "Received a change notification with null resource which doesn't correlate to existing container.");
+                resource ??= _containersMap[name];
 
-                case Executable executable
-                when !executable.IsCSharpProject():
-                    await ProcessExecutableChange(watchEventType, executable).ConfigureAwait(false);
-                    break;
+                switch (resource)
+                {
+                    case Container container:
+                        await ProcessContainerChange(watchEventType, container).ConfigureAwait(false);
+                        break;
 
-                case Executable executable
-                when executable.IsCSharpProject():
-                    await ProcessProjectChange(watchEventType, executable).ConfigureAwait(false);
-                    break;
+                    case Executable executable
+                    when !executable.IsCSharpProject():
+                        await ProcessExecutableChange(watchEventType, executable).ConfigureAwait(false);
+                        break;
 
-                case Endpoint endpoint:
-                    await ProcessEndpointChange(watchEventType, endpoint).ConfigureAwait(false);
-                    break;
+                    case Executable executable
+                    when executable.IsCSharpProject():
+                        await ProcessProjectChange(watchEventType, executable).ConfigureAwait(false);
+                        break;
 
-                case Service service:
-                    await ProcessServiceChange(watchEventType, service).ConfigureAwait(false);
-                    break;
+                    case Endpoint endpoint:
+                        await ProcessEndpointChange(watchEventType, endpoint).ConfigureAwait(false);
+                        break;
+
+                    case Service service:
+                        await ProcessServiceChange(watchEventType, service).ConfigureAwait(false);
+                        break;
+                }
             }
         }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Task to compute view model changes terminated");
+        }
+
     }
 
     private async Task ProcessContainerChange(WatchEventType watchEventType, Container container)
@@ -547,13 +566,15 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
                 }
             }
         }
-        catch
+        catch (Exception ex)
         {
             // If we fail to retrieve env vars from container at any point, we just skip it.
             if (processDisposable != null)
             {
                 await processDisposable.DisposeAsync().ConfigureAwait(false);
             }
+
+            _logger.LogError(ex, "Failed to retrieve environment variables from docker container for {containerId}", containerId);
         }
     }
 
