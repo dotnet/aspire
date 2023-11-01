@@ -50,7 +50,6 @@ public class DistributedApplication : IHost, IAsyncDisposable
         _args = args;
     }
 
-
     /// <summary>
     /// Creates a new instance of the <see cref="IDistributedApplicationBuilder"/> interface.
     /// </summary>
