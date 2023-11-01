@@ -40,7 +40,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddHostedService<DcpHostService>();
 
         // We need a unique path per application instance
-        var path = Directory.CreateTempSubdirectory().FullName;
+        var path = Directory.CreateTempSubdirectory("aspire.").FullName;
         _innerBuilder.Services.AddSingleton(new Locations(path));
         _innerBuilder.Services.AddSingleton<KubernetesService>();
 
