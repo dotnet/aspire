@@ -49,12 +49,8 @@
                     },
                     "DbContextPooling": {
                       "type": "boolean",
-                      "description": "Gets or sets a boolean value that indicates whether the DbContext will be pooled or explicitly created every time it's requested."
-                    },
-                    "MaxRetryCount": {
-                      "type": "integer",
-                      "description": "Gets or sets the maximum number of retry attempts. Set it to 0 to disable the retry mechanism.",
-                      "default": 6
+                      "description": "Gets or sets a boolean value that indicates whether the DbContext will be pooled or explicitly created every time it's requested.",
+                      "default": true
                     },
                     "Tracing": {
                       "type": "boolean",
@@ -65,11 +61,6 @@
                       "type": "boolean",
                       "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not.",
                       "default": true
-                    },
-                    "Timeout": {
-                      "type": "integer",
-                      "description": "Gets or sets the time in seconds to wait for the command to execute.",
-                      "default": null
                     }
                   }
                 }

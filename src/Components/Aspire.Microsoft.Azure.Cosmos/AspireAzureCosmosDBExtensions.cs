@@ -14,11 +14,11 @@ namespace Microsoft.Extensions.Hosting;
 /// </summary>
 public static class AspireAzureCosmosDBExtensions
 {
-    public const string DefaultConfigSectionName = "Aspire:Microsoft:Azure:Cosmos";
+    private const string DefaultConfigSectionName = "Aspire:Microsoft:Azure:Cosmos";
 
     /// <summary>
     /// Registers <see cref="CosmosClient" /> as a singleton in the services provided by the <paramref name="builder"/>.
-    /// Configures health check, logging and telemetry for the <see cref="CosmosClient" />.
+    /// Configures logging and telemetry for the <see cref="CosmosClient" />.
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="connectionName">The connection name to use to find a connection string.</param>
@@ -37,7 +37,7 @@ public static class AspireAzureCosmosDBExtensions
 
     /// <summary>
     /// Registers <see cref="CosmosClient" /> as a singleton for given <paramref name="name" /> in the services provided by the <paramref name="builder"/>.
-    /// Configures health check, logging and telemetry for the <see cref="CosmosClient" />.
+    /// Configures logging and telemetry for the <see cref="CosmosClient" />.
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection string from the ConnectionStrings configuration section.</param>
@@ -87,7 +87,6 @@ public static class AspireAzureCosmosDBExtensions
 
         if (settings.Tracing)
         {
-            clientOptions.CosmosClientTelemetryOptions.DisableDistributedTracing = false;
 
             builder.Services.AddOpenTelemetry().WithTracing(tracerProviderBuilder =>
             {
@@ -120,7 +119,7 @@ public static class AspireAzureCosmosDBExtensions
             else
             {
                 throw new InvalidOperationException(
-                        $"{nameof(settings.ConnectionString)} should be provided in 'ConnectionStrings:{connectionName}' or either " +
+                        $"{A CosmosClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or either " +
                         $"{nameof(settings.ConnectionString)} or {nameof(settings.AccountEndpoint)} must be provided " +
                         $"in the '{configurationSectionName}' configuration section.");
             }

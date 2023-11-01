@@ -27,7 +27,7 @@ public static class AzureCosmosDBCloudApplicationBuilderExtensions
 
     private static void WriteCosmosDBDatabaseToManifest(Utf8JsonWriter jsonWriter, CosmosDatabaseResource cosmosDatabase)
     {
-        jsonWriter.WriteString("type", "azure.data.cosmos.database.v1");
+        jsonWriter.WriteString("type", "azure.data.cosmos.server.v1");
         jsonWriter.WriteString("parent", cosmosDatabase.Parent.Name);
         jsonWriter.WriteString("databaseName", cosmosDatabase.Name);
     }
