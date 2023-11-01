@@ -15,7 +15,6 @@ public class ConformanceTests : ConformanceTests<CosmosClient, AzureCosmosDBSett
 
     protected override string ActivitySourceName => "Azure.Cosmos.Operation";
 
-    // TODO
     protected override string[] RequiredLogCategories => Array.Empty<string>();
 
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
