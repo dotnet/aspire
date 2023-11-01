@@ -3,7 +3,7 @@ using CatalogDb;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
-builder.AddCosmosDbContext<CatalogDbContext>("catalogdb", "catalogdb");
+builder.AddNpgsqlDbContext<CatalogDbContext>("catalogdb");
 
 builder.Services.AddOpenTelemetry()
     .WithTracing(tracing => tracing.AddSource(CatalogDbInitializer.ActivitySourceName));

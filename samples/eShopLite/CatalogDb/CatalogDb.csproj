@@ -7,8 +7,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Components\Aspire.Microsoft.EntityFrameworkCore.Cosmos\Aspire.Microsoft.EntityFrameworkCore.Cosmos.csproj" />
     <ProjectReference Include="..\ServiceDefaults\ServiceDefaults.csproj" />
+    <ProjectReference Include="..\..\..\src\Components\Aspire.Npgsql.EntityFrameworkCore.PostgreSQL\Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.csproj" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

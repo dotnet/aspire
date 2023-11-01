@@ -4,7 +4,7 @@ using CatalogService;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
-builder.AddCosmosDbContext<CatalogDbContext>("catalogdb", "catalogdb");
+builder.AddNpgsqlDbContext<CatalogDbContext>("catalogdb");
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddProblemDetails();

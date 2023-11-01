@@ -2,17 +2,17 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 builder.AddAzureProvisioning();
 
-var cosmosdb = builder.AddAzureCosmosDB("cosmosdb");
-var catalogdb = cosmosdb.AddDatabase("catalogdb");
-var ratingsdb = cosmosdb.AddDatabase("ratingsdb");
+var catalogDb = builder.AddPostgresContainer("postgres").AddDatabase("catalogdb");
+var ratingsDb = builder.AddAzureCosmosDB("cosmosdb").AddDatabase("ratingsdb");
 
-var basketCache = builder.AddRedisContainer("basketCache");
+var basketCache = builder.AddRedisContainer("basketcache");
 
 var catalogService = builder.AddProject<Projects.CatalogService>("catalogservice")
-    .WithReference(catalogdb);
+                     .WithReference(catalogDb)
+                     .WithReplicas(2);
 
 var ratingsService = builder.AddProject<Projects.RatingsService>("ratingsservice")
-    .WithReference(ratingsdb);
+    .WithReference(ratingsDb);
 
 var messaging = builder.AddRabbitMQContainer("messaging");
 
@@ -35,6 +35,6 @@ builder.AddProject<Projects.ApiGateway>("apigateway")
        .WithReference(ratingsService);
 
 builder.AddProject<Projects.CatalogDb>("catalogdbapp")
-       .WithReference(catalogdb);
+       .WithReference(catalogDb);
 
 builder.Build().Run();
