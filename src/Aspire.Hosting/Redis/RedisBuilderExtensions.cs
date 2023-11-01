@@ -7,6 +7,9 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting;
 
+/// <summary>
+/// Provides extension methods for adding Redis resources to the application model.
+/// </summary>
 public static class RedisBuilderExtensions
 {
     /// <summary>

@@ -5,13 +5,15 @@ using System.Diagnostics;
 
 namespace Aspire.Hosting.ApplicationModel;
 
+/// <summary>
+/// Represents an annotation that specifies the number of replicas for a resource.
+/// </summary>
+/// <param name="replicas">The number of replicas for the resource.</param>
 [DebuggerDisplay("Type = {GetType().Name,nq}, Replicas = {Replicas}")]
-public sealed class ReplicaAnnotation : IResourceAnnotation
+public sealed class ReplicaAnnotation(int replicas = 1) : IResourceAnnotation
 {
-    public ReplicaAnnotation(int replicas = 1)
-    {
-        Replicas = replicas;
-    }
-
-    public int Replicas { get; private set; }
+    /// <summary>
+    /// Gets the number of replicas for the application.
+    /// </summary>
+    public int Replicas { get; } = replicas;
 }

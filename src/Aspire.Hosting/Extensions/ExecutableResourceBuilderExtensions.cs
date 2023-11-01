@@ -5,6 +5,9 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting;
 
+/// <summary>
+/// Provides extension methods for adding executable resources to the <see cref="IDistributedApplicationBuilder"/> application model.
+/// </summary>
 public static class ExecutableResourceBuilderExtensions
 {
     /// <summary>
