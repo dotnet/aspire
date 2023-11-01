@@ -22,7 +22,7 @@ public static class AspireAzureEFCoreCosmosDBExtensions
 
     /// <summary>
     /// Registers the given <see cref="DbContext" /> as a service in the services provided by the <paramref name="builder"/>.
-    /// Configures the connection pooling, health check, logging and telemetry for the <see cref="DbContext" />.
+    /// Configures the connection pooling, logging and telemetry for the <see cref="DbContext" />.
     /// </summary>
     /// <typeparam name="TContext">The <see cref="DbContext" /> that needs to be registered.</typeparam>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
