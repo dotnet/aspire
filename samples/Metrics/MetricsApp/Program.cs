@@ -1,9 +1,10 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using OpenTelemetry.Metrics;
 using MetricsApp;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.AddServiceDefaults();
 
 builder.Services.AddAuthentication().AddBearerToken(IdentityConstants.BearerScheme);
 builder.Services.AddAuthorizationBuilder();
@@ -14,23 +15,14 @@ builder.Services.AddIdentityCore<MyUser>()
                 .AddEntityFrameworkStores<AppDbContext>()
                 .AddApiEndpoints();
 
-builder.Services.AddOpenTelemetry()
-    .WithMetrics(builder =>
-    {
-        builder.AddPrometheusExporter();
-        builder.AddMeter("Microsoft.AspNetCore.Hosting",
-                         "Microsoft.AspNetCore.Server.Kestrel");
-    });
-
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+app.MapDefaultEndpoints();
 app.MapFallbackToFile("index.html");
-
-app.MapPrometheusScrapingEndpoint();
 
 var api = app.MapGroup("/api");
 api.MapIdentityApi<MyUser>();

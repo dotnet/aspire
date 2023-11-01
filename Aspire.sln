@@ -160,6 +160,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MetricsApp.Client", "sample
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MetricsApp", "samples\Metrics\MetricsApp\MetricsApp.csproj", "{130AD945-EA22-48D6-80A5-8B63E22D6ACA}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ServiceDefaults", "samples\Metrics\ServiceDefaults\ServiceDefaults.csproj", "{0B8A1501-4354-4278-8582-2F80951B01ED}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -426,6 +428,10 @@ Global
 		{130AD945-EA22-48D6-80A5-8B63E22D6ACA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{130AD945-EA22-48D6-80A5-8B63E22D6ACA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{130AD945-EA22-48D6-80A5-8B63E22D6ACA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0B8A1501-4354-4278-8582-2F80951B01ED}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0B8A1501-4354-4278-8582-2F80951B01ED}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0B8A1501-4354-4278-8582-2F80951B01ED}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0B8A1501-4354-4278-8582-2F80951B01ED}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -501,6 +507,7 @@ Global
 		{F592EDFC-A66F-4224-8015-CC04B348C383} = {5C8B62F9-8416-4CA3-80EE-EADF18587D1C}
 		{AA982160-930A-45F3-9015-E0721C88D7C1} = {5C8B62F9-8416-4CA3-80EE-EADF18587D1C}
 		{130AD945-EA22-48D6-80A5-8B63E22D6ACA} = {5C8B62F9-8416-4CA3-80EE-EADF18587D1C}
+		{0B8A1501-4354-4278-8582-2F80951B01ED} = {5C8B62F9-8416-4CA3-80EE-EADF18587D1C}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6DCEDFEC-988E-4CB3-B45B-191EB5086E0C}
