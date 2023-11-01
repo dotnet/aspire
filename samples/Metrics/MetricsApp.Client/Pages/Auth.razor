@@ -1,0 +1,90 @@
+﻿@page "/auth"
+@using System.Text.Json.Nodes
+@using System.ComponentModel.DataAnnotations
+@inject HttpClient Http
+@inject IdentityAuthenticationStateProvider AuthStateProvider
+
+<PageTitle>Log in</PageTitle>
+
+<h1>Log in</h1>
+
+<AuthorizeView>
+    <Authorized>
+        <p>Hello, @context.User.Identity?.Name!</p>
+        <button class="btn btn-primary" @onclick="Logout">Logout</button>
+    </Authorized>
+    <NotAuthorized>
+        <div class="row">
+            <div class="col-md-4">
+                <section>
+                    <StatusMessage Message="@errorMessage" />
+                    <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login" Context="editContext">
+                        <DataAnnotationsValidator />
+                        <hr />
+                        <ValidationSummary class="text-danger" role="alert" />
+                        <div class="form-floating mb-3">
+                            <InputText @bind-Value="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
+                            <label for="email" class="form-label">Email</label>
+                            <ValidationMessage For="() => Input.Email" class="text-danger" />
+                        </div>
+                        <div class="form-floating mb-3">
+                            <InputText type="password" @bind-Value="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="password" />
+                            <label for="password" class="form-label">Password</label>
+                            <ValidationMessage For="() => Input.Password" class="text-danger" />
+                        </div>
+                        <div>
+                            <button type="submit" class="w-100 btn btn-lg btn-primary">Log in</button>
+                        </div>
+                        <hr />
+                        <div>
+                            Email: <strong>@TestEmail</strong>, Password: <strong>@TestPassword</strong>
+                        </div>
+                    </EditForm>
+                </section>
+            </div>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+
+@code {
+    private const string TestEmail = "test@contoso.com";
+    private const string TestPassword = "Password1!";
+
+    private string? errorMessage;
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = new();
+
+    public async Task LoginUser()
+    {
+        var response = await Http.PostAsJsonAsync("/api/login", new { email = Input.Email, password = Input.Password }, CancellationToken.None);
+
+        if (response.IsSuccessStatusCode)
+        {
+            var result = await response.Content.ReadFromJsonAsync<JsonNode>();
+
+            AuthStateProvider.SetUserInfo(new UserInfo { AccessToken = result!["accessToken"]!.ToString(), UserId = Input.Email });
+        }
+        else
+        {
+            errorMessage = "Error: Invalid login attempt.";
+        }
+    }
+
+    private void Logout()
+    {
+        AuthStateProvider.SetUserInfo(userInfo: null);
+    }
+
+    private sealed class InputModel
+    {
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; } = "";
+
+        [Required]
+        [DataType(DataType.Password)]
+        public string Password { get; set; } = "";
+    }
+}

@@ -1,0 +1,86 @@
+{
+  "resources": {
+    "servicea": {
+      "type": "project.v1",
+      "path": "..\\ServiceA\\DaprServiceA.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http"
+        }
+      }
+    },
+    "serviceb": {
+      "type": "project.v1",
+      "path": "..\\ServiceB\\DaprServiceB.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http"
+        }
+      }
+    },
+    "service-a": {
+      "type": "executable.v1",
+      "env": {},
+      "bindings": {
+        "grpc": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp"
+        },
+        "http": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp"
+        },
+        "metrics": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp"
+        }
+      }
+    },
+    "service-b": {
+      "type": "executable.v1",
+      "env": {},
+      "bindings": {
+        "grpc": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp"
+        },
+        "http": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp"
+        },
+        "metrics": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp"
+        }
+      }
+    }
+  }
+}
