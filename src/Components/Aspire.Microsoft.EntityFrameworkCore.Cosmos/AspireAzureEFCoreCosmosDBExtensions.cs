@@ -109,14 +109,12 @@ public static class AspireAzureEFCoreCosmosDBExtensions
                 if (settings.AccountEndpoint is null)
                 {
                     throw new InvalidOperationException(
-                        $"{nameof(settings.ConnectionString)} should be provided in 'ConnectionStrings:{connectionName}' or either " +
+                        $"A DbContext could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or either " +
                         $"{nameof(settings.ConnectionString)} or {nameof(settings.AccountEndpoint)} must be provided " +
-                        $"in '{DefaultConfigSectionName}' or '{typeSpecificSectionName}' configuration section.");
+                        $"in the '{DefaultConfigSectionName}' or '{typeSpecificSectionName}' configuration section.");
                 }
 
-                var credential = settings.Credential is null
-                    ? new DefaultAzureCredential()
-                    : settings.Credential;
+                var credential = settings.Credential ?? new DefaultAzureCredential();
                 dbContextOptionsBuilder.UseCosmos(settings.AccountEndpoint.OriginalString, credential, databaseName, builder =>
                 {
                 });

@@ -25,7 +25,16 @@ public class ConformanceTests : ConformanceTests<CosmosClient, AzureCosmosDBSett
         });
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<AzureCosmosDBSettings>? configure = null, string? key = null)
-        => builder.AddAzureCosmosDB("cosmosdb", configure);
+    {
+        if (key is null)
+        {
+            builder.AddAzureCosmosDB("cosmosdb", configure);
+        }
+        else
+        {
+            builder.AddKeyedAzureCosmosDB(key, configure);
+        }
+    }
 
     protected override void SetHealthCheck(AzureCosmosDBSettings options, bool enabled)
         => throw new NotImplementedException();
