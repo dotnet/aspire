@@ -24,6 +24,7 @@ public static partial class AspireEFPostgreSqlExtensions
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="configureSettings">An optional delegate that can be used for customizing options. It's invoked after the settings are read from the configuration.</param>
+    /// <param name="configureDbContextOptions">An optional delegate to configure the <see cref="DbContextOptions"/> for the context.</param>
     /// <remarks>
     /// <para>
     /// Reads the configuration from "Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:{typeof(TContext).Name}" config section, or "Aspire:Npgsql:EntityFrameworkCore:PostgreSQL" if former does not exist.
@@ -44,7 +45,8 @@ public static partial class AspireEFPostgreSqlExtensions
     public static void AddNpgsqlDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
         this IHostApplicationBuilder builder,
         string connectionName,
-        Action<NpgsqlEntityFrameworkCorePostgreSQLSettings>? configureSettings = null) where TContext : DbContext
+        Action<NpgsqlEntityFrameworkCorePostgreSQLSettings>? configureSettings = null,
+        Action<DbContextOptionsBuilder>? configureDbContextOptions = null) where TContext : DbContext
     {
         ArgumentNullException.ThrowIfNull(builder);
 
@@ -148,6 +150,8 @@ public static partial class AspireEFPostgreSqlExtensions
                 // https://www.npgsql.org/doc/connection-string-parameters.html#timeouts-and-keepalive
                 // There is nothing for us to set here.
             });
+
+            configureDbContextOptions?.Invoke(dbContextOptionsBuilder);
         }
     }
 }
