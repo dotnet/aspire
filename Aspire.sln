@@ -141,7 +141,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Microsoft.Azure.Cosm
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Microsoft.EntityFrameworkCore.Cosmos.Tests", "tests\Aspire.Microsoft.EntityFrameworkCore.Cosmos.Tests\Aspire.Microsoft.EntityFrameworkCore.Cosmos.Tests.csproj", "{FDA02617-9C49-4DA8-A43A-A34DBA9B8596}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CatalogDb", "samples\eShopLite\CatalogDb\CatalogDb.csproj", "{A84C4EE3-2601-4804-BCDC-E9948E164A22}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CatalogDb", "samples\eShopLite\CatalogDb\CatalogDb.csproj", "{A84C4EE3-2601-4804-BCDC-E9948E164A22}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{991DB378-6CB5-4441-BFC3-657400690FC3}"
 	ProjectSection(SolutionItems) = preProject
