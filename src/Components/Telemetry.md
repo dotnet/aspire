@@ -140,16 +140,16 @@ Aspire.Npgsql:
   - "Npgsql"
 - Metric names:
   - "Npgsql":
-    - "ec_Npgsql_bytes_written_per_second"
-    - "ec_Npgsql_bytes_read_per_second"
-    - "ec_Npgsql_commands_per_second"
-    - "ec_Npgsql_total_commands"
-    - "ec_Npgsql_current_commands"
-    - "ec_Npgsql_failed_commands"
-    - "ec_Npgsql_prepared_commands_ratio"
-    - "ec_Npgsql_connection_pools"
-    - "ec_Npgsql_multiplexing_average_commands_per_batch"
-    - "ec_Npgsql_multiplexing_average_write_time_per_batch"
+    - "db.client.commands.bytes_read"
+    - "db.client.commands.bytes_written"
+    - "db.client.commands.duration"
+    - "db.client.commands.executing"
+    - "db.client.commands.failed"
+    - "db.client.connections.create_time"
+    - "db.client.connections.max"
+    - "db.client.connections.pending_requests"
+    - "db.client.connections.timeouts"
+    - "db.client.connections.usage"
 
 Aspire.Npgsql.EntityFrameworkCore.PostgreSQL:
 - Log categories:
@@ -178,16 +178,16 @@ Aspire.Npgsql.EntityFrameworkCore.PostgreSQL:
     - "ec_Microsoft_EntityFramew_total_optimistic_concurrency_failures"
     - "ec_Microsoft_EntityF_optimistic_concurrency_failures_per_second"
   - "Npgsql":
-    - "ec_Npgsql_bytes_written_per_second"
-    - "ec_Npgsql_bytes_read_per_second"
-    - "ec_Npgsql_commands_per_second"
-    - "ec_Npgsql_total_commands"
-    - "ec_Npgsql_current_commands"
-    - "ec_Npgsql_failed_commands"
-    - "ec_Npgsql_prepared_commands_ratio"
-    - "ec_Npgsql_connection_pools"
-    - "ec_Npgsql_multiplexing_average_commands_per_batch"
-    - "ec_Npgsql_multiplexing_average_write_time_per_batch"
+    - "db.client.commands.bytes_read"
+    - "db.client.commands.bytes_written"
+    - "db.client.commands.duration"
+    - "db.client.commands.executing"
+    - "db.client.commands.failed"
+    - "db.client.connections.create_time"
+    - "db.client.connections.max"
+    - "db.client.connections.pending_requests"
+    - "db.client.connections.timeouts"
+    - "db.client.connections.usage"
 
 Aspire.RabbitMQ.Client:
 - Log categories:

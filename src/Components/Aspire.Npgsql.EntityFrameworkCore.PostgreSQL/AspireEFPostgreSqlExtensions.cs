@@ -24,6 +24,7 @@ public static partial class AspireEFPostgreSqlExtensions
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="configureSettings">An optional delegate that can be used for customizing options. It's invoked after the settings are read from the configuration.</param>
+    /// <param name="configureDbContextOptions">An optional delegate to configure the <see cref="DbContextOptions"/> for the context.</param>
     /// <remarks>
     /// <para>
     /// Reads the configuration from "Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:{typeof(TContext).Name}" config section, or "Aspire:Npgsql:EntityFrameworkCore:PostgreSQL" if former does not exist.
@@ -44,7 +45,8 @@ public static partial class AspireEFPostgreSqlExtensions
     public static void AddNpgsqlDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
         this IHostApplicationBuilder builder,
         string connectionName,
-        Action<NpgsqlEntityFrameworkCorePostgreSQLSettings>? configureSettings = null) where TContext : DbContext
+        Action<NpgsqlEntityFrameworkCorePostgreSQLSettings>? configureSettings = null,
+        Action<DbContextOptionsBuilder>? configureDbContextOptions = null) where TContext : DbContext
     {
         ArgumentNullException.ThrowIfNull(builder);
 
@@ -111,20 +113,20 @@ public static partial class AspireEFPostgreSqlExtensions
             builder.Services.AddOpenTelemetry()
                 .WithMetrics(meterProviderBuilder =>
                 {
-                    // Currently both EF and Npgsql provide only Event Counters:
-                    // https://www.npgsql.org/doc/diagnostics/metrics.html?q=metrics
+                    // Currently EF provides only Event Counters:
                     // https://learn.microsoft.com/en-us/ef/core/logging-events-diagnostics/event-counters?tabs=windows#counters-and-their-meaning
                     meterProviderBuilder.AddEventCountersInstrumentation(eventCountersInstrumentationOptions =>
                     {
                         // The magic strings come from:
-                        // https://github.com/npgsql/npgsql/blob/b3282aa6124184162b66dd4ab828041f872bc602/src/Npgsql/NpgsqlEventSource.cs#L14
                         // https://github.com/dotnet/efcore/blob/a1cd4f45aa18314bc91d2b9ea1f71a3b7d5bf636/src/EFCore/Infrastructure/EntityFrameworkEventSource.cs#L45
-                        eventCountersInstrumentationOptions.AddEventSources("Npgsql", "Microsoft.EntityFrameworkCore");
-                        // not adding Npgsql.Sql here, as it's used only for Command Start&Stop events
+                        eventCountersInstrumentationOptions.AddEventSources("Microsoft.EntityFrameworkCore");
                     });
 
-                    // Very recently Npgsql implemented the Metrics support: https://github.com/npgsql/npgsql/pull/5158
-                    // Currently it's not available at nuget.org, we need to wait.
+                    // https://github.com/npgsql/npgsql/blob/4c9921de2dfb48fb5a488787fc7422add3553f50/src/Npgsql/MetricsReporter.cs#L48
+                    meterProviderBuilder.AddMeter("Npgsql");
+
+                    // disable "prepared_ratio" until https://github.com/dotnet/aspire/issues/629 is fixed.
+                    meterProviderBuilder.AddView(instrumentName: "db.client.commands.prepared_ratio", MetricStreamConfiguration.Drop);
                 });
         }
 
@@ -148,6 +150,8 @@ public static partial class AspireEFPostgreSqlExtensions
                 // https://www.npgsql.org/doc/connection-string-parameters.html#timeouts-and-keepalive
                 // There is nothing for us to set here.
             });
+
+            configureDbContextOptions?.Invoke(dbContextOptionsBuilder);
         }
     }
 }

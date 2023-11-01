@@ -9,7 +9,10 @@ public class TestDbContext : DbContext
 {
     public TestDbContext(DbContextOptions<TestDbContext> options) : base(options)
     {
+        Options = options;
     }
+
+    public DbContextOptions<TestDbContext> Options { get; }
 
     public DbSet<CatalogBrand> CatalogBrands => Set<CatalogBrand>();
 
