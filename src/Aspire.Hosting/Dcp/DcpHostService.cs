@@ -263,7 +263,14 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
         string? directoryName = Path.GetDirectoryName(socketPath);
         if (!string.IsNullOrEmpty(directoryName))
         {
-            Directory.CreateDirectory(directoryName);
+            if (OperatingSystem.IsWindows())
+            {
+                Directory.CreateDirectory(directoryName);
+            }
+            else
+            {
+                Directory.CreateDirectory(directoryName, UnixFileMode.UserExecute | UnixFileMode.UserWrite | UnixFileMode.UserRead);
+            }
         }
 
         Socket socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
