@@ -92,7 +92,7 @@ fluent-dialog fluent-data-grid-cell[cell-type=columnheader] fluent-button[appear
 }
 
 .dialog-grid-container {
-    width: 1000px;
+    width: 100%;
     height: 500px;
     overflow-x: auto;
     overflow-y: auto;
@@ -151,4 +151,8 @@ fluent-data-grid-cell .long-inner-content {
 .resource-error-badge {
     padding: 0 3px;
     cursor: pointer;
+}
+
+fluent-dialog::part(control) {
+    overflow-x: auto;
 }
