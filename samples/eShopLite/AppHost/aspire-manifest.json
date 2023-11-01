@@ -32,10 +32,7 @@
       }
     },
     "messaging": {
-      "type": "azure.servicebus.v1",
-      "queues": [
-        "orders"
-      ]
+      "type": "rabbitmq.server.v1"
     },
     "basketservice": {
       "type": "project.v1",
