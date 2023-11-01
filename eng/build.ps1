@@ -8,6 +8,11 @@ Param(
   [ValidateSet("windows","linux","osx")][string]$os,
   [switch]$testnobuild,
   [ValidateSet("x86","x64","arm","arm64")][string[]][Alias('a')]$arch = @([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString().ToLowerInvariant()),
+
+  # Run tests with code coverage
+  [Parameter(ParameterSetName='CommandLine')]
+  [switch] $testCoverage,
+
   [Parameter(ValueFromRemainingArguments=$true)][String[]]$properties
 )
 
@@ -38,6 +43,7 @@ function Get-Help() {
   Write-Host "  -sign                   Sign build outputs."
   Write-Host "  -test (-t)              Incrementally builds and runs tests."
   Write-Host "                          Use in conjunction with -testnobuild to only run tests."
+  Write-Host "  -testCoverage           Run unit tests and capture code coverage information."
   Write-Host ""
 
   Write-Host "Libraries settings:"
@@ -90,6 +96,7 @@ foreach ($argument in $PSBoundParameters.Keys)
 {
   switch($argument)
   {
+    "testCoverage"           { <# this argument is handled in this script only #> }
     "os"                     { $arguments += " /p:TargetOS=$($PSBoundParameters[$argument])" }
     "properties"             { $arguments += " " + $properties }
     "verbosity"              { $arguments += " -$argument " + $($PSBoundParameters[$argument]) }
@@ -103,6 +110,37 @@ if ($env:TreatWarningsAsErrors -eq 'false') {
   $arguments += " -warnAsError 0"
 }
 
+Write-Host "& `"$PSScriptRoot/common/build.ps1`" $arguments"
 Invoke-Expression "& `"$PSScriptRoot/common/build.ps1`" $arguments"
+
+
+# Perform code coverage as the last operation, this enables the following scenarios:
+#   .\build.cmd -restore -build -c Release -testCoverage
+if ($testCoverage) {
+  try {
+    # Install required toolset
+    . $PSScriptRoot/common/tools.ps1
+    InitializeDotNetCli -install $true | Out-Null
+
+    Push-Location $PSScriptRoot/../
+
+    $testResultPath = "./artifacts/TestResults/$configuration";
+
+    # Run tests and collect code coverage
+    ./.dotnet/dotnet dotnet-coverage collect --settings ./eng/CodeCoverage.config --output $testResultPath/local.cobertura.xml "build.cmd -test -configuration $configuration"
+
+    # Generate the code coverage report and open it in the browser
+    ./.dotnet/dotnet reportgenerator -reports:$testResultPath/*.cobertura.xml -targetdir:$testResultPath/CoverageResultsHtml -reporttypes:HtmlInline_AzurePipelines
+    Start-Process $testResultPath/CoverageResultsHtml/index.html
+  }
+  catch {
+    Write-Host $_.Exception.Message -Foreground "Red"
+    Write-Host $_.ScriptStackTrace -Foreground "DarkGray"
+    exit $global:LASTEXITCODE;
+  }
+  finally {
+    Pop-Location
+  }
+}
 
 exit 0
