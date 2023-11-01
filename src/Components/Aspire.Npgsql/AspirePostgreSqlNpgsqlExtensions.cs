@@ -100,12 +100,11 @@ public static class AspirePostgreSqlNpgsqlExtensions
             builder.Services.AddOpenTelemetry()
                 .WithMetrics(meterProviderBuilder =>
                 {
-                    // https://www.npgsql.org/doc/diagnostics/metrics.html?q=metrics
-                    meterProviderBuilder.AddEventCountersInstrumentation(eventCountersInstrumentationOptions =>
-                    {
-                        // https://github.com/npgsql/npgsql/blob/b3282aa6124184162b66dd4ab828041f872bc602/src/Npgsql/NpgsqlEventSource.cs#L14
-                        eventCountersInstrumentationOptions.AddEventSources("Npgsql");
-                    });
+                    // https://github.com/npgsql/npgsql/blob/4c9921de2dfb48fb5a488787fc7422add3553f50/src/Npgsql/MetricsReporter.cs#L48
+                    meterProviderBuilder.AddMeter("Npgsql");
+
+                    // disable "prepared_ratio" until https://github.com/dotnet/aspire/issues/629 is fixed.
+                    meterProviderBuilder.AddView(instrumentName: "db.client.commands.prepared_ratio", MetricStreamConfiguration.Drop);
                 });
         }
     }
