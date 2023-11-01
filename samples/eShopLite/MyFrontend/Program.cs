@@ -9,8 +9,6 @@ builder.AddServiceDefaults();
 builder.Services.AddHttpForwarderWithServiceDiscovery();
 
 builder.Services.AddHttpClient<CatalogServiceClient>(c => c.BaseAddress = new("http://catalogservice"));
-//builder.Services.AddHttpClient<RatingServiceClient>(c => c.BaseAddress = new("http://ratingservice"));
-builder.Services.AddHttpClient<RatingServiceClient>(c => c.BaseAddress = new("http://localhost:5419"));
 
 builder.Services.AddSingleton<BasketServiceClient>()
                 .AddGrpcClient<Basket.BasketClient>(o => o.Address = new("http://basketservice"));

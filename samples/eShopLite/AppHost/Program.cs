@@ -3,16 +3,12 @@ var builder = DistributedApplication.CreateBuilder(args);
 builder.AddAzureProvisioning();
 
 var catalogDb = builder.AddPostgresContainer("postgres").AddDatabase("catalogdb");
-var ratingsDb = builder.AddAzureCosmosDB("cosmosdb").AddDatabase("ratingsdb");
 
 var basketCache = builder.AddRedisContainer("basketcache");
 
 var catalogService = builder.AddProject<Projects.CatalogService>("catalogservice")
                      .WithReference(catalogDb)
                      .WithReplicas(2);
-
-var ratingsService = builder.AddProject<Projects.RatingsService>("ratingsservice")
-    .WithReference(ratingsDb);
 
 var messaging = builder.AddRabbitMQContainer("messaging");
 
@@ -22,8 +18,7 @@ var basketService = builder.AddProject<Projects.BasketService>("basketservice")
 
 builder.AddProject<Projects.MyFrontend>("frontend")
        .WithReference(basketService)
-       .WithReference(catalogService.GetEndpoint("http"))
-       .WithReference(ratingsService.GetEndpoint("http"));
+       .WithReference(catalogService.GetEndpoint("http"));
 
 builder.AddProject<Projects.OrderProcessor>("orderprocessor")
        .WithReference(messaging)
@@ -31,8 +26,7 @@ builder.AddProject<Projects.OrderProcessor>("orderprocessor")
 
 builder.AddProject<Projects.ApiGateway>("apigateway")
        .WithReference(basketService)
-       .WithReference(catalogService)
-       .WithReference(ratingsService);
+       .WithReference(catalogService);
 
 builder.AddProject<Projects.CatalogDb>("catalogdbapp")
        .WithReference(catalogDb);
