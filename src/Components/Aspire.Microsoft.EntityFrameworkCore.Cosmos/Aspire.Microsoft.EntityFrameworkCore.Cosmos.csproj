@@ -5,6 +5,9 @@
     <IsPackable>true</IsPackable>
     <EnableConfigurationBindingGenerator>false</EnableConfigurationBindingGenerator>
     <IsAotCompatible>false</IsAotCompatible>
+    <PackageTags>$(ComponentEfCorePackageTags) azure cosmos cosmosdb </PackageTags>
+    <Description>A Microsoft Azure Cosmos DB provider for Entity Framework Core that integrates with Aspire, including connection pooling, logging, and telemetry.</Description>
+    <PackageIconFullPath>$(SharedDir)AzureCosmosDB_256x.png</PackageIconFullPath>
   </PropertyGroup>
 
   <ItemGroup>
