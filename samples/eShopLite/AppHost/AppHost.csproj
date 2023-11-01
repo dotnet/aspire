@@ -18,6 +18,7 @@
     <ProjectReference Include="..\CatalogService\CatalogService.csproj" />
     <ProjectReference Include="..\MyFrontend\MyFrontend.csproj" />
     <ProjectReference Include="..\OrderProcessor\OrderProcessor.csproj" />
+    <ProjectReference Include="..\RatingsService\RatingsService.csproj" />
   </ItemGroup>
 
 </Project>
