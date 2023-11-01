@@ -23,7 +23,11 @@
                   "properties": {
                     "ConnectionString": {
                       "type": "string",
-                      "description": "Gets or sets the connection string of the Azure Cosmos DB to connect to."
+                      "description": "Gets or sets the connection string of the Azure Cosmos DB to connect to. If both are provided, 'ConnectionString' takes precedence over 'AccountEndpoint'."
+                    },
+                    "AccountEndpoint": {
+                      "type": "string",
+                      "description": "Gets or sets the account endpoint of the Azure Cosmos DB to connect to. If both are provided, 'ConnectionString' takes precedence over 'AccountEndpoint'."
                     },
                     "Tracing": {
                       "type": "boolean",
