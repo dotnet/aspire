@@ -13,6 +13,8 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, IHo
     private readonly IOptions<PublishingOptions> _options = options;
     private readonly IHostApplicationLifetime _lifetime = lifetime;
 
+    public Utf8JsonWriter? JsonWriter { get; set; }
+
     public async Task PublishAsync(DistributedApplicationModel model, CancellationToken cancellationToken)
     {
         await WriteManifestAsync(model, cancellationToken).ConfigureAwait(false);
@@ -29,7 +31,7 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, IHo
         }
 
         using var stream = new FileStream(_options.Value.OutputPath, FileMode.Create);
-        using var jsonWriter = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true });
+        using var jsonWriter = JsonWriter ?? new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true });
 
         jsonWriter.WriteStartObject();
         WriteResources(model, jsonWriter);
@@ -169,7 +171,7 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, IHo
 
     private static void WriteContainer(ContainerResource container, Utf8JsonWriter jsonWriter)
     {
-        jsonWriter.WriteString("type", "container.v1");
+        jsonWriter.WriteString("type", "container.v0");
 
         if (!container.TryGetContainerImageName(out var image))
         {
@@ -184,7 +186,7 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, IHo
 
     private void WriteProject(ProjectResource project, Utf8JsonWriter jsonWriter)
     {
-        jsonWriter.WriteString("type", "project.v1");
+        jsonWriter.WriteString("type", "project.v0");
 
         if (!project.TryGetLastAnnotation<IServiceMetadata>(out var metadata))
         {
@@ -203,7 +205,7 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, IHo
 
     private static void WriteExecutable(ExecutableResource executable, Utf8JsonWriter jsonWriter)
     {
-        jsonWriter.WriteString("type", "executable.v1");
+        jsonWriter.WriteString("type", "executable.v0");
 
         WriteEnvironmentVariables(executable, jsonWriter);
         WriteBindings(executable, jsonWriter);
