@@ -1,0 +1,28 @@
+steps:
+  - task: DownloadBuildArtifacts@0
+    displayName: Download code coverage reports
+    inputs:
+      artifactName: CodeCoverageResults
+      downloadPath: $(System.DefaultWorkingDirectory)
+
+  - script: $(Build.SourcesDirectory)/.dotnet/dotnet dotnet-coverage merge
+            $(System.DefaultWorkingDirectory)/CodeCoverageResults/*.cobertura.xml
+            --output-format cobertura
+            --output ./merged.cobertura.xml
+    displayName: Merge code coverage reports
+
+  - script: $(Build.SourcesDirectory)/.dotnet/dotnet reportgenerator
+            -reports:./merged.cobertura.xml
+            -targetdir:./CoverageResultsHtml
+            -reporttypes:HtmlInline_AzurePipelines
+    displayName: Generate code coverage report
+
+  - task: PublishCodeCoverageResults@1
+    displayName: Publish coverage report
+    env:
+      DISABLE_COVERAGE_AUTOGENERATE: 'true'
+    inputs:
+      codeCoverageTool: cobertura
+      summaryFileLocation: ./merged.cobertura.xml
+      pathToSources: $(Build.SourcesDirectory)
+      reportDirectory: ./CoverageResultsHtml

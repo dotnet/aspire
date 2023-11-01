@@ -1,0 +1,74 @@
+parameters:
+  - name: runAsPublic
+    type: boolean
+    default: false
+  - name: buildScript
+    type: string
+  - name: buildConfig
+    type: string
+  - name: repoLogPath
+    type: string
+  - name: repoTestResultsPath
+    type: string
+  - name: isWindows
+    type: string
+  - name: skipTests
+    type: boolean
+    default: false
+
+steps:
+  - script: ${{ parameters.buildScript }}
+            -restore -build
+            -configuration ${{ parameters.buildConfig }}
+            /bl:${{ parameters.repoLogPath }}/build.binlog
+            $(_OfficialBuildIdArgs)
+    displayName: Build
+
+  - ${{ if ne(parameters.skipTests, 'true') }}:
+    - script: $(Build.SourcesDirectory)/.dotnet/dotnet dotnet-coverage collect
+              --settings $(Build.SourcesDirectory)/eng/CodeCoverage.config
+              --output ${{ parameters.repoTestResultsPath }}/$(Agent.Os)_$(Agent.JobName).cobertura.xml
+              "${{ parameters.buildScript }} -test -configuration ${{ parameters.buildConfig }} /bl:${{ parameters.repoLogPath }}/tests.binlog $(_OfficialBuildIdArgs)"
+      displayName: Run tests
+
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: '${{ parameters.repoTestResultsPath }}/$(Agent.Os)_$(Agent.JobName).cobertura.xml'
+        PublishLocation: Container
+        ArtifactName: CodeCoverageResults
+      displayName: Publish coverage results (cobertura.xml)
+
+  - ${{ if eq(parameters.isWindows, 'true') }}:
+    - script: ${{ parameters.buildScript }}
+              -pack
+              -sign $(_SignArgs)
+              -publish $(_PublishArgs)
+              -configuration ${{ parameters.buildConfig }}
+              /bl:${{ parameters.repoLogPath }}/pack.binlog
+              /p:Restore=false /p:Build=false
+              $(_OfficialBuildIdArgs)
+      displayName: Pack, Sign, and Publish
+
+    - script: ${{ parameters.buildScript }}
+        -restore -build
+        -pack
+        -sign $(_SignArgs)
+        -publish $(_PublishArgs)
+        -configuration $(_BuildConfig)
+        -projects eng\workloads\workloads.csproj
+        $(_InternalBuildArgs)
+      displayName: Build Workloads
+
+    - task: PublishBuildArtifacts@1
+      inputs:
+        pathToPublish: '$(Build.SourcesDirectory)/artifacts/packages'
+        artifactName: PackageArtifacts
+        artifactType: container
+      displayName: Publish Package Artifacts
+
+    - task: PublishBuildArtifacts@1
+      inputs:
+        pathToPublish: '$(Build.SourcesDirectory)/artifacts/VSSetup/$(_BuildConfig)'
+        artifactName: VSDropInsertion
+        artifactType: container
+      displayName: Publish VSDrop MSIs

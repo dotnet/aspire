@@ -12,19 +12,48 @@ pr:
     - release/*
 
 variables:
-- template: /eng/pipelines/common-variables.yml
-- template: /eng/common/templates/variables/pool-providers.yml
+  - template: /eng/pipelines/common-variables.yml
+  - template: /eng/common/templates/variables/pool-providers.yml
 
-- ${{ if eq(variables['_RunAsPublic'], 'true') }}:
-  - name: _AdditionalBuildArgs
-    value: ''
-  - name: _BuildJobDisplayName
-    value: 'Build and Test'
-- ${{ else }}:
-  - name: _AdditionalBuildArgs
-    value: '/p:Test=false'
-  - name: _BuildJobDisplayName
-    value: 'Build, Sign and Publish'
+  - name: _BuildConfig
+    value: Release
+  - name: Build.Arcade.ArtifactsPath
+    value: $(Build.SourcesDirectory)/artifacts/
+  - name: Build.Arcade.LogsPath
+    value: $(Build.Arcade.ArtifactsPath)log/$(_BuildConfig)/
+  - name: Build.Arcade.TestResultsPath
+    value: $(Build.Arcade.ArtifactsPath)TestResults/$(_BuildConfig)/
+
+  # Produce test-signed build for PR and Public builds
+  - ${{ if or(eq(variables['_RunAsPublic'], 'true'), eq(variables['Build.Reason'], 'PullRequest')) }}:
+    # needed for darc (dependency flow) publishing
+    - name: _PublishArgs
+      value: ''
+    - name: _OfficialBuildIdArgs
+      value: ''
+    # needed for signing
+    - name: _SignType
+      value: test
+    - name: _SignArgs
+      value: ''
+    - name: _Sign
+      value: false
+
+  # Set up non-PR build from internal project
+  - ${{ if and(ne(variables['_RunAsPublic'], 'true'), ne(variables['Build.Reason'], 'PullRequest')) }}:
+    # needed for darc (dependency flow) publishing
+    - name: _PublishArgs
+      value: >-
+            /p:DotNetPublishUsingPipelines=true
+    - name: _OfficialBuildIdArgs
+      value: /p:OfficialBuildId=$(BUILD.BUILDNUMBER)
+    # needed for signing
+    - name: _SignType
+      value: real
+    - name: _SignArgs
+      value: /p:DotNetSignType=$(_SignType) /p:TeamName=$(_TeamName) /p:Sign=$(_Sign) /p:DotNetPublishUsingPipelines=true
+    - name: _Sign
+      value: true
 
 resources:
   containers:
@@ -32,6 +61,10 @@ resources:
     image: mcr.microsoft.com/dotnet-buildtools/prereqs:cbl-mariner-2.0-fpm
 
 stages:
+
+# ----------------------------------------------------------------
+# This stage performs build, test, packaging
+# ----------------------------------------------------------------
 - stage: build
   displayName: Build
   jobs:
@@ -58,66 +91,106 @@ stages:
       enableSourceIndex: false
       workspace:
         clean: all
+
       jobs:
+
       - job: windows
-        timeoutInMinutes: 60
+        timeoutInMinutes: 30
+
         pool:
           name: $(DncEngInternalBuildPool)
-          demands: ImageOverride -equals 1es-windows-2022
-        strategy:
-          matrix:
-            release:
-              _BuildConfig: Release
+          demands: ImageOverride -equals windows.vs2022preview.amd64
+
+        variables:
+          - name: _buildScript
+            value: $(Build.SourcesDirectory)/build.cmd -ci
+
         preSteps:
-        - checkout: self
-          fetchDepth: 0
-          clean: true
+          - checkout: self
+            fetchDepth: 1
+            clean: true
+
         steps:
-        - script: eng\common\cibuild.cmd
-            -configuration $(_BuildConfig)
-            -prepareMachine
-            $(_AdditionalBuildArgs)
-            $(_InternalBuildArgs)
-          displayName: $(_BuildJobDisplayName)
-        - script: eng\common\cibuild.cmd
-            -configuration $(_BuildConfig)
-            -projects eng\workloads\workloads.csproj
-            $(_AdditionalBuildArgs)
-            $(_InternalBuildArgs)
-          displayName: Build Workloads
-        - task: PublishBuildArtifacts@1
-          displayName: Publish Package Artifacts
-          inputs:
-            pathToPublish: '$(Build.SourcesDirectory)/artifacts/packages'
-            artifactName: PackageArtifacts
-            artifactType: container
-        - task: PublishBuildArtifacts@1
-          displayName: Publish VSDrop MSIs
-          inputs:
-            pathToPublish: '$(Build.SourcesDirectory)/artifacts/VSSetup/$(_BuildConfig)'
-            artifactName: VSDropInsertion
-            artifactType: container
+          - template: /eng/pipelines/templates/BuildAndTest.yml
+            parameters:
+              runAsPublic: ${{ eq(variables._RunAsPublic, True) }}
+              buildScript: $(_buildScript)
+              buildConfig: $(_BuildConfig)
+              repoLogPath: $(Build.Arcade.LogsPath)
+              repoTestResultsPath: $(Build.Arcade.TestResultsPath)
+              isWindows: true
+
 
       - ${{ if eq(variables._RunAsPublic, True) }}:
         - job: linux
-          timeoutInMinutes: 60
-          container: LinuxContainer
+          timeoutInMinutes: 30
+
           pool:
-            vmImage: ubuntu-latest
-          strategy:
-            matrix:
-              debug:
-                _BuildConfig: Debug
+            name: $(DncEngInternalBuildPool)
+            demands: ImageOverride -equals build.ubuntu.2004.amd64
+
+          variables:
+            - name: _buildScript
+              value: $(Build.SourcesDirectory)/build.sh --ci
+
           preSteps:
-          - checkout: self
-            clean: true
+            - checkout: self
+              fetchDepth: 1
+              clean: true
+
           steps:
-          - script: eng/common/cibuild.sh
-              --configuration $(_BuildConfig)
-              --prepareMachine
-              $(_AdditionalBuildArgs)
-              $(_InternalBuildArgs)
-            displayName: $(_BuildJobDisplayName)
+          - template: /eng/pipelines/templates/BuildAndTest.yml
+            parameters:
+              runAsPublic: ${{ eq(variables._RunAsPublic, True) }}
+              buildScript: $(_buildScript)
+              buildConfig: $(_BuildConfig)
+              repoLogPath: $(Build.Arcade.LogsPath)
+              repoTestResultsPath: $(Build.Arcade.TestResultsPath)
+              isWindows: false
+
+
+# ----------------------------------------------------------------
+# This stage performs quality gates checks
+# ----------------------------------------------------------------
+- stage: codecoverage
+  displayName: CodeCoverage
+  dependsOn: 
+    - build
+  condition: succeeded('build')
+  variables:
+  - template: /eng/common/templates/variables/pool-providers.yml
+  jobs:
+  - template: /eng/common/templates/jobs/jobs.yml
+    parameters:
+      enableMicrobuild: true
+      enableTelemetry: true
+      runAsPublic: false
+      workspace:
+        clean: all
+
+      # ----------------------------------------------------------------
+      # This stage downloads the code coverage reports from the build jobs,
+      # merges those and validates the combined test coverage.
+      # ----------------------------------------------------------------
+      jobs:
+      - job: CodeCoverageReport
+        timeoutInMinutes: 10
+
+        pool:
+          name: $(DncEngInternalBuildPool)
+          demands: ImageOverride -equals build.ubuntu.2004.amd64
+
+        preSteps:
+          - checkout: self
+            fetchDepth: 1
+            clean: true
+
+        steps:
+        - script: $(Build.SourcesDirectory)/build.sh --ci --restore
+          displayName: Init toolset
+
+        - template: /eng/pipelines/templates/VerifyCoverageReport.yml
+
 
 - ${{ if eq(variables._RunAsInternal, True) }}:
   - template: /eng/common/templates/post-build/post-build.yml
@@ -136,3 +209,4 @@ stages:
           -TsaCodebaseName $(_TsaCodebaseName)
           -TsaOnboard $(_TsaOnboard)
           -TsaPublish $(_TsaPublish)'
+
