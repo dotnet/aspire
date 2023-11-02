@@ -350,7 +350,7 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
             {
                 // loggerFactory.CreateLogger internally caches, but we may as well cache the logger as well as the string
                 // for the lifetime of this socket
-                loggerCache[hashValue] = logger = _loggerFactory.CreateLogger(Encoding.UTF8.GetString(category));
+                loggerCache[hashValue] = logger = _loggerFactory.CreateLogger($"Aspire.Hosting.Dcp.{Encoding.UTF8.GetString(category)}");
             }
 
             return (logger, logLevel, Encoding.UTF8.GetString(message));
