@@ -11,7 +11,7 @@ public class DcpVisibilityTests
     {
         var hostingAssembly = typeof(DistributedApplication).Assembly;
         var types = hostingAssembly.GetExportedTypes();
-        var dcpNamespaceTypes = types.Where(t => t.Namespace?.StartsWith("Aspire.Hosting.Dcp") ?? false);
+        var dcpNamespaceTypes = types.Where(t => t.FullName.Contains("Dcp", StringComparison.OrdinalIgnoreCase));
         Assert.Empty(dcpNamespaceTypes);
     }
 }
