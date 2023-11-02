@@ -18,9 +18,11 @@ public class AzureSqlDatabaseResource(string name, AzureSqlServerResource server
     /// </summary>
     public AzureSqlServerResource Parent => server;
 
+    public string? ConnectionString { get; set; }
+
     /// <summary>
     /// Gets the connection string for the Azure SQL Database resource.
     /// </summary>
     /// <returns>The connection string for the Azure SQL Database resource.</returns>
-    public string? GetConnectionString() => Parent.GetConnectionString(Name);
+    public string? GetConnectionString() => ConnectionString ?? Parent.GetConnectionString(Name);
 }

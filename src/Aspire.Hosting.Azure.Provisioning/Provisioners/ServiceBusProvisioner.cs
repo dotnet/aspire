@@ -33,7 +33,7 @@ internal sealed class ServiceBusProvisioner(ILogger<ServiceBusProvisioner> logge
         Dictionary<string, ArmResource> resourceMap,
         AzureLocation location,
         AzureServiceBusResource resource,
-        Guid principalId,
+        UserPrincipal principal,
         JsonObject userSecrets,
         CancellationToken cancellationToken)
     {
@@ -153,6 +153,6 @@ internal sealed class ServiceBusProvisioner(ILogger<ServiceBusProvisioner> logge
         // https://learn.microsoft.com/azure/role-based-access-control/built-in-roles#azure-service-bus-data-owner
         var roleDefinitionId = CreateRoleDefinitionId(subscription, "090c5cfd-751d-490a-894a-3ce6f1109419");
 
-        await DoRoleAssignmentAsync(armClient, serviceBusNamespace.Id, principalId, roleDefinitionId, cancellationToken).ConfigureAwait(false);
+        await DoRoleAssignmentAsync(armClient, serviceBusNamespace.Id, principal.Id, roleDefinitionId, cancellationToken).ConfigureAwait(false);
     }
 }

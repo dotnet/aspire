@@ -37,7 +37,7 @@ internal sealed class AzureRedisProvisioner(ILogger<AzureRedisProvisioner> logge
         Dictionary<string, ArmResource> resourceMap,
         AzureLocation location,
         AzureRedisResource resource,
-        Guid principalId,
+        UserPrincipal principal,
         JsonObject userSecrets,
         CancellationToken cancellationToken)
     {

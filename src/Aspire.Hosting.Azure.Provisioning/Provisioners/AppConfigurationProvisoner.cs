@@ -35,7 +35,7 @@ internal sealed class AppConfigurationProvisioner(ILogger<AppConfigurationProvis
         Dictionary<string, ArmResource> resourceMap,
         AzureLocation location,
         AzureAppConfigurationResource resource,
-        Guid principalId,
+        UserPrincipal principal,
         JsonObject userSecrets,
         CancellationToken cancellationToken)
     {
@@ -75,6 +75,6 @@ internal sealed class AppConfigurationProvisioner(ILogger<AppConfigurationProvis
         // https://learn.microsoft.com/azure/role-based-access-control/built-in-roles#app-configuration-data-owner
         var roleDefinitionId = CreateRoleDefinitionId(subscription, "5ae67dd6-50cb-40e7-96ff-dc2bfa4b606b");
 
-        await DoRoleAssignmentAsync(armClient, appConfigurationResource.Id, principalId, roleDefinitionId, cancellationToken).ConfigureAwait(false);
+        await DoRoleAssignmentAsync(armClient, appConfigurationResource.Id, principal.Id, roleDefinitionId, cancellationToken).ConfigureAwait(false);
     }
 }

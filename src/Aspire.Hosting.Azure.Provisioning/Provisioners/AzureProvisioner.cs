@@ -138,7 +138,7 @@ internal sealed class AzureProvisioner(
             return (resourceGroup, location);
         });
 
-        var principalIdLazy = new Lazy<Task<Guid>>(async () => Guid.Parse(await GetUserPrincipalAsync(credential, cancellationToken).ConfigureAwait(false)));
+        var principalLazy = new Lazy<Task<UserPrincipal>>(async () => await GetUserPrincipalAsync(credential, cancellationToken).ConfigureAwait(false));
 
         var resourceMapLazy = new Lazy<Task<Dictionary<string, ArmResource>>>(async () =>
         {
@@ -177,7 +177,7 @@ internal sealed class AzureProvisioner(
         ResourceGroupResource? resourceGroup = null;
         SubscriptionResource? subscription = null;
         Dictionary<string, ArmResource>? resourceMap = null;
-        Guid? principalId = default;
+        UserPrincipal? principal = null;
         var usedResources = new HashSet<string>();
 
         var userSecrets = userSecretsPath is null || !File.Exists(userSecretsPath) ? [] : JsonNode.Parse(File.ReadAllText(userSecretsPath))!.AsObject();
@@ -215,7 +215,7 @@ internal sealed class AzureProvisioner(
             }
 
             resourceMap ??= await resourceMapLazy.Value.ConfigureAwait(false);
-            principalId ??= await principalIdLazy.Value.ConfigureAwait(false);
+            principal ??= await principalLazy.Value.ConfigureAwait(false);
 
             var task = provisioner.GetOrCreateResourceAsync(armClient,
                     subscription,
@@ -223,7 +223,7 @@ internal sealed class AzureProvisioner(
                     resourceMap,
                     location,
                     resource,
-                    principalId.Value,
+                    principal,
                     userSecrets,
                     cancellationToken);
 
@@ -288,14 +288,15 @@ internal sealed class AzureProvisioner(
         }
     }
 
-    internal async Task<string> GetUserPrincipalAsync(TokenCredential credential, CancellationToken cancellationToken)
+    internal async Task<UserPrincipal> GetUserPrincipalAsync(TokenCredential credential, CancellationToken cancellationToken)
     {
         var response = await credential.GetTokenAsync(new(["https://graph.windows.net/.default"]), cancellationToken).ConfigureAwait(false);
 
-        static string ParseToken(in AccessToken response)
+        static UserPrincipal ParseToken(in AccessToken response)
         {
             // Parse the access token to get the user's object id (this is their principal id)
-
+            var oid = string.Empty;
+            var upn = string.Empty;
             var parts = response.Token.Split('.');
             var part = parts[1];
             var convertedToken = part.ToString().Replace('_', '/').Replace('-', '+');
@@ -319,12 +320,28 @@ internal sealed class AzureProvisioner(
                     if (header == "oid")
                     {
                         reader.Read();
-                        return reader.GetString()!;
+                        oid = reader.GetString()!;
+                        if (!string.IsNullOrEmpty(upn))
+                        {
+                            break;
+                        }
                     }
-                    reader.Read();
+                    else if (header is "upn" or "email")
+                    {
+                        reader.Read();
+                        upn = reader.GetString()!;
+                        if (!string.IsNullOrEmpty(oid))
+                        {
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        reader.Read();
+                    }
                 }
             }
-            return string.Empty;
+            return new UserPrincipal(Guid.Parse(oid), upn);
         }
 
         return ParseToken(response);
