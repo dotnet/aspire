@@ -62,26 +62,16 @@ internal sealed class RabbitMQEventSourceLogForwarder : IDisposable
 
     public void Dispose() => _listener?.Dispose();
 
-    private static LogLevel MapLevel(EventLevel level)
+    private static LogLevel MapLevel(EventLevel level) => level switch
     {
-        switch (level)
-        {
-            case EventLevel.Critical:
-                return LogLevel.Critical;
-            case EventLevel.Error:
-                return LogLevel.Error;
-            case EventLevel.Informational:
-                return LogLevel.Information;
-            case EventLevel.Verbose:
-                return LogLevel.Debug;
-            case EventLevel.Warning:
-                return LogLevel.Warning;
-            case EventLevel.LogAlways:
-                return LogLevel.Information;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(level), level, null);
-        }
-    }
+        EventLevel.Critical => LogLevel.Critical,
+        EventLevel.Error => LogLevel.Error,
+        EventLevel.Informational => LogLevel.Information,
+        EventLevel.Verbose => LogLevel.Debug,
+        EventLevel.Warning => LogLevel.Warning,
+        EventLevel.LogAlways => LogLevel.Information,
+        _ => throw new ArgumentOutOfRangeException(nameof(level), level, null),
+    };
 
     private readonly struct EventSourceEvent : IReadOnlyList<KeyValuePair<string, object?>>
     {
