@@ -102,9 +102,6 @@ public static class AspirePostgreSqlNpgsqlExtensions
                 {
                     // https://github.com/npgsql/npgsql/blob/4c9921de2dfb48fb5a488787fc7422add3553f50/src/Npgsql/MetricsReporter.cs#L48
                     meterProviderBuilder.AddMeter("Npgsql");
-
-                    // disable "prepared_ratio" until https://github.com/dotnet/aspire/issues/629 is fixed.
-                    meterProviderBuilder.AddView(instrumentName: "db.client.commands.prepared_ratio", MetricStreamConfiguration.Drop);
                 });
         }
     }
