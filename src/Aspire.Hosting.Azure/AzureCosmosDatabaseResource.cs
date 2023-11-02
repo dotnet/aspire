@@ -9,14 +9,14 @@ namespace Aspire.Hosting.Azure.Data.Cosmos;
 /// Represents an Azure Cosmos DB database.
 /// </summary>
 /// <param name="name">The database name.</param>
-/// <param name="parent">The parent <see cref="CosmosDBConnectionResource"/>.</param>
-public class CosmosDatabaseResource(string name, CosmosDBConnectionResource parent)
-    : Resource(name), IResourceWithParent<CosmosDBConnectionResource>, IResourceWithConnectionString
+/// <param name="parent">The parent <see cref="AzureCosmosDBConnectionResource"/>.</param>
+public class AzureCosmosDatabaseResource(string name, AzureCosmosDBConnectionResource parent)
+    : Resource(name), IResourceWithParent<AzureCosmosDBConnectionResource>, IResourceWithConnectionString
 {
     /// <summary>
-    /// Gets the parent <see cref="CosmosDBConnectionResource"/>.
+    /// Gets the parent <see cref="AzureCosmosDBConnectionResource"/>.
     /// </summary>
-    public CosmosDBConnectionResource Parent { get; } = parent;
+    public AzureCosmosDBConnectionResource Parent { get; } = parent;
 
     /// <summary>
     /// Gets the connection string to use for this database.

@@ -10,7 +10,7 @@ namespace Aspire.Hosting.Azure.Data.Cosmos;
 /// </summary>
 /// <param name="name">The resource name.</param>
 /// <param name="connectionString">The connection string to use to connect.</param>
-public class CosmosDBConnectionResource(string name, string? connectionString)
+public class AzureCosmosDBConnectionResource(string name, string? connectionString)
     : Resource(name), IResourceWithConnectionString
 {
     /// <summary>
