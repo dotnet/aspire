@@ -201,4 +201,41 @@ public static class AzureResourceExtensions
     {
         writer.WriteString("type", "azure.appconfiguration.v0");
     }
+
+    /// <summary>
+    /// Adds an Azure SQL Server resource to the application model. This resource can be used to create Azure SQL Database resources.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{AzureSqlServerResource}"/>.</returns>
+    public static IResourceBuilder<AzureSqlServerResource> AddAzureSqlServer(this IDistributedApplicationBuilder builder, string name)
+    {
+        var resource = new AzureSqlServerResource(name);
+        return builder.AddResource(resource)
+                      .WithAnnotation(new ManifestPublishingCallbackAnnotation(WriteSqlServerToManifest));
+    }
+
+    private static void WriteSqlServerToManifest(Utf8JsonWriter jsonWriter)
+    {
+        jsonWriter.WriteString("type", "azure.sql.v0");
+    }
+
+    /// <summary>
+    /// Adds an Azure SQL Database resource to the application model. This resource requires an <see cref="AzureSqlServerResource"/> to be added to the application model.
+    /// </summary>
+    /// <param name="serverBuilder">The Azure SQL Server resource builder.</param>
+    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{AzureSqlDatabaseResource}"/>.</returns>
+    public static IResourceBuilder<AzureSqlDatabaseResource> AddDatabase(this IResourceBuilder<AzureSqlServerResource> serverBuilder, string name)
+    {
+        var resource = new AzureSqlDatabaseResource(name, serverBuilder.Resource);
+        return serverBuilder.ApplicationBuilder.AddResource(resource)
+                            .WithAnnotation(new ManifestPublishingCallbackAnnotation(json => WriteSqlDatabaseToManifest(json, resource)));
+    }
+
+    private static void WriteSqlDatabaseToManifest(Utf8JsonWriter json, AzureSqlDatabaseResource resource)
+    {
+        json.WriteString("type", "azure.sql.database.v0");
+        json.WriteString("parent", resource.Parent.Name);
+    }
 }
