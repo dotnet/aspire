@@ -24,7 +24,7 @@ public static class AzureResourceExtensions
 
     private static void WriteAzureKeyVaultToManifest(Utf8JsonWriter jsonWriter)
     {
-        jsonWriter.WriteString("type", "azure.keyvault.v1");
+        jsonWriter.WriteString("type", "azure.keyvault.v0");
     }
 
     /// <summary>
@@ -49,7 +49,7 @@ public static class AzureResourceExtensions
 
     private static void WriteAzureServiceBusToManifest(AzureServiceBusResource resource, Utf8JsonWriter jsonWriter)
     {
-        jsonWriter.WriteString("type", "azure.servicebus.v1");
+        jsonWriter.WriteString("type", "azure.servicebus.v0");
 
         if (resource.QueueNames.Length > 0)
         {
@@ -87,7 +87,7 @@ public static class AzureResourceExtensions
 
     private static void WriteAzureStorageToManifest(Utf8JsonWriter jsonWriter)
     {
-        jsonWriter.WriteString("type", "azure.storage.v1");
+        jsonWriter.WriteString("type", "azure.storage.v0");
     }
 
     /// <summary>
@@ -105,7 +105,7 @@ public static class AzureResourceExtensions
 
     private static void WriteBlobStorageToManifest(Utf8JsonWriter json, AzureBlobStorageResource resource)
     {
-        json.WriteString("type", "azure.storage.blob.v1");
+        json.WriteString("type", "azure.storage.blob.v0");
         json.WriteString("parent", resource.Parent.Name);
     }
 
@@ -124,7 +124,7 @@ public static class AzureResourceExtensions
 
     private static void WriteTableStorageToManifest(Utf8JsonWriter json, AzureTableStorageResource resource)
     {
-        json.WriteString("type", "azure.storage.table.v1");
+        json.WriteString("type", "azure.storage.table.v0");
         json.WriteString("parent", resource.Parent.Name);
     }
 
@@ -143,7 +143,7 @@ public static class AzureResourceExtensions
 
     private static void WriteQueueStorageToManifest(Utf8JsonWriter json, AzureQueueStorageResource resource)
     {
-        json.WriteString("type", "azure.storage.queue.v1");
+        json.WriteString("type", "azure.storage.queue.v0");
         json.WriteString("parent", resource.Parent.Name);
     }
 
@@ -178,7 +178,7 @@ public static class AzureResourceExtensions
 
     private static void WriteAzureRedisToManifest(Utf8JsonWriter writer)
     {
-        writer.WriteString("type", "azure.redis.v1");
+        writer.WriteString("type", "azure.redis.v0");
     }
 
     /// <summary>
@@ -196,6 +196,6 @@ public static class AzureResourceExtensions
 
     private static void WriteAzureAppConfigurationToManifest(Utf8JsonWriter writer)
     {
-        writer.WriteString("type", "azure.appconfiguration.v1");
+        writer.WriteString("type", "azure.appconfiguration.v0");
     }
 }

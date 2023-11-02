@@ -8,18 +8,20 @@ using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Publishing;
 
-internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, IHostApplicationLifetime lifetime) : IDistributedApplicationPublisher
+public class ManifestPublisher(IOptions<PublishingOptions> options, IHostApplicationLifetime lifetime) : IDistributedApplicationPublisher
 {
     private readonly IOptions<PublishingOptions> _options = options;
     private readonly IHostApplicationLifetime _lifetime = lifetime;
 
-    public async Task PublishAsync(DistributedApplicationModel model, CancellationToken cancellationToken)
+    public Utf8JsonWriter? JsonWriter { get; set; }
+
+    public virtual async Task PublishAsync(DistributedApplicationModel model, CancellationToken cancellationToken)
     {
-        await WriteManifestAsync(model, cancellationToken).ConfigureAwait(false);
+        await PublishInternalAsync(model, cancellationToken).ConfigureAwait(false);
         _lifetime.StopApplication();
     }
 
-    private async Task WriteManifestAsync(DistributedApplicationModel model, CancellationToken cancellationToken)
+    protected virtual async Task PublishInternalAsync(DistributedApplicationModel model, CancellationToken cancellationToken)
     {
         if (_options.Value.OutputPath == null)
         {
@@ -29,8 +31,13 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, IHo
         }
 
         using var stream = new FileStream(_options.Value.OutputPath, FileMode.Create);
-        using var jsonWriter = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true });
+        using var jsonWriter = JsonWriter ?? new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true });
 
+        await WriteManifestAsync(model, jsonWriter, cancellationToken).ConfigureAwait(false);
+    }
+
+    protected async Task WriteManifestAsync(DistributedApplicationModel model, Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
+    {
         jsonWriter.WriteStartObject();
         WriteResources(model, jsonWriter);
         jsonWriter.WriteEndObject();
@@ -169,7 +176,7 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, IHo
 
     private static void WriteContainer(ContainerResource container, Utf8JsonWriter jsonWriter)
     {
-        jsonWriter.WriteString("type", "container.v1");
+        jsonWriter.WriteString("type", "container.v0");
 
         if (!container.TryGetContainerImageName(out var image))
         {
@@ -184,7 +191,7 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, IHo
 
     private void WriteProject(ProjectResource project, Utf8JsonWriter jsonWriter)
     {
-        jsonWriter.WriteString("type", "project.v1");
+        jsonWriter.WriteString("type", "project.v0");
 
         if (!project.TryGetLastAnnotation<IServiceMetadata>(out var metadata))
         {
@@ -203,7 +210,7 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, IHo
 
     private static void WriteExecutable(ExecutableResource executable, Utf8JsonWriter jsonWriter)
     {
-        jsonWriter.WriteString("type", "executable.v1");
+        jsonWriter.WriteString("type", "executable.v0");
 
         WriteEnvironmentVariables(executable, jsonWriter);
         WriteBindings(executable, jsonWriter);
