@@ -120,7 +120,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
 
         if (options.Value?.Publisher != "manifest")
         {
-            // If we aren't doing manifest pubilshing we want the logs
+            // If we aren't doing manifest publishing we want the logs
             // to be produced as normal.
             return;
         }
@@ -171,4 +171,3 @@ public class DistributedApplication : IHost, IAsyncDisposable
 
     Task IHost.StopAsync(CancellationToken cancellationToken) => StopAsync(cancellationToken);
 }
-

@@ -47,7 +47,7 @@ message DeleteCustomerBasketRequest {
 message DeleteCustomerBasketResponse {
 }
 
-// See: https://learn.microsoft.com/en-us/dotnet/architecture/grpc-for-wcf-developers/protobuf-data-types#decimals
+// See: https://learn.microsoft.com/dotnet/architecture/grpc-for-wcf-developers/protobuf-data-types#decimals
 // Example: 12345.6789 -> { units = 12345, nanos = 678900000 }
 message DecimalValue {
 

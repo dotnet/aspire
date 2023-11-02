@@ -6,12 +6,30 @@ using System.Text;
 
 namespace Aspire.Hosting.ApplicationModel;
 
+/// <summary>
+/// Represents an Azure Storage resource.
+/// </summary>
+/// <param name="name">The name of the resource.</param>
 public class AzureStorageResource(string name) : Resource(name), IAzureResource
 {
+    /// <summary>
+    /// Gets or sets the URI of the Azure Table Storage resource.
+    /// </summary>
     public Uri? TableUri { get; set; }
+    
+    /// <summary>
+    /// Gets or sets the URI of the Azure Storage queue.
+    /// </summary>
     public Uri? QueueUri { get; set; }
+    
+    /// <summary>
+    /// Gets or sets the URI of the blob.
+    /// </summary>
     public Uri? BlobUri { get; set; }
 
+    /// <summary>
+    /// Gets a value indicating whether the Azure Storage resource is running in the local emulator.
+    /// </summary>
     public bool IsEmulator => this.IsContainer();
 
     internal string? GetTableConnectionString() => IsEmulator
@@ -34,39 +52,9 @@ public class AzureStorageResource(string name) : Resource(name), IAzureResource
         ?? throw new DistributedApplicationException($"Azure storage resource does not have endpoint annotation with name '{endpointName}'.");
 }
 
-public class AzureTableStorageResource(string name, AzureStorageResource storage) : Resource(name),
-    IAzureResource,
-    IResourceWithConnectionString,
-    IResourceWithParent<AzureStorageResource>
-{
-    public AzureStorageResource Parent => storage;
-
-    public string? GetConnectionString() => Parent.GetTableConnectionString();
-}
-
-public class AzureBlobStorageResource(string name, AzureStorageResource storage) : Resource(name),
-    IAzureResource,
-    IResourceWithConnectionString,
-    IResourceWithParent<AzureStorageResource>
-{
-    public AzureStorageResource Parent => storage;
-
-    public string? GetConnectionString() => Parent.GetBlobConnectionString();
-}
-
-public class AzureQueueStorageResource(string name, AzureStorageResource storage) : Resource(name),
-    IAzureResource,
-    IResourceWithConnectionString,
-    IResourceWithParent<AzureStorageResource>
-{
-    public AzureStorageResource Parent => storage;
-
-    public string? GetConnectionString() => Parent.GetQueueConnectionString();
-}
-
 static file class AzureStorageEmulatorConnectionString
 {
-    // Use defaults from https://learn.microsoft.com/en-us/azure/storage/common/storage-configure-connection-string#connect-to-the-emulator-account-using-the-shortcut
+    // Use defaults from https://learn.microsoft.com/azure/storage/common/storage-configure-connection-string#connect-to-the-emulator-account-using-the-shortcut
     private const string ConnectionStringHeader = "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;";
     private const string BlobEndpointTemplate = "BlobEndpoint=http://127.0.0.1:{0}/devstoreaccount1;";
     private const string QueueEndpointTemplate = "QueueEndpoint=http://127.0.0.1:{0}/devstoreaccount1;";

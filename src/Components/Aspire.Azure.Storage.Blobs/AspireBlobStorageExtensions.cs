@@ -14,6 +14,9 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Microsoft.Extensions.Hosting;
 
+/// <summary>
+/// Provides extension methods for registering <see cref="BlobServiceClient"/> as a singleton in the services provided by the <see cref="IHostApplicationBuilder"/>.
+/// </summary>
 public static class AspireBlobStorageExtensions
 {
     private const string DefaultConfigSectionName = "Aspire:Azure:Storage:Blobs";
