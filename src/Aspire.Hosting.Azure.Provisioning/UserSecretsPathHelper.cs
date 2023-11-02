@@ -5,6 +5,9 @@ namespace Aspire.Hosting.Azure;
 
 // Copied from https://github.com/dotnet/runtime/blob/213833ea99b79a4b494b2935e1ccb10b93cd4cbc/src/libraries/Microsoft.Extensions.Configuration.UserSecrets/src/PathHelper.cs
 
+/// <summary>
+/// Provides helper methods for working with user secrets in a location outside of source control.
+/// </summary>
 public class UserSecretsPathHelper
 {
     internal const string SecretsFileName = "secrets.json";

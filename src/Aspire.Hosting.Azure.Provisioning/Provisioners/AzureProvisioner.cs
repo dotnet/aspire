@@ -24,7 +24,7 @@ namespace Aspire.Hosting.Azure;
 
 // Provisions azure resources for development purposes
 internal sealed class AzureProvisioner(
-    IOptions<AzureProvisinerOptions> options,
+    IOptions<AzureProvisionerOptions> options,
     IOptions<PublishingOptions> publishingOptions,
     IConfiguration configuration,
     IHostEnvironment environment,
@@ -34,7 +34,7 @@ internal sealed class AzureProvisioner(
 {
     internal const string AspireResourceNameTag = "aspire-resource-name";
 
-    private readonly AzureProvisinerOptions _options = options.Value;
+    private readonly AzureProvisionerOptions _options = options.Value;
 
     public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
@@ -186,21 +186,21 @@ internal sealed class AzureProvisioner(
         {
             usedResources.Add(resource.Name);
 
-            var provisoner = serviceProvider.GetKeyedService<IAzureResourceProvisioner>(resource.GetType());
+            var provisioner = serviceProvider.GetKeyedService<IAzureResourceProvisioner>(resource.GetType());
 
-            if (provisoner is null)
+            if (provisioner is null)
             {
                 logger.LogWarning("No provisioner found for {resourceType} skipping.", resource.GetType().Name);
                 continue;
             }
 
-            if (!provisoner.ShouldProvision(configuration, resource))
+            if (!provisioner.ShouldProvision(configuration, resource))
             {
                 logger.LogInformation("Skipping {resourceName} because it is not configured to be provisioned.", resource.Name);
                 continue;
             }
 
-            if (provisoner.ConfigureResource(configuration, resource))
+            if (provisioner.ConfigureResource(configuration, resource))
             {
                 logger.LogInformation("Using connection information stored in user secrets for {resourceName}.", resource.Name);
 
@@ -217,7 +217,7 @@ internal sealed class AzureProvisioner(
             resourceMap ??= await resourceMapLazy.Value.ConfigureAwait(false);
             principalId ??= await principalIdLazy.Value.ConfigureAwait(false);
 
-            var task = provisoner.GetOrCreateResourceAsync(armClient,
+            var task = provisioner.GetOrCreateResourceAsync(armClient,
                     subscription,
                     resourceGroup,
                     resourceMap,

@@ -16,6 +16,9 @@ using StackExchange.Redis.Configuration;
 
 namespace Microsoft.Extensions.Hosting;
 
+/// <summary>
+/// Provides extension methods for registering Redis-related services in an <see cref="IHostApplicationBuilder"/>.
+/// </summary>
 public static class AspireRedisExtensions
 {
     private const string DefaultConfigSectionName = "Aspire:StackExchange:Redis";

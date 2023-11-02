@@ -9,6 +9,9 @@ using StackExchange.Redis;
 
 namespace Microsoft.Extensions.Hosting;
 
+/// <summary>
+/// Provides extension methods for adding Redis distributed caching services to an <see cref="IHostApplicationBuilder"/>.
+/// </summary>
 public static class AspireRedisDistributedCacheExtensions
 {
     /// <summary>

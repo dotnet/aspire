@@ -15,7 +15,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Azure.Provisioning;
 
-internal sealed class AppConfigurationProvisoner(ILogger<AppConfigurationProvisoner> logger) : AzureResourceProvisioner<AzureAppConfigurationResource>
+internal sealed class AppConfigurationProvisioner(ILogger<AppConfigurationProvisioner> logger) : AzureResourceProvisioner<AzureAppConfigurationResource>
 {
     public override bool ConfigureResource(IConfiguration configuration, AzureAppConfigurationResource resource)
     {
@@ -72,7 +72,7 @@ internal sealed class AppConfigurationProvisoner(ILogger<AppConfigurationProviso
         connectionStrings[resource.Name] = resource.Endpoint;
 
         // App Configuration Data Owner
-        // https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles#app-configuration-data-owner
+        // https://learn.microsoft.com/azure/role-based-access-control/built-in-roles#app-configuration-data-owner
         var roleDefinitionId = CreateRoleDefinitionId(subscription, "5ae67dd6-50cb-40e7-96ff-dc2bfa4b606b");
 
         await DoRoleAssignmentAsync(armClient, appConfigurationResource.Id, principalId, roleDefinitionId, cancellationToken).ConfigureAwait(false);
