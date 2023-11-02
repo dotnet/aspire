@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.DependencyInjection;
@@ -39,7 +38,7 @@ public class DistributedApplicationBuilderTests
         Assert.Empty(appModel.Resources);
 
         var lifecycles = app.Services.GetServices<IDistributedApplicationLifecycleHook>();
-        Assert.Single(lifecycles.OfType<DcpDistributedApplicationLifecycleHook>());
+        Assert.Single(lifecycles.Where(h => h.GetType().Name == "DcpDistributedApplicationLifecycleHook"));
         Assert.Equal(3, lifecycles.Count());
 
         var options = app.Services.GetRequiredService<IOptions<PublishingOptions>>();
