@@ -122,8 +122,7 @@ public static partial class AspireEFPostgreSqlExtensions
                         eventCountersInstrumentationOptions.AddEventSources("Microsoft.EntityFrameworkCore");
                     });
 
-                    // https://github.com/npgsql/npgsql/blob/4c9921de2dfb48fb5a488787fc7422add3553f50/src/Npgsql/MetricsReporter.cs#L48
-                    meterProviderBuilder.AddMeter("Npgsql");
+                    NpgsqlCommon.AddNpgsqlMetrics(meterProviderBuilder);
                 });
         }
 
