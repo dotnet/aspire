@@ -70,17 +70,10 @@ public class DistributedApplication : IHost, IAsyncDisposable
 
     private void SuppressLifetimeLogsDuringManifestPublishing()
     {
-        if (_host.Services.GetRequiredService<IConfiguration>() is not IConfigurationRoot config)
-        {
-            throw new DistributedApplicationException("IConfiguration service should always be IConfigurationRoot");
-        }
+        var config = (IConfigurationRoot)_host.Services.GetRequiredService<IConfiguration>();
+        var options = _host.Services.GetRequiredService<IOptions<PublishingOptions>>();
 
-        if (_host.Services.GetRequiredService<IOptions<PublishingOptions>>() is not { } publishingOptions)
-        {
-            throw new DistributedApplicationException("Publishing options not registered.");
-        }
-
-        if (publishingOptions.Value?.Publisher != "manifest")
+        if (options.Value?.Publisher != "manifest")
         {
             // If we aren't doing manifest pubilshing we want the logs
             // to be produced as normal.
