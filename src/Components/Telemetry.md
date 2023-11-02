@@ -47,6 +47,13 @@ Aspire.Azure.Storage.Queues:
 - Metric names:
   - none (currently not supported by the Azure SDK)
 
+Aspire.Microsoft.Azure.Cosmos:
+- Log categories:
+  - "Azure-Cosmos-Operation-Request-Diagnostics"
+- Activity source names:
+  - "Azure.Cosmos.Operation"
+- Metric names:
+
 Aspire.Microsoft.Data.SqlClient:
 - Log categories:
   - none (the client does not provide an easy way to integrate it with logger factory)
@@ -70,6 +77,29 @@ Aspire.Microsoft.Data.SqlClient:
     - "number-of-free-connections"
     - "number-of-stasis-connections"
     - "number-of-reclaimed-connections"
+
+Aspire.Microsoft.EntityFrameworkCore.Cosmos:
+- Log categories:
+  - "Azure-Cosmos-Operation-Request-Diagnostics"
+  - "Microsoft.EntityFrameworkCore.ChangeTracking",
+  - "Microsoft.EntityFrameworkCore.Database.Command",
+  - "Microsoft.EntityFrameworkCore.Infrastructure",
+  - "Microsoft.EntityFrameworkCore.Query",
+- Activity source names:
+  - "Azure.Cosmos.Operation"
+  - "OpenTelemetry.Instrumentation.EntityFrameworkCore"
+- Metric names:
+  - "Microsoft.EntityFrameworkCore":
+    - "ec_Microsoft_EntityFrameworkCore_active_db_contexts"
+    - "ec_Microsoft_EntityFrameworkCore_total_queries"
+    - "ec_Microsoft_EntityFrameworkCore_queries_per_second"
+    - "ec_Microsoft_EntityFrameworkCore_total_save_changes"
+    - "ec_Microsoft_EntityFrameworkCore_save_changes_per_second"
+    - "ec_Microsoft_EntityFrameworkCore_compiled_query_cache_hit_rate"
+    - "ec_Microsoft_Entity_total_execution_strategy_operation_failures"
+    - "ec_Microsoft_E_execution_strategy_operation_failures_per_second"
+    - "ec_Microsoft_EntityFramew_total_optimistic_concurrency_failures"
+    - "ec_Microsoft_EntityF_optimistic_concurrency_failures_per_second"
 
 Aspire.Microsoft.EntityFrameworkCore.SqlServer:
 - Log categories:
@@ -161,7 +191,7 @@ Aspire.Npgsql.EntityFrameworkCore.PostgreSQL:
 
 Aspire.RabbitMQ.Client:
 - Log categories:
-  - TODO
+  - "RabbitMQ.Client"
 - Activity source names:
   - "Aspire.RabbitMQ.Client"
 - Metric names:
