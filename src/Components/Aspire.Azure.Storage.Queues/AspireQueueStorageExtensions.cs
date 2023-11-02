@@ -14,6 +14,10 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Microsoft.Extensions.Hosting;
 
+/// <summary>
+/// Provides extension methods for registering <see cref="QueueServiceClient"/> as a singleton in the services provided by the <see cref="IHostApplicationBuilder"/>.
+/// Enables retries, corresponding health check, logging and telemetry.
+/// </summary>
 public static class AspireQueueStorageExtensions
 {
     private const string DefaultConfigSectionName = "Aspire:Azure:Storage:Queues";

@@ -3,7 +3,7 @@
 
 namespace Aspire.Hosting.Azure.Provisioning;
 
-internal sealed class AzureProvisinerOptions
+internal sealed class AzureProvisionerOptions
 {
     public string? SubscriptionId { get; set; }
 
