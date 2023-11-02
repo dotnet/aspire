@@ -30,12 +30,16 @@ fluent-toolbar[orientation=horizontal] {
     --log-warning: #FBF3DD;
     --badge-fill-error: var(--error);
     --badge-color-error: var(--foreground-on-accent-rest);
+    --foreground-subtext-rest: #6F6F6F;
+    --foreground-subtext-hover: #6C6C6C;
 }
 
 [data-theme="dark"] {
     --log-critical: #493634;
     --log-error: #493634;
     --log-warning: #3F3A2B;
+    --foreground-subtext-rest: #8D8D8D;
+    --foreground-subtext-hover: #A1A1A1;
 }
 
 .page-content-area {
