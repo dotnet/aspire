@@ -99,31 +99,34 @@ public static class AspireAzureEFCoreCosmosDBExtensions
 
         void ConfigureDbContext(DbContextOptionsBuilder dbContextOptionsBuilder)
         {
-            configureDbContextOptions?.Invoke(dbContextOptionsBuilder);
-
             if (!string.IsNullOrEmpty(settings.ConnectionString))
             {
-                // We don't register logger factory, because there is no need to:
-                // https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.dbcontextoptionsbuilder.useloggerfactory?view=efcore-7.0#remarks
-                dbContextOptionsBuilder.UseCosmos(settings.ConnectionString, databaseName, builder =>
-                {
-                });
+                dbContextOptionsBuilder.UseCosmos(settings.ConnectionString, databaseName, UseCosmosBody);
+            }
+            else if (settings.AccountEndpoint is not null)
+            {
+                var credential = settings.Credential ?? new DefaultAzureCredential();
+                dbContextOptionsBuilder.UseCosmos(settings.AccountEndpoint.OriginalString, credential, databaseName, UseCosmosBody);
             }
             else
             {
-                if (settings.AccountEndpoint is null)
-                {
-                    throw new InvalidOperationException(
-                        $"A DbContext could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or either " +
-                        $"{nameof(settings.ConnectionString)} or {nameof(settings.AccountEndpoint)} must be provided " +
-                        $"in the '{DefaultConfigSectionName}' or '{typeSpecificSectionName}' configuration section.");
-                }
-
-                var credential = settings.Credential ?? new DefaultAzureCredential();
-                dbContextOptionsBuilder.UseCosmos(settings.AccountEndpoint.OriginalString, credential, databaseName, builder =>
-                {
-                });
+                throw new InvalidOperationException(
+                  $"A DbContext could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or either " +
+                  $"{nameof(settings.ConnectionString)} or {nameof(settings.AccountEndpoint)} must be provided " +
+                  $"in the '{DefaultConfigSectionName}' or '{typeSpecificSectionName}' configuration section.");
             }
+        }
+
+        void UseCosmosBody(CosmosDbContextOptionsBuilder builder)
+        {
+            // We don't register logger factory, because there is no need to:
+            // https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.dbcontextoptionsbuilder.useloggerfactory?view=efcore-7.0#remarks
+            if (settings.Region is not null)
+            {
+                builder.Region(settings.Region);
+            }
+
+            configureDbContextOptions?.Invoke(builder);
         }
     }
 }

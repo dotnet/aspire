@@ -46,4 +46,9 @@ public sealed class EntityFrameworkCoreCosmosDBSettings
     /// <para>Enabled by default.</para>
     /// </summary>
     public bool Metrics { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets a string value that indicates what Azure region this client will run in.
+    /// </summary>
+    public string? Region { get; set; }
 }

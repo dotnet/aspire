@@ -3,8 +3,6 @@
 
 using Aspire.Components.Common.Tests;
 using Microsoft.EntityFrameworkCore.Cosmos.Infrastructure.Internal;
-using Microsoft.EntityFrameworkCore.Infrastructure.Internal;
-using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -14,19 +12,21 @@ namespace Aspire.Microsoft.EntityFrameworkCore.Cosmos.Tests;
 
  public class AspireAzureEfCoreCosmosDBExtensionsTests
 {
+    private const string ConnectionString = "AccountEndpoint=https://fake-account.documents.azure.com:443/;AccountKey=<fake-key>;";
+
     [Fact]
     public void CanConfigureDbContextOptions()
     {
+
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("ConnectionStrings:sqlconnection", ConnectionString),
-            new KeyValuePair<string, string?>("Aspire:Microsoft:EntityFrameworkCore:SqlServer:MaxRetryCount", "304"),
-            new KeyValuePair<string, string?>("Aspire:Microsoft:EntityFrameworkCore:SqlServer:Timeout", "608")
+            new KeyValuePair<string, string?>("ConnectionStrings:cosmosConnection", ConnectionString),
+            new KeyValuePair<string, string?>("Aspire:Microsoft:EntityFrameworkCore:Cosmos:Region", "westus"),
         ]);
 
         builder.AddCosmosDbContext<TestDbContext>("cosmosConnection", "databaseName", configureDbContextOptions: optionsBuilder =>
         {
-            optionsBuilder.RequestTimeout(TimeSpan.FromSeconds(123));
+            optionsBuilder.RequestTimeout(TimeSpan.FromSeconds(608));
         });
 
         var host = builder.Build();
@@ -37,21 +37,11 @@ namespace Aspire.Microsoft.EntityFrameworkCore.Cosmos.Tests;
         var extension = context.Options.FindExtension<CosmosOptionsExtension>();
         Assert.NotNull(extension);
 
-        // ensure the min batch size was respected
-        Assert.Equal(123, extension.MinBatchSize);
+        // Ensure the RequestTimeout from config size was respected
+        Assert.Equal(TimeSpan.FromSeconds(608), extension.RequestTimeout);
 
-        // ensure the connection string from config was respected
-        var actualConnectionString = context.Database.GetDbConnection().ConnectionString;
-        Assert.Equal(ConnectionString, actualConnectionString);
-
-        // ensure the max retry count from config was respected
-        Assert.NotNull(extension.ExecutionStrategyFactory);
-        var executionStrategy = extension.ExecutionStrategyFactory(new ExecutionStrategyDependencies(new CurrentDbContext(context), context.Options, null!));
-        var retryStrategy = Assert.IsType<CosmosExec>(executionStrategy);
-        Assert.Equal(304, retryStrategy.MaxRetryCount);
-
-        // ensure the command timeout from config was respected
-        Assert.Equal(608, extension.CommandTimeout);
+        // Ensure the Region from the lambda was respected
+        Assert.Equal("westus", extension.Region);
 
 #pragma warning restore EF1001 // Internal EF Core API usage.
     }
