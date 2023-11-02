@@ -64,7 +64,7 @@ public static class AspireAzureCosmosDBExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        AzureCosmosDBSettings settings = new();
+        var settings = new AzureCosmosDBSettings();
         builder.Configuration.GetSection(configurationSectionName).Bind(settings);
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
@@ -80,14 +80,12 @@ public static class AspireAzureCosmosDBExtensions
         }
 
         configureSettings?.Invoke(settings);
-        var clientOptions = new CosmosClientOptions();
 
+        var clientOptions = new CosmosClientOptions();
         // Needs to be enabled for either logging or tracing to work.
         clientOptions.CosmosClientTelemetryOptions.DisableDistributedTracing = false;
-
         if (settings.Tracing)
         {
-
             builder.Services.AddOpenTelemetry().WithTracing(tracerProviderBuilder =>
             {
                 tracerProviderBuilder.AddSource("Azure.Cosmos.Operation");

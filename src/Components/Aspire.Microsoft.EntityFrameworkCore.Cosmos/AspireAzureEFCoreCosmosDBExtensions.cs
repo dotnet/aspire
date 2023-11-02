@@ -38,11 +38,11 @@ public static class AspireAzureEFCoreCosmosDBExtensions
         string connectionName,
         string databaseName,
         Action<EntityFrameworkCoreCosmosDBSettings>? configureSettings = null,
-        Action<CosmosDbContextOptionsBuilder>? configureDbContextOptions = null) where TContext : DbContext
+        Action<DbContextOptionsBuilder>? configureDbContextOptions = null) where TContext : DbContext
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        EntityFrameworkCoreCosmosDBSettings settings = new();
+        var settings = new EntityFrameworkCoreCosmosDBSettings();
         var typeSpecificSectionName = $"{DefaultConfigSectionName}:{typeof(TContext).Name}";
         var typeSpecificConfigurationSection = builder.Configuration.GetSection(typeSpecificSectionName);
         if (typeSpecificConfigurationSection.Exists()) // https://github.com/dotnet/runtime/issues/91380
@@ -115,18 +115,18 @@ public static class AspireAzureEFCoreCosmosDBExtensions
                   $"{nameof(settings.ConnectionString)} or {nameof(settings.AccountEndpoint)} must be provided " +
                   $"in the '{DefaultConfigSectionName}' or '{typeSpecificSectionName}' configuration section.");
             }
+
+            configureDbContextOptions?.Invoke(dbContextOptionsBuilder);
         }
 
         void UseCosmosBody(CosmosDbContextOptionsBuilder builder)
         {
             // We don't register logger factory, because there is no need to:
-            // https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.dbcontextoptionsbuilder.useloggerfactory?view=efcore-7.0#remarks
+            // https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbcontextoptionsbuilder.useloggerfactory?view=efcore-7.0#remarks
             if (settings.Region is not null)
             {
                 builder.Region(settings.Region);
             }
-
-            configureDbContextOptions?.Invoke(builder);
         }
     }
 }

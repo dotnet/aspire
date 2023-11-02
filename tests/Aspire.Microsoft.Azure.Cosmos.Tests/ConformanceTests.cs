@@ -63,6 +63,12 @@ public class ConformanceTests : ConformanceTests<CosmosClient, AzureCosmosDBSett
         }
         """;
 
+    protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
+        {
+            ("""{"Aspire": { "Microsoft":{ "Azure": { "Cosmos": { "AccountEndpoint": 3 }}}}}""", "Value is \"integer\" but should be \"string\""),
+            ("""{"Aspire": { "Microsoft":{ "Azure": { "Cosmos": { "AccountEndpoint": "hello" }}}}}""", "Value does not match format \"uri\"")
+        };
+
     protected override void TriggerActivity(CosmosClient service)
     {
         // TODO: Get rid of GetAwaiter().GetResult()

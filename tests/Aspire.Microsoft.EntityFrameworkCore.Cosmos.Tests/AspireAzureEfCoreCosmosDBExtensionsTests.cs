@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Components.Common.Tests;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Cosmos.Infrastructure.Internal;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -10,14 +11,13 @@ using Xunit;
 
 namespace Aspire.Microsoft.EntityFrameworkCore.Cosmos.Tests;
 
- public class AspireAzureEfCoreCosmosDBExtensionsTests
+public class AspireAzureEfCoreCosmosDBExtensionsTests
 {
     private const string ConnectionString = "AccountEndpoint=https://fake-account.documents.azure.com:443/;AccountKey=<fake-key>;";
 
     [Fact]
     public void CanConfigureDbContextOptions()
     {
-
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>("ConnectionStrings:cosmosConnection", ConnectionString),
@@ -26,7 +26,10 @@ namespace Aspire.Microsoft.EntityFrameworkCore.Cosmos.Tests;
 
         builder.AddCosmosDbContext<TestDbContext>("cosmosConnection", "databaseName", configureDbContextOptions: optionsBuilder =>
         {
-            optionsBuilder.RequestTimeout(TimeSpan.FromSeconds(608));
+            optionsBuilder.UseCosmos(ConnectionString, "databaseName", cosmosBuilder =>
+            {
+                cosmosBuilder.RequestTimeout(TimeSpan.FromSeconds(608));
+            });
         });
 
         var host = builder.Build();

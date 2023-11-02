@@ -27,6 +27,7 @@
                     },
                     "AccountEndpoint": {
                       "type": "string",
+                      "format": "uri",
                       "description": "Gets or sets the account endpoint of the Azure Cosmos DB to connect to. If both are provided, 'ConnectionString' takes precedence over 'AccountEndpoint'."
                     },
                     "Tracing": {

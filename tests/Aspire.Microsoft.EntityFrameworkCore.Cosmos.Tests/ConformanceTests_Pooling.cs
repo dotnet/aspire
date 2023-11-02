@@ -21,10 +21,9 @@ public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, EntityFr
 
     protected override string[] RequiredLogCategories => new string[]
     {
-        "Microsoft.EntityFrameworkCore.Infrastructure",
         "Microsoft.EntityFrameworkCore.ChangeTracking",
-        "Microsoft.EntityFrameworkCore.Infrastructure",
         "Microsoft.EntityFrameworkCore.Database.Command",
+        "Microsoft.EntityFrameworkCore.Infrastructure",
         "Microsoft.EntityFrameworkCore.Query",
     };
 
@@ -65,6 +64,13 @@ public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, EntityFr
           }
         }
         """;
+
+    protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
+    {
+            ("""{"Aspire": { "Microsoft":{ "EntityFrameworkCore": { "Cosmos": { "AccountEndpoint": 3 }}}}}""", "Value is \"integer\" but should be \"string\""),
+            ("""{"Aspire": { "Microsoft":{ "EntityFrameworkCore": { "Cosmos": { "AccountEndpoint": "hello" }}}}}""", "Value does not match format \"uri\""),
+            ("""{"Aspire": { "Microsoft":{ "EntityFrameworkCore": { "Cosmos": { "Region": 3 }}}}}""", "Value is \"integer\" but should be \"string\""),
+        };
 
     protected override void TriggerActivity(TestDbContext service)
     {

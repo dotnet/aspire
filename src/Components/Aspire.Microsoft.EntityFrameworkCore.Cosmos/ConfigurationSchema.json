@@ -41,6 +41,7 @@
                   "properties": {
                     "AccountEndpoint": {
                       "type": "string",
+                      "format": "uri",
                       "description": "Gets or sets the account endpoint of the Azure Cosmos DB account to connect to. Used along with \"Credential\" to establish the connection."
                     },
                     "ConnectionString": {
@@ -64,8 +65,7 @@
                     },
                     "Region": {
                       "type": "string",
-                      "description": "Gets or sets a string value that indicates what Azure region this client will run in.",
-                      "default": null
+                      "description": "Gets or sets a string value that indicates what Azure region this client will run in."
                     }
                   }
                 }
