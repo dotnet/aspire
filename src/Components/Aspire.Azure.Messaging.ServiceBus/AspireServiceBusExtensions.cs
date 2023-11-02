@@ -15,6 +15,9 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Microsoft.Extensions.Hosting;
 
+/// <summary>
+/// Provides extension methods for registering <see cref="ServiceBusClient"/> as a singleton in the services provided by the <see cref="IHostApplicationBuilder"/>.
+/// </summary>
 public static class AspireServiceBusExtensions
 {
     private const string DefaultConfigSectionName = "Aspire:Azure:Messaging:ServiceBus";

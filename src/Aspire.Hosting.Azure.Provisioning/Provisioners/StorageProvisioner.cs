@@ -91,15 +91,15 @@ internal sealed class StorageProvisioner(ILogger<StorageProvisioner> logger) : A
         resourceEntry["QueueUri"] = resource.QueueUri.ToString();
 
         // Storage Queue Data Contributor
-        // https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles#storage-queue-data-contributor
+        // https://learn.microsoft.com/azure/role-based-access-control/built-in-roles#storage-queue-data-contributor
         var storageQueueDataContributorId = CreateRoleDefinitionId(subscription, "974c5e8b-45b9-4653-ba55-5f855dd0fb88");
 
         // Storage Table Data Contributor
-        // https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles#storage-table-data-contributor
+        // https://learn.microsoft.com/azure/role-based-access-control/built-in-roles#storage-table-data-contributor
         var storageDataContributorId = CreateRoleDefinitionId(subscription, "0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3");
 
         // Storage Blob Data Contributor
-        // https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles#storage-blob-data-contributor
+        // https://learn.microsoft.com/azure/role-based-access-control/built-in-roles#storage-blob-data-contributor
         var storageBlobDataContributorId = CreateRoleDefinitionId(subscription, "81a9662b-bebf-436f-a333-f67b29880f12");
 
         var t0 = DoRoleAssignmentAsync(armClient, storageAccount.Id, principalId, storageQueueDataContributorId, cancellationToken);
