@@ -1,33 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Dependencies>
   <ProductDependencies>
-    <Dependency Name="Microsoft.DeveloperControlPlane.darwin-amd64" Version="0.1.42-rc.0">
+    <Dependency Name="Microsoft.DeveloperControlPlane.darwin-amd64" Version="0.1.42">
       <Uri>https://github.com/microsoft/usvc-apiserver</Uri>
-      <Sha>3aaed3c57cb395992b847ad83b2dbd36ddb6108f</Sha>
+      <Sha>5173daa9d8649d3b1af7025adc0d3431a2b7434b</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.DeveloperControlPlane.darwin-arm64" Version="0.1.42-rc.0">
+    <Dependency Name="Microsoft.DeveloperControlPlane.darwin-arm64" Version="0.1.42">
       <Uri>https://github.com/microsoft/usvc-apiserver</Uri>
-      <Sha>3aaed3c57cb395992b847ad83b2dbd36ddb6108f</Sha>
+      <Sha>5173daa9d8649d3b1af7025adc0d3431a2b7434b</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.DeveloperControlPlane.linux-amd64" Version="0.1.42-rc.0">
+    <Dependency Name="Microsoft.DeveloperControlPlane.linux-amd64" Version="0.1.42">
       <Uri>https://github.com/microsoft/usvc-apiserver</Uri>
-      <Sha>3aaed3c57cb395992b847ad83b2dbd36ddb6108f</Sha>
+      <Sha>5173daa9d8649d3b1af7025adc0d3431a2b7434b</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.DeveloperControlPlane.linux-arm64" Version="0.1.42-rc.0">
+    <Dependency Name="Microsoft.DeveloperControlPlane.linux-arm64" Version="0.1.42">
       <Uri>https://github.com/microsoft/usvc-apiserver</Uri>
-      <Sha>3aaed3c57cb395992b847ad83b2dbd36ddb6108f</Sha>
+      <Sha>5173daa9d8649d3b1af7025adc0d3431a2b7434b</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.DeveloperControlPlane.windows-386" Version="0.1.42-rc.0">
+    <Dependency Name="Microsoft.DeveloperControlPlane.windows-386" Version="0.1.42">
       <Uri>https://github.com/microsoft/usvc-apiserver</Uri>
-      <Sha>3aaed3c57cb395992b847ad83b2dbd36ddb6108f</Sha>
+      <Sha>5173daa9d8649d3b1af7025adc0d3431a2b7434b</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.DeveloperControlPlane.windows-amd64" Version="0.1.42-rc.0">
+    <Dependency Name="Microsoft.DeveloperControlPlane.windows-amd64" Version="0.1.42">
       <Uri>https://github.com/microsoft/usvc-apiserver</Uri>
-      <Sha>3aaed3c57cb395992b847ad83b2dbd36ddb6108f</Sha>
+      <Sha>5173daa9d8649d3b1af7025adc0d3431a2b7434b</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.DeveloperControlPlane.windows-arm64" Version="0.1.42-rc.0">
+    <Dependency Name="Microsoft.DeveloperControlPlane.windows-arm64" Version="0.1.42">
       <Uri>https://github.com/microsoft/usvc-apiserver</Uri>
-      <Sha>3aaed3c57cb395992b847ad83b2dbd36ddb6108f</Sha>
+      <Sha>5173daa9d8649d3b1af7025adc0d3431a2b7434b</Sha>
     </Dependency>
     <Dependency Name="Microsoft.Extensions.Http.Resilience" Version="8.0.0-rtm.23524.3">
       <Uri>https://github.com/dotnet/extensions</Uri>
