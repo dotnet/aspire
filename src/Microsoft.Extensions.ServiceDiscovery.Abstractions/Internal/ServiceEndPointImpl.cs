@@ -20,5 +20,5 @@ internal sealed class ServiceEndPointImpl : ServiceEndPoint
     public override EndPoint EndPoint => _endPoint;
     public override IFeatureCollection Features => _features;
 
-    public override string? ToString() => _endPoint.ToString();
+    public override string? ToString() => GetEndPointString();
 }

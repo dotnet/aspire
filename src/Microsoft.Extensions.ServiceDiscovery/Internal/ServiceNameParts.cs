@@ -6,7 +6,7 @@ using System.Net;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Internal;
 
-internal readonly struct ServiceNameParts
+internal readonly struct ServiceNameParts : IEquatable<ServiceNameParts>
 {
     public ServiceNameParts(string host, string? endPointName, int port) : this()
     {
@@ -20,6 +20,8 @@ internal readonly struct ServiceNameParts
     public string Host { get; init; }
 
     public int Port { get; init; }
+
+    public override string? ToString() => EndPointName is not null ? $"EndPointName: {EndPointName}, Host: {Host}, Port: {Port}" : $"Host: {Host}, Port: {Port}";
 
     public static bool TryParse(string serviceName, [NotNullWhen(true)] out ServiceNameParts parts)
     {
@@ -93,5 +95,18 @@ internal readonly struct ServiceNameParts
         serviceEndPoint = null;
         return false;
     }
+
+    public override bool Equals(object? obj) => obj is ServiceNameParts other && Equals(other);
+
+    public override int GetHashCode() => HashCode.Combine(EndPointName, Host, Port);
+
+    public bool Equals(ServiceNameParts other) =>
+               EndPointName == other.EndPointName &&
+               Host == other.Host &&
+               Port == other.Port;
+
+    public static bool operator ==(ServiceNameParts left, ServiceNameParts right) => left.Equals(right);
+
+    public static bool operator !=(ServiceNameParts left, ServiceNameParts right) => !(left == right);
 }
 
