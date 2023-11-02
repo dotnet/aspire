@@ -1,9 +1,9 @@
 <Project>
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-    <RuntimeVersion>8.0.0-rtm.23511.16</RuntimeVersion>
-    <AspNetCoreVersion>8.0.0-rtm.23512.20</AspNetCoreVersion>
-    <EfCoreVersion>8.0.0-rtm.23512.13</EfCoreVersion>
+    <RuntimeVersion>$(MicrosoftExtensionsConfigurationAbstractionsPackageVersion)</RuntimeVersion>
+    <AspNetCoreVersion>$(MicrosoftAspNetCoreOutputCachingStackExchangeRedisPackageVersion)</AspNetCoreVersion>
+    <EfCoreVersion>$(MicrosoftEntityFrameworkCoreSqlServerPackageVersion)</EfCoreVersion>
   </PropertyGroup>
   <ItemGroup>
     <!-- Azure SDK for .NET dependencies -->
