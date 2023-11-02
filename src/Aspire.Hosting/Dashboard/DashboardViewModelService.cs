@@ -7,6 +7,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using NamespacedName = Aspire.Dashboard.Model.NamespacedName;
 
 namespace Aspire.Hosting.Dashboard;
@@ -23,21 +24,25 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
     private readonly ViewModelCache<Executable, ExecutableViewModel> _executableViewModelCache;
     private readonly ViewModelCache<Executable, ProjectViewModel> _projectViewModelCache;
 
-    public DashboardViewModelService(DistributedApplicationModel applicationModel, KubernetesService kubernetesService, IHostEnvironment hostEnvironment)
+    public DashboardViewModelService(
+        DistributedApplicationModel applicationModel, KubernetesService kubernetesService, IHostEnvironment hostEnvironment, ILoggerFactory loggerFactory)
     {
         _applicationModel = applicationModel;
         _applicationName = ComputeApplicationName(hostEnvironment.ApplicationName);
         _containerViewModelCache = new ContainerViewModelCache(
             kubernetesService,
             _applicationModel,
+            loggerFactory,
             _cancellationTokenSource.Token);
         _executableViewModelCache = new ExecutableViewModelCache(
             kubernetesService,
             _applicationModel,
+            loggerFactory,
             _cancellationTokenSource.Token);
         _projectViewModelCache = new ProjectViewModelCache(
             kubernetesService,
             _applicationModel,
+            loggerFactory,
             _cancellationTokenSource.Token);
     }
 
