@@ -7,6 +7,9 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting;
 
+/// <summary>
+/// Provides extension methods for adding Redis resources to the application model.
+/// </summary>
 public static class RedisBuilderExtensions
 {
     /// <summary>
@@ -45,7 +48,7 @@ public static class RedisBuilderExtensions
 
     private static void WriteRedisResourceToManifest(Utf8JsonWriter jsonWriter, string? connectionString)
     {
-        jsonWriter.WriteString("type", "redis.v1");
+        jsonWriter.WriteString("type", "redis.v0");
         if (!string.IsNullOrEmpty(connectionString))
         {
             jsonWriter.WriteString("connectionString", connectionString);

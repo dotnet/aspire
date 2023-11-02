@@ -1,17 +1,17 @@
 {
   "resources": {
     "postgres": {
-      "type": "postgres.server.v1"
+      "type": "postgres.server.v0"
     },
     "catalogdb": {
-      "type": "postgres.database.v1",
+      "type": "postgres.database.v0",
       "parent": "postgres"
     },
     "basketcache": {
-      "type": "redis.v1"
+      "type": "redis.v0"
     },
     "catalogservice": {
-      "type": "project.v1",
+      "type": "project.v0",
       "path": "..\\CatalogService\\CatalogService.csproj",
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
@@ -32,13 +32,10 @@
       }
     },
     "messaging": {
-      "type": "azure.servicebus.v1",
-      "queues": [
-        "orders"
-      ]
+      "type": "rabbitmq.server.v0"
     },
     "basketservice": {
-      "type": "project.v1",
+      "type": "project.v0",
       "path": "..\\BasketService\\BasketService.csproj",
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
@@ -60,7 +57,7 @@
       }
     },
     "frontend": {
-      "type": "project.v1",
+      "type": "project.v0",
       "path": "..\\MyFrontend\\MyFrontend.csproj",
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
@@ -83,7 +80,7 @@
       }
     },
     "orderprocessor": {
-      "type": "project.v1",
+      "type": "project.v0",
       "path": "..\\OrderProcessor\\OrderProcessor.csproj",
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
@@ -104,7 +101,7 @@
       }
     },
     "apigateway": {
-      "type": "project.v1",
+      "type": "project.v0",
       "path": "..\\ApiGateway\\ApiGateway.csproj",
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
@@ -128,7 +125,7 @@
       }
     },
     "catalogdbapp": {
-      "type": "project.v1",
+      "type": "project.v0",
       "path": "..\\CatalogDb\\CatalogDb.csproj",
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",

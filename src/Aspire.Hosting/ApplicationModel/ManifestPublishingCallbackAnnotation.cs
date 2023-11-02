@@ -5,8 +5,19 @@ using System.Text.Json;
 
 namespace Aspire.Hosting.ApplicationModel;
 
+/// <summary>
+/// Represents an annotation that provides a callback to be executed during manifest publishing.
+/// </summary>
 public class ManifestPublishingCallbackAnnotation(Action<Utf8JsonWriter>? callback) : IResourceAnnotation
 {
+    /// <summary>
+    /// Gets the callback action for publishing the manifest.
+    /// </summary>
     public Action<Utf8JsonWriter>? Callback { get; } = callback;
-    public static ManifestPublishingCallbackAnnotation Ignore { get; } = new ManifestPublishingCallbackAnnotation(null);
+    
+    /// <summary>
+    /// Represents a <see langword="null"/>-based callback annotation for manifest 
+    /// publishing used in scenarios where it's ignored.
+    /// </summary>
+    public static ManifestPublishingCallbackAnnotation Ignore { get; } = new(null);
 }

@@ -8,6 +8,9 @@ using StackExchange.Redis;
 
 namespace Microsoft.Extensions.Hosting;
 
+/// <summary>
+/// Provides extension methods for adding Redis output caching services to the <see cref="IHostApplicationBuilder"/>.
+/// </summary>
 public static class AspireRedisOutputCacheExtensions
 {
     /// <summary>

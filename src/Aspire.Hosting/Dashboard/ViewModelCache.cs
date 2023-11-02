@@ -15,6 +15,7 @@ using Aspire.Hosting.Dcp.Process;
 using Aspire.Hosting.Utils;
 using k8s;
 using NamespacedName = Aspire.Dashboard.Model.NamespacedName;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Dashboard;
 
@@ -34,6 +35,7 @@ internal abstract class ViewModelCache<TResource, TViewModel>
     protected ViewModelCache(
         KubernetesService kubernetesService,
         DistributedApplicationModel applicationModel,
+        ILogger logger,
         CancellationToken cancellationToken)
     {
         _kubernetesService = kubernetesService;
@@ -42,57 +44,72 @@ internal abstract class ViewModelCache<TResource, TViewModel>
 
         Task.Run(async () =>
         {
-            // Start an enumerator which combines underlying kubernetes watches
-            // And return stream of changes in view model in publishing channel
-            var enumerator = new ViewModelGeneratingEnumerator(
-                _kubernetesService,
-                _applicationModel,
-                FilterResource,
-                ConvertToViewModel,
-                cancellationToken);
-
-            while (await enumerator.MoveNextAsync().ConfigureAwait(false))
+            try
             {
-                var (objectChangeType, resource) = enumerator.Current;
-                switch (objectChangeType)
+                // Start an enumerator which combines underlying kubernetes watches
+                // And return stream of changes in view model in publishing channel
+                var enumerator = new ViewModelGeneratingEnumerator(
+                    _kubernetesService,
+                    _applicationModel,
+                    logger,
+                    FilterResource,
+                    ConvertToViewModel,
+                    cancellationToken);
+
+                while (await enumerator.MoveNextAsync().ConfigureAwait(false))
                 {
-                    case ObjectChangeType.Added:
-                        _resourcesMap.Add(resource.Name, resource);
-                        break;
+                    var (objectChangeType, resource) = enumerator.Current;
+                    switch (objectChangeType)
+                    {
+                        case ObjectChangeType.Added:
+                            _resourcesMap.Add(resource.Name, resource);
+                            break;
 
-                    case ObjectChangeType.Modified:
-                        _resourcesMap[resource.Name] = resource;
-                        break;
+                        case ObjectChangeType.Modified:
+                            _resourcesMap[resource.Name] = resource;
+                            break;
 
-                    case ObjectChangeType.Deleted:
-                        _resourcesMap.Remove(resource.Name);
-                        break;
+                        case ObjectChangeType.Deleted:
+                            _resourcesMap.Remove(resource.Name);
+                            break;
+                    }
+
+                    await _publishingChannel.Writer.WriteAsync(enumerator.Current, cancellationToken).ConfigureAwait(false);
                 }
-
-                await _publishingChannel.Writer.WriteAsync(enumerator.Current, cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                logger.LogError(ex, "Task to write view model change terminated for resource type: {resourceType}", typeof(TViewModel).Name);
             }
         }, cancellationToken);
 
         Task.Run(async () =>
         {
-            // Receive data from publishing channel
-            // Update snapshot and send data to other subscribers
-            await foreach (var change in _publishingChannel.Reader.ReadAllAsync(cancellationToken))
+            try
             {
-                Channel<ResourceChanged<TViewModel>>?[] listeningChannels = [];
-                lock (_syncLock)
+                // Receive data from publishing channel
+                // Update snapshot and send data to other subscribers
+                await foreach (var change in _publishingChannel.Reader.ReadAllAsync(cancellationToken))
                 {
-                    _resourceChanges.Add(change);
-                    listeningChannels = _subscribedChannels.ToArray();
-                }
-
-                foreach (var channel in listeningChannels)
-                {
-                    if (channel is not null)
+                    Channel<ResourceChanged<TViewModel>>?[] listeningChannels = [];
+                    lock (_syncLock)
                     {
-                        await channel.Writer.WriteAsync(change, cancellationToken).ConfigureAwait(false);
+                        _resourceChanges.Add(change);
+                        listeningChannels = _subscribedChannels.ToArray();
+                    }
+
+                    foreach (var channel in listeningChannels)
+                    {
+                        if (channel is not null)
+                        {
+                            await channel.Writer.WriteAsync(change, cancellationToken).ConfigureAwait(false);
+                        }
                     }
                 }
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                logger.LogError(ex, "Task to publish view model changes to subscribers terminated for resource type: {resourceType}", typeof(TViewModel).Name);
             }
         }
         , cancellationToken);
@@ -243,6 +260,7 @@ internal abstract class ViewModelCache<TResource, TViewModel>
         private readonly ConcurrentDictionary<string, List<EnvVar>> _additionalEnvVarsMap = [];
 
         private readonly DistributedApplicationModel _applicationModel;
+        private readonly ILogger _logger;
         private readonly Func<TResource, bool> _filterResource;
         private readonly Func<DistributedApplicationModel, IEnumerable<Service>, IEnumerable<Endpoint>, TResource, List<EnvVar>?, TViewModel> _convertToViewModel;
         private readonly CancellationToken _cancellationToken;
@@ -253,11 +271,13 @@ internal abstract class ViewModelCache<TResource, TViewModel>
         public ViewModelGeneratingEnumerator(
             KubernetesService kubernetesService,
             DistributedApplicationModel applicationModel,
+            ILogger logger,
             Func<TResource, bool> _filterResource,
             Func<DistributedApplicationModel, IEnumerable<Service>, IEnumerable<Endpoint>, TResource, List<EnvVar>?, TViewModel> convertToViewModel,
             CancellationToken cancellationToken)
         {
             _applicationModel = applicationModel;
+            _logger = logger;
             this._filterResource = _filterResource;
             _convertToViewModel = convertToViewModel;
             _cancellationToken = cancellationToken;
@@ -385,7 +405,12 @@ internal abstract class ViewModelCache<TResource, TViewModel>
                 var exitCode = (await task.WaitAsync(TimeSpan.FromSeconds(30), cancellationToken).ConfigureAwait(false)).ExitCode;
                 if (exitCode == 0)
                 {
-                    var jsonArray = JsonNode.Parse(outputStringBuilder.ToString())?.AsArray();
+                    var output = outputStringBuilder.ToString();
+                    if (output == string.Empty)
+                    {
+                        return;
+                    }
+                    var jsonArray = JsonNode.Parse(output)?.AsArray();
                     if (jsonArray is not null)
                     {
                         var envVars = new List<EnvVar>();
@@ -403,13 +428,14 @@ internal abstract class ViewModelCache<TResource, TViewModel>
                     }
                 }
             }
-            catch
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 // If we fail to retrieve env vars from container at any point, we just skip it.
                 if (processDisposable != null)
                 {
                     await processDisposable.DisposeAsync().ConfigureAwait(false);
                 }
+                _logger.LogError(ex, "Failed to retrieve environment variables from docker container for {containerId}", container.Status!.ContainerId);
             }
         }
 
@@ -474,9 +500,17 @@ internal abstract class ViewModelCache<TResource, TViewModel>
         {
             _ = Task.Run(async () =>
             {
-                await foreach (var tuple in kubernetesService.WatchAsync<T>(cancellationToken: cancellationToken))
+                try
                 {
-                    await _channel.Writer.WriteAsync((tuple.Item1, tuple.Item2.Metadata.Name, tuple.Item2), _cancellationToken).ConfigureAwait(false);
+                    await foreach (var tuple in kubernetesService.WatchAsync<T>(cancellationToken: cancellationToken))
+                    {
+                        await _channel.Writer.WriteAsync((tuple.Item1, tuple.Item2.Metadata.Name, tuple.Item2), _cancellationToken).ConfigureAwait(false);
+                    }
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    _logger.LogError(ex, "Task to watch kubernetes changes terminated for resource: {resource} for view model: {viewModel}",
+                        typeof(T).Name, typeof(TViewModel).Name);
                 }
             }, cancellationToken);
         }

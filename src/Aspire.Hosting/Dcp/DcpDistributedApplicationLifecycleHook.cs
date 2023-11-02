@@ -9,7 +9,7 @@ using System.Net.Sockets;
 
 namespace Aspire.Hosting.Dcp;
 
-public sealed class DcpDistributedApplicationLifecycleHook(IOptions<PublishingOptions> publishingOptions) : IDistributedApplicationLifecycleHook
+internal sealed class DcpDistributedApplicationLifecycleHook(IOptions<PublishingOptions> publishingOptions) : IDistributedApplicationLifecycleHook
 {
     private readonly IOptions<PublishingOptions> _publishingOptions = publishingOptions;
 

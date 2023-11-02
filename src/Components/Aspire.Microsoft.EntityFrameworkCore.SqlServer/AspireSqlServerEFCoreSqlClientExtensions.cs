@@ -96,7 +96,7 @@ public static class AspireSqlServerEFCoreSqlClientExtensions
         void ConfigureDbContext(DbContextOptionsBuilder dbContextOptionsBuilder)
         {
             // We don't register logger factory, because there is no need to:
-            // https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.dbcontextoptionsbuilder.useloggerfactory?view=efcore-7.0#remarks
+            // https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbcontextoptionsbuilder.useloggerfactory?view=efcore-7.0#remarks
             dbContextOptionsBuilder.UseSqlServer(settings.ConnectionString, builder =>
             {
                 if (string.IsNullOrEmpty(settings.ConnectionString))

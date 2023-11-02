@@ -19,7 +19,7 @@ public sealed class EnvironmentVariablesDialogService(IDialogService dialogServi
             SecondaryAction = null,
             TrapFocus = true,
             Modal = true,
-            Width = "auto",
+            Width = "1000px",
             Height = "auto"
         };
 

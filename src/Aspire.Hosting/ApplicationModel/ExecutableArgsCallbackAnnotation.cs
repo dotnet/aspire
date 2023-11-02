@@ -3,12 +3,14 @@
 
 namespace Aspire.Hosting.ApplicationModel;
 
-public class ExecutableArgsCallbackAnnotation : IResourceAnnotation
+/// <summary>
+/// Represents an annotation that provides a callback to be executed with a list of command-line arguments when an executable resource is started.
+/// </summary>
+/// <param name="callback">The callback action to be executed.</param>
+public class ExecutableArgsCallbackAnnotation(Action<IList<string>> callback) : IResourceAnnotation
 {
-    public ExecutableArgsCallbackAnnotation(Action<IList<string>> callback)
-    {
-        Callback = callback;
-    }
-
-    public Action<IList<string>> Callback { get; private set; }
+    /// <summary>
+    /// Gets the callback action to be executed when the executable arguments are parsed.
+    /// </summary>
+    public Action<IList<string>> Callback { get; } = callback;
 }

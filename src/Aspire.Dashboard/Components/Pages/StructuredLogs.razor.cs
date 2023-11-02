@@ -164,7 +164,7 @@ public partial class StructuredLogs
         var parameters = new DialogParameters
         {
             Title = "Log Entry Details",
-            Width = "auto",
+            Width = "1000px",
             Height = "auto",
             TrapFocus = true,
             Modal = true,

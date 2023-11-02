@@ -7,11 +7,20 @@ using Microsoft.Extensions.Hosting;
 
 namespace Aspire.Hosting;
 
+/// <summary>
+/// Provides extension methods for configuring OpenTelemetry in projects using environment variables.
+/// </summary>
 public static class OtlpConfigurationExtensions
 {
     private const string DashboardOtlpUrlVariableName = "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL";
     private const string DashboardOtlpUrlDefaultValue = "http://localhost:18889";
 
+    /// <summary>
+    /// Configures OpenTelemetry in projects using environment variables.
+    /// </summary>
+    /// <param name="resource">The resource to add annotations to.</param>
+    /// <param name="configuration">The configuration to use for the OTLP exporter endpoint URL.</param>
+    /// <param name="environment">The host environment to check if the application is running in development mode.</param>
     public static void AddOtlpEnvironment(IResource resource, IConfiguration configuration, IHostEnvironment environment)
     {
         // Configure OpenTelemetry in projects using environment variables.

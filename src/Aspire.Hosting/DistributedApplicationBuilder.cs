@@ -11,19 +11,30 @@ using Microsoft.Extensions.Hosting;
 
 namespace Aspire.Hosting;
 
+/// <summary>
+/// A builder for creating instances of <see cref="DistributedApplication"/>.
+/// </summary>
 public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 {
     private readonly HostApplicationBuilder _innerBuilder;
     private readonly string[] _args;
 
+    /// <inheritdoc />
     public IHostEnvironment Environment => _innerBuilder.Environment;
 
+    /// <inheritdoc />
     public ConfigurationManager Configuration => _innerBuilder.Configuration;
 
+    /// <inheritdoc />
     public IServiceCollection Services => _innerBuilder.Services;
 
+    /// <inheritdoc />
     public IResourceCollection Resources { get; } = new ResourceCollection();
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DistributedApplicationBuilder"/> class with the specified options.
+    /// </summary>
+    /// <param name="options">The options for the distributed application.</param>
     public DistributedApplicationBuilder(DistributedApplicationOptions options)
     {
         _args = options.Args ?? [];
@@ -40,7 +51,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddHostedService<DcpHostService>();
 
         // We need a unique path per application instance
-        var path = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        var path = Directory.CreateTempSubdirectory("aspire.").FullName;
         _innerBuilder.Services.AddSingleton(new Locations(path));
         _innerBuilder.Services.AddSingleton<KubernetesService>();
 
@@ -71,6 +82,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         );
     }
 
+    /// <inheritdoc />
     public DistributedApplication Build()
     {
         AspireEventSource.Instance.DistributedApplicationBuildStart();
@@ -85,6 +97,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         }
     }
 
+    /// <inheritdoc />
     public IResourceBuilder<T> AddResource<T>(T resource) where T : IResource
     {
         if (Resources.FirstOrDefault(r => r.Name == resource.Name) is { } existingResource)

@@ -15,6 +15,9 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
 
+/// <summary>
+/// Provides extension methods for adding support for generating Azure resources dynamically during application startup.
+/// </summary>
 public static class AzureProvisionerExtensions
 {
     /// <summary>
@@ -26,11 +29,11 @@ public static class AzureProvisionerExtensions
         builder.Services.AddLifecycleHook<AzureProvisioner>();
 
         // Attempt to read azure configuration from configuration
-        builder.Services.AddOptions<AzureProvisinerOptions>()
+        builder.Services.AddOptions<AzureProvisionerOptions>()
             .BindConfiguration("Azure");
 
         // We're adding 2 because there's no easy way to enumerate all keys and all service types
-        builder.AddAzureProvisioner<AzureKeyVaultResource, KeyVaultProvisoner>();
+        builder.AddAzureProvisioner<AzureKeyVaultResource, KeyVaultProvisioner>();
         builder.AddResourceEnumerator(resourceGroup => resourceGroup.GetKeyVaults(), resource => resource.Data.Tags);
 
         builder.AddAzureProvisioner<AzureStorageResource, StorageProvisioner>();

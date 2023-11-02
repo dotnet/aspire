@@ -7,7 +7,7 @@ using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting.Dcp;
 
-public sealed class DcpOptions
+internal sealed class DcpOptions
 {
     private const string DcpCliPathMetadataKey = "DcpCliPath";
     private const string DcpExtensionsPathMetadataKey = "DcpExtensionsPath";
