@@ -26,7 +26,7 @@ public class ServiceEndPointResolverTests
             .BuildServiceProvider();
         var resolverFactory = services.GetRequiredService<ServiceEndPointResolverFactory>();
         var exception = Assert.Throws<InvalidOperationException>(() => resolverFactory.CreateResolver("https://basket"));
-        Assert.Equal("No resolver which supports the provided service name has been configured.", exception.Message);
+        Assert.Equal("No resolver which supports the provided service name, 'https://basket', has been configured.", exception.Message);
     }
 
     [Fact]
@@ -61,7 +61,7 @@ public class ServiceEndPointResolverTests
         var services = serviceCollection.BuildServiceProvider();
         var client = services.GetRequiredService<IHttpClientFactory>().CreateClient("foo");
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () => await client.GetStringAsync("/"));
-        Assert.Equal("No resolver which supports the provided service name has been configured.", exception.Message);
+        Assert.Equal("No resolver which supports the provided service name, 'http://foo', has been configured.", exception.Message);
     }
 
     private sealed class FakeEndPointResolverProvider(Func<string, (bool Result, IServiceEndPointResolver? Resolver)> createResolverDelegate) : IServiceEndPointResolverProvider

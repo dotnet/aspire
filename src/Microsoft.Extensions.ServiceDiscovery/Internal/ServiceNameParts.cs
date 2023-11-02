@@ -21,6 +21,8 @@ internal readonly struct ServiceNameParts
 
     public int Port { get; init; }
 
+    public override string? ToString() => EndPointName is not null ? $"EndPointName: {EndPointName}, Host: {Host}, Port: {Port}" : $"Host: {Host}, Port: {Port}";
+
     public static bool TryParse(string serviceName, [NotNullWhen(true)] out ServiceNameParts parts)
     {
         if (serviceName.IndexOf("://") < 0 && Uri.TryCreate($"fakescheme://{serviceName}", default, out var uri))
