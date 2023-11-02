@@ -15,8 +15,7 @@
         "isHidden": true
       },
       "NoHttps": {
-        "longName": "no-https",
-        "shortName": ""
+        "isHidden": true
       }
     },
     "usageExamples": [ ]
