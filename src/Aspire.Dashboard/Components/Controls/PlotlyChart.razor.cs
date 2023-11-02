@@ -373,6 +373,13 @@ public partial class PlotlyChart : ComponentBase
             pointValue += dimensionValue;
         }
 
+        // JS interop doesn't support serializing NaN values.
+        if (double.IsNaN(pointValue))
+        {
+            pointValue = default;
+            return false;
+        }
+
         return hasValue;
     }
 
