@@ -1,4 +1,13 @@
 {
+  "definitions": {
+    "logLevel": {
+      "properties": {
+        "RabbitMQ.Client": {
+          "$ref": "#/definitions/logLevelThreshold"
+        }
+      }
+    }
+  },
   "properties": {
     "Aspire": {
       "type": "object",
