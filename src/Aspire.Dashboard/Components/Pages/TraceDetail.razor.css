@@ -8,7 +8,7 @@
 }
 
 ::deep .trace-id {
-    color: rgb(136, 136, 136);
+    color: var(--foreground-subtext-rest);
     padding-left: 0.5rem;
     font-size: 12px;
 }
@@ -110,10 +110,14 @@
 
 ::deep .span-container .span-bar-label {
     font-size: 12px;
-    color: #aaa;
+    color: var(--foreground-subtext-rest);
     padding: 0 0.5em;
     cursor: pointer;
     height: min-content;
+}
+
+::deep fluent-data-grid-row[row-type="default"]:hover .span-container .span-bar-label {
+    color: var(--foreground-subtext-hover);
 }
 
 ::deep .span-container .span-bar-label-detail {
@@ -140,9 +144,13 @@
 }
 
 ::deep .span-row-name {
-    color: rgb(136, 136, 136);
+    color: var(--foreground-subtext-rest);
     padding-left: 0.5rem;
     font-size: 12px;
+}
+
+::deep fluent-data-grid-row[row-type="default"]:hover .span-row-name {
+    color: var(--foreground-subtext-hover);
 }
 
 ::deep.trace-detail-layout {
