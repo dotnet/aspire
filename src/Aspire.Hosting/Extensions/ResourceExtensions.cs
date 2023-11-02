@@ -119,8 +119,8 @@ public static class ResourceExtensions
     }
 
     /// <summary>
-    /// Gets the number of replicas for the specified resource. Defaults to <c>1</c> if no 
-    /// <see cref="ReplicaAnnotation"> is found.
+    /// Gets the number of replicas for the specified resource. Defaults to <c>1</c> if no
+    /// <see cref="ReplicaAnnotation" /> is found.
     /// </summary>
     /// <param name="resource">The resource to get the replica count for.</param>
     /// <returns>The number of replicas for the specified resource.</returns>
