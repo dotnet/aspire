@@ -5,14 +5,15 @@ using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Dashboard;
 
 internal sealed class ContainerViewModelCache : ViewModelCache<Container, ContainerViewModel>
 {
     public ContainerViewModelCache(
-        KubernetesService kubernetesService, DistributedApplicationModel applicationModel, CancellationToken cancellationToken)
-        : base(kubernetesService, applicationModel, cancellationToken)
+        KubernetesService kubernetesService, DistributedApplicationModel applicationModel, ILoggerFactory loggerFactory, CancellationToken cancellationToken)
+        : base(kubernetesService, applicationModel, loggerFactory.CreateLogger<ContainerViewModelCache>(),  cancellationToken)
     {
     }
 

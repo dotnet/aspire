@@ -7,7 +7,6 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO.Pipelines;
 using System.Net.Sockets;
-using System.Runtime.InteropServices;
 using System.Text;
 using Aspire.Dashboard;
 using Aspire.Dashboard.Model;
@@ -264,7 +263,7 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
         string? directoryName = Path.GetDirectoryName(socketPath);
         if (!string.IsNullOrEmpty(directoryName))
         {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            if (OperatingSystem.IsWindows())
             {
                 Directory.CreateDirectory(directoryName);
             }
@@ -351,7 +350,7 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
             {
                 // loggerFactory.CreateLogger internally caches, but we may as well cache the logger as well as the string
                 // for the lifetime of this socket
-                loggerCache[hashValue] = logger = _loggerFactory.CreateLogger(Encoding.UTF8.GetString(category));
+                loggerCache[hashValue] = logger = _loggerFactory.CreateLogger($"Aspire.Hosting.Dcp.{Encoding.UTF8.GetString(category)}");
             }
 
             return (logger, logLevel, Encoding.UTF8.GetString(message));

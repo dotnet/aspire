@@ -6,9 +6,20 @@ using System.Net.Sockets;
 
 namespace Aspire.Hosting.ApplicationModel;
 
+/// <summary>
+/// Represents an endpoint allocated for a service instance.
+/// </summary>
 [DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, UriString = {UriString}, BindingNameQualifiedUriString = {BindingNameQualifiedUriString}")]
 public class AllocatedEndpointAnnotation : IResourceAnnotation
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AllocatedEndpointAnnotation"/> class.
+    /// </summary>
+    /// <param name="name">The name of the endpoint.</param>
+    /// <param name="protocol">The protocol used by the endpoint.</param>
+    /// <param name="address">The IP address of the endpoint.</param>
+    /// <param name="port">The port number of the endpoint.</param>
+    /// <param name="scheme">The URI scheme used by the endpoint.</param>
     public AllocatedEndpointAnnotation(string name, ProtocolType protocol, string address, int port, string scheme)
     {
         ArgumentNullException.ThrowIfNullOrEmpty(name);
@@ -48,6 +59,9 @@ public class AllocatedEndpointAnnotation : IResourceAnnotation
     /// </summary>
     public string UriScheme { get; private set; }
 
+    /// <summary>
+    /// Endpoint in string representation formatted as <c>"Address:Port"</c>.
+    /// </summary>
     public string EndPointString => $"{Address}:{Port}";
 
     /// <summary>
@@ -59,5 +73,10 @@ public class AllocatedEndpointAnnotation : IResourceAnnotation
     /// URI in string representation.
     /// </summary>
     public string UriString => $"{UriScheme}://{EndPointString}";
+
+    /// <summary>
+    /// Returns a string representation of the allocated endpoint URI.
+    /// </summary>
+    /// <returns>The URI string, <see cref="UriString"/>.</returns>
     public override string ToString() => UriString;
 }

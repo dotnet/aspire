@@ -1,12 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Model.MetricValues;
 using Aspire.Dashboard.Otlp.Storage;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Dashboard.Components;
 
@@ -14,7 +14,7 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
 {
     private readonly CounterChartViewModel _viewModel = new();
 
-    private OtlpInstrument _instrument = default!;
+    private OtlpInstrument? _instrument;
     private PeriodicTimer? _tickTimer;
     private Task? _tickTask;
     private int _renderedDimensionsCount;
@@ -36,6 +36,9 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
 
     [Inject]
     public required TelemetryRepository TelemetryRepository { get; set; }
+
+    [Inject]
+    public required ILogger<ChartContainer> Logger { get; set; }
 
     protected override void OnInitialized()
     {
@@ -61,6 +64,10 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
         while (await timer!.WaitForNextTickAsync())
         {
             _instrument = GetInstrument();
+            if (_instrument == null)
+            {
+                continue;
+            }
 
             if (_instrument.Dimensions.Count > _renderedDimensionsCount)
             {
@@ -78,6 +85,11 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
 
     public async Task DimensionValuesChangedAsync(DimensionFilterViewModel dimensionViewModel)
     {
+        if (_instrument == null)
+        {
+            return;
+        }
+
         await UpdateInstrumentDataAsync(_instrument);
     }
 
@@ -129,6 +141,11 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
     {
         _instrument = GetInstrument();
 
+        if (_instrument == null)
+        {
+            return;
+        }
+
         var hasInstrumentChanged = _previousMeterName != MeterName || _previousInstrumentName != InstrumentName;
         _previousMeterName = MeterName;
         _previousInstrumentName = InstrumentName;
@@ -141,7 +158,7 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
         await UpdateInstrumentDataAsync(_instrument);
     }
 
-    private OtlpInstrument GetInstrument()
+    private OtlpInstrument? GetInstrument()
     {
         var instrument = TelemetryRepository.GetInstrument(new GetInstrumentRequest
         {
@@ -151,52 +168,64 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
             StartTime = DateTime.UtcNow.Subtract(Duration),
             EndTime = DateTime.UtcNow,
         });
-        Debug.Assert(instrument != null);
+
+        if (instrument == null)
+        {
+            Logger.LogDebug(
+                "Unable to find instrument. ApplicationServiceId: {ApplicationServiceId}, MeterName: {MeterName}, InstrumentName: {InstrumentName}",
+                ApplicationId,
+                MeterName,
+                InstrumentName);
+        }
+
         return instrument;
     }
 
     private List<DimensionFilterViewModel> CreateUpdatedFilters(bool hasInstrumentChanged)
     {
         var filters = new List<DimensionFilterViewModel>();
-        foreach (var item in _instrument.KnownAttributeValues.OrderBy(kvp => kvp.Key))
+        if (_instrument != null)
         {
-            var dimensionModel = new DimensionFilterViewModel
+            foreach (var item in _instrument.KnownAttributeValues.OrderBy(kvp => kvp.Key))
             {
-                Name = item.Key
-            };
-
-            dimensionModel.Values.AddRange(item.Value.OrderBy(v => v).Select(v =>
-            {
-                var empty = string.IsNullOrEmpty(v);
-                return new DimensionValueViewModel
+                var dimensionModel = new DimensionFilterViewModel
                 {
-                    Name = empty ? "(Empty)" : v,
-                    Empty = empty
+                    Name = item.Key
                 };
-            }));
 
-            filters.Add(dimensionModel);
-        }
-
-        foreach (var item in filters)
-        {
-            if (hasInstrumentChanged)
-            {
-                // Select all by default.
-                item.SelectedValues = item.Values.ToList();
-            }
-            else
-            {
-                var existing = _viewModel.DimensionFilters.SingleOrDefault(m => m.Name == item.Name);
-                if (existing != null)
+                dimensionModel.Values.AddRange(item.Value.OrderBy(v => v).Select(v =>
                 {
-                    // Select previously selected.
-                    item.SelectedValues = item.Values.Where(newValue => existing.Values.Any(existingValue => existingValue.Name == newValue.Name)).ToList();
+                    var empty = string.IsNullOrEmpty(v);
+                    return new DimensionValueViewModel
+                    {
+                        Name = empty ? "(Empty)" : v,
+                        Empty = empty
+                    };
+                }));
+
+                filters.Add(dimensionModel);
+            }
+
+            foreach (var item in filters)
+            {
+                if (hasInstrumentChanged)
+                {
+                    // Select all by default.
+                    item.SelectedValues = item.Values.ToList();
                 }
                 else
                 {
-                    // No filter. Select none.
-                    item.SelectedValues = new List<DimensionValueViewModel>();
+                    var existing = _viewModel.DimensionFilters.SingleOrDefault(m => m.Name == item.Name);
+                    if (existing != null)
+                    {
+                        // Select previously selected.
+                        item.SelectedValues = item.Values.Where(newValue => existing.Values.Any(existingValue => existingValue.Name == newValue.Name)).ToList();
+                    }
+                    else
+                    {
+                        // No filter. Select none.
+                        item.SelectedValues = new List<DimensionValueViewModel>();
+                    }
                 }
             }
         }

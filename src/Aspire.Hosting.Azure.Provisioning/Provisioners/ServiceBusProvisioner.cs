@@ -150,7 +150,7 @@ internal sealed class ServiceBusProvisioner(ILogger<ServiceBusProvisioner> logge
         }
 
         // Azure Service Bus Data Owner
-        // https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles#azure-service-bus-data-owner
+        // https://learn.microsoft.com/azure/role-based-access-control/built-in-roles#azure-service-bus-data-owner
         var roleDefinitionId = CreateRoleDefinitionId(subscription, "090c5cfd-751d-490a-894a-3ce6f1109419");
 
         await DoRoleAssignmentAsync(armClient, serviceBusNamespace.Id, principalId, roleDefinitionId, cancellationToken).ConfigureAwait(false);

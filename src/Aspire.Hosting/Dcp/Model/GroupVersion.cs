@@ -3,7 +3,7 @@
 
 namespace Aspire.Hosting.Dcp.Model;
 
-public struct GroupVersion
+internal struct GroupVersion
 {
     public string Group { get; set; }
     public string Version { get; set; }
@@ -11,7 +11,7 @@ public struct GroupVersion
     public override string ToString() => $"{Group}/{Version}";
 }
 
-public static class Dcp
+internal static class Dcp
 {
     public static GroupVersion GroupVersion { get; } = new GroupVersion
     {

@@ -14,7 +14,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Azure.Provisioning;
 
-internal sealed class KeyVaultProvisoner(ILogger<KeyVaultProvisoner> logger) : AzureResourceProvisioner<AzureKeyVaultResource>
+internal sealed class KeyVaultProvisioner(ILogger<KeyVaultProvisioner> logger) : AzureResourceProvisioner<AzureKeyVaultResource>
 {
     public override bool ConfigureResource(IConfiguration configuration, AzureKeyVaultResource resource)
     {
@@ -76,7 +76,7 @@ internal sealed class KeyVaultProvisoner(ILogger<KeyVaultProvisoner> logger) : A
         connectionStrings[keyVault.Name] = keyVault.VaultUri.ToString();
 
         // Key Vault Administrator
-        // https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles#key-vault-administrator
+        // https://learn.microsoft.com/azure/role-based-access-control/built-in-roles#key-vault-administrator
         var roleDefinitionId = CreateRoleDefinitionId(subscription, "00482a5a-887f-4fb3-b363-3b7fe8e74483");
 
         await DoRoleAssignmentAsync(armClient, keyVaultResource.Id, principalId, roleDefinitionId, cancellationToken).ConfigureAwait(false);

@@ -5,10 +5,24 @@ using System.Diagnostics;
 
 namespace Aspire.Hosting.ApplicationModel;
 
+/// <summary>
+/// Represents an annotation for a container image.
+/// </summary>
 [DebuggerDisplay("Type = {GetType().Name,nq}, Image = {Image}, Tag = {Tag}")]
 public sealed class ContainerImageAnnotation : IResourceAnnotation
 {
+    /// <summary>
+    /// Gets or sets the registry for the container image.
+    /// </summary>
     public string? Registry { get; set; }
+
+    /// <summary>
+    /// Gets or sets the image for the container.
+    /// </summary>
     public required string Image { get; set; }
+
+    /// <summary>
+    /// Gets or sets the tag for the container image.
+    /// </summary>
     public required string Tag { get; set; }
 }

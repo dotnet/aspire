@@ -3,6 +3,10 @@
 
 namespace Aspire.Hosting.ApplicationModel;
 
+/// <summary>
+/// Represents a container resource that implements <see cref="IResourceWithEnvironment"/> 
+/// and <see cref="IResourceWithBindings"/>.
+/// </summary>
 public class ContainerResource(string name) : Resource(name), IResourceWithEnvironment, IResourceWithBindings
 {
 }

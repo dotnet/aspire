@@ -3,7 +3,7 @@
 
 namespace Aspire.Hosting.Dcp.Model;
 
-public class Schema
+internal sealed class Schema
 {
     private readonly Dictionary<Type, (string Kind, string Resource)> _byType = new();
 

@@ -11,6 +11,9 @@ using OpenTelemetry.Metrics;
 
 namespace Microsoft.Extensions.Hosting;
 
+/// <summary>
+/// Provides extension methods for registering a PostgreSQL database context in an Aspire application.
+/// </summary>
 public static partial class AspireEFPostgreSqlExtensions
 {
     private const string DefaultConfigSectionName = "Aspire:Npgsql:EntityFrameworkCore:PostgreSQL";
@@ -114,7 +117,7 @@ public static partial class AspireEFPostgreSqlExtensions
                 .WithMetrics(meterProviderBuilder =>
                 {
                     // Currently EF provides only Event Counters:
-                    // https://learn.microsoft.com/en-us/ef/core/logging-events-diagnostics/event-counters?tabs=windows#counters-and-their-meaning
+                    // https://learn.microsoft.com/ef/core/logging-events-diagnostics/event-counters?tabs=windows#counters-and-their-meaning
                     meterProviderBuilder.AddEventCountersInstrumentation(eventCountersInstrumentationOptions =>
                     {
                         // The magic strings come from:
@@ -124,16 +127,13 @@ public static partial class AspireEFPostgreSqlExtensions
 
                     // https://github.com/npgsql/npgsql/blob/4c9921de2dfb48fb5a488787fc7422add3553f50/src/Npgsql/MetricsReporter.cs#L48
                     meterProviderBuilder.AddMeter("Npgsql");
-
-                    // disable "prepared_ratio" until https://github.com/dotnet/aspire/issues/629 is fixed.
-                    meterProviderBuilder.AddView(instrumentName: "db.client.commands.prepared_ratio", MetricStreamConfiguration.Drop);
                 });
         }
 
         void ConfigureDbContext(DbContextOptionsBuilder dbContextOptionsBuilder)
         {
             // We don't provide the connection string, it's going to use the pre-registered DataSource.
-            // We don't register logger factory, because there is no need to: https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.dbcontextoptionsbuilder.useloggerfactory?view=efcore-7.0#remarks
+            // We don't register logger factory, because there is no need to: https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbcontextoptionsbuilder.useloggerfactory?view=efcore-7.0#remarks
             dbContextOptionsBuilder.UseNpgsql(builder =>
             {
                 // Resiliency:

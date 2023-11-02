@@ -7,6 +7,9 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting;
 
+/// <summary>
+/// Provides extension methods for adding PostgreSQL resources to an <see cref="IDistributedApplicationBuilder"/>.
+/// </summary>
 public static class PostgresBuilderExtensions
 {
     private const string PasswordEnvVarName = "POSTGRES_PASSWORD";
@@ -62,18 +65,18 @@ public static class PostgresBuilderExtensions
 
     private static void WritePostgresConnectionToManifest(Utf8JsonWriter jsonWriter, PostgresConnectionResource postgresConnection)
     {
-        jsonWriter.WriteString("type", "postgres.connection.v1");
+        jsonWriter.WriteString("type", "postgres.connection.v0");
         jsonWriter.WriteString("connectionString", postgresConnection.GetConnectionString());
     }
 
     private static void WritePostgresContainerToManifest(Utf8JsonWriter jsonWriter)
     {
-        jsonWriter.WriteString("type", "postgres.server.v1");
+        jsonWriter.WriteString("type", "postgres.server.v0");
     }
 
     private static void WritePostgresDatabaseToManifest(Utf8JsonWriter json, PostgresDatabaseResource postgresDatabase)
     {
-        json.WriteString("type", "postgres.database.v1");
+        json.WriteString("type", "postgres.database.v0");
         json.WriteString("parent", postgresDatabase.Parent.Name);
     }
 }
