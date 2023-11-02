@@ -6,6 +6,9 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting;
 
+/// <summary>
+/// Provides extension methods for <see cref="IDistributedApplicationBuilder"/> to add container resources to the application.
+/// </summary>
 public static class ContainerResourceBuilderExtensions
 {
     /// <summary>
@@ -39,7 +42,7 @@ public static class ContainerResourceBuilderExtensions
     /// Adds a binding to expose an endpoint on a resource.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
-    /// <param name="builder">The resoure builder.</param>
+    /// <param name="builder">The resource builder.</param>
     /// <param name="containerPort">The container port.</param>
     /// <param name="hostPort">The host machine port.</param>
     /// <param name="scheme">The scheme e.g http/https/amqp</param>
@@ -66,7 +69,7 @@ public static class ContainerResourceBuilderExtensions
     /// Adds a volume mount to a container resource.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
-    /// <param name="builder">The resoure builder.</param>
+    /// <param name="builder">The resource builder.</param>
     /// <param name="source">The source path of the volume. This is the physical location on the host.</param>
     /// <param name="target">The target path in the container.</param>
     /// <param name="type">The type of volume mount.</param>

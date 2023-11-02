@@ -3,8 +3,18 @@
 
 namespace Aspire.Hosting.ApplicationModel;
 
+/// <summary>
+/// Represents a resource that can be hosted by an application.
+/// </summary>
 public interface IResource
 {
+    /// <summary>
+    /// Gets the name of the resource.
+    /// </summary>
     string Name { get; }
+
+    /// <summary>
+    /// Gets the annotations associated with the resource.
+    /// </summary>
     ResourceMetadataCollection Annotations { get; }
 }

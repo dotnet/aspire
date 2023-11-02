@@ -3,6 +3,9 @@
 
 namespace Aspire.Hosting.ApplicationModel;
 
+/// <summary>
+/// Represents a resource that is associated with an environment.
+/// </summary>
 public interface IResourceWithEnvironment : IResource
 {
 }

@@ -10,7 +10,14 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="connectionString">The connection string.</param>
 public class RabbitMQConnectionResource(string name, string? connectionString = null) : Resource(name), IResourceWithConnectionString
 {
+    /// <summary>
+    /// Gets or sets the connection string for the RabbitMQ connection.
+    /// </summary>
     public string? ConnectionString { get; set; } = connectionString;
 
+    /// <summary>
+    /// Gets the connection string for the RabbitMQ connection resource.
+    /// </summary>
+    /// <returns>The connection string for the RabbitMQ connection resource.</returns>
     public string? GetConnectionString() => ConnectionString;
 }

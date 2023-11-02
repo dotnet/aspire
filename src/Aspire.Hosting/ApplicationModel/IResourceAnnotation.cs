@@ -3,6 +3,9 @@
 
 namespace Aspire.Hosting.ApplicationModel;
 
+/// <summary>
+/// Represents an annotation for a resource.
+/// </summary>
 public interface IResourceAnnotation
 {
 }

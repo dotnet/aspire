@@ -6,6 +6,12 @@ using System.Net.Sockets;
 
 namespace Aspire.Hosting.ApplicationModel;
 
+/// <summary>
+/// Represents a service binding annotation that describes how a service should be bound to a network.
+/// </summary>
+/// <remarks>
+/// This class is used to specify the network protocol, port, URI scheme, transport, and other details for a service.
+/// </remarks>
 [DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}")]
 public sealed class ServiceBindingAnnotation : IResourceAnnotation
 {
@@ -44,7 +50,7 @@ public sealed class ServiceBindingAnnotation : IResourceAnnotation
     /// If the binding is used for the container, this is the port the container process is listening on.
     /// </summary>
     /// <remarks>
-    /// Defaults to <see cref="Port"/>. 
+    /// Defaults to <see cref="Port"/>.
     /// </remarks>
     public int? ContainerPort { get; internal set; }
 
