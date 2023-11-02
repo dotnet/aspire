@@ -7,6 +7,9 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting;
 
+/// <summary>
+/// Provides extension methods for adding PostgreSQL resources to an <see cref="IDistributedApplicationBuilder"/>.
+/// </summary>
 public static class PostgresBuilderExtensions
 {
     private const string PasswordEnvVarName = "POSTGRES_PASSWORD";
