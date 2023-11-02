@@ -191,7 +191,7 @@ Aspire.Npgsql.EntityFrameworkCore.PostgreSQL:
 
 Aspire.RabbitMQ.Client:
 - Log categories:
-  - TODO
+  - "RabbitMQ.Client"
 - Activity source names:
   - "Aspire.RabbitMQ.Client"
 - Metric names:
