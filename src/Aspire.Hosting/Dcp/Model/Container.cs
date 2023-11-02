@@ -7,7 +7,7 @@ using k8s.Models;
 
 namespace Aspire.Hosting.Dcp.Model;
 
-public class ContainerSpec
+internal sealed class ContainerSpec
 {
     // Image to be used to create the container
     [JsonPropertyName("image")]
@@ -42,16 +42,16 @@ public class ContainerSpec
     public List<string>? Args { get; set; }
 }
 
-public static class VolumeMountType
+internal static class VolumeMountType
 {
     // A volume mount to a host directory
-    public static readonly string Bind = "bind";
+    public const string Bind = "bind";
 
     // A volume mount to a named volume managed by the container orchestrator
-    public static readonly string Named = "volume";
+    public const string Named = "volume";
 }
 
-public class VolumeMount
+internal sealed class VolumeMount
 {
     [JsonPropertyName("type")]
     public string Type { get; set; } = VolumeMountType.Bind;
@@ -70,22 +70,22 @@ public class VolumeMount
     public bool IsReadOnly { get; set; } = false;
 }
 
-public static class ContainerRestartPolicy
+internal static class ContainerRestartPolicy
 {
     // Do not automatically restart the container when it exits (default)
-    public static readonly string None = "no";
+    public const string None = "no";
 
     // Restart only if the container exits with non-zero status
-    public static readonly string OnFailure = "on-failure";
+    public const string OnFailure = "on-failure";
 
     // Restart container, except if container is explicitly stopped (or container daemon is stopped/restarted)
-    public static readonly string UnlessStopped = "unless-stopped";
+    public const string UnlessStopped = "unless-stopped";
 
     // Always try to restart the container
-    public static readonly string Always = "always";
+    public const string Always = "always";
 }
 
-public static class PortProtocol
+internal static class PortProtocol
 {
     public const string TCP = "TCP";
 
@@ -132,7 +132,7 @@ public static class PortProtocol
     }
 }
 
-public class ContainerPortSpec
+internal sealed class ContainerPortSpec
 {
     // Optional: If specified, this must be a valid port number, 0 < x < 65536.
     [JsonPropertyName("hostPort")]
@@ -151,7 +151,7 @@ public class ContainerPortSpec
     public string? HostIP { get; set; }
 }
 
-public class ContainerStatus : V1Status
+internal sealed class ContainerStatus : V1Status
 {
     // Current state of the Container.
     [JsonPropertyName("state")]
@@ -178,31 +178,31 @@ public class ContainerStatus : V1Status
     // It is provided by V1Status base class.
 }
 
-public static class ContainerState
+internal static class ContainerState
 {
     // Pending is the initial Container state. No attempt has been made to run the container yet.
-    public static readonly string Pending = "Pending";
+    public const string Pending = "Pending";
 
     // A start attempt was made, but it failed
-    public static readonly string FailedToStart = "FailedToStart";
+    public const string FailedToStart = "FailedToStart";
 
     // Container has been started and is executing
-    public static readonly string Running = "Running";
+    public const string Running = "Running";
 
     // Container is paused
-    public static readonly string Paused = "Paused";
+    public const string Paused = "Paused";
 
     // Container finished execution
-    public static readonly string Exited = "Exited";
+    public const string Exited = "Exited";
 
     // Container was running at some point, but has been removed.
-    public static readonly string Removed = "Removed";
+    public const string Removed = "Removed";
 
     // Unknown means for some reason container state is unavailable.
-    public static readonly string Unknown = "Unknown";
+    public const string Unknown = "Unknown";
 }
 
-public class Container : CustomResource<ContainerSpec, ContainerStatus>
+internal sealed class Container : CustomResource<ContainerSpec, ContainerStatus>
 {
     [JsonConstructor]
     public Container(ContainerSpec spec) : base(spec) { }

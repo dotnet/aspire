@@ -157,7 +157,7 @@
     "NoHttps": {
       "type": "parameter",
       "datatype": "bool",
-      "defaultValue": "false",
+      "defaultValue": "true",
       "description": "Whether to turn off HTTPS."
     }
   },

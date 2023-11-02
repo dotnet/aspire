@@ -5,6 +5,9 @@ using System.Collections.ObjectModel;
 
 namespace Aspire.Hosting.ApplicationModel;
 
+/// <summary>
+/// Represents a collection of resource metadata annotations.
+/// </summary>
 public sealed class ResourceMetadataCollection : Collection<IResourceAnnotation>
 {
 }

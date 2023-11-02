@@ -6,7 +6,7 @@ namespace Aspire.Hosting.Dcp.Model;
 using System.Text.Json.Serialization;
 using k8s.Models;
 
-public class ExecutableTemplate : IAnnotationHolder
+internal sealed class ExecutableTemplate : IAnnotationHolder
 {
     // Labels to apply to child Executable objects
     [JsonPropertyName("labels")]
@@ -41,7 +41,7 @@ public class ExecutableTemplate : IAnnotationHolder
     }
 }
 
-public class ExecutableReplicaSetSpec
+internal sealed class ExecutableReplicaSetSpec
 {
     // Number of desired child Executable objects
     [JsonPropertyName("replicas")]
@@ -52,7 +52,7 @@ public class ExecutableReplicaSetSpec
     public ExecutableTemplate Template { get; set; } = new ExecutableTemplate();
 }
 
-public class ExecutableReplicaSetStatus : V1Status
+internal sealed class ExecutableReplicaSetStatus : V1Status
 {
     // Total number of observed child executables
     [JsonPropertyName("observedReplicas")]
@@ -75,7 +75,7 @@ public class ExecutableReplicaSetStatus : V1Status
     public DateTimeOffset? LastScaleTime { get; set; }
 }
 
-public class ExecutableReplicaSet : CustomResource<ExecutableReplicaSetSpec, ExecutableReplicaSetStatus>
+internal sealed class ExecutableReplicaSet : CustomResource<ExecutableReplicaSetSpec, ExecutableReplicaSetStatus>
 {
     [JsonConstructor]
     public ExecutableReplicaSet(ExecutableReplicaSetSpec spec) : base(spec) { }

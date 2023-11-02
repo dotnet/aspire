@@ -8,6 +8,9 @@ using Aspire.Hosting.Properties;
 
 namespace Aspire.Hosting;
 
+/// <summary>
+/// Provides extension methods for <see cref="IDistributedApplicationBuilder"/> to add and configure project resources.
+/// </summary>
 public static class ProjectResourceBuilderExtensions
 {
     /// <summary>
