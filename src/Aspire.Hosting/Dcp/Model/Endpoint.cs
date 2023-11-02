@@ -6,7 +6,7 @@ using k8s.Models;
 
 namespace Aspire.Hosting.Dcp.Model;
 
-public class EndpointSpec
+internal sealed class EndpointSpec
 {
     // Namespace of the service the endpoint implements
     [JsonPropertyName("serviceNamespace")]
@@ -25,12 +25,12 @@ public class EndpointSpec
     public int? Port { get; set; }
 }
 
-public class EndpointStatus : V1Status
+internal sealed class EndpointStatus : V1Status
 {
     // Currently Endpoint has no status properties, but that may change in future.
 }
 
-public class Endpoint : CustomResource<EndpointSpec, EndpointStatus>
+internal sealed class Endpoint : CustomResource<EndpointSpec, EndpointStatus>
 {
     [JsonConstructor]
     public Endpoint(EndpointSpec spec) : base(spec) { }

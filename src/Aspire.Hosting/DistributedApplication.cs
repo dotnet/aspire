@@ -9,7 +9,7 @@ using Microsoft.Extensions.Hosting;
 
 namespace Aspire.Hosting;
 
-public enum DockerHealthCheckFailures : int
+internal enum DockerHealthCheckFailures : int
 {
     Unresponsive = 125, // Invocation of Docker CLI test command did not finish within expected time period.
     Unhealthy = 126,    // The Docker CLI test command returned an error exit code.

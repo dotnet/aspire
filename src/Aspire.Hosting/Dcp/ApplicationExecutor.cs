@@ -404,9 +404,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
                     spec.Env.Add(new EnvVar { Name = c.Key, Value = c.Value });
                 }
 
-                var createdExecutable = await createResource().ConfigureAwait(false);
-                var dcpResourceAnnotation = new DcpResourceAnnotation(createdExecutable.Metadata.NamespaceProperty, createdExecutable.Metadata.Name, createdExecutable.Kind);
-                er.ModelResource.Annotations.Add(dcpResourceAnnotation);
+                await createResource().ConfigureAwait(false);
             }
 
         }
@@ -552,9 +550,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
                     }
                 }
 
-                var createdContainer = await kubernetesService.CreateAsync(dcpContainerResource, cancellationToken).ConfigureAwait(false);
-                var dcpResourceAnnotation = new DcpResourceAnnotation(createdContainer.Metadata.NamespaceProperty, createdContainer.Metadata.Name, createdContainer.Kind);
-                cr.ModelResource.Annotations.Add(dcpResourceAnnotation);
+                await kubernetesService.CreateAsync(dcpContainerResource, cancellationToken).ConfigureAwait(false);
             }
         }
         finally
