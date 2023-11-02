@@ -4,12 +4,14 @@
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Publishing;
 
-public class ManifestPublisher(IOptions<PublishingOptions> options, IHostApplicationLifetime lifetime) : IDistributedApplicationPublisher
+public class ManifestPublisher(ILogger<ManifestPublisher> logger, IOptions<PublishingOptions> options, IHostApplicationLifetime lifetime) : IDistributedApplicationPublisher
 {
+    private readonly ILogger<ManifestPublisher> _logger = logger;
     private readonly IOptions<PublishingOptions> _options = options;
     private readonly IHostApplicationLifetime _lifetime = lifetime;
 
@@ -34,6 +36,9 @@ public class ManifestPublisher(IOptions<PublishingOptions> options, IHostApplica
         using var jsonWriter = JsonWriter ?? new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true });
 
         await WriteManifestAsync(model, jsonWriter, cancellationToken).ConfigureAwait(false);
+
+        var fullyQualifiedPath = Path.GetFullPath(_options.Value.OutputPath);
+        _logger.LogInformation("Published manifest to: {manifestPath}", fullyQualifiedPath);
     }
 
     protected async Task WriteManifestAsync(DistributedApplicationModel model, Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)

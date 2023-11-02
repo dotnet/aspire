@@ -4,8 +4,11 @@
 using System.Diagnostics;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.Publishing;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting;
 
@@ -65,8 +68,27 @@ public class DistributedApplication : IHost, IAsyncDisposable
         await _host.StopAsync(cancellationToken).ConfigureAwait(false);
     }
 
+    private void SuppressLifetimeLogsDuringManifestPublishing()
+    {
+        var config = (IConfigurationRoot)_host.Services.GetRequiredService<IConfiguration>();
+        var options = _host.Services.GetRequiredService<IOptions<PublishingOptions>>();
+
+        if (options.Value?.Publisher != "manifest")
+        {
+            // If we aren't doing manifest pubilshing we want the logs
+            // to be produced as normal.
+            return;
+        }
+
+        var hostingLifetimeLoggingLevelSection = config.GetSection("Logging:LogLevel:Microsoft.Hosting.Lifetime");
+        hostingLifetimeLoggingLevelSection.Value = "Warning";
+
+        config.Reload();
+    }
+
     public async Task RunAsync(CancellationToken cancellationToken = default)
     {
+        SuppressLifetimeLogsDuringManifestPublishing();
         await ExecuteBeforeStartHooksAsync(cancellationToken).ConfigureAwait(false);
         await _host.RunAsync(cancellationToken).ConfigureAwait(false);
     }
