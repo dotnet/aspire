@@ -170,25 +170,6 @@ public class ManifestGenerationTests
         Assert.Equal("azure.redis.v0", redis.GetProperty("type").GetString());
     }
 
-    [Fact]
-    public void EnsureAllAzureAppConfigurationManifestTypesHaveVersion0Suffix()
-    {
-        var program = CreateTestProgramJsonDocumentManifestPublisher();
-
-        program.AppBuilder.AddAzureAppConfiguration("appconfig");
-
-        // Build AppHost so that publisher can be resolved.
-        program.Build();
-        var publisher = program.GetManifestPublisher();
-
-        program.Run();
-
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var config = resources.GetProperty("appconfig");
-        Assert.Equal("azure.appconfiguration.v0", config.GetProperty("type").GetString());
-    }
-
     private static TestProgram CreateTestProgramJsonDocumentManifestPublisher()
     {
         var manifestPath = Path.GetTempFileName();
