@@ -8,20 +8,20 @@ using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Publishing;
 
-internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, IHostApplicationLifetime lifetime) : IDistributedApplicationPublisher
+public class ManifestPublisher(IOptions<PublishingOptions> options, IHostApplicationLifetime lifetime) : IDistributedApplicationPublisher
 {
     private readonly IOptions<PublishingOptions> _options = options;
     private readonly IHostApplicationLifetime _lifetime = lifetime;
 
     public Utf8JsonWriter? JsonWriter { get; set; }
 
-    public async Task PublishAsync(DistributedApplicationModel model, CancellationToken cancellationToken)
+    public virtual async Task PublishAsync(DistributedApplicationModel model, CancellationToken cancellationToken)
     {
-        await WriteManifestAsync(model, cancellationToken).ConfigureAwait(false);
+        await PublishInternalAsync(model, cancellationToken).ConfigureAwait(false);
         _lifetime.StopApplication();
     }
 
-    private async Task WriteManifestAsync(DistributedApplicationModel model, CancellationToken cancellationToken)
+    protected virtual async Task PublishInternalAsync(DistributedApplicationModel model, CancellationToken cancellationToken)
     {
         if (_options.Value.OutputPath == null)
         {
@@ -33,6 +33,11 @@ internal sealed class ManifestPublisher(IOptions<PublishingOptions> options, IHo
         using var stream = new FileStream(_options.Value.OutputPath, FileMode.Create);
         using var jsonWriter = JsonWriter ?? new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true });
 
+        await WriteManifestAsync(model, jsonWriter, cancellationToken).ConfigureAwait(false);
+    }
+
+    protected async Task WriteManifestAsync(DistributedApplicationModel model, Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
+    {
         jsonWriter.WriteStartObject();
         WriteResources(model, jsonWriter);
         jsonWriter.WriteEndObject();
