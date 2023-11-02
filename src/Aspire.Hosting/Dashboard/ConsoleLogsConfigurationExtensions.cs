@@ -6,9 +6,9 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Dashboard;
 
-public static class ConsoleLogsConfigurationExtensions
+internal static class ConsoleLogsConfigurationExtensions
 {
-    public static IResourceBuilder<T> ConfigureConsoleLogs<T>(this IResourceBuilder<T> builder) where T : IResourceWithEnvironment
+    internal static IResourceBuilder<T> ConfigureConsoleLogs<T>(this IResourceBuilder<T> builder) where T : IResourceWithEnvironment
     {
         return builder.WithEnvironment((context) =>
         {
