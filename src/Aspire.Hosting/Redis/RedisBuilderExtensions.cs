@@ -45,7 +45,7 @@ public static class RedisBuilderExtensions
 
     private static void WriteRedisResourceToManifest(Utf8JsonWriter jsonWriter, string? connectionString)
     {
-        jsonWriter.WriteString("type", "redis.v1");
+        jsonWriter.WriteString("type", "redis.v0");
         if (!string.IsNullOrEmpty(connectionString))
         {
             jsonWriter.WriteString("connectionString", connectionString);
