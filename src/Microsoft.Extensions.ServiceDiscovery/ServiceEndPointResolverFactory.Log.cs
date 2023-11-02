@@ -10,13 +10,13 @@ public partial class ServiceEndPointResolverFactory
 {
     private sealed partial class Log
     {
-        [LoggerMessage(1, LogLevel.Debug, "Creating endpoint resolver for service '{ServiceName}' with {Count} resolvers: {Resolvers}.", EventName = nameof(CreatingResolver))]
+        [LoggerMessage(1, LogLevel.Debug, "Creating endpoint resolver for service '{ServiceName}' with {Count} resolvers: {Resolvers}.", EventName = "CreatingResolver")]
         public static partial void ServiceEndPointResolverListCore(ILogger logger, string serviceName, int count, string resolvers);
         public static void CreatingResolver(ILogger logger, string serviceName, List<IServiceEndPointResolver> resolvers)
         {
             if (logger.IsEnabled(LogLevel.Debug))
             {
-                ServiceEndPointResolverListCore(logger, serviceName, resolvers.Count, string.Join(", ", resolvers.Select(static r => r.GetType().Name)));
+                ServiceEndPointResolverListCore(logger, serviceName, resolvers.Count, string.Join(", ", resolvers.Select(static r => r.DisplayName)));
             }
         }
     }

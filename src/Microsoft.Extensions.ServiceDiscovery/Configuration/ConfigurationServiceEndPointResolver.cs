@@ -50,6 +50,9 @@ internal sealed partial class ConfigurationServiceEndPointResolver : IServiceEnd
     }
 
     /// <inheritdoc/>
+    public string DisplayName => "Configuration";
+
+    /// <inheritdoc/>
     public ValueTask DisposeAsync() => default;
 
     /// <inheritdoc/>
@@ -147,6 +150,7 @@ internal sealed partial class ConfigurationServiceEndPointResolver : IServiceEnd
     private ServiceEndPoint CreateEndPoint(EndPoint endPoint)
     {
         var serviceEndPoint = ServiceEndPoint.Create(endPoint);
+        serviceEndPoint.Features.Set<IServiceEndPointResolver>(this);
         if (_options.Value.ApplyHostNameMetadata(serviceEndPoint))
         {
             serviceEndPoint.Features.Set<IHostNameFeature>(this);
@@ -194,4 +198,6 @@ internal sealed partial class ConfigurationServiceEndPointResolver : IServiceEnd
 
         return results;
     }
+
+    public override string ToString() => "Configuration";
 }

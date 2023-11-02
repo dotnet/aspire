@@ -44,6 +44,8 @@ internal abstract partial class DnsServiceEndPointResolverBase : IServiceEndPoin
         _lastChangeToken = new CancellationChangeToken(cancellation.Token);
     }
 
+    public abstract string DisplayName { get; }
+
     private TimeSpan ElapsedSinceRefresh => _timeProvider.GetElapsedTime(_lastRefreshTimeStamp);
 
     protected string ServiceName { get; }

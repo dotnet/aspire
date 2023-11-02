@@ -9,7 +9,7 @@ internal sealed partial class PassThroughServiceEndPointResolver
 {
     private sealed partial class Log
     {
-        [LoggerMessage(1, LogLevel.Debug, "Using pass-through service endpoint resolver for service '{ServiceName}'.", EventName = nameof(UsingPassThrough))]
+        [LoggerMessage(1, LogLevel.Debug, "Using pass-through service endpoint resolver for service '{ServiceName}'.", EventName = "UsingPassThrough")]
         internal static partial void UsingPassThrough(ILogger logger, string serviceName);
     }
 }

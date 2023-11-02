@@ -12,13 +12,13 @@ internal sealed partial class ConfigurationServiceEndPointResolver
 {
     private sealed partial class Log
     {
-        [LoggerMessage(1, LogLevel.Debug, "Skipping endpoint resolution for service '{ServiceName}': '{Reason}'.", EventName = nameof(SkippedResolution))]  
+        [LoggerMessage(1, LogLevel.Debug, "Skipping endpoint resolution for service '{ServiceName}': '{Reason}'.", EventName = "SkippedResolution")]  
         public static partial void SkippedResolution(ILogger logger, string serviceName, string reason);
 
-        [LoggerMessage(2, LogLevel.Debug, "Matching endpoints using endpoint names for service '{ServiceName}' since endpoint names are specified in configuration.", EventName = nameof(MatchingEndPointNames))]
+        [LoggerMessage(2, LogLevel.Debug, "Matching endpoints using endpoint names for service '{ServiceName}' since endpoint names are specified in configuration.", EventName = "MatchingEndPointNames")]
         public static partial void MatchingEndPointNames(ILogger logger, string serviceName);
 
-        [LoggerMessage(3, LogLevel.Debug, "Ignoring endpoints using endpoint names for service '{ServiceName}' since no endpoint names are specified in configuration.", EventName = nameof(IgnoringEndPointNames))]
+        [LoggerMessage(3, LogLevel.Debug, "Ignoring endpoints using endpoint names for service '{ServiceName}' since no endpoint names are specified in configuration.", EventName = "IgnoringEndPointNames")]
         public static partial void IgnoringEndPointNames(ILogger logger, string serviceName);
 
         public static void EndPointNameMatchSelection(ILogger logger, string serviceName, bool matchEndPointNames)
@@ -38,13 +38,13 @@ internal sealed partial class ConfigurationServiceEndPointResolver
             }
         }
 
-        [LoggerMessage(4, LogLevel.Debug, "Using configuration from path '{Path}' to resolve endpoints for service '{ServiceName}'.", EventName = nameof(UsingConfigurationPath))]
+        [LoggerMessage(4, LogLevel.Debug, "Using configuration from path '{Path}' to resolve endpoints for service '{ServiceName}'.", EventName = "UsingConfigurationPath")]
         public static partial void UsingConfigurationPath(ILogger logger, string path, string serviceName);
 
-        [LoggerMessage(5, LogLevel.Debug, "No endpoints configured for service '{ServiceName}' from path '{Path}'.", EventName = nameof(ConfigurationNotFound))]
+        [LoggerMessage(5, LogLevel.Debug, "No endpoints configured for service '{ServiceName}' from path '{Path}'.", EventName = "ConfigurationNotFound")]
         internal static partial void ConfigurationNotFound(ILogger logger, string serviceName, string path);
 
-        [LoggerMessage(6, LogLevel.Debug, "Endpoints configured for service '{ServiceName}' from path '{Path}': {ConfiguredEndPoints}.", EventName = nameof(ConfiguredEndPoints))]
+        [LoggerMessage(6, LogLevel.Debug, "Endpoints configured for service '{ServiceName}' from path '{Path}': {ConfiguredEndPoints}.", EventName = "ConfiguredEndPoints")]
         internal static partial void ConfiguredEndPoints(ILogger logger, string serviceName, string path, string configuredEndPoints);
         public static void ConfiguredEndPoints(ILogger logger, string serviceName, string path, List<ServiceNameParts> parsedValues)
         {
