@@ -10,6 +10,9 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="password">The SQL Sever password.</param>
 public class SqlServerContainerResource(string name, string password) : ContainerResource(name), ISqlServerResource
 {
+    /// <summary>
+    /// Gets the password for the SQL Server container resource.
+    /// </summary>
     public string Password { get; } = password;
 
     /// <summary>
