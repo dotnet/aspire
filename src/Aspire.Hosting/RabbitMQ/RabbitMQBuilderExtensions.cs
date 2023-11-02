@@ -45,12 +45,12 @@ public static class RabbitMQBuilderExtensions
     }
     private static void WriteRabbitMQContainerToManifest(Utf8JsonWriter json)
     {
-        json.WriteString("type", "rabbitmq.server.v1");
+        json.WriteString("type", "rabbitmq.server.v0");
     }
 
     private static void WriteRabbitMQConnectionToManifest(Utf8JsonWriter json, RabbitMQConnectionResource rabbitMqConnection)
     {
-        json.WriteString("type", "rabbitmq.connection.v1");
+        json.WriteString("type", "rabbitmq.connection.v0");
         json.WriteString("connectionString", rabbitMqConnection.GetConnectionString());
     }
 }

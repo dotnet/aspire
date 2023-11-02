@@ -1,7 +1,7 @@
 {
   "resources": {
     "servicea": {
-      "type": "project.v1",
+      "type": "project.v0",
       "path": "..\\ServiceA\\DaprServiceA.csproj",
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
@@ -21,7 +21,7 @@
       }
     },
     "serviceb": {
-      "type": "project.v1",
+      "type": "project.v0",
       "path": "..\\ServiceB\\DaprServiceB.csproj",
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
@@ -41,7 +41,7 @@
       }
     },
     "service-a": {
-      "type": "executable.v1",
+      "type": "executable.v0",
       "env": {},
       "bindings": {
         "grpc": {
@@ -62,7 +62,7 @@
       }
     },
     "service-b": {
-      "type": "executable.v1",
+      "type": "executable.v0",
       "env": {},
       "bindings": {
         "grpc": {
