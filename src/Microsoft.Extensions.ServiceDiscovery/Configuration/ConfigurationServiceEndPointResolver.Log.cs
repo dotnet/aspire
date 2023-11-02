@@ -41,12 +41,12 @@ internal sealed partial class ConfigurationServiceEndPointResolver
         [LoggerMessage(4, LogLevel.Debug, "Using configuration from path '{Path}' to resolve endpoints for service '{ServiceName}'.", EventName = nameof(UsingConfigurationPath))]
         public static partial void UsingConfigurationPath(ILogger logger, string path, string serviceName);
 
-        [LoggerMessage(5, LogLevel.Debug, "No endpoints configured for service '{ServiceName}' at path '{Path}'.", EventName = nameof(ConfigurationNotFound))]
+        [LoggerMessage(5, LogLevel.Debug, "No endpoints configured for service '{ServiceName}' from path '{Path}'.", EventName = nameof(ConfigurationNotFound))]
         internal static partial void ConfigurationNotFound(ILogger logger, string serviceName, string path);
 
-        [LoggerMessage(6, LogLevel.Debug, "Endpoints configured for service '{ServiceName}' at path '{Path}': {ConfiguredEndPoints}.", EventName = nameof(ConfiguredEndPoints))]
+        [LoggerMessage(6, LogLevel.Debug, "Endpoints configured for service '{ServiceName}' from path '{Path}': {ConfiguredEndPoints}.", EventName = nameof(ConfiguredEndPoints))]
         internal static partial void ConfiguredEndPoints(ILogger logger, string serviceName, string path, string configuredEndPoints);
-        public static void ConfiguredEndPoints(ILogger logger, string serviceName, string path, List<string> values, List<ServiceNameParts> parsedValues)
+        public static void ConfiguredEndPoints(ILogger logger, string serviceName, string path, List<ServiceNameParts> parsedValues)
         {
             if (!logger.IsEnabled(LogLevel.Debug))
             {
@@ -54,14 +54,14 @@ internal sealed partial class ConfigurationServiceEndPointResolver
             }
 
             StringBuilder endpointValues = new();
-            for (var i = 0; i < values.Count; i++)
+            for (var i = 0; i < parsedValues.Count; i++)
             {
                 if (endpointValues.Length > 0)
                 {
                     endpointValues.Append(", ");
                 }
 
-                endpointValues.Append(CultureInfo.InvariantCulture, $"'{values[i]}': [{parsedValues[i]}]");
+                endpointValues.Append(CultureInfo.InvariantCulture, $"({parsedValues[i]})");
             }
 
             var configuredEndPoints = endpointValues.ToString();

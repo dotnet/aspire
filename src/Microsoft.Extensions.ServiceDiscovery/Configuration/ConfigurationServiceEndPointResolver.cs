@@ -91,13 +91,13 @@ internal sealed partial class ConfigurationServiceEndPointResolver : IServiceEnd
             if (values is { Count: > 0 })
             {
                 // Use endpoint names if any of the values have an endpoint name set.
-                var uris = ParseServiceNameParts(values, configPath);
-                Log.ConfiguredEndPoints(_logger, _serviceName, configPath, values, uris);
+                var parsedValues = ParseServiceNameParts(values, configPath);
+                Log.ConfiguredEndPoints(_logger, _serviceName, configPath, parsedValues);
 
-                var matchEndPointNames = !uris.TrueForAll(static uri => string.IsNullOrEmpty(uri.EndPointName));
+                var matchEndPointNames = !parsedValues.TrueForAll(static uri => string.IsNullOrEmpty(uri.EndPointName));
                 Log.EndPointNameMatchSelection(_logger, _serviceName, matchEndPointNames);
 
-                foreach (var uri in uris)
+                foreach (var uri in parsedValues)
                 {
                     // If either endpoint names are not in-use or the scheme matches, create an endpoint for this value.
                     if (!matchEndPointNames || EndPointNamesMatch(_endpointName, uri))
@@ -112,18 +112,18 @@ internal sealed partial class ConfigurationServiceEndPointResolver : IServiceEnd
                 }
             }
         }
-        else if (section.Value is { } value && ServiceNameParts.TryParse(value, out var uri))
+        else if (section.Value is { } value && ServiceNameParts.TryParse(value, out var parsed))
         {
-            if (EndPointNamesMatch(_endpointName, uri))
+            if (EndPointNamesMatch(_endpointName, parsed))
             {
-                if (!ServiceNameParts.TryCreateEndPoint(uri, out var endPoint))
+                if (!ServiceNameParts.TryCreateEndPoint(parsed, out var endPoint))
                 {
                     return ResolutionStatus.FromException(new KeyNotFoundException($"The endpoint configuration section for service '{_serviceName}' is invalid."));
                 }
 
                 if (_logger.IsEnabled(LogLevel.Debug))
                 {
-                    Log.ConfiguredEndPoints(_logger, _serviceName, configPath, [value], [uri]);
+                    Log.ConfiguredEndPoints(_logger, _serviceName, configPath, [parsed]);
                 }
 
                 endPoints.EndPoints.Add(CreateEndPoint(endPoint));
@@ -181,7 +181,10 @@ internal sealed partial class ConfigurationServiceEndPointResolver : IServiceEnd
         {
             if (ServiceNameParts.TryParse(input[i], out var value))
             {
-                results.Add(value);
+                if (!results.Contains(value))
+                {
+                    results.Add(value);
+                }
             }
             else
             {
