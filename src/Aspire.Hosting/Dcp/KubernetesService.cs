@@ -9,7 +9,7 @@ using k8s.Models;
 
 namespace Aspire.Hosting.Dcp;
 
-public enum DcpApiOperationType
+internal enum DcpApiOperationType
 {
     Create = 1,
     List = 2,
