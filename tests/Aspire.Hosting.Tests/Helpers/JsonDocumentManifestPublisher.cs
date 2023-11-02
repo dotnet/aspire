@@ -5,11 +5,12 @@ using System.Text.Json;
 using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Tests.Helpers;
 
-internal sealed class JsonDocumentManifestPublisher(IOptions<PublishingOptions> options, IHostApplicationLifetime lifetime) : ManifestPublisher(options, lifetime)
+internal sealed class JsonDocumentManifestPublisher(ILogger<ManifestPublisher> logger, IOptions<PublishingOptions> options, IHostApplicationLifetime lifetime) : ManifestPublisher(logger, options, lifetime)
 {
     protected override async Task PublishInternalAsync(DistributedApplicationModel model, CancellationToken cancellationToken)
     {
