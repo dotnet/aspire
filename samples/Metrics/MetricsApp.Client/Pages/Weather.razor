@@ -1,6 +1,7 @@
 ﻿@page "/weather"
 @using System.Net
 @inject HttpClient Http
+@implements IDisposable
 
 <PageTitle>Weather</PageTitle>
 
@@ -8,7 +9,15 @@
 
 <p>This component demonstrates fetching data from the server.</p>
 
-<button class="btn btn-primary" @onclick="LoadWeatherAsync">Reload</button>
+<div class="row">
+    <div class="col-auto">
+        <button class="btn btn-primary" @onclick="LoadWeatherAsync">Refresh</button>
+    </div>
+    <div class="col-auto form-check form-switch my-auto">
+        <input class="form-check-input" type="checkbox" role="switch" id="toggle-auto-refresh" @bind-value="@autoRefreshEnabled" @bind-value:after="AutoRefreshChanged">
+        <label class="form-check-label" for="toggle-auto-refresh">Auto refresh</label>
+    </div>
+</div>
 
 <hr />
 
@@ -49,8 +58,12 @@ else
 }
 
 @code {
+    private static readonly TimeSpan s_refreshInterval = TimeSpan.FromSeconds(2);
+
     private WeatherForecast[]? forecasts;
     private string? errorMessage;
+    private bool autoRefreshEnabled;
+    private Timer? autoRefreshTimer;
 
     protected override async Task OnInitializedAsync()
     {
@@ -75,6 +88,31 @@ else
         {
             errorMessage = $"Error: {ex.Message}";
         }
+    }
+
+    private void AutoRefreshChanged()
+    {
+        if (autoRefreshEnabled)
+        {
+            autoRefreshTimer = new Timer(s =>
+            {
+                _ = InvokeAsync(async () =>
+                {
+                    await LoadWeatherAsync();
+                    StateHasChanged();
+                });
+            });
+            autoRefreshTimer.Change(s_refreshInterval, s_refreshInterval);
+        }
+        else
+        {
+            autoRefreshTimer?.Dispose();
+        }
+    }
+
+    public void Dispose()
+    {
+        autoRefreshTimer?.Dispose();
     }
 
     private sealed class WeatherForecast
