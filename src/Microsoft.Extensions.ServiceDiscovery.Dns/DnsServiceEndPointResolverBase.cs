@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 using Microsoft.Extensions.ServiceDiscovery.Abstractions;
@@ -45,6 +44,8 @@ internal abstract partial class DnsServiceEndPointResolverBase : IServiceEndPoin
         _lastChangeToken = new CancellationChangeToken(cancellation.Token);
     }
 
+    public abstract string DisplayName { get; }
+
     private TimeSpan ElapsedSinceRefresh => _timeProvider.GetElapsedTime(_lastRefreshTimeStamp);
 
     protected string ServiceName { get; }
@@ -61,6 +62,7 @@ internal abstract partial class DnsServiceEndPointResolverBase : IServiceEndPoin
         // Only add endpoints to the collection if a previous provider (eg, a configuration override) did not add them.
         if (endPoints.EndPoints.Count != 0)
         {
+            Log.SkippedResolution(_logger, ServiceName, "Collection has existing endpoints");
             return ResolutionStatus.None;
         }
 
@@ -159,16 +161,6 @@ internal abstract partial class DnsServiceEndPointResolverBase : IServiceEndPoin
             var cancellation = _lastCollectionCancellation = new CancellationTokenSource(validityPeriod, _timeProvider);
             _lastChangeToken = new CancellationChangeToken(cancellation.Token);
             _lastEndPointCollection = endPoints;
-        }
-
-        if (exception is null)
-        {
-            Debug.Assert(endPoints is not null);
-            Log.DiscoveredEndPoints(_logger, endPoints, ServiceName, validityPeriod);
-        }
-        else
-        {
-            Log.ResolutionFailed(_logger, exception, ServiceName);
         }
 
         TimeSpan GetRefreshPeriod()
