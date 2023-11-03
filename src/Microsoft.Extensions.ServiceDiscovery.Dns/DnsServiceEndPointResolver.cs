@@ -22,6 +22,9 @@ internal sealed partial class DnsServiceEndPointResolver(
 
     string IHostNameFeature.HostName => hostName;
 
+    /// <inheritdoc/>
+    public override string DisplayName => "DNS";
+
     protected override async Task ResolveAsyncCore()
     {
         var endPoints = new List<ServiceEndPoint>();
@@ -31,6 +34,7 @@ internal sealed partial class DnsServiceEndPointResolver(
         foreach (var address in addresses)
         {
             var serviceEndPoint = ServiceEndPoint.Create(new IPEndPoint(address, 0));
+            serviceEndPoint.Features.Set<IServiceEndPointResolver>(this);
             if (options.CurrentValue.ApplyHostNameMetadata(serviceEndPoint))
             {
                 serviceEndPoint.Features.Set<IHostNameFeature>(this);

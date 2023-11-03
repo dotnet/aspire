@@ -6,6 +6,14 @@
     <PackageReadmeFile Condition="'$(PackageReadmeFile)' == '' And '$(ReadMeExists)' == 'true'">README.md</PackageReadmeFile>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <PackageThirdPartyNoticesFile Condition="'$(PackageThirdPartyNoticesFile)' == ''">$(RepoRoot)THIRD-PARTY-NOTICES.TXT</PackageThirdPartyNoticesFile>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(IsPackable)' == 'true'">
+    <None Include="$(PackageThirdPartyNoticesFile)" Pack="true" PackagePath="." />
+  </ItemGroup>
+
   <Import Condition="'$(SampleProject)' == 'true' or '$(CI)' != 'true' " Project="eng\Versions.dev.targets" />
   <Import Condition="'$(SampleProject)' != 'true' and '$(CI)' == 'true' " Project="eng\Versions.targets" />
 
