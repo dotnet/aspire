@@ -10,8 +10,10 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard;
@@ -25,12 +27,20 @@ public class DashboardWebApplication : IHostedService
 
     private readonly bool _isAllHttps;
     private readonly WebApplication _app;
+    private readonly ILogger<DashboardWebApplication> _logger;
 
-    public DashboardWebApplication(Action<IServiceCollection> configureServices)
+    public DashboardWebApplication(ILogger<DashboardWebApplication> logger, Action<IServiceCollection> configureServices)
     {
+        _logger = logger;
         var builder = WebApplication.CreateBuilder();
 
         var dashboardUris = GetAddressUris(DashboardUrlVariableName, DashboardUrlDefaultValue);
+
+        if (dashboardUris.FirstOrDefault() is { } reportedDashboardUri)
+        {
+            _logger.LogInformation("Dashboard running at: {dashboardUri}", reportedDashboardUri);
+        }
+
         var dashboardHttpsPort = dashboardUris.FirstOrDefault(IsHttps)?.Port;
         var otlpUris = GetAddressUris(DashboardOtlpUrlVariableName, DashboardOtlpUrlDefaultValue);
 
@@ -164,10 +174,35 @@ public class DashboardWebApplication : IHostedService
         }
     }
 
+    private void SuppressAspNetCoreLogs()
+    {
+        var config = (IConfigurationRoot)_app.Services.GetRequiredService<IConfiguration>();
+
+        // The following code suppresses these messages (example):
+        // info: Microsoft.Hosting.Lifetime[14]
+        //       Now listening on: http://localhost:15888
+        // info: Microsoft.Hosting.Lifetime[14]
+        //       Now listening on: http://localhost:16031
+        // info: Microsoft.Hosting.Lifetime[0]
+        //       Content root path: C:\Code\dotnet\aspire\samples\eShopLite\AppHost
+        //
+        var hostingLifetimeLoggingLevelSection = config.GetSection("Logging:LogLevel:Microsoft.Hosting.Lifetime");
+        hostingLifetimeLoggingLevelSection.Value = "Warning";
+
+        // The following code suppresses these messages (example):
+        // warn: Microsoft.AspNetCore.Server.Kestrel[0]
+        //       Overriding address(es) 'http://localhost:15888'.Binding to endpoints defined via IConfiguration and/ or UseKestrel() instead.
+        var kestrelLoggingLevelSection = config.GetSection("Logging:LogLevel:Microsoft.AspNetCore.Server.Kestrel");
+        kestrelLoggingLevelSection.Value = "Error";
+
+        config.Reload();
+    }
+
     private static bool IsHttps(Uri uri) => string.Equals(uri.Scheme, "https", StringComparison.Ordinal);
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
+        SuppressAspNetCoreLogs();
         await _app.StartAsync(cancellationToken).ConfigureAwait(false);
     }
 

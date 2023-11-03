@@ -55,7 +55,8 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
 
         if (options.DashboardEnabled)
         {
-            _dashboard = new DashboardWebApplication(serviceCollection =>
+            var dashboardLogger = _loggerFactory.CreateLogger<DashboardWebApplication>();
+            _dashboard = new DashboardWebApplication(dashboardLogger, serviceCollection =>
             {
                 serviceCollection.AddSingleton(_applicationModel);
                 serviceCollection.AddSingleton(kubernetesService);
