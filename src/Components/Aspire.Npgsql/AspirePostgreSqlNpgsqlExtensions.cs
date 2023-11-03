@@ -9,7 +9,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 using Npgsql;
-using OpenTelemetry.Metrics;
 
 namespace Microsoft.Extensions.Hosting;
 
@@ -98,14 +97,7 @@ public static class AspirePostgreSqlNpgsqlExtensions
         if (settings.Metrics)
         {
             builder.Services.AddOpenTelemetry()
-                .WithMetrics(meterProviderBuilder =>
-                {
-                    // https://github.com/npgsql/npgsql/blob/4c9921de2dfb48fb5a488787fc7422add3553f50/src/Npgsql/MetricsReporter.cs#L48
-                    meterProviderBuilder.AddMeter("Npgsql");
-
-                    // disable "prepared_ratio" until https://github.com/dotnet/aspire/issues/629 is fixed.
-                    meterProviderBuilder.AddView(instrumentName: "db.client.commands.prepared_ratio", MetricStreamConfiguration.Drop);
-                });
+                .WithMetrics(NpgsqlCommon.AddNpgsqlMetrics);
         }
     }
 

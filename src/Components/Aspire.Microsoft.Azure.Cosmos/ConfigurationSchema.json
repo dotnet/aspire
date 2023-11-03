@@ -1,0 +1,46 @@
+{
+  "definitions": {
+    "logLevel": {
+      "properties": {
+        "Azure-Cosmos-Operation-Request-Diagnostics": {
+          "$ref": "#/definitions/logLevelThreshold"
+        }
+      }
+    }
+  },
+  "properties": {
+    "Aspire": {
+      "type": "object",
+      "properties": {
+        "Microsoft": {
+          "type": "object",
+          "properties": {
+            "Azure": {
+              "type": "object",
+              "properties": {
+                "Cosmos": {
+                  "type": "object",
+                  "properties": {
+                    "ConnectionString": {
+                      "type": "string",
+                      "description": "Gets or sets the connection string of the Azure Cosmos DB to connect to. If both are provided, 'ConnectionString' takes precedence over 'AccountEndpoint'."
+                    },
+                    "AccountEndpoint": {
+                      "type": "string",
+                      "format": "uri",
+                      "description": "Gets or sets the account endpoint of the Azure Cosmos DB to connect to. If both are provided, 'ConnectionString' takes precedence over 'AccountEndpoint'."
+                    },
+                    "Tracing": {
+                      "type": "boolean",
+                      "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
