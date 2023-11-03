@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard;
@@ -25,18 +26,33 @@ public class DashboardWebApplication : IHostedService
 
     private readonly bool _isAllHttps;
     private readonly WebApplication _app;
+    private readonly ILogger<DashboardWebApplication> _logger;
 
-    public DashboardWebApplication(Action<IServiceCollection> configureServices)
+    public DashboardWebApplication(ILogger<DashboardWebApplication> logger, Action<IServiceCollection> configureServices)
     {
+        _logger = logger;
         var builder = WebApplication.CreateBuilder();
+        builder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.None);
+        builder.Logging.AddFilter("Microsoft.AspNetCore.Server.Kestrel", LogLevel.Error);
 
         var dashboardUris = GetAddressUris(DashboardUrlVariableName, DashboardUrlDefaultValue);
+
+        if (dashboardUris.FirstOrDefault() is { } reportedDashboardUri)
+        {
+            _logger.LogInformation("Dashboard running at: {dashboardUri}", reportedDashboardUri);
+        }
+
         var dashboardHttpsPort = dashboardUris.FirstOrDefault(IsHttps)?.Port;
         var otlpUris = GetAddressUris(DashboardOtlpUrlVariableName, DashboardOtlpUrlDefaultValue);
 
         if (otlpUris.Length > 1)
         {
             throw new InvalidOperationException("Only one URL for Aspire dashboard OTLP endpoint is supported.");
+        }
+
+        if (otlpUris.FirstOrDefault() is { } reportedOtlpUri)
+        {
+            _logger.LogInformation("OTLP server running at: {dashboardUri}", reportedOtlpUri);
         }
 
         _isAllHttps = dashboardHttpsPort is not null && IsHttps(otlpUris[0]);
