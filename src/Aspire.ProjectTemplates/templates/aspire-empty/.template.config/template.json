@@ -19,7 +19,7 @@
   },
   "precedence": "8000",
   "identity": "Aspire.Empty.CSharp.8.0",
-  "thirdPartyNotices": "https://aka.ms/aspnetcore/8.0-third-party-notices",
+  "thirdPartyNotices": "https://aka.ms/aspire/1.0-third-party-notices",
   "groupIdentity": "Aspire.Empty",
   "guids": [
     "F98A6C4E-E01C-44BB-BCC9-4C23F1CD09CD",

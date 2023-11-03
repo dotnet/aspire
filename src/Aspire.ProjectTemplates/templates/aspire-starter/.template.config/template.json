@@ -24,7 +24,7 @@
   },
   "precedence": "8000",
   "identity": "Aspire.Starter.CSharp.8.0",
-  "thirdPartyNotices": "https://aka.ms/aspnetcore/8.0-third-party-notices",
+  "thirdPartyNotices": "https://aka.ms/aspire/1.0-third-party-notices",
   "groupIdentity": "Aspire.Starter",
   "guids": [
     "80B24B1B-1E78-4FCB-BDC9-13678F1789F4",
@@ -265,7 +265,7 @@
   },
   "primaryOutputs": [
     {
-      "path": "AspireApplication.1.sln",
+      "path": "AspireStarterApplication-1.sln",
       "condition": "(hostIdentifier != \"vs\")"
     },
     {
