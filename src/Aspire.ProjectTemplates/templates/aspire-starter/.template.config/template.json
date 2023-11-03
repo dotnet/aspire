@@ -265,7 +265,7 @@
   },
   "primaryOutputs": [
     {
-      "path": "AspireApplication.1.sln",
+      "path": "AspireStarterApplication-1.sln",
       "condition": "(hostIdentifier != \"vs\")"
     },
     {
