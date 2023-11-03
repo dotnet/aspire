@@ -10,7 +10,6 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -33,6 +32,8 @@ public class DashboardWebApplication : IHostedService
     {
         _logger = logger;
         var builder = WebApplication.CreateBuilder();
+        builder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.None);
+        builder.Logging.AddFilter("Microsoft.AspNetCore.Server.Kestrel", LogLevel.Error);
 
         var dashboardUris = GetAddressUris(DashboardUrlVariableName, DashboardUrlDefaultValue);
 
@@ -47,6 +48,11 @@ public class DashboardWebApplication : IHostedService
         if (otlpUris.Length > 1)
         {
             throw new InvalidOperationException("Only one URL for Aspire dashboard OTLP endpoint is supported.");
+        }
+
+        if (otlpUris.FirstOrDefault() is { } reportedOtlpUri)
+        {
+            _logger.LogInformation("OTLP running at: {dashboardUri}", reportedOtlpUri);
         }
 
         _isAllHttps = dashboardHttpsPort is not null && IsHttps(otlpUris[0]);
@@ -174,35 +180,10 @@ public class DashboardWebApplication : IHostedService
         }
     }
 
-    private void SuppressAspNetCoreLogs()
-    {
-        var config = (IConfigurationRoot)_app.Services.GetRequiredService<IConfiguration>();
-
-        // The following code suppresses these messages (example):
-        // info: Microsoft.Hosting.Lifetime[14]
-        //       Now listening on: http://localhost:15888
-        // info: Microsoft.Hosting.Lifetime[14]
-        //       Now listening on: http://localhost:16031
-        // info: Microsoft.Hosting.Lifetime[0]
-        //       Content root path: C:\Code\dotnet\aspire\samples\eShopLite\AppHost
-        //
-        var hostingLifetimeLoggingLevelSection = config.GetSection("Logging:LogLevel:Microsoft.Hosting.Lifetime");
-        hostingLifetimeLoggingLevelSection.Value = "Warning";
-
-        // The following code suppresses these messages (example):
-        // warn: Microsoft.AspNetCore.Server.Kestrel[0]
-        //       Overriding address(es) 'http://localhost:15888'.Binding to endpoints defined via IConfiguration and/ or UseKestrel() instead.
-        var kestrelLoggingLevelSection = config.GetSection("Logging:LogLevel:Microsoft.AspNetCore.Server.Kestrel");
-        kestrelLoggingLevelSection.Value = "Error";
-
-        config.Reload();
-    }
-
     private static bool IsHttps(Uri uri) => string.Equals(uri.Scheme, "https", StringComparison.Ordinal);
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        SuppressAspNetCoreLogs();
         await _app.StartAsync(cancellationToken).ConfigureAwait(false);
     }
 
