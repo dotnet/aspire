@@ -53,7 +53,8 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
         _appExecutor = appExecutor;
         _locations = locations;
 
-        if (options.DashboardEnabled)
+        // HACK: Manifest publisher check is temporary util DcpHostService is integrated with DcpPublisher.
+        if (options.DashboardEnabled && publishingOptions.Value.Publisher != "manifest")
         {
             var dashboardLogger = _loggerFactory.CreateLogger<DashboardWebApplication>();
             _dashboard = new DashboardWebApplication(dashboardLogger, serviceCollection =>
