@@ -19,42 +19,28 @@ public static class AzureCosmosDBCloudApplicationBuilderExtensions
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="connectionString">The connection string.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{AzureCosmosDatabaseResource}"/>.</returns>
-    public static IResourceBuilder<AzureCosmosDBConnectionResource> AddAzureCosmosDB(
+    public static IResourceBuilder<AzureCosmosDBResource> AddAzureCosmosDB(
        this IDistributedApplicationBuilder builder,
        string name,
        string? connectionString = null)
     {
-        var connection = new AzureCosmosDBConnectionResource(name, connectionString);
+        var connection = new AzureCosmosDBResource(name, connectionString);
         return builder.AddResource(connection)
-                      .WithAnnotation(new ManifestPublishingCallbackAnnotation(jsonWriter => WriteCosmosDBConnectionToManifest(jsonWriter, connection)));
+                      .WithAnnotation(new ManifestPublishingCallbackAnnotation(jsonWriter => WriteCosmosDBToManifest(jsonWriter, connection)));
     }
 
-    private static void WriteCosmosDBConnectionToManifest(Utf8JsonWriter jsonWriter, AzureCosmosDBConnectionResource cosmosDbConnection)
+    private static void WriteCosmosDBToManifest(Utf8JsonWriter jsonWriter, AzureCosmosDBResource cosmosDb)
     {
-        jsonWriter.WriteString("type", "azure.cosmosdb.connection.v0");
-        jsonWriter.WriteString("connectionString", cosmosDbConnection.GetConnectionString());
-    }
+        var connectionString = cosmosDb.GetConnectionString();
+        if (connectionString is null)
+        {
+            jsonWriter.WriteString("type", "azure.cosmosdb.account.v0");
+        }
+        else
+        {
+            jsonWriter.WriteString("type", "azure.cosmosdb.connection.v0");
+            jsonWriter.WriteString("connectionString", cosmosDb.GetConnectionString());
+        }
 
-    private static void WriteCosmosDBDatabaseToManifest(Utf8JsonWriter jsonWriter, AzureCosmosDatabaseResource cosmosDatabase)
-    {
-        jsonWriter.WriteString("type", "azure.cosmosdb.database.v0");
-        jsonWriter.WriteString("parent", cosmosDatabase.Parent.Name);
-        jsonWriter.WriteString("databaseName", cosmosDatabase.Name);
-    }
-
-    /// <summary>
-    /// Adds an Azure Cosmos DB database to a <see cref="IResourceBuilder{AzureCosmosDatabaseResource}"/>.
-    /// </summary>
-    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
-    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{AzureCosmosDatabaseResource}"/>.</returns>
-    public static IResourceBuilder<AzureCosmosDatabaseResource> AddDatabase(this IResourceBuilder<AzureCosmosDBConnectionResource> builder, string name)
-    {
-        var cosmosDatabase = new AzureCosmosDatabaseResource(name, builder.Resource);
-        return builder
-            .ApplicationBuilder
-            .AddResource(cosmosDatabase)
-            .WithAnnotation(new ManifestPublishingCallbackAnnotation(
-                (json) => WriteCosmosDBDatabaseToManifest(json, cosmosDatabase)));
     }
 }

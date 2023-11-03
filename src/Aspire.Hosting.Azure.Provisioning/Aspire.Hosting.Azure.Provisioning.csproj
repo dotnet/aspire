@@ -6,12 +6,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Azure.ResourceManager.AppConfiguration" />
+    <PackageReference Include="Azure.ResourceManager.Authorization" />
+    <PackageReference Include="Azure.ResourceManager.CosmosDB" />
+    <PackageReference Include="Azure.Identity" />
     <PackageReference Include="Azure.ResourceManager.KeyVault" />
     <PackageReference Include="Azure.ResourceManager.Redis" />
     <PackageReference Include="Azure.ResourceManager.ServiceBus" />
     <PackageReference Include="Azure.ResourceManager.Storage" />
-    <PackageReference Include="Azure.ResourceManager.Authorization" />
-    <PackageReference Include="Azure.Identity" />
   </ItemGroup>
 
   <ItemGroup>
