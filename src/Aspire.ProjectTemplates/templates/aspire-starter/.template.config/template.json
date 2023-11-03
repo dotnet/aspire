@@ -15,7 +15,7 @@
   "defaultName": "AspireApp",
   "description": "A project template for creating an Aspire app with a Blazor web frontend and web API backend service, optionally using Redis for caching.",
   "shortName": "aspire-starter",
-  "sourceName": "AspireStarterApplication1",
+  "sourceName": "AspireStarterApplication-1",
   "preferNameDirectory": false,
   "tags": {
     "language": "C#",
@@ -24,7 +24,7 @@
   },
   "precedence": "8000",
   "identity": "Aspire.Starter.CSharp.8.0",
-  "thirdPartyNotices": "https://aka.ms/aspnetcore/8.0-third-party-notices",
+  "thirdPartyNotices": "https://aka.ms/aspire/1.0-third-party-notices",
   "groupIdentity": "Aspire.Starter",
   "guids": [
     "80B24B1B-1E78-4FCB-BDC9-13678F1789F4",
@@ -259,26 +259,26 @@
     "NoHttps": {
       "type": "parameter",
       "datatype": "bool",
-      "defaultValue": "false",
+      "defaultValue": "true",
       "description": "Whether to turn off HTTPS."
     }
   },
   "primaryOutputs": [
     {
-      "path": "AspireApplication1.sln",
+      "path": "AspireStarterApplication-1.sln",
       "condition": "(hostIdentifier != \"vs\")"
     },
     {
-      "path": "AspireStarterApplication1.AppHost\\AspireStarterApplication1.AppHost.csproj"
+      "path": "AspireStarterApplication-1.AppHost\\AspireStarterApplication-1.AppHost.csproj"
     },
     {
-      "path": "AspireStarterApplication1.ServiceDefaults\\AspireStarterApplication1.ServiceDefaults.csproj"
+      "path": "AspireStarterApplication-1.ServiceDefaults\\AspireStarterApplication-1.ServiceDefaults.csproj"
     },
     {
-      "path": "AspireStarterApplication1.ApiService\\AspireStarterApplication1.ApiService.csproj"
+      "path": "AspireStarterApplication-1.ApiService\\AspireStarterApplication-1.ApiService.csproj"
     },
     {
-      "path": "AspireStarterApplication1.Web\\AspireStarterApplication1.Web.csproj"
+      "path": "AspireStarterApplication-1.Web\\AspireStarterApplication-1.Web.csproj"
     }
   ],
   "postActions": [

@@ -3,7 +3,10 @@
 
 namespace Aspire.Hosting.ApplicationModel;
 
+/// <summary>
+/// Represents an Azure resource, as a marker interface for <see cref="IResource"/>'s 
+/// that can be deployed to an Azure resource group.
+/// </summary>
 public interface IAzureResource : IResource
 {
-
 }

@@ -3,10 +3,9 @@
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
-    <IsAotCompatible>true</IsAotCompatible>
     <PackageTags>$(ComponentDatabasePackageTags) postgressql postgres npgsql sql</PackageTags>
-    <Description>A PostgreSQL client that integrates with Aspire, including health checks, metrics, logging, and telemetry.</Description>
+    <Description>A PostgreSQL® client that integrates with Aspire, including health checks, metrics, logging, and telemetry.</Description>
+    <PackageIconFullPath>$(SharedDir)PostgreSQL_logo.3colors.540x557.png</PackageIconFullPath>
   </PropertyGroup>
 
   <ItemGroup>
@@ -17,7 +16,6 @@
     <PackageReference Include="Npgsql.DependencyInjection" />
     <PackageReference Include="Npgsql.OpenTelemetry" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
-    <PackageReference Include="OpenTelemetry.Instrumentation.EventCounters" />
   </ItemGroup>
 
 </Project>

@@ -3,6 +3,9 @@
 
 using Aspire.Components.Common.Tests;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure.Internal;
+using Microsoft.EntityFrameworkCore.SqlServer.Infrastructure.Internal;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -67,5 +70,50 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
         Assert.Equal(ConnectionString, actualConnectionString);
         // the connection string from config should not be used since it was found in ConnectionStrings
         Assert.DoesNotContain("unused", actualConnectionString);
+    }
+
+    [Fact]
+    public void CanConfigureDbContextOptions()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:sqlconnection", ConnectionString),
+            new KeyValuePair<string, string?>("Aspire:Microsoft:EntityFrameworkCore:SqlServer:MaxRetryCount", "304"),
+            new KeyValuePair<string, string?>("Aspire:Microsoft:EntityFrameworkCore:SqlServer:Timeout", "608")
+        ]);
+
+        builder.AddSqlServerDbContext<TestDbContext>("sqlconnection", configureDbContextOptions: optionsBuilder =>
+        {
+            optionsBuilder.UseSqlServer(sqlBuilder =>
+            {
+                sqlBuilder.MinBatchSize(123);
+            });
+        });
+
+        var host = builder.Build();
+        var context = host.Services.GetRequiredService<TestDbContext>();
+
+#pragma warning disable EF1001 // Internal EF Core API usage.
+
+        var extension = context.Options.FindExtension<SqlServerOptionsExtension>();
+        Assert.NotNull(extension);
+
+        // ensure the min batch size was respected
+        Assert.Equal(123, extension.MinBatchSize);
+
+        // ensure the connection string from config was respected
+        var actualConnectionString = context.Database.GetDbConnection().ConnectionString;
+        Assert.Equal(ConnectionString, actualConnectionString);
+
+        // ensure the max retry count from config was respected
+        Assert.NotNull(extension.ExecutionStrategyFactory);
+        var executionStrategy = extension.ExecutionStrategyFactory(new ExecutionStrategyDependencies(new CurrentDbContext(context), context.Options, null!));
+        var retryStrategy = Assert.IsType<SqlServerRetryingExecutionStrategy>(executionStrategy);
+        Assert.Equal(304, retryStrategy.MaxRetryCount);
+
+        // ensure the command timeout from config was respected
+        Assert.Equal(608, extension.CommandTimeout);
+
+#pragma warning restore EF1001 // Internal EF Core API usage.
     }
 }

@@ -4,10 +4,9 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Options;
 using Microsoft.Extensions.ServiceDiscovery;
 using Microsoft.Extensions.ServiceDiscovery.Abstractions;
-using Microsoft.Extensions.ServiceDiscovery.Internal;
+using Microsoft.Extensions.ServiceDiscovery.PassThrough;
 
 namespace Microsoft.Extensions.Hosting;
 
@@ -60,12 +59,15 @@ public static class HostingExtensions
     /// <param name="configureOptions">The delegate used to configure the provider.</param>
     /// <param name="services">The service collection.</param>
     /// <returns>The service collection.</returns>
-    public static IServiceCollection AddConfigurationServiceEndPointResolver(this IServiceCollection services, Action<OptionsBuilder<ConfigurationServiceEndPointResolverOptions>>? configureOptions = null)
+    public static IServiceCollection AddConfigurationServiceEndPointResolver(this IServiceCollection services, Action<ConfigurationServiceEndPointResolverOptions>? configureOptions = null)
     {
         services.AddServiceDiscoveryCore();
         services.AddSingleton<IServiceEndPointResolverProvider, ConfigurationServiceEndPointResolverProvider>();
-        var options = services.AddOptions<ConfigurationServiceEndPointResolverOptions>();
-        configureOptions?.Invoke(options);
+        if (configureOptions is not null)
+        {
+            services.Configure(configureOptions);
+        }
+
         return services;
     }
 

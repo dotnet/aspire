@@ -4,14 +4,14 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.ServiceDiscovery.Abstractions;
-using Microsoft.Extensions.ServiceDiscovery.Internal;
+using Microsoft.Extensions.ServiceDiscovery.PassThrough;
 
 namespace Microsoft.Extensions.ServiceDiscovery;
 
 /// <summary>
 /// Creates <see cref="ServiceEndPointResolver"/> instances.
 /// </summary>
-public class ServiceEndPointResolverFactory(
+public partial class ServiceEndPointResolverFactory(
     IEnumerable<IServiceEndPointResolverProvider> resolvers,
     ILogger<ServiceEndPointResolver> resolverLogger,
     IOptions<ServiceEndPointResolverOptions> options,
@@ -20,7 +20,7 @@ public class ServiceEndPointResolverFactory(
     private readonly IServiceEndPointResolverProvider[] _resolverProviders = resolvers
         .Where(r => r is not PassThroughServiceEndPointResolverProvider)
         .Concat(resolvers.Where(static r => r is PassThroughServiceEndPointResolverProvider)).ToArray();
-    private readonly ILogger<ServiceEndPointResolver> _resolverLogger = resolverLogger;
+    private readonly ILogger<ServiceEndPointResolver> _logger = resolverLogger;
     private readonly TimeProvider _timeProvider = timeProvider;
     private readonly IOptions<ServiceEndPointResolverOptions> _options = options;
 
@@ -36,19 +36,20 @@ public class ServiceEndPointResolverFactory(
         {
             if (factory.TryCreateResolver(serviceName, out var resolver))
             {
-                resolvers ??= new();
+                resolvers ??= [];
                 resolvers.Add(resolver);
             }
         }
 
         if (resolvers is not { Count: > 0 })
         {
-            throw new InvalidOperationException("No resolver which supports the provided service name has been configured.");
+            throw new InvalidOperationException($"No resolver which supports the provided service name, '{serviceName}', has been configured.");
         }
 
+        Log.CreatingResolver(_logger, serviceName, resolvers);
         return new ServiceEndPointResolver(
-            resolvers: resolvers.ToArray(),
-            logger: _resolverLogger,
+            resolvers: [.. resolvers],
+            logger: _logger,
             serviceName: serviceName,
             timeProvider: _timeProvider,
             options: _options);

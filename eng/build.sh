@@ -41,6 +41,7 @@ usage()
   echo "  --sign                     Sign build outputs."
   echo "  --test (-t)                Incrementally builds and runs tests."
   echo "                             Use in conjunction with --testnobuild to only run tests."
+  echo "  --testCoverage             Run unit tests and capture code coverage information."
   echo ""
 
   echo "Libraries settings:"
@@ -54,6 +55,7 @@ usage()
 
 arguments=''
 extraargs=''
+testCoverage=false
 
 # Check if an action is passed in
 declare -a actions=("b" "build" "r" "restore" "rebuild" "testnobuild" "sign" "publish" "clean")
@@ -136,6 +138,10 @@ while [[ $# > 0 ]]; do
       shift 1
       ;;
 
+    -testcoverage)
+      testCoverage=true
+      ;;
+
      *)
       extraargs="$extraargs $1"
       shift 1
@@ -153,3 +159,24 @@ fi
 
 arguments="$arguments $extraargs"
 "$scriptroot/common/build.sh" $arguments
+
+
+# Perform code coverage as the last operation, this enables the following scenarios:
+#   .\build.sh --restore --build --c Release --testCoverage
+if [[ "$testCoverage" == true ]]; then
+  # Install required toolset
+  . "$DIR/common/tools.sh"
+  InitializeDotNetCli true > /dev/null
+
+  repoRoot=$(realpath $DIR/../)
+  testResultPath="$repoRoot/artifacts/TestResults/$configuration"
+
+  # Run tests and collect code coverage
+  $repoRoot/.dotnet/dotnet 'dotnet-coverage' collect --settings $repoRoot/eng/CodeCoverage.config --output $testResultPath/local.cobertura.xml "$repoRoot/build.sh --test --configuration $configuration"
+
+  # Generate the code coverage report and open it in the browser
+  $repoRoot/.dotnet/dotnet reportgenerator -reports:$testResultPath/*.cobertura.xml -targetdir:$testResultPath/CoverageResultsHtml -reporttypes:HtmlInline_AzurePipelines
+  echo ""
+  echo -e "\e[32mCode coverage results:\e[0m $testResultPath/CoverageResultsHtml/index.html"
+  echo ""
+fi

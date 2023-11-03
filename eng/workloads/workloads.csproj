@@ -54,9 +54,10 @@
       <!-- Overrides for Visual Studio setup generation. If the workload definition IDs change,
            these must be updated. -->
       <_ComponentResources Include="aspire" Title=".NET Aspire SDK (Preview)"
-                          Description=".NET Aspire SDK (Preview)"/>
+                           Description=".NET Aspire SDK (Preview)"
+                           AdvertisePackage="true"/>
       <_ComponentResources Include="aspire-host-runtime" Title=".NET Aspire SDK Hosts"
-                          Description=".NET Aspire SDK Hosts"/>
+                           Description=".NET Aspire SDK Hosts"/>
       <ComponentResources Include="@(_ComponentResources)" Version="$(FileVersion)"/>
     </ItemGroup>
 

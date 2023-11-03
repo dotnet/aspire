@@ -9,18 +9,21 @@
     <!-- Azure SDK for .NET dependencies -->
     <PackageVersion Include="Azure.Data.Tables" Version="12.8.1" />
     <PackageVersion Include="Azure.Extensions.AspNetCore.Configuration.Secrets" Version="1.2.2" />
-    <PackageVersion Include="Azure.Identity" Version="1.10.0" />
-    <PackageVersion Include="Azure.Messaging.ServiceBus" Version="7.15.0" />
+    <PackageVersion Include="Azure.Identity" Version="1.10.3" />
+    <PackageVersion Include="Azure.Messaging.ServiceBus" Version="7.16.2" />
     <PackageVersion Include="Azure.Security.KeyVault.Secrets" Version="4.5.0" />
-    <PackageVersion Include="Azure.Storage.Blobs" Version="12.17.0" />
-    <PackageVersion Include="Azure.Storage.Queues" Version="12.15.0" />
-    <PackageVersion Include="Microsoft.Extensions.Azure" Version="1.7.0" />
+    <PackageVersion Include="Azure.Storage.Blobs" Version="12.18.0" />
+    <PackageVersion Include="Azure.Storage.Queues" Version="12.16.0" />
+    <PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.36.0-preview" />
+    <PackageVersion Include="Microsoft.Extensions.Azure" Version="1.7.1" />
     <!-- Azure Management SDK for .NET dependencies -->
+    <PackageVersion Include="Azure.ResourceManager.CosmosDB" Version="1.4.0-beta.4" />
     <PackageVersion Include="Azure.ResourceManager.KeyVault" Version="1.2.0-beta.2" />
     <PackageVersion Include="Azure.ResourceManager.ServiceBus" Version="1.1.0-beta.3" />
     <PackageVersion Include="Azure.ResourceManager.Storage" Version="1.1.1" />
     <PackageVersion Include="Azure.ResourceManager.Authorization" Version="1.1.0-beta.1" />
     <PackageVersion Include="Azure.ResourceManager.Redis" Version="1.2.0" />
+    <PackageVersion Include="Azure.ResourceManager.AppConfiguration" Version="1.1.0-beta.1" />
     <!-- ASP.NET Core dependencies -->
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="$(AspNetCoreVersion)" />
     <PackageVersion Include="Microsoft.AspNetCore.OutputCaching.StackExchangeRedis" Version="$(AspNetCoreVersion)" />
@@ -35,6 +38,7 @@
     <PackageVersion Include="AspNetCore.HealthChecks.Azure.Storage.Queues" Version="7.0.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.AzureServiceBus" Version="7.0.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.NpgSql" Version="7.0.0" />
+    <PackageVersion Include="AspNetCore.HealthChecks.Rabbitmq" Version="7.0.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.Redis" Version="7.0.1" />
     <PackageVersion Include="AspNetCore.HealthChecks.SqlServer" Version="7.0.0" />
     <!-- arcade dependencies -->
@@ -43,6 +47,7 @@
     <!-- sql client dependencies -->
     <PackageVersion Include="Microsoft.Data.SqlClient" Version="5.1.1" />
     <!-- efcore dependencies -->
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Cosmos" Version="$(EfCoreVersion)" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="$(EfCoreVersion)" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="$(EfCoreVersion)" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Tools" Version="$(EfCoreVersion)" />
@@ -70,26 +75,29 @@
     <PackageVersion Include="Humanizer.Core" Version="2.14.1" />
     <PackageVersion Include="KubernetesClient" Version="11.0.36" />
     <PackageVersion Include="JsonSchema.Net" Version="5.2.5" />
-    <PackageVersion Include="Microsoft.Fast.Components.FluentUI" Version="3.2.2" />
-    <PackageVersion Include="Microsoft.Fast.Components.FluentUI.Icons" Version="3.2.2" />
+    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.0.0-preview.2" />
+    <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.0.0-preview.2" />
     <PackageVersion Include="Npgsql.DependencyInjection" Version="8.0.0-rc.2" />
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.0-rc.2" />
-    <PackageVersion Include="Npgsql.OpenTelemetry" Version="8.0.0-rc.2" />
-    <PackageVersion Include="OpenTelemetry.Exporter.InMemory" Version="1.7.0-alpha.1" />
-    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.7.0-alpha.1" />
-    <PackageVersion Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" Version="1.6.0-rc.1" />
-    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.7.0-alpha.1" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.5.1-beta.1" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.EntityFrameworkCore" Version="1.0.0-beta.7" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.EventCounters" Version="1.5.1-alpha.1" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.GrpcNetClient" Version="1.5.1-beta.1" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.5.1-beta.1" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.5.1" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.SqlClient" Version="1.5.1-beta.1" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.StackExchangeRedis" Version="1.0.0-rc9.10" />
+    <PackageVersion Include="Polly" Version="8.0.0" />
+    <PackageVersion Include="RabbitMQ.Client" Version="6.6.0" />
     <PackageVersion Include="StackExchange.Redis" Version="2.6.122" />
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="6.5.0" />
     <PackageVersion Include="Yarp.ReverseProxy" Version="2.1.0-preview.1.23428.7" />
+    <!-- Open Telemetry -->
+    <PackageVersion Include="Npgsql.OpenTelemetry" Version="8.0.0-rc.2" />
+    <PackageVersion Include="OpenTelemetry.Exporter.InMemory" Version="1.7.0-alpha.1" />
+    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.7.0-alpha.1" />
+    <PackageVersion Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" Version="1.7.0-alpha.1" />
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.7.0-alpha.1" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.EntityFrameworkCore" Version="1.0.0-beta.8" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.EventCounters" Version="1.5.1-alpha.1" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.GrpcNetClient" Version="1.6.0-beta.2" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.6.0-beta.2" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.6.0-beta.2" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.5.1" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.SqlClient" Version="1.5.1-beta.1" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.StackExchangeRedis" Version="1.0.0-rc9.12" />
     <!-- build dependencies -->
     <PackageVersion Include="MicroBuild.Plugins.SwixBuild.Dotnet" Version="1.1.87-gba258badda" />
     <PackageVersion Include="Microsoft.DotNet.Build.Tasks.Workloads" Version="8.0.0-beta.23371.1" />

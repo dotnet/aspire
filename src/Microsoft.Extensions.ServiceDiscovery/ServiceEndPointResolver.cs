@@ -15,7 +15,7 @@ namespace Microsoft.Extensions.ServiceDiscovery;
 /// <summary>
 /// Resolves endpoints for a specified service.
 /// </summary>
-public sealed class ServiceEndPointResolver(
+public sealed partial class ServiceEndPointResolver(
     IServiceEndPointResolver[] resolvers,
     ILogger logger,
     string serviceName,
@@ -135,6 +135,7 @@ public sealed class ServiceEndPointResolver(
             {
                 var collection = new ServiceEndPointCollectionSource(ServiceName, new FeatureCollection());
                 status = ResolutionStatus.Success;
+                Log.ResolvingEndPoints(_logger, ServiceName);
                 foreach (var resolver in _resolvers)
                 {
                     var resolverStatus = await resolver.ResolveAsync(collection, cancellationToken).ConfigureAwait(false);
@@ -148,6 +149,7 @@ public sealed class ServiceEndPointResolver(
                     if (statusCode is ResolutionStatusCode.Pending)
                     {
                         // Wait until a timeout or the collection's ChangeToken.HasChange becomes true and try again.
+                        Log.ResolutionPending(_logger, ServiceName);
                         await WaitForPendingChangeToken(endPoints.ChangeToken, _options.PendingStatusRefreshPeriod, cancellationToken).ConfigureAwait(false);
                         continue;
                     }
@@ -202,6 +204,20 @@ public sealed class ServiceEndPointResolver(
         // If there was an error, the cache must be invalid.
         Debug.Assert(error is null || newCacheState is CacheStatus.Invalid);
 
+        // To ensure coherence between the value returned by calls made to GetEndPointsAsync and value passed to the callback,
+        // we invalidate the cache before invoking the callback. This causes callers to wait on the refresh task
+        // before receiving the updated value. An alternative approach is to lock access to _cachedEndPoints, but
+        // that will have more overhead in the common case.
+        if (newCacheState is CacheStatus.Valid)
+        {
+            Interlocked.Exchange(ref _cachedEndPoints, null);
+        }
+
+        if (OnEndPointsUpdated is { } callback)
+        {
+            callback(new(newEndPoints, status));
+        }
+
         lock (_lock)
         {
             if (newCacheState is CacheStatus.Valid)
@@ -213,19 +229,14 @@ public sealed class ServiceEndPointResolver(
             _cacheState = newCacheState;
         }
 
-        if (OnEndPointsUpdated is { } callback)
-        {
-            callback(new(newEndPoints, status));
-        }
-
         if (error is not null)
         {
-            _logger.LogError(error, "Error resolving service {ServiceName}", ServiceName);
+            Log.ResolutionFailed(_logger, error, ServiceName);
             ExceptionDispatchInfo.Throw(error);
         }
-        else if (_logger.IsEnabled(LogLevel.Debug) && newEndPoints is not null)
+        else if (newEndPoints is not null)
         {
-            _logger.LogDebug("Resolved service {ServiceName} to {EndPoints}", ServiceName, newEndPoints);
+            Log.ResolutionSucceeded(_logger, ServiceName, newEndPoints);
         }
     }
 

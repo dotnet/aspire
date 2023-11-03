@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
-using Aspire.Hosting.ApplicationModel;
 using Xunit;
 
 namespace Aspire.Hosting.Tests;
@@ -12,7 +11,7 @@ public class WithEnvironmentTests
     [Fact]
     public void EnvironmentReferencingEndpointPopulatesWithBindingUrl()
     {
-        var testProgram = new TestProgram([]);
+        var testProgram = CreateTestProgram();
 
         // Create a binding and its metching annotation (simulating DCP behavior)
         testProgram.ServiceABuilder.WithServiceBinding(1000, 2000, "https", "mybinding");
@@ -47,7 +46,7 @@ public class WithEnvironmentTests
     [Fact]
     public void SimpleEnvironmentWithNameAndValue()
     {
-        var testProgram = new TestProgram([]);
+        var testProgram = CreateTestProgram();
 
         testProgram.ServiceABuilder.WithEnvironment("myName", "value");
 
@@ -72,7 +71,7 @@ public class WithEnvironmentTests
     [Fact]
     public void EnvironmentCallbackPopulatesValueWhenCalled()
     {
-        var testProgram = new TestProgram([]);
+        var testProgram = CreateTestProgram();
 
         var environmentValue = "value";
         testProgram.ServiceABuilder.WithEnvironment("myName", () => environmentValue);
@@ -99,7 +98,7 @@ public class WithEnvironmentTests
     [Fact]
     public void ComplexEnvironmentCallbackPopulatesValueWhenCalled()
     {
-        var testProgram = new TestProgram([]);
+        var testProgram = CreateTestProgram();
 
         var environmentValue = "value";
         testProgram.ServiceABuilder.WithEnvironment((context) =>
@@ -125,4 +124,5 @@ public class WithEnvironmentTests
         Assert.Equal(1, servicesKeysCount);
         Assert.Contains(config, kvp => kvp.Key == "myName" && kvp.Value == "value2");
     }
+    private static TestProgram CreateTestProgram(string[]? args = null) => TestProgram.Create<WithReferenceTests>(args);
 }

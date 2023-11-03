@@ -47,6 +47,13 @@ Aspire.Azure.Storage.Queues:
 - Metric names:
   - none (currently not supported by the Azure SDK)
 
+Aspire.Microsoft.Azure.Cosmos:
+- Log categories:
+  - "Azure-Cosmos-Operation-Request-Diagnostics"
+- Activity source names:
+  - "Azure.Cosmos.Operation"
+- Metric names:
+
 Aspire.Microsoft.Data.SqlClient:
 - Log categories:
   - none (the client does not provide an easy way to integrate it with logger factory)
@@ -70,6 +77,29 @@ Aspire.Microsoft.Data.SqlClient:
     - "number-of-free-connections"
     - "number-of-stasis-connections"
     - "number-of-reclaimed-connections"
+
+Aspire.Microsoft.EntityFrameworkCore.Cosmos:
+- Log categories:
+  - "Azure-Cosmos-Operation-Request-Diagnostics"
+  - "Microsoft.EntityFrameworkCore.ChangeTracking",
+  - "Microsoft.EntityFrameworkCore.Database.Command",
+  - "Microsoft.EntityFrameworkCore.Infrastructure",
+  - "Microsoft.EntityFrameworkCore.Query",
+- Activity source names:
+  - "Azure.Cosmos.Operation"
+  - "OpenTelemetry.Instrumentation.EntityFrameworkCore"
+- Metric names:
+  - "Microsoft.EntityFrameworkCore":
+    - "ec_Microsoft_EntityFrameworkCore_active_db_contexts"
+    - "ec_Microsoft_EntityFrameworkCore_total_queries"
+    - "ec_Microsoft_EntityFrameworkCore_queries_per_second"
+    - "ec_Microsoft_EntityFrameworkCore_total_save_changes"
+    - "ec_Microsoft_EntityFrameworkCore_save_changes_per_second"
+    - "ec_Microsoft_EntityFrameworkCore_compiled_query_cache_hit_rate"
+    - "ec_Microsoft_Entity_total_execution_strategy_operation_failures"
+    - "ec_Microsoft_E_execution_strategy_operation_failures_per_second"
+    - "ec_Microsoft_EntityFramew_total_optimistic_concurrency_failures"
+    - "ec_Microsoft_EntityF_optimistic_concurrency_failures_per_second"
 
 Aspire.Microsoft.EntityFrameworkCore.SqlServer:
 - Log categories:
@@ -110,16 +140,16 @@ Aspire.Npgsql:
   - "Npgsql"
 - Metric names:
   - "Npgsql":
-    - "ec_Npgsql_bytes_written_per_second"
-    - "ec_Npgsql_bytes_read_per_second"
-    - "ec_Npgsql_commands_per_second"
-    - "ec_Npgsql_total_commands"
-    - "ec_Npgsql_current_commands"
-    - "ec_Npgsql_failed_commands"
-    - "ec_Npgsql_prepared_commands_ratio"
-    - "ec_Npgsql_connection_pools"
-    - "ec_Npgsql_multiplexing_average_commands_per_batch"
-    - "ec_Npgsql_multiplexing_average_write_time_per_batch"
+    - "db.client.commands.bytes_read"
+    - "db.client.commands.bytes_written"
+    - "db.client.commands.duration"
+    - "db.client.commands.executing"
+    - "db.client.commands.failed"
+    - "db.client.connections.create_time"
+    - "db.client.connections.max"
+    - "db.client.connections.pending_requests"
+    - "db.client.connections.timeouts"
+    - "db.client.connections.usage"
 
 Aspire.Npgsql.EntityFrameworkCore.PostgreSQL:
 - Log categories:
@@ -148,16 +178,24 @@ Aspire.Npgsql.EntityFrameworkCore.PostgreSQL:
     - "ec_Microsoft_EntityFramew_total_optimistic_concurrency_failures"
     - "ec_Microsoft_EntityF_optimistic_concurrency_failures_per_second"
   - "Npgsql":
-    - "ec_Npgsql_bytes_written_per_second"
-    - "ec_Npgsql_bytes_read_per_second"
-    - "ec_Npgsql_commands_per_second"
-    - "ec_Npgsql_total_commands"
-    - "ec_Npgsql_current_commands"
-    - "ec_Npgsql_failed_commands"
-    - "ec_Npgsql_prepared_commands_ratio"
-    - "ec_Npgsql_connection_pools"
-    - "ec_Npgsql_multiplexing_average_commands_per_batch"
-    - "ec_Npgsql_multiplexing_average_write_time_per_batch"
+    - "db.client.commands.bytes_read"
+    - "db.client.commands.bytes_written"
+    - "db.client.commands.duration"
+    - "db.client.commands.executing"
+    - "db.client.commands.failed"
+    - "db.client.connections.create_time"
+    - "db.client.connections.max"
+    - "db.client.connections.pending_requests"
+    - "db.client.connections.timeouts"
+    - "db.client.connections.usage"
+
+Aspire.RabbitMQ.Client:
+- Log categories:
+  - "RabbitMQ.Client"
+- Activity source names:
+  - "Aspire.RabbitMQ.Client"
+- Metric names:
+  - none (currently not supported by RabbitMQ.Client library)
 
 Aspire.StackExchange.Redis:
 - Log categories:

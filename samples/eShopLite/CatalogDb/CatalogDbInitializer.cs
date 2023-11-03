@@ -6,6 +6,10 @@ namespace CatalogDb;
 internal sealed class CatalogDbInitializer(IServiceProvider serviceProvider, ILogger<CatalogDbInitializer> logger)
     : BackgroundService
 {
+    public const string ActivitySourceName = "Migrations";
+
+    private readonly ActivitySource _activitySource = new(ActivitySourceName);
+
     protected override async Task ExecuteAsync(CancellationToken cancellationToken)
     {
         using var scope = serviceProvider.CreateScope();
@@ -16,48 +20,13 @@ internal sealed class CatalogDbInitializer(IServiceProvider serviceProvider, ILo
 
     private async Task InitializeDatabaseAsync(CatalogDbContext dbContext, CancellationToken cancellationToken)
     {
-        var delayMs = 500;
-        var retries = 0;
-        var maxRetryCount = 3;
+        var strategy = dbContext.Database.CreateExecutionStrategy();
+
+        using var activity = _activitySource.StartActivity("Migrating catalog database", ActivityKind.Client);
+
         var sw = Stopwatch.StartNew();
 
-        while (true)
-        {
-            try
-            {
-                if (retries > 0)
-                {
-                    await Task.Delay(delayMs, cancellationToken);
-                }
-
-                logger.LogInformation("Attempting to apply database migrations (attempt {Attempt} of {MaxRetryCount})", retries + 1, maxRetryCount);
-
-                await dbContext.Database.MigrateAsync(cancellationToken);
-
-                logger.LogInformation("Successfully applied database migrations in {ElapsedMilliseconds}ms", sw.ElapsedMilliseconds);
-                break;
-            }
-            catch (TaskCanceledException)
-            {
-                if (retries == 0)
-                {
-                    logger.LogError("Database migration was canceled after {ElapsedMilliseconds}ms", sw.ElapsedMilliseconds);
-                }
-                else
-                {
-                    logger.LogError("Database migration was canceled after {Retries} retries", retries);
-                }
-                throw;
-            }
-            catch (Exception ex) when (retries < maxRetryCount)
-            {
-                logger.LogError(ex, "Failed to apply database migrations. Retrying in {DelayMs}ms", delayMs);
-
-                delayMs *= 2;
-            }
-
-            retries++;
-        }
+        await strategy.ExecuteAsync(() => dbContext.Database.MigrateAsync(cancellationToken));
 
         await SeedAsync(dbContext, cancellationToken);
 

@@ -3,6 +3,9 @@
 
 namespace Aspire.Hosting.ApplicationModel;
 
+/// <summary>
+/// Represents a collection of resources.
+/// </summary>
 public interface IResourceCollection : IList<IResource>
 {
 }

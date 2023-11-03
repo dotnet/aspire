@@ -1,5 +1,5 @@
 .trace-id {
-    color: rgb(136, 136, 136);
+    color: var(--foreground-subtext-rest);
     padding-left: 0.5rem;
     font-size: 12px;
 }
@@ -30,11 +30,12 @@
         "main"
         "foot";
     gap: calc(var(--design-unit) * 2px);
-    padding-bottom: calc(var(--design-unit) * 2px);
+    padding: calc(var(--design-unit) * 2px);
 }
 
 ::deep.traces-layout > h1 {
     grid-area: head;
+    padding: calc(var(--design-unit) * 1px);
 }
 
 ::deep.traces-layout > fluent-toolbar {

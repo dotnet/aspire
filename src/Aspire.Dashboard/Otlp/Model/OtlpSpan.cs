@@ -8,7 +8,7 @@ namespace Aspire.Dashboard.Otlp.Model;
 /// <summary>
 /// Represents a Span within an Operation (Trace)
 /// </summary>
-[DebuggerDisplay("SpanId = {SpanId}, ParentSpanId = {ParentSpanId}, TraceId = {Trace.TraceId}")]
+[DebuggerDisplay("{DebuggerToString(),nq}")]
 public class OtlpSpan
 {
     public const string PeerServiceAttributeKey = "peer.service";
@@ -80,11 +80,16 @@ public class OtlpSpan
             props.Add("StatusMessage", StatusMessage);
         }
 
-        foreach (var kv in Attributes)
+        foreach (var kv in Attributes.OrderBy(a => a.Key))
         {
             props.TryAdd(kv.Key, kv.Value);
         }
 
         return props;
+    }
+
+    private string DebuggerToString()
+    {
+        return $@"SpanId = {SpanId}, StartTime = {StartTime.ToLocalTime():h:mm:ss.fff tt}, ParentSpanId = {ParentSpanId}, TraceId = {Trace.TraceId}";
     }
 }

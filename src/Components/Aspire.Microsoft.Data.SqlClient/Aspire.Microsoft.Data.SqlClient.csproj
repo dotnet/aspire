@@ -3,21 +3,20 @@
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
-    <IsAotCompatible>true</IsAotCompatible>
     <PackageTags>$(ComponentDatabasePackageTags) sqlserver sql</PackageTags>
     <Description>A Microsoft SQL Server client that integrates with Aspire, including health checks, metrics and telemetry.</Description>
+    <PackageIconFullPath>$(SharedDir)SQL_256x.png</PackageIconFullPath>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="AspNetCore.HealthChecks.SqlServer" />
+    <PackageReference Include="Microsoft.Data.SqlClient" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
     <PackageReference Include="OpenTelemetry.Instrumentation.EventCounters" />
     <PackageReference Include="OpenTelemetry.Instrumentation.SqlClient" />
-    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
-    <PackageReference Include="Microsoft.Data.SqlClient" />
   </ItemGroup>
   
 </Project>

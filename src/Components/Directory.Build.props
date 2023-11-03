@@ -3,6 +3,9 @@
   <Import Project="../../Directory.Build.props" />
 
   <PropertyGroup>
+    <IsAotCompatible>true</IsAotCompatible>
+    <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
+
     <ComponentCommonPackageTags>aspire component cloud</ComponentCommonPackageTags>
     <ComponentCachePackageTags>$(ComponentCommonPackageTags) cache caching</ComponentCachePackageTags>
     <ComponentDatabasePackageTags>$(ComponentCommonPackageTags) data database</ComponentDatabasePackageTags>

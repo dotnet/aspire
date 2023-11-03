@@ -9,17 +9,17 @@ using System.Text.RegularExpressions;
 using k8s;
 using k8s.Models;
 
-public interface IAnnotationHolder
+internal interface IAnnotationHolder
 {
     void Annotate(string annotationName, string value);
     void AnnotateAsObjectList<TValue>(string annotationName, TValue value);
 }
 
-public abstract class CustomResource : KubernetesObject, IMetadata<V1ObjectMeta>, IAnnotationHolder
+internal abstract class CustomResource : KubernetesObject, IMetadata<V1ObjectMeta>, IAnnotationHolder
 {
-    public static readonly string ServiceProducerAnnotation = "service-producer";
-    public static readonly string ServiceConsumerAnnotation = "service-consumer";
-    public static readonly string UriSchemeAnnotation = "uri-scheme";
+    public const string ServiceProducerAnnotation = "service-producer";
+    public const string ServiceConsumerAnnotation = "service-consumer";
+    public const string UriSchemeAnnotation = "uri-scheme";
 
     [JsonPropertyName("metadata")]
     public V1ObjectMeta Metadata { get; set; } = new V1ObjectMeta();
@@ -66,7 +66,7 @@ public abstract class CustomResource : KubernetesObject, IMetadata<V1ObjectMeta>
     }
 }
 
-public abstract class CustomResource<TSpec, TStatus> : CustomResource
+internal abstract class CustomResource<TSpec, TStatus> : CustomResource
 {
     [JsonPropertyName("spec")]
     public TSpec Spec { get; set; }
@@ -80,7 +80,7 @@ public abstract class CustomResource<TSpec, TStatus> : CustomResource
     }
 }
 
-public class CustomResourceList<T> : KubernetesObject
+internal sealed class CustomResourceList<T> : KubernetesObject
 where T : CustomResource
 {
     [JsonPropertyName("metadata")]
@@ -90,7 +90,7 @@ where T : CustomResource
     public required List<T> Items { get; set; }
 }
 
-public class EnvVar
+internal sealed class EnvVar
 {
     // Name of the environment variable
     [JsonPropertyName("name")]
@@ -101,7 +101,7 @@ public class EnvVar
     public string? Value { get; set; }
 }
 
-public static class Conventions
+internal static class Conventions
 {
     // Indicates that process ID of some process is not known
     public const int UnknownPID = -1;
@@ -110,7 +110,7 @@ public static class Conventions
     public const int UnknownExitCode = -1;
 }
 
-public class ServiceProducerAnnotation
+internal sealed class ServiceProducerAnnotation
 {
     // Name of the service produced
     [JsonPropertyName("serviceName")]
@@ -154,9 +154,9 @@ public class ServiceProducerAnnotation
     }
 }
 
-public sealed record NamespacedName(string Name, string? Namespace);
+internal sealed record NamespacedName(string Name, string? Namespace);
 
-public static class Rules
+internal static class Rules
 {
     public static bool IsValidObjectName(string candidate)
     {

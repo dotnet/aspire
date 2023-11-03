@@ -1,0 +1,23 @@
+﻿<div class="summary-details-container" data-orientation="@Orientation" data-show-details="@ShowDetails">
+    <div class="summary-container">
+        @Summary
+    </div>
+    @if (ShowDetails)
+    {
+        <div class="details-container">
+            <FluentHeader Style="height: auto;">
+                @DetailsTitle
+                <div class="header-right">
+                    <FluentButton Appearance="Appearance.Stealth"
+                                  IconEnd="@(Orientation == Orientation.Horizontal ? _splitVerticalIcon : _splitHorizontalIcon)"
+                                  OnClick="HandleToggleOrientation"
+                                  Title="@(Orientation == Orientation.Horizontal ? "Split Vertical" : "Split Horizontal")"
+                                  aria-label="@(Orientation == Orientation.Horizontal ? "Split Vertical" : "Split Horizontal")" />
+                    <FluentButton Appearance="Appearance.Stealth" IconEnd="@(new Icons.Regular.Size16.Dismiss())"
+                                  OnClick="HandleDismissAsync" Title="Close" aria-label="Close" />
+                </div>
+            </FluentHeader>
+            @Details
+        </div>
+    }
+</div>

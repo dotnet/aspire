@@ -7,11 +7,16 @@ using Azure.Core;
 using Azure.Core.Extensions;
 using Azure.Data.Tables;
 using HealthChecks.Azure.Data.Tables;
+using Microsoft.Extensions.Azure;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Microsoft.Extensions.Hosting;
 
+/// <summary>
+/// Provides extension methods for registering <see cref="TableServiceClient"/> as a singleton in the services provided by the <see cref="IHostApplicationBuilder"/>.
+/// </summary>
 public static class AspireTablesExtensions
 {
     private const string DefaultConfigSectionName = "Aspire:Azure:Data:Tables";
@@ -74,6 +79,18 @@ public static class AspireTablesExtensions
                     cred is not null ? new TableServiceClient(settings.ServiceUri, cred, options) :
                     new TableServiceClient(settings.ServiceUri, options);
             }, requiresCredential: false);
+        }
+
+        protected override void BindClientOptionsToConfiguration(IAzureClientBuilder<TableServiceClient, TableClientOptions> clientBuilder, IConfiguration configuration)
+        {
+#pragma warning disable IDE0200 // Remove unnecessary lambda expression - needed so the ConfigBinder Source Generator works
+            clientBuilder.ConfigureOptions(options => configuration.Bind(options));
+#pragma warning restore IDE0200
+        }
+
+        protected override void BindSettingsToConfiguration(AzureDataTablesSettings settings, IConfiguration configuration)
+        {
+            configuration.Bind(settings);
         }
 
         protected override IHealthCheck CreateHealthCheck(TableServiceClient client, AzureDataTablesSettings settings)

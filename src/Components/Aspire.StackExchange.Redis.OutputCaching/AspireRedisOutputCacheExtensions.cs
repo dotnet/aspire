@@ -8,6 +8,9 @@ using StackExchange.Redis;
 
 namespace Microsoft.Extensions.Hosting;
 
+/// <summary>
+/// Provides extension methods for adding Redis output caching services to the <see cref="IHostApplicationBuilder"/>.
+/// </summary>
 public static class AspireRedisOutputCacheExtensions
 {
     /// <summary>
@@ -18,7 +21,7 @@ public static class AspireRedisOutputCacheExtensions
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="StackExchangeRedisSettings"/>. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureOptions">An optional method that can be used for customizing the <see cref="ConfigurationOptions"/>. It's invoked after the options are read from the configuration.</param>
     /// <remarks>
-    /// Reads the configuration from "Aspire.StackExchange.Redis" section.
+    /// Reads the configuration from "Aspire:StackExchange:Redis" section.
     ///
     /// Also registers <see cref="IConnectionMultiplexer"/> as a singleton in the services provided by the <paramref name="builder"/>.
     /// Enables retries, corresponding health check, logging, and telemetry.
@@ -41,7 +44,7 @@ public static class AspireRedisOutputCacheExtensions
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="StackExchangeRedisSettings"/>. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureOptions">An optional method that can be used for customizing the <see cref="ConfigurationOptions"/>. It's invoked after the options are read from the configuration.</param>
     /// <remarks>
-    /// Reads the configuration from "Aspire.StackExchange.Redis:{name}" section.
+    /// Reads the configuration from "Aspire:StackExchange:Redis:{name}" section.
     ///
     /// Also registers <see cref="IConnectionMultiplexer"/> as a singleton in the services provided by the <paramref name="builder"/>.
     /// Enables retries, corresponding health check, logging, and telemetry.

@@ -7,6 +7,9 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting;
 
+/// <summary>
+/// Provides extension methods for adding Azure resources to the application model.
+/// </summary>
 public static class AzureResourceExtensions
 {
     /// <summary>
@@ -24,7 +27,7 @@ public static class AzureResourceExtensions
 
     private static void WriteAzureKeyVaultToManifest(Utf8JsonWriter jsonWriter)
     {
-        jsonWriter.WriteString("type", "azure.keyvault.v1");
+        jsonWriter.WriteString("type", "azure.keyvault.v0");
     }
 
     /// <summary>
@@ -49,7 +52,7 @@ public static class AzureResourceExtensions
 
     private static void WriteAzureServiceBusToManifest(AzureServiceBusResource resource, Utf8JsonWriter jsonWriter)
     {
-        jsonWriter.WriteString("type", "azure.servicebus.v1");
+        jsonWriter.WriteString("type", "azure.servicebus.v0");
 
         if (resource.QueueNames.Length > 0)
         {
@@ -87,7 +90,7 @@ public static class AzureResourceExtensions
 
     private static void WriteAzureStorageToManifest(Utf8JsonWriter jsonWriter)
     {
-        jsonWriter.WriteString("type", "azure.storage.v1");
+        jsonWriter.WriteString("type", "azure.storage.v0");
     }
 
     /// <summary>
@@ -105,7 +108,7 @@ public static class AzureResourceExtensions
 
     private static void WriteBlobStorageToManifest(Utf8JsonWriter json, AzureBlobStorageResource resource)
     {
-        json.WriteString("type", "azure.storage.blob.v1");
+        json.WriteString("type", "azure.storage.blob.v0");
         json.WriteString("parent", resource.Parent.Name);
     }
 
@@ -124,7 +127,7 @@ public static class AzureResourceExtensions
 
     private static void WriteTableStorageToManifest(Utf8JsonWriter json, AzureTableStorageResource resource)
     {
-        json.WriteString("type", "azure.storage.table.v1");
+        json.WriteString("type", "azure.storage.table.v0");
         json.WriteString("parent", resource.Parent.Name);
     }
 
@@ -143,7 +146,7 @@ public static class AzureResourceExtensions
 
     private static void WriteQueueStorageToManifest(Utf8JsonWriter json, AzureQueueStorageResource resource)
     {
-        json.WriteString("type", "azure.storage.queue.v1");
+        json.WriteString("type", "azure.storage.queue.v0");
         json.WriteString("parent", resource.Parent.Name);
     }
 
@@ -178,6 +181,24 @@ public static class AzureResourceExtensions
 
     private static void WriteAzureRedisToManifest(Utf8JsonWriter writer)
     {
-        writer.WriteString("type", "azure.redis.v1");
+        writer.WriteString("type", "azure.redis.v0");
+    }
+
+    /// <summary>
+    /// Adds an Azure App Configuration resource to the application model.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{AzureAppConfigurationResource}"/>.</returns>
+    public static IResourceBuilder<AzureAppConfigurationResource> AddAzureAppConfiguration(this IDistributedApplicationBuilder builder, string name)
+    {
+        var resource = new AzureAppConfigurationResource(name);
+        return builder.AddResource(resource)
+            .WithAnnotation(new ManifestPublishingCallbackAnnotation(WriteAzureAppConfigurationToManifest));
+    }
+
+    private static void WriteAzureAppConfigurationToManifest(Utf8JsonWriter writer)
+    {
+        writer.WriteString("type", "azure.appconfiguration.v0");
     }
 }

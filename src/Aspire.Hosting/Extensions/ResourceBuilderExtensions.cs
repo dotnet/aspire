@@ -7,6 +7,9 @@ using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting;
 
+/// <summary>
+/// Provides extension methods for configuring resources with environment variables.
+/// </summary>
 public static class ResourceBuilderExtensions
 {
     private const string ConnectionStringEnvironmentName = "ConnectionStrings__";
@@ -78,7 +81,7 @@ public static class ResourceBuilderExtensions
                 .OfType<AllocatedEndpointAnnotation>()
                 .Where(a => serviceReferencesAnnotation.UseAllBindings || serviceReferencesAnnotation.BindingNames.Contains(a.Name));
 
-            var containsAmiguousEndpoints = ContainsAmbiguousEndpoints(allocatedEndPoints);
+            var containsAmbiguousEndpoints = ContainsAmbiguousEndpoints(allocatedEndPoints);
 
             var i = 0;
             foreach (var allocatedEndPoint in allocatedEndPoints)
@@ -86,7 +89,7 @@ public static class ResourceBuilderExtensions
                 var bindingNameQualifiedUriStringKey = $"services__{name}__{i++}";
                 context.EnvironmentVariables[bindingNameQualifiedUriStringKey] = allocatedEndPoint.BindingNameQualifiedUriString;
 
-                if (!containsAmiguousEndpoints)
+                if (!containsAmbiguousEndpoints)
                 {
                     var uriStringKey = $"services__{name}__{i++}";
                     context.EnvironmentVariables[uriStringKey] = allocatedEndPoint.UriString;
@@ -107,7 +110,7 @@ public static class ResourceBuilderExtensions
     /// using the resource's name.
     /// </para>
     /// </summary>
-    /// <typeparam name="TDestination">The destintion resource.</typeparam>
+    /// <typeparam name="TDestination">The destination resource.</typeparam>
     /// <param name="builder">The resource where connection string will be injected.</param>
     /// <param name="source">The resource from which to extract the connection string.</param>
     /// <param name="connectionName">An override of the source resource's name for the connection string. The resulting connection string will be "ConnectionStrings__connectionName" if this is not null.</param>

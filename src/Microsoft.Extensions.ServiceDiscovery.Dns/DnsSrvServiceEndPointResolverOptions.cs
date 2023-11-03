@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.Extensions.ServiceDiscovery.Abstractions;
+
 namespace Microsoft.Extensions.ServiceDiscovery.Dns;
 
 /// <summary>
@@ -35,4 +37,9 @@ public class DnsSrvServiceEndPointResolverOptions
     /// If not specified, the provider will attempt to infer the namespace.
     /// </remarks>
     public string? QuerySuffix { get; set; }
+
+    /// <summary>
+    /// Gets or sets a delegate used to determine whether to apply host name metadata to each resolved endpoint. Defaults to <c>false</c>.
+    /// </summary>
+    public Func<ServiceEndPoint, bool> ApplyHostNameMetadata { get; set; } = _ => false;
 }

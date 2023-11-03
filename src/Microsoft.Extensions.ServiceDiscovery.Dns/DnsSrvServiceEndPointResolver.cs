@@ -24,6 +24,8 @@ internal sealed partial class DnsSrvServiceEndPointResolver(
     protected override TimeSpan MaxRetryPeriod => options.CurrentValue.MaxRetryPeriod;
     protected override TimeSpan DefaultRefreshPeriod => options.CurrentValue.DefaultRefreshPeriod;
 
+    public override string DisplayName => "DNS SRV";
+
     string IHostNameFeature.HostName => hostName;
 
     protected override async Task ResolveAsyncCore()
@@ -85,7 +87,12 @@ internal sealed partial class DnsSrvServiceEndPointResolver(
         ServiceEndPoint CreateEndPoint(EndPoint endPoint)
         {
             var serviceEndPoint = ServiceEndPoint.Create(endPoint);
-            serviceEndPoint.Features.Set<IHostNameFeature>(this);
+            serviceEndPoint.Features.Set<IServiceEndPointResolver>(this);
+            if (options.CurrentValue.ApplyHostNameMetadata(serviceEndPoint))
+            {
+                serviceEndPoint.Features.Set<IHostNameFeature>(this);
+            }
+
             return serviceEndPoint;
         }
     }

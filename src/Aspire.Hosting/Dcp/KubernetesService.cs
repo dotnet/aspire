@@ -9,7 +9,7 @@ using k8s.Models;
 
 namespace Aspire.Hosting.Dcp;
 
-public enum DcpApiOperationType
+internal enum DcpApiOperationType
 {
     Create = 1,
     List = 2,
@@ -17,20 +17,13 @@ public enum DcpApiOperationType
     Watch = 4
 }
 
-public class KubernetesService : IDisposable
+internal sealed class KubernetesService(Locations locations) : IDisposable
 {
     private static readonly TimeSpan s_initialRetryDelay = TimeSpan.FromMilliseconds(100);
     private static GroupVersion GroupVersion => Model.Dcp.GroupVersion;
 
     private IKubernetes? _kubernetes;
     private TimeSpan _maxRetryDuration = TimeSpan.FromSeconds(5);
-
-    public KubernetesService(TimeSpan maxRetryDuration)
-    {
-        this.MaxRetryDuration = maxRetryDuration;
-    }
-
-    public KubernetesService() { }
 
     public TimeSpan MaxRetryDuration
     {
@@ -235,7 +228,7 @@ public class KubernetesService : IDisposable
         {
             if (_kubernetes != null) { return; }
 
-            var config = KubernetesClientConfiguration.BuildConfigFromConfigFile(kubeconfigPath: Locations.DcpKubeconfigPath, useRelativePaths: false);
+            var config = KubernetesClientConfiguration.BuildConfigFromConfigFile(kubeconfigPath: locations.DcpKubeconfigPath, useRelativePaths: false);
             _kubernetes = new Kubernetes(config);
         }
     }

@@ -3,9 +3,12 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
+using Aspire.Hosting.Azure.Data.Cosmos;
 using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Lifecycle;
 using Azure.ResourceManager;
+using Azure.ResourceManager.AppConfiguration;
+using Azure.ResourceManager.CosmosDB;
 using Azure.ResourceManager.KeyVault;
 using Azure.ResourceManager.Redis;
 using Azure.ResourceManager.Resources;
@@ -15,6 +18,9 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
 
+/// <summary>
+/// Provides extension methods for adding support for generating Azure resources dynamically during application startup.
+/// </summary>
 public static class AzureProvisionerExtensions
 {
     /// <summary>
@@ -26,11 +32,11 @@ public static class AzureProvisionerExtensions
         builder.Services.AddLifecycleHook<AzureProvisioner>();
 
         // Attempt to read azure configuration from configuration
-        builder.Services.AddOptions<AzureProvisinerOptions>()
+        builder.Services.AddOptions<AzureProvisionerOptions>()
             .BindConfiguration("Azure");
 
         // We're adding 2 because there's no easy way to enumerate all keys and all service types
-        builder.AddAzureProvisioner<AzureKeyVaultResource, KeyVaultProvisoner>();
+        builder.AddAzureProvisioner<AzureKeyVaultResource, KeyVaultProvisioner>();
         builder.AddResourceEnumerator(resourceGroup => resourceGroup.GetKeyVaults(), resource => resource.Data.Tags);
 
         builder.AddAzureProvisioner<AzureStorageResource, StorageProvisioner>();
@@ -41,6 +47,13 @@ public static class AzureProvisionerExtensions
 
         builder.AddAzureProvisioner<AzureRedisResource, AzureRedisProvisioner>();
         builder.AddResourceEnumerator(resourceGroup => resourceGroup.GetAllRedis(), resource => resource.Data.Tags);
+
+        builder.AddAzureProvisioner<AzureAppConfigurationResource, AppConfigurationProvisioner>();
+        builder.AddResourceEnumerator(resourceGroup => resourceGroup.GetAppConfigurationStores(), resource => resource.Data.Tags);
+
+        builder.AddAzureProvisioner<AzureCosmosDBResource, AzureCosmosDBProvisioner>();
+        builder.AddResourceEnumerator(resourceGroup => resourceGroup.GetCosmosDBAccounts(), resource => resource.Data.Tags);
+
         return builder;
     }
 

@@ -2,141 +2,146 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
-using Aspire.Hosting.Properties;
-using Aspire.Hosting.Utils;
+using Aspire.Hosting.Publishing;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting;
 
-public enum DockerHealthCheckFailures : int
+internal enum DockerHealthCheckFailures : int
 {
-    Unresponsive = 125, // Invocation of Docker CLI test command did not finish within expected time period.
-    Unhealthy = 126,    // The Docker CLI test command returned an error exit code.
-    PrerequisiteMissing = 127 // We could not invoke Docker CLI, Docker may be missing from the machine.
+    /// <summary>
+    /// Represents the error code for when the invocation of Docker CLI test command didn't finish within expected time period.
+    /// </summary>
+    Unresponsive = 125,
+
+    /// <summary>
+    /// Represents the error code for when the Docker CLI test command returned an error exit code.
+    /// </summary>
+    Unhealthy = 126,
+
+    /// <summary>
+    /// Represents the exit code indicating that a prerequisite for running the application are missing.
+    /// </summary>
+    PrerequisiteMissing = 127
 }
 
+/// <summary>
+/// Represents a distributed application that implements the <see cref="IHost"/> and <see cref="IAsyncDisposable"/> interfaces.
+/// </summary>
 [DebuggerDisplay("{_host}")]
 public class DistributedApplication : IHost, IAsyncDisposable
 {
     private readonly IHost _host;
     private readonly string[] _args;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DistributedApplication"/> class.
+    /// </summary>
+    /// <param name="host">The <see cref="IHost"/> instance.</param>
+    /// <param name="args">The command-line arguments.</param>
     public DistributedApplication(IHost host, string[] args)
     {
         _host = host;
         _args = args;
     }
 
+    /// <summary>
+    /// Creates a new instance of the <see cref="IDistributedApplicationBuilder"/> interface.
+    /// </summary>
+    /// <returns>A new instance of the <see cref="IDistributedApplicationBuilder"/> interface.</returns>
+    public static IDistributedApplicationBuilder CreateBuilder() => CreateBuilder([]);
+
+    /// <summary>
+    /// Creates a new instance of <see cref="IDistributedApplicationBuilder"/> with the specified command-line arguments.
+    /// </summary>
+    /// <param name="args">The command-line arguments to use when building the distributed application.</param>
+    /// <returns>A new instance of <see cref="IDistributedApplicationBuilder"/>.</returns>
     public static IDistributedApplicationBuilder CreateBuilder(string[] args)
     {
-        var builder = new DistributedApplicationBuilder(args);
+        var builder = new DistributedApplicationBuilder(new DistributedApplicationOptions() { Args = args });
         return builder;
     }
 
+    /// <summary>
+    /// Creates a new instance of the <see cref="IDistributedApplicationBuilder"/> interface with the specified <paramref name="options"/>.
+    /// </summary>
+    /// <param name="options">The <see cref="DistributedApplicationOptions"/> to use for configuring the builder.</param>
+    /// <returns>A new instance of the <see cref="IDistributedApplicationBuilder"/> interface.</returns>
+    public static IDistributedApplicationBuilder CreateBuilder(DistributedApplicationOptions options)
+    {
+        var builder = new DistributedApplicationBuilder(options);
+        return builder;
+    }
+
+    /// <summary>
+    /// Gets the <see cref="IServiceProvider"/> instance configured for the application.
+    /// </summary>
     public IServiceProvider Services => _host.Services;
 
+    /// <summary>
+    /// Disposes the distributed application by disposing the <see cref="IHost"/>.
+    /// </summary>
     public void Dispose()
     {
         _host.Dispose();
     }
 
+    /// <summary>
+    /// Asynchronously disposes the distributed application by disposing the <see cref="IHost"/>.
+    /// </summary>
+    /// <returns>A <see cref="ValueTask"/> representing the asynchronous operation.</returns>
     public ValueTask DisposeAsync()
     {
         return ((IAsyncDisposable)_host).DisposeAsync();
     }
 
-    private const int WaitTimeForDockerTestCommandInSeconds = 10;
-
-    private void EnsureDockerIfNecessary()
+    /// <inheritdoc cref="IHost.StartAsync" />
+    public async Task StartAsync(CancellationToken cancellationToken = default)
     {
-        // If we don't have any respirces that need a container  then we
-        // don't need to check for Docker.
-        var appModel = this.Services.GetRequiredService<DistributedApplicationModel>();
-        if (!appModel.Resources.Any(c => c.Annotations.OfType<ContainerImageAnnotation>().Any()))
+        await ExecuteBeforeStartHooksAsync(cancellationToken).ConfigureAwait(false);
+        await _host.StartAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc cref="IHost.StopAsync" />
+    public async Task StopAsync(CancellationToken cancellationToken = default)
+    {
+        await _host.StopAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    private void SuppressLifetimeLogsDuringManifestPublishing()
+    {
+        var config = (IConfigurationRoot)_host.Services.GetRequiredService<IConfiguration>();
+        var options = _host.Services.GetRequiredService<IOptions<PublishingOptions>>();
+
+        if (options.Value?.Publisher != "manifest")
         {
+            // If we aren't doing manifest publishing we want the logs
+            // to be produced as normal.
             return;
         }
 
-        AspireEventSource.Instance.DockerHealthCheckStart();
+        var hostingLifetimeLoggingLevelSection = config.GetSection("Logging:LogLevel:Microsoft.Hosting.Lifetime");
+        hostingLifetimeLoggingLevelSection.Value = "Warning";
 
-        try
-        {
-            var dockerCommandArgs = "ps --latest --quiet";
-            var dockerStartInfo = new ProcessStartInfo()
-            {
-                FileName = FileUtil.FindFullPathFromPath("docker"),
-                Arguments = dockerCommandArgs,
-                UseShellExecute = true,
-                WindowStyle = ProcessWindowStyle.Hidden
-            };
-            var process = System.Diagnostics.Process.Start(dockerStartInfo);
-            if (process is { } && process.WaitForExit(TimeSpan.FromSeconds(WaitTimeForDockerTestCommandInSeconds)))
-            {
-                if (process.ExitCode != 0)
-                {
-                    Console.Error.WriteLine(string.Format(
-                        CultureInfo.InvariantCulture,
-                        Resources.DockerUnhealthyExceptionMessage,
-                        $"docker {dockerCommandArgs}",
-                        process.ExitCode
-                    ));
-                    Environment.Exit((int)DockerHealthCheckFailures.Unhealthy);
-                }
-            }
-            else
-            {
-                Console.Error.WriteLine(string.Format(
-                    CultureInfo.InvariantCulture,
-                    Resources.DockerUnresponsiveExceptionMessage,
-                    $"docker {dockerCommandArgs}",
-                    WaitTimeForDockerTestCommandInSeconds
-                ));
-                Environment.Exit((int)DockerHealthCheckFailures.Unresponsive);
-            }
-
-            // If we get to here all is good!
-
-        }
-        catch (Exception ex) when (ex is not DistributedApplicationException)
-        {
-            Console.Error.WriteLine(string.Format(
-                    CultureInfo.InvariantCulture,
-                    Resources.DockerPrerequisiteMissingExceptionMessage,
-                    ex.ToString()
-                ));
-            Environment.Exit((int)DockerHealthCheckFailures.PrerequisiteMissing);
-        }
-        finally
-        {
-            AspireEventSource.Instance?.DockerHealthCheckStop();
-        }
+        config.Reload();
     }
 
+    /// <inheritdoc cref="HostingAbstractionsHostExtensions.RunAsync" />
     public async Task RunAsync(CancellationToken cancellationToken = default)
     {
-        try
-        {
-            EnsureDockerIfNecessary();
-            await ExecuteBeforeStartHooksAsync(cancellationToken).ConfigureAwait(false);
-            await _host.RunAsync(cancellationToken).ConfigureAwait(false);
-        }
-        finally
-        {
-            if (_host is IAsyncDisposable asyncDisposable)
-            {
-                await asyncDisposable.DisposeAsync().ConfigureAwait(false);
-            }
-            else
-            {
-                _host.Dispose();
-            }
-        }
+        SuppressLifetimeLogsDuringManifestPublishing();
+        await ExecuteBeforeStartHooksAsync(cancellationToken).ConfigureAwait(false);
+        await _host.RunAsync(cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Runs the distributed application and only completes when the token is triggered or shutdown is triggered.
+    /// </summary>
     public void Run()
     {
         RunAsync().Wait();
@@ -162,8 +167,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
         }
     }
 
-    Task IHost.StartAsync(CancellationToken cancellationToken) => _host.StartAsync(cancellationToken);
+    Task IHost.StartAsync(CancellationToken cancellationToken) => StartAsync(cancellationToken);
 
-    Task IHost.StopAsync(CancellationToken cancellationToken) => _host.StopAsync(cancellationToken);
+    Task IHost.StopAsync(CancellationToken cancellationToken) => StopAsync(cancellationToken);
 }
-

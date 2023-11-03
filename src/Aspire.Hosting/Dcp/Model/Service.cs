@@ -1,12 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
 using k8s.Models;
 
 namespace Aspire.Hosting.Dcp.Model;
 
-public class ServiceSpec
+internal sealed class ServiceSpec
 {
     // The desired address for the service to run on
     [JsonPropertyName("address")]
@@ -25,7 +26,7 @@ public class ServiceSpec
     public string AddressAllocationMode = AddressAllocationModes.Localhost;
 }
 
-public class ServiceStatus : V1Status
+internal sealed class ServiceStatus : V1Status
 {
     // The actual address the service is running on
     [JsonPropertyName("effectiveAddress")]
@@ -40,31 +41,31 @@ public class ServiceStatus : V1Status
     public string? State { get; set; }
 }
 
-public static class ServiceState
+internal static class ServiceState
 {
     // The service is not ready to accept connection. EffectiveAddress and EffectivePort do not contain final data.
-    public static readonly string NotReady = "NotReady";
+    public const string NotReady = "NotReady";
 
     // The service is ready to accept connections.
-    public static readonly string Ready = "Ready";
+    public const string Ready = "Ready";
 }
 
-public static class AddressAllocationModes
+internal static class AddressAllocationModes
 {
     // Bind only to 127.0.0.1
-    public static readonly string IPv4ZeroOne = "IPv4ZeroOne";
+    public const string IPv4ZeroOne = "IPv4ZeroOne";
 
     // Bind to any 127.*.*.* loopback address range
-    public static readonly string IPv4Loopback = "IPv4Loopback";
+    public const string IPv4Loopback = "IPv4Loopback";
 
     // Bind to IPv6 ::1
-    public static readonly string IPv6 = "IPv6ZeroOne";
+    public const string IPv6 = "IPv6ZeroOne";
 
     // Bind to "localhost", which is all loopback devices on the machine.
-    public static readonly string Localhost = "Localhost";
+    public const string Localhost = "Localhost";
 }
 
-public class Service : CustomResource<ServiceSpec, ServiceStatus>
+internal sealed class Service : CustomResource<ServiceSpec, ServiceStatus>
 {
     [JsonConstructor]
     public Service(ServiceSpec spec) : base(spec) { }
@@ -84,6 +85,14 @@ public class Service : CustomResource<ServiceSpec, ServiceStatus>
     public int? AllocatedPort => Spec.Port ?? Status?.EffectivePort;
     public string? AllocatedAddress => Spec.Address ?? Status?.EffectiveAddress;
     public bool HasCompleteAddress => AllocatedPort > 0 && !string.IsNullOrEmpty(AllocatedAddress);
+
+    public bool UsesHttpProtocol([NotNullWhen(true)] out string? uriScheme)
+    {
+        uriScheme = null;
+        return Metadata.Annotations?.TryGetValue(UriSchemeAnnotation, out uriScheme) == true
+            && (string.Equals(uriScheme, "http", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(uriScheme, "https", StringComparison.OrdinalIgnoreCase));
+    }
 
     public void ApplyAddressInfoFrom(Service other)
     {

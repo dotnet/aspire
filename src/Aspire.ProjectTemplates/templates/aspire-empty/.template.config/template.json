@@ -10,7 +10,7 @@
   "defaultName": "AspireApp",
   "description": "A project template for creating an empty Aspire app.",
   "shortName": "aspire",
-  "sourceName": "AspireApplication1",
+  "sourceName": "AspireApplication-1",
   "preferNameDirectory": true,
   "tags": {
     "language": "C#",
@@ -19,7 +19,7 @@
   },
   "precedence": "8000",
   "identity": "Aspire.Empty.CSharp.8.0",
-  "thirdPartyNotices": "https://aka.ms/aspnetcore/8.0-third-party-notices",
+  "thirdPartyNotices": "https://aka.ms/aspire/1.0-third-party-notices",
   "groupIdentity": "Aspire.Empty",
   "guids": [
     "F98A6C4E-E01C-44BB-BCC9-4C23F1CD09CD",
@@ -157,20 +157,20 @@
     "NoHttps": {
       "type": "parameter",
       "datatype": "bool",
-      "defaultValue": "false",
+      "defaultValue": "true",
       "description": "Whether to turn off HTTPS."
     }
   },
   "primaryOutputs": [
     {
-      "path": "AspireApplication1.sln",
+      "path": "AspireApplication-1.sln",
       "condition": "(hostIdentifier != \"vs\")"
     },
     {
-      "path": "AspireApplication1.AppHost\\AspireApplication1.AppHost.csproj"
+      "path": "AspireApplication-1.AppHost\\AspireApplication-1.AppHost.csproj"
     },
     {
-      "path": "AspireApplication1.ServiceDefaults\\AspireApplication1.ServiceDefaults.csproj"
+      "path": "AspireApplication-1.ServiceDefaults\\AspireApplication-1.ServiceDefaults.csproj"
     }
   ],
   "postActions": [
