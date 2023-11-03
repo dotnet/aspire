@@ -52,7 +52,7 @@ public class DashboardWebApplication : IHostedService
 
         if (otlpUris.FirstOrDefault() is { } reportedOtlpUri)
         {
-            _logger.LogInformation("OTLP running at: {dashboardUri}", reportedOtlpUri);
+            _logger.LogInformation("OTLP server running at: {dashboardUri}", reportedOtlpUri);
         }
 
         _isAllHttps = dashboardHttpsPort is not null && IsHttps(otlpUris[0]);
