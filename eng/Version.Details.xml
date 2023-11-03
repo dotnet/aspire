@@ -31,7 +31,7 @@
     </Dependency>
     <Dependency Name="Microsoft.Extensions.Http.Resilience" Version="8.0.0">
       <Uri>https://github.com/dotnet/extensions</Uri>
-      <Sha>b314c00789102aca0ab4feb1c1db7ffd2f5f9a48</Sha>
+      <Sha>e51e8090f18027c7109a514faba94a1333c19328</Sha>
     </Dependency>
     <Dependency Name="Microsoft.SourceBuild.Intermediate.source-build-reference-packages" Version="8.0.0-alpha.1.23516.4">
       <Uri>https://github.com/dotnet/source-build-reference-packages</Uri>
