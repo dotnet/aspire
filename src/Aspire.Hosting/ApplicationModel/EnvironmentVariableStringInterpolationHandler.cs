@@ -12,7 +12,7 @@ public struct EnvironmentVariableStringInterpolationHandler
 {
     private readonly StringBuilder _builder;
     private readonly object?[]? _parameters;
-    private int _paramterCount;
+    private int _parameterCount;
 
     public EnvironmentVariableStringInterpolationHandler(int literalLength, int formattedCount)
     {
@@ -27,16 +27,16 @@ public struct EnvironmentVariableStringInterpolationHandler
 
     public void AppendFormatted<T>(T item)
     {
-        var parameterName = $"{{{_paramterCount}}}";
+        var parameterName = $"{{{_parameterCount}}}";
         _builder.Append(parameterName);
-        _parameters![_paramterCount++] = item;
+        _parameters![_parameterCount++] = item;
     }
 
     public void AppendFormatted(Func<string?> item)
     {
-        var parameterName = $"{{{_paramterCount}}}";
+        var parameterName = $"{{{_parameterCount}}}";
         _builder.Append(parameterName);
-        _parameters![_paramterCount++] = item;
+        _parameters![_parameterCount++] = item;
     }
 
     internal string GetValue()
@@ -46,7 +46,7 @@ public struct EnvironmentVariableStringInterpolationHandler
             return _builder.ToString();
         }
 
-        var transformed = new string?[_paramterCount];
+        var transformed = new string?[_parameterCount];
         var at = 0;
         foreach (var p in _parameters)
         {
