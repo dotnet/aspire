@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
+using Aspire;
 using Aspire.Microsoft.EntityFrameworkCore.SqlServer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -90,7 +91,9 @@ public static class AspireSqlServerEFCoreSqlClientExtensions
 
         if (settings.HealthChecks)
         {
-            builder.Services.AddHealthChecks().AddDbContextCheck<TContext>();
+            builder.TryAddHealthCheck(
+                name: typeof(TContext).Name,
+                static hcBuilder => hcBuilder.AddDbContextCheck<TContext>());
         }
 
         void ConfigureDbContext(DbContextOptionsBuilder dbContextOptionsBuilder)
