@@ -66,7 +66,7 @@
     <PackageVersion Include="Dapr.AspNetCore" Version="1.11.0" />
     <PackageVersion Include="Dapr.Client" Version="1.12.0-rc01" />
     <PackageVersion Include="DnsClient" Version="1.7.0" />
-    <PackageVersion Include="Google.Protobuf" Version="3.24.0" />
+    <PackageVersion Include="Google.Protobuf" Version="3.25.0" />
     <PackageVersion Include="Grpc.AspNetCore" Version="2.58.0" />
     <PackageVersion Include="Grpc.Net.Client" Version="2.58.0" />
     <PackageVersion Include="Grpc.Net.ClientFactory" Version="2.58.0" />
