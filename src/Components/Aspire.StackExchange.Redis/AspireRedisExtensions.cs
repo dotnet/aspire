@@ -4,6 +4,7 @@
 global using System.Net.Security; // needed to work around https://github.com/dotnet/runtime/issues/94065
 
 using System.Text;
+using Aspire;
 using Aspire.StackExchange.Redis;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -108,13 +109,16 @@ public static class AspireRedisExtensions
 
         if (settings.HealthChecks)
         {
-            builder.Services.AddHealthChecks()
-                .AddRedis(
+            var healthCheckName = serviceKey is null ? "StackExchange.Redis" : $"StackExchange.Redis_{connectionName}";
+
+            builder.TryAddHealthCheck(
+                healthCheckName,
+                hcBuilder => hcBuilder.AddRedis(
                     // The connection factory tries to open the connection and throws when it fails.
                     // That is why we don't invoke it here, but capture the state (in a closure)
                     // and let the health check invoke it and handle the exception (if any).
                     connectionMultiplexerFactory: sp => serviceKey is null ? sp.GetRequiredService<IConnectionMultiplexer>() : sp.GetRequiredKeyedService<IConnectionMultiplexer>(serviceKey),
-                    name: serviceKey is null ? "StackExchange.Redis" : $"StackExchange.Redis_{connectionName}");
+                    healthCheckName));
         }
 
         static TextWriter? CreateLogger(IServiceProvider serviceProvider)
