@@ -53,6 +53,7 @@ public struct EnvironmentVariableStringInterpolationHandler
             transformed[at++] = p switch
             {
                 Func<string?> d => d(),
+                IResourceBuilder<IResourceWithConnectionString> rb => rb.Resource.GetConnectionString(),
                 IResourceWithConnectionString resource => resource.GetConnectionString(),
                 EndpointReference reference => reference.UriString,
                 _ => p?.ToString()

@@ -21,9 +21,9 @@ var endpoint = catalogService.GetEndpoint("http");
 builder.AddProject<Projects.MyFrontend>("frontend")
        .WithReference(basketService)
        .WithReference(endpoint)
-       .WithEnvironment("ENV_DB", $"{catalogDb.Resource}")
+       .WithEnvironment("ENV_DB", $"{catalogDb}")
        .WithEnvironment("ENV_URI", $"{endpoint}")
-       .WithEnvironment("ENV_DBCONN", $"{catalogDb.Resource.GetConnectionString}");
+       .WithEnvironment("ENV_DBCONN", $"{catalogDb.Resource}");
 
 builder.AddProject<Projects.OrderProcessor>("orderprocessor")
        .WithReference(messaging)
