@@ -1,8 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.AspNetCore.OutputCaching;
+using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Caching.StackExchangeRedis;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;
@@ -180,5 +184,43 @@ public class AspireRedisExtensionsTests
             host.Services.GetRequiredService<IOptions<ConfigurationOptions>>().Value;
 
         Assert.Equal(expectedAbortOnConnect, options.AbortOnConnectFail);
+    }
+
+    /// <summary>
+    /// Verifies that both distributed and output caching components can be added to the same builder and their HealthChecks don't conflict.
+    /// See https://github.com/dotnet/aspire/issues/705
+    /// </summary>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void MultipleRedisComponentsCanBeAdded(bool useKeyed)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        if (useKeyed)
+        {
+            builder.AddKeyedRedisDistributedCache("redis");
+            builder.AddKeyedRedisOutputCache("redis");
+        }
+        else
+        {
+            builder.AddRedisDistributedCache("redis");
+            builder.AddRedisOutputCache("redis");
+        }
+
+        var host = builder.Build();
+
+        // Note that IDistributedCache and OutputCacheStore don't support keyed services - so only the Redis ConnectionMultiplexer is keyed.
+
+        var distributedCache = host.Services.GetRequiredService<IDistributedCache>();
+        Assert.IsAssignableFrom<RedisCache>(distributedCache);
+
+        var cacheStore = host.Services.GetRequiredService<IOutputCacheStore>();
+        Assert.StartsWith("Redis", cacheStore.GetType().Name);
+
+        // Explicitly ensure the HealthCheckService can be retrieved. It validates the registrations in its constructor.
+        // See https://github.com/dotnet/aspnetcore/blob/94ad7031db6744409de24f75777a59620cb94d9a/src/HealthChecks/HealthChecks/src/DefaultHealthCheckService.cs#L33-L36
+        var healthCheckService = host.Services.GetRequiredService<HealthCheckService>();
+        Assert.NotNull(healthCheckService);
     }
 }
