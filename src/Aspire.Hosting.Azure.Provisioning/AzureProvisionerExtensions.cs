@@ -58,9 +58,6 @@ public static class AzureProvisionerExtensions
         builder.AddAzureProvisioner<AzureSqlServerResource, SqlServerProvisioner>();
         builder.AddResourceEnumerator(resourceGroup => resourceGroup.GetSqlServers(), resource => resource.Data.Tags);
 
-        builder.AddAzureProvisioner<AzureSqlDatabaseResource, SqlDatabaseProvisioner>();
-        builder.AddResourceEnumerator(resourceGroup => resourceGroup.GetSqlServers().SelectMany(server => server.GetSqlDatabases()), resource => resource.Data.Tags);
-
         return builder;
     }
 

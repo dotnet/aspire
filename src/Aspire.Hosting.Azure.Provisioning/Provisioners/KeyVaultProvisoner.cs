@@ -16,7 +16,7 @@ namespace Aspire.Hosting.Azure.Provisioning;
 
 internal sealed class KeyVaultProvisioner(ILogger<KeyVaultProvisioner> logger) : AzureResourceProvisioner<AzureKeyVaultResource>
 {
-    public override bool ConfigureResource(IConfiguration configuration, AzureKeyVaultResource resource)
+    public override bool ConfigureResource(IConfiguration configuration, AzureKeyVaultResource resource, IEnumerable<IAzureChildResource> children)
     {
         if (configuration.GetConnectionString(resource.Name) is string vaultUrl)
         {
@@ -34,6 +34,7 @@ internal sealed class KeyVaultProvisioner(ILogger<KeyVaultProvisioner> logger) :
         Dictionary<string, ArmResource> resourceMap,
         AzureLocation location,
         AzureKeyVaultResource keyVault,
+        IEnumerable<IAzureChildResource> children,
         UserPrincipal principal,
         JsonObject userSecrets,
         CancellationToken cancellationToken)

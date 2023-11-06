@@ -9,10 +9,13 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="name">The name of the resource.</param>
 /// <param name="storage">The <see cref="AzureStorageResource"/> that the resource is stored in.</param>
 public class AzureTableStorageResource(string name, AzureStorageResource storage) : Resource(name),
-    IAzureResource,
+    IAzureChildResource,
     IResourceWithConnectionString,
     IResourceWithParent<AzureStorageResource>
 {
+    /// <inheritdoc/>
+    IAzureResource IAzureChildResource.Parent => Parent;
+
     /// <summary>
     /// Gets the parent AzureStorageResource of this AzureTableStorageResource.
     /// </summary>

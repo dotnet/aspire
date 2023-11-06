@@ -13,13 +13,13 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Azure.Provisioning;
 
-internal record UserPrincipal(Guid Id, string Name);
+internal sealed record UserPrincipal(Guid Id, string Name);
 
 internal interface IAzureResourceProvisioner
 {
-    bool ConfigureResource(IConfiguration configuration, IAzureResource resource);
+    bool ConfigureResource(IConfiguration configuration, IAzureResource resource, IEnumerable<IAzureChildResource> children);
 
-    bool ShouldProvision(IConfiguration configuration, IAzureResource resource);
+    bool ShouldProvision(IConfiguration configuration, IAzureResource resource, IEnumerable<IAzureChildResource> children);
 
     Task GetOrCreateResourceAsync(
         ArmClient armClient,
@@ -28,6 +28,7 @@ internal interface IAzureResourceProvisioner
         Dictionary<string, ArmResource> resourceMap,
         AzureLocation location,
         IAzureResource resource,
+        IEnumerable<IAzureChildResource> children,
         UserPrincipal principal,
         JsonObject userSecrets,
         CancellationToken cancellationToken);
@@ -36,11 +37,11 @@ internal interface IAzureResourceProvisioner
 internal abstract class AzureResourceProvisioner<TResource> : IAzureResourceProvisioner
     where TResource : IAzureResource
 {
-    bool IAzureResourceProvisioner.ConfigureResource(IConfiguration configuration, IAzureResource resource) =>
-        ConfigureResource(configuration, (TResource)resource);
+    bool IAzureResourceProvisioner.ConfigureResource(IConfiguration configuration, IAzureResource resource, IEnumerable<IAzureChildResource> children) =>
+        ConfigureResource(configuration, (TResource)resource, children);
 
-    bool IAzureResourceProvisioner.ShouldProvision(IConfiguration configuration, IAzureResource resource) =>
-        ShouldProvision(configuration, (TResource)resource);
+    bool IAzureResourceProvisioner.ShouldProvision(IConfiguration configuration, IAzureResource resource, IEnumerable<IAzureChildResource> children) =>
+        ShouldProvision(configuration, (TResource)resource, children);
 
     Task IAzureResourceProvisioner.GetOrCreateResourceAsync(
         ArmClient armClient,
@@ -49,14 +50,15 @@ internal abstract class AzureResourceProvisioner<TResource> : IAzureResourceProv
         Dictionary<string, ArmResource> resourceMap,
         AzureLocation location,
         IAzureResource resource,
+        IEnumerable<IAzureChildResource> children,
         UserPrincipal principal,
         JsonObject userSecrets,
         CancellationToken cancellationToken)
-        => GetOrCreateResourceAsync(armClient, subscription, resourceGroup, resourceMap, location, (TResource)resource, principal, userSecrets, cancellationToken);
+        => GetOrCreateResourceAsync(armClient, subscription, resourceGroup, resourceMap, location, (TResource)resource, children, principal, userSecrets, cancellationToken);
 
-    public abstract bool ConfigureResource(IConfiguration configuration, TResource resource);
+    public abstract bool ConfigureResource(IConfiguration configuration, TResource resource, IEnumerable<IAzureChildResource> children);
 
-    public virtual bool ShouldProvision(IConfiguration configuration, TResource resource) => true;
+    public virtual bool ShouldProvision(IConfiguration configuration, TResource resource, IEnumerable<IAzureChildResource> children) => true;
 
     public abstract Task GetOrCreateResourceAsync(
         ArmClient armClient,
@@ -65,6 +67,7 @@ internal abstract class AzureResourceProvisioner<TResource> : IAzureResourceProv
         Dictionary<string, ArmResource> resourceMap,
         AzureLocation location,
         TResource resource,
+        IEnumerable<IAzureChildResource> children,
         UserPrincipal principal,
         JsonObject userSecrets,
         CancellationToken cancellationToken);

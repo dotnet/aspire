@@ -17,11 +17,23 @@ namespace Aspire.Hosting.Azure.Provisioning;
 
 internal sealed class SqlServerProvisioner(ILogger<SqlServerProvisioner> logger) : AzureResourceProvisioner<AzureSqlServerResource>
 {
-    public override bool ConfigureResource(IConfiguration configuration, AzureSqlServerResource resource)
+    public override bool ConfigureResource(IConfiguration configuration, AzureSqlServerResource resource, IEnumerable<IAzureChildResource> children)
     {
         if (configuration.GetConnectionString(resource.Name) is string hostname)
         {
             resource.Hostname = hostname;
+
+            foreach (var database in children.OfType<AzureSqlDatabaseResource>())
+            {
+                if (configuration.GetConnectionString(database.Name) is string connectionString)
+                {
+                    database.ConnectionString = connectionString;
+                }
+                else
+                {
+                    return false;
+                }
+            }
             return true;
         }
 
@@ -35,6 +47,7 @@ internal sealed class SqlServerProvisioner(ILogger<SqlServerProvisioner> logger)
         Dictionary<string, ArmResource> resourceMap,
         AzureLocation location,
         AzureSqlServerResource resource,
+        IEnumerable<IAzureChildResource> children,
         UserPrincipal principal,
         JsonObject userSecrets,
         CancellationToken cancellationToken)
@@ -84,16 +97,54 @@ internal sealed class SqlServerProvisioner(ILogger<SqlServerProvisioner> logger)
 
         await AddFirewallRule(sqlServerResource).ConfigureAwait(false);
 
-        // We need to add server to the resource map if it doesn't exist as we'll need it when provisioning databases
-        // TODO: Should this actually be done in the enumerator?
-        resourceMap.TryAdd(resource.Name,sqlServerResource);
+        foreach (var database in children.OfType<AzureSqlDatabaseResource>())
+        {
+            var connectionString = await CreateDatabaseIfNotExists(sqlServerResource, database, cancellationToken).ConfigureAwait(false);
+
+            database.ConnectionString = connectionString;
+            connectionStrings[database.Name] = connectionString;
+        }
+    }
+
+    private async Task<string> CreateDatabaseIfNotExists(
+        SqlServerResource sqlServerResource,
+        AzureSqlDatabaseResource database,
+        CancellationToken cancellationToken)
+    {
+        SqlDatabaseResource sqlDatabaseResource;
+        var exists = await sqlServerResource.GetSqlDatabases().ExistsAsync(database.Name, cancellationToken).ConfigureAwait(false);
+
+        if (exists)
+        {
+            sqlDatabaseResource = await sqlServerResource.GetSqlDatabases().GetAsync(database.Name, cancellationToken).ConfigureAwait(false);
+        }
+        else
+        {
+            logger.LogInformation("Creating SQL database {sqlServerName}/{sqlDatabaseName} in {location}...", sqlServerResource.Data.Name, database.Name, sqlServerResource.Data.Location);
+
+            var sqlDatabaseData = new SqlDatabaseData(sqlServerResource.Data.Location)
+            {
+                Sku = new SqlSku("S0")
+            };
+            sqlDatabaseData.Tags.Add(AzureProvisioner.AspireResourceNameTag, database.Name);
+
+            var sw = Stopwatch.StartNew();
+            var operation = await sqlServerResource.GetSqlDatabases().CreateOrUpdateAsync(WaitUntil.Completed, database.Name, sqlDatabaseData, cancellationToken).ConfigureAwait(false);
+            sqlDatabaseResource = operation.Value;
+            sw.Stop();
+
+            logger.LogInformation("SQL database {sqlServerName} created in {elapsed}", sqlDatabaseResource.Data.Name, sw.Elapsed);
+        }
+
+        return $"Server=tcp:{sqlServerResource.Data.FullyQualifiedDomainName},1433;Initial Catalog={sqlDatabaseResource.Data.Name};Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;Authentication=\"Active Directory Default\";";
     }
 
     private async Task AddFirewallRule(SqlServerResource sqlServerResource)
     {
         var ipAddress = await GetPublicIp().ConfigureAwait(false);
+        var ruleName = $"Allow_{ipAddress}";
         var firewallRules = sqlServerResource.GetSqlFirewallRules();
-        if (!await firewallRules.ExistsAsync(ipAddress).ConfigureAwait(false))
+        if (!await firewallRules.ExistsAsync(ruleName).ConfigureAwait(false))
         {
             logger.LogInformation("Creating firewall rule for SQL server {sqlServerName}...", sqlServerResource.Data.Name);
             var data = new SqlFirewallRuleData
@@ -101,15 +152,15 @@ internal sealed class SqlServerProvisioner(ILogger<SqlServerProvisioner> logger)
                 StartIPAddress = ipAddress,
                 EndIPAddress = ipAddress,
             };
-            await firewallRules.CreateOrUpdateAsync(WaitUntil.Completed, ipAddress, data).ConfigureAwait(false);
+            await firewallRules.CreateOrUpdateAsync(WaitUntil.Completed, ruleName, data).ConfigureAwait(false);
             logger.LogInformation("Firewall rule for SQL server {sqlServerName} created", sqlServerResource.Data.Name);
         }
 
         static async Task<string> GetPublicIp()
         {
             using var client = new HttpClient();
-            var response = await client.GetAsync("https://ifconfig.me/ip").ConfigureAwait(false);
-            return await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            var response = await client.GetAsync("https://checkip.amazonaws.com").ConfigureAwait(false);
+            return (await response.Content.ReadAsStringAsync().ConfigureAwait(false)).TrimEnd();
         }
     }
 }

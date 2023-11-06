@@ -50,9 +50,11 @@ internal sealed class AzureProvisioner(
             return;
         }
 
+        var childResourcesLookup = appModel.Resources.OfType<IAzureChildResource>().ToLookup(x => x.Parent);
+
         try
         {
-            await ProvisionAzureResources(configuration, environment, logger, azureResources, cancellationToken).ConfigureAwait(false);
+            await ProvisionAzureResources(configuration, environment, logger, azureResources, childResourcesLookup, cancellationToken).ConfigureAwait(false);
         }
         catch (MissingConfigurationException ex)
         {
@@ -64,7 +66,7 @@ internal sealed class AzureProvisioner(
         }
     }
 
-    private async Task ProvisionAzureResources(IConfiguration configuration, IHostEnvironment environment, ILogger<AzureProvisioner> logger, IEnumerable<IAzureResource> azureResources, CancellationToken cancellationToken)
+    private async Task ProvisionAzureResources(IConfiguration configuration, IHostEnvironment environment, ILogger<AzureProvisioner> logger, IEnumerable<IAzureResource> azureResources, ILookup<IAzureResource, IAzureChildResource> childResourcesLookup, CancellationToken cancellationToken)
     {
         var credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions()
         {
@@ -185,6 +187,7 @@ internal sealed class AzureProvisioner(
         foreach (var resource in azureResources)
         {
             usedResources.Add(resource.Name);
+            var childResources = childResourcesLookup[resource];
 
             var provisioner = serviceProvider.GetKeyedService<IAzureResourceProvisioner>(resource.GetType());
 
@@ -194,13 +197,13 @@ internal sealed class AzureProvisioner(
                 continue;
             }
 
-            if (!provisioner.ShouldProvision(configuration, resource))
+            if (!provisioner.ShouldProvision(configuration, resource, childResources))
             {
                 logger.LogInformation("Skipping {resourceName} because it is not configured to be provisioned.", resource.Name);
                 continue;
             }
 
-            if (provisioner.ConfigureResource(configuration, resource))
+            if (provisioner.ConfigureResource(configuration, resource, childResources))
             {
                 logger.LogInformation("Using connection information stored in user secrets for {resourceName}.", resource.Name);
 
@@ -223,6 +226,7 @@ internal sealed class AzureProvisioner(
                     resourceMap,
                     location,
                     resource,
+                    childResourcesLookup[resource],
                     principal,
                     userSecrets,
                     cancellationToken);

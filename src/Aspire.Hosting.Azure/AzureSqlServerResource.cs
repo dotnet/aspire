@@ -13,7 +13,4 @@ public class AzureSqlServerResource(string name) : Resource(name), IAzureResourc
     /// Gets or sets the hostname of the Azure SQL Server resource.
     /// </summary>
     public string? Hostname { get; set; }
-
-    internal string? GetConnectionString(string database) =>
-        $"Server=tcp:{Hostname},1433;Initial Catalog={database};Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;Authentication=\"Active Directory Default\";";
 }
