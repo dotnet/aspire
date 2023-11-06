@@ -1,10 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Collections;
 using Aspire.Components.Common.Tests;
 using Aspire.Components.ConformanceTests;
 using Microsoft.DotNet.RemoteExecutor;
+using Microsoft.DotNet.XUnitExtensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.Extensions.Configuration;
@@ -108,16 +108,9 @@ public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, NpgsqlEn
         }
     }
 
-    // workaround https://github.com/npgsql/efcore.pg/issues/2891 by clearing the cache so the test is fresh
     protected override void SetupConnectionInformationIsDelayValidated()
     {
-#pragma warning disable EF1001 // Internal EF Core API usage.
-        var cache = (IDictionary)typeof(ServiceProviderCache)
-            .GetField("_configurations", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
-            .GetValue(ServiceProviderCache.Instance)!;
-#pragma warning restore EF1001 // Internal EF Core API usage.
-
-        cache.Clear();
+        throw new SkipTestException("Need to skip this test until https://github.com/npgsql/efcore.pg/issues/2891 is fixed.");
     }
 
     [Theory]
