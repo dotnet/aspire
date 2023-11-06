@@ -4,6 +4,8 @@
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
     <IsAotCompatible>true</IsAotCompatible>
+    <Description>Provides extensions to HttpClient to resolve well-known hostnames to concrete endpoints based on contextual information in the host environment.</Description>
+    <PackageIconFullPath>$(SharedDir)dotnet-icon.png</PackageIconFullPath>
   </PropertyGroup>
 
   <ItemGroup>

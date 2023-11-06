@@ -6,6 +6,8 @@
     <Nullable>enable</Nullable>
     <IsPackable>true</IsPackable>
     <IsAotCompatible>true</IsAotCompatible>
+    <Description>Provides extensions for service discovery for the YARP reverse proxy.</Description>
+    <PackageIconFullPath>$(SharedDir)dotnet-icon.png</PackageIconFullPath>
   </PropertyGroup>
 
   <ItemGroup>
