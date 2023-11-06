@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <Description>Dapr resource extensions for .NET Aspire.</Description>
+    <Description>Dapr support for .NET Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)Aspire_icon_256.png</PackageIconFullPath>
   </PropertyGroup>
 
