@@ -6,7 +6,7 @@
     <IsPackable>true</IsPackable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <NoWarn>$(NoWarn);CS8002</NoWarn>
-    <Description>Core API and abtractions for the Aspire application model.</Description>
+    <Description>Core API and abstractions for the .NET Aspire application model.</Description>
     <PackageIconFullPath>$(SharedDir)Aspire_icon_256.png</PackageIconFullPath>
   </PropertyGroup>
 
