@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <Description>Azure resource extensions for .NET Aspire.</Description>
+    <Description>Azure resource types for .NET Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)Aspire_icon_256.png</PackageIconFullPath>
   </PropertyGroup>
 
