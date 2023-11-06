@@ -14,18 +14,6 @@ if (firstUndefinedElement) {
     document.body.classList.remove("before-upgrade");
 }
 
-window.scrollToEndInTextArea = function (classSelector) {
-    let fluentTextAreas = document.querySelectorAll(classSelector);
-    if (fluentTextAreas && fluentTextAreas.length > 0) {
-        for (const fluentTextArea of fluentTextAreas) {
-            if (fluentTextArea && fluentTextArea.shadowRoot) {
-                let textArea = fluentTextArea.shadowRoot.querySelector('textarea');
-                textArea.scrollTop = textArea.scrollHeight;
-            }
-        }
-    }
-};
-
 let isScrolledToContent = false;
 
 window.resetContinuousScrollPosition = function () {

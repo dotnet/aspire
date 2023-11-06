@@ -40,3 +40,23 @@
     vertical-align: text-bottom;
     margin-right: 3px;
 }
+
+::deep .logs-summary-layout {
+    display: grid;
+    grid-template-rows: 1fr auto;
+    height: 100%;
+    width: 100%;
+    grid-template-areas:
+        "main"
+        "foot";
+    gap: calc(var(--design-unit) * 2px);
+}
+
+::deep .logs-summary-layout > .logs-grid-container {
+    grid-area: main;
+    overflow: auto;
+}
+
+::deep .logs-summary-layout > .total-items-footer {
+    grid-area: foot;
+}
