@@ -5,7 +5,7 @@
     <IsPackable>true</IsPackable>
     <IsAotCompatible>true</IsAotCompatible>
     <Description>Provides extensions to HttpClient to resolve well-known hostnames to concrete endpoints based on DNS records. Useful for service resolution in orchestrators such as Kubernetes.</Description>
-    <PackageIconFullPath>$(SharedDir)dotnet-icon.png</PackageIconFullPath>
+    <SuppressAspireIcon>true</SuppressAspireIcon>
   </PropertyGroup>
 
   <ItemGroup>
