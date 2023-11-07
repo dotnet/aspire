@@ -11,7 +11,7 @@ Add NuGet sources to apply the following feeds
 
 ### Command line instructions
 ```sh
-dotnet nuget add source --name dotnet-libraries-internal https://pkgs.dev.azure.com/dnceng/internal/_packaging/dotnet-tools-internal/nuget/v3/index.json
+dotnet nuget add source --name dotnet-tools-internal https://pkgs.dev.azure.com/dnceng/internal/_packaging/dotnet-tools-internal/nuget/v3/index.json
 dotnet nuget add source --name dotnet8 https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet8/nuget/v3/index.json
 ```
 
