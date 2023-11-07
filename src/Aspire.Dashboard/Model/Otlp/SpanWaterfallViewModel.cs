@@ -22,23 +22,17 @@ public sealed class SpanWaterfallViewModel
 
     public string GetTooltip()
     {
-        var sb = new StringBuilder();
-        sb.Append(Span.Source.ApplicationName);
-        sb.Append(": ");
-        sb.Append(GetDisplaySummary());
+        var tooltip = $"{Span.Source.ApplicationName}: {GetDisplaySummary()}";
         if (IsError)
         {
-            sb.AppendLine();
-            sb.Append("Status = Error");
+            tooltip += Environment.NewLine + "Status = Error";
         }
         if (HasUninstrumentedPeer)
         {
-            sb.AppendLine();
-            sb.Append("Uninstrumented peer = ");
-            sb.Append(UninstrumentedPeer);
+            tooltip += Environment.NewLine + $"Outgoing call to peer {UninstrumentedPeer}";
         }
 
-        return sb.ToString();
+        return tooltip;
     }
 
     public string GetDisplaySummary()
