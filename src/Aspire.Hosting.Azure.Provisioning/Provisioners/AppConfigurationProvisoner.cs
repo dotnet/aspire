@@ -17,7 +17,7 @@ namespace Aspire.Hosting.Azure.Provisioning;
 
 internal sealed class AppConfigurationProvisioner(ILogger<AppConfigurationProvisioner> logger) : AzureResourceProvisioner<AzureAppConfigurationResource>
 {
-    public override bool ConfigureResource(IConfiguration configuration, AzureAppConfigurationResource resource, IEnumerable<IAzureChildResource> children)
+    public override bool ConfigureResource(IConfiguration configuration, AzureAppConfigurationResource resource, IEnumerable<IResourceWithParent<IAzureResource>> children)
     {
         if (configuration.GetConnectionString(resource.Name) is string endpoint)
         {
@@ -35,7 +35,7 @@ internal sealed class AppConfigurationProvisioner(ILogger<AppConfigurationProvis
         Dictionary<string, ArmResource> resourceMap,
         AzureLocation location,
         AzureAppConfigurationResource resource,
-        IEnumerable<IAzureChildResource> children,
+        IEnumerable<IResourceWithParent<IAzureResource>> children,
         UserPrincipal principal,
         JsonObject userSecrets,
         CancellationToken cancellationToken)

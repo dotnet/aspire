@@ -17,7 +17,7 @@ namespace Aspire.Hosting.Azure.Provisioning;
 
 internal sealed class SqlServerProvisioner(ILogger<SqlServerProvisioner> logger) : AzureResourceProvisioner<AzureSqlServerResource>
 {
-    public override bool ConfigureResource(IConfiguration configuration, AzureSqlServerResource resource, IEnumerable<IAzureChildResource> children)
+    public override bool ConfigureResource(IConfiguration configuration, AzureSqlServerResource resource, IEnumerable<IResourceWithParent<IAzureResource>> children)
     {
         if (configuration.GetConnectionString(resource.Name) is string hostname)
         {
@@ -47,7 +47,7 @@ internal sealed class SqlServerProvisioner(ILogger<SqlServerProvisioner> logger)
         Dictionary<string, ArmResource> resourceMap,
         AzureLocation location,
         AzureSqlServerResource resource,
-        IEnumerable<IAzureChildResource> children,
+        IEnumerable<IResourceWithParent<IAzureResource>> children,
         UserPrincipal principal,
         JsonObject userSecrets,
         CancellationToken cancellationToken)
@@ -90,7 +90,7 @@ internal sealed class SqlServerProvisioner(ILogger<SqlServerProvisioner> logger)
 
             logger.LogInformation("SQL server {sqlServerName} created in {elapsed}", sqlServerResource.Data.Name, sw.Elapsed);
         }
-        resource.Hostname = sqlServerResource.Data.Name + ".database.windows.net";
+        resource.Hostname = sqlServerResource.Data.FullyQualifiedDomainName;
 
         var connectionStrings = userSecrets.Prop("ConnectionStrings");
         connectionStrings[resource.Name] = resource.Hostname;
@@ -141,26 +141,18 @@ internal sealed class SqlServerProvisioner(ILogger<SqlServerProvisioner> logger)
 
     private async Task AddFirewallRule(SqlServerResource sqlServerResource)
     {
-        var ipAddress = await GetPublicIp().ConfigureAwait(false);
-        var ruleName = $"Allow_{ipAddress}";
+        const string ruleName = "AllowAll";
         var firewallRules = sqlServerResource.GetSqlFirewallRules();
         if (!await firewallRules.ExistsAsync(ruleName).ConfigureAwait(false))
         {
             logger.LogInformation("Creating firewall rule for SQL server {sqlServerName}...", sqlServerResource.Data.Name);
             var data = new SqlFirewallRuleData
             {
-                StartIPAddress = ipAddress,
-                EndIPAddress = ipAddress,
+                StartIPAddress = "0.0.0.0",
+                EndIPAddress = "255.255.255.255",
             };
             await firewallRules.CreateOrUpdateAsync(WaitUntil.Completed, ruleName, data).ConfigureAwait(false);
             logger.LogInformation("Firewall rule for SQL server {sqlServerName} created", sqlServerResource.Data.Name);
-        }
-
-        static async Task<string> GetPublicIp()
-        {
-            using var client = new HttpClient();
-            var response = await client.GetAsync("https://checkip.amazonaws.com").ConfigureAwait(false);
-            return (await response.Content.ReadAsStringAsync().ConfigureAwait(false)).TrimEnd();
         }
     }
 }

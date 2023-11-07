@@ -9,13 +9,9 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="name">The name of the resource.</param>
 /// <param name="server">The <see cref="AzureSqlServerResource"/> that the resource is stored in.</param>
 public class AzureSqlDatabaseResource(string name, AzureSqlServerResource server) : Resource(name),
-    IAzureChildResource,
     IResourceWithConnectionString,
     IResourceWithParent<AzureSqlServerResource>
 {
-    /// <inheritdoc/>
-    IAzureResource IAzureChildResource.Parent => Parent;
-
     /// <summary>
     /// Gets the parent AzureSqlServerResource of this AzureSqlDatabaseResource.
     /// </summary>

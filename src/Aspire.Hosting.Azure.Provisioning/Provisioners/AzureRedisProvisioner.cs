@@ -19,7 +19,7 @@ namespace Aspire.Hosting.Azure.Provisioning;
 
 internal sealed class AzureRedisProvisioner(ILogger<AzureRedisProvisioner> logger) : AzureResourceProvisioner<AzureRedisResource>
 {
-    public override bool ConfigureResource(IConfiguration configuration, AzureRedisResource resource, IEnumerable<IAzureChildResource> children)
+    public override bool ConfigureResource(IConfiguration configuration, AzureRedisResource resource, IEnumerable<IResourceWithParent<IAzureResource>> children)
     {
         if (configuration.GetConnectionString(resource.Name) is string connectionString)
         {
@@ -37,7 +37,7 @@ internal sealed class AzureRedisProvisioner(ILogger<AzureRedisProvisioner> logge
         Dictionary<string, ArmResource> resourceMap,
         AzureLocation location,
         AzureRedisResource resource,
-        IEnumerable<IAzureChildResource> children,
+        IEnumerable<IResourceWithParent<IAzureResource>> children,
         UserPrincipal principal,
         JsonObject userSecrets,
         CancellationToken cancellationToken)

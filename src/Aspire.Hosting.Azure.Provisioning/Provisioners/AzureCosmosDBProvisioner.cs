@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Text.Json.Nodes;
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Data.Cosmos;
 using Azure;
 using Azure.Core;
@@ -17,7 +18,7 @@ namespace Aspire.Hosting.Azure.Provisioning;
 
 internal sealed class AzureCosmosDBProvisioner(ILogger<AzureCosmosDBProvisioner> logger) : AzureResourceProvisioner<AzureCosmosDBResource>
 {
-    public override bool ConfigureResource(IConfiguration configuration, AzureCosmosDBResource resource)
+    public override bool ConfigureResource(IConfiguration configuration, AzureCosmosDBResource resource, IEnumerable<IResourceWithParent<IAzureResource>> children)
     {
         if (configuration.GetConnectionString(resource.Name) is string connectionString)
         {
@@ -35,7 +36,8 @@ internal sealed class AzureCosmosDBProvisioner(ILogger<AzureCosmosDBProvisioner>
         Dictionary<string, ArmResource> resourceMap,
         AzureLocation location,
         AzureCosmosDBResource resource,
-        Guid principalId,
+        IEnumerable<IResourceWithParent<IAzureResource>> children,
+        UserPrincipal principal,
         JsonObject userSecrets,
         CancellationToken cancellationToken)
     {
@@ -71,7 +73,7 @@ internal sealed class AzureCosmosDBProvisioner(ILogger<AzureCosmosDBProvisioner>
             cosmosDbCreateOrUpdateContent.Tags.Add(AzureProvisioner.AspireResourceNameTag, resource.Name);
 
             var sw = Stopwatch.StartNew();
-            
+
             var operation = await resourceGroup.GetCosmosDBAccounts().CreateOrUpdateAsync(WaitUntil.Completed, cosmosDbName, cosmosDbCreateOrUpdateContent, cancellationToken).ConfigureAwait(false);
             cosmosResource = operation.Value;
             sw.Stop();

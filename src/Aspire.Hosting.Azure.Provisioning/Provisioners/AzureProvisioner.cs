@@ -50,7 +50,7 @@ internal sealed class AzureProvisioner(
             return;
         }
 
-        var childResourcesLookup = appModel.Resources.OfType<IAzureChildResource>().ToLookup(x => x.Parent);
+        var childResourcesLookup = appModel.Resources.OfType<IResourceWithParent<IAzureResource>>().ToLookup(x => x.Parent);
 
         try
         {
@@ -66,7 +66,7 @@ internal sealed class AzureProvisioner(
         }
     }
 
-    private async Task ProvisionAzureResources(IConfiguration configuration, IHostEnvironment environment, ILogger<AzureProvisioner> logger, IEnumerable<IAzureResource> azureResources, ILookup<IAzureResource, IAzureChildResource> childResourcesLookup, CancellationToken cancellationToken)
+    private async Task ProvisionAzureResources(IConfiguration configuration, IHostEnvironment environment, ILogger<AzureProvisioner> logger, IEnumerable<IAzureResource> azureResources, ILookup<IAzureResource, IResourceWithParent<IAzureResource>> childResourcesLookup, CancellationToken cancellationToken)
     {
         var credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions()
         {

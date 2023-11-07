@@ -9,13 +9,9 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="name">The name of the resource.</param>
 /// <param name="storage">The <see cref="AzureStorageResource"/> that the resource is stored in.</param>
 public class AzureBlobStorageResource(string name, AzureStorageResource storage) : Resource(name),
-    IAzureChildResource,
     IResourceWithConnectionString,
     IResourceWithParent<AzureStorageResource>
 {
-    /// <inheritdoc/>
-    IAzureResource IAzureChildResource.Parent => Parent;
-
     /// <summary>
     /// Gets the parent AzureStorageResource of this AzureBlobStorageResource.
     /// </summary>
