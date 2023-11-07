@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Data.Common;
+using Aspire;
 using Aspire.Npgsql;
 using HealthChecks.NpgSql;
 using Microsoft.Extensions.Configuration;
@@ -71,18 +72,17 @@ public static class AspirePostgreSqlNpgsqlExtensions
         // https://www.npgsql.org/doc/connection-string-parameters.html#pooling
         if (settings.HealthChecks)
         {
-            builder.Services.AddHealthChecks()
-                .Add(new HealthCheckRegistration(
-                    serviceKey is null ? "PostgreSql" : $"PostgreSql_{connectionName}",
-                    sp => new NpgSqlHealthCheck(new NpgSqlHealthCheckOptions()
-                    {
-                        DataSource = serviceKey is null
-                            ? sp.GetRequiredService<NpgsqlDataSource>()
-                            : sp.GetRequiredKeyedService<NpgsqlDataSource>(serviceKey)
-                    }),
-                    failureStatus: default,
-                    tags: default,
-                    timeout: default));
+            builder.TryAddHealthCheck(new HealthCheckRegistration(
+                serviceKey is null ? "PostgreSql" : $"PostgreSql_{connectionName}",
+                sp => new NpgSqlHealthCheck(new NpgSqlHealthCheckOptions()
+                {
+                    DataSource = serviceKey is null
+                        ? sp.GetRequiredService<NpgsqlDataSource>()
+                        : sp.GetRequiredKeyedService<NpgsqlDataSource>(serviceKey)
+                }),
+                failureStatus: default,
+                tags: default,
+                timeout: default));
         }
 
         if (settings.Tracing)

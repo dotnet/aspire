@@ -103,23 +103,22 @@ internal abstract class AzureComponent<TSettings, TClient, TClientOptions>
         {
             string namePrefix = $"Azure_{typeof(TClient).Name}";
 
-            builder.Services.AddHealthChecks()
-                .Add(new HealthCheckRegistration(
-                   serviceKey is null ? namePrefix : $"{namePrefix}_{serviceKey}",
-                   serviceProvider =>
-                   {
-                       // From https://devblogs.microsoft.com/azure-sdk/lifetime-management-and-thread-safety-guarantees-of-azure-sdk-net-clients/:
-                       // "The main rule of Azure SDK client lifetime management is: treat clients as singletons".
-                       // So it's fine to root the client via the health check.
-                       TClient client = serviceKey is null
-                            ? serviceProvider.GetRequiredService<TClient>()
-                            : serviceProvider.GetRequiredKeyedService<TClient>(serviceKey);
+            builder.TryAddHealthCheck(new HealthCheckRegistration(
+                serviceKey is null ? namePrefix : $"{namePrefix}_{serviceKey}",
+                serviceProvider =>
+                {
+                    // From https://devblogs.microsoft.com/azure-sdk/lifetime-management-and-thread-safety-guarantees-of-azure-sdk-net-clients/:
+                    // "The main rule of Azure SDK client lifetime management is: treat clients as singletons".
+                    // So it's fine to root the client via the health check.
+                    TClient client = serviceKey is null
+                        ? serviceProvider.GetRequiredService<TClient>()
+                        : serviceProvider.GetRequiredKeyedService<TClient>(serviceKey);
 
-                       return CreateHealthCheck(client, settings);
-                   },
-                   failureStatus: default,
-                   tags: default,
-                   timeout: default));
+                    return CreateHealthCheck(client, settings);
+                },
+                failureStatus: default,
+                tags: default,
+                timeout: default));
         }
 
         if (GetTracingEnabled(settings))

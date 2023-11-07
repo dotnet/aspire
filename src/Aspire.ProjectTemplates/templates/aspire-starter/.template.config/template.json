@@ -3,7 +3,7 @@
   "author": "Microsoft",
   "classifications": [
     "Common",
-    "Aspire",
+    ".NET Aspire",
     "Blazor",
     "Web",
     "Web API",
@@ -11,9 +11,9 @@
     "Service",
     "Cloud"
   ],
-  "name": "Aspire Starter Application",
+  "name": ".NET Aspire Starter Application",
   "defaultName": "AspireApp",
-  "description": "A project template for creating an Aspire app with a Blazor web frontend and web API backend service, optionally using Redis for caching.",
+  "description": "A project template for creating a .NET Aspire app with a Blazor web frontend and web API backend service, optionally using Redis for caching.",
   "shortName": "aspire-starter",
   "sourceName": "AspireStarterApplication-1",
   "preferNameDirectory": false,

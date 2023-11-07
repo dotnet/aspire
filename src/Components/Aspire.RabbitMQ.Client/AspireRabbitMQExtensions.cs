@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Net.Sockets;
+using Aspire;
 using Aspire.RabbitMQ.Client;
 using HealthChecks.RabbitMQ;
 using Microsoft.Extensions.Configuration;
@@ -119,9 +120,7 @@ public static class AspireRabbitMQExtensions
 
         if (settings.HealthChecks)
         {
-            var hcBuilder = builder.Services.AddHealthChecks();
-
-            hcBuilder.Add(new HealthCheckRegistration(
+            builder.TryAddHealthCheck(new HealthCheckRegistration(
                 serviceKey is null ? "RabbitMQ.Client" : $"RabbitMQ.Client_{connectionName}",
                 sp =>
                 {

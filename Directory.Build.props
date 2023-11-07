@@ -7,7 +7,6 @@
     <LangVersion>preview</LangVersion>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <SharedDir>$(MSBuildThisFileDirectory)/src/Shared/</SharedDir>
-    <PackageIconFullPath>$(SharedDir)Aspire_icon_256.png</PackageIconFullPath>
     <WarnOnPackingNonPackableProject>false</WarnOnPackingNonPackableProject>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
