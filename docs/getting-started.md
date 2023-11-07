@@ -53,7 +53,7 @@ it, you need to perform the following steps:
    expiration length:
     [<img width="583" alt="image" src="https://user-images.githubusercontent.com/249088/160220117-7e79822e-a18a-445c-89ff-b3d9ca84892f.png">](https://github.com/settings/tokens/new)
 
-1. At the command line, go to the root of the Aspire repo and run the following
+1. At the command line, go to the root of the .NET Aspire repo and run the following
    commands to add the package feed to your NuGet configuration, replacing the
    `<YOUR_USER_NAME>` and `<YOUR_TOKEN>` placeholders with the relevant values:
    ```text
@@ -61,7 +61,7 @@ it, you need to perform the following steps:
    dotnet nuget add source -u <YOUR_USER_NAME> -p <YOUR_TOKEN> --name dotnet-libraries-internal "https://nuget.pkg.github.com/dotnet/index.json"
    ```
 
-## Install the Aspire dotnet workload
+## Install the .NET Aspire dotnet workload
 
 ### Visual Studio
 
@@ -73,19 +73,19 @@ Ensure the `.NET Aspire SDK` component is checked in `Individual components`.
 
 ### Command line
 
-1. The RTM nightly SDK is aware that the Aspire workload exists, but the real manifest is not installed by default. In order to install it, you'll need to update the workload in a directory that has a NuGet.config[^3] with the right feeds configured[^2] so that it can pull the latest manifest. Once you have created the NuGet.config file in your working directory, then you need to run the following command[^1]:
+1. The RTM nightly SDK is aware that the .NET Aspire workload exists, but the real manifest is not installed by default. In order to install it, you'll need to update the workload in a directory that has a NuGet.config[^3] with the right feeds configured[^2] so that it can pull the latest manifest. Once you have created the NuGet.config file in your working directory, then you need to run the following command[^1]:
 
     ```shell
     dotnet workload update --skip-sign-check --interactive --source https://pkgs.dev.azure.com/dnceng/internal/_packaging/dotnet-tools-internal/nuget/v3/index.json
     ```
 
-2. The above command will update the Aspire manifest in your SDK build, meaning it will already be setup for command-line and Visual Studio in-product acquisition (IPA) of the Aspire workload. In order to manually install the workload, you can run the following command[^1]:
+2. The above command will update the .NET Aspire manifest in your SDK build, meaning it will already be setup for command-line and Visual Studio in-product acquisition (IPA) of the .NET Aspire workload. In order to manually install the workload, you can run the following command[^1]:
 
     ```shell
     dotnet workload install aspire --skip-sign-check --interactive --source https://pkgs.dev.azure.com/dnceng/internal/_packaging/dotnet-tools-internal/nuget/v3/index.json
     ```
 
-[^1]: The `--skip-sign-check` flag is required because the packages we build out of the Aspire repo are not yet signed.
+[^1]: The `--skip-sign-check` flag is required because the packages we build out of the .NET Aspire repo are not yet signed.
 [^2]: If you want to create a separate NuGet.config instead, these are the contents you need:
       ```xml
       <?xml version="1.0" encoding="utf-8"?>
@@ -111,7 +111,7 @@ Ensure the `.NET Aspire SDK` component is checked in `Individual components`.
 
 ## Using command line using workload templates
 
-- To create an empty Aspire project[^3], run the following command::
+- To create an empty .NET Aspire project[^3], run the following command::
 
 ```shell
     dotnet new aspire
@@ -123,7 +123,7 @@ Ensure the `.NET Aspire SDK` component is checked in `Individual components`.
     dotnet new aspire-starter
 ```
 
-[^3]: In order for these commands to work, you must have already installed the Aspire workload by following the steps in #Install-the-Aspire-dotnet-workload section.
+[^3]: In order for these commands to work, you must have already installed the .NET Aspire workload by following the steps in #Install-the-Aspire-dotnet-workload section.
 
 You need to create a `NuGet.config` file in the root directory of your project with the contents above.
 Once that is created you can build with

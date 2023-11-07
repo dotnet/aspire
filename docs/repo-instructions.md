@@ -11,7 +11,7 @@ You can launch VS with:
 1. `.\restore.cmd`
 2. `.\startvs.cmd`
 
-# Run the Aspire eShopLite sample
+# Run the .NET Aspire eShopLite sample
 
 ## Enable Azure ServiceBus (optional)
 
