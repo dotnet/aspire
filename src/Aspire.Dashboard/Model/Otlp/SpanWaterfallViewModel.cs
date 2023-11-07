@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Dashboard.Otlp.Model;
 using Grpc.Core;
 
@@ -14,6 +15,24 @@ public sealed class SpanWaterfallViewModel
     public required int Depth { get; init; }
     public required bool LabelIsRight { get; init; }
     public required string? UninstrumentedPeer { get; init; }
+    [MemberNotNullWhen(true, nameof(UninstrumentedPeer))]
+    public bool HasUninstrumentedPeer => !string.IsNullOrEmpty(UninstrumentedPeer);
+    public bool IsError => Span.Status == OtlpSpanStatusCode.Error;
+
+    public string GetTooltip()
+    {
+        var tooltip = $"{Span.Source.ApplicationName}: {GetDisplaySummary()}";
+        if (IsError)
+        {
+            tooltip += Environment.NewLine + "Status = Error";
+        }
+        if (HasUninstrumentedPeer)
+        {
+            tooltip += Environment.NewLine + $"Outgoing call to peer {UninstrumentedPeer}";
+        }
+
+        return tooltip;
+    }
 
     public string GetDisplaySummary()
     {

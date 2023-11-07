@@ -46,6 +46,21 @@ public partial class Traces
         return $"background: linear-gradient(to right, var(--neutral-fill-input-alt-active) {percentage:0.##}%, transparent {percentage:0.##}%);";
     }
 
+    private static string GetTooltip(IGrouping<OtlpApplication, OtlpSpan> applicationSpans)
+    {
+        var count = applicationSpans.Count();
+        var errorCount = applicationSpans.Count(s => s.Status == OtlpSpanStatusCode.Error);
+
+        var tooltip = $"{applicationSpans.Key.ApplicationName} spans";
+        tooltip += Environment.NewLine + $"Total: {count}";
+        if (errorCount > 0)
+        {
+            tooltip += Environment.NewLine + $"Errored: {errorCount}";
+        }
+
+        return tooltip;
+    }
+
     private ValueTask<GridItemsProviderResult<OtlpTrace>> GetData(GridItemsProviderRequest<OtlpTrace> request)
     {
         ViewModel.StartIndex = request.StartIndex;

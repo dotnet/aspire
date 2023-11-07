@@ -44,7 +44,7 @@
                             @foreach (var item in context.Spans.GroupBy(s => s.Source).OrderBy(g => g.Key.ApplicationName))
                             {
                                 <FluentOverflowItem>
-                                    <span class="trace-tag trace-service-tag" style="border-left-color: @(ColorGenerator.Instance.GetColorHexByKey(item.Key.ApplicationName));">
+                                    <span class="trace-tag trace-service-tag" title="@(GetTooltip(item))" style="border-left-color: @(ColorGenerator.Instance.GetColorHexByKey(item.Key.ApplicationName));">
                                         @if (item.Any(s => s.Status == OtlpSpanStatusCode.Error))
                                         {
                                             <FluentIcon Icon="Icons.Filled.Size12.ErrorCircle" Color="Color.Error" Class="trace-tag-icon" />
