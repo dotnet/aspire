@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <Compile Include="..\Aspire.Npgsql\NpgsqlCommon.cs" />
+    <Compile Include="..\Common\HealthChecksExtensions.cs" Link="HealthChecksExtensions.cs" />
   </ItemGroup>
   
   <ItemGroup>

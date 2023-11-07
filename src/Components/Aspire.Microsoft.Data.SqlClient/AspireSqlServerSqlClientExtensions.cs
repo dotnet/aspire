@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire;
 using Aspire.Microsoft.Data.SqlClient;
 using HealthChecks.SqlServer;
 using Microsoft.Data.SqlClient;
@@ -106,16 +107,15 @@ public static class AspireSqlServerSqlClientExtensions
 
         if (settings.HealthChecks)
         {
-            builder.Services.AddHealthChecks()
-                .Add(new HealthCheckRegistration(
-                    serviceKey is null ? "SqlServer" : $"SqlServer_{connectionName}",
-                    sp => new SqlServerHealthCheck(new SqlServerHealthCheckOptions()
-                    {
-                        ConnectionString = settings.ConnectionString ?? string.Empty
-                    }),
-                    failureStatus: default,
-                    tags: default,
-                    timeout: default));
+            builder.TryAddHealthCheck(new HealthCheckRegistration(
+                serviceKey is null ? "SqlServer" : $"SqlServer_{connectionName}",
+                sp => new SqlServerHealthCheck(new SqlServerHealthCheckOptions()
+                {
+                    ConnectionString = settings.ConnectionString ?? string.Empty
+                }),
+                failureStatus: default,
+                tags: default,
+                timeout: default));
         }
     }
 }

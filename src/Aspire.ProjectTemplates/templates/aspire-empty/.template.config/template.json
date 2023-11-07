@@ -3,12 +3,12 @@
   "author": "Microsoft",
   "classifications": [
     "Common",
-    "Aspire",
+    ".NET Aspire",
     "Cloud"
   ],
-  "name": "Aspire Application",
+  "name": ".NET Aspire Application",
   "defaultName": "AspireApp",
-  "description": "A project template for creating an empty Aspire app.",
+  "description": "A project template for creating an empty .NET Aspire app.",
   "shortName": "aspire",
   "sourceName": "AspireApplication-1",
   "preferNameDirectory": true,

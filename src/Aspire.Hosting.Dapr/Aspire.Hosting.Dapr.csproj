@@ -3,6 +3,7 @@
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
+    <Description>Dapr support for .NET Aspire.</Description>
   </PropertyGroup>
 
   <ItemGroup>

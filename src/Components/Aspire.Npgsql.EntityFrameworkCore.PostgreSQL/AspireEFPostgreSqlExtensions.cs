@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
+using Aspire;
 using Aspire.Npgsql.EntityFrameworkCore.PostgreSQL;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -95,7 +96,9 @@ public static partial class AspireEFPostgreSqlExtensions
         if (settings.HealthChecks)
         {
             // calling MapHealthChecks is the responsibility of the app, not Component
-            builder.Services.AddHealthChecks().AddDbContextCheck<TContext>();
+            builder.TryAddHealthCheck(
+                name: typeof(TContext).Name,
+                static hcBuilder => hcBuilder.AddDbContextCheck<TContext>());
         }
 
         if (settings.Tracing)
