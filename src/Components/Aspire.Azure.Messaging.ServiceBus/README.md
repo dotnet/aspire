@@ -78,7 +78,7 @@ Alternatively, a connection string can be used.
 
 ### Use configuration providers
 
-The .NET Azure Service Bus library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureMessagingServiceBusSettings` and `ServiceBusClientOptions` from configuration by using the `Aspire:Azure:Messaging:ServiceBus` key. Example `appsettings.json` that configures some of the options:
+The .NET Aspire Azure Service Bus library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureMessagingServiceBusSettings` and `ServiceBusClientOptions` from configuration by using the `Aspire:Azure:Messaging:ServiceBus` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {
