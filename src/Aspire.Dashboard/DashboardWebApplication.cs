@@ -39,7 +39,7 @@ public class DashboardWebApplication : IHostedService
 
         if (dashboardUris.FirstOrDefault() is { } reportedDashboardUri)
         {
-            _logger.LogInformation("Dashboard running at: {dashboardUri}", reportedDashboardUri);
+            _logger.LogInformation("Now listening on: {dashboardUri}", reportedDashboardUri);
         }
 
         var dashboardHttpsPort = dashboardUris.FirstOrDefault(IsHttps)?.Port;
