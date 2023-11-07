@@ -87,10 +87,7 @@ public class DashboardWebApplication : IHostedService
         builder.Services.AddTransient<StructuredLogsViewModel>();
         builder.Services.AddTransient<TracesViewModel>();
 
-        builder.Services.AddFluentUIComponents(options =>
-        {
-            options.HostingModel = BlazorHostingModel.Server;
-        });
+        builder.Services.AddFluentUIComponents();
 
         configureServices(builder.Services);
 
