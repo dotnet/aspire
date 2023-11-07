@@ -4,7 +4,6 @@
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
     <Description>Provisions Azure resources for development in .NET Aspire projects.</Description>
-    <PackageIconFullPath>$(SharedDir)Aspire_icon_256.png</PackageIconFullPath>
   </PropertyGroup>
 
   <ItemGroup>

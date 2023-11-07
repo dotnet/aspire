@@ -7,7 +7,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <NoWarn>$(NoWarn);CS8002</NoWarn>
     <Description>Dashboard browser interface for .NET Aspire.</Description>
-    <PackageIconFullPath>$(SharedDir)Aspire_icon_256.png</PackageIconFullPath>
   </PropertyGroup>
 
   <ItemGroup>
