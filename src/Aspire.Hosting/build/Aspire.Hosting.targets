@@ -103,7 +103,7 @@ public class ]]>%(ClassName)<![CDATA[ : IServiceMetadata
   </Target>
 
   <PropertyGroup>
-    <AspirePublisher Condition="'(AspirePublisher)' == ''">manifest</AspirePublisher>
+    <AspirePublisher Condition="'$(AspirePublisher)' == ''">manifest</AspirePublisher>
     <AspireManifestPublishOutputPath Condition="'$(AspireManifestPublishOutputPath)' == ''">$(_AspireIntermediatePath)manifest.json</AspireManifestPublishOutputPath>
   </PropertyGroup>
 
