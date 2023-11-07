@@ -29,7 +29,7 @@
         <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
         <div title="Minimum log level filter" slot="end" style="display: flex;align-items: center;">
             <span>Min Level:</span>
-            <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
+            <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
             <FluentSelect TOption="SelectViewModel<LogLevel?>"
                           Items="@_logLevels"
                           OptionText="@(c => c.Name)"
