@@ -51,7 +51,7 @@ public partial class Traces
         var count = applicationSpans.Count();
         var errorCount = applicationSpans.Count(s => s.Status == OtlpSpanStatusCode.Error);
 
-        var tooltip = $"Spans for {applicationSpans.Key.ApplicationName}: {count}";
+        var tooltip = $"{applicationSpans.Key.ApplicationName} span count: {count}";
         if (errorCount > 0)
         {
             tooltip += Environment.NewLine + $"Span error count: {errorCount}";
