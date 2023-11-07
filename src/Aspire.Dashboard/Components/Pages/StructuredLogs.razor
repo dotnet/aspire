@@ -27,16 +27,17 @@
                       Placeholder="Filter..."
                       slot="end" />
         <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
-        <span slot="end">Level:</span>
-        <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
-        <FluentSelect TOption="SelectViewModel<LogLevel?>"
-                      Items="@_logLevels"
-                      OptionText="@(c => c.Name)"
-                      @bind-SelectedOption="_selectedLogLevel"
-                      @bind-SelectedOption:after="HandleSelectedLogLevelChangedAsync"
-                      Width="120px"
-                      Style="min-width: auto;"
-                      slot="end" />
+        <div title="Minimum log level filter" slot="end" style="display: flex;align-items: center;">
+            <span>Level:</span>
+            <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
+            <FluentSelect TOption="SelectViewModel<LogLevel?>"
+                          Items="@_logLevels"
+                          OptionText="@(c => c.Name)"
+                          @bind-SelectedOption="_selectedLogLevel"
+                          @bind-SelectedOption:after="HandleSelectedLogLevelChangedAsync"
+                          Width="120px"
+                          Style="min-width: auto;" />
+        </div>
         <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
         <FluentLabel slot="end">Filters: </FluentLabel>
         @if (ViewModel.Filters.Count == 0)
