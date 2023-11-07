@@ -1,6 +1,6 @@
 # .NET Aspire
 
-## Getting started with Aspire
+## Getting started with .NET Aspire
 
 Follow instructions in [docs/getting-started.md](docs/getting-started.md) to get started using .NET Aspire.
 
