@@ -4,8 +4,8 @@
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
     <IsAotCompatible>true</IsAotCompatible>
-    <Description>Provides extensions to HttpClient that enable service discovery based on configuration and dns.</Description>
-    <PackageIconFullPath>$(SharedDir)dotnet-icon.png</PackageIconFullPath>
+    <Description>Provides extensions to HttpClient that enable service discovery based on configuration.</Description>
+    <SuppressAspireIcon>true</SuppressAspireIcon>
   </PropertyGroup>
 
   <ItemGroup>
