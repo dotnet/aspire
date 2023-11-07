@@ -24,17 +24,18 @@ public sealed class SpanWaterfallViewModel
     {
         var sb = new StringBuilder();
         sb.Append(Span.Source.ApplicationName);
-        if (HasUninstrumentedPeer)
-        {
-            sb.Append("to uninstrumented peer ");
-            sb.Append(UninstrumentedPeer);
-        }
         sb.Append(": ");
         sb.Append(GetDisplaySummary());
         if (IsError)
         {
             sb.AppendLine();
             sb.Append("Status = Error");
+        }
+        if (HasUninstrumentedPeer)
+        {
+            sb.AppendLine();
+            sb.Append("Uninstrumented peer = ");
+            sb.Append(UninstrumentedPeer);
         }
 
         return sb.ToString();
