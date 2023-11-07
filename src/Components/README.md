@@ -1,6 +1,6 @@
 # Overview
 
-Aspire components are classic .NET NuGet packages which are designed as highly usable libraries. Aspire components feature rich production-ready telemetry, health checks, configurability, testability, and documentation. For the current state of the components included in this repo and tracked for Aspire's first preview, please check out the [Aspire Components Progress](./Aspire_Components_Progress.md) page.
+Aspire components are classic .NET NuGet packages which are designed as highly usable libraries. .NET Aspire components feature rich production-ready telemetry, health checks, configurability, testability, and documentation. For the current state of the components included in this repo and tracked for .NET Aspire's first preview, please check out the [.NET Aspire Components Progress](./Aspire_Components_Progress.md) page.
 
 # Best practices for development
 
@@ -174,7 +174,7 @@ Aspire components offer integrated logging, metrics, and tracing using modern .N
 
 ### Security
 
-- If the underlying client library supports passwordless/[RBAC](https://learn.microsoft.com/azure/role-based-access-control/overview) authentication, which Credential to use should be configurable through the Aspire Settings object. For example:
+- If the underlying client library supports passwordless/[RBAC](https://learn.microsoft.com/azure/role-based-access-control/overview) authentication, which Credential to use should be configurable through the .NET Aspire Settings object. For example:
 
 ```csharp
 builder.AddAzureServiceBus(settings =>
@@ -203,7 +203,7 @@ builder.AddAzureServiceBus(settings =>
 }
 ```
 
-- Alternatively, the ConnectionString should be able to be configured through the Aspire Settings object. For example:
+- Alternatively, the ConnectionString should be able to be configured through the .NET Aspire Settings object. For example:
 
 ```csharp
 builder.AddAzureServiceBus(settings =>
