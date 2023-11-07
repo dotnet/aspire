@@ -93,7 +93,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
                         (tuple.Item1, tuple.Item2.Metadata.Name, tuple.Item2), _cancellationToken).ConfigureAwait(false);
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 _logger.LogError(ex, "Watch task over kubernetes resource of type: {resourceType} terminated", typeof(T).Name);
             }
@@ -140,7 +140,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
                 }
             }
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogError(ex, "Task to compute view model changes terminated");
         }
@@ -566,7 +566,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
                 }
             }
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             // If we fail to retrieve env vars from container at any point, we just skip it.
             if (processDisposable != null)
