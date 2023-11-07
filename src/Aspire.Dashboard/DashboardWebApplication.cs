@@ -39,7 +39,8 @@ public class DashboardWebApplication : IHostedService
 
         if (dashboardUris.FirstOrDefault() is { } reportedDashboardUri)
         {
-            _logger.LogInformation("Dashboard running at: {dashboardUri}", reportedDashboardUri);
+            // dotnet watch needs the trailing slash removed. See https://github.com/dotnet/sdk/issues/36709
+            _logger.LogInformation("Now listening on: {dashboardUri}", reportedDashboardUri.AbsoluteUri.TrimEnd('/'));
         }
 
         var dashboardHttpsPort = dashboardUris.FirstOrDefault(IsHttps)?.Port;
@@ -52,7 +53,8 @@ public class DashboardWebApplication : IHostedService
 
         if (otlpUris.FirstOrDefault() is { } reportedOtlpUri)
         {
-            _logger.LogInformation("OTLP server running at: {dashboardUri}", reportedOtlpUri);
+            // dotnet watch needs the trailing slash removed. See https://github.com/dotnet/sdk/issues/36709. Conform to dashboard URL format above
+            _logger.LogInformation("OTLP server running at: {dashboardUri}", reportedOtlpUri.AbsoluteUri.TrimEnd('/'));
         }
 
         _isAllHttps = dashboardHttpsPort is not null && IsHttps(otlpUris[0]);
