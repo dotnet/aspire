@@ -1,8 +1,8 @@
-# Aspire Components Progress for November
+# .NET Aspire Components Progress for November
 
-As part of the Aspire November preview, we want to include a set of Aspire Components which help developers build Aspire applications. These components should follow the [Aspire Component Requirements](#aspire-component-requirements). Bellow is a chart that shows the progress of each of the components we intend to ship, and their current stance against each of the requirements.
+As part of the .NET Aspire November preview, we want to include a set of .NET Aspire Components which help developers build .NET Aspire applications. These components should follow the [.NET Aspire Component Requirements](#aspire-component-requirements). Bellow is a chart that shows the progress of each of the components we intend to ship, and their current stance against each of the requirements.
 
-| Aspire Component Name                   | [Contains README](#contains-readme) | [Public API](#public-api) | [Configuration Schema](#json-schemaconfiguration) | [DI Services](#di-services) | [Logging](#logging) | [Tracing](#tracing) | [Metrics](#metrics) | [Health Checks](#health-checks) |
+| .NET Aspire Component Name              | [Contains README](#contains-readme) | [Public API](#public-api) | [Configuration Schema](#json-schemaconfiguration) | [DI Services](#di-services) | [Logging](#logging) | [Tracing](#tracing) | [Metrics](#metrics) | [Health Checks](#health-checks) |
 | --------------------------------------- | :---------------------------------: | :-----------------------: | :----------------------------------------------------: | :-------------------------: | :-----------------: | :-----------------: | :-----------------: | :-----------------------------: |
 | Npgsql                                  |                  ✅                  |             ✅             |                           ✅                            |              ✅              |          ✅          |        ✅            |         ✅           |              ✅                  |
 | Npgsql.EntityFrameworkCore.PostgreSQL   |                  ✅                  |             ✅             |                           ✅                            |              ✅              |          ✅          |        ✅            |         ✅           |              ✅                  |
@@ -27,11 +27,11 @@ Nomenclature used in the table above:
 - (blank) - Requirement hasn't been met yet
 - ❌ - Requirement can't be met
 
-## Aspire Component Requirements
+## .NET Aspire Component Requirements
 
 ### Contains README
 
-Each Aspire component must contain a README.md file which is included in the package. This README should contain the component's main description, usage examples, and basic getting started documentation. The goal of this file is to contain everything a developer will need in the first 5 minutes. Finally, README should have a link pointed back to the full documentation of the component, which will include a list of logging categories used, tracing activity names, and Metric names. For a concrete example of a README file, please look [here](./Aspire.StackExchange.Redis/README.md).
+Each .NET Aspire component must contain a README.md file which is included in the package. This README should contain the component's main description, usage examples, and basic getting started documentation. The goal of this file is to contain everything a developer will need in the first 5 minutes. Finally, README should have a link pointed back to the full documentation of the component, which will include a list of logging categories used, tracing activity names, and Metric names. For a concrete example of a README file, please look [here](./Aspire.StackExchange.Redis/README.md).
 
 ### Public API
 

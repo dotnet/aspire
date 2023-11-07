@@ -10,7 +10,7 @@ Registers [EntityFrameworkCore](https://learn.microsoft.com/en-us/ef/core/) [DbC
 
 ### Install the package
 
-Install the Aspire Microsoft EntityFrameworkCore Cosmos library with [NuGet][nuget]:
+Install the .NET Aspire Microsoft EntityFrameworkCore Cosmos library with [NuGet][nuget]:
 
 ```dotnetcli
 dotnet add package Aspire.Microsoft.EntityFrameworkCore.Cosmos
@@ -37,7 +37,7 @@ public ProductsController(MyDbContext context)
 
 ## Configuration
 
-The Aspire Microsoft EntityFrameworkCore Cosmos component provides multiple options to configure the database connection based on the requirements and conventions of your project.
+The .NET Aspire Microsoft EntityFrameworkCore Cosmos component provides multiple options to configure the database connection based on the requirements and conventions of your project.
 
 ### Use a connection string
 
@@ -61,7 +61,7 @@ See the [ConnectionString documentation](https://learn.microsoft.com/azure/cosmo
 
 ### Use configuration providers
 
-The Aspire Microsoft EntityFrameworkCore Cosmos component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `EntityFrameworkCoreCosmosDBSettings` from configuration by using the `Aspire:Microsaoft:EntityFrameworkCore:Cosmos` key. Example `appsettings.json` that configures some of the options:
+The .NET Aspire Microsoft EntityFrameworkCore Cosmos component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `EntityFrameworkCoreCosmosDBSettings` from configuration by using the `Aspire:Microsaoft:EntityFrameworkCore:Cosmos` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {
