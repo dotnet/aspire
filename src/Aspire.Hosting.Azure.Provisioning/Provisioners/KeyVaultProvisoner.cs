@@ -34,7 +34,7 @@ internal sealed class KeyVaultProvisioner(ILogger<KeyVaultProvisioner> logger) :
         Dictionary<string, ArmResource> resourceMap,
         AzureLocation location,
         AzureKeyVaultResource keyVault,
-        Guid principalId,
+        UserPrincipal principal,
         JsonObject userSecrets,
         CancellationToken cancellationToken)
     {
@@ -79,6 +79,6 @@ internal sealed class KeyVaultProvisioner(ILogger<KeyVaultProvisioner> logger) :
         // https://learn.microsoft.com/azure/role-based-access-control/built-in-roles#key-vault-administrator
         var roleDefinitionId = CreateRoleDefinitionId(subscription, "00482a5a-887f-4fb3-b363-3b7fe8e74483");
 
-        await DoRoleAssignmentAsync(armClient, keyVaultResource.Id, principalId, roleDefinitionId, cancellationToken).ConfigureAwait(false);
+        await DoRoleAssignmentAsync(armClient, keyVaultResource.Id, principal.Id, roleDefinitionId, cancellationToken).ConfigureAwait(false);
     }
 }

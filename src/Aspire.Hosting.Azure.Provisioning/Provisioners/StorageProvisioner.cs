@@ -46,7 +46,7 @@ internal sealed class StorageProvisioner(ILogger<StorageProvisioner> logger) : A
         Dictionary<string, ArmResource> resourceMap,
         AzureLocation location,
         AzureStorageResource resource,
-        Guid principalId,
+        UserPrincipal principal,
         JsonObject userSecrets,
         CancellationToken cancellationToken)
     {
@@ -102,9 +102,9 @@ internal sealed class StorageProvisioner(ILogger<StorageProvisioner> logger) : A
         // https://learn.microsoft.com/azure/role-based-access-control/built-in-roles#storage-blob-data-contributor
         var storageBlobDataContributorId = CreateRoleDefinitionId(subscription, "81a9662b-bebf-436f-a333-f67b29880f12");
 
-        var t0 = DoRoleAssignmentAsync(armClient, storageAccount.Id, principalId, storageQueueDataContributorId, cancellationToken);
-        var t1 = DoRoleAssignmentAsync(armClient, storageAccount.Id, principalId, storageDataContributorId, cancellationToken);
-        var t2 = DoRoleAssignmentAsync(armClient, storageAccount.Id, principalId, storageBlobDataContributorId, cancellationToken);
+        var t0 = DoRoleAssignmentAsync(armClient, storageAccount.Id, principal.Id, storageQueueDataContributorId, cancellationToken);
+        var t1 = DoRoleAssignmentAsync(armClient, storageAccount.Id, principal.Id, storageDataContributorId, cancellationToken);
+        var t2 = DoRoleAssignmentAsync(armClient, storageAccount.Id, principal.Id, storageBlobDataContributorId, cancellationToken);
 
         await Task.WhenAll(t0, t1, t2).ConfigureAwait(false);
     }

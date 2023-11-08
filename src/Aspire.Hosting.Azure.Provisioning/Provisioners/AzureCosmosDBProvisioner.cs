@@ -35,7 +35,7 @@ internal sealed class AzureCosmosDBProvisioner(ILogger<AzureCosmosDBProvisioner>
         Dictionary<string, ArmResource> resourceMap,
         AzureLocation location,
         AzureCosmosDBResource resource,
-        Guid principalId,
+        UserPrincipal principal,
         JsonObject userSecrets,
         CancellationToken cancellationToken)
     {
@@ -71,7 +71,7 @@ internal sealed class AzureCosmosDBProvisioner(ILogger<AzureCosmosDBProvisioner>
             cosmosDbCreateOrUpdateContent.Tags.Add(AzureProvisioner.AspireResourceNameTag, resource.Name);
 
             var sw = Stopwatch.StartNew();
-            
+
             var operation = await resourceGroup.GetCosmosDBAccounts().CreateOrUpdateAsync(WaitUntil.Completed, cosmosDbName, cosmosDbCreateOrUpdateContent, cancellationToken).ConfigureAwait(false);
             cosmosResource = operation.Value;
             sw.Stop();

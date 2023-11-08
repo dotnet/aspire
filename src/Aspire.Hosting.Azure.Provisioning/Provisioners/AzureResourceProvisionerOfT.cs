@@ -13,6 +13,8 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Azure.Provisioning;
 
+internal sealed record UserPrincipal(Guid Id, string Name);
+
 internal interface IAzureResourceProvisioner
 {
     bool ConfigureResource(IConfiguration configuration, IAzureResource resource);
@@ -26,7 +28,7 @@ internal interface IAzureResourceProvisioner
         Dictionary<string, ArmResource> resourceMap,
         AzureLocation location,
         IAzureResource resource,
-        Guid principalId,
+        UserPrincipal principal,
         JsonObject userSecrets,
         CancellationToken cancellationToken);
 }
@@ -47,10 +49,10 @@ internal abstract class AzureResourceProvisioner<TResource> : IAzureResourceProv
         Dictionary<string, ArmResource> resourceMap,
         AzureLocation location,
         IAzureResource resource,
-        Guid principalId,
+        UserPrincipal principal,
         JsonObject userSecrets,
         CancellationToken cancellationToken)
-        => GetOrCreateResourceAsync(armClient, subscription, resourceGroup, resourceMap, location, (TResource)resource, principalId, userSecrets, cancellationToken);
+        => GetOrCreateResourceAsync(armClient, subscription, resourceGroup, resourceMap, location, (TResource)resource, principal, userSecrets, cancellationToken);
 
     public abstract bool ConfigureResource(IConfiguration configuration, TResource resource);
 
@@ -63,7 +65,7 @@ internal abstract class AzureResourceProvisioner<TResource> : IAzureResourceProv
         Dictionary<string, ArmResource> resourceMap,
         AzureLocation location,
         TResource resource,
-        Guid principalId,
+        UserPrincipal principal,
         JsonObject userSecrets,
         CancellationToken cancellationToken);
 

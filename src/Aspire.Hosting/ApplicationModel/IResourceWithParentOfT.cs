@@ -7,7 +7,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// Represents a resource that has a parent resource of type <typeparamref name="T"/>.
 /// </summary>
 /// <typeparam name="T">The type of the parent resource.</typeparam>
-public interface IResourceWithParent<T> : IResource where T : IResource
+public interface IResourceWithParent<out T> : IResource where T : IResource
 {
     /// <summary>
     /// Gets the parent resource of type <typeparamref name="T"/>.

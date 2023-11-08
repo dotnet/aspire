@@ -15,6 +15,7 @@
     <PackageReference Include="Azure.ResourceManager.Redis" />
     <PackageReference Include="Azure.ResourceManager.ServiceBus" />
     <PackageReference Include="Azure.ResourceManager.Storage" />
+    <PackageReference Include="Azure.ResourceManager.Sql" />
   </ItemGroup>
 
   <ItemGroup>
