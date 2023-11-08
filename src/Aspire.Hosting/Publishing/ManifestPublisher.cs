@@ -156,7 +156,7 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger, IOptions<Publi
         }
     }
 
-    private static void WriteBindings(IResource resource, Utf8JsonWriter jsonWriter)
+    private static void WriteBindings(IResource resource, Utf8JsonWriter jsonWriter, bool emitContainerPort = false)
     {
         if (resource.TryGetServiceBindings(out var serviceBindings))
         {
@@ -167,6 +167,11 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger, IOptions<Publi
                 jsonWriter.WriteString("scheme", serviceBinding.UriScheme);
                 jsonWriter.WriteString("protocol", serviceBinding.Protocol.ToString().ToLowerInvariant());
                 jsonWriter.WriteString("transport", serviceBinding.Transport);
+
+                if (emitContainerPort && serviceBinding.ContainerPort is { } containerPort)
+                {
+                    jsonWriter.WriteNumber("containerPort", containerPort);
+                }
 
                 if (serviceBinding.IsExternal)
                 {
@@ -191,7 +196,7 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger, IOptions<Publi
         jsonWriter.WriteString("image", image);
 
         WriteEnvironmentVariables(container, jsonWriter);
-        WriteBindings(container, jsonWriter);
+        WriteBindings(container, jsonWriter, emitContainerPort: true);
     }
 
     private void WriteProject(ProjectResource project, Utf8JsonWriter jsonWriter)
