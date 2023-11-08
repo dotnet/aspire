@@ -11,6 +11,28 @@ namespace Aspire.Hosting.Tests;
 public class ManifestGenerationTests
 {
     [Fact]
+    public void EnsureContainerWithServiceBindingsEmitsContainerPort()
+    {
+        var program = CreateTestProgramJsonDocumentManifestPublisher();
+
+        program.AppBuilder.AddContainer("grafana", "grafana/grafana")
+                          .WithServiceBinding(3000, scheme: "http");
+
+        // Build AppHost so that publisher can be resolved.
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+
+        var grafana = resources.GetProperty("grafana");
+        var bindings = grafana.GetProperty("bindings");
+        var httpBinding = bindings.GetProperty("http");
+        Assert.Equal(3000, httpBinding.GetProperty("containerPort").GetInt32());
+    }
+
+    [Fact]
     public void EnsureAllRedisManifestTypesHaveVersion0Suffix()
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher();
