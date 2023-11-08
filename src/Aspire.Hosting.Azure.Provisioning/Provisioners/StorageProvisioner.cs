@@ -16,7 +16,7 @@ namespace Aspire.Hosting.Azure.Provisioning;
 
 internal sealed class StorageProvisioner(ILogger<StorageProvisioner> logger) : AzureResourceProvisioner<AzureStorageResource>
 {
-    public override bool ConfigureResource(IConfiguration configuration, AzureStorageResource resource, IEnumerable<IResourceWithParent<IAzureResource>> children)
+    public override bool ConfigureResource(IConfiguration configuration, AzureStorageResource resource)
     {
         // Storage isn't a connection string because it has multiple endpoints
         var storageSection = configuration.GetSection($"Azure:Storage:{resource.Name}");
@@ -36,7 +36,7 @@ internal sealed class StorageProvisioner(ILogger<StorageProvisioner> logger) : A
         return false;
     }
 
-    public override bool ShouldProvision(IConfiguration configuration, AzureStorageResource resource, IEnumerable<IResourceWithParent<IAzureResource>> children) =>
+    public override bool ShouldProvision(IConfiguration configuration, AzureStorageResource resource) =>
         !resource.IsEmulator;
 
     public override async Task GetOrCreateResourceAsync(
@@ -46,7 +46,6 @@ internal sealed class StorageProvisioner(ILogger<StorageProvisioner> logger) : A
         Dictionary<string, ArmResource> resourceMap,
         AzureLocation location,
         AzureStorageResource resource,
-        IEnumerable<IResourceWithParent<IAzureResource>> children,
         UserPrincipal principal,
         JsonObject userSecrets,
         CancellationToken cancellationToken)

@@ -17,13 +17,13 @@ namespace Aspire.Hosting.Azure.Provisioning;
 
 internal sealed class SqlServerProvisioner(ILogger<SqlServerProvisioner> logger) : AzureResourceProvisioner<AzureSqlServerResource>
 {
-    public override bool ConfigureResource(IConfiguration configuration, AzureSqlServerResource resource, IEnumerable<IResourceWithParent<IAzureResource>> children)
+    public override bool ConfigureResource(IConfiguration configuration, AzureSqlServerResource resource)
     {
         if (configuration.GetConnectionString(resource.Name) is string hostname)
         {
             resource.Hostname = hostname;
 
-            foreach (var database in children.OfType<AzureSqlDatabaseResource>())
+            foreach (var database in resource.Databases)
             {
                 if (configuration.GetConnectionString(database.Name) is string connectionString)
                 {
@@ -47,7 +47,6 @@ internal sealed class SqlServerProvisioner(ILogger<SqlServerProvisioner> logger)
         Dictionary<string, ArmResource> resourceMap,
         AzureLocation location,
         AzureSqlServerResource resource,
-        IEnumerable<IResourceWithParent<IAzureResource>> children,
         UserPrincipal principal,
         JsonObject userSecrets,
         CancellationToken cancellationToken)
@@ -97,7 +96,7 @@ internal sealed class SqlServerProvisioner(ILogger<SqlServerProvisioner> logger)
 
         await AddFirewallRule(sqlServerResource).ConfigureAwait(false);
 
-        foreach (var database in children.OfType<AzureSqlDatabaseResource>())
+        foreach (var database in resource.Databases)
         {
             var connectionString = await CreateDatabaseIfNotExists(sqlServerResource, database, cancellationToken).ConfigureAwait(false);
 

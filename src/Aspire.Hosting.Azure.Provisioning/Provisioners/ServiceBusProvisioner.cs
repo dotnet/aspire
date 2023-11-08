@@ -15,7 +15,7 @@ namespace Aspire.Hosting.Azure.Provisioning;
 
 internal sealed class ServiceBusProvisioner(ILogger<ServiceBusProvisioner> logger) : AzureResourceProvisioner<AzureServiceBusResource>
 {
-    public override bool ConfigureResource(IConfiguration configuration, AzureServiceBusResource resource, IEnumerable<IResourceWithParent<IAzureResource>> children)
+    public override bool ConfigureResource(IConfiguration configuration, AzureServiceBusResource resource)
     {
         if (configuration.GetConnectionString(resource.Name) is string endpoint)
         {
@@ -33,7 +33,6 @@ internal sealed class ServiceBusProvisioner(ILogger<ServiceBusProvisioner> logge
         Dictionary<string, ArmResource> resourceMap,
         AzureLocation location,
         AzureServiceBusResource resource,
-        IEnumerable<IResourceWithParent<IAzureResource>> children,
         UserPrincipal principal,
         JsonObject userSecrets,
         CancellationToken cancellationToken)

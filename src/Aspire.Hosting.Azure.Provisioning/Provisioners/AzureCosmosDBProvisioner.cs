@@ -3,7 +3,6 @@
 
 using System.Diagnostics;
 using System.Text.Json.Nodes;
-using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Data.Cosmos;
 using Azure;
 using Azure.Core;
@@ -18,7 +17,7 @@ namespace Aspire.Hosting.Azure.Provisioning;
 
 internal sealed class AzureCosmosDBProvisioner(ILogger<AzureCosmosDBProvisioner> logger) : AzureResourceProvisioner<AzureCosmosDBResource>
 {
-    public override bool ConfigureResource(IConfiguration configuration, AzureCosmosDBResource resource, IEnumerable<IResourceWithParent<IAzureResource>> children)
+    public override bool ConfigureResource(IConfiguration configuration, AzureCosmosDBResource resource)
     {
         if (configuration.GetConnectionString(resource.Name) is string connectionString)
         {
@@ -36,7 +35,6 @@ internal sealed class AzureCosmosDBProvisioner(ILogger<AzureCosmosDBProvisioner>
         Dictionary<string, ArmResource> resourceMap,
         AzureLocation location,
         AzureCosmosDBResource resource,
-        IEnumerable<IResourceWithParent<IAzureResource>> children,
         UserPrincipal principal,
         JsonObject userSecrets,
         CancellationToken cancellationToken)

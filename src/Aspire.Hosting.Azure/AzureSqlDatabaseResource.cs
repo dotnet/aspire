@@ -6,17 +6,29 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Represents an Azure SQL Database resource.
 /// </summary>
-/// <param name="name">The name of the resource.</param>
-/// <param name="server">The <see cref="AzureSqlServerResource"/> that the resource is stored in.</param>
-public class AzureSqlDatabaseResource(string name, AzureSqlServerResource server) : Resource(name),
+public class AzureSqlDatabaseResource : Resource,
     IResourceWithConnectionString,
     IResourceWithParent<AzureSqlServerResource>
 {
     /// <summary>
+    /// Represents an Azure SQL Database resource.
+    /// </summary>
+    /// <param name="name">The name of the resource.</param>
+    /// <param name="server">The <see cref="AzureSqlServerResource"/> that the resource is stored in.</param>
+    public AzureSqlDatabaseResource(string name, AzureSqlServerResource server) : base(name)
+    {
+        Parent = server;
+        Parent.AddDatabase(this);
+    }
+
+    /// <summary>
     /// Gets the parent AzureSqlServerResource of this AzureSqlDatabaseResource.
     /// </summary>
-    public AzureSqlServerResource Parent => server;
+    public AzureSqlServerResource Parent { get; }
 
+    /// <summary>
+    /// Gets or sets the connection string for the Azure SQL Database resource.
+    /// </summary>
     public string? ConnectionString { get; set; }
 
     /// <summary>
