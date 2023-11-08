@@ -1,14 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Azure;
-using Azure.Core;
-using Azure.ResourceManager;
 using Azure.ResourceManager.KeyVault;
 using Azure.ResourceManager.KeyVault.Models;
-using Azure.ResourceManager.Resources;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -28,23 +24,17 @@ internal sealed class KeyVaultProvisioner(ILogger<KeyVaultProvisioner> logger) :
     }
 
     public override async Task GetOrCreateResourceAsync(
-        ArmClient armClient,
-        SubscriptionResource subscription,
-        ResourceGroupResource resourceGroup,
-        Dictionary<string, ArmResource> resourceMap,
-        AzureLocation location,
         AzureKeyVaultResource keyVault,
-        UserPrincipal principal,
-        JsonObject userSecrets,
+        ProvisioningContext context,
         CancellationToken cancellationToken)
     {
-        resourceMap.TryGetValue(keyVault.Name, out var azureResource);
+        context.ResourceMap.TryGetValue(keyVault.Name, out var azureResource);
 
         if (azureResource is not null && azureResource is not KeyVaultResource)
         {
             logger.LogWarning("Resource {resourceName} is not a key vault resource. Deleting it.", keyVault.Name);
 
-            await armClient.GetGenericResource(azureResource.Id).DeleteAsync(WaitUntil.Started, cancellationToken).ConfigureAwait(false);
+            await context.ArmClient.GetGenericResource(azureResource.Id).DeleteAsync(WaitUntil.Started, cancellationToken).ConfigureAwait(false);
         }
 
         var keyVaultResource = azureResource as KeyVaultResource;
@@ -55,30 +45,30 @@ internal sealed class KeyVaultProvisioner(ILogger<KeyVaultProvisioner> logger) :
             // Follow this link for more information: https://go.microsoft.com/fwlink/?linkid=2147742
             var vaultName = $"v{Guid.NewGuid().ToString().Replace("-", string.Empty)[0..20]}";
 
-            logger.LogInformation("Creating key vault {vaultName} in {location}...", vaultName, location);
+            logger.LogInformation("Creating key vault {vaultName} in {location}...", vaultName, context.Location);
 
-            var properties = new KeyVaultProperties(subscription.Data.TenantId!.Value, new KeyVaultSku(KeyVaultSkuFamily.A, KeyVaultSkuName.Standard))
+            var properties = new KeyVaultProperties(context.Subscription.Data.TenantId!.Value, new KeyVaultSku(KeyVaultSkuFamily.A, KeyVaultSkuName.Standard))
             {
                 EnabledForTemplateDeployment = true,
                 EnableRbacAuthorization = true
             };
-            var parameters = new KeyVaultCreateOrUpdateContent(location, properties);
+            var parameters = new KeyVaultCreateOrUpdateContent(context.Location, properties);
             parameters.Tags.Add(AzureProvisioner.AspireResourceNameTag, keyVault.Name);
 
-            var operation = await resourceGroup.GetKeyVaults().CreateOrUpdateAsync(WaitUntil.Completed, vaultName, parameters, cancellationToken).ConfigureAwait(false);
+            var operation = await context.ResourceGroup.GetKeyVaults().CreateOrUpdateAsync(WaitUntil.Completed, vaultName, parameters, cancellationToken).ConfigureAwait(false);
             keyVaultResource = operation.Value;
 
             logger.LogInformation("Key vault {vaultName} created.", keyVaultResource.Data.Name);
         }
         keyVault.VaultUri = keyVaultResource.Data.Properties.VaultUri;
 
-        var connectionStrings = userSecrets.Prop("ConnectionStrings");
+        var connectionStrings = context.UserSecrets.Prop("ConnectionStrings");
         connectionStrings[keyVault.Name] = keyVault.VaultUri.ToString();
 
         // Key Vault Administrator
         // https://learn.microsoft.com/azure/role-based-access-control/built-in-roles#key-vault-administrator
-        var roleDefinitionId = CreateRoleDefinitionId(subscription, "00482a5a-887f-4fb3-b363-3b7fe8e74483");
+        var roleDefinitionId = CreateRoleDefinitionId(context.Subscription, "00482a5a-887f-4fb3-b363-3b7fe8e74483");
 
-        await DoRoleAssignmentAsync(armClient, keyVaultResource.Id, principal.Id, roleDefinitionId, cancellationToken).ConfigureAwait(false);
+        await DoRoleAssignmentAsync(context.ArmClient, keyVaultResource.Id, context.Principal.Id, roleDefinitionId, cancellationToken).ConfigureAwait(false);
     }
 }

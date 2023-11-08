@@ -2,14 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Azure;
-using Azure.Core;
-using Azure.ResourceManager;
 using Azure.ResourceManager.Sql;
 using Azure.ResourceManager.Sql.Models;
-using Azure.ResourceManager.Resources;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -41,23 +37,17 @@ internal sealed class SqlServerProvisioner(ILogger<SqlServerProvisioner> logger)
     }
 
     public override async Task GetOrCreateResourceAsync(
-        ArmClient armClient,
-        SubscriptionResource subscription,
-        ResourceGroupResource resourceGroup,
-        Dictionary<string, ArmResource> resourceMap,
-        AzureLocation location,
         AzureSqlServerResource resource,
-        UserPrincipal principal,
-        JsonObject userSecrets,
+        ProvisioningContext context,
         CancellationToken cancellationToken)
     {
-        resourceMap.TryGetValue(resource.Name, out var azureResource);
+        context.ResourceMap.TryGetValue(resource.Name, out var azureResource);
 
         if (azureResource is not null && azureResource is not SqlServerResource)
         {
             logger.LogWarning("Resource {resourceName} is not a SQL server resource. Deleting it.", resource.Name);
 
-            await armClient.GetGenericResource(azureResource.Id).DeleteAsync(WaitUntil.Started, cancellationToken).ConfigureAwait(false);
+            await context.ArmClient.GetGenericResource(azureResource.Id).DeleteAsync(WaitUntil.Started, cancellationToken).ConfigureAwait(false);
         }
 
         var sqlServerResource = azureResource as SqlServerResource;
@@ -66,24 +56,24 @@ internal sealed class SqlServerProvisioner(ILogger<SqlServerProvisioner> logger)
         {
             var sqlServerName = Guid.NewGuid().ToString().Replace("-", string.Empty)[0..20];
 
-            logger.LogInformation("Creating SQL server {sqlServerName} in {location}...", sqlServerName, location);
+            logger.LogInformation("Creating SQL server {sqlServerName} in {location}...", sqlServerName, context.Location);
 
-            var sqlServerData = new SqlServerData(location)
+            var sqlServerData = new SqlServerData(context.Location)
             {
                 PublicNetworkAccess = ServerNetworkAccessFlag.Enabled,
                 Administrators = new ServerExternalAdministrator
                 {
                     PrincipalType = SqlServerPrincipalType.User,
-                    Login = principal.Name,
-                    Sid = principal.Id,
-                    TenantId = subscription.Data.TenantId,
+                    Login = context.Principal.Name,
+                    Sid = context.Principal.Id,
+                    TenantId = context.Subscription.Data.TenantId,
                     IsAzureADOnlyAuthenticationEnabled = true,
                 },
             };
             sqlServerData.Tags.Add(AzureProvisioner.AspireResourceNameTag, resource.Name);
 
             var sw = Stopwatch.StartNew();
-            var operation = await resourceGroup.GetSqlServers().CreateOrUpdateAsync(WaitUntil.Completed, sqlServerName, sqlServerData, cancellationToken).ConfigureAwait(false);
+            var operation = await context.ResourceGroup.GetSqlServers().CreateOrUpdateAsync(WaitUntil.Completed, sqlServerName, sqlServerData, cancellationToken).ConfigureAwait(false);
             sqlServerResource = operation.Value;
             sw.Stop();
 
@@ -91,7 +81,7 @@ internal sealed class SqlServerProvisioner(ILogger<SqlServerProvisioner> logger)
         }
         resource.Hostname = sqlServerResource.Data.FullyQualifiedDomainName;
 
-        var connectionStrings = userSecrets.Prop("ConnectionStrings");
+        var connectionStrings = context.UserSecrets.Prop("ConnectionStrings");
         connectionStrings[resource.Name] = resource.Hostname;
 
         await AddFirewallRule(sqlServerResource).ConfigureAwait(false);

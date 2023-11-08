@@ -2,14 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Azure;
-using Azure.Core;
-using Azure.ResourceManager;
 using Azure.ResourceManager.Redis;
 using Azure.ResourceManager.Redis.Models;
-using Azure.ResourceManager.Resources;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -31,24 +27,18 @@ internal sealed class AzureRedisProvisioner(ILogger<AzureRedisProvisioner> logge
     }
 
     public override async Task GetOrCreateResourceAsync(
-        ArmClient armClient,
-        SubscriptionResource subscription,
-        ResourceGroupResource resourceGroup,
-        Dictionary<string, ArmResource> resourceMap,
-        AzureLocation location,
         AzureRedisResource resource,
-        UserPrincipal principal,
-        JsonObject userSecrets,
+        ProvisioningContext context,
         CancellationToken cancellationToken)
     {
 
-        resourceMap.TryGetValue(resource.Name, out var azureResource);
+        context.ResourceMap.TryGetValue(resource.Name, out var azureResource);
 
         if (azureResource is not null && azureResource is not RedisArmResource)
         {
             logger.LogWarning("Resource {resourceName} is not a redis resource. Deleting it.", resource.Name);
 
-            await armClient.GetGenericResource(azureResource.Id).DeleteAsync(WaitUntil.Started, cancellationToken).ConfigureAwait(false);
+            await context.ArmClient.GetGenericResource(azureResource.Id).DeleteAsync(WaitUntil.Started, cancellationToken).ConfigureAwait(false);
         }
 
         var redisResource = azureResource as RedisArmResource;
@@ -57,13 +47,13 @@ internal sealed class AzureRedisProvisioner(ILogger<AzureRedisProvisioner> logge
         {
             var redisName = Guid.NewGuid().ToString().Replace("-", string.Empty)[0..20];
 
-            logger.LogInformation("Creating redis {redisName} in {location}...", redisName, location);
+            logger.LogInformation("Creating redis {redisName} in {location}...", redisName, context.Location);
 
-            var redisCreateOrUpdateContent = new RedisCreateOrUpdateContent(location, new RedisSku(RedisSkuName.Basic, RedisSkuFamily.BasicOrStandard, 0));
+            var redisCreateOrUpdateContent = new RedisCreateOrUpdateContent(context.Location, new RedisSku(RedisSkuName.Basic, RedisSkuFamily.BasicOrStandard, 0));
             redisCreateOrUpdateContent.Tags.Add(AzureProvisioner.AspireResourceNameTag, resource.Name);
 
             var sw = Stopwatch.StartNew();
-            var operation = await resourceGroup.GetAllRedis().CreateOrUpdateAsync(WaitUntil.Completed, redisName, redisCreateOrUpdateContent, cancellationToken).ConfigureAwait(false);
+            var operation = await context.ResourceGroup.GetAllRedis().CreateOrUpdateAsync(WaitUntil.Completed, redisName, redisCreateOrUpdateContent, cancellationToken).ConfigureAwait(false);
             redisResource = operation.Value;
             sw.Stop();
 
@@ -77,7 +67,7 @@ internal sealed class AzureRedisProvisioner(ILogger<AzureRedisProvisioner> logge
         // REVIEW: Do we need to use the port?
         resource.ConnectionString = $"{redisResource.Data.HostName},ssl=true,password={keys.PrimaryKey}";
 
-        var connectionStrings = userSecrets.Prop("ConnectionStrings");
+        var connectionStrings = context.UserSecrets.Prop("ConnectionStrings");
         connectionStrings[resource.Name] = resource.ConnectionString;
     }
 }

@@ -2,14 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Azure;
-using Azure.Core;
-using Azure.ResourceManager;
 using Azure.ResourceManager.AppConfiguration;
 using Azure.ResourceManager.AppConfiguration.Models;
-using Azure.ResourceManager.Resources;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -29,23 +25,17 @@ internal sealed class AppConfigurationProvisioner(ILogger<AppConfigurationProvis
     }
 
     public override async Task GetOrCreateResourceAsync(
-        ArmClient armClient,
-        SubscriptionResource subscription,
-        ResourceGroupResource resourceGroup,
-        Dictionary<string, ArmResource> resourceMap,
-        AzureLocation location,
         AzureAppConfigurationResource resource,
-        UserPrincipal principal,
-        JsonObject userSecrets,
+        ProvisioningContext context,
         CancellationToken cancellationToken)
     {
-        resourceMap.TryGetValue(resource.Name, out var azureResource);
+        context.ResourceMap.TryGetValue(resource.Name, out var azureResource);
 
         if (azureResource is not null && azureResource is not AppConfigurationStoreResource)
         {
             logger.LogWarning("Resource {resourceName} is not a app configuration resource. Deleting it.", resource.Name);
 
-            await armClient.GetGenericResource(azureResource.Id).DeleteAsync(WaitUntil.Started, cancellationToken).ConfigureAwait(false);
+            await context.ArmClient.GetGenericResource(azureResource.Id).DeleteAsync(WaitUntil.Started, cancellationToken).ConfigureAwait(false);
         }
 
         var appConfigurationResource = azureResource as AppConfigurationStoreResource;
@@ -54,13 +44,13 @@ internal sealed class AppConfigurationProvisioner(ILogger<AppConfigurationProvis
         {
             var appConfigurationName = Guid.NewGuid().ToString().Replace("-", string.Empty)[0..20];
 
-            logger.LogInformation("Creating app configuration {appConfigurationName} in {location}...", appConfigurationName, location);
+            logger.LogInformation("Creating app configuration {appConfigurationName} in {location}...", appConfigurationName, context.Location);
 
-            var appConfigurationData = new AppConfigurationStoreData(location, new AppConfigurationSku("free"));
+            var appConfigurationData = new AppConfigurationStoreData(context.Location, new AppConfigurationSku("free"));
             appConfigurationData.Tags.Add(AzureProvisioner.AspireResourceNameTag, resource.Name);
 
             var sw = Stopwatch.StartNew();
-            var operation = await resourceGroup.GetAppConfigurationStores().CreateOrUpdateAsync(WaitUntil.Completed, appConfigurationName, appConfigurationData, cancellationToken).ConfigureAwait(false);
+            var operation = await context.ResourceGroup.GetAppConfigurationStores().CreateOrUpdateAsync(WaitUntil.Completed, appConfigurationName, appConfigurationData, cancellationToken).ConfigureAwait(false);
             appConfigurationResource = operation.Value;
             sw.Stop();
 
@@ -68,13 +58,13 @@ internal sealed class AppConfigurationProvisioner(ILogger<AppConfigurationProvis
         }
         resource.Endpoint = appConfigurationResource.Data.Endpoint;
 
-        var connectionStrings = userSecrets.Prop("ConnectionStrings");
+        var connectionStrings = context.UserSecrets.Prop("ConnectionStrings");
         connectionStrings[resource.Name] = resource.Endpoint;
 
         // App Configuration Data Owner
         // https://learn.microsoft.com/azure/role-based-access-control/built-in-roles#app-configuration-data-owner
-        var roleDefinitionId = CreateRoleDefinitionId(subscription, "5ae67dd6-50cb-40e7-96ff-dc2bfa4b606b");
+        var roleDefinitionId = CreateRoleDefinitionId(context.Subscription, "5ae67dd6-50cb-40e7-96ff-dc2bfa4b606b");
 
-        await DoRoleAssignmentAsync(armClient, appConfigurationResource.Id, principal.Id, roleDefinitionId, cancellationToken).ConfigureAwait(false);
+        await DoRoleAssignmentAsync(context.ArmClient, appConfigurationResource.Id, context.Principal.Id, roleDefinitionId, cancellationToken).ConfigureAwait(false);
     }
 }
