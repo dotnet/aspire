@@ -144,7 +144,6 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
         {
             _logger.LogError(ex, "Task to compute view model changes terminated");
         }
-
     }
 
     private async Task ProcessContainerChange(WatchEventType watchEventType, Container container)
@@ -568,13 +567,14 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            // If we fail to retrieve env vars from container at any point, we just skip it.
+            _logger.LogError(ex, "Failed to retrieve environment variables from docker container for {containerId}", containerId);
+        }
+        finally
+        {
             if (processDisposable != null)
             {
                 await processDisposable.DisposeAsync().ConfigureAwait(false);
             }
-
-            _logger.LogError(ex, "Failed to retrieve environment variables from docker container for {containerId}", containerId);
         }
     }
 
