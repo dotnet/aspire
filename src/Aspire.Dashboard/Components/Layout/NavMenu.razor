@@ -1,0 +1,15 @@
+﻿<div class="nav-menu-container">
+    <FluentNavMenu Width="250" Collapsible="true">
+        <FluentNavLink Icon="@(new Icons.Regular.Size24.AppGeneric())" Href="/" Match="NavLinkMatch.All">Projects</FluentNavLink>
+        <FluentNavLink Icon="@(new Icons.Regular.Size24.BinFull())" Href="/Containers">Containers</FluentNavLink>
+        <FluentNavLink Icon="@(new Icons.Regular.Size24.AppGeneric())" Href="/Executables">Executables</FluentNavLink>
+        <FluentNavGroup Title="Logs" Icon="@(new Icons.Regular.Size24.SlideText())" Expanded="true" Gap="10px 0;">
+            <FluentNavLink Icon="@(new Icons.Regular.Size24.SlideText())" Href="/ProjectLogs">Project</FluentNavLink>
+            <FluentNavLink Icon="@(new Icons.Regular.Size24.SlideText())" Href="/ContainerLogs">Container</FluentNavLink>
+            <FluentNavLink Icon="@(new Icons.Regular.Size24.SlideText())" Href="/ExecutableLogs">Executable</FluentNavLink>
+            <FluentNavLink Icon="@(new Icons.Regular.Size24.SlideTextSparkle())" Href="/StructuredLogs">Structured</FluentNavLink>
+        </FluentNavGroup>
+        <FluentNavLink Icon="@(new Icons.Regular.Size24.GanttChart())" Href="/Traces">Traces</FluentNavLink>
+        <FluentNavLink Icon="@(new Icons.Regular.Size24.ChartMultiple())" Href="/Metrics">Metrics</FluentNavLink>
+    </FluentNavMenu>
+</div>
