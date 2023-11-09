@@ -10,7 +10,7 @@ The best place to get the dashboards is from the Grafana dashboard store. The st
   * [ASP.NET Core](https://grafana.com/grafana/dashboards/19924) - Overview of the ASP.NET Core app
   * [ASP.NET Core Endpoint](https://grafana.com/grafana/dashboards/19924) - Detail for a specific ASP.NET Core endpoint
 
-For instructions for configuring a .NET app to work with the dashboards, see [Export metrics from ASP.NET Core](#export-metrics-from-aspnet-core).
+See [Export metrics from .NET](#export-metrics-from-net) for information on configuring a .NET app to send data to the dashboards.
 
 ## Screenshot
 
@@ -29,9 +29,9 @@ The dashboards use built-in .NET APIs and OSS cloud-native tools:
 
 This repository is the home for the dashboard JSON files. Please create issues and contribute PRs for the dashboards.
 
-## Export metrics from ASP.NET Core
+## Export metrics from .NET
 
-ASP.NET Core metrics must be to Prometheus. You can do this by configuring the [.NET OpenTelemetry SDK](https://github.com/open-telemetry/opentelemetry-dotnet).
+.NET metrics must be exported to Prometheus. You can do this by configuring the [.NET OpenTelemetry SDK](https://github.com/open-telemetry/opentelemetry-dotnet).
 
 Add OpenTelemetry packages to the project file:
 
