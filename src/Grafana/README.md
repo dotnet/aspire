@@ -18,9 +18,9 @@ For instructions for configuring a .NET app to work with the dashboards, see [Ex
 
 ## Technology
 
-The dashboards use built-in .NET APIs and OSS cloud native tools:
+The dashboards use built-in .NET APIs and OSS cloud-native tools:
 
-* [System.Diagnostics.Metrics](https://learn.microsoft.com/dotnet/core/diagnostics/compare-metric-apis#systemdiagnosticsmetrics) is the modern .NET metrics API. Libaries and apps use the API to create instruments and record values. ASP.NET Core and other .NET frameworks have built-in instruments for recording important information.
+* [System.Diagnostics.Metrics](https://learn.microsoft.com/dotnet/core/diagnostics/compare-metric-apis#systemdiagnosticsmetrics) is the modern .NET metrics API. Libraries and apps use the API to create instruments and record values. ASP.NET Core and other .NET frameworks have built-in instruments for recording important information.
 * [.NET OpenTelemetry SDK](https://github.com/open-telemetry/opentelemetry-dotnet) collects values from `System.Diaganostics.Metrics` instruments and exports values to Prometheus. OpenTelemetry needs to be configured in an application.
 * [Prometheus](https://prometheus.io/) is a metrics database. Prometheus scrapes metrics values from apps and then stores them in a database. Prometheus provides an API to query values.
 * [Grafana](https://grafana.com/) is a visualization and report tool for building dashboards and sending alerts. Grafana uses Prometheus as its data source.
@@ -31,7 +31,7 @@ This repository is the home for the dashboard JSON files. Please create issues a
 
 ## Export metrics from ASP.NET Core
 
-ASP.NET Core metrics need to be exported to Prometheus. You can do this by configuring the [.NET OpenTelemetry SDK](https://github.com/open-telemetry/opentelemetry-dotnet).
+ASP.NET Core metrics must be to Prometheus. You can do this by configuring the [.NET OpenTelemetry SDK](https://github.com/open-telemetry/opentelemetry-dotnet).
 
 Add OpenTelemetry packages to the project file:
 
@@ -59,7 +59,7 @@ app.MapPrometheusScrapingEndpoint();
 app.Run();
 ```
 
-Verify OpenTelemetry has been successfully configured by browsing to the `/metrics` endpoint on your app. It will return metrics data formatted to be scraped by Prometheus.
+Verify OpenTelemetry has been successfully configured by browsing your app's `/metrics` endpoint. It will return metrics data formatted to be scraped by Prometheus.
 
 ## Configure Prometheus and Grafana
 
