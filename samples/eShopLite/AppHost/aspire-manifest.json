@@ -1,5 +1,8 @@
 {
   "resources": {
+    "mongodb": {
+      "type": "mongodb.server.v0"
+    },
     "postgres": {
       "type": "postgres.server.v0"
     },
@@ -16,7 +19,8 @@
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
-        "ConnectionStrings__catalogdb": "{catalogdb.connectionString}"
+        "ConnectionStrings__catalogdb": "{catalogdb.connectionString}",
+        "ConnectionStrings__mongodb": "{mongodb.connectionString}"
       },
       "bindings": {
         "http": {

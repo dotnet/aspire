@@ -24,6 +24,7 @@ public static class MongoDBExtensions
     {
         builder.ApplicationBuilder.AddContainer("mongo-express", "mongo-express", "latest")
                                   .WithServiceBinding(8081, 8081, scheme: "http")
+                                  .WithAnnotation(ManifestPublishingCallbackAnnotation.Ignore)
                                   .WithEnvironment((context) =>
                                   {
                                       if (builder.Resource.GetConnectionString() is not { } connectionString)
