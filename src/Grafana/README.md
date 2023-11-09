@@ -31,7 +31,7 @@ The dashboards use built-in .NET APIs and OSS cloud-native tools:
 
 ## Source code
 
-This repository is the home for the dashboard JSON files. Please create issues and contribute PRs for the dashboards.
+This repository is the home for the dashboard JSON files. We'd welcome issues and contributions to improve them.
 
 ## Export metrics from .NET
 
