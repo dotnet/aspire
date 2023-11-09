@@ -16,6 +16,10 @@ See [Export metrics from .NET](#export-metrics-from-net) for information on conf
 
 ![ASP.NET Core Grafana dashboard](./dashboard-screenshot.png)
 
+## Sample
+
+.NET sample app that reports metrics to the dashboards is available at https://aka.ms/dotnet/grafana-sample.
+
 ## Technology
 
 The dashboards use built-in .NET APIs and OSS cloud-native tools:
