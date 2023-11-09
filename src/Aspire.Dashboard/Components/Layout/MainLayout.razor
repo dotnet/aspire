@@ -24,21 +24,7 @@
                           Title="Launch Settings" aria-label="Launch Settings" />
         </div>
     </FluentHeader>
-    <div class="nav-menu-container">
-        <FluentNavMenu Width="250" Collapsible="true" role="menu">
-            <FluentNavLink Icon="@(new Icons.Regular.Size24.AppGeneric())" Href="/" Match="NavLinkMatch.All" role="menuitem">Projects</FluentNavLink>
-            <FluentNavLink Icon="@(new Icons.Regular.Size24.BinFull())" Href="/Containers" role="menuitem">Containers</FluentNavLink>
-            <FluentNavLink Icon="@(new Icons.Regular.Size24.AppGeneric())" Href="/Executables" role="menuitem">Executables</FluentNavLink>
-            <FluentNavGroup Title="Logs" Icon="@(new Icons.Regular.Size24.SlideText())" Expanded="true" Gap="10px 0;" role="menuitem menu">
-                <FluentNavLink Icon="@(new Icons.Regular.Size24.SlideText())" Href="/ProjectLogs" role="menuitem">Project</FluentNavLink>
-                <FluentNavLink Icon="@(new Icons.Regular.Size24.SlideText())" Href="/ContainerLogs" role="menuitem">Container</FluentNavLink>
-                <FluentNavLink Icon="@(new Icons.Regular.Size24.SlideText())" Href="/ExecutableLogs" role="menuitem">Executable</FluentNavLink>
-                <FluentNavLink Icon="@(new Icons.Regular.Size24.SlideTextSparkle())" Href="/StructuredLogs" role="menuitem">Structured</FluentNavLink>
-            </FluentNavGroup>
-            <FluentNavLink Icon="@(new Icons.Regular.Size24.GanttChart())" Href="/Traces" role="menuitem">Traces</FluentNavLink>
-            <FluentNavLink Icon="@(new Icons.Regular.Size24.ChartMultiple())" Href="/Metrics" role="menuitem">Metrics</FluentNavLink>
-        </FluentNavMenu>
-    </div>
+    <NavMenu />
     <FluentBodyContent Class="custom-body-content">
         @Body
     </FluentBodyContent>
