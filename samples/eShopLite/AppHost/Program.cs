@@ -2,12 +2,16 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 builder.AddAzureProvisioning();
 
+var mongo = builder.AddMongoDBContainer("mongodb")
+                   .WithMongoExpress();
+
 var catalogDb = builder.AddPostgresContainer("postgres").AddDatabase("catalogdb");
 
 var basketCache = builder.AddRedisContainer("basketcache");
 
 var catalogService = builder.AddProject<Projects.CatalogService>("catalogservice")
                      .WithReference(catalogDb)
+                     .WithReference(mongo)
                      .WithReplicas(2);
 
 var messaging = builder.AddRabbitMQContainer("messaging");
