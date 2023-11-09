@@ -2,10 +2,6 @@
 
 The .NET Grafana dashboards visualize metrics built into .NET. Use metrics to see the real-time status of your apps.
 
-## Screenshot
-
-![ASP.NET Core Grafana dashboard](./dashboard-screenshot.png)
-
 ## Get the dashboards
 
 The best place to get the dashboards is from the Grafana dashboard store. The store has download links and instructions for importing dashboards into Grafana.
@@ -15,6 +11,10 @@ The best place to get the dashboards is from the Grafana dashboard store. The st
   * [ASP.NET Core Endpoint](https://grafana.com/grafana/dashboards/19924) - Detail for a specific ASP.NET Core endpoint
 
 For instructions for configuring a .NET app to work with the dashboards, see [Export metrics from ASP.NET Core](#export-metrics-from-aspnet-core).
+
+## Screenshot
+
+![ASP.NET Core Grafana dashboard](./dashboard-screenshot.png)
 
 ## Technology
 
