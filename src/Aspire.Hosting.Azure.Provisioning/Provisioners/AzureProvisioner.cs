@@ -178,9 +178,12 @@ internal sealed class AzureProvisioner(
         SubscriptionResource? subscription = null;
         Dictionary<string, ArmResource>? resourceMap = null;
         UserPrincipal? principal = null;
+        ProvisioningContext? provisioningContext = null;
         var usedResources = new HashSet<string>();
 
-        var userSecrets = userSecretsPath is null || !File.Exists(userSecretsPath) ? [] : JsonNode.Parse(File.ReadAllText(userSecretsPath))!.AsObject();
+        var userSecrets = userSecretsPath is not null && File.Exists(userSecretsPath)
+            ? JsonNode.Parse(await File.ReadAllTextAsync(userSecretsPath, cancellationToken).ConfigureAwait(false))!.AsObject()
+            : [];
 
         foreach (var resource in azureResources)
         {
@@ -216,15 +219,11 @@ internal sealed class AzureProvisioner(
 
             resourceMap ??= await resourceMapLazy.Value.ConfigureAwait(false);
             principal ??= await principalLazy.Value.ConfigureAwait(false);
+            provisioningContext ??= new ProvisioningContext(armClient, subscription, resourceGroup, resourceMap, location, principal, userSecrets);
 
-            var task = provisioner.GetOrCreateResourceAsync(armClient,
-                    subscription,
-                    resourceGroup,
-                    resourceMap,
-                    location,
+            var task = provisioner.GetOrCreateResourceAsync(
                     resource,
-                    principal,
-                    userSecrets,
+                    provisioningContext,
                     cancellationToken);
 
             tasks.Add(task);
@@ -239,7 +238,7 @@ internal sealed class AzureProvisioner(
             {
                 // Ensure directory exists before attempting to create secrets file
                 Directory.CreateDirectory(Path.GetDirectoryName(userSecretsPath)!);
-                File.WriteAllText(userSecretsPath, userSecrets.ToString());
+                await File.WriteAllTextAsync(userSecretsPath, userSecrets.ToString(), cancellationToken).ConfigureAwait(false);
 
                 logger.LogInformation("Azure resource connection strings saved to user secrets.");
             }

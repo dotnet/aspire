@@ -1,12 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Azure;
-using Azure.Core;
-using Azure.ResourceManager;
-using Azure.ResourceManager.Resources;
 using Azure.ResourceManager.ServiceBus;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -27,30 +23,24 @@ internal sealed class ServiceBusProvisioner(ILogger<ServiceBusProvisioner> logge
     }
 
     public override async Task GetOrCreateResourceAsync(
-        ArmClient armClient,
-        SubscriptionResource subscription,
-        ResourceGroupResource resourceGroup,
-        Dictionary<string, ArmResource> resourceMap,
-        AzureLocation location,
         AzureServiceBusResource resource,
-        UserPrincipal principal,
-        JsonObject userSecrets,
+        ProvisioningContext context,
         CancellationToken cancellationToken)
     {
-        resourceMap.TryGetValue(resource.Name, out var azureResource);
+        context.ResourceMap.TryGetValue(resource.Name, out var azureResource);
 
         if (azureResource is not null && azureResource is not ServiceBusNamespaceResource)
         {
             logger.LogWarning("Resource {resourceName} is not a service bus namespace. Deleting it.", resource.Name);
 
-            await armClient.GetGenericResource(azureResource.Id).DeleteAsync(WaitUntil.Started, cancellationToken).ConfigureAwait(false);
+            await context.ArmClient.GetGenericResource(azureResource.Id).DeleteAsync(WaitUntil.Started, cancellationToken).ConfigureAwait(false);
         }
 
         var serviceBusNamespace = azureResource as ServiceBusNamespaceResource;
 
         if (serviceBusNamespace is null)
         {
-            logger.LogInformation("Creating service bus namespace in {location}...", location);
+            logger.LogInformation("Creating service bus namespace in {location}...", context.Location);
 
             var attempts = 0;
 
@@ -61,11 +51,11 @@ internal sealed class ServiceBusProvisioner(ILogger<ServiceBusProvisioner> logge
                     // ^[a-zA-Z][a-zA-Z0-9-]*$
                     var namespaceName = Guid.NewGuid().ToString();
 
-                    var parameters = new ServiceBusNamespaceData(location);
+                    var parameters = new ServiceBusNamespaceData(context.Location);
                     parameters.Tags.Add(AzureProvisioner.AspireResourceNameTag, resource.Name);
 
                     // Now we can create a storage account with defined account name and parameters
-                    var operation = await resourceGroup.GetServiceBusNamespaces().CreateOrUpdateAsync(WaitUntil.Completed, namespaceName, parameters, cancellationToken).ConfigureAwait(false);
+                    var operation = await context.ResourceGroup.GetServiceBusNamespaces().CreateOrUpdateAsync(WaitUntil.Completed, namespaceName, parameters, cancellationToken).ConfigureAwait(false);
                     serviceBusNamespace = operation.Value;
 
                     // Success
@@ -92,7 +82,7 @@ internal sealed class ServiceBusProvisioner(ILogger<ServiceBusProvisioner> logge
         // the connection strings for the app need the host name only
         resource.ServiceBusEndpoint = new Uri(serviceBusNamespace.Data.ServiceBusEndpoint).Host;
 
-        var connectionStrings = userSecrets.Prop("ConnectionStrings");
+        var connectionStrings = context.UserSecrets.Prop("ConnectionStrings");
         connectionStrings[resource.Name] = resource.ServiceBusEndpoint;
 
         // Now create the queues
@@ -151,8 +141,8 @@ internal sealed class ServiceBusProvisioner(ILogger<ServiceBusProvisioner> logge
 
         // Azure Service Bus Data Owner
         // https://learn.microsoft.com/azure/role-based-access-control/built-in-roles#azure-service-bus-data-owner
-        var roleDefinitionId = CreateRoleDefinitionId(subscription, "090c5cfd-751d-490a-894a-3ce6f1109419");
+        var roleDefinitionId = CreateRoleDefinitionId(context.Subscription, "090c5cfd-751d-490a-894a-3ce6f1109419");
 
-        await DoRoleAssignmentAsync(armClient, serviceBusNamespace.Id, principal.Id, roleDefinitionId, cancellationToken).ConfigureAwait(false);
+        await DoRoleAssignmentAsync(context.ArmClient, serviceBusNamespace.Id, context.Principal.Id, roleDefinitionId, cancellationToken).ConfigureAwait(false);
     }
 }

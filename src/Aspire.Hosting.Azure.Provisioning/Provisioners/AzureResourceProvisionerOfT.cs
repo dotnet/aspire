@@ -15,6 +15,24 @@ namespace Aspire.Hosting.Azure.Provisioning;
 
 internal sealed record UserPrincipal(Guid Id, string Name);
 
+internal sealed class ProvisioningContext(
+    ArmClient armClient,
+    SubscriptionResource subscription,
+    ResourceGroupResource resourceGroup,
+    IReadOnlyDictionary<string, ArmResource> resourceMap,
+    AzureLocation location,
+    UserPrincipal principal,
+    JsonObject userSecrets)
+{
+    public ArmClient ArmClient => armClient;
+    public SubscriptionResource Subscription => subscription;
+    public ResourceGroupResource ResourceGroup => resourceGroup;
+    public IReadOnlyDictionary<string, ArmResource> ResourceMap => resourceMap;
+    public AzureLocation Location => location;
+    public UserPrincipal Principal => principal;
+    public JsonObject UserSecrets => userSecrets;
+}
+
 internal interface IAzureResourceProvisioner
 {
     bool ConfigureResource(IConfiguration configuration, IAzureResource resource);
@@ -22,14 +40,8 @@ internal interface IAzureResourceProvisioner
     bool ShouldProvision(IConfiguration configuration, IAzureResource resource);
 
     Task GetOrCreateResourceAsync(
-        ArmClient armClient,
-        SubscriptionResource subscription,
-        ResourceGroupResource resourceGroup,
-        Dictionary<string, ArmResource> resourceMap,
-        AzureLocation location,
         IAzureResource resource,
-        UserPrincipal principal,
-        JsonObject userSecrets,
+        ProvisioningContext context,
         CancellationToken cancellationToken);
 }
 
@@ -43,30 +55,18 @@ internal abstract class AzureResourceProvisioner<TResource> : IAzureResourceProv
         ShouldProvision(configuration, (TResource)resource);
 
     Task IAzureResourceProvisioner.GetOrCreateResourceAsync(
-        ArmClient armClient,
-        SubscriptionResource subscription,
-        ResourceGroupResource resourceGroup,
-        Dictionary<string, ArmResource> resourceMap,
-        AzureLocation location,
         IAzureResource resource,
-        UserPrincipal principal,
-        JsonObject userSecrets,
+        ProvisioningContext context,
         CancellationToken cancellationToken)
-        => GetOrCreateResourceAsync(armClient, subscription, resourceGroup, resourceMap, location, (TResource)resource, principal, userSecrets, cancellationToken);
+        => GetOrCreateResourceAsync((TResource)resource, context, cancellationToken);
 
     public abstract bool ConfigureResource(IConfiguration configuration, TResource resource);
 
     public virtual bool ShouldProvision(IConfiguration configuration, TResource resource) => true;
 
     public abstract Task GetOrCreateResourceAsync(
-        ArmClient armClient,
-        SubscriptionResource subscription,
-        ResourceGroupResource resourceGroup,
-        Dictionary<string, ArmResource> resourceMap,
-        AzureLocation location,
         TResource resource,
-        UserPrincipal principal,
-        JsonObject userSecrets,
+        ProvisioningContext context,
         CancellationToken cancellationToken);
 
     protected static ResourceIdentifier CreateRoleDefinitionId(SubscriptionResource subscription, string roleDefinitionId) =>
