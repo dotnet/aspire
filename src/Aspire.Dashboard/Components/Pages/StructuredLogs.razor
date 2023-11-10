@@ -20,7 +20,8 @@
                       Items="@_applications"
                       OptionText="@(c => c.Name)"
                       @bind-SelectedOption="_selectedApplication"
-                      @bind-SelectedOption:after="HandleSelectedApplicationChangedAsync" />
+                      @bind-SelectedOption:after="HandleSelectedApplicationChangedAsync"
+                      AriaLabel="Select an Application"/>
         <FluentSearch @bind-Value="_filter"
                       @oninput="HandleFilter"
                       @bind-Value:after="HandleClear"
@@ -36,7 +37,8 @@
                           @bind-SelectedOption="_selectedLogLevel"
                           @bind-SelectedOption:after="HandleSelectedLogLevelChangedAsync"
                           Width="120px"
-                          Style="min-width: auto;" />
+                          Style="min-width: auto;"
+                          AriaLabel="Select a Minimum Log Level" />
         </div>
         <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
         <FluentLabel slot="end">Filters: </FluentLabel>
