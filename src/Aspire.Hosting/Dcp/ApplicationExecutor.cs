@@ -5,6 +5,7 @@ using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp.Model;
 using k8s;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Dcp;
 
@@ -44,7 +45,7 @@ internal sealed class ServiceAppResource : AppResource
     }
 }
 
-internal sealed class ApplicationExecutor(DistributedApplicationModel model, KubernetesService kubernetesService)
+internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger, DistributedApplicationModel model, KubernetesService kubernetesService)
 {
     private const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
 
@@ -58,6 +59,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
         "DOTNET_ENVIRONMENT"
     };
 
+    private readonly ILogger<ApplicationExecutor> _logger = logger;
     private readonly DistributedApplicationModel _model = model;
     private readonly List<AppResource> _appResources = new();
 
@@ -634,7 +636,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Could not stop {resourceName} '{res.Metadata.Name}': {ex}");
+                _logger.LogInformation("Could not stop {resourceName} '{res.Metadata.Name}': {ex}", resourceName, res.Metadata.Name, ex);
             }
         }
     }
