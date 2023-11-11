@@ -44,7 +44,7 @@ If you are using Visual Studio:
 
 Otherwise:
 ```shell
-dotnet restore --project samples/eShopLite/AppHost/AppHost.csproj
+dotnet restore samples/eShopLite/AppHost/AppHost.csproj
 dotnet run --project samples/eShopLite/AppHost/AppHost.csproj
 ```
 
