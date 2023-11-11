@@ -1,20 +1,21 @@
 # Set up your environment
 
-## Install Visual Studio 2022 Internal Preview (dogfood)
+Whether you want to contribute to Aspire, or just use the latest build of Aspire, these are the common pieces you need to install.
 
-[Visual Studio 2022 Enterprise IntPreview Setup](https://aka.ms/vs/17/intpreview/vs_enterprise.exe)
-    - This channel updates nightly. You need a build from 12-Oct-2023 or later.
+## (Windows) Install Visual Studio
 
-## Install .NET 8 RTM nightly SDK
+On Windows, Visual Studio contains special tooling support for .NET Aspire that you will want to have.
 
-Install the .NET 8 RTM nightly SDK version 8.0.100-rtm.23512.16 or newer:
-   1. [Windows x64 link](https://dotnetbuilds.azureedge.net/public/Sdk/8.0.100-rtm.23512.16/dotnet-sdk-8.0.100-rtm.23512.16-win-x64.exe)
-   2. [Linux x64 link](https://dotnetbuilds.azureedge.net/public/Sdk/8.0.100-rtm.23512.16/dotnet-sdk-8.0.100-rtm.23512.16-linux-x64.tar.gz)
-   3. [MacOS x64 link](https://dotnetbuilds.azureedge.net/public/Sdk/8.0.100-rtm.23512.16/dotnet-sdk-8.0.100-rtm.23512.16-osx-x64.tar.gz)
-   4. [MacOS ARM64](https://dotnetbuilds.azureedge.net/public/Sdk/8.0.100-rtm.23512.16/dotnet-sdk-8.0.100-rtm.23512.16-osx-arm64.tar.gz)
+[Visual Studio 2022 version 17.9 Preview](https://visualstudio.microsoft.com/vs/preview/)
+
+When you install, ensure that both:
+* `ASP.NET and web development` Workload is checked.
+* `.NET Aspire SDK` component in `Individual components` is checked.
+
+## Install the latest .NET 8 SDK
+[.NET 8 SDK](https://github.com/dotnet/installer#installers-and-binaries)
 
 ## Install Docker Desktop
 * [Windows](https://docs.docker.com/desktop/install/windows-install/)
 * [MacOS X](https://docs.docker.com/desktop/install/mac-install/)
 * [Linux](https://docs.docker.com/desktop/install/linux-install/)
-
