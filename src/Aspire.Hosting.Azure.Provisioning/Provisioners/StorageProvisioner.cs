@@ -90,7 +90,7 @@ internal sealed class StorageProvisioner(ILogger<StorageProvisioner> logger) : A
 
         // Storage Blob Data Contributor
         // https://learn.microsoft.com/azure/role-based-access-control/built-in-roles#storage-blob-data-contributor
-        var storageBlobDataContributorId = CreateRoleDefinitionId(context.Subscription, "81a9662b-bebf-436f-a333-f67b29880f12");
+        var storageBlobDataContributorId = CreateRoleDefinitionId(context.Subscription, "ba92f5b4-2d11-453d-a403-e96b0029c9fe");
 
         var t0 = DoRoleAssignmentAsync(context.ArmClient, storageAccount.Id, context.Principal.Id, storageQueueDataContributorId, cancellationToken);
         var t1 = DoRoleAssignmentAsync(context.ArmClient, storageAccount.Id, context.Principal.Id, storageDataContributorId, cancellationToken);
