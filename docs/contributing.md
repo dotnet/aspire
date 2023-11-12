@@ -9,28 +9,6 @@ See [machine-requirements.md](machine-requirements.md).
 ## Build the repo
 `.\build.cmd` (Windows) or `.\build.sh` (macOS and Linux)
 
-## Enable Azure ServiceBus (optional)
-
-1. Follow [these instructions](https://learn.microsoft.com/azure/service-bus-messaging/service-bus-dotnet-get-started-with-queues?tabs=passwordless#create-a-namespace-in-the-azure-portal) to create a ServiceBus Namespace (pick a unique namespace) and a Queue (explicitly name the Queue "orders").
-    - Be sure to follow the "Assign roles to your Azure AD user" and "Launch Visual Studio and sign-in to Azure" sections so the app can authenticate as you.
-2. Add the following user-secret to the `samples\eShopLite\AppHost` orchestrator project (using the unique namespace you created above):
-
-```shell
-# in the eshopLite/AppHost folder
-dotnet user-secrets set ConnectionStrings:messaging <serviceBusNamespace>.servicebus.windows.net
-```
-
-If you use Visual Studio you can do the same thing by right-clicking `AppHost` in the Solution Explorer then choosing `Manage User Secrets` and adding
-
-```json
-{
-  "ConnectionStrings": {
-    "messaging": "<serviceBusNamespace>.servicebus.windows.net"
-  }
-}
-```
-
-The `<ServiceBus namespace host>` is labeled in the portal UI as "Host name" e.g. myservicebusinstance.servicebus.windows.net
 
 ## Run eShopLite
 
