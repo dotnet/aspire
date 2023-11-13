@@ -1,4 +1,9 @@
-# External execution of programs (a.k.a. IDE execution)
+# Running .NET Aspire applications inside an integrated developer environment (IDE)
+
+## Application host, DCP, and IDE
+When .NET Aspire application host program is run, it does not launch application service programs or supporting emulators/containers directly. Instead, the application host relies on another program ("app orchestrator") called `DCP`.
+
+When Visual Studio (or another IDE) starts the Aspire application host, Aspire-specific application model is created from user code in app host project. This model is then converted to another, language-agnostic model that DCP understands, and is submitted by app host to DCP for execution. The models are quite similar: for example, Aspire project (application services) are modeled as `Executable` objects on DCP side; containers become `Container` objects in DCP world.
 
 By default, `Executable` objects that are part of DCP workload are run as ordinary operating system processes. That means, DCP uses appropriate OS call to start a child process that executes the program specified by `Executable` spec. For debugging application services this is often not convenient or useful: it is difficult to debug service startup code this way, or restart the process automatically when source code changes. This is why DCP supports an alternative method of running `Executable` object, which is called **IDE execution**.
 
