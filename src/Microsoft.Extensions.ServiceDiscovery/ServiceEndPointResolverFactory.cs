@@ -9,7 +9,7 @@ using Microsoft.Extensions.ServiceDiscovery.PassThrough;
 namespace Microsoft.Extensions.ServiceDiscovery;
 
 /// <summary>
-/// Creates <see cref="ServiceEndPointResolver"/> instances.
+/// Creates service endpoint resolvers.
 /// </summary>
 public partial class ServiceEndPointResolverFactory(
     IEnumerable<IServiceEndPointResolverProvider> resolvers,
@@ -25,7 +25,7 @@ public partial class ServiceEndPointResolverFactory(
     private readonly IOptions<ServiceEndPointResolverOptions> _options = options;
 
     /// <summary>
-    /// Creates a <see cref="ServiceEndPointResolver"/> instance for the provided service name.
+    /// Creates a service endpoint resolver for the provided service name.
     /// </summary>
     public ServiceEndPointResolver CreateResolver(string serviceName)
     {

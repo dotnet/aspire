@@ -13,7 +13,7 @@ using Microsoft.Extensions.ServiceDiscovery.Abstractions;
 namespace Microsoft.Extensions.ServiceDiscovery;
 
 /// <summary>
-/// Resolves endpoints for a specified service.
+/// Resolves endpoints for a specified service, delegating to one or more endpoint resolver implementations.
 /// </summary>
 public sealed partial class ServiceEndPointResolver(
     IServiceEndPointResolver[] resolvers,

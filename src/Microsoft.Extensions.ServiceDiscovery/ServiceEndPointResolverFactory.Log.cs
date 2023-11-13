@@ -6,7 +6,7 @@ using Microsoft.Extensions.ServiceDiscovery.Abstractions;
 
 namespace Microsoft.Extensions.ServiceDiscovery;
 
-public partial class ServiceEndPointResolverFactory
+partial class ServiceEndPointResolverFactory
 {
     private sealed partial class Log
     {

@@ -10,19 +10,29 @@ namespace Microsoft.Extensions.ServiceDiscovery;
 /// <summary>
 /// Resolves service names to collections of endpoints.
 /// </summary>
-/// <param name="resolverProvider">The resolver factory.</param>
-/// <param name="timeProvider">The time provider.</param>
-public sealed class ServiceEndPointResolverRegistry(ServiceEndPointResolverFactory resolverProvider, TimeProvider timeProvider) : IAsyncDisposable
+public sealed class ServiceEndPointResolverRegistry : IAsyncDisposable
 {
     private static readonly TimerCallback s_cleanupCallback = s => ((ServiceEndPointResolverRegistry)s!).CleanupResolvers();
     private static readonly TimeSpan s_cleanupPeriod = TimeSpan.FromSeconds(10);
 
     private readonly object _lock = new();
-    private readonly ServiceEndPointResolverFactory _resolverProvider = resolverProvider;
+    private readonly ServiceEndPointResolverFactory _resolverProvider;
+    private readonly TimeProvider _timeProvider;
     private readonly ConcurrentDictionary<string, ResolverEntry> _resolvers = new();
     private ITimer? _cleanupTimer;
     private Task? _cleanupTask;
     private bool _disposed;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ServiceEndPointResolverRegistry"/> class.
+    /// </summary>
+    /// <param name="resolverProvider">The resolver factory.</param>
+    /// <param name="timeProvider">The time provider.</param>
+    internal ServiceEndPointResolverRegistry(ServiceEndPointResolverFactory resolverProvider, TimeProvider timeProvider)
+    {
+        _resolverProvider = resolverProvider;
+        _timeProvider = timeProvider;
+    }
 
     /// <summary>
     /// Resolves and returns service endpoints for the specified service.
@@ -82,7 +92,7 @@ public sealed class ServiceEndPointResolverRegistry(ServiceEndPointResolverFacto
                     restoreFlow = true;
                 }
 
-                _cleanupTimer = timeProvider.CreateTimer(s_cleanupCallback, this, s_cleanupPeriod, s_cleanupPeriod);
+                _cleanupTimer = _timeProvider.CreateTimer(s_cleanupCallback, this, s_cleanupPeriod, s_cleanupPeriod);
             }
             finally
             {
