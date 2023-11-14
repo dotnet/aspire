@@ -16,7 +16,7 @@ Services can be resolved directly by calling `ServiceEndPointResolverRegistry`'s
 
 ### Change notifications
 
-Service configuration can change over time. Service discovery accounts for by monitoring endpoint configuration using push-based notifications where supported, falling back to polling in other cases. When endpoints are refreshed, callers are notified so that they can observe the refreshed results. To subscribe to notifications, callers use the `ChangeToken` property of `ServiceEndPointCollection`. For more information on change tokens, see [Detect changes with change tokens in ASP.NET Core](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/change-tokens?view=aspnetcore-7.0).
+Service configuration can change over time. Service discovery accounts for by monitoring endpoint configuration using push-based notifications where supported, falling back to polling in other cases. When endpoints are refreshed, callers are notified so that they can observe the refreshed results. To subscribe to notifications, callers use the `ChangeToken` property of `ServiceEndPointCollection`. For more information on change tokens, see [Detect changes with change tokens in ASP.NET Core](https://learn.microsoft.com/aspnet/core/fundamentals/change-tokens?view=aspnetcore-7.0).
 
 ### Extensibility using features
 
