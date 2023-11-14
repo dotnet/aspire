@@ -221,7 +221,7 @@ In the above example, the "basket" service exposes an "admin" endpoint in additi
 // The preceding code is the same as in the above sample
 
 var frontend = builder.AddProject<Projects.Frontend>("frontend")
-       .WithReference(basket.GetEndpoint("http"))
+       .WithReference(basket.GetEndpoint("http"));
 ```
 
 ### Named endpoints in Kubernetes using DNS SRV
