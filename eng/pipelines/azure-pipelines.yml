@@ -4,12 +4,14 @@ trigger:
     include:
     - main
     - release/*
+    - internal/release/*
 
 pr:
   branches:
     include:
     - main
     - release/*
+    - internal/release/*
 
 variables:
 - template: /eng/pipelines/common-variables.yml
@@ -62,8 +64,12 @@ stages:
       - job: windows
         timeoutInMinutes: 60
         pool:
-          name: $(DncEngInternalBuildPool)
-          demands: ImageOverride -equals 1es-windows-2022
+          ${{ if eq(variables['System.TeamProject'], 'public') }}:
+            name: $(DncEngPublicBuildPool)
+            demands: ImageOverride -equals windows.vs2022preview.amd64.open
+          ${{ else }}:
+            name: $(DncEngInternalBuildPool)
+            demands: ImageOverride -equals 1es-windows-2022
         strategy:
           matrix:
             release:
