@@ -18,7 +18,7 @@ To learn more, read the full [.NET Aspire overview and documentation](https://le
 
 The .NET Aspire application host, dashboard, service discovery infrastructure, and all .NET Aspire components. It also contains the project templates and a simple sample, 'eShopLite'.
 
-(There is a fuller version of the eShop sample [here](https://github.com/dotnet/eshop) and an Azure version [here](https://github.com/Azure-Samples/eShopOnAzure).)
+You can find the full version of the eShop sample [here](https://github.com/dotnet/eshop) and the Azure version [here](https://github.com/Azure-Samples/eShopOnAzure).
 
 ## Using latest daily builds
 
