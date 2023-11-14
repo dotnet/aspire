@@ -16,14 +16,9 @@ public partial class SettingsDialog : IDialogContentComponent, IAsyncDisposable
     private const string ThemeSettingLight = "Light";
 
     private string _currentSetting = ThemeSettingSystem;
-    private string? _version;
+    private static readonly string? s_version = Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyFileVersionAttribute>()?.Version;
 
     private IJSObjectReference? _jsModule;
-
-    protected override void OnInitialized()
-    {
-        _version = Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyFileVersionAttribute>()?.Version;
-    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
