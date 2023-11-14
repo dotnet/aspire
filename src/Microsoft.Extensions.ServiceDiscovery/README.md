@@ -208,10 +208,10 @@ var basket = builder.AddProject<Projects.BasketService>("basket")
     .WithServiceBinding(hostPort: 9999, scheme: "http", name: "admin");
 
 var adminDashboard = builder.AddProject<Projects.MyDashboardAggregator>("admin-dashboard")
-       .WithReference(basket.GetEndPoint("admin"))
+       .WithReference(basket.GetEndPoint("admin"));
 
 var frontend = builder.AddProject<Projects.Frontend>("frontend")
-       .WithReference(basket)
+       .WithReference(basket);
 ```
 
 In the above example, the "basket" service exposes an "admin" endpoint in addition to the default "http" endpoint which it exposes. This endpoint is consumed by the "admin-dashboard" project, while the "frontend" project consumes all endpoints from "basket". Alternatively, the "frontend" project could be made to consume only the default "http" endpoint from "basket" by using the `GetEndPoint(string name)` method, as in the following example:
