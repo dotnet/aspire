@@ -10,7 +10,7 @@ Registers [NpgsqlDataSource](https://www.npgsql.org/doc/api/Npgsql.NpgsqlDataSou
 
 ### Install the package
 
-Install the .NET Aspire PostgreSQL Npgsql library with [NuGet][nuget]:
+Install the .NET Aspire PostgreSQL Npgsql library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Npgsql

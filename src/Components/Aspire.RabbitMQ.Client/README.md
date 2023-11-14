@@ -10,7 +10,7 @@ Registers an [IConnection](https://rabbitmq.github.io/rabbitmq-dotnet-client/api
 
 ### Install the package
 
-Install the .NET Aspire RabbitMQ library with [NuGet][nuget]:
+Install the .NET Aspire RabbitMQ library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.RabbitMQ.Client

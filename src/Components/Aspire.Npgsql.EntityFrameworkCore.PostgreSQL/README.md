@@ -10,7 +10,7 @@ Registers [EntityFrameworkCore](https://learn.microsoft.com/ef/core/) [DbContext
 
 ### Install the package
 
-Install the .NET Aspire PostgreSQL EntityFrameworkCore Npgsql library with [NuGet][nuget]:
+Install the .NET Aspire PostgreSQL EntityFrameworkCore Npgsql library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Npgsql.EntityFrameworkCore.PostgreSQL

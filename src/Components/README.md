@@ -2,8 +2,6 @@
 
 Aspire components are classic .NET NuGet packages which are designed as highly usable libraries. .NET Aspire components feature rich production-ready telemetry, health checks, configurability, testability, and documentation. For the current state of the components included in this repo and tracked for .NET Aspire's first preview, please check out the [.NET Aspire Components Progress](./Aspire_Components_Progress.md) page.
 
-# Best practices for development
-
 ## Naming
 
 - Each component's name should contain just an `Aspire.` prefix.
@@ -131,7 +129,7 @@ Aspire components offer integrated logging, metrics, and tracing using modern .N
 ```csharp
 builder.AddAzureServiceBus(settings =>
 {
-    settings.Credential = 
+    settings.Credential =
         new ChainedTokenCredential(
             new VisualStudioCredential(),
             new VisualStudioCodeCredential());

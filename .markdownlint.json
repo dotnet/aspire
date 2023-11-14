@@ -1,6 +1,7 @@
 {
     "default": true,
     "ul-indent":                       false,
+    "ul-style":                        false,
     "no-trailing-spaces":              false,
     "line-length":                     false,
     "blanks-around-headings":          false,
@@ -12,7 +13,6 @@
     "no-bare-urls":                    false,
     "single-trailing-newline":         false,
     "emphasis-style":                  false,
-    "reference-links-images":          false, // temporary until we figure out NuGet-nuget
 
     // rule settings and options are documented in https://github.com/DavidAnson/markdownlint
     // feel free to disable more low value rules in here; get rule name from the error message.

@@ -10,7 +10,7 @@ Registers an [ASP.NET Core Output Caching](https://learn.microsoft.com/aspnet/co
 
 ### Install the package
 
-Install the .NET Aspire StackExchange Redis OutputCache library with [NuGet][nuget]:
+Install the .NET Aspire StackExchange Redis OutputCache library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.StackExchange.Redis.OutputCaching
@@ -34,7 +34,7 @@ For minimal API apps, configure an endpoint to do caching by calling [CacheOutpu
 
 ```csharp
 app.MapGet("/cached", Gravatar.WriteGravatar).CacheOutput();
-app.MapGet("/attribute", [OutputCache] (context) => 
+app.MapGet("/attribute", [OutputCache] (context) =>
     Gravatar.WriteGravatar(context));
 ```
 
