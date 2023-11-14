@@ -136,7 +136,8 @@ In the case of Azure Container Apps, the service name should match the app name.
 Each time an endpoint is resolved by the `HttpClient` pipeline, a single endpoint will be selected from the set of all known endpoints for the requested service. If multiple endpoints are available, it may be desirable to balance traffic across all such endpoints. To accomplish this, a customizable _endpoint selector_ can be used. By default, endpoints are selected in round-robin order. To use a different endpoint selector, provide an `IServiceEndPointSelector` instance to the `UseServiceDiscovery` method call. For example, to select a random endpoint from the set of resolved endpoints, specify `RandomServiceEndPointSelector.Instance` as the endpoint selector:
 
 ```csharp
-builder.Services.AddHttpClient<CatalogServiceClient>(c => c.BaseAddress = new("http://catalog")))
+builder.Services.AddHttpClient<CatalogServiceClient>(
+    static client => client.BaseAddress = new("http://catalog"));
   .UseServiceDiscovery(RandomServiceEndPointSelector.Instance);
 ```
 
