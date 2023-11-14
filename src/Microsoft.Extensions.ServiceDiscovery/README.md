@@ -256,7 +256,8 @@ The special port name "default" is used to specify the default endpoint, resolve
 As in the previous example, add service discovery to an `HttpClient` for the basket service:
 
 ```csharp
-builder.Services.AddHttpClient<BasketServiceClient>(c => c.BaseAddress = new("http://basket")));
+builder.Services.AddHttpClient<BasketServiceClient>(
+    static client => client.BaseAddress = new("http://basket"));
 ```
 
 Similarly, the "dashboard" endpoint can be targeted as follows:
