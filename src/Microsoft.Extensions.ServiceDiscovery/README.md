@@ -262,7 +262,8 @@ builder.Services.AddHttpClient<BasketServiceClient>(c => c.BaseAddress = new("ht
 Similarly, the "dashboard" endpoint can be targeted as follows:
 
 ```csharp
-builder.Services.AddHttpClient<BasketServiceDashboardClient>(c => c.BaseAddress = new("http://_dashboard.basket")));
+builder.Services.AddHttpClient<BasketServiceDashboardClient>(
+    static client => client.BaseAddress = new("http://_dashboard.basket"));
 ```
 
 ### Named endpoints in Azure Container Apps
