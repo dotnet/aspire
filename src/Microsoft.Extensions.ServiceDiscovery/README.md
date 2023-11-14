@@ -70,7 +70,7 @@ builder.Services.ConfigureHttpClientDefaults(http =>
 ### Resolving service endpoints from configuration
 
 The `AddServiceDiscovery` extension method adds a configuration-based endpoint resolver by default.
-This resolver reads endpoints from the [.NET Configuration system](https://learn.microsoft.com/en-us/dotnet/core/extensions/configuration).
+This resolver reads endpoints from the [.NET Configuration system](https://learn.microsoft.com/dotnet/core/extensions/configuration).
 The library supports configuration through `appsettings.json`, environment variables, or any other `IConfiguration` source.
 
 Here is an example demonstrating how to configure a endpoints for the service named _catalog_ via `appsettings.json`:
