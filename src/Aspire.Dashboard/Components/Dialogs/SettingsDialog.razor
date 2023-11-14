@@ -2,13 +2,12 @@
 @inject IJSRuntime JS
 @implements IDialogContentComponent
 
-<FluentStack Orientation="Orientation.Vertical" Style="display: contents
-">
+<FluentStack Orientation="Orientation.Vertical" Style="display: contents">
     <FluentRadioGroup TValue="string" Label="Theme" Value="@_currentSetting" ValueChanged="SettingChangedAsync" Orientation="Orientation.Vertical">
         <FluentRadio Value="@ThemeSettingSystem">System</FluentRadio>
         <FluentRadio Value="@ThemeSettingLight">Light</FluentRadio>
         <FluentRadio Value="@ThemeSettingDark">Dark</FluentRadio>
     </FluentRadioGroup>
-    <div style="height: 100%;"></div>
+    
     <div class="version">Version: @s_version</div>
 </FluentStack>
