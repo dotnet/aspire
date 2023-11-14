@@ -121,11 +121,6 @@ public partial class SummaryDetailsView
 
     private async Task HandleSplitterResize(SplitterResizedEventArgs args)
     {
-        if (!RememberSize)
-        {
-            return;
-        }
-
         var totalSize = (float)(args.Panel1Size + args.Panel2Size);
 
         var panel1Fraction = (args.Panel1Size / totalSize);
