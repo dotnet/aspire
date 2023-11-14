@@ -9,7 +9,7 @@
     "no-trailing-punctuation":         false,
     "blanks-around-fences":            false,
     "blanks-around-lists":             false,
-    "no-inline-html":                  { "allowed_elements": [ "summary", "details", "kbd" ]},
+    "no-inline-html":                  { "allowed_elements": [ "summary", "details", "kbd", "br" ]},
     "no-bare-urls":                    false,
     "single-trailing-newline":         false,
     "emphasis-style":                  false,
