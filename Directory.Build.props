@@ -23,11 +23,6 @@
     <SkipAspireWorkloadManifest>true</SkipAspireWorkloadManifest>
   </PropertyGroup>
 
-  <!-- Internal branches don't use package source mapping feature due to internal feeds, so disable NU1507 warning saying it should be used. -->
-  <PropertyGroup>
-    <NoWarn>$(NoWarn);NU1507</NoWarn>
-  </PropertyGroup>
-
   <!-- OS/Architecture properties for local development resources -->
   <PropertyGroup>
     <BuildOs Condition="$([MSBuild]::IsOsPlatform('Linux'))">linux</BuildOs>
