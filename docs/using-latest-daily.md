@@ -22,7 +22,7 @@ Alternatively, if you are using Visual Studio, you can [Install and manage packa
 This will actually get Aspire components.
 
 ```shell
-dotnet workload install aspire --skip-sign-check --interactive --source https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet8/nuget/v3/index.json
+dotnet workload install aspire --skip-sign-check --source https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet8/nuget/v3/index.json
 # To update it later if you wish
 # dotnet workload update --source https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet8/nuget/v3/index.json
 ```
