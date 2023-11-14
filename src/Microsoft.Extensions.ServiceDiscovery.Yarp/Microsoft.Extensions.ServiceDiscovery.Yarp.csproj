@@ -7,7 +7,7 @@
     <IsPackable>true</IsPackable>
     <IsAotCompatible>true</IsAotCompatible>
     <Description>Provides extensions for service discovery for the YARP reverse proxy.</Description>
-    <SuppressAspireIcon>true</SuppressAspireIcon>
+    <PackageIconFullPath>$(DefaultDotnetIconFullPath)</PackageIconFullPath>
   </PropertyGroup>
 
   <ItemGroup>

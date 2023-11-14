@@ -5,7 +5,7 @@
     <IsPackable>true</IsPackable>
     <IsAotCompatible>true</IsAotCompatible>
     <Description>Provides abstractions for service discovery. Interfaces defined in this package are implemented in Microsoft.Extensions.ServiceDiscovery and other service discovery packages.</Description>
-    <SuppressAspireIcon>true</SuppressAspireIcon>
+    <PackageIconFullPath>$(DefaultDotnetIconFullPath)</PackageIconFullPath>
   </PropertyGroup>
 
   <ItemGroup>
