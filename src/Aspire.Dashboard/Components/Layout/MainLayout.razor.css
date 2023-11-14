@@ -22,10 +22,11 @@
     width: 100vw;
     display: grid;
     grid-template-columns: auto 1fr;
-    grid-template-rows: auto 1fr;
+    grid-template-rows: auto 1fr auto;
     grid-template-areas:
         "head head"
-        "nav main";
+        "nav main"
+        "footer footer";
     background-color: var(--fill-color);
     color: var(--neutral-foreground-rest);
 }
@@ -70,4 +71,16 @@
 ::deep .header-title fluent-anchor {
     font-size: var(--type-ramp-plus-2-font-size);
     color: var(--accent-fill-rest);
+}
+
+::deep.layout > footer {
+    grid-area: footer;
+    height: 20px;
+    background-color: var(--neutral-layer-4);
+    color: var(--accent-fill-rest);
+    margin-bottom: 0;
+    justify-content: right;
+    align-content: center;
+    padding-right: 10px;
+    font-size: smaller;
 }
