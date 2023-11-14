@@ -11,7 +11,7 @@ Registers a [BlobServiceClient](https://learn.microsoft.com/dotnet/api/azure.sto
 
 ### Install the package
 
-Install the .NET Aspire Azure Storage Blobs library with [NuGet][nuget]:
+Install the .NET Aspire Azure Storage Blobs library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Azure.Storage.Blobs

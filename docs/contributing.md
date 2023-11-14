@@ -9,7 +9,6 @@ See [machine-requirements.md](machine-requirements.md).
 ## Build the repo
 `.\build.cmd` (Windows) or `.\build.sh` (macOS and Linux)
 
-
 ## Run eShopLite
 
 This will confirm that you're all set up.

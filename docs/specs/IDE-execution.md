@@ -7,16 +7,16 @@ When Visual Studio (or another IDE) starts the Aspire application host, Aspire-s
 
 By default, `Executable` objects that are part of DCP workload are run as ordinary operating system processes. That means, DCP uses appropriate OS call to start a child process that executes the program specified by `Executable` spec. For debugging application services this is often not convenient or useful: it is difficult to debug service startup code this way, or restart the process automatically when source code changes. This is why DCP supports an alternative method of running `Executable` object, which is called **IDE execution**.
 
-With IDE execution DCP delegates the task of running the program represented by `Executable` object to an external entity. The entity can be an IDE such as Visual Studio or Visual Studio Code, or a CLI tool like `dotnet watch`, but in the rest of this document we will refer to it as **IDE**. 
+With IDE execution DCP delegates the task of running the program represented by `Executable` object to an external entity. The entity can be an IDE such as Visual Studio or Visual Studio Code, or a CLI tool like `dotnet watch`, but in the rest of this document we will refer to it as **IDE**.
 
-When IDE execution is enabled for an `Executable` object, DCP will go through normal execution preparation steps (such as computing the values of environment variables for the `Executable`), but instead of creating an OS process, DCP will issue a request to the IDE to run the `Executable` program, passing all relevant information in the request. DCP then relies on the IDE to start the program, creating a **run session**. The IDE is expected to inform DCP about changes to the session (e.g. program finished execution) and DCP reflects these changes in the workload model. 
+When IDE execution is enabled for an `Executable` object, DCP will go through normal execution preparation steps (such as computing the values of environment variables for the `Executable`), but instead of creating an OS process, DCP will issue a request to the IDE to run the `Executable` program, passing all relevant information in the request. DCP then relies on the IDE to start the program, creating a **run session**. The IDE is expected to inform DCP about changes to the session (e.g. program finished execution) and DCP reflects these changes in the workload model.
 
 ## Enabling IDE execution
 
 For IDE execution to work, two conditions need to be fulfilled:
 
-1.  DCP needs to be told how to contact the IDE (what is the **IDE session endpoint**, specifically).
-1.  The `ExecutionType` property for the `Executable` object needs to be set to `IDE` (default is `Process`, which indicates OS process-based execution).
+1. DCP needs to be told how to contact the IDE (what is the **IDE session endpoint**, specifically).
+1. The `ExecutionType` property for the `Executable` object needs to be set to `IDE` (default is `Process`, which indicates OS process-based execution).
 
 Only one IDE (one IDE session endpoint) is supported per DCP instance. The IDE session endpoint is provided to DCP via environment variables (both required if IDE execution is used):
 
@@ -25,7 +25,7 @@ Only one IDE (one IDE session endpoint) is supported per DCP instance. The IDE s
 | `DEBUG_SESSION_PORT` | The port DCP should use to talk to the IDE session endpoint. DCP will use `http://localhost:<value of DEBUG_SESSION_PORT>` as the IDE session endpoint base URL. |
 | `DEBUG_SESSION_TOKEN` | Security (bearer) token for talking to the IDE session endpoint. This token will be attached to every request via Authorization HTTP header. |
 
-> Note: the most important use case for the IDE execution is to facilitate application services debugging. The word "debug" appears in environment variable names that DCP uses to connect to IDE session endpoint, but IDE execution does not always mean that the service is running under a debugger. 
+> Note: the most important use case for the IDE execution is to facilitate application services debugging. The word "debug" appears in environment variable names that DCP uses to connect to IDE session endpoint, but IDE execution does not always mean that the service is running under a debugger.
 
 ### Using multiple execution types in the same workload
 
@@ -45,8 +45,8 @@ Used to create a new run session for particular `Executable`.
 `PUT /run_session`
 
 **Headers** <br/>
-`Authorization: Bearer <security token>` <br/> 
-`Content-Type: application/json` 
+`Authorization: Bearer <security token>` <br/>
+`Content-Type: application/json`
 
 **Payload** <br/>
 
@@ -95,7 +95,7 @@ If the session cannot be stopped, appropriate 4xx or 5xx status code should be r
 
 ### Subscribe to session change notifications request
 
-Used by DCP to subscribe to run session change notification. 
+Used by DCP to subscribe to run session change notification.
 
 **HTTP verb and path** <br/>
 `GET /run_session/notify`
@@ -124,7 +124,7 @@ Every run change notification has the following properties:
 
 ### Process restarted notification
 
-The process (re)started notification in emitted when the run is started, and whenever the IDE restarts the service (upon developer request). Properties specific to this notification are: 
+The process (re)started notification in emitted when the run is started, and whenever the IDE restarts the service (upon developer request). Properties specific to this notification are:
 
 | Property | Description | Type |
 | --- | --------- | --- |

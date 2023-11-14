@@ -50,4 +50,3 @@ This project has adopted the code of conduct defined by the [Contributor Covenan
 ## License
 
 The code in this repo is licensed under the [MIT](LICENSE.TXT) license.
-

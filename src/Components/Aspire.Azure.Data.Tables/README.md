@@ -11,7 +11,7 @@ Registers [TableServiceClient](https://learn.microsoft.com/dotnet/api/azure.data
 
 ### Install the package
 
-Install the .NET Aspire Azure Table storage library with [NuGet][nuget]:
+Install the .NET Aspire Azure Table storage library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Azure.Data.Tables

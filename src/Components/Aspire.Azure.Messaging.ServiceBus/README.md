@@ -11,7 +11,7 @@ Registers a [ServiceBusClient](https://learn.microsoft.com/dotnet/api/azure.mess
 
 ### Install the package
 
-Install the .NET Aspire Azure Service Bus library with [NuGet][nuget]:
+Install the .NET Aspire Azure Service Bus library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Azure.Messaging.ServiceBus
@@ -137,4 +137,3 @@ builder.AddAzureServiceBus("sb");
 ## Feedback & contributing
 
 https://github.com/dotnet/aspire
-

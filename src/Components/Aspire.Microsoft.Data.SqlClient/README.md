@@ -10,7 +10,7 @@ Registers 'Scoped' [Microsoft.Data.SqlClient.SqlConnection](https://learn.micros
 
 ### Install the package
 
-Install the .NET Aspire SQL Server SqlClient library with [NuGet][nuget]:
+Install the .NET Aspire SQL Server SqlClient library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Microsoft.Data.SqlClient

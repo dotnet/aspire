@@ -11,7 +11,7 @@ Retrieves secrets from Azure Key Vault to use in your application. Registers a [
 
 ### Install the package
 
-Install the .NET Aspire Azure Key Vault library with [NuGet][nuget]:
+Install the .NET Aspire Azure Key Vault library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Azure.Security.KeyVault
