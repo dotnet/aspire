@@ -12,7 +12,7 @@ namespace Microsoft.Extensions.ServiceDiscovery.Abstractions;
 /// Represents an immutable collection of service endpoints.
 /// </summary>
 [DebuggerDisplay("{ToString(),nq}")]
-[DebuggerTypeProxy(nameof(ServiceEndPointCollectionDebuggerView))]
+[DebuggerTypeProxy(typeof(ServiceEndPointCollectionDebuggerView))]
 public class ServiceEndPointCollection : IReadOnlyList<ServiceEndPoint>
 {
     private readonly List<ServiceEndPoint>? _endpoints;
