@@ -56,7 +56,7 @@
         }
         <FluentButton slot="end" Appearance="Appearance.Stealth" aria-label="Add Filter" OnClick="() => OpenFilterAsync(null)"><FluentIcon Value="@(new Icons.Regular.Size16.Filter())" /></FluentButton>
     </FluentToolbar>
-    <SummaryDetailsView DetailsTitle="Log Entry Details" ShowDetails="SelectedLogEntryProperties is not null" OnDismiss="() => SelectedLogEntryProperties = null">
+    <SummaryDetailsView DetailsTitle="Log Entry Details" ShowDetails="SelectedLogEntryProperties is not null" OnDismiss="() => ClearSelectedLogEntry()">
         <Summary>
             <div class="logs-summary-layout">
                 <div class="logs-grid-container continuous-scroll-overflow">
