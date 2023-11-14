@@ -4,12 +4,14 @@ trigger:
     include:
     - main
     - release/*
+    - internal/release/*
 
 pr:
   branches:
     include:
     - main
     - release/*
+    - internal/release/*
 
 variables:
 - template: /eng/pipelines/common-variables.yml
@@ -73,6 +75,14 @@ stages:
           fetchDepth: 0
           clean: true
         steps:
+        - task: PowerShell@2
+          displayName: Setup Private Feeds Credentials
+          condition: eq(variables['Agent.OS'], 'Windows_NT')
+          inputs:
+            filePath: $(Build.SourcesDirectory)/eng/common/SetupNugetSources.ps1
+            arguments: -ConfigFile $(Build.SourcesDirectory)/NuGet.config -Password $Env:Token
+          env:
+            Token: $(dn-bot-dnceng-artifact-feeds-rw)
         - script: eng\common\cibuild.cmd
             -configuration $(_BuildConfig)
             -prepareMachine
@@ -112,6 +122,14 @@ stages:
           - checkout: self
             clean: true
           steps:
+          - task: Bash@3
+            displayName: Setup Private Feeds Credentials
+            inputs:
+              filePath: $(Build.SourcesDirectory)/eng/common/SetupNugetSources.sh
+              arguments: $(Build.SourcesDirectory)/NuGet.config $Token
+            condition: ne(variables['Agent.OS'], 'Windows_NT')
+            env:
+              Token: $(dn-bot-dnceng-artifact-feeds-rw)
           - script: eng/common/cibuild.sh
               --configuration $(_BuildConfig)
               --prepareMachine
