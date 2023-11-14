@@ -2,7 +2,7 @@
 
 This library provides support for resolving service endpoints using DNS (Domain Name System). It provides two service endpoint resolvers:
 
-- _DNS_, which resolves endpoints using DNS A/AAAA record queries. This means that it can resolve names to IP addresses, but cannot resolve port numbers endpoints. As such, port numbers are assumed to be the default for the protocol (for example, 80 for HTTP and 433 for HTTPS). The benefit of using the DNS resolver is that for cases where these default ports are appropriate, clients can spread their requests across hosts. For more information, see _Load-balancing with endpoint selectors_.
+- _DNS_, which resolves endpoints using DNS `A/AAAA` record queries. This means that it can resolve names to IP addresses, but cannot resolve port numbers endpoints. As such, port numbers are assumed to be the default for the protocol (for example, 80 for HTTP and 433 for HTTPS). The benefit of using the DNS resolver is that for cases where these default ports are appropriate, clients can spread their requests across hosts. For more information, see _Load-balancing with endpoint selectors_.
 
 - _DNS SRV_, which resolves service names using DNS SRV record queries. This allows it to resolve both IP addresses and port numbers. This is useful for environments which support DNS SRV queries, such as Kubernetes (when configured accordingly).
 
