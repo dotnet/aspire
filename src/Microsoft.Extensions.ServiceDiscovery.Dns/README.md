@@ -8,7 +8,7 @@ This library provides support for resolving service endpoints using DNS (Domain 
 
 ## Resolving service endpoints with DNS
 
-The _DNS_ resolver resolves endpoints using DNS A/AAAA record queries. This means that it can resolve names to IP addresses, but cannot resolve port numbers endpoints. As such, port numbers are assumed to be the default for the protocol (for example, 80 for HTTP and 433 for HTTPS). The benefit of using the DNS resolver is that for cases where these default ports are appropriate, clients can spread their requests across hosts. For more information, see _Load-balancing with endpoint selectors_.
+The _DNS_ resolver resolves endpoints using DNS `A/AAAA` record queries. This means that it can resolve names to IP addresses, but cannot resolve port numbers endpoints. As such, port numbers are assumed to be the default for the protocol (for example, 80 for HTTP and 433 for HTTPS). The benefit of using the DNS resolver is that for cases where these default ports are appropriate, clients can spread their requests across hosts. For more information, see _Load-balancing with endpoint selectors_.
 
 To configure the DNS resolver in your application, add the DNS resolver to your host builder's service collection using the `AddDnsServiceEndPointResolver` method. service discovery as follows:
 
