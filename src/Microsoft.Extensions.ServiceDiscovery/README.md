@@ -174,8 +174,10 @@ In the above example, the _frontend_ project references the _catalog_ project an
 Some services expose multiple, named endpoints. Named endpoints can be resolved by specifying the endpoint name in the host portion of the HTTP request URI, following the format `http://_endpointName.serviceName`. For example, if a service named "basket" exposes an endpoint named "dashboard", then the URI `http://_dashboard.basket` can be used to specify this endpoint, for example:
 
 ```csharp
-builder.Services.AddHttpClient<BasketServiceClient>(c => c.BaseAddress = new("http://basket")));
-builder.Services.AddHttpClient<BasketServiceDashboardClient>(c => c.BaseAddress = new("http://_dashboard.basket")));
+builder.Services.AddHttpClient<BasketServiceClient>(
+    static client => client.BaseAddress = new("http://basket"));
+builder.Services.AddHttpClient<BasketServiceDashboardClient>(
+    static client => client.BaseAddress = new("http://_dashboard.basket"));
 ```
 
 In the above example, two `HttpClient`s are added: one for the core basket service and one for the basket service's dashboard.
