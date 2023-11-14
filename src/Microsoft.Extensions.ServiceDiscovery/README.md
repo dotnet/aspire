@@ -20,7 +20,7 @@ Service configuration can change over time. Service discovery accounts for by mo
 
 ### Extensibility using features
 
-Service endpoints (`ServiceEndPoint` instances) and collections of service endpoints (`ServiceEndPointCollection` instances) expose an extensible [`IFeatureCollection`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.http.features.ifeaturecollection) via their `Features` property. Features are exposed as interfaces accessible on the feature collection. These interfaces can be added, modified, wrapped, replaced or even removed at resolution time by resolvers. Features which may be available on a `ServiceEndPoint` include:
+Service endpoints (`ServiceEndPoint` instances) and collections of service endpoints (`ServiceEndPointCollection` instances) expose an extensible [`IFeatureCollection`](https://learn.microsoft.com/dotnet/api/microsoft.aspnetcore.http.features.ifeaturecollection) via their `Features` property. Features are exposed as interfaces accessible on the feature collection. These interfaces can be added, modified, wrapped, replaced or even removed at resolution time by resolvers. Features which may be available on a `ServiceEndPoint` include:
 
 * `IHostNameFeature`: exposes the host name of the resolved endpoint, intended for use with [Server Name Identification (SNI)](https://en.wikipedia.org/wiki/Server_Name_Indication) and [Transport Layer Security (TLS)](https://en.wikipedia.org/wiki/Transport_Layer_Security).
 * `IEndPointHealthFeature`: used for reporting response times and errors from endpoints.
