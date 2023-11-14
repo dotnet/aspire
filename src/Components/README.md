@@ -58,25 +58,6 @@ public static void AddAbc(this IHostApplicationBuilder builder, Action<AbcSettin
 }
 ```
 
-- These settings can be configured hierarchically, so common settings can be set at `Aspire:Abc` and each named section can provide settings specific to it. The named settings override the common settings.
-
-```json
-{
-  "Aspire": {
-    "Abc": {
-      "MySetting": true,
-
-      "named_one": {
-        // inherits MySetting=true
-      },
-      "named_two": {
-        "MySetting": false
-      }
-    }
-  }
-}
-```
-
 ## Health Checks
 
 Aspire components expose health checks enabling applications to track and respond to the remote service’s health.
@@ -135,35 +116,6 @@ Aspire components offer integrated logging, metrics, and tracing using modern .N
           "RetryOptions": {
             "MaxRetries": 2,
             "Delay": "00:00:01"
-          }
-        }
-      }
-    }
-  }
-}
-```
-
-- These `ClientOptions` can be configured hierarchically as well, so common Azure options can be configured for all Azure components. And each component can override the shared settings.
-
-```json
-{
-  "Aspire": {
-    "Azure": {
-      // These ClientOptions apply to all Azure components
-      "ClientOptions": {
-        "RetryOptions": {
-          "MaxRetries": 2,
-          "Delay": "00:00:01"
-        }
-      },
-
-      "Messaging:ServiceBus": {
-        "Namespace": "aspire-servicebus.servicebus.windows.net",
-
-        // These ClientOptions apply to the ServiceBus component and override the above options
-        "ClientOptions": {
-          "RetryOptions": {
-            "MaxRetries": 3
           }
         }
       }
