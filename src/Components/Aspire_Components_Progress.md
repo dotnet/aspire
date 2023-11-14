@@ -1,6 +1,6 @@
 # .NET Aspire Components Progress for November
 
-As part of the .NET Aspire November preview, we want to include a set of .NET Aspire Components which help developers build .NET Aspire applications. These components should follow the [.NET Aspire Component Requirements](#aspire-component-requirements). Bellow is a chart that shows the progress of each of the components we intend to ship, and their current stance against each of the requirements.
+As part of the .NET Aspire November preview, we want to include a set of .NET Aspire Components which help developers build .NET Aspire applications. These components should follow the [.NET Aspire Component Requirements](#net-aspire-component-requirements). Bellow is a chart that shows the progress of each of the components we intend to ship, and their current stance against each of the requirements.
 
 | .NET Aspire Component Name              | [Contains README](#contains-readme) | [Public API](#public-api) | [Configuration Schema](#json-schemaconfiguration) | [DI Services](#di-services) | [Logging](#logging) | [Tracing](#tracing) | [Metrics](#metrics) | [Health Checks](#health-checks) |
 | --------------------------------------- | :---------------------------------: | :-----------------------: | :----------------------------------------------------: | :-------------------------: | :-----------------: | :-----------------: | :-----------------: | :-----------------------------: |

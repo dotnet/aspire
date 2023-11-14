@@ -6,13 +6,13 @@
     "blanks-around-headings":          false,
     "no-duplicate-heading":            { "siblings_only": true },
     "no-trailing-punctuation":         false,
-    "ol-prefix":                       { "one_or_ordered": true },
     "blanks-around-fences":            false,
     "blanks-around-lists":             false,
-    "no-inline-html":                 { "allowed_elements": [ "summary", "details" ]},
+    "no-inline-html":                  { "allowed_elements": [ "summary", "details", "kbd" ]},
     "no-bare-urls":                    false,
     "single-trailing-newline":         false,
     "emphasis-style":                  false,
+    "reference-links-images":          false, // temporary until we figure out NuGet-nuget
 
     // rule settings and options are documented in https://github.com/DavidAnson/markdownlint
     // feel free to disable more low value rules in here; get rule name from the error message.
