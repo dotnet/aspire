@@ -5,6 +5,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
+using System.Collections.Immutable;
 using System.Globalization;
 using System.Net.Sockets;
 using static Aspire.Hosting.Dapr.CommandLineArgs;
@@ -56,6 +57,24 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
             string fileName = this._options.DaprPath ?? s_defaultDaprPath;
             string workingDirectory = Path.GetDirectoryName(projectMetadata.ProjectPath)!;
 
+            var aggregateResourcesPaths = sidecarOptions?.ResourcesPaths ?? ImmutableHashSet<string>.Empty;
+
+            var componentReferenceAnnotations = project.Annotations.OfType<DaprComponentReferenceAnnotation>();
+
+            foreach (var componentReferenceAnnotation in componentReferenceAnnotations)
+            {
+                if (componentReferenceAnnotation.Component.Options?.LocalPath is not null)
+                {
+                    var localPath = Path.GetFullPath(Path.Combine(workingDirectory, componentReferenceAnnotation.Component.Options.LocalPath));
+                    var localPathDirectory = Path.GetDirectoryName(localPath);
+
+                    if (localPathDirectory is not null)
+                    {
+                        aggregateResourcesPaths = aggregateResourcesPaths.Add(localPathDirectory);
+                    }
+                }
+            }
+
             var daprAppPortArg = (int? port) => NamedArg("--app-port", port);
             var daprGrpcPortArg = (int? port) => NamedArg("--dapr-grpc-port", port);
             var daprHttpPortArg = (int? port) => NamedArg("--dapr-http-port", port);
@@ -90,7 +109,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         NamedArg("--enable-profiling", sidecarOptions?.EnableProfiling),
                         NamedArg("--log-level", sidecarOptions?.LogLevel),
                         NamedArg("--placement-host-address", sidecarOptions?.PlacementHostAddress),
-                        NamedArg("--resources-path", sidecarOptions?.ResourcesPaths),
+                        NamedArg("--resources-path", aggregateResourcesPaths),
                         NamedArg("--run-file", sidecarOptions?.RunFile),
                         NamedArg("--unix-domain-socket", sidecarOptions?.UnixDomainSocket),
                         PostOptionsArgs(Args(sidecarOptions?.Command)));
@@ -159,6 +178,23 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         foreach (var port in ports)
                         {
                             updatedArgs.AddRange(port.Value.ArgsBuilder(port.Value.Port)());
+                        }
+                    }));
+
+            resource.Annotations.Add(
+                new ManifestPublishingCallbackAnnotation(
+                    writer =>
+                    {
+                        writer.WriteString("type", "dapr.v0");
+                        writer.WriteString("application", project.Name);
+                        if (componentReferenceAnnotations.Any())
+                        {
+                            writer.WriteStartArray("components");
+                            foreach (var componentReferenceAnnotation in componentReferenceAnnotations)
+                            {
+                                writer.WriteStringValue(componentReferenceAnnotation.Component.Name);
+                            }
+                            writer.WriteEndArray();
                         }
                     }));
 

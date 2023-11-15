@@ -32,8 +32,11 @@ public static class IDistributedApplicationResourceBuilderExtensions
     /// <returns>The resource builder instance.</returns>
     public static IResourceBuilder<T> WithDaprSidecar<T>(this IResourceBuilder<T> builder, DaprSidecarOptions? options = null) where T : IResource
     {
-        builder.WithAnnotation(new DaprSidecarAnnotation { Options = options });
+        return builder.WithAnnotation(new DaprSidecarAnnotation { Options = options });
+    }
 
-        return builder;
+    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IDaprComponentResource> component) where TDestination : IResource
+    {
+        return builder.WithAnnotation(new DaprComponentReferenceAnnotation(component.Resource));
     }
 }

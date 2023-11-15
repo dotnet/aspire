@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text.Json;
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dapr;
 using Aspire.Hosting.Lifecycle;
 using Microsoft.Extensions.DependencyInjection;
@@ -25,5 +27,20 @@ public static class IDistributedApplicationBuilderExtensions
         builder.Services.AddSingleton<DaprPortManager>();
 
         return builder;
+    }
+
+    public static IResourceBuilder<IDaprComponentResource> AddDaprComponent(this IDistributedApplicationBuilder builder, string name, string type, DaprComponentOptions? options = null)
+    {
+        var resource = new DaprComponentResource(name, type) { Options = options };
+
+        return builder
+            .AddResource(resource)
+            .WithAnnotation(new ManifestPublishingCallbackAnnotation(writer => WriteDaprComponentResourceToManifest(writer, resource)));
+    }
+
+    private static void WriteDaprComponentResourceToManifest(Utf8JsonWriter writer, DaprComponentResource resource)
+    {
+        writer.WriteString("type", "dapr.component.v0");
+        writer.WriteString("componentType", resource.Type);
     }
 }
