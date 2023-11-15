@@ -41,12 +41,10 @@ public class ConformanceTests : ConformanceTests<MySqlDataSource, MySqlConnector
         {
           "Aspire": {
             "MySqlConnector": {
-              "Npgsql": {
-                "ConnectionString": "YOUR_CONNECTION_STRING",
-                "HealthChecks": false,
-                "Tracing": true,
-                "Metrics": true
-              }
+              "ConnectionString": "YOUR_CONNECTION_STRING",
+              "HealthChecks": false,
+              "Tracing": true,
+              "Metrics": true
             }
           }
         }
