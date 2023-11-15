@@ -15,7 +15,7 @@ public class MySqlContainerResource(string name, string password) : ContainerRes
     /// <summary>
     /// Gets the connection string for the MySQL server.
     /// </summary>
-    /// <returns>A connection string for the MySQL server in the form "Host=host;Port=port;Username=root;Password=password".</returns>
+    /// <returns>A connection string for the MySQL server in the form "Server=host;Port=port;User ID=root;Password=password".</returns>
     public string? GetConnectionString()
     {
         if (!this.TryGetAllocatedEndPoints(out var allocatedEndpoints))
@@ -25,7 +25,7 @@ public class MySqlContainerResource(string name, string password) : ContainerRes
 
         var allocatedEndpoint = allocatedEndpoints.Single(); // We should only have one endpoint for MySQL.
 
-        var connectionString = $"Host={allocatedEndpoint.Address};Port={allocatedEndpoint.Port};Username=root;Password={Password};";
+        var connectionString = $"Server={allocatedEndpoint.Address};Port={allocatedEndpoint.Port};User ID=root;Password={Password};";
         return connectionString;
     }
 }
