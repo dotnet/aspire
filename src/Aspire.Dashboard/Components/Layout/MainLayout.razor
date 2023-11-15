@@ -29,7 +29,8 @@
         @Body
     </FluentBodyContent>
     <FluentFooter>
-       &copy; Microsoft, 2023
+       <div class="runtimeinfo">Powered by @(System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription)</div>
+       <div class="copyright">&copy; Microsoft, 2023</div
     </FluentFooter>
 
     <FluentDialogProvider />

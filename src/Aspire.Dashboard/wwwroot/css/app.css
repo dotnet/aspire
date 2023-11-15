@@ -103,7 +103,7 @@ fluent-dialog fluent-data-grid-cell[cell-type=columnheader] fluent-button[appear
     grid-template-areas:
         "toolbar"
         "main";
-    padding: calc(var(--design-unit) * 2px) calc(var(--design-unit) * 2px) 0;
+    padding: calc(var(--design-unit) * 2px) 0 0 calc(var(--design-unit) * 2px);
 }
 
 .content-layout-with-toolbar > fluent-toolbar {

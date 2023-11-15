@@ -74,13 +74,23 @@
 }
 
 ::deep.layout > footer {
+    display: grid;
+    grid-template-columns: auto auto;
     grid-area: footer;
     height: 20px;
     background-color: var(--neutral-layer-4);
     color: var(--accent-fill-rest);
     margin-bottom: 0;
-    justify-content: right;
     align-content: center;
-    padding-right: 10px;
+    padding: 0 10px;
     font-size: smaller;
+}
+
+::deep.layout .runtimeinfo {
+    display: grid;
+    justify-content: start;
+}
+::deep.layout .copyright {
+    display: grid;
+    justify-content: end;
 }
