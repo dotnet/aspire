@@ -18,10 +18,11 @@ public partial class MainLayout
             SecondaryAction = null,
             TrapFocus = true,
             Modal = true,
+            Alignment = HorizontalAlignment.Right,
             Width = "300px",
             Height = "auto"
         };
 
-        _ = await dialogService.ShowDialogAsync<SettingsDialog>(parameters).ConfigureAwait(true);
+        _ = await dialogService.ShowPanelAsync<SettingsDialog>(parameters).ConfigureAwait(true);
     }
 }

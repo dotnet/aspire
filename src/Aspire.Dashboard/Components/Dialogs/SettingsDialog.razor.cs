@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Reflection;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -15,6 +16,7 @@ public partial class SettingsDialog : IDialogContentComponent, IAsyncDisposable
     private const string ThemeSettingLight = "Light";
 
     private string _currentSetting = ThemeSettingSystem;
+    private static readonly string? s_version = Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyFileVersionAttribute>()?.Version;
 
     private IJSObjectReference? _jsModule;
 
