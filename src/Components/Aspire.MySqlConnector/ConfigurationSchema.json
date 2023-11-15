@@ -27,7 +27,7 @@
     "Aspire": {
       "type": "object",
       "properties": {
-        "MySql": {
+        "MySqlConnector": {
           "type": "object",
           "properties": {
             "ConnectionString": {
