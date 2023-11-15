@@ -82,6 +82,23 @@ Also you can pass the `Action<MySqlConnectorSettings> configureSettings` delegat
     builder.AddMySqlDataSource("mysql", settings => settings.HealthChecks = false);
 ```
 
+## AppHost extensions
+
+In your AppHost project, register a MySQL container and consume the connection using the following methods:
+
+```csharp
+var mysqldb = builder.AddMySqlContainer("mysql").AddDatabase("mysqldb");
+
+var myService = builder.AddProject<Projects.MyService>()
+                       .WithReference(mysqldb);
+```
+
+The `WithReference` method configures a connection in the `MyService` project named `mysqldb`. In the _Program.cs_ file of `MyService`, the database connection can be consumed using:
+
+```csharp
+builder.AddMySqlDataSource("mysqldb");
+```
+
 ## Additional documentation
 
 * https://mysqlconnector.net/tutorials/basic-api/
