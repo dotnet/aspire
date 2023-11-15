@@ -147,3 +147,8 @@ fluent-data-grid-cell .long-inner-content {
     grid-template-rows: 1fr;
     gap: calc(var(--design-unit) * 2px);
 }
+
+.version {
+    text-align: end;
+    font-size: small;
+}
