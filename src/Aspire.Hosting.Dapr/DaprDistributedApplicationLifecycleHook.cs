@@ -186,6 +186,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                     writer =>
                     {
                         writer.WriteString("type", "dapr.v0");
+                        writer.WriteStartObject("dapr");
                         writer.WriteString("application", project.Name);
                         if (componentReferenceAnnotations.Any())
                         {
@@ -196,6 +197,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                             }
                             writer.WriteEndArray();
                         }
+                        writer.WriteEndObject();
                     }));
 
             appModel.Resources.Add(resource);
