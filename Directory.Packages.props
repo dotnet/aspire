@@ -38,6 +38,7 @@
     <PackageVersion Include="AspNetCore.HealthChecks.Azure.Storage.Blobs" Version="7.0.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.Azure.Storage.Queues" Version="7.0.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.AzureServiceBus" Version="7.0.0" />
+    <PackageVersion Include="AspNetCore.HealthChecks.MySql" Version="7.0.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.NpgSql" Version="7.0.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.Rabbitmq" Version="7.0.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.Redis" Version="7.0.1" />
@@ -73,6 +74,7 @@
     <PackageVersion Include="JsonSchema.Net" Version="5.2.5" />
     <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.0.0-rc.3" />
     <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.0.0-rc.3" />
+    <PackageVersion Include="MySqlConnector.DependencyInjection" Version="2.3.0" />
     <PackageVersion Include="Npgsql.DependencyInjection" Version="8.0.0-rc.2" />
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.0-rc.2" />
     <PackageVersion Include="Polly" Version="8.0.0" />

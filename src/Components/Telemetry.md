@@ -128,6 +128,26 @@ Aspire.Microsoft.EntityFrameworkCore.SqlServer:
     - "ec_Microsoft_EntityFramew_total_optimistic_concurrency_failures"
     - "ec_Microsoft_EntityF_optimistic_concurrency_failures_per_second"
 
+Aspire.MySqlConnector:
+- Log categories:
+  - "MySqlConnector.ConnectionPool"
+  - "MySqlConnector.MySqlBulkCopy"
+  - "MySqlConnector.MySqlCommand"
+  - "MySqlConnector.MySqlConnection"
+  - "MySqlConnector.MySqlDataSource"
+- Activity source names:
+  - "MySqlConnector"
+- Metric names:
+  - "MySqlConnector":
+    - "db.client.connections.create_time"
+    - "db.client.connections.use_time"
+    - "db.client.connections.wait_time"
+    - "db.client.connections.idle.max"
+    - "db.client.connections.idle.min"
+    - "db.client.connections.max"
+    - "db.client.connections.pending_requests"
+    - "db.client.connections.usage"
+
 Aspire.Npgsql:
 - Log categories:
   - "Npgsql.Command"
