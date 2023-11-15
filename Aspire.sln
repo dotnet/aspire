@@ -154,6 +154,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.RabbitMQ.Client.Test
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.MySqlConnector", "src\Components\Aspire.MySqlConnector\Aspire.MySqlConnector.csproj", "{CA283D7F-EB95-4353-B196-C409965D2B42}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.MySqlConnector.Tests", "tests\Aspire.MySqlConnector.Tests\Aspire.MySqlConnector.Tests.csproj", "{C8079F06-304F-49B1-A0C1-45AA3782A923}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -412,6 +414,10 @@ Global
 		{CA283D7F-EB95-4353-B196-C409965D2B42}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CA283D7F-EB95-4353-B196-C409965D2B42}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CA283D7F-EB95-4353-B196-C409965D2B42}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C8079F06-304F-49B1-A0C1-45AA3782A923}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C8079F06-304F-49B1-A0C1-45AA3782A923}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C8079F06-304F-49B1-A0C1-45AA3782A923}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C8079F06-304F-49B1-A0C1-45AA3782A923}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -484,6 +490,7 @@ Global
 		{4D8A92AB-4E77-4965-AD8E-8E206DCE66A4} = {27381127-6C45-4B4C-8F18-41FF48DFE4B2}
 		{165411FE-755E-4869-A756-F87F455860AC} = {4981B3A5-4AFD-4191-BF7D-8692D9783D60}
 		{CA283D7F-EB95-4353-B196-C409965D2B42} = {27381127-6C45-4B4C-8F18-41FF48DFE4B2}
+		{C8079F06-304F-49B1-A0C1-45AA3782A923} = {4981B3A5-4AFD-4191-BF7D-8692D9783D60}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6DCEDFEC-988E-4CB3-B45B-191EB5086E0C}

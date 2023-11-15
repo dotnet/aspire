@@ -52,7 +52,7 @@ And then the connection string will be retrieved from the `ConnectionStrings` co
 ```json
 {
   "ConnectionStrings": {
-    "myConnection": "Host=mysql;Database=test"
+    "myConnection": "Server=mysql;Database=test"
   }
 }
 ```
