@@ -97,7 +97,10 @@ public static class AspireMySqlConnectorExtensions
         if (settings.Metrics)
         {
             builder.Services.AddOpenTelemetry()
-                .WithMetrics(MySqlConnectorCommon.AddMySqlMetrics);
+                .WithMetrics(meterProviderBuilder =>
+                {
+                    meterProviderBuilder.AddMeter("MySqlConnector");
+                });
         }
     }
 
