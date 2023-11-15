@@ -43,7 +43,7 @@
             <FluentAnchor slot="end" Appearance="Appearance.Lightweight" Href="@($"/Traces")">Back</FluentAnchor>
         </FluentToolbar>
 
-        <SummaryDetailsView DetailsTitle="@(SelectedSpan?.Title)" ShowDetails="SelectedSpan is not null" OnDismiss="() => ClearSelectedSpan()">
+        <SummaryDetailsView DetailsTitle="@(SelectedSpan?.Title)" ShowDetails="SelectedSpan is not null" OnDismiss="() => ClearSelectedSpan()" ViewKey="TraceDetail">
             <Summary>
                 <FluentDataGrid Class="trace-view-grid" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="SpanWaterfallViewModel" RowClass="@GetRowClass" GridTemplateColumns="2fr 6fr">
                     <TemplateColumn Title="Name">
