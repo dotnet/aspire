@@ -18,7 +18,7 @@ namespace Microsoft.Extensions.Hosting;
 /// </summary>
 public static class AspireMySqlConnectorExtensions
 {
-    private const string DefaultConfigSectionName = "Aspire:MySql";
+    private const string DefaultConfigSectionName = "Aspire:MySqlConnector";
 
     /// <summary>
     /// Registers <see cref="MySqlDataSource"/> service for connecting MySQL database with MySqlConnector client.
@@ -27,7 +27,7 @@ public static class AspireMySqlConnectorExtensions
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="configureSettings">An optional delegate that can be used for customizing options. It's invoked after the settings are read from the configuration.</param>
-    /// <remarks>Reads the configuration from "Aspire:MySql" section.</remarks>
+    /// <remarks>Reads the configuration from "Aspire:MySqlConnector" section.</remarks>
     /// <exception cref="ArgumentNullException">Thrown if mandatory <paramref name="builder"/> is null.</exception>
     /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="MySqlConnectorSettings.ConnectionString"/> is not provided.</exception>
     public static void AddMySqlDataSource(this IHostApplicationBuilder builder, string connectionName, Action<MySqlConnectorSettings>? configureSettings = null)
@@ -40,7 +40,7 @@ public static class AspireMySqlConnectorExtensions
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="configureSettings">An optional method that can be used for customizing options. It's invoked after the settings are read from the configuration.</param>
-    /// <remarks>Reads the configuration from "Aspire:MySql:{name}" section.</remarks>
+    /// <remarks>Reads the configuration from "Aspire:MySqlConnector:{name}" section.</remarks>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/> or <paramref name="name"/> is null.</exception>
     /// <exception cref="ArgumentException">Thrown if mandatory <paramref name="name"/> is empty.</exception>
     /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="MySqlConnectorSettings.ConnectionString"/> is not provided.</exception>
@@ -68,7 +68,7 @@ public static class AspireMySqlConnectorExtensions
 
         builder.RegisterMySqlServices(settings, configurationSectionName, connectionName, serviceKey);
 
-        // Same as SqlClient connection pooling is on by default and can be handled with connection string 
+        // Same as SqlClient connection pooling is on by default and can be handled with connection string
         // https://mysqlconnector.net/connection-options/#Pooling
         if (settings.HealthChecks)
         {

@@ -61,7 +61,7 @@ See the [ConnectionString documentation](https://mysqlconnector.net/connection-o
 
 ### Use configuration providers
 
-The .NET Aspire MySQL component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `MySqlConnectorSettings` from configuration by using the `Aspire:MySql` key. Example `appsettings.json` that configures some of the options:
+The .NET Aspire MySQL component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `MySqlConnectorSettings` from configuration by using the `Aspire:MySqlConnector` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {
