@@ -29,9 +29,9 @@
       <Uri>https://github.com/microsoft/usvc-apiserver</Uri>
       <Sha>5173daa9d8649d3b1af7025adc0d3431a2b7434b</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.Extensions.Http.Resilience" Version="8.0.0">
+    <Dependency Name="Microsoft.Extensions.Http.Resilience" Version="8.1.0-preview.23562.3">
       <Uri>https://github.com/dotnet/extensions</Uri>
-      <Sha>0db4832a73bcd20fe6eaaa01ff64d18e329d438d</Sha>
+      <Sha>32b81ebb1d5ce0c3c0eb63c76d01310f31f9b8bc</Sha>
     </Dependency>
     <Dependency Name="Microsoft.SourceBuild.Intermediate.source-build-reference-packages" Version="8.0.0-alpha.1.23516.4">
       <Uri>https://github.com/dotnet/source-build-reference-packages</Uri>
@@ -98,11 +98,11 @@
       <Uri>https://github.com/dotnet/aspnetcore</Uri>
       <Sha>c838682d8984f0183abb48a4032bf7846fef52ae</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.0">
+    <Dependency Name="Microsoft.EntityFrameworkCore.Cosmos" Version="8.0.0">
       <Uri>https://github.com/dotnet/efcore</Uri>
       <Sha>e017dc125bef2f604f85befd8ff27544a5a67c38</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.EntityFrameworkCore.Design" Version="8.0.0">
+    <Dependency Name="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.0">
       <Uri>https://github.com/dotnet/efcore</Uri>
       <Sha>e017dc125bef2f604f85befd8ff27544a5a67c38</Sha>
     </Dependency>
