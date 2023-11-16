@@ -103,14 +103,17 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// <inheritdoc cref="IHost.StartAsync" />
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
-        await ExecuteBeforeStartHooksAsync(cancellationToken).ConfigureAwait(false);
+        var lifecycleHooks = _host.Services.GetServices<IDistributedApplicationLifecycleHook>();
+        await ExecuteBeforeStartHooksAsync(lifecycleHooks, cancellationToken).ConfigureAwait(false);
         await _host.StartAsync(cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc cref="IHost.StopAsync" />
     public async Task StopAsync(CancellationToken cancellationToken = default)
     {
+        var lifecycleHooks = _host.Services.GetServices<IDistributedApplicationLifecycleHook>();
         await _host.StopAsync(cancellationToken).ConfigureAwait(false);
+        await ExecuteAfterStopHooksAsync(lifecycleHooks, cancellationToken).ConfigureAwait(false);
     }
 
     private void SuppressLifetimeLogsDuringManifestPublishing()
@@ -135,8 +138,10 @@ public class DistributedApplication : IHost, IAsyncDisposable
     public async Task RunAsync(CancellationToken cancellationToken = default)
     {
         SuppressLifetimeLogsDuringManifestPublishing();
-        await ExecuteBeforeStartHooksAsync(cancellationToken).ConfigureAwait(false);
+        var lifecycleHooks = _host.Services.GetServices<IDistributedApplicationLifecycleHook>();
+        await ExecuteBeforeStartHooksAsync(lifecycleHooks, cancellationToken).ConfigureAwait(false);
         await _host.RunAsync(cancellationToken).ConfigureAwait(false);
+        await ExecuteAfterStopHooksAsync(lifecycleHooks, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -147,13 +152,12 @@ public class DistributedApplication : IHost, IAsyncDisposable
         RunAsync().Wait();
     }
 
-    private async Task ExecuteBeforeStartHooksAsync(CancellationToken cancellationToken)
+    private async Task ExecuteBeforeStartHooksAsync(IEnumerable<IDistributedApplicationLifecycleHook> lifecycleHooks, CancellationToken cancellationToken)
     {
         AspireEventSource.Instance.AppBeforeStartHooksStart();
 
         try
         {
-            var lifecycleHooks = _host.Services.GetServices<IDistributedApplicationLifecycleHook>();
             var appModel = _host.Services.GetRequiredService<DistributedApplicationModel>();
 
             foreach (var lifecycleHook in lifecycleHooks)
@@ -164,6 +168,23 @@ public class DistributedApplication : IHost, IAsyncDisposable
         finally
         {
             AspireEventSource.Instance.AppBeforeStartHooksStop();
+        }
+    }
+
+    private static async Task ExecuteAfterStopHooksAsync(IEnumerable<IDistributedApplicationLifecycleHook> lifecycleHooks, CancellationToken cancellationToken)
+    {
+        AspireEventSource.Instance.AppAfterStopHooksStart();
+
+        try
+        {
+            foreach (var lifecycleHook in lifecycleHooks)
+            {
+                await lifecycleHook.AfterStopAsync(cancellationToken).ConfigureAwait(false);
+            }
+        }
+        finally
+        {
+            AspireEventSource.Instance.AppAfterStopHooksStop();
         }
     }
 

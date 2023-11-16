@@ -5,6 +5,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using System.Collections.Immutable;
 using System.Globalization;
 using System.Net.Sockets;
@@ -16,6 +17,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
 {
     private readonly IConfiguration _configuration;
     private readonly IHostEnvironment _environment;
+    private readonly ILogger<DaprDistributedApplicationLifecycleHook> _logger;
     private readonly DaprOptions _options;
     private readonly DaprPortManager _portManager;
 
@@ -26,16 +28,19 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
 
     private const int DaprHttpPortStartRange = 50001;
 
-    public DaprDistributedApplicationLifecycleHook(IConfiguration configuration, IHostEnvironment environment, DaprOptions options, DaprPortManager portManager)
+    public DaprDistributedApplicationLifecycleHook(IConfiguration configuration, IHostEnvironment environment, ILogger<DaprDistributedApplicationLifecycleHook> logger, DaprOptions options, DaprPortManager portManager)
     {
         _configuration = configuration;
         _environment = environment;
-        this._options = options;
-        this._portManager = portManager;
+        _logger = logger;
+        _options = options;
+        _portManager = portManager;
     }
 
     public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
+        _logger.LogInformation("Starting Dapr-related resources...");
+
         var onDemandResourcesPaths = await StartDaprComponentsAsync(appModel, cancellationToken).ConfigureAwait(false);
 
         var projectResources = appModel.GetProjectResources().ToArray();
@@ -204,6 +209,13 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
 
             appModel.Resources.Add(resource);
         }
+    }
+
+    public Task AfterStopAsync(CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Stopping Dapr-related resources...");
+
+        return Task.CompletedTask;
     }
 
     private static async Task<IImmutableSet<string>> StartDaprComponentsAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
