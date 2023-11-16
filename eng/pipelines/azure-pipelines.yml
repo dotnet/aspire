@@ -97,7 +97,7 @@ stages:
       jobs:
 
       - job: windows
-        timeoutInMinutes: 30
+        timeoutInMinutes: 60
 
         pool:
           ${{ if eq(variables['System.TeamProject'], 'public') }}:
@@ -129,7 +129,7 @@ stages:
 
       - ${{ if eq(variables._RunAsPublic, True) }}:
         - job: linux
-          timeoutInMinutes: 30
+          timeoutInMinutes: 60
 
           pool:
             ${{ if eq(variables['System.TeamProject'], 'public') }}:
