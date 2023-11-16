@@ -9,6 +9,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Primitives;
 using Microsoft.Extensions.ServiceDiscovery.Abstractions;
+using Microsoft.Extensions.ServiceDiscovery.Http;
 using Xunit;
 
 namespace Microsoft.Extensions.ServiceDiscovery.Tests;
@@ -133,6 +134,80 @@ public class ServiceEndPointResolverTests
             Assert.Equal(new IPEndPoint(IPAddress.Parse("127.1.1.1"), 8080), endpoints[0]);
             Assert.Equal(new IPEndPoint(IPAddress.Parse("127.1.1.2"), 8888), endpoints[1]);
         }
+    }
+
+    [Fact]
+    public async Task ResolveServiceEndPointOneShot()
+    {
+        var cts = new[] { new CancellationTokenSource() };
+        var innerResolver = new FakeEndPointResolver(
+            resolveAsync: (collection, ct) =>
+            {
+                collection.AddChangeToken(new CancellationChangeToken(cts[0].Token));
+                collection.EndPoints.Add(ServiceEndPoint.Create(new IPEndPoint(IPAddress.Parse("127.1.1.1"), 8080)));
+
+                if (cts[0].Token.IsCancellationRequested)
+                {
+                    cts[0] = new();
+                    collection.EndPoints.Add(ServiceEndPoint.Create(new IPEndPoint(IPAddress.Parse("127.1.1.2"), 8888)));
+                }
+                return default;
+            },
+            disposeAsync: () => default);
+        var resolverProvider = new FakeEndPointResolverProvider(name => (true, innerResolver));
+        var services = new ServiceCollection()
+            .AddSingleton<IServiceEndPointResolverProvider>(resolverProvider)
+            .AddServiceDiscoveryCore()
+            .BuildServiceProvider();
+        var resolver = services.GetRequiredService<ServiceEndPointResolverRegistry>();
+
+        Assert.NotNull(resolver);
+        var initialEndPoints = await resolver.GetEndPointsAsync("http://basket", CancellationToken.None).ConfigureAwait(false);
+        Assert.NotNull(initialEndPoints);
+        var sep = Assert.Single(initialEndPoints);
+        var ip = Assert.IsType<IPEndPoint>(sep.EndPoint);
+        Assert.Equal(IPAddress.Parse("127.1.1.1"), ip.Address);
+        Assert.Equal(8080, ip.Port);
+
+        await services.DisposeAsync().ConfigureAwait(false);
+    }
+
+    [Fact]
+    public async Task ResolveHttpServiceEndPointOneShot()
+    {
+        var cts = new[] { new CancellationTokenSource() };
+        var innerResolver = new FakeEndPointResolver(
+            resolveAsync: (collection, ct) =>
+            {
+                collection.AddChangeToken(new CancellationChangeToken(cts[0].Token));
+                collection.EndPoints.Add(ServiceEndPoint.Create(new IPEndPoint(IPAddress.Parse("127.1.1.1"), 8080)));
+
+                if (cts[0].Token.IsCancellationRequested)
+                {
+                    cts[0] = new();
+                    collection.EndPoints.Add(ServiceEndPoint.Create(new IPEndPoint(IPAddress.Parse("127.1.1.2"), 8888)));
+                }
+                return default;
+            },
+            disposeAsync: () => default);
+        var fakeResolverProvider = new FakeEndPointResolverProvider(name => (true, innerResolver));
+        var services = new ServiceCollection()
+            .AddSingleton<IServiceEndPointResolverProvider>(fakeResolverProvider)
+            .AddServiceDiscoveryCore()
+            .BuildServiceProvider();
+        var selectorProvider = services.GetRequiredService<IServiceEndPointSelectorProvider>();
+        var resolverProvider = services.GetRequiredService<ServiceEndPointResolverFactory>();
+        await using var resolver = new HttpServiceEndPointResolver(resolverProvider, selectorProvider, TimeProvider.System);
+
+        Assert.NotNull(resolver);
+        var httpRequest = new HttpRequestMessage(HttpMethod.Get, "http://basket");
+        var endPoint = await resolver.GetEndpointAsync(httpRequest, CancellationToken.None).ConfigureAwait(false);
+        Assert.NotNull(endPoint);
+        var ip = Assert.IsType<IPEndPoint>(endPoint.EndPoint);
+        Assert.Equal(IPAddress.Parse("127.1.1.1"), ip.Address);
+        Assert.Equal(8080, ip.Port);
+
+        await services.DisposeAsync().ConfigureAwait(false);
     }
 
     [Fact]
