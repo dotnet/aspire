@@ -156,8 +156,8 @@ public sealed class ServiceEndPointResolverRegistry(ServiceEndPointResolverFacto
     {
         private readonly ServiceEndPointResolver _resolver = resolver;
         private const ulong CountMask = ~(RecentUseFlag | DisposingFlag);
-        private const ulong RecentUseFlag = 1UL << 61;
-        private const ulong DisposingFlag = 1UL << 62;
+        private const ulong RecentUseFlag = 1UL << 62;
+        private const ulong DisposingFlag = 1UL << 63;
         private ulong _status;
         private TaskCompletionSource? _onDisposed;
 
