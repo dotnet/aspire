@@ -11,6 +11,26 @@ namespace Aspire.Hosting.Tests;
 public class ManifestGenerationTests
 {
     [Fact]
+    public void EnsureWorkerProjectDoesNotGetBindingsGenerated()
+    {
+        var program = CreateTestProgramJsonDocumentManifestPublisher();
+
+        program.AppBuilder.AddContainer("grafana", "grafana/grafana")
+                          .WithServiceBinding(3000, scheme: "http");
+
+        // Build AppHost so that publisher can be resolved.
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+
+        var workerA = resources.GetProperty("workera");
+        Assert.False(workerA.TryGetProperty("bindings", out _));
+    }
+
+    [Fact]
     public void EnsureContainerWithServiceBindingsEmitsContainerPort()
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher();

@@ -11,6 +11,7 @@ public class TestProgram
         ServiceABuilder = AppBuilder.AddProject<Projects.ServiceA>("servicea");
         ServiceBBuilder = AppBuilder.AddProject<Projects.ServiceB>("serviceb");
         ServiceCBuilder = AppBuilder.AddProject<Projects.ServiceC>("servicec");
+        WorkerABuilder = AppBuilder.AddProject<Projects.WorkerA>("workera");
     }
 
     public static TestProgram Create<T>(string[]? args = null) => new TestProgram(args ?? [], typeof(T).Assembly);
@@ -19,6 +20,7 @@ public class TestProgram
     public IResourceBuilder<ProjectResource> ServiceABuilder { get; private set; }
     public IResourceBuilder<ProjectResource> ServiceBBuilder { get; private set; }
     public IResourceBuilder<ProjectResource> ServiceCBuilder { get; private set; }
+    public IResourceBuilder<ProjectResource> WorkerABuilder { get; private set; }
     public DistributedApplication? App { get; private set; }
 
     public async Task RunAsync(CancellationToken cancellationToken = default)

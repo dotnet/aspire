@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Xml;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 using Microsoft.Extensions.Configuration;
@@ -28,6 +29,15 @@ internal sealed class AutomaticManifestPublisherBindingInjectionHook(IOptions<Pu
         return protocol == "Http2";
     }
 
+    private static bool IsWebProject(ProjectResource projectResource)
+    {
+        var serviceMetadata = projectResource.GetServiceMetadata();
+        using var projectFileStream = File.OpenRead(serviceMetadata.ProjectPath);
+        var document = new XmlDocument();
+        document.Load(projectFileStream);
+        return document.DocumentElement?.GetAttribute("Sdk") == "Microsoft.NET.Sdk.Web";
+    }
+
     public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
         if (_publishingOptions.Value.Publisher != "manifest")
@@ -40,6 +50,12 @@ internal sealed class AutomaticManifestPublisherBindingInjectionHook(IOptions<Pu
         foreach (var projectResource in projectResources)
         {
             var isHttp2ConfiguredInAppSettings = IsKestrelHttp2ConfigurationPresent(projectResource);
+
+            // If we aren't a web project we don't automatically add bindings.
+            if (!IsWebProject(projectResource))
+            {
+                continue;
+            }
 
             if (!projectResource.Annotations.OfType<ServiceBindingAnnotation>().Any(sb => sb.UriScheme == "http" || sb.Name == "http"))
             {
