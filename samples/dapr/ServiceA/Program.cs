@@ -28,9 +28,20 @@ var summaries = new[]
     "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
 };
 
-app.MapGet("/weatherforecast", (DaprClient client) =>
+app.MapGet("/weatherforecast", async (DaprClient client) =>
 {
-    return client.InvokeMethodAsync<WeatherForecast[]>(HttpMethod.Get, "service-b", "weatherforecast");
+    var cachedForecasts = await client.GetStateAsync<CachedWeatherForecast>("statestore", "cache");
+
+    if (cachedForecasts is not null && cachedForecasts.CachedAt > DateTimeOffset.UtcNow.AddMinutes(-1))
+    {
+        return cachedForecasts.Forecasts;
+    }
+
+    var forecasts = await client.InvokeMethodAsync<WeatherForecast[]>(HttpMethod.Get, "service-b", "weatherforecast");
+
+    await client.SaveStateAsync("statestore", "cache", new CachedWeatherForecast(forecasts, DateTimeOffset.UtcNow));
+
+    return forecasts;
 })
 .WithName("GetWeatherForecast")
 .WithOpenApi();
@@ -38,6 +49,8 @@ app.MapGet("/weatherforecast", (DaprClient client) =>
 app.MapDefaultEndpoints();
 
 app.Run();
+
+internal sealed record CachedWeatherForecast(WeatherForecast[] Forecasts, DateTimeOffset CachedAt);
 
 internal sealed record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
 {
