@@ -80,7 +80,7 @@ public partial class SummaryDetailsView
         await OnDismiss.InvokeAsync();
     }
 
-    private async void HandleToggleOrientation()
+    private async Task HandleToggleOrientation()
     {
         if (Orientation == Orientation.Horizontal)
         {
