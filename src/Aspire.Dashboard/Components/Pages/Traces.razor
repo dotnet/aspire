@@ -24,13 +24,12 @@
                       @bind-SelectedOption="_selectedApplication"
                       @bind-SelectedOption:after="HandleSelectedApplicationChangedAsync"
                       AriaLabel="Select an Application"/>
-        <div title="Name filter" slot="end" style="display: flex;align-items: center;">
-            <FluentSearch @bind-Value="_filter"
-                          @oninput="HandleFilter"
-                          @bind-Value:after="HandleClear"
-                          Placeholder="Filter..."
-                          slot="end" />
-        </div>
+        <FluentSearch @bind-Value="_filter"
+                      @oninput="HandleFilter"
+                      @bind-Value:after="HandleClear"
+                      Placeholder="Filter..."
+                      Title="Name filter"
+                      slot="end" />
     </FluentToolbar>
     <div class="datagrid-overflow-area continuous-scroll-overflow" tabindex="-1">
         <FluentDataGrid Virtualize="true" RowStyle="@GetRowStyle" GenerateHeader="GenerateHeaderOption.Sticky" ItemSize="46" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="OtlpTrace" GridTemplateColumns="0.8fr 2fr 3fr 0.5fr 0.5fr">

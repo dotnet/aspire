@@ -22,13 +22,12 @@
                       @bind-SelectedOption="_selectedApplication"
                       @bind-SelectedOption:after="HandleSelectedApplicationChangedAsync"
                       AriaLabel="Select an Application"/>
-        <div title="Message filter" slot="end" style="display: flex;align-items: center;">
-            <FluentSearch @bind-Value="_filter"
-                          @oninput="HandleFilter"
-                          @bind-Value:after="HandleClear"
-                          Placeholder="Filter..."
-                          slot="end" />
-        </div>
+        <FluentSearch @bind-Value="_filter"
+                      @oninput="HandleFilter"
+                      @bind-Value:after="HandleClear"
+                      Placeholder="Filter..."
+                      Title="Message filter"
+                      slot="end" />
         <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
         <div title="Minimum log level filter" slot="end" style="display: flex;align-items: center;">
             <span>Level:</span>
