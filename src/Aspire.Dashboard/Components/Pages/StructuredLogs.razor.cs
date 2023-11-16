@@ -53,6 +53,7 @@ public partial class StructuredLogs
     public string? LogLevelText { get; set; }
 
     public IEnumerable<LogEntryPropertyViewModel>? SelectedLogEntryProperties { get; set; }
+    private OtlpLogEntry? _selectedLogEntry;
 
     private ValueTask<GridItemsProviderResult<OtlpLogEntry>> GetData(GridItemsProviderRequest<OtlpLogEntry> request)
     {
@@ -159,10 +160,23 @@ public partial class StructuredLogs
 
     private void OnShowProperties(OtlpLogEntry entry)
     {
-        SelectedLogEntryProperties = entry.AllProperties()
-                                          .Select(kvp => new LogEntryPropertyViewModel { Name = kvp.Key, Value = kvp.Value })
-                                          .ToList();
+        if (_selectedLogEntry == entry)
+        {
+            ClearSelectedLogEntry();
+        }
+        else
+        {
+            _selectedLogEntry = entry;
+            SelectedLogEntryProperties = entry.AllProperties()
+                                              .Select(kvp => new LogEntryPropertyViewModel { Name = kvp.Key, Value = kvp.Value })
+                                              .ToList();
+        }
+    }
 
+    private void ClearSelectedLogEntry()
+    {
+        _selectedLogEntry = null;
+        SelectedLogEntryProperties = null;
     }
 
     private async Task OpenFilterAsync(LogFilter? entry)
