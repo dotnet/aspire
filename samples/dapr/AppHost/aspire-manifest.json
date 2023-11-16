@@ -46,14 +46,18 @@
     },
     "service-a": {
       "type": "dapr.v0",
-      "application": "servicea",
-      "components": [
-        "statestore"
-      ]
+      "dapr": {
+        "application": "servicea",
+        "components": [
+          "statestore"
+        ]
+      }
     },
     "service-b": {
       "type": "dapr.v0",
-      "application": "serviceb"
+      "dapr": {
+        "application": "serviceb"
+      }
     }
   }
 }
