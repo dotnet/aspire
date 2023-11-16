@@ -69,6 +69,9 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
             PrepareServices();
             PrepareContainers();
             PrepareExecutables();
+            PrepareProxylessServices();
+
+            await CreateContainerSingletonsAsync(cancellationToken).ConfigureAwait(false);
 
             await CreateServicesAsync(cancellationToken).ConfigureAwait(false);
 
@@ -96,6 +99,13 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
             AspireEventSource.Instance.DcpModelCleanupStop();
             _appResources.Clear();
         }
+    }
+
+    private async Task CreateContainerSingletonsAsync(CancellationToken cancellationToken = default)
+    {
+        // Find containers that consume no Services--their associated Services can be started in Proxyless mode
+        var toCreate = _appResources.Where(r => r.DcpResource is Container && !r.ServicesConsumed.Any());
+        await CreateContainersAsync(toCreate, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task CreateServicesAsync(CancellationToken cancellationToken = default)
@@ -146,7 +156,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
         var toCreate = _appResources.Where(r => r.DcpResource is Container || r.DcpResource is Executable || r.DcpResource is ExecutableReplicaSet);
         AddAllocatedEndpointInfo(toCreate);
 
-        await CreateContainersAsync(toCreate.Where(ar => ar.DcpResource is Container), cancellationToken).ConfigureAwait(false);
+        await CreateContainersAsync(toCreate.Where(ar => ar.DcpResource is Container && ar.ServicesConsumed.Any()), cancellationToken).ConfigureAwait(false);
         await CreateExecutablesAsync(toCreate.Where(ar => ar.DcpResource is Executable || ar.DcpResource is ExecutableReplicaSet), cancellationToken).ConfigureAwait(false);
     }
 
@@ -189,7 +199,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
         void addServiceAppResource(Service svc, IResource producingResource, ServiceBindingAnnotation sba)
         {
             svc.Spec.Protocol = PortProtocol.FromProtocolType(sba.Protocol);
-            svc.Spec.AddressAllocationMode = AddressAllocationModes.IPv4Loopback;
+            svc.Spec.AddressAllocationMode = AddressAllocationModes.Localhost;
             svc.Annotate(CustomResource.UriSchemeAnnotation, sba.UriScheme);
 
             _appResources.Add(new ServiceAppResource(producingResource, svc, sba));
@@ -335,6 +345,20 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
             var exeAppResource = new AppResource(project, workload);
             AddServicesProducedInfo(project, annotationHolder, exeAppResource);
             _appResources.Add(exeAppResource);
+        }
+    }
+
+    private void PrepareProxylessServices()
+    {
+        // Find containers that consume no Services--their associated Services can be started in Proxyless mode
+        var singletonContainers = _appResources.Where(r => r.DcpResource is Container && !r.ServicesConsumed.Any());
+
+        foreach (var container in singletonContainers)
+        {
+            foreach (var service in container.ServicesProduced)
+            {
+                service.Service.Spec.AddressAllocationMode = AddressAllocationModes.Proxyless;
+            }
         }
     }
 
