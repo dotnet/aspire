@@ -167,7 +167,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
                     sp.ServiceBindingAnnotation.Name,
                     PortProtocol.ToProtocolType(svc.Spec.Protocol),
                     svc.AllocatedAddress!,
-                    (int)(sp.ServiceBindingAnnotation.Port! ?? svc.AllocatedPort!), // Checked by HasCompleteAddress above.
+                    (int)(sp.ServiceBindingAnnotation.Port ?? svc.AllocatedPort!), // Checked by HasCompleteAddress above.
                     sp.ServiceBindingAnnotation.UriScheme
                     );
 
