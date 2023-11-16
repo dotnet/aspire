@@ -34,8 +34,10 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
         this._portManager = portManager;
     }
 
-    public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
+    public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
+        var onDemandResourcesPaths = await StartDaprComponentsAsync(appModel, cancellationToken).ConfigureAwait(false);
+
         var projectResources = appModel.GetProjectResources().ToArray();
 
         foreach (var project in projectResources)
@@ -57,7 +59,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
             string fileName = this._options.DaprPath ?? s_defaultDaprPath;
             string workingDirectory = Path.GetDirectoryName(projectMetadata.ProjectPath)!;
 
-            var aggregateResourcesPaths = sidecarOptions?.ResourcesPaths ?? ImmutableHashSet<string>.Empty;
+            var aggregateResourcesPaths = (sidecarOptions?.ResourcesPaths ?? ImmutableHashSet<string>.Empty).Union(onDemandResourcesPaths);
 
             var componentReferenceAnnotations = project.Annotations.OfType<DaprComponentReferenceAnnotation>();
 
@@ -202,8 +204,68 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
 
             appModel.Resources.Add(resource);
         }
+    }
 
-        return Task.CompletedTask;
+    private static async Task<IImmutableSet<string>> StartDaprComponentsAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
+    {
+        // TODO: See if any Dapr component resources exist.
+        // TODO: If so, see which specify local paths.
+        // TODO: For those that don't, spin up appropriate ones.
+
+        var virtualDaprComponents =
+            appModel
+                .Resources
+                .OfType<DaprComponentResource>()
+                .Where(component => component.Options?.LocalPath is null)
+                .ToList();
+
+        if (virtualDaprComponents.Any())
+        {
+            string tempPath = Path.GetTempPath();
+            string tempDirectory = Path.Combine(tempPath, "aspire", "dapr", Path.GetRandomFileName());
+
+            // TODO: Delete temp directory on shutdown.
+            Directory.CreateDirectory(tempDirectory);
+
+            foreach (var component in virtualDaprComponents)
+            {
+                switch (component.Type)
+                {
+                    case "statestore":
+
+                        await CreateStateStoreAsync(tempDirectory, component, cancellationToken).ConfigureAwait(false);
+
+                        break;
+
+                    default:
+
+                        throw new InvalidOperationException($"Unsupported Dapr component type '{component.Type}'.");
+                }
+            }
+
+            return ImmutableHashSet.Create(tempDirectory);
+        }
+        else
+        {
+            return ImmutableHashSet<string>.Empty;
+        }
+    }
+
+    private static Task CreateStateStoreAsync(string tempDirectory, DaprComponentResource component, CancellationToken cancellationToken)
+    {
+        return File.WriteAllTextAsync(
+            Path.Combine(tempDirectory, "statestore.yaml"),
+            $"""
+            apiVersion: dapr.io/v1alpha1
+            kind: Component
+            metadata:
+                name: {component.Name}
+            spec:
+                type: state.in-memory
+                version: v1
+                metadata: []
+            """,
+            cancellationToken);
     }
 }
 
