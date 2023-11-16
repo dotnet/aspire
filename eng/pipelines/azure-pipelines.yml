@@ -4,12 +4,14 @@ trigger:
     include:
     - main
     - release/*
+    - internal/release/*
 
 pr:
   branches:
     include:
     - main
     - release/*
+    - internal/release/*
 
 variables:
   - template: /eng/pipelines/common-variables.yml
@@ -86,7 +88,7 @@ stages:
       enablePublishUsingPipelines: true
       publishAssetsImmediately: true
       enablePublishTestResults: true
-      # enableSourceBuild: true   Once the repo is public and we no longer depend on an internal feed, we should uncomment this line in order to enable SourceBuild CI leg.
+      enableSourceBuild: true
       testResultsFormat: vstest
       enableSourceIndex: false
       workspace:
