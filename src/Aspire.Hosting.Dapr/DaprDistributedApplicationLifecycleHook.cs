@@ -21,6 +21,8 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
     private readonly DaprOptions _options;
     private readonly DaprPortManager _portManager;
 
+    private string? _onDemandResourcesRootPath;
+
     private static readonly string s_defaultDaprPath =
         OperatingSystem.IsWindows()
             ? Path.Combine(Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.Windows)) ?? "C:", "dapr", "dapr.exe")
@@ -39,9 +41,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
 
     public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Starting Dapr-related resources...");
-
-        var onDemandResourcesPaths = await StartDaprComponentsAsync(appModel, cancellationToken).ConfigureAwait(false);
+        var onDemandResourcesPaths = await StartOnDemandDaprComponentsAsync(appModel, cancellationToken).ConfigureAwait(false);
 
         var projectResources = appModel.GetProjectResources().ToArray();
 
@@ -64,7 +64,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
             string fileName = this._options.DaprPath ?? s_defaultDaprPath;
             string workingDirectory = Path.GetDirectoryName(projectMetadata.ProjectPath)!;
 
-            var aggregateResourcesPaths = (sidecarOptions?.ResourcesPaths ?? ImmutableHashSet<string>.Empty).Union(onDemandResourcesPaths);
+            var aggregateResourcesPaths = sidecarOptions?.ResourcesPaths ?? ImmutableHashSet<string>.Empty;
 
             var componentReferenceAnnotations = project.Annotations.OfType<DaprComponentReferenceAnnotation>();
 
@@ -79,6 +79,10 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                     {
                         aggregateResourcesPaths = aggregateResourcesPaths.Add(localPathDirectory);
                     }
+                }
+                else if (onDemandResourcesPaths.TryGetValue(componentReferenceAnnotation.Component.Name, out var onDemandResourcesPath))
+                {
+                    aggregateResourcesPaths = aggregateResourcesPaths.Add(onDemandResourcesPath);
                 }
             }
 
@@ -211,14 +215,12 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
         }
     }
 
-    public Task AfterStopAsync(CancellationToken cancellationToken = default)
+    public async Task AfterStopAsync(CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Stopping Dapr-related resources...");
-
-        return Task.CompletedTask;
+        await StopOnDemandDaprComponentsAsync().ConfigureAwait(false);
     }
 
-    private static async Task<IImmutableSet<string>> StartDaprComponentsAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
+    private async Task<IImmutableDictionary<string, string>> StartOnDemandDaprComponentsAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
     {
         // TODO: See if any Dapr component resources exist.
         // TODO: If so, see which specify local paths.
@@ -231,42 +233,58 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                 .Where(component => component.Options?.LocalPath is null)
                 .ToList();
 
+        var onDemandResourcesPaths = ImmutableDictionary<string, string>.Empty;
+
         if (virtualDaprComponents.Any())
         {
+            _logger.LogInformation("Starting Dapr-related resources...");
+
             string tempPath = Path.GetTempPath();
             string tempDirectory = Path.Combine(tempPath, "aspire", "dapr", Path.GetRandomFileName());
 
             // TODO: Delete temp directory on shutdown.
             Directory.CreateDirectory(tempDirectory);
 
+            _onDemandResourcesRootPath = tempDirectory;
+
             foreach (var component in virtualDaprComponents)
             {
-                switch (component.Type)
+                string componentDirectory = Path.Combine(tempDirectory, component.Name);
+
+                Directory.CreateDirectory(componentDirectory);
+
+                string componentPath = Path.Combine(componentDirectory, $"{component.Name}.yaml");
+
+                string componentContent = component.Type switch
                 {
-                    case "statestore":
+                    "statestore" => GetStateStore(component),
+                    _ => throw new InvalidOperationException($"Unsupported Dapr component type '{component.Type}'.")
+                };
 
-                        await CreateStateStoreAsync(tempDirectory, component, cancellationToken).ConfigureAwait(false);
+                await File.WriteAllTextAsync(componentPath, componentContent, cancellationToken).ConfigureAwait(false);
 
-                        break;
-
-                    default:
-
-                        throw new InvalidOperationException($"Unsupported Dapr component type '{component.Type}'.");
-                }
+                onDemandResourcesPaths = onDemandResourcesPaths.Add(component.Name, componentDirectory);
             }
+        }
 
-            return ImmutableHashSet.Create(tempDirectory);
-        }
-        else
-        {
-            return ImmutableHashSet<string>.Empty;
-        }
+        return onDemandResourcesPaths;
     }
 
-    private static Task CreateStateStoreAsync(string tempDirectory, DaprComponentResource component, CancellationToken cancellationToken)
+    private Task StopOnDemandDaprComponentsAsync()
     {
-        return File.WriteAllTextAsync(
-            Path.Combine(tempDirectory, "statestore.yaml"),
+        if (_onDemandResourcesRootPath is not null)
+        {
+            _logger.LogInformation("Stopping Dapr-related resources...");
+
+            Directory.Delete(_onDemandResourcesRootPath, recursive: true);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private static string GetStateStore(DaprComponentResource component)
+    {
+        return
             $"""
             apiVersion: dapr.io/v1alpha1
             kind: Component
@@ -276,8 +294,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                 type: state.in-memory
                 version: v1
                 metadata: []
-            """,
-            cancellationToken);
+            """;
     }
 }
 
