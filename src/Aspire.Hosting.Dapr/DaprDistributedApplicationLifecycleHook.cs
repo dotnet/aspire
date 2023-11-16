@@ -82,7 +82,12 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                 }
                 else if (onDemandResourcesPaths.TryGetValue(componentReferenceAnnotation.Component.Name, out var onDemandResourcesPath))
                 {
-                    aggregateResourcesPaths = aggregateResourcesPaths.Add(onDemandResourcesPath);
+                    string onDemandResourcesPathDirectory = Path.GetDirectoryName(onDemandResourcesPath)!;
+
+                    if (onDemandResourcesPathDirectory is not null)
+                    {
+                        aggregateResourcesPaths = aggregateResourcesPaths.Add(onDemandResourcesPathDirectory);
+                    }
                 }
             }
 
@@ -249,21 +254,27 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
 
             foreach (var component in virtualDaprComponents)
             {
-                string componentDirectory = Path.Combine(tempDirectory, component.Name);
+                Func<string, Task<string>> contentWriter =
+                    async content =>
+                    {
+                        string componentDirectory = Path.Combine(tempDirectory, component.Name);
 
-                Directory.CreateDirectory(componentDirectory);
+                        Directory.CreateDirectory(componentDirectory);
 
-                string componentPath = Path.Combine(componentDirectory, $"{component.Name}.yaml");
+                        string componentPath = Path.Combine(componentDirectory, $"{component.Name}.yaml");
 
-                string componentContent = component.Type switch
+                        await File.WriteAllTextAsync(componentPath, content, cancellationToken).ConfigureAwait(false);
+
+                        return componentPath;
+                    };
+
+                string componentPath = await (component.Type switch
                 {
-                    "statestore" => GetStateStore(component),
+                    "statestore" => GetStateStoreAsync(component, contentWriter),
                     _ => throw new InvalidOperationException($"Unsupported Dapr component type '{component.Type}'.")
-                };
+                }).ConfigureAwait(false);
 
-                await File.WriteAllTextAsync(componentPath, componentContent, cancellationToken).ConfigureAwait(false);
-
-                onDemandResourcesPaths = onDemandResourcesPaths.Add(component.Name, componentDirectory);
+                onDemandResourcesPaths = onDemandResourcesPaths.Add(component.Name, componentPath);
             }
         }
 
@@ -282,7 +293,12 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
         return Task.CompletedTask;
     }
 
-    private static string GetStateStore(DaprComponentResource component)
+    private static Task<string> GetStateStoreAsync(DaprComponentResource component, Func<string, Task<string>> contentWriter)
+    {
+        return contentWriter(GetInMemoryStateStoreContent(component));
+    }
+
+    private static string GetInMemoryStateStoreContent(DaprComponentResource component)
     {
         return
             $"""
