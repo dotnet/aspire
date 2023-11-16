@@ -19,7 +19,14 @@ Alternatively, if you are using Visual Studio, you can [Install and manage packa
 
 ## Install the .NET Aspire dotnet workload
 
-This will actually get Aspire components.
+First, we need to make sure you have the latest version of the workload manifest in your sdk. You can do this by running:
+
+```shell
+dotnet workload update --skip-sign-check --source https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet8/nuget/v3/index.json
+# If you are already on the latest version, then the command is a no-op.
+```
+
+Then, we are now able to install the workload with the version of the manifest that we just updated.
 
 ```shell
 dotnet workload install aspire --skip-sign-check --source https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet8/nuget/v3/index.json
