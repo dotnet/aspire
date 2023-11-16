@@ -159,7 +159,7 @@ public class HttpServiceEndPointResolver(ServiceEndPointResolverFactory resolver
     {
         private readonly ServiceEndPointResolver _resolver;
         private readonly IServiceEndPointSelector _selector;
-        private const ulong CountMask = ~(RecentUseFlag | DisposingFlag);   
+        private const ulong CountMask = ~(RecentUseFlag | DisposingFlag);
         private const ulong RecentUseFlag = 1UL << 61;
         private const ulong DisposingFlag = 1UL << 62;
         private ulong _status;
