@@ -27,7 +27,8 @@ public class LaunchSettingsSerializerContextTests
           }
         }
         """;
-        var exception = Record.Exception(() => JsonSerializer.Deserialize(launchSettingsJson, LaunchSetttingsSerializerContext.Default.LaunchSettings));
-        Assert.Null(exception);
+
+        // should not throw
+        JsonSerializer.Deserialize(launchSettingsJson, LaunchSetttingsSerializerContext.Default.LaunchSettings));
     }
 }
