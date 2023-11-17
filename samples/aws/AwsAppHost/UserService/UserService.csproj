@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <UserSecretsId>18965dbf-c1f8-4652-b7d8-e650ac520894</UserSecretsId>
+    <LangVersion>preview</LangVersion>
+    <ContainerRegistry>localhost:5001</ContainerRegistry>
+    <ContainerRepository>user-service</ContainerRepository>
+    <ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:8.0-preview</ContainerBaseImage>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="Swashbuckle.AspNetCore" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AwsAppHost.ServiceDefaults\AwsAppHost.ServiceDefaults.csproj" />
+  </ItemGroup>
+
+</Project>

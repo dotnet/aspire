@@ -16,6 +16,10 @@
     <PackageVersion Include="Azure.Storage.Queues" Version="12.16.0" />
     <PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.36.0-preview" />
     <PackageVersion Include="Microsoft.Extensions.Azure" Version="1.7.1" />
+    <!-- AWS SDK for .NET dependencies -->
+    <PackageVersion Include="AWSSDK.Core" Version="3.7.300.3" />
+    <PackageVersion Include="AWSSDK.S3" Version="3.7.300.3" />
+    <PackageVersion Include="AWSSDK.Extensions.NETCore.Setup" Version="3.7.300" />
     <!-- Azure Management SDK for .NET dependencies -->
     <PackageVersion Include="Azure.ResourceManager.CosmosDB" Version="1.4.0-beta.4" />
     <PackageVersion Include="Azure.ResourceManager.KeyVault" Version="1.2.0-beta.2" />
