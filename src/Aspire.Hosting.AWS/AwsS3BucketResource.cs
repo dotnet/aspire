@@ -15,6 +15,4 @@ public class AwsS3BucketResource(string name) : Resource(name), IAwsResource
     public string? BucketName { get; set; }
 
     public string? S3Region { get; set; }
-
-    public bool UseLocalStack => true;
 }

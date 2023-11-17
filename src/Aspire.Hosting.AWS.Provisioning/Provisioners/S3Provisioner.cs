@@ -4,48 +4,53 @@
 using Amazon;
 using Amazon.S3;
 using Amazon.S3.Model;
+using Amazon.S3.Util;
 using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting.AWS.Provisioning.Provisioners;
 
-internal class S3Provisioner : AwsResourceProvisioner<AwsS3BucketResource>
+internal sealed class S3Provisioner(IAmazonS3 amazonS3) : AwsResourceProvisioner<AwsS3BucketResource>
 {
-    public override bool ConfigureResource(IConfiguration configuration, AwsS3BucketResource resource)
+    public override void ConfigureResource(IConfiguration configuration, AwsS3BucketResource resource)
     {
 
         var bucketSection = configuration.GetSection($"AWS:S3:{resource.Name}");
         var bucketName = bucketSection["BucketName"];
-        var region = bucketSection["Region"];
-
         // Validate and get the region name;
-        var regionEndpoint = RegionEndpoint.GetBySystemName(region);
+        var region = bucketSection["Region"];
+        var regionEndpoint = region != null ? RegionEndpoint.GetBySystemName(region) : RegionEndpoint.USEast1;
 
-        if (bucketName is not null && regionEndpoint is not null)
+        if (bucketName is null)
         {
-            resource.BucketName = bucketName;
-            resource.S3Region = region;
-
-            return true;
+            // TODO: Handle
         }
-        return false;
+
+        resource.BucketName = bucketName;
+        resource.S3Region = regionEndpoint.SystemName;
     }
 
     public override async Task GetOrCreateResourceAsync(AwsS3BucketResource resource, ProvisioningContext context, CancellationToken cancellationToken)
     {
         // TODO: Check if resource exists
 
+        var doesS3BucketExists = await AmazonS3Util.DoesS3BucketExistV2Async(amazonS3, resource.BucketName).ConfigureAwait(false);
+
+        if (doesS3BucketExists)
+        {
+            return;
+        }
+
         // TOOD: we may need credentials here
         var s3Region = resource.S3Region;
-
-        using var client = new AmazonS3Client(new AmazonS3Config { RegionEndpoint = RegionEndpoint.GetBySystemName(s3Region) });
 
         var putBucketRequest = new PutBucketRequest()
         {
             BucketName = resource.BucketName,
+            BucketRegion = s3Region,
         };
 
-        var putButResponse = await client.PutBucketAsync(putBucketRequest, cancellationToken).ConfigureAwait(false);
+        var putButResponse = await amazonS3.PutBucketAsync(putBucketRequest, cancellationToken).ConfigureAwait(false);
 
         if (putButResponse.HttpStatusCode != System.Net.HttpStatusCode.OK)
         {

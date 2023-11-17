@@ -13,6 +13,4 @@ public class AwsSqsQueueResource(string name) : Resource(name), IAwsResource
     /// Gets or sets the URI of the SQS queue.
     /// </summary>
     public Uri? QueueUrl { get; set; }
-
-    public bool UseLocalStack => true;
 }

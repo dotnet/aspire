@@ -16,7 +16,7 @@ internal sealed class ProvisioningContext(RegionEndpoint location)
 
 internal interface IAwsResourceProvisioner
 {
-    bool ConfigureResource(IConfiguration configuration, IAwsResource resource);
+    void ConfigureResource(IConfiguration configuration, IAwsResource resource);
 
     bool ShouldProvision(IConfiguration configuration, IAwsResource resource);
 
@@ -29,9 +29,6 @@ internal interface IAwsResourceProvisioner
 internal abstract class AwsResourceProvisioner<TResource> : IAwsResourceProvisioner
     where TResource : IAwsResource
 {
-    bool IAwsResourceProvisioner.ConfigureResource(IConfiguration configuration, IAwsResource resource) =>
-        ConfigureResource(configuration, (TResource)resource);
-
     bool IAwsResourceProvisioner.ShouldProvision(IConfiguration configuration, IAwsResource resource) =>
         ShouldProvision(configuration, (TResource)resource);
 
@@ -41,7 +38,7 @@ internal abstract class AwsResourceProvisioner<TResource> : IAwsResourceProvisio
         CancellationToken cancellationToken)
         => GetOrCreateResourceAsync((TResource)resource, context, cancellationToken);
 
-    public abstract bool ConfigureResource(IConfiguration configuration, TResource resource);
+    public abstract void ConfigureResource(IConfiguration configuration, TResource resource);
 
     public virtual bool ShouldProvision(IConfiguration configuration, TResource resource) => true;
 
@@ -49,6 +46,11 @@ internal abstract class AwsResourceProvisioner<TResource> : IAwsResourceProvisio
         TResource resource,
         ProvisioningContext context,
         CancellationToken cancellationToken);
+
+    public virtual void ConfigureResource(IConfiguration configuration, IAwsResource resource)
+    {
+        ConfigureResource(configuration, (TResource)resource);
+    }
 
     //protected static ResourceIdentifier CreateRoleDefinitionId(SubscriptionResource subscription, string roleDefinitionId) =>
     //    new($"{subscription.Id}/providers/Microsoft.Authorization/roleDefinitions/{roleDefinitionId}");
