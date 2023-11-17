@@ -7,7 +7,8 @@ var catalogDb = builder.AddPostgresContainer("postgres").AddDatabase("catalogdb"
 var basketCache = builder.AddRedisContainer("basketcache");
 
 var catalogService = builder.AddProject<Projects.CatalogService>("catalogservice")
-                     .WithReference(catalogDb);
+                     .WithReference(catalogDb)
+                     .WithReplicas(2);
 
 var messaging = builder.AddRabbitMQContainer("messaging");
 
