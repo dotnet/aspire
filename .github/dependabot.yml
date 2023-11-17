@@ -12,7 +12,7 @@ updates:
       interval: daily
       time: "07:00"
       timezone: "America/Los_Angeles"
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 15
     groups:
       Azure:
         patterns:
