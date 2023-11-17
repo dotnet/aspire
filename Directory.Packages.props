@@ -40,8 +40,8 @@
     <PackageVersion Include="AspNetCore.HealthChecks.Redis" Version="7.0.1" />
     <PackageVersion Include="AspNetCore.HealthChecks.SqlServer" Version="7.0.0" />
     <!-- arcade dependencies -->
-    <PackageVersion Include="Microsoft.DotNet.RemoteExecutor" Version="8.0.0-beta.23564.4" />
-    <PackageVersion Include="Microsoft.DotNet.XUnitExtensions" Version="8.0.0-beta.23564.4" />
+    <PackageVersion Include="Microsoft.DotNet.RemoteExecutor" Version="$(MicrosoftDotNetRemoteExecutorPackageVersion)" />
+    <PackageVersion Include="Microsoft.DotNet.XUnitExtensions" Version="$(MicrosoftDotNetXUnitExtensionsPackageVersion)" />
     <!-- sql client dependencies -->
     <PackageVersion Include="Microsoft.Data.SqlClient" Version="5.1.2" />
     <!-- efcore dependencies -->
