@@ -13,4 +13,6 @@ public class AwsSnsTopicResource(string name) : Resource(name), IAwsResource
     /// Gets or sets the ARN of the SNS topic.
     /// </summary>
     public string? TopicArn { get; set; }
+
+    public bool UseLocalStack => true;
 }
