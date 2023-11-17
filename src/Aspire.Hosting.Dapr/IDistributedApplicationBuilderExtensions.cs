@@ -38,6 +38,11 @@ public static class IDistributedApplicationBuilderExtensions
             .WithAnnotation(new ManifestPublishingCallbackAnnotation(writer => WriteDaprComponentResourceToManifest(writer, resource)));
     }
 
+    public static IResourceBuilder<IDaprComponentResource> AddDaprStateStore(this IDistributedApplicationBuilder builder, string name)
+    {
+        return builder.AddDaprComponent(name, DaprConstants.BuildingBlocks.StateStore);
+    }
+
     private static void WriteDaprComponentResourceToManifest(Utf8JsonWriter writer, DaprComponentResource resource)
     {
         writer.WriteString("type", "dapr.component.v0");

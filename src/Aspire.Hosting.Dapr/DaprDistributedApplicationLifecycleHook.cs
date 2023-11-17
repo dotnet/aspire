@@ -270,7 +270,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
 
                 string componentPath = await (component.Type switch
                 {
-                    "statestore" => GetStateStoreAsync(component, contentWriter, cancellationToken),
+                    DaprConstants.BuildingBlocks.StateStore => GetStateStoreAsync(component, contentWriter, cancellationToken),
                     _ => throw new InvalidOperationException($"Unsupported Dapr component type '{component.Type}'.")
                 }).ConfigureAwait(false);
 
