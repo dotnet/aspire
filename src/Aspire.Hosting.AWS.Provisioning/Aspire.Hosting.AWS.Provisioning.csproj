@@ -4,6 +4,8 @@
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
     <Description>Provisions AWS resources for development in .NET Aspire projects.</Description>
+
+    <NoWarn>$(NoWarn),CS8002</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -14,5 +16,7 @@
     <PackageReference Include="AWSSDK.Core" />
     <PackageReference Include="AWSSDK.S3" />
     <PackageReference Include="AWSSDK.Extensions.NETCore.Setup" />
+    <PackageReference Include="LocalStack.Client" />
+    <PackageReference Include="LocalStack.Client.Extensions" />
   </ItemGroup>
 </Project>
