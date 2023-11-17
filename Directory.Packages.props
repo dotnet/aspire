@@ -74,7 +74,7 @@
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.0-rc.2" />
     <PackageVersion Include="Polly" Version="8.2.0" />
     <PackageVersion Include="RabbitMQ.Client" Version="6.6.0" />
-    <PackageVersion Include="StackExchange.Redis" Version="2.6.122" />
+    <PackageVersion Include="StackExchange.Redis" Version="2.7.4" />
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="6.5.0" />
     <PackageVersion Include="Yarp.ReverseProxy" Version="2.1.0-preview.1.23556.5" />
     <!-- Open Telemetry -->
