@@ -164,6 +164,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AwsAppHost.ServiceDefaults"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UserService", "samples\aws\AwsAppHost\UserService\UserService.csproj", "{202D78B2-CC0D-4F18-A7E1-A20F12D686A7}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.AWS.Provisioning", "src\Aspire.Hosting.AWS.Provisioning\Aspire.Hosting.AWS.Provisioning.csproj", "{A2A42422-6FC1-4B3C-A495-DAC86829A381}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -438,6 +440,10 @@ Global
 		{202D78B2-CC0D-4F18-A7E1-A20F12D686A7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{202D78B2-CC0D-4F18-A7E1-A20F12D686A7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{202D78B2-CC0D-4F18-A7E1-A20F12D686A7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A2A42422-6FC1-4B3C-A495-DAC86829A381}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A2A42422-6FC1-4B3C-A495-DAC86829A381}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A2A42422-6FC1-4B3C-A495-DAC86829A381}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A2A42422-6FC1-4B3C-A495-DAC86829A381}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -515,6 +521,7 @@ Global
 		{CF63B177-463A-42F4-BC34-6AD05702E754} = {4FE4E999-1D3B-466F-802E-0389EF07EC8E}
 		{E320453A-DF78-4676-94DF-E5568FC4A548} = {4FE4E999-1D3B-466F-802E-0389EF07EC8E}
 		{202D78B2-CC0D-4F18-A7E1-A20F12D686A7} = {4FE4E999-1D3B-466F-802E-0389EF07EC8E}
+		{A2A42422-6FC1-4B3C-A495-DAC86829A381} = {B80354C7-BE58-43F6-8928-9F3A74AB7F47}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6DCEDFEC-988E-4CB3-B45B-191EB5086E0C}
