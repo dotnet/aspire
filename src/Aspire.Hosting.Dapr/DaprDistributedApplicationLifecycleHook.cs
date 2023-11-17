@@ -270,7 +270,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
 
                 string componentPath = await (component.Type switch
                 {
-                    "statestore" => GetStateStoreAsync(component, contentWriter),
+                    "statestore" => GetStateStoreAsync(component, contentWriter, cancellationToken),
                     _ => throw new InvalidOperationException($"Unsupported Dapr component type '{component.Type}'.")
                 }).ConfigureAwait(false);
 
@@ -293,9 +293,27 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
         return Task.CompletedTask;
     }
 
-    private static Task<string> GetStateStoreAsync(DaprComponentResource component, Func<string, Task<string>> contentWriter)
+    private async Task<string> GetStateStoreAsync(DaprComponentResource component, Func<string, Task<string>> contentWriter, CancellationToken cancellationToken)
     {
-        return contentWriter(GetInMemoryStateStoreContent(component));
+        string userDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        string daprDefaultComponentsDirectory = Path.Combine(userDirectory, ".dapr", "components");
+        string daprDefaultStateStorePath = Path.Combine(daprDefaultComponentsDirectory, "statestore.yaml");
+
+        if (File.Exists(daprDefaultStateStorePath))
+        {
+            _logger.LogInformation($"Using default Dapr state store for component '{component.Name}'.");
+
+            string defaultContent = await File.ReadAllTextAsync(daprDefaultStateStorePath, cancellationToken).ConfigureAwait(false);
+            string newContent = defaultContent.Replace("name: statestore", $"name: {component.Name}");
+
+            return await contentWriter(newContent).ConfigureAwait(false);
+        }
+        else
+        {
+            _logger.LogInformation($"Using in-memory Dapr state store for component '{component.Name}'.");
+
+            return await contentWriter(GetInMemoryStateStoreContent(component)).ConfigureAwait(false);
+        }
     }
 
     private static string GetInMemoryStateStoreContent(DaprComponentResource component)
