@@ -399,7 +399,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
         var launchProfile = launchSettings.Profiles[launchProfileName];
         if (!string.IsNullOrWhiteSpace(launchProfile.ApplicationUrl))
         {
-            if (executableResource.ServicesProduced.Any())
+            if (executableResource.DcpResource is ExecutableReplicaSet)
             {
                 var urls = executableResource.ServicesProduced.Select(sar =>
                 {
@@ -553,8 +553,11 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
 
                 sp.DcpServiceProducerAnnotation.Port = sp.ServiceBindingAnnotation.ContainerPort;
             }
-            else if (sp.ServiceBindingAnnotation.Port is not null)
+            else if (sp.ServiceBindingAnnotation.Port is not null && sp.ModelResource is not ProjectResource)
             {
+                // Project resources do not use ServiceBindingAnnotation port because they will have port auto-allocated by the orchestrator.
+                // The port specified by the ServiceBindingAnnotation will be applied to the Service objects and injected into clients instead.
+
                 sp.DcpServiceProducerAnnotation.Port = sp.ServiceBindingAnnotation.Port;
             }
 
