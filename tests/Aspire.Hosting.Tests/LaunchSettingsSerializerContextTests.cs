@@ -5,6 +5,7 @@ using System.Text.Json;
 using Xunit;
 
 namespace Aspire.Hosting.Tests;
+
 public class LaunchSettingsSerializerContextTests
 {
     [Fact]
