@@ -7,7 +7,7 @@ internal static class FileUtil
 {
     public static string FindFullPathFromPath(string command)
     {
-        ArgumentOutOfRangeException.ThrowIfNullOrWhiteSpace(command, nameof(command));
+        ArgumentException.ThrowIfNullOrWhiteSpace(command);
 
         if (FileNameSuffixes.CurrentPlatform.Exe != "" && !command.EndsWith(FileNameSuffixes.CurrentPlatform.Exe))
         {
