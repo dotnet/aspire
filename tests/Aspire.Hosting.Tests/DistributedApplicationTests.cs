@@ -131,6 +131,82 @@ public class DistributedApplicationTests(ITestOutputHelper testOutputHelper)
     }
 
     [LocalOnlyFact]
+    public async void TestPortOnServiceBindingAnnotationAndAllocatedEndpointAnnotationMatch()
+    {
+        var testProgram = CreateTestProgram();
+        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
+
+        testProgram.AppBuilder.Services
+            .AddHttpClient()
+            .ConfigureHttpClientDefaults(b =>
+            {
+                b.UseSocketsHttpHandler((handler, sp) => handler.PooledConnectionLifetime = TimeSpan.FromSeconds(5));
+            });
+
+        await using var app = testProgram.Build();
+
+        var client = app.Services.GetRequiredService<IHttpClientFactory>().CreateClient();
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
+
+        await app.StartAsync(cts.Token);
+
+        // Make sure each service is running
+        await testProgram.ServiceABuilder.HttpGetPidAsync(client, "http", cts.Token);
+        await testProgram.ServiceBBuilder.HttpGetPidAsync(client, "http", cts.Token);
+        await testProgram.ServiceCBuilder.HttpGetPidAsync(client, "http", cts.Token);
+
+        foreach (var projectBuilders in testProgram.ServiceProjectBuilders)
+        {
+            var serviceBinding = projectBuilders.Resource.Annotations.OfType<ServiceBindingAnnotation>().Single();
+            var allocatedEndpoint = projectBuilders.Resource.Annotations.OfType<AllocatedEndpointAnnotation>().Single();
+
+            Assert.Equal(serviceBinding.Port, allocatedEndpoint.Port);
+        }
+    }
+
+    [LocalOnlyFact]
+    public async void TestPortOnServiceBindingAnnotationAndAllocatedEndpointAnnotationMatchForReplicatedServices()
+    {
+        var testProgram = CreateTestProgram();
+
+        foreach (var serviceBuilder in testProgram.ServiceProjectBuilders)
+        {
+            serviceBuilder.WithReplicas(2);
+        }
+
+        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
+
+        testProgram.AppBuilder.Services
+            .AddHttpClient()
+            .ConfigureHttpClientDefaults(b =>
+            {
+                b.UseSocketsHttpHandler((handler, sp) => handler.PooledConnectionLifetime = TimeSpan.FromSeconds(5));
+            });
+
+        await using var app = testProgram.Build();
+
+        var client = app.Services.GetRequiredService<IHttpClientFactory>().CreateClient();
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
+
+        await app.StartAsync(cts.Token);
+
+        // Make sure each service is running
+        await testProgram.ServiceABuilder.HttpGetPidAsync(client, "http", cts.Token);
+        await testProgram.ServiceBBuilder.HttpGetPidAsync(client, "http", cts.Token);
+        await testProgram.ServiceCBuilder.HttpGetPidAsync(client, "http", cts.Token);
+
+        foreach (var projectBuilders in testProgram.ServiceProjectBuilders)
+        {
+            var serviceBinding = projectBuilders.Resource.Annotations.OfType<ServiceBindingAnnotation>().Single();
+            var allocatedEndpoint = projectBuilders.Resource.Annotations.OfType<AllocatedEndpointAnnotation>().Single();
+
+            Assert.Equal(serviceBinding.Port, allocatedEndpoint.Port);
+        }
+    }
+
+    [LocalOnlyFact]
     public async void TestServicesWithMultipleReplicas()
     {
         var replicaCount = 3;

@@ -11,7 +11,7 @@ Registers [CosmosClient](https://learn.microsoft.com/dotnet/api/microsoft.azure.
 
 ### Install the package
 
-Install the .NET Aspire Microsft Azure Cosmos DB library with [NuGet](https://www.nuget.org):
+Install the .NET Aspire Microsoft Azure Cosmos DB library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Microsoft.Azure.Cosmos

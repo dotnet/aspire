@@ -144,18 +144,30 @@ public partial class TraceDetail
 
     private void OnShowProperties(SpanWaterfallViewModel viewModel)
     {
-        var entryProperties = viewModel.Span.AllProperties()
-            .Select(kvp => new SpanPropertyViewModel { Name = kvp.Key, Value = kvp.Value })
-            .ToList();
-
-        var spanDetailsViewModel = new SpanDetailsViewModel
+        if (SelectedSpan?.Span == viewModel.Span)
         {
-            Span = viewModel.Span,
-            Properties = entryProperties,
-            Title = $"{viewModel.Span.Source.ApplicationName}: {viewModel.GetDisplaySummary()} {OtlpHelpers.ToShortenedId(viewModel.Span.SpanId)}"
-        };
+            ClearSelectedSpan();
+        }
+        else
+        {
+            var entryProperties = viewModel.Span.AllProperties()
+                .Select(kvp => new SpanPropertyViewModel { Name = kvp.Key, Value = kvp.Value })
+                .ToList();
 
-        SelectedSpan = spanDetailsViewModel;
+            var spanDetailsViewModel = new SpanDetailsViewModel
+            {
+                Span = viewModel.Span,
+                Properties = entryProperties,
+                Title = $"{viewModel.Span.Source.ApplicationName}: {viewModel.GetDisplaySummary()} {OtlpHelpers.ToShortenedId(viewModel.Span.SpanId)}"
+            };
+
+            SelectedSpan = spanDetailsViewModel;
+        }
+    }
+
+    private void ClearSelectedSpan()
+    {
+        SelectedSpan = null;
     }
 
     public void Dispose()
