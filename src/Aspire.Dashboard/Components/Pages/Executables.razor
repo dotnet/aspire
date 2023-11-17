@@ -17,7 +17,8 @@
     </FluentToolbar>
     <SummaryDetailsView DetailsTitle="@($"Environment Variables for {SelectedResourceName}")"
                         ShowDetails="@(SelectedEnvironmentVariables is not null)"
-                        OnDismiss="() => SelectedEnvironmentVariables = null">
+                        OnDismiss="() => ClearSelectedResource()"
+                        ViewKey="ResourcesList">
         <Summary>
             <FluentDataGrid Items="@FilteredResources" ResizableColumns="true" GridTemplateColumns="2fr 1fr 2fr 1fr 4fr 4fr 4fr 2fr 1fr 1fr">
                 <ChildContent>

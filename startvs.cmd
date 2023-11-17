@@ -20,9 +20,4 @@ IF "%sln%"=="" (
     SET sln=%~dp0Aspire.sln
 )
 
-IF NOT EXIST "%DOTNET_ROOT%\dotnet.exe" (
-    echo .NET Core has not yet been installed. Run `%~dp0restore.cmd` to install tools
-    exit /b 1
-)
-
 start "" "%sln%"

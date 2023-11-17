@@ -90,8 +90,21 @@ public abstract class ResourcesListBase<TResource> : ComponentBase, IDisposable
 
     protected void ShowEnvironmentVariables(TResource resource)
     {
-        SelectedEnvironmentVariables = resource.Environment;
-        SelectedResourceName = resource.Name;
+        if (SelectedEnvironmentVariables == resource.Environment)
+        {
+            ClearSelectedResource();
+        }
+        else
+        {
+            SelectedEnvironmentVariables = resource.Environment;
+            SelectedResourceName = resource.Name;
+        }
+    }
+
+    protected void ClearSelectedResource()
+    {
+        SelectedEnvironmentVariables = null;
+        SelectedResourceName = null;
     }
 
     private async Task OnResourceListChanged(ObjectChangeType objectChangeType, TResource resource)
