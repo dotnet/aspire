@@ -40,8 +40,8 @@
     <PackageVersion Include="AspNetCore.HealthChecks.Redis" Version="7.0.1" />
     <PackageVersion Include="AspNetCore.HealthChecks.SqlServer" Version="7.0.0" />
     <!-- arcade dependencies -->
-    <PackageVersion Include="Microsoft.DotNet.RemoteExecutor" Version="8.0.0-beta.23411.1" />
-    <PackageVersion Include="Microsoft.DotNet.XUnitExtensions" Version="8.0.0-beta.23409.5" />
+    <PackageVersion Include="Microsoft.DotNet.RemoteExecutor" Version="8.0.0-beta.23564.4" />
+    <PackageVersion Include="Microsoft.DotNet.XUnitExtensions" Version="8.0.0-beta.23564.4" />
     <!-- sql client dependencies -->
     <PackageVersion Include="Microsoft.Data.SqlClient" Version="5.1.1" />
     <!-- efcore dependencies -->
@@ -93,8 +93,8 @@
     <PackageVersion Include="OpenTelemetry.Instrumentation.StackExchangeRedis" Version="1.0.0-rc9.12" />
     <!-- build dependencies -->
     <PackageVersion Include="MicroBuild.Plugins.SwixBuild.Dotnet" Version="1.1.87-gba258badda" />
-    <PackageVersion Include="Microsoft.DotNet.Build.Tasks.Workloads" Version="8.0.0-beta.23371.1" />
+    <PackageVersion Include="Microsoft.DotNet.Build.Tasks.Workloads" Version="8.0.0-beta.23564.4" />
     <PackageVersion Include="Microsoft.Signed.Wix" Version="1.0.0-v3.14.0.5722" />
-    <PackageVersion Include="Microsoft.DotNet.Build.Tasks.Installers" Version="8.0.0-beta.23371.1" />
+    <PackageVersion Include="Microsoft.DotNet.Build.Tasks.Installers" Version="8.0.0-beta.23564.4" />
   </ItemGroup>
 </Project>
