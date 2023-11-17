@@ -4,8 +4,6 @@
     <ReadMePath>$(MSBuildProjectDirectory)\README.md</ReadMePath>
     <ReadMeExists Condition="Exists('$(ReadMePath)')">true</ReadMeExists>
     <PackageReadmeFile Condition="'$(PackageReadmeFile)' == '' And '$(ReadMeExists)' == 'true'">README.md</PackageReadmeFile>
-
-    <PackageIconFullPath Condition="'$(SuppressAspireIcon)' != 'true'">$(SharedDir)Aspire_icon_256.png</PackageIconFullPath>
   </PropertyGroup>
 
   <PropertyGroup>

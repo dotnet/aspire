@@ -122,7 +122,7 @@ public class HttpServiceEndPointResolver(ServiceEndPointResolverFactory resolver
     {
         lock (_lock)
         {
-            if (_cleanupTask is { IsCompleted: true })
+            if (_cleanupTask is null or { IsCompleted: true })
             {
                 _cleanupTask = CleanupResolversAsyncCore();
             }
@@ -159,9 +159,9 @@ public class HttpServiceEndPointResolver(ServiceEndPointResolverFactory resolver
     {
         private readonly ServiceEndPointResolver _resolver;
         private readonly IServiceEndPointSelector _selector;
-        private const ulong CountMask = unchecked((ulong)-1);
-        private const ulong RecentUseFlag = 1UL << 61;
-        private const ulong DisposingFlag = 1UL << 62;
+        private const ulong CountMask = ~(RecentUseFlag | DisposingFlag);
+        private const ulong RecentUseFlag = 1UL << 62;
+        private const ulong DisposingFlag = 1UL << 63;
         private ulong _status;
         private TaskCompletionSource? _onDisposed;
 

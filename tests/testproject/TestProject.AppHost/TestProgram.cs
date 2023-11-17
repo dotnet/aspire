@@ -21,6 +21,8 @@ public class TestProgram
     public IResourceBuilder<ProjectResource> ServiceCBuilder { get; private set; }
     public DistributedApplication? App { get; private set; }
 
+    public List<IResourceBuilder<ProjectResource>> ServiceProjectBuilders => [ServiceABuilder, ServiceBBuilder, ServiceCBuilder];
+
     public async Task RunAsync(CancellationToken cancellationToken = default)
     {
         App = AppBuilder.Build();
