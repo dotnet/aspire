@@ -43,7 +43,7 @@
     <PackageVersion Include="Microsoft.DotNet.RemoteExecutor" Version="8.0.0-beta.23564.4" />
     <PackageVersion Include="Microsoft.DotNet.XUnitExtensions" Version="8.0.0-beta.23564.4" />
     <!-- sql client dependencies -->
-    <PackageVersion Include="Microsoft.Data.SqlClient" Version="5.1.1" />
+    <PackageVersion Include="Microsoft.Data.SqlClient" Version="5.1.2" />
     <!-- efcore dependencies -->
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Cosmos" Version="$(MicrosoftEntityFrameworkCoreCosmosPackageVersion)" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="$(MicrosoftEntityFrameworkCoreSqlServerPackageVersion)" />
