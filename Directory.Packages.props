@@ -35,7 +35,7 @@
     <PackageVersion Include="AspNetCore.HealthChecks.Azure.Storage.Blobs" Version="7.0.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.Azure.Storage.Queues" Version="7.0.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.AzureServiceBus" Version="7.0.0" />
-    <PackageVersion Include="AspNetCore.HealthChecks.NpgSql" Version="7.0.0" />
+    <PackageVersion Include="AspNetCore.HealthChecks.NpgSql" Version="7.1.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.Rabbitmq" Version="7.0.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.Redis" Version="7.0.1" />
     <PackageVersion Include="AspNetCore.HealthChecks.SqlServer" Version="7.0.0" />
