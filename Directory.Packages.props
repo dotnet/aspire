@@ -76,7 +76,7 @@
     <PackageVersion Include="RabbitMQ.Client" Version="6.6.0" />
     <PackageVersion Include="StackExchange.Redis" Version="2.7.4" />
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="6.5.0" />
-    <PackageVersion Include="Yarp.ReverseProxy" Version="2.1.0-preview.1.23566.1" />
+    <PackageVersion Include="Yarp.ReverseProxy" Version="2.1.0" />
     <!-- Open Telemetry -->
     <PackageVersion Include="Npgsql.OpenTelemetry" Version="8.0.0-rc.2" />
     <PackageVersion Include="OpenTelemetry.Exporter.InMemory" Version="1.7.0-alpha.1" />
