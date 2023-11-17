@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Dapr;
 using Dapr.Client;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -23,10 +24,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
+app.UseCloudEvents();
+app.MapSubscribeHandler();
 
 app.MapGet("/weatherforecast", async (DaprClient client) =>
 {
@@ -46,9 +45,16 @@ app.MapGet("/weatherforecast", async (DaprClient client) =>
 .WithName("GetWeatherForecast")
 .WithOpenApi();
 
+app.MapPost("/subscriptions/weather", [Topic("pubsub", "weather")] (ILogger<Program> logger, WeatherForecastMessage message) =>
+{
+    logger.LogInformation("Weather forecast message received: {Message}", message.Message);
+});
+
 app.MapDefaultEndpoints();
 
 app.Run();
+
+internal sealed record WeatherForecastMessage(string Message);
 
 internal sealed record CachedWeatherForecast(WeatherForecast[] Forecasts, DateTimeOffset CachedAt);
 

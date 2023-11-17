@@ -270,6 +270,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
 
                 string componentPath = await (component.Type switch
                 {
+                    DaprConstants.BuildingBlocks.PubSub => GetPubSubAsync(component, contentWriter, cancellationToken),
                     DaprConstants.BuildingBlocks.StateStore => GetStateStoreAsync(component, contentWriter, cancellationToken),
                     _ => throw new InvalidOperationException($"Unsupported Dapr component type '{component.Type}'.")
                 }).ConfigureAwait(false);
@@ -293,6 +294,29 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
         return Task.CompletedTask;
     }
 
+    private async Task<string> GetPubSubAsync(DaprComponentResource component, Func<string, Task<string>> contentWriter, CancellationToken cancellationToken)
+    {
+        string userDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        string daprDefaultComponentsDirectory = Path.Combine(userDirectory, ".dapr", "components");
+        string daprDefaultStateStorePath = Path.Combine(daprDefaultComponentsDirectory, "pubsub.yaml");
+
+        if (File.Exists(daprDefaultStateStorePath))
+        {
+            _logger.LogInformation($"Using default Dapr pub-sub for component '{component.Name}'.");
+
+            string defaultContent = await File.ReadAllTextAsync(daprDefaultStateStorePath, cancellationToken).ConfigureAwait(false);
+            string newContent = defaultContent.Replace("name: pubsub", $"name: {component.Name}");
+
+            return await contentWriter(newContent).ConfigureAwait(false);
+        }
+        else
+        {
+            _logger.LogInformation($"Using in-memory Dapr pub-sub for component '{component.Name}'.");
+
+            return await contentWriter(GetInMemoryPubSubContent(component)).ConfigureAwait(false);
+        }
+    }
+
     private async Task<string> GetStateStoreAsync(DaprComponentResource component, Func<string, Task<string>> contentWriter, CancellationToken cancellationToken)
     {
         string userDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
@@ -314,6 +338,23 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
 
             return await contentWriter(GetInMemoryStateStoreContent(component)).ConfigureAwait(false);
         }
+    }
+
+    private static string GetInMemoryPubSubContent(DaprComponentResource component)
+    {
+        // NOTE: This component can only be used within a single Dapr application.
+
+        return
+            $"""
+            apiVersion: dapr.io/v1alpha1
+            kind: Component
+            metadata:
+                name: {component.Name}
+            spec:
+                type: pubsub.in-memory
+                version: v1
+                metadata: []
+            """;
     }
 
     private static string GetInMemoryStateStoreContent(DaprComponentResource component)

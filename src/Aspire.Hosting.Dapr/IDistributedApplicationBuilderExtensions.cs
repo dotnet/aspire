@@ -38,6 +38,11 @@ public static class IDistributedApplicationBuilderExtensions
             .WithAnnotation(new ManifestPublishingCallbackAnnotation(writer => WriteDaprComponentResourceToManifest(writer, resource)));
     }
 
+    public static IResourceBuilder<IDaprComponentResource> AddDaprPubSub(this IDistributedApplicationBuilder builder, string name)
+    {
+        return builder.AddDaprComponent(name, DaprConstants.BuildingBlocks.PubSub);
+    }
+
     public static IResourceBuilder<IDaprComponentResource> AddDaprStateStore(this IDistributedApplicationBuilder builder, string name)
     {
         return builder.AddDaprComponent(name, DaprConstants.BuildingBlocks.StateStore);
