@@ -146,6 +146,7 @@ Aspire.MySqlConnector:
     - "db.client.connections.idle.min"
     - "db.client.connections.max"
     - "db.client.connections.pending_requests"
+    - "db.client.connections.timeouts"
     - "db.client.connections.usage"
 
 Aspire.Npgsql:
