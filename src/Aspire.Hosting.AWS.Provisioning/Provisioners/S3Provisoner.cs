@@ -14,7 +14,7 @@ internal class S3Provisioner : AwsResourceProvisioner<AwsS3BucketResource>
     public override bool ConfigureResource(IConfiguration configuration, AwsS3BucketResource resource)
     {
 
-        var bucketSection = configuration.GetSection($"Azure:S3:{resource.Name}");
+        var bucketSection = configuration.GetSection($"AWS:S3:{resource.Name}");
         var bucketName = bucketSection["BucketName"];
         var region = bucketSection["Region"];
 
