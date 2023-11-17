@@ -7,6 +7,6 @@ internal static class DaprConstants
 {
     public static class BuildingBlocks
     {
-        public const string StateStore = "statestore";
+        public const string StateStore = "state";
     }
 }

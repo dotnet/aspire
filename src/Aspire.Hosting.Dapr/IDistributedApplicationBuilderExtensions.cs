@@ -46,6 +46,8 @@ public static class IDistributedApplicationBuilderExtensions
     private static void WriteDaprComponentResourceToManifest(Utf8JsonWriter writer, DaprComponentResource resource)
     {
         writer.WriteString("type", "dapr.component.v0");
-        writer.WriteString("componentType", resource.Type);
+        writer.WriteStartObject("daprComponent");
+        writer.WriteString("type", resource.Type);
+        writer.WriteEndObject();
     }
 }

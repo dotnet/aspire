@@ -2,7 +2,9 @@
   "resources": {
     "statestore": {
       "type": "dapr.component.v0",
-      "componentType": "statestore"
+      "daprComponent": {
+        "type": "statestore"
+      }
     },
     "servicea": {
       "type": "project.v0",
