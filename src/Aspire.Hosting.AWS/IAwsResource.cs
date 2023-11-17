@@ -9,4 +9,5 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 public interface IAwsResource : IResource
 {
+    public bool UseLocalStack { get; }
 }

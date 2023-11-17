@@ -13,4 +13,6 @@ public class AwsS3BucketResource(string name) : Resource(name), IAwsResource
     /// Gets or sets the name of the S3 bucket.
     /// </summary>
     public string? BucketName { get; set; }
+
+    public string? S3Region { get; set; }
 }
