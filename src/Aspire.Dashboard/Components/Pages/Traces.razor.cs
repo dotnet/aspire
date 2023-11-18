@@ -96,7 +96,6 @@ public partial class Traces
 
     private void UpdateApplications()
     {
-        
         _applications = TelemetryRepository.GetApplications().Select(a =>
         {
             var applicationName = NamingUtil.TryGetReplicaDisplayName(a.ApplicationName) ?? a.ApplicationName;
