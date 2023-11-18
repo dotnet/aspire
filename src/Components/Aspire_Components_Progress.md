@@ -20,6 +20,7 @@ As part of the .NET Aspire November preview, we want to include a set of .NET As
 | StackExchange.Redis.DistributedCaching  |                  ✅                  |             ✅             |                           N/A                            |              ✅              |          ✅          |        ✅            |         ❌           |              ✅                  |
 | StackExchange.Redis.OutputCaching       |                  ✅                  |             ✅             |                           N/A                            |              ✅              |          ✅          |        ✅            |         ❌           |              ✅                  |
 | RabbitMQ                                |                  ✅                  |             ✅             |                           ✅                            |              ✅              |                      |                      |         ❌           |              ✅                  |
+| MySqlConnector                          |                  ✅                  |                           |                           ✅                            |              ✅              |          ✅          |        ✅            |         ✅           |              ✅                  |
 
 Nomenclature used in the table above:
 
