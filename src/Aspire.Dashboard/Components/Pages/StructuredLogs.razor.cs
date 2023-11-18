@@ -124,7 +124,11 @@ public partial class StructuredLogs
 
     private void UpdateApplications()
     {
-        _applications = TelemetryRepository.GetApplications().Select(a => new SelectViewModel<string> { Id = a.InstanceId, Name = a.ApplicationName }).ToList();
+        _applications = TelemetryRepository.GetApplications().Select(a =>
+        {
+            var applicationName = NamingUtil.TryGetReplicaDisplayName(a.ApplicationName) ?? a.ApplicationName;
+            return new SelectViewModel<string> { Id = a.InstanceId, Name = applicationName };
+        }).ToList();
         _applications.Insert(0, s_allApplication);
     }
 

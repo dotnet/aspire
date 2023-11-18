@@ -22,8 +22,8 @@
         <Summary>
             <FluentDataGrid Items="@FilteredResources" ResizableColumns="true" GridTemplateColumns="2fr 1.2fr 2fr 1fr 4fr 2fr 1fr 1fr" >
                 <ChildContent>
-                    <TemplateColumn Title="Name" Sortable="true" SortBy="@nameSort" Tooltip="true" TooltipText="(p) => p.Name">
-                        <FluentHighlighter HighlightedText="@filter" Text="@context.Name" />
+                    <TemplateColumn Title="Name" Sortable="true" SortBy="@nameSort" Tooltip="true" TooltipText="(p) => p.DisplayName ?? p.Name">
+                        <FluentHighlighter HighlightedText="@filter" Text="@(context.DisplayName ?? context.Name)" />
                     </TemplateColumn>
                     <TemplateColumn Title="State" Sortable="true" SortBy="@stateSort">
                         <div class="resource-state-container">

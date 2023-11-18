@@ -218,7 +218,7 @@ public abstract partial class ResourceLogsBase<TResource> : ComponentBase, IAsyn
         {
             stateText = $" ({resource.State})";
         }
-        return $"{resource.Name}{stateText}";
+        return $"{resource.DisplayName ?? resource.Name}{stateText}";
     }
 
     public async ValueTask DisposeAsync()

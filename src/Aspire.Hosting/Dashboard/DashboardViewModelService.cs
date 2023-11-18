@@ -220,47 +220,47 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
 
         foreach (var ownerReference in endpoint.Metadata.OwnerReferences)
         {
-            // Find better way for this string switch
-            switch (ownerReference.Kind)
+            if (ownerReference.Kind == Dcp.Model.Dcp.ContainerKind)
             {
-                case "Container":
-                    if (_containersMap.TryGetValue(ownerReference.Name, out var container))
-                    {
-                        var extraEnvVars = GetContainerEnvVars(container.Status?.ContainerId);
-                        var containerViewModel = ConvertToContainerViewModel(
-                            _applicationModel, _servicesMap.Values, _endpointsMap.Values, container, extraEnvVars);
+                if (_containersMap.TryGetValue(ownerReference.Name, out var container))
+                {
+                    var extraEnvVars = GetContainerEnvVars(container.Status?.ContainerId);
+                    var containerViewModel = ConvertToContainerViewModel(
+                        _applicationModel, _servicesMap.Values, _endpointsMap.Values, container, extraEnvVars);
 
-                        await _containerViewModelChangesChannel.Writer.WriteAsync(
-                            new ResourceChanged<ContainerViewModel>(ObjectChangeType.Modified, containerViewModel), _cancellationToken)
+                    await _containerViewModelChangesChannel.Writer.WriteAsync(
+                        new ResourceChanged<ContainerViewModel>(ObjectChangeType.Modified, containerViewModel), _cancellationToken)
+                        .ConfigureAwait(false);
+                }
+                continue;
+            }
+
+            if (ownerReference.Kind == Dcp.Model.Dcp.ExecutableKind)
+            {
+                if (_executablesMap.TryGetValue(ownerReference.Name, out var executable))
+                {
+                    if (executable.IsCSharpProject())
+                    {
+                        // Project
+                        var projectViewModel = ConvertToProjectViewModel(
+                            _applicationModel, _servicesMap.Values, _endpointsMap.Values, executable);
+
+                        await _projectViewModelChangesChannel.Writer.WriteAsync(
+                            new ResourceChanged<ProjectViewModel>(ObjectChangeType.Modified, projectViewModel), _cancellationToken)
                             .ConfigureAwait(false);
                     }
-                    break;
-
-                case "Executable":
-                    if (_executablesMap.TryGetValue(ownerReference.Name, out var executable))
+                    else
                     {
-                        if (executable.IsCSharpProject())
-                        {
-                            // Project
-                            var projectViewModel = ConvertToProjectViewModel(
-                                _applicationModel, _servicesMap.Values, _endpointsMap.Values, executable);
+                        // Executable
+                        var executableViewModel = ConvertToExecutableViewModel(
+                            _applicationModel, _servicesMap.Values, _endpointsMap.Values, executable);
 
-                            await _projectViewModelChangesChannel.Writer.WriteAsync(
-                                new ResourceChanged<ProjectViewModel>(ObjectChangeType.Modified, projectViewModel), _cancellationToken)
-                                .ConfigureAwait(false);
-                        }
-                        else
-                        {
-                            // Executable
-                            var executableViewModel = ConvertToExecutableViewModel(
-                                _applicationModel, _servicesMap.Values, _endpointsMap.Values, executable);
-
-                            await _executableViewModelChangesChannel.Writer.WriteAsync(
-                                new ResourceChanged<ExecutableViewModel>(ObjectChangeType.Modified, executableViewModel), _cancellationToken)
-                                .ConfigureAwait(false);
-                        }
+                        await _executableViewModelChangesChannel.Writer.WriteAsync(
+                            new ResourceChanged<ExecutableViewModel>(ObjectChangeType.Modified, executableViewModel), _cancellationToken)
+                            .ConfigureAwait(false);
                     }
-                    break;
+                }
+                continue;
             }
         }
     }
@@ -399,9 +399,19 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
     private static ProjectViewModel ConvertToProjectViewModel(
         DistributedApplicationModel applicationModel, IEnumerable<Service> services, IEnumerable<Endpoint> endpoints, Executable executable)
     {
+        var displayName = executable.Metadata.Name;
+        var replicaSetOwner = executable.Metadata.OwnerReferences?.FirstOrDefault(
+            or => or.Kind == Dcp.Model.Dcp.ExecutableReplicaSetKind
+        );
+        if (replicaSetOwner is not null)
+        {
+            displayName = NamingUtil.TryGetReplicaDisplayName(executable.Metadata.Name) ?? displayName;
+        }
+
         var model = new ProjectViewModel
         {
             Name = executable.Metadata.Name,
+            DisplayName = displayName,
             Uid = executable.Metadata.Uid,
             NamespacedName = new(executable.Metadata.Name, null),
             CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToLocalTime(),
