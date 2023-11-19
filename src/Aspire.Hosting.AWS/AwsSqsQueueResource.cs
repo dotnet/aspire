@@ -7,10 +7,21 @@ namespace Aspire.Hosting.ApplicationModel;
 /// Represents an AWS SQS queue resource.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
-public class AwsSqsQueueResource(string name) : Resource(name), IAwsResource
+public class AwsSqsQueueResource(string name) : Resource(name), IAwsResource, IResourceWithConnectionString
 {
     /// <summary>
     /// Gets or sets the URI of the SQS queue.
     /// </summary>
     public Uri? QueueUrl { get; set; }
+
+    /// <summary>
+    ///  Gets or sets the Amazon Resource Name (ARN) of the Sqs.
+    /// </summary>
+    public string? Arn { get; set; }
+
+    /// <summary>
+    ///  Gets the url of the SQS queue resource.
+    /// </summary>
+    ///  <returns>The url of the SQS queue resource.</returns>
+    public string? GetConnectionString() => QueueUrl?.ToString();
 }
