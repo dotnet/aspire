@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Amazon.S3;
+using Amazon.CloudFormation;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.AWS.Provisioning;
 using Aspire.Hosting.AWS.Provisioning.Provisioners;
@@ -26,13 +26,14 @@ public static class AwsProvisionerExtensions
         builder.Services.AddLifecycleHook<AwsProvisioner>();
 
         builder.Services.AddLocalStack(builder.Configuration);
-        builder.Services.AddAwsService<IAmazonS3>();
+        builder.Services.AddAwsService<IAmazonCloudFormation>();
 
         // Attempt to read aws configuration from configuration
         builder.Services.AddOptions<AwsProvisionerOptions>()
             .BindConfiguration("AWS");
 
-        builder.AddAwsProvisioner<AwsS3BucketResource, S3Provisioner>();
+        // TODO: We're keeping state in the provisioners, which is not ideal
+        builder.Services.AddKeyedTransient<IAwsResourceProvisioner, S3Provisioner>(typeof(AwsS3BucketResource));
 
         // We're adding 2 because there's no easy way to enumerate all keys and all service types
         //builder.AddAzureProvisioner<AzureKeyVaultResource, KeyVaultProvisioner>();
@@ -59,14 +60,14 @@ public static class AwsProvisionerExtensions
         return builder;
     }
 
-    internal static IDistributedApplicationBuilder AddAwsProvisioner<TResource, TProvisioner>(this IDistributedApplicationBuilder builder)
-        where TResource : IAwsResource
-        where TProvisioner : AwsResourceProvisioner<TResource>
-    {
-        // This lets us avoid using open generics in the caller, we can use keyed lookup instead
-        builder.Services.AddKeyedSingleton<IAwsResourceProvisioner, TProvisioner>(typeof(TResource));
-        return builder;
-    }
+    // internal static IDistributedApplicationBuilder AddAwsProvisioner<TResource, TProvisioner>(this IDistributedApplicationBuilder builder)
+    //     where TResource : class, IAwsResource
+    //     where TProvisioner : AwsResourceProvisioner<TResource, AwsConstruct>
+    // {
+    //     // This lets us avoid using open generics in the caller, we can use keyed lookup instead
+    //     builder.Services.AddKeyedSingleton<IAwsResourceProvisioner, TProvisioner>(typeof(TResource));
+    //     return builder;
+    // }
 
     //internal static IDistributedApplicationBuilder AddResourceEnumerator<TResource>(this IDistributedApplicationBuilder builder,
     //    Func<ResourceGroupResource, IAsyncEnumerable<TResource>> getResources,

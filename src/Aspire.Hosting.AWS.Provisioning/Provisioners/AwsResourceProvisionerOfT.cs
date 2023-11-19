@@ -2,79 +2,34 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.Extensions.Configuration;
-using Amazon;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.AWS.CloudFormation.Constructs;
 
 namespace Aspire.Hosting.AWS.Provisioning;
 
-internal sealed record UserPrincipal(Guid Id, string Name);
-
-internal sealed class ProvisioningContext(RegionEndpoint location)
+internal sealed class ProvisioningContext()
 {
-    public RegionEndpoint Location => location;
+    // public RegionEndpoint Location => location;
 }
 
 internal interface IAwsResourceProvisioner
 {
     void ConfigureResource(IConfiguration configuration, IAwsResource resource);
 
-    bool ShouldProvision(IConfiguration configuration, IAwsResource resource);
-
-    Task GetOrCreateResourceAsync(
-        IAwsResource resource,
-        ProvisioningContext context,
-        CancellationToken cancellationToken);
+    IAwsConstruct CreateConstruct(IAwsResource resource, ProvisioningContext context);
 }
 
-internal abstract class AwsResourceProvisioner<TResource> : IAwsResourceProvisioner
-    where TResource : IAwsResource
+internal abstract class AwsResourceProvisioner<TResource, TConstruct> : IAwsResourceProvisioner
+    where TResource : class, IAwsResource
+    where TConstruct : AwsConstruct
 {
-    bool IAwsResourceProvisioner.ShouldProvision(IConfiguration configuration, IAwsResource resource) =>
-        ShouldProvision(configuration, (TResource)resource);
-
-    Task IAwsResourceProvisioner.GetOrCreateResourceAsync(
-        IAwsResource resource,
-        ProvisioningContext context,
-        CancellationToken cancellationToken)
-        => GetOrCreateResourceAsync((TResource)resource, context, cancellationToken);
-
     public abstract void ConfigureResource(IConfiguration configuration, TResource resource);
 
-    public virtual bool ShouldProvision(IConfiguration configuration, TResource resource) => true;
+    public abstract TConstruct CreateConstruct(TResource resource, ProvisioningContext context);
 
-    public abstract Task GetOrCreateResourceAsync(
-        TResource resource,
-        ProvisioningContext context,
-        CancellationToken cancellationToken);
-
-    public virtual void ConfigureResource(IConfiguration configuration, IAwsResource resource)
-    {
+    public void ConfigureResource(IConfiguration configuration, IAwsResource resource) =>
         ConfigureResource(configuration, (TResource)resource);
-    }
 
-    //protected static ResourceIdentifier CreateRoleDefinitionId(SubscriptionResource subscription, string roleDefinitionId) =>
-    //    new($"{subscription.Id}/providers/Microsoft.Authorization/roleDefinitions/{roleDefinitionId}");
-
-    //protected static async Task DoRoleAssignmentAsync(
-    //    ArmClient armClient,
-    //    ResourceIdentifier resourceId,
-    //    Guid principalId,
-    //    ResourceIdentifier roleDefinitionId,
-    //    CancellationToken cancellationToken)
-    //{
-    //    var roleAssignments = armClient.GetRoleAssignments(resourceId);
-    //    await foreach (var ra in roleAssignments.GetAllAsync(cancellationToken: cancellationToken))
-    //    {
-    //        if (ra.Data.PrincipalId == principalId &&
-    //            ra.Data.RoleDefinitionId.Equals(roleDefinitionId))
-    //        {
-    //            return;
-    //        }
-    //    }
-
-    //    var roleAssignmentInfo = new RoleAssignmentCreateOrUpdateContent(roleDefinitionId, principalId);
-
-    //    var roleAssignmentId = Guid.NewGuid().ToString();
-    //    await roleAssignments.CreateOrUpdateAsync(WaitUntil.Completed, roleAssignmentId, roleAssignmentInfo, cancellationToken).ConfigureAwait(false);
-    //}
+    public IAwsConstruct CreateConstruct(IAwsResource resource, ProvisioningContext context) =>
+        CreateConstruct((TResource)resource, context);
 }

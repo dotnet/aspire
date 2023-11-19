@@ -8,7 +8,6 @@ namespace Aspire.Hosting.AWS.Provisioning;
 // TODO: Re-evaluate this approach
 internal sealed class AwsProvisionerOptions : AWSOptions
 {
-    // We can use it for CloudFormation later
     public string? StackName { get; set; }
 
     public bool UseLocalStack { get; set; }

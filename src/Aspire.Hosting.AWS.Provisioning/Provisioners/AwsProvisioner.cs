@@ -1,348 +1,324 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Net;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using Amazon.CloudFormation;
+using Amazon.CloudFormation.Model;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.AWS.CloudFormation;
 using Aspire.Hosting.AWS.Provisioning;
+using Aspire.Hosting.AWS.Provisioning.Provisioners;
 using Aspire.Hosting.Lifecycle;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using InvalidOperationException = System.InvalidOperationException;
 
 namespace Aspire.Hosting.Azure;
 
 // Provisions aws resources for development purposes
 internal sealed class AwsProvisioner(
-    IOptions<AwsProvisionerOptions> options,
-    //IOptions<PublishingOptions> publishingOptions,
+    IAmazonCloudFormation cloudFormationClient,
+    IServiceProvider serviceProvider,
+    // IHostEnvironment environment,
     IConfiguration configuration,
-    IHostEnvironment environment,
-    ILogger<AwsProvisioner> logger,
-    IServiceProvider serviceProvider
-    //IEnumerable<IAzureResourceEnumerator> resourceEnumerators
-    ) : IDistributedApplicationLifecycleHook
+    IOptions<AwsProvisionerOptions> options,
+    ILogger<AwsProvisioner> logger) : IDistributedApplicationLifecycleHook
 {
-    internal const string AspireResourceNameTag = "aspire-resource-name";
+    private static readonly JsonSerializerOptions s_cloudFormationJsonSerializerOptions = new() { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull };
 
     private readonly AwsProvisionerOptions _options = options.Value;
 
     public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
-        // TODO: Make this more general purpose
-        //if (publishingOptions.Value.Publisher == "manifest")
-        //{
-        //    return;
-        //}
-       
-        var awsResources = appModel.Resources.OfType<IAwsResource>();
-        if (!awsResources.OfType<IAwsResource>().Any())
+        var awsResources = appModel.Resources.OfType<IAwsResource>().ToList();
+        if (!awsResources.Any())
         {
             return;
         }
 
+        // TODO: run the container somewhere here
+
         try
         {
-            await ProvisionAwsResources(configuration, environment, logger, awsResources, cancellationToken).ConfigureAwait(false);
+            await ProvisionAwsResources(awsResources, cancellationToken).ConfigureAwait(false);
         }
         catch (MissingConfigurationException ex)
         {
-            logger.LogWarning(ex, "Required configuration is missing.");
+            logger.LogWarning(ex, "Required configuration is missing");
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error provisioning Aws resources.");
+            logger.LogError(ex, "Error provisioning Aws resources");
         }
     }
 
-    private async Task ProvisionAwsResources(IConfiguration configuration, IHostEnvironment _, ILogger<AwsProvisioner> logger, IEnumerable<IAwsResource> awsResources, CancellationToken cancellationToken)
+    private async Task ProvisionAwsResources(IEnumerable<IAwsResource> awsResources, CancellationToken cancellationToken)
     {
-        //var credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions()
-        //{
-        //    ExcludeManagedIdentityCredential = true,
-        //    ExcludeWorkloadIdentityCredential = true,
-        //    ExcludeAzurePowerShellCredential = true,
-        //    CredentialProcessTimeout = TimeSpan.FromSeconds(15)
-        //});
+        // AWS SDK searches for credentials in the following sources:
+        // - Environment variables
+        // - Shared credentials file
+        // - AWS credentials profile
+        // If no credentials are found, the SDK will throw an exception.
 
-        //var subscriptionId = _options.SubscriptionId ?? throw new MissingConfigurationException("An azure subscription id is required. Set the Azure:SubscriptionId configuration value.");
-        //var location = _options.Location switch
-        //{
-        //    null => throw new MissingConfigurationException("An azure location/region is required. Set the Azure:Location configuration value."),
-        //    string loc => new AzureLocation(loc)
-        //};
+        var stackName = _options.StackName ??
+                        throw new MissingConfigurationException("A cloudformation stack name is required. Set the AWS:StackName configuration value.");
 
-        //var armClient = new ArmClient(credential, subscriptionId);
+        // Now we have a list of resources to provision in a cloud formation template
+        var cloudFormationTemplate = ProcessResources(awsResources);
 
-        // TODO: use AWSSDK.CloudFormation here
+        // TODO: Use JsonSerializer source generators
+        var templateBody = JsonSerializer.Serialize(cloudFormationTemplate, s_cloudFormationJsonSerializerOptions);
+        var isTemplateValid = await IsTemplateValidAsync(templateBody).ConfigureAwait(false);
 
-        //var subscriptionLazy = new Lazy<Task<SubscriptionResource>>(async () =>
-        //{
-        //    logger.LogInformation("Getting default subscription...");
-
-        //    var value = await armClient.GetDefaultSubscriptionAsync(cancellationToken).ConfigureAwait(false);
-
-        //    logger.LogInformation("Default subscription: {name} ({subscriptionId})", value.Data.DisplayName, value.Id);
-
-        //    return value;
-        //});
-
-        //Lazy<Task<(ResourceGroupResource, AzureLocation)>> resourceGroupAndLocationLazy = new(async () =>
-        //{
-        //    // Name of the resource group to create based on the machine name and application name
-        //    var (resourceGroupName, createIfAbsent) = _options.ResourceGroup switch
-        //    {
-        //        null => ($"{Environment.MachineName.ToLowerInvariant()}-{environment.ApplicationName.ToLowerInvariant()}-rg", true),
-        //        string rg => (rg, _options.AllowResourceGroupCreation ?? false)
-        //    };
-
-        //    var subscription = await subscriptionLazy.Value.ConfigureAwait(false);
-
-        //    var resourceGroups = subscription.GetResourceGroups();
-        //    ResourceGroupResource? resourceGroup = null;
-        //    AzureLocation location = new(_options.Location);
-        //    try
-        //    {
-        //        var response = await resourceGroups.GetAsync(resourceGroupName, cancellationToken).ConfigureAwait(false);
-        //        resourceGroup = response.Value;
-        //        location = resourceGroup.Data.Location;
-
-        //        logger.LogInformation("Using existing resource group {rgName}.", resourceGroup.Data.Name);
-        //    }
-        //    catch (Exception)
-        //    {
-        //        if (!createIfAbsent)
-        //        {
-        //            throw;
-        //        }
-
-        //        // REVIEW: Is it possible to do this without an exception?
-
-        //        logger.LogInformation("Creating resource group {rgName} in {location}...", resourceGroupName, location);
-
-        //        var rgData = new ResourceGroupData(location);
-        //        rgData.Tags.Add("aspire", "true");
-        //        var operation = await resourceGroups.CreateOrUpdateAsync(WaitUntil.Completed, resourceGroupName, rgData, cancellationToken).ConfigureAwait(false);
-        //        resourceGroup = operation.Value;
-
-        //        logger.LogInformation("Resource group {rgName} created.", resourceGroup.Data.Name);
-        //    }
-
-        //    return (resourceGroup, location);
-        //});
-
-        //var principalLazy = new Lazy<Task<UserPrincipal>>(async () => await GetUserPrincipalAsync(credential, cancellationToken).ConfigureAwait(false));
-
-        //var resourceMapLazy = new Lazy<Task<Dictionary<string, ArmResource>>>(async () =>
-        //{
-        //    var resourceMap = new Dictionary<string, ArmResource>();
-
-        //    var (resourceGroup, _) = await resourceGroupAndLocationLazy.Value.ConfigureAwait(false);
-
-        //    // Enumerate all known resources and look for aspire tags
-        //    foreach (var enumerator in resourceEnumerators)
-        //    {
-        //        await PopulateExistingAspireResources(
-        //             resourceGroup,
-        //             enumerator.GetResources,
-        //             enumerator.GetTags,
-        //             resourceMap,
-        //             cancellationToken).ConfigureAwait(false);
-        //    }
-
-        //    return resourceMap;
-        //});
-
-        var tasks = new List<Task>();
-
-        // Try to find the user secrets path so that provisioners can persist connection information.
-        //static string? GetUserSecretsPath()
-        //{
-        //    return Assembly.GetEntryAssembly()?.GetCustomAttribute<UserSecretsIdAttribute>()?.UserSecretsId switch
-        //    {
-        //        null => Environment.GetEnvironmentVariable("DOTNET_USER_SECRETS_ID"),
-        //        string id => UserSecretsPathHelper.GetSecretsPathFromSecretsId(id)
-        //    };
-        //}
-
-        //var userSecretsPath = GetUserSecretsPath();
-
-        //ResourceGroupResource? resourceGroup = null;
-        //SubscriptionResource? subscription = null;
-        //Dictionary<string, ArmResource>? resourceMap = null;
-        // UserPrincipal? principal = null;
-        ProvisioningContext? provisioningContext = null;
-        var usedResources = new HashSet<string>();
-
-        //var userSecrets = userSecretsPath is not null && File.Exists(userSecretsPath)
-        //    ? JsonNode.Parse(await File.ReadAllTextAsync(userSecretsPath, cancellationToken).ConfigureAwait(false))!.AsObject()
-        //    : [];
-
-        foreach (var resource in awsResources)
+        if (!isTemplateValid)
         {
-            usedResources.Add(resource.Name);
+            // TODO: Maybe throw a custom exception here?
+            throw new InvalidOperationException("CloudFormation template is not valid");
+        }
+
+        var stackStatus = await CheckIfStackExists(stackName, cancellationToken).ConfigureAwait(false);
+
+        if (stackStatus is null)
+        {
+            await CreateStackAsync(stackName, templateBody, cancellationToken).ConfigureAwait(false);
+        }
+        else if (stackStatus == StackStatus.CREATE_COMPLETE || stackStatus == StackStatus.UPDATE_COMPLETE)
+        {
+            await UpdateStackAsync(stackName, templateBody, cancellationToken).ConfigureAwait(false);
+        }
+        else if (stackStatus == StackStatus.CREATE_FAILED || stackStatus == StackStatus.ROLLBACK_FAILED || stackStatus == StackStatus.UPDATE_ROLLBACK_FAILED)
+        {
+            // The stack is in a failed state, so delete it before creating a new one
+
+            await DeleteStackAsync(stackName, cancellationToken).ConfigureAwait(false);
+            await CreateStackAsync(stackName, templateBody, cancellationToken).ConfigureAwait(false);
+        }
+        else
+        {
+            logger.LogInformation("Stack {StackName} is in {StackStatus} state. No action required", stackName, stackStatus);
+        }
+
+        // TODO: add cloud formation outputs to the configure aws resources
+    }
+
+    private CloudFormationTemplate ProcessResources(IEnumerable<IAwsResource> awsResources)
+    {
+        var usedResources = new HashSet<string>();
+        var cloudFormationTemplate = new CloudFormationTemplate();
+
+        var resources = awsResources.ToList();
+        foreach (var resource in resources)
+        {
+            if (usedResources.Contains(resource.Name))
+            {
+                continue;
+            }
 
             var provisioner = serviceProvider.GetKeyedService<IAwsResourceProvisioner>(resource.GetType());
 
             if (provisioner is null)
             {
-                logger.LogWarning("No provisioner found for {resourceType} skipping.", resource.GetType().Name);
-                continue;
-            }
-
-            if (!provisioner.ShouldProvision(configuration, resource))
-            {
-                logger.LogInformation("Skipping {resourceName} because it is not configured to be provisioned.", resource.Name);
+                logger.LogWarning("No provisioner found for {ResourceType} skipping", resource.GetType().Name);
                 continue;
             }
 
             provisioner.ConfigureResource(configuration, resource);
 
-            //if (provisioner.ConfigureResource(configuration, resource))
-            //{
-            //    logger.LogInformation("Using connection information stored in user secrets for {resourceName}.", resource.Name);
+            // TODO: We're keeping state in the provisioners, which is not ideal.
+            // Maybe passing all resource to provisioners and do operations below in the provisioner itself?
+            // We can utilize ProvisioningContext for this purpose.
+            if (resource is AwsSnsTopicResource topicResource && topicResource.Subscriptions.Any())
+            {
+                // TODO: null check
+                var snsProvisioner = (SnsProvisioner)provisioner;
+                try
+                {
+                    var snsSubscribersResources = topicResource.Subscriptions
+                        .Select(resName => resources.Single(awsResource => awsResource.Name == resName));
 
-            //    continue;
-            //}
+                    foreach (var snsSubscriberResource in snsSubscribersResources)
+                    {
+                        var subProvisioner = serviceProvider.GetKeyedService<IAwsResourceProvisioner>(snsSubscriberResource.GetType());
 
-            //subscription ??= await subscriptionLazy.Value.ConfigureAwait(false);
+                        subProvisioner!.ConfigureResource(configuration, snsSubscriberResource);
 
-            //if (resourceGroup is null)
-            //{
-            //    (resourceGroup, location) = await resourceGroupAndLocationLazy.Value.ConfigureAwait(false);
-            //}
+                        var awsConstruct = subProvisioner.CreateConstruct(snsSubscriberResource, new ProvisioningContext());
+                        snsProvisioner.AddSubscriptions(awsConstruct);
 
-            //resourceMap ??= await resourceMapLazy.Value.ConfigureAwait(false);
-           // principal ??= await principalLazy.Value.ConfigureAwait(false);
-            provisioningContext ??= new ProvisioningContext(_options.Region);
+                        cloudFormationTemplate.AddResource(awsConstruct);
+                        usedResources.Add(snsSubscriberResource.Name);
+                    }
+                }
+                catch (InvalidOperationException e)
+                {
+                    throw new MissingConfigurationException($"The resource {resource.Name} has a subscription to a resource that does not exist.", e);
+                }
+            }
 
-            var task = provisioner.GetOrCreateResourceAsync(
-                    resource,
-                    provisioningContext,
-                    cancellationToken);
-
-            tasks.Add(task);
+            // TODO: Couldn't figure out if need ProvisioningContext yet, so I'm keeping it here for now
+            var construct = provisioner.CreateConstruct(resource, new ProvisioningContext());
+            cloudFormationTemplate.AddResource(construct);
+            usedResources.Add(resource.Name);
         }
 
-        if (tasks.Count > 0)
-        {
-            await Task.WhenAll(tasks).ConfigureAwait(false);
-
-            // If we created any resources then save the user secrets
-            //if (userSecretsPath is not null)
-            //{
-            //    // Ensure directory exists before attempting to create secrets file
-            //    Directory.CreateDirectory(Path.GetDirectoryName(userSecretsPath)!);
-            //    await File.WriteAllTextAsync(userSecretsPath, userSecrets.ToString(), cancellationToken).ConfigureAwait(false);
-
-            //    logger.LogInformation("Azure resource connection strings saved to user secrets.");
-            //}
-        }
-
-        // Do this in the background to avoid blocking startup
-        //_ = Task.Run(async () =>
-        //{
-        //    logger.LogInformation("Cleaning up unused resources...");
-
-        //    resourceMap ??= await resourceMapLazy.Value.ConfigureAwait(false);
-
-        //    // Clean up any left over resources that are no longer in the model
-        //    foreach (var (name, sa) in resourceMap)
-        //    {
-        //        if (usedResources.Contains(name))
-        //        {
-        //            continue;
-        //        }
-
-        //        var response = await armClient.GetGenericResources().GetAsync(sa.Id, cancellationToken).ConfigureAwait(false);
-
-        //        logger.LogInformation("Deleting unused resource {keyVaultName} which maps to resource name {name}.", sa.Id, name);
-
-        //        await response.Value.DeleteAsync(WaitUntil.Started, cancellationToken).ConfigureAwait(false);
-        //    }
-        //},
-        //cancellationToken);
+        return cloudFormationTemplate;
     }
 
-    //private static async Task PopulateExistingAspireResources<TResource>(
-    //    ResourceGroupResource resourceGroup,
-    //    Func<ResourceGroupResource, IAsyncEnumerable<TResource>> getCollection,
-    //    Func<TResource, IDictionary<string, string>> getTags,
-    //    Dictionary<string, ArmResource> map,
-    //    CancellationToken cancellationToken)
-    //    where TResource : ArmResource
-    //{
-    //    await foreach (var r in getCollection(resourceGroup).WithCancellation(cancellationToken))
-    //    {
-    //        var tags = getTags(r);
-    //        if (tags.TryGetValue(AspireResourceNameTag, out var aspireResourceName))
-    //        {
-    //            map[aspireResourceName] = r;
-    //        }
-    //    }
-    //}
-
-    //internal async Task<UserPrincipal> GetUserPrincipalAsync(TokenCredential credential, CancellationToken cancellationToken)
-    //{
-    //    var response = await credential.GetTokenAsync(new(["https://graph.windows.net/.default"]), cancellationToken).ConfigureAwait(false);
-
-    //    static UserPrincipal ParseToken(in AccessToken response)
-    //    {
-    //        // Parse the access token to get the user's object id (this is their principal id)
-    //        var oid = string.Empty;
-    //        var upn = string.Empty;
-    //        var parts = response.Token.Split('.');
-    //        var part = parts[1];
-    //        var convertedToken = part.ToString().Replace('_', '/').Replace('-', '+');
-
-    //        switch (part.Length % 4)
-    //        {
-    //            case 2:
-    //                convertedToken += "==";
-    //                break;
-    //            case 3:
-    //                convertedToken += "=";
-    //                break;
-    //        }
-    //        var bytes = Convert.FromBase64String(convertedToken);
-    //        Utf8JsonReader reader = new(bytes);
-    //        while (reader.Read())
-    //        {
-    //            if (reader.TokenType == JsonTokenType.PropertyName)
-    //            {
-    //                var header = reader.GetString();
-    //                if (header == "oid")
-    //                {
-    //                    reader.Read();
-    //                    oid = reader.GetString()!;
-    //                    if (!string.IsNullOrEmpty(upn))
-    //                    {
-    //                        break;
-    //                    }
-    //                }
-    //                else if (header is "upn" or "email")
-    //                {
-    //                    reader.Read();
-    //                    upn = reader.GetString()!;
-    //                    if (!string.IsNullOrEmpty(oid))
-    //                    {
-    //                        break;
-    //                    }
-    //                }
-    //                else
-    //                {
-    //                    reader.Read();
-    //                }
-    //            }
-    //        }
-    //        return new UserPrincipal(Guid.Parse(oid), upn);
-    //    }
-
-    //    return ParseToken(response);
-    //}
-
-    sealed class MissingConfigurationException(string message) : Exception(message)
+    private async Task CreateStackAsync(string stackName, string templateBody, CancellationToken cancellationToken)
     {
+        logger.LogInformation("Creating stack {StackName}", stackName);
 
+        var createStackRequest = new CreateStackRequest { StackName = stackName, TemplateBody = templateBody };
+
+        // TODO: Handle exceptions
+        var createStackResponse = await cloudFormationClient.CreateStackAsync(createStackRequest, cancellationToken).ConfigureAwait(false);
+
+        if(createStackResponse.HttpStatusCode != HttpStatusCode.OK)
+        {
+            logger.LogError("Error creating stack {StackName}", stackName);
+
+            // TODO: throw custom exception
+        }
+
+        var desiredStatusesForCreation = new HashSet<StackStatus> { StackStatus.CREATE_COMPLETE, StackStatus.ROLLBACK_COMPLETE };
+        // I'm not sure if timeout should be configurable
+        await WaitForStackCompletion(stackName, desiredStatusesForCreation, TimeSpan.FromMinutes(10), cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task UpdateStackAsync(string stackName, string templateBody, CancellationToken cancellationToken)
+    {
+        logger.LogInformation("Updating stack {StackName}", stackName);
+
+        var updateStackRequest = new UpdateStackRequest { StackName = stackName, TemplateBody = templateBody };
+
+        try
+        {
+            var updateStackResponse = await cloudFormationClient.UpdateStackAsync(updateStackRequest, cancellationToken).ConfigureAwait(false);
+
+            if (updateStackResponse.HttpStatusCode != HttpStatusCode.OK)
+            {
+                logger.LogError("Error updating stack {StackName}", stackName);
+
+                // TODO: throw custom exception
+            }
+        }
+        catch (AmazonCloudFormationException e)
+        {
+            if (!(e.ErrorCode == "ValidationError" && e.Message.Contains("No updates are to be performed.")))
+            {
+                // We don't want to throw if there are no updates to be performed
+                logger.LogWarning(e, "Error updating stack {StackName}", stackName);
+            }
+        }
+
+        var desiredStatusesForUpdate = new HashSet<StackStatus> { StackStatus.UPDATE_COMPLETE, StackStatus.UPDATE_ROLLBACK_COMPLETE };
+        await WaitForStackCompletion(stackName, desiredStatusesForUpdate, TimeSpan.FromMinutes(10), cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task DeleteStackAsync(string stackName, CancellationToken cancellationToken)
+    {
+        var deleteStackRequest = new DeleteStackRequest { StackName = stackName };
+        var deleteStackResponse = await cloudFormationClient.DeleteStackAsync(deleteStackRequest, cancellationToken).ConfigureAwait(false);
+
+        if (deleteStackResponse.HttpStatusCode != HttpStatusCode.OK)
+        {
+            logger.LogError("Error deleting stack {StackName}", stackName);
+
+            // TODO: throw custom exception
+        }
+
+        var desiredStatusesForDelete= new HashSet<StackStatus> { StackStatus.UPDATE_COMPLETE, StackStatus.UPDATE_ROLLBACK_COMPLETE };
+        await WaitForStackCompletion(stackName, desiredStatusesForDelete, TimeSpan.FromMinutes(10), cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<StackStatus?> CheckIfStackExists(string stackName, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var describeStacksRequest = new DescribeStacksRequest { StackName = stackName };
+            var describeStacksResponse = await cloudFormationClient.DescribeStacksAsync(describeStacksRequest, cancellationToken).ConfigureAwait(false);
+            var stackStatus = describeStacksResponse.Stacks.FirstOrDefault()?.StackStatus;
+
+            return stackStatus;
+        }
+        catch (AmazonCloudFormationException e)
+        {
+            if (!(e.ErrorCode == "ValidationError" && e.Message.Contains("does not exist")))
+            {
+                throw;
+            }
+
+            return null;
+        }
+    }
+
+    private async Task<bool> IsTemplateValidAsync(string templateBody)
+    {
+        try
+        {
+            var validateRequest = new ValidateTemplateRequest { TemplateBody = templateBody };
+            var response = await cloudFormationClient.ValidateTemplateAsync(validateRequest).ConfigureAwait(false);
+
+            logger.LogInformation("Template validation succeeded for {TemplateBody}", templateBody);
+
+            // Optionally, print additional details about the template
+            foreach (var parameter in response.Parameters)
+            {
+                logger.LogInformation("Parameter: {ParameterParameterKey}, Default: {ParameterDefaultValue}", parameter.ParameterKey, parameter.DefaultValue);
+            }
+
+            return true;
+        }
+        catch (AmazonCloudFormationException ex)
+        {
+            logger.LogError(ex, "Template validation failed for {TemplateBody}", templateBody);
+            return false;
+        }
+    }
+
+    private async Task WaitForStackCompletion(string stackName, IReadOnlySet<StackStatus> desiredStatuses, TimeSpan timeout, CancellationToken cancellationToken)
+    {
+        var startTime = DateTime.UtcNow;
+
+        logger.LogInformation("Waiting for stack {StackName} to reach the desired state...", stackName);
+
+        while (DateTime.UtcNow - startTime < timeout)
+        {
+            logger.LogInformation("Checking stack {StackName} status...", stackName);
+
+            var response = await cloudFormationClient.DescribeStacksAsync(new DescribeStacksRequest { StackName = stackName }, cancellationToken).ConfigureAwait(false);
+
+            // Can it be multiple stacks with the same name?
+            var currentStatus = response.Stacks.FirstOrDefault()?.StackStatus;
+
+            logger.LogInformation("Stack {StackName} is in {StackStatus} state", stackName, currentStatus);
+
+            // Not sure if this is the best way to check if the stack is in the desired state
+            // TODO: Null check
+            if (desiredStatuses.Contains(currentStatus!))
+            {
+                return; // Desired state reached
+            }
+
+            logger.LogInformation("Stack {StackName} is not in the desired state yet. Waiting for 30 secs...", stackName);
+            await Task.Delay(TimeSpan.FromSeconds(30), cancellationToken).ConfigureAwait(false); // Polling interval
+        }
+
+        throw new TimeoutException("Timeout waiting for stack to reach the desired state.");
+    }
+
+    private sealed class MissingConfigurationException : Exception
+    {
+        public MissingConfigurationException(string message) : base(message)
+        {
+        }
+
+        public MissingConfigurationException(string message, Exception innerException) : base(message, innerException)
+        {
+        }
     }
 }
