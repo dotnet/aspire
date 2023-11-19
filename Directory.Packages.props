@@ -37,6 +37,7 @@
     <PackageVersion Include="AspNetCore.HealthChecks.Azure.Storage.Blobs" Version="8.0.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.Azure.Storage.Queues" Version="8.0.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.AzureServiceBus" Version="8.0.0" />
+    <PackageVersion Include="AspNetCore.HealthChecks.Kafka" Version="8.0.0" />    
     <PackageVersion Include="AspNetCore.HealthChecks.MongoDb" Version="8.0.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.MySql" Version="8.0.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.NpgSql" Version="8.0.0" />
@@ -64,6 +65,7 @@
     <PackageVersion Include="Microsoft.Extensions.Primitives" Version="$(MicrosoftExtensionsPrimitivesPackageVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="$(MicrosoftExtensionsHttpResiliencePackageVersion)" />
     <!-- external dependencies -->
+    <PackageVersion Include="Confluent.Kafka" Version="2.3.0" />
     <PackageVersion Include="Dapr.AspNetCore" Version="1.12.0" />
     <PackageVersion Include="DnsClient" Version="1.7.0" />
     <PackageVersion Include="Grpc.AspNetCore" Version="2.59.0" />
@@ -111,5 +113,7 @@
     <PackageVersion Include="Microsoft.DotNet.Build.Tasks.Workloads" Version="8.0.0-beta.23564.4" />
     <PackageVersion Include="Microsoft.Signed.Wix" Version="1.0.0-v3.14.0.5722" />
     <PackageVersion Include="Microsoft.DotNet.Build.Tasks.Installers" Version="8.0.0-beta.23564.4" />
+    <!-- unit test dependencies -->
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.Testing" Version="8.0.0" />
   </ItemGroup>
 </Project>
