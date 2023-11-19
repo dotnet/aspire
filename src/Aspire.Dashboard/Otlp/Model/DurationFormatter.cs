@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
+
 namespace Aspire.Dashboard.Otlp.Model;
 
 public static class DurationFormatter
@@ -31,7 +33,7 @@ public static class DurationFormatter
         if (primaryUnit.IsDecimal)
         {
             // If the unit is decimal based, display as a decimal
-            return $"{ticks / primaryUnit.Ticks:0.##}{primaryUnit.Unit}";
+            return $"{(ticks / primaryUnit.Ticks).ToString("0.##", CultureInfo.InvariantCulture)}{primaryUnit.Unit}";
         }
 
         var primaryValue = Math.Floor(ticks / primaryUnit.Ticks);
