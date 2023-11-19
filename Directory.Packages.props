@@ -83,7 +83,8 @@
     <PackageVersion Include="RabbitMQ.Client" Version="6.6.0" />
     <PackageVersion Include="StackExchange.Redis" Version="2.7.4" />
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="6.5.0" />
-    <PackageVersion Include="Yarp.ReverseProxy" Version="2.1.0-preview.1.23556.5" />
+    <PackageVersion Include="Yarp.ReverseProxy" Version="2.1.0" />
+    <!-- comment to help automerges -->
     <PackageVersion Include="LocalStack.Client" Version="1.4.1" />
     <PackageVersion Include="LocalStack.Client.Extensions" Version="1.2.2" />
     <!-- Open Telemetry -->
