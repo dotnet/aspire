@@ -13,8 +13,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="AWSSDK.Core" />
-    <PackageReference Include="AWSSDK.S3" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
+
+    <PackageReference Include="AWSSDK.CloudFormation" />
     <PackageReference Include="AWSSDK.Extensions.NETCore.Setup" />
     <PackageReference Include="LocalStack.Client" />
     <PackageReference Include="LocalStack.Client.Extensions" />
