@@ -7,7 +7,7 @@ namespace Aspire.Hosting.AWS.CloudFormation.Constructs;
 /// Represents an Amazon SQS queue resource, allowing specification of queue properties and settings.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
-internal class AwsSqsQueueConstruct(string name) : AwsConstruct(name)
+public class AwsSqsQueueConstruct(string name) : AwsConstruct(name)
 {
     public override string Type => "AWS::SQS::Queue";
 

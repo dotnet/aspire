@@ -7,7 +7,7 @@ namespace Aspire.Hosting.AWS.CloudFormation.Constructs;
 /// Represents an Amazon S3 bucket resource, providing properties and configurations specific to S3.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
-internal class AwsS3BucketConstruct(string name) : AwsConstruct(name)
+public class AwsS3BucketConstruct(string name) : AwsConstruct(name)
 {
     public override string Type => "AWS::S3::Bucket";
 

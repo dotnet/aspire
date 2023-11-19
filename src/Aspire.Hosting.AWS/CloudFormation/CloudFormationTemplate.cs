@@ -9,27 +9,27 @@ namespace Aspire.Hosting.AWS.CloudFormation;
 /// Represents an AWS CloudFormation template, encapsulating the format version, a description,
 /// and a collection of resources to be deployed.
 /// </summary>
-internal sealed class CloudFormationTemplate
+public sealed class CloudFormationTemplate
 {
-    private readonly Dictionary<string, AwsConstruct> _resources = new();
+    private readonly Dictionary<string, IAwsConstruct> _resources = new();
 
     public string AWSTemplateFormatVersion { get; init; } = "2010-09-09";
     public string? Description { get; init; }
 
-    public IReadOnlyDictionary<string, AwsConstruct> Resources => _resources;
+    public IReadOnlyDictionary<string, IAwsConstruct> Resources => _resources;
 
     /// <summary>
     /// Adds an AWS resource to the CloudFormation template.
     /// </summary>
     /// <param name="construct">The AWS resource to add.</param>
     /// <exception cref="Exception">Thrown when a resource with the same name already exists.</exception>
-    public void AddResource(AwsConstruct construct)
+    public void AddResource(IAwsConstruct construct)
     {
         // TODO: Maybe some validation here?
 
         if (!_resources.TryAdd(construct.Name, construct))
         {
-            throw new Exception($"Resource with name {construct.Name} already exists");
+            throw new InvalidOperationException($"Resource with name {construct.Name} already exists");
         }
     }
 }

@@ -10,7 +10,7 @@ namespace Aspire.Hosting.AWS.CloudFormation.Constructs;
 /// Represents an Amazon SNS topic resource, including topic properties and associated subscriptions.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
-internal class AwsSnsTopicConstruct(string name) : AwsConstruct(name)
+public class AwsSnsTopicConstruct(string name) : AwsConstruct(name)
 {
     public override string Type => "AWS::SNS::Topic";
     public new TopicProperties Properties { get; init; } = new();
@@ -37,7 +37,7 @@ internal class AwsSnsTopicConstruct(string name) : AwsConstruct(name)
     /// <remarks>
     /// TODO: Extend this method to support other types of subscribers.
     /// </remarks>
-    public void AddSubscriber(AwsConstruct awsConstruct)
+    public void AddSubscriber(IAwsConstruct awsConstruct)
     {
         // TODO: Check if the resource is a valid type (SNS, SQS, HTTP, etc.)
         if (awsConstruct is AwsSqsQueueConstruct)

@@ -11,7 +11,7 @@ namespace Aspire.Hosting.AWS.CloudFormation.Functions;
 /// </summary>
 /// <param name="resourceName">The logical name of the resource whose attribute is being retrieved.</param>
 /// <param name="attributeName">The name of the attribute whose value is being retrieved.</param>
-internal class FnGetAtt(string resourceName, string attributeName)
+internal sealed class FnGetAtt(string resourceName, string attributeName)
 {
     [JsonPropertyName("Fn::GetAtt")]
     public List<string> Arguments { get; set; } = [resourceName, attributeName];

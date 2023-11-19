@@ -9,7 +9,7 @@ namespace Aspire.Hosting.AWS.CloudFormation.Constructs;
 /// Serves as the base class for AWS resource types to be included in a CloudFormation template.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
-internal abstract class AwsConstruct(string name)
+public abstract class AwsConstruct(string name) : IAwsConstruct
 {
     [JsonIgnore]
     public string Name { get; } = name;
