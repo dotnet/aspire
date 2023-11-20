@@ -20,6 +20,21 @@ public class AwsSqsQueueResource(string name) : Resource(name), IAwsResource, IR
     public string? Arn { get; set; }
 
     /// <summary>
+    ///  Gets or sets the name of the Sqs.
+    /// </summary>
+    public string? QueueName { get; set; }
+
+    /// <summary>
+    ///  Gets or sets the visibility timeout of the Sqs.
+    ///  </summary>
+    public int? MessageRetentionPeriod { get; set; }
+
+    /// <summary>
+    ///  Gets or sets the visibility timeout of the Sqs.
+    /// </summary>
+    public int? VisibilityTimeout { get; set; }
+
+    /// <summary>
     ///  Gets the url of the SQS queue resource.
     /// </summary>
     ///  <returns>The url of the SQS queue resource.</returns>

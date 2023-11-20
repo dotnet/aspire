@@ -15,6 +15,11 @@ public class AwsSnsTopicResource(string name) : Resource(name), IAwsResource, IR
     public string? Arn { get; set; }
 
     /// <summary>
+    ///  Gets or sets the name of the SNS topic.
+    /// </summary>
+    public string? TopicName { get; set; }
+
+    /// <summary>
     ///  Gets or sets the subscriptions of the SNS.
     /// </summary>
     public IList<string> Subscriptions { get; set; } = new List<string>();
@@ -23,5 +28,5 @@ public class AwsSnsTopicResource(string name) : Resource(name), IAwsResource, IR
     ///  Gets the name of the SNS topic resource.
     ///  </summary>
     ///  <returns>The name of the SNS topic resource.</returns>
-    public string? GetConnectionString() => Name;
+    public string? GetConnectionString() => Arn;
 }
