@@ -87,9 +87,9 @@
     <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.7.0-alpha.1" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.EntityFrameworkCore" Version="1.0.0-beta.8" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.EventCounters" Version="1.5.1-alpha.1" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.GrpcNetClient" Version="1.6.0-beta.2" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.6.0-beta.2" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.6.0-beta.2" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.GrpcNetClient" Version="1.6.0-beta.3" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.6.0-beta.3" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.6.0-beta.3" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.5.1" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.SqlClient" Version="1.5.1-beta.1" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.StackExchangeRedis" Version="1.0.0-rc9.12" />
