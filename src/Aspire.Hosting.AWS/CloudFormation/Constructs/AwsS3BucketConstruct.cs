@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.AWS.CloudFormation.Functions;
+
 namespace Aspire.Hosting.AWS.CloudFormation.Constructs;
 
 /// <summary>
@@ -16,12 +18,23 @@ public class AwsS3BucketConstruct(string name) : AwsConstruct(name)
     public class BucketProperties : Properties
     {
         public string? BucketName { get; set; }
+
         public string? AccessControl { get; set; }
+
         public VersioningConfiguration? VersioningConfiguration { get; set; }
     }
 
     public class VersioningConfiguration
     {
         public string? Status { get; init; }
+    }
+
+    public override IReadOnlyDictionary<string, CloudFormationTemplate.Output> GetOutputs()
+    {
+        return new Dictionary<string, CloudFormationTemplate.Output>()
+        {
+            { $"{Name}-BucketName", new CloudFormationTemplate.Output(new FnGetAtt(Name, "BucketName"), "S3 Bucket Name") },
+            { $"{Name}-BucketArn", new CloudFormationTemplate.Output(new FnGetAtt(Name, "Arn"), "S3 Bucket Arn") }
+        };
     }
 }

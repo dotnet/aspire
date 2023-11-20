@@ -11,12 +11,15 @@ namespace Aspire.Hosting.AWS.CloudFormation;
 /// </summary>
 public sealed class CloudFormationTemplate
 {
-    private readonly Dictionary<string, IAwsConstruct> _resources = new();
+    private readonly Dictionary<string, IAwsConstruct> _resources = [];
+    private readonly Dictionary<string, Output> _outputs = [];
 
     public string AWSTemplateFormatVersion { get; init; } = "2010-09-09";
     public string? Description { get; init; }
 
     public IReadOnlyDictionary<string, IAwsConstruct> Resources => _resources;
+
+    public IReadOnlyDictionary<string, Output> Outputs => _outputs;
 
     /// <summary>
     /// Adds an AWS resource to the CloudFormation template.
@@ -31,5 +34,12 @@ public sealed class CloudFormationTemplate
         {
             throw new InvalidOperationException($"Resource with name {construct.Name} already exists");
         }
+
+        foreach (var output in construct.GetOutputs())
+        {
+            _outputs.Add(output.Key, output.Value);
+        }
     }
+
+    public record Output(object Value, string Description);
 }

@@ -13,6 +13,7 @@ namespace Aspire.Hosting.AWS.CloudFormation.Constructs;
 public class AwsSnsTopicConstruct(string name) : AwsConstruct(name)
 {
     public override string Type => "AWS::SNS::Topic";
+
     public new TopicProperties Properties { get; init; } = new();
 
     public class TopicProperties : Properties
@@ -20,8 +21,7 @@ public class AwsSnsTopicConstruct(string name) : AwsConstruct(name)
         public string? TopicName { get; init; }
         public string? DisplayName { get; init; }
 
-        [JsonPropertyName("Subscription")]
-        public List<Subscription> Subscriptions { get; init; } = new();
+        [JsonPropertyName("Subscription")] public List<Subscription> Subscriptions { get; init; } = new();
     }
 
     public class Subscription(string protocol, object endpoint)
@@ -50,5 +50,14 @@ public class AwsSnsTopicConstruct(string name) : AwsConstruct(name)
             Properties.Subscriptions.Add(subscription);
         }
         // TODO: Add checks for other resource types
+    }
+
+    public override IReadOnlyDictionary<string, CloudFormationTemplate.Output> GetOutputs()
+    {
+        return new Dictionary<string, CloudFormationTemplate.Output>()
+        {
+            { $"{Name}-TopicName", new CloudFormationTemplate.Output(new FnGetAtt(Name, "TopicName"), "SNS Topic Name") },
+            { $"{Name}-TopicARN", new CloudFormationTemplate.Output(new {Ref = Name}, "SNS Topic Arn") }
+        };
     }
 }
