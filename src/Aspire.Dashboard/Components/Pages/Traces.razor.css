@@ -30,7 +30,6 @@
         "main"
         "foot";
     gap: calc(var(--design-unit) * 2px);
-    padding: calc(var(--design-unit) * 2px);
 }
 
 ::deep.traces-layout > h1 {
@@ -48,4 +47,5 @@
 
 ::deep.traces-layout > .total-items-footer {
     grid-area: foot;
+    padding-bottom: calc(var(--design-unit) * 2px);
 }

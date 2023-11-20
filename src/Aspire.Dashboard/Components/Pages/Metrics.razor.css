@@ -70,7 +70,6 @@
         "toolbar"
         "main";
     gap: calc(var(--design-unit) * 2px);
-    padding: calc(var(--design-unit) * 2px);
 }
 
 ::deep.metrics-layout > h1 {
@@ -84,4 +83,10 @@
 
 ::deep.metrics-layout > .page-content-area {
     grid-area: main;
+}
+
+.page-content-area {
+    height: 100%;
+    width: 100%;
+    overflow: auto;
 }
