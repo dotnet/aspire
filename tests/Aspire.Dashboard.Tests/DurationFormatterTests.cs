@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using Aspire.Dashboard.Otlp.Model;
 using Xunit;
 
@@ -26,6 +27,25 @@ public class DurationFormatterTests
     {
         var input = 2 * TimeSpan.TicksPerDay + 5 * TimeSpan.TicksPerMinute;
         Assert.Equal("2d", DurationFormatter.FormatDuration(TimeSpan.FromTicks(input)));
+    }
+
+    [Theory]
+    [InlineData("pt-BR")]
+    [InlineData("fr-FR")]
+    public void FormatDuration_MustBeCultureInvariant(string commaDecimalSeparatorCulture)
+    {
+        var originalCulture = Thread.CurrentThread.CurrentCulture;
+
+        try
+        {
+            Thread.CurrentThread.CurrentCulture = CultureInfo.GetCultureInfo(commaDecimalSeparatorCulture);
+            var input = 2 * TimeSpan.TicksPerSecond + 357 * TimeSpan.TicksPerMillisecond;
+            Assert.Equal("2.36s", DurationFormatter.FormatDuration(TimeSpan.FromTicks(input)));
+        }
+        finally
+        {
+            Thread.CurrentThread.CurrentCulture = originalCulture;
+        }
     }
 
     [Fact]
