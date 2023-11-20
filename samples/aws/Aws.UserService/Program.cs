@@ -1,47 +1,47 @@
+using Amazon.S3;
+using Amazon.SimpleNotificationService;
+using Amazon.SQS;
+using Aws.UserService.Contracts;
+using Aws.UserService.Models;
+using Aws.UserService.Services;
+using LocalStack.Client.Extensions;
+
 var builder = WebApplication.CreateBuilder(args);
 
-//builder.AddServiceDefaults();
+builder.AddServiceDefaults();
 
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-// builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen();
+
+builder.Services.AddTransient<IProfileService, ProfileService>();
+builder.Services.AddTransient<IS3UrlService, S3UrlService>();
+
+builder.Services.AddLocalStack(builder.Configuration);
+builder.Services.AddAwsService<IAmazonS3>();
+builder.Services.AddAwsService<IAmazonSQS>();
+builder.Services.AddAwsService<IAmazonSimpleNotificationService>();
 
 var app = builder.Build();
 
-//app.MapDefaultEndpoints();
+app.MapDefaultEndpoints();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    //app.UseSwagger();
-    //app.UseSwaggerUI();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
 app.UseHttpsRedirection();
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
+app.MapPost("/profile", async (Profile profile, IProfileService profileService) =>
+    {
+        var profileId = await profileService.AddProfileAsync(profile);
 
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast");
+        return Results.Created($"/profile/{profileId}", profileId);
+    })
+    .WithName("PostProfile");
 
 app.Run();
-
-sealed record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}

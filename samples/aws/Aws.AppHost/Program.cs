@@ -4,8 +4,13 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
 builder.AddAwsProvisioning();
-builder.AddAwsS3Bucket("ProfilePicturesBucket");
+var awsS3Bucket = builder.AddAwsS3Bucket("ProfilePicturesBucket");
+var awsSnsTopic = builder.AddAwsSnsTopic("ProfilesTopic");
+var awsSqsQueue = builder.AddAwsSqsQueue("ProfilesQueue");
 
-builder.AddProject<Projects.Aws_UserService>("aws.userservice");
+builder.AddProject<Projects.Aws_UserService>("aws.userservice")
+    .WithReference(awsS3Bucket)
+    .WithReference(awsSnsTopic)
+    .WithReference(awsSqsQueue);
 
 builder.Build().Run();
