@@ -42,15 +42,6 @@ fluent-toolbar[orientation=horizontal] {
     --foreground-subtext-hover: #A1A1A1;
 }
 
-.page-content-area {
-    /*
-        Height of the browser - static height for other content
-        TODO: Is there a better way to do this?
-    */
-    height: calc(100vh - 175px);
-    width: 100%;
-}
-
 .datagrid-overflow-area,
 .parent-details-container {
     /*
@@ -103,7 +94,6 @@ fluent-dialog fluent-data-grid-cell[cell-type=columnheader] fluent-button[appear
     grid-template-areas:
         "toolbar"
         "main";
-    padding: calc(var(--design-unit) * 2px);
 }
 
 .content-layout-with-toolbar > fluent-toolbar {

@@ -7,7 +7,6 @@
         "head"
         "toolbar"
         "main";
-    padding: calc(var(--design-unit) * 2px);
 }
 
 ::deep.resource-logs-layout > h1 {
