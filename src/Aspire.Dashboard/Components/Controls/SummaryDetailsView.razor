@@ -8,7 +8,14 @@
         <Panel2>
             <div class="details-container">
                 <FluentHeader Style="height: auto;">
-                    @DetailsTitle
+                    @if (DetailsTitle is not null)
+                    {
+                        @DetailsTitle
+                    }
+                    else if (DetailsTitleTemplate is not null)
+                    {
+                        @DetailsTitleTemplate
+                    }
                     <div class="header-right">
                         <FluentButton Appearance="Appearance.Stealth"
                                       IconEnd="@(Orientation == Orientation.Horizontal ? _splitHorizontalIcon : _splitVerticalIcon)"
