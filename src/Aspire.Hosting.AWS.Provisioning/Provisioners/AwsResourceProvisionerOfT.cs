@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Immutable;
 using Microsoft.Extensions.Configuration;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.AWS.CloudFormation.Constructs;
@@ -17,6 +18,8 @@ internal interface IAwsResourceProvisioner
     void ConfigureResource(IConfiguration configuration, IAwsResource resource);
 
     IAwsConstruct CreateConstruct(IAwsResource resource, ProvisioningContext context);
+
+    void SetResourceOutputs(IAwsResource awsResource, IImmutableDictionary<string, string> resourceOutputs);
 }
 
 internal abstract class AwsResourceProvisioner<TResource, TConstruct> : IAwsResourceProvisioner
@@ -27,9 +30,14 @@ internal abstract class AwsResourceProvisioner<TResource, TConstruct> : IAwsReso
 
     public abstract TConstruct CreateConstruct(TResource resource, ProvisioningContext context);
 
+    public abstract void SetResourceOutputs(TResource resource, IImmutableDictionary<string, string> resourceOutputs);
+
     public void ConfigureResource(IConfiguration configuration, IAwsResource resource) =>
         ConfigureResource(configuration, (TResource)resource);
 
     public IAwsConstruct CreateConstruct(IAwsResource resource, ProvisioningContext context) =>
         CreateConstruct((TResource)resource, context);
+
+    public void SetResourceOutputs(IAwsResource awsResource, IImmutableDictionary<string, string> resourceOutputs) =>
+        SetResourceOutputs((TResource)awsResource, resourceOutputs);
 }

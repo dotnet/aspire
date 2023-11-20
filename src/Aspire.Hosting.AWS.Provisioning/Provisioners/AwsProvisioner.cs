@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Immutable;
 using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -11,13 +12,14 @@ using Aspire.Hosting.AWS.CloudFormation;
 using Aspire.Hosting.AWS.Provisioning;
 using Aspire.Hosting.AWS.Provisioning.Provisioners;
 using Aspire.Hosting.Lifecycle;
+using LocalStack.Client.Options;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using InvalidOperationException = System.InvalidOperationException;
 
-namespace Aspire.Hosting.Azure;
+namespace Aspire.Hosting.AWS;
 
 // Provisions aws resources for development purposes
 internal sealed class AwsProvisioner(
@@ -25,12 +27,14 @@ internal sealed class AwsProvisioner(
     IServiceProvider serviceProvider,
     // IHostEnvironment environment,
     IConfiguration configuration,
-    IOptions<AwsProvisionerOptions> options,
+    IOptions<AwsProvisionerOptions> awsProvisionerOptions,
+    IOptions<LocalStackOptions> localStackOptions,
     ILogger<AwsProvisioner> logger) : IDistributedApplicationLifecycleHook
 {
     private static readonly JsonSerializerOptions s_cloudFormationJsonSerializerOptions = new() { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull };
 
-    private readonly AwsProvisionerOptions _options = options.Value;
+    private readonly AwsProvisionerOptions _awsProvisionerOptions = awsProvisionerOptions.Value;
+    private readonly LocalStackOptions _localStackOptions = localStackOptions.Value;
 
     public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
@@ -64,7 +68,7 @@ internal sealed class AwsProvisioner(
         // - AWS credentials profile
         // If no credentials are found, the SDK will throw an exception.
 
-        var stackName = _options.StackName ??
+        var stackName = _awsProvisionerOptions.StackName ??
                         throw new MissingConfigurationException("A cloudformation stack name is required. Set the AWS:StackName configuration value.");
 
         // Now we have a list of resources to provision in a cloud formation template
@@ -80,15 +84,26 @@ internal sealed class AwsProvisioner(
             throw new InvalidOperationException("CloudFormation template is not valid");
         }
 
-        var stackStatus = await CheckIfStackExists(stackName, cancellationToken).ConfigureAwait(false);
+        StackStatus? stackStatus = await CheckIfStackExists(stackName, cancellationToken).ConfigureAwait(false);
 
-        if (stackStatus is null)
+        if (stackStatus is null || stackStatus == StackStatus.DELETE_COMPLETE)
         {
             await CreateStackAsync(stackName, templateBody, cancellationToken).ConfigureAwait(false);
         }
-        else if (stackStatus == StackStatus.CREATE_COMPLETE || stackStatus == StackStatus.UPDATE_COMPLETE)
+        // LocalStack has a bug that doesn't allow to update a stack, I'll open an issue for that in the LocalStack repo
+        else if ((stackStatus == StackStatus.CREATE_COMPLETE || stackStatus == StackStatus.UPDATE_COMPLETE) && _localStackOptions.UseLocalStack)
         {
-            await UpdateStackAsync(stackName, templateBody, cancellationToken).ConfigureAwait(false);
+            if (_localStackOptions.UseLocalStack)
+            {
+                logger.LogInformation("LocalStack has a bug that doesn't allow to update a stack. Deleting and recreating it");
+
+                await DeleteStackAsync(stackName, cancellationToken).ConfigureAwait(false);
+                await CreateStackAsync(stackName, templateBody, cancellationToken).ConfigureAwait(false);
+            }
+            else
+            {
+                await UpdateStackAsync(stackName, templateBody, cancellationToken).ConfigureAwait(false);
+            }
         }
         else if (stackStatus == StackStatus.CREATE_FAILED || stackStatus == StackStatus.ROLLBACK_FAILED || stackStatus == StackStatus.UPDATE_ROLLBACK_FAILED)
         {
@@ -103,6 +118,36 @@ internal sealed class AwsProvisioner(
         }
 
         // TODO: add cloud formation outputs to the configure aws resources
+
+        var stackOutputs = await RetrieveStackOutputsAsync(stackName, cancellationToken).ConfigureAwait(false);
+
+        // foreach (var stackOutput in stackOutputs)
+        // {
+        //     logger.LogInformation("Stack output {StackOutputKey}: {StackOutputValue}", stackOutput.Key, stackOutput.Value);
+        // }
+
+        // TODO: Find a better way to set the outputs
+        foreach (var awsResource in awsResources)
+        {
+            var resourceOutputs = stackOutputs.Where(pair => pair.Key.StartsWith(awsResource.Name)).ToImmutableDictionary();
+
+            if (resourceOutputs.Count == 0)
+            {
+                continue;
+            }
+
+            var provisioner = serviceProvider.GetKeyedService<IAwsResourceProvisioner>(awsResource.GetType());
+
+            if (provisioner is null)
+            {
+                logger.LogWarning("No provisioner found for {ResourceType} skipping", awsResource.GetType().Name);
+                continue;
+            }
+
+            // TODO: Setting the outputs to resources very are fragile, it's based on string key matching, which is not ideal.
+            // Maybe we can use a custom attribute to mark the properties that should be set as outputs?
+            provisioner.SetResourceOutputs(awsResource, resourceOutputs);
+        }
     }
 
     private CloudFormationTemplate ProcessResources(IEnumerable<IAwsResource> awsResources)
@@ -177,7 +222,7 @@ internal sealed class AwsProvisioner(
         // TODO: Handle exceptions
         var createStackResponse = await cloudFormationClient.CreateStackAsync(createStackRequest, cancellationToken).ConfigureAwait(false);
 
-        if(createStackResponse.HttpStatusCode != HttpStatusCode.OK)
+        if (createStackResponse.HttpStatusCode != HttpStatusCode.OK)
         {
             logger.LogError("Error creating stack {StackName}", stackName);
 
@@ -231,8 +276,21 @@ internal sealed class AwsProvisioner(
             // TODO: throw custom exception
         }
 
-        var desiredStatusesForDelete= new HashSet<StackStatus> { StackStatus.UPDATE_COMPLETE, StackStatus.UPDATE_ROLLBACK_COMPLETE };
+        var desiredStatusesForDelete = new HashSet<StackStatus> { StackStatus.DELETE_COMPLETE };
         await WaitForStackCompletion(stackName, desiredStatusesForDelete, TimeSpan.FromMinutes(10), cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<ImmutableDictionary<string, string>> RetrieveStackOutputsAsync(string stackName, CancellationToken cancellationToken)
+    {
+        var outputs = new Dictionary<string, string>();
+        var response = await cloudFormationClient.DescribeStacksAsync(new DescribeStacksRequest { StackName = stackName }, cancellationToken).ConfigureAwait(false);
+
+        foreach (var output in response.Stacks[0].Outputs)
+        {
+            outputs[output.OutputKey] = output.OutputValue;
+        }
+
+        return outputs.ToImmutableDictionary();
     }
 
     private async Task<StackStatus?> CheckIfStackExists(string stackName, CancellationToken cancellationToken)
@@ -249,8 +307,11 @@ internal sealed class AwsProvisioner(
         {
             if (!(e.ErrorCode == "ValidationError" && e.Message.Contains("does not exist")))
             {
+                logger.LogError(e, "Error checking if stack {StackName} exists", stackName);
                 throw;
             }
+
+            logger.LogInformation("Stack {StackName} does not exist", stackName);
 
             return null;
         }

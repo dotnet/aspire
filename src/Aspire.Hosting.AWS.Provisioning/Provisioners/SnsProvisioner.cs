@@ -1,6 +1,7 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Immutable;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.AWS.CloudFormation.Constructs;
 using Microsoft.Extensions.Configuration;
@@ -42,5 +43,11 @@ internal sealed class SnsProvisioner : AwsResourceProvisioner<AwsSnsTopicResourc
     public void AddSubscriptions(IAwsConstruct construct)
     {
         _subscribedResources.Add(construct);
+    }
+
+    public override void SetResourceOutputs(AwsSnsTopicResource resource, IImmutableDictionary<string, string> resourceOutputs)
+    {
+        resource.Arn = resourceOutputs[$"{resource.Name}-TopicARN"];
+        resource.TopicName = resourceOutputs[$"{resource.Name}-TopicName"];
     }
 }

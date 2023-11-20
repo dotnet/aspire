@@ -9,6 +9,4 @@ namespace Aspire.Hosting.AWS.Provisioning;
 internal sealed class AwsProvisionerOptions : AWSOptions
 {
     public string? StackName { get; set; }
-
-    public bool UseLocalStack { get; set; }
 }

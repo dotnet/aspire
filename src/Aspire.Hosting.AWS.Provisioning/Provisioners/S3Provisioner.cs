@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Immutable;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.AWS.CloudFormation.Constructs;
 using Microsoft.Extensions.Configuration;
@@ -13,8 +14,10 @@ internal sealed class S3Provisioner : AwsResourceProvisioner<AwsS3BucketResource
     {
         var bucketSection = configuration.GetSection($"AWS:S3:{resource.Name}");
         var bucketName = bucketSection["BucketName"];
+        var accessControl = bucketSection["AccessControl"];
 
         resource.BucketName = bucketName;
+        resource.AccessControl = accessControl;
 
         // TODO: add tags, versioning, or other S3-specific settings
     }
@@ -25,11 +28,18 @@ internal sealed class S3Provisioner : AwsResourceProvisioner<AwsS3BucketResource
         {
             Properties = new AwsS3BucketConstruct.BucketProperties
             {
-                BucketName = resource.BucketName
+                BucketName = resource.BucketName,
+                AccessControl = resource.AccessControl
                 // Additional properties can be set here based on the resource definition
             }
         };
 
         return bucketConstruct;
+    }
+
+    public override void SetResourceOutputs(AwsS3BucketResource awsResource, IImmutableDictionary<string, string> resourceOutputs)
+    {
+        awsResource.Arn = resourceOutputs[$"{awsResource.Name}-BucketArn"];
+        awsResource.BucketName = resourceOutputs[$"{awsResource.Name}-BucketName"];
     }
 }
