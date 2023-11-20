@@ -544,6 +544,10 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
         var servicesProduced = _appResources.OfType<ServiceAppResource>().Where(r => r.ModelResource == modelResource);
         foreach (var sp in servicesProduced)
         {
+            // Projects/Executables have their ports auto-allocated; the the port specified by the ServiceBindingAnnotation
+            // is applied to the Service objects and used by clients.
+            // Containers use the port from the ServiceBindingAnnotation directly.
+
             if (modelResource.IsContainer())
             {
                 if (sp.ServiceBindingAnnotation.ContainerPort is null)
@@ -552,13 +556,6 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
                 }
 
                 sp.DcpServiceProducerAnnotation.Port = sp.ServiceBindingAnnotation.ContainerPort;
-            }
-            else if (sp.ServiceBindingAnnotation.Port is not null && sp.ModelResource is not ProjectResource)
-            {
-                // Project resources do not use ServiceBindingAnnotation port because they will have port auto-allocated by the orchestrator.
-                // The port specified by the ServiceBindingAnnotation will be applied to the Service objects and injected into clients instead.
-
-                sp.DcpServiceProducerAnnotation.Port = sp.ServiceBindingAnnotation.Port;
             }
 
             dcpResource.AnnotateAsObjectList(CustomResource.ServiceProducerAnnotation, sp.DcpServiceProducerAnnotation);
