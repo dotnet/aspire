@@ -117,6 +117,15 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="DcpVersionCheckFailedMessage" xml:space="preserve">
+    <value>The application orchestrator version could not be determined. Continuing.</value>
+  </data>
+  <data name="DcpVersionCheckTooHighMessage" xml:space="preserve">
+    <value>The application orchestrator version is too high. Lorem ipsum how did you even get here.</value>
+  </data>
+  <data name="DcpVersionCheckTooLowMessage" xml:space="preserve">
+    <value>The application orchestrator version is too low. Run `lorem ipsum` to upgrade.</value>
+  </data>
   <data name="DockerPrerequisiteMissingExceptionMessage" xml:space="preserve">
     <value>Docker could not be found. The error from Docker invocation was: {0}</value>
   </data>

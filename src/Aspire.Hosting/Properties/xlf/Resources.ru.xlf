@@ -2,6 +2,21 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="ru" original="../Resources.resx">
     <body>
+      <trans-unit id="DcpVersionCheckFailedMessage">
+        <source>The application orchestrator version could not be determined. Continuing.</source>
+        <target state="new">The application orchestrator version could not be determined. Continuing.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DcpVersionCheckTooHighMessage">
+        <source>The application orchestrator version is too high. Lorem ipsum how did you even get here.</source>
+        <target state="new">The application orchestrator version is too high. Lorem ipsum how did you even get here.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DcpVersionCheckTooLowMessage">
+        <source>The application orchestrator version is too low. Run `lorem ipsum` to upgrade.</source>
+        <target state="new">The application orchestrator version is too low. Run `lorem ipsum` to upgrade.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="DockerPrerequisiteMissingExceptionMessage">
         <source>Docker could not be found. The error from Docker invocation was: {0}</source>
         <target state="new">Docker could not be found. The error from Docker invocation was: {0}</target>

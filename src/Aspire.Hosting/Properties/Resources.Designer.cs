@@ -61,6 +61,33 @@ namespace Aspire.Hosting.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The application orchestrator version could not be determined. Continuing..
+        /// </summary>
+        internal static string DcpVersionCheckFailedMessage {
+            get {
+                return ResourceManager.GetString("DcpVersionCheckFailedMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The application orchestrator version is too high. Lorem ipsum how did you even get here..
+        /// </summary>
+        internal static string DcpVersionCheckTooHighMessage {
+            get {
+                return ResourceManager.GetString("DcpVersionCheckTooHighMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The application orchestrator version is too low. Run `lorem ipsum` to upgrade..
+        /// </summary>
+        internal static string DcpVersionCheckTooLowMessage {
+            get {
+                return ResourceManager.GetString("DcpVersionCheckTooLowMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Docker could not be found. The error from Docker invocation was: {0}.
         /// </summary>
         internal static string DockerPrerequisiteMissingExceptionMessage {
