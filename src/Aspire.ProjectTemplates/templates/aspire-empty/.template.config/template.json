@@ -10,7 +10,7 @@
   "defaultName": "AspireApp",
   "description": "A project template for creating an empty .NET Aspire app.",
   "shortName": "aspire",
-  "sourceName": "AspireApplication-1",
+  "sourceName": "AspireApplication.1",
   "preferNameDirectory": true,
   "tags": {
     "language": "C#",
@@ -163,14 +163,14 @@
   },
   "primaryOutputs": [
     {
-      "path": "AspireApplication-1.sln",
+      "path": "AspireApplication.1.sln",
       "condition": "(hostIdentifier != \"vs\")"
     },
     {
-      "path": "AspireApplication-1.AppHost\\AspireApplication-1.AppHost.csproj"
+      "path": "AspireApplication.1.AppHost\\AspireApplication.1.AppHost.csproj"
     },
     {
-      "path": "AspireApplication-1.ServiceDefaults\\AspireApplication-1.ServiceDefaults.csproj"
+      "path": "AspireApplication.1.ServiceDefaults\\AspireApplication.1.ServiceDefaults.csproj"
     }
   ],
   "postActions": [
