@@ -8,7 +8,6 @@
         "toolbar"
         "main";
     gap: calc(var(--design-unit) * 2px);
-    padding: calc(var(--design-unit) * 2px);
 }
 
 ::deep.logs-layout > h1 {
@@ -59,4 +58,5 @@
 
 ::deep .logs-summary-layout > .total-items-footer {
     grid-area: foot;
+    padding-bottom: calc(var(--design-unit) * 2px);
 }

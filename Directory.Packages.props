@@ -42,6 +42,7 @@
     <PackageVersion Include="AspNetCore.HealthChecks.Azure.Storage.Blobs" Version="7.0.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.Azure.Storage.Queues" Version="7.0.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.AzureServiceBus" Version="7.0.0" />
+    <PackageVersion Include="AspNetCore.HealthChecks.MySql" Version="7.0.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.NpgSql" Version="7.1.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.Rabbitmq" Version="7.0.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.Redis" Version="7.0.1" />
@@ -77,10 +78,11 @@
     <PackageVersion Include="JsonSchema.Net" Version="5.3.1" />
     <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.0.0" />
     <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.0.0" />
+    <PackageVersion Include="MySqlConnector.DependencyInjection" Version="2.3.1" />
     <PackageVersion Include="Npgsql.DependencyInjection" Version="8.0.0-rc.2" />
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.0-rc.2" />
     <PackageVersion Include="Polly" Version="8.2.0" />
-    <PackageVersion Include="RabbitMQ.Client" Version="6.6.0" />
+    <PackageVersion Include="RabbitMQ.Client" Version="6.7.0" />
     <PackageVersion Include="StackExchange.Redis" Version="2.7.4" />
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="6.5.0" />
     <PackageVersion Include="Yarp.ReverseProxy" Version="2.1.0" />
@@ -95,9 +97,9 @@
     <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.7.0-alpha.1" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.EntityFrameworkCore" Version="1.0.0-beta.8" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.EventCounters" Version="1.5.1-alpha.1" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.GrpcNetClient" Version="1.6.0-beta.2" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.6.0-beta.2" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.6.0-beta.2" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.GrpcNetClient" Version="1.6.0-beta.3" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.6.0-beta.3" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.6.0-beta.3" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.5.1" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.SqlClient" Version="1.5.1-beta.1" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.StackExchangeRedis" Version="1.0.0-rc9.12" />

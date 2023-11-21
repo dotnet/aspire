@@ -165,6 +165,9 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aws.ServiceDefaults", "samples\aws\Aws.ServiceDefaults\Aws.ServiceDefaults.csproj", "{8611076F-CA70-4980-808F-BB9AF49BFCFB}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aws.UserService", "samples\aws\Aws.UserService\Aws.UserService.csproj", "{9A7CADAA-1B13-40FE-90FA-2B34491C9B55}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.MySqlConnector", "src\Components\Aspire.MySqlConnector\Aspire.MySqlConnector.csproj", "{CA283D7F-EB95-4353-B196-C409965D2B42}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.MySqlConnector.Tests", "tests\Aspire.MySqlConnector.Tests\Aspire.MySqlConnector.Tests.csproj", "{C8079F06-304F-49B1-A0C1-45AA3782A923}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -444,6 +447,14 @@ Global
 		{9A7CADAA-1B13-40FE-90FA-2B34491C9B55}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9A7CADAA-1B13-40FE-90FA-2B34491C9B55}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9A7CADAA-1B13-40FE-90FA-2B34491C9B55}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CA283D7F-EB95-4353-B196-C409965D2B42}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CA283D7F-EB95-4353-B196-C409965D2B42}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CA283D7F-EB95-4353-B196-C409965D2B42}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CA283D7F-EB95-4353-B196-C409965D2B42}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C8079F06-304F-49B1-A0C1-45AA3782A923}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C8079F06-304F-49B1-A0C1-45AA3782A923}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C8079F06-304F-49B1-A0C1-45AA3782A923}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C8079F06-304F-49B1-A0C1-45AA3782A923}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -522,6 +533,8 @@ Global
 		{F851D31E-1D3A-40DA-B11D-1138179B866D} = {4FE4E999-1D3B-466F-802E-0389EF07EC8E}
 		{8611076F-CA70-4980-808F-BB9AF49BFCFB} = {4FE4E999-1D3B-466F-802E-0389EF07EC8E}
 		{9A7CADAA-1B13-40FE-90FA-2B34491C9B55} = {4FE4E999-1D3B-466F-802E-0389EF07EC8E}
+		{CA283D7F-EB95-4353-B196-C409965D2B42} = {27381127-6C45-4B4C-8F18-41FF48DFE4B2}
+		{C8079F06-304F-49B1-A0C1-45AA3782A923} = {4981B3A5-4AFD-4191-BF7D-8692D9783D60}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6DCEDFEC-988E-4CB3-B45B-191EB5086E0C}
