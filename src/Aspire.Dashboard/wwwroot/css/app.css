@@ -121,17 +121,6 @@ fluent-data-grid-cell .long-inner-content {
     text-overflow: ellipsis;
 }
 
-.resource-state-container {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.resource-error-badge {
-    padding: 0 3px;
-    cursor: pointer;
-}
-
 .parent-details-container {
     display: grid;
     grid-template-rows: 1fr;
@@ -141,4 +130,19 @@ fluent-data-grid-cell .long-inner-content {
 .version {
     text-align: end;
     font-size: small;
+}
+
+.ellipsis-overflow {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fluent-popover-header,
+.fluent-popover-body {
+    color: var(--neutral-foreground-rest);
+}
+
+.subtext {
+    color: var(--foreground-subtext-rest);
 }

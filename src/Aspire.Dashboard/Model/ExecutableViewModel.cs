@@ -5,6 +5,7 @@ namespace Aspire.Dashboard.Model;
 
 public class ExecutableViewModel : ResourceViewModel
 {
+    public override string ResourceType => "Executable";
     public int? ProcessId { get; init; }
     public string? ExecutablePath { get; set; }
     public string? WorkingDirectory { get; set; }

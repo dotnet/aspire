@@ -24,6 +24,9 @@ public partial class GridValue
     [Parameter]
     public bool IsMasked { get; set; }
 
+    [Parameter]
+    public bool EnableHighlighting { get; set; } = false;
+
     /// <summary>
     /// The text to highlight within the value when the value is displayed unmasked
     /// </summary>
@@ -32,6 +35,12 @@ public partial class GridValue
 
     [Parameter]
     public EventCallback<bool> IsMaskedChanged { get; set; }
+
+    [Parameter]
+    public int? MaxDisplayLength { get; set; }
+
+    [Parameter]
+    public string? ToolTip { get; set; }
 
     private const string PreCopyText = "Copy to clipboard";
     private const string PostCopyText = "Copied!";
@@ -48,4 +57,7 @@ public partial class GridValue
 
     private async Task CopyTextToClipboardAsync(string? text, string id)
         => await JS.InvokeVoidAsync("copyTextToClipboard", id, text, PreCopyText, PostCopyText);
+
+    private static string TrimLength(string? text)
+        => text?.Length > 8 ? text.Substring(0, 8) : text ?? string.Empty;
 }

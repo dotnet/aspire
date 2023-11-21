@@ -28,7 +28,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="Aspire.Dashboard.Tests"/>
+    <InternalsVisibleTo Include="Aspire.Dashboard.Tests" />
   </ItemGroup>
 
 </Project>

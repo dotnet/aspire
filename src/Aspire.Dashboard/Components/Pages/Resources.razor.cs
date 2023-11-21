@@ -9,13 +9,8 @@ using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Components.Pages;
 
-public abstract class ResourcesListBase<TResource> : ComponentBase, IDisposable
-    where TResource : ResourceViewModel
+public partial class Resources : ComponentBase, IDisposable
 {
-    // Ideally we'd be pulling this from Aspire.Hosting.Dcp.Model.ExecutableStates,
-    // but unfortunately the reference goes the other way
-    protected const string FinishedState = "Finished";
-
     private Subscription? _logsSubscription;
     private Dictionary<OtlpApplication, int>? _applicationUnviewedErrorCounts;
 
@@ -26,20 +21,48 @@ public abstract class ResourcesListBase<TResource> : ComponentBase, IDisposable
     [Inject]
     public required NavigationManager NavigationManager { get; set; }
 
-    protected IEnumerable<EnvironmentVariableViewModel>? SelectedEnvironmentVariables { get; set; }
-    protected string? SelectedResourceName { get; set; }
+    private IEnumerable<EnvironmentVariableViewModel>? SelectedEnvironmentVariables { get; set; }
+    private string? SelectedResourceName { get; set; }
 
-    protected abstract ViewModelMonitor<TResource> GetViewModelMonitor(IDashboardViewModelService dashboardViewModelService);
-    protected abstract bool Filter(TResource resource);
+    private static ViewModelMonitor<ResourceViewModel> GetViewModelMonitor(IDashboardViewModelService dashboardViewModelService)
+        => dashboardViewModelService.GetResources();
 
-    private readonly Dictionary<string, TResource> _resourcesMap = new();
+    private bool Filter(ResourceViewModel resource)
+        => ((resource.ResourceType == "Project" && _areProjectsVisible) ||
+            (resource.ResourceType == "Container" && _areContainersVisible) ||
+            (resource.ResourceType == "Executable" && _areExecutablesVisible)) &&
+           resource.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase);
+
+    private readonly Dictionary<string, ResourceViewModel> _resourcesMap = new();
     private readonly CancellationTokenSource _watchTaskCancellationTokenSource = new();
-    protected string filter = "";
+    private string _filter = "";
+    private bool _isTypeFilterVisible;
+    private bool _areAllTypesVisible = true;
+    private bool _areProjectsVisible = true;
+    private bool _areContainersVisible = true;
+    private bool _areExecutablesVisible = true;
 
-    protected IQueryable<TResource>? FilteredResources => _resourcesMap.Values.Where(Filter).OrderBy(e => e.Name).AsQueryable();
+    private void HandleTypeFilterShowAllChanged(bool newValue)
+    {
+        _areAllTypesVisible = _areProjectsVisible = _areContainersVisible = _areExecutablesVisible = newValue;
+    }
 
-    protected GridSort<TResource> nameSort = GridSort<TResource>.ByAscending(p => p.Name);
-    protected GridSort<TResource> stateSort = GridSort<TResource>.ByAscending(p => p.State);
+    private void HandleTypeFilterTypeChanged()
+    {
+        if (_areProjectsVisible && _areContainersVisible && _areExecutablesVisible)
+        {
+            _areAllTypesVisible = true;
+        }
+        else if (!_areProjectsVisible && !_areContainersVisible && !_areExecutablesVisible)
+        {
+            _areAllTypesVisible = false;
+        }
+    }
+
+    private IQueryable<ResourceViewModel>? FilteredResources => _resourcesMap.Values.Where(Filter).OrderBy(e => e.ResourceType).ThenBy(e => e.Name).AsQueryable();
+
+    private readonly GridSort<ResourceViewModel> _nameSort = GridSort<ResourceViewModel>.ByAscending(p => p.Name);
+    private readonly GridSort<ResourceViewModel> _stateSort = GridSort<ResourceViewModel>.ByAscending(p => p.State);
 
     protected override void OnInitialized()
     {
@@ -67,7 +90,7 @@ public abstract class ResourcesListBase<TResource> : ComponentBase, IDisposable
         });
     }
 
-    protected int GetUnviewedErrorCount(TResource resource)
+    private int GetUnviewedErrorCount(ResourceViewModel resource)
     {
         if (_applicationUnviewedErrorCounts is null)
         {
@@ -88,7 +111,7 @@ public abstract class ResourcesListBase<TResource> : ComponentBase, IDisposable
         return count;
     }
 
-    protected void ShowEnvironmentVariables(TResource resource)
+    private void ShowEnvironmentVariables(ResourceViewModel resource)
     {
         if (SelectedEnvironmentVariables == resource.Environment)
         {
@@ -101,13 +124,13 @@ public abstract class ResourcesListBase<TResource> : ComponentBase, IDisposable
         }
     }
 
-    protected void ClearSelectedResource()
+    private void ClearSelectedResource()
     {
         SelectedEnvironmentVariables = null;
         SelectedResourceName = null;
     }
 
-    private async Task OnResourceListChanged(ObjectChangeType objectChangeType, TResource resource)
+    private async Task OnResourceListChanged(ObjectChangeType objectChangeType, ResourceViewModel resource)
     {
         switch (objectChangeType)
         {
@@ -143,20 +166,20 @@ public abstract class ResourcesListBase<TResource> : ComponentBase, IDisposable
         GC.SuppressFinalize(this);
     }
 
-    protected void HandleFilter(ChangeEventArgs args)
+    private void HandleFilter(ChangeEventArgs args)
     {
         if (args.Value is string newFilter)
         {
-            filter = newFilter;
+            _filter = newFilter;
         }
     }
 
-    protected void HandleClear()
+    private void HandleClear()
     {
-        filter = string.Empty;
+        _filter = string.Empty;
     }
 
-    protected void ViewErrorStructuredLogs(TResource resource)
+    private void ViewErrorStructuredLogs(ResourceViewModel resource)
     {
         NavigationManager.NavigateTo($"/StructuredLogs/{resource.Uid}?level=error");
     }

@@ -1,0 +1,10 @@
+::deep .resource-state-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+::deep .resource-error-badge {
+    padding: 0 3px;
+    cursor: pointer;
+}
