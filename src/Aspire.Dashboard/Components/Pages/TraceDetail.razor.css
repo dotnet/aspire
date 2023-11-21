@@ -163,7 +163,6 @@
         "toolbar"
         "main";
     gap: calc(var(--design-unit) * 2px);
-    padding: calc(var(--design-unit) * 2px);
 }
 
 ::deep.trace-detail-layout > .trace-detail-header {

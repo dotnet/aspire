@@ -26,9 +26,6 @@ public partial class TraceDetail
     public string? SpanId { get; set; }
 
     [Inject]
-    public required IDialogService DialogService { get; set; }
-
-    [Inject]
     public required TelemetryRepository TelemetryRepository { get; set; }
 
     private ValueTask<GridItemsProviderResult<SpanWaterfallViewModel>> GetData(GridItemsProviderRequest<SpanWaterfallViewModel> request)
@@ -158,7 +155,7 @@ public partial class TraceDetail
             {
                 Span = viewModel.Span,
                 Properties = entryProperties,
-                Title = $"{viewModel.Span.Source.ApplicationName}: {viewModel.GetDisplaySummary()} {OtlpHelpers.ToShortenedId(viewModel.Span.SpanId)}"
+                Title = $"{viewModel.Span.Source.ApplicationName}: {viewModel.GetDisplaySummary()}"
             };
 
             SelectedSpan = spanDetailsViewModel;

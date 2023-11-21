@@ -145,6 +145,7 @@ internal static class LaunchProfileExtensions
 internal delegate bool LaunchProfileSelector(ProjectResource project, out string? launchProfile);
 
 [JsonSerializable(typeof(LaunchSettings))]
+[JsonSourceGenerationOptions(ReadCommentHandling = JsonCommentHandling.Skip)]
 internal sealed partial class LaunchSetttingsSerializerContext : JsonSerializerContext
 {
 

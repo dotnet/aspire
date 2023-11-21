@@ -19,8 +19,8 @@ public partial class SummaryDetailsView
     [Parameter]
     public bool ShowDetails { get; set; }
 
-    [Parameter, EditorRequired]
-    public required string DetailsTitle { get; set; }
+    [Parameter]
+    public string? DetailsTitle { get; set; }
 
     [Parameter]
     public Orientation Orientation { get; set; } = Orientation.Vertical;
@@ -41,6 +41,9 @@ public partial class SummaryDetailsView
     /// </summary>
     [Parameter]
     public string? ViewKey { get; set; }
+
+    [Parameter]
+    public RenderFragment? DetailsTitleTemplate { get; set; }
 
     [Inject]
     public required ProtectedLocalStorage ProtectedLocalStore { get; set; }
@@ -80,7 +83,7 @@ public partial class SummaryDetailsView
         await OnDismiss.InvokeAsync();
     }
 
-    private async void HandleToggleOrientation()
+    private async Task HandleToggleOrientation()
     {
         if (Orientation == Orientation.Horizontal)
         {
