@@ -1,0 +1,92 @@
+﻿@page "/"
+@using Amazon.DynamoDBv2;
+@using Amazon.DynamoDBv2.Model;
+@using Frontend.Data
+@inject ZipCodeRepository repository;
+
+
+<PageTitle>US ZIP Codes</PageTitle>
+<div class="container">
+    <br />
+    <h1>US ZIP Codes Search</h1>
+    <br />
+
+    <button type="submit" @ref="searchBtn" class="btn btn-primary" @onclick="SearchZipCode">Search</button>
+
+    <input type="text" @bind="searchInput" @onkeypress="LookForEnterKey">
+
+    @if (zipCodes != null)
+    {
+        <div id="search-results">
+            <table class="table">
+                <tr>
+                    <th>Zip Code</th>
+                    <th>State</th>
+                    <th>City</th>
+                    <th>Latitude</th>
+                    <th>Longitude</th>
+                </tr>
+                @foreach (var entry in this.zipCodes)
+                {
+                    <tr>
+                        <td><a href="https://www.google.com/maps/@@@entry.Latitude,@entry.Longitude,13z" target="_blank">@entry.Code</a></td>
+                        <td>@entry.State</td>
+                        <td>@entry.City</td>
+                        <td>@entry.Latitude</td>
+                        <td>@entry.Longitude</td>
+                    </tr>
+                }
+            </table>
+        </div>
+    }
+    else if (@showNotFound)
+    {
+        <p>No ZIP codes information found for "@searchInput".</p>
+    }
+
+    <p>
+        <i>When running in development mode with DynamoDB Local seed data is inject for just Washington State for example "98052".</i>
+    </p>
+
+</div>
+
+@code {
+    private string searchInput = "";
+    private ElementReference searchBtn;
+
+    string baseUrl = string.Empty;
+    private ZipCodeEntry[]? zipCodes;
+    private bool showNotFound;
+
+
+    private async Task LookForEnterKey(KeyboardEventArgs args)
+    {
+        if (args.Code == "Enter")
+        {
+            await searchBtn.FocusAsync();
+            await SearchZipCode();
+        }
+    }
+
+    private async Task SearchZipCode()
+    {
+        if (string.IsNullOrEmpty(searchInput))
+            return;
+
+        if (searchInput.Length == 5)
+        {
+            var zipCode = await repository.LoadZipCode(searchInput);
+            zipCodes = zipCode != null ? new ZipCodeEntry[] { zipCode } : null;
+        }
+        else if (searchInput.Length == 2)
+        {
+            zipCodes = await repository.LoadZipCodeForState(searchInput);
+        }
+        else
+        {
+            zipCodes = await repository.LoadZipCodeForCity(searchInput);
+        }
+
+        showNotFound = zipCodes == null || zipCodes.Length == 0;
+    }
+}
