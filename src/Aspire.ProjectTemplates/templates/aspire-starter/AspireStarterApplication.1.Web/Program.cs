@@ -1,5 +1,5 @@
-using AspireStarterApplication_1.Web;
-using AspireStarterApplication_1.Web.Components;
+using AspireStarterApplication._1.Web;
+using AspireStarterApplication._1.Web.Components;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -38,7 +38,7 @@ app.UseOutputCache();
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
-    
+
 app.MapDefaultEndpoints();
 
 app.Run();

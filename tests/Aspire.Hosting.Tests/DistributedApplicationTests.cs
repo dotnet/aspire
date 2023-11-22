@@ -251,5 +251,37 @@ public class DistributedApplicationTests(ITestOutputHelper testOutputHelper)
             await Task.Delay(100, cts.Token);
         }
     }
-    private static TestProgram CreateTestProgram(string[]? args = null) => TestProgram.Create<DistributedApplicationTests>(args);
+
+    [LocalOnlyFact]
+    public async void VerifyHealthyOnIntegrationServiceA()
+    {
+        var testProgram = CreateTestProgram(includeIntegrationServices: true);
+        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
+
+        testProgram.AppBuilder.Services
+            .AddHttpClient()
+            .ConfigureHttpClientDefaults(b =>
+            {
+                b.UseSocketsHttpHandler((handler, sp) => handler.PooledConnectionLifetime = TimeSpan.FromSeconds(5));
+            });
+
+        await using var app = testProgram.Build();
+
+        var client = app.Services.GetRequiredService<IHttpClientFactory>().CreateClient();
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
+
+        await app.StartAsync(cts.Token);
+
+        // Make sure all services are running
+        await testProgram.ServiceABuilder.HttpGetPidAsync(client, "http", cts.Token);
+        await testProgram.ServiceBBuilder.HttpGetPidAsync(client, "http", cts.Token);
+        await testProgram.ServiceCBuilder.HttpGetPidAsync(client, "http", cts.Token);
+        await testProgram.IntegrationServiceA!.HttpGetPidAsync(client, "http", cts.Token);
+
+        // We wait until timeout for the /health endpoint to return successfully. We assume
+        // that components wired up into this project have health checks enabled.
+        await testProgram.IntegrationServiceA!.WaitForHealthyStatus(client, "http", cts.Token);
+    }
+    private static TestProgram CreateTestProgram(string[]? args = null, bool includeIntegrationServices = false) => TestProgram.Create<DistributedApplicationTests>(args, includeIntegrationServices);
 }
