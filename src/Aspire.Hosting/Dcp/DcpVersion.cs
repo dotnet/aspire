@@ -3,7 +3,7 @@
 
 namespace Aspire.Hosting.Dcp;
 
-public static class DcpVersion
+internal static class DcpVersion
 {
     public static Version MinimumVersionInclusive = new Version(0, 1, 43);
     public static Version MaximumVersionExclusive = new Version(0, 2, 0);
