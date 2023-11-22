@@ -15,6 +15,6 @@ public class FileUtilTests
         var dir = Path.GetDirectoryName(dotnetPath);
         Assert.NotNull(dir);
         var ext = Path.GetExtension(dotnetPath);
-        Assert.Equals(FileNameSuffixes.CurrentPlatform.Exe, ext);
+        Assert.Equal(FileNameSuffixes.CurrentPlatform.Exe, ext);
     }
 }
