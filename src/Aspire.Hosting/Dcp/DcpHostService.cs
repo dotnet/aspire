@@ -77,8 +77,7 @@ internal sealed partial class DcpHostService : IHostedLifecycleService, IAsyncDi
         var dockerHealthCheckTask = EnsureDockerIfNecessaryAsync(cancellationToken);
         var dcpVersionCheckTask = EnsureDcpVersionAsync(cancellationToken);
 
-        await dockerHealthCheckTask.ConfigureAwait(false);
-        await dcpVersionCheckTask.ConfigureAwait(false);
+        await Task.WhenAll(dockerHealthCheckTask, dcpVersionCheckTask).ConfigureAwait(false);
 
         EnsureDcpHostRunning();
         await _appExecutor.RunApplicationAsync(cancellationToken).ConfigureAwait(false);
