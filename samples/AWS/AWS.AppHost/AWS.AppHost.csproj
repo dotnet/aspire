@@ -10,7 +10,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\Aspire.Hosting\Aspire.Hosting.csproj" />
-    <ProjectReference Include="..\..\..\src\Aspire.Hosting.AWS.DynamoDBLocal\Aspire.Hosting.AWS.DynamoDBLocal.csproj" />
+    <ProjectReference Include="..\..\..\src\Aspire.Hosting.AWS\Aspire.Hosting.AWS.csproj" />
     <ProjectReference Include="..\Frontend\Frontend.csproj" />
   </ItemGroup>
 

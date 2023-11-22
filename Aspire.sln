@@ -156,7 +156,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.MySqlConnector", "sr
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.MySqlConnector.Tests", "tests\Aspire.MySqlConnector.Tests\Aspire.MySqlConnector.Tests.csproj", "{C8079F06-304F-49B1-A0C1-45AA3782A923}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.AWS.DynamoDBLocal", "src\Aspire.Hosting.AWS.DynamoDBLocal\Aspire.Hosting.AWS.DynamoDBLocal.csproj", "{4E7104AA-B9EC-4756-9557-56041A729EAE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.AWS", "src\Aspire.Hosting.AWS\Aspire.Hosting.AWS.csproj", "{4E7104AA-B9EC-4756-9557-56041A729EAE}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AWS", "AWS", "{534EDCA2-3B57-4532-AF3B-F65E8A127A4E}"
 EndProject

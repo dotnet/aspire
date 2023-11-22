@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
-using System.Text.Json;
 using Amazon.DynamoDBv2;
 using Amazon.Runtime;
 using Aspire.Hosting.ApplicationModel;
@@ -28,7 +27,7 @@ public static class DynamoDBLocalResourceBuilderExtensions
     {
         var container = new DynamoDBLocalResource(name, disableDynamoDBLocalTelemetry);
         var containerBuilder = builder.AddResource(container)
-                  .WithAnnotation(new ManifestPublishingCallbackAnnotation(SkipWriteToManifest))
+                  .ExcludeFromManifest()
                   .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, uriScheme: "http", port: null, containerPort: 8000))
                   .WithAnnotation(new ContainerImageAnnotation { Image = image, Tag = tag })
                   // TODO: Where DynamoDB local will persist its data. This won't work till we figure in Aspire how to set the COMMAND of a container to direct
@@ -149,15 +148,5 @@ public static class DynamoDBLocalResourceBuilderExtensions
             context.EnvironmentVariables.Add("AWS_ENDPOINT_URL_DYNAMODB", serviceUrl);
         });
         return builder;
-    }
-
-    /// <summary>
-    /// Since Amazon DynamoDB local is a dev only resource skip writing it to the manifest
-    /// because it should not be part of a deployment.
-    /// </summary>
-    /// <param name="jsonWriter"></param>
-    private static void SkipWriteToManifest(Utf8JsonWriter jsonWriter)
-    {
-
     }
 }
