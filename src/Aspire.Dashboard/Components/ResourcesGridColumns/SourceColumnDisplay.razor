@@ -16,10 +16,11 @@ else if (Resource is ContainerViewModel containerViewModel)
 {
     var ports = string.Join("; ", containerViewModel.Ports);
     <FluentStack Orientation="Orientation.Horizontal">
-        <FluentHighlighter HighlightedText="@FilterText" Text="@containerViewModel.Image" />
+        <span><FluentHighlighter HighlightedText="@FilterText" Text="@containerViewModel.Image" /></span>
         @if (containerViewModel.Ports.Count > 0)
         {
-            <span class="subtext" title="@($"Port{(containerViewModel.Ports.Count > 1 ? "s" : string.Empty)}: {ports}")">@ports</span>
+            var title = $"Port{(containerViewModel.Ports.Count > 1 ? "s" : string.Empty)}: {ports}";
+            <span class="subtext" title="@title" aria-label="@title">@ports</span>
         }
     </FluentStack>
 }

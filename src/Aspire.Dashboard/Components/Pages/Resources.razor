@@ -9,21 +9,22 @@
     <FluentToolbar Orientation="Orientation.Horizontal">
         <h1 slot="label">Resources</h1>
         <FluentButton id="typeFilterButton" slot="end"
-                      Appearance="Appearance.Stealth"
+                      Appearance="@(AreAllTypesVisible ? Appearance.Stealth : Appearance.Accent)"
                       IconEnd="@(new Icons.Regular.Size24.Filter())"
-                      @onclick="() => _isTypeFilterVisible = !_isTypeFilterVisible" />
+                      @onclick="() => _isTypeFilterVisible = !_isTypeFilterVisible"
+                      Title="@(AreAllTypesVisible ? "Type Filter: All Types Visible" : "Type Filter: Filtered")"
+                      aria-label="@(AreAllTypesVisible ? "Type Filter: All Types Visible" : "Type Filter: Filtered")" />
         <FluentPopover AnchorId="typeFilterButton" @bind-Open="_isTypeFilterVisible">
             <Header>Resource Types</Header>
             <Body>
                 <FluentStack Orientation="Orientation.Vertical">
-                    <FluentCheckbox Value="_areAllTypesVisible" Label="All" ValueChanged="HandleTypeFilterShowAllChanged" />
+                    <FluentCheckbox @ref="_allTypesVisibleCheckbox" Value="_allTypesVisibleCheckboxValue" Label="All" ValueChanged="HandleTypeFilterShowAllChanged" />
                     <FluentCheckbox @bind-Value="_areProjectsVisible" Label="Projects" @bind-Value:after="HandleTypeFilterTypeChanged" />
                     <FluentCheckbox @bind-Value="_areContainersVisible" Label="Containers" @bind-Value:after="HandleTypeFilterTypeChanged" />
                     <FluentCheckbox @bind-Value="_areExecutablesVisible" Label="Executables" @bind-Value:after="HandleTypeFilterTypeChanged" />
                 </FluentStack>
             </Body>
         </FluentPopover>
-        <FluentDivider Role="DividerRole.Separator" />
         <FluentSearch Placeholder="Filter..."
                         Immediate="true"
                         @bind-Value="_filter"
@@ -52,7 +53,7 @@
                     <TemplateColumn Title="Source">
                         <SourceColumnDisplay Resource="context" FilterText="@_filter" />
                     </TemplateColumn>
-                    <TemplateColumn Title="Endpoints" Sortable="false">
+                    <TemplateColumn Title="Endpoints">
                         <EndpointsColumnDisplay Resource="context" />
                     </TemplateColumn>
                     <TemplateColumn Title="Environment" Sortable="false">

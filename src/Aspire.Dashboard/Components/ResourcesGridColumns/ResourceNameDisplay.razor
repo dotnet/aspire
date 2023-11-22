@@ -1,10 +1,11 @@
 ﻿@using Aspire.Dashboard.Model
 
 <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
-    <FluentHighlighter HighlightedText="@FilterText" Text="@Resource.Name" />
+    <span><FluentHighlighter HighlightedText="@FilterText" Text="@Resource.Name" /></span>
     @if (Resource is ProjectViewModel projectViewModel)
     {
-        <span class="subtext" title="@($"PID: {projectViewModel.ProcessId}")">@projectViewModel.ProcessId</span>
+        var title = $"PID: {projectViewModel.ProcessId}";
+        <span class="subtext" title="@title" aria-label="@title">@projectViewModel.ProcessId</span>
     }
     else if (Resource is ContainerViewModel containerViewModel)
     {
@@ -17,7 +18,8 @@
     }
     else if (Resource is ExecutableViewModel executableViewModel)
     {
-        <span class="subtext" title="@($"PID: {executableViewModel.ProcessId}")">@executableViewModel.ProcessId</span>
+        var title = $"PID: {executableViewModel.ProcessId}";
+        <span class="subtext" title="@title" aria-label="@title">@executableViewModel.ProcessId</span>
     }
 </FluentStack>
 

@@ -6,6 +6,7 @@ using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
+using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Pages;
 
@@ -20,6 +21,8 @@ public partial class Resources : ComponentBase, IDisposable
     public required TelemetryRepository TelemetryRepository { get; init; }
     [Inject]
     public required NavigationManager NavigationManager { get; set; }
+    [Inject]
+    public required IJSRuntime JS { get; set; }
 
     private IEnumerable<EnvironmentVariableViewModel>? SelectedEnvironmentVariables { get; set; }
     private string? SelectedResourceName { get; set; }
@@ -31,31 +34,51 @@ public partial class Resources : ComponentBase, IDisposable
         => ((resource.ResourceType == "Project" && _areProjectsVisible) ||
             (resource.ResourceType == "Container" && _areContainersVisible) ||
             (resource.ResourceType == "Executable" && _areExecutablesVisible)) &&
-           resource.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase);
+           (resource.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) ||
+            (resource is ContainerViewModel containerViewModel &&
+             containerViewModel.Image.Contains(_filter, StringComparison.CurrentCultureIgnoreCase)));
 
     private readonly Dictionary<string, ResourceViewModel> _resourcesMap = new();
     private readonly CancellationTokenSource _watchTaskCancellationTokenSource = new();
     private string _filter = "";
     private bool _isTypeFilterVisible;
-    private bool _areAllTypesVisible = true;
+    private bool _allTypesVisibleCheckboxValue = true;
     private bool _areProjectsVisible = true;
     private bool _areContainersVisible = true;
     private bool _areExecutablesVisible = true;
+    private FluentCheckbox? _allTypesVisibleCheckbox;
+
+    private bool AreAllTypesVisible => _areProjectsVisible && _areContainersVisible && _areExecutablesVisible;
 
     private void HandleTypeFilterShowAllChanged(bool newValue)
     {
-        _areAllTypesVisible = _areProjectsVisible = _areContainersVisible = _areExecutablesVisible = newValue;
+        _allTypesVisibleCheckboxValue = _areProjectsVisible = _areContainersVisible = _areExecutablesVisible = newValue;
     }
 
-    private void HandleTypeFilterTypeChanged()
+    private async Task HandleTypeFilterTypeChanged()
     {
         if (_areProjectsVisible && _areContainersVisible && _areExecutablesVisible)
         {
-            _areAllTypesVisible = true;
+            _allTypesVisibleCheckboxValue = true;
+            await SetIndeterminateState(false);
         }
         else if (!_areProjectsVisible && !_areContainersVisible && !_areExecutablesVisible)
         {
-            _areAllTypesVisible = false;
+            _allTypesVisibleCheckboxValue = false;
+            await SetIndeterminateState(false);
+        }
+        else
+        {
+            _allTypesVisibleCheckboxValue = true; // Set this to true so the styling is consistent while indeterminate
+            await SetIndeterminateState(true);
+        }
+    }
+
+    private async Task SetIndeterminateState(bool indeterminate)
+    {
+        if (_allTypesVisibleCheckbox is not null)
+        {
+            await JS.InvokeVoidAsync("setIndeterminate", _allTypesVisibleCheckbox.Element, indeterminate);
         }
     }
 
