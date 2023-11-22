@@ -471,9 +471,10 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
                 foreach (var mount in volumeMounts)
                 {
                     bool isBound = mount.Type == ApplicationModel.VolumeMountType.Bind;
-                    var volumeSpec = new VolumeMount()
+                    var volumeSpec = new VolumeMount
                     {
-                        Source = isBound ? Path.GetFullPath(mount.Source) : mount.Source,
+                        Source = isBound && !Path.IsPathRooted(mount.Source) ?
+                            Path.GetFullPath(mount.Source) : mount.Source,
                         Target = mount.Target,
                         Type = isBound ? Model.VolumeMountType.Bind : Model.VolumeMountType.Named,
                         IsReadOnly = mount.IsReadOnly
