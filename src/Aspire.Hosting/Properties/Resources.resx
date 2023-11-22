@@ -117,6 +117,15 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="DcpVersionCheckFailedMessage" xml:space="preserve">
+    <value>The application orchestrator version could not be determined. Continuing.</value>
+  </data>
+  <data name="DcpVersionCheckTooHighMessage" xml:space="preserve">
+    <value>Found incompatible version of .NET Aspire workload (need application orchestrator version {0} to run the application).</value>
+  </data>
+  <data name="DcpVersionCheckTooLowMessage" xml:space="preserve">
+    <value>Newer version of .NET Aspire workload is required to run the application. Run 'dotnet workload update' to get it.</value>
+  </data>
   <data name="DockerPrerequisiteMissingExceptionMessage" xml:space="preserve">
     <value>Docker could not be found. The error from Docker invocation was: {0}</value>
   </data>
