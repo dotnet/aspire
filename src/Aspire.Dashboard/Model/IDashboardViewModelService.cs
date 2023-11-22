@@ -9,6 +9,7 @@ public interface IDashboardViewModelService
     public ViewModelMonitor<ContainerViewModel> GetContainers();
     public ViewModelMonitor<ExecutableViewModel> GetExecutables();
     public ViewModelMonitor<ProjectViewModel> GetProjects();
+    public ViewModelMonitor<ResourceViewModel> GetResources();
 }
 
 public record ViewModelMonitor<TViewModel>(List<TViewModel> Snapshot, IAsyncEnumerable<ResourceChanged<TViewModel>> Watch)

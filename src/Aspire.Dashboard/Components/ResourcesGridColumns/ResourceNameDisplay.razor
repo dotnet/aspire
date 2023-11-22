@@ -1,0 +1,32 @@
+﻿@using Aspire.Dashboard.Model
+
+<FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
+    <span><FluentHighlighter HighlightedText="@FilterText" Text="@Resource.Name" /></span>
+    @if (Resource is ProjectViewModel projectViewModel)
+    {
+        var title = $"PID: {projectViewModel.ProcessId}";
+        <span class="subtext" title="@title" aria-label="@title">@projectViewModel.ProcessId</span>
+    }
+    else if (Resource is ContainerViewModel containerViewModel)
+    {
+        <div class="subtext">
+            <GridValue Value="@containerViewModel.ContainerId"
+                       MaxDisplayLength="8"
+                       EnableHighlighting="false"
+                       ToolTip="@($"Container Id: {containerViewModel.ContainerId}")"/>
+        </div>
+    }
+    else if (Resource is ExecutableViewModel executableViewModel)
+    {
+        var title = $"PID: {executableViewModel.ProcessId}";
+        <span class="subtext" title="@title" aria-label="@title">@executableViewModel.ProcessId</span>
+    }
+</FluentStack>
+
+@code {
+    [Parameter, EditorRequired]
+    public required ResourceViewModel Resource { get; set; }
+
+    [Parameter, EditorRequired]
+    public required string FilterText { get; set; }
+}

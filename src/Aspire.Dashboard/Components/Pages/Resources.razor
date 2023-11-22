@@ -1,0 +1,78 @@
+﻿@page "/"
+@using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Components.ResourcesGridColumns
+@implements IDisposable
+
+<PageTitle>@DashboardViewModelService.ApplicationName Resources</PageTitle>
+
+<div class="content-layout-with-toolbar">
+    <FluentToolbar Orientation="Orientation.Horizontal">
+        <h1 slot="label">Resources</h1>
+        <FluentButton id="typeFilterButton" slot="end"
+                      Appearance="@(AreAllTypesVisible ? Appearance.Stealth : Appearance.Accent)"
+                      IconEnd="@(new Icons.Regular.Size24.Filter())"
+                      @onclick="() => _isTypeFilterVisible = !_isTypeFilterVisible"
+                      Title="@(AreAllTypesVisible ? "Type Filter: All Types Visible" : "Type Filter: Filtered")"
+                      aria-label="@(AreAllTypesVisible ? "Type Filter: All Types Visible" : "Type Filter: Filtered")" />
+        <FluentPopover AnchorId="typeFilterButton" @bind-Open="_isTypeFilterVisible">
+            <Header>Resource Types</Header>
+            <Body>
+                <FluentStack Orientation="Orientation.Vertical">
+                    <FluentCheckbox @ref="_allTypesVisibleCheckbox" Value="_allTypesVisibleCheckboxValue" Label="All" ValueChanged="HandleTypeFilterShowAllChanged" />
+                    <FluentCheckbox @bind-Value="_areProjectsVisible" Label="Projects" @bind-Value:after="HandleTypeFilterTypeChanged" />
+                    <FluentCheckbox @bind-Value="_areContainersVisible" Label="Containers" @bind-Value:after="HandleTypeFilterTypeChanged" />
+                    <FluentCheckbox @bind-Value="_areExecutablesVisible" Label="Executables" @bind-Value:after="HandleTypeFilterTypeChanged" />
+                </FluentStack>
+            </Body>
+        </FluentPopover>
+        <FluentSearch Placeholder="Filter..."
+                        Immediate="true"
+                        @bind-Value="_filter"
+                        @oninput="HandleFilter"
+                        @bind-Value:after="HandleClear"
+                        slot="end" />
+    </FluentToolbar>
+    <SummaryDetailsView DetailsTitle="@($"Environment Variables for {SelectedResourceName}")"
+                        ShowDetails="@(SelectedEnvironmentVariables is not null)"
+                        OnDismiss="() => ClearSelectedResource()"
+                        ViewKey="ResourcesList">
+        <Summary>
+            <FluentDataGrid Items="@FilteredResources" ResizableColumns="true" GridTemplateColumns="1fr 2fr 1fr 2fr 6fr 2fr 1fr 1fr" >
+                <ChildContent>
+                    <PropertyColumn Property="@(c => c.ResourceType)" Title="Type" Sortable="true" />
+                    <TemplateColumn Title="Name" Sortable="true" SortBy="@_nameSort">
+                        <ResourceNameDisplay Resource="context" FilterText="@_filter" />
+                    </TemplateColumn>
+                    <TemplateColumn Title="State" Sortable="true" SortBy="@_stateSort">
+                        <div class="resource-state-container">
+                            @context.State
+                            <UnreadLogErrorsBadge UnviewedCount="@GetUnviewedErrorCount(context)" OnClick="@(() => ViewErrorStructuredLogs(context))" />
+                        </div>
+                    </TemplateColumn>
+                    <PropertyColumn Property="@(c => c.CreationTimeStamp)" Title="Start Time" Sortable="true" Tooltip="true" />
+                    <TemplateColumn Title="Source">
+                        <SourceColumnDisplay Resource="context" FilterText="@_filter" />
+                    </TemplateColumn>
+                    <TemplateColumn Title="Endpoints">
+                        <EndpointsColumnDisplay Resource="context" />
+                    </TemplateColumn>
+                    <TemplateColumn Title="Environment" Sortable="false">
+                        <FluentButton Appearance="Appearance.Lightweight"
+                                      Disabled="@(!context.Environment.Any())"
+                                      Title="@(context.Environment.Any() ? "View" : "No Environment Variables")"
+                                      OnClick="() => ShowEnvironmentVariables(context)">View</FluentButton>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Logs">
+                        <FluentAnchor Appearance="Appearance.Lightweight" Href="@($"/ProjectLogs/{context.Name}")">View</FluentAnchor>
+                    </TemplateColumn>
+                </ChildContent>
+                <EmptyContent>
+                    <FluentIcon Icon="Icons.Regular.Size24.AppGeneric" />&nbsp;No resources found
+                </EmptyContent>
+            </FluentDataGrid>
+        </Summary>
+        <Details>
+            <EnvironmentVariables Items="SelectedEnvironmentVariables" ShowSpecOnlyToggle="true" />
+        </Details>
+    </SummaryDetailsView>
+</div>
