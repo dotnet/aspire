@@ -284,6 +284,21 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
             if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable(DebugSessionPortVar)))
             {
                 exeSpec.ExecutionType = ExecutionType.IDE;
+
+                string? launchProfileName = project.SelectLaunchProfileName();
+                if (!string.IsNullOrEmpty(launchProfileName))
+                {
+                    var launchProfile = project.GetEffectiveLaunchProfile();
+                    if (launchProfile is not null && !string.IsNullOrWhiteSpace(launchProfile.CommandLineArgs))
+                    {
+                        var cmdArgs = launchProfile.CommandLineArgs.Split((string?)null, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+                        if (cmdArgs is not null && cmdArgs.Length > 0)
+                        {
+                            exeSpec.Args = [];
+                            exeSpec.Args.AddRange(cmdArgs);
+                        }
+                    }
+                }
             }
             else
             {
