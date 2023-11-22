@@ -8,6 +8,7 @@ using System.IO.Pipelines;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 using Aspire.Dashboard;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
@@ -23,7 +24,7 @@ using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Dcp;
 
-internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
+internal sealed partial class DcpHostService : IHostedLifecycleService, IAsyncDisposable
 {
     private const int LoggingSocketConnectionBacklog = 3;
     private readonly ApplicationExecutor _appExecutor;
@@ -277,6 +278,9 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
         }
     }
 
+    [GeneratedRegex("[^\\d\\.].*$")]
+    private static partial Regex VersionRegex();
+
     private const int WaitTimeForDcpVersionCommandInSeconds = 10;
 
     private async Task EnsureDcpVersionAsync(CancellationToken cancellationToken)
@@ -323,6 +327,10 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
                 // If empty, null, or a dev version, pass
                 return;
             }
+
+            // Early DCP versions (e.g. preview 1) have a +x at the end of their version string, e.g. 0.1.42+5,
+            // which does not parse. Strip off anything like that.
+            dcpVersionString = VersionRegex().Replace(dcpVersionString, string.Empty);
 
             Version? dcpVersion;
             if (Version.TryParse(dcpVersionString, out dcpVersion))
