@@ -30,6 +30,14 @@ internal enum DockerHealthCheckFailures : int
     PrerequisiteMissing = 127
 }
 
+internal enum DcpVersionCheckFailures: int
+{
+    /// <summary>
+    /// Represents the exit code indicating that the version of DCP is too low or too high.
+    /// </summary>
+    DcpVersionIncompatible = 128,
+}
+
 /// <summary>
 /// Represents a distributed application that implements the <see cref="IHost"/> and <see cref="IAsyncDisposable"/> interfaces.
 /// </summary>

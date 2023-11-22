@@ -23,7 +23,7 @@ internal sealed class ServiceSpec
 
     // The mode for address allocation
     [JsonPropertyName("addressAllocationMode")]
-    public string AddressAllocationMode = AddressAllocationModes.Localhost;
+    public string AddressAllocationMode { get; set; } = AddressAllocationModes.Localhost;
 }
 
 internal sealed class ServiceStatus : V1Status
@@ -63,6 +63,9 @@ internal static class AddressAllocationModes
 
     // Bind to "localhost", which is all loopback devices on the machine.
     public const string Localhost = "Localhost";
+
+    // Don't use a proxy, instead bind to the first Endpoint.
+    public const string Proxyless = "Proxyless";
 }
 
 internal sealed class Service : CustomResource<ServiceSpec, ServiceStatus>
