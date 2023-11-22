@@ -14,9 +14,18 @@ public class TestProgram
 
         if (includeIntegrationServices)
         {
-            var sql = AppBuilder.AddSqlServerContainer("sql");
+            var sqlserver = AppBuilder.AddSqlServerContainer("sqlserver");
+            var mysql = AppBuilder.AddMySqlContainer("mysql");
+            var redis = AppBuilder.AddRedisContainer("redis");
+            var postgres = AppBuilder.AddPostgresContainer("postgres");
+            var rabbitmq = AppBuilder.AddRabbitMQContainer("rabbitmq");
+
             IntegrationServiceA = AppBuilder.AddProject<Projects.IntegrationServiceA>("integrationservicea")
-                .WithReference(sql);
+                .WithReference(sqlserver)
+                .WithReference(mysql)
+                .WithReference(redis)
+                .WithReference(postgres)
+                .WithReference(rabbitmq);
         }
     }
 
