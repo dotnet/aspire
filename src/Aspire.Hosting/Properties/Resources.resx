@@ -121,10 +121,10 @@
     <value>The application orchestrator version could not be determined. Continuing.</value>
   </data>
   <data name="DcpVersionCheckTooHighMessage" xml:space="preserve">
-    <value>The application orchestrator version is too high. Lorem ipsum how did you even get here.</value>
+    <value>Found incompatible version of .NET Aspire workload (need application orchestrator version {0} to run the application).</value>
   </data>
   <data name="DcpVersionCheckTooLowMessage" xml:space="preserve">
-    <value>The application orchestrator version is too low. Run `lorem ipsum` to upgrade.</value>
+    <value>Newer version of .NET Aspire workload is required to run the application. Run 'dotnet workload update' to get it.</value>
   </data>
   <data name="DockerPrerequisiteMissingExceptionMessage" xml:space="preserve">
     <value>Docker could not be found. The error from Docker invocation was: {0}</value>

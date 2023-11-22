@@ -70,7 +70,7 @@ namespace Aspire.Hosting.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The application orchestrator version is too high. Lorem ipsum how did you even get here..
+        ///   Looks up a localized string similar to Found incompatible version of .NET Aspire workload (need application orchestrator version {0} to run the application)..
         /// </summary>
         internal static string DcpVersionCheckTooHighMessage {
             get {
@@ -79,7 +79,7 @@ namespace Aspire.Hosting.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The application orchestrator version is too low. Run `lorem ipsum` to upgrade..
+        ///   Looks up a localized string similar to Newer version of .NET Aspire workload is required to run the application. Run &apos;dotnet workload update&apos; to get it..
         /// </summary>
         internal static string DcpVersionCheckTooLowMessage {
             get {

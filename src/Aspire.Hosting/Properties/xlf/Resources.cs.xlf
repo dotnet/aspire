@@ -8,13 +8,13 @@
         <note />
       </trans-unit>
       <trans-unit id="DcpVersionCheckTooHighMessage">
-        <source>The application orchestrator version is too high. Lorem ipsum how did you even get here.</source>
-        <target state="new">The application orchestrator version is too high. Lorem ipsum how did you even get here.</target>
+        <source>Found incompatible version of .NET Aspire workload (need application orchestrator version {0} to run the application).</source>
+        <target state="new">Found incompatible version of .NET Aspire workload (need application orchestrator version {0} to run the application).</target>
         <note />
       </trans-unit>
       <trans-unit id="DcpVersionCheckTooLowMessage">
-        <source>The application orchestrator version is too low. Run `lorem ipsum` to upgrade.</source>
-        <target state="new">The application orchestrator version is too low. Run `lorem ipsum` to upgrade.</target>
+        <source>Newer version of .NET Aspire workload is required to run the application. Run 'dotnet workload update' to get it.</source>
+        <target state="new">Newer version of .NET Aspire workload is required to run the application. Run 'dotnet workload update' to get it.</target>
         <note />
       </trans-unit>
       <trans-unit id="DockerPrerequisiteMissingExceptionMessage">

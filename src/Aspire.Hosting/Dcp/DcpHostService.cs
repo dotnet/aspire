@@ -347,7 +347,8 @@ internal sealed partial class DcpHostService : IHostedLifecycleService, IAsyncDi
                 {
                     Console.Error.WriteLine(string.Format(
                         CultureInfo.InvariantCulture,
-                        Resources.DcpVersionCheckTooHighMessage
+                        Resources.DcpVersionCheckTooHighMessage,
+                        DcpVersion.MinimumVersionInclusive.ToString()
                     ));
                     Environment.Exit((int)DcpVersionCheckFailures.DcpVersionIncompatible);
                 }
