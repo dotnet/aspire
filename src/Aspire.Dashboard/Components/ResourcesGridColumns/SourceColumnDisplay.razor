@@ -2,7 +2,7 @@
 
 @if (Resource is ProjectViewModel projectViewModel)
 {
-    @projectViewModel.ProjectPath
+    <span title="@projectViewModel.ProjectPath">@projectViewModel.ProjectPath</span>
 }
 else if (Resource is ExecutableViewModel executableViewModel)
 {
@@ -16,7 +16,7 @@ else if (Resource is ContainerViewModel containerViewModel)
 {
     var ports = string.Join("; ", containerViewModel.Ports);
     <FluentStack Orientation="Orientation.Horizontal">
-        <span><FluentHighlighter HighlightedText="@FilterText" Text="@containerViewModel.Image" /></span>
+        <span title="@containerViewModel.Image"><FluentHighlighter HighlightedText="@FilterText" Text="@containerViewModel.Image" /></span>
         @if (containerViewModel.Ports.Count > 0)
         {
             var title = $"Port{(containerViewModel.Ports.Count > 1 ? "s" : string.Empty)}: {ports}";
