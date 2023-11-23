@@ -41,6 +41,6 @@ public class FileUtilTests
         var dir = Path.GetDirectoryName(fullPath);
         Assert.True(string.IsNullOrEmpty(dir));
         
-        Assert.Equal($"{executable}{FileNameSuffixes.CurrentPlatform.Exe}", executable);
+        Assert.Equal($"{executable}{FileNameSuffixes.CurrentPlatform.Exe}", fullPath);
     }
 }
