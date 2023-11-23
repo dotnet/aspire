@@ -21,7 +21,7 @@ public class FileUtilTests
     }
 
     [Fact]
-    public void FindFullPath_ExecutableWithoutExtension_NotFound()
+    public void FindFullPath_ExecutableWithExtension_NotFound()
     {
         var executable = $"dotnet-dotnet-dotnet{FileNameSuffixes.CurrentPlatform.Exe}";
         var fullPath = FileUtil.FindFullPathFromPath(executable);
@@ -33,7 +33,7 @@ public class FileUtilTests
     }
     
     [Fact]
-    public void FindFullPath_ExecutableWithExtension_NotFound()
+    public void FindFullPath_ExecutableWithoutExtension_NotFound()
     {
         var executable = "dotnet-dotnet-dotnet";
         var fullPath = FileUtil.FindFullPathFromPath(executable);
@@ -41,6 +41,6 @@ public class FileUtilTests
         var dir = Path.GetDirectoryName(fullPath);
         Assert.True(string.IsNullOrEmpty(dir));
         
-        Assert.Equal(executable, $"{fullPath}{FileNameSuffixes.CurrentPlatform.Exe}");
+        Assert.Equal($"{executable}{FileNameSuffixes.CurrentPlatform.Exe}", executable);
     }
 }
