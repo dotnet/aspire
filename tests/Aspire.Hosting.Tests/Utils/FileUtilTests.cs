@@ -12,9 +12,23 @@ public class FileUtilTests
     public void FindFullPath()
     {
         var dotnetPath = FileUtil.FindFullPathFromPath("dotnet");
+        
         var dir = Path.GetDirectoryName(dotnetPath);
-        Assert.NotNull(dir);
+        Assert.False(string.IsNullOrEmpty(dir));
+        
         var ext = Path.GetExtension(dotnetPath);
         Assert.Equal(FileNameSuffixes.CurrentPlatform.Exe, ext);
+    }
+
+    [Fact]
+    public void FindFullPath_NotFound()
+    {
+        var executable = "dotnet-dotnet-dotnet";
+        var fullPath = FileUtil.FindFullPathFromPath(executable);
+        
+        var dir = Path.GetDirectoryName(dotnetPath);
+        Assert.True(string.IsNullOrEmpty(dir));
+        
+        Assert.Equal(executable, fullPath);
     }
 }
