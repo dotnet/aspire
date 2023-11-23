@@ -1,0 +1,106 @@
+{
+  "definitions": {
+    "logLevel": {
+      "properties": {
+        "Azure": {
+          "$ref": "#/definitions/logLevelThreshold"
+        },
+        "Azure.Core": {
+          "$ref": "#/definitions/logLevelThreshold"
+        },
+        "Azure.Identity": {
+          "$ref": "#/definitions/logLevelThreshold"
+        },
+        "Azure.Messaging.WebPubSub": {
+          "$ref": "#/definitions/logLevelThreshold"
+        }
+      }
+    }
+  },
+  "properties": {
+    "Aspire": {
+      "type": "object",
+      "properties": {
+        "Azure": {
+          "type": "object",
+          "properties": {
+            "Messaging": {
+              "type": "object",
+              "properties": {
+                "WebPubSub": {
+                  "type": "object",
+                  "properties": {
+                    "Hub": {
+                      "type": "string",
+                      "description": "Gets or sets the hub name of the Web PubSub service to connect to."
+                    },
+                    "Endpoint": {
+                      "type": "string",
+                      "format": "uri",
+                      "description": "Gets or sets the endpoint URL of the Web PubSub service. Used along with \"Credential\" to establish the connection."
+                    },
+                    "ConnectionString": {
+                      "type": "string",
+                      "description": "Gets or sets connection string used to connect to the Web PubSub service."
+                    },
+                    "HealthChecks": {
+                      "type": "boolean",
+                      "description": "Gets or sets a boolean value that indicates whether the health check is enabled or not.",
+                      "default": true
+                    },
+                    "Tracing": {
+                      "type": "boolean",
+                      "description": "A boolean value that indicates whether the OpenTelemetry tracing is enabled or not",
+                      "default": false
+                    },
+                    "ClientOptions": {
+                      "type": "object",
+                      "description": "The set of options that can be specified when creating an Azure.Messaging.WebPubSub.WebPubSubServiceClient to configure its behavior.",
+                      "properties": {
+                        "ReverseProxyEndpoint": {
+                          "type": "string",
+                          "format": "uri",
+                          "description": "The URL of the reverse proxy, for example, API Management, used in front of the Web PubSub service."
+                        },
+                        "RetryOptions": {
+                          "type": "object",
+                          "description": "The set of options to use for determining whether a failed service operation should be retried and, if so, the amount of time to wait between retry attempts. These options also control the amount of time allowed for the individual network operations used for interactions with the Web PubSub service.",
+                          "properties": {
+                            "Delay": {
+                              "type": "string",
+                              "format": "duration",
+                              "description": "The delay between retry attempts for a fixed approach or the delay on which to base calculations for a backoff-based approach."
+                            },
+                            "MaxDelay": {
+                              "type": "string",
+                              "format": "duration",
+                              "description": "The maximum permissible delay between retry attempts."
+                            },
+                            "MaxRetries": {
+                              "type": "integer",
+                              "description": "The maximum number of retry attempts before considering the associated operation to have failed."
+                            },
+                            "Mode": {
+                              "enum": [ "Fixed", "Exponential" ],
+                              "description": "The approach to use for calculating retry delays."
+                            },
+                            "TryTimeout": {
+                              "type": "string",
+                              "format": "duration",
+                              "description": "The maximum duration to wait for completion of a single attempt, whether the initial attempt or a retry."
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "type": "object"
+}
