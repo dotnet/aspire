@@ -16,6 +16,10 @@
 <div class="logs-layout">
     <h1>Structured Logs</h1>
     <FluentToolbar Orientation="Orientation.Horizontal">
+        @if (!string.IsNullOrEmpty(TraceId))
+        {
+            <FluentButton OnClick="@GoBackToTrace">Back to Traces</FluentButton>
+        }
         <FluentSelect TOption="SelectViewModel<string>"
                       Items="@_applications"
                       OptionText="@(c => c.Name)"

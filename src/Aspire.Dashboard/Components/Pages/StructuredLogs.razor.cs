@@ -280,6 +280,12 @@ public partial class StructuredLogs
         }
     }
 
+    private void GoBackToTrace()
+    {
+        var url = $"/Trace/{TraceId}";
+        NavigationManager.NavigateTo(url);
+    }
+
     public void Dispose()
     {
         _applicationsSubscription?.Dispose();
