@@ -282,8 +282,7 @@ public partial class StructuredLogs
 
     private void GoBackToTrace()
     {
-        var url = $"/Trace/{TraceId}";
-        NavigationManager.NavigateTo(url);
+        NavigationManager.NavigateTo($"/Trace/{TraceId}");
     }
 
     public void Dispose()
