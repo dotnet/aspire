@@ -179,6 +179,13 @@ public static class ResourceBuilderExtensions
         return builder;
     }
 
+    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<HttpServiceResource> source)
+    where TDestination : IResourceWithEnvironment
+    {
+        ApplyBinding(builder, source.Resource);
+        return builder;
+    }
+
     /// <summary>
     /// Injects service discovery information from the specified endpoint into the project resource using the source resource's name as the service name.
     /// Each service binding will be injected using the format "services__{sourceResourceName}__{bindingIndex}={bindingNameQualifiedUriString}."

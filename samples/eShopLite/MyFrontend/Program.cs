@@ -8,6 +8,8 @@ builder.AddServiceDefaults();
 
 builder.Services.AddHttpForwarderWithServiceDiscovery();
 
+builder.Services.AddHttpClient<PetStoreClient>(c => c.BaseAddress = new("https://petstore"));
+
 builder.Services.AddHttpClient<CatalogServiceClient>(c => c.BaseAddress = new("http://catalogservice"));
 
 builder.Services.AddSingleton<BasketServiceClient>()
