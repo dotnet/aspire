@@ -1,9 +1,10 @@
-﻿<div class="nav-menu-container">
-    <FluentNavMenu Width="250" Collapsible="true">
+﻿@using Aspire.Dashboard.Components.Dialogs
+@inject IDialogService dialogService
+
+<div class="nav-menu-container">
+    <FluentNavMenu Width="250" Collapsible="false" @bind-SidebarExpanded="@SidebarExpanded">
         <FluentNavLink Icon="@(new Icons.Regular.Size24.AppFolder())" Href="/" Match="NavLinkMatch.All">Resources</FluentNavLink>
-        @* <FluentNavLink Icon="@(new Icons.Regular.Size24.BinFull())" Href="/Containers">Containers</FluentNavLink>
-        <FluentNavLink Icon="@(new Icons.Regular.Size24.AppGeneric())" Href="/Executables">Executables</FluentNavLink> *@
-        <FluentNavGroup Title="Logs" Icon="@(new Icons.Regular.Size24.SlideText())" Expanded="true" Gap="10px 0;">
+        <FluentNavGroup Title="Logs" Icon="@(new Icons.Regular.Size24.SlideText())" SidebarExpanded="true" Gap="10px 0;">
             <FluentNavLink Icon="@(new Icons.Regular.Size24.SlideText())" Href="/ProjectLogs">Project</FluentNavLink>
             <FluentNavLink Icon="@(new Icons.Regular.Size24.SlideText())" Href="/ContainerLogs">Container</FluentNavLink>
             <FluentNavLink Icon="@(new Icons.Regular.Size24.SlideText())" Href="/ExecutableLogs">Executable</FluentNavLink>
@@ -11,5 +12,12 @@
         </FluentNavGroup>
         <FluentNavLink Icon="@(new Icons.Regular.Size24.GanttChart())" Href="/Traces">Traces</FluentNavLink>
         <FluentNavLink Icon="@(new Icons.Regular.Size24.ChartMultiple())" Href="/Metrics">Metrics</FluentNavLink>
+        <!-- Spacer div to push the settings button to the bottom -->
+        <FluentSpacer></FluentSpacer>
+        <FluentDivider></FluentDivider>
+        <FluentNavLink Icon="@ToggleSidebarIcon" @onclick="ToggleSidebarExpansion">
+            @ToggleSidebarText
+        </FluentNavLink>
+        <FluentNavLink Icon="@(new Icons.Regular.Size24.Settings())" @onclick="LaunchSettings">Settings</FluentNavLink>
     </FluentNavMenu>
 </div>

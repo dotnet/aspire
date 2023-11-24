@@ -37,6 +37,16 @@
 ::deep.layout > .nav-menu-container {
     grid-area: nav;
     overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    border-right: 1px solid #d3d3d3;
+}
+
+::deep.layout > .nav-menu-container > .fluent-nav-menu {
+    flex-grow: 1; /* Make the nav menu grow to occupy available space */
+    display: flex;
+    flex-direction: column;
 }
 
 ::deep.layout > .body-content {
