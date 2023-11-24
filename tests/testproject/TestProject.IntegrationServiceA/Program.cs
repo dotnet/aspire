@@ -2,7 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 var builder = WebApplication.CreateBuilder(args);
-builder.AddSqlServerClient("sql");
+builder.AddSqlServerClient("sqlserver");
+builder.AddMySqlDataSource("mysql");
+builder.AddRedis("redis");
+builder.AddNpgsqlDataSource("postgres");
+builder.AddRabbitMQ("rabbitmq");
 
 var app = builder.Build();
 
