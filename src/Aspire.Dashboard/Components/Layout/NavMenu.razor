@@ -2,7 +2,7 @@
 @inject IDialogService dialogService
 
 <div class="nav-menu-container">
-    <FluentNavMenu Width="250" Collapsible="false" @bind-SidebarExpanded="@SidebarExpanded">
+    <FluentNavMenu Width="250" Collapsible="false" @bind-Expanded="@SidebarExpanded">
         <FluentNavLink Icon="@(new Icons.Regular.Size24.AppFolder())" Href="/" Match="NavLinkMatch.All">Resources</FluentNavLink>
         <FluentNavGroup Title="Logs" Icon="@(new Icons.Regular.Size24.SlideText())" SidebarExpanded="true" Gap="10px 0;">
             <FluentNavLink Icon="@(new Icons.Regular.Size24.SlideText())" Href="/ProjectLogs">Project</FluentNavLink>
@@ -12,7 +12,6 @@
         </FluentNavGroup>
         <FluentNavLink Icon="@(new Icons.Regular.Size24.GanttChart())" Href="/Traces">Traces</FluentNavLink>
         <FluentNavLink Icon="@(new Icons.Regular.Size24.ChartMultiple())" Href="/Metrics">Metrics</FluentNavLink>
-        <!-- Spacer div to push the settings button to the bottom -->
         <FluentSpacer></FluentSpacer>
         <FluentDivider></FluentDivider>
         <FluentNavLink Icon="@ToggleSidebarIcon" @onclick="ToggleSidebarExpansion">
