@@ -3,8 +3,10 @@
 
 namespace Aspire.Hosting.Dcp;
 
-internal sealed class Locations(string? basePath = null)
+internal sealed class Locations
 {
+    private string? _basePath;
+
     public string DcpSessionDir => GetOrCreateBasePath();
 
     public string DcpKubeconfigPath => Path.Combine(DcpSessionDir, "kubeconfig");
@@ -13,7 +15,7 @@ internal sealed class Locations(string? basePath = null)
 
     private string GetOrCreateBasePath()
     {
-        basePath ??= Directory.CreateTempSubdirectory("aspire.").FullName;
-        return basePath;
+        _basePath ??= Directory.CreateTempSubdirectory("aspire.").FullName;
+        return _basePath;
     }
 }
