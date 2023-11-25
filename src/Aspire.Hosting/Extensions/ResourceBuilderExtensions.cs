@@ -182,7 +182,8 @@ public static class ResourceBuilderExtensions
         return builder;
     }
 
-    private static void ApplyBinding<T>(IResourceBuilder<T> builder, IResourceWithBindings resourceWithBindings, string? bindingName = null)
+    // TODO: Make this public
+    internal static void ApplyBinding<T>(this IResourceBuilder<T> builder, IResourceWithBindings resourceWithBindings, string? bindingName = null)
         where T : IResourceWithEnvironment
     {
         // When adding a service reference we get to see whether there is a ServiceReferencesAnnotation

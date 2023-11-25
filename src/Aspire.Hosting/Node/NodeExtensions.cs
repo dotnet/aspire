@@ -47,6 +47,22 @@ public static class NodeAppHostingExtension
                       .WithNodeDefaults();
     }
 
+    /// <summary>
+    /// Injects service discovery information as environment variables from the project resource into the destination resource, using the source resource's name as the service name.
+    /// Each service binding defined on the project resource will be injected using the format "services__{sourceResourceName}__{bindingIndex}={bindingNameQualifiedUriString}."
+    /// </summary>
+    /// <typeparam name="TDestination">The destination resource.</typeparam>
+    /// <typeparam name="TSource">The source project resource.</typeparam>
+    /// <param name="builder">The resource where the service discovery information will be injected.</param>
+    /// <param name="source">The resource from which to extract service bindings.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{TDestination}"/>.</returns>
+    public static IResourceBuilder<TDestination> WithReference<TDestination, TSource>(this IResourceBuilder<TDestination> builder, IResourceBuilder<TSource> source)
+        where TDestination : IResourceWithEnvironment where TSource : NodeAppResource
+    {
+        builder.ApplyBinding(source.Resource);
+        return builder;
+    }
+
     private static IResourceBuilder<NodeAppResource> WithNodeDefaults(this IResourceBuilder<NodeAppResource> builder) =>
         builder.WithOtlpExporter()
             .WithEnvironment("NODE_ENV", builder.ApplicationBuilder.Environment.IsDevelopment() ? "development" : "production")
