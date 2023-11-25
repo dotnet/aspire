@@ -12,6 +12,7 @@ internal sealed class DcpOptions
     private const string DcpCliPathMetadataKey = "DcpCliPath";
     private const string DcpExtensionsPathMetadataKey = "DcpExtensionsPath";
     private const string DcpBinPathMetadataKey = "DcpBinPath";
+    private const string ProjectPathMetadataKey = "AppHostProjectPath";
 
     public static string DcpPublisher = nameof(DcpPublisher);
 
@@ -38,6 +39,11 @@ internal sealed class DcpOptions
     /// C:\Program Files\dotnet\packs\Aspire.Hosting.Orchestration.win-x64\8.0.0-preview.1.23518.6\tools\ext\bin\
     /// </example>
     public string? BinPath { get; set; }
+
+    /// <summary>
+    /// The directory of the orchestration project.
+    /// </summary>
+    public string? ProjectDirectory { get; set; }
 
     public void ApplyApplicationConfiguration(DistributedApplicationOptions appOptions, IConfiguration dcpPublisherConfiguration, IConfiguration publishingConfiguration)
     {
@@ -79,6 +85,7 @@ internal sealed class DcpOptions
             CliPath = GetMetadataValue(assemblyMetadata, DcpCliPathMetadataKey);
             ExtensionsPath = GetMetadataValue(assemblyMetadata, DcpExtensionsPathMetadataKey);
             BinPath = GetMetadataValue(assemblyMetadata, DcpBinPathMetadataKey);
+            ProjectDirectory = GetMetadataValue(assemblyMetadata, ProjectPathMetadataKey);
         }
 
         if (string.IsNullOrEmpty(CliPath))

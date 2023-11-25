@@ -15,7 +15,7 @@ namespace Aspire.Hosting.ApplicationModel;
 [DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}")]
 public sealed class ServiceBindingAnnotation : IResourceAnnotation
 {
-    public ServiceBindingAnnotation(ProtocolType protocol, string? uriScheme = null, string? transport = null, string? name = null, int? port = null, int? containerPort = null, bool? isExternal = null)
+    public ServiceBindingAnnotation(ProtocolType protocol, string? uriScheme = null, string? transport = null, string? name = null, int? port = null, int? containerPort = null, bool? isExternal = null, string? portEnvVar = null)
     {
         // If the URI scheme is null, we'll adopt either udp:// or tcp:// based on the
         // protocol. If the name is null, we'll use the URI scheme as the default. This
@@ -29,6 +29,7 @@ public sealed class ServiceBindingAnnotation : IResourceAnnotation
         Port = port;
         ContainerPort = containerPort ?? port;
         IsExternal = isExternal ?? false;
+        PortEnvVar = portEnvVar;
     }
 
     /// <summary>
@@ -68,4 +69,9 @@ public sealed class ServiceBindingAnnotation : IResourceAnnotation
     /// Indicates that this service binding should be exposed externally at publish time.
     /// </summary>
     public bool IsExternal { get; internal set; }
+
+    /// <summary>
+    /// The name of the environment variable that will be set to the port number of this service binding.
+    /// </summary>
+    public string? PortEnvVar { get; internal set; }
 }
