@@ -156,12 +156,11 @@ public static class ResourceBuilderExtensions
     /// Each service binding defined on the project resource will be injected using the format "services__{sourceResourceName}__{bindingIndex}={bindingNameQualifiedUriString}."
     /// </summary>
     /// <typeparam name="TDestination">The destination resource.</typeparam>
-    /// <typeparam name="TSource">The source project resource.</typeparam>
     /// <param name="builder">The resource where the service discovery information will be injected.</param>
     /// <param name="source">The resource from which to extract service bindings.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{TDestination}"/>.</returns>
-    public static IResourceBuilder<TDestination> WithReference<TDestination, TSource>(this IResourceBuilder<TDestination> builder, IResourceBuilder<TSource> source)
-        where TDestination : IResourceWithEnvironment where TSource : ProjectResource
+    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IResourceWithServiceDiscovery> source)
+        where TDestination : IResourceWithEnvironment
     {
         ApplyBinding(builder, source.Resource);
         return builder;
@@ -182,8 +181,7 @@ public static class ResourceBuilderExtensions
         return builder;
     }
 
-    // TODO: Make this public
-    internal static void ApplyBinding<T>(this IResourceBuilder<T> builder, IResourceWithBindings resourceWithBindings, string? bindingName = null)
+    private static void ApplyBinding<T>(this IResourceBuilder<T> builder, IResourceWithBindings resourceWithBindings, string? bindingName = null)
         where T : IResourceWithEnvironment
     {
         // When adding a service reference we get to see whether there is a ServiceReferencesAnnotation
