@@ -9,8 +9,7 @@ using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Pages;
 
-public abstract partial class ResourceLogsBase<TResource> : ComponentBase, IAsyncDisposable
-    where TResource : ResourceViewModel
+public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
 {
     [Inject]
     public required IDashboardViewModelService DashboardViewModelService { get; init; }
@@ -19,21 +18,18 @@ public abstract partial class ResourceLogsBase<TResource> : ComponentBase, IAsyn
     [Inject]
     public required NavigationManager NavigationManager { get; init; }
 
-    protected abstract string? ResourceName { get; }
-    protected abstract string ResourceType { get; }
-    protected abstract string LoadingResourcesMessage { get; }
-    protected abstract string NoResourceSelectedMessage { get; }
-    protected abstract string LogsNotAvailableMessage { get; }
-    protected abstract string UrlPrefix { get; }
-    protected abstract string SelectResourceTitle { get; }
-    protected virtual bool ConvertTimestampsFromUtc => false;
+    [Parameter]
+    public string? ResourceName { get; set; }
 
-    protected abstract ViewModelMonitor<TResource> GetViewModelMonitor(IDashboardViewModelService dashboardViewModelService);
+    private bool ConvertTimestampsFromUtc => _selectedResource is ContainerViewModel;
 
-    private FluentSelect<TResource>? _resourceSelectComponent;
-    private TResource? _selectedResource;
-    private readonly Dictionary<string, TResource> _resourceNameMapping = new();
-    private IEnumerable<TResource> Resources => _resourceNameMapping.Select(kvp => kvp.Value).OrderBy(c => c.Name);
+    private static ViewModelMonitor<ResourceViewModel> GetViewModelMonitor(IDashboardViewModelService dashboardViewModelService)
+        => dashboardViewModelService.GetResources();
+
+    private FluentSelect<ResourceViewModel>? _resourceSelectComponent;
+    private ResourceViewModel? _selectedResource;
+    private readonly Dictionary<string, ResourceViewModel> _resourceNameMapping = new();
+    private IEnumerable<ResourceViewModel> Resources => _resourceNameMapping.Select(kvp => kvp.Value).OrderBy(c => c.Name);
     private LogViewer? _logViewer;
     private readonly CancellationTokenSource _watchContainersTokenSource = new();
     private CancellationTokenSource? _watchLogsTokenSource;
@@ -41,7 +37,7 @@ public abstract partial class ResourceLogsBase<TResource> : ComponentBase, IAsyn
 
     protected override void OnInitialized()
     {
-        _status = LoadingResourcesMessage;
+        _status = LogStatus.LoadingResources;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -87,7 +83,7 @@ public abstract partial class ResourceLogsBase<TResource> : ComponentBase, IAsyn
     {
         if (_selectedResource is null)
         {
-            _status = NoResourceSelectedMessage;
+            _status = LogStatus.NoResourceSelected;
         }
         else if (_logViewer is null)
         {
@@ -138,7 +134,14 @@ public abstract partial class ResourceLogsBase<TResource> : ComponentBase, IAsyn
             else
             {
                 _watchLogsTokenSource = null;
-                _status = LogsNotAvailableMessage;
+                if (_selectedResource is ContainerViewModel)
+                {
+                    _status = LogStatus.FailedToInitialize;
+                }
+                else
+                {
+                    _status = LogStatus.LogsNotYetAvailable;
+                }
             }
         }
     }
@@ -148,14 +151,14 @@ public abstract partial class ResourceLogsBase<TResource> : ComponentBase, IAsyn
         if (_selectedResource is not null)
         {
             // Change the URL
-            NavigationManager.NavigateTo($"{UrlPrefix}/{_selectedResource.Name}");
+            NavigationManager.NavigateTo($"/ConsoleLogs/{_selectedResource.Name}");
             await StopWatchingLogsAsync();
             await ClearLogsAsync();
             await LoadLogsAsync();
         }
     }
 
-    private async Task OnResourceListChangedAsync(ObjectChangeType changeType, TResource resourceViewModel)
+    private async Task OnResourceListChangedAsync(ObjectChangeType changeType, ResourceViewModel resourceViewModel)
     {
         if (changeType == ObjectChangeType.Added)
         {
@@ -207,7 +210,7 @@ public abstract partial class ResourceLogsBase<TResource> : ComponentBase, IAsyn
         await UpdateResourceListSelectedResourceAsync();
     }
 
-    private static string GetDisplayText(TResource resource)
+    private static string GetDisplayText(ResourceViewModel resource)
     {
         var stateText = "";
         if (string.IsNullOrEmpty(resource.State))
