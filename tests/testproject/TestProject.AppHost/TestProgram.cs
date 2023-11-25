@@ -20,6 +20,9 @@ public class TestProgram
 
             NodeApp = AppBuilder.AddNodeApp("nodeapp", path, ["app.js"])
                 .WithServiceBinding(hostPort: 5031, scheme: "http", portEnvVar: "PORT");
+
+            NpmApp = AppBuilder.AddNpmApp("npmapp", path)
+                .WithServiceBinding(hostPort: 5032, scheme: "http", portEnvVar: "PORT");
         }
 
         if (includeIntegrationServices)
@@ -48,6 +51,7 @@ public class TestProgram
     public IResourceBuilder<ProjectResource> ServiceCBuilder { get; private set; }
     public IResourceBuilder<ProjectResource>? IntegrationServiceA { get; private set; }
     public IResourceBuilder<NodeAppResource>? NodeApp { get; private set; }
+    public IResourceBuilder<NodeAppResource>? NpmApp { get; private set; }
     public DistributedApplication? App { get; private set; }
 
     public List<IResourceBuilder<ProjectResource>> ServiceProjectBuilders => [ServiceABuilder, ServiceBBuilder, ServiceCBuilder];

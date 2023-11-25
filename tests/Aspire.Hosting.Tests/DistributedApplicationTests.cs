@@ -306,9 +306,11 @@ public class DistributedApplicationTests(ITestOutputHelper testOutputHelper)
 
         await app.StartAsync(cts.Token);
 
-        var response = await testProgram.NodeApp!.HttpGetAsync(client, "http", "/", cts.Token);
+        var response0 = await testProgram.NodeApp!.HttpGetAsync(client, "http", "/", cts.Token);
+        var response1 = await testProgram.NpmApp!.HttpGetAsync(client, "http", "/", cts.Token);
 
-        Assert.Equal("Hello from node!", response);
+        Assert.Equal("Hello from node!", response0);
+        Assert.Equal("Hello from node!", response1);
     }
 
     private static TestProgram CreateTestProgram(string[]? args = null, bool includeIntegrationServices = false, bool includeNodeApp = false) =>
