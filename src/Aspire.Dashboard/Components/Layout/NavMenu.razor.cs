@@ -12,7 +12,7 @@ public partial class NavMenu
     {
         DialogParameters parameters = new()
         {
-            Title = $"Settings",
+            Title = "Settings",
             PrimaryAction = "Close",
             PrimaryActionEnabled = true,
             SecondaryAction = null,
@@ -25,27 +25,5 @@ public partial class NavMenu
 
         _ = await dialogService.ShowPanelAsync<SettingsDialog>(parameters).ConfigureAwait(true);
     }
-
-    private bool SidebarExpanded { get; set; }
-
-    private void ToggleSidebarExpansion()
-    {
-        SidebarExpanded = !SidebarExpanded;
-    }
-
-    private string ToggleSidebarText
-    {
-        get
-        {
-            return SidebarExpanded ? "Show Less Information" : "Show More Information";
-        }
-    }
-
-    private Icon ToggleSidebarIcon
-    {
-        get
-        {
-            return SidebarExpanded ? new Icons.Regular.Size24.ArrowLeft() : new Icons.Regular.Size24.ArrowRight();
-        }
-    }
 }
+
