@@ -44,7 +44,7 @@
 }
 
 ::deep.layout > .nav-menu-container > .fluent-nav-menu {
-    flex-grow: 1; /* Make the nav menu grow to occupy available space */
+    flex-grow: 1;
     display: flex;
     flex-direction: column;
 }
