@@ -1,12 +1,14 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Concurrent;
+
 namespace Aspire.Dashboard.Model;
 
 public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsyncDisposable
 {
     private readonly IDashboardViewModelService _dashboardViewModelService;
-    private readonly Dictionary<string, ResourceViewModel> _resourceNameMapping = new();
+    private readonly ConcurrentDictionary<string, ResourceViewModel> _resourceNameMapping = new();
     private readonly CancellationTokenSource _watchContainersTokenSource = new();
     private readonly Task _watchTask;
     private readonly List<Subscription> _subscriptions;
@@ -37,20 +39,17 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
 
     private async Task OnResourceListChanged(ObjectChangeType changeType, ResourceViewModel resourceViewModel)
     {
-        lock (_lock)
+        if (changeType == ObjectChangeType.Added)
         {
-            if (changeType == ObjectChangeType.Added)
-            {
-                _resourceNameMapping[resourceViewModel.Name] = resourceViewModel;
-            }
-            else if (changeType == ObjectChangeType.Modified)
-            {
-                _resourceNameMapping[resourceViewModel.Name] = resourceViewModel;
-            }
-            else if (changeType == ObjectChangeType.Deleted)
-            {
-                _resourceNameMapping.Remove(resourceViewModel.Name);
-            }
+            _resourceNameMapping[resourceViewModel.Name] = resourceViewModel;
+        }
+        else if (changeType == ObjectChangeType.Modified)
+        {
+            _resourceNameMapping[resourceViewModel.Name] = resourceViewModel;
+        }
+        else if (changeType == ObjectChangeType.Deleted)
+        {
+            _resourceNameMapping.TryRemove(resourceViewModel.Name, out _);
         }
 
         await RaisePeerChangesAsync().ConfigureAwait(false);
@@ -58,16 +57,13 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
 
     public string ResolvePeerName(string networkAddress)
     {
-        lock (_lock)
+        foreach (var (resourceName, resource) in _resourceNameMapping)
         {
-            foreach (var resource in _resourceNameMapping.Values)
+            foreach (var service in resource.Services)
             {
-                foreach (var service in resource.Services)
+                if (string.Equals(service.AddressAndPort, networkAddress, StringComparison.OrdinalIgnoreCase))
                 {
-                    if (service.AddressAndPort == networkAddress)
-                    {
-                        return resource.Name;
-                    }
+                    return resource.Name;
                 }
             }
         }
@@ -108,7 +104,7 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
 
         foreach (var subscription in subscriptions)
         {
-            await subscription.Callback().ConfigureAwait(false);
+            await subscription.ExecuteAsync().ConfigureAwait(false);
         }
     }
 
@@ -126,11 +122,12 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
         }
     }
 
-    private sealed record Subscription(Func<Task> Callback, Action<Subscription> OnDispose) : IDisposable
+    private sealed class Subscription(Func<Task> callback, Action<Subscription> onDispose) : IDisposable
     {
-        public void Dispose()
-        {
-            OnDispose(this);
-        }
+        private readonly Func<Task> _callback = callback;
+        private readonly Action<Subscription> _onDispose = onDispose;
+
+        public void Dispose() => _onDispose(this);
+        public Task ExecuteAsync() => _callback();
     }
 }
