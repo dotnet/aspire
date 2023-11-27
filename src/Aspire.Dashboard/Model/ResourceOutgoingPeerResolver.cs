@@ -9,11 +9,13 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
     private readonly Dictionary<string, ResourceViewModel> _resourceNameMapping = new();
     private readonly CancellationTokenSource _watchContainersTokenSource = new();
     private readonly Task _watchTask;
+    private readonly List<Subscription> _subscriptions;
     private readonly object _lock = new object();
 
     public ResourceOutgoingPeerResolver(IDashboardViewModelService dashboardViewModelService)
     {
         _dashboardViewModelService = dashboardViewModelService;
+        _subscriptions = new List<Subscription>();
 
         var viewModelMonitor = _dashboardViewModelService.GetResources();
         var initialList = viewModelMonitor.Snapshot;
@@ -28,12 +30,12 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
         {
             await foreach (var resourceChanged in watch.WithCancellation(_watchContainersTokenSource.Token))
             {
-                OnResourceListChanged(resourceChanged.ObjectChangeType, resourceChanged.Resource);
+                await OnResourceListChanged(resourceChanged.ObjectChangeType, resourceChanged.Resource).ConfigureAwait(false);
             }
         });
     }
 
-    private void OnResourceListChanged(ObjectChangeType changeType, ResourceViewModel resourceViewModel)
+    private async Task OnResourceListChanged(ObjectChangeType changeType, ResourceViewModel resourceViewModel)
     {
         lock (_lock)
         {
@@ -50,6 +52,8 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
                 _resourceNameMapping.Remove(resourceViewModel.Name);
             }
         }
+
+        await RaisePeerChangesAsync().ConfigureAwait(false);
     }
 
     public string ResolvePeerName(string networkAddress)
@@ -71,6 +75,43 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
         return networkAddress;
     }
 
+    public IDisposable OnPeerChanges(Func<Task> callback)
+    {
+        lock (_lock)
+        {
+            var subscription = new Subscription(callback, RemoveSubscription);
+            _subscriptions.Add(subscription);
+            return subscription;
+        }
+    }
+
+    private void RemoveSubscription(Subscription subscription)
+    {
+        lock (_lock)
+        {
+            _subscriptions.Remove(subscription);
+        }
+    }
+
+    private async Task RaisePeerChangesAsync()
+    {
+        if (_subscriptions.Count == 0)
+        {
+            return;
+        }
+
+        Subscription[] subscriptions;
+        lock (_lock)
+        {
+            subscriptions = _subscriptions.ToArray();
+        }
+
+        foreach (var subscription in subscriptions)
+        {
+            await subscription.Callback().ConfigureAwait(false);
+        }
+    }
+
     public async ValueTask DisposeAsync()
     {
         _watchContainersTokenSource.Cancel();
@@ -82,6 +123,14 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
         }
         catch (OperationCanceledException)
         {
+        }
+    }
+
+    private sealed record Subscription(Func<Task> Callback, Action<Subscription> OnDispose) : IDisposable
+    {
+        public void Dispose()
+        {
+            OnDispose(this);
         }
     }
 }

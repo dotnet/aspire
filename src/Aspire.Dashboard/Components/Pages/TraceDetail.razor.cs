@@ -16,6 +16,7 @@ public partial class TraceDetail
     private OtlpTrace? _trace;
     private OtlpSpan? _span;
     private Subscription? _tracesSubscription;
+    private IDisposable? _peerChangesSubscription;
     private List<SpanWaterfallViewModel>? _spanWaterfallViewModels;
     private int _maxDepth;
 
@@ -30,6 +31,15 @@ public partial class TraceDetail
 
     [Inject]
     public required IOutgoingPeerResolver OutgoingPeerResolver { get; set; }
+
+    protected override void OnInitialized()
+    {
+        _peerChangesSubscription = OutgoingPeerResolver.OnPeerChanges(async () =>
+        {
+            UpdateDetailViewData();
+            await InvokeAsync(StateHasChanged);
+        });
+    }
 
     private ValueTask<GridItemsProviderResult<SpanWaterfallViewModel>> GetData(GridItemsProviderRequest<SpanWaterfallViewModel> request)
     {
@@ -179,6 +189,7 @@ public partial class TraceDetail
 
     public void Dispose()
     {
+        _peerChangesSubscription?.Dispose();
         _tracesSubscription?.Dispose();
     }
 }

@@ -62,7 +62,7 @@ internal sealed partial class DcpHostService : IHostedLifecycleService, IAsyncDi
             {
                 serviceCollection.AddSingleton(_applicationModel);
                 serviceCollection.AddSingleton(kubernetesService);
-                serviceCollection.AddSingleton<IDashboardViewModelService, DashboardViewModelService>();
+                serviceCollection.AddScoped<IDashboardViewModelService, DashboardViewModelService>();
             });
         }
     }

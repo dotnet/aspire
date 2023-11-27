@@ -269,11 +269,6 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
             return;
         }
 
-        if (!service.UsesHttpProtocol(out _))
-        {
-            return;
-        }
-
         foreach (var kvp in _resourceAssociatedServicesMap.Where(e => e.Value.Contains(service.Metadata.Name)))
         {
             var (resourceKind, resourceName) = kvp.Key;
