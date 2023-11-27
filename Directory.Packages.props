@@ -20,7 +20,7 @@
     <PackageVersion Include="Azure.ResourceManager.Storage" Version="1.2.0" />
     <PackageVersion Include="Azure.ResourceManager.Authorization" Version="1.1.0" />
     <PackageVersion Include="Azure.ResourceManager.Redis" Version="1.2.0" />
-    <PackageVersion Include="Azure.ResourceManager.AppConfiguration" Version="1.1.0-beta.1" />
+    <PackageVersion Include="Azure.ResourceManager.AppConfiguration" Version="1.1.0" />
     <PackageVersion Include="Azure.ResourceManager.Sql" Version="1.2.0" />
     <!-- ASP.NET Core dependencies -->
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="$(MicrosoftAspNetCoreOpenApiPackageVersion)" />
