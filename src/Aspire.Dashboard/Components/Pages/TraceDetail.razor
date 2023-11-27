@@ -45,9 +45,10 @@
 
         <SummaryDetailsView ShowDetails="SelectedSpan is not null" OnDismiss="() => ClearSelectedSpan()" ViewKey="TraceDetail">
             <DetailsTitleTemplate>
-                <div>
+                @{ var shortedSpanId = OtlpHelpers.ToShortenedId(SelectedSpan!.Span.SpanId); }
+                <div class="span-details-title" title="@($"{SelectedSpan!.Title} ({shortedSpanId})")">
                     @SelectedSpan!.Title
-                    <span class="span-id">@OtlpHelpers.ToShortenedId(SelectedSpan!.Span.SpanId)</span>
+                    <span class="span-id">@shortedSpanId</span>
                 </div>
             </DetailsTitleTemplate>
             <Summary>

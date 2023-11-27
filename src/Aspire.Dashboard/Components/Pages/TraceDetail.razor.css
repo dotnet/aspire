@@ -177,3 +177,9 @@
 ::deep.trace-detail-layout > .summary-details-container {
     grid-area: main;
 }
+
+::deep .span-details-title {
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+}

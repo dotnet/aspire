@@ -7,16 +7,16 @@
         </Panel1>
         <Panel2>
             <div class="details-container">
-                <FluentHeader Style="height: auto;">
+                <header Style="height: auto;">
                     @if (DetailsTitle is not null)
                     {
-                        @DetailsTitle
+                        <div class="details-header-title" title="@DetailsTitle">@DetailsTitle</div>
                     }
                     else if (DetailsTitleTemplate is not null)
                     {
-                        @DetailsTitleTemplate
+                        <div class="details-header-title">@DetailsTitleTemplate</div>
                     }
-                    <div class="header-right">
+                    <div class="header-actions">
                         <FluentButton Appearance="Appearance.Stealth"
                                       IconEnd="@(Orientation == Orientation.Horizontal ? _splitHorizontalIcon : _splitVerticalIcon)"
                                       OnClick="HandleToggleOrientation"
@@ -25,7 +25,7 @@
                         <FluentButton Appearance="Appearance.Stealth" IconEnd="@(new Icons.Regular.Size16.Dismiss())"
                                       OnClick="HandleDismissAsync" Title="Close" aria-label="Close" />
                     </div>
-                </FluentHeader>
+                </header>
                 @Details
             </div>
         </Panel2>
