@@ -235,7 +235,7 @@ public class ManifestGenerationTests
 
         static void AssertNodeResource(JsonElement jsonElement, string expectedCommand, string[] expectedArgs)
         {
-            Assert.Equal("node.v0", jsonElement.GetProperty("type").GetString());
+            Assert.Equal("executable.v0", jsonElement.GetProperty("type").GetString());
 
             var bindings = jsonElement.GetProperty("bindings");
             var httpBinding = bindings.GetProperty("http");
