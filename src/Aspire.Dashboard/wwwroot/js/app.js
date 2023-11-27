@@ -193,3 +193,9 @@ window.initializeChart = function (id, traces, xValues, rangeStartTime, rangeEnd
     fixTraceLineRendering(chartDiv);
 };
 
+window.setIndeterminate = function (element, state) {
+    if (element) {
+        element.indeterminate = state;
+    }
+}
+

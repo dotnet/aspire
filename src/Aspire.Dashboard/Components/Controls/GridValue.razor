@@ -7,11 +7,17 @@
             &#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;&#x25cf;
         </span>
     }
-    else
+    else if (EnableHighlighting)
     {
-        <span class="cellText" title="@Value">
+        <span class="cellText" title="@(ToolTip ?? Value)">
             <FluentHighlighter HighlightedText="@HighlightText"
                                Text="@Value" />
+        </span>
+    }
+    else
+    {
+        <span class="cellText" title="@(ToolTip ?? Value)">
+            @(MaxDisplayLength.HasValue ? TrimLength(Value) : Value)
         </span>
     }
     @if (EnableMasking)

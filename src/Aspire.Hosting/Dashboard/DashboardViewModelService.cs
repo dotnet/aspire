@@ -43,10 +43,12 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
     private readonly Channel<ResourceChanged<ContainerViewModel>> _containerViewModelChangesChannel;
     private readonly Channel<ResourceChanged<ExecutableViewModel>> _executableViewModelChangesChannel;
     private readonly Channel<ResourceChanged<ProjectViewModel>> _projectViewModelChangesChannel;
+    private readonly Channel<ResourceChanged<ResourceViewModel>> _resourceViewModelChangesChannel;
 
     private readonly ViewModelProcessor<ContainerViewModel> _containerViewModelProcessor;
     private readonly ViewModelProcessor<ExecutableViewModel> _executableViewModelProcessor;
     private readonly ViewModelProcessor<ProjectViewModel> _projectViewModelProcessor;
+    private readonly ViewModelProcessor<ResourceViewModel> _resourceViewModelProcessor;
 
     public DashboardViewModelService(
         DistributedApplicationModel applicationModel, KubernetesService kubernetesService, IHostEnvironment hostEnvironment, ILoggerFactory loggerFactory)
@@ -66,12 +68,14 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
         _containerViewModelChangesChannel = Channel.CreateUnbounded<ResourceChanged<ContainerViewModel>>();
         _executableViewModelChangesChannel = Channel.CreateUnbounded<ResourceChanged<ExecutableViewModel>>();
         _projectViewModelChangesChannel = Channel.CreateUnbounded<ResourceChanged<ProjectViewModel>>();
+        _resourceViewModelChangesChannel = Channel.CreateUnbounded<ResourceChanged<ResourceViewModel>>();
 
         Task.Run(ProcessKubernetesChanges);
 
         _containerViewModelProcessor = new ViewModelProcessor<ContainerViewModel>(_containerViewModelChangesChannel, _cancellationToken);
         _executableViewModelProcessor = new ViewModelProcessor<ExecutableViewModel>(_executableViewModelChangesChannel, _cancellationToken);
         _projectViewModelProcessor = new ViewModelProcessor<ProjectViewModel>(_projectViewModelChangesChannel, _cancellationToken);
+        _resourceViewModelProcessor = new ViewModelProcessor<ResourceViewModel>(_resourceViewModelChangesChannel, _cancellationToken);
     }
 
     public string ApplicationName => _applicationName;
@@ -79,6 +83,8 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
     public ViewModelMonitor<ContainerViewModel> GetContainers() => _containerViewModelProcessor.GetResourceMonitor();
     public ViewModelMonitor<ExecutableViewModel> GetExecutables() => _executableViewModelProcessor.GetResourceMonitor();
     public ViewModelMonitor<ProjectViewModel> GetProjects() => _projectViewModelProcessor.GetResourceMonitor();
+
+    public ViewModelMonitor<ResourceViewModel> GetResources() => _resourceViewModelProcessor.GetResourceMonitor();
 
     private void RunWatchTask<T>()
             where T : CustomResource
@@ -170,8 +176,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
         var containerViewModel = ConvertToContainerViewModel(
             _applicationModel, _servicesMap.Values, _endpointsMap.Values, container, extraEnvVars);
 
-        await _containerViewModelChangesChannel.Writer.WriteAsync(
-            new ResourceChanged<ContainerViewModel>(objectChangeType, containerViewModel), _cancellationToken).ConfigureAwait(false);
+        await WriteContainerChange(containerViewModel, objectChangeType).ConfigureAwait(false);
     }
 
     private async Task ProcessExecutableChange(WatchEventType watchEventType, Executable executable)
@@ -186,8 +191,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
         var objectChangeType = ToObjectChangeType(watchEventType);
         var executableViewModel = ConvertToExecutableViewModel(_applicationModel, _servicesMap.Values, _endpointsMap.Values, executable);
 
-        await _executableViewModelChangesChannel.Writer.WriteAsync(
-            new ResourceChanged<ExecutableViewModel>(objectChangeType, executableViewModel), _cancellationToken).ConfigureAwait(false);
+        await WriteExecutableChange(executableViewModel, objectChangeType).ConfigureAwait(false);
     }
 
     private async Task ProcessProjectChange(WatchEventType watchEventType, Executable executable)
@@ -202,8 +206,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
         var objectChangeType = ToObjectChangeType(watchEventType);
         var projectViewModel = ConvertToProjectViewModel(_applicationModel, _servicesMap.Values, _endpointsMap.Values, executable);
 
-        await _projectViewModelChangesChannel.Writer.WriteAsync(
-            new ResourceChanged<ProjectViewModel>(objectChangeType, projectViewModel), _cancellationToken).ConfigureAwait(false);
+        await WriteProjectChange(projectViewModel, objectChangeType).ConfigureAwait(false);
     }
 
     private async Task ProcessEndpointChange(WatchEventType watchEventType, Endpoint endpoint)
@@ -230,9 +233,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
                         var containerViewModel = ConvertToContainerViewModel(
                             _applicationModel, _servicesMap.Values, _endpointsMap.Values, container, extraEnvVars);
 
-                        await _containerViewModelChangesChannel.Writer.WriteAsync(
-                            new ResourceChanged<ContainerViewModel>(ObjectChangeType.Modified, containerViewModel), _cancellationToken)
-                            .ConfigureAwait(false);
+                        await WriteContainerChange(containerViewModel).ConfigureAwait(false);
                     }
                     break;
 
@@ -245,9 +246,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
                             var projectViewModel = ConvertToProjectViewModel(
                                 _applicationModel, _servicesMap.Values, _endpointsMap.Values, executable);
 
-                            await _projectViewModelChangesChannel.Writer.WriteAsync(
-                                new ResourceChanged<ProjectViewModel>(ObjectChangeType.Modified, projectViewModel), _cancellationToken)
-                                .ConfigureAwait(false);
+                            await WriteProjectChange(projectViewModel).ConfigureAwait(false);
                         }
                         else
                         {
@@ -255,9 +254,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
                             var executableViewModel = ConvertToExecutableViewModel(
                                 _applicationModel, _servicesMap.Values, _endpointsMap.Values, executable);
 
-                            await _executableViewModelChangesChannel.Writer.WriteAsync(
-                                new ResourceChanged<ExecutableViewModel>(ObjectChangeType.Modified, executableViewModel), _cancellationToken)
-                                .ConfigureAwait(false);
+                            await WriteExecutableChange(executableViewModel).ConfigureAwait(false);
                         }
                     }
                     break;
@@ -289,9 +286,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
                         var containerViewModel = ConvertToContainerViewModel(
                             _applicationModel, _servicesMap.Values, _endpointsMap.Values, container, extraEnvVars);
 
-                        await _containerViewModelChangesChannel.Writer.WriteAsync(
-                            new ResourceChanged<ContainerViewModel>(ObjectChangeType.Modified, containerViewModel), _cancellationToken)
-                            .ConfigureAwait(false);
+                        await WriteContainerChange(containerViewModel).ConfigureAwait(false);
                     }
                     break;
 
@@ -304,9 +299,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
                             var projectViewModel = ConvertToProjectViewModel(
                                 _applicationModel, _servicesMap.Values, _endpointsMap.Values, executable);
 
-                            await _projectViewModelChangesChannel.Writer.WriteAsync(
-                                new ResourceChanged<ProjectViewModel>(ObjectChangeType.Modified, projectViewModel), _cancellationToken)
-                                .ConfigureAwait(false);
+                            await WriteProjectChange(projectViewModel).ConfigureAwait(false);
                         }
                         else
                         {
@@ -314,14 +307,42 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
                             var executableViewModel = ConvertToExecutableViewModel(
                                 _applicationModel, _servicesMap.Values, _endpointsMap.Values, executable);
 
-                            await _executableViewModelChangesChannel.Writer.WriteAsync(
-                                new ResourceChanged<ExecutableViewModel>(ObjectChangeType.Modified, executableViewModel), _cancellationToken)
-                                .ConfigureAwait(false);
+                            await WriteExecutableChange(executableViewModel).ConfigureAwait(false);
                         }
                     }
                     break;
             }
         }
+    }
+
+    private async Task WriteProjectChange(ProjectViewModel projectViewModel, ObjectChangeType changeType = ObjectChangeType.Modified)
+    {
+        await _projectViewModelChangesChannel.Writer.WriteAsync(
+            new ResourceChanged<ProjectViewModel>(changeType, projectViewModel), _cancellationToken)
+            .ConfigureAwait(false);
+        await _resourceViewModelChangesChannel.Writer.WriteAsync(
+            new ResourceChanged<ResourceViewModel>(changeType, projectViewModel), _cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    private async Task WriteContainerChange(ContainerViewModel containerViewModel, ObjectChangeType changeType = ObjectChangeType.Modified)
+    {
+        await _containerViewModelChangesChannel.Writer.WriteAsync(
+            new ResourceChanged<ContainerViewModel>(changeType, containerViewModel), _cancellationToken)
+            .ConfigureAwait(false);
+        await _resourceViewModelChangesChannel.Writer.WriteAsync(
+            new ResourceChanged<ResourceViewModel>(changeType, containerViewModel), _cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    private async Task WriteExecutableChange(ExecutableViewModel executableViewModel, ObjectChangeType changeType = ObjectChangeType.Modified)
+    {
+        await _executableViewModelChangesChannel.Writer.WriteAsync(
+            new ResourceChanged<ExecutableViewModel>(changeType, executableViewModel), _cancellationToken)
+            .ConfigureAwait(false);
+        await _resourceViewModelChangesChannel.Writer.WriteAsync(
+            new ResourceChanged<ResourceViewModel>(changeType, executableViewModel), _cancellationToken)
+            .ConfigureAwait(false);
     }
 
     private static ContainerViewModel ConvertToContainerViewModel(

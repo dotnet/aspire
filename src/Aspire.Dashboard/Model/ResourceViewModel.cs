@@ -14,6 +14,7 @@ public abstract class ResourceViewModel
     public required ILogSource LogSource { get; init; }
     public List<string> Endpoints { get; } = new();
     public int? ExpectedEndpointsCount { get; init; }
+    public abstract string ResourceType { get; }
 }
 
 public sealed record NamespacedName(string Name, string? Namespace);
