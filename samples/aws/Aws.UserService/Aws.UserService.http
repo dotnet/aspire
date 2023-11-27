@@ -1,0 +1,6 @@
+@Aws.UserService_HostAddress = http://localhost:5099
+
+GET {{Aws.UserService_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

@@ -13,6 +13,13 @@
     <PackageVersion Include="Azure.Storage.Queues" Version="12.17.1" />
     <PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.37.0" />
     <PackageVersion Include="Microsoft.Extensions.Azure" Version="1.7.1" />
+    <!-- AWS SDK for .NET dependencies -->
+    <PackageVersion Include="AWSSDK.Core" Version="3.7.300.3" />
+    <PackageVersion Include="AWSSDK.S3" Version="3.7.300.3" />
+    <PackageVersion Include="AWSSDK.SimpleNotificationService" Version="3.7.300.5" />
+    <PackageVersion Include="AWSSDK.SQS" Version="3.7.300.5" />
+    <PackageVersion Include="AWSSDK.CloudFormation" Version="3.7.301" />
+    <PackageVersion Include="AWSSDK.Extensions.NETCore.Setup" Version="3.7.300" />
     <!-- Azure Management SDK for .NET dependencies -->
     <PackageVersion Include="Azure.ResourceManager.CosmosDB" Version="1.4.0-beta.5" />
     <PackageVersion Include="Azure.ResourceManager.KeyVault" Version="1.2.0" />
@@ -79,6 +86,9 @@
     <PackageVersion Include="StackExchange.Redis" Version="2.7.4" />
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="6.5.0" />
     <PackageVersion Include="Yarp.ReverseProxy" Version="2.1.0" />
+    <!-- comment to help automerges -->
+    <PackageVersion Include="LocalStack.Client" Version="1.4.1" />
+    <PackageVersion Include="LocalStack.Client.Extensions" Version="1.2.2" />
     <!-- Open Telemetry -->
     <PackageVersion Include="Npgsql.OpenTelemetry" Version="8.0.0-rc.2" />
     <PackageVersion Include="OpenTelemetry.Exporter.InMemory" Version="1.7.0-alpha.1" />

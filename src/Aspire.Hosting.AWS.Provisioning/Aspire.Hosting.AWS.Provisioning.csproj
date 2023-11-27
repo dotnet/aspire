@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <IsPackable>true</IsPackable>
+    <Description>Provisions AWS resources for development in .NET Aspire projects.</Description>
+
+    <NoWarn>$(NoWarn),CS8002</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Aspire.Hosting.AWS\Aspire.Hosting.AWS.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
+
+    <PackageReference Include="AWSSDK.CloudFormation" />
+    <PackageReference Include="AWSSDK.Extensions.NETCore.Setup" />
+    <PackageReference Include="LocalStack.Client" />
+    <PackageReference Include="LocalStack.Client.Extensions" />
+  </ItemGroup>
+</Project>
