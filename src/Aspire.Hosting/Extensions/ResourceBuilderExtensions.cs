@@ -222,17 +222,17 @@ public static class ResourceBuilderExtensions
     /// <param name="hostPort">The host port.</param>
     /// <param name="scheme">The scheme e.g. (http/https)</param>
     /// <param name="name">The name of the binding.</param>
-    /// <param name="portEnvVar">The name of the environment variable to inject.</param>
+    /// <param name="env">The name of the environment variable to inject.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <exception cref="DistributedApplicationException">Throws an exception if the a binding with the same name already exists on the specified resource.</exception>
-    public static IResourceBuilder<T> WithServiceBinding<T>(this IResourceBuilder<T> builder, int? hostPort = null, string? scheme = null, string? name = null, string? portEnvVar = null) where T : IResource
+    public static IResourceBuilder<T> WithServiceBinding<T>(this IResourceBuilder<T> builder, int? hostPort = null, string? scheme = null, string? name = null, string? env = null) where T : IResource
     {
         if (builder.Resource.Annotations.OfType<ServiceBindingAnnotation>().Any(sb => sb.Name == name))
         {
             throw new DistributedApplicationException($"Service binding with name '{name}' already exists");
         }
 
-        var annotation = new ServiceBindingAnnotation(ProtocolType.Tcp, uriScheme: scheme, name: name, port: hostPort, portEnvVar: portEnvVar);
+        var annotation = new ServiceBindingAnnotation(ProtocolType.Tcp, uriScheme: scheme, name: name, port: hostPort, env: env);
         return builder.WithAnnotation(annotation);
     }
 

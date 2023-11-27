@@ -79,6 +79,10 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger, IOptions<Publi
         {
             WriteResourceObject(project, () => WriteProject(project, jsonWriter));
         }
+        else if (resource is NodeAppResource nodeApp)
+        {
+            WriteResourceObject(nodeApp, () => WriteNodeApp(nodeApp, jsonWriter));
+        }
         else if (resource is ExecutableResource executable)
         {
             WriteResourceObject(executable, () => WriteExecutable(executable, jsonWriter));
@@ -88,7 +92,7 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger, IOptions<Publi
             WriteResourceObject(resource, () => WriteError(jsonWriter));
         }
 
-        void WriteResourceObject<T>(T resource, Action action) where T: IResource
+        void WriteResourceObject<T>(T resource, Action action) where T : IResource
         {
             jsonWriter.WriteStartObject(resource.Name);
             action();
@@ -152,7 +156,25 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger, IOptions<Publi
 
             WriteServiceDiscoveryEnvironmentVariables(resource, jsonWriter);
 
+            WritePortBindingEnvironmentVariables(resource, jsonWriter);
+
             jsonWriter.WriteEndObject();
+        }
+    }
+
+    private static void WritePortBindingEnvironmentVariables(IResource resource, Utf8JsonWriter jsonWriter)
+    {
+        if (resource.TryGetServiceBindings(out var serviceBindings))
+        {
+            foreach (var serviceBinding in serviceBindings)
+            {
+                if (serviceBinding.EnvironmentVariable is null)
+                {
+                    continue;
+                }
+
+                jsonWriter.WriteString(serviceBinding.EnvironmentVariable, $"{{bindings.{serviceBinding.Name}.port}}");
+            }
         }
     }
 
@@ -199,6 +221,27 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger, IOptions<Publi
         WriteBindings(container, jsonWriter, emitContainerPort: true);
     }
 
+    private void WriteNodeApp(NodeAppResource resource, Utf8JsonWriter jsonWriter)
+    {
+        jsonWriter.WriteString("type", "node.v0");
+
+        var manifestPath = _options.Value.OutputPath ?? throw new DistributedApplicationException("Output path not specified");
+        var fullyQualifiedManifestPath = Path.GetFullPath(manifestPath);
+        var manifestDirectory = Path.GetDirectoryName(fullyQualifiedManifestPath) ?? throw new DistributedApplicationException("Could not get directory name of output path");
+        var relativePathToProjectFile = Path.GetRelativePath(manifestDirectory, resource.WorkingDirectory);
+        jsonWriter.WriteString("path", relativePathToProjectFile);
+        jsonWriter.WriteString("command", resource.Command);
+        jsonWriter.WriteStartArray("args");
+        foreach (var arg in resource.Args ?? [])
+        {
+            jsonWriter.WriteStringValue(arg);
+        }
+        jsonWriter.WriteEndArray();
+
+        WriteEnvironmentVariables(resource, jsonWriter);
+        WriteBindings(resource, jsonWriter);
+    }
+
     private void WriteProject(ProjectResource project, Utf8JsonWriter jsonWriter)
     {
         jsonWriter.WriteString("type", "project.v0");
@@ -218,9 +261,24 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger, IOptions<Publi
         WriteBindings(project, jsonWriter);
     }
 
-    private static void WriteExecutable(ExecutableResource executable, Utf8JsonWriter jsonWriter)
+    private void WriteExecutable(ExecutableResource executable, Utf8JsonWriter jsonWriter)
     {
         jsonWriter.WriteString("type", "executable.v0");
+
+        var manifestPath = _options.Value.OutputPath ?? throw new DistributedApplicationException("Output path not specified");
+        var fullyQualifiedManifestPath = Path.GetFullPath(manifestPath);
+        var manifestDirectory = Path.GetDirectoryName(fullyQualifiedManifestPath) ?? throw new DistributedApplicationException("Could not get directory name of output path");
+        var relativePathToProjectFile = Path.GetRelativePath(manifestDirectory, executable.WorkingDirectory);
+        jsonWriter.WriteString("workingDirectory", relativePathToProjectFile);
+
+        jsonWriter.WriteString("command", executable.Command);
+        jsonWriter.WriteStartArray("args");
+
+        foreach (var arg in executable.Args ?? [])
+        {
+            jsonWriter.WriteStringValue(arg);
+        }
+        jsonWriter.WriteEndArray();
 
         WriteEnvironmentVariables(executable, jsonWriter);
         WriteBindings(executable, jsonWriter);

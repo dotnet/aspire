@@ -438,7 +438,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
                         foreach (var serviceProduced in er.ServicesProduced)
                         {
                             var name = serviceProduced.Service.Metadata.Name;
-                            var envVar = serviceProduced.ServiceBindingAnnotation.PortEnvVar;
+                            var envVar = serviceProduced.ServiceBindingAnnotation.EnvironmentVariable;
 
                             if (envVar is not null)
                             {

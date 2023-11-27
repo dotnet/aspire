@@ -19,10 +19,10 @@ public class TestProgram
             var path = Path.Combine(Projects.TestProject_AppHost.ProjectPath, @"..\nodeapp");
 
             NodeApp = AppBuilder.AddNodeApp("nodeapp", path, ["app.js"])
-                .WithServiceBinding(hostPort: 5031, scheme: "http", portEnvVar: "PORT");
+                .WithServiceBinding(hostPort: 5031, scheme: "http", env: "PORT");
 
             NpmApp = AppBuilder.AddNpmApp("npmapp", path)
-                .WithServiceBinding(hostPort: 5032, scheme: "http", portEnvVar: "PORT");
+                .WithServiceBinding(hostPort: 5032, scheme: "http", env: "PORT");
         }
 
         if (includeIntegrationServices)

@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text.Json;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Helpers;
 using Microsoft.Extensions.DependencyInjection;
@@ -209,6 +210,51 @@ public class ManifestGenerationTests
 
         var config = resources.GetProperty("appconfig");
         Assert.Equal("azure.appconfiguration.v0", config.GetProperty("type").GetString());
+    }
+
+    [Fact]
+    public void EnsureNodeAppResourceType()
+    {
+        var program = CreateTestProgramJsonDocumentManifestPublisher();
+
+        program.AppBuilder.AddNodeApp("nodeapp", "..\foo", ["app.js"])
+            .WithServiceBinding(hostPort: 5031, scheme: "http", env: "PORT");
+        program.AppBuilder.AddNpmApp("npmapp", "..\foo")
+            .WithServiceBinding(hostPort: 5032, scheme: "http", env: "PORT");
+
+        // Build AppHost so that publisher can be resolved.
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+
+        var nodeApp = resources.GetProperty("nodeapp");
+        var npmApp = resources.GetProperty("npmapp");
+
+        static void AssertNodeResource(JsonElement jsonElement, string expectedCommand, string[] expectedArgs)
+        {
+            Assert.Equal("node.v0", jsonElement.GetProperty("type").GetString());
+
+            var bindings = jsonElement.GetProperty("bindings");
+            var httpBinding = bindings.GetProperty("http");
+
+            Assert.Equal("http", httpBinding.GetProperty("scheme").GetString());
+
+            var env = jsonElement.GetProperty("env");
+            Assert.Equal("{bindings.http.port}", env.GetProperty("PORT").GetString());
+            Assert.Equal("production", env.GetProperty("NODE_ENV").GetString());
+
+            var command = jsonElement.GetProperty("command");
+            Assert.Equal(expectedCommand, command.GetString());
+            Assert.Equal(expectedArgs, jsonElement.GetProperty("args").EnumerateArray().Select(e => e.GetString()).ToArray());
+
+            var args = jsonElement.GetProperty("args");
+        }
+
+        AssertNodeResource(nodeApp, "node", ["app.js"]);
+        AssertNodeResource(npmApp, "npm", ["run", "start"]);
     }
 
     private static TestProgram CreateTestProgramJsonDocumentManifestPublisher()
