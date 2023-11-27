@@ -467,7 +467,22 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
                     && project.GetEffectiveLaunchProfile() is LaunchProfile launchProfile
                     && launchProfile.LaunchUrl is string launchUrl)
                 {
-                    endpointString += $"/{launchUrl}";
+                    if (!launchUrl.Contains("://"))
+                    {
+                        // This is relative URL
+                        endpointString += $"/{launchUrl}";
+                    }
+                    else
+                    {
+                        // For absolute URL we need to update the port value if possible
+                        if (launchProfile.ApplicationUrl is string applicationUrl
+                            && launchUrl.StartsWith(applicationUrl))
+                        {
+                            endpointString = launchUrl.Replace(applicationUrl, endpointString);
+                        }
+                    }
+
+                    // If we cannot process launchUrl then we just show endpoint string
                 }
 
                 resourceViewModel.Endpoints.Add(endpointString);
