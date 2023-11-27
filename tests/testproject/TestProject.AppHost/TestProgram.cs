@@ -11,6 +11,7 @@ public class TestProgram
         ServiceABuilder = AppBuilder.AddProject<Projects.ServiceA>("servicea");
         ServiceBBuilder = AppBuilder.AddProject<Projects.ServiceB>("serviceb");
         ServiceCBuilder = AppBuilder.AddProject<Projects.ServiceC>("servicec");
+        WorkerABuilder = AppBuilder.AddProject<Projects.WorkerA>("workera");
 
         if (includeIntegrationServices)
         {
@@ -35,6 +36,7 @@ public class TestProgram
     public IResourceBuilder<ProjectResource> ServiceABuilder { get; private set; }
     public IResourceBuilder<ProjectResource> ServiceBBuilder { get; private set; }
     public IResourceBuilder<ProjectResource> ServiceCBuilder { get; private set; }
+    public IResourceBuilder<ProjectResource> WorkerABuilder { get; private set; }
     public IResourceBuilder<ProjectResource>? IntegrationServiceA { get; private set; }
     public DistributedApplication? App { get; private set; }
 

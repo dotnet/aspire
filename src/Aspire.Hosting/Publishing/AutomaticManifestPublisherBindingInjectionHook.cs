@@ -28,6 +28,12 @@ internal sealed class AutomaticManifestPublisherBindingInjectionHook(IOptions<Pu
         return protocol == "Http2";
     }
 
+    private static bool IsWebProject(ProjectResource projectResource)
+    {
+        var launchProfile = projectResource.GetEffectiveLaunchProfile();
+        return launchProfile?.ApplicationUrl != null;
+    }
+
     public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
         if (_publishingOptions.Value.Publisher != "manifest")
@@ -40,6 +46,12 @@ internal sealed class AutomaticManifestPublisherBindingInjectionHook(IOptions<Pu
         foreach (var projectResource in projectResources)
         {
             var isHttp2ConfiguredInAppSettings = IsKestrelHttp2ConfigurationPresent(projectResource);
+
+            // If we aren't a web project we don't automatically add bindings.
+            if (!IsWebProject(projectResource))
+            {
+                continue;
+            }
 
             if (!projectResource.Annotations.OfType<ServiceBindingAnnotation>().Any(sb => sb.UriScheme == "http" || sb.Name == "http"))
             {
