@@ -284,7 +284,7 @@ public class DistributedApplicationTests(ITestOutputHelper testOutputHelper)
         await testProgram.IntegrationServiceA!.WaitForHealthyStatus(client, "http", cts.Token);
     }
 
-    [LocalOnlyFact]
+    [LocalOnlyFact("node")]
     public async Task VerifyNodeAppWorks()
     {
         var testProgram = CreateTestProgram(includeNodeApp: true);
