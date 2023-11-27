@@ -15,9 +15,6 @@ public class ManifestGenerationTests
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher();
 
-        program.AppBuilder.AddContainer("grafana", "grafana/grafana")
-                          .WithServiceBinding(3000, scheme: "http");
-
         // Build AppHost so that publisher can be resolved.
         program.Build();
         var publisher = program.GetManifestPublisher();
