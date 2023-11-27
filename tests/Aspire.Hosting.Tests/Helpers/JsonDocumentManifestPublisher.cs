@@ -10,7 +10,11 @@ using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Tests.Helpers;
 
-internal sealed class JsonDocumentManifestPublisher(ILogger<ManifestPublisher> logger, IOptions<PublishingOptions> options, IHostApplicationLifetime lifetime) : ManifestPublisher(logger, options, lifetime)
+internal sealed class JsonDocumentManifestPublisher(
+    ILogger<ManifestPublisher> logger,
+    IOptions<PublishingOptions> options,
+    IHostApplicationLifetime lifetime,
+    DistributedApplicationOptions distributedApplicationOptions) : ManifestPublisher(logger, options, lifetime, distributedApplicationOptions)
 {
     protected override async Task PublishInternalAsync(DistributedApplicationModel model, CancellationToken cancellationToken)
     {

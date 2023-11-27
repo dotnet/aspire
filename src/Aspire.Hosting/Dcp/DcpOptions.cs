@@ -12,7 +12,6 @@ internal sealed class DcpOptions
     private const string DcpCliPathMetadataKey = "DcpCliPath";
     private const string DcpExtensionsPathMetadataKey = "DcpExtensionsPath";
     private const string DcpBinPathMetadataKey = "DcpBinPath";
-    private const string ProjectPathMetadataKey = "AppHostProjectPath";
 
     public static string DcpPublisher = nameof(DcpPublisher);
 
@@ -40,11 +39,6 @@ internal sealed class DcpOptions
     /// </example>
     public string? BinPath { get; set; }
 
-    /// <summary>
-    /// The directory of the orchestration project.
-    /// </summary>
-    public string? ProjectDirectory { get; set; }
-
     public void ApplyApplicationConfiguration(DistributedApplicationOptions appOptions, IConfiguration dcpPublisherConfiguration, IConfiguration publishingConfiguration)
     {
         string? publisher = publishingConfiguration[nameof(PublishingOptions.Publisher)];
@@ -61,31 +55,10 @@ internal sealed class DcpOptions
         }
         else
         {
-            // Calculate DCP locations from configuration options
-            var appHostAssembly = Assembly.GetEntryAssembly();
-            if (!string.IsNullOrEmpty(appOptions.AssemblyName))
-            {
-                try
-                {
-                    // Find an assembly in the current AppDomain with the given name
-                    appHostAssembly = Assembly.Load(appOptions.AssemblyName);
-                    if (appHostAssembly == null)
-                    {
-                        throw new FileNotFoundException("No assembly with name '{appOptions.AssemblyName}' exists in the current AppDomain.");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    throw new InvalidOperationException($"Failed to load AppHost assembly '{appOptions.AssemblyName}' specified in {nameof(DistributedApplicationOptions)}.", ex);
-                }
-            }
-
-            
-            var assemblyMetadata = appHostAssembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
+            var assemblyMetadata = appOptions.Assembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
             CliPath = GetMetadataValue(assemblyMetadata, DcpCliPathMetadataKey);
             ExtensionsPath = GetMetadataValue(assemblyMetadata, DcpExtensionsPathMetadataKey);
             BinPath = GetMetadataValue(assemblyMetadata, DcpBinPathMetadataKey);
-            ProjectDirectory = GetMetadataValue(assemblyMetadata, ProjectPathMetadataKey);
         }
 
         if (string.IsNullOrEmpty(CliPath))

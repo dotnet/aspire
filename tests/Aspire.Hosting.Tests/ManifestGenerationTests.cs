@@ -213,13 +213,13 @@ public class ManifestGenerationTests
     }
 
     [Fact]
-    public void EnsureNodeAppResourceType()
+    public void NodeAppIsExecutableResource()
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher();
 
-        program.AppBuilder.AddNodeApp("nodeapp", "..\foo", ["app.js"])
+        program.AppBuilder.AddNodeApp("nodeapp", "..\\foo", ["app.js"])
             .WithServiceBinding(hostPort: 5031, scheme: "http", env: "PORT");
-        program.AppBuilder.AddNpmApp("npmapp", "..\foo")
+        program.AppBuilder.AddNpmApp("npmapp", "..\\foo")
             .WithServiceBinding(hostPort: 5032, scheme: "http", env: "PORT");
 
         // Build AppHost so that publisher can be resolved.

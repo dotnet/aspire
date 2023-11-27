@@ -5,7 +5,6 @@ using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp.Model;
 using k8s;
-using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Dcp;
 
@@ -45,7 +44,7 @@ internal sealed class ServiceAppResource : AppResource
     }
 }
 
-internal sealed class ApplicationExecutor(DistributedApplicationModel model, KubernetesService kubernetesService, IOptions<DcpOptions> options)
+internal sealed class ApplicationExecutor(DistributedApplicationModel model, KubernetesService kubernetesService, DistributedApplicationOptions options)
 {
     private const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
 
@@ -62,7 +61,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
     private readonly DistributedApplicationModel _model = model;
     private readonly List<AppResource> _appResources = new();
 
-    private readonly string? _appHostProjectDirectory = options.Value.ProjectDirectory;
+    private readonly string? _appHostProjectDirectory = options.ProjectDirectory;
 
     public async Task RunApplicationAsync(CancellationToken cancellationToken = default)
     {
