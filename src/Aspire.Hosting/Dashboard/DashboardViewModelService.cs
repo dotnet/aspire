@@ -173,8 +173,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
 
         var objectChangeType = ToObjectChangeType(watchEventType);
 
-        var containerViewModel = ConvertToContainerViewModel(
-            _applicationModel, _servicesMap.Values, _endpointsMap.Values, container, extraEnvVars);
+        var containerViewModel = ConvertToContainerViewModel(container, extraEnvVars);
 
         await WriteContainerChange(containerViewModel, objectChangeType).ConfigureAwait(false);
     }
@@ -189,7 +188,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
         UpdateAssociatedServicesMap(ResourceKind.Executable, watchEventType, executable);
 
         var objectChangeType = ToObjectChangeType(watchEventType);
-        var executableViewModel = ConvertToExecutableViewModel(_applicationModel, _servicesMap.Values, _endpointsMap.Values, executable);
+        var executableViewModel = ConvertToExecutableViewModel(executable);
 
         await WriteExecutableChange(executableViewModel, objectChangeType).ConfigureAwait(false);
     }
@@ -204,7 +203,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
         UpdateAssociatedServicesMap(ResourceKind.Executable, watchEventType, executable);
 
         var objectChangeType = ToObjectChangeType(watchEventType);
-        var projectViewModel = ConvertToProjectViewModel(_applicationModel, _servicesMap.Values, _endpointsMap.Values, executable);
+        var projectViewModel = ConvertToProjectViewModel(executable);
 
         await WriteProjectChange(projectViewModel, objectChangeType).ConfigureAwait(false);
     }
@@ -230,8 +229,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
                     if (_containersMap.TryGetValue(ownerReference.Name, out var container))
                     {
                         var extraEnvVars = GetContainerEnvVars(container.Status?.ContainerId);
-                        var containerViewModel = ConvertToContainerViewModel(
-                            _applicationModel, _servicesMap.Values, _endpointsMap.Values, container, extraEnvVars);
+                        var containerViewModel = ConvertToContainerViewModel(container, extraEnvVars);
 
                         await WriteContainerChange(containerViewModel).ConfigureAwait(false);
                     }
@@ -243,16 +241,14 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
                         if (executable.IsCSharpProject())
                         {
                             // Project
-                            var projectViewModel = ConvertToProjectViewModel(
-                                _applicationModel, _servicesMap.Values, _endpointsMap.Values, executable);
+                            var projectViewModel = ConvertToProjectViewModel(executable);
 
                             await WriteProjectChange(projectViewModel).ConfigureAwait(false);
                         }
                         else
                         {
                             // Executable
-                            var executableViewModel = ConvertToExecutableViewModel(
-                                _applicationModel, _servicesMap.Values, _endpointsMap.Values, executable);
+                            var executableViewModel = ConvertToExecutableViewModel(executable);
 
                             await WriteExecutableChange(executableViewModel).ConfigureAwait(false);
                         }
@@ -278,8 +274,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
                     if (_containersMap.TryGetValue(resourceName, out var container))
                     {
                         var extraEnvVars = GetContainerEnvVars(container.Status?.ContainerId);
-                        var containerViewModel = ConvertToContainerViewModel(
-                            _applicationModel, _servicesMap.Values, _endpointsMap.Values, container, extraEnvVars);
+                        var containerViewModel = ConvertToContainerViewModel(container, extraEnvVars);
 
                         await WriteContainerChange(containerViewModel).ConfigureAwait(false);
                     }
@@ -291,16 +286,14 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
                         if (executable.IsCSharpProject())
                         {
                             // Project
-                            var projectViewModel = ConvertToProjectViewModel(
-                                _applicationModel, _servicesMap.Values, _endpointsMap.Values, executable);
+                            var projectViewModel = ConvertToProjectViewModel(executable);
 
                             await WriteProjectChange(projectViewModel).ConfigureAwait(false);
                         }
                         else
                         {
                             // Executable
-                            var executableViewModel = ConvertToExecutableViewModel(
-                                _applicationModel, _servicesMap.Values, _endpointsMap.Values, executable);
+                            var executableViewModel = ConvertToExecutableViewModel(executable);
 
                             await WriteExecutableChange(executableViewModel).ConfigureAwait(false);
                         }
@@ -340,12 +333,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
             .ConfigureAwait(false);
     }
 
-    private static ContainerViewModel ConvertToContainerViewModel(
-        DistributedApplicationModel applicationModel,
-        IEnumerable<Service> services,
-        IEnumerable<Endpoint> endpoints,
-        Container container,
-        List<EnvVar>? additionalEnvVars)
+    private ContainerViewModel ConvertToContainerViewModel(Container container, List<EnvVar>? additionalEnvVars)
     {
         var model = new ContainerViewModel
         {
@@ -357,7 +345,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
             Image = container.Spec.Image!,
             LogSource = new DockerContainerLogSource(container.Status!.ContainerId!),
             State = container.Status?.State,
-            ExpectedEndpointsCount = GetExpectedEndpointsCount(services, container)
+            ExpectedEndpointsCount = GetExpectedEndpointsCount(_servicesMap.Values, container)
         };
 
         if (container.Spec.Ports != null)
@@ -371,7 +359,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
             }
         }
 
-        FillEndpoints(applicationModel, services, endpoints, container, model);
+        FillEndpoints(container, model, ResourceKind.Container);
 
         if (additionalEnvVars is not null)
         {
@@ -385,8 +373,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
         return model;
     }
 
-    private static ExecutableViewModel ConvertToExecutableViewModel(
-        DistributedApplicationModel applicationModel, IEnumerable<Service> services, IEnumerable<Endpoint> endpoints, Executable executable)
+    private ExecutableViewModel ConvertToExecutableViewModel(Executable executable)
     {
         var model = new ExecutableViewModel
         {
@@ -400,10 +387,10 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
             State = executable.Status?.State,
             LogSource = new FileLogSource(executable.Status?.StdOutFile, executable.Status?.StdErrFile),
             ProcessId = executable.Status?.ProcessId,
-            ExpectedEndpointsCount = GetExpectedEndpointsCount(services, executable)
+            ExpectedEndpointsCount = GetExpectedEndpointsCount(_servicesMap.Values, executable)
         };
 
-        FillEndpoints(applicationModel, services, endpoints, executable, model);
+        FillEndpoints(executable, model, ResourceKind.Executable);
 
         if (executable.Status?.EffectiveEnv is not null)
         {
@@ -412,8 +399,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
         return model;
     }
 
-    private static ProjectViewModel ConvertToProjectViewModel(
-        DistributedApplicationModel applicationModel, IEnumerable<Service> services, IEnumerable<Endpoint> endpoints, Executable executable)
+    private ProjectViewModel ConvertToProjectViewModel(Executable executable)
     {
         var model = new ProjectViewModel
         {
@@ -425,10 +411,10 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
             State = executable.Status?.State,
             LogSource = new FileLogSource(executable.Status?.StdOutFile, executable.Status?.StdErrFile),
             ProcessId = executable.Status?.ProcessId,
-            ExpectedEndpointsCount = GetExpectedEndpointsCount(services, executable)
+            ExpectedEndpointsCount = GetExpectedEndpointsCount(_servicesMap.Values, executable)
         };
 
-        FillEndpoints(applicationModel, services, endpoints, executable, model);
+        FillEndpoints(executable, model, ResourceKind.Executable);
 
         if (executable.Status?.EffectiveEnv is not null)
         {
@@ -437,28 +423,26 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
         return model;
     }
 
-    private static void FillEndpoints(
-        DistributedApplicationModel applicationModel,
-        IEnumerable<Service> services,
-        IEnumerable<Endpoint> endpoints,
+    private void FillEndpoints(
         CustomResource resource,
-        ResourceViewModel resourceViewModel)
+        ResourceViewModel resourceViewModel,
+        ResourceKind resourceKind)
     {
-        foreach (var endpoint in endpoints)
+        foreach (var endpoint in _endpointsMap.Values)
         {
             if (endpoint.Metadata.OwnerReferences?.Any(or => or.Kind == resource.Kind && or.Name == resource.Metadata.Name) != true)
             {
                 continue;
             }
 
-            var matchingService = services.SingleOrDefault(s => s.Metadata.Name == endpoint.Spec.ServiceName);
+            var matchingService = _servicesMap.Values.SingleOrDefault(s => s.Metadata.Name == endpoint.Spec.ServiceName);
             if (matchingService?.UsesHttpProtocol(out var uriScheme) == true)
             {
                 var endpointString = $"{uriScheme}://{endpoint.Spec.Address}:{endpoint.Spec.Port}";
 
                 // For project look into launch profile to append launch url
                 if (resourceViewModel is ProjectViewModel projectViewModel
-                    && applicationModel.TryGetProjectWithPath(projectViewModel.ProjectPath, out var project)
+                    && _applicationModel.TryGetProjectWithPath(projectViewModel.ProjectPath, out var project)
                     && project.GetEffectiveLaunchProfile() is LaunchProfile launchProfile
                     && launchProfile.LaunchUrl is string launchUrl)
                 {
@@ -469,27 +453,14 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
             }
         }
 
-        var resourceApplicationModel = applicationModel.Resources.FirstOrDefault(r => r.Name == resourceViewModel.Name);
-        if (resourceApplicationModel?.TryGetAllocatedEndPoints(out var allocatedEndPoints) ?? false)
+        if (_resourceAssociatedServicesMap.TryGetValue((resourceKind, resourceViewModel.Name), out var resourceServiceMappings))
         {
-            if (allocatedEndPoints.Count() == 1)
+            foreach (var serviceName in resourceServiceMappings)
             {
-                var service = services.FirstOrDefault(s => s.Metadata.Name == resourceViewModel.Name);
+                var service = _servicesMap.Values.FirstOrDefault(s => s.Metadata.Name == resourceViewModel.Name);
                 if (service != null)
                 {
                     resourceViewModel.Services.Add(new ResourceService(service.Metadata.Name, service.AllocatedAddress, service.AllocatedPort));
-                }
-            }
-            else
-            {
-                foreach (var allocatedEndPoint in allocatedEndPoints)
-                {
-                    var serviceName = resourceApplicationModel.Name + "_" + allocatedEndPoint.Name;
-                    var service = services.FirstOrDefault(s => s.Metadata.Name == serviceName);
-                    if (service != null)
-                    {
-                        resourceViewModel.Services.Add(new ResourceService(service.Metadata.Name, service.AllocatedAddress, service.AllocatedPort));
-                    }
                 }
             }
         }
