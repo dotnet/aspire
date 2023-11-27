@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Xml;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 using Microsoft.Extensions.Configuration;
@@ -31,11 +30,8 @@ internal sealed class AutomaticManifestPublisherBindingInjectionHook(IOptions<Pu
 
     private static bool IsWebProject(ProjectResource projectResource)
     {
-        var serviceMetadata = projectResource.GetServiceMetadata();
-        using var projectFileStream = File.OpenRead(serviceMetadata.ProjectPath);
-        var document = new XmlDocument();
-        document.Load(projectFileStream);
-        return document.DocumentElement?.GetAttribute("Sdk") == "Microsoft.NET.Sdk.Web";
+        var launchProfile = projectResource.GetEffectiveLaunchProfile();
+        return launchProfile?.ApplicationUrl != null;
     }
 
     public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
