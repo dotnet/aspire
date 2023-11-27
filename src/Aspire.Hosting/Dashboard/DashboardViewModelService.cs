@@ -473,6 +473,31 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
                 resourceViewModel.Endpoints.Add(endpointString);
             }
         }
+
+        var resourceApplicationModel = applicationModel.Resources.FirstOrDefault(r => r.Name == resourceViewModel.Name);
+        if (resourceApplicationModel?.TryGetAllocatedEndPoints(out var allocatedEndPoints) ?? false)
+        {
+            if (allocatedEndPoints.Count() == 1)
+            {
+                var service = services.FirstOrDefault(s => s.Metadata.Name == resourceViewModel.Name);
+                if (service != null)
+                {
+                    resourceViewModel.Services.Add(new ResourceService(service.Metadata.Name, service.AllocatedAddress, service.AllocatedPort));
+                }
+            }
+            else
+            {
+                foreach (var allocatedEndPoint in allocatedEndPoints)
+                {
+                    var serviceName = resourceApplicationModel.Name + "_" + allocatedEndPoint.Name;
+                    var service = services.FirstOrDefault(s => s.Metadata.Name == serviceName);
+                    if (service != null)
+                    {
+                        resourceViewModel.Services.Add(new ResourceService(service.Metadata.Name, service.AllocatedAddress, service.AllocatedPort));
+                    }
+                }
+            }
+        }
     }
 
     private static int? GetExpectedEndpointsCount(IEnumerable<Service> services, CustomResource resource)

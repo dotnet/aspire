@@ -86,6 +86,7 @@ public class DashboardWebApplication : IHostedService
         // OTLP services.
         builder.Services.AddGrpc();
         builder.Services.AddSingleton<TelemetryRepository>();
+        builder.Services.AddSingleton<IOutgoingPeerResolver, ResourceOutgoingPeerResolver>();
         builder.Services.AddTransient<StructuredLogsViewModel>();
         builder.Services.AddTransient<TracesViewModel>();
 
