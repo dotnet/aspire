@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
+using Aspire.Dashboard.Otlp.Model;
 
 namespace Aspire.Dashboard.Model;
 
@@ -55,20 +57,26 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
         await RaisePeerChangesAsync().ConfigureAwait(false);
     }
 
-    public string ResolvePeerName(string networkAddress)
+    public bool TryResolvePeerName(OtlpSpan span, [NotNullWhen(true)] out string? name)
     {
-        foreach (var (resourceName, resource) in _resourceNameMapping)
+        var address = OtlpHelpers.GetValue(span.Attributes, OtlpSpan.PeerServiceAttributeKey);
+        if (address != null)
         {
-            foreach (var service in resource.Services)
+            foreach (var (resourceName, resource) in _resourceNameMapping)
             {
-                if (string.Equals(service.AddressAndPort, networkAddress, StringComparison.OrdinalIgnoreCase))
+                foreach (var service in resource.Services)
                 {
-                    return resource.Name;
+                    if (string.Equals(service.AddressAndPort, address, StringComparison.OrdinalIgnoreCase))
+                    {
+                        name = resource.Name;
+                        return true;
+                    }
                 }
             }
         }
 
-        return networkAddress;
+        name = null;
+        return false;
     }
 
     public IDisposable OnPeerChanges(Func<Task> callback)
