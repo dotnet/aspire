@@ -3,7 +3,13 @@
     "statestore": {
       "type": "dapr.component.v0",
       "daprComponent": {
-        "type": "statestore"
+        "type": "state"
+      }
+    },
+    "pubsub": {
+      "type": "dapr.component.v0",
+      "daprComponent": {
+        "type": "pubsub"
       }
     },
     "servicea": {
@@ -50,15 +56,21 @@
       "type": "dapr.v0",
       "dapr": {
         "application": "servicea",
+        "appId": "service-a",
         "components": [
-          "statestore"
+          "statestore",
+          "pubsub"
         ]
       }
     },
     "service-b": {
       "type": "dapr.v0",
       "dapr": {
-        "application": "serviceb"
+        "application": "serviceb",
+        "appId": "service-b",
+        "components": [
+          "pubsub"
+        ]
       }
     }
   }
