@@ -6,13 +6,13 @@ using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Components.Layout;
 
-public partial class MainLayout
+public partial class NavMenu
 {
     public async Task LaunchSettings()
     {
         DialogParameters parameters = new()
         {
-            Title = $"Settings",
+            Title = "Settings",
             PrimaryAction = "Close",
             PrimaryActionEnabled = true,
             SecondaryAction = null,
@@ -26,3 +26,4 @@ public partial class MainLayout
         _ = await dialogService.ShowPanelAsync<SettingsDialog>(parameters).ConfigureAwait(true);
     }
 }
+

@@ -1,9 +1,8 @@
 ﻿@using Aspire.Dashboard.Components.Dialogs
-@using Aspire.Dashboard.Components.CustomIcons;
+@using Aspire.Dashboard.Components.CustomIcons
 @using Aspire.Dashboard.Model
 @using Microsoft.AspNetCore.Http
 @inject IDashboardViewModelService dashboardViewModelService
-@inject IDialogService dialogService
 @inherits LayoutComponentBase
 
 <div class="layout">
@@ -20,8 +19,6 @@
             <FluentAnchor Appearance="Appearance.Stealth" IconEnd="@(new Icons.Regular.Size24.QuestionCircle())"
                           Href="https://aka.ms/dotnet/aspire/dashboard" Target="_blank" Rel="noreferrer noopener"
                           Title="Help" aria-label="Help" />
-            <FluentButton Appearance="Appearance.Stealth" OnClick="LaunchSettings" IconEnd="@(new Icons.Regular.Size24.Settings())"
-                          Title="Launch Settings" aria-label="Launch Settings" />
         </div>
     </FluentHeader>
     <NavMenu />
