@@ -2,8 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
-using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Publishing;
 
 namespace Aspire.Hosting;
 
@@ -25,9 +25,9 @@ public static class AzureResourceExtensions
                       .WithAnnotation(new ManifestPublishingCallbackAnnotation(WriteAzureKeyVaultToManifest));
     }
 
-    private static void WriteAzureKeyVaultToManifest(Utf8JsonWriter jsonWriter)
+    private static void WriteAzureKeyVaultToManifest(ManifestPublishingContext context)
     {
-        jsonWriter.WriteString("type", "azure.keyvault.v0");
+        context.Writer.WriteString("type", "azure.keyvault.v0");
     }
 
     /// <summary>
@@ -47,31 +47,31 @@ public static class AzureResourceExtensions
         };
 
         return builder.AddResource(resource)
-                      .WithAnnotation(new ManifestPublishingCallbackAnnotation(jsonWriter => WriteAzureServiceBusToManifest(resource, jsonWriter)));
+                      .WithAnnotation(new ManifestPublishingCallbackAnnotation(context => WriteAzureServiceBusToManifest(resource, context)));
     }
 
-    private static void WriteAzureServiceBusToManifest(AzureServiceBusResource resource, Utf8JsonWriter jsonWriter)
+    private static void WriteAzureServiceBusToManifest(AzureServiceBusResource resource, ManifestPublishingContext context)
     {
-        jsonWriter.WriteString("type", "azure.servicebus.v0");
+        context.Writer.WriteString("type", "azure.servicebus.v0");
 
         if (resource.QueueNames.Length > 0)
         {
-            jsonWriter.WriteStartArray("queues");
+            context.Writer.WriteStartArray("queues");
             foreach (var queueName in resource.QueueNames)
             {
-                jsonWriter.WriteStringValue(queueName);
+                context.Writer.WriteStringValue(queueName);
             }
-            jsonWriter.WriteEndArray();
+            context.Writer.WriteEndArray();
         }
 
         if (resource.TopicNames.Length > 0)
         {
-            jsonWriter.WriteStartArray("topics");
+            context.Writer.WriteStartArray("topics");
             foreach (var topicName in resource.TopicNames)
             {
-                jsonWriter.WriteStringValue(topicName);
+                context.Writer.WriteStringValue(topicName);
             }
-            jsonWriter.WriteEndArray();
+            context.Writer.WriteEndArray();
         }
     }
 
@@ -88,9 +88,9 @@ public static class AzureResourceExtensions
                       .WithAnnotation(new ManifestPublishingCallbackAnnotation(WriteAzureStorageToManifest));
     }
 
-    private static void WriteAzureStorageToManifest(Utf8JsonWriter jsonWriter)
+    private static void WriteAzureStorageToManifest(ManifestPublishingContext context)
     {
-        jsonWriter.WriteString("type", "azure.storage.v0");
+        context.Writer.WriteString("type", "azure.storage.v0");
     }
 
     /// <summary>
@@ -103,13 +103,13 @@ public static class AzureResourceExtensions
     {
         var resource = new AzureBlobStorageResource(name, storageBuilder.Resource);
         return storageBuilder.ApplicationBuilder.AddResource(resource)
-                             .WithAnnotation(new ManifestPublishingCallbackAnnotation(json => WriteBlobStorageToManifest(json, resource)));
+                             .WithAnnotation(new ManifestPublishingCallbackAnnotation(context => WriteBlobStorageToManifest(context, resource)));
     }
 
-    private static void WriteBlobStorageToManifest(Utf8JsonWriter json, AzureBlobStorageResource resource)
+    private static void WriteBlobStorageToManifest(ManifestPublishingContext context, AzureBlobStorageResource resource)
     {
-        json.WriteString("type", "azure.storage.blob.v0");
-        json.WriteString("parent", resource.Parent.Name);
+        context.Writer.WriteString("type", "azure.storage.blob.v0");
+        context.Writer.WriteString("parent", resource.Parent.Name);
     }
 
     /// <summary>
@@ -122,13 +122,13 @@ public static class AzureResourceExtensions
     {
         var resource = new AzureTableStorageResource(name, storageBuilder.Resource);
         return storageBuilder.ApplicationBuilder.AddResource(resource)
-                             .WithAnnotation(new ManifestPublishingCallbackAnnotation(json => WriteTableStorageToManifest(json, resource)));
+                             .WithAnnotation(new ManifestPublishingCallbackAnnotation(context => WriteTableStorageToManifest(context, resource)));
     }
 
-    private static void WriteTableStorageToManifest(Utf8JsonWriter json, AzureTableStorageResource resource)
+    private static void WriteTableStorageToManifest(ManifestPublishingContext context, AzureTableStorageResource resource)
     {
-        json.WriteString("type", "azure.storage.table.v0");
-        json.WriteString("parent", resource.Parent.Name);
+        context.Writer.WriteString("type", "azure.storage.table.v0");
+        context.Writer.WriteString("parent", resource.Parent.Name);
     }
 
     /// <summary>
@@ -141,13 +141,13 @@ public static class AzureResourceExtensions
     {
         var resource = new AzureQueueStorageResource(name, builder.Resource);
         return builder.ApplicationBuilder.AddResource(resource)
-                             .WithAnnotation(new ManifestPublishingCallbackAnnotation(json => WriteQueueStorageToManifest(json, resource)));
+                             .WithAnnotation(new ManifestPublishingCallbackAnnotation(context => WriteQueueStorageToManifest(context, resource)));
     }
 
-    private static void WriteQueueStorageToManifest(Utf8JsonWriter json, AzureQueueStorageResource resource)
+    private static void WriteQueueStorageToManifest(ManifestPublishingContext context, AzureQueueStorageResource resource)
     {
-        json.WriteString("type", "azure.storage.queue.v0");
-        json.WriteString("parent", resource.Parent.Name);
+        context.Writer.WriteString("type", "azure.storage.queue.v0");
+        context.Writer.WriteString("parent", resource.Parent.Name);
     }
 
     /// <summary>
@@ -179,9 +179,9 @@ public static class AzureResourceExtensions
             .WithAnnotation(new ManifestPublishingCallbackAnnotation(WriteAzureRedisToManifest));
     }
 
-    private static void WriteAzureRedisToManifest(Utf8JsonWriter writer)
+    private static void WriteAzureRedisToManifest(ManifestPublishingContext context)
     {
-        writer.WriteString("type", "azure.redis.v0");
+        context.Writer.WriteString("type", "azure.redis.v0");
     }
 
     /// <summary>
@@ -197,9 +197,9 @@ public static class AzureResourceExtensions
             .WithAnnotation(new ManifestPublishingCallbackAnnotation(WriteAzureAppConfigurationToManifest));
     }
 
-    private static void WriteAzureAppConfigurationToManifest(Utf8JsonWriter writer)
+    private static void WriteAzureAppConfigurationToManifest(ManifestPublishingContext context)
     {
-        writer.WriteString("type", "azure.appconfiguration.v0");
+        context.Writer.WriteString("type", "azure.appconfiguration.v0");
     }
 
     /// <summary>
@@ -215,9 +215,9 @@ public static class AzureResourceExtensions
                       .WithAnnotation(new ManifestPublishingCallbackAnnotation(WriteSqlServerToManifest));
     }
 
-    private static void WriteSqlServerToManifest(Utf8JsonWriter jsonWriter)
+    private static void WriteSqlServerToManifest(ManifestPublishingContext context)
     {
-        jsonWriter.WriteString("type", "azure.sql.v0");
+        context.Writer.WriteString("type", "azure.sql.v0");
     }
 
     /// <summary>
@@ -230,12 +230,12 @@ public static class AzureResourceExtensions
     {
         var resource = new AzureSqlDatabaseResource(name, serverBuilder.Resource);
         return serverBuilder.ApplicationBuilder.AddResource(resource)
-                            .WithAnnotation(new ManifestPublishingCallbackAnnotation(json => WriteSqlDatabaseToManifest(json, resource)));
+                            .WithAnnotation(new ManifestPublishingCallbackAnnotation(context => WriteSqlDatabaseToManifest(context, resource)));
     }
 
-    private static void WriteSqlDatabaseToManifest(Utf8JsonWriter json, AzureSqlDatabaseResource resource)
+    private static void WriteSqlDatabaseToManifest(ManifestPublishingContext context, AzureSqlDatabaseResource resource)
     {
-        json.WriteString("type", "azure.sql.database.v0");
-        json.WriteString("parent", resource.Parent.Name);
+        context.Writer.WriteString("type", "azure.sql.database.v0");
+        context.Writer.WriteString("parent", resource.Parent.Name);
     }
 }

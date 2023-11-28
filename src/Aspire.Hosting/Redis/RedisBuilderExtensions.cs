@@ -2,8 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
-using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Publishing;
 
 namespace Aspire.Hosting;
 
@@ -39,19 +39,19 @@ public static class RedisBuilderExtensions
     {
         var redis = new RedisResource(name, connectionString);
         return builder.AddResource(redis)
-                      .WithAnnotation(new ManifestPublishingCallbackAnnotation(jsonWriter =>
-                        WriteRedisResourceToManifest(jsonWriter, redis.GetConnectionString())));
+                      .WithAnnotation(new ManifestPublishingCallbackAnnotation(context =>
+                        WriteRedisResourceToManifest(context, redis.GetConnectionString())));
     }
 
-    private static void WriteRedisResourceToManifest(Utf8JsonWriter jsonWriter) =>
-        WriteRedisResourceToManifest(jsonWriter, null);
+    private static void WriteRedisResourceToManifest(ManifestPublishingContext context) =>
+        WriteRedisResourceToManifest(context, null);
 
-    private static void WriteRedisResourceToManifest(Utf8JsonWriter jsonWriter, string? connectionString)
+    private static void WriteRedisResourceToManifest(ManifestPublishingContext context, string? connectionString)
     {
-        jsonWriter.WriteString("type", "redis.v0");
+        context.Writer.WriteString("type", "redis.v0");
         if (!string.IsNullOrEmpty(connectionString))
         {
-            jsonWriter.WriteString("connectionString", connectionString);
+            context.Writer.WriteString("connectionString", connectionString);
         }
     }
 }

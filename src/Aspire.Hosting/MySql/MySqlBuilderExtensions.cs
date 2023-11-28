@@ -2,8 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
-using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Publishing;
 
 namespace Aspire.Hosting;
 
@@ -45,7 +45,7 @@ public static class MySqlBuilderExtensions
         var mySqlConnection = new MySqlConnectionResource(name, connectionString);
 
         return builder.AddResource(mySqlConnection)
-            .WithAnnotation(new ManifestPublishingCallbackAnnotation((json) => WriteMySqlConnectionToManifest(json, mySqlConnection)));
+            .WithAnnotation(new ManifestPublishingCallbackAnnotation((context) => WriteMySqlConnectionToManifest(context, mySqlConnection)));
     }
 
     /// <summary>
@@ -59,23 +59,23 @@ public static class MySqlBuilderExtensions
         var mySqlDatabase = new MySqlDatabaseResource(name, builder.Resource);
         return builder.ApplicationBuilder.AddResource(mySqlDatabase)
                                          .WithAnnotation(new ManifestPublishingCallbackAnnotation(
-                                             (json) => WriteMySqlDatabaseToManifest(json, mySqlDatabase)));
+                                             (context) => WriteMySqlDatabaseToManifest(context, mySqlDatabase)));
     }
 
-    private static void WriteMySqlConnectionToManifest(Utf8JsonWriter jsonWriter, MySqlConnectionResource mySqlConnection)
+    private static void WriteMySqlConnectionToManifest(ManifestPublishingContext context, MySqlConnectionResource mySqlConnection)
     {
-        jsonWriter.WriteString("type", "mysql.connection.v0");
-        jsonWriter.WriteString("connectionString", mySqlConnection.GetConnectionString());
+        context.Writer.WriteString("type", "mysql.connection.v0");
+        context.Writer.WriteString("connectionString", mySqlConnection.GetConnectionString());
     }
 
-    private static void WriteMySqlContainerToManifest(Utf8JsonWriter jsonWriter)
+    private static void WriteMySqlContainerToManifest(ManifestPublishingContext context)
     {
-        jsonWriter.WriteString("type", "mysql.server.v0");
+        context.Writer.WriteString("type", "mysql.server.v0");
     }
 
-    private static void WriteMySqlDatabaseToManifest(Utf8JsonWriter json, MySqlDatabaseResource mySqlDatabase)
+    private static void WriteMySqlDatabaseToManifest(ManifestPublishingContext context, MySqlDatabaseResource mySqlDatabase)
     {
-        json.WriteString("type", "mysql.database.v0");
-        json.WriteString("parent", mySqlDatabase.Parent.Name);
+        context.Writer.WriteString("type", "mysql.database.v0");
+        context.Writer.WriteString("parent", mySqlDatabase.Parent.Name);
     }
 }

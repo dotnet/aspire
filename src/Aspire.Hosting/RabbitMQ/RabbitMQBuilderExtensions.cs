@@ -2,8 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
-using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Publishing;
 
 namespace Aspire.Hosting;
 
@@ -44,16 +44,16 @@ public static class RabbitMQBuilderExtensions
         var rabbitMqConnection = new RabbitMQConnectionResource(name, connectionString);
 
         return builder.AddResource(rabbitMqConnection)
-            .WithAnnotation(new ManifestPublishingCallbackAnnotation((json) => WriteRabbitMQConnectionToManifest(json, rabbitMqConnection)));
+            .WithAnnotation(new ManifestPublishingCallbackAnnotation((context) => WriteRabbitMQConnectionToManifest(context, rabbitMqConnection)));
     }
-    private static void WriteRabbitMQContainerToManifest(Utf8JsonWriter json)
+    private static void WriteRabbitMQContainerToManifest(ManifestPublishingContext context)
     {
-        json.WriteString("type", "rabbitmq.server.v0");
+        context.Writer.WriteString("type", "rabbitmq.server.v0");
     }
 
-    private static void WriteRabbitMQConnectionToManifest(Utf8JsonWriter json, RabbitMQConnectionResource rabbitMqConnection)
+    private static void WriteRabbitMQConnectionToManifest(ManifestPublishingContext context, RabbitMQConnectionResource rabbitMqConnection)
     {
-        json.WriteString("type", "rabbitmq.connection.v0");
-        json.WriteString("connectionString", rabbitMqConnection.GetConnectionString());
+        context.Writer.WriteString("type", "rabbitmq.connection.v0");
+        context.Writer.WriteString("connectionString", rabbitMqConnection.GetConnectionString());
     }
 }

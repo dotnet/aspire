@@ -2,8 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
-using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Publishing;
 
 namespace Aspire.Hosting;
 
@@ -46,7 +46,7 @@ public static class PostgresBuilderExtensions
         var postgresConnection = new PostgresConnectionResource(name, connectionString);
 
         return builder.AddResource(postgresConnection)
-            .WithAnnotation(new ManifestPublishingCallbackAnnotation((json) => WritePostgresConnectionToManifest(json, postgresConnection)));
+            .WithAnnotation(new ManifestPublishingCallbackAnnotation((context) => WritePostgresConnectionToManifest(context, postgresConnection)));
     }
 
     /// <summary>
@@ -60,23 +60,23 @@ public static class PostgresBuilderExtensions
         var postgresDatabase = new PostgresDatabaseResource(name, builder.Resource);
         return builder.ApplicationBuilder.AddResource(postgresDatabase)
                                          .WithAnnotation(new ManifestPublishingCallbackAnnotation(
-                                             (json) => WritePostgresDatabaseToManifest(json, postgresDatabase)));
+                                             (context) => WritePostgresDatabaseToManifest(context, postgresDatabase)));
     }
 
-    private static void WritePostgresConnectionToManifest(Utf8JsonWriter jsonWriter, PostgresConnectionResource postgresConnection)
+    private static void WritePostgresConnectionToManifest(ManifestPublishingContext context, PostgresConnectionResource postgresConnection)
     {
-        jsonWriter.WriteString("type", "postgres.connection.v0");
-        jsonWriter.WriteString("connectionString", postgresConnection.GetConnectionString());
+        context.Writer.WriteString("type", "postgres.connection.v0");
+        context.Writer.WriteString("connectionString", postgresConnection.GetConnectionString());
     }
 
-    private static void WritePostgresContainerToManifest(Utf8JsonWriter jsonWriter)
+    private static void WritePostgresContainerToManifest(ManifestPublishingContext context)
     {
-        jsonWriter.WriteString("type", "postgres.server.v0");
+        context.Writer.WriteString("type", "postgres.server.v0");
     }
 
-    private static void WritePostgresDatabaseToManifest(Utf8JsonWriter json, PostgresDatabaseResource postgresDatabase)
+    private static void WritePostgresDatabaseToManifest(ManifestPublishingContext context, PostgresDatabaseResource postgresDatabase)
     {
-        json.WriteString("type", "postgres.database.v0");
-        json.WriteString("parent", postgresDatabase.Parent.Name);
+        context.Writer.WriteString("type", "postgres.database.v0");
+        context.Writer.WriteString("parent", postgresDatabase.Parent.Name);
     }
 }
