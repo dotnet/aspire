@@ -24,8 +24,11 @@ public sealed class BrowserLinkOutgoingPeerResolver : IOutgoingPeerResolver
     {
         // There isn't a good way to identify the HTTP request the BrowserLink middleware makes to
         // the IDE to get the script tag. The logic below looks at the host and URL and identifies
-        // the HTTP request by its shape. There is the chance future BrowserLink changes to make this
-        // detection invalid. Also, it's possible to mis-identify a HTTP request.
+        // the HTTP request by its shape.
+        // Example URL: http://localhost:59267/6eed7c2dedc14419901b813e8fe87a86/getScriptTag
+        //
+        // There is the chance future BrowserLink changes make this detection invalid.
+        // Also, it's possible to misidentify a HTTP request.
         //
         // A long term improvement here is to add tags to the BrowserLink client and then detect the
         // values in the span's attributes.

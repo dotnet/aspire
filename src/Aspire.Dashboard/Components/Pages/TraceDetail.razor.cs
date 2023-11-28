@@ -115,6 +115,7 @@ public partial class TraceDetail : ComponentBase
 
     private static string? ResolveUninstrumentedPeerName(OtlpSpan span, IEnumerable<IOutgoingPeerResolver> outgoingPeerResolvers)
     {
+        // Attempt to resolve uninstrumented peer to a friendly name from the span.
         foreach (var resolver in outgoingPeerResolvers)
         {
             if (resolver.TryResolvePeerName(span, out var name))
@@ -123,6 +124,7 @@ public partial class TraceDetail : ComponentBase
             }
         }
 
+        // Fallback to the peer address.
         return OtlpHelpers.GetValue(span.Attributes, OtlpSpan.PeerServiceAttributeKey);
     }
 
