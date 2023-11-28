@@ -13,10 +13,10 @@ namespace Aspire.Dashboard.Components.Pages;
 
 public partial class TraceDetail : ComponentBase
 {
+    private readonly List<IDisposable> _peerChangesSubscriptions = new();
     private OtlpTrace? _trace;
     private OtlpSpan? _span;
     private Subscription? _tracesSubscription;
-    private IDisposable? _peerChangesSubscription;
     private List<SpanWaterfallViewModel>? _spanWaterfallViewModels;
     private int _maxDepth;
 
@@ -36,11 +36,11 @@ public partial class TraceDetail : ComponentBase
     {
         foreach (var resolver in OutgoingPeerResolvers)
         {
-            _peerChangesSubscription = resolver.OnPeerChanges(async () =>
+            _peerChangesSubscriptions.Add(resolver.OnPeerChanges(async () =>
             {
                 UpdateDetailViewData();
                 await InvokeAsync(StateHasChanged);
-            });
+            }));
         }
     }
 
@@ -199,7 +199,10 @@ public partial class TraceDetail : ComponentBase
 
     public void Dispose()
     {
-        _peerChangesSubscription?.Dispose();
+        foreach (var subscription in _peerChangesSubscriptions)
+        {
+            subscription.Dispose();
+        }
         _tracesSubscription?.Dispose();
     }
 }
