@@ -213,6 +213,10 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                             }
                             writer.WriteEndArray();
                         }
+                        if (sidecarOptions?.LogLevel is not null)
+                        {
+                            writer.WriteString("logLevel", sidecarOptions.LogLevel);
+                        }
                         writer.WriteEndObject();
                     }));
 
