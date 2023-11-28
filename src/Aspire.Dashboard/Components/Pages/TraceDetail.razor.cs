@@ -16,6 +16,7 @@ public partial class TraceDetail
     private OtlpTrace? _trace;
     private OtlpSpan? _span;
     private Subscription? _tracesSubscription;
+    private IDisposable? _peerChangesSubscription;
     private List<SpanWaterfallViewModel>? _spanWaterfallViewModels;
     private int _maxDepth;
 
@@ -28,6 +29,18 @@ public partial class TraceDetail
     [Inject]
     public required TelemetryRepository TelemetryRepository { get; set; }
 
+    [Inject]
+    public required IOutgoingPeerResolver OutgoingPeerResolver { get; set; }
+
+    protected override void OnInitialized()
+    {
+        _peerChangesSubscription = OutgoingPeerResolver.OnPeerChanges(async () =>
+        {
+            UpdateDetailViewData();
+            await InvokeAsync(StateHasChanged);
+        });
+    }
+
     private ValueTask<GridItemsProviderResult<SpanWaterfallViewModel>> GetData(GridItemsProviderRequest<SpanWaterfallViewModel> request)
     {
         Debug.Assert(_spanWaterfallViewModels != null);
@@ -39,34 +52,34 @@ public partial class TraceDetail
         });
     }
 
-    private static List<SpanWaterfallViewModel> CreateSpanWaterfallViewModels(OtlpTrace trace)
+    private static List<SpanWaterfallViewModel> CreateSpanWaterfallViewModels(OtlpTrace trace, IOutgoingPeerResolver outgoingPeerResolver)
     {
         var orderedSpans = new List<SpanWaterfallViewModel>();
         // There should be one root span but just in case, we'll add them all.
         foreach (var rootSpan in trace.Spans.Where(s => string.IsNullOrEmpty(s.ParentSpanId)).OrderBy(s => s.StartTime))
         {
-            AddSelfAndChildren(orderedSpans, rootSpan, depth: 1, CreateViewModel);
+            AddSelfAndChildren(orderedSpans, rootSpan, depth: 1, outgoingPeerResolver, CreateViewModel);
         }
         // Unparented spans.
         foreach (var unparentedSpan in trace.Spans.Where(s => !string.IsNullOrEmpty(s.ParentSpanId) && s.GetParentSpan() == null).OrderBy(s => s.StartTime))
         {
-            AddSelfAndChildren(orderedSpans, unparentedSpan, depth: 1, CreateViewModel);
+            AddSelfAndChildren(orderedSpans, unparentedSpan, depth: 1, outgoingPeerResolver, CreateViewModel);
         }
 
         return orderedSpans;
 
-        static void AddSelfAndChildren(List<SpanWaterfallViewModel> orderedSpans, OtlpSpan span, int depth, Func<OtlpSpan, int, SpanWaterfallViewModel> createViewModel)
+        static void AddSelfAndChildren(List<SpanWaterfallViewModel> orderedSpans, OtlpSpan span, int depth, IOutgoingPeerResolver outgoingPeerResolver, Func<OtlpSpan, int, IOutgoingPeerResolver, SpanWaterfallViewModel> createViewModel)
         {
-            orderedSpans.Add(createViewModel(span, depth));
+            orderedSpans.Add(createViewModel(span, depth, outgoingPeerResolver));
             depth++;
 
             foreach (var child in span.GetChildSpans().OrderBy(s => s.StartTime))
             {
-                AddSelfAndChildren(orderedSpans, child, depth, createViewModel);
+                AddSelfAndChildren(orderedSpans, child, depth, outgoingPeerResolver, createViewModel);
             }
         }
 
-        static SpanWaterfallViewModel CreateViewModel(OtlpSpan span, int depth)
+        static SpanWaterfallViewModel CreateViewModel(OtlpSpan span, int depth, IOutgoingPeerResolver outgoingPeerResolver)
         {
             var traceStart = span.Trace.FirstSpan.StartTime;
             var relativeStart = span.StartTime - traceStart;
@@ -82,6 +95,13 @@ public partial class TraceDetail
             // A span may indicate a call to another service but the service isn't instrumented.
             var hasPeerService = span.Attributes.Any(a => a.Key == OtlpSpan.PeerServiceAttributeKey);
             var isUninstrumentedPeer = hasPeerService && span.Kind is OtlpSpanKind.Client or OtlpSpanKind.Producer && !span.GetChildSpans().Any();
+            var uninstrumentedPeer = isUninstrumentedPeer
+                ? OtlpHelpers.GetValue(span.Attributes, OtlpSpan.PeerServiceAttributeKey)
+                : null;
+            if (uninstrumentedPeer != null)
+            {
+                uninstrumentedPeer = outgoingPeerResolver.ResolvePeerName(uninstrumentedPeer);
+            }
 
             var viewModel = new SpanWaterfallViewModel
             {
@@ -90,7 +110,7 @@ public partial class TraceDetail
                 Width = width,
                 Depth = depth,
                 LabelIsRight = labelIsRight,
-                UninstrumentedPeer = isUninstrumentedPeer ? OtlpHelpers.GetValue(span.Attributes, OtlpSpan.PeerServiceAttributeKey) : null
+                UninstrumentedPeer = uninstrumentedPeer
             };
             return viewModel;
         }
@@ -111,7 +131,7 @@ public partial class TraceDetail
             _trace = TelemetryRepository.GetTrace(TraceId);
             if (_trace != null)
             {
-                _spanWaterfallViewModels = CreateSpanWaterfallViewModels(_trace);
+                _spanWaterfallViewModels = CreateSpanWaterfallViewModels(_trace, OutgoingPeerResolver);
                 _maxDepth = _spanWaterfallViewModels.Max(s => s.Depth);
 
                 if (_tracesSubscription is null || _tracesSubscription.ApplicationId != _trace.FirstSpan.Source.InstanceId)
@@ -169,6 +189,7 @@ public partial class TraceDetail
 
     public void Dispose()
     {
+        _peerChangesSubscription?.Dispose();
         _tracesSubscription?.Dispose();
     }
 }
