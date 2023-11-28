@@ -245,7 +245,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
         await StopOnDemandDaprComponentsAsync().ConfigureAwait(false);
     }
 
-    private async Task<IImmutableDictionary<string, string>> StartOnDemandDaprComponentsAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
+    private async Task<IReadOnlyDictionary<string, string>> StartOnDemandDaprComponentsAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
     {
         var onDemandComponents =
             appModel
@@ -254,25 +254,20 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                 .Where(component => component.Options?.LocalPath is null)
                 .ToList();
 
-        var onDemandResourcesPaths = ImmutableDictionary<string, string>.Empty;
+        var onDemandResourcesPaths = new Dictionary<string, string>();
 
         if (onDemandComponents.Any())
         {
             _logger.LogInformation("Starting Dapr-related resources...");
 
-            string tempPath = Path.GetTempPath();
-            string tempDirectory = Path.Combine(tempPath, "aspire", "dapr", Path.GetRandomFileName());
-
-            Directory.CreateDirectory(tempDirectory);
-
-            _onDemandResourcesRootPath = tempDirectory;
+            _onDemandResourcesRootPath = Directory.CreateTempSubdirectory("aspire-dapr.").FullName;
 
             foreach (var component in onDemandComponents)
             {
                 Func<string, Task<string>> contentWriter =
                     async content =>
                     {
-                        string componentDirectory = Path.Combine(tempDirectory, component.Name);
+                        string componentDirectory = Path.Combine(_onDemandResourcesRootPath, component.Name);
 
                         Directory.CreateDirectory(componentDirectory);
 
@@ -290,7 +285,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                     _ => throw new InvalidOperationException($"Unsupported Dapr component type '{component.Type}'.")
                 }).ConfigureAwait(false);
 
-                onDemandResourcesPaths = onDemandResourcesPaths.Add(component.Name, componentPath);
+                onDemandResourcesPaths.Add(component.Name, componentPath);
             }
         }
 
@@ -303,7 +298,14 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
         {
             _logger.LogInformation("Stopping Dapr-related resources...");
 
-            Directory.Delete(_onDemandResourcesRootPath, recursive: true);
+            try
+            {
+                Directory.Delete(_onDemandResourcesRootPath, recursive: true);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to delete temporary Dapr resources directory: {OnDemandResourcesRootPath}", _onDemandResourcesRootPath);
+            }
         }
 
         return Task.CompletedTask;

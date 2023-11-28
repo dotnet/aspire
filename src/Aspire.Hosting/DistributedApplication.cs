@@ -112,8 +112,15 @@ public class DistributedApplication : IHost, IAsyncDisposable
     public async Task StopAsync(CancellationToken cancellationToken = default)
     {
         var lifecycleHooks = _host.Services.GetServices<IDistributedApplicationLifecycleHook>();
-        await _host.StopAsync(cancellationToken).ConfigureAwait(false);
-        await ExecuteAfterStopHooksAsync(lifecycleHooks, cancellationToken).ConfigureAwait(false);
+
+        try
+        {
+            await _host.StopAsync(cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            await ExecuteAfterStopHooksAsync(lifecycleHooks, cancellationToken).ConfigureAwait(false);
+        }
     }
 
     private void SuppressLifetimeLogsDuringManifestPublishing()
@@ -140,8 +147,15 @@ public class DistributedApplication : IHost, IAsyncDisposable
         SuppressLifetimeLogsDuringManifestPublishing();
         var lifecycleHooks = _host.Services.GetServices<IDistributedApplicationLifecycleHook>();
         await ExecuteBeforeStartHooksAsync(lifecycleHooks, cancellationToken).ConfigureAwait(false);
-        await _host.RunAsync(cancellationToken).ConfigureAwait(false);
-        await ExecuteAfterStopHooksAsync(lifecycleHooks, cancellationToken).ConfigureAwait(false);
+
+        try
+        {
+            await _host.RunAsync(cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            await ExecuteAfterStopHooksAsync(lifecycleHooks, cancellationToken).ConfigureAwait(false);
+        }
     }
 
     /// <summary>
