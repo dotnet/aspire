@@ -18,7 +18,7 @@
     <FluentToolbar Orientation="Orientation.Horizontal">
         @if (!string.IsNullOrEmpty(TraceId))
         {
-            <FluentButton OnClick="@GoBackToTrace">Back to Traces</FluentButton>
+            <FluentButton Appearance="Appearance.Accent" OnClick="@GoBackToTrace">Back to Traces</FluentButton>
         }
         <FluentSelect TOption="SelectViewModel<string>"
                       Items="@_applications"
@@ -60,7 +60,7 @@
             }
         }
         <FluentButton slot="end" Appearance="Appearance.Stealth" aria-label="Add Filter" OnClick="() => OpenFilterAsync(null)"><FluentIcon Value="@(new Icons.Regular.Size16.Filter())" /></FluentButton>
-    </FluentToolbar>
+        </FluentToolbar>
     <SummaryDetailsView DetailsTitle="Log Entry Details" ShowDetails="SelectedLogEntryProperties is not null" OnDismiss="() => ClearSelectedLogEntry()">
         <Summary>
             <div class="logs-summary-layout">
