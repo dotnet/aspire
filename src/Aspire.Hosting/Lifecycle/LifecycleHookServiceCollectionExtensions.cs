@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Aspire.Hosting.Lifecycle;
 
@@ -17,7 +18,7 @@ public static class LifecycleHookServiceCollectionExtensions
     /// <param name="services">The <see cref="IServiceCollection"/> to add the distributed application lifecycle hook to.</param>
     public static void AddLifecycleHook<T>(this IServiceCollection services) where T : class, IDistributedApplicationLifecycleHook
     {
-        services.AddSingleton<IDistributedApplicationLifecycleHook, T>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IDistributedApplicationLifecycleHook, T>());
     }
 
     /// <summary>
@@ -28,6 +29,6 @@ public static class LifecycleHookServiceCollectionExtensions
     /// <param name="implementationFactory">A factory function that creates the hook implementation.</param>
     public static void AddLifecycleHook<T>(this IServiceCollection services, Func<IServiceProvider, T> implementationFactory) where T : class, IDistributedApplicationLifecycleHook
     {
-        services.AddSingleton<IDistributedApplicationLifecycleHook, T>(implementationFactory);
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IDistributedApplicationLifecycleHook, T>(implementationFactory));
     }
 }
