@@ -297,6 +297,5 @@ internal sealed class AspireEventSource : EventSource
         {
             WriteEvent(32);
         }
-
     }
 }
