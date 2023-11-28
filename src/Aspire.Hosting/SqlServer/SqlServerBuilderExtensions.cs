@@ -26,7 +26,7 @@ public static class SqlServerBuilderExtensions
         var sqlServer = new SqlServerContainerResource(name, password);
 
         return builder.AddResource(sqlServer)
-                      .WithAnnotation(new ManifestPublishingCallbackAnnotation(WriteSqlServerContainerToManifest))
+                      .WithManifestPublishingCallback(WriteSqlServerContainerToManifest)
                       .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, port: port, containerPort: 1433))
                       .WithAnnotation(new ContainerImageAnnotation { Registry = "mcr.microsoft.com", Image = "mssql/server", Tag = "2022-latest" })
                       .WithEnvironment("ACCEPT_EULA", "Y")
@@ -45,7 +45,7 @@ public static class SqlServerBuilderExtensions
         var sqlServerConnection = new SqlServerConnectionResource(name, connectionString);
 
         return builder.AddResource(sqlServerConnection)
-                      .WithAnnotation(new ManifestPublishingCallbackAnnotation(context => WriteSqlServerConnectionToManifest(context, sqlServerConnection)));
+                      .WithManifestPublishingCallback(context => WriteSqlServerConnectionToManifest(context, sqlServerConnection));
     }
 
     private static void WriteSqlServerConnectionToManifest(ManifestPublishingContext context, SqlServerConnectionResource sqlServerConnection)
@@ -75,7 +75,6 @@ public static class SqlServerBuilderExtensions
     {
         var sqlServerDatabase = new SqlServerDatabaseResource(name, builder.Resource);
         return builder.ApplicationBuilder.AddResource(sqlServerDatabase)
-                                         .WithAnnotation(new ManifestPublishingCallbackAnnotation(
-                                             (json) => WriteSqlServerDatabaseToManifest(json, sqlServerDatabase)));
+                                         .WithManifestPublishingCallback(context => WriteSqlServerDatabaseToManifest(context, sqlServerDatabase));
     }
 }

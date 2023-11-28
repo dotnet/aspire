@@ -34,9 +34,7 @@ public static class ExecutableResourceBuilderExtensions
     /// <returns></returns>
     public static IResourceBuilder<T> WithDockerfile<T>(this IResourceBuilder<T> builder) where T : ExecutableResource
     {
-        return builder.WithAnnotation(
-            new ManifestPublishingCallbackAnnotation(context => WriteExecutableAsDockerfileResource(context, builder.Resource))
-            );
+        return builder.WithManifestPublishingCallback(context => WriteExecutableAsDockerfileResource(context, builder.Resource));
     }
 
     private static void WriteExecutableAsDockerfileResource(ManifestPublishingContext context, ExecutableResource executable)

@@ -27,7 +27,7 @@ public static class PostgresBuilderExtensions
         password = password ?? Guid.NewGuid().ToString("N");
         var postgresContainer = new PostgresContainerResource(name, password);
         return builder.AddResource(postgresContainer)
-                      .WithAnnotation(new ManifestPublishingCallbackAnnotation(WritePostgresContainerToManifest))
+                      .WithManifestPublishingCallback(WritePostgresContainerToManifest)
                       .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, port: port, containerPort: 5432)) // Internal port is always 5432.
                       .WithAnnotation(new ContainerImageAnnotation { Image = "postgres", Tag = "latest" })
                       .WithEnvironment("POSTGRES_HOST_AUTH_METHOD", "trust")
@@ -46,7 +46,7 @@ public static class PostgresBuilderExtensions
         var postgresConnection = new PostgresConnectionResource(name, connectionString);
 
         return builder.AddResource(postgresConnection)
-            .WithAnnotation(new ManifestPublishingCallbackAnnotation((context) => WritePostgresConnectionToManifest(context, postgresConnection)));
+            .WithManifestPublishingCallback(context => WritePostgresConnectionToManifest(context, postgresConnection));
     }
 
     /// <summary>
@@ -59,8 +59,7 @@ public static class PostgresBuilderExtensions
     {
         var postgresDatabase = new PostgresDatabaseResource(name, builder.Resource);
         return builder.ApplicationBuilder.AddResource(postgresDatabase)
-                                         .WithAnnotation(new ManifestPublishingCallbackAnnotation(
-                                             (context) => WritePostgresDatabaseToManifest(context, postgresDatabase)));
+                                         .WithManifestPublishingCallback(context => WritePostgresDatabaseToManifest(context, postgresDatabase));
     }
 
     private static void WritePostgresConnectionToManifest(ManifestPublishingContext context, PostgresConnectionResource postgresConnection)

@@ -27,7 +27,7 @@ public static class RabbitMQBuilderExtensions
                        .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, port: port, containerPort: 5672))
                        .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, uriScheme: "http", name: "management", port: null, containerPort: 15672))
                        .WithAnnotation(new ContainerImageAnnotation { Image = "rabbitmq", Tag = "3-management" })
-                       .WithAnnotation(new ManifestPublishingCallbackAnnotation(WriteRabbitMQContainerToManifest))
+                       .WithManifestPublishingCallback(WriteRabbitMQContainerToManifest)
                        .WithEnvironment("RABBITMQ_DEFAULT_USER", "guest")
                        .WithEnvironment("RABBITMQ_DEFAULT_PASS", () => rabbitMq.Password ?? "guest");
     }
@@ -44,7 +44,7 @@ public static class RabbitMQBuilderExtensions
         var rabbitMqConnection = new RabbitMQConnectionResource(name, connectionString);
 
         return builder.AddResource(rabbitMqConnection)
-            .WithAnnotation(new ManifestPublishingCallbackAnnotation((context) => WriteRabbitMQConnectionToManifest(context, rabbitMqConnection)));
+            .WithManifestPublishingCallback(context => WriteRabbitMQConnectionToManifest(context, rabbitMqConnection));
     }
     private static void WriteRabbitMQContainerToManifest(ManifestPublishingContext context)
     {

@@ -1,10 +1,5 @@
 {
   "resources": {
-    "pinger": {
-      "type": "dockerfile.v0",
-      "path": "..\\pinger\\Dockerfile",
-      "context": "..\\pinger"
-    },
     "postgres": {
       "type": "postgres.server.v0"
     },

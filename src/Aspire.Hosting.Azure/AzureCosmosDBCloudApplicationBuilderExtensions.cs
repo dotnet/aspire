@@ -26,7 +26,7 @@ public static class AzureCosmosDBCloudApplicationBuilderExtensions
     {
         var connection = new AzureCosmosDBResource(name, connectionString);
         return builder.AddResource(connection)
-                      .WithAnnotation(new ManifestPublishingCallbackAnnotation(context => WriteCosmosDBToManifest(context, connection)));
+                      .WithManifestPublishingCallback(context => WriteCosmosDBToManifest(context, connection));
     }
 
     private static void WriteCosmosDBToManifest(ManifestPublishingContext context, AzureCosmosDBResource cosmosDb)

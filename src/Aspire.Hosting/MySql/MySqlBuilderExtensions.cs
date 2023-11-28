@@ -27,7 +27,7 @@ public static class MySqlBuilderExtensions
         password ??= Guid.NewGuid().ToString("N");
         var mySqlContainer = new MySqlContainerResource(name, password);
         return builder.AddResource(mySqlContainer)
-                      .WithAnnotation(new ManifestPublishingCallbackAnnotation(WriteMySqlContainerToManifest))
+                      .WithManifestPublishingCallback(WriteMySqlContainerToManifest)
                       .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, port: port, containerPort: 3306)) // Internal port is always 3306.
                       .WithAnnotation(new ContainerImageAnnotation { Image = "mysql", Tag = "latest" })
                       .WithEnvironment(PasswordEnvVarName, () => mySqlContainer.Password);
@@ -45,7 +45,7 @@ public static class MySqlBuilderExtensions
         var mySqlConnection = new MySqlConnectionResource(name, connectionString);
 
         return builder.AddResource(mySqlConnection)
-            .WithAnnotation(new ManifestPublishingCallbackAnnotation((context) => WriteMySqlConnectionToManifest(context, mySqlConnection)));
+            .WithManifestPublishingCallback((context) => WriteMySqlConnectionToManifest(context, mySqlConnection));
     }
 
     /// <summary>
@@ -58,8 +58,7 @@ public static class MySqlBuilderExtensions
     {
         var mySqlDatabase = new MySqlDatabaseResource(name, builder.Resource);
         return builder.ApplicationBuilder.AddResource(mySqlDatabase)
-                                         .WithAnnotation(new ManifestPublishingCallbackAnnotation(
-                                             (context) => WriteMySqlDatabaseToManifest(context, mySqlDatabase)));
+                                         .WithManifestPublishingCallback(context => WriteMySqlDatabaseToManifest(context, mySqlDatabase));
     }
 
     private static void WriteMySqlConnectionToManifest(ManifestPublishingContext context, MySqlConnectionResource mySqlConnection)

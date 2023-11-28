@@ -22,7 +22,7 @@ public static class AzureResourceExtensions
     {
         var keyVault = new AzureKeyVaultResource(name);
         return builder.AddResource(keyVault)
-                      .WithAnnotation(new ManifestPublishingCallbackAnnotation(WriteAzureKeyVaultToManifest));
+                      .WithManifestPublishingCallback(WriteAzureKeyVaultToManifest);
     }
 
     private static void WriteAzureKeyVaultToManifest(ManifestPublishingContext context)
@@ -47,7 +47,7 @@ public static class AzureResourceExtensions
         };
 
         return builder.AddResource(resource)
-                      .WithAnnotation(new ManifestPublishingCallbackAnnotation(context => WriteAzureServiceBusToManifest(resource, context)));
+                      .WithManifestPublishingCallback(context => WriteAzureServiceBusToManifest(resource, context));
     }
 
     private static void WriteAzureServiceBusToManifest(AzureServiceBusResource resource, ManifestPublishingContext context)
@@ -85,7 +85,7 @@ public static class AzureResourceExtensions
     {
         var resource = new AzureStorageResource(name);
         return builder.AddResource(resource)
-                      .WithAnnotation(new ManifestPublishingCallbackAnnotation(WriteAzureStorageToManifest));
+                      .WithManifestPublishingCallback(WriteAzureStorageToManifest);
     }
 
     private static void WriteAzureStorageToManifest(ManifestPublishingContext context)
@@ -103,7 +103,7 @@ public static class AzureResourceExtensions
     {
         var resource = new AzureBlobStorageResource(name, storageBuilder.Resource);
         return storageBuilder.ApplicationBuilder.AddResource(resource)
-                             .WithAnnotation(new ManifestPublishingCallbackAnnotation(context => WriteBlobStorageToManifest(context, resource)));
+                             .WithManifestPublishingCallback(context => WriteBlobStorageToManifest(context, resource));
     }
 
     private static void WriteBlobStorageToManifest(ManifestPublishingContext context, AzureBlobStorageResource resource)
@@ -122,7 +122,7 @@ public static class AzureResourceExtensions
     {
         var resource = new AzureTableStorageResource(name, storageBuilder.Resource);
         return storageBuilder.ApplicationBuilder.AddResource(resource)
-                             .WithAnnotation(new ManifestPublishingCallbackAnnotation(context => WriteTableStorageToManifest(context, resource)));
+                             .WithManifestPublishingCallback(context => WriteTableStorageToManifest(context, resource));
     }
 
     private static void WriteTableStorageToManifest(ManifestPublishingContext context, AzureTableStorageResource resource)
@@ -141,7 +141,7 @@ public static class AzureResourceExtensions
     {
         var resource = new AzureQueueStorageResource(name, builder.Resource);
         return builder.ApplicationBuilder.AddResource(resource)
-                             .WithAnnotation(new ManifestPublishingCallbackAnnotation(context => WriteQueueStorageToManifest(context, resource)));
+                             .WithManifestPublishingCallback(context => WriteQueueStorageToManifest(context, resource));
     }
 
     private static void WriteQueueStorageToManifest(ManifestPublishingContext context, AzureQueueStorageResource resource)
@@ -176,7 +176,7 @@ public static class AzureResourceExtensions
     {
         var resource = new AzureRedisResource(name);
         return builder.AddResource(resource)
-            .WithAnnotation(new ManifestPublishingCallbackAnnotation(WriteAzureRedisToManifest));
+            .WithManifestPublishingCallback(WriteAzureRedisToManifest);
     }
 
     private static void WriteAzureRedisToManifest(ManifestPublishingContext context)
@@ -194,7 +194,7 @@ public static class AzureResourceExtensions
     {
         var resource = new AzureAppConfigurationResource(name);
         return builder.AddResource(resource)
-            .WithAnnotation(new ManifestPublishingCallbackAnnotation(WriteAzureAppConfigurationToManifest));
+            .WithManifestPublishingCallback(WriteAzureAppConfigurationToManifest);
     }
 
     private static void WriteAzureAppConfigurationToManifest(ManifestPublishingContext context)
@@ -212,7 +212,7 @@ public static class AzureResourceExtensions
     {
         var resource = new AzureSqlServerResource(name);
         return builder.AddResource(resource)
-                      .WithAnnotation(new ManifestPublishingCallbackAnnotation(WriteSqlServerToManifest));
+                      .WithManifestPublishingCallback(WriteSqlServerToManifest);
     }
 
     private static void WriteSqlServerToManifest(ManifestPublishingContext context)
@@ -230,7 +230,7 @@ public static class AzureResourceExtensions
     {
         var resource = new AzureSqlDatabaseResource(name, serverBuilder.Resource);
         return serverBuilder.ApplicationBuilder.AddResource(resource)
-                            .WithAnnotation(new ManifestPublishingCallbackAnnotation(context => WriteSqlDatabaseToManifest(context, resource)));
+                            .WithManifestPublishingCallback(context => WriteSqlDatabaseToManifest(context, resource));
     }
 
     private static void WriteSqlDatabaseToManifest(ManifestPublishingContext context, AzureSqlDatabaseResource resource)

@@ -23,7 +23,7 @@ public static class RedisBuilderExtensions
     {
         var redis = new RedisContainerResource(name);
         return builder.AddResource(redis)
-                      .WithAnnotation(new ManifestPublishingCallbackAnnotation(WriteRedisResourceToManifest))
+                      .WithManifestPublishingCallback(WriteRedisResourceToManifest)
                       .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, port: port, containerPort: 6379))
                       .WithAnnotation(new ContainerImageAnnotation { Image = "redis", Tag = "latest" });
     }
@@ -39,8 +39,7 @@ public static class RedisBuilderExtensions
     {
         var redis = new RedisResource(name, connectionString);
         return builder.AddResource(redis)
-                      .WithAnnotation(new ManifestPublishingCallbackAnnotation(context =>
-                        WriteRedisResourceToManifest(context, redis.GetConnectionString())));
+                      .WithManifestPublishingCallback(context => WriteRedisResourceToManifest(context, redis.GetConnectionString()));
     }
 
     private static void WriteRedisResourceToManifest(ManifestPublishingContext context) =>
