@@ -32,7 +32,7 @@ public class ManifestGenerationTests
     public void EnsureExecutablesWithDockerfileProduceDockerfilev0Manifest()
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher(includeNodeApp: true);
-        program.NodeAppBuilder!.WithDockerfile();
+        program.NodeAppBuilder!.AsDockerfileInManifest();
 
         // Build AppHost so that publisher can be resolved.
         program.Build();
