@@ -21,6 +21,8 @@ public static class ExecutableResourceBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{ExecutableResource}"/>.</returns>
     public static IResourceBuilder<ExecutableResource> AddExecutable(this IDistributedApplicationBuilder builder, string name, string command, string workingDirectory, params string[]? args)
     {
+        workingDirectory = Path.GetFullPath(Path.Combine(builder.ProjectDirectory, workingDirectory));
+
         var executable = new ExecutableResource(name, command, workingDirectory, args);
         return builder.AddResource(executable);
     }

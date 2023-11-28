@@ -11,13 +11,11 @@ namespace Aspire.Hosting.Publishing;
 
 public class ManifestPublisher(ILogger<ManifestPublisher> logger,
                                IOptions<PublishingOptions> options,
-                               IHostApplicationLifetime lifetime,
-                               DistributedApplicationOptions applicationOptions) : IDistributedApplicationPublisher
+                               IHostApplicationLifetime lifetime) : IDistributedApplicationPublisher
 {
     private readonly ILogger<ManifestPublisher> _logger = logger;
     private readonly IOptions<PublishingOptions> _options = options;
     private readonly IHostApplicationLifetime _lifetime = lifetime;
-    private readonly string? _appHostProjectDirectory = applicationOptions.ProjectDirectory;
 
     public Utf8JsonWriter? JsonWriter { get; set; }
 
@@ -247,12 +245,7 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger,
         var manifestPath = _options.Value.OutputPath ?? throw new DistributedApplicationException("Output path not specified");
         var fullyQualifiedManifestPath = Path.GetFullPath(manifestPath);
         var manifestDirectory = Path.GetDirectoryName(fullyQualifiedManifestPath) ?? throw new DistributedApplicationException("Could not get directory name of output path");
-
-        var fullPath = _appHostProjectDirectory is null
-            ? Path.GetFullPath(executable.WorkingDirectory)
-            : Path.GetFullPath(Path.Combine(_appHostProjectDirectory, executable.WorkingDirectory));
-
-        var relativePathToProjectFile = Path.GetRelativePath(manifestDirectory, fullPath);
+        var relativePathToProjectFile = Path.GetRelativePath(manifestDirectory, executable.WorkingDirectory);
         jsonWriter.WriteString("workingDirectory", relativePathToProjectFile);
 
         jsonWriter.WriteString("command", executable.Command);
