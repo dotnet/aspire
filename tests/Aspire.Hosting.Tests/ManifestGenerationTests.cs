@@ -29,6 +29,33 @@ public class ManifestGenerationTests
     }
 
     [Fact]
+    public void EnsureExecutablesWithDockerfileProduceDockerfilev0Manifest()
+    {
+        var program = CreateTestProgramJsonDocumentManifestPublisher(includeNodeApp: true);
+        program.NodeAppBuilder!.WithDockerfile();
+
+        // Build AppHost so that publisher can be resolved.
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+
+        // NPM app should still be executable.v0
+        var npmapp = resources.GetProperty("npmapp");
+        Assert.Equal("executable.v0", npmapp.GetProperty("type").GetString());
+
+        // Node app should now be dockerfile.v0
+        var nodeapp = resources.GetProperty("nodeapp");
+        Assert.Equal("dockerfile.v0", nodeapp.GetProperty("type").GetString());
+        Assert.True(nodeapp.TryGetProperty("path", out _));
+        Assert.True(nodeapp.TryGetProperty("context", out _));
+        Assert.True(nodeapp.TryGetProperty("env", out _));
+        Assert.True(nodeapp.TryGetProperty("bindings", out _));
+    }
+
+    [Fact]
     public void EnsureContainerWithServiceBindingsEmitsContainerPort()
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher();
@@ -274,10 +301,10 @@ public class ManifestGenerationTests
         AssertNodeResource(npmApp, "npm", ["run", "start"]);
     }
 
-    private static TestProgram CreateTestProgramJsonDocumentManifestPublisher()
+    private static TestProgram CreateTestProgramJsonDocumentManifestPublisher(bool includeNodeApp = false)
     {
         var manifestPath = Path.GetTempFileName();
-        var program = TestProgram.Create<ManifestGenerationTests>(["--publisher", "manifest", "--output-path", manifestPath]);
+        var program = TestProgram.Create<ManifestGenerationTests>(["--publisher", "manifest", "--output-path", manifestPath], includeNodeApp: includeNodeApp);
         program.AppBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, JsonDocumentManifestPublisher>("manifest");
         return program;
     }

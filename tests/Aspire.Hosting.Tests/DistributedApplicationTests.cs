@@ -277,11 +277,11 @@ public class DistributedApplicationTests(ITestOutputHelper testOutputHelper)
         await testProgram.ServiceABuilder.HttpGetPidAsync(client, "http", cts.Token);
         await testProgram.ServiceBBuilder.HttpGetPidAsync(client, "http", cts.Token);
         await testProgram.ServiceCBuilder.HttpGetPidAsync(client, "http", cts.Token);
-        await testProgram.IntegrationServiceA!.HttpGetPidAsync(client, "http", cts.Token);
+        await testProgram.IntegrationServiceABuilder!.HttpGetPidAsync(client, "http", cts.Token);
 
         // We wait until timeout for the /health endpoint to return successfully. We assume
         // that components wired up into this project have health checks enabled.
-        await testProgram.IntegrationServiceA!.WaitForHealthyStatus(client, "http", cts.Token);
+        await testProgram.IntegrationServiceABuilder!.WaitForHealthyStatus(client, "http", cts.Token);
     }
 
     [LocalOnlyFact("node")]
@@ -306,8 +306,8 @@ public class DistributedApplicationTests(ITestOutputHelper testOutputHelper)
 
         await app.StartAsync(cts.Token);
 
-        var response0 = await testProgram.NodeApp!.HttpGetAsync(client, "http", "/", cts.Token);
-        var response1 = await testProgram.NpmApp!.HttpGetAsync(client, "http", "/", cts.Token);
+        var response0 = await testProgram.NodeAppBuilder!.HttpGetAsync(client, "http", "/", cts.Token);
+        var response1 = await testProgram.NpmAppBuilder!.HttpGetAsync(client, "http", "/", cts.Token);
 
         Assert.Equal("Hello from node!", response0);
         Assert.Equal("Hello from node!", response1);
