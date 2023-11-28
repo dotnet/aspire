@@ -9,7 +9,8 @@ updates:
     registries:
       - public-nuget
     schedule:
-      interval: daily
+      interval: weekly
+      day: "sunday"
       time: "07:00"
       timezone: "America/Los_Angeles"
     open-pull-requests-limit: 15
@@ -47,5 +48,11 @@ updates:
       Grpc:
         patterns:
           - "Grpc.*"
+      Yarp:
+        patterns:
+          - "Yarp.*"
+      Misc:
+        patterns:
+          - "*"
     labels:
       - "area-codeflow"
