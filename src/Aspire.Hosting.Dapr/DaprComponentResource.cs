@@ -5,21 +5,24 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Dapr;
 
-public interface IDaprComponentResource : IResource
-{
-    string Type { get; }
-
-    DaprComponentOptions? Options { get; }
-}
-
+/// <summary>
+/// Represents a Dapr component resource.
+/// </summary>
 public sealed class DaprComponentResource : Resource, IDaprComponentResource
 {
+    /// <summary>
+    /// Initializes a new instance of <see cref="DaprComponentResource"/>.
+    /// </summary>
+    /// <param name="name">The resource name.</param>
+    /// <param name="type">The Dapr component type. This may be a generic "state" or "pubsub" if Aspire should choose an appropriate type when running or deploying.</param>
     public DaprComponentResource(string name, string type) : base(name)
     {
         this.Type = type;
     }
 
+    /// <inheritdoc/>
     public string Type { get; }
 
+    /// <inheritdoc/>
     public DaprComponentOptions? Options { get; init; }
 }

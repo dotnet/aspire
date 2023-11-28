@@ -247,11 +247,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
 
     private async Task<IImmutableDictionary<string, string>> StartOnDemandDaprComponentsAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
     {
-        // TODO: See if any Dapr component resources exist.
-        // TODO: If so, see which specify local paths.
-        // TODO: For those that don't, spin up appropriate ones.
-
-        var virtualDaprComponents =
+        var onDemandComponents =
             appModel
                 .Resources
                 .OfType<DaprComponentResource>()
@@ -260,19 +256,18 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
 
         var onDemandResourcesPaths = ImmutableDictionary<string, string>.Empty;
 
-        if (virtualDaprComponents.Any())
+        if (onDemandComponents.Any())
         {
             _logger.LogInformation("Starting Dapr-related resources...");
 
             string tempPath = Path.GetTempPath();
             string tempDirectory = Path.Combine(tempPath, "aspire", "dapr", Path.GetRandomFileName());
 
-            // TODO: Delete temp directory on shutdown.
             Directory.CreateDirectory(tempDirectory);
 
             _onDemandResourcesRootPath = tempDirectory;
 
-            foreach (var component in virtualDaprComponents)
+            foreach (var component in onDemandComponents)
             {
                 Func<string, Task<string>> contentWriter =
                     async content =>

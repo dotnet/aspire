@@ -5,12 +5,10 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Dapr;
 
-internal sealed class DaprComponentReferenceAnnotation : IResourceAnnotation
+/// <summary>
+/// Indicates that a Dapr component should be used with the sidecar for the associated resource.
+/// </summary>
+/// <param name="Component">The Dapr component to use.</param>
+public sealed record DaprComponentReferenceAnnotation(IDaprComponentResource Component) : IResourceAnnotation
 {
-    public DaprComponentReferenceAnnotation(IDaprComponentResource component)
-    {
-        Component = component;
-    }
-
-    public IDaprComponentResource Component { get; init; }
 }
