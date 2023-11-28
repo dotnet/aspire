@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
@@ -22,6 +22,13 @@ public sealed class BrowserLinkOutgoingPeerResolver : IOutgoingPeerResolver
 
     public bool TryResolvePeerName(OtlpSpan span, [NotNullWhen(true)] out string? name)
     {
+        // There isn't a good way to identify the HTTP request the BrowserLink middleware makes to
+        // the IDE to get the script tag. The logic below looks at the host and URL and identifies
+        // the HTTP request by its shape. There is the chance future BrowserLink changes to make this
+        // detection invalid. Also, it's possible to mis-identify a HTTP request.
+        //
+        // A long term improvement here is to add tags to the BrowserLink client and then detect the
+        // values in the span's attributes.
         var url = OtlpHelpers.GetValue(span.Attributes, "http.url");
         if (url != null && Uri.TryCreate(url, UriKind.Absolute, out var uri))
         {
