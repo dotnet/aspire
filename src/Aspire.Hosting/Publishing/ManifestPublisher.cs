@@ -47,7 +47,8 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger,
 
     protected async Task WriteManifestAsync(DistributedApplicationModel model, Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
     {
-        var context = new ManifestPublishingContext(jsonWriter);
+        var manifestPath = _options.Value.OutputPath ?? throw new DistributedApplicationException("The '--output-path [path]' option was not specified even though '--publish manifest' argument was used.");
+        var context = new ManifestPublishingContext(manifestPath, jsonWriter);
 
         jsonWriter.WriteStartObject();
         WriteResources(model, context);
@@ -223,7 +224,7 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger,
         WriteBindings(container, context, emitContainerPort: true);
     }
 
-    private void WriteProject(ProjectResource project, ManifestPublishingContext context)
+    private static void WriteProject(ProjectResource project, ManifestPublishingContext context)
     {
         context.Writer.WriteString("type", "project.v0");
 
@@ -232,10 +233,8 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger,
             throw new DistributedApplicationException("Service metadata not found.");
         }
 
-        var manifestPath = _options.Value.OutputPath ?? throw new DistributedApplicationException("Output path not specified");
-        var fullyQualifiedManifestPath = Path.GetFullPath(manifestPath);
-        var manifestDirectory = Path.GetDirectoryName(fullyQualifiedManifestPath) ?? throw new DistributedApplicationException("Could not get directory name of output path");
-        var relativePathToProjectFile = Path.GetRelativePath(manifestDirectory, metadata.ProjectPath);
+        var relativePathToProjectFile = context.GetManifestRelativePath(metadata.ProjectPath);
+
         context.Writer.WriteString("path", relativePathToProjectFile);
 
         WriteEnvironmentVariables(project, context);

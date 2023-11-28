@@ -5,7 +5,18 @@ using System.Text.Json;
 
 namespace Aspire.Hosting.Publishing;
 
-public sealed class ManifestPublishingContext(Utf8JsonWriter writer)
+public sealed class ManifestPublishingContext(string manifestPath, Utf8JsonWriter writer)
 {
+    public string ManifestPath { get; } = manifestPath;
+
     public Utf8JsonWriter Writer { get; } = writer;
+
+    public string GetManifestRelativePath(string path)
+    {
+        var fullyQualifiedManifestPath = Path.GetFullPath(ManifestPath);
+        var manifestDirectory = Path.GetDirectoryName(fullyQualifiedManifestPath) ?? throw new DistributedApplicationException("Could not get directory name of output path");
+        var relativePath = Path.GetRelativePath(manifestDirectory, path);
+
+        return relativePath;
+    }
 }

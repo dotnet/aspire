@@ -42,8 +42,13 @@ public static class ExecutableResourceBuilderExtensions
     private static void WriteExecutableAsDockerfileResource(ManifestPublishingContext context, ExecutableResource executable)
     {
         context.Writer.WriteString("type", "dockerfile.v0");
-        context.Writer.WriteString("path", Path.Combine(executable.WorkingDirectory, "Dockerfile"));
-        context.Writer.WriteString("context", executable.WorkingDirectory);
+
+        var appHostRelativePathToDockerfile = Path.Combine(executable.WorkingDirectory, "Dockerfile");
+        var manifestFileRelativePathToDockerfile = context.GetManifestRelativePath(appHostRelativePathToDockerfile);
+        context.Writer.WriteString("path", manifestFileRelativePathToDockerfile);
+
+        var manifestFileRelativePathToContextDirectory = context.GetManifestRelativePath(executable.WorkingDirectory);
+        context.Writer.WriteString("context", manifestFileRelativePathToContextDirectory);
 
         ManifestPublisher.WriteEnvironmentVariables(executable, context);
         ManifestPublisher.WriteBindings(executable, context, true);
