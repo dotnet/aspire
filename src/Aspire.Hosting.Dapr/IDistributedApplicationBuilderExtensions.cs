@@ -38,21 +38,24 @@ public static class IDistributedApplicationBuilderExtensions
             .WithAnnotation(new ManifestPublishingCallbackAnnotation(writer => WriteDaprComponentResourceToManifest(writer, resource)));
     }
 
-    public static IResourceBuilder<IDaprComponentResource> AddDaprPubSub(this IDistributedApplicationBuilder builder, string name)
+    public static IResourceBuilder<IDaprComponentResource> AddDaprPubSub(this IDistributedApplicationBuilder builder, string name, DaprComponentOptions? options = null)
     {
-        return builder.AddDaprComponent(name, DaprConstants.BuildingBlocks.PubSub);
+        return builder.AddDaprComponent(name, DaprConstants.BuildingBlocks.PubSub, options);
     }
 
-    public static IResourceBuilder<IDaprComponentResource> AddDaprStateStore(this IDistributedApplicationBuilder builder, string name)
+    public static IResourceBuilder<IDaprComponentResource> AddDaprStateStore(this IDistributedApplicationBuilder builder, string name, DaprComponentOptions? options = null)
     {
-        return builder.AddDaprComponent(name, DaprConstants.BuildingBlocks.StateStore);
+        return builder.AddDaprComponent(name, DaprConstants.BuildingBlocks.StateStore, options);
     }
 
     private static void WriteDaprComponentResourceToManifest(Utf8JsonWriter writer, DaprComponentResource resource)
     {
         writer.WriteString("type", "dapr.component.v0");
         writer.WriteStartObject("daprComponent");
+
+        writer.TryWriteString("localPath", resource.Options?.LocalPath);
         writer.WriteString("type", resource.Type);
+
         writer.WriteEndObject();
     }
 }

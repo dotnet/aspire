@@ -203,20 +203,36 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                     {
                         writer.WriteString("type", "dapr.v0");
                         writer.WriteStartObject("dapr");
+
                         writer.WriteString("application", project.Name);
-                        if (componentReferenceAnnotations.Any())
-                        {
-                            writer.WriteStartArray("components");
-                            foreach (var componentReferenceAnnotation in componentReferenceAnnotations)
-                            {
-                                writer.WriteStringValue(componentReferenceAnnotation.Component.Name);
-                            }
-                            writer.WriteEndArray();
-                        }
-                        if (sidecarOptions?.LogLevel is not null)
-                        {
-                            writer.WriteString("logLevel", sidecarOptions.LogLevel);
-                        }
+                        writer.TryWriteString("appChannelAddress", sidecarOptions?.AppChannelAddress);
+                        writer.TryWriteString("appHealthCheckPath", sidecarOptions?.AppHealthCheckPath);
+                        writer.TryWriteNumber("appHealthProbeInterval", sidecarOptions?.AppHealthProbeInterval);
+                        writer.TryWriteNumber("appHealthProbeTimeout", sidecarOptions?.AppHealthProbeTimeout);
+                        writer.TryWriteNumber("appHealthThreshold", sidecarOptions?.AppHealthThreshold);
+                        writer.TryWriteString("appId", sidecarOptions?.AppId);
+                        writer.TryWriteNumber("appMaxConcurrency", sidecarOptions?.AppMaxConcurrency);
+                        writer.TryWriteNumber("appPort", sidecarOptions?.AppPort);
+                        writer.TryWriteString("appProtocol", sidecarOptions?.AppProtocol);
+                        writer.TryWriteStringArray("command", sidecarOptions?.Command);
+                        writer.TryWriteStringArray("components", componentReferenceAnnotations.Select(componentReferenceAnnotation => componentReferenceAnnotation.Component.Name));
+                        writer.TryWriteString("config", sidecarOptions?.Config);
+                        writer.TryWriteNumber("daprGrpcPort", sidecarOptions?.DaprGrpcPort);
+                        writer.TryWriteNumber("daprHttpMaxRequestSize", sidecarOptions?.DaprHttpMaxRequestSize);
+                        writer.TryWriteNumber("daprHttpPort", sidecarOptions?.DaprHttpPort);
+                        writer.TryWriteNumber("daprHttpReadBufferSize", sidecarOptions?.DaprHttpReadBufferSize);
+                        writer.TryWriteNumber("daprInternalGrpcPort", sidecarOptions?.DaprInternalGrpcPort);
+                        writer.TryWriteString("daprListenAddresses", sidecarOptions?.DaprListenAddresses);
+                        writer.TryWriteBoolean("enableApiLogging", sidecarOptions?.EnableApiLogging);
+                        writer.TryWriteBoolean("enableAppHealthCheck", sidecarOptions?.EnableAppHealthCheck);
+                        writer.TryWriteString("logLevel", sidecarOptions?.LogLevel);
+                        writer.TryWriteNumber("metricsPort", sidecarOptions?.MetricsPort);
+                        writer.TryWriteString("placementHostAddress", sidecarOptions?.PlacementHostAddress);
+                        writer.TryWriteNumber("profilePort", sidecarOptions?.ProfilePort);
+                        writer.TryWriteStringArray("resourcesPath", sidecarOptions?.ResourcesPaths);
+                        writer.TryWriteString("runFile", sidecarOptions?.RunFile);
+                        writer.TryWriteString("unixDomainSocket", sidecarOptions?.UnixDomainSocket);
+
                         writer.WriteEndObject();
                     }));
 
