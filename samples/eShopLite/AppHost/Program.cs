@@ -12,7 +12,7 @@ var catalogService = builder.AddProject<Projects.CatalogService>("catalogservice
 
 var messaging = builder.AddRabbitMQContainer("messaging");
 
-var basketService = builder.AddProject("basketservice", "..\\BasketService\\BasketService.csproj")
+var basketService = builder.AddProject("basketservice", @"..\BasketService\BasketService.csproj")
                     .WithReference(basketCache)
                     .WithReference(messaging);
 
