@@ -9,11 +9,15 @@ using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Publishing;
 
-public class ManifestPublisher(ILogger<ManifestPublisher> logger, IOptions<PublishingOptions> options, IHostApplicationLifetime lifetime) : IDistributedApplicationPublisher
+public class ManifestPublisher(ILogger<ManifestPublisher> logger,
+                               IOptions<PublishingOptions> options,
+                               IHostApplicationLifetime lifetime,
+                               DistributedApplicationOptions applicationOptions) : IDistributedApplicationPublisher
 {
     private readonly ILogger<ManifestPublisher> _logger = logger;
     private readonly IOptions<PublishingOptions> _options = options;
     private readonly IHostApplicationLifetime _lifetime = lifetime;
+    private readonly string? _appHostProjectDirectory = applicationOptions.ProjectDirectory;
 
     public Utf8JsonWriter? JsonWriter { get; set; }
 
@@ -88,7 +92,7 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger, IOptions<Publi
             WriteResourceObject(resource, () => WriteError(jsonWriter));
         }
 
-        void WriteResourceObject<T>(T resource, Action action) where T: IResource
+        void WriteResourceObject<T>(T resource, Action action) where T : IResource
         {
             jsonWriter.WriteStartObject(resource.Name);
             action();
@@ -152,7 +156,25 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger, IOptions<Publi
 
             WriteServiceDiscoveryEnvironmentVariables(resource, jsonWriter);
 
+            WritePortBindingEnvironmentVariables(resource, jsonWriter);
+
             jsonWriter.WriteEndObject();
+        }
+    }
+
+    private static void WritePortBindingEnvironmentVariables(IResource resource, Utf8JsonWriter jsonWriter)
+    {
+        if (resource.TryGetServiceBindings(out var serviceBindings))
+        {
+            foreach (var serviceBinding in serviceBindings)
+            {
+                if (serviceBinding.EnvironmentVariable is null)
+                {
+                    continue;
+                }
+
+                jsonWriter.WriteString(serviceBinding.EnvironmentVariable, $"{{bindings.{serviceBinding.Name}.port}}");
+            }
         }
     }
 
@@ -218,9 +240,29 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger, IOptions<Publi
         WriteBindings(project, jsonWriter);
     }
 
-    private static void WriteExecutable(ExecutableResource executable, Utf8JsonWriter jsonWriter)
+    private void WriteExecutable(ExecutableResource executable, Utf8JsonWriter jsonWriter)
     {
         jsonWriter.WriteString("type", "executable.v0");
+
+        var manifestPath = _options.Value.OutputPath ?? throw new DistributedApplicationException("Output path not specified");
+        var fullyQualifiedManifestPath = Path.GetFullPath(manifestPath);
+        var manifestDirectory = Path.GetDirectoryName(fullyQualifiedManifestPath) ?? throw new DistributedApplicationException("Could not get directory name of output path");
+
+        var fullPath = _appHostProjectDirectory is null
+            ? Path.GetFullPath(executable.WorkingDirectory)
+            : Path.GetFullPath(Path.Combine(_appHostProjectDirectory, executable.WorkingDirectory));
+
+        var relativePathToProjectFile = Path.GetRelativePath(manifestDirectory, fullPath);
+        jsonWriter.WriteString("workingDirectory", relativePathToProjectFile);
+
+        jsonWriter.WriteString("command", executable.Command);
+        jsonWriter.WriteStartArray("args");
+
+        foreach (var arg in executable.Args ?? [])
+        {
+            jsonWriter.WriteStringValue(arg);
+        }
+        jsonWriter.WriteEndArray();
 
         WriteEnvironmentVariables(executable, jsonWriter);
         WriteBindings(executable, jsonWriter);

@@ -44,7 +44,7 @@ internal sealed class ServiceAppResource : AppResource
     }
 }
 
-internal sealed class ApplicationExecutor(DistributedApplicationModel model, KubernetesService kubernetesService)
+internal sealed class ApplicationExecutor(DistributedApplicationModel model, KubernetesService kubernetesService, DistributedApplicationOptions options)
 {
     private const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
 
@@ -60,6 +60,8 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
 
     private readonly DistributedApplicationModel _model = model;
     private readonly List<AppResource> _appResources = new();
+
+    private readonly string? _appHostProjectDirectory = options.ProjectDirectory;
 
     public async Task RunApplicationAsync(CancellationToken cancellationToken = default)
     {
@@ -245,7 +247,10 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
             var exePath = executable.Command;
             var exe = Executable.Create(exeName, exePath);
 
-            exe.Spec.WorkingDirectory = executable.WorkingDirectory;
+            // The working directory is always relative to the app host project directory (if it exists).
+            exe.Spec.WorkingDirectory = _appHostProjectDirectory is null ?
+                executable.WorkingDirectory :
+                Path.GetFullPath(Path.Combine(_appHostProjectDirectory, executable.WorkingDirectory));
             exe.Spec.Args = executable.Args?.ToList();
             exe.Spec.ExecutionType = ExecutionType.Process;
 
@@ -411,6 +416,34 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
                     foreach (var envVar in s_doNotInheritEnvironmentVars)
                     {
                         config.Add(envVar, "");
+                    }
+
+                    if (er.ServicesProduced.Count > 0)
+                    {
+                        if (er.ModelResource is ProjectResource)
+                        {
+                            var urls = er.ServicesProduced.Where(s => s.ServiceBindingAnnotation.UriScheme is "http" or "https").Select(sar =>
+                            {
+                                var url = sar.ServiceBindingAnnotation.UriScheme + "://localhost:{{- portForServing \"" + sar.Service.Metadata.Name + "\" -}}";
+                                return url;
+                            });
+
+                            // REVIEW: Should we assume ASP.NET Core?
+                            // We're going to use http and https urls as ASPNETCORE_URLS
+                            config["ASPNETCORE_URLS"] = string.Join(";", urls);
+                        }
+
+                        // Inject environment variables for services produced by this executable.
+                        foreach (var serviceProduced in er.ServicesProduced)
+                        {
+                            var name = serviceProduced.Service.Metadata.Name;
+                            var envVar = serviceProduced.ServiceBindingAnnotation.EnvironmentVariable;
+
+                            if (envVar is not null)
+                            {
+                                config.Add(envVar, $"{{{{- portForServing \"{name}\" }}}}");
+                            }
+                        }
                     }
                 }
 
