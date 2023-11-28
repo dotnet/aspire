@@ -1,7 +1,5 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
-builder.AddAzureProvisioning();
-
 var catalogDb = builder.AddPostgresContainer("postgres").AddDatabase("catalogdb");
 
 var basketCache = builder.AddRedisContainer("basketcache");
