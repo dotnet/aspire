@@ -7,6 +7,7 @@
 @using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Otlp.Storage
 @using System.Diagnostics
+@using System.Globalization
 @inject IDashboardViewModelService DashboardViewModelService
 
 <PageTitle>@DashboardViewModelService.ApplicationName Traces</PageTitle>
@@ -43,7 +44,14 @@
             <FluentAnchor slot="end" Appearance="Appearance.Lightweight" Href="@($"/Traces")">Back</FluentAnchor>
         </FluentToolbar>
 
-        <SummaryDetailsView DetailsTitle="@(SelectedSpan?.Title)" ShowDetails="SelectedSpan is not null" OnDismiss="() => SelectedSpan = null">
+        <SummaryDetailsView ShowDetails="SelectedSpan is not null" OnDismiss="() => ClearSelectedSpan()" ViewKey="TraceDetail">
+            <DetailsTitleTemplate>
+                @{ var shortedSpanId = OtlpHelpers.ToShortenedId(SelectedSpan!.Span.SpanId); }
+                <div class="span-details-title" title="@($"{SelectedSpan!.Title} ({shortedSpanId})")">
+                    @SelectedSpan!.Title
+                    <span class="span-id">@shortedSpanId</span>
+                </div>
+            </DetailsTitleTemplate>
             <Summary>
                 <FluentDataGrid Class="trace-view-grid" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="SpanWaterfallViewModel" RowClass="@GetRowClass" GridTemplateColumns="2fr 6fr">
                     <TemplateColumn Title="Name">
@@ -86,7 +94,7 @@
                         </HeaderCellItemTemplate>
                         <ChildContent>
                             <div class="ticks" @onclick="() => OnShowProperties(context)">
-                                <div class="span-container" style="grid-template-columns: @context.LeftOffset.ToString("F2")% @context.Width.ToString("F2")% min-content;">
+                                <div class="span-container" style="grid-template-columns: @context.LeftOffset.ToString("F2", CultureInfo.InvariantCulture)% @context.Width.ToString("F2", CultureInfo.InvariantCulture)% min-content;">
                                     <div class="span-bar" style="grid-column: 2; background: @ColorGenerator.Instance.GetColorHexByKey(context.Span.Source.ApplicationName);"></div>
                                     <div class="span-bar-label @(context.LabelIsRight ? "span-bar-label-right" : "span-bar-label-left")">
                                         <span class="span-bar-label-detail">@context.Span.Source.ApplicationName: @context.GetDisplaySummary()</span>

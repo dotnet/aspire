@@ -28,7 +28,7 @@ public sealed class SpanWaterfallViewModel
         }
         if (HasUninstrumentedPeer)
         {
-            tooltip += Environment.NewLine + $"Outgoing call to peer {UninstrumentedPeer}";
+            tooltip += Environment.NewLine + $"Outgoing call to {UninstrumentedPeer}";
         }
 
         return tooltip;

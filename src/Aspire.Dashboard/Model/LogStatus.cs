@@ -11,11 +11,6 @@ internal static class LogStatus
     public const string WatchingLogs = "Watching Logs...";
     public const string FailedToInitialize = "Failed to Initialize";
     public const string FinishedWatchingLogs = "Finished Watching Logs";
-
-    public const string LoadingProjects = "Loading Projects...";
-    public const string NoProjectSelected = "No Project Selected";
-    public const string LoadingExecutables = "Loading Executables...";
-    public const string NoExecutableSelected = "No Executable Selected";
-    public const string LoadingContainers = "Loading Containers...";
-    public const string NoContainerSelected = "No Container Selected";
+    public const string LoadingResources = "Loading Resources ...";
+    public const string NoResourceSelected = "No Resource Selected";
 }

@@ -18,3 +18,9 @@
     height: 100%;
 }
 
+::deep .property-grid-container h4 {
+    padding: calc(var(--design-unit) * 3px);
+    margin-top: calc(var(--design-unit) * 1px);
+    margin-bottom: 0;
+}
+

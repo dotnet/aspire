@@ -7,6 +7,6 @@ namespace Aspire.Hosting.ApplicationModel;
 /// Represents a project resource that implements <see cref="IResourceWithEnvironment"/> and 
 /// <see cref="IResourceWithBindings"/>.
 /// </summary>
-public class ProjectResource(string name) : Resource(name), IResourceWithEnvironment, IResourceWithBindings
+public class ProjectResource(string name) : Resource(name), IResourceWithEnvironment, IResourceWithServiceDiscovery
 {
 }

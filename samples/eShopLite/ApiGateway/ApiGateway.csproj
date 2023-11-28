@@ -4,7 +4,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <ContainerRegistry>localhost:5001</ContainerRegistry>
     <ContainerRepository>api-gateway</ContainerRepository>
-    <ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:8.0-preview</ContainerBaseImage>
+    <ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:8.0</ContainerBaseImage>
   </PropertyGroup>
 
   <ItemGroup>

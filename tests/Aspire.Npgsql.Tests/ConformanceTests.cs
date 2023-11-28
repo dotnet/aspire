@@ -42,13 +42,11 @@ public class ConformanceTests : ConformanceTests<NpgsqlDataSource, NpgsqlSetting
     protected override string ValidJsonConfig => """
         {
           "Aspire": {
-            "PostgreSql": {
-              "Npgsql": {
-                "ConnectionString": "YOUR_CONNECTION_STRING",
-                "HealthChecks": false,
-                "Tracing": true,
-                "Metrics": true
-              }
+            "Npgsql": {
+              "ConnectionString": "YOUR_CONNECTION_STRING",
+              "HealthChecks": false,
+              "Tracing": true,
+              "Metrics": true
             }
           }
         }

@@ -44,7 +44,7 @@ internal sealed class ServiceAppResource : AppResource
     }
 }
 
-internal sealed class ApplicationExecutor(DistributedApplicationModel model, KubernetesService kubernetesService)
+internal sealed class ApplicationExecutor(DistributedApplicationModel model, KubernetesService kubernetesService, DistributedApplicationOptions options)
 {
     private const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
 
@@ -61,6 +61,8 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
     private readonly DistributedApplicationModel _model = model;
     private readonly List<AppResource> _appResources = new();
 
+    private readonly string? _appHostProjectDirectory = options.ProjectDirectory;
+
     public async Task RunApplicationAsync(CancellationToken cancellationToken = default)
     {
         AspireEventSource.Instance.DcpModelCreationStart();
@@ -69,6 +71,9 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
             PrepareServices();
             PrepareContainers();
             PrepareExecutables();
+            PrepareProxylessServices();
+
+            await CreateContainerSingletonsAsync(cancellationToken).ConfigureAwait(false);
 
             await CreateServicesAsync(cancellationToken).ConfigureAwait(false);
 
@@ -96,6 +101,13 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
             AspireEventSource.Instance.DcpModelCleanupStop();
             _appResources.Clear();
         }
+    }
+
+    private async Task CreateContainerSingletonsAsync(CancellationToken cancellationToken = default)
+    {
+        // Find containers that consume no Services--their associated Services can be started in Proxyless mode
+        var toCreate = _appResources.Where(r => r.DcpResource is Container && !r.ServicesConsumed.Any());
+        await CreateContainersAsync(toCreate, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task CreateServicesAsync(CancellationToken cancellationToken = default)
@@ -146,7 +158,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
         var toCreate = _appResources.Where(r => r.DcpResource is Container || r.DcpResource is Executable || r.DcpResource is ExecutableReplicaSet);
         AddAllocatedEndpointInfo(toCreate);
 
-        await CreateContainersAsync(toCreate.Where(ar => ar.DcpResource is Container), cancellationToken).ConfigureAwait(false);
+        await CreateContainersAsync(toCreate.Where(ar => ar.DcpResource is Container && ar.ServicesConsumed.Any()), cancellationToken).ConfigureAwait(false);
         await CreateExecutablesAsync(toCreate.Where(ar => ar.DcpResource is Executable || ar.DcpResource is ExecutableReplicaSet), cancellationToken).ConfigureAwait(false);
     }
 
@@ -167,7 +179,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
                     sp.ServiceBindingAnnotation.Name,
                     PortProtocol.ToProtocolType(svc.Spec.Protocol),
                     svc.AllocatedAddress!,
-                    (int)svc.AllocatedPort!,
+                    (int)(sp.ServiceBindingAnnotation.Port ?? svc.AllocatedPort!), // Checked by HasCompleteAddress above.
                     sp.ServiceBindingAnnotation.UriScheme
                     );
 
@@ -189,7 +201,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
         void addServiceAppResource(Service svc, IResource producingResource, ServiceBindingAnnotation sba)
         {
             svc.Spec.Protocol = PortProtocol.FromProtocolType(sba.Protocol);
-            svc.Spec.AddressAllocationMode = AddressAllocationModes.IPv4Loopback;
+            svc.Spec.AddressAllocationMode = AddressAllocationModes.Localhost;
             svc.Annotate(CustomResource.UriSchemeAnnotation, sba.UriScheme);
 
             _appResources.Add(new ServiceAppResource(producingResource, svc, sba));
@@ -235,7 +247,10 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
             var exePath = executable.Command;
             var exe = Executable.Create(exeName, exePath);
 
-            exe.Spec.WorkingDirectory = executable.WorkingDirectory;
+            // The working directory is always relative to the app host project directory (if it exists).
+            exe.Spec.WorkingDirectory = _appHostProjectDirectory is null ?
+                executable.WorkingDirectory :
+                Path.GetFullPath(Path.Combine(_appHostProjectDirectory, executable.WorkingDirectory));
             exe.Spec.Args = executable.Args?.ToList();
             exe.Spec.ExecutionType = ExecutionType.Process;
 
@@ -338,6 +353,20 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
         }
     }
 
+    private void PrepareProxylessServices()
+    {
+        // Find containers that consume no Services--their associated Services can be started in Proxyless mode
+        var singletonContainers = _appResources.Where(r => r.DcpResource is Container && !r.ServicesConsumed.Any());
+
+        foreach (var container in singletonContainers)
+        {
+            foreach (var service in container.ServicesProduced)
+            {
+                service.Service.Spec.AddressAllocationMode = AddressAllocationModes.Proxyless;
+            }
+        }
+    }
+
     private async Task CreateExecutablesAsync(IEnumerable<AppResource> executableResources, CancellationToken cancellationToken)
     {
         try
@@ -387,6 +416,34 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
                     foreach (var envVar in s_doNotInheritEnvironmentVars)
                     {
                         config.Add(envVar, "");
+                    }
+
+                    if (er.ServicesProduced.Count > 0)
+                    {
+                        if (er.ModelResource is ProjectResource)
+                        {
+                            var urls = er.ServicesProduced.Where(s => s.ServiceBindingAnnotation.UriScheme is "http" or "https").Select(sar =>
+                            {
+                                var url = sar.ServiceBindingAnnotation.UriScheme + "://localhost:{{- portForServing \"" + sar.Service.Metadata.Name + "\" -}}";
+                                return url;
+                            });
+
+                            // REVIEW: Should we assume ASP.NET Core?
+                            // We're going to use http and https urls as ASPNETCORE_URLS
+                            config["ASPNETCORE_URLS"] = string.Join(";", urls);
+                        }
+
+                        // Inject environment variables for services produced by this executable.
+                        foreach (var serviceProduced in er.ServicesProduced)
+                        {
+                            var name = serviceProduced.Service.Metadata.Name;
+                            var envVar = serviceProduced.ServiceBindingAnnotation.EnvironmentVariable;
+
+                            if (envVar is not null)
+                            {
+                                config.Add(envVar, $"{{{{- portForServing \"{name}\" }}}}");
+                            }
+                        }
                     }
                 }
 

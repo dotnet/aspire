@@ -1,0 +1,34 @@
+﻿@using Aspire.Dashboard.Model
+
+@if (Resource is ProjectViewModel projectViewModel)
+{
+    <span title="@projectViewModel.ProjectPath">@projectViewModel.ProjectPath</span>
+}
+else if (Resource is ExecutableViewModel executableViewModel)
+{
+    var arguments = string.Join(" ", executableViewModel.Arguments ?? []);
+    var fullCommandLine = $"{executableViewModel.ExecutablePath} {arguments}";
+
+    <div class="ellipsis-overflow" title="@fullCommandLine">@executableViewModel.ExecutablePath <span class="subtext">@arguments</span></div>
+    <div class="ellipsis-overflow" title="@executableViewModel.WorkingDirectory">Working Dir: @executableViewModel.WorkingDirectory</div>
+}
+else if (Resource is ContainerViewModel containerViewModel)
+{
+    var ports = string.Join("; ", containerViewModel.Ports);
+    <FluentStack Orientation="Orientation.Horizontal">
+        <span title="@containerViewModel.Image"><FluentHighlighter HighlightedText="@FilterText" Text="@containerViewModel.Image" /></span>
+        @if (containerViewModel.Ports.Count > 0)
+        {
+            var title = $"Port{(containerViewModel.Ports.Count > 1 ? "s" : string.Empty)}: {ports}";
+            <span class="subtext" title="@title" aria-label="@title">@ports</span>
+        }
+    </FluentStack>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public required ResourceViewModel Resource { get; set; }
+
+    [Parameter, EditorRequired]
+    public required string FilterText { get; set; }
+}

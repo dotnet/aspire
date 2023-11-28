@@ -163,7 +163,6 @@
         "toolbar"
         "main";
     gap: calc(var(--design-unit) * 2px);
-    padding: calc(var(--design-unit) * 2px);
 }
 
 ::deep.trace-detail-layout > .trace-detail-header {
@@ -177,4 +176,10 @@
 
 ::deep.trace-detail-layout > .summary-details-container {
     grid-area: main;
+}
+
+::deep .span-details-title {
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
 }

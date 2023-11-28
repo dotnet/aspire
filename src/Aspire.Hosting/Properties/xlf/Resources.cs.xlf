@@ -2,6 +2,21 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="cs" original="../Resources.resx">
     <body>
+      <trans-unit id="DcpVersionCheckFailedMessage">
+        <source>The application orchestrator version could not be determined. Continuing.</source>
+        <target state="new">The application orchestrator version could not be determined. Continuing.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DcpVersionCheckTooHighMessage">
+        <source>Found incompatible version of .NET Aspire workload (need application orchestrator version {0} to run the application).</source>
+        <target state="new">Found incompatible version of .NET Aspire workload (need application orchestrator version {0} to run the application).</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DcpVersionCheckTooLowMessage">
+        <source>Newer version of .NET Aspire workload is required to run the application. Run 'dotnet workload update' to get it.</source>
+        <target state="new">Newer version of .NET Aspire workload is required to run the application. Run 'dotnet workload update' to get it.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="DockerPrerequisiteMissingExceptionMessage">
         <source>Docker could not be found. The error from Docker invocation was: {0}</source>
         <target state="new">Docker could not be found. The error from Docker invocation was: {0}</target>

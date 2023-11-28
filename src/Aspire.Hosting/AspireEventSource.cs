@@ -263,8 +263,8 @@ internal sealed class AspireEventSource : EventSource
         }
     }
 
-    [Event(29, Level = EventLevel.Informational, Message = "Application after-stop hooks running...")]
-    public void AppAfterStopHooksStart()
+    [Event(29, Level = EventLevel.Informational, Message = "DCP version check is starting...")]
+    public void DcpVersionCheckStart()
     {
         if (IsEnabled())
         {
@@ -272,12 +272,31 @@ internal sealed class AspireEventSource : EventSource
         }
     }
 
-    [Event(30, Level = EventLevel.Informational, Message = "Application after-stop hooks completed")]
-    public void AppAfterStopHooksStop()
+    [Event(30, Level = EventLevel.Informational, Message = "DCP version check completed")]
+    public void DcpVersionCheckStop()
     {
         if (IsEnabled())
         {
             WriteEvent(30);
         }
+    }
+
+    [Event(31, Level = EventLevel.Informational, Message = "Application after-stop hooks running...")]
+    public void AppAfterStopHooksStart()
+    {
+        if (IsEnabled())
+        {
+            WriteEvent(31);
+        }
+    }
+
+    [Event(32, Level = EventLevel.Informational, Message = "Application after-stop hooks completed")]
+    public void AppAfterStopHooksStop()
+    {
+        if (IsEnabled())
+        {
+            WriteEvent(32);
+        }
+
     }
 }

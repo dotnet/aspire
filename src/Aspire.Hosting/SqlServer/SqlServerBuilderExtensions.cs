@@ -22,7 +22,7 @@ public static class SqlServerBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{SqlServerContainerResource}"/>.</returns>
     public static IResourceBuilder<SqlServerContainerResource> AddSqlServerContainer(this IDistributedApplicationBuilder builder, string name, string? password = null, int? port = null)
     {
-        password = password ?? Guid.NewGuid().ToString("N");
+        password = password ?? Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N").ToUpper();
         var sqlServer = new SqlServerContainerResource(name, password);
 
         return builder.AddResource(sqlServer)

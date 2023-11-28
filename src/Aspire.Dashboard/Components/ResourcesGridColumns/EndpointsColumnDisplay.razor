@@ -1,0 +1,33 @@
+﻿@using Aspire.Dashboard.Model
+
+<FluentStack Orientation="Orientation.Vertical">
+    @* If we have no endpoints, and the app isn't running anymore or we're not expecting any, then just say None *@
+    @if (Resource.Endpoints.Count == 0 && (Resource.State == FinishedState || Resource.ExpectedEndpointsCount == 0))
+    {
+        <span class="long-inner-content">None</span>
+    }
+    else
+    {
+        @* If we have any, regardless of the state, go ahead and display them *@
+        foreach (var endpoint in Resource.Endpoints.OrderBy(e => e))
+        {
+            <a href="@endpoint" target="_blank" class="long-inner-content">@endpoint</a>
+        }
+        @* If we're expecting more, say Starting..., unless the app isn't running anymore *@
+        if (Resource.State != FinishedState
+        && (Resource.ExpectedEndpointsCount is null || Resource.ExpectedEndpointsCount > Resource.Endpoints.Count))
+        {
+            <span class="long-inner-content">Starting...</span>
+        }
+    }
+</FluentStack>
+
+@code {
+
+    // Ideally we'd be pulling this from Aspire.Hosting.Dcp.Model.ExecutableStates,
+    // but unfortunately the reference goes the other way
+    private const string FinishedState = "Finished";
+
+    [Parameter, EditorRequired]
+    public required ResourceViewModel Resource { get; set; }
+}
