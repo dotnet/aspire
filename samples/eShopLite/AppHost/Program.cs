@@ -2,6 +2,10 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 builder.AddAzureProvisioning();
 
+builder.AddNpmApp("nodeapp", "..\\nodeapp")
+    .WithServiceBinding(5555, scheme: "http", env: "PORT")
+    .WithDockerfile();
+
 var catalogDb = builder.AddPostgresContainer("postgres").AddDatabase("catalogdb");
 
 var basketCache = builder.AddRedisContainer("basketcache");

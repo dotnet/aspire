@@ -1,5 +1,22 @@
 {
   "resources": {
+    "nodeapp": {
+      "type": "dockerfile.v0",
+      "path": "..\\nodeapp\\Dockerfile",
+      "context": "..\\nodeapp",
+      "env": {
+        "NODE_ENV": "development",
+        "PORT": "{bindings.http.port}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http",
+          "containerPort": 5555
+        }
+      }
+    },
     "postgres": {
       "type": "postgres.server.v0"
     },

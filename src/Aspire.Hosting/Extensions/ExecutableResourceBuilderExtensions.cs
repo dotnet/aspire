@@ -1,7 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Publishing;
 
 namespace Aspire.Hosting;
 
@@ -23,5 +25,28 @@ public static class ExecutableResourceBuilderExtensions
     {
         var executable = new ExecutableResource(name, command, workingDirectory, args);
         return builder.AddResource(executable);
+    }
+
+    /// <summary>
+    /// Adds annotation to <see cref="ExecutableResource" /> to support containerization during deployment.
+    /// </summary>
+    /// <typeparam name="T">Type of executable resource</typeparam>
+    /// <param name="builder">Resource builder</param>
+    /// <returns></returns>
+    public static IResourceBuilder<T> WithDockerfile<T>(this IResourceBuilder<T> builder) where T : ExecutableResource
+    {
+        return builder.WithAnnotation(
+            new ManifestPublishingCallbackAnnotation(writer => WriteExecutableAsDockerfileResource(writer, builder.Resource))
+            );
+    }
+
+    private static void WriteExecutableAsDockerfileResource(Utf8JsonWriter writer, ExecutableResource executable)
+    {
+        writer.WriteString("type", "dockerfile.v0");
+        writer.WriteString("path", Path.Combine(executable.WorkingDirectory, "Dockerfile"));
+        writer.WriteString("context", executable.WorkingDirectory);
+
+        ManifestPublisher.WriteEnvironmentVariables(executable, writer);
+        ManifestPublisher.WriteBindings(executable, writer, true);
     }
 }

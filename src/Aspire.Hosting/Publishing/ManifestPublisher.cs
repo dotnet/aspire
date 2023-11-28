@@ -136,7 +136,7 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger,
         }
     }
 
-    private static void WriteEnvironmentVariables(IResource resource, Utf8JsonWriter jsonWriter)
+    internal static void WriteEnvironmentVariables(IResource resource, Utf8JsonWriter jsonWriter)
     {
         var config = new Dictionary<string, string>();
         var context = new EnvironmentCallbackContext("manifest", config);
@@ -178,7 +178,7 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger,
         }
     }
 
-    private static void WriteBindings(IResource resource, Utf8JsonWriter jsonWriter, bool emitContainerPort = false)
+    internal static void WriteBindings(IResource resource, Utf8JsonWriter jsonWriter, bool emitContainerPort = false)
     {
         if (resource.TryGetServiceBindings(out var serviceBindings))
         {
