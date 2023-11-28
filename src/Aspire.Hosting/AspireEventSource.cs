@@ -268,7 +268,7 @@ internal sealed class AspireEventSource : EventSource
     {
         if (IsEnabled())
         {
-            WriteEvent(27);
+            WriteEvent(29);
         }
     }
 
@@ -277,7 +277,7 @@ internal sealed class AspireEventSource : EventSource
     {
         if (IsEnabled())
         {
-            WriteEvent(28);
+            WriteEvent(30);
         }
     }
 }
