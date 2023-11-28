@@ -5,6 +5,7 @@ using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Properties;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
 
@@ -40,7 +41,7 @@ public static class ProjectResourceBuilderExtensions
     {
         var project = new ProjectResource(name);
 
-        projectPath = Path.GetFullPath(Path.Combine(builder.ProjectDirectory, projectPath));
+        projectPath = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.ProjectDirectory, projectPath));
 
         return builder.AddResource(project)
                       .WithProjectDefaults()
