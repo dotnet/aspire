@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Aspire.Orleans.Server\Shared\ConnectionSettings.cs" Link="Shared\ConnectionSettings.cs" />
+    <Compile Include="..\Aspire.Orleans.Server\Shared\OrleansServerSettingConstants.cs" Link="Shared\OrleansServerSettingConstants.cs" />
+    <Compile Include="..\Aspire.Orleans.Server\Shared\OrleansServerSettings.cs" Link="Shared\OrleansServerSettings.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Orleans.Clustering.AzureStorage" />
+    <PackageReference Include="Microsoft.Orleans.Client" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Aspire.Azure.Data.Tables\Aspire.Azure.Data.Tables.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Shared\" />
+  </ItemGroup>
+
+</Project>
