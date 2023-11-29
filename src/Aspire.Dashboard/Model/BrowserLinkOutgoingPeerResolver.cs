@@ -20,7 +20,7 @@ public sealed class BrowserLinkOutgoingPeerResolver : IOutgoingPeerResolver
         }
     }
 
-    public bool TryResolvePeerName(OtlpSpan span, [NotNullWhen(true)] out string? name)
+    public bool TryResolvePeerName(KeyValuePair<string, string>[] attributes, [NotNullWhen(true)] out string? name)
     {
         // There isn't a good way to identify the HTTP request the BrowserLink middleware makes to
         // the IDE to get the script tag. The logic below looks at the host and URL and identifies
@@ -32,17 +32,20 @@ public sealed class BrowserLinkOutgoingPeerResolver : IOutgoingPeerResolver
         //
         // A long term improvement here is to add tags to the BrowserLink client and then detect the
         // values in the span's attributes.
-        var url = OtlpHelpers.GetValue(span.Attributes, "http.url");
-        if (url != null && Uri.TryCreate(url, UriKind.Absolute, out var uri))
+        const string lastSegment = "getScriptTag";
+        var url = OtlpHelpers.GetValue(attributes, "http.url");
+
+        // Quick check of URL with EndsWith before more expensive Uri parsing.
+        if (url != null && url.EndsWith(lastSegment, StringComparison.OrdinalIgnoreCase))
         {
-            if (string.Equals(uri.Host, "localhost", StringComparison.OrdinalIgnoreCase))
+            if (Uri.TryCreate(url, UriKind.Absolute, out var uri) && string.Equals(uri.Host, "localhost", StringComparison.OrdinalIgnoreCase))
             {
                 var parts = uri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
                 if (parts.Length == 2)
                 {
-                    if (Guid.TryParse(parts[0], out _) && string.Equals(parts[1], "getScriptTag", StringComparison.OrdinalIgnoreCase))
+                    if (Guid.TryParse(parts[0], out _) && string.Equals(parts[1], lastSegment, StringComparison.OrdinalIgnoreCase))
                     {
-                        name = "browserlink";
+                        name = "Browser Link";
                         return true;
                     }
                 }

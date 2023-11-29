@@ -57,9 +57,9 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
         await RaisePeerChangesAsync().ConfigureAwait(false);
     }
 
-    public bool TryResolvePeerName(OtlpSpan span, [NotNullWhen(true)] out string? name)
+    public bool TryResolvePeerName(KeyValuePair<string, string>[] attributes, [NotNullWhen(true)] out string? name)
     {
-        var address = OtlpHelpers.GetValue(span.Attributes, OtlpSpan.PeerServiceAttributeKey);
+        var address = OtlpHelpers.GetValue(attributes, OtlpSpan.PeerServiceAttributeKey);
         if (address != null)
         {
             foreach (var (resourceName, resource) in _resourceNameMapping)

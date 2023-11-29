@@ -118,7 +118,7 @@ public partial class TraceDetail : ComponentBase
         // Attempt to resolve uninstrumented peer to a friendly name from the span.
         foreach (var resolver in outgoingPeerResolvers)
         {
-            if (resolver.TryResolvePeerName(span, out var name))
+            if (resolver.TryResolvePeerName(span.Attributes, out var name))
             {
                 return name;
             }
