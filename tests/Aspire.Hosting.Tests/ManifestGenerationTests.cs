@@ -261,7 +261,7 @@ public class ManifestGenerationTests
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher();
 
-        program.AppBuilder.AddNodeApp("nodeapp", "..\\foo", ["app.js"])
+        program.AppBuilder.AddNodeApp("nodeapp", "..\\foo\\app.js")
             .WithServiceBinding(hostPort: 5031, scheme: "http", env: "PORT");
         program.AppBuilder.AddNpmApp("npmapp", "..\\foo")
             .WithServiceBinding(hostPort: 5032, scheme: "http", env: "PORT");
@@ -297,7 +297,7 @@ public class ManifestGenerationTests
             var args = jsonElement.GetProperty("args");
         }
 
-        AssertNodeResource("nodeapp", nodeApp, "node", ["app.js"]);
+        AssertNodeResource("nodeapp", nodeApp, "node", ["..\\foo\\app.js"]);
         AssertNodeResource("npmapp", npmApp, "npm", ["run", "start"]);
     }
 
