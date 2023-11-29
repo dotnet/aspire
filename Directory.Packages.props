@@ -3,6 +3,9 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
   <ItemGroup>
+    <!-- AWS SDK for .NET dependencies -->
+    <PackageVersion Include="AWSSDK.CloudFormation" Version="3.7.301.2" />	
+	<PackageVersion Include="AWSSDK.SQS" Version="3.7.2.14" />
     <!-- Azure SDK for .NET dependencies -->
     <PackageVersion Include="Azure.Data.Tables" Version="12.8.2" />
     <PackageVersion Include="Azure.Extensions.AspNetCore.Configuration.Secrets" Version="1.3.0" />

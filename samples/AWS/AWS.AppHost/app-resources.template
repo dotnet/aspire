@@ -1,0 +1,16 @@
+{
+	"AWSTemplateFormatVersion" : "2010-09-09",
+    "Resources" : {
+		"OrderQueue" : {
+		    "Type" : "AWS::SQS::Queue",
+		    "Properties" : {
+				
+		    }
+		}
+	},
+    "Outputs" : {
+		"OrderQueueUrl" : {
+		    "Value" : { "Ref" : "OrderQueue" }
+		}
+	}
+}
