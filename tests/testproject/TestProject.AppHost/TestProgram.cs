@@ -22,10 +22,10 @@ public class TestProgram
             // where this code is referenced from.
             var path = Path.Combine(Projects.TestProject_AppHost.ProjectPath, @"..\nodeapp");
 
-            NodeApp = AppBuilder.AddNodeApp("nodeapp", path, ["app.js"])
+            NodeAppBuilder = AppBuilder.AddNodeApp("nodeapp", path, ["app.js"])
                 .WithServiceBinding(hostPort: 5031, scheme: "http", env: "PORT");
 
-            NpmApp = AppBuilder.AddNpmApp("npmapp", path)
+            NpmAppBuilder = AppBuilder.AddNpmApp("npmapp", path)
                 .WithServiceBinding(hostPort: 5032, scheme: "http", env: "PORT");
         }
 
@@ -37,7 +37,7 @@ public class TestProgram
             var postgres = AppBuilder.AddPostgresContainer("postgres");
             var rabbitmq = AppBuilder.AddRabbitMQContainer("rabbitmq");
 
-            IntegrationServiceA = AppBuilder.AddProject<Projects.IntegrationServiceA>("integrationservicea")
+            IntegrationServiceABuilder = AppBuilder.AddProject<Projects.IntegrationServiceA>("integrationservicea")
                 .WithReference(sqlserver)
                 .WithReference(mysql)
                 .WithReference(redis)
@@ -54,9 +54,9 @@ public class TestProgram
     public IResourceBuilder<ProjectResource> ServiceBBuilder { get; private set; }
     public IResourceBuilder<ProjectResource> ServiceCBuilder { get; private set; }
     public IResourceBuilder<ProjectResource> WorkerABuilder { get; private set; }
-    public IResourceBuilder<ProjectResource>? IntegrationServiceA { get; private set; }
-    public IResourceBuilder<NodeAppResource>? NodeApp { get; private set; }
-    public IResourceBuilder<NodeAppResource>? NpmApp { get; private set; }
+    public IResourceBuilder<ProjectResource>? IntegrationServiceABuilder { get; private set; }
+    public IResourceBuilder<NodeAppResource>? NodeAppBuilder { get; private set; }
+    public IResourceBuilder<NodeAppResource>? NpmAppBuilder { get; private set; }
     public DistributedApplication? App { get; private set; }
 
     public List<IResourceBuilder<ProjectResource>> ServiceProjectBuilders => [ServiceABuilder, ServiceBBuilder, ServiceCBuilder];

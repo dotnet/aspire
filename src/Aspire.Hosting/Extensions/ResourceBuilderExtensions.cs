@@ -3,6 +3,7 @@
 
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting;
@@ -63,6 +64,18 @@ public static class ResourceBuilderExtensions
     public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, EndpointReference endpointReference) where T : IResourceWithEnvironment
     {
         return builder.WithAnnotation(new EnvironmentCallbackAnnotation(name, () => endpointReference.UriString));
+    }
+
+    /// <summary>
+    /// Registers a callback which is invoked when manifest is generated for the app model.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="callback">Callback method which takes a <see cref="ManifestPublishingContext"/> which can be used to inject JSON into the manifest.</param>
+    /// <returns></returns>
+    public static IResourceBuilder<T> WithManifestPublishingCallback<T>(this IResourceBuilder<T> builder, Action<ManifestPublishingContext> callback) where T : IResource
+    {
+        return builder.WithAnnotation(new ManifestPublishingCallbackAnnotation(callback));
     }
 
     private static bool ContainsAmbiguousEndpoints(IEnumerable<AllocatedEndpointAnnotation> endpoints)
