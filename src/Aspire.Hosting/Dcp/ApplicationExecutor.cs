@@ -539,6 +539,15 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
                 }
             }
 
+            if (container.TryGetAnnotationsOfType<ExecutableArgsCallbackAnnotation>(out var argsCallback))
+            {
+                ctr.Spec.Args ??= [];
+                foreach (var callback in argsCallback)
+                {
+                    callback.Callback(ctr.Spec.Args);
+                }
+            }
+
             var containerAppResource = new AppResource(container, ctr);
             AddServicesProducedInfo(container, ctr, containerAppResource);
             _appResources.Add(containerAppResource);

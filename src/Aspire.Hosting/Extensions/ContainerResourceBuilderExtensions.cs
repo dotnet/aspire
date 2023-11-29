@@ -80,4 +80,24 @@ public static class ContainerResourceBuilderExtensions
         var annotation = new VolumeMountAnnotation(source, target, type, isReadOnly);
         return builder.WithAnnotation(annotation);
     }
+
+    public static IResourceBuilder<T> WithArgs<T>(this IResourceBuilder<T> builder, string args) where T : IResource
+    {
+        var annotation = new ExecutableArgsCallbackAnnotation(updatedArgs =>
+        {
+            updatedArgs.AddRange(args.Split(' '));
+        });
+        return builder.WithAnnotation(annotation);
+    }
+}
+
+internal static class IListExtensions
+{
+    public static void AddRange<T>(this IList<T> list, IEnumerable<T> collection)
+    {
+        foreach (var item in collection)
+        {
+            list.Add(item);
+        }
+    }
 }
