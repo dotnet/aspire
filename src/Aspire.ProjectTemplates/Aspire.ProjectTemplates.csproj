@@ -10,6 +10,7 @@
     <PackageType>Template</PackageType>
     <NoWarn>$(NoWarn);NU5128</NoWarn>
     <EnableDefaultItems>false</EnableDefaultItems>
+    <Description>.NET Aspire Project Templates</Description>
   </PropertyGroup>
 
   <!-- When building a package, this target will run to copy all the templates into the intermediate directory, 
