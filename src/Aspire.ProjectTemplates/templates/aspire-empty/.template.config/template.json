@@ -4,6 +4,10 @@
   "classifications": [
     "Common",
     ".NET Aspire",
+    "Web",
+    "Web API",
+    "API",
+    "Service",
     "Cloud"
   ],
   "name": ".NET Aspire Application",
