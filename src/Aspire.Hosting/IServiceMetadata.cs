@@ -11,16 +11,6 @@ namespace Aspire.Hosting;
 public interface IServiceMetadata : IResourceAnnotation
 {
     /// <summary>
-    /// Gets the name of the assembly containing the service.
-    /// </summary>
-    public string AssemblyName { get; }
-
-    /// <summary>
-    /// Gets the fully-qualified path to the assembly containing the service.
-    /// </summary>
-    public string AssemblyPath { get; }
-
-    /// <summary>
     /// Gets the fully-qualified path to the project containing the service.
     /// </summary>
     public string ProjectPath { get; }
@@ -28,9 +18,5 @@ public interface IServiceMetadata : IResourceAnnotation
 
 internal class ServiceMetadata(string projectPath) : IServiceMetadata
 {
-    public string AssemblyName => throw new NotImplementedException();
-
-    public string AssemblyPath => throw new NotImplementedException();
-
     public string ProjectPath { get; } = projectPath;
 }

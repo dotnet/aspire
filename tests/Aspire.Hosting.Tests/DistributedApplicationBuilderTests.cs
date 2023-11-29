@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Publishing;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Xunit;
@@ -81,6 +82,17 @@ public class DistributedApplicationBuilderTests
         var publishOptions = app.Services.GetRequiredService<IOptions<PublishingOptions>>();
         Assert.Equal("docker", publishOptions.Value.Publisher);
         Assert.Equal("/path/", publishOptions.Value.OutputPath);
+    }
+
+    [Fact]
+    public void AppHostDirectoryAvailableViaConfig()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        var appHostDirectory = appBuilder.AppHostDirectory;
+        var app = appBuilder.Build();
+
+        var config = app.Services.GetRequiredService<IConfiguration>();
+        Assert.Equal(appHostDirectory, config["AppHost:Directory"]);
     }
 
     private sealed class TestResource : IResource

@@ -41,7 +41,7 @@ public static class ProjectResourceBuilderExtensions
     {
         var project = new ProjectResource(name);
 
-        projectPath = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.ProjectDirectory, projectPath));
+        projectPath = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, projectPath));
 
         return builder.AddResource(project)
                       .WithProjectDefaults()
