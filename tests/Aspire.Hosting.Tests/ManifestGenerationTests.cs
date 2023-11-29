@@ -29,6 +29,33 @@ public class ManifestGenerationTests
     }
 
     [Fact]
+    public void EnsureExecutablesWithDockerfileProduceDockerfilev0Manifest()
+    {
+        var program = CreateTestProgramJsonDocumentManifestPublisher(includeNodeApp: true);
+        program.NodeAppBuilder!.AsDockerfileInManifest();
+
+        // Build AppHost so that publisher can be resolved.
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+
+        // NPM app should still be executable.v0
+        var npmapp = resources.GetProperty("npmapp");
+        Assert.Equal("executable.v0", npmapp.GetProperty("type").GetString());
+
+        // Node app should now be dockerfile.v0
+        var nodeapp = resources.GetProperty("nodeapp");
+        Assert.Equal("dockerfile.v0", nodeapp.GetProperty("type").GetString());
+        Assert.True(nodeapp.TryGetProperty("path", out _));
+        Assert.True(nodeapp.TryGetProperty("context", out _));
+        Assert.True(nodeapp.TryGetProperty("env", out _));
+        Assert.True(nodeapp.TryGetProperty("bindings", out _));
+    }
+
+    [Fact]
     public void EnsureContainerWithServiceBindingsEmitsContainerPort()
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher();
@@ -234,7 +261,7 @@ public class ManifestGenerationTests
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher();
 
-        program.AppBuilder.AddNodeApp("nodeapp", "..\\foo", ["app.js"])
+        program.AppBuilder.AddNodeApp("nodeapp", "..\\foo\\app.js")
             .WithServiceBinding(hostPort: 5031, scheme: "http", env: "PORT");
         program.AppBuilder.AddNpmApp("npmapp", "..\\foo")
             .WithServiceBinding(hostPort: 5032, scheme: "http", env: "PORT");
@@ -250,7 +277,7 @@ public class ManifestGenerationTests
         var nodeApp = resources.GetProperty("nodeapp");
         var npmApp = resources.GetProperty("npmapp");
 
-        static void AssertNodeResource(JsonElement jsonElement, string expectedCommand, string[] expectedArgs)
+        static void AssertNodeResource(string resourceName, JsonElement jsonElement, string expectedCommand, string[] expectedArgs)
         {
             Assert.Equal("executable.v0", jsonElement.GetProperty("type").GetString());
 
@@ -260,7 +287,7 @@ public class ManifestGenerationTests
             Assert.Equal("http", httpBinding.GetProperty("scheme").GetString());
 
             var env = jsonElement.GetProperty("env");
-            Assert.Equal("{bindings.http.port}", env.GetProperty("PORT").GetString());
+            Assert.Equal($$"""{{{resourceName}}.bindings.http.port}""", env.GetProperty("PORT").GetString());
             Assert.Equal("production", env.GetProperty("NODE_ENV").GetString());
 
             var command = jsonElement.GetProperty("command");
@@ -270,14 +297,14 @@ public class ManifestGenerationTests
             var args = jsonElement.GetProperty("args");
         }
 
-        AssertNodeResource(nodeApp, "node", ["app.js"]);
-        AssertNodeResource(npmApp, "npm", ["run", "start"]);
+        AssertNodeResource("nodeapp", nodeApp, "node", ["..\\foo\\app.js"]);
+        AssertNodeResource("npmapp", npmApp, "npm", ["run", "start"]);
     }
 
-    private static TestProgram CreateTestProgramJsonDocumentManifestPublisher()
+    private static TestProgram CreateTestProgramJsonDocumentManifestPublisher(bool includeNodeApp = false)
     {
         var manifestPath = Path.GetTempFileName();
-        var program = TestProgram.Create<ManifestGenerationTests>(["--publisher", "manifest", "--output-path", manifestPath]);
+        var program = TestProgram.Create<ManifestGenerationTests>(["--publisher", "manifest", "--output-path", manifestPath], includeNodeApp: includeNodeApp);
         program.AppBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, JsonDocumentManifestPublisher>("manifest");
         return program;
     }

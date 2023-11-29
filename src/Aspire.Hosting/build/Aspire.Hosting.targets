@@ -38,8 +38,6 @@ namespace ]]>%(Namespace)<![CDATA[%3B
 
 public class ]]>%(ClassName)<![CDATA[ : IServiceMetadata
 {
-  public string AssemblyName => """]]>%(AssemblyName)<![CDATA["""%3B
-  public string AssemblyPath => """]]>%(Identity)<![CDATA["""%3B
   public string ProjectPath => """]]>%(ProjectPath)<![CDATA["""%3B
 }]]>
         </Source>
