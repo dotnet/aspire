@@ -11,13 +11,11 @@ namespace Aspire.Hosting.Publishing;
 
 public class ManifestPublisher(ILogger<ManifestPublisher> logger,
                                IOptions<PublishingOptions> options,
-                               IHostApplicationLifetime lifetime,
-                               DistributedApplicationOptions applicationOptions) : IDistributedApplicationPublisher
+                               IHostApplicationLifetime lifetime) : IDistributedApplicationPublisher
 {
     private readonly ILogger<ManifestPublisher> _logger = logger;
     private readonly IOptions<PublishingOptions> _options = options;
     private readonly IHostApplicationLifetime _lifetime = lifetime;
-    private readonly string? _appHostProjectDirectory = applicationOptions.ProjectDirectory;
 
     public Utf8JsonWriter? JsonWriter { get; set; }
 

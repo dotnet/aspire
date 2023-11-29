@@ -8,7 +8,10 @@ public class TestProgram
     private TestProgram(string[] args, Assembly assembly, bool includeIntegrationServices = false, bool disableDashboard = true, bool includeNodeApp = false)
     {
         AppBuilder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions { Args = args, DisableDashboard = disableDashboard, AssemblyName = assembly.FullName });
-        ServiceABuilder = AppBuilder.AddProject<Projects.ServiceA>("servicea");
+
+        var serviceAPath = Path.Combine(Projects.TestProject_AppHost.ProjectPath, @"..\TestProject.ServiceA\TestProject.ServiceA.csproj");
+
+        ServiceABuilder = AppBuilder.AddProject("servicea", serviceAPath);
         ServiceBBuilder = AppBuilder.AddProject<Projects.ServiceB>("serviceb");
         ServiceCBuilder = AppBuilder.AddProject<Projects.ServiceC>("servicec");
         WorkerABuilder = AppBuilder.AddProject<Projects.WorkerA>("workera");

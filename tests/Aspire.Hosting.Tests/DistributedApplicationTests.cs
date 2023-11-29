@@ -103,6 +103,46 @@ public class DistributedApplicationTests(ITestOutputHelper testOutputHelper)
         Assert.Equal(exceptionMessage, ex.InnerExceptions.First().Message);
     }
 
+    [Fact]
+    public async Task TryAddWillNotAddTheSameLifecycleHook()
+    {
+        var exceptionMessage = "Exception from lifecycle hook to prove it ran!";
+
+        var signal = (FirstHookExecuted: false, SecondHookExecuted: false);
+
+        var testProgram = CreateTestProgram();
+
+        // Lifecycle hook 1
+        testProgram.AppBuilder.Services.TryAddLifecycleHook((sp) =>
+        {
+            return new CallbackLifecycleHook((app, cancellationToken) =>
+            {
+                signal.FirstHookExecuted = true;
+                return Task.CompletedTask;
+            });
+        });
+
+        // Lifecycle hook 2
+        testProgram.AppBuilder.Services.TryAddLifecycleHook((sp) =>
+        {
+            return new CallbackLifecycleHook((app, cancellationToken) =>
+            {
+                signal.SecondHookExecuted = true;
+
+                // We still want to throw on the second one to block startup.
+                throw new DistributedApplicationException(exceptionMessage);
+            });
+        });
+
+        using var cts = new CancellationTokenSource();
+        cts.CancelAfter(TimeSpan.FromMinutes(1));
+        await using var app = testProgram.Build();
+        await app.StartAsync(cts.Token);
+
+        Assert.True(signal.FirstHookExecuted);
+        Assert.False(signal.SecondHookExecuted);
+    }
+
     [LocalOnlyFact]
     public async Task TestProjectStartsAndStopsCleanly()
     {

@@ -29,6 +29,9 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     public IServiceCollection Services => _innerBuilder.Services;
 
     /// <inheritdoc />
+    public string ProjectDirectory { get; }
+
+    /// <inheritdoc />
     public IResourceCollection Resources { get; } = new ResourceCollection();
 
     /// <summary>
@@ -39,6 +42,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     {
         _args = options.Args ?? [];
         _innerBuilder = new HostApplicationBuilder();
+
+        ProjectDirectory = options.ProjectDirectory ?? _innerBuilder.Environment.ContentRootPath;
 
         // Core things
         _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Resources));
@@ -51,8 +56,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddHostedService<DcpHostService>();
 
         // We need a unique path per application instance
-        var path = Directory.CreateTempSubdirectory("aspire.").FullName;
-        _innerBuilder.Services.AddSingleton(new Locations(path));
+        _innerBuilder.Services.AddSingleton(new Locations());
         _innerBuilder.Services.AddSingleton<KubernetesService>();
 
         // Publishing support

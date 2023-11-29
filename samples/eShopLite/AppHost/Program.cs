@@ -1,7 +1,5 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
-builder.AddAzureProvisioning();
-
 var catalogDb = builder.AddPostgresContainer("postgres").AddDatabase("catalogdb");
 
 var basketCache = builder.AddRedisContainer("basketcache");
@@ -12,7 +10,7 @@ var catalogService = builder.AddProject<Projects.CatalogService>("catalogservice
 
 var messaging = builder.AddRabbitMQContainer("messaging");
 
-var basketService = builder.AddProject<Projects.BasketService>("basketservice")
+var basketService = builder.AddProject("basketservice", @"..\BasketService\BasketService.csproj")
                     .WithReference(basketCache)
                     .WithReference(messaging);
 

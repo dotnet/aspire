@@ -20,7 +20,7 @@
     <PackageVersion Include="Azure.ResourceManager.Storage" Version="1.2.0" />
     <PackageVersion Include="Azure.ResourceManager.Authorization" Version="1.1.0" />
     <PackageVersion Include="Azure.ResourceManager.Redis" Version="1.2.0" />
-    <PackageVersion Include="Azure.ResourceManager.AppConfiguration" Version="1.1.0-beta.1" />
+    <PackageVersion Include="Azure.ResourceManager.AppConfiguration" Version="1.1.0" />
     <PackageVersion Include="Azure.ResourceManager.Sql" Version="1.2.0" />
     <!-- ASP.NET Core dependencies -->
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="$(MicrosoftAspNetCoreOpenApiPackageVersion)" />
@@ -68,19 +68,19 @@
     <PackageVersion Include="Grpc.Tools" Version="2.59.0" />
     <PackageVersion Include="Humanizer.Core" Version="2.14.1" />
     <PackageVersion Include="KubernetesClient" Version="12.1.1" />
-    <PackageVersion Include="JsonSchema.Net" Version="5.3.1" />
+    <PackageVersion Include="JsonSchema.Net" Version="5.4.0" />
     <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.0.0" />
     <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.0.0" />
     <PackageVersion Include="MySqlConnector.DependencyInjection" Version="2.3.1" />
-    <PackageVersion Include="Npgsql.DependencyInjection" Version="8.0.0-rc.2" />
-    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.0-rc.2" />
+    <PackageVersion Include="Npgsql.DependencyInjection" Version="8.0.0" />
+    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.0" />
     <PackageVersion Include="Polly" Version="8.2.0" />
     <PackageVersion Include="RabbitMQ.Client" Version="6.7.0" />
     <PackageVersion Include="StackExchange.Redis" Version="2.7.4" />
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="6.5.0" />
     <PackageVersion Include="Yarp.ReverseProxy" Version="2.1.0" />
     <!-- Open Telemetry -->
-    <PackageVersion Include="Npgsql.OpenTelemetry" Version="8.0.0-rc.2" />
+    <PackageVersion Include="Npgsql.OpenTelemetry" Version="8.0.0" />
     <PackageVersion Include="OpenTelemetry.Exporter.InMemory" Version="1.7.0-alpha.1" />
     <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.7.0-alpha.1" />
     <PackageVersion Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" Version="1.7.0-alpha.1" />

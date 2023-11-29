@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
 
@@ -22,6 +23,8 @@ public static class ExecutableResourceBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{ExecutableResource}"/>.</returns>
     public static IResourceBuilder<ExecutableResource> AddExecutable(this IDistributedApplicationBuilder builder, string name, string command, string workingDirectory, params string[]? args)
     {
+        workingDirectory = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.ProjectDirectory, workingDirectory));
+
         var executable = new ExecutableResource(name, command, workingDirectory, args);
         return builder.AddResource(executable);
     }
