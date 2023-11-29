@@ -21,6 +21,7 @@ As part of the .NET Aspire November preview, we want to include a set of .NET As
 | StackExchange.Redis.OutputCaching       |                  ✅                  |             ✅             |                           N/A                            |              ✅              |          ✅          |        ✅            |         ❌           |              ✅                  |
 | RabbitMQ                                |                  ✅                  |             ✅             |                           ✅                            |              ✅              |                      |                      |         ❌           |              ✅                  |
 | MySqlConnector                          |                  ✅                  |                           |                           ✅                            |              ✅              |          ✅          |        ✅            |         ✅           |              ✅                  |
+| Oracle.ManagedDataAccess.Core           |                  ✅                  |                           |                           ✅                             |              ✅              |                      |        ✅            |                    |              ✅                  |
 
 Nomenclature used in the table above:
 
