@@ -144,7 +144,6 @@ public class DistributedApplication : IHost, IAsyncDisposable
     {
         SuppressLifetimeLogsDuringManifestPublishing();
         await ExecuteBeforeStartHooksAsync(cancellationToken).ConfigureAwait(false);
-
         await _host.RunAsync(cancellationToken).ConfigureAwait(false);
     }
 
