@@ -23,9 +23,6 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
 
     private bool ConvertTimestampsFromUtc => _selectedResource is ContainerViewModel;
 
-    private static ViewModelMonitor<ResourceViewModel> GetViewModelMonitor(IDashboardViewModelService dashboardViewModelService)
-        => dashboardViewModelService.GetResources();
-
     private FluentSelect<Option<string>>? _resourceSelectComponent;
     private Option<string>? _selectedOption;
     private ResourceViewModel? _selectedResource;
@@ -36,7 +33,7 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
     private CancellationTokenSource? _watchLogsTokenSource;
     private string _status = LogStatus.Initializing;
 
-    private readonly TaskCompletionSource _renderCompleted = new();
+    private readonly TaskCompletionSource _renderCompletedTaskCompletionSource = new();
 
     private readonly Option<string> _noSelection = new() { Value = null, Text = "(Select a resource)" };
 
@@ -44,7 +41,7 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
     {
         _status = LogStatus.LoadingResources;
 
-        var viewModelMonitor = GetViewModelMonitor(DashboardViewModelService);
+        var viewModelMonitor = DashboardViewModelService.GetResources();
         var initialList = viewModelMonitor.Snapshot;
         var watch = viewModelMonitor.Watch;
 
@@ -71,7 +68,7 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
         if (firstRender)
         {
             // Let anyone waiting know that the render is complete so we have access to the underlying log viewer
-            _renderCompleted.SetResult();
+            _renderCompletedTaskCompletionSource.SetResult();
         }
     }
 
@@ -118,7 +115,7 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
     private async ValueTask LoadLogsAsync()
     {
         // Wait for the first render to complete so that the log viewer is available
-        await _renderCompleted.Task;
+        await _renderCompletedTaskCompletionSource.Task;
 
         if (_selectedResource is null)
         {
