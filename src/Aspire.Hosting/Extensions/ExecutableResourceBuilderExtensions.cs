@@ -52,6 +52,6 @@ public static class ExecutableResourceBuilderExtensions
         context.Writer.WriteString("context", manifestFileRelativePathToContextDirectory);
 
         ManifestPublisher.WriteEnvironmentVariables(executable, context);
-        ManifestPublisher.WriteBindings(executable, context, true);
+        ManifestPublisher.WriteBindings(executable, context, emitContainerPort: true);
     }
 }
