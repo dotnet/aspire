@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
@@ -22,9 +23,35 @@ public static class ExecutableResourceBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{ExecutableResource}"/>.</returns>
     public static IResourceBuilder<ExecutableResource> AddExecutable(this IDistributedApplicationBuilder builder, string name, string command, string workingDirectory, params string[]? args)
     {
-        workingDirectory = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.ProjectDirectory, workingDirectory));
+        workingDirectory = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, workingDirectory));
 
         var executable = new ExecutableResource(name, command, workingDirectory, args);
         return builder.AddResource(executable);
+    }
+
+    /// <summary>
+    /// Adds annotation to <see cref="ExecutableResource" /> to support containerization during deployment.
+    /// </summary>
+    /// <typeparam name="T">Type of executable resource</typeparam>
+    /// <param name="builder">Resource builder</param>
+    /// <returns></returns>
+    public static IResourceBuilder<T> AsDockerfileInManifest<T>(this IResourceBuilder<T> builder) where T : ExecutableResource
+    {
+        return builder.WithManifestPublishingCallback(context => WriteExecutableAsDockerfileResource(context, builder.Resource));
+    }
+
+    private static void WriteExecutableAsDockerfileResource(ManifestPublishingContext context, ExecutableResource executable)
+    {
+        context.Writer.WriteString("type", "dockerfile.v0");
+
+        var appHostRelativePathToDockerfile = Path.Combine(executable.WorkingDirectory, "Dockerfile");
+        var manifestFileRelativePathToDockerfile = context.GetManifestRelativePath(appHostRelativePathToDockerfile);
+        context.Writer.WriteString("path", manifestFileRelativePathToDockerfile);
+
+        var manifestFileRelativePathToContextDirectory = context.GetManifestRelativePath(executable.WorkingDirectory);
+        context.Writer.WriteString("context", manifestFileRelativePathToContextDirectory);
+
+        ManifestPublisher.WriteEnvironmentVariables(executable, context);
+        ManifestPublisher.WriteBindings(executable, context, emitContainerPort: true);
     }
 }

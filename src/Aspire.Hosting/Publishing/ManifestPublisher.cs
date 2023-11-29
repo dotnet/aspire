@@ -45,24 +45,27 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger,
 
     protected async Task WriteManifestAsync(DistributedApplicationModel model, Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
     {
+        var manifestPath = _options.Value.OutputPath ?? throw new DistributedApplicationException("The '--output-path [path]' option was not specified even though '--publish manifest' argument was used.");
+        var context = new ManifestPublishingContext(manifestPath, jsonWriter);
+
         jsonWriter.WriteStartObject();
-        WriteResources(model, jsonWriter);
+        WriteResources(model, context);
         jsonWriter.WriteEndObject();
 
         await jsonWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private void WriteResources(DistributedApplicationModel model, Utf8JsonWriter jsonWriter)
+    private void WriteResources(DistributedApplicationModel model, ManifestPublishingContext context)
     {
-        jsonWriter.WriteStartObject("resources");
+        context.Writer.WriteStartObject("resources");
         foreach (var resource in model.Resources)
         {
-            WriteResource(resource, jsonWriter);
+            WriteResource(resource, context);
         }
-        jsonWriter.WriteEndObject();
+        context.Writer.WriteEndObject();
     }
 
-    private void WriteResource(IResource resource, Utf8JsonWriter jsonWriter)
+    private void WriteResource(IResource resource, ManifestPublishingContext context)
     {
         // First see if the resource has a callback annotation with overrides the behavior for rendering
         // out the JSON. If so use that callback, otherwise use the fallback logic that we have.
@@ -70,40 +73,40 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger,
         {
             if (manifestPublishingCallbackAnnotation.Callback != null)
             {
-                WriteResourceObject(resource, () => manifestPublishingCallbackAnnotation.Callback(jsonWriter));
+                WriteResourceObject(resource, () => manifestPublishingCallbackAnnotation.Callback(context));
             }
         }
         else if (resource is ContainerResource container)
         {
-            WriteResourceObject(container, () => WriteContainer(container, jsonWriter));
+            WriteResourceObject(container, () => WriteContainer(container, context));
         }
         else if (resource is ProjectResource project)
         {
-            WriteResourceObject(project, () => WriteProject(project, jsonWriter));
+            WriteResourceObject(project, () => WriteProject(project, context));
         }
         else if (resource is ExecutableResource executable)
         {
-            WriteResourceObject(executable, () => WriteExecutable(executable, jsonWriter));
+            WriteResourceObject(executable, () => WriteExecutable(executable, context));
         }
         else
         {
-            WriteResourceObject(resource, () => WriteError(jsonWriter));
+            WriteResourceObject(resource, () => WriteError(context));
         }
 
         void WriteResourceObject<T>(T resource, Action action) where T : IResource
         {
-            jsonWriter.WriteStartObject(resource.Name);
+            context.Writer.WriteStartObject(resource.Name);
             action();
-            jsonWriter.WriteEndObject();
+            context.Writer.WriteEndObject();
         }
     }
 
-    private static void WriteError(Utf8JsonWriter jsonWriter)
+    private static void WriteError(ManifestPublishingContext context)
     {
-        jsonWriter.WriteString("error", "This resource does not support generation in the manifest.");
+        context.Writer.WriteString("error", "This resource does not support generation in the manifest.");
     }
 
-    private static void WriteServiceDiscoveryEnvironmentVariables(IResource resource, Utf8JsonWriter jsonWriter)
+    private static void WriteServiceDiscoveryEnvironmentVariables(IResource resource, ManifestPublishingContext context)
     {
         var serviceReferenceAnnotations = resource.Annotations.OfType<ServiceReferenceAnnotation>();
 
@@ -127,40 +130,40 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger,
                     //       per URI scheme per service reference.
                     var binding = serviceBindingAnnotationGroupedByScheme.Single();
 
-                    jsonWriter.WriteString($"services__{serviceReferenceAnnotation.Resource.Name}__{i++}", $"{{{serviceReferenceAnnotation.Resource.Name}.bindings.{binding.Name}.url}}");
+                    context.Writer.WriteString($"services__{serviceReferenceAnnotation.Resource.Name}__{i++}", $"{{{serviceReferenceAnnotation.Resource.Name}.bindings.{binding.Name}.url}}");
                 }
 
             }
         }
     }
 
-    private static void WriteEnvironmentVariables(IResource resource, Utf8JsonWriter jsonWriter)
+    internal static void WriteEnvironmentVariables(IResource resource, ManifestPublishingContext context)
     {
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("manifest", config);
+        var envContext = new EnvironmentCallbackContext("manifest", config);
 
         if (resource.TryGetAnnotationsOfType<EnvironmentCallbackAnnotation>(out var callbacks))
         {
-            jsonWriter.WriteStartObject("env");
+            context.Writer.WriteStartObject("env");
             foreach (var callback in callbacks)
             {
-                callback.Callback(context);
+                callback.Callback(envContext);
             }
 
             foreach (var (key, value) in config)
             {
-                jsonWriter.WriteString(key, value);
+                context.Writer.WriteString(key, value);
             }
 
-            WriteServiceDiscoveryEnvironmentVariables(resource, jsonWriter);
+            WriteServiceDiscoveryEnvironmentVariables(resource, context);
 
-            WritePortBindingEnvironmentVariables(resource, jsonWriter);
+            WritePortBindingEnvironmentVariables(resource, context);
 
-            jsonWriter.WriteEndObject();
+            context.Writer.WriteEndObject();
         }
     }
 
-    private static void WritePortBindingEnvironmentVariables(IResource resource, Utf8JsonWriter jsonWriter)
+    private static void WritePortBindingEnvironmentVariables(IResource resource, ManifestPublishingContext context)
     {
         if (resource.TryGetServiceBindings(out var serviceBindings))
         {
@@ -171,93 +174,89 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger,
                     continue;
                 }
 
-                jsonWriter.WriteString(serviceBinding.EnvironmentVariable, $"{{bindings.{serviceBinding.Name}.port}}");
+                context.Writer.WriteString(serviceBinding.EnvironmentVariable, $"{{{resource.Name}.bindings.{serviceBinding.Name}.port}}");
             }
         }
     }
 
-    private static void WriteBindings(IResource resource, Utf8JsonWriter jsonWriter, bool emitContainerPort = false)
+    internal static void WriteBindings(IResource resource, ManifestPublishingContext context, bool emitContainerPort = false)
     {
         if (resource.TryGetServiceBindings(out var serviceBindings))
         {
-            jsonWriter.WriteStartObject("bindings");
+            context.Writer.WriteStartObject("bindings");
             foreach (var serviceBinding in serviceBindings)
             {
-                jsonWriter.WriteStartObject(serviceBinding.Name);
-                jsonWriter.WriteString("scheme", serviceBinding.UriScheme);
-                jsonWriter.WriteString("protocol", serviceBinding.Protocol.ToString().ToLowerInvariant());
-                jsonWriter.WriteString("transport", serviceBinding.Transport);
+                context.Writer.WriteStartObject(serviceBinding.Name);
+                context.Writer.WriteString("scheme", serviceBinding.UriScheme);
+                context.Writer.WriteString("protocol", serviceBinding.Protocol.ToString().ToLowerInvariant());
+                context.Writer.WriteString("transport", serviceBinding.Transport);
 
                 if (emitContainerPort && serviceBinding.ContainerPort is { } containerPort)
                 {
-                    jsonWriter.WriteNumber("containerPort", containerPort);
+                    context.Writer.WriteNumber("containerPort", containerPort);
                 }
 
                 if (serviceBinding.IsExternal)
                 {
-                    jsonWriter.WriteBoolean("external", serviceBinding.IsExternal);
+                    context.Writer.WriteBoolean("external", serviceBinding.IsExternal);
                 }
 
-                jsonWriter.WriteEndObject();
+                context.Writer.WriteEndObject();
             }
-            jsonWriter.WriteEndObject();
+            context.Writer.WriteEndObject();
         }
     }
 
-    private static void WriteContainer(ContainerResource container, Utf8JsonWriter jsonWriter)
+    private static void WriteContainer(ContainerResource container, ManifestPublishingContext context)
     {
-        jsonWriter.WriteString("type", "container.v0");
+        context.Writer.WriteString("type", "container.v0");
 
         if (!container.TryGetContainerImageName(out var image))
         {
             throw new DistributedApplicationException("Could not get container image name.");
         }
 
-        jsonWriter.WriteString("image", image);
+        context.Writer.WriteString("image", image);
 
-        WriteEnvironmentVariables(container, jsonWriter);
-        WriteBindings(container, jsonWriter, emitContainerPort: true);
+        WriteEnvironmentVariables(container, context);
+        WriteBindings(container, context, emitContainerPort: true);
     }
 
-    private void WriteProject(ProjectResource project, Utf8JsonWriter jsonWriter)
+    private static void WriteProject(ProjectResource project, ManifestPublishingContext context)
     {
-        jsonWriter.WriteString("type", "project.v0");
+        context.Writer.WriteString("type", "project.v0");
 
         if (!project.TryGetLastAnnotation<IServiceMetadata>(out var metadata))
         {
             throw new DistributedApplicationException("Service metadata not found.");
         }
 
-        var manifestPath = _options.Value.OutputPath ?? throw new DistributedApplicationException("Output path not specified");
-        var fullyQualifiedManifestPath = Path.GetFullPath(manifestPath);
-        var manifestDirectory = Path.GetDirectoryName(fullyQualifiedManifestPath) ?? throw new DistributedApplicationException("Could not get directory name of output path");
-        var relativePathToProjectFile = Path.GetRelativePath(manifestDirectory, metadata.ProjectPath);
-        jsonWriter.WriteString("path", relativePathToProjectFile);
+        var relativePathToProjectFile = context.GetManifestRelativePath(metadata.ProjectPath);
 
-        WriteEnvironmentVariables(project, jsonWriter);
-        WriteBindings(project, jsonWriter);
+        context.Writer.WriteString("path", relativePathToProjectFile);
+
+        WriteEnvironmentVariables(project, context);
+        WriteBindings(project, context);
     }
 
-    private void WriteExecutable(ExecutableResource executable, Utf8JsonWriter jsonWriter)
+    private void WriteExecutable(ExecutableResource executable, ManifestPublishingContext context)
     {
-        jsonWriter.WriteString("type", "executable.v0");
+        context.Writer.WriteString("type", "executable.v0");
 
-        var manifestPath = _options.Value.OutputPath ?? throw new DistributedApplicationException("Output path not specified");
-        var fullyQualifiedManifestPath = Path.GetFullPath(manifestPath);
-        var manifestDirectory = Path.GetDirectoryName(fullyQualifiedManifestPath) ?? throw new DistributedApplicationException("Could not get directory name of output path");
-        var relativePathToProjectFile = Path.GetRelativePath(manifestDirectory, executable.WorkingDirectory);
-        jsonWriter.WriteString("workingDirectory", relativePathToProjectFile);
+        var relativePathToProjectFile = context.GetManifestRelativePath(executable.WorkingDirectory);
 
-        jsonWriter.WriteString("command", executable.Command);
-        jsonWriter.WriteStartArray("args");
+        context.Writer.WriteString("workingDirectory", relativePathToProjectFile);
+
+        context.Writer.WriteString("command", executable.Command);
+        context.Writer.WriteStartArray("args");
 
         foreach (var arg in executable.Args ?? [])
         {
-            jsonWriter.WriteStringValue(arg);
+            context.Writer.WriteStringValue(arg);
         }
-        jsonWriter.WriteEndArray();
+        context.Writer.WriteEndArray();
 
-        WriteEnvironmentVariables(executable, jsonWriter);
-        WriteBindings(executable, jsonWriter);
+        WriteEnvironmentVariables(executable, context);
+        WriteBindings(executable, context);
     }
 }
