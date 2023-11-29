@@ -24,6 +24,8 @@ public static class NodeAppHostingExtension
         args ??= [];
         string[] effectiveArgs = [scriptPath, .. args];
         workingDirectory ??= Path.GetDirectoryName(scriptPath)!;
+        workingDirectory = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, workingDirectory));
+
         var resource = new NodeAppResource(name, "node", workingDirectory, effectiveArgs);
 
         return builder.AddResource(resource)
