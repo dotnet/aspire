@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Hosting;
 
 namespace Aspire.Hosting;
@@ -47,6 +48,7 @@ public static class NodeAppHostingExtension
             ? ["run", scriptName, "--", .. args]
             : ["run", scriptName];
 
+        workingDirectory = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, workingDirectory));
         var resource = new NodeAppResource(name, "npm", workingDirectory, allArgs);
 
         return builder.AddResource(resource)

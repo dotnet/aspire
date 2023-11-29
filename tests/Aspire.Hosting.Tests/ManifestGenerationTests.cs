@@ -297,7 +297,7 @@ public class ManifestGenerationTests
             var args = jsonElement.GetProperty("args");
         }
 
-        AssertNodeResource("nodeapp", nodeApp, "node", ["app.js"]);
+        AssertNodeResource("nodeapp", nodeApp, "node", ["..\\foo\\app.js"]);
         AssertNodeResource("npmapp", npmApp, "npm", ["run", "start"]);
     }
 
