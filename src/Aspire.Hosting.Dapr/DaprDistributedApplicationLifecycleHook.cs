@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -199,41 +200,41 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
 
             resource.Annotations.Add(
                 new ManifestPublishingCallbackAnnotation(
-                    writer =>
+                    context =>
                     {
-                        writer.WriteString("type", "dapr.v0");
-                        writer.WriteStartObject("dapr");
+                        context.Writer.WriteString("type", "dapr.v0");
+                        context.Writer.WriteStartObject("dapr");
 
-                        writer.WriteString("application", project.Name);
-                        writer.TryWriteString("appChannelAddress", sidecarOptions?.AppChannelAddress);
-                        writer.TryWriteString("appHealthCheckPath", sidecarOptions?.AppHealthCheckPath);
-                        writer.TryWriteNumber("appHealthProbeInterval", sidecarOptions?.AppHealthProbeInterval);
-                        writer.TryWriteNumber("appHealthProbeTimeout", sidecarOptions?.AppHealthProbeTimeout);
-                        writer.TryWriteNumber("appHealthThreshold", sidecarOptions?.AppHealthThreshold);
-                        writer.TryWriteString("appId", sidecarOptions?.AppId);
-                        writer.TryWriteNumber("appMaxConcurrency", sidecarOptions?.AppMaxConcurrency);
-                        writer.TryWriteNumber("appPort", sidecarOptions?.AppPort);
-                        writer.TryWriteString("appProtocol", sidecarOptions?.AppProtocol);
-                        writer.TryWriteStringArray("command", sidecarOptions?.Command);
-                        writer.TryWriteStringArray("components", componentReferenceAnnotations.Select(componentReferenceAnnotation => componentReferenceAnnotation.Component.Name));
-                        writer.TryWriteString("config", sidecarOptions?.Config);
-                        writer.TryWriteNumber("daprGrpcPort", sidecarOptions?.DaprGrpcPort);
-                        writer.TryWriteNumber("daprHttpMaxRequestSize", sidecarOptions?.DaprHttpMaxRequestSize);
-                        writer.TryWriteNumber("daprHttpPort", sidecarOptions?.DaprHttpPort);
-                        writer.TryWriteNumber("daprHttpReadBufferSize", sidecarOptions?.DaprHttpReadBufferSize);
-                        writer.TryWriteNumber("daprInternalGrpcPort", sidecarOptions?.DaprInternalGrpcPort);
-                        writer.TryWriteString("daprListenAddresses", sidecarOptions?.DaprListenAddresses);
-                        writer.TryWriteBoolean("enableApiLogging", sidecarOptions?.EnableApiLogging);
-                        writer.TryWriteBoolean("enableAppHealthCheck", sidecarOptions?.EnableAppHealthCheck);
-                        writer.TryWriteString("logLevel", sidecarOptions?.LogLevel);
-                        writer.TryWriteNumber("metricsPort", sidecarOptions?.MetricsPort);
-                        writer.TryWriteString("placementHostAddress", sidecarOptions?.PlacementHostAddress);
-                        writer.TryWriteNumber("profilePort", sidecarOptions?.ProfilePort);
-                        writer.TryWriteStringArray("resourcesPath", sidecarOptions?.ResourcesPaths);
-                        writer.TryWriteString("runFile", sidecarOptions?.RunFile);
-                        writer.TryWriteString("unixDomainSocket", sidecarOptions?.UnixDomainSocket);
+                        context.Writer.WriteString("application", project.Name);
+                        context.Writer.TryWriteString("appChannelAddress", sidecarOptions?.AppChannelAddress);
+                        context.Writer.TryWriteString("appHealthCheckPath", sidecarOptions?.AppHealthCheckPath);
+                        context.Writer.TryWriteNumber("appHealthProbeInterval", sidecarOptions?.AppHealthProbeInterval);
+                        context.Writer.TryWriteNumber("appHealthProbeTimeout", sidecarOptions?.AppHealthProbeTimeout);
+                        context.Writer.TryWriteNumber("appHealthThreshold", sidecarOptions?.AppHealthThreshold);
+                        context.Writer.TryWriteString("appId", sidecarOptions?.AppId);
+                        context.Writer.TryWriteNumber("appMaxConcurrency", sidecarOptions?.AppMaxConcurrency);
+                        context.Writer.TryWriteNumber("appPort", sidecarOptions?.AppPort);
+                        context.Writer.TryWriteString("appProtocol", sidecarOptions?.AppProtocol);
+                        context.Writer.TryWriteStringArray("command", sidecarOptions?.Command);
+                        context.Writer.TryWriteStringArray("components", componentReferenceAnnotations.Select(componentReferenceAnnotation => componentReferenceAnnotation.Component.Name));
+                        context.Writer.TryWriteString("config", sidecarOptions?.Config);
+                        context.Writer.TryWriteNumber("daprGrpcPort", sidecarOptions?.DaprGrpcPort);
+                        context.Writer.TryWriteNumber("daprHttpMaxRequestSize", sidecarOptions?.DaprHttpMaxRequestSize);
+                        context.Writer.TryWriteNumber("daprHttpPort", sidecarOptions?.DaprHttpPort);
+                        context.Writer.TryWriteNumber("daprHttpReadBufferSize", sidecarOptions?.DaprHttpReadBufferSize);
+                        context.Writer.TryWriteNumber("daprInternalGrpcPort", sidecarOptions?.DaprInternalGrpcPort);
+                        context.Writer.TryWriteString("daprListenAddresses", sidecarOptions?.DaprListenAddresses);
+                        context.Writer.TryWriteBoolean("enableApiLogging", sidecarOptions?.EnableApiLogging);
+                        context.Writer.TryWriteBoolean("enableAppHealthCheck", sidecarOptions?.EnableAppHealthCheck);
+                        context.Writer.TryWriteString("logLevel", sidecarOptions?.LogLevel);
+                        context.Writer.TryWriteNumber("metricsPort", sidecarOptions?.MetricsPort);
+                        context.Writer.TryWriteString("placementHostAddress", sidecarOptions?.PlacementHostAddress);
+                        context.Writer.TryWriteNumber("profilePort", sidecarOptions?.ProfilePort);
+                        context.Writer.TryWriteStringArray("resourcesPath", sidecarOptions?.ResourcesPaths);
+                        context.Writer.TryWriteString("runFile", sidecarOptions?.RunFile);
+                        context.Writer.TryWriteString("unixDomainSocket", sidecarOptions?.UnixDomainSocket);
 
-                        writer.WriteEndObject();
+                        context.Writer.WriteEndObject();
                     }));
 
             appModel.Resources.Add(resource);

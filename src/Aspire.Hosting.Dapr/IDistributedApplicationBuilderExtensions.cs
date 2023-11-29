@@ -5,6 +5,7 @@ using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dapr;
 using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
@@ -43,7 +44,7 @@ public static class IDistributedApplicationBuilderExtensions
 
         return builder
             .AddResource(resource)
-            .WithAnnotation(new ManifestPublishingCallbackAnnotation(writer => WriteDaprComponentResourceToManifest(writer, resource)));
+            .WithAnnotation(new ManifestPublishingCallbackAnnotation(context => WriteDaprComponentResourceToManifest(context.Writer, resource)));
     }
 
     /// <summary>
