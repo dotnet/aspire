@@ -277,7 +277,7 @@ public class ManifestGenerationTests
         var nodeApp = resources.GetProperty("nodeapp");
         var npmApp = resources.GetProperty("npmapp");
 
-        static void AssertNodeResource(JsonElement jsonElement, string expectedCommand, string[] expectedArgs)
+        static void AssertNodeResource(string resourceName, JsonElement jsonElement, string expectedCommand, string[] expectedArgs)
         {
             Assert.Equal("executable.v0", jsonElement.GetProperty("type").GetString());
 
@@ -287,7 +287,7 @@ public class ManifestGenerationTests
             Assert.Equal("http", httpBinding.GetProperty("scheme").GetString());
 
             var env = jsonElement.GetProperty("env");
-            Assert.Equal("{bindings.http.port}", env.GetProperty("PORT").GetString());
+            Assert.Equal($$"""{{{resourceName}}.bindings.http.port}""", env.GetProperty("PORT").GetString());
             Assert.Equal("production", env.GetProperty("NODE_ENV").GetString());
 
             var command = jsonElement.GetProperty("command");
@@ -297,8 +297,8 @@ public class ManifestGenerationTests
             var args = jsonElement.GetProperty("args");
         }
 
-        AssertNodeResource(nodeApp, "node", ["app.js"]);
-        AssertNodeResource(npmApp, "npm", ["run", "start"]);
+        AssertNodeResource("nodeapp", nodeApp, "node", ["app.js"]);
+        AssertNodeResource("npmapp", npmApp, "npm", ["run", "start"]);
     }
 
     private static TestProgram CreateTestProgramJsonDocumentManifestPublisher(bool includeNodeApp = false)

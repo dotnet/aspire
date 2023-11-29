@@ -174,7 +174,7 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger,
                     continue;
                 }
 
-                context.Writer.WriteString(serviceBinding.EnvironmentVariable, $"{{bindings.{serviceBinding.Name}.port}}");
+                context.Writer.WriteString(serviceBinding.EnvironmentVariable, $"{{{resource.Name}.bindings.{serviceBinding.Name}.port}}");
             }
         }
     }
@@ -243,15 +243,8 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger,
     {
         context.Writer.WriteString("type", "executable.v0");
 
-        var manifestPath = _options.Value.OutputPath ?? throw new DistributedApplicationException("Output path not specified");
-        var fullyQualifiedManifestPath = Path.GetFullPath(manifestPath);
-        var manifestDirectory = Path.GetDirectoryName(fullyQualifiedManifestPath) ?? throw new DistributedApplicationException("Could not get directory name of output path");
+        var relativePathToProjectFile = context.GetManifestRelativePath(executable.WorkingDirectory);
 
-        var fullPath = _appHostProjectDirectory is null
-            ? Path.GetFullPath(executable.WorkingDirectory)
-            : Path.GetFullPath(Path.Combine(_appHostProjectDirectory, executable.WorkingDirectory));
-
-        var relativePathToProjectFile = Path.GetRelativePath(manifestDirectory, fullPath);
         context.Writer.WriteString("workingDirectory", relativePathToProjectFile);
 
         context.Writer.WriteString("command", executable.Command);
