@@ -280,22 +280,4 @@ internal sealed class AspireEventSource : EventSource
             WriteEvent(30);
         }
     }
-
-    [Event(31, Level = EventLevel.Informational, Message = "Application after-stop hooks running...")]
-    public void AppAfterStopHooksStart()
-    {
-        if (IsEnabled())
-        {
-            WriteEvent(31);
-        }
-    }
-
-    [Event(32, Level = EventLevel.Informational, Message = "Application after-stop hooks completed")]
-    public void AppAfterStopHooksStop()
-    {
-        if (IsEnabled())
-        {
-            WriteEvent(32);
-        }
-    }
 }

@@ -20,14 +20,4 @@ public interface IDistributedApplicationLifecycleHook
     {
         return Task.CompletedTask;
     }
-
-    /// <summary>
-    /// Executes after the distributed application stops.
-    /// </summary>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    Task AfterStopAsync(CancellationToken cancellationToken = default)
-    {
-        return Task.CompletedTask;
-    }
 }

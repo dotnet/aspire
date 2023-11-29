@@ -14,7 +14,7 @@ using static Aspire.Hosting.Dapr.CommandLineArgs;
 
 namespace Aspire.Hosting.Dapr;
 
-internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedApplicationLifecycleHook
+internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedApplicationLifecycleHook, IDisposable
 {
     private readonly IConfiguration _configuration;
     private readonly IHostEnvironment _environment;
@@ -241,9 +241,21 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
         }
     }
 
-    public async Task AfterStopAsync(CancellationToken cancellationToken = default)
+    public void Dispose()
     {
-        await StopOnDemandDaprComponentsAsync().ConfigureAwait(false);
+        if (_onDemandResourcesRootPath is not null)
+        {
+            _logger.LogInformation("Stopping Dapr-related resources...");
+
+            try
+            {
+                Directory.Delete(_onDemandResourcesRootPath, recursive: true);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to delete temporary Dapr resources directory: {OnDemandResourcesRootPath}", _onDemandResourcesRootPath);
+            }
+        }
     }
 
     private async Task<IReadOnlyDictionary<string, string>> StartOnDemandDaprComponentsAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
@@ -291,25 +303,6 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
         }
 
         return onDemandResourcesPaths;
-    }
-
-    private Task StopOnDemandDaprComponentsAsync()
-    {
-        if (_onDemandResourcesRootPath is not null)
-        {
-            _logger.LogInformation("Stopping Dapr-related resources...");
-
-            try
-            {
-                Directory.Delete(_onDemandResourcesRootPath, recursive: true);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to delete temporary Dapr resources directory: {OnDemandResourcesRootPath}", _onDemandResourcesRootPath);
-            }
-        }
-
-        return Task.CompletedTask;
     }
 
     private async Task<string> GetPubSubAsync(DaprComponentResource component, Func<string, Task<string>> contentWriter, CancellationToken cancellationToken)
