@@ -3,6 +3,7 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Hosting;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
 
