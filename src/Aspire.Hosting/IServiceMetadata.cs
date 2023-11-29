@@ -25,3 +25,12 @@ public interface IServiceMetadata : IResourceAnnotation
     /// </summary>
     public string ProjectPath { get; }
 }
+
+internal class ServiceMetadata(string projectPath) : IServiceMetadata
+{
+    public string AssemblyName => throw new NotImplementedException();
+
+    public string AssemblyPath => throw new NotImplementedException();
+
+    public string ProjectPath { get; } = projectPath;
+}
