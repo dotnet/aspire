@@ -21,6 +21,7 @@ public partial class PlotlyChart : ComponentBase
     private DateTime _currentDataStartTime;
     private List<KeyValuePair<string, string>[]>? _renderedDimensionAttributes;
     private OtlpInstrumentKey? _renderedInstrument;
+    private string? _renderedTheme;
 
     [Inject]
     public required IJSRuntime JSRuntime { get; set; }
@@ -53,11 +54,13 @@ public partial class PlotlyChart : ComponentBase
 
         var dimensionAttributes = InstrumentViewModel.MatchedDimensions.Select(d => d.Attributes).ToList();
         if (_renderedInstrument is null || _renderedInstrument != InstrumentViewModel.Instrument.GetKey() ||
-            _renderedDimensionAttributes is null || !_renderedDimensionAttributes.SequenceEqual(dimensionAttributes))
+            _renderedDimensionAttributes is null || !_renderedDimensionAttributes.SequenceEqual(dimensionAttributes) ||
+            _renderedTheme != InstrumentViewModel.Theme)
         {
             // Dimensions (or entire chart) has changed. Re-render the entire chart.
             _renderedInstrument = InstrumentViewModel.Instrument.GetKey();
             _renderedDimensionAttributes = dimensionAttributes;
+            _renderedTheme = InstrumentViewModel.Theme;
             await UpdateChart(tickUpdate: false, inProgressDataTime).ConfigureAwait(false);
         }
         else if (_lastUpdateTime.Add(TimeSpan.FromSeconds(0.2)) < DateTime.UtcNow)
