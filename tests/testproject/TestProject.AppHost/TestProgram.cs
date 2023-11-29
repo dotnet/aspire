@@ -21,8 +21,9 @@ public class TestProgram
             // Relative to this project so that it doesn't changed based on
             // where this code is referenced from.
             var path = Path.Combine(Projects.TestProject_AppHost.ProjectPath, @"..\nodeapp");
+            var scriptPath = Path.Combine(path, "app.js");
 
-            NodeApp = AppBuilder.AddNodeApp("nodeapp", path, ["app.js"])
+            NodeApp = AppBuilder.AddNodeApp("nodeapp", scriptPath)
                 .WithServiceBinding(hostPort: 5031, scheme: "http", env: "PORT");
 
             NpmApp = AppBuilder.AddNpmApp("npmapp", path)

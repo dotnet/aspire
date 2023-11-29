@@ -15,12 +15,16 @@ public static class NodeAppHostingExtension
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/> to add the resource to.</param>
     /// <param name="name">The name of the resource.</param>
+    /// <param name="scriptPath">The path to the script that Node will execute.</param>
     /// <param name="workingDirectory">The working directory to use for the command. If null, the working directory of the current process is used.</param>
     /// <param name="args">The arguments to pass to the command.</param>
     /// <returns></returns>
-    public static IResourceBuilder<NodeAppResource> AddNodeApp(this IDistributedApplicationBuilder builder, string name, string workingDirectory, string[] args)
+    public static IResourceBuilder<NodeAppResource> AddNodeApp(this IDistributedApplicationBuilder builder, string name, string scriptPath, string? workingDirectory = null, string[]? args = null)
     {
-        var resource = new NodeAppResource(name, "node", workingDirectory, args);
+        args ??= [];
+        string[] effectiveArgs = [scriptPath, .. args];
+        workingDirectory ??= Path.GetDirectoryName(scriptPath)!;
+        var resource = new NodeAppResource(name, "node", workingDirectory, effectiveArgs);
 
         return builder.AddResource(resource)
                       .WithNodeDefaults();
