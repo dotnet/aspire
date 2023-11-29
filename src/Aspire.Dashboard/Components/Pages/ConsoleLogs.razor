@@ -7,11 +7,11 @@
 <div class="resource-logs-layout">
     <h1>Console Logs</h1>
     <FluentToolbar Orientation="Orientation.Horizontal">
-        <FluentSelect @ref="_resourceSelectComponent" TOption="ResourceViewModel"
+        <FluentSelect @ref="_resourceSelectComponent" TOption="Option<string>"
                       Items="@Resources"
-                      OptionValue="@(c => c.Name)"
-                      OptionText="GetDisplayText"
-                      @bind-SelectedOption="_selectedResource"
+                      OptionText="(o) => o.Text"
+                      OptionValue="(o) => o.Value"
+                      @bind-SelectedOption="_selectedOption"
                       @bind-SelectedOption:after="HandleSelectedOptionChangedAsync"
                       AriaLabel="Select a Resource"/>
         <FluentLabel Typo="Typography.Body">@_status</FluentLabel>
