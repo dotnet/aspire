@@ -7,7 +7,7 @@ using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Net.Sockets;
 using static Aspire.Hosting.Dapr.CommandLineArgs;
@@ -42,6 +42,8 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
 
     public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
+        string appHostDirectory = _configuration["AppHost:Directory"] ?? throw new InvalidOperationException("Unable to obtain the application host directory.");
+
         var onDemandResourcesPaths = await StartOnDemandDaprComponentsAsync(appModel, cancellationToken).ConfigureAwait(false);
 
         var projectResources = appModel.GetProjectResources().ToArray();
@@ -65,7 +67,18 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
             string fileName = this._options.DaprPath ?? s_defaultDaprPath;
             string workingDirectory = Path.GetDirectoryName(projectMetadata.ProjectPath)!;
 
-            var aggregateResourcesPaths = sidecarOptions?.ResourcesPaths ?? ImmutableHashSet<string>.Empty;
+            [return: NotNullIfNotNull(nameof(path))]
+            string? NormalizePath(string? path)
+            {
+                if (path is null)
+                {
+                    return null;
+                }
+
+                return Path.GetFullPath(Path.Combine(appHostDirectory, path));
+            }
+
+            var aggregateResourcesPaths = sidecarOptions?.ResourcesPaths.Select(path => NormalizePath(path)).ToHashSet() ?? new HashSet<string>();
 
             var componentReferenceAnnotations = project.Annotations.OfType<DaprComponentReferenceAnnotation>();
 
@@ -73,12 +86,11 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
             {
                 if (componentReferenceAnnotation.Component.Options?.LocalPath is not null)
                 {
-                    var localPath = Path.GetFullPath(Path.Combine(workingDirectory, componentReferenceAnnotation.Component.Options.LocalPath));
-                    var localPathDirectory = Path.GetDirectoryName(localPath);
+                    var localPathDirectory = Path.GetDirectoryName(NormalizePath(componentReferenceAnnotation.Component.Options.LocalPath));
 
                     if (localPathDirectory is not null)
                     {
-                        aggregateResourcesPaths = aggregateResourcesPaths.Add(localPathDirectory);
+                        aggregateResourcesPaths.Add(localPathDirectory);
                     }
                 }
                 else if (onDemandResourcesPaths.TryGetValue(componentReferenceAnnotation.Component.Name, out var onDemandResourcesPath))
@@ -87,7 +99,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
 
                     if (onDemandResourcesPathDirectory is not null)
                     {
-                        aggregateResourcesPaths = aggregateResourcesPaths.Add(onDemandResourcesPathDirectory);
+                        aggregateResourcesPaths.Add(onDemandResourcesPathDirectory);
                     }
                 }
             }
@@ -116,7 +128,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         NamedArg("--app-id", sidecarOptions?.AppId),
                         NamedArg("--app-max-concurrency", sidecarOptions?.AppMaxConcurrency),
                         NamedArg("--app-protocol", sidecarOptions?.AppProtocol),
-                        NamedArg("--config", sidecarOptions?.Config),
+                        NamedArg("--config", NormalizePath(sidecarOptions?.Config)),
                         NamedArg("--dapr-http-max-request-size", sidecarOptions?.DaprHttpMaxRequestSize),
                         NamedArg("--dapr-http-read-buffer-size", sidecarOptions?.DaprHttpReadBufferSize),
                         NamedArg("--dapr-internal-grpc-port", sidecarOptions?.DaprInternalGrpcPort),
@@ -127,7 +139,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         NamedArg("--log-level", sidecarOptions?.LogLevel),
                         NamedArg("--placement-host-address", sidecarOptions?.PlacementHostAddress),
                         NamedArg("--resources-path", aggregateResourcesPaths),
-                        NamedArg("--run-file", sidecarOptions?.RunFile),
+                        NamedArg("--run-file", NormalizePath(sidecarOptions?.RunFile)),
                         NamedArg("--unix-domain-socket", sidecarOptions?.UnixDomainSocket),
                         PostOptionsArgs(Args(sidecarOptions?.Command)));
 
@@ -217,7 +229,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         context.Writer.TryWriteString("appProtocol", sidecarOptions?.AppProtocol);
                         context.Writer.TryWriteStringArray("command", sidecarOptions?.Command);
                         context.Writer.TryWriteStringArray("components", componentReferenceAnnotations.Select(componentReferenceAnnotation => componentReferenceAnnotation.Component.Name));
-                        context.Writer.TryWriteString("config", sidecarOptions?.Config);
+                        context.Writer.TryWriteString("config", context.GetManifestRelativePath(sidecarOptions?.Config));
                         context.Writer.TryWriteNumber("daprGrpcPort", sidecarOptions?.DaprGrpcPort);
                         context.Writer.TryWriteNumber("daprHttpMaxRequestSize", sidecarOptions?.DaprHttpMaxRequestSize);
                         context.Writer.TryWriteNumber("daprHttpPort", sidecarOptions?.DaprHttpPort);
@@ -230,8 +242,8 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         context.Writer.TryWriteNumber("metricsPort", sidecarOptions?.MetricsPort);
                         context.Writer.TryWriteString("placementHostAddress", sidecarOptions?.PlacementHostAddress);
                         context.Writer.TryWriteNumber("profilePort", sidecarOptions?.ProfilePort);
-                        context.Writer.TryWriteStringArray("resourcesPath", sidecarOptions?.ResourcesPaths);
-                        context.Writer.TryWriteString("runFile", sidecarOptions?.RunFile);
+                        context.Writer.TryWriteStringArray("resourcesPath", sidecarOptions?.ResourcesPaths.Select(path => context.GetManifestRelativePath(path)));
+                        context.Writer.TryWriteString("runFile", context.GetManifestRelativePath(sidecarOptions?.RunFile));
                         context.Writer.TryWriteString("unixDomainSocket", sidecarOptions?.UnixDomainSocket);
 
                         context.Writer.WriteEndObject();

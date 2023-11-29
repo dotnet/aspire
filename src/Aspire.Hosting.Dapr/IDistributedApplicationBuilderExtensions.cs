@@ -1,10 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dapr;
 using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -44,7 +44,7 @@ public static class IDistributedApplicationBuilderExtensions
 
         return builder
             .AddResource(resource)
-            .WithAnnotation(new ManifestPublishingCallbackAnnotation(context => WriteDaprComponentResourceToManifest(context.Writer, resource)));
+            .WithAnnotation(new ManifestPublishingCallbackAnnotation(context => WriteDaprComponentResourceToManifest(context, resource)));
     }
 
     /// <summary>
@@ -71,14 +71,14 @@ public static class IDistributedApplicationBuilderExtensions
         return builder.AddDaprComponent(name, DaprConstants.BuildingBlocks.StateStore, options);
     }
 
-    private static void WriteDaprComponentResourceToManifest(Utf8JsonWriter writer, DaprComponentResource resource)
+    private static void WriteDaprComponentResourceToManifest(ManifestPublishingContext context, DaprComponentResource resource)
     {
-        writer.WriteString("type", "dapr.component.v0");
-        writer.WriteStartObject("daprComponent");
+        context.Writer.WriteString("type", "dapr.component.v0");
+        context.Writer.WriteStartObject("daprComponent");
 
-        writer.TryWriteString("localPath", resource.Options?.LocalPath);
-        writer.WriteString("type", resource.Type);
+        context.Writer.TryWriteString("localPath", context.GetManifestRelativePath(resource.Options?.LocalPath));
+        context.Writer.WriteString("type", resource.Type);
 
-        writer.WriteEndObject();
+        context.Writer.WriteEndObject();
     }
 }
