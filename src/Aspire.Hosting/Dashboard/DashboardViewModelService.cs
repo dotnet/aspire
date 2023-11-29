@@ -442,7 +442,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
 
                 // For project look into launch profile to append launch url
                 if (resourceViewModel is ProjectViewModel projectViewModel
-                    && _applicationModel.TryGetProjectWithPath(projectViewModel.ProjectPath, out var project)
+                    && _applicationModel.TryGetProjectWithPath(projectViewModel.Name, projectViewModel.ProjectPath, out var project)
                     && project.GetEffectiveLaunchProfile() is LaunchProfile launchProfile
                     && launchProfile.LaunchUrl is string launchUrl)
                 {
