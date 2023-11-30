@@ -6,12 +6,12 @@ var stateStore = builder.AddDaprStateStore("statestore");
 var pubSub = builder.AddDaprPubSub("pubsub");
 
 builder.AddProject<Projects.DaprServiceA>("servicea")
-       .WithDaprSidecar("service-a")
+       .WithDaprSidecar()
        .WithReference(stateStore)
        .WithReference(pubSub);
 
 builder.AddProject<Projects.DaprServiceB>("serviceb")
-       .WithDaprSidecar("service-b")
+       .WithDaprSidecar()
        .WithReference(pubSub);
 
 using var app = builder.Build();

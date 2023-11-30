@@ -46,26 +46,18 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
 
         var onDemandResourcesPaths = await StartOnDemandDaprComponentsAsync(appModel, cancellationToken).ConfigureAwait(false);
 
-        var projectResources = appModel.GetProjectResources().ToArray();
+        var sideCars = new List<ExecutableResource>();
 
-        foreach (var project in projectResources)
+        foreach (var resource in appModel.Resources)
         {
-            if (!project.TryGetLastAnnotation<IServiceMetadata>(out var projectMetadata))
+            if (!resource.TryGetLastAnnotation<DaprSidecarAnnotation>(out var daprAnnotation))
             {
                 continue;
             }
-
-            if (!project.TryGetLastAnnotation<DaprSidecarAnnotation>(out var daprAnnotation))
-            {
-                continue;
-            }
-
-            var projectName = Path.GetFileNameWithoutExtension(projectMetadata.ProjectPath);
 
             var sidecarOptions = daprAnnotation.Options;
 
             string fileName = this._options.DaprPath ?? s_defaultDaprPath;
-            string workingDirectory = Path.GetDirectoryName(projectMetadata.ProjectPath)!;
 
             [return: NotNullIfNotNull(nameof(path))]
             string? NormalizePath(string? path)
@@ -80,7 +72,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
 
             var aggregateResourcesPaths = sidecarOptions?.ResourcesPaths.Select(path => NormalizePath(path)).ToHashSet() ?? new HashSet<string>();
 
-            var componentReferenceAnnotations = project.Annotations.OfType<DaprComponentReferenceAnnotation>();
+            var componentReferenceAnnotations = resource.Annotations.OfType<DaprComponentReferenceAnnotation>();
 
             foreach (var componentReferenceAnnotation in componentReferenceAnnotations)
             {
@@ -164,13 +156,13 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                 throw new DistributedApplicationException("AppId is required for Dapr sidecar executable.");
             }
 
-            var resource = new ExecutableResource(appId, fileName, workingDirectory, daprCommandLine.Arguments.ToArray());
+            var daprSideCar = new ExecutableResource($"{resource.Name}-dapr", fileName, appHostDirectory, daprCommandLine.Arguments.ToArray());
 
-            project.Annotations.Add(
+            resource.Annotations.Add(
                 new EnvironmentCallbackAnnotation(
                     env =>
                     {
-                        if (resource.TryGetAllocatedEndPoints(out var endPoints))
+                        if (daprSideCar.TryGetAllocatedEndPoints(out var endPoints))
                         {
                             foreach (var endPoint in endPoints)
                             {
@@ -182,19 +174,19 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         }
                     }));
 
-            resource.Annotations.AddRange(ports.Select(port => new ServiceBindingAnnotation(ProtocolType.Tcp, name: port.Key, port: port.Value.Port)));
+            daprSideCar.Annotations.AddRange(ports.Select(port => new ServiceBindingAnnotation(ProtocolType.Tcp, name: port.Key, port: port.Value.Port)));
 
             // NOTE: Telemetry is enabled by default.
             if (this._options.EnableTelemetry != false)
             {
-                OtlpConfigurationExtensions.AddOtlpEnvironment(resource, _configuration, _environment);
+                OtlpConfigurationExtensions.AddOtlpEnvironment(daprSideCar, _configuration, _environment);
             }
 
-            resource.Annotations.Add(
+            daprSideCar.Annotations.Add(
                 new ExecutableArgsCallbackAnnotation(
                     updatedArgs =>
                     {
-                        if (project.TryGetAllocatedEndPoints(out var projectEndPoints))
+                        if (resource.TryGetAllocatedEndPoints(out var projectEndPoints))
                         {
                             var httpEndPoint = projectEndPoints.FirstOrDefault(endPoint => endPoint.Name == "http");
 
@@ -210,14 +202,14 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         }
                     }));
 
-            resource.Annotations.Add(
+            daprSideCar.Annotations.Add(
                 new ManifestPublishingCallbackAnnotation(
                     context =>
                     {
                         context.Writer.WriteString("type", "dapr.v0");
                         context.Writer.WriteStartObject("dapr");
 
-                        context.Writer.WriteString("application", project.Name);
+                        context.Writer.WriteString("application", resource.Name);
                         context.Writer.TryWriteString("appChannelAddress", sidecarOptions?.AppChannelAddress);
                         context.Writer.TryWriteString("appHealthCheckPath", sidecarOptions?.AppHealthCheckPath);
                         context.Writer.TryWriteNumber("appHealthProbeInterval", sidecarOptions?.AppHealthProbeInterval);
@@ -249,8 +241,10 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         context.Writer.WriteEndObject();
                     }));
 
-            appModel.Resources.Add(resource);
+            sideCars.Add(daprSideCar);
         }
+
+        appModel.Resources.AddRange(sideCars);
     }
 
     public void Dispose()
