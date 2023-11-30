@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Reflection;
 using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.StackExchangeRedis;
@@ -9,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using OpenTelemetry.Trace;
 using StackExchange.Redis;
 using Xunit;
 
@@ -222,5 +224,26 @@ public class AspireRedisExtensionsTests
         // See https://github.com/dotnet/aspnetcore/blob/94ad7031db6744409de24f75777a59620cb94d9a/src/HealthChecks/HealthChecks/src/DefaultHealthCheckService.cs#L33-L36
         var healthCheckService = host.Services.GetRequiredService<HealthCheckService>();
         Assert.NotNull(healthCheckService);
+    }
+
+    [Fact]
+    public void KeyedServiceRedisInstrumentation()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        builder.AddKeyedRedis("redis", settings =>
+        {
+            settings.ConnectionString = "localhost";
+            settings.Tracing = true;
+        }, options => { });
+        var host = builder.Build();
+
+        //This will add the instrumentations.
+        var tracerProvider = host.Services.GetRequiredService<TracerProvider>();
+
+        var connectionMultiplexer = host.Services.GetRequiredKeyedService<IConnectionMultiplexer>("redis");
+        var profiler = connectionMultiplexer.GetType().GetField("_profilingSessionProvider", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(connectionMultiplexer);
+
+        Assert.NotNull(profiler);
     }
 }

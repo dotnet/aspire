@@ -100,11 +100,22 @@ public static class AspireRedisExtensions
         if (settings.Tracing)
         {
             // Supports distributed tracing
-            builder.Services.AddOpenTelemetry()
+            if (serviceKey is null)
+            {
+                builder.Services.AddOpenTelemetry()
                 .WithTracing(t =>
                 {
                     t.AddRedisInstrumentation();
                 });
+            }
+            else
+            {
+                builder.Services.AddOpenTelemetry()
+                .WithTracing(t =>
+                {
+                    t.AddRedisInstrumentationWithKeyedService(serviceKey);
+                });
+            }
         }
 
         if (settings.HealthChecks)
