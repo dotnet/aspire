@@ -35,13 +35,17 @@ public sealed class AzureDataTablesSettings : IConnectionStringSettings
 
     /// <summary>
     /// <para>Gets or sets a boolean value that indicates whether the health check is enabled or not.</para>
-    /// <para>Enabled by default.</para>
+    /// <value>
+    /// The default value is <see langword="true"/>.
+    /// </value>
     /// </summary>
     public bool HealthChecks { get; set; } = true;
 
     /// <summary>
     /// <para>Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.</para>
-    /// <para>Disabled by default.</para>
+    /// <value>
+    /// The default value is <see langword="false"/>.
+    /// </value>
     /// </summary>
     /// <remarks>
     /// ActivitySource support in Azure SDK is experimental, the shape of Activities may change in the future without notice.
