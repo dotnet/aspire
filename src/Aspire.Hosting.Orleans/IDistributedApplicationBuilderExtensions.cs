@@ -13,11 +13,23 @@ public static class IDistributedApplicationBuilderExtensions
 {
     private const string OrleansConfigKeyPrefix = "Orleans";
 
+    /// <summary>
+    /// Add Orleans to the resource.
+    /// </summary>
+    /// <param name="builder">The target builder.</param>
+    /// <param name="name">The name of the Orleans resource.</param>
+    /// <returns>The Orleans resource.</returns>
     public static IResourceBuilder<OrleansResource> AddOrleans(
         this IDistributedApplicationBuilder builder,
         string name)
         => builder.AddResource(new OrleansResource(name));
 
+    /// <summary>
+    /// Set the ClusterId to use for the Orleans cluster.
+    /// </summary>
+    /// <param name="builder">The target Orleans resource.</param>
+    /// <param name="clusterId">The ClusterId value.</param>
+    /// <returns>>The Orleans resource.</returns>
     public static IResourceBuilder<OrleansResource> WithClusterId(
         this IResourceBuilder<OrleansResource> builder,
         string clusterId)
@@ -26,6 +38,12 @@ public static class IDistributedApplicationBuilderExtensions
         return builder;
     }
 
+    /// <summary>
+    /// Set the ServiceId to use for the Orleans cluster.
+    /// </summary>
+    /// <param name="builder">The target Orleans resource.</param>
+    /// <param name="serviceId">The ServiceId value.</param>
+    /// <returns>>The Orleans resource.</returns>
     public static IResourceBuilder<OrleansResource> WithServiceId(
         this IResourceBuilder<OrleansResource> builder,
         string serviceId)
@@ -34,6 +52,12 @@ public static class IDistributedApplicationBuilderExtensions
         return builder;
     }
 
+    /// <summary>
+    /// Set the clustering for the Orleans cluster.
+    /// </summary>
+    /// <param name="builder">The target Orleans resource.</param>
+    /// <param name="clustering">The clustering to use.</param>
+    /// <returns>>The Orleans resource.</returns>
     public static IResourceBuilder<OrleansResource> WithClustering(
         this IResourceBuilder<OrleansResource> builder,
         IResourceBuilder<IResourceWithConnectionString> clustering)
@@ -42,6 +66,12 @@ public static class IDistributedApplicationBuilderExtensions
         return builder;
     }
 
+    /// <summary>
+    /// Add a grain storage provider for the Orleans silos.
+    /// </summary>
+    /// <param name="builder">The target Orleans resource.</param>
+    /// <param name="storage">The storage provider to add.</param>
+    /// <returns>>The Orleans resource.</returns>
     public static IResourceBuilder<OrleansResource> WithGrainStorage(
         this IResourceBuilder<OrleansResource> builder,
         IResourceBuilder<IResourceWithConnectionString> storage)
@@ -50,6 +80,13 @@ public static class IDistributedApplicationBuilderExtensions
         return builder;
     }
 
+    /// <summary>
+    /// Add a grain storage provider for the Orleans silos.
+    /// </summary>
+    /// <param name="builder">The target Orleans resource.</param>
+    /// <param name="name">The name of the storage provider.</param>
+    /// <param name="storage">The storage provider to add.</param>
+    /// <returns>>The Orleans resource.</returns>
     public static IResourceBuilder<OrleansResource> WithGrainStorage(
         this IResourceBuilder<OrleansResource> builder,
         string name,
@@ -59,6 +96,12 @@ public static class IDistributedApplicationBuilderExtensions
         return builder;
     }
 
+    /// <summary>
+    /// Set the reminder storage for the Orleans cluster.
+    /// </summary>
+    /// <param name="builder">The target Orleans resource.</param>
+    /// <param name="reminderStorage">The reminder storage to use.</param>
+    /// <returns>>The Orleans resource.</returns>
     public static IResourceBuilder<OrleansResource> WithReminders(
         this IResourceBuilder<OrleansResource> builder,
         IResourceBuilder<IResourceWithConnectionString> reminderStorage)
