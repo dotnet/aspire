@@ -1,5 +1,9 @@
 # .NET Aspire
 
+[![Build Status](https://dev.azure.com/dnceng-public/public/_apis/build/status%2Fdotnet%2Faspire%2Fdotnet.aspire?branchName=main)](https://dev.azure.com/dnceng-public/public/_build/latest?definitionId=274&branchName=main)
+[![Help Wanted](https://img.shields.io/github/issues/dotnet/aspire/help%20wanted?style=flat-square&color=%232EA043&label=help%20wanted)](https://github.com/dotnet/aspire/labels/help%20wanted)
+[![Good First Issue](https://img.shields.io/github/issues/dotnet/aspire/good%20first%20issue?style=flat-square&color=%232EA043&label=good%20first%20issue)](https://github.com/dotnet/aspire/labels/good%20first%20issue)
+
 ## What is .NET Aspire?
 
 .NET Aspire is an opinionated, cloud ready stack for building observable, production ready, distributed applications. .NET Aspire is delivered through a collection of NuGet packages that handle specific cloud-native concerns. Cloud-native apps often consist of small, interconnected pieces or microservices rather than a single, monolithic code base. Cloud-native apps generally consume a large number of services, such as databases, messaging, and caching.
