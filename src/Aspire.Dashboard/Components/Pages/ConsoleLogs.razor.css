@@ -7,11 +7,12 @@
         "head"
         "toolbar"
         "main";
+    gap: calc(var(--design-unit) * 2px);
 }
 
 ::deep.resource-logs-layout > h1 {
     grid-area: head;
-    padding: calc(var(--design-unit) * 1px);
+    padding: calc(var(--design-unit) * 1px) calc(var(--design-unit) * 2px);
 }
 
 ::deep.resource-logs-layout > fluent-toolbar {

@@ -167,7 +167,7 @@
 
 ::deep.trace-detail-layout > .trace-detail-header {
     grid-area: head;
-    padding: calc(var(--design-unit) * 1px);
+    padding: calc(var(--design-unit) * 1px) calc(var(--design-unit) * 2px);
 }
 
 ::deep.trace-detail-layout > fluent-toolbar {

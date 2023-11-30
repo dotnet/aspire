@@ -12,7 +12,7 @@
 
 ::deep.logs-layout > h1 {
     grid-area: head;
-    padding: calc(var(--design-unit) * 1px);
+    padding: calc(var(--design-unit) * 1px) calc(var(--design-unit) * 2px);
 }
 
 ::deep.logs-layout > fluent-toolbar {
