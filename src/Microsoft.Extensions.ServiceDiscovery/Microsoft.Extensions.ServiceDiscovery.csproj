@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Http" />
+    <Compile Include="$(SharedDir)ValueStopwatch\*.cs" />
   </ItemGroup>
 
   <ItemGroup>

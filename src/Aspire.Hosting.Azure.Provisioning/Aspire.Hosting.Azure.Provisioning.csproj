@@ -16,6 +16,7 @@
     <PackageReference Include="Azure.ResourceManager.ServiceBus" />
     <PackageReference Include="Azure.ResourceManager.Storage" />
     <PackageReference Include="Azure.ResourceManager.Sql" />
+    <Compile Include="$(SharedDir)ValueStopwatch\*.cs" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,12 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics;
 using Aspire.Hosting.ApplicationModel;
 using Azure;
 using Azure.ResourceManager.Sql;
 using Azure.ResourceManager.Sql.Models;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Internal;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Azure.Provisioning;
@@ -72,12 +72,11 @@ internal sealed class SqlServerProvisioner(ILogger<SqlServerProvisioner> logger)
             };
             sqlServerData.Tags.Add(AzureProvisioner.AspireResourceNameTag, resource.Name);
 
-            var sw = Stopwatch.StartNew();
+            var sw = ValueStopwatch.StartNew();
             var operation = await context.ResourceGroup.GetSqlServers().CreateOrUpdateAsync(WaitUntil.Completed, sqlServerName, sqlServerData, cancellationToken).ConfigureAwait(false);
             sqlServerResource = operation.Value;
-            sw.Stop();
 
-            logger.LogInformation("SQL server {sqlServerName} created in {elapsed}", sqlServerResource.Data.Name, sw.Elapsed);
+            logger.LogInformation("SQL server {sqlServerName} created in {elapsed}", sqlServerResource.Data.Name, sw.GetElapsedTime());
         }
         resource.Hostname = sqlServerResource.Data.FullyQualifiedDomainName;
 
@@ -117,12 +116,11 @@ internal sealed class SqlServerProvisioner(ILogger<SqlServerProvisioner> logger)
             };
             sqlDatabaseData.Tags.Add(AzureProvisioner.AspireResourceNameTag, database.Name);
 
-            var sw = Stopwatch.StartNew();
+            var sw = ValueStopwatch.StartNew();
             var operation = await sqlServerResource.GetSqlDatabases().CreateOrUpdateAsync(WaitUntil.Completed, database.Name, sqlDatabaseData, cancellationToken).ConfigureAwait(false);
             sqlDatabaseResource = operation.Value;
-            sw.Stop();
 
-            logger.LogInformation("SQL database {sqlServerName} created in {elapsed}", sqlDatabaseResource.Data.Name, sw.Elapsed);
+            logger.LogInformation("SQL database {sqlServerName} created in {elapsed}", sqlDatabaseResource.Data.Name, sw.GetElapsedTime());
         }
 
         return $"Server=tcp:{sqlServerResource.Data.FullyQualifiedDomainName},1433;Initial Catalog={sqlDatabaseResource.Data.Name};Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;Authentication=\"Active Directory Default\";";
