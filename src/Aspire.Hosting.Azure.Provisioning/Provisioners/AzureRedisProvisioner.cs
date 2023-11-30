@@ -1,12 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics;
 using Aspire.Hosting.ApplicationModel;
 using Azure;
 using Azure.ResourceManager.Redis;
 using Azure.ResourceManager.Redis.Models;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Internal;
 using Microsoft.Extensions.Logging;
 
 using RedisArmResource = Azure.ResourceManager.Redis.RedisResource;
@@ -52,12 +52,11 @@ internal sealed class AzureRedisProvisioner(ILogger<AzureRedisProvisioner> logge
             var redisCreateOrUpdateContent = new RedisCreateOrUpdateContent(context.Location, new RedisSku(RedisSkuName.Basic, RedisSkuFamily.BasicOrStandard, 0));
             redisCreateOrUpdateContent.Tags.Add(AzureProvisioner.AspireResourceNameTag, resource.Name);
 
-            var sw = Stopwatch.StartNew();
+            var sw = ValueStopwatch.StartNew();
             var operation = await context.ResourceGroup.GetAllRedis().CreateOrUpdateAsync(WaitUntil.Completed, redisName, redisCreateOrUpdateContent, cancellationToken).ConfigureAwait(false);
             redisResource = operation.Value;
-            sw.Stop();
 
-            logger.LogInformation("Redis {redisName} created in {elapsed}", redisResource.Data.Name, sw.Elapsed);
+            logger.LogInformation("Redis {redisName} created in {elapsed}", redisResource.Data.Name, sw.GetElapsedTime());
         }
 
         // This must be an explicit call to get the keys
