@@ -3,7 +3,6 @@
 
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Postgres;
 using Aspire.Hosting.Publishing;
 
@@ -68,14 +67,31 @@ public static class PostgresBuilderExtensions
     /// Adds a pgAdmin 4 administration and development platform for PostgreSQL to the application model.
     /// </summary>
     /// <param name="builder">The PostgreSQL server resource builder.</param>
-    /// <param name="port">The host port for the application ui</param>
+    /// <param name="hostPort">The host port for the application ui.</param>
+    /// <param name="containerName">The name of the container. Defaults to "pgAdmin".</param>
     /// <param name="options"><see cref="PgAdminOptions"/> for the container (optional).</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{PostgresContainerResource}"/>.</returns>
-    public static IResourceBuilder<PostgresContainerResource> WithPgAdmin(this IResourceBuilder<PostgresContainerResource> builder, int? port, PgAdminOptions? options = null)
+    public static IResourceBuilder<PostgresContainerResource> WithPgAdmin(this IResourceBuilder<PostgresContainerResource> builder, int? hostPort, string containerName = "pgAdmin", PgAdminOptions? options = null)
     {
-        ArgumentNullException.ThrowIfNull(port);
+        if (builder.ApplicationBuilder.Resources.OfType<PgAdminContainerResource>().Any())
+        {
+            return builder;
+        }
 
-        builder.ApplicationBuilder.Services.TryAddLifecycleHook(serviceProvider => new PgAdminDistributedApplicationLifecycleHook(port.Value, options ?? new()));
+        ArgumentNullException.ThrowIfNull(hostPort);
+
+        options = options ?? new();
+
+        var pgAdminContainer = new PgAdminContainerResource(containerName);
+        pgAdminContainer.Annotations.Add(new ContainerImageAnnotation() { Image = "dpage/pgadmin4", Tag = "latest" }); 
+        pgAdminContainer.Annotations.Add(new ServiceBindingAnnotation(ProtocolType.Tcp, port: hostPort, containerPort: 80, uriScheme: "http", name: containerName));
+        pgAdminContainer.Annotations.Add(new EnvironmentCallbackAnnotation(context =>
+        {
+            context["PGADMIN_DEFAULT_EMAIL"] = options.DefaultEmail;
+            context["PGADMIN_DEFAULT_PASSWORD"] = options.DefaultPassword;
+        }));
+
+        builder.ApplicationBuilder.AddResource(pgAdminContainer);
 
         return builder;
     }
