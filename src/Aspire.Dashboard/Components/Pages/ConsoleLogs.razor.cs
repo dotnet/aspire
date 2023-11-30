@@ -29,11 +29,11 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
     private readonly Dictionary<string, ResourceViewModel> _resourceNameMapping = new();
     private List<Option<string>>? Resources { get; set; }
     private LogViewer? _logViewer;
-    private readonly CancellationTokenSource _watchContainersTokenSource = new();
+    private readonly CancellationTokenSource _watchResourcesCts = new();
     private CancellationTokenSource? _watchLogsTokenSource;
     private string _status = LogStatus.Initializing;
 
-    private readonly TaskCompletionSource _renderCompletedTaskCompletionSource = new();
+    private readonly TaskCompletionSource _renderCompleteTcs = new();
 
     private readonly Option<string> _noSelection = new() { Value = null, Text = "(Select a resource)" };
 
@@ -54,7 +54,7 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
 
         _ = Task.Run(async () =>
         {
-            await foreach (var resourceChanged in watch.WithCancellation(_watchContainersTokenSource.Token))
+            await foreach (var resourceChanged in watch.WithCancellation(_watchResourcesCts.Token))
             {
                 await OnResourceListChangedAsync(resourceChanged.ObjectChangeType, resourceChanged.Resource);
             }
@@ -68,7 +68,7 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
         if (firstRender)
         {
             // Let anyone waiting know that the render is complete so we have access to the underlying log viewer
-            _renderCompletedTaskCompletionSource.SetResult();
+            _renderCompleteTcs.SetResult();
         }
     }
 
@@ -115,7 +115,7 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
     private async ValueTask LoadLogsAsync()
     {
         // Wait for the first render to complete so that the log viewer is available
-        await _renderCompletedTaskCompletionSource.Task;
+        await _renderCompleteTcs.Task;
 
         if (_selectedResource is null)
         {
@@ -253,8 +253,8 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
 
     private async Task DisposeWatchContainersTokenSource()
     {
-        await _watchContainersTokenSource.CancelAsync();
-        _watchContainersTokenSource.Dispose();
+        await _watchResourcesCts.CancelAsync();
+        _watchResourcesCts.Dispose();
     }
 
     private async Task StopWatchingLogsAsync()
