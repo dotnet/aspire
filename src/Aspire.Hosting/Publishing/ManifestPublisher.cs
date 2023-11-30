@@ -37,8 +37,8 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger, IOptions<Publi
 
         await WriteManifestAsync(model, jsonWriter, cancellationToken).ConfigureAwait(false);
 
-        var fullyQualifiedPath = Path.GetFullPath(_options.Value.OutputPath);
-        _logger.LogInformation("Published manifest to: {manifestPath}", fullyQualifiedPath);
+        var fullyQualifiedPath = Path.GetFullPath(_options.Value.OutputPath).Replace("\\", "/");
+        _logger.LogInformation("Published manifest to: file://{manifestPath}", fullyQualifiedPath);
     }
 
     protected async Task WriteManifestAsync(DistributedApplicationModel model, Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
