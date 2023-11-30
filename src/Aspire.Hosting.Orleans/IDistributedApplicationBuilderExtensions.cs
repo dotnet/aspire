@@ -67,7 +67,14 @@ public static class IDistributedApplicationBuilderExtensions
         return builder;
     }
 
-    public static IResourceBuilder<T> WithOrleansServer<T>(
+    /// <summary>
+    /// Add Orleans to the resource builder.
+    /// </summary>
+    /// <param name="builder">The builder on which add the Orleans resource.</param>
+    /// <param name="orleansResourceBuilder">The Orleans resource, containing the clustering, etc.</param>
+    /// <returns>The builder.</returns>
+    /// <exception cref="InvalidOperationException"></exception>
+    public static IResourceBuilder<T> AddResource<T>(
         this IResourceBuilder<T> builder,
         IResourceBuilder<OrleansResource> orleansResourceBuilder)
         where T : IResourceWithEnvironment
@@ -86,32 +93,6 @@ public static class IDistributedApplicationBuilderExtensions
             builder.WithEnvironment($"{OrleansConfigKeyPrefix}__Reminders__ConnectionType", GetResourceType(reminders));
             builder.WithEnvironment($"{OrleansConfigKeyPrefix}__Reminders__ConnectionName", reminders.Resource.Name);
         }
-
-        // Configure clustering
-        var clustering = res.Clustering ?? throw new InvalidOperationException("Clustering has not been configured for this service.");
-        builder.WithReference(clustering);
-        builder.WithEnvironment($"{OrleansConfigKeyPrefix}__Clustering__ConnectionType", GetResourceType(clustering));
-        builder.WithEnvironment($"{OrleansConfigKeyPrefix}__Clustering__ConnectionName", clustering.Resource.Name);
-
-        if (!string.IsNullOrWhiteSpace(res.ClusterId))
-        {
-            builder.WithEnvironment($"{OrleansConfigKeyPrefix}__ClusterId", res.ClusterId);
-        }
-
-        if (!string.IsNullOrWhiteSpace(res.ServiceId))
-        {
-            builder.WithEnvironment($"{OrleansConfigKeyPrefix}__ServiceId", res.ServiceId);
-        }
-
-        return builder;
-    }
-
-    public static IResourceBuilder<T> WithOrleansClient<T>(
-        this IResourceBuilder<T> builder,
-        IResourceBuilder<OrleansResource> orleansResourceBuilder)
-        where T : IResourceWithEnvironment
-    {
-        var res = orleansResourceBuilder.Resource;
 
         // Configure clustering
         var clustering = res.Clustering ?? throw new InvalidOperationException("Clustering has not been configured for this service.");
