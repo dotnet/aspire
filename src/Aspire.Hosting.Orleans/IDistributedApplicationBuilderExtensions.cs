@@ -12,6 +12,8 @@ namespace Aspire.Hosting;
 public static class IDistributedApplicationBuilderExtensions
 {
     private const string OrleansConfigKeyPrefix = "Orleans";
+    private static readonly object s_inMemoryStorage = new();
+    private static readonly object s_localhostClustering = new();
 
     /// <summary>
     /// Add Orleans to the resource.
@@ -67,6 +69,18 @@ public static class IDistributedApplicationBuilderExtensions
     }
 
     /// <summary>
+    /// use the localhost clustering for the Orleans cluster (for development purpose only).
+    /// </summary>
+    /// <param name="builder">The target Orleans resource.</param>
+    /// <returns>>The Orleans resource.</returns>
+    public static IResourceBuilder<OrleansResource> WithLocalhostClustering(
+        this IResourceBuilder<OrleansResource> builder)
+    {
+        builder.Resource.Clustering = s_localhostClustering;
+        return builder;
+    }
+
+    /// <summary>
     /// Add a grain storage provider for the Orleans silos.
     /// </summary>
     /// <param name="builder">The target Orleans resource.</param>
@@ -93,6 +107,20 @@ public static class IDistributedApplicationBuilderExtensions
         IResourceBuilder<IResourceWithConnectionString> storage)
     {
         builder.Resource.GrainStorage[name] = storage;
+        return builder;
+    }
+
+    /// <summary>
+    /// Add an in memory grain storage for the Orleans silos.
+    /// </summary>
+    /// <param name="builder">The target Orleans resource.</param>
+    /// <param name="name">The name of the storage provider.</param>
+    /// <returns>>The Orleans resource.</returns>
+    public static IResourceBuilder<OrleansResource> WithInMemoryGrainStorage(
+        this IResourceBuilder<OrleansResource> builder,
+        string name)
+    {
+        builder.Resource.GrainStorage[name] = s_inMemoryStorage;
         return builder;
     }
 
@@ -125,9 +153,21 @@ public static class IDistributedApplicationBuilderExtensions
         var res = orleansResourceBuilder.Resource;
         foreach (var (name, storage) in res.GrainStorage)
         {
-            builder.WithReference(storage);
-            builder.WithEnvironment($"{OrleansConfigKeyPrefix}__GrainStorage__{name}__ConnectionType", GetResourceType(storage));
-            builder.WithEnvironment($"{OrleansConfigKeyPrefix}__GrainStorage__{name}__ConnectionName", storage.Resource.Name);
+            if (storage == s_inMemoryStorage)
+            {
+                builder.WithEnvironment($"{OrleansConfigKeyPrefix}__GrainStorage__{name}__ConnectionType", OrleansServerSettingConstants.InternalType);
+                builder.WithEnvironment($"{OrleansConfigKeyPrefix}__GrainStorage__{name}__ConnectionName", name);
+            }
+            else if (storage is IResourceBuilder<IResourceWithConnectionString> storageWithConnectionString)
+            {
+                builder.WithReference(storageWithConnectionString);
+                builder.WithEnvironment($"{OrleansConfigKeyPrefix}__GrainStorage__{name}__ConnectionType", GetResourceType(storageWithConnectionString));
+                builder.WithEnvironment($"{OrleansConfigKeyPrefix}__GrainStorage__{name}__ConnectionName", storageWithConnectionString.Resource.Name);
+            }
+            else
+            {
+                throw new NotSupportedException("Resource not supported for grain storage");
+            }
         }
 
         if (res.Reminders is { } reminders)
@@ -139,9 +179,21 @@ public static class IDistributedApplicationBuilderExtensions
 
         // Configure clustering
         var clustering = res.Clustering ?? throw new InvalidOperationException("Clustering has not been configured for this service.");
-        builder.WithReference(clustering);
-        builder.WithEnvironment($"{OrleansConfigKeyPrefix}__Clustering__ConnectionType", GetResourceType(clustering));
-        builder.WithEnvironment($"{OrleansConfigKeyPrefix}__Clustering__ConnectionName", clustering.Resource.Name);
+        if (clustering == s_localhostClustering)
+        {
+            builder.WithEnvironment($"{OrleansConfigKeyPrefix}__Clustering__ConnectionType", OrleansServerSettingConstants.InternalType);
+            builder.WithEnvironment($"{OrleansConfigKeyPrefix}__Clustering__ConnectionName", "LocalhostClustering");
+        }
+        else if (clustering is IResourceBuilder<IResourceWithConnectionString> clusteringWithConnectionString)
+        {
+            builder.WithReference(clusteringWithConnectionString);
+            builder.WithEnvironment($"{OrleansConfigKeyPrefix}__Clustering__ConnectionType", GetResourceType(clusteringWithConnectionString));
+            builder.WithEnvironment($"{OrleansConfigKeyPrefix}__Clustering__ConnectionName", clusteringWithConnectionString.Resource.Name);
+        }
+        else
+        {
+            throw new NotSupportedException("Resource not supported for clustering");
+        }
 
         if (!string.IsNullOrWhiteSpace(res.ClusterId))
         {

@@ -20,6 +20,13 @@ var orleans = builder.AddOrleans("my-app")
                      .WithClustering(clusteringTable)
                      .WithGrainStorage("Default", grainStorage);
 
+// For local development, instead of using the emulator,
+// one can use the in memory provider from Orleans:
+//
+//var orleans = builder.AddOrleans("my-app")
+//                     .WithLocalhostClustering()
+//                     .WithInMemoryGrainStorage("Default");
+
 builder.AddProject<Projects.OrleansServer>("silo")
        .AddResource(orleans);
 

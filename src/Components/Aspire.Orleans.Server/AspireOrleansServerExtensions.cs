@@ -138,12 +138,6 @@ public static class AspireOrleansServerExtensions
         if (string.Equals(InternalType, type, StringComparison.OrdinalIgnoreCase))
         {
             siloBuilder.UseLocalhostClustering();
-            var connectionString = builder.Configuration.GetConnectionString(connectionName);
-
-            if (connectionString is null || !IPEndPoint.TryParse(connectionString, out var primarySiloEndPoint))
-            {
-                throw new InvalidOperationException($"Invalid connection string specified for '{connectionName}'.");
-            }
         }
         else if (string.Equals(AzureTablesType, type, StringComparison.OrdinalIgnoreCase))
         {
