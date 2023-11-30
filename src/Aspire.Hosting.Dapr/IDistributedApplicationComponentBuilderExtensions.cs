@@ -12,6 +12,17 @@ namespace Aspire.Hosting;
 public static class IDistributedApplicationResourceBuilderExtensions
 {
     /// <summary>
+    /// Ensures that a Dapr sidecar is started for the resource. The default app is the resource name.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder instance.</param>
+    /// <returns>The resource builder instance.</returns>
+    public static IResourceBuilder<T> WithDaprSidecar<T>(this IResourceBuilder<T> builder) where T : IResource
+    {
+        return builder.WithDaprSidecar(builder.Resource.Name);
+    }
+
+    /// <summary>
     /// Ensures that a Dapr sidecar is started for the resource.
     /// </summary>
     /// <typeparam name="T">The type of the resource.</typeparam>
