@@ -42,7 +42,7 @@ public sealed class AzureStorageQueuesSettings : IConnectionStringSettings
 
     /// <summary>
     /// <para>Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.</para>
-    /// <para>Disabled by default.</para>
+    /// <para>Enabled by default.</para>
     /// </summary>
     public bool Tracing { get; set; } = true;
 
