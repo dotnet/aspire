@@ -15,7 +15,7 @@
 @if (_trace != null)
 {
     <div class="trace-detail-layout">
-        <div class="trace-detail-header">
+        <div class="trace-detail-header page-header">
             <h1 style="display:inline-block">@(_trace.FirstSpan.Source.ApplicationName): @_trace.FirstSpan.Name</h1>
             <span class="trace-id">@OtlpHelpers.ToShortenedId(_trace.TraceId)</span>
         </div>
