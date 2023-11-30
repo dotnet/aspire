@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using Aspire.Hosting.Utils;
 using Microsoft.Data.SqlClient;
 using Xunit;
 
@@ -20,7 +21,7 @@ public class SqlServerContainerResourceTests
     public void TestEscapeSequencesForPassword(string password, string expectedConnectionString)
     {
         var connectionStringTemplate = "Server=myserver;User ID=sa;Password=\"{0}\";";
-        var escapedPassword = SqlServerContainerResource.EscapedPassword(password);
+        var escapedPassword = PasswordUtil.EscapePassword(password);
         var actualConnectionString = string.Format(CultureInfo.InvariantCulture, connectionStringTemplate, escapedPassword);
 
         var builder = new SqlConnectionStringBuilder(actualConnectionString);

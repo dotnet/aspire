@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using Aspire.Hosting.Utils;
 using MySqlConnector;
 using Xunit;
 
@@ -20,7 +21,7 @@ public class MySqlContainerResourceTests
     public void TestEscapeSequencesForPassword(string password, string expectedConnectionString)
     {
         var connectionStringTemplate = "Server=myserver;Port=1000;User ID=root;Password=\"{0}\";";
-        var escapedPassword = MySqlContainerResource.EscapedPassword(password);
+        var escapedPassword = PasswordUtil.EscapePassword(password);
         var actualConnectionString = string.Format(CultureInfo.InvariantCulture, connectionStringTemplate, escapedPassword);
 
         var builder = new MySqlConnectionStringBuilder(actualConnectionString);
