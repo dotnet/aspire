@@ -14,8 +14,14 @@ public interface IResourceWithBindings : IResource
     /// <param name="bindingName">The name of the binding.</param>
     /// <returns>An <see cref="EndpointReference"/> object representing the endpoint reference 
     /// for the specified binding.</returns>
+    /// <exception cref="DistributedApplicationException">Throws an exception if the a binding with the name <paramref name="bindingName"/> does not exist on the specified resource.</exception>
     public EndpointReference GetEndpoint(string bindingName)
     {
+        if (!Annotations.OfType<ServiceBindingAnnotation>().Any(a => a.Name == bindingName))
+        {
+            throw new DistributedApplicationException($"Service binding with name '{bindingName}' does not exist on the specified resource");
+        }
+
         return new EndpointReference(this, bindingName);
     }
 }

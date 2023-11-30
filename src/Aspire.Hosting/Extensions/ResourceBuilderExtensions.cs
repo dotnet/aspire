@@ -257,6 +257,7 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The the resource builder.</param>
     /// <param name="name">The name of the service binding.</param>
     /// <returns>An <see cref="EndpointReference"/> that can be used to resolve the address of the endpoint after resource allocation has occurred.</returns>
+    /// <exception cref="DistributedApplicationException">Throws an exception if the a binding with the name <paramref name="name"/> does not exist on the specified resource.</exception>
     public static EndpointReference GetEndpoint<T>(this IResourceBuilder<T> builder, string name) where T : IResourceWithBindings
     {
         return builder.Resource.GetEndpoint(name);
