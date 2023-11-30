@@ -6,11 +6,11 @@ namespace Aspire.Dashboard.Model;
 internal static class LogStatus
 {
     public const string Initializing = "Initializing...";
-    public const string InitializingLogViewer = "Initializing Log Viewer...";
-    public const string LogsNotYetAvailable = "Logs Not Yet Available";
-    public const string WatchingLogs = "Watching Logs...";
-    public const string FailedToInitialize = "Failed to Initialize";
-    public const string FinishedWatchingLogs = "Finished Watching Logs";
-    public const string LoadingResources = "Loading Resources ...";
-    public const string NoResourceSelected = "No Resource Selected";
+    public const string InitializingLogViewer = "Initializing log viewer...";
+    public const string LogsNotYetAvailable = "Logs not yet available";
+    public const string WatchingLogs = "Watching logs...";
+    public const string FailedToInitialize = "Failed to initialize";
+    public const string FinishedWatchingLogs = "Finished watching logs";
+    public const string LoadingResources = "Loading resources ...";
+    public const string NoResourceSelected = "No resource selected";
 }
