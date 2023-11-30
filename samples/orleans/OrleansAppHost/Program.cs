@@ -1,10 +1,23 @@
+using Microsoft.Extensions.Hosting;
+
 var builder = DistributedApplication.CreateBuilder(args);
 
-builder.AddAzureProvisioning();
+IResourceBuilder<AzureTableStorageResource> clusteringTable;
+IResourceBuilder<AzureBlobStorageResource> grainStorage;
 
 var storage = builder.AddAzureStorage("storage");
-var clusteringTable = storage.AddTables("clustering");
-var grainStorage = storage.AddBlobs("grainstate");
+
+if (builder.Environment.IsDevelopment())
+{
+    storage.UseEmulator();
+}
+else
+{
+    builder.AddAzureProvisioning();
+}
+
+clusteringTable = storage.AddTables("clustering");
+grainStorage = storage.AddBlobs("grainstate");
 
 var orleans = builder.AddOrleans("my-app")
                      .WithClustering(clusteringTable)
