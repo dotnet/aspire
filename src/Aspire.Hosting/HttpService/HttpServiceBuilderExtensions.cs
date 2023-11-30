@@ -1,8 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Publishing;
 
 namespace Aspire.Hosting;
 
@@ -37,9 +37,9 @@ public static class HttpServiceBuilderExtensions
                       .WithAnnotation(new ManifestPublishingCallbackAnnotation(writer => WriteHttpServiceResourceToManifest(writer, uri)));
     }
 
-    private static void WriteHttpServiceResourceToManifest(Utf8JsonWriter jsonWriter, Uri uri)
+    private static void WriteHttpServiceResourceToManifest(ManifestPublishingContext context, Uri uri)
     {
-        jsonWriter.WriteString("type", "httpservice.v0");
-        jsonWriter.WriteString("Uri", uri.ToString());
+        context.Writer.WriteString("type", "httpservice.v0");
+        context.Writer.WriteString("Uri", uri.ToString());
     }
 }
