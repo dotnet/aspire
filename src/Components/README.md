@@ -12,7 +12,7 @@ Aspire components are classic .NET NuGet packages which are designed as highly u
 
 - Each component should provide it's own public and `sealed` `Settings` type.
   > [!NOTE]
-  > This type does not use the name `Options` because it is not an `IOptions`. `IOptions` objects can be configured through dependency injection. These settings needs to be read before the DI container is built, so they can't be `IOptions`.
+  > This type does not use the name `Options` because it is not an `IOptions`. `IOptions` objects can be configured through dependency injection. These settings need to be read before the DI container is built, so they can't be `IOptions`.
 - The settings type name should be unique (no generic names like `ConfigurationOptions`), don't contain an `Aspire` prefix and follow the client-lib name. Example: when a component wraps an `ABC` client library, the component is called `Aspire.ABC` and the settings type is called `ABCSettings`.
 - When a new instance of the settings type is created, its properties should return the recommended/default values (so when they are bound to an empty config they still return the right values).
 - Settings should be bound to a section of `IConfiguration` exposed by `IHostApplicationBuilder.Configuration`.
@@ -163,3 +163,22 @@ builder.AddAzureServiceBus(settings =>
 ```
 
 - If both secret and passwordless mechanisms are configured, the secret credential overrides the passwordless identity setting.
+
+## Checklist for new Components
+
+New Components MUST have:
+
+* README.md
+* ConfigurationSchema.json file
+* Public APIs
+    * Extension method off IHostApplicationBuilder and Settings object
+* Tests
+    * [ConformanceTests](../../tests/Aspire.Components.Common.Tests/ConformanceTests.cs)
+    * Other unit tests as needed
+* Tracing support
+
+New Components SHOULD have:
+
+* Logging support
+* Metrics support
+* Health Checks
