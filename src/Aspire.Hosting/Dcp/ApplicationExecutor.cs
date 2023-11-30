@@ -539,15 +539,6 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
                 }
             }
 
-            if (container.TryGetAnnotationsOfType<ExecutableArgsCallbackAnnotation>(out var argsCallback))
-            {
-                ctr.Spec.Args ??= [];
-                foreach (var callback in argsCallback)
-                {
-                    callback.Callback(ctr.Spec.Args);
-                }
-            }
-
             var containerAppResource = new AppResource(container, ctr);
             AddServicesProducedInfo(container, ctr, containerAppResource);
             _appResources.Add(containerAppResource);
@@ -613,6 +604,15 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
                         }
 
                         dcpContainerResource.Spec.Ports.Add(portSpec);
+                    }
+                }
+
+                if (modelContainerResource.TryGetAnnotationsOfType<ExecutableArgsCallbackAnnotation>(out var argsCallback))
+                {
+                    dcpContainerResource.Spec.Args ??= [];
+                    foreach (var callback in argsCallback)
+                    {
+                        callback.Callback(dcpContainerResource.Spec.Args);
                     }
                 }
 

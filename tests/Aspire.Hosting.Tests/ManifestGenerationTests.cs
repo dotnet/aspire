@@ -51,6 +51,31 @@ public class ManifestGenerationTests
     }
 
     [Fact]
+    public void EnsureContainerWithArgsEmitsContainerArgs()
+    {
+        var program = CreateTestProgramJsonDocumentManifestPublisher();
+
+        program.AppBuilder.AddContainer("grafana", "grafana/grafana")
+                          .WithArgs("test", "arg2", "more");
+
+        // Build AppHost so that publisher can be resolved.
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+
+        var grafana = resources.GetProperty("grafana");
+        var args = grafana.GetProperty("args");
+        Assert.Equal(3, args.GetArrayLength());
+        Assert.Collection(args.EnumerateArray(),
+            arg => Assert.Equal("test", arg.GetString()),
+            arg => Assert.Equal("arg2", arg.GetString()),
+            arg => Assert.Equal("more", arg.GetString()));
+    }
+
+    [Fact]
     public void EnsureAllRedisManifestTypesHaveVersion0Suffix()
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher();

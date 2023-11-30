@@ -331,7 +331,7 @@ public class DistributedApplicationTests
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
         testProgram.AppBuilder.AddContainer("redis-cli", "redis")
-            .WithArgs("redis-cli -h host.docker.internal -p 9999 MONITOR");
+            .WithArgs("redis-cli", "-h", "host.docker.internal", "-p", "9999", "MONITOR");
 
         await using var app = testProgram.Build();
 

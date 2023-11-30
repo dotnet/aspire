@@ -81,11 +81,11 @@ public static class ContainerResourceBuilderExtensions
         return builder.WithAnnotation(annotation);
     }
 
-    public static IResourceBuilder<T> WithArgs<T>(this IResourceBuilder<T> builder, string args) where T : IResource
+    public static IResourceBuilder<T> WithArgs<T>(this IResourceBuilder<T> builder, params string[] args) where T : IResource
     {
         var annotation = new ExecutableArgsCallbackAnnotation(updatedArgs =>
         {
-            updatedArgs.AddRange(args.Split(' '));
+            updatedArgs.AddRange(args);
         });
         return builder.WithAnnotation(annotation);
     }
