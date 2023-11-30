@@ -16,11 +16,7 @@
 <div class="logs-layout">
     <h1>Structured Logs</h1>
     <FluentToolbar Orientation="Orientation.Horizontal">
-        @if (!string.IsNullOrEmpty(TraceId))
-        {
-            <FluentButton Appearance="Appearance.Accent" OnClick="@GoBackToTrace">Back to Traces</FluentButton>
-        }
-        <FluentSelect TOption="SelectViewModel<string>"
+               <FluentSelect TOption="SelectViewModel<string>"
                       Items="@_applications"
                       OptionText="@(c => c.Name)"
                       @bind-SelectedOption="_selectedApplication"
@@ -60,6 +56,10 @@
             }
         }
         <FluentButton slot="end" Appearance="Appearance.Stealth" aria-label="Add Filter" OnClick="() => OpenFilterAsync(null)"><FluentIcon Value="@(new Icons.Regular.Size16.Filter())" /></FluentButton>
+        @if (!string.IsNullOrEmpty(TraceId))
+        {
+            <FluentButton slot="end" Appearance="Appearance.Stealth" OnClick="@GoBackToTrace">Back</FluentButton>
+        }
         </FluentToolbar>
     <SummaryDetailsView DetailsTitle="Log Entry Details" ShowDetails="SelectedLogEntryProperties is not null" OnDismiss="() => ClearSelectedLogEntry()">
         <Summary>
