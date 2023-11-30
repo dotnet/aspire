@@ -13,13 +13,13 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
     private readonly ConcurrentDictionary<string, ResourceViewModel> _resourceNameMapping = new();
     private readonly CancellationTokenSource _watchContainersTokenSource = new();
     private readonly Task _watchTask;
-    private readonly List<Subscription> _subscriptions;
+    private readonly List<ModelSubscription> _subscriptions;
     private readonly object _lock = new object();
 
     public ResourceOutgoingPeerResolver(IDashboardViewModelService dashboardViewModelService)
     {
         _dashboardViewModelService = dashboardViewModelService;
-        _subscriptions = new List<Subscription>();
+        _subscriptions = new List<ModelSubscription>();
 
         var viewModelMonitor = _dashboardViewModelService.GetResources();
         var initialList = viewModelMonitor.Snapshot;
@@ -83,13 +83,13 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
     {
         lock (_lock)
         {
-            var subscription = new Subscription(callback, RemoveSubscription);
+            var subscription = new ModelSubscription(callback, RemoveSubscription);
             _subscriptions.Add(subscription);
             return subscription;
         }
     }
 
-    private void RemoveSubscription(Subscription subscription)
+    private void RemoveSubscription(ModelSubscription subscription)
     {
         lock (_lock)
         {
@@ -104,7 +104,7 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
             return;
         }
 
-        Subscription[] subscriptions;
+        ModelSubscription[] subscriptions;
         lock (_lock)
         {
             subscriptions = _subscriptions.ToArray();
@@ -128,14 +128,5 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
         catch (OperationCanceledException)
         {
         }
-    }
-
-    private sealed class Subscription(Func<Task> callback, Action<Subscription> onDispose) : IDisposable
-    {
-        private readonly Func<Task> _callback = callback;
-        private readonly Action<Subscription> _onDispose = onDispose;
-
-        public void Dispose() => _onDispose(this);
-        public Task ExecuteAsync() => _callback();
     }
 }

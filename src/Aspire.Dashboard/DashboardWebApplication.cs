@@ -94,6 +94,8 @@ public class DashboardWebApplication : IHostedService
 
         builder.Services.AddFluentUIComponents();
 
+        builder.Services.AddSingleton<ThemeManager>();
+
         configureServices(builder.Services);
 
         _app = builder.Build();
