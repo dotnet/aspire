@@ -40,6 +40,12 @@ Security issues and bugs should be reported privately, via email, to the Microso
 
 Also see info about related [Microsoft .NET Core and ASP.NET Core Bug Bounty Program](https://www.microsoft.com/msrc/bounty-dot-net-core).
 
+### Note on containers used by Aspire components/resources
+
+The .NET team cannot evaluate the underlying third-party containers for which we have API support for suitability for specific customer requirements.
+
+You should evaluate whichever containers you chose to compose and automate with Aspire to ensure they meet your, your employers or your government’s requirements on security and safety as well as cryptographic regulations and any other regulatory or corporate stands that may apply to your use of the container.
+
 ## .NET Foundation
 
 .NET Aspire is a [.NET Foundation](https://www.dotnetfoundation.org/projects) project.
