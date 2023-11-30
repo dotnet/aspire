@@ -27,3 +27,4 @@ public abstract class Resource(string name) : IResource
         return $@"Type = {GetType().Name}, Name = ""{Name}""";
     }
 }
+

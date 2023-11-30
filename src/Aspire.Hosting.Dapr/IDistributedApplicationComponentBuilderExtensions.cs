@@ -43,6 +43,7 @@ public static class IDistributedApplicationResourceBuilderExtensions
     /// <param name="component">The Dapr component to use with the sidecar.</param>
     public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IDaprComponentResource> component) where TDestination : IResource
     {
-        return builder.WithAnnotation(new DaprComponentReferenceAnnotation(component.Resource));
+        return builder.WithAnnotation(new DaprComponentReferenceAnnotation(component.Resource))
+                      .WithDependency(component);
     }
 }

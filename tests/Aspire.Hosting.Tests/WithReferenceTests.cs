@@ -42,6 +42,8 @@ public class WithReferenceTests
         Assert.Equal(2, servicesKeysCount);
         Assert.Contains(config, kvp => kvp.Key == "services__servicea__0" && kvp.Value == "https://_mybinding.localhost:2000");
         Assert.Contains(config, kvp => kvp.Key == "services__servicea__1" && kvp.Value == "https://localhost:2000");
+
+        Assert.Single(testProgram.ServiceBBuilder.Resource.GetDependencies(), testProgram.ServiceABuilder.Resource);
     }
 
     [Fact]
@@ -91,6 +93,7 @@ public class WithReferenceTests
         Assert.Equal(2, servicesKeysCount);
         Assert.Contains(config, kvp => kvp.Key == "services__servicea__0" && kvp.Value == "https://_mybinding.localhost:2000");
         Assert.Contains(config, kvp => kvp.Key == "services__servicea__1" && kvp.Value == "https://_myconflictingbinding.localhost:3000");
+        Assert.Single(testProgram.ServiceBBuilder.Resource.GetDependencies(), testProgram.ServiceABuilder.Resource);
     }
 
     [Fact]
@@ -142,6 +145,7 @@ public class WithReferenceTests
         Assert.Contains(config, kvp => kvp.Key == "services__servicea__1" && kvp.Value == "https://localhost:2000");
         Assert.Contains(config, kvp => kvp.Key == "services__servicea__2" && kvp.Value == "http://_mynonconflictingbinding.localhost:3000");
         Assert.Contains(config, kvp => kvp.Key == "services__servicea__3" && kvp.Value == "http://localhost:3000");
+        Assert.Single(testProgram.ServiceBBuilder.Resource.GetDependencies(), testProgram.ServiceABuilder.Resource);
     }
 
     [Fact]
@@ -187,6 +191,7 @@ public class WithReferenceTests
         Assert.Equal(2, servicesKeysCount);
         Assert.Contains(config, kvp => kvp.Key == "services__servicea__0" && kvp.Value == "https://_mybinding.localhost:2000");
         Assert.Contains(config, kvp => kvp.Key == "services__servicea__1" && kvp.Value == "https://_mybinding2.localhost:3000");
+        Assert.Single(testProgram.ServiceBBuilder.Resource.GetDependencies(), testProgram.ServiceABuilder.Resource);
     }
 
     [Fact]
@@ -234,6 +239,7 @@ public class WithReferenceTests
         Assert.Contains(config, kvp => kvp.Key == "services__servicea__1" && kvp.Value == "https://localhost:2000");
         Assert.Contains(config, kvp => kvp.Key == "services__servicea__2" && kvp.Value == "http://_mybinding2.localhost:3000");
         Assert.Contains(config, kvp => kvp.Key == "services__servicea__3" && kvp.Value == "http://localhost:3000");
+        Assert.Single(testProgram.ServiceBBuilder.Resource.GetDependencies(), testProgram.ServiceABuilder.Resource);
     }
 
     [Fact]
@@ -259,6 +265,8 @@ public class WithReferenceTests
                 annotation.Callback(context);
             }
         });
+
+        Assert.Single(testProgram.ServiceBBuilder.Resource.GetDependencies(), resource.Resource);
     }
 
     [Fact]
@@ -284,6 +292,7 @@ public class WithReferenceTests
 
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("ConnectionStrings__"));
         Assert.Equal(0, servicesKeysCount);
+        Assert.Single(testProgram.ServiceBBuilder.Resource.GetDependencies(), resource.Resource);
     }
 
     [Fact]
@@ -313,6 +322,7 @@ public class WithReferenceTests
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("ConnectionStrings__"));
         Assert.Equal(1, servicesKeysCount);
         Assert.Contains(config, kvp => kvp.Key == "ConnectionStrings__resource" && kvp.Value == "123");
+        Assert.Single(testProgram.ServiceBBuilder.Resource.GetDependencies(), resource.Resource);
     }
 
     [Fact]
@@ -342,6 +352,7 @@ public class WithReferenceTests
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("ConnectionStrings__"));
         Assert.Equal(1, servicesKeysCount);
         Assert.Contains(config, kvp => kvp.Key == "ConnectionStrings__bob" && kvp.Value == "123");
+        Assert.Single(testProgram.ServiceBBuilder.Resource.GetDependencies(), resource.Resource);
     }
 
     [Fact]
@@ -369,6 +380,7 @@ public class WithReferenceTests
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("ConnectionStrings__"));
         Assert.Equal(1, servicesKeysCount);
         Assert.Contains(config, kvp => kvp.Key == "ConnectionStrings__resource" && kvp.Value == "test");
+        Assert.Single(testProgram.ServiceBBuilder.Resource.GetDependencies(), resource.Resource);
     }
 
     private static TestProgram CreateTestProgram(string[]? args = null) => TestProgram.Create<WithReferenceTests>(args);

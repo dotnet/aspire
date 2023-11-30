@@ -18,3 +18,4 @@ public interface IResource
     /// </summary>
     ResourceMetadataCollection Annotations { get; }
 }
+
