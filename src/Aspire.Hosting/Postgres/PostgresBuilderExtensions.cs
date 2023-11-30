@@ -3,6 +3,8 @@
 
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.Postgres;
 using Aspire.Hosting.Publishing;
 
 namespace Aspire.Hosting;
@@ -60,6 +62,22 @@ public static class PostgresBuilderExtensions
         var postgresDatabase = new PostgresDatabaseResource(name, builder.Resource);
         return builder.ApplicationBuilder.AddResource(postgresDatabase)
                                          .WithManifestPublishingCallback(context => WritePostgresDatabaseToManifest(context, postgresDatabase));
+    }
+
+    /// <summary>
+    /// Adds a pgAdmin 4 administration and development platform for PostgreSQL to the application model.
+    /// </summary>
+    /// <param name="builder">The PostgreSQL server resource builder.</param>
+    /// <param name="port">The host port for the application ui</param>
+    /// <param name="options"><see cref="PgAdminOptions"/> for the container (optional).</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{PostgresContainerResource}"/>.</returns>
+    public static IResourceBuilder<PostgresContainerResource> WithPgAdmin(this IResourceBuilder<PostgresContainerResource> builder, int? port, PgAdminOptions? options = null)
+    {
+        ArgumentNullException.ThrowIfNull(port);
+
+        builder.ApplicationBuilder.Services.TryAddLifecycleHook(serviceProvider => new PgAdminDistributedApplicationLifecycleHook(port.Value, options ?? new()));
+
+        return builder;
     }
 
     private static void WritePostgresConnectionToManifest(ManifestPublishingContext context, PostgresConnectionResource postgresConnection)
