@@ -4,6 +4,7 @@
 using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Postgres;
+
 internal sealed class PgAdminContainerResource : ContainerResource
 {
     public PgAdminContainerResource(string name) : base(name)

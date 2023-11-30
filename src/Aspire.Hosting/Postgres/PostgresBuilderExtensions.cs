@@ -83,7 +83,7 @@ public static class PostgresBuilderExtensions
         options = options ?? new();
 
         var pgAdminContainer = new PgAdminContainerResource(containerName);
-        pgAdminContainer.Annotations.Add(new ContainerImageAnnotation() { Image = "dpage/pgadmin4", Tag = "latest" }); 
+        pgAdminContainer.Annotations.Add(new ContainerImageAnnotation { Image = "dpage/pgadmin4", Tag = "latest" });
         pgAdminContainer.Annotations.Add(new ServiceBindingAnnotation(ProtocolType.Tcp, port: hostPort, containerPort: 80, uriScheme: "http", name: containerName));
         pgAdminContainer.Annotations.Add(new EnvironmentCallbackAnnotation(context =>
         {
