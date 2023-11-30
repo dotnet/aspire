@@ -13,6 +13,7 @@
         <FluentSelect TOption="SelectViewModel<FilterCondition>" Items="@s_filterConditions" @bind-SelectedOption="@_formModel.Condition" OptionText="@(i => i.Name)" Width="100%" />
 
         <FluentTextField @bind-Value="_formModel.Value" Placeholder="Value" />
+        <ValidationMessage For="() => _formModel.Value" />
 
         <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.Right">
             <FluentButton OnClick="Cancel">Cancel</FluentButton>

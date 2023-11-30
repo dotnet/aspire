@@ -146,3 +146,7 @@ fluent-data-grid-cell .long-inner-content {
 .subtext {
     color: var(--foreground-subtext-rest);
 }
+
+.validation-message {
+    color: var(--error);
+}
