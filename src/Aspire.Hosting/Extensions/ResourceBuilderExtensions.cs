@@ -179,11 +179,25 @@ public static class ResourceBuilderExtensions
         return builder;
     }
 
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <typeparam name="TDestination"></typeparam>
+    /// <param name="builder"></param>
+    /// <param name="source"></param>
+    /// <returns></returns>
     public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<HttpServiceResource> source)
-    where TDestination : IResourceWithEnvironment
+        where TDestination : IResourceWithEnvironment
     {
-        ApplyBinding(builder, source.Resource);
-        return builder;
+        return builder.WithEnvironment(context =>
+        {
+            if (context.PublisherName == "manifest")
+            {
+                context.EnvironmentVariables[$"services__{source.Resource.Name}"] = $"{{{source.Resource.Name}}}.Uri";
+                return;
+            }
+            context.EnvironmentVariables[$"services__{source.Resource.Name}"] = source.Resource.Uri.ToString();
+        });
     }
 
     /// <summary>

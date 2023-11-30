@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Net.Sockets;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
 
@@ -33,20 +32,14 @@ public static class HttpServiceBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{HttpServiceResource}"/>.</returns>
     public static IResourceBuilder<HttpServiceResource> AddHttpService(this IDistributedApplicationBuilder builder, string name, Uri uri)
     {
-        var address = uri.GetLeftPart(UriPartial.Authority).Remove(0, uri.GetLeftPart(UriPartial.Scheme).Length);
-
-        var httpService = new HttpServiceResource(name);
+        var httpService = new HttpServiceResource(name, uri);
         return builder.AddResource(httpService)
-                      .WithAnnotation(new ManifestPublishingCallbackAnnotation(writer => WriteHttpServiceResourceToManifest(writer, uri)))
-                      .WithAnnotation(new AllocatedEndpointAnnotation(name, ProtocolType.Tcp, address, uri.Port, uri.Scheme));
-
-        // Should this be done with ServiceBindingAnnotation or AllocatedEndpointAnnotation??
-        //.WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, uriScheme: uri.Scheme, port: uri.Port, isExternal: true));
+                      .WithAnnotation(new ManifestPublishingCallbackAnnotation(writer => WriteHttpServiceResourceToManifest(writer, uri)));
     }
 
     private static void WriteHttpServiceResourceToManifest(Utf8JsonWriter jsonWriter, Uri uri)
     {
         jsonWriter.WriteString("type", "httpservice.v0");
-        jsonWriter.WriteString("url", uri.ToString());
+        jsonWriter.WriteString("Uri", uri.ToString());
     }
 }
