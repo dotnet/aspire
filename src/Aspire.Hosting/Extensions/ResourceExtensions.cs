@@ -119,6 +119,16 @@ public static class ResourceExtensions
     }
 
     /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="resource"></param>
+    /// <returns></returns>
+    public static IEnumerable<IResource> GetDependencies(this IResource resource)
+    {
+        return resource.Annotations.OfType<ResourceDependencyAnnotation>().DistinctBy(r => r.Resource).Select(r => r.Resource);
+    }
+
+    /// <summary>
     /// Gets the number of replicas for the specified resource. Defaults to <c>1</c> if no
     /// <see cref="ReplicaAnnotation" /> is found.
     /// </summary>

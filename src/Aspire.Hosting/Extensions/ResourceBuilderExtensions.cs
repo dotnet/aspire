@@ -63,7 +63,7 @@ public static class ResourceBuilderExtensions
     /// <returns>A resource configured with the environment variable callback.</returns>
     public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, EndpointReference endpointReference) where T : IResourceWithEnvironment
     {
-        return builder.WithAnnotation(new EnvironmentCallbackAnnotation(name, () => endpointReference.UriString));
+        return builder.WithDependency(endpointReference.Owner).WithAnnotation(new EnvironmentCallbackAnnotation(name, () => endpointReference.UriString));
     }
 
     /// <summary>
@@ -136,7 +136,7 @@ public static class ResourceBuilderExtensions
         var resource = source.Resource;
         connectionName ??= resource.Name;
 
-        return builder.WithEnvironment(context =>
+        return builder.WithDependency(source).WithEnvironment(context =>
         {
             var connectionStringName = $"{ConnectionStringEnvironmentName}{connectionName}";
 
@@ -176,7 +176,8 @@ public static class ResourceBuilderExtensions
         where TDestination : IResourceWithEnvironment
     {
         ApplyBinding(builder, source.Resource);
-        return builder;
+
+        return builder.WithDependency(source);
     }
 
     /// <summary>
@@ -191,7 +192,7 @@ public static class ResourceBuilderExtensions
         where TDestination : IResourceWithEnvironment
     {
         ApplyBinding(builder, endpointReference.Owner, endpointReference.BindingName);
-        return builder;
+        return builder.WithDependency(endpointReference.Owner);
     }
 
     private static void ApplyBinding<T>(this IResourceBuilder<T> builder, IResourceWithBindings resourceWithBindings, string? bindingName = null)
@@ -271,6 +272,30 @@ public static class ResourceBuilderExtensions
     public static IResourceBuilder<T> AsHttp2Service<T>(this IResourceBuilder<T> builder) where T : IResourceWithBindings
     {
         return builder.WithAnnotation(new Http2ServiceAnnotation());
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="builder"></param>
+    /// <param name="dependency"></param>
+    /// <returns></returns>
+    public static IResourceBuilder<T> WithDependency<T>(this IResourceBuilder<T> builder, IResourceBuilder<IResource> dependency) where T : IResource
+    {
+        return builder.WithDependency(dependency.Resource);
+    }
+
+    /// <summary>
+    /// Adds a dependency to the resource.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="builder"></param>
+    /// <param name="dependency"></param>
+    /// <returns></returns>
+    public static IResourceBuilder<T> WithDependency<T>(this IResourceBuilder<T> builder, IResource dependency) where T : IResource
+    {
+        return builder.WithAnnotation(new ResourceDependencyAnnotation(dependency));
     }
 
     /// <summary>
