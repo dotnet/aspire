@@ -5,7 +5,7 @@ using System.Diagnostics;
 
 namespace Microsoft.Extensions.Internal;
 
-internal struct ValueStopwatch
+internal readonly struct ValueStopwatch
 {
     private readonly long _startTimestamp;
 
