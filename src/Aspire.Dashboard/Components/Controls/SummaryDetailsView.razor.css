@@ -56,22 +56,3 @@
     white-space: nowrap;
     grid-area: actions;
 }
-
-
-/* Workaround until https://github.com/microsoft/fluentui-blazor/pull/1046 (or similar) is available
-   Note that this locks us to 8px bar size for the moment and BarSize parameter on FluentSplitter will
-   be ignored
-*/
-::deep split-panels[direction=row]::part(median) {
-    inline-size: 8px !important;
-    block-size: unset !important;
-}
-
-/* Workaround until https://github.com/microsoft/fluentui-blazor/pull/1046 (or similar) is available
-   Note that this locks us to 8px bar size for the moment and BarSize parameter on FluentSplitter will
-   be ignored
-*/
-::deep split-panels[direction=column]::part(median) {
-    block-size: 8px !important;
-    inline-size: unset !important;
-}
