@@ -275,12 +275,12 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// 
+    /// Adds a dependency to the resource.
     /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="builder"></param>
-    /// <param name="dependency"></param>
-    /// <returns></returns>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="dependency">The dependency builder.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithDependency<T>(this IResourceBuilder<T> builder, IResourceBuilder<IResource> dependency) where T : IResource
     {
         return builder.WithDependency(dependency.Resource);
@@ -289,10 +289,10 @@ public static class ResourceBuilderExtensions
     /// <summary>
     /// Adds a dependency to the resource.
     /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="builder"></param>
-    /// <param name="dependency"></param>
-    /// <returns></returns>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="dependency">The dependency builder.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithDependency<T>(this IResourceBuilder<T> builder, IResource dependency) where T : IResource
     {
         return builder.WithAnnotation(new ResourceDependencyAnnotation(dependency));
