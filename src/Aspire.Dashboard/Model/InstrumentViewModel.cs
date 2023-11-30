@@ -12,6 +12,7 @@ public class InstrumentViewModel
     public List<DimensionScope>? MatchedDimensions { get; private set; }
 
     public Func<Task>? OnDataUpdate { get; set; }
+    public string? Theme { get; set; }
 
     public async Task UpdateDataAsync(OtlpInstrument instrument, List<DimensionScope> matchedDimensions)
     {

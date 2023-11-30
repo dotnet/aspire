@@ -17,6 +17,7 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
     private OtlpInstrument? _instrument;
     private PeriodicTimer? _tickTimer;
     private Task? _tickTask;
+    private IDisposable? _themeChangedSubscription;
     private int _renderedDimensionsCount;
     private string? _previousMeterName;
     private string? _previousInstrumentName;
@@ -40,15 +41,24 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
     [Inject]
     public required ILogger<ChartContainer> Logger { get; set; }
 
+    [Inject]
+    public required ThemeManager ThemeManager { get; set; }
+
     protected override void OnInitialized()
     {
         // Update the graph every 200ms. This displays the latest data and moves time forward.
         _tickTimer = new PeriodicTimer(TimeSpan.FromSeconds(0.2));
         _tickTask = Task.Run(UpdateDataAsync);
+        _themeChangedSubscription = ThemeManager.OnThemeChanged(async () =>
+        {
+            _instrumentViewModel.Theme = ThemeManager.Theme;
+            await InvokeAsync(StateHasChanged);
+        });
     }
 
     public async ValueTask DisposeAsync()
     {
+        _themeChangedSubscription?.Dispose();
         _tickTimer?.Dispose();
 
         // Wait for UpdateData to complete.

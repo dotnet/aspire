@@ -1,0 +1,20 @@
+﻿@page "/ConsoleLogs/{resourceName?}"
+@namespace Aspire.Dashboard.Components.Pages
+@using Aspire.Dashboard.Model
+
+<PageTitle>@DashboardViewModelService.ApplicationName Console Logs</PageTitle>
+
+<div class="resource-logs-layout">
+    <h1 class="page-header">Console Logs</h1>
+    <FluentToolbar Orientation="Orientation.Horizontal">
+        <FluentSelect @ref="_resourceSelectComponent" TOption="Option<string>"
+                      Items="@Resources"
+                      OptionText="(o) => o.Text"
+                      OptionValue="(o) => o.Value"
+                      @bind-SelectedOption="_selectedOption"
+                      @bind-SelectedOption:after="HandleSelectedOptionChangedAsync"
+                      AriaLabel="Select a Resource"/>
+        <FluentLabel Typo="Typography.Body">@_status</FluentLabel>
+    </FluentToolbar>
+    <LogViewer @ref="_logViewer" />
+</div>

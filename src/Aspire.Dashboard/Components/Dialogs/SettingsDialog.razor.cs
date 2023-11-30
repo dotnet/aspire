@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Reflection;
+using Aspire.Dashboard.Model;
+using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -19,6 +21,12 @@ public partial class SettingsDialog : IDialogContentComponent, IAsyncDisposable
     private static readonly string? s_version = Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyFileVersionAttribute>()?.Version;
 
     private IJSObjectReference? _jsModule;
+
+    [Inject]
+    public required IJSRuntime JS { get; set; }
+
+    [Inject]
+    public required ThemeManager ThemeManager { get; set; }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -42,6 +50,7 @@ public partial class SettingsDialog : IDialogContentComponent, IAsyncDisposable
         }
 
         _currentSetting = newValue;
+        await ThemeManager.RaiseThemeChangedAsync(newValue);
     }
 
     private Task<float> GetBaseLayerLuminanceForSetting(string setting)

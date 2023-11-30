@@ -44,7 +44,7 @@ internal sealed class ServiceAppResource : AppResource
     }
 }
 
-internal sealed class ApplicationExecutor(DistributedApplicationModel model, KubernetesService kubernetesService, DistributedApplicationOptions options)
+internal sealed class ApplicationExecutor(DistributedApplicationModel model, KubernetesService kubernetesService)
 {
     private const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
 
@@ -60,8 +60,6 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
 
     private readonly DistributedApplicationModel _model = model;
     private readonly List<AppResource> _appResources = new();
-
-    private readonly string? _appHostProjectDirectory = options.ProjectDirectory;
 
     public async Task RunApplicationAsync(CancellationToken cancellationToken = default)
     {
@@ -248,9 +246,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
             var exe = Executable.Create(exeName, exePath);
 
             // The working directory is always relative to the app host project directory (if it exists).
-            exe.Spec.WorkingDirectory = _appHostProjectDirectory is null ?
-                executable.WorkingDirectory :
-                Path.GetFullPath(Path.Combine(_appHostProjectDirectory, executable.WorkingDirectory));
+            exe.Spec.WorkingDirectory = executable.WorkingDirectory;
             exe.Spec.Args = executable.Args?.ToList();
             exe.Spec.ExecutionType = ExecutionType.Process;
 

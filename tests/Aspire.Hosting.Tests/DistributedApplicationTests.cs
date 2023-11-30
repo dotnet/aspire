@@ -114,6 +114,46 @@ public class DistributedApplicationTests
         Assert.Equal(exceptionMessage, ex.InnerExceptions.First().Message);
     }
 
+    [Fact]
+    public async Task TryAddWillNotAddTheSameLifecycleHook()
+    {
+        var exceptionMessage = "Exception from lifecycle hook to prove it ran!";
+
+        var signal = (FirstHookExecuted: false, SecondHookExecuted: false);
+
+        var testProgram = CreateTestProgram();
+
+        // Lifecycle hook 1
+        testProgram.AppBuilder.Services.TryAddLifecycleHook((sp) =>
+        {
+            return new CallbackLifecycleHook((app, cancellationToken) =>
+            {
+                signal.FirstHookExecuted = true;
+                return Task.CompletedTask;
+            });
+        });
+
+        // Lifecycle hook 2
+        testProgram.AppBuilder.Services.TryAddLifecycleHook((sp) =>
+        {
+            return new CallbackLifecycleHook((app, cancellationToken) =>
+            {
+                signal.SecondHookExecuted = true;
+
+                // We still want to throw on the second one to block startup.
+                throw new DistributedApplicationException(exceptionMessage);
+            });
+        });
+
+        using var cts = new CancellationTokenSource();
+        cts.CancelAfter(TimeSpan.FromMinutes(1));
+        await using var app = testProgram.Build();
+        await app.StartAsync(cts.Token);
+
+        Assert.True(signal.FirstHookExecuted);
+        Assert.False(signal.SecondHookExecuted);
+    }
+
     [LocalOnlyFact]
     public async Task TestProjectStartsAndStopsCleanly()
     {
@@ -288,11 +328,11 @@ public class DistributedApplicationTests
         await testProgram.ServiceABuilder.HttpGetPidAsync(client, "http", cts.Token);
         await testProgram.ServiceBBuilder.HttpGetPidAsync(client, "http", cts.Token);
         await testProgram.ServiceCBuilder.HttpGetPidAsync(client, "http", cts.Token);
-        await testProgram.IntegrationServiceA!.HttpGetPidAsync(client, "http", cts.Token);
+        await testProgram.IntegrationServiceABuilder!.HttpGetPidAsync(client, "http", cts.Token);
 
         // We wait until timeout for the /health endpoint to return successfully. We assume
         // that components wired up into this project have health checks enabled.
-        await testProgram.IntegrationServiceA!.WaitForHealthyStatus(client, "http", cts.Token);
+        await testProgram.IntegrationServiceABuilder!.WaitForHealthyStatus(client, "http", cts.Token);
     }
 
     [LocalOnlyFact("node")]
@@ -317,8 +357,8 @@ public class DistributedApplicationTests
 
         await app.StartAsync(cts.Token);
 
-        var response0 = await testProgram.NodeApp!.HttpGetAsync(client, "http", "/", cts.Token);
-        var response1 = await testProgram.NpmApp!.HttpGetAsync(client, "http", "/", cts.Token);
+        var response0 = await testProgram.NodeAppBuilder!.HttpGetAsync(client, "http", "/", cts.Token);
+        var response1 = await testProgram.NpmAppBuilder!.HttpGetAsync(client, "http", "/", cts.Token);
 
         Assert.Equal("Hello from node!", response0);
         Assert.Equal("Hello from node!", response1);

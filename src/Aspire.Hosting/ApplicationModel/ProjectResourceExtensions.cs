@@ -24,12 +24,17 @@ public static class ProjectResourceExtensions
     /// Tries to get the project resource with the specified path from the distributed application model.
     /// </summary>
     /// <param name="model">The distributed application model.</param>
+    /// <param name="name">The DCP resource name.</param>
     /// <param name="path">The path of the project resource.</param>
     /// <param name="projectResource">When this method returns, contains the project resource with the specified path, if it is found; otherwise, null.</param>
     /// <returns><see langword="true"/> if the project resource with the specified path is found; otherwise, <see langword="false"/>.</returns>
-    public static bool TryGetProjectWithPath(this DistributedApplicationModel model, string path, [NotNullWhen(true)] out ProjectResource? projectResource)
+    internal static bool TryGetProjectWithPath(this DistributedApplicationModel model, string name, string path, [NotNullWhen(true)] out ProjectResource? projectResource)
     {
-        projectResource = model.GetProjectResources().SingleOrDefault(p => p.Annotations.OfType<IServiceMetadata>().FirstOrDefault()?.ProjectPath == path);
+        projectResource = model.GetProjectResources()
+            // HACK: Until we use the DistributedApplicationModel as the source of truth, we will use
+            // the name of the project resource as the DCP resource name. If this is a replica, it'll be projectname-{id}.
+            .Where(p => p.Name == name || name.StartsWith(p.Name + "-"))
+            .SingleOrDefault(p => p.Annotations.OfType<IServiceMetadata>().FirstOrDefault()?.ProjectPath == path);
 
         return projectResource is not null;
     }
