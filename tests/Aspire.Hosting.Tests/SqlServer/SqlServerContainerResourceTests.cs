@@ -22,7 +22,9 @@ public class SqlServerContainerResourceTests
         var connectionStringTemplate = "Server=myserver;User ID=sa;Password=\"{0}\";";
         var escapedPassword = SqlServerContainerResource.EscapedPassword(password);
         var actualConnectionString = string.Format(CultureInfo.InvariantCulture, connectionStringTemplate, escapedPassword);
-        using var connection = new SqlConnection(actualConnectionString);
+
+        var builder = new SqlConnectionStringBuilder(actualConnectionString);
+        Assert.Equal(password, builder.Password);
         Assert.Equal(expectedConnectionString, actualConnectionString);
     }
 }

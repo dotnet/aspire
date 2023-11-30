@@ -25,7 +25,12 @@ public class MySqlContainerResource(string name, string password) : ContainerRes
 
         var allocatedEndpoint = allocatedEndpoints.Single(); // We should only have one endpoint for MySQL.
 
-        var connectionString = $"Server={allocatedEndpoint.Address};Port={allocatedEndpoint.Port};User ID=root;Password={Password};";
+        var connectionString = $"Server={allocatedEndpoint.Address};Port={allocatedEndpoint.Port};User ID=root;Password=\"{EscapedPassword(Password)}\";";
         return connectionString;
+    }
+
+    internal static string EscapedPassword(string password)
+    {
+        return password.Replace("\"", "\"\"");
     }
 }
