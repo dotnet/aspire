@@ -136,6 +136,22 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger,
             }
         }
     }
+    internal static void WriteDependencies(IResource resource, ManifestPublishingContext context)
+    {
+        var dependencies = resource.GetDependencies();
+
+        if (dependencies.Any())
+        {
+            context.Writer.WriteStartObject("dependencies");
+            foreach (var d in dependencies)
+            {
+                context.Writer.WriteStartObject(d.Name);
+                // TODO: We'll want to write dependency edge information here eventually.
+                context.Writer.WriteEndObject();
+            }
+            context.Writer.WriteEndObject();
+        }
+    }
 
     internal static void WriteEnvironmentVariables(IResource resource, ManifestPublishingContext context)
     {
@@ -218,6 +234,7 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger,
 
         context.Writer.WriteString("image", image);
 
+        WriteDependencies(container, context);
         WriteEnvironmentVariables(container, context);
         WriteBindings(container, context, emitContainerPort: true);
     }
@@ -235,6 +252,7 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger,
 
         context.Writer.WriteString("path", relativePathToProjectFile);
 
+        WriteDependencies(project, context);
         WriteEnvironmentVariables(project, context);
         WriteBindings(project, context);
     }
@@ -256,6 +274,7 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger,
         }
         context.Writer.WriteEndArray();
 
+        WriteDependencies(executable, context);
         WriteEnvironmentVariables(executable, context);
         WriteBindings(executable, context);
     }

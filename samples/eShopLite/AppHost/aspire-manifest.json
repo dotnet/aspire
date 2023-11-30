@@ -13,6 +13,9 @@
     "catalogservice": {
       "type": "project.v0",
       "path": "..\\CatalogService\\CatalogService.csproj",
+      "dependencies": {
+        "catalogdb": {}
+      },
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
@@ -37,6 +40,10 @@
     "basketservice": {
       "type": "project.v0",
       "path": "..\\BasketService\\BasketService.csproj",
+      "dependencies": {
+        "basketcache": {},
+        "messaging": {}
+      },
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
@@ -59,6 +66,10 @@
     "frontend": {
       "type": "project.v0",
       "path": "..\\MyFrontend\\MyFrontend.csproj",
+      "dependencies": {
+        "basketservice": {},
+        "catalogservice": {}
+      },
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
@@ -82,6 +93,9 @@
     "orderprocessor": {
       "type": "project.v0",
       "path": "..\\OrderProcessor\\OrderProcessor.csproj",
+      "dependencies": {
+        "messaging": {}
+      },
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
@@ -91,6 +105,10 @@
     "apigateway": {
       "type": "project.v0",
       "path": "..\\ApiGateway\\ApiGateway.csproj",
+      "dependencies": {
+        "basketservice": {},
+        "catalogservice": {}
+      },
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
@@ -115,6 +133,9 @@
     "catalogdbapp": {
       "type": "project.v0",
       "path": "..\\CatalogDb\\CatalogDb.csproj",
+      "dependencies": {
+        "catalogdb": {}
+      },
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
