@@ -7,6 +7,7 @@ using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Net.Sockets;
@@ -31,12 +32,12 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
 
     private const int DaprHttpPortStartRange = 50001;
 
-    public DaprDistributedApplicationLifecycleHook(IConfiguration configuration, IHostEnvironment environment, ILogger<DaprDistributedApplicationLifecycleHook> logger, DaprOptions options, DaprPortManager portManager)
+    public DaprDistributedApplicationLifecycleHook(IConfiguration configuration, IHostEnvironment environment, ILogger<DaprDistributedApplicationLifecycleHook> logger, IOptions<DaprOptions> options, DaprPortManager portManager)
     {
         _configuration = configuration;
         _environment = environment;
         _logger = logger;
-        _options = options;
+        _options = options.Value;
         _portManager = portManager;
     }
 
