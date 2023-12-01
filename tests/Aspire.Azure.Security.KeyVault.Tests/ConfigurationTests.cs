@@ -16,6 +16,6 @@ public class ConfigurationTests
         => Assert.True(new AzureSecurityKeyVaultSettings().HealthChecks);
 
     [Fact]
-    public void TracingIsDisabledByDefault()
-        => Assert.False(new AzureSecurityKeyVaultSettings().Tracing);
+    public void TracingIsEnabledByDefault()
+        => Assert.True(new AzureSecurityKeyVaultSettings().Tracing);
 }

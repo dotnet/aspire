@@ -32,14 +32,9 @@ public sealed class AzureSecurityKeyVaultSettings : IConnectionStringSettings
 
     /// <summary>
     /// <para>Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.</para>
-    /// <para>Disabled by default.</para>
+    /// <para>Enabled by default.</para>
     /// </summary>
-    /// <remarks>
-    /// ActivitySource support in Azure SDK is experimental, the shape of Activities may change in the future without notice.
-    /// It can be enabled by setting "Azure.Experimental.EnableActivitySource" <see cref="AppContext"/> switch to true.
-    /// Or by setting "AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE" environment variable to "true".
-    /// </remarks>
-    public bool Tracing { get; set; }
+    public bool Tracing { get; set; } = true;
 
     void IConnectionStringSettings.ParseConnectionString(string? connectionString)
     {
