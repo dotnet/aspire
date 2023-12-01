@@ -2,17 +2,28 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
-using Aspire.Hosting.Tests.Helpers;
+using Aspire.Hosting.Dcp;
+using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Lifecycle;
-using Xunit;
+using Aspire.Hosting.Tests.Helpers;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Xunit;
 using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Tests;
 
-public class DistributedApplicationTests(ITestOutputHelper testOutputHelper)
+public class DistributedApplicationTests
 {
+    private readonly ITestOutputHelper _testOutputHelper;
+
+    // Primary constructors don't get ITestOutputHelper injected
+    public DistributedApplicationTests(ITestOutputHelper testOutputHelper)
+    {
+        _testOutputHelper = testOutputHelper;
+    }
+
     [Fact]
     public async Task RegisteredLifecycleHookIsExecutedWhenRunAsynchronously()
     {
@@ -147,7 +158,7 @@ public class DistributedApplicationTests(ITestOutputHelper testOutputHelper)
     public async Task TestProjectStartsAndStopsCleanly()
     {
         var testProgram = CreateTestProgram();
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
+        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
         testProgram.AppBuilder.Services
             .AddHttpClient()
@@ -174,7 +185,7 @@ public class DistributedApplicationTests(ITestOutputHelper testOutputHelper)
     public async Task TestPortOnServiceBindingAnnotationAndAllocatedEndpointAnnotationMatch()
     {
         var testProgram = CreateTestProgram();
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
+        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
         testProgram.AppBuilder.Services
             .AddHttpClient()
@@ -215,7 +226,7 @@ public class DistributedApplicationTests(ITestOutputHelper testOutputHelper)
             serviceBuilder.WithReplicas(2);
         }
 
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
+        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
         testProgram.AppBuilder.Services
             .AddHttpClient()
@@ -252,7 +263,7 @@ public class DistributedApplicationTests(ITestOutputHelper testOutputHelper)
         var replicaCount = 3;
 
         var testProgram = CreateTestProgram();
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
+        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
         testProgram.AppBuilder.Services
             .AddHttpClient()
@@ -296,7 +307,7 @@ public class DistributedApplicationTests(ITestOutputHelper testOutputHelper)
     public async Task VerifyHealthyOnIntegrationServiceA()
     {
         var testProgram = CreateTestProgram(includeIntegrationServices: true);
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
+        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
         testProgram.AppBuilder.Services
             .AddHttpClient()
@@ -328,7 +339,7 @@ public class DistributedApplicationTests(ITestOutputHelper testOutputHelper)
     public async Task VerifyNodeAppWorks()
     {
         var testProgram = CreateTestProgram(includeNodeApp: true);
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
+        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
         testProgram.AppBuilder.Services
             .AddHttpClient()
@@ -351,6 +362,32 @@ public class DistributedApplicationTests(ITestOutputHelper testOutputHelper)
 
         Assert.Equal("Hello from node!", response0);
         Assert.Equal("Hello from node!", response1);
+    }
+
+    [LocalOnlyFact("docker")]
+    public async Task VerifyDockerAppWorks()
+    {
+        var testProgram = CreateTestProgram();
+        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+
+        testProgram.AppBuilder.AddContainer("redis-cli", "redis")
+            .WithArgs("redis-cli", "-h", "host.docker.internal", "-p", "9999", "MONITOR");
+
+        await using var app = testProgram.Build();
+
+        await app.StartAsync();
+
+        var s = app.Services.GetRequiredService<KubernetesService>();
+        var list = await s.ListAsync<Container>();
+
+        Assert.Collection(list,
+            item =>
+            {
+                Assert.Equal("redis:latest", item.Spec.Image);
+                Assert.Equal(["redis-cli", "-h", "host.docker.internal", "-p", "9999", "MONITOR"], item.Spec.Args);
+            });
+
+        await app.StopAsync();
     }
 
     private static TestProgram CreateTestProgram(string[]? args = null, bool includeIntegrationServices = false, bool includeNodeApp = false) =>

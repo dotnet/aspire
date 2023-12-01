@@ -218,6 +218,26 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger,
 
         context.Writer.WriteString("image", image);
 
+        if (container.TryGetAnnotationsOfType<ExecutableArgsCallbackAnnotation>(out var argsCallback))
+        {
+            var args = new List<string>();
+            foreach (var callback in argsCallback)
+            {
+                callback.Callback(args);
+            }
+
+            if (args.Count > 0)
+            {
+                context.Writer.WriteStartArray("args");
+
+                foreach (var arg in args ?? [])
+                {
+                    context.Writer.WriteStringValue(arg);
+                }
+                context.Writer.WriteEndArray();
+            }
+        }
+        
         WriteEnvironmentVariables(container, context);
         WriteBindings(container, context, emitContainerPort: true);
     }

@@ -34,6 +34,10 @@ public static class HttpClientBuilderExtensions
             return new ResolvingHttpDelegatingHandler(registry);
         });
 
+        // Configure the HttpClient to disable gRPC load balancing.
+        // This is done on all HttpClient instances but only impacts gRPC clients.
+        AddDisableGrpcLoadBalancingFilter(httpClientBuilder.Services, httpClientBuilder.Name);
+
         return httpClientBuilder;
     }
 

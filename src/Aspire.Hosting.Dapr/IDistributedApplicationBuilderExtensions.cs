@@ -7,6 +7,7 @@ using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Aspire.Hosting;
 
@@ -19,13 +20,16 @@ public static class IDistributedApplicationBuilderExtensions
     /// Adds Dapr support to Aspire, including the ability to add Dapr sidecar to application resource.
     /// </summary>
     /// <param name="builder">The distributed application builder instance.</param>
-    /// <param name="options">Options for configuring Dapr, if any.</param>
+    /// <param name="configure">Callback to configure dapr options.</param>
     /// <returns>The distributed application builder instance.</returns>
-    public static IDistributedApplicationBuilder AddDapr(this IDistributedApplicationBuilder builder, DaprOptions? options = null)
+    public static IDistributedApplicationBuilder AddDapr(this IDistributedApplicationBuilder builder, Action<DaprOptions>? configure = null)
     {
-        builder.Services.AddSingleton(options ?? new DaprOptions());
-        builder.Services.AddLifecycleHook<DaprDistributedApplicationLifecycleHook>();
-        builder.Services.AddSingleton<DaprPortManager>();
+        if (configure is not null)
+        {
+            builder.Services.Configure(configure);
+        }
+        builder.Services.TryAddLifecycleHook<DaprDistributedApplicationLifecycleHook>();
+        builder.Services.TryAddSingleton<DaprPortManager>();
 
         return builder;
     }
@@ -76,7 +80,10 @@ public static class IDistributedApplicationBuilderExtensions
         context.Writer.WriteString("type", "dapr.component.v0");
         context.Writer.WriteStartObject("daprComponent");
 
-        context.Writer.TryWriteString("localPath", context.GetManifestRelativePath(resource.Options?.LocalPath));
+        if (resource.Options?.LocalPath is { } localPath)
+        {
+            context.Writer.TryWriteString("localPath", context.GetManifestRelativePath(localPath));
+        }
         context.Writer.WriteString("type", resource.Type);
 
         context.Writer.WriteEndObject();

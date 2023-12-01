@@ -603,6 +603,15 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
                     }
                 }
 
+                if (modelContainerResource.TryGetAnnotationsOfType<ExecutableArgsCallbackAnnotation>(out var argsCallback))
+                {
+                    dcpContainerResource.Spec.Args ??= [];
+                    foreach (var callback in argsCallback)
+                    {
+                        callback.Callback(dcpContainerResource.Spec.Args);
+                    }
+                }
+
                 await kubernetesService.CreateAsync(dcpContainerResource, cancellationToken).ConfigureAwait(false);
             }
         }

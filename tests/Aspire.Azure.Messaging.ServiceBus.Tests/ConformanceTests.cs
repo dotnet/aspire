@@ -4,6 +4,7 @@
 using Aspire.Components.ConformanceTests;
 using Azure.Identity;
 using Azure.Messaging.ServiceBus;
+using Microsoft.DotNet.RemoteExecutor;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -91,4 +92,10 @@ public abstract class ConformanceTests : ConformanceTests<ServiceBusClient, Azur
 
     protected override void SetTracing(AzureMessagingServiceBusSettings options, bool enabled)
         => options.Tracing = enabled;
+
+    public static RemoteInvokeOptions EnableTracingForAzureSdk()
+        => new()
+        {
+            RuntimeConfigurationOptions = { { "Azure.Experimental.EnableActivitySource", true } }
+        };
 }
