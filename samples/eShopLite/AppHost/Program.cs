@@ -17,7 +17,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 builder.AddProject<Projects.MyFrontend>("frontend")
        //.WithReference(basketService)
        //.WithReference(catalogService.GetEndpoint("http"))
-       .WithReference("petstore", new Uri("https://petstore.swagger.io/v2/"));
+       .WithReference("petstore", new Uri("https://petstore.swagger.io"));
 
 //builder.AddProject<Projects.OrderProcessor>("orderprocessor")
 //       .WithReference(messaging)
