@@ -26,6 +26,10 @@
     <Warning Code="ASPIRE002" Text="$(MSBuildProjectName) is an Aspire AppHost project but necessary dependencies aren't present. Are you missing an Aspire.Hosting PackageReference?" />
   </Target>
 
+  <Target Name="__WarnOnMininumVsVersionMissing" BeforeTargets="PrepareForBuild" Condition="'$(BuildingInsideVisualStudio)' == 'true' and $([MSBuild]::VersionLessThan('$(MSBuildVersion)', '17.9.0'))">
+    <Warning Code="ASPIRE003" Text="$(MSBuildProjectName) is an Aspire AppHost project that requires Visual Studio version 17.9.0 or above to work correctly. You are using version $(MSBuildVersion)." />
+  </Target>
+
   <!--
   This SDK comes from a workload pack, so normally should only be referenced from
   the WorkloadManifest.targets so as not to cause workload restore to require multiple
