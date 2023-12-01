@@ -26,6 +26,9 @@
         }
       }
     },
+    "abstractbasketcache": {
+      "type": "redis.v0"
+    },
     "catalogservice": {
       "type": "project.v0",
       "path": "..\\CatalogService\\CatalogService.csproj",

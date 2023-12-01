@@ -3,6 +3,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 var catalogDb = builder.AddPostgresContainer("postgres").AddDatabase("catalogdb");
 
 var basketCache = builder.AddRedisContainer("basketcache");
+builder.AddRedis("abstractbasketcache"); // TODO: Tidy up, just testing.
 
 var catalogService = builder.AddProject<Projects.CatalogService>("catalogservice")
                      .WithReference(catalogDb)
