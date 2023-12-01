@@ -68,10 +68,9 @@ public static class PostgresBuilderExtensions
     /// </summary>
     /// <param name="builder">The PostgreSQL server resource builder.</param>
     /// <param name="hostPort">The host port for the application ui.</param>
-    /// <param name="containerName">The name of the container. Defaults to "pgAdmin".</param>
-    /// <param name="options"><see cref="PgAdminOptions"/> for the container (optional).</param>
+    /// <param name="containerName">The name of the container (Optional).</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{PostgresContainerResource}"/>.</returns>
-    public static IResourceBuilder<PostgresContainerResource> WithPgAdmin(this IResourceBuilder<PostgresContainerResource> builder, int? hostPort, string containerName = "pgAdmin", PgAdminOptions? options = null)
+    public static IResourceBuilder<PostgresContainerResource> WithPgAdmin(this IResourceBuilder<PostgresContainerResource> builder, int? hostPort, string? containerName = null)
     {
         if (builder.ApplicationBuilder.Resources.OfType<PgAdminContainerResource>().Any())
         {
@@ -80,20 +79,61 @@ public static class PostgresBuilderExtensions
 
         ArgumentNullException.ThrowIfNull(hostPort);
 
-        options = options ?? new();
+        containerName ??= $"{builder.Resource.Name}-pgadmin";
 
         var pgAdminContainer = new PgAdminContainerResource(containerName);
-        pgAdminContainer.Annotations.Add(new ContainerImageAnnotation { Image = "dpage/pgadmin4", Tag = "latest" });
-        pgAdminContainer.Annotations.Add(new ServiceBindingAnnotation(ProtocolType.Tcp, port: hostPort, containerPort: 80, uriScheme: "http", name: containerName));
-        pgAdminContainer.Annotations.Add(new EnvironmentCallbackAnnotation(context =>
-        {
-            context["PGADMIN_DEFAULT_EMAIL"] = options.DefaultEmail;
-            context["PGADMIN_DEFAULT_PASSWORD"] = options.DefaultPassword;
-        }));
-
-        builder.ApplicationBuilder.AddResource(pgAdminContainer);
+        builder.ApplicationBuilder.AddResource(pgAdminContainer)
+                                  .WithAnnotation(new ContainerImageAnnotation { Image = "dpage/pgadmin4", Tag = "latest" })
+                                  .WithServiceBinding(containerPort: 80, hostPort: hostPort, scheme: "http", name: containerName)
+                                  .WithEnvironment(SetPgAdminEnviromentVariables)
+                                  .WithVolumeMount(WritePgAdminTmpServersJson(builder), "/pgadmin4/servers.json")
+                                  .ExcludeFromManifest();
 
         return builder;
+    }
+
+    private static void SetPgAdminEnviromentVariables(EnvironmentCallbackContext context)
+    {
+        // Disables pgAdmin authentication.
+        context.EnvironmentVariables.Add("PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED", "False");
+        context.EnvironmentVariables.Add("PGADMIN_CONFIG_SERVER_MODE", "False");
+
+        // You need to define the PGADMIN_DEFAULT_EMAIL and PGADMIN_DEFAULT_PASSWORD or PGADMIN_DEFAULT_PASSWORD_FILE environment variables.
+        context.EnvironmentVariables.Add("PGADMIN_DEFAULT_EMAIL", "admin@domain.com");
+        context.EnvironmentVariables.Add("PGADMIN_DEFAULT_PASSWORD", "admin");
+    }
+
+    private static string WritePgAdminTmpServersJson(IResourceBuilder<PostgresContainerResource> builder)
+    {
+        var serversFile = Path.GetTempFileName();
+
+        // At this point the container is not running yet, so we need to get the port from the service bindings.
+        // If the port is not user defined we will ignore it.
+        if (builder.Resource.TryGetServiceBindings(out var serviceBindings))
+        {
+            if (serviceBindings.First().Port is not null)
+            {
+                var json = $@"
+                {{
+                    ""Servers"": {{
+                        ""1"": {{
+                            ""Name"": ""{builder.Resource.Name}"",
+                            ""Group"": ""Aspire servers"",
+                            ""Host"": ""host.docker.internal"",
+                            ""Port"": {serviceBindings.First().Port},
+                            ""Username"": ""postgres"",
+                            ""SSLMode"": ""prefer"",
+                            ""MaintenanceDB"": ""postgres""
+                        }}
+                    }}
+                }}
+                ";
+
+                File.WriteAllText(serversFile, json);
+            }
+        }
+
+        return serversFile;
     }
 
     private static void WritePostgresConnectionToManifest(ManifestPublishingContext context, PostgresConnectionResource postgresConnection)
