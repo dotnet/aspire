@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
@@ -10,6 +11,7 @@ using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Pages;
+
 public partial class Traces
 {
     private static readonly SelectViewModel<string> s_allApplication = new SelectViewModel<string> { Id = null, Name = "(All)" };
@@ -43,7 +45,7 @@ public partial class Traces
             percentage = trace.Duration / ViewModel.MaxDuration * 100.0;
         }
 
-        return $"background: linear-gradient(to right, var(--neutral-fill-input-alt-active) {percentage:0.##}%, transparent {percentage:0.##}%);";
+        return string.Create(CultureInfo.InvariantCulture, $"background: linear-gradient(to right, var(--neutral-fill-input-alt-active) {percentage:0.##}%, transparent {percentage:0.##}%);");
     }
 
     private static string GetTooltip(IGrouping<OtlpApplication, OtlpSpan> applicationSpans)

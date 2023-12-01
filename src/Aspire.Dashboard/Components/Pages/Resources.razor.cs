@@ -42,43 +42,34 @@ public partial class Resources : ComponentBase, IDisposable
     private readonly CancellationTokenSource _watchTaskCancellationTokenSource = new();
     private string _filter = "";
     private bool _isTypeFilterVisible;
-    private bool _allTypesVisibleCheckboxValue = true;
+    private bool? _allTypesVisible = true;
     private bool _areProjectsVisible = true;
     private bool _areContainersVisible = true;
     private bool _areExecutablesVisible = true;
-    private FluentCheckbox? _allTypesVisibleCheckbox;
 
     private bool AreAllTypesVisible => _areProjectsVisible && _areContainersVisible && _areExecutablesVisible;
 
-    private void HandleTypeFilterShowAllChanged(bool newValue)
+    private void HandleTypeFilterShowAllChanged(bool? newValue)
     {
-        _allTypesVisibleCheckboxValue = _areProjectsVisible = _areContainersVisible = _areExecutablesVisible = newValue;
+        if (newValue.HasValue)
+        {
+            _allTypesVisible = _areProjectsVisible = _areContainersVisible = _areExecutablesVisible = newValue.Value;
+        }
     }
 
-    private async Task HandleTypeFilterTypeChanged()
+    private void HandleTypeFilterTypeChanged()
     {
         if (_areProjectsVisible && _areContainersVisible && _areExecutablesVisible)
         {
-            _allTypesVisibleCheckboxValue = true;
-            await SetIndeterminateState(false);
+            _allTypesVisible = true;
         }
         else if (!_areProjectsVisible && !_areContainersVisible && !_areExecutablesVisible)
         {
-            _allTypesVisibleCheckboxValue = false;
-            await SetIndeterminateState(false);
+            _allTypesVisible = false;
         }
         else
         {
-            _allTypesVisibleCheckboxValue = true; // Set this to true so the styling is consistent while indeterminate
-            await SetIndeterminateState(true);
-        }
-    }
-
-    private async Task SetIndeterminateState(bool indeterminate)
-    {
-        if (_allTypesVisibleCheckbox is not null)
-        {
-            await JS.InvokeVoidAsync("setIndeterminate", _allTypesVisibleCheckbox.Element, indeterminate);
+            _allTypesVisible = null;
         }
     }
 

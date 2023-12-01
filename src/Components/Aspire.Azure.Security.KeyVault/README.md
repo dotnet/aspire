@@ -119,7 +119,13 @@ You can also setup the [SecretClientOptions](https://learn.microsoft.com/dotnet/
 
 ## AppHost extensions
 
-In your AppHost project, add a Key Vault connection and consume the connection using the following methods:
+In your AppHost project, install the Aspire Azure Hosting library with [NuGet](https://www.nuget.org):
+
+```dotnetcli
+dotnet add package Aspire.Hosting.Azure
+```
+
+Then, in the _Program.cs_ file of `AppHost`, add a Key Vault connection and consume the connection using the following methods:
 
 ```csharp
 var keyVault = builder.AddAzureKeyVault("secrets");

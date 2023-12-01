@@ -74,7 +74,6 @@
 
 ::deep.metrics-layout > h1 {
     grid-area: head;
-    padding: calc(var(--design-unit) * 1px);
 }
 
 ::deep.metrics-layout > fluent-toolbar {
