@@ -1,7 +1,5 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
-builder.AddDapr();
-
 var stateStore = builder.AddDaprStateStore("statestore");
 var pubSub = builder.AddDaprPubSub("pubsub");
 
