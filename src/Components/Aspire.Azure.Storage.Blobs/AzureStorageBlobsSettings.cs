@@ -46,6 +46,7 @@ public sealed class AzureStorageBlobsSettings : IConnectionStringSettings
     /// <para>Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.</para>
     /// <value>
     /// The default value is <see langword="true"/>.
+    /// </value>
     /// </summary>
     public bool Tracing { get; set; } = true;
 
