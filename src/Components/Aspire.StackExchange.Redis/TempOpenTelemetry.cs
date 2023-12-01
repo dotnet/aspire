@@ -36,7 +36,7 @@ internal static class TempOpenTelemetry
             {
                 var instrumentation = sp.GetRequiredService<StackExchangeRedisInstrumentation>();
 
-                var connection = (sp as IKeyedServiceProvider)!.GetKeyedService<IConnectionMultiplexer>(serviceKey);
+                var connection = sp.GetKeyedService<IConnectionMultiplexer>(serviceKey);
 
                 if (connection != null)
                 {
