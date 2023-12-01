@@ -78,6 +78,19 @@ Aspire.Microsoft.Data.SqlClient:
     - "number-of-stasis-connections"
     - "number-of-reclaimed-connections"
 
+Aspire.MongoDB.Driver:
+- Log categories:
+  - "MongoDB"
+  - "MongoDB.Command"
+  - "MongoDB.SDAM"
+  - "MongoDB.ServerSelection"
+  - "MongoDB.Connection"
+  - "MongoDB.Internal"
+- Activity source names:
+  - "MongoDB.Driver.Core.Extensions.DiagnosticSources"
+- Metric names:
+  - none
+
 Aspire.Microsoft.EntityFrameworkCore.Cosmos:
 - Log categories:
   - "Azure-Cosmos-Operation-Request-Diagnostics"
