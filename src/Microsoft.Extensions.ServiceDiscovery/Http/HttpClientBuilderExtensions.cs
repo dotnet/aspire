@@ -105,6 +105,7 @@ public static class HttpClientBuilderExtensions
                     {
                         // gRPC knows about this property and uses it to check whether
                         // load balancing is disabled when the GrpcChannel is created.
+                        // see https://github.com/grpc/grpc-dotnet/blob/1625f8942791c82d700802fc7278c543025f0fd3/src/Grpc.Net.Client/GrpcChannel.cs#L286
                         socketsHttpHandler.Properties["__GrpcLoadBalancingDisabled"] = true;
                     }
                 }
