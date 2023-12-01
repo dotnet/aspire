@@ -371,6 +371,45 @@ public class WithReferenceTests
         Assert.Contains(config, kvp => kvp.Key == "ConnectionStrings__resource" && kvp.Value == "test");
     }
 
+    [Fact]
+    public void WithReferenceHttpRelativeUriThrowsException()
+    {
+        var testProgram = CreateTestProgram();
+
+        Assert.Throws<InvalidOperationException>(() => testProgram.ServiceABuilder.WithReference("petstore", new Uri("petstore.swagger.io", UriKind.Relative)));
+    }
+
+    [Fact]
+    public void WithReferenceHttpUriThrowsException()
+    {
+        var testProgram = CreateTestProgram();
+
+        Assert.Throws<InvalidOperationException>(() => testProgram.ServiceABuilder.WithReference("petstore", new Uri("https://petstore.swagger.io/v2")));
+    }
+
+    [Fact]
+    public void WithReferenceHttpProduceEnvironmentVariables()
+    {
+        var testProgram = CreateTestProgram();
+
+        testProgram.ServiceABuilder.WithReference("petstore", new Uri("https://petstore.swagger.io/"));
+
+        // Call environment variable callbacks.
+        var annotations = testProgram.ServiceABuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
+
+        var config = new Dictionary<string, string>();
+        var context = new EnvironmentCallbackContext("dcp", config);
+
+        foreach (var annotation in annotations)
+        {
+            annotation.Callback(context);
+        }
+
+        var servicesKeysCount = config.Keys.Count(k => k.StartsWith("services__"));
+        Assert.Equal(1, servicesKeysCount);
+        Assert.Contains(config, kvp => kvp.Key == "services__petstore" && kvp.Value == "https://petstore.swagger.io/");
+    }
+
     private static TestProgram CreateTestProgram(string[]? args = null) => TestProgram.Create<WithReferenceTests>(args);
 
     private sealed class TestResource(string name) : IResourceWithConnectionString

@@ -180,23 +180,30 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// 
+    /// Injects service discovery information as environment variables from the uri into the destination resource, using the name as the service name.
+    /// The uri will be injected using the format "services__{name}={uri}."
     /// </summary>
     /// <typeparam name="TDestination"></typeparam>
-    /// <param name="builder"></param>
-    /// <param name="source"></param>
-    /// <returns></returns>
-    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<HttpServiceResource> source)
+    /// <param name="builder">The resource where the service discovery information will be injected.</param>
+    /// <param name="name">The name of the service.</param>
+    /// <param name="uri">The uri of the service.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{TDestination}"/>.</returns>
+    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, string name, Uri uri)
         where TDestination : IResourceWithEnvironment
     {
+        if (!uri.IsAbsoluteUri)
+        {
+            throw new InvalidOperationException("The uri for service reference must be absolute.");
+        }
+
+        if (uri.AbsolutePath != "/")
+        {
+            throw new InvalidOperationException("The uri absolute path must be \"/\".");
+        }
+
         return builder.WithEnvironment(context =>
         {
-            if (context.PublisherName == "manifest")
-            {
-                context.EnvironmentVariables[$"services__{source.Resource.Name}"] = $"{{{source.Resource.Name}}}.Uri";
-                return;
-            }
-            context.EnvironmentVariables[$"services__{source.Resource.Name}"] = source.Resource.Uri.ToString();
+            context.EnvironmentVariables[$"services__{name}"] = uri.ToString();
         });
     }
 

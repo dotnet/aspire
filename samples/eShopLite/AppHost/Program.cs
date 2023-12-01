@@ -1,7 +1,5 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
-var petstore = builder.AddHttpService("petstore", new Uri("https://petstore.swagger.io"));
-
 //var catalogDb = builder.AddPostgresContainer("postgres").AddDatabase("catalogdb");
 
 //var basketCache = builder.AddRedisContainer("basketcache");
@@ -19,7 +17,7 @@ var petstore = builder.AddHttpService("petstore", new Uri("https://petstore.swag
 builder.AddProject<Projects.MyFrontend>("frontend")
        //.WithReference(basketService)
        //.WithReference(catalogService.GetEndpoint("http"))
-       .WithReference(petstore);
+       .WithReference("petstore", new Uri("https://petstore.swagger.io/v2/"));
 
 //builder.AddProject<Projects.OrderProcessor>("orderprocessor")
 //       .WithReference(messaging)

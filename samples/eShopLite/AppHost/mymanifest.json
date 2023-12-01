@@ -1,16 +1,12 @@
 {
   "resources": {
-    "petstore": {
-      "type": "httpservice.v0",
-      "Uri": "https://petstore.swagger.io/"
-    },
     "frontend": {
       "type": "project.v0",
       "path": "..\\MyFrontend\\MyFrontend.csproj",
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
-        "services__petstore": "{petstore}.Uri"
+        "services__petstore": "https://petstore.swagger.io/"
       },
       "bindings": {
         "http": {
