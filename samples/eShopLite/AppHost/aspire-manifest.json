@@ -8,7 +8,23 @@
       "parent": "postgres"
     },
     "basketcache": {
-      "type": "redis.v0"
+      "type": "container.v0",
+      "image": "redis:latest",
+      "bindings": {
+        "tcp": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp",
+          "containerPort": 6379
+        }
+      },
+      "connectionString": "Host={basketcache.bindings.tcp.host};Port={basketcache.bindings.tcp.port};Username=postgres;Password={basketcache.inputs.password};",
+      "inputs": {
+        "password": {
+          "type": "string",
+          "secret": true
+        }
+      }
     },
     "catalogservice": {
       "type": "project.v0",
