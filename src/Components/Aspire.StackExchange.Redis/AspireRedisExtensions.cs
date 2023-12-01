@@ -3,7 +3,6 @@
 
 global using System.Net.Security; // needed to work around https://github.com/dotnet/runtime/issues/94065
 
-using System.Text;
 using Aspire;
 using Aspire.StackExchange.Redis;
 using Microsoft.Extensions.Configuration;
@@ -145,13 +144,6 @@ public static class AspireRedisExtensions
         configurationOptionsSection.Bind(options);
 
         return options;
-    }
-
-    private sealed class LoggingTextWriter(ILogger logger) : TextWriter
-    {
-        public override Encoding Encoding => Encoding.UTF8;
-
-        public override void Write(string? value) => logger.LogTrace(value);
     }
 
     /// <summary>
