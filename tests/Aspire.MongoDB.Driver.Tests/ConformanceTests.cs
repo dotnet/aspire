@@ -26,7 +26,7 @@ public class ConformanceTests : ConformanceTests<IMongoClient, MongoDBSettings>
             "MongoDB": {
               "Driver": {
                 "ConnectionString": "YOUR_CONNECTION_STRING",
-                "HealthCheckEnabled": true,
+                "HealthChecks": true,
                 "HealthCheckTimeout": 100,
                 "Tracing": true,
                 "Metrics": true
@@ -64,7 +64,7 @@ public class ConformanceTests : ConformanceTests<IMongoClient, MongoDBSettings>
 
     protected override void SetHealthCheck(MongoDBSettings options, bool enabled)
     {
-        options.HealthCheckEnabled = enabled;
+        options.HealthChecks = enabled;
         options.HealthCheckTimeout = 10;
     }
 

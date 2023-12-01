@@ -35,19 +35,19 @@
               "properties": {
                 "ConnectionString": {
                   "type": "string",
-                  "description": "The connection string of the MongoDB database to connect to."
+                  "description": "Gets or sets the connection string of the MongoDB database to connect to."
                 },
-                "HealthCheckEnabled": {
+                "HealthChecks": {
                   "type": "boolean",
-                  "description": "Indicates whether the MongoDB health check is enabled or not."
+                  "description": "Gets or sets a boolean value that indicates whether the MongoDB health check is enabled or not."
                 },
                 "HealthCheckTimeout": {
                   "type": "integer",
-                  "description": "Indicates the MongoDB health check timeout in milliseconds."
+                  "description": "Gets or sets a integer value that indicates the MongoDB health check timeout in milliseconds."
                 },
                 "Tracing": {
                   "type": "boolean",
-                  "description": "Indicates whether the Open Telemetry tracing is enabled or not."
+                  "description": "Gets or sets a boolean value that indicates whether the Open Telemetry tracing is enabled or not."
                 }
               }
             }

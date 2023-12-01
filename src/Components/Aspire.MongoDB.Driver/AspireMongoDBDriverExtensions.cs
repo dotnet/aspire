@@ -98,7 +98,7 @@ public static class AspireMongoDBDriverExtensions
 
         builder.AddMongoDatabase(settings.ConnectionString, serviceKey);
 
-        if (settings.HealthCheckEnabled)
+        if (settings.HealthChecks)
         {
             builder.AddHealthCheck(
                 settings.ConnectionString,
