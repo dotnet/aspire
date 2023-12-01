@@ -160,6 +160,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.MySqlConnector.Tests
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestProject.IntegrationServiceA", "tests\testproject\TestProject.IntegrationServiceA\TestProject.IntegrationServiceA.csproj", "{DCF2D47A-921A-4900-B5B2-CF97B3531CE8}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Pomelo.EntityFrameworkCore.MySql", "src\Components\Aspire.Pomelo.EntityFrameworkCore.MySql\Aspire.Pomelo.EntityFrameworkCore.MySql.csproj", "{C565532A-0754-44FE-A0C7-78D5338DDBCA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -430,6 +432,10 @@ Global
 		{DCF2D47A-921A-4900-B5B2-CF97B3531CE8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DCF2D47A-921A-4900-B5B2-CF97B3531CE8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DCF2D47A-921A-4900-B5B2-CF97B3531CE8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C565532A-0754-44FE-A0C7-78D5338DDBCA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C565532A-0754-44FE-A0C7-78D5338DDBCA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C565532A-0754-44FE-A0C7-78D5338DDBCA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C565532A-0754-44FE-A0C7-78D5338DDBCA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -505,6 +511,7 @@ Global
 		{CA283D7F-EB95-4353-B196-C409965D2B42} = {27381127-6C45-4B4C-8F18-41FF48DFE4B2}
 		{C8079F06-304F-49B1-A0C1-45AA3782A923} = {4981B3A5-4AFD-4191-BF7D-8692D9783D60}
 		{DCF2D47A-921A-4900-B5B2-CF97B3531CE8} = {975F6F41-B455-451D-A312-098DE4A167B6}
+		{C565532A-0754-44FE-A0C7-78D5338DDBCA} = {27381127-6C45-4B4C-8F18-41FF48DFE4B2}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6DCEDFEC-988E-4CB3-B45B-191EB5086E0C}
