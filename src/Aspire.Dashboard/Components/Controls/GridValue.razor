@@ -34,5 +34,5 @@
                   Class="defaultHidden"
                   @onclick="@(() => CopyTextToClipboardAsync(Value, @_anchorId))"
                   aria-label="Copy to Clipboard" />
-    <FluentTooltip Anchor="@_anchorId" Position="TooltipPosition.Top">@PreCopyText</FluentTooltip>
+    <FluentTooltip Anchor="@_anchorId" Position="TooltipPosition.Top">@PreCopyToolTip</FluentTooltip>
 </div>

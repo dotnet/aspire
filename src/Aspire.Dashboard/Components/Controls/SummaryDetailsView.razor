@@ -1,5 +1,8 @@
 ﻿<div class="summary-details-container">
-    <FluentSplitter Orientation="@Orientation" Collapsed="@(!ShowDetails)" OnResized="HandleSplitterResize" Panel1Size="@_panel1Size" Panel2Size="@_panel2Size">
+    <FluentSplitter Orientation="@Orientation" Collapsed="@(!ShowDetails)"
+                    OnResized="HandleSplitterResize"
+                    Panel1Size="@_panel1Size" Panel2Size="@_panel2Size"
+                    Panel1MinSize="150px" Panel2MinSize="150px">
         <Panel1>
             <div class="summary-container">
                 @Summary
@@ -7,16 +10,16 @@
         </Panel1>
         <Panel2>
             <div class="details-container">
-                <FluentHeader Style="height: auto;">
+                <header Style="height: auto;">
                     @if (DetailsTitle is not null)
                     {
-                        @DetailsTitle
+                        <div class="details-header-title" title="@DetailsTitle">@DetailsTitle</div>
                     }
                     else if (DetailsTitleTemplate is not null)
                     {
-                        @DetailsTitleTemplate
+                        <div class="details-header-title">@DetailsTitleTemplate</div>
                     }
-                    <div class="header-right">
+                    <div class="header-actions">
                         <FluentButton Appearance="Appearance.Stealth"
                                       IconEnd="@(Orientation == Orientation.Horizontal ? _splitHorizontalIcon : _splitVerticalIcon)"
                                       OnClick="HandleToggleOrientation"
@@ -25,7 +28,7 @@
                         <FluentButton Appearance="Appearance.Stealth" IconEnd="@(new Icons.Regular.Size16.Dismiss())"
                                       OnClick="HandleDismissAsync" Title="Close" aria-label="Close" />
                     </div>
-                </FluentHeader>
+                </header>
                 @Details
             </div>
         </Panel2>

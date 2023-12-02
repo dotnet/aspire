@@ -1,16 +1,17 @@
 ﻿@using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Extensions
 
 @if (Resource is ProjectViewModel projectViewModel)
 {
-    <span title="@projectViewModel.ProjectPath">@projectViewModel.ProjectPath</span>
+    <span title="@projectViewModel.ProjectPath" aria-label="@projectViewModel.ProjectPath">@projectViewModel.ProjectPath.TrimMiddle(50)</span>
 }
 else if (Resource is ExecutableViewModel executableViewModel)
 {
     var arguments = string.Join(" ", executableViewModel.Arguments ?? []);
     var fullCommandLine = $"{executableViewModel.ExecutablePath} {arguments}";
 
-    <div class="ellipsis-overflow" title="@fullCommandLine">@executableViewModel.ExecutablePath <span class="subtext">@arguments</span></div>
-    <div class="ellipsis-overflow" title="@executableViewModel.WorkingDirectory">Working Dir: @executableViewModel.WorkingDirectory</div>
+    <div class="ellipsis-overflow" title="@fullCommandLine" aria-label="@fullCommandLine">@executableViewModel.ExecutablePath?.TrimMiddle(35) <span class="subtext">@arguments</span></div>
+    <div class="ellipsis-overflow" title="@executableViewModel.WorkingDirectory" aria-label="@executableViewModel.WorkingDirectory">Working Dir: @executableViewModel.WorkingDirectory?.TrimMiddle(35)</div>
 }
 else if (Resource is ContainerViewModel containerViewModel)
 {

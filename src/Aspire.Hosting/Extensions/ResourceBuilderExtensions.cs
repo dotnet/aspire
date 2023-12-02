@@ -3,6 +3,7 @@
 
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting;
@@ -63,6 +64,18 @@ public static class ResourceBuilderExtensions
     public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, EndpointReference endpointReference) where T : IResourceWithEnvironment
     {
         return builder.WithAnnotation(new EnvironmentCallbackAnnotation(name, () => endpointReference.UriString));
+    }
+
+    /// <summary>
+    /// Registers a callback which is invoked when manifest is generated for the app model.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="callback">Callback method which takes a <see cref="ManifestPublishingContext"/> which can be used to inject JSON into the manifest.</param>
+    /// <returns></returns>
+    public static IResourceBuilder<T> WithManifestPublishingCallback<T>(this IResourceBuilder<T> builder, Action<ManifestPublishingContext> callback) where T : IResource
+    {
+        return builder.WithAnnotation(new ManifestPublishingCallbackAnnotation(callback));
     }
 
     private static bool ContainsAmbiguousEndpoints(IEnumerable<AllocatedEndpointAnnotation> endpoints)
@@ -156,12 +169,11 @@ public static class ResourceBuilderExtensions
     /// Each service binding defined on the project resource will be injected using the format "services__{sourceResourceName}__{bindingIndex}={bindingNameQualifiedUriString}."
     /// </summary>
     /// <typeparam name="TDestination">The destination resource.</typeparam>
-    /// <typeparam name="TSource">The source project resource.</typeparam>
     /// <param name="builder">The resource where the service discovery information will be injected.</param>
     /// <param name="source">The resource from which to extract service bindings.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{TDestination}"/>.</returns>
-    public static IResourceBuilder<TDestination> WithReference<TDestination, TSource>(this IResourceBuilder<TDestination> builder, IResourceBuilder<TSource> source)
-        where TDestination : IResourceWithEnvironment where TSource : ProjectResource
+    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IResourceWithServiceDiscovery> source)
+        where TDestination : IResourceWithEnvironment
     {
         ApplyBinding(builder, source.Resource);
         return builder;
@@ -182,7 +194,7 @@ public static class ResourceBuilderExtensions
         return builder;
     }
 
-    private static void ApplyBinding<T>(IResourceBuilder<T> builder, IResourceWithBindings resourceWithBindings, string? bindingName = null)
+    private static void ApplyBinding<T>(this IResourceBuilder<T> builder, IResourceWithBindings resourceWithBindings, string? bindingName = null)
         where T : IResourceWithEnvironment
     {
         // When adding a service reference we get to see whether there is a ServiceReferencesAnnotation
@@ -223,21 +235,22 @@ public static class ResourceBuilderExtensions
     /// <param name="hostPort">The host port.</param>
     /// <param name="scheme">The scheme e.g. (http/https)</param>
     /// <param name="name">The name of the binding.</param>
+    /// <param name="env">The name of the environment variable to inject.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <exception cref="DistributedApplicationException">Throws an exception if the a binding with the same name already exists on the specified resource.</exception>
-    public static IResourceBuilder<T> WithServiceBinding<T>(this IResourceBuilder<T> builder, int? hostPort = null, string? scheme = null, string? name = null) where T : IResource
+    public static IResourceBuilder<T> WithServiceBinding<T>(this IResourceBuilder<T> builder, int? hostPort = null, string? scheme = null, string? name = null, string? env = null) where T : IResource
     {
         if (builder.Resource.Annotations.OfType<ServiceBindingAnnotation>().Any(sb => sb.Name == name))
         {
             throw new DistributedApplicationException($"Service binding with name '{name}' already exists");
         }
 
-        var annotation = new ServiceBindingAnnotation(ProtocolType.Tcp, uriScheme: scheme, name: name, port: hostPort);
+        var annotation = new ServiceBindingAnnotation(ProtocolType.Tcp, uriScheme: scheme, name: name, port: hostPort, env: env);
         return builder.WithAnnotation(annotation);
     }
 
     /// <summary>
-    /// Gets an <see cref="EndpointReference"/> by name from the resource. These endpoints are declared either using <see cref="WithServiceBinding{T}(IResourceBuilder{T}, int?, string?, string?)"/> or by launch settings (for project resources).
+    /// Gets an <see cref="EndpointReference"/> by name from the resource. These endpoints are declared either using <see cref="WithServiceBinding{T}(IResourceBuilder{T}, int?, string?, string?, string?)"/> or by launch settings (for project resources).
     /// The <see cref="EndpointReference"/> can be used to resolve the address of the endpoint in <see cref="WithEnvironment{T}(IResourceBuilder{T}, Action{EnvironmentCallbackContext})"/>.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>

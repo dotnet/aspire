@@ -13,7 +13,7 @@ namespace Aspire.Dashboard.Components.Pages;
 
 public partial class Metrics : IDisposable
 {
-    private static readonly SelectViewModel<string> s_selectApplication = new SelectViewModel<string> { Id = null, Name = "Select service..." };
+    private static readonly SelectViewModel<string> s_selectApplication = new SelectViewModel<string> { Id = null, Name = "(Select a resource)" };
     private static readonly List<SelectViewModel<TimeSpan>> s_durations = new List<SelectViewModel<TimeSpan>>
     {
         new SelectViewModel<TimeSpan> { Name = "Last 1 minute", Id = TimeSpan.FromMinutes(1) },

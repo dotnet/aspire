@@ -167,7 +167,6 @@
 
 ::deep.trace-detail-layout > .trace-detail-header {
     grid-area: head;
-    padding: calc(var(--design-unit) * 1px);
 }
 
 ::deep.trace-detail-layout > fluent-toolbar {
@@ -176,4 +175,10 @@
 
 ::deep.trace-detail-layout > .summary-details-container {
     grid-area: main;
+}
+
+::deep .span-details-title {
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
 }

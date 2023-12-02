@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text.Json;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Helpers;
 using Microsoft.Extensions.DependencyInjection;
@@ -10,6 +11,50 @@ namespace Aspire.Hosting.Tests;
 
 public class ManifestGenerationTests
 {
+    [Fact]
+    public void EnsureWorkerProjectDoesNotGetBindingsGenerated()
+    {
+        var program = CreateTestProgramJsonDocumentManifestPublisher();
+
+        // Build AppHost so that publisher can be resolved.
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+
+        var workerA = resources.GetProperty("workera");
+        Assert.False(workerA.TryGetProperty("bindings", out _));
+    }
+
+    [Fact]
+    public void EnsureExecutablesWithDockerfileProduceDockerfilev0Manifest()
+    {
+        var program = CreateTestProgramJsonDocumentManifestPublisher(includeNodeApp: true);
+        program.NodeAppBuilder!.AsDockerfileInManifest();
+
+        // Build AppHost so that publisher can be resolved.
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+
+        // NPM app should still be executable.v0
+        var npmapp = resources.GetProperty("npmapp");
+        Assert.Equal("executable.v0", npmapp.GetProperty("type").GetString());
+
+        // Node app should now be dockerfile.v0
+        var nodeapp = resources.GetProperty("nodeapp");
+        Assert.Equal("dockerfile.v0", nodeapp.GetProperty("type").GetString());
+        Assert.True(nodeapp.TryGetProperty("path", out _));
+        Assert.True(nodeapp.TryGetProperty("context", out _));
+        Assert.True(nodeapp.TryGetProperty("env", out _));
+        Assert.True(nodeapp.TryGetProperty("bindings", out _));
+    }
+
     [Fact]
     public void EnsureContainerWithServiceBindingsEmitsContainerPort()
     {
@@ -30,6 +75,31 @@ public class ManifestGenerationTests
         var bindings = grafana.GetProperty("bindings");
         var httpBinding = bindings.GetProperty("http");
         Assert.Equal(3000, httpBinding.GetProperty("containerPort").GetInt32());
+    }
+
+    [Fact]
+    public void EnsureContainerWithArgsEmitsContainerArgs()
+    {
+        var program = CreateTestProgramJsonDocumentManifestPublisher();
+
+        program.AppBuilder.AddContainer("grafana", "grafana/grafana")
+                          .WithArgs("test", "arg2", "more");
+
+        // Build AppHost so that publisher can be resolved.
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+
+        var grafana = resources.GetProperty("grafana");
+        var args = grafana.GetProperty("args");
+        Assert.Equal(3, args.GetArrayLength());
+        Assert.Collection(args.EnumerateArray(),
+            arg => Assert.Equal("test", arg.GetString()),
+            arg => Assert.Equal("arg2", arg.GetString()),
+            arg => Assert.Equal("more", arg.GetString()));
     }
 
     [Fact]
@@ -211,10 +281,55 @@ public class ManifestGenerationTests
         Assert.Equal("azure.appconfiguration.v0", config.GetProperty("type").GetString());
     }
 
-    private static TestProgram CreateTestProgramJsonDocumentManifestPublisher()
+    [Fact]
+    public void NodeAppIsExecutableResource()
+    {
+        var program = CreateTestProgramJsonDocumentManifestPublisher();
+
+        program.AppBuilder.AddNodeApp("nodeapp", "..\\foo\\app.js")
+            .WithServiceBinding(hostPort: 5031, scheme: "http", env: "PORT");
+        program.AppBuilder.AddNpmApp("npmapp", "..\\foo")
+            .WithServiceBinding(hostPort: 5032, scheme: "http", env: "PORT");
+
+        // Build AppHost so that publisher can be resolved.
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+
+        var nodeApp = resources.GetProperty("nodeapp");
+        var npmApp = resources.GetProperty("npmapp");
+
+        static void AssertNodeResource(string resourceName, JsonElement jsonElement, string expectedCommand, string[] expectedArgs)
+        {
+            Assert.Equal("executable.v0", jsonElement.GetProperty("type").GetString());
+
+            var bindings = jsonElement.GetProperty("bindings");
+            var httpBinding = bindings.GetProperty("http");
+
+            Assert.Equal("http", httpBinding.GetProperty("scheme").GetString());
+
+            var env = jsonElement.GetProperty("env");
+            Assert.Equal($$"""{{{resourceName}}.bindings.http.port}""", env.GetProperty("PORT").GetString());
+            Assert.Equal("production", env.GetProperty("NODE_ENV").GetString());
+
+            var command = jsonElement.GetProperty("command");
+            Assert.Equal(expectedCommand, command.GetString());
+            Assert.Equal(expectedArgs, jsonElement.GetProperty("args").EnumerateArray().Select(e => e.GetString()).ToArray());
+
+            var args = jsonElement.GetProperty("args");
+        }
+
+        AssertNodeResource("nodeapp", nodeApp, "node", ["..\\foo\\app.js"]);
+        AssertNodeResource("npmapp", npmApp, "npm", ["run", "start"]);
+    }
+
+    private static TestProgram CreateTestProgramJsonDocumentManifestPublisher(bool includeNodeApp = false)
     {
         var manifestPath = Path.GetTempFileName();
-        var program = TestProgram.Create<ManifestGenerationTests>(["--publisher", "manifest", "--output-path", manifestPath]);
+        var program = TestProgram.Create<ManifestGenerationTests>(["--publisher", "manifest", "--output-path", manifestPath], includeNodeApp: includeNodeApp);
         program.AppBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, JsonDocumentManifestPublisher>("manifest");
         return program;
     }

@@ -2,8 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
-using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Publishing;
 
 namespace Aspire.Hosting;
 
@@ -27,7 +27,7 @@ public static class RabbitMQBuilderExtensions
                        .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, port: port, containerPort: 5672))
                        .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, uriScheme: "http", name: "management", port: null, containerPort: 15672))
                        .WithAnnotation(new ContainerImageAnnotation { Image = "rabbitmq", Tag = "3-management" })
-                       .WithAnnotation(new ManifestPublishingCallbackAnnotation(WriteRabbitMQContainerToManifest))
+                       .WithManifestPublishingCallback(WriteRabbitMQContainerToManifest)
                        .WithEnvironment("RABBITMQ_DEFAULT_USER", "guest")
                        .WithEnvironment("RABBITMQ_DEFAULT_PASS", () => rabbitMq.Password ?? "guest");
     }
@@ -44,16 +44,16 @@ public static class RabbitMQBuilderExtensions
         var rabbitMqConnection = new RabbitMQConnectionResource(name, connectionString);
 
         return builder.AddResource(rabbitMqConnection)
-            .WithAnnotation(new ManifestPublishingCallbackAnnotation((json) => WriteRabbitMQConnectionToManifest(json, rabbitMqConnection)));
+            .WithManifestPublishingCallback(context => WriteRabbitMQConnectionToManifest(context, rabbitMqConnection));
     }
-    private static void WriteRabbitMQContainerToManifest(Utf8JsonWriter json)
+    private static void WriteRabbitMQContainerToManifest(ManifestPublishingContext context)
     {
-        json.WriteString("type", "rabbitmq.server.v0");
+        context.Writer.WriteString("type", "rabbitmq.server.v0");
     }
 
-    private static void WriteRabbitMQConnectionToManifest(Utf8JsonWriter json, RabbitMQConnectionResource rabbitMqConnection)
+    private static void WriteRabbitMQConnectionToManifest(ManifestPublishingContext context, RabbitMQConnectionResource rabbitMqConnection)
     {
-        json.WriteString("type", "rabbitmq.connection.v0");
-        json.WriteString("connectionString", rabbitMqConnection.GetConnectionString());
+        context.Writer.WriteString("type", "rabbitmq.connection.v0");
+        context.Writer.WriteString("connectionString", rabbitMqConnection.GetConnectionString());
     }
 }

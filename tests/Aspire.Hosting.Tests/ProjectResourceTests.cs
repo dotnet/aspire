@@ -161,10 +161,6 @@ public class ProjectResourceTests
 
     private sealed class TestProject : IServiceMetadata
     {
-        public string AssemblyName => "someapp.dll";
-
-        public string AssemblyPath => "non-exist-path";
-
         public string ProjectPath => "another-path";
     }
 }
