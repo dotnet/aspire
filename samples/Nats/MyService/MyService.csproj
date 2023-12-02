@@ -7,7 +7,7 @@
     </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="NATS.Net" Version="2.0.1"/>
+    <PackageReference Include="NATS.Net" />
   </ItemGroup>
 
     <ItemGroup>

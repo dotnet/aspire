@@ -8,7 +8,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
-    <PackageReference Include="NATS.Net" Version="2.0.1" />
+    <PackageReference Include="NATS.Net" />
   </ItemGroup>
 
 </Project>

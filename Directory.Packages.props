@@ -72,6 +72,7 @@
     <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.1.1" />
     <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.1.0" />
     <PackageVersion Include="MySqlConnector.DependencyInjection" Version="2.3.1" />
+    <PackageVersion Include="NATS.Net" Version="2.0.1" />
     <PackageVersion Include="Npgsql.DependencyInjection" Version="8.0.0" />
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.0" />
     <PackageVersion Include="Polly" Version="8.2.0" />
