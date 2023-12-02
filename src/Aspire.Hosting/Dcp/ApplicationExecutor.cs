@@ -401,21 +401,12 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
                 var config = new Dictionary<string, string>();
                 var context = new EnvironmentCallbackContext("dcp", config);
 
-                var hasLaunchProfile = false;
                 // Need to apply configuration settings manually; see PrepareExecutables() for details.
                 if (er.ModelResource is ProjectResource project && project.SelectLaunchProfileName() is { } launchProfileName && project.GetLaunchSettings() is { } launchSettings)
                 {
                     ApplyLaunchProfile(er, config, launchProfileName, launchSettings);
-                    hasLaunchProfile = true;
                 }
-
-                // We want to make sure that certain environment variables are NOT inherited
-                foreach (var envVar in s_doNotInheritEnvironmentVars)
-                {
-                    config.TryAdd(envVar, "");
-                }
-
-                if (!hasLaunchProfile)
+                else
                 {
                     if (er.ServicesProduced.Count > 0)
                     {
@@ -452,6 +443,12 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
                     {
                         ann.Callback(context);
                     }
+                }
+
+                // We want to make sure that certain environment variables are NOT inherited
+                foreach (var envVar in s_doNotInheritEnvironmentVars)
+                {
+                    config.TryAdd(envVar, "");
                 }
 
                 spec.Env = new();
