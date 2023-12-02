@@ -162,7 +162,7 @@
                 },
                 "ConnectionString": {
                   "type": "string",
-                  "description": "Gets or sets the connection string of the Postgre SQL database to connect to."
+                  "description": "Gets or sets the connection string of the RabbitMQ server to connect to."
                 },
                 "MaxConnectRetryCount": {
                   "type": "integer",
