@@ -2,6 +2,12 @@ global:
   scrape_interval: 1s # makes for a good demo
 
 scrape_configs:
-  - job_name: 'metricsapp'
+  - job_name: 'catalog'
     static_configs:
-      - targets: ['host.docker.internal:5048'] # hard-coded port matches launchSettings.json
+      - targets: ['host.docker.internal:5193'] # hard-coded port matches launchSettings.json
+  - job_name: 'orders'
+    static_configs:
+      - targets: ['host.docker.internal:49713'] # hard-coded port matches launchSettings.json
+  - job_name: 'frontend'
+    static_configs:
+      - targets: ['host.docker.internal:5266'] # hard-coded port matches launchSettings.json
