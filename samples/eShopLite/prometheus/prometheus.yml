@@ -1,0 +1,7 @@
+global:
+  scrape_interval: 1s # makes for a good demo
+
+scrape_configs:
+  - job_name: 'metricsapp'
+    static_configs:
+      - targets: ['host.docker.internal:5048'] # hard-coded port matches launchSettings.json
