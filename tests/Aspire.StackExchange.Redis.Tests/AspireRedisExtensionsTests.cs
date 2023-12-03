@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Reflection;
+using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.StackExchangeRedis;
@@ -12,6 +12,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using OpenTelemetry.Trace;
 using StackExchange.Redis;
+using StackExchange.Redis.Profiling;
 using Xunit;
 
 namespace Aspire.StackExchange.Redis.Tests;
@@ -226,6 +227,9 @@ public class AspireRedisExtensionsTests
         Assert.NotNull(healthCheckService);
     }
 
+    [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "_profilingSessionProvider")]
+    static extern ref Func<ProfilingSession>? GetProfiler(ConnectionMultiplexer? @this);
+
     [Fact]
     public void KeyedServiceRedisInstrumentation()
     {
@@ -242,7 +246,7 @@ public class AspireRedisExtensionsTests
         var tracerProvider = host.Services.GetRequiredService<TracerProvider>();
 
         var connectionMultiplexer = host.Services.GetRequiredKeyedService<IConnectionMultiplexer>("redis");
-        var profiler = connectionMultiplexer.GetType().GetField("_profilingSessionProvider", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(connectionMultiplexer);
+        var profiler = GetProfiler(connectionMultiplexer as ConnectionMultiplexer);
 
         Assert.NotNull(profiler);
     }

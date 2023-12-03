@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Reflection;
+using System.Runtime.CompilerServices;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
@@ -19,15 +19,16 @@ namespace Aspire.StackExchange.Redis;
 //https://github.com/open-telemetry/opentelemetry-dotnet-contrib/blob/c3a4f335f5a1f4fc784d44cc99b5bf44e872a66c/src/OpenTelemetry.Instrumentation.StackExchangeRedis/TracerProviderBuilderExtensions.cs#L109
 internal static class TempOpenTelemetry
 {
-    public static TracerProviderBuilder AddRedisInstrumentationWithKeyedService(
-        this TracerProviderBuilder builder,
-        object serviceKey)
+    [UnsafeAccessor(UnsafeAccessorKind.Constructor)]
+    static extern StackExchangeRedisInstrumentation CreateInstrumentation(IOptionsMonitor<StackExchangeRedisInstrumentationOptions> options);
+
+    public static TracerProviderBuilder AddRedisInstrumentationWithKeyedService(this TracerProviderBuilder builder, object serviceKey)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
         builder.ConfigureServices(services =>
         {
-            services.TryAddSingleton(sp => Create(sp));
+            services.TryAddSingleton(sp => CreateInstrumentation(sp.GetRequiredService<IOptionsMonitor<StackExchangeRedisInstrumentationOptions>>()));
         });
 
         return builder
@@ -45,18 +46,5 @@ internal static class TempOpenTelemetry
 
                 return instrumentation;
             });
-    }
-
-    private static StackExchangeRedisInstrumentation Create(IServiceProvider sp)
-    {
-        // StackExchangeRedisInstrumentation has an internal constructor
-        var instrumentation = Activator.CreateInstance(
-            typeof(StackExchangeRedisInstrumentation),
-            BindingFlags.NonPublic | BindingFlags.Instance,
-            null,
-            new object[] { sp.GetRequiredService<IOptionsMonitor<StackExchangeRedisInstrumentationOptions>>() },
-            null) as StackExchangeRedisInstrumentation;
-
-        return instrumentation!;
     }
 }
