@@ -2,8 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
-using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Publishing;
 
 namespace Aspire.Hosting;
 
@@ -26,7 +26,7 @@ public static class SqlServerBuilderExtensions
         var sqlServer = new SqlServerContainerResource(name, password);
 
         return builder.AddResource(sqlServer)
-                      .WithAnnotation(new ManifestPublishingCallbackAnnotation(WriteSqlServerContainerToManifest))
+                      .WithManifestPublishingCallback(WriteSqlServerContainerToManifest)
                       .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, port: port, containerPort: 1433))
                       .WithAnnotation(new ContainerImageAnnotation { Registry = "mcr.microsoft.com", Image = "mssql/server", Tag = "2022-latest" })
                       .WithEnvironment("ACCEPT_EULA", "Y")
@@ -45,24 +45,24 @@ public static class SqlServerBuilderExtensions
         var sqlServerConnection = new SqlServerConnectionResource(name, connectionString);
 
         return builder.AddResource(sqlServerConnection)
-                      .WithAnnotation(new ManifestPublishingCallbackAnnotation(jsonWriter => WriteSqlServerConnectionToManifest(jsonWriter, sqlServerConnection)));
+                      .WithManifestPublishingCallback(context => WriteSqlServerConnectionToManifest(context, sqlServerConnection));
     }
 
-    private static void WriteSqlServerConnectionToManifest(Utf8JsonWriter jsonWriter, SqlServerConnectionResource sqlServerConnection)
+    private static void WriteSqlServerConnectionToManifest(ManifestPublishingContext context, SqlServerConnectionResource sqlServerConnection)
     {
-        jsonWriter.WriteString("type", "sqlserver.connection.v1");
-        jsonWriter.WriteString("connectionString", sqlServerConnection.GetConnectionString());
+        context.Writer.WriteString("type", "sqlserver.connection.v1");
+        context.Writer.WriteString("connectionString", sqlServerConnection.GetConnectionString());
     }
 
-    private static void WriteSqlServerContainerToManifest(Utf8JsonWriter jsonWriter)
+    private static void WriteSqlServerContainerToManifest(ManifestPublishingContext context)
     {
-        jsonWriter.WriteString("type", "sqlserver.server.v1");
+        context.Writer.WriteString("type", "sqlserver.server.v1");
     }
 
-    private static void WriteSqlServerDatabaseToManifest(Utf8JsonWriter json, SqlServerDatabaseResource sqlServerDatabase)
+    private static void WriteSqlServerDatabaseToManifest(ManifestPublishingContext context, SqlServerDatabaseResource sqlServerDatabase)
     {
-        json.WriteString("type", "sqlserver.database.v1");
-        json.WriteString("parent", sqlServerDatabase.Parent.Name);
+        context.Writer.WriteString("type", "sqlserver.database.v1");
+        context.Writer.WriteString("parent", sqlServerDatabase.Parent.Name);
     }
 
     /// <summary>
@@ -75,7 +75,6 @@ public static class SqlServerBuilderExtensions
     {
         var sqlServerDatabase = new SqlServerDatabaseResource(name, builder.Resource);
         return builder.ApplicationBuilder.AddResource(sqlServerDatabase)
-                                         .WithAnnotation(new ManifestPublishingCallbackAnnotation(
-                                             (json) => WriteSqlServerDatabaseToManifest(json, sqlServerDatabase)));
+                                         .WithManifestPublishingCallback(context => WriteSqlServerDatabaseToManifest(context, sqlServerDatabase));
     }
 }

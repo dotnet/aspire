@@ -18,7 +18,9 @@
             <Header>Resource Types</Header>
             <Body>
                 <FluentStack Orientation="Orientation.Vertical">
-                    <FluentCheckbox @ref="_allTypesVisibleCheckbox" Value="_allTypesVisibleCheckboxValue" Label="All" ValueChanged="HandleTypeFilterShowAllChanged" />
+                    <FluentCheckbox Label="All" CheckStateChanged="HandleTypeFilterShowAllChanged"
+                                    ThreeState="true" ShowIndeterminate="false"
+                                    CheckState="_allTypesVisible" />
                     <FluentCheckbox @bind-Value="_areProjectsVisible" Label="Projects" @bind-Value:after="HandleTypeFilterTypeChanged" />
                     <FluentCheckbox @bind-Value="_areContainersVisible" Label="Containers" @bind-Value:after="HandleTypeFilterTypeChanged" />
                     <FluentCheckbox @bind-Value="_areExecutablesVisible" Label="Executables" @bind-Value:after="HandleTypeFilterTypeChanged" />
@@ -37,7 +39,7 @@
                         OnDismiss="() => ClearSelectedResource()"
                         ViewKey="ResourcesList">
         <Summary>
-            <FluentDataGrid Items="@FilteredResources" ResizableColumns="true" GridTemplateColumns="1fr 2fr 1fr 2fr 6fr 2fr 1fr 1fr" >
+            <FluentDataGrid Items="@FilteredResources" ResizableColumns="true" GridTemplateColumns="1fr 2fr 1fr 2fr 3fr 2fr 1fr 1fr" >
                 <ChildContent>
                     <PropertyColumn Property="@(c => c.ResourceType)" Title="Type" Sortable="true" />
                     <TemplateColumn Title="Name" Sortable="true" SortBy="@_nameSort">
@@ -63,7 +65,7 @@
                                       OnClick="() => ShowEnvironmentVariables(context)">View</FluentButton>
                     </TemplateColumn>
                     <TemplateColumn Title="Logs">
-                        <FluentAnchor Appearance="Appearance.Lightweight" Href="@($"/ProjectLogs/{context.Name}")">View</FluentAnchor>
+                        <FluentAnchor Appearance="Appearance.Lightweight" Href="@($"/ConsoleLogs/{context.Name}")">View</FluentAnchor>
                     </TemplateColumn>
                 </ChildContent>
                 <EmptyContent>

@@ -16,6 +16,11 @@ public interface IDistributedApplicationBuilder
     /// <inheritdoc cref="HostApplicationBuilder.Configuration" />
     public ConfigurationManager Configuration { get; }
 
+    /// <summary>
+    /// Directory of the project where the app host is located. Defaults to the content root if there's no project.
+    /// </summary>
+    public string AppHostDirectory { get; }
+
     /// <inheritdoc cref="HostApplicationBuilder.Environment" />
     public IHostEnvironment Environment { get; }
 

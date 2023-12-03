@@ -42,8 +42,11 @@ public partial class GridValue
     [Parameter]
     public string? ToolTip { get; set; }
 
-    private const string PreCopyText = "Copy to clipboard";
-    private const string PostCopyText = "Copied!";
+    [Parameter]
+    public string PreCopyToolTip { get; set; } = "Copy to clipboard";
+
+    [Parameter]
+    public string PostCopyToolTip { get; set; } = "Copied!";
 
     private readonly Icon _maskIcon = new Icons.Regular.Size16.EyeOff();
     private readonly Icon _unmaskIcon = new Icons.Regular.Size16.Eye();
@@ -56,7 +59,7 @@ public partial class GridValue
         => await IsMaskedChanged.InvokeAsync(!IsMasked);
 
     private async Task CopyTextToClipboardAsync(string? text, string id)
-        => await JS.InvokeVoidAsync("copyTextToClipboard", id, text, PreCopyText, PostCopyText);
+        => await JS.InvokeVoidAsync("copyTextToClipboard", id, text, PreCopyToolTip, PostCopyToolTip);
 
     private static string TrimLength(string? text)
         => text?.Length > 8 ? text.Substring(0, 8) : text ?? string.Empty;

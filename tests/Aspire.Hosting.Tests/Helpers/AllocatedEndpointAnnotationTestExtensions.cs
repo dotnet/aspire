@@ -4,7 +4,8 @@
 namespace Aspire.Hosting.Tests.Helpers;
 public static class AllocatedEndpointAnnotationTestExtensions
 {
-    public static async Task<string> HttpGetAsync(this IResourceBuilder<ProjectResource> builder, HttpClient client, string bindingName, string path, CancellationToken cancellationToken)
+    public static async Task<string> HttpGetAsync<T>(this IResourceBuilder<T> builder, HttpClient client, string bindingName, string path, CancellationToken cancellationToken)
+        where T : IResourceWithBindings
     {
         // We have to get the allocated endpoint each time through the loop
         // because it may not be populated yet by the time we get here.
@@ -34,7 +35,8 @@ public static class AllocatedEndpointAnnotationTestExtensions
         }
     }
 
-    public static async Task<string> HttpGetPidAsync(this IResourceBuilder<ProjectResource> builder, HttpClient client, string bindingName, CancellationToken cancellationToken)
+    public static async Task<string> HttpGetPidAsync<T>(this IResourceBuilder<T> builder, HttpClient client, string bindingName, CancellationToken cancellationToken)
+        where T : IResourceWithBindings
     {
         while (true)
         {

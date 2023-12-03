@@ -8,7 +8,7 @@
 <PageTitle>@DashboardViewModelService.ApplicationName Metrics</PageTitle>
 
 <div class="metrics-layout">
-    <h1>Metrics</h1>
+    <h1 class="page-header">Metrics</h1>
     <FluentToolbar Orientation="Orientation.Horizontal">
         <FluentSelect TOption="SelectViewModel<string>"
                       Items="@_applications"
@@ -76,13 +76,13 @@
         else if (_instruments == null)
         {
             <div class="empty-content">
-                <FluentIcon Icon="Icons.Regular.Size24.ChartMultiple" />&nbsp;Select a service to view metrics
+                <FluentIcon Icon="Icons.Regular.Size24.ChartMultiple" />&nbsp;Select a resource to view metrics
             </div>
         }
         else
         {
             <div class="empty-content">
-                <FluentIcon Icon="Icons.Regular.Size24.ChartMultiple" />&nbsp;No metrics for the selected service
+                <FluentIcon Icon="Icons.Regular.Size24.ChartMultiple" />&nbsp;No metrics for the selected resource
             </div>
         }
     </div>
