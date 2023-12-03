@@ -2,30 +2,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 builder.AddAzureProvisioning();
 
-/// Goal: Add a prometheus and grafana container to the eShopLite sample
-///
-/// builder.AddProject<Projects.MyFrontend>("frontend")
-///
-/// builder.AddProject<Projects.OrderProcessor>("orderprocessor")
-///
-/// builder.AddProject<Projects.ApiGateway>("apigateway")
-///
-/// builder.AddProject<Projects.CatalogDb>("catalogdbapp")
-///
-/// var prometheus = builder.AddPrometheusContainer("prometheus", "prometheus.yml", "prometheus-data")
-///                         .Scrape(builder.GetProject("frontend"))
-///                         .Scrape(builder.GetProject("orderprocessor"))
-///                         ...
-///                         
-/// var grafana = builder.AddGrafanaContainer("grafana", "grafana.ini", "grafana-data")
-///                      .WithDashboard("eShopLite.json")
-///                      .WithDashboard("eShopLite2.json")
-///                      .AddDataSource("prometheus", "http://prometheus:9090")
-///                      // or .AddDataSource(prometheus)
-///                      ...
-/// 
-///
-/// builder.Build().Run();
+builder.AddPrometheusContainer("prometheus", "../prometheus", "prom-data");
 
 var catalogDb = builder.AddPostgresContainer("postgres").AddDatabase("catalogdb");
 
