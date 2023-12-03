@@ -7,7 +7,6 @@ using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Aspire.Hosting;
 
@@ -29,7 +28,6 @@ public static class IDistributedApplicationBuilderExtensions
             builder.Services.Configure(configure);
         }
         builder.Services.TryAddLifecycleHook<DaprDistributedApplicationLifecycleHook>();
-        builder.Services.TryAddSingleton<DaprPortManager>();
 
         return builder;
     }

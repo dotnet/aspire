@@ -338,6 +338,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
         var model = new ContainerViewModel
         {
             Name = container.Metadata.Name,
+            DisplayName = container.Metadata.Name,
             Uid = container.Metadata.Uid,
             NamespacedName = new(container.Metadata.Name, null),
             ContainerId = container.Status?.ContainerId,
@@ -378,6 +379,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
         var model = new ExecutableViewModel
         {
             Name = executable.Metadata.Name,
+            DisplayName = ComputeExecutableDisplayName(executable),
             Uid = executable.Metadata.Uid,
             NamespacedName = new(executable.Metadata.Name, null),
             CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToLocalTime(),
@@ -404,6 +406,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
         var model = new ProjectViewModel
         {
             Name = executable.Metadata.Name,
+            DisplayName = ComputeExecutableDisplayName(executable),
             Uid = executable.Metadata.Uid,
             NamespacedName = new(executable.Metadata.Name, null),
             CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToLocalTime(),
@@ -655,6 +658,24 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
         }
 
         return applicationName;
+    }
+
+    private static string ComputeExecutableDisplayName(Executable executable)
+    {
+        var displayName = executable.Metadata.Name;
+        var replicaSetOwner = executable.Metadata.OwnerReferences?.FirstOrDefault(
+            or => or.Kind == Dcp.Model.Dcp.ExecutableReplicaSetKind
+        );
+        if (replicaSetOwner is not null && displayName.Length > 3)
+        {
+            var nameParts = displayName.Split('-');
+            if (nameParts.Length == 2 && nameParts[0].Length > 0 && nameParts[1].Length > 0)
+            {
+                // Strip the replica ID from the name.
+                displayName = nameParts[0];
+            }
+        }
+        return displayName;
     }
 
     private enum ResourceKind

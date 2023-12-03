@@ -357,8 +357,8 @@ public class DistributedApplicationTests
 
         await app.StartAsync(cts.Token);
 
-        var response0 = await testProgram.NodeAppBuilder!.HttpGetAsync(client, "http", "/", cts.Token);
-        var response1 = await testProgram.NpmAppBuilder!.HttpGetAsync(client, "http", "/", cts.Token);
+        var response0 = await testProgram.NodeAppBuilder!.HttpGetWithRetryAsync(client, "http", "/", cts.Token);
+        var response1 = await testProgram.NpmAppBuilder!.HttpGetWithRetryAsync(client, "http", "/", cts.Token);
 
         Assert.Equal("Hello from node!", response0);
         Assert.Equal("Hello from node!", response1);

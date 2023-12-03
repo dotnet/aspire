@@ -38,7 +38,7 @@ public static class OtlpConfigurationExtensions
 
             // Set the service name and instance id to the resource name and UID. Values are injected by DCP.
             context.EnvironmentVariables["OTEL_RESOURCE_ATTRIBUTES"] = "service.instance.id={{- .UID -}}";
-            context.EnvironmentVariables["OTEL_SERVICE_NAME"] = "{{- .Name -}}";
+            context.EnvironmentVariables["OTEL_SERVICE_NAME"] = "{{- index .Annotations \"otel-service-name\" -}}";
 
             // Set a small batch schedule delay in development.
             // This reduces the delay that OTLP exporter waits to sends telemetry and makes the dashboard telemetry pages responsive.
