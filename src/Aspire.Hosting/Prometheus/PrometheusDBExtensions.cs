@@ -1,3 +1,6 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 
@@ -13,7 +16,6 @@ public static class PrometheusBuilderExtensions
         return builder.AddResource(prometheusContainer)
                       .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, containerPort: 9090))
                       .WithAnnotation(new ContainerImageAnnotation { Image = "prom/prometheus", Tag = "latest" })
-                      .WithVolumeMount(dataVolumeName, "/prometheus")
-                      .WithVolumeMount(configFilePath, "/etc/prometheus/prometheus.yml");
+                      .WithVolumeMount(configFilePath, "/etc/prometheus");
     }
 }
