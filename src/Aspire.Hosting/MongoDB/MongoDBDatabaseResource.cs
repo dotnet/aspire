@@ -23,16 +23,9 @@ public class MongoDBDatabaseResource(string name, MongoDBContainerResource mongo
     {
         if (Parent.GetConnectionString() is { } connectionString)
         {
-            var builder = new StringBuilder(connectionString);
-
-            if (!connectionString.EndsWith('/'))
-            {
-                builder.Append('/');
-            }
-
-            builder.Append(Name);
-
-            return builder.ToString();
+            return connectionString.EndsWith('/') ?
+                $"{connectionString}{Name}" :
+                $"{connectionString}/{Name}";
         }
 
         throw new DistributedApplicationException("Parent resource connection string was null.");
