@@ -20,6 +20,10 @@ public class ConformanceTests : ConformanceTests<IMongoClient, MongoDBSettings>
 
     protected override string JsonSchemaPath => "src/Components/Aspire.MongoDB.Driver/ConfigurationSchema.json";
 
+    protected override bool SupportsKeyedRegistrations => true;
+
+    protected override bool CanConnectToServer => false;
+
     protected override string ValidJsonConfig => """
         {
           "Aspire": {
@@ -28,13 +32,19 @@ public class ConformanceTests : ConformanceTests<IMongoClient, MongoDBSettings>
                 "ConnectionString": "YOUR_CONNECTION_STRING",
                 "HealthChecks": true,
                 "HealthCheckTimeout": 100,
-                "Tracing": true,
-                "Metrics": true
+                "Tracing": true
               }
             }
           }
         }
         """;
+
+    protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
+    {
+        ("""{"Aspire": { "MongoDB":{ "Driver": { "HealthChecks": "true"}}}}""", "Value is \"string\" but should be \"boolean\""),
+        ("""{"Aspire": { "MongoDB":{ "Driver": { "HealthCheckTimeout": "10000"}}}}""", "Value is \"string\" but should be \"integer\""),
+        ("""{"Aspire": { "MongoDB":{ "Driver": { "Tracing": "true"}}}}""", "Value is \"string\" but should be \"boolean\""),
+    };
 
     protected override string[] RequiredLogCategories => [
         "MongoDB.SDAM",
@@ -85,7 +95,7 @@ public class ConformanceTests : ConformanceTests<IMongoClient, MongoDBSettings>
     [Theory]
     [InlineData(null)]
     [InlineData("key")]
-    public void BothDataSourceAndConnectionCanBeResolved(string? key)
+    public void ClientAndDatabaseInstancesShouldBeResolved(string? key)
     {
         using IHost host = CreateHostWithComponent(key: key);
 
@@ -97,5 +107,4 @@ public class ConformanceTests : ConformanceTests<IMongoClient, MongoDBSettings>
 
         T? Resolve<T>() => key is null ? host.Services.GetService<T>() : host.Services.GetKeyedService<T>(key);
     }
-
 }
