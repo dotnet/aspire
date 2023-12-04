@@ -14,6 +14,9 @@ public class ConformanceTests : ConformanceTests<IMongoClient, MongoDBSettings>
 {
     private const string ConnectionSting = "mongodb://root:password@localhost:27017/test_db";
 
+
+    private static readonly Lazy<bool> s_canConnectToServer = new(GetCanConnect);
+
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
     protected override string ActivitySourceName => "MongoDB.Driver.Core.Extensions.DiagnosticSources";
@@ -22,7 +25,7 @@ public class ConformanceTests : ConformanceTests<IMongoClient, MongoDBSettings>
 
     protected override bool SupportsKeyedRegistrations => true;
 
-    protected override bool CanConnectToServer => false;
+    protected override bool CanConnectToServer => s_canConnectToServer.Value;
 
     protected override string ValidJsonConfig => """
         {
@@ -106,5 +109,20 @@ public class ConformanceTests : ConformanceTests<IMongoClient, MongoDBSettings>
         Assert.NotNull(mongoDatabase);
 
         T? Resolve<T>() => key is null ? host.Services.GetService<T>() : host.Services.GetKeyedService<T>(key);
+    }
+
+    private static bool GetCanConnect()
+    {
+        var client = new MongoClient(ConnectionSting);
+
+        try
+        {
+            client.ListDatabaseNames();
+            return true;
+        }
+        catch (Exception)
+        {
+            return false;
+        }
     }
 }
