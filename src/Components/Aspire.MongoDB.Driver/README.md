@@ -1,6 +1,6 @@
 # Aspire.MongoDB.Driver library
 
-Registers [MongoClient](https://www.mongodb.com/docs/drivers/csharp/current/quick-start/#add-mongodb-as-a-dependency) in the DI container for connecting MongoDB database.
+Registers [IMongoClient](https://www.mongodb.com/docs/drivers/csharp/current/quick-start/#add-mongodb-as-a-dependency) in the DI container for connecting MongoDB database.
 
 ## Getting started
 
