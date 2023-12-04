@@ -43,6 +43,8 @@ public static class IDistributedApplicationResourceBuilderExtensions
     /// <returns>The resource builder instance.</returns>
     public static IResourceBuilder<T> WithDaprSidecar<T>(this IResourceBuilder<T> builder, DaprSidecarOptions? options = null) where T : IResource
     {
+        // Add Dapr is idempoent, so we can call it multiple times.
+        builder.ApplicationBuilder.AddDapr();
         return builder.WithAnnotation(new DaprSidecarAnnotation { Options = options });
     }
 
