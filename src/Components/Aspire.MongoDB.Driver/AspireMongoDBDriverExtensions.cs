@@ -135,7 +135,7 @@ public static class AspireMongoDBDriverExtensions
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(serviceKey as string))
+        if (serviceKey is null)
         {
             builder.Services.AddSingleton<IMongoDatabase>(provider =>
             {
