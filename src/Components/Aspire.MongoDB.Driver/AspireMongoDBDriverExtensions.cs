@@ -105,7 +105,7 @@ public static class AspireMongoDBDriverExtensions
         Action<MongoClientSettings>? configureClientSettings,
         object? serviceKey)
     {
-        if (string.IsNullOrWhiteSpace(serviceKey as string))
+        if (serviceKey is null)
         {
             builder
                 .Services
