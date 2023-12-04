@@ -5,7 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <!-- MongoDB.Driver package is unsigned, we ignore that warning on purpose  -->
-    <NoWarn>CS8002</NoWarn>
+    <NoWarn>$(NoWarn);CS8002</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
