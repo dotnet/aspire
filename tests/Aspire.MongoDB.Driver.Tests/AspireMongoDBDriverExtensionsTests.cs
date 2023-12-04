@@ -158,7 +158,6 @@ public class AspireMongoDBDriverExtensionsTests
         var healthCheckService = host.Services.GetService<HealthCheckService>();
 
         Assert.Null(healthCheckService);
-
     }
 
     private static HostApplicationBuilder CreateBuilder(string connectionString)
