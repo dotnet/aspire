@@ -68,7 +68,7 @@ public static class AspireMongoDBDriverExtensions
         Action<MongoDBSettings>? configureSettings,
         Action<MongoClientSettings>? configureClientSettings,
         string connectionName,
-        string? serviceKey)
+        object? serviceKey)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
@@ -91,62 +91,63 @@ public static class AspireMongoDBDriverExtensions
                 .WithTracing(tracer => tracer.AddSource(ActivityNameSource));
         }
 
-        if (string.IsNullOrWhiteSpace(settings.ConnectionString))
-        {
-            return;
-        }
-
         builder.AddMongoDatabase(settings.ConnectionString, serviceKey);
-
-        if (settings.HealthChecks)
-        {
-            builder.AddHealthCheck(
-                settings.ConnectionString,
-                serviceKey is null ? "MongoDB.Driver" : $"MongoDB.Driver_{connectionName}",
-                settings.HealthCheckTimeout);
-        }
+        builder.AddHealthCheck(
+            serviceKey is null ? "MongoDB.Driver" : $"MongoDB.Driver_{connectionName}",
+            settings);
     }
 
-    private static IServiceCollection AddMongoClient(
+    private static void AddMongoClient(
         this IHostApplicationBuilder builder,
         MongoDBSettings mongoDbSettings,
         string connectionName,
         string configurationSectionName,
         Action<MongoClientSettings>? configureClientSettings,
-        string? serviceKey)
+        object? serviceKey)
     {
-        if (string.IsNullOrWhiteSpace(serviceKey))
+        if (string.IsNullOrWhiteSpace(serviceKey as string))
         {
-            return builder
+            builder
                 .Services
                 .AddSingleton<IMongoClient>(sp => sp.CreateMongoClient(connectionName, configurationSectionName, mongoDbSettings, configureClientSettings));
+            return;
         }
 
-        return builder
+        builder
             .Services
             .AddKeyedSingleton<IMongoClient>(serviceKey, (sp, _) => sp.CreateMongoClient(connectionName, configurationSectionName, mongoDbSettings, configureClientSettings));
     }
 
-    private static IServiceCollection AddMongoDatabase(this IHostApplicationBuilder builder, string connectionString, string? serviceKey = null)
+    private static void AddMongoDatabase(
+        this IHostApplicationBuilder builder,
+        string? connectionString,
+        object? serviceKey = null)
     {
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            return;
+        }
+
         var mongoUrl = MongoUrl.Create(connectionString);
 
         if (string.IsNullOrWhiteSpace(mongoUrl.DatabaseName))
         {
-            return builder.Services;
+            return;
         }
 
-        if (string.IsNullOrWhiteSpace(serviceKey))
+        if (string.IsNullOrWhiteSpace(serviceKey as string))
         {
-            return builder.Services.AddSingleton<IMongoDatabase>(provider =>
+            builder.Services.AddSingleton<IMongoDatabase>(provider =>
             {
                 return provider
                     .GetRequiredService<IMongoClient>()
                     .GetDatabase(mongoUrl.DatabaseName);
             });
+
+            return;
         }
 
-        return builder.Services.AddKeyedSingleton<IMongoDatabase>(serviceKey, (provider, _) =>
+        builder.Services.AddKeyedSingleton<IMongoDatabase>(serviceKey, (provider, _) =>
         {
             return provider
                 .GetRequiredKeyedService<IMongoClient>(serviceKey)
@@ -156,18 +157,22 @@ public static class AspireMongoDBDriverExtensions
 
     private static void AddHealthCheck(
         this IHostApplicationBuilder builder,
-        string connectionString,
         string healthCheckName,
-        int? timeout)
+        MongoDBSettings settings)
     {
+        if (!settings.HealthChecks || string.IsNullOrWhiteSpace(settings.ConnectionString))
+        {
+            return;
+        }
+
         builder.TryAddHealthCheck(
             healthCheckName,
             healthCheck => healthCheck.AddMongoDb(
-                connectionString,
+                settings.ConnectionString,
                 healthCheckName,
                 null,
                 null,
-                timeout > 0 ? TimeSpan.FromMilliseconds(timeout.Value) : null));
+                settings.HealthCheckTimeout > 0 ? TimeSpan.FromMilliseconds(settings.HealthCheckTimeout.Value) : null));
     }
 
     private static MongoClient CreateMongoClient(
@@ -199,7 +204,7 @@ public static class AspireMongoDBDriverExtensions
         string configurationSectionName,
         Action<MongoDBSettings>? configureSettings)
     {
-        MongoDBSettings settings = new();
+        var settings = new MongoDBSettings();
 
         builder.Configuration
             .GetSection(configurationSectionName)
@@ -215,7 +220,10 @@ public static class AspireMongoDBDriverExtensions
         return settings;
     }
 
-    private static void ValidateSettings(this MongoDBSettings settings, string connectionName, string configurationSectionName)
+    private static void ValidateSettings(
+        this MongoDBSettings settings,
+        string connectionName,
+        string configurationSectionName)
     {
         if (string.IsNullOrEmpty(settings.ConnectionString))
         {
