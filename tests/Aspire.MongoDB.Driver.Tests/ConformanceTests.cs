@@ -14,7 +14,6 @@ public class ConformanceTests : ConformanceTests<IMongoClient, MongoDBSettings>
 {
     private const string ConnectionSting = "mongodb://root:password@localhost:27017/test_db";
 
-
     private static readonly Lazy<bool> s_canConnectToServer = new(GetCanConnect);
 
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
