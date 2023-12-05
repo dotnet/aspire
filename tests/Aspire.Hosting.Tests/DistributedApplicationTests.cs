@@ -155,6 +155,39 @@ public class DistributedApplicationTests
     }
 
     [LocalOnlyFact]
+    public async Task AllocatedPortsAssignedAfterHookRuns()
+    {
+        var testProgram = CreateTestProgram();
+        var tcs = new TaskCompletionSource<DistributedApplicationModel>(TaskCreationOptions.RunContinuationsAsynchronously);
+        testProgram.AppBuilder.Services.AddLifecycleHook(sp => new CheckAllocatedEndpointsLifecycleHook(tcs));
+
+        await using var app = testProgram.Build();
+
+        await app.StartAsync();
+
+        var appModel = await tcs.Task.WaitAsync(TimeSpan.FromSeconds(10));
+
+        foreach (var item in appModel.Resources)
+        {
+            if ((item is ContainerResource || item is ProjectResource || item is ExecutableResource) && item.TryGetServiceBindings(out _))
+            {
+                Assert.True(item.TryGetAllocatedEndPoints(out var endpoints));
+                Assert.NotEmpty(endpoints);
+            }
+        }
+    }
+
+    private sealed class CheckAllocatedEndpointsLifecycleHook(TaskCompletionSource<DistributedApplicationModel> tcs) : IDistributedApplicationLifecycleHook
+    {
+        public Task AfterEndpointsAllocatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
+        {
+            tcs.TrySetResult(appModel);
+
+            return Task.CompletedTask;
+        }
+    }
+
+    [LocalOnlyFact]
     public async Task TestProjectStartsAndStopsCleanly()
     {
         var testProgram = CreateTestProgram();
