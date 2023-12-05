@@ -48,10 +48,8 @@ public static class MySqlBuilderExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <param name="port">The host port for MySQL.</param>
-    /// <param name="password">The password for the MySQL root user. Defaults to a random password.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{MySqlContainerResource}"/>.</returns>
-    public static IResourceBuilder<MySqlServerResource> AddMySqlServer(this IDistributedApplicationBuilder builder, string name)
+    public static IResourceBuilder<MySqlServerResource> AddMySql(this IDistributedApplicationBuilder builder, string name)
     {
         var password = Guid.NewGuid().ToString("N");
         var mySqlContainer = new MySqlServerResource(name, password);

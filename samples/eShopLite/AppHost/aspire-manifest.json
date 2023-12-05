@@ -1,34 +1,22 @@
 {
   "resources": {
     "postgres": {
-      "type": "postgres.server.v0"
-    },
-    "catalogdb": {
-      "type": "postgres.database.v0",
-      "parent": "postgres"
-    },
-    "dbserver1": {
-      "type": "mysql.server.v0"
-    },
-    "ratings1": {
-      "type": "mysql.database.v0",
-      "parent": "dbserver1"
-    },
-    "dbserver2": {
       "type": "container.v0",
-      "image": "mysql:latest",
+      "image": "postgres:latest",
       "env": {
-        "MYSQL_ROOT_PASSWORD": "{dbserver2.inputs.password}"
+        "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
+        "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
+        "POSTGRES_PASSWORD": "{postgres.inputs.password}"
       },
       "bindings": {
         "tcp": {
           "scheme": "tcp",
           "protocol": "tcp",
           "transport": "tcp",
-          "containerPort": 3306
+          "containerPort": 5432
         }
       },
-      "connectionString": "Server={dbserver2.bindings.tcp.host};Port={dbserver2.bindings.tcp.port};User ID=root;Password={dbserver2.inputs.password}",
+      "connectionString": "Host={postgres.bindings.tcp.host};Port={postgres.bindings.tcp.port};Username=postgres;Password={postgres.inputs.password};",
       "inputs": {
         "password": {
           "type": "string",
@@ -41,9 +29,9 @@
         }
       }
     },
-    "ratings2": {
-      "type": "mysql.database.v0",
-      "parent": "dbserver2"
+    "catalogdb": {
+      "type": "postgres.database.v0",
+      "parent": "postgres"
     },
     "basketcache": {
       "type": "container.v0",
@@ -69,18 +57,13 @@
         }
       }
     },
-    "abstractbasketcache": {
-      "type": "redis.v0"
-    },
     "catalogservice": {
       "type": "project.v0",
       "path": "../CatalogService/CatalogService.csproj",
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
-        "ConnectionStrings__catalogdb": "{catalogdb.connectionString}",
-        "ConnectionStrings__ratings1": "{ratings1.connectionString}",
-        "ConnectionStrings__ratings2": "{ratings2.connectionString}"
+        "ConnectionStrings__catalogdb": "{catalogdb.connectionString}"
       },
       "bindings": {
         "http": {
