@@ -9,9 +9,10 @@ namespace Aspire.Hosting;
 /// <summary>
 /// Extensions to <see cref="IDistributedApplicationBuilder"/> related to Orleans.
 /// </summary>
-public static class IDistributedApplicationBuilderExtensions
+public static class OrleansClusterExtensions
 {
     private const string OrleansConfigKeyPrefix = "Orleans";
+    private static readonly object s_inMemoryReminderService = new();
     private static readonly object s_inMemoryStorage = new();
     private static readonly object s_localhostClustering = new();
 
@@ -21,10 +22,10 @@ public static class IDistributedApplicationBuilderExtensions
     /// <param name="builder">The target builder.</param>
     /// <param name="name">The name of the Orleans resource.</param>
     /// <returns>The Orleans resource.</returns>
-    public static OrleansBuilder AddOrleans(
+    public static OrleansCluster AddOrleans(
         this IDistributedApplicationBuilder builder,
         string name)
-        => new OrleansBuilder(builder, name);
+        => new(builder, name);
 
     /// <summary>
     /// Set the ClusterId to use for the Orleans cluster.
@@ -32,8 +33,8 @@ public static class IDistributedApplicationBuilderExtensions
     /// <param name="builder">The target Orleans resource.</param>
     /// <param name="clusterId">The ClusterId value.</param>
     /// <returns>>The Orleans resource.</returns>
-    public static OrleansBuilder WithClusterId(
-        this OrleansBuilder builder,
+    public static OrleansCluster WithClusterId(
+        this OrleansCluster builder,
         string clusterId)
     {
         builder.ClusterId = clusterId;
@@ -46,8 +47,8 @@ public static class IDistributedApplicationBuilderExtensions
     /// <param name="builder">The target Orleans resource.</param>
     /// <param name="serviceId">The ServiceId value.</param>
     /// <returns>>The Orleans resource.</returns>
-    public static OrleansBuilder WithServiceId(
-        this OrleansBuilder builder,
+    public static OrleansCluster WithServiceId(
+        this OrleansCluster builder,
         string serviceId)
     {
         builder.ServiceId = serviceId;
@@ -60,8 +61,8 @@ public static class IDistributedApplicationBuilderExtensions
     /// <param name="builder">The target Orleans resource.</param>
     /// <param name="clustering">The clustering to use.</param>
     /// <returns>>The Orleans resource.</returns>
-    public static OrleansBuilder WithClustering(
-        this OrleansBuilder builder,
+    public static OrleansCluster WithClustering(
+        this OrleansCluster builder,
         IResourceBuilder<IResourceWithConnectionString> clustering)
     {
         builder.Clustering = clustering;
@@ -73,8 +74,8 @@ public static class IDistributedApplicationBuilderExtensions
     /// </summary>
     /// <param name="builder">The target Orleans resource.</param>
     /// <returns>>The Orleans resource.</returns>
-    public static OrleansBuilder WithLocalhostClustering(
-        this OrleansBuilder builder)
+    public static OrleansCluster WithLocalhostClustering(
+        this OrleansCluster builder)
     {
         builder.Clustering = s_localhostClustering;
         return builder;
@@ -86,8 +87,8 @@ public static class IDistributedApplicationBuilderExtensions
     /// <param name="builder">The target Orleans resource.</param>
     /// <param name="storage">The storage provider to add.</param>
     /// <returns>>The Orleans resource.</returns>
-    public static OrleansBuilder WithGrainStorage(
-        this OrleansBuilder builder,
+    public static OrleansCluster WithGrainStorage(
+        this OrleansCluster builder,
         IResourceBuilder<IResourceWithConnectionString> storage)
     {
         builder.GrainStorage[storage.Resource.Name] = storage;
@@ -101,8 +102,8 @@ public static class IDistributedApplicationBuilderExtensions
     /// <param name="name">The name of the storage provider.</param>
     /// <param name="storage">The storage provider to add.</param>
     /// <returns>>The Orleans resource.</returns>
-    public static OrleansBuilder WithGrainStorage(
-        this OrleansBuilder builder,
+    public static OrleansCluster WithGrainStorage(
+        this OrleansCluster builder,
         string name,
         IResourceBuilder<IResourceWithConnectionString> storage)
     {
@@ -116,8 +117,8 @@ public static class IDistributedApplicationBuilderExtensions
     /// <param name="builder">The target Orleans resource.</param>
     /// <param name="name">The name of the storage provider.</param>
     /// <returns>>The Orleans resource.</returns>
-    public static OrleansBuilder WithInMemoryGrainStorage(
-        this OrleansBuilder builder,
+    public static OrleansCluster WithInMemoryGrainStorage(
+        this OrleansCluster builder,
         string name)
     {
         builder.GrainStorage[name] = s_inMemoryStorage;
@@ -130,11 +131,23 @@ public static class IDistributedApplicationBuilderExtensions
     /// <param name="builder">The target Orleans resource.</param>
     /// <param name="reminderStorage">The reminder storage to use.</param>
     /// <returns>>The Orleans resource.</returns>
-    public static OrleansBuilder WithReminders(
-        this OrleansBuilder builder,
+    public static OrleansCluster WithReminders(
+        this OrleansCluster builder,
         IResourceBuilder<IResourceWithConnectionString> reminderStorage)
     {
         builder.Reminders = reminderStorage;
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures in-memory reminder storage for the Orleans cluster.
+    /// </summary>
+    /// <param name="builder">The target Orleans resource.</param>
+    /// <returns>>The Orleans resource.</returns>
+    public static OrleansCluster WithInMemoryReminders(
+        this OrleansCluster builder)
+    {
+        builder.Reminders = s_inMemoryReminderService;
         return builder;
     }
 
@@ -147,7 +160,7 @@ public static class IDistributedApplicationBuilderExtensions
     /// <exception cref="InvalidOperationException"></exception>
     public static IResourceBuilder<T> AddResource<T>(
         this IResourceBuilder<T> builder,
-        OrleansBuilder orleansResourceBuilder)
+        OrleansCluster orleansResourceBuilder)
         where T : IResourceWithEnvironment
     {
         var res = orleansResourceBuilder;
@@ -166,15 +179,24 @@ public static class IDistributedApplicationBuilderExtensions
             }
             else
             {
-                throw new NotSupportedException("Resource not supported for grain storage");
+                throw new NotSupportedException("Resource not supported for grain storage.");
             }
         }
 
-        if (res.Reminders is { } reminders)
+        if (res.Reminders == s_inMemoryReminderService)
+        {
+            builder.WithEnvironment($"{OrleansConfigKeyPrefix}__Reminders__ConnectionType", OrleansServerSettingConstants.InternalType);
+            builder.WithEnvironment($"{OrleansConfigKeyPrefix}__Reminders__ConnectionName", "InMemoryReminderService");
+        }
+        else if (res.Reminders is IResourceBuilder<IResourceWithConnectionString> reminders)
         {
             builder.WithReference(reminders);
             builder.WithEnvironment($"{OrleansConfigKeyPrefix}__Reminders__ConnectionType", GetResourceType(reminders));
             builder.WithEnvironment($"{OrleansConfigKeyPrefix}__Reminders__ConnectionName", reminders.Resource.Name);
+        }
+        else if (res.Reminders is not null)
+        {
+            throw new NotSupportedException("Resource not supported for reminder storage.");
         }
 
         // Configure clustering
@@ -190,9 +212,9 @@ public static class IDistributedApplicationBuilderExtensions
             builder.WithEnvironment($"{OrleansConfigKeyPrefix}__Clustering__ConnectionType", GetResourceType(clusteringWithConnectionString));
             builder.WithEnvironment($"{OrleansConfigKeyPrefix}__Clustering__ConnectionName", clusteringWithConnectionString.Resource.Name);
         }
-        else
+        else if (clustering is not null)
         {
-            throw new NotSupportedException("Resource not supported for clustering");
+            throw new NotSupportedException("Resource not supported for clustering.");
         }
 
         if (!string.IsNullOrWhiteSpace(res.ClusterId))
@@ -215,7 +237,6 @@ public static class IDistributedApplicationBuilderExtensions
         {
             IResourceBuilder<AzureTableStorageResource> => OrleansServerSettingConstants.AzureTablesType,
             IResourceBuilder<AzureBlobStorageResource> => OrleansServerSettingConstants.AzureBlobsType,
-            OrleansBuilder => OrleansServerSettingConstants.InternalType,
             _ => throw new NotSupportedException($"Resources of type '{resource.GetType()}' are not supported.")
         };
     }
