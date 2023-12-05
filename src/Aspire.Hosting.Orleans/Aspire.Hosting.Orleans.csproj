@@ -12,7 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\Components\Aspire.Orleans.Server\Shared\**\*.*">
+    <Compile Include="..\Components\Aspire.Microsoft.Orleans.Server\Shared\**\*.*">
       <Link>Shared\%(RecursiveDir)%(FileName)%(Extension)</Link>
     </Compile>
   </ItemGroup>
