@@ -345,7 +345,9 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
             Image = container.Spec.Image!,
             LogSource = new DockerContainerLogSource(container.Status!.ContainerId!),
             State = container.Status?.State,
-            ExpectedEndpointsCount = GetExpectedEndpointsCount(_servicesMap.Values, container)
+            ExpectedEndpointsCount = GetExpectedEndpointsCount(_servicesMap.Values, container),
+            Command = container.Spec.Command,
+            Args = container.Spec.Args
         };
 
         if (container.Spec.Ports != null)

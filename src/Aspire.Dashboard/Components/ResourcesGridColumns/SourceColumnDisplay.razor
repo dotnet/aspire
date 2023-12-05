@@ -23,6 +23,15 @@ else if (Resource is ContainerViewModel containerViewModel)
             var title = $"Port{(containerViewModel.Ports.Count > 1 ? "s" : string.Empty)}: {ports}";
             <span class="subtext" title="@title" aria-label="@title">@ports</span>
         }
+        @if (containerViewModel.Command is not null)
+        {
+            <div class="ellipsis-overflow" title="Container command" aria-label="Container command">Command: @containerViewModel.Command</div>
+        }
+        @if (containerViewModel.Args is not null)
+        {
+            var args = string.Join(" ", containerViewModel.Args);
+            <div class="ellipsis-overflow" title="Container args" aria-label="Container args">@args</div>
+        }
     </FluentStack>
 }
 
