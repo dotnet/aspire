@@ -15,7 +15,9 @@ public sealed class NpgsqlEntityFrameworkCorePostgreSQLSettings
 
     /// <summary>
     /// <para>Gets or sets a boolean value that indicates whether the DbContext will be pooled or explicitly created every time it's requested.</para>
-    /// <para>Enabled by default.</para>
+    /// <value>
+    /// The default value is <see langword="true"/>.
+    /// </value>
     /// </summary>
     /// <remarks>Should be set to false in multi-tenant scenarios.</remarks>
     public bool DbContextPooling { get; set; } = true;
@@ -28,19 +30,25 @@ public sealed class NpgsqlEntityFrameworkCorePostgreSQLSettings
 
     /// <summary>
     /// <para>Gets or sets a boolean value that indicates whether the database health check is enabled or not.</para>
-    /// <para>Enabled by default.</para>
+    /// <value>
+    /// The default value is <see langword="true"/>.
+    /// </value>
     /// </summary>
     public bool HealthChecks { get; set; } = true;
 
     /// <summary>
     /// <para>Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.</para>
-    /// <para>Enabled by default.</para>
+    /// <value>
+    /// The default value is <see langword="true"/>.
+    /// </value>
     /// </summary>
     public bool Tracing { get; set; } = true;
 
     /// <summary>
     /// <para>Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not.</para>
-    /// <para>Enabled by default.</para>
+    /// <value>
+    /// The default value is <see langword="true"/>.
+    /// </value>
     /// </summary>
     public bool Metrics { get; set; } = true;
 }

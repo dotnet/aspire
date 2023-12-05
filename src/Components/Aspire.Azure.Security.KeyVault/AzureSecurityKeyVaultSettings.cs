@@ -26,13 +26,17 @@ public sealed class AzureSecurityKeyVaultSettings : IConnectionStringSettings
 
     /// <summary>
     /// <para>Gets or sets a boolean value that indicates whether the Key Vault health check is enabled or not.</para>
-    /// <para>Enabled by default.</para>
+    /// <value>
+    /// The default value is <see langword="true"/>.
+    /// </value>
     /// </summary>
     public bool HealthChecks { get; set; } = true;
 
     /// <summary>
     /// <para>Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.</para>
-    /// <para>Enabled by default.</para>
+    /// <value>
+    /// The default value is <see langword="true"/>.
+    /// </value>
     /// </summary>
     public bool Tracing { get; set; } = true;
 
