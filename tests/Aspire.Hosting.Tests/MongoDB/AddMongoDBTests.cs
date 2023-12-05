@@ -77,7 +77,7 @@ public class AddMongoDBTests
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder
-            .AddMongoDBContainer("mongodb", password: "password")
+            .AddMongoDBContainer("mongodb")
             .WithAnnotation(
                 new AllocatedEndpointAnnotation("mybinding",
                 ProtocolType.Tcp,
@@ -94,6 +94,6 @@ public class AddMongoDBTests
         var connectionStringResource = Assert.Single(appModel.Resources.OfType<MongoDBDatabaseResource>());
         var connectionString = connectionStringResource.GetConnectionString();
 
-        Assert.Equal("mongodb://root:password@localhost:27017/mydatabase", connectionString);
+        Assert.Equal("mongodb://localhost:27017/mydatabase", connectionString);
     }
 }
