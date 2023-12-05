@@ -5,7 +5,7 @@
     <IsPackable>true</IsPackable>
     <PackageTags>$(ComponentDatabasePackageTags) mysqlconnector mysql sql</PackageTags>
     <Description>A MySQL client that integrates with Aspire, including health checks, metrics, logging, and telemetry.</Description>
-    <PackageIconFullPath>$(SharedDir)SQL_256x.png</PackageIconFullPath>
+    <PackageIconFullPath>$(SharedDir)mysqlconnector_logo.png</PackageIconFullPath>
   </PropertyGroup>
 
   <ItemGroup>
