@@ -3,8 +3,14 @@
 
 namespace Aspire.Hosting.ApplicationModel;
 
-public class OrleansResource(string name) : Resource(name)
+public class OrleansBuilder(IDistributedApplicationBuilder builder, string name)
 {
+    /// <summary>
+    /// Gets the name of the resource.
+    /// </summary>
+    public string Name { get; } = name;
+
+    public IDistributedApplicationBuilder Builder { get; } = builder;
     public string? ServiceId { get; set; }
     public string? ClusterId { get; set; } = Guid.NewGuid().ToString("N");
     public object? Clustering { get; set; }

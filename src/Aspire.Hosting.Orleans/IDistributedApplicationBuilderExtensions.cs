@@ -21,10 +21,10 @@ public static class IDistributedApplicationBuilderExtensions
     /// <param name="builder">The target builder.</param>
     /// <param name="name">The name of the Orleans resource.</param>
     /// <returns>The Orleans resource.</returns>
-    public static IResourceBuilder<OrleansResource> AddOrleans(
+    public static OrleansBuilder AddOrleans(
         this IDistributedApplicationBuilder builder,
         string name)
-        => builder.AddResource(new OrleansResource(name));
+        => new OrleansBuilder(builder, name);
 
     /// <summary>
     /// Set the ClusterId to use for the Orleans cluster.
@@ -32,11 +32,11 @@ public static class IDistributedApplicationBuilderExtensions
     /// <param name="builder">The target Orleans resource.</param>
     /// <param name="clusterId">The ClusterId value.</param>
     /// <returns>>The Orleans resource.</returns>
-    public static IResourceBuilder<OrleansResource> WithClusterId(
-        this IResourceBuilder<OrleansResource> builder,
+    public static OrleansBuilder WithClusterId(
+        this OrleansBuilder builder,
         string clusterId)
     {
-        builder.Resource.ClusterId = clusterId;
+        builder.ClusterId = clusterId;
         return builder;
     }
 
@@ -46,11 +46,11 @@ public static class IDistributedApplicationBuilderExtensions
     /// <param name="builder">The target Orleans resource.</param>
     /// <param name="serviceId">The ServiceId value.</param>
     /// <returns>>The Orleans resource.</returns>
-    public static IResourceBuilder<OrleansResource> WithServiceId(
-        this IResourceBuilder<OrleansResource> builder,
+    public static OrleansBuilder WithServiceId(
+        this OrleansBuilder builder,
         string serviceId)
     {
-        builder.Resource.ServiceId = serviceId;
+        builder.ServiceId = serviceId;
         return builder;
     }
 
@@ -60,11 +60,11 @@ public static class IDistributedApplicationBuilderExtensions
     /// <param name="builder">The target Orleans resource.</param>
     /// <param name="clustering">The clustering to use.</param>
     /// <returns>>The Orleans resource.</returns>
-    public static IResourceBuilder<OrleansResource> WithClustering(
-        this IResourceBuilder<OrleansResource> builder,
+    public static OrleansBuilder WithClustering(
+        this OrleansBuilder builder,
         IResourceBuilder<IResourceWithConnectionString> clustering)
     {
-        builder.Resource.Clustering = clustering;
+        builder.Clustering = clustering;
         return builder;
     }
 
@@ -73,10 +73,10 @@ public static class IDistributedApplicationBuilderExtensions
     /// </summary>
     /// <param name="builder">The target Orleans resource.</param>
     /// <returns>>The Orleans resource.</returns>
-    public static IResourceBuilder<OrleansResource> WithLocalhostClustering(
-        this IResourceBuilder<OrleansResource> builder)
+    public static OrleansBuilder WithLocalhostClustering(
+        this OrleansBuilder builder)
     {
-        builder.Resource.Clustering = s_localhostClustering;
+        builder.Clustering = s_localhostClustering;
         return builder;
     }
 
@@ -86,11 +86,11 @@ public static class IDistributedApplicationBuilderExtensions
     /// <param name="builder">The target Orleans resource.</param>
     /// <param name="storage">The storage provider to add.</param>
     /// <returns>>The Orleans resource.</returns>
-    public static IResourceBuilder<OrleansResource> WithGrainStorage(
-        this IResourceBuilder<OrleansResource> builder,
+    public static OrleansBuilder WithGrainStorage(
+        this OrleansBuilder builder,
         IResourceBuilder<IResourceWithConnectionString> storage)
     {
-        builder.Resource.GrainStorage[storage.Resource.Name] = storage;
+        builder.GrainStorage[storage.Resource.Name] = storage;
         return builder;
     }
 
@@ -101,12 +101,12 @@ public static class IDistributedApplicationBuilderExtensions
     /// <param name="name">The name of the storage provider.</param>
     /// <param name="storage">The storage provider to add.</param>
     /// <returns>>The Orleans resource.</returns>
-    public static IResourceBuilder<OrleansResource> WithGrainStorage(
-        this IResourceBuilder<OrleansResource> builder,
+    public static OrleansBuilder WithGrainStorage(
+        this OrleansBuilder builder,
         string name,
         IResourceBuilder<IResourceWithConnectionString> storage)
     {
-        builder.Resource.GrainStorage[name] = storage;
+        builder.GrainStorage[name] = storage;
         return builder;
     }
 
@@ -116,11 +116,11 @@ public static class IDistributedApplicationBuilderExtensions
     /// <param name="builder">The target Orleans resource.</param>
     /// <param name="name">The name of the storage provider.</param>
     /// <returns>>The Orleans resource.</returns>
-    public static IResourceBuilder<OrleansResource> WithInMemoryGrainStorage(
-        this IResourceBuilder<OrleansResource> builder,
+    public static OrleansBuilder WithInMemoryGrainStorage(
+        this OrleansBuilder builder,
         string name)
     {
-        builder.Resource.GrainStorage[name] = s_inMemoryStorage;
+        builder.GrainStorage[name] = s_inMemoryStorage;
         return builder;
     }
 
@@ -130,11 +130,11 @@ public static class IDistributedApplicationBuilderExtensions
     /// <param name="builder">The target Orleans resource.</param>
     /// <param name="reminderStorage">The reminder storage to use.</param>
     /// <returns>>The Orleans resource.</returns>
-    public static IResourceBuilder<OrleansResource> WithReminders(
-        this IResourceBuilder<OrleansResource> builder,
+    public static OrleansBuilder WithReminders(
+        this OrleansBuilder builder,
         IResourceBuilder<IResourceWithConnectionString> reminderStorage)
     {
-        builder.Resource.Reminders = reminderStorage;
+        builder.Reminders = reminderStorage;
         return builder;
     }
 
@@ -147,10 +147,10 @@ public static class IDistributedApplicationBuilderExtensions
     /// <exception cref="InvalidOperationException"></exception>
     public static IResourceBuilder<T> AddResource<T>(
         this IResourceBuilder<T> builder,
-        IResourceBuilder<OrleansResource> orleansResourceBuilder)
+        OrleansBuilder orleansResourceBuilder)
         where T : IResourceWithEnvironment
     {
-        var res = orleansResourceBuilder.Resource;
+        var res = orleansResourceBuilder;
         foreach (var (name, storage) in res.GrainStorage)
         {
             if (storage == s_inMemoryStorage)
@@ -215,7 +215,7 @@ public static class IDistributedApplicationBuilderExtensions
         {
             IResourceBuilder<AzureTableStorageResource> => OrleansServerSettingConstants.AzureTablesType,
             IResourceBuilder<AzureBlobStorageResource> => OrleansServerSettingConstants.AzureBlobsType,
-            IResourceBuilder<OrleansResource> => OrleansServerSettingConstants.InternalType,
+            OrleansBuilder => OrleansServerSettingConstants.InternalType,
             _ => throw new NotSupportedException($"Resources of type '{resource.GetType()}' are not supported.")
         };
     }
