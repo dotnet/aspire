@@ -9,7 +9,6 @@ using Microsoft.Extensions.Hosting;
 using Orleans.Clustering.AzureStorage;
 using Orleans.Configuration;
 using Orleans.Runtime;
-using static Aspire.Orleans.Shared.OrleansServerSettingConstants;
 
 namespace Aspire.Orleans.Client;
 
@@ -64,7 +63,7 @@ public static class AspireOrleansClientExtensions
         var connectionSettings = new ConnectionSettings();
         configuration.Bind(connectionSettings);
 
-        var type = connectionSettings.ConnectionType;
+        var type = connectionSettings.ProviderType;
         var connectionName = connectionSettings.ConnectionName;
 
         if (string.IsNullOrWhiteSpace(type))
@@ -77,11 +76,11 @@ public static class AspireOrleansClientExtensions
             throw new ArgumentException(message: "A value must be specified for \"Clustering.ConnectionName\".", innerException: null);
         }
 
-        if (string.Equals(InternalType, type, StringComparison.OrdinalIgnoreCase))
+        if (string.Equals("LocalhostClustering", type, StringComparison.OrdinalIgnoreCase))
         {
             clientBuilder.UseLocalhostClustering();
         }
-        else if (string.Equals(AzureTablesType, type, StringComparison.OrdinalIgnoreCase))
+        else if (string.Equals("AzureTableStorageResource", type, StringComparison.OrdinalIgnoreCase))
         {
             // Configure a table service client in the dependency injection container.
             builder.AddKeyedAzureTableService(connectionName);

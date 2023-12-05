@@ -8,7 +8,6 @@
 
   <ItemGroup>
     <Compile Include="..\Aspire.Microsoft.Orleans.Server\Shared\ConnectionSettings.cs" Link="Shared\ConnectionSettings.cs" />
-    <Compile Include="..\Aspire.Microsoft.Orleans.Server\Shared\OrleansServerSettingConstants.cs" Link="Shared\OrleansServerSettingConstants.cs" />
     <Compile Include="..\Aspire.Microsoft.Orleans.Server\Shared\OrleansServerSettings.cs" Link="Shared\OrleansServerSettings.cs" />
   </ItemGroup>
 
@@ -20,10 +19,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Aspire.Azure.Data.Tables\Aspire.Azure.Data.Tables.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Shared\" />
   </ItemGroup>
 
 </Project>

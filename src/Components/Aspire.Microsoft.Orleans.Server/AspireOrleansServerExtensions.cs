@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Net;
 using Aspire.Orleans.Shared;
 using Azure.Data.Tables;
 using Azure.Storage.Blobs;
@@ -11,7 +10,6 @@ using Microsoft.Extensions.Hosting;
 using Orleans.Clustering.AzureStorage;
 using Orleans.Configuration;
 using Orleans.Reminders.AzureStorage;
-using static Aspire.Orleans.Shared.OrleansServerSettingConstants;
 
 namespace Aspire.Orleans.Server;
 
@@ -68,25 +66,25 @@ public static class AspireOrleansServerExtensions
         var connectionSettings = new ConnectionSettings();
         configuration.Bind(connectionSettings);
 
-        var type = connectionSettings.ConnectionType;
+        var type = connectionSettings.ProviderType;
         var connectionName = connectionSettings.ConnectionName;
 
         if (string.IsNullOrWhiteSpace(type))
         {
-            throw new ArgumentException(message: $"A \"ConnectionType\" value must be specified for \"GrainStorage\" named '{name}'.", innerException: null);
+            throw new ArgumentException(message: $"A \"ProviderType\" value must be specified for \"GrainStorage\" named '{name}'.", innerException: null);
         }
 
-        if (string.IsNullOrWhiteSpace(connectionName))
-        {
-            throw new ArgumentException(message: $"A \"ConnectionName\" value must be specified for \"GrainStorage\" named '{name}'.", innerException: null);
-        }
-
-        if (string.Equals(InternalType, type, StringComparison.OrdinalIgnoreCase))
+        if (string.Equals("MemoryGrainStorage", type, StringComparison.OrdinalIgnoreCase))
         {
             siloBuilder.AddMemoryGrainStorage(name);
         }
-        else if (string.Equals(AzureTablesType, type, StringComparison.OrdinalIgnoreCase))
+        else if (string.Equals("AzureTableStorageResource", type, StringComparison.OrdinalIgnoreCase))
         {
+            if (string.IsNullOrWhiteSpace(connectionName))
+            {
+                throw new ArgumentException(message: $"A \"ConnectionName\" value must be specified for \"GrainStorage\" named '{name}'.", innerException: null);
+            }
+
             // Configure a table service client in the dependency injection container.
             builder.AddKeyedAzureTableService(connectionName);
 
@@ -98,8 +96,13 @@ public static class AspireOrleansServerExtensions
                     options.ConfigureTableServiceClient(() => tableServiceClient);
                 }));
         }
-        else if (string.Equals(AzureBlobsType, type, StringComparison.OrdinalIgnoreCase))
+        else if (string.Equals("AzureBlobStorageResource", type, StringComparison.OrdinalIgnoreCase))
         {
+            if (string.IsNullOrWhiteSpace(connectionName))
+            {
+                throw new ArgumentException(message: $"A \"ConnectionName\" value must be specified for \"GrainStorage\" named '{name}'.", innerException: null);
+            }
+
             // Configure a blob service client in the dependency injection container.
             builder.AddKeyedAzureBlobService(connectionName);
 
@@ -122,25 +125,25 @@ public static class AspireOrleansServerExtensions
         var connectionSettings = new ConnectionSettings();
         configuration.Bind(connectionSettings);
 
-        var type = connectionSettings.ConnectionType;
+        var providerType = connectionSettings.ProviderType;
         var connectionName = connectionSettings.ConnectionName;
 
-        if (string.IsNullOrWhiteSpace(type))
+        if (string.IsNullOrWhiteSpace(providerType))
         {
-            throw new ArgumentException(message: "A value must be specified for \"Clustering.ConnectionType\".", innerException: null);
+            throw new ArgumentException(message: "A value must be specified for \"Clustering.ProviderType\".", innerException: null);
         }
 
-        if (string.IsNullOrWhiteSpace(connectionName))
-        {
-            throw new ArgumentException(message: "A value must be specified for \"Clustering.ConnectionName\".", innerException: null);
-        }
-
-        if (string.Equals(InternalType, type, StringComparison.OrdinalIgnoreCase))
+        if (string.Equals("LocalhostClustering", providerType, StringComparison.OrdinalIgnoreCase))
         {
             siloBuilder.UseLocalhostClustering();
         }
-        else if (string.Equals(AzureTablesType, type, StringComparison.OrdinalIgnoreCase))
+        else if (string.Equals("AzureTableStorageResource", providerType, StringComparison.OrdinalIgnoreCase))
         {
+            if (string.IsNullOrWhiteSpace(connectionName))
+            {
+                throw new ArgumentException(message: "A value must be specified for \"Clustering.ConnectionName\".", innerException: null);
+            }
+
             // Configure a table service client in the dependency injection container.
             builder.AddKeyedAzureTableService(connectionName);
 
@@ -154,7 +157,7 @@ public static class AspireOrleansServerExtensions
         }
         else
         {
-            throw new NotSupportedException($"Unsupported connection type \"{type}\".");
+            throw new NotSupportedException($"Unsupported connection type \"{providerType}\".");
         }
     }
 
@@ -164,31 +167,25 @@ public static class AspireOrleansServerExtensions
         configuration.Bind(connectionSettings);
 
         siloBuilder.AddReminders();
-        var type = connectionSettings.ConnectionType;
+        var type = connectionSettings.ProviderType;
         var connectionName = connectionSettings.ConnectionName;
 
         if (string.IsNullOrWhiteSpace(type))
         {
-            throw new ArgumentException(message: "A value must be specified for \"Reminders.ConnectionType\".", innerException: null);
+            throw new ArgumentException(message: "A value must be specified for \"Reminders.ProviderType\".", innerException: null);
         }
 
-        if (string.IsNullOrWhiteSpace(connectionName))
-        {
-            throw new ArgumentException(message: "A value must be specified for \"Reminders.ConnectionName\".", innerException: null);
-        }
-
-        if (string.Equals(InternalType, type, StringComparison.OrdinalIgnoreCase))
+        if (string.Equals("InMemoryReminderService", type, StringComparison.OrdinalIgnoreCase))
         {
             siloBuilder.UseInMemoryReminderService();
-            var connectionString = builder.Configuration.GetConnectionString(connectionName);
-
-            if (connectionString is null || !IPEndPoint.TryParse(connectionString, out var primarySiloEndPoint))
-            {
-                throw new InvalidOperationException($"Invalid connection string specified for '{connectionName}'.");
-            }
         }
-        else if (string.Equals(AzureTablesType, type, StringComparison.OrdinalIgnoreCase))
+        else if (string.Equals("AzureTableStorageResource", type, StringComparison.OrdinalIgnoreCase))
         {
+            if (string.IsNullOrWhiteSpace(connectionName))
+            {
+                throw new ArgumentException(message: "A value must be specified for \"Reminders.ConnectionName\".", innerException: null);
+            }
+
             // Configure a table service client in the dependency injection container.
             builder.AddKeyedAzureTableService(connectionName);
 

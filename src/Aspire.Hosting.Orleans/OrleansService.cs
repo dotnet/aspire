@@ -4,14 +4,14 @@
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// Describes an Orleans cluster.
+/// Describes an Orleans service.
 /// </summary>
 /// <param name="builder">The distributed application builder.</param>
-/// <param name="name">The cluster name.</param>
-public class OrleansCluster(IDistributedApplicationBuilder builder, string name)
+/// <param name="name">The service name.</param>
+public class OrleansService(IDistributedApplicationBuilder builder, string name)
 {
     /// <summary>
-    /// Gets the name of the cluster.
+    /// Gets the name of the service.
     /// </summary>
     public string Name { get; } = name;
 
@@ -33,15 +33,15 @@ public class OrleansCluster(IDistributedApplicationBuilder builder, string name)
     /// <summary>
     /// Gets or sets the clustering provider.
     /// </summary>
-    public object? Clustering { get; set; }
+    public IProviderConfiguration? Clustering { get; set; }
 
     /// <summary>
     /// Gets or sets the reminder service provider.
     /// </summary>
-    public object? Reminders { get; set; }
+    public IProviderConfiguration? Reminders { get; set; }
 
     /// <summary>
     /// Gets the grain storage providers.
     /// </summary>
-    public Dictionary<string, object> GrainStorage { get; } = [];
+    public Dictionary<string, IProviderConfiguration> GrainStorage { get; } = [];
 }

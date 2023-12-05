@@ -5,11 +5,13 @@ namespace Aspire.Orleans.Shared;
 
 internal sealed class ConnectionSettings
 {
-    // Name of the connection string to retrieve
+    /// <summary>
+    /// Gets or sets the name of the connection string containing connection details.
+    /// </summary>
     public string? ConnectionName { get; set; }
 
     /// <summary>
-    /// Gets or sets the well-known provider type, see <see cref="OrleansServerSettingConstants"/>.
+    /// Gets or sets the provider type name.
     /// </summary>
-    public string? ConnectionType { get; set; }
+    public string? ProviderType { get; set; }
 }
