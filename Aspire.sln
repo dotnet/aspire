@@ -186,9 +186,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OrleansServer", "samples\or
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ServiceDefaults", "samples\orleans\ServiceDefaults\ServiceDefaults.csproj", "{F7D9FA54-1F64-4A36-961A-0087F8E88D07}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Orleans.Server", "src\Components\Aspire.Orleans.Server\Aspire.Orleans.Server.csproj", "{B66A7F40-4E46-497A-8F3E-54A24EEB9C00}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Microsoft.Orleans.Server", "src\Components\Aspire.Microsoft.Orleans.Server\Aspire.Microsoft.Orleans.Server.csproj", "{B66A7F40-4E46-497A-8F3E-54A24EEB9C00}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Orleans.Client", "src\Components\Aspire.Orleans.Client\Aspire.Orleans.Client.csproj", "{F524B796-CC62-43B9-BF0A-8CA2F28D43FB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Microsoft.Orleans.Client", "src\Components\Aspire.Microsoft.Orleans.Client\Aspire.Microsoft.Orleans.Client.csproj", "{F524B796-CC62-43B9-BF0A-8CA2F28D43FB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
