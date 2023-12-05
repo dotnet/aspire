@@ -79,7 +79,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
             // await CreateContainerSingletonsAsync(cancellationToken).ConfigureAwait(false);
 
             await CreateServicesAsync(cancellationToken).ConfigureAwait(false);
-            
+
             await CreateContainersAndExecutablesAsync(cancellationToken).ConfigureAwait(false);
         }
         finally
