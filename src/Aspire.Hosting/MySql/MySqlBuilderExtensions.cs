@@ -27,25 +27,39 @@ public static class MySqlBuilderExtensions
         password ??= Guid.NewGuid().ToString("N");
         var mySqlContainer = new MySqlContainerResource(name, password);
         return builder.AddResource(mySqlContainer)
-                      .WithManifestPublishingCallback(WriteMySqlContainerToManifest)
+                      .WithManifestPublishingCallback(context => WriteMySqlContainerResourceToManifest(context, mySqlContainer))
                       .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, port: port, containerPort: 3306)) // Internal port is always 3306.
                       .WithAnnotation(new ContainerImageAnnotation { Image = "mysql", Tag = "latest" })
-                      .WithEnvironment(PasswordEnvVarName, () => mySqlContainer.Password);
+                      .WithEnvironment(context =>
+                      {
+                          if (context.PublisherName == "manifest")
+                          {
+                              context.EnvironmentVariables.Add(PasswordEnvVarName, $"{{{mySqlContainer.Name}.inputs.password}}");
+                          }
+                          else
+                          {
+                              context.EnvironmentVariables.Add(PasswordEnvVarName, mySqlContainer.Password);
+                          }
+                      });
     }
 
     /// <summary>
-    /// Adds a MySQL connection to the application model. Connection strings can also be read from the connection string section of the configuration using the name of the resource.
+    /// Adds a MySQL server resource to the application model. For local development a container is used.
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <param name="connectionString">The MySQL connection string (optional).</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{MySqlConnectionResource}"/>.</returns>
-    public static IResourceBuilder<MySqlConnectionResource> AddMySqlConnection(this IDistributedApplicationBuilder builder, string name, string? connectionString = null)
+    /// <param name="port">The host port for MySQL.</param>
+    /// <param name="password">The password for the MySQL root user. Defaults to a random password.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{MySqlContainerResource}"/>.</returns>
+    public static IResourceBuilder<MySqlServerResource> AddMySqlServer(this IDistributedApplicationBuilder builder, string name)
     {
-        var mySqlConnection = new MySqlConnectionResource(name, connectionString);
-
-        return builder.AddResource(mySqlConnection)
-            .WithManifestPublishingCallback((context) => WriteMySqlConnectionToManifest(context, mySqlConnection));
+        var password = Guid.NewGuid().ToString("N");
+        var mySqlContainer = new MySqlServerResource(name, password);
+        return builder.AddResource(mySqlContainer)
+                      .WithManifestPublishingCallback(WriteMySqlContainerToManifest)
+                      .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, containerPort: 3306)) // Internal port is always 3306.
+                      .WithAnnotation(new ContainerImageAnnotation { Image = "mysql", Tag = "latest" })
+                      .WithEnvironment(PasswordEnvVarName, () => mySqlContainer.Password);
     }
 
     /// <summary>
@@ -54,17 +68,11 @@ public static class MySqlBuilderExtensions
     /// <param name="builder">The MySQL server resource builder.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{MySqlDatabaseResource}"/>.</returns>
-    public static IResourceBuilder<MySqlDatabaseResource> AddDatabase(this IResourceBuilder<MySqlContainerResource> builder, string name)
+    public static IResourceBuilder<MySqlDatabaseResource> AddDatabase(this IResourceBuilder<IMySqlParentResource> builder, string name)
     {
         var mySqlDatabase = new MySqlDatabaseResource(name, builder.Resource);
         return builder.ApplicationBuilder.AddResource(mySqlDatabase)
                                          .WithManifestPublishingCallback(context => WriteMySqlDatabaseToManifest(context, mySqlDatabase));
-    }
-
-    private static void WriteMySqlConnectionToManifest(ManifestPublishingContext context, MySqlConnectionResource mySqlConnection)
-    {
-        context.Writer.WriteString("type", "mysql.connection.v0");
-        context.Writer.WriteString("connectionString", mySqlConnection.GetConnectionString());
     }
 
     private static void WriteMySqlContainerToManifest(ManifestPublishingContext context)
@@ -76,5 +84,24 @@ public static class MySqlBuilderExtensions
     {
         context.Writer.WriteString("type", "mysql.database.v0");
         context.Writer.WriteString("parent", mySqlDatabase.Parent.Name);
+    }
+
+    private static void WriteMySqlContainerResourceToManifest(ManifestPublishingContext context, MySqlContainerResource resource)
+    {
+        context.WriteContainer(resource);
+        context.Writer.WriteString(                     // "connectionString": "...",
+            "connectionString",
+            $"Server={{{resource.Name}.bindings.tcp.host}};Port={{{resource.Name}.bindings.tcp.port}};User ID=root;Password={{{resource.Name}.inputs.password}}");
+        context.Writer.WriteStartObject("inputs");      // "inputs": {
+        context.Writer.WriteStartObject("password");    //   "password": {
+        context.Writer.WriteString("type", "string");   //     "type": "string",
+        context.Writer.WriteBoolean("secret", true);    //     "secret": true,
+        context.Writer.WriteStartObject("default");     //     "default": {
+        context.Writer.WriteStartObject("generate");    //       "generate": {
+        context.Writer.WriteNumber("minLength", 10);    //         "minLength": 10,
+        context.Writer.WriteEndObject();                //       }
+        context.Writer.WriteEndObject();                //     }
+        context.Writer.WriteEndObject();                //   }
+        context.Writer.WriteEndObject();                // }
     }
 }

@@ -7,6 +7,44 @@
       "type": "postgres.database.v0",
       "parent": "postgres"
     },
+    "dbserver1": {
+      "type": "mysql.server.v0"
+    },
+    "ratings1": {
+      "type": "mysql.database.v0",
+      "parent": "dbserver1"
+    },
+    "dbserver2": {
+      "type": "container.v0",
+      "image": "mysql:latest",
+      "env": {
+        "MYSQL_ROOT_PASSWORD": "{dbserver2.inputs.password}"
+      },
+      "bindings": {
+        "tcp": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp",
+          "containerPort": 3306
+        }
+      },
+      "connectionString": "Server={dbserver2.bindings.tcp.host};Port={dbserver2.bindings.tcp.port};User ID=root;Password={dbserver2.inputs.password}",
+      "inputs": {
+        "password": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 10
+            }
+          }
+        }
+      }
+    },
+    "ratings2": {
+      "type": "mysql.database.v0",
+      "parent": "dbserver2"
+    },
     "basketcache": {
       "type": "container.v0",
       "image": "redis:latest",
@@ -22,7 +60,12 @@
       "inputs": {
         "password": {
           "type": "string",
-          "secret": true
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 10
+            }
+          }
         }
       }
     },
@@ -31,11 +74,13 @@
     },
     "catalogservice": {
       "type": "project.v0",
-      "path": "..\\CatalogService\\CatalogService.csproj",
+      "path": "../CatalogService/CatalogService.csproj",
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
-        "ConnectionStrings__catalogdb": "{catalogdb.connectionString}"
+        "ConnectionStrings__catalogdb": "{catalogdb.connectionString}",
+        "ConnectionStrings__ratings1": "{ratings1.connectionString}",
+        "ConnectionStrings__ratings2": "{ratings2.connectionString}"
       },
       "bindings": {
         "http": {
@@ -55,7 +100,7 @@
     },
     "basketservice": {
       "type": "project.v0",
-      "path": "..\\BasketService\\BasketService.csproj",
+      "path": "../BasketService/BasketService.csproj",
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
@@ -77,7 +122,7 @@
     },
     "frontend": {
       "type": "project.v0",
-      "path": "..\\MyFrontend\\MyFrontend.csproj",
+      "path": "../MyFrontend/MyFrontend.csproj",
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
@@ -100,7 +145,7 @@
     },
     "orderprocessor": {
       "type": "project.v0",
-      "path": "..\\OrderProcessor\\OrderProcessor.csproj",
+      "path": "../OrderProcessor/OrderProcessor.csproj",
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
@@ -109,7 +154,7 @@
     },
     "apigateway": {
       "type": "project.v0",
-      "path": "..\\ApiGateway\\ApiGateway.csproj",
+      "path": "../ApiGateway/ApiGateway.csproj",
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
@@ -133,7 +178,7 @@
     },
     "catalogdbapp": {
       "type": "project.v0",
-      "path": "..\\CatalogDb\\CatalogDb.csproj",
+      "path": "../CatalogDb/CatalogDb.csproj",
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",

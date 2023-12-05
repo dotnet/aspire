@@ -51,15 +51,19 @@ public static class RedisBuilderExtensions
     private static void WriteRedisContainerResourceToManifest(ManifestPublishingContext context, RedisContainerResource resource)
     {
         context.WriteContainer(resource);
-        context.Writer.WriteString(
+        context.Writer.WriteString(                     // "connectionString": "...",
             "connectionString",
             $"Host={{{resource.Name}.bindings.tcp.host}};Port={{{resource.Name}.bindings.tcp.port}};Username=postgres;Password={{{resource.Name}.inputs.password}};");
-
-        context.Writer.WriteStartObject("inputs");
-        context.Writer.WriteStartObject("password");
-        context.Writer.WriteString("type", "string");
-        context.Writer.WriteBoolean("secret", true);
-        context.Writer.WriteEndObject();
-        context.Writer.WriteEndObject();
+        context.Writer.WriteStartObject("inputs");      // "inputs": {
+        context.Writer.WriteStartObject("password");    //   "password": {
+        context.Writer.WriteString("type", "string");   //     "type": "string",
+        context.Writer.WriteBoolean("secret", true);    //     "secret": true,
+        context.Writer.WriteStartObject("default");     //     "default": {
+        context.Writer.WriteStartObject("generate");    //       "generate": {
+        context.Writer.WriteNumber("minLength", 10);    //         "minLength": 10,
+        context.Writer.WriteEndObject();                //       }
+        context.Writer.WriteEndObject();                //     }
+        context.Writer.WriteEndObject();                //   }
+        context.Writer.WriteEndObject();                // }
     }
 }
