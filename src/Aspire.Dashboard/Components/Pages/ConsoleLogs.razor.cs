@@ -242,7 +242,29 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
         {
             stateText = $" ({resource.State})";
         }
-        return $"{resource.Name}{stateText}";
+        var resourceName = resource.DisplayName;
+        switch (resource)
+        {
+            case ExecutableViewModel evm:
+                if (evm.ProcessId is not null)
+                {
+                    resourceName += $" (PID: {evm.ProcessId})";
+                }
+                break;
+            case ProjectViewModel pvm:
+                if (pvm.ProcessId is not null)
+                {
+                    resourceName += $" (PID: {pvm.ProcessId})";
+                }
+                break;
+            case ContainerViewModel cvm:
+                if (cvm.ContainerId is not null)
+                {
+                    resourceName += $" (container ID: {cvm.ContainerId.Substring(0, Math.Min(cvm.ContainerId.Length, 8))})";
+                }
+                break;
+        }
+        return $"{resourceName}{stateText}";
     }
 
     public async ValueTask DisposeAsync()

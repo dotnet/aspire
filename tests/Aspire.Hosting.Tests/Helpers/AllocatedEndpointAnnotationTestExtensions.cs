@@ -16,33 +16,25 @@ public static class AllocatedEndpointAnnotationTestExtensions
         return response;
     }
 
-    public static async Task<string> WaitForHealthyStatus(this IResourceBuilder<ProjectResource> builder, HttpClient client, string bindingName, CancellationToken cancellationToken)
+    public static Task<string> WaitForHealthyStatus(this IResourceBuilder<ProjectResource> builder, HttpClient client, string bindingName, CancellationToken cancellationToken)
     {
-        while (true)
-        {
-            try
-            {
-                return await builder.HttpGetAsync(client, bindingName, "/health", cancellationToken);
-            }
-            catch (HttpRequestException ex)
-            {
-                Console.WriteLine(ex);
-            }
-            catch
-            {
-                await Task.Delay(100, cancellationToken);
-            }
-        }
+        return HttpGetWithRetryAsync(builder, client, bindingName, "/health", cancellationToken);
     }
 
-    public static async Task<string> HttpGetPidAsync<T>(this IResourceBuilder<T> builder, HttpClient client, string bindingName, CancellationToken cancellationToken)
+    public static Task<string> HttpGetPidAsync<T>(this IResourceBuilder<T> builder, HttpClient client, string bindingName, CancellationToken cancellationToken)
+        where T : IResourceWithBindings
+    {
+        return HttpGetWithRetryAsync(builder, client, bindingName, "/pid", cancellationToken);
+    }
+
+    public static async Task<string> HttpGetWithRetryAsync<T>(this IResourceBuilder<T> builder, HttpClient client, string bindingName, string request, CancellationToken cancellationToken)
         where T : IResourceWithBindings
     {
         while (true)
         {
             try
             {
-                return await builder.HttpGetAsync(client, bindingName, "/pid", cancellationToken);
+                return await builder.HttpGetAsync(client, bindingName, request, cancellationToken);
             }
             catch (HttpRequestException ex)
             {

@@ -187,7 +187,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
                     sp.ServiceBindingAnnotation.Name,
                     PortProtocol.ToProtocolType(svc.Spec.Protocol),
                     svc.AllocatedAddress!,
-                    (int)(sp.ServiceBindingAnnotation.Port ?? svc.AllocatedPort!), // Checked by HasCompleteAddress above.
+                    (int)svc.AllocatedPort!,
                     sp.ServiceBindingAnnotation.UriScheme
                     );
 
@@ -218,7 +218,6 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
         foreach (var sp in serviceProducers)
         {
             var sbAnnotations = sp.SBAnnotations.ToArray();
-            var replicas = sp.ModelResource.GetReplicaCount();
 
             foreach (var sba in sbAnnotations)
             {
@@ -227,13 +226,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
                 var uniqueServiceName = GenerateUniqueServiceName(serviceNames, candidateServiceName);
                 var svc = Service.Create(uniqueServiceName);
 
-                if (replicas > 1)
-                {
-                    // Treat the port specified in the ServiceBindingAnnotation as desired port for the whole service.
-                    // Each replica receives its own port.
-                    svc.Spec.Port = sba.Port;
-                }
-
+                svc.Spec.Port = sba.Port;
                 addServiceAppResource(svc, sp.ModelResource, sba);
             }
         }
@@ -259,6 +252,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
             exe.Spec.WorkingDirectory = executable.WorkingDirectory;
             exe.Spec.Args = executable.Args?.ToList();
             exe.Spec.ExecutionType = ExecutionType.Process;
+            exe.Annotate(Executable.OtelServiceNameAnnotation, exe.Metadata.Name);
 
             var exeAppResource = new AppResource(executable, exe);
             AddServicesProducedInfo(executable, exe, exeAppResource);
@@ -277,30 +271,17 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
                 throw new InvalidOperationException("A project resource is missing required metadata"); // Should never happen.
             }
 
-            CustomResource workload;
-            ExecutableSpec exeSpec;
-            IAnnotationHolder annotationHolder;
-            var workloadName = GetObjectNameForResource(project);
             int replicas = project.GetReplicaCount();
 
-            if (replicas > 1)
-            {
-                var ers = ExecutableReplicaSet.Create(workloadName, replicas, "dotnet");
-                exeSpec = ers.Spec.Template.Spec;
-                annotationHolder = ers.Spec.Template;
-                workload = ers;
-            }
-            else
-            {
-                var exe = Executable.Create(workloadName, "dotnet");
-                exeSpec = exe.Spec;
-                annotationHolder = workload = exe;
-            }
+            var ers = ExecutableReplicaSet.Create(GetObjectNameForResource(project), replicas, "dotnet");
+            var exeSpec = ers.Spec.Template.Spec;
+            IAnnotationHolder annotationHolder = ers.Spec.Template;
 
             exeSpec.WorkingDirectory = Path.GetDirectoryName(projectMetadata.ProjectPath);
 
             annotationHolder.Annotate(Executable.CSharpProjectPathAnnotation, projectMetadata.ProjectPath);
             annotationHolder.Annotate(Executable.LaunchProfileNameAnnotation, project.SelectLaunchProfileName() ?? string.Empty);
+            annotationHolder.Annotate(Executable.OtelServiceNameAnnotation, ers.Metadata.Name);
 
             if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable(DebugSessionPortVar)))
             {
@@ -353,7 +334,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
                 }
             }
 
-            var exeAppResource = new AppResource(project, workload);
+            var exeAppResource = new AppResource(project, ers);
             AddServicesProducedInfo(project, annotationHolder, exeAppResource);
             _appResources.Add(exeAppResource);
         }
@@ -485,12 +466,8 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
         var launchProfile = launchSettings.Profiles[launchProfileName];
         if (!string.IsNullOrWhiteSpace(launchProfile.ApplicationUrl))
         {
-            int replicas = executableResource.ModelResource.GetReplicaCount();
-
-            if (replicas > 1)
+            if (executableResource.DcpResource is ExecutableReplicaSet)
             {
-                // Can't use the information in ASPNETCORE_URLS directly when multiple replicas are in play.
-                // Instead we are going to SYNTHESIZE the new ASPNETCORE_URLS value based on the information about services produced by this resource.
                 var urls = executableResource.ServicesProduced.Select(sar =>
                 {
                     var url = sar.ServiceBindingAnnotation.UriScheme + "://localhost:{{- portForServing \"" + sar.Service.Metadata.Name + "\" -}}";
@@ -643,6 +620,10 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
         var servicesProduced = _appResources.OfType<ServiceAppResource>().Where(r => r.ModelResource == modelResource);
         foreach (var sp in servicesProduced)
         {
+            // Projects/Executables have their ports auto-allocated; the the port specified by the ServiceBindingAnnotation
+            // is applied to the Service objects and used by clients.
+            // Containers use the port from the ServiceBindingAnnotation directly.
+
             if (modelResource.IsContainer())
             {
                 if (sp.ServiceBindingAnnotation.ContainerPort is null)
@@ -651,23 +632,6 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
                 }
 
                 sp.DcpServiceProducerAnnotation.Port = sp.ServiceBindingAnnotation.ContainerPort;
-            }
-            else if (modelResource is ExecutableResource)
-            {
-                sp.DcpServiceProducerAnnotation.Port = sp.ServiceBindingAnnotation.Port;
-            }
-            else
-            {
-                if (sp.ServiceBindingAnnotation.Port is null)
-                {
-                    throw new InvalidOperationException($"The ServiceBindingAnnotation for resource {modelResourceName} must specify the Port");
-                }
-
-                if (modelResource.GetReplicaCount() == 1)
-                {
-                    // If multiple replicas are used, each replica will get its own port.
-                    sp.DcpServiceProducerAnnotation.Port = sp.ServiceBindingAnnotation.Port;
-                }
             }
 
             dcpResource.AnnotateAsObjectList(CustomResource.ServiceProducerAnnotation, sp.DcpServiceProducerAnnotation);

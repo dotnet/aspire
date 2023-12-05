@@ -111,6 +111,7 @@ internal sealed class Executable : CustomResource<ExecutableSpec, ExecutableStat
 {
     public const string CSharpProjectPathAnnotation = "csharp-project-path";
     public const string LaunchProfileNameAnnotation = "launch-profile-name";
+    public const string OtelServiceNameAnnotation = "otel-service-name";
 
     [JsonConstructor]
     public Executable(ExecutableSpec spec) : base(spec) { }
