@@ -4,6 +4,7 @@
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting;
@@ -63,7 +64,14 @@ public static class ResourceBuilderExtensions
     /// <returns>A resource configured with the environment variable callback.</returns>
     public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, EndpointReference endpointReference) where T : IResourceWithEnvironment
     {
-        return builder.WithAnnotation(new EnvironmentCallbackAnnotation(name, () => endpointReference.UriString));
+        return builder.WithAnnotation(new EnvironmentCallbackAnnotation(name, () =>
+        {
+            var replaceLocalhostWithMachineHost = builder.Resource is ContainerResource && endpointReference.Owner is ContainerResource;
+
+            return replaceLocalhostWithMachineHost
+            ? HostNameResolver.ReplaceLocalhostWithContainerHost(endpointReference.UriString, builder.ApplicationBuilder.Configuration)
+            : endpointReference.UriString;
+        }));
     }
 
     /// <summary>
@@ -84,7 +92,8 @@ public static class ResourceBuilderExtensions
         return endpoints.GroupBy(e => e.UriScheme).Any(g => g.Count() > 1);
     }
 
-    private static Action<EnvironmentCallbackContext> CreateServiceReferenceEnvironmentPopulationCallback(ServiceReferenceAnnotation serviceReferencesAnnotation)
+    private static Action<EnvironmentCallbackContext> CreateServiceReferenceEnvironmentPopulationCallback<T>(IResourceBuilder<T> builder, ServiceReferenceAnnotation serviceReferencesAnnotation)
+        where T : IResourceWithEnvironment
     {
         return (context) =>
         {
@@ -96,16 +105,23 @@ public static class ResourceBuilderExtensions
 
             var containsAmbiguousEndpoints = ContainsAmbiguousEndpoints(allocatedEndPoints);
 
+            var replaceLocalhostWithMachineHost = builder.Resource is ContainerResource && serviceReferencesAnnotation.Resource is ContainerResource;
+            var configuration = builder.ApplicationBuilder.Configuration;
+
             var i = 0;
             foreach (var allocatedEndPoint in allocatedEndPoints)
             {
                 var bindingNameQualifiedUriStringKey = $"services__{name}__{i++}";
-                context.EnvironmentVariables[bindingNameQualifiedUriStringKey] = allocatedEndPoint.BindingNameQualifiedUriString;
+                context.EnvironmentVariables[bindingNameQualifiedUriStringKey] = replaceLocalhostWithMachineHost
+                ? HostNameResolver.ReplaceLocalhostWithContainerHost(allocatedEndPoint.BindingNameQualifiedUriString, configuration)
+                : allocatedEndPoint.BindingNameQualifiedUriString;
 
                 if (!containsAmbiguousEndpoints)
                 {
                     var uriStringKey = $"services__{name}__{i++}";
-                    context.EnvironmentVariables[uriStringKey] = allocatedEndPoint.UriString;
+                    context.EnvironmentVariables[uriStringKey] = replaceLocalhostWithMachineHost
+                    ? HostNameResolver.ReplaceLocalhostWithContainerHost(allocatedEndPoint.UriString, configuration)
+                    : allocatedEndPoint.UriString;
                 }
             }
         };
@@ -160,6 +176,11 @@ public static class ResourceBuilderExtensions
                 throw new DistributedApplicationException($"A connection string for '{resource.Name}' could not be retrieved.");
             }
 
+            if (builder.Resource is ContainerResource && resource is ContainerResource)
+            {
+                connectionString = HostNameResolver.ReplaceLocalhostWithContainerHost(connectionString, builder.ApplicationBuilder.Configuration);
+            }
+
             context.EnvironmentVariables[connectionStringName] = connectionString;
         });
     }
@@ -211,7 +232,7 @@ public static class ResourceBuilderExtensions
             serviceReferenceAnnotation = new ServiceReferenceAnnotation(resourceWithBindings);
             builder.WithAnnotation(serviceReferenceAnnotation);
 
-            var callback = CreateServiceReferenceEnvironmentPopulationCallback(serviceReferenceAnnotation);
+            var callback = CreateServiceReferenceEnvironmentPopulationCallback(builder, serviceReferenceAnnotation);
             builder.WithEnvironment(callback);
         }
 
