@@ -280,12 +280,15 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
             exeSpec.WorkingDirectory = Path.GetDirectoryName(projectMetadata.ProjectPath);
 
             annotationHolder.Annotate(Executable.CSharpProjectPathAnnotation, projectMetadata.ProjectPath);
-            annotationHolder.Annotate(Executable.LaunchProfileNameAnnotation, project.SelectLaunchProfileName() ?? string.Empty);
             annotationHolder.Annotate(Executable.OtelServiceNameAnnotation, ers.Metadata.Name);
 
             if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable(DebugSessionPortVar)))
             {
                 exeSpec.ExecutionType = ExecutionType.IDE;
+                if (project.TryGetLastAnnotation<LaunchProfileAnnotation>(out var lpa))
+                {
+                    annotationHolder.Annotate(Executable.CSharpLaunchProfileAnnotation, lpa.LaunchProfileName);
+                }
             }
             else
             {
