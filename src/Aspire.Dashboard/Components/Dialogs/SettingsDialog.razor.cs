@@ -18,7 +18,7 @@ public partial class SettingsDialog : IDialogContentComponent, IAsyncDisposable
     private const string ThemeSettingLight = "Light";
 
     private string _currentSetting = ThemeSettingSystem;
-    private static readonly string? s_version = Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyFileVersionAttribute>()?.Version;
+    private static readonly string? s_version = GetVersionFromAssembly();
 
     private IJSObjectReference? _jsModule;
 
@@ -51,6 +51,34 @@ public partial class SettingsDialog : IDialogContentComponent, IAsyncDisposable
 
         _currentSetting = newValue;
         await ThemeManager.RaiseThemeChangedAsync(newValue);
+    }
+
+    private static string? GetVersionFromAssembly()
+    {
+        // The package version is stamped into the assembly's AssemblyInformationalVersionAttribute at build time, followed by a '+' and
+        // the commit hash, e.g.:
+        // [assembly: AssemblyInformationalVersion("8.0.0-preview.2.23604.7+e7762a46d31842884a0bc72c92e07ba700c99bf5")]
+
+        var version = Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+
+        if (version is not null)
+        {
+            var plusIndex = version.IndexOf('+');
+
+            if (plusIndex > 0)
+            {
+                return version[..plusIndex];
+            }
+
+            // Version was not in the expected format so just continue on.
+        }
+
+        // Fallback to the file version, which is based on the CI build number, and then fallback to the assembly version, which is
+        // product stable version, e.g. 8.0.0.0
+        version = Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyFileVersionAttribute>()?.Version
+            ?? Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyVersionAttribute>()?.Version;
+
+        return version;
     }
 
     private Task<float> GetBaseLayerLuminanceForSetting(string setting)
