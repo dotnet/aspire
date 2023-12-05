@@ -70,7 +70,7 @@ public partial class SettingsDialog : IDialogContentComponent, IAsyncDisposable
                 return version[..plusIndex];
             }
 
-            // Version was not in the expected format so just continue on.
+            return version;
         }
 
         // Fallback to the file version, which is based on the CI build number, and then fallback to the assembly version, which is
