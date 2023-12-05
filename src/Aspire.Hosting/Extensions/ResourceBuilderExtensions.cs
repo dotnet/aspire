@@ -66,9 +66,9 @@ public static class ResourceBuilderExtensions
     {
         return builder.WithAnnotation(new EnvironmentCallbackAnnotation(name, () =>
         {
-            var replaceLocalhostWithMachineHost = builder.Resource is ContainerResource && endpointReference.Owner is ContainerResource;
+            var replaceLocalhostWithContainerHost = builder.Resource is ContainerResource;
 
-            return replaceLocalhostWithMachineHost
+            return replaceLocalhostWithContainerHost
             ? HostNameResolver.ReplaceLocalhostWithContainerHost(endpointReference.UriString, builder.ApplicationBuilder.Configuration)
             : endpointReference.UriString;
         }));
@@ -105,21 +105,21 @@ public static class ResourceBuilderExtensions
 
             var containsAmbiguousEndpoints = ContainsAmbiguousEndpoints(allocatedEndPoints);
 
-            var replaceLocalhostWithMachineHost = builder.Resource is ContainerResource && serviceReferencesAnnotation.Resource is ContainerResource;
+            var replaceLocalhostWithContainerHost = builder.Resource is ContainerResource;
             var configuration = builder.ApplicationBuilder.Configuration;
 
             var i = 0;
             foreach (var allocatedEndPoint in allocatedEndPoints)
             {
                 var bindingNameQualifiedUriStringKey = $"services__{name}__{i++}";
-                context.EnvironmentVariables[bindingNameQualifiedUriStringKey] = replaceLocalhostWithMachineHost
+                context.EnvironmentVariables[bindingNameQualifiedUriStringKey] = replaceLocalhostWithContainerHost
                 ? HostNameResolver.ReplaceLocalhostWithContainerHost(allocatedEndPoint.BindingNameQualifiedUriString, configuration)
                 : allocatedEndPoint.BindingNameQualifiedUriString;
 
                 if (!containsAmbiguousEndpoints)
                 {
                     var uriStringKey = $"services__{name}__{i++}";
-                    context.EnvironmentVariables[uriStringKey] = replaceLocalhostWithMachineHost
+                    context.EnvironmentVariables[uriStringKey] = replaceLocalhostWithContainerHost
                     ? HostNameResolver.ReplaceLocalhostWithContainerHost(allocatedEndPoint.UriString, configuration)
                     : allocatedEndPoint.UriString;
                 }
@@ -176,7 +176,7 @@ public static class ResourceBuilderExtensions
                 throw new DistributedApplicationException($"A connection string for '{resource.Name}' could not be retrieved.");
             }
 
-            if (builder.Resource is ContainerResource && resource is ContainerResource)
+            if (builder.Resource is ContainerResource)
             {
                 connectionString = HostNameResolver.ReplaceLocalhostWithContainerHost(connectionString, builder.ApplicationBuilder.Configuration);
             }
