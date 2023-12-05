@@ -25,7 +25,6 @@
     <ProjectReference Include="..\..\..\src\Aspire.Hosting\Aspire.Hosting.csproj" />
     <ProjectReference Include="..\..\..\src\Aspire.Hosting.Azure.Provisioning\Aspire.Hosting.Azure.Provisioning.csproj" />
     <ProjectReference Include="..\..\..\src\Aspire.Hosting.Orleans\Aspire.Hosting.Orleans.csproj" />
-    <ProjectReference Include="..\FrontEnd\FrontEnd.csproj" />
     <ProjectReference Include="..\OrleansServer\OrleansServer.csproj" />
   </ItemGroup>
   

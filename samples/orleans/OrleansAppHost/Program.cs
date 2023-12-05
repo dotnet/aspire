@@ -30,9 +30,6 @@ var orleans = builder.AddOrleans("my-app")
 builder.AddProject<Projects.OrleansServer>("silo")
        .AddResource(orleans);
 
-builder.AddProject<Projects.FrontEnd>("frontend")
-       .AddResource(orleans);
-
 using var app = builder.Build();
 
 await app.RunAsync();

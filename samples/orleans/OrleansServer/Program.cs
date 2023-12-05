@@ -1,14 +1,35 @@
 using Aspire.Orleans.Server;
-using Microsoft.Extensions.Hosting;
 using Orleans.Runtime;
 
-var builder = Host.CreateApplicationBuilder(args);
-builder.AddServiceDefaults();
-builder.UseAspireOrleansServer();
+var builder = WebApplication.CreateBuilder(args);
 
-using var host = builder.Build();
+builder
+    .AddServiceDefaults()
+    .UseAspireOrleansServer();
 
-await host.RunAsync();
+var app = builder.Build();
+
+app.MapGet("/counter/{grainId}", async (IClusterClient client, string grainId) =>
+{
+    var grain = client.GetGrain<ICounterGrain>(grainId);
+    return await grain.Get();
+});
+
+app.MapPost("/counter/{grainId}", async (IClusterClient client, string grainId) =>
+{
+    var grain = client.GetGrain<ICounterGrain>(grainId);
+    return await grain.Increment();
+});
+
+app.UseFileServer();
+
+await app.RunAsync();
+
+public interface ICounterGrain : IGrainWithStringKey
+{
+    ValueTask<int> Increment();
+    ValueTask<int> Get();
+}
 
 public sealed class CounterGrain(
     [PersistentState("count")] IPersistentState<int> count) : ICounterGrain
