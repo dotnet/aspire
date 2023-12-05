@@ -13,8 +13,6 @@ namespace Aspire.Hosting;
 public static class MongoDBBuilderExtensions
 {
     private const int DefaultContainerPort = 27017;
-    private const string PasswordEnvVarName = "MONGO_INITDB_ROOT_PASSWORD";
-    private const string UserNameEnvVarName = "MONGO_INITDB_ROOT_USERNAME";
 
     /// <summary>
     /// Adds a MongoDB container to the application model. The default image is "mongo" and the tag is "latest".
@@ -31,17 +29,13 @@ public static class MongoDBBuilderExtensions
         int? port = null,
         string? password = null)
     {
-        password ??= Guid.NewGuid().ToString("N");
-
-        var mongoDBContainer = new MongoDBContainerResource(name, password);
+        var mongoDBContainer = new MongoDBContainerResource(name);
 
         return builder
             .AddResource(mongoDBContainer)
             .WithManifestPublishingCallback(WriteMongoDBContainerToManifest)
             .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, port: port, containerPort: DefaultContainerPort)) // Internal port is always 27017.
-            .WithAnnotation(new ContainerImageAnnotation { Image = "mongo", Tag = "latest" })
-            .WithEnvironment(PasswordEnvVarName, () => mongoDBContainer.Password)
-            .WithEnvironment(UserNameEnvVarName, () => mongoDBContainer.UserName);
+            .WithAnnotation(new ContainerImageAnnotation { Image = "mongo", Tag = "latest" });
     }
 
     /// <summary>

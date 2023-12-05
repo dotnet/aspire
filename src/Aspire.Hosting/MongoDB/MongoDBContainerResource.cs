@@ -9,15 +9,8 @@ namespace Aspire.Hosting.ApplicationModel;
 /// A resource that represents a MongoDB container.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
-/// <param name="password">The MongoDB root password.</param>
-public class MongoDBContainerResource(string name, string password) : ContainerResource(name), IMongoDBResource
+public class MongoDBContainerResource(string name) : ContainerResource(name), IMongoDBResource
 {
-    private const string DefaultUserName = "root";
-
-    public string Password { get; } = password;
-
-    public string UserName { get; } = DefaultUserName;
-
     /// <summary>
     /// Gets the connection string for the MongoDB server.
     /// </summary>
@@ -34,8 +27,6 @@ public class MongoDBContainerResource(string name, string password) : ContainerR
         return new MongoDBConnectionStringBuilder()
             .WithServer(allocatedEndpoint.Address)
             .WithPort(allocatedEndpoint.Port)
-            .WithUserName(UserName)
-            .WithPassword(Password)
             .Build();
     }
 }
