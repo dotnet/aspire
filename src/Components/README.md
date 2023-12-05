@@ -2,11 +2,29 @@
 
 Aspire components are classic .NET NuGet packages which are designed as highly usable libraries. .NET Aspire components feature rich production-ready telemetry, health checks, configurability, testability, and documentation. For the current state of the components included in this repo and tracked for .NET Aspire's first preview, please check out the [.NET Aspire Components Progress](./Aspire_Components_Progress.md) page.
 
+## Contribution guidelines
+
+We aim to have a diverse set of high quality Aspire components, making it easy to pick from many different technologies when building Aspire apps. We expect to continue to add more components, and we welcome contributions of others, but we explicitly don't want to include every possible component. The set will be gently curated: in order to make sure that components are useful and dependable, we have some broad criteria below for components contributed to dotnet/aspire. These will likely evolve over time based on feedback, but we expect some requirements (such as actively supported) to remain firm:
+
+1. We expect to welcome any components that would have value to Aspire users and align with what Aspire is intended to do, subject to the below.
+2. We don't expect to choose preferred techs. For example, if there are two commonly used providers for database XYZ, we are comfortable with having one component for each. We would like component naming and granularity to be clear enough that customers can make informed decisions. Aspire is agnostic to your choice of cloud provider, too.
+3. We will require that the tech represented by the component is being actively supported. In most cases we expect that it is widely used, although we expect that part will be a judgement call.
+4. Components contributed to dotnet/aspire must meet the same quality and completeness bar of other contributions. ie., we won't have a lower quality bar for experimental or niche components.
+5. Where there's a component that meet the above criteria, but that isn't something we expect to be a high priority for the Aspire committers to maintain, we'll ask for a plan to sustain it (eg., motivated contributors ready to fix bugs in it)
+
+Note: only components that are built from dotnet/aspire will be able to use the Aspire package name prefix. There is no technical barrier to using components built elsewhere, without the Aspire prefix, but currently our idea is that all broadly available Aspire components will live here in dotnet/aspire and have the Aspire package prefix. We welcome feedback on this and all the other principles listed here, though.
+
+In summary we encourage and are excited to accept contributions of components, but it's probably a good idea to first open an issue to discuss any new potential component before offering a PR, to make sure we're all in agreement that it's a good fit with these principles.
+
+## Versioning and Releases
+
+Each component is in its own NuGet package, and can version independently, including declaring itself in a preview state using the standard SemVer and NuGet mechanisms. We expect to typically push updates to all components at the same time we update the core Aspire packages, but we have flexibility here.
+
 ## Naming
 
-- Each component's name should contain just an `Aspire.` prefix.
-- When component is built around `ABC` client library, it should contain the client library name in its name. Example: `Aspire.ABC`.
-- When given client library is just one of many libraries that allows to consume given service, the names that refer to component need to be specific, not generic. Example: Npgsql is not the only db driver for PostgreSQL database, so the extension method should be called `AddNpgsql` rather than `AddPostgreSQL`.
+- Each component's name must have the prefix `Aspire.`.
+- When component is built around `ABC` client library, it should contain the client library name in its name. Example: `Aspire.ABC`. Where the technology has a particular casing we have preferred that: for example `Aspire.RabbitMQ` rather than `Aspire.RabbitMq`.
+- When the client library is just one of many libraries that allows to consume given service, the names that refer to component need to be specific, not generic. Example: Npgsql is not the only db driver for PostgreSQL database, so the extension method should be called `AddNpgsql` rather than `AddPostgreSQL`. The goal here is to help app authors make an informed decision about which to choose.
 
 ## Public API
 
@@ -16,7 +34,7 @@ Aspire components are classic .NET NuGet packages which are designed as highly u
 - Each component should provide it's own public and `sealed` `Settings` type.
   > [!NOTE]
   > This type does not use the name `Options` because it is not an [IOptions](https://learn.microsoft.com/dotnet/core/extensions/options). `IOptions` objects can be configured through dependency injection. These settings need to be read before the DI container is built, so they can't be `IOptions`.
-- The settings type name should be unique (no generic names like `ConfigurationOptions`), don't contain an `Aspire` prefix and follow the client-lib name. Example: when a component wraps an `ABC` client library, the component is called `Aspire.ABC` and the settings type is called `ABCSettings`.
+- The settings type name should be unique (no generic names like `ConfigurationOptions`), not contain an `Aspire` prefix and follow the client-lib name. Example: when a component wraps an `ABC` client library, the package is called `Aspire.ABC` and the settings type is named `ABCSettings` and is either in the `Aspire.ABC` namespace or a sub namespace.
 
 ## Configuration
 
