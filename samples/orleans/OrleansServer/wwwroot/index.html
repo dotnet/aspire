@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <title>Orleans Aspire Demo</title>
+    <script>
+        function getValue() {
+            let grainId = document.getElementById('grainId').value;
+            var xmlHttp = new XMLHttpRequest();
+            xmlHttp.onreadystatechange = function () {
+                if (xmlHttp.readyState == 4 && xmlHttp.status == 200)
+                    document.getElementById('value').value = xmlHttp.responseText;
+            }
+            xmlHttp.open("GET", "/counter/".concat(grainId), true);
+            xmlHttp.send(null);
+        };
+        function incrementValue() {
+            let grainId = document.getElementById('grainId').value;
+            var xmlHttp = new XMLHttpRequest();
+            xmlHttp.onreadystatechange = function () {
+                if (xmlHttp.readyState == 4 && xmlHttp.status == 200)
+                    document.getElementById('value').value = xmlHttp.responseText;
+            }
+            xmlHttp.open("POST", "/counter/".concat(grainId), true);
+            xmlHttp.send(null);
+        };
+    </script>
+</head>
+<body onload="getValue()">
+    <form action="#" id="counterForm" onsubmit="incrementValue()">
+        <label for="grainId">GrainId: </label>
+        <input type="text" id="grainId" class="form-control" value="myGrain" />
+        <label for="value">Counter value: </label>
+        <input type="text" id="value" class="form-control" disabled="disabled" />
+        <button type="submit">Increment</button>
+    </form>
+</body>
+</html>

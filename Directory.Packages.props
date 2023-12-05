@@ -71,6 +71,12 @@
     <PackageVersion Include="JsonSchema.Net" Version="5.4.0" />
     <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.1.1" />
     <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.1.0" />
+    <PackageVersion Include="Microsoft.Orleans.Client" Version="7.2.3" />
+    <PackageVersion Include="Microsoft.Orleans.Clustering.AzureStorage" Version="7.2.3" />
+    <PackageVersion Include="Microsoft.Orleans.Persistence.AzureStorage" Version="7.2.3" />
+    <PackageVersion Include="Microsoft.Orleans.Sdk" Version="7.2.3" />
+    <PackageVersion Include="Microsoft.Orleans.Server" Version="7.2.3" />
+    <PackageVersion Include="Microsoft.Orleans.Reminders.AzureStorage" Version="7.2.3" />
     <PackageVersion Include="MySqlConnector.DependencyInjection" Version="2.3.1" />
     <PackageVersion Include="Npgsql.DependencyInjection" Version="8.0.0" />
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.0" />
