@@ -4,6 +4,7 @@
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp.Model;
+using Aspire.Hosting.Lifecycle;
 using k8s;
 
 namespace Aspire.Hosting.Dcp;
@@ -44,9 +45,13 @@ internal sealed class ServiceAppResource : AppResource
     }
 }
 
-internal sealed class ApplicationExecutor(DistributedApplicationModel model, KubernetesService kubernetesService)
+internal sealed class ApplicationExecutor(DistributedApplicationModel model,
+                                          KubernetesService kubernetesService,
+                                          IEnumerable<IDistributedApplicationLifecycleHook> lifecycleHooks)
 {
     private const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
+
+    private readonly IDistributedApplicationLifecycleHook[] _lifecycleHooks = lifecycleHooks.ToArray();
 
     // These environment variables should never be inherited from app host;
     // they only make sense if they come from a launch profile of a service project.
@@ -155,6 +160,11 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
     {
         var toCreate = _appResources.Where(r => r.DcpResource is Container || r.DcpResource is Executable || r.DcpResource is ExecutableReplicaSet);
         AddAllocatedEndpointInfo(toCreate);
+
+        foreach (var lifecycleHook in _lifecycleHooks)
+        {
+            await lifecycleHook.AfterEndpointsAllocatedAsync(_model, cancellationToken).ConfigureAwait(false);
+        }
 
         await CreateContainersAsync(toCreate.Where(ar => ar.DcpResource is Container && ar.ServicesConsumed.Any()), cancellationToken).ConfigureAwait(false);
         await CreateExecutablesAsync(toCreate.Where(ar => ar.DcpResource is Executable || ar.DcpResource is ExecutableReplicaSet), cancellationToken).ConfigureAwait(false);
