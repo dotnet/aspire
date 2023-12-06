@@ -606,7 +606,11 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
 
     public async ValueTask DisposeAsync()
     {
-        // TODO: close all channels
+        // NOTE we don't complete channel writers, nor wait for channel readers to complete.
+        // Instead we signal cancellation, which causes both processes to halt immediately.
+        // Any pending messages will be collected along with this class, which is being disposed
+        // right now. We don't have to clean anything up for the channels.
+
         await _cancellationTokenSource.CancelAsync().ConfigureAwait(false);
     }
 
