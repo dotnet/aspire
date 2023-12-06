@@ -270,6 +270,9 @@ public class TelemetryRepository
                 OtlpScope? scope;
                 try
                 {
+                    // The instrumentation scope information for the spans in this message.
+                    // Semantically when InstrumentationScope isn't set, it is equivalent with
+                    // an empty instrumentation scope name (unknown).
                     var name = sl.Scope?.Name ?? string.Empty;
                     if (!_logScopes.TryGetValue(name, out scope))
                     {
@@ -543,10 +546,14 @@ public class TelemetryRepository
                 OtlpScope? scope;
                 try
                 {
-                    if (!_traceScopes.TryGetValue(scopeSpan.Scope.Name, out scope))
+                    // The instrumentation scope information for the spans in this message.
+                    // Semantically when InstrumentationScope isn't set, it is equivalent with
+                    // an empty instrumentation scope name (unknown).
+                    var name = scopeSpan.Scope?.Name ?? string.Empty;
+                    if (!_traceScopes.TryGetValue(name, out scope))
                     {
-                        scope = new OtlpScope(scopeSpan.Scope);
-                        _traceScopes.Add(scopeSpan.Scope.Name, scope);
+                        scope = (scopeSpan.Scope != null) ? new OtlpScope(scopeSpan.Scope) : OtlpScope.Empty;
+                        _traceScopes.Add(name, scope);
                     }
                 }
                 catch (Exception ex)
