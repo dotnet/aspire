@@ -18,7 +18,11 @@ In summary we encourage and are excited to accept contributions of components, b
 
 ## Versioning and Releases
 
-Each component is in its own NuGet package, and can version independently, including declaring itself in a preview state using the standard SemVer and NuGet mechanisms. We expect to typically push updates to all components at the same time we update the core Aspire packages, but we have flexibility here.
+Each component is in its own NuGet package, and can version independently, including declaring itself in a preview state using the standard SemVer and NuGet mechanisms. However we expect the major and minor version of components to follow the core Aspire packages to make it easier to reason about dependencies. We expect to typically push updates to all components at the same time we update the core Aspire packages, but we have the ability to push an updated component at any other time if necessary, for example where changes to the underlying client library makes it necessary.
+
+## Icon
+
+Where the component represents some client technology that has a widely recognized logo, we would like to use that for the package icon if we can. Take a look at the MySql component for an example. We can only do this if the owner of the logo allows it - often you can find posted guidelines describing acceptable usage. Otherwise we can add reach out for explicit permission and do a follow up commit to add the icon if and when the use is approved.
 
 ## Naming
 
