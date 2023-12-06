@@ -10,12 +10,21 @@ namespace Aspire.Dashboard.Otlp.Model;
 /// </summary>
 public class OtlpScope
 {
+    public static readonly OtlpScope Empty = new OtlpScope();
+
     public string ScopeName { get; }
     public string Version { get; }
 
     public KeyValuePair<string, string>[] Properties { get; }
 
     public string ServiceProperties => Properties.ConcatProperties();
+
+    private OtlpScope()
+    {
+        ScopeName = string.Empty;
+        Properties = Array.Empty<KeyValuePair<string, string>>();
+        Version = string.Empty;
+    }
 
     public OtlpScope(InstrumentationScope scope)
     {

@@ -270,10 +270,11 @@ public class TelemetryRepository
                 OtlpScope? scope;
                 try
                 {
-                    if (!_logScopes.TryGetValue(sl.Scope.Name, out scope))
+                    var name = sl.Scope?.Name ?? string.Empty;
+                    if (!_logScopes.TryGetValue(name, out scope))
                     {
-                        scope = new OtlpScope(sl.Scope);
-                        _logScopes.Add(sl.Scope.Name, scope);
+                        scope = (sl.Scope != null) ? new OtlpScope(sl.Scope) : OtlpScope.Empty;
+                        _logScopes.Add(name, scope);
                     }
                 }
                 catch (Exception ex)

@@ -94,7 +94,6 @@ public class LogTests
                 {
                     new ScopeLogs
                     {
-                        Scope = CreateScope("TestLogger"),
                         LogRecords =
                         {
                             CreateLogRecord(time: s_testTime.AddMinutes(1), message: "1"),
@@ -124,7 +123,11 @@ public class LogTests
             Filters = []
         });
         Assert.Collection(logs.Items,
-            l => Assert.Equal("1", l.Message),
+            l =>
+            {
+                Assert.Equal("1", l.Message);
+                Assert.Equal("", l.Scope.ScopeName);
+            },
             l => Assert.Equal("2", l.Message),
             l => Assert.Equal("3", l.Message),
             l => Assert.Equal("4", l.Message),
