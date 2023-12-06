@@ -5,7 +5,7 @@ using MongoDB.Driver;
 
 public static class MongoDBExtensions
 {
-    public static void ConfigureMongoDB(this WebApplication app)
+    public static void MapMongoMovieApi(this WebApplication app)
     {
         // Resolving IMongoDatabase creates the database automatically from the connection string property
 

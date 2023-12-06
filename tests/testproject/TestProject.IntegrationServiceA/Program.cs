@@ -17,6 +17,6 @@ app.MapGet("/", () => "Hello World!");
 
 app.MapGet("/pid", () => Environment.ProcessId);
 
-app.ConfigureMongoDB();
+app.MapMongoMovieApi();
 
 app.Run();
