@@ -266,9 +266,16 @@ public partial class StructuredLogs
         NavigationManager.NavigateTo(url);
     }
 
-    private static string GetRowClass(OtlpLogEntry entry)
+    private string GetRowClass(OtlpLogEntry entry)
     {
-        return $"log-row-{entry.Severity.ToString().ToLowerInvariant()}";
+        if (entry == _selectedLogEntry)
+        {
+            return "selected-row";
+        }
+        else
+        {
+            return $"log-row-{entry.Severity.ToString().ToLowerInvariant()}";
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
