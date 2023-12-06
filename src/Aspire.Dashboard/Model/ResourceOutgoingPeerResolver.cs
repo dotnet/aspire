@@ -21,20 +21,18 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
         _dashboardViewModelService = dashboardViewModelService;
         _subscriptions = new List<ModelSubscription>();
 
-        var viewModelMonitor = _dashboardViewModelService.GetResources();
-        var initialList = viewModelMonitor.Snapshot;
-        var watch = viewModelMonitor.Watch;
+        var (snapshot, subscription) = _dashboardViewModelService.GetResources();
 
-        foreach (var result in initialList)
+        foreach (var resource in snapshot)
         {
-            _resourceNameMapping[result.Name] = result;
+            _resourceNameMapping[resource.Name] = resource;
         }
 
         _watchTask = Task.Run(async () =>
         {
-            await foreach (var resourceChanged in watch.WithCancellation(_watchContainersTokenSource.Token))
+            await foreach (var (changeType, resource) in subscription.WithCancellation(_watchContainersTokenSource.Token))
             {
-                await OnResourceListChanged(resourceChanged.ObjectChangeType, resourceChanged.Resource).ConfigureAwait(false);
+                await OnResourceListChanged(changeType, resource).ConfigureAwait(false);
             }
         });
     }

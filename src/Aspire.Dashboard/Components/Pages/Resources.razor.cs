@@ -24,9 +24,6 @@ public partial class Resources : ComponentBase, IDisposable
     private IEnumerable<EnvironmentVariableViewModel>? SelectedEnvironmentVariables { get; set; }
     private ResourceViewModel? SelectedResource { get; set; }
 
-    private static ViewModelMonitor<ResourceViewModel> GetViewModelMonitor(IDashboardViewModelService dashboardViewModelService)
-        => dashboardViewModelService.GetResources();
-
     private bool Filter(ResourceViewModel resource)
         => ((resource.ResourceType == "Project" && _areProjectsVisible) ||
             (resource.ResourceType == "Container" && _areContainersVisible) ||
@@ -78,19 +75,19 @@ public partial class Resources : ComponentBase, IDisposable
     protected override void OnInitialized()
     {
         _applicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
-        var viewModelMonitor = GetViewModelMonitor(DashboardViewModelService);
-        var resources = viewModelMonitor.Snapshot;
-        var watch = viewModelMonitor.Watch;
-        foreach (var resource in resources)
+
+        var (snapshot, subscription) = DashboardViewModelService.GetResources();
+
+        foreach (var resource in snapshot)
         {
             _resourcesMap.Add(resource.Name, resource);
         }
 
         _ = Task.Run(async () =>
         {
-            await foreach (var resourceChanged in watch.WithCancellation(_watchTaskCancellationTokenSource.Token))
+            await foreach (var (changeType, resource) in subscription.WithCancellation(_watchTaskCancellationTokenSource.Token))
             {
-                await OnResourceListChanged(resourceChanged.ObjectChangeType, resourceChanged.Resource);
+                await OnResourceListChanged(changeType, resource);
             }
         });
 
