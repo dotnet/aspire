@@ -42,7 +42,7 @@
             <FluentDataGrid Items="@FilteredResources" ResizableColumns="true" GridTemplateColumns="1fr 2fr 1fr 2fr 3fr 2fr 1fr 1fr" >
                 <ChildContent>
                     <PropertyColumn Property="@(c => c.ResourceType)" Title="Type" Sortable="true" />
-                    <TemplateColumn Title="Name (Id)" Sortable="true" SortBy="@_nameSort">
+                    <TemplateColumn Title="Name (ID)" Sortable="true" SortBy="@_nameSort">
                         <ResourceNameDisplay Resource="context" FilterText="@_filter" />
                     </TemplateColumn>
                     <TemplateColumn Title="State" Sortable="true" SortBy="@_stateSort">

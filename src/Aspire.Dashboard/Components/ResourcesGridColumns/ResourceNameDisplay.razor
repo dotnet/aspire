@@ -4,7 +4,7 @@
     <span><FluentHighlighter HighlightedText="@FilterText" Text="@Resource.Name" /></span>
     @if (Resource is ProjectViewModel projectViewModel)
     {
-        var title = $"Process Id: {projectViewModel.ProcessId}";
+        var title = $"Process ID: {projectViewModel.ProcessId}";
         <span class="subtext" title="@title" aria-label="@title">@projectViewModel.ProcessId</span>
     }
     else if (Resource is ContainerViewModel containerViewModel)
@@ -14,12 +14,12 @@
                        MaxDisplayLength="8"
                        EnableHighlighting="false"
                        PreCopyToolTip="Copy container ID to clipboard"
-                       ToolTip="@($"Container Id: {containerViewModel.ContainerId}")"/>
+                       ToolTip="@($"Container ID: {containerViewModel.ContainerId}")"/>
         </div>
     }
     else if (Resource is ExecutableViewModel executableViewModel)
     {
-        var title = $"Process Id: {executableViewModel.ProcessId}";
+        var title = $"Process ID: {executableViewModel.ProcessId}";
         <span class="subtext" title="@title" aria-label="@title">@executableViewModel.ProcessId</span>
     }
 </FluentStack>
