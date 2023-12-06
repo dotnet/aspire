@@ -13,6 +13,10 @@
     <Description>.NET Aspire Template Pack for Microsoft Template Engine</Description>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Include="templates\**\*" />
+  </ItemGroup>
+
   <!-- When building a package, this target will run to copy all the templates into the intermediate directory, 
        replaces the package versions, and adds them to the package.-->
   <Target Name="AddTemplatesToPackageAsContent"
