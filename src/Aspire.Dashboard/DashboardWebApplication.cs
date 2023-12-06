@@ -97,6 +97,7 @@ public class DashboardWebApplication : IHostedService
         builder.Services.AddSingleton<ThemeManager>();
 
         configureServices(builder.Services);
+        builder.Services.AddLocalization();
 
         _app = builder.Build();
 
@@ -115,7 +116,7 @@ public class DashboardWebApplication : IHostedService
         {
             OnPrepareResponse = (context) =>
             {
-                // If Cache-Control isn't already set to something, set it to 'no-cache' so that the 
+                // If Cache-Control isn't already set to something, set it to 'no-cache' so that the
                 // ETag and Last-Modified headers will be respected by the browser.
                 // This may be able to be removed if https://github.com/dotnet/aspnetcore/issues/44153
                 // is fixed to make this the default

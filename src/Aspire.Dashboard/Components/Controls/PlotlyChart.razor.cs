@@ -6,6 +6,7 @@ using System.Globalization;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Model.MetricValues;
+using Aspire.Dashboard.Resources;
 using Humanizer;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
@@ -436,7 +437,7 @@ public partial class PlotlyChart : ComponentBase
         }
     }
 
-    private static string GetDisplayedUnit(OtlpInstrument instrument)
+    private string GetDisplayedUnit(OtlpInstrument instrument)
     {
         if (!string.IsNullOrEmpty(instrument.Unit))
         {
@@ -448,15 +449,15 @@ public partial class PlotlyChart : ComponentBase
         // but have a descriptive name that lets us infer the unit.
         if (instrument.Name.EndsWith(".count"))
         {
-            return "Count";
+            return Loc[ControlsStrings.PlotlyChartCount];
         }
         else if (instrument.Name.EndsWith(".length"))
         {
-            return "Length";
+            return Loc[ControlsStrings.PlotlyChartLength];
         }
         else
         {
-            return "Value";
+            return Loc[ControlsStrings.PlotlyChartValue];
         }
     }
 }
