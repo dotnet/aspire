@@ -266,19 +266,9 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                 yield break;
             }
 
-            if (OperatingSystem.IsMacOS())
+            if (OperatingSystem.IsMacOS() && Environment.GetEnvironmentVariable("HOMEBREW_PREFIX") is string homebrewPrefix)
             {
-                // $HOMEBREW_PREFIX path:
-                var homebrewPrefix = Environment.GetEnvironmentVariable("HOMEBREW_PREFIX");
-
-                if (homebrewPrefix is not null)
-                {
-                    yield return Path.Combine(homebrewPrefix, "bin", "dapr");
-                }
-                else
-                {
-                    yield return Path.Combine("/opt", "homebrew", "bin", "dapr");
-                }
+                yield return Path.Combine(homebrewPrefix, "bin", "dapr");
             }
 
             // Linux & MacOS path:
