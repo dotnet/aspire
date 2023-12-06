@@ -37,7 +37,7 @@ public partial class GridValue
     public EventCallback<bool> IsMaskedChanged { get; set; }
 
     [Parameter]
-    public int? MaxDisplayLength { get; set; } = 8;
+    public int? MaxDisplayLength { get; set; };
 
     [Parameter]
     public string? ToolTip { get; set; }
