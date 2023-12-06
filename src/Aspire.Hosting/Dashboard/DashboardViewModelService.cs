@@ -31,7 +31,10 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
     private readonly CancellationTokenSource _cancellationTokenSource = new();
     private readonly CancellationToken _cancellationToken;
 
+    // Private channels, for decoupling producer/consumer and serialising updates.
     private readonly Channel<(WatchEventType, string, CustomResource?)> _kubernetesChangesChannel;
+    private readonly Channel<ResourceChange> _resourceViewModelChangesChannel;
+
     private readonly Dictionary<string, Container> _containersMap = [];
     private readonly Dictionary<string, Executable> _executablesMap = [];
     private readonly Dictionary<string, Service> _servicesMap = [];
@@ -40,9 +43,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
     private readonly ConcurrentDictionary<string, List<EnvVar>> _additionalEnvVarsMap = [];
     private readonly HashSet<string> _containersWithTaskStarted = [];
 
-    private readonly Channel<ResourceChanged<ResourceViewModel>> _resourceViewModelChangesChannel;
-
-    private readonly ViewModelProcessor<ResourceViewModel> _resourceViewModelProcessor;
+    private readonly ViewModelProcessor _resourceViewModelProcessor;
 
     public DashboardViewModelService(
         DistributedApplicationModel applicationModel, KubernetesService kubernetesService, IHostEnvironment hostEnvironment, ILoggerFactory loggerFactory)
@@ -52,23 +53,23 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
         _applicationName = ComputeApplicationName(hostEnvironment.ApplicationName);
         _logger = loggerFactory.CreateLogger<DashboardViewModelService>();
         _cancellationToken = _cancellationTokenSource.Token;
+
         _kubernetesChangesChannel = Channel.CreateUnbounded<(WatchEventType, string, CustomResource?)>();
+        _resourceViewModelChangesChannel = Channel.CreateUnbounded<ResourceChange>();
 
         RunWatchTask<Executable>();
         RunWatchTask<Service>();
         RunWatchTask<Endpoint>();
         RunWatchTask<Container>();
 
-        _resourceViewModelChangesChannel = Channel.CreateUnbounded<ResourceChanged<ResourceViewModel>>();
-
         Task.Run(ProcessKubernetesChanges);
 
-        _resourceViewModelProcessor = new ViewModelProcessor<ResourceViewModel>(_resourceViewModelChangesChannel, _cancellationToken);
+        _resourceViewModelProcessor = new ViewModelProcessor(_resourceViewModelChangesChannel, _cancellationToken);
     }
 
     public string ApplicationName => _applicationName;
 
-    public ViewModelMonitor<ResourceViewModel> GetResources() => _resourceViewModelProcessor.GetResourceMonitor();
+    public ViewModelMonitor GetResources() => _resourceViewModelProcessor.GetMonitor();
 
     private void RunWatchTask<T>()
             where T : CustomResource
@@ -290,7 +291,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
     private async Task WriteChange(ResourceViewModel resourceViewModel, ObjectChangeType changeType = ObjectChangeType.Modified)
     {
         await _resourceViewModelChangesChannel.Writer.WriteAsync(
-            new ResourceChanged<ResourceViewModel>(changeType, resourceViewModel), _cancellationToken)
+            new ResourceChange(changeType, resourceViewModel), _cancellationToken)
             .ConfigureAwait(false);
     }
 

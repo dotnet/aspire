@@ -24,9 +24,6 @@ public partial class Resources : ComponentBase, IDisposable
     private IEnumerable<EnvironmentVariableViewModel>? SelectedEnvironmentVariables { get; set; }
     private string? SelectedResourceName { get; set; }
 
-    private static ViewModelMonitor<ResourceViewModel> GetViewModelMonitor(IDashboardViewModelService dashboardViewModelService)
-        => dashboardViewModelService.GetResources();
-
     private bool Filter(ResourceViewModel resource)
         => ((resource.ResourceType == "Project" && _areProjectsVisible) ||
             (resource.ResourceType == "Container" && _areContainersVisible) ||
@@ -78,7 +75,7 @@ public partial class Resources : ComponentBase, IDisposable
     protected override void OnInitialized()
     {
         _applicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
-        var viewModelMonitor = GetViewModelMonitor(DashboardViewModelService);
+        var viewModelMonitor = DashboardViewModelService.GetResources();
         var resources = viewModelMonitor.Snapshot;
         var watch = viewModelMonitor.Watch;
         foreach (var resource in resources)
