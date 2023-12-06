@@ -3,10 +3,12 @@
 @using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Otlp.Model.MetricValues
+@using Aspire.Dashboard.Resources
+@inject IStringLocalizer<ControlsStrings> Loc
 
-@if (_instrument == null)
+@if (_instrument is null)
 {
-    <div>Unable to display chart.</div>
+    <div>@Loc[nameof(ControlsStrings.ChartContainerUnableToDisplay)]</div>
 }
 else
 {
@@ -22,7 +24,7 @@ else
         {
             <div class="metrics-filters-container">
                 <div style="margin-left: 10px">
-                    <h5>Filters</h5>
+                    <h5>@Loc[ControlsStrings.ChartContainerFiltersHeader]</h5>
                     <table style="width:100%">
                         @foreach (var item in _viewModel.DimensionFilters)
                         {
@@ -31,8 +33,8 @@ else
                                 <td class="dimension-values" title="@string.Join(", ", item.SelectedValues.Select(v => v.Name))">
                                     <FluentAutocomplete TOption="DimensionValueViewModel"
                                                         Width="250px"
-                                                        Placeholder="Select filters"
-                                                        AriaLabel="Select filters"
+                                                        Placeholder="@Loc[ControlsStrings.ChartContainerSelectFilters]"
+                                                        AriaLabel="@Loc[ControlsStrings.ChartContainerSelectFilters]"
                                                         OnOptionsSearch="item.OnSearchAsync"
                                                         OptionText="@(item => item.Name)"
                                                         @bind-SelectedOptions="item.SelectedValues"
@@ -44,5 +46,5 @@ else
                 </div>
             </div>
         }
-    </div>    
+    </div>
 }
