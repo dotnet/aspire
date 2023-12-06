@@ -16,8 +16,8 @@ internal class HostNameResolver
         // This configuration value is a workaround for the fact that host.docker.internal is not available on Linux by default.
         var hostName = configuration["AppHost:ContainerHostname"] ?? "host.docker.internal";
 
-        // REVIEW: Handle IPV6?
         return value.Replace("localhost", hostName, StringComparison.OrdinalIgnoreCase)
-                    .Replace("127.0.0.1", hostName);
+                    .Replace("127.0.0.1", hostName)
+                    .Replace("[::1]", hostName);
     }
 }
