@@ -197,4 +197,7 @@ public partial class Resources : ComponentBase, IDisposable
     {
         NavigationManager.NavigateTo($"/StructuredLogs/{resource.Uid}?level=error");
     }
+
+    private string? GetRowClass(ResourceViewModel resource)
+        => string.Equals(resource.Name, SelectedResourceName, StringComparison.Ordinal) ? "selected-row" : null;
 }
