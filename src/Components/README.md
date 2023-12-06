@@ -10,7 +10,7 @@ We aim to have a diverse set of high quality Aspire components, making it easy t
 2. We don't expect to choose preferred techs. For example, if there are two commonly used providers for database XYZ, we are comfortable with having one component for each. We would like component naming and granularity to be clear enough that customers can make informed decisions. Aspire is agnostic to your choice of cloud provider, too.
 3. We will require that the tech represented by the component is being actively supported. In most cases we expect that it is widely used, although we expect that part will be a judgement call.
 4. Components contributed to dotnet/aspire must meet the same quality and completeness bar of other contributions. ie., we won't have a lower quality bar for experimental or niche components.
-5. Where there's a component that meet the above criteria, but that isn't something we expect to be a high priority for the Aspire committers to maintain, we'll ask for a plan to sustain it (eg., motivated contributors ready to fix bugs in it)
+5. Where there's a component that meets the above criteria, but that isn't something we expect to be a high priority for the Aspire committers to maintain, we'll ask for a plan to sustain it (eg., motivated contributors ready to fix bugs in it)
 
 Note: only components that are built from dotnet/aspire will be able to use the Aspire package name prefix. There is no technical barrier to using components built elsewhere, without the Aspire prefix, but currently our idea is that all broadly available Aspire components will live here in dotnet/aspire and have the Aspire package prefix. We welcome feedback on this and all the other principles listed here, though.
 
