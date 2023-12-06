@@ -233,7 +233,7 @@ Aspire.RabbitMQ.Client:
 
 Aspire.StackExchange.Redis:
 - Log categories:
-  - "StackExchange.Redis"
+  - "Aspire.StackExchange.Redis" (this name is defined by our component, we can change it)
 - Activity source names:
   - "OpenTelemetry.Instrumentation.StackExchangeRedis"
 - Metric names:

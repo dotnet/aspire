@@ -2,7 +2,7 @@
   "definitions": {
     "logLevel": {
       "properties": {
-        "StackExchange.Redis": {
+        "Aspire.StackExchange.Redis": {
           "$ref": "#/definitions/logLevelThreshold"
         }
       }
