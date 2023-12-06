@@ -4,6 +4,8 @@
 using System.Diagnostics;
 using System.Globalization;
 using Aspire.Dashboard.Otlp.Model;
+using Aspire.Dashboard.Resources;
+using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Dashboard.Model.Otlp;
@@ -11,29 +13,30 @@ namespace Aspire.Dashboard.Model.Otlp;
 [DebuggerDisplay("{FilterText,nq}")]
 public class LogFilter
 {
+    public IStringLocalizer<Dialogs> Loc { get; set; } = default!;
     public string Field { get; set; } = default!;
     public FilterCondition Condition { get; set; }
     public string Value { get; set; } = default!;
-    public string FilterText => $"{Field} {ConditionToString(Condition)} {Value}";
+    public string FilterText => $"{Field} {ConditionToString(Loc, Condition)} {Value}";
 
-    public static List<string> GetAllPropertyNames(List<string> propertyKeys)
+    public static List<string> GetAllPropertyNames(IStringLocalizer<Dialogs> loc, List<string> propertyKeys)
     {
-        var result = new List<string> { "Message", "Category", "Application", "TraceId", "SpanId", "OriginalFormat" };
+        var result = new List<string> { loc[Dialogs.FilterFieldMessage], loc[Dialogs.FilterFieldCategory], loc[Dialogs.FilterFieldApplication], loc[Dialogs.FilterFieldTraceId], loc[Dialogs.FilterFieldSpanId], loc[Dialogs.FilterFieldOriginalFormat] };
         result.AddRange(propertyKeys);
         return result;
     }
 
-    public static string ConditionToString(FilterCondition c) =>
+    public static string ConditionToString(IStringLocalizer<Dialogs> loc, FilterCondition c) =>
         c switch
         {
             FilterCondition.Equals => "==",
-            FilterCondition.Contains => "contains",
+            FilterCondition.Contains => loc[Dialogs.FilterConditionContains],
             FilterCondition.GreaterThan => ">",
             FilterCondition.LessThan => "<",
             FilterCondition.GreaterThanOrEqual => ">=",
             FilterCondition.LessThanOrEqual => "<=",
             FilterCondition.NotEqual => "!=",
-            FilterCondition.NotContains => "not contains",
+            FilterCondition.NotContains => loc[Dialogs.FilterConditionNotContains],
             _ => throw new ArgumentOutOfRangeException(nameof(c), c, null)
         };
 
@@ -81,16 +84,31 @@ public class LogFilter
 
     private string? GetFieldValue(OtlpLogEntry x)
     {
-        return Field switch
+        if (Field == Loc[Dialogs.FilterFieldMessage])
         {
-            "Message" => x.Message,
-            "Application" => x.Application.ApplicationName,
-            "TraceId" => x.TraceId,
-            "SpanId" => x.SpanId,
-            "OriginalFormat" => x.OriginalFormat,
-            "Category" => x.Scope.ScopeName,
-            _ => x.Properties.GetValue(Field)
-        };
+            return x.Message;
+        }
+        if (Field == Loc[Dialogs.FilterFieldApplication])
+        {
+            return x.Application.ApplicationName;
+        }
+        if (Field == Loc[Dialogs.FilterFieldTraceId])
+        {
+            return x.TraceId;
+        }
+        if (Field == Loc[Dialogs.FilterFieldSpanId])
+        {
+            return x.SpanId;
+        }
+        if (Field == Loc[Dialogs.FilterFieldOriginalFormat])
+        {
+            return x.OriginalFormat;
+        }
+        if (Field == Loc[Dialogs.FilterFieldCategory])
+        {
+            return x.Scope.ScopeName;
+        }
+        return x.Properties.GetValue(Field);
     }
 
     public IEnumerable<OtlpLogEntry> Apply(IEnumerable<OtlpLogEntry> input)

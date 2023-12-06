@@ -6,10 +6,12 @@
 @using Aspire.Dashboard.Otlp.Storage
 @using Microsoft.Extensions.Logging
 @using System.Web
+@using Aspire.Dashboard.Resources
 @inject NavigationManager NavigationManager
 @inject IDashboardViewModelService DashboardViewModelService
 @inject IJSRuntime JS
 @implements IDisposable
+@inject IStringLocalizer<Dialogs> Loc
 
 <PageTitle>@DashboardViewModelService.ApplicationName Structured Logs</PageTitle>
 

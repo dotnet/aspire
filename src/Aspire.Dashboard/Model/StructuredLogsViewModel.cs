@@ -4,6 +4,8 @@
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Resources;
+using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Dashboard.Model;
@@ -11,6 +13,7 @@ namespace Aspire.Dashboard.Model;
 public class StructuredLogsViewModel
 {
     private readonly TelemetryRepository _telemetryRepository;
+    private readonly IStringLocalizer<Dialogs> _loc;
     private readonly List<LogFilter> _filters = new();
 
     private PagedResult<OtlpLogEntry>? _logs;
@@ -20,8 +23,9 @@ public class StructuredLogsViewModel
     private int? _logsCount;
     private LogLevel? _logLevel;
 
-    public StructuredLogsViewModel(TelemetryRepository telemetryRepository)
+    public StructuredLogsViewModel(TelemetryRepository telemetryRepository, IStringLocalizer<Dialogs> loc)
     {
+        _loc = loc;
         _telemetryRepository = telemetryRepository;
     }
 
@@ -65,12 +69,12 @@ public class StructuredLogsViewModel
             var filters = Filters.ToList();
             if (!string.IsNullOrWhiteSpace(FilterText))
             {
-                filters.Add(new LogFilter { Field = nameof(OtlpLogEntry.Message), Condition = FilterCondition.Contains, Value = FilterText });
+                filters.Add(new LogFilter { Field = nameof(OtlpLogEntry.Message), Condition = FilterCondition.Contains, Value = FilterText, Loc = _loc });
             }
             // If the log level is set and it is not the bottom level, which has no effect, then add a filter.
             if (_logLevel != null && _logLevel != Microsoft.Extensions.Logging.LogLevel.Trace)
             {
-                filters.Add(new LogFilter { Field = nameof(OtlpLogEntry.Severity), Condition = FilterCondition.GreaterThanOrEqual, Value = _logLevel.Value.ToString() });
+                filters.Add(new LogFilter { Field = nameof(OtlpLogEntry.Severity), Condition = FilterCondition.GreaterThanOrEqual, Value = _logLevel.Value.ToString(), Loc = _loc });
             }
 
             logs = _telemetryRepository.GetLogs(new GetLogsContext

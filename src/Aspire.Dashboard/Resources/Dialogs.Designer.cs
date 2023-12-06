@@ -22,7 +22,7 @@ namespace Aspire.Dashboard.Resources {
     [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "17.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    internal class Dialogs {
+    public class Dialogs {
         
         private static global::System.Resources.ResourceManager resourceMan;
         
@@ -36,7 +36,7 @@ namespace Aspire.Dashboard.Resources {
         ///   Returns the cached ResourceManager instance used by this class.
         /// </summary>
         [global::System.ComponentModel.EditorBrowsableAttribute(global::System.ComponentModel.EditorBrowsableState.Advanced)]
-        internal static global::System.Resources.ResourceManager ResourceManager {
+        public static global::System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.ReferenceEquals(resourceMan, null)) {
                     global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("Aspire.Dashboard.Resources.Dialogs", typeof(Dialogs).Assembly);
@@ -51,12 +51,174 @@ namespace Aspire.Dashboard.Resources {
         ///   resource lookups using this strongly typed resource class.
         /// </summary>
         [global::System.ComponentModel.EditorBrowsableAttribute(global::System.ComponentModel.EditorBrowsableState.Advanced)]
-        internal static global::System.Globalization.CultureInfo Culture {
+        public static global::System.Globalization.CultureInfo Culture {
             get {
                 return resourceCulture;
             }
             set {
                 resourceCulture = value;
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to contains.
+        /// </summary>
+        public static string FilterConditionContains {
+            get {
+                return ResourceManager.GetString("FilterConditionContains", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to not contains.
+        /// </summary>
+        public static string FilterConditionNotContains {
+            get {
+                return ResourceManager.GetString("FilterConditionNotContains", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Apply Filter.
+        /// </summary>
+        public static string FilterDialogApplyFilterButtonText {
+            get {
+                return ResourceManager.GetString("FilterDialogApplyFilterButtonText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Cancel.
+        /// </summary>
+        public static string FilterDialogCancelButtonText {
+            get {
+                return ResourceManager.GetString("FilterDialogCancelButtonText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Field.
+        /// </summary>
+        public static string FilterDialogFieldPlaceholder {
+            get {
+                return ResourceManager.GetString("FilterDialogFieldPlaceholder", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Remove Filter.
+        /// </summary>
+        public static string FilterDialogRemoveFilterButtonText {
+            get {
+                return ResourceManager.GetString("FilterDialogRemoveFilterButtonText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Value.
+        /// </summary>
+        public static string FilterDialogTextValuePlaceholder {
+            get {
+                return ResourceManager.GetString("FilterDialogTextValuePlaceholder", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Application.
+        /// </summary>
+        public static string FilterFieldApplication {
+            get {
+                return ResourceManager.GetString("FilterFieldApplication", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Category.
+        /// </summary>
+        public static string FilterFieldCategory {
+            get {
+                return ResourceManager.GetString("FilterFieldCategory", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Message.
+        /// </summary>
+        public static string FilterFieldMessage {
+            get {
+                return ResourceManager.GetString("FilterFieldMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to OriginalFormat.
+        /// </summary>
+        public static string FilterFieldOriginalFormat {
+            get {
+                return ResourceManager.GetString("FilterFieldOriginalFormat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to SpanId.
+        /// </summary>
+        public static string FilterFieldSpanId {
+            get {
+                return ResourceManager.GetString("FilterFieldSpanId", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to TraceId.
+        /// </summary>
+        public static string FilterFieldTraceId {
+            get {
+                return ResourceManager.GetString("FilterFieldTraceId", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Dark.
+        /// </summary>
+        public static string SettingsDialogDarkTheme {
+            get {
+                return ResourceManager.GetString("SettingsDialogDarkTheme", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Light.
+        /// </summary>
+        public static string SettingsDialogLightTheme {
+            get {
+                return ResourceManager.GetString("SettingsDialogLightTheme", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to System.
+        /// </summary>
+        public static string SettingsDialogSystemTheme {
+            get {
+                return ResourceManager.GetString("SettingsDialogSystemTheme", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Theme.
+        /// </summary>
+        public static string SettingsDialogTheme {
+            get {
+                return ResourceManager.GetString("SettingsDialogTheme", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to .
+        /// </summary>
+        public static string SettingsDialogVersion {
+            get {
+                return ResourceManager.GetString("SettingsDialogVersion", resourceCulture);
             }
         }
     }

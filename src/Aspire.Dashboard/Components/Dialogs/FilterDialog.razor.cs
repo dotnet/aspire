@@ -12,16 +12,10 @@ namespace Aspire.Dashboard.Components.Dialogs;
 
 public partial class FilterDialog
 {
-    private static readonly List<SelectViewModel<FilterCondition>> s_filterConditions = new List<SelectViewModel<FilterCondition>>
-    {
-        CreateFilterSelectViewModel(FilterCondition.Equals),
-        CreateFilterSelectViewModel(FilterCondition.Contains),
-        CreateFilterSelectViewModel(FilterCondition.NotEqual),
-        CreateFilterSelectViewModel(FilterCondition.NotContains),
-    };
+    private List<SelectViewModel<FilterCondition>> _filterConditions = null!;
 
-    private static SelectViewModel<FilterCondition> CreateFilterSelectViewModel(FilterCondition condition) =>
-        new SelectViewModel<FilterCondition> { Id = condition, Name = LogFilter.ConditionToString(condition) };
+    private SelectViewModel<FilterCondition> CreateFilterSelectViewModel(FilterCondition condition) =>
+        new SelectViewModel<FilterCondition> { Id = condition, Name = LogFilter.ConditionToString(Loc, condition) };
 
     [CascadingParameter]
     public FluentDialog? Dialog { get; set; }
@@ -37,24 +31,32 @@ public partial class FilterDialog
 
     protected override void OnInitialized()
     {
+        _filterConditions = new List<SelectViewModel<FilterCondition>>
+        {
+            CreateFilterSelectViewModel(FilterCondition.Equals),
+            CreateFilterSelectViewModel(FilterCondition.Contains),
+            CreateFilterSelectViewModel(FilterCondition.NotEqual),
+            CreateFilterSelectViewModel(FilterCondition.NotContains),
+        };
+
         _formModel = new LogDialogFormModel();
         EditContext = new EditContext(_formModel);
 
         if (Content.Filter is { } logFilter)
         {
             _formModel.Parameter = logFilter.Field;
-            _formModel.Condition = s_filterConditions.Single(c => c.Id == logFilter.Condition);
+            _formModel.Condition = _filterConditions.Single(c => c.Id == logFilter.Condition);
             _formModel.Value = logFilter.Value;
         }
         else
         {
-            _formModel.Parameter = "Message";
-            _formModel.Condition = s_filterConditions.Single(c => c.Id == FilterCondition.Contains);
+            _formModel.Parameter = Loc[Resources.Dialogs.FilterFieldMessage];
+            _formModel.Condition = _filterConditions.Single(c => c.Id == FilterCondition.Contains);
             _formModel.Value = "";
         }
     }
 
-    public List<string> Parameters => LogFilter.GetAllPropertyNames(Content.LogPropertyKeys);
+    public List<string> Parameters => LogFilter.GetAllPropertyNames(Loc, Content.LogPropertyKeys);
 
     private void Cancel()
     {
@@ -82,7 +84,8 @@ public partial class FilterDialog
             {
                 Field = _formModel.Parameter!,
                 Condition = _formModel.Condition!.Id,
-                Value = _formModel.Value!
+                Value = _formModel.Value!,
+                Loc = Loc
             };
 
             Dialog!.CloseAsync(DialogResult.Ok(new FilterDialogResult() { Filter = filter, Add = true }));
