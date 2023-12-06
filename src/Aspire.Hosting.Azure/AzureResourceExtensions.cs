@@ -172,10 +172,22 @@ public static class AzureResourceExtensions
     /// For more information on the Azure Cosmos DB emulator, see <a href="https://learn.microsoft.com/azure/cosmos-db/emulator#authentication"></a>
     /// </summary>
     /// <param name="builder">The Azure Cosmos DB resource builder.</param>
+    /// <param name="port">The port used for the client SDK to access the emulator. Defaults to <c>8081</c></param>
     /// <returns>A reference to the <see cref="IResourceBuilder{AzureCosmosDBResource}"/>.</returns>
-    public static IResourceBuilder<AzureCosmosDBResource> UseEmulator(this IResourceBuilder<AzureCosmosDBResource> builder)
+    /// <remarks>
+    /// When using the Azure Cosmos DB emulator, the container requires a TLS/SSL certificate.
+    /// For more information, see <a href="https://learn.microsoft.com/azure/cosmos-db/how-to-develop-emulator?tabs=docker-linux#export-the-emulators-tlsssl-certificate"></a>
+    /// </remarks>
+    public static IResourceBuilder<AzureCosmosDBResource> UseEmulator(this IResourceBuilder<AzureCosmosDBResource> builder, int port = 8081)
     {
-        builder.Resource.ConnectionString = AzureCosmosDBResource.EmulatorConnectionString;
+        builder.WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, name: "emulator", port: port, containerPort: 8081))
+            .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, containerPort: 10250))
+            .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, containerPort: 10251))
+            .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, containerPort: 10252))
+            .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, containerPort: 10253))
+            .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, containerPort: 10254))
+            .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, containerPort: 10255))
+            .WithAnnotation(new ContainerImageAnnotation { Image = "mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator", Tag = "latest" });
 
         return builder;
     }
