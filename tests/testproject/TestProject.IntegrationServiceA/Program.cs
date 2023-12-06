@@ -15,6 +15,7 @@ builder.AddKeyedMySqlDataSource("mysqlabstract");
 builder.AddKeyedRedis("redisabstract");
 builder.AddKeyedNpgsqlDataSource("postgresabstract");
 builder.AddKeyedRabbitMQ("rabbitmqabstract");
+builder.AddKeyedMongoDBClient("mongodbabstract");
 
 var app = builder.Build();
 

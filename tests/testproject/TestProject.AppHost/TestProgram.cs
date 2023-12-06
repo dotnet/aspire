@@ -43,6 +43,7 @@ public class TestProgram
             var redisAbstract = AppBuilder.AddRedisContainer("redisabstract");
             var postgresAbstract = AppBuilder.AddPostgresContainer("postgresabstract");
             var rabbitmqAbstract = AppBuilder.AddRabbitMQContainer("rabbitmqabstract");
+            var mongodbAbstract = AppBuilder.AddMongoDB("mongodbabstract");
 
             IntegrationServiceABuilder = AppBuilder.AddProject<Projects.IntegrationServiceA>("integrationservicea")
                 .WithReference(sqlserverContainer)
@@ -55,7 +56,8 @@ public class TestProgram
                 .WithReference(mysqlAbstract)
                 .WithReference(redisAbstract)
                 .WithReference(postgresAbstract)
-                .WithReference(rabbitmqAbstract);
+                .WithReference(rabbitmqAbstract)
+                .WithReference(mongodbAbstract);
         }
     }
 

@@ -44,18 +44,7 @@
           "containerPort": 6379
         }
       },
-      "connectionString": "Host={basketcache.bindings.tcp.host};Port={basketcache.bindings.tcp.port};Username=postgres;Password={basketcache.inputs.password};",
-      "inputs": {
-        "password": {
-          "type": "string",
-          "secret": true,
-          "default": {
-            "generate": {
-              "minLength": 10
-            }
-          }
-        }
-      }
+      "connectionString": "{basketcache.bindings.tcp.host}:{basketcache.bindings.tcp.port}"
     },
     "sql": {
       "type": "container.v0",
