@@ -37,7 +37,7 @@ public partial class GridValue
     public EventCallback<bool> IsMaskedChanged { get; set; }
 
     [Parameter]
-    public int? MaxDisplayLength { get; set; }
+    public int? MaxDisplayLength { get; set; } = 8;
 
     [Parameter]
     public string? ToolTip { get; set; }
@@ -61,6 +61,13 @@ public partial class GridValue
     private async Task CopyTextToClipboardAsync(string? text, string id)
         => await JS.InvokeVoidAsync("copyTextToClipboard", id, text, PreCopyToolTip, PostCopyToolTip);
 
-    private static string TrimLength(string? text)
-        => text?.Length > 8 ? text.Substring(0, 8) : text ?? string.Empty;
+    private string TrimLength(string? text)
+    {
+        if (text is not null && MaxDisplayLength is int maxLength && text.Length > maxLength)
+        {
+            return text[..maxLength];
+        }
+
+        return text ?? "";
+    }
 }
