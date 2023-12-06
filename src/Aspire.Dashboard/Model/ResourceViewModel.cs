@@ -8,7 +8,6 @@ public abstract class ResourceViewModel
     public required string Name { get; init; }
     public required string DisplayName { get; init; }
     public required string Uid { get; init; }
-    public required NamespacedName NamespacedName { get; init; }
     public string? State { get; init; }
     public DateTime? CreationTimeStamp { get; init; }
     public List<EnvironmentVariableViewModel> Environment { get; } = new();
@@ -44,5 +43,3 @@ public sealed class ResourceService(string name, string? allocatedAddress, int? 
     public int? AllocatedPort { get; } = allocatedPort;
     public string AddressAndPort { get; } = $"{allocatedAddress}:{allocatedPort}";
 }
-
-public sealed record NamespacedName(string Name, string? Namespace);
