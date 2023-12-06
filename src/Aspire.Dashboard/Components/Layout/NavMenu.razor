@@ -1,11 +1,14 @@
-﻿<div class="nav-menu-container">
+﻿@using Aspire.Dashboard.Resources
+@inject IStringLocalizer<Layout> Loc
+
+<div class="nav-menu-container">
     <FluentNavMenu Width="250" Collapsible="true">
-        <FluentNavLink Icon="@(new Icons.Regular.Size24.AppFolder())" Href="/" Match="NavLinkMatch.All">Resources</FluentNavLink>
-        <FluentNavGroup Title="Monitoring" Icon="@(new Icons.Regular.Size24.SlideText())" Expanded="true" Gap="10px 0;">
-            <FluentNavLink Icon="@(new Icons.Regular.Size24.SlideText())" Href="/ConsoleLogs">Console Logs</FluentNavLink>
-            <FluentNavLink Icon="@(new Icons.Regular.Size24.SlideTextSparkle())" Href="/StructuredLogs">Structured Logs</FluentNavLink>
-            <FluentNavLink Icon="@(new Icons.Regular.Size24.GanttChart())" Href="/Traces">Traces</FluentNavLink>
-            <FluentNavLink Icon="@(new Icons.Regular.Size24.ChartMultiple())" Href="/Metrics">Metrics</FluentNavLink>
+        <FluentNavLink Icon="@(new Icons.Regular.Size24.AppFolder())" Href="/" Match="NavLinkMatch.All">@Loc[Layout.NavMenuResourcesTab]</FluentNavLink>
+        <FluentNavGroup Title="@Loc[Layout.NavMenuMonitoringTab]" Icon="@(new Icons.Regular.Size24.SlideText())" Expanded="true" Gap="10px 0;">
+            <FluentNavLink Icon="@(new Icons.Regular.Size24.SlideText())" Href="/ConsoleLogs">@Loc[Layout.NavMenuConsoleLogsTab]</FluentNavLink>
+            <FluentNavLink Icon="@(new Icons.Regular.Size24.SlideTextSparkle())" Href="/StructuredLogs">@Loc[Layout.NavMenuStructuredLogsTab]</FluentNavLink>
+            <FluentNavLink Icon="@(new Icons.Regular.Size24.GanttChart())" Href="/Traces">@Loc[Layout.NavMenuTracesTab]</FluentNavLink>
+            <FluentNavLink Icon="@(new Icons.Regular.Size24.ChartMultiple())" Href="/Metrics">@Loc[Layout.NavMenuMetricsTab]</FluentNavLink>
         </FluentNavGroup>
     </FluentNavMenu>
 </div>

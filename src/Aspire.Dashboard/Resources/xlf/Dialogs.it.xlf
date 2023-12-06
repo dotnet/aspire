@@ -87,6 +87,11 @@
         <target state="new">Theme</target>
         <note />
       </trans-unit>
+      <trans-unit id="SettingsDialogVersion">
+        <source>Version: {0}</source>
+        <target state="new">Version: {0}</target>
+        <note />
+      </trans-unit>
     </body>
   </file>
 </xliff>
