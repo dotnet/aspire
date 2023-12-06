@@ -8,6 +8,7 @@ namespace Aspire.Dashboard.Components.Controls;
 
 public partial class PropertyGrid<TItem>
 {
+
     [Parameter, EditorRequired]
     public IQueryable<TItem>? Items { get; set; }
 
@@ -15,10 +16,10 @@ public partial class PropertyGrid<TItem>
     public string GridTemplateColumns { get; set; } = "1fr 1fr";
 
     [Parameter]
-    public string NameColumnTitle { get; set; } = "Name";
+    public string? NameColumnTitle { get; set; }
 
     [Parameter]
-    public string ValueColumnTitle { get; set; } = "Value";
+    public string? ValueColumnTitle { get; set; }
 
     [Parameter]
     public GridSort<TItem>? NameSort { get; set; }

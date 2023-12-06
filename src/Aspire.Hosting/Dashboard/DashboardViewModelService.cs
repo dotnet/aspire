@@ -78,10 +78,10 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
         {
             try
             {
-                await foreach (var tuple in _kubernetesService.WatchAsync<T>(cancellationToken: _cancellationToken))
+                await foreach (var (eventType, resource) in _kubernetesService.WatchAsync<T>(cancellationToken: _cancellationToken))
                 {
                     await _kubernetesChangesChannel.Writer.WriteAsync(
-                        (tuple.Item1, tuple.Item2.Metadata.Name, tuple.Item2), _cancellationToken).ConfigureAwait(false);
+                        (eventType, resource.Metadata.Name, resource), _cancellationToken).ConfigureAwait(false);
                 }
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
@@ -95,17 +95,15 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
     {
         try
         {
-            await foreach (var tuple in _kubernetesChangesChannel.Reader.ReadAllAsync(_cancellationToken))
+            await foreach (var (watchEventType, name, resource) in _kubernetesChangesChannel.Reader.ReadAllAsync(_cancellationToken))
             {
-                var (watchEventType, name, resource) = tuple;
                 // resource is null when we get notification from the task which fetch docker env vars
                 // So we inject the resource from current copy of containersMap
                 // But this could change in future
                 Debug.Assert(resource is not null || _containersMap.ContainsKey(name),
                     "Received a change notification with null resource which doesn't correlate to existing container.");
-                resource ??= _containersMap[name];
 
-                switch (resource)
+                switch (resource ?? _containersMap[name])
                 {
                     case Container container:
                         await ProcessContainerChange(watchEventType, container).ConfigureAwait(false);
@@ -250,9 +248,8 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
             return;
         }
 
-        foreach (var kvp in _resourceAssociatedServicesMap.Where(e => e.Value.Contains(service.Metadata.Name)))
+        foreach (var ((resourceKind, resourceName), _) in _resourceAssociatedServicesMap.Where(e => e.Value.Contains(service.Metadata.Name)))
         {
-            var (resourceKind, resourceName) = kvp.Key;
             switch (resourceKind)
             {
                 case ResourceKind.Container:
@@ -302,13 +299,14 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
             Name = container.Metadata.Name,
             DisplayName = container.Metadata.Name,
             Uid = container.Metadata.Uid,
-            NamespacedName = new(container.Metadata.Name, null),
             ContainerId = container.Status?.ContainerId,
             CreationTimeStamp = container.Metadata.CreationTimestamp?.ToLocalTime(),
             Image = container.Spec.Image!,
             LogSource = new DockerContainerLogSource(container.Status!.ContainerId!),
             State = container.Status?.State,
-            ExpectedEndpointsCount = GetExpectedEndpointsCount(_servicesMap.Values, container)
+            ExpectedEndpointsCount = GetExpectedEndpointsCount(_servicesMap.Values, container),
+            Command = container.Spec.Command,
+            Args = container.Spec.Args
         };
 
         if (container.Spec.Ports != null)
@@ -343,7 +341,6 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
             Name = executable.Metadata.Name,
             DisplayName = ComputeExecutableDisplayName(executable),
             Uid = executable.Metadata.Uid,
-            NamespacedName = new(executable.Metadata.Name, null),
             CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToLocalTime(),
             ExecutablePath = executable.Spec.ExecutablePath,
             WorkingDirectory = executable.Spec.WorkingDirectory,
@@ -370,7 +367,6 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
             Name = executable.Metadata.Name,
             DisplayName = ComputeExecutableDisplayName(executable),
             Uid = executable.Metadata.Uid,
-            NamespacedName = new(executable.Metadata.Name, null),
             CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToLocalTime(),
             ProjectPath = executable.Metadata.Annotations?[Executable.CSharpProjectPathAnnotation] ?? "",
             State = executable.Status?.State,
@@ -608,7 +604,11 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
 
     public async ValueTask DisposeAsync()
     {
-        // TODO: close all channels
+        // NOTE we don't complete channel writers, nor wait for channel readers to complete.
+        // Instead we signal cancellation, which causes both processes to halt immediately.
+        // Any pending messages will be collected along with this class, which is being disposed
+        // right now. We don't have to clean anything up for the channels.
+
         await _cancellationTokenSource.CancelAsync().ConfigureAwait(false);
     }
 
