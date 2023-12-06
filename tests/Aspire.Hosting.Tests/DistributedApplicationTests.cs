@@ -436,9 +436,21 @@ public class DistributedApplicationTests
         await app.StartAsync();
 
         var s = app.Services.GetRequiredService<KubernetesService>();
+
         var list = await s.ListAsync<Executable>();
 
         var proj = list.FirstOrDefault(x => x.Spec.WorkingDirectory?.Contains("LaunchSettings") == true);
+
+        // Getting info from k8s could take a little bit of time due to caching
+        for (var i = 0; i < 10; i++)
+        {
+            if (proj is not null)
+            {
+                break;
+            }
+
+            await Task.Delay(500);
+        }
 
         Assert.NotNull(proj);
         Assert.NotNull(proj.Spec.Env);
