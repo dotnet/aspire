@@ -24,6 +24,17 @@ else if (Resource is ContainerViewModel containerViewModel)
             <span class="subtext" title="@title" aria-label="@title">@ports</span>
         }
     </FluentStack>
+    <FluentStack Orientation="Orientation.Horizontal">
+        @if (containerViewModel.Command is not null)
+        {
+            <div class="ellipsis-overflow" title="Container command" aria-label="Container command">Command: @containerViewModel.Command</div>
+        }
+        @if (containerViewModel.Args is not null)
+        {
+            var args = string.Join(" ", containerViewModel.Args);
+            <div class="ellipsis-overflow" title="Container args" aria-label="Container args">@args</div>
+        }
+    </FluentStack>
 }
 
 @code {

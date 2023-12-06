@@ -9,4 +9,6 @@ public class ContainerViewModel : ResourceViewModel
     public string? ContainerId { get; init; }
     public required string Image { get; init; }
     public List<int> Ports { get; } = new();
+    public string? Command { get; init; }
+    public List<string>? Args { get; init; }
 }
