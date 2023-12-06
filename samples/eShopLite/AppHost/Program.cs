@@ -4,8 +4,6 @@ var catalogDb = builder.AddPostgresContainer("postgres").AddDatabase("catalogdb"
 
 var basketCache = builder.AddRedisContainer("basketcache");
 
-builder.AddSqlServerContainer("sql").AddDatabase("foo");
-
 var catalogService = builder.AddProject<Projects.CatalogService>("catalogservice")
                      .WithReference(catalogDb)
                      .WithReplicas(2);
