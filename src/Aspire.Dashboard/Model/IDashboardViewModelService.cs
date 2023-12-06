@@ -6,9 +6,7 @@ namespace Aspire.Dashboard.Model;
 public interface IDashboardViewModelService
 {
     string ApplicationName { get; }
-    ViewModelMonitor<ContainerViewModel> GetContainers();
-    ViewModelMonitor<ExecutableViewModel> GetExecutables();
-    ViewModelMonitor<ProjectViewModel> GetProjects();
+
     ViewModelMonitor<ResourceViewModel> GetResources();
 }
 
