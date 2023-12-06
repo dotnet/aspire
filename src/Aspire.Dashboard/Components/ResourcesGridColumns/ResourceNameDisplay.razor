@@ -4,8 +4,9 @@
     <span><FluentHighlighter HighlightedText="@FilterText" Text="@Resource.DisplayName" /></span>
     @if (Resource is ProjectViewModel projectViewModel)
     {
-        var title = $"PID: {projectViewModel.ProcessId}";
-        <span class="subtext" title="@title" aria-label="@title">@projectViewModel.ProcessId</span>
+        var content = projectViewModel.Uid.Substring(0, Math.Min(projectViewModel.Uid.Length, 8));
+        var title = $"({content})";
+        <span class="subtext" title="@title" aria-label="@title">@content</span>
     }
     else if (Resource is ContainerViewModel containerViewModel)
     {
@@ -19,8 +20,9 @@
     }
     else if (Resource is ExecutableViewModel executableViewModel)
     {
-        var title = $"PID: {executableViewModel.ProcessId}";
-        <span class="subtext" title="@title" aria-label="@title">@executableViewModel.ProcessId</span>
+        var content = executableViewModel.Uid.Substring(0, Math.Min(executableViewModel.Uid.Length, 8));
+        var title = $"({content})";
+        <span class="subtext" title="@title" aria-label="@title">@content</span>
     }
 </FluentStack>
 

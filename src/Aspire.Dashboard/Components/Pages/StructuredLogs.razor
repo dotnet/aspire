@@ -63,9 +63,9 @@
                 <div class="logs-grid-container continuous-scroll-overflow">
                     <FluentDataGrid Virtualize="true" RowClass="@GetRowClass" GenerateHeader="GenerateHeaderOption.Sticky" ItemSize="46" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="OtlpLogEntry" GridTemplateColumns="1fr 1fr 1fr 5fr 0.8fr 0.8fr">
                         <ChildContent>
-                            <TemplateColumn Title="Resource" Tooltip="true" TooltipText="(e) => e.Application.ApplicationName">
+                            <TemplateColumn Title="Resource" Tooltip="true" TooltipText="@(e => $"{e.Application.ApplicationName} ({e.Application.InstanceId.Substring(0, Math.Min(e.Application.InstanceId.Length, 8))})")">
                                 <span style="padding-left:5px; border-left-width: 5px; border-left-style: solid; border-left-color: @(ColorGenerator.Instance.GetColorHexByKey(context.Application.ApplicationName));">
-                                    @context.Application.ApplicationName
+                                    @($"{context.Application.ApplicationName} ({context.Application.InstanceId.Substring(0, Math.Min(context.Application.InstanceId.Length, 8))})")
                                 </span>
                             </TemplateColumn>
                             <TemplateColumn Title="Level">

@@ -37,6 +37,8 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
 
     private readonly Option<string> _noSelection = new() { Value = null, Text = "(Select a resource)" };
 
+    private const int InstanceIdHintLimit = 8;
+
     protected override void OnInitialized()
     {
         _status = LogStatus.LoadingResources;
@@ -246,16 +248,10 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
         switch (resource)
         {
             case ExecutableViewModel evm:
-                if (evm.ProcessId is not null)
-                {
-                    resourceName += $" (PID: {evm.ProcessId})";
-                }
+                resourceName += $" ({evm.Uid.Substring(0, Math.Min(evm.Uid.Length, InstanceIdHintLimit))})";
                 break;
             case ProjectViewModel pvm:
-                if (pvm.ProcessId is not null)
-                {
-                    resourceName += $" (PID: {pvm.ProcessId})";
-                }
+                resourceName += $" ({pvm.Uid.Substring(0, Math.Min(pvm.Uid.Length, InstanceIdHintLimit))})";
                 break;
             case ContainerViewModel cvm:
                 if (cvm.ContainerId is not null)

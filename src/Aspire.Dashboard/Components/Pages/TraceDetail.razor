@@ -61,7 +61,7 @@
                                 {
                                     <FluentIcon Icon="Icons.Filled.Size12.ErrorCircle" Color="Color.Error" Class="trace-tag-icon" />
                                 }
-                                @context.Span.Source.ApplicationName
+                                @($"{context.Span.Source.ApplicationName} ({context.Span.Source.InstanceId.Substring(0, Math.Min(context.Span.Source.InstanceId.Length, 8))})")
                                 @if (context.HasUninstrumentedPeer)
                                 {
                                     <span class="uninstrumented-peer">
