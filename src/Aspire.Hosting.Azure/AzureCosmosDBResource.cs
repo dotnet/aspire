@@ -14,6 +14,13 @@ public class AzureCosmosDBResource(string name, string? connectionString)
     : Resource(name), IResourceWithConnectionString, IAzureResource
 {
     /// <summary>
+    /// Gets the well-known and documented connection string for the Azure Cosmos DB emulator.
+    /// See <a href="https://learn.microsoft.com/azure/cosmos-db/emulator#authentication"></a>
+    /// </summary>
+    internal const string EmulatorConnectionString =
+        "AccountEndpoint=https://localhost:8081/;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==";
+
+    /// <summary>
     /// Gets or sets the connection string for the Azure Cosmos DB resource.
     /// </summary>
     public string? ConnectionString { get; set; } = connectionString;

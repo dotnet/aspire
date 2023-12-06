@@ -3,6 +3,7 @@
 
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure.Data.Cosmos;
 using Aspire.Hosting.Publishing;
 
 namespace Aspire.Hosting;
@@ -157,13 +158,26 @@ public static class AzureResourceExtensions
     /// <param name="blobPort">The port used for the blob endpoint.</param>
     /// <param name="queuePort">The port used for the queue endpoint.</param>
     /// <param name="tablePort">The port used for the table endpoint.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{AzureQueueStorageResource}"/>.</returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{AzureStorageResource}"/>.</returns>
     public static IResourceBuilder<AzureStorageResource> UseEmulator(this IResourceBuilder<AzureStorageResource> builder, int? blobPort = null, int? queuePort = null, int? tablePort = null)
     {
         return builder.WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, name: "blob", port: blobPort, containerPort: 10000))
-                             .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, name: "queue", port: queuePort, containerPort: 10001))
-                             .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, name: "table", port: tablePort, containerPort: 10002))
-                             .WithAnnotation(new ContainerImageAnnotation { Image = "mcr.microsoft.com/azure-storage/azurite", Tag = "latest" });
+            .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, name: "queue", port: queuePort, containerPort: 10001))
+            .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, name: "table", port: tablePort, containerPort: 10002))
+            .WithAnnotation(new ContainerImageAnnotation { Image = "mcr.microsoft.com/azure-storage/azurite", Tag = "latest" });
+    }
+
+    /// <summary>
+    /// Configures an Azure Cosmos DB resource to be emulated using the Azure Cosmos DB emulator. This resource requires an <see cref="AzureCosmosDBResource"/> to be added to the application model.
+    /// For more information on the Azure Cosmos DB emulator, see <a href="https://learn.microsoft.com/azure/cosmos-db/emulator#authentication"></a>
+    /// </summary>
+    /// <param name="builder">The Azure Cosmos DB resource builder.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{AzureCosmosDBResource}"/>.</returns>
+    public static IResourceBuilder<AzureCosmosDBResource> UseEmulator(this IResourceBuilder<AzureCosmosDBResource> builder)
+    {
+        builder.Resource.ConnectionString = AzureCosmosDBResource.EmulatorConnectionString;
+
+        return builder;
     }
 
     /// <summary>
