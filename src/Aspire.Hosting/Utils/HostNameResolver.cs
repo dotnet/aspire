@@ -5,11 +5,18 @@ using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting.Utils;
 
-internal class HostNameResolver
+/// <summary>
+/// Helpers to resolve host names when running in a containers.
+/// </summary>
+public class HostNameResolver
 {
-    // HACK: When the destination resource is a container, we need to replace the localhost with host.docker.internal
-    // so the container can access the other container via the host's IP address.
-    internal static string ReplaceLocalhostWithContainerHost(string value, IConfiguration configuration)
+    /// <summary>
+    /// Resolves the "localhost" with the container host name.
+    /// </summary>
+    /// <param name="value">The value that contains the localhost</param>
+    /// <param name="configuration">The configuration object.</param>
+    /// <returns>A new value with localhost replaced with the container host name</returns>
+    public static string ReplaceLocalhostWithContainerHost(string value, IConfiguration configuration)
     {
         // https://stackoverflow.com/a/43541732/45091
 
