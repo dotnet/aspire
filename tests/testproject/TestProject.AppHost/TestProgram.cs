@@ -37,7 +37,7 @@ public class TestProgram
             var redis = AppBuilder.AddRedisContainer("redis");
             var postgres = AppBuilder.AddPostgresContainer("postgres");
             var rabbitmq = AppBuilder.AddRabbitMQContainer("rabbitmq");
-            var mongodb = AppBuilder.AddMongoDBContainer("mongodb");
+            var mongodb = AppBuilder.AddMongoDBContainer("mongodb").AddDatabase("mymongodb");
 
             IntegrationServiceABuilder = AppBuilder.AddProject<Projects.IntegrationServiceA>("integrationservicea")
                 .WithReference(sqlserver)

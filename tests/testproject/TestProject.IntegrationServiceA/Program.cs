@@ -7,11 +7,16 @@ builder.AddMySqlDataSource("mysql");
 builder.AddRedis("redis");
 builder.AddNpgsqlDataSource("postgres");
 builder.AddRabbitMQ("rabbitmq");
-builder.AddMongoDBClient("mongodb");
+builder.AddMongoDBClient("mymongodb");
 
 var app = builder.Build();
 
 app.MapHealthChecks("/health");
+
 app.MapGet("/", () => "Hello World!");
+
 app.MapGet("/pid", () => Environment.ProcessId);
+
+app.ConfigureMongoDB();
+
 app.Run();
