@@ -21,7 +21,6 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
     private readonly IHostEnvironment _environment;
     private readonly ILogger<DaprDistributedApplicationLifecycleHook> _logger;
     private readonly DaprOptions _options;
-    private readonly DaprPortManager _portManager;
 
     private string? _onDemandResourcesRootPath;
 
@@ -30,15 +29,12 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
             ? Path.Combine(Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.Windows)) ?? "C:", "dapr", "dapr.exe")
             : Path.Combine("/usr", "local", "bin", "dapr");
 
-    private const int DaprHttpPortStartRange = 50001;
-
-    public DaprDistributedApplicationLifecycleHook(IConfiguration configuration, IHostEnvironment environment, ILogger<DaprDistributedApplicationLifecycleHook> logger, IOptions<DaprOptions> options, DaprPortManager portManager)
+    public DaprDistributedApplicationLifecycleHook(IConfiguration configuration, IHostEnvironment environment, ILogger<DaprDistributedApplicationLifecycleHook> logger, IOptions<DaprOptions> options)
     {
         _configuration = configuration;
         _environment = environment;
         _logger = logger;
         _options = options.Value;
-        _portManager = portManager;
     }
 
     public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
@@ -97,11 +93,11 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                 }
             }
 
-            var daprAppPortArg = (int? port) => NamedArg("--app-port", port);
-            var daprGrpcPortArg = (int? port) => NamedArg("--dapr-grpc-port", port);
-            var daprHttpPortArg = (int? port) => NamedArg("--dapr-http-port", port);
-            var daprMetricsPortArg = (int? port) => NamedArg("--metrics-port", port);
-            var daprProfilePortArg = (int? port) => NamedArg("--profile-port", port);
+            var daprAppPortArg = (int? port) => ModelNamedArg("--app-port", port);
+            var daprGrpcPortArg = (string? port) => ModelNamedArg("--dapr-grpc-port", port);
+            var daprHttpPortArg = (string? port) => ModelNamedArg("--dapr-http-port", port);
+            var daprMetricsPortArg = (string? port) => ModelNamedArg("--metrics-port", port);
+            var daprProfilePortArg = (string? port) => ModelNamedArg("--profile-port", port);
 
             var daprCommandLine =
                 CommandLineBuilder
@@ -109,73 +105,56 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         fileName,
                         Command("run"),
                         daprAppPortArg(sidecarOptions?.AppPort),
-                        daprGrpcPortArg(sidecarOptions?.DaprGrpcPort),
-                        daprHttpPortArg(sidecarOptions?.DaprHttpPort),
-                        daprMetricsPortArg(sidecarOptions?.MetricsPort),
-                        daprProfilePortArg(sidecarOptions?.ProfilePort),
-                        NamedArg("--app-channel-address", sidecarOptions?.AppChannelAddress),
-                        NamedArg("--app-health-check-path", sidecarOptions?.AppHealthCheckPath),
-                        NamedArg("--app-health-probe-interval", sidecarOptions?.AppHealthProbeInterval),
-                        NamedArg("--app-health-probe-timeout", sidecarOptions?.AppHealthProbeTimeout),
-                        NamedArg("--app-health-threshold", sidecarOptions?.AppHealthThreshold),
-                        NamedArg("--app-id", sidecarOptions?.AppId),
-                        NamedArg("--app-max-concurrency", sidecarOptions?.AppMaxConcurrency),
-                        NamedArg("--app-protocol", sidecarOptions?.AppProtocol),
-                        NamedArg("--config", NormalizePath(sidecarOptions?.Config)),
-                        NamedArg("--dapr-http-max-request-size", sidecarOptions?.DaprHttpMaxRequestSize),
-                        NamedArg("--dapr-http-read-buffer-size", sidecarOptions?.DaprHttpReadBufferSize),
-                        NamedArg("--dapr-internal-grpc-port", sidecarOptions?.DaprInternalGrpcPort),
-                        NamedArg("--dapr-listen-addresses", sidecarOptions?.DaprListenAddresses),
-                        NamedArg("--enable-api-logging", sidecarOptions?.EnableApiLogging),
-                        NamedArg("--enable-app-health-check", sidecarOptions?.EnableAppHealthCheck),
-                        NamedArg("--enable-profiling", sidecarOptions?.EnableProfiling),
-                        NamedArg("--log-level", sidecarOptions?.LogLevel),
-                        NamedArg("--placement-host-address", sidecarOptions?.PlacementHostAddress),
-                        NamedArg("--resources-path", aggregateResourcesPaths),
-                        NamedArg("--run-file", NormalizePath(sidecarOptions?.RunFile)),
-                        NamedArg("--unix-domain-socket", sidecarOptions?.UnixDomainSocket),
+                        daprGrpcPortArg(sidecarOptions?.DaprGrpcPort?.ToString(CultureInfo.InvariantCulture)),
+                        daprHttpPortArg(sidecarOptions?.DaprHttpPort?.ToString(CultureInfo.InvariantCulture)),
+                        daprMetricsPortArg(sidecarOptions?.MetricsPort?.ToString(CultureInfo.InvariantCulture)),
+                        daprProfilePortArg(sidecarOptions?.ProfilePort?.ToString(CultureInfo.InvariantCulture)),
+                        ModelNamedArg("--app-channel-address", sidecarOptions?.AppChannelAddress),
+                        ModelNamedArg("--app-health-check-path", sidecarOptions?.AppHealthCheckPath),
+                        ModelNamedArg("--app-health-probe-interval", sidecarOptions?.AppHealthProbeInterval),
+                        ModelNamedArg("--app-health-probe-timeout", sidecarOptions?.AppHealthProbeTimeout),
+                        ModelNamedArg("--app-health-threshold", sidecarOptions?.AppHealthThreshold),
+                        ModelNamedArg("--app-id", sidecarOptions?.AppId),
+                        ModelNamedArg("--app-max-concurrency", sidecarOptions?.AppMaxConcurrency),
+                        ModelNamedArg("--app-protocol", sidecarOptions?.AppProtocol),
+                        ModelNamedArg("--config", NormalizePath(sidecarOptions?.Config)),
+                        ModelNamedArg("--dapr-http-max-request-size", sidecarOptions?.DaprHttpMaxRequestSize),
+                        ModelNamedArg("--dapr-http-read-buffer-size", sidecarOptions?.DaprHttpReadBufferSize),
+                        ModelNamedArg("--dapr-internal-grpc-port", sidecarOptions?.DaprInternalGrpcPort),
+                        ModelNamedArg("--dapr-listen-addresses", sidecarOptions?.DaprListenAddresses),
+                        ModelNamedArg("--enable-api-logging", sidecarOptions?.EnableApiLogging),
+                        ModelNamedArg("--enable-app-health-check", sidecarOptions?.EnableAppHealthCheck),
+                        ModelNamedArg("--enable-profiling", sidecarOptions?.EnableProfiling),
+                        ModelNamedArg("--log-level", sidecarOptions?.LogLevel),
+                        ModelNamedArg("--placement-host-address", sidecarOptions?.PlacementHostAddress),
+                        ModelNamedArg("--resources-path", aggregateResourcesPaths),
+                        ModelNamedArg("--run-file", NormalizePath(sidecarOptions?.RunFile)),
+                        ModelNamedArg("--unix-domain-socket", sidecarOptions?.UnixDomainSocket),
                         PostOptionsArgs(Args(sidecarOptions?.Command)));
-
-            //
-            // NOTE: Use custom port allocator for unspecified ports until DCP supports executable command line port templates.
-            //
-
-            Dictionary<string, (int Port, Func<int?, CommandLineArgBuilder> ArgsBuilder, string? PortEnvVar)> ports = new()
-            {
-                { "grpc", (sidecarOptions?.DaprGrpcPort ?? this._portManager.ReservePort(DaprHttpPortStartRange), daprGrpcPortArg, "DAPR_GRPC_PORT") },
-                { "http", (sidecarOptions?.DaprHttpPort ?? this._portManager.ReservePort(DaprHttpPortStartRange), daprHttpPortArg, "DAPR_HTTP_PORT") },
-                { "metrics", (sidecarOptions?.MetricsPort ?? this._portManager.ReservePort(DaprHttpPortStartRange), daprMetricsPortArg, null) }
-            };
-
-            if (sidecarOptions?.EnableProfiling == true)
-            {
-                ports.Add("profile", (sidecarOptions?.ProfilePort ?? this._portManager.ReservePort(DaprHttpPortStartRange), daprProfilePortArg, null));
-            }
 
             if (!(sidecarOptions?.AppId is { } appId))
             {
                 throw new DistributedApplicationException("AppId is required for Dapr sidecar executable.");
             }
 
-            var daprSideCar = new ExecutableResource($"{resource.Name}-dapr", fileName, appHostDirectory, daprCommandLine.Arguments.ToArray());
+            var daprSideCarResourceName = $"{resource.Name}-dapr";
+            var daprSideCar = new ExecutableResource(daprSideCarResourceName, fileName, appHostDirectory, daprCommandLine.Arguments.ToArray());
 
             resource.Annotations.Add(
                 new EnvironmentCallbackAnnotation(
                     env =>
                     {
-                        if (daprSideCar.TryGetAllocatedEndPoints(out var endPoints))
-                        {
-                            foreach (var endPoint in endPoints)
-                            {
-                                if (ports.TryGetValue(endPoint.Name, out var value) && value.PortEnvVar is not null)
-                                {
-                                    env.TryAdd(value.PortEnvVar, endPoint.Port.ToString(CultureInfo.InvariantCulture));
-                                }
-                            }
-                        }
+                        env.TryAdd("DAPR_GRPC_PORT", $"{{{{- portFor \"{daprSideCarResourceName}_grpc\" -}}}}");
+                        env.TryAdd("DAPR_HTTP_PORT", $"{{{{- portFor \"{daprSideCarResourceName}_http\" -}}}}");
                     }));
 
-            daprSideCar.Annotations.AddRange(ports.Select(port => new ServiceBindingAnnotation(ProtocolType.Tcp, name: port.Key, port: port.Value.Port)));
+            daprSideCar.Annotations.Add(new ServiceBindingAnnotation(ProtocolType.Tcp, name: "grpc", port: sidecarOptions?.DaprGrpcPort));
+            daprSideCar.Annotations.Add(new ServiceBindingAnnotation(ProtocolType.Tcp, name: "http", port: sidecarOptions?.DaprHttpPort));
+            daprSideCar.Annotations.Add(new ServiceBindingAnnotation(ProtocolType.Tcp, name: "metrics", port: sidecarOptions?.MetricsPort));
+            if (sidecarOptions?.EnableProfiling == true)
+            {
+                daprSideCar.Annotations.Add(new ServiceBindingAnnotation(ProtocolType.Tcp, name: "profile", port: sidecarOptions?.ProfilePort));
+            }
 
             // NOTE: Telemetry is enabled by default.
             if (this._options.EnableTelemetry != false)
@@ -197,9 +176,12 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                             }
                         }
 
-                        foreach (var port in ports)
+                        updatedArgs.AddRange(daprGrpcPortArg($"{{{{- portForServing \"{daprSideCarResourceName}_grpc\" -}}}}")());
+                        updatedArgs.AddRange(daprHttpPortArg($"{{{{- portForServing \"{daprSideCarResourceName}_http\" -}}}}")());
+                        updatedArgs.AddRange(daprMetricsPortArg($"{{{{- portForServing \"{daprSideCarResourceName}_metrics\" -}}}}")());
+                        if (sidecarOptions?.EnableProfiling == true)
                         {
-                            updatedArgs.AddRange(port.Value.ArgsBuilder(port.Value.Port)());
+                            updatedArgs.AddRange(daprProfilePortArg($"{{{{- portForServing \"{daprSideCarResourceName}_profile\" -}}}}")());
                         }
                     }));
 

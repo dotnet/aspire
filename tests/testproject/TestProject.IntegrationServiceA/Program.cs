@@ -8,6 +8,7 @@ builder.AddMySqlDataSource("mysqlcontainer");
 builder.AddRedis("rediscontainer");
 builder.AddNpgsqlDataSource("postgrescontainer");
 builder.AddRabbitMQ("rabbitmqcontainer");
+builder.AddMongoDBClient("mongodbcontainer");
 
 builder.AddKeyedSqlServerClient("sqlserverabstract");
 builder.AddKeyedMySqlDataSource("mysqlabstract");

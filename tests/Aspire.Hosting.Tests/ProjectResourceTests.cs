@@ -62,7 +62,7 @@ public class ProjectResourceTests
             env =>
             {
                 Assert.Equal("OTEL_SERVICE_NAME", env.Key);
-                Assert.Equal("{{- .Name -}}", env.Value);
+                Assert.Equal("{{- index .Annotations \"otel-service-name\" -}}", env.Value);
             },
             env =>
             {

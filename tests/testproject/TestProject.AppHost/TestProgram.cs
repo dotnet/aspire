@@ -37,6 +37,7 @@ public class TestProgram
             var redisContainer = AppBuilder.AddRedisContainer("rediscontainer");
             var postgresContainer = AppBuilder.AddPostgresContainer("postgrescontainer");
             var rabbitmqContainer = AppBuilder.AddRabbitMQContainer("rabbitmqcontainer");
+            var mongodbContainer = AppBuilder.AddMongoDBContainer("mongodbcontainer");
             var sqlserverAbstract = AppBuilder.AddSqlServerContainer("sqlserverabstract");
             var mysqlAbstract = AppBuilder.AddMySqlContainer("mysqlabstract");
             var redisAbstract = AppBuilder.AddRedisContainer("redisabstract");
@@ -49,12 +50,12 @@ public class TestProgram
                 .WithReference(redisContainer)
                 .WithReference(postgresContainer)
                 .WithReference(rabbitmqContainer)
+                .WithReference(mongodbContainer)
                 .WithReference(sqlserverAbstract)
                 .WithReference(mysqlAbstract)
                 .WithReference(redisAbstract)
                 .WithReference(postgresAbstract)
                 .WithReference(rabbitmqAbstract);
-
         }
     }
 

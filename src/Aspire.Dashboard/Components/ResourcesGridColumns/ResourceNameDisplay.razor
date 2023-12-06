@@ -1,7 +1,7 @@
 ﻿@using Aspire.Dashboard.Model
 
 <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
-    <span><FluentHighlighter HighlightedText="@FilterText" Text="@Resource.Name" /></span>
+    <span><FluentHighlighter HighlightedText="@FilterText" Text="@Resource.DisplayName" /></span>
     @if (Resource is ProjectViewModel projectViewModel)
     {
         var title = $"PID: {projectViewModel.ProcessId}";

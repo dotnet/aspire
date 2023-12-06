@@ -6,6 +6,7 @@ namespace Aspire.Dashboard.Model;
 public abstract class ResourceViewModel
 {
     public required string Name { get; init; }
+    public required string DisplayName { get; init; }
     public required string Uid { get; init; }
     public required NamespacedName NamespacedName { get; init; }
     public string? State { get; init; }
