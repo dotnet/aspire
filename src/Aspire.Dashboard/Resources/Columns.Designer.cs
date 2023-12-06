@@ -22,7 +22,7 @@ namespace Aspire.Dashboard.Resources {
     [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "17.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    internal class Columns {
+    public class Columns {
         
         private static global::System.Resources.ResourceManager resourceMan;
         
@@ -36,7 +36,7 @@ namespace Aspire.Dashboard.Resources {
         ///   Returns the cached ResourceManager instance used by this class.
         /// </summary>
         [global::System.ComponentModel.EditorBrowsableAttribute(global::System.ComponentModel.EditorBrowsableState.Advanced)]
-        internal static global::System.Resources.ResourceManager ResourceManager {
+        public static global::System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.ReferenceEquals(resourceMan, null)) {
                     global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("Aspire.Dashboard.Resources.Columns", typeof(Columns).Assembly);
@@ -51,12 +51,129 @@ namespace Aspire.Dashboard.Resources {
         ///   resource lookups using this strongly typed resource class.
         /// </summary>
         [global::System.ComponentModel.EditorBrowsableAttribute(global::System.ComponentModel.EditorBrowsableState.Advanced)]
-        internal static global::System.Globalization.CultureInfo Culture {
+        public static global::System.Globalization.CultureInfo Culture {
             get {
                 return resourceCulture;
             }
             set {
                 resourceCulture = value;
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to None.
+        /// </summary>
+        public static string EndpointsColumnDisplayNone {
+            get {
+                return ResourceManager.GetString("EndpointsColumnDisplayNone", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Starting....
+        /// </summary>
+        public static string EndpointsColumnDisplayPlaceholder {
+            get {
+                return ResourceManager.GetString("EndpointsColumnDisplayPlaceholder", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to .
+        /// </summary>
+        public static string ResourceNameDisplayContainerIdText {
+            get {
+                return ResourceManager.GetString("ResourceNameDisplayContainerIdText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Copy Container ID to clipboard.
+        /// </summary>
+        public static string ResourceNameDisplayCopyContainerIdText {
+            get {
+                return ResourceManager.GetString("ResourceNameDisplayCopyContainerIdText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to .
+        /// </summary>
+        public static string ResourceNameDisplayProcessIdText {
+            get {
+                return ResourceManager.GetString("ResourceNameDisplayProcessIdText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Container args.
+        /// </summary>
+        public static string SourceColumnDisplayContainerArgsTitle {
+            get {
+                return ResourceManager.GetString("SourceColumnDisplayContainerArgsTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Command: {0}.
+        /// </summary>
+        public static string SourceColumnDisplayContainerCommand {
+            get {
+                return ResourceManager.GetString("SourceColumnDisplayContainerCommand", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Container command.
+        /// </summary>
+        public static string SourceColumnDisplayContainerCommandTitle {
+            get {
+                return ResourceManager.GetString("SourceColumnDisplayContainerCommandTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Port: {0}.
+        /// </summary>
+        public static string SourceColumnDisplayPort {
+            get {
+                return ResourceManager.GetString("SourceColumnDisplayPort", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Ports: {0}.
+        /// </summary>
+        public static string SourceColumnDisplayPorts {
+            get {
+                return ResourceManager.GetString("SourceColumnDisplayPorts", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Working Dir: {0}.
+        /// </summary>
+        public static string SourceColumnDisplayWorkingDirectory {
+            get {
+                return ResourceManager.GetString("SourceColumnDisplayWorkingDirectory", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} error log.
+        /// </summary>
+        public static string UnreadLogErrorsBadgeErrorLog {
+            get {
+                return ResourceManager.GetString("UnreadLogErrorsBadgeErrorLog", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} error logs.
+        /// </summary>
+        public static string UnreadLogErrorsBadgeErrorLogs {
+            get {
+                return ResourceManager.GetString("UnreadLogErrorsBadgeErrorLogs", resourceCulture);
             }
         }
     }

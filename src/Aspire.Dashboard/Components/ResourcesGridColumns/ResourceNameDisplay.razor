@@ -1,10 +1,12 @@
 ﻿@using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Resources
+@inject IStringLocalizer<Columns> Loc
 
 <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
     <span><FluentHighlighter HighlightedText="@FilterText" Text="@FormatName(Resource)" /></span>
     @if (Resource is ProjectViewModel projectViewModel)
     {
-        var title = $"Process ID: {projectViewModel.ProcessId}";
+        var title = string.Format(Loc[Columns.ResourceNameDisplayProcessIdText], projectViewModel.ProcessId);
         <span class="subtext" title="@title" aria-label="@title">@projectViewModel.ProcessId</span>
     }
     else if (Resource is ContainerViewModel containerViewModel)
@@ -13,13 +15,13 @@
             <GridValue Value="@containerViewModel.ContainerId"
                        MaxDisplayLength="8"
                        EnableHighlighting="false"
-                       PreCopyToolTip="Copy container ID to clipboard"
-                       ToolTip="@($"Container ID: {containerViewModel.ContainerId}")"/>
+                       PreCopyToolTip="@Loc[Columns.ResourceNameDisplayCopyContainerIdText]"
+                       ToolTip="@string.Format(Loc[Columns.ResourceNameDisplayContainerIdText], containerViewModel.ContainerId)"/>
         </div>
     }
     else if (Resource is ExecutableViewModel executableViewModel)
     {
-        var title = $"Process ID: {executableViewModel.ProcessId}";
+        var title = string.Format(Loc[Columns.ResourceNameDisplayProcessIdText], executableViewModel.ProcessId);
         <span class="subtext" title="@title" aria-label="@title">@executableViewModel.ProcessId</span>
     }
 </FluentStack>

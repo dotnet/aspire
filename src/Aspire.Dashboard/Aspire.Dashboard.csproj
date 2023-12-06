@@ -32,6 +32,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Update="Resources\Columns.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Columns.resx</DependentUpon>
+    </Compile>
     <Compile Update="Resources\ControlsStrings.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -40,6 +45,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Update="Resources\Columns.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>Columns.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
     <EmbeddedResource Update="Resources\ControlsStrings.resx">
       <XlfSourceFormat>Resx</XlfSourceFormat>
       <XlfOutputItem>EmbeddedResource</XlfOutputItem>

@@ -104,4 +104,44 @@
   <data name="EndpointsColumnDisplayPlaceholder" xml:space="preserve">
     <value>Starting...</value>
   </data>
+  <data name="ResourceNameDisplayProcessIdText" xml:space="preserve">
+    <value>Process ID: {0}</value>
+    <note>{0} is a numeric id</note>
+  </data>
+  <data name="ResourceNameDisplayCopyContainerIdText" xml:space="preserve">
+    <value>Copy Container ID to clipboard</value>
+  </data>
+  <data name="ResourceNameDisplayContainerIdText" xml:space="preserve">
+    <value>Container ID: {0}</value>
+    <note>{0} is an alphanumeric id</note>
+  </data>
+  <data name="SourceColumnDisplayWorkingDirectory" xml:space="preserve">
+    <value>Working Dir: {0}</value>
+    <comment>{0} is a path</comment>
+  </data>
+  <data name="SourceColumnDisplayPort" xml:space="preserve">
+    <value>Port: {0}</value>
+    <comment>{0} is a port number</comment>
+  </data>
+  <data name="SourceColumnDisplayPorts" xml:space="preserve">
+    <value>Ports: {0}</value>
+    <comment>{0} is a list of ports</comment>
+  </data>
+  <data name="SourceColumnDisplayContainerCommandTitle" xml:space="preserve">
+    <value>Container command</value>
+  </data>
+  <data name="SourceColumnDisplayContainerArgsTitle" xml:space="preserve">
+    <value>Container args</value>
+  </data>
+  <data name="SourceColumnDisplayContainerCommand" xml:space="preserve">
+    <value>Command: {0}</value>
+  </data>
+  <data name="UnreadLogErrorsBadgeErrorLog" xml:space="preserve">
+    <value>{0} error log</value>
+    <comment>{0} is 1</comment>
+  </data>
+  <data name="UnreadLogErrorsBadgeErrorLogs" xml:space="preserve">
+    <value>{0} error logs</value>
+    <comment>{0} is a number</comment>
+  </data>
 </root>
