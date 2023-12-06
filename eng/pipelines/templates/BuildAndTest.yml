@@ -12,6 +12,8 @@ parameters:
     type: string
   - name: isWindows
     type: string
+  - name: dotnetScript
+    type: string
   - name: skipTests
     type: boolean
     default: false
@@ -25,7 +27,7 @@ steps:
     displayName: Build
 
   - ${{ if ne(parameters.skipTests, 'true') }}:
-    - script: $(Build.SourcesDirectory)/dotnet.cmd dotnet-coverage collect
+    - script: ${{ parameters.dotnetScript }} dotnet-coverage collect
               --settings $(Build.SourcesDirectory)/eng/CodeCoverage.config
               --output ${{ parameters.repoTestResultsPath }}/$(Agent.Os)_$(Agent.JobName).cobertura.xml
               "${{ parameters.buildScript }} -test -configuration ${{ parameters.buildConfig }} /bl:${{ parameters.repoLogPath }}/tests.binlog $(_OfficialBuildIdArgs)"

@@ -120,6 +120,7 @@ stages:
           - template: /eng/pipelines/templates/BuildAndTest.yml
             parameters:
               runAsPublic: ${{ eq(variables._RunAsPublic, True) }}
+              dotnetScript: $(Build.SourcesDirectory)/dotnet.cmd
               buildScript: $(_buildScript)
               buildConfig: $(_BuildConfig)
               repoLogPath: $(Build.Arcade.LogsPath)
@@ -152,6 +153,7 @@ stages:
           - template: /eng/pipelines/templates/BuildAndTest.yml
             parameters:
               runAsPublic: ${{ eq(variables._RunAsPublic, True) }}
+              dotnetScript: $(Build.SourcesDirectory)/dotnet.sh
               buildScript: $(_buildScript)
               buildConfig: $(_BuildConfig)
               repoLogPath: $(Build.Arcade.LogsPath)
