@@ -74,9 +74,9 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
             PrepareServices();
             PrepareContainers();
             PrepareExecutables();
-            PrepareProxylessServices();
+            // PrepareProxylessServices();
 
-            await CreateContainerSingletonsAsync(cancellationToken).ConfigureAwait(false);
+            // await CreateContainerSingletonsAsync(cancellationToken).ConfigureAwait(false);
 
             await CreateServicesAsync(cancellationToken).ConfigureAwait(false);
 
@@ -166,7 +166,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
             await lifecycleHook.AfterEndpointsAllocatedAsync(_model, cancellationToken).ConfigureAwait(false);
         }
 
-        await CreateContainersAsync(toCreate.Where(ar => ar.DcpResource is Container && ar.ServicesConsumed.Any()), cancellationToken).ConfigureAwait(false);
+        await CreateContainersAsync(toCreate.Where(ar => ar.DcpResource is Container), cancellationToken).ConfigureAwait(false);
         await CreateExecutablesAsync(toCreate.Where(ar => ar.DcpResource is Executable || ar.DcpResource is ExecutableReplicaSet), cancellationToken).ConfigureAwait(false);
     }
 
