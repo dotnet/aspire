@@ -180,7 +180,7 @@ public static class AzureResourceExtensions
     /// </remarks>
     public static IResourceBuilder<AzureCosmosDBResource> UseEmulator(this IResourceBuilder<AzureCosmosDBResource> builder, int port = 8081)
     {
-        builder.WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, name: "emulator", port: port, containerPort: 8081))
+        return builder.WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, name: "emulator", port: port, containerPort: 8081))
             .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, containerPort: 10250))
             .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, containerPort: 10251))
             .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, containerPort: 10252))
@@ -188,8 +188,6 @@ public static class AzureResourceExtensions
             .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, containerPort: 10254))
             .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, containerPort: 10255))
             .WithAnnotation(new ContainerImageAnnotation { Image = "mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator", Tag = "latest" });
-
-        return builder;
     }
 
     /// <summary>

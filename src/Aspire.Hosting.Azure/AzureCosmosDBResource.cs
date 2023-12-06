@@ -51,12 +51,5 @@ static file class AzureCosmosDBEmulatorConnectionString
         AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==;
         """;
 
-    public static string Create(int port)
-    {
-        var builder = new StringBuilder(ConnectionStringHeader);
-
-        builder.AppendFormat(CultureInfo.InvariantCulture, "AccountEndpoint=https://127.0.0.1:{0};", port);
-
-        return builder.ToString();
-    }
+    public static string Create(int port) => $"{ConnectionStringHeader}AccountEndpoint=https://127.0.0.1:{port};";
 }
