@@ -35,7 +35,7 @@ public class AzureCosmosDBResource(string name, string? connectionString)
 
     private int GetEmulatorPort(string endpointName) =>
         Annotations
-            .OfType<AllocatedEndpointAnnotation>()
+            .OfType<ServiceBindingAnnotation>()
             .FirstOrDefault(x => x.Name == endpointName)
             ?.Port
         ?? throw new DistributedApplicationException($"Azure Cosmos DB resource does not have endpoint annotation with name '{endpointName}'.");
@@ -51,15 +51,11 @@ static file class AzureCosmosDBEmulatorConnectionString
         AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==;
         """;
 
-    private const string AccountEndpointTemplate = """
-        AccountEndpoint=https://127.0.0.1::{0}/;
-        """;
-
     public static string Create(int port)
     {
         var builder = new StringBuilder(ConnectionStringHeader);
 
-        builder.AppendFormat(CultureInfo.InvariantCulture, AccountEndpointTemplate, port);
+        builder.AppendFormat(CultureInfo.InvariantCulture, "AccountEndpoint=https://127.0.0.1:{0};", port);
 
         return builder.ToString();
     }
