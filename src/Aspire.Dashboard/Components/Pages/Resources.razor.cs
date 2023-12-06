@@ -6,7 +6,6 @@ using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
-using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Pages;
 
@@ -21,8 +20,6 @@ public partial class Resources : ComponentBase, IDisposable
     public required TelemetryRepository TelemetryRepository { get; init; }
     [Inject]
     public required NavigationManager NavigationManager { get; set; }
-    [Inject]
-    public required IJSRuntime JS { get; set; }
 
     private IEnumerable<EnvironmentVariableViewModel>? SelectedEnvironmentVariables { get; set; }
     private string? SelectedResourceName { get; set; }
