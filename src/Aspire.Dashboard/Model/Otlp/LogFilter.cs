@@ -18,7 +18,7 @@ public class LogFilter
 
     public static List<string> GetAllPropertyNames(List<string> propertyKeys)
     {
-        var result = new List<string> { "Message", "Application", "TraceId", "SpanId", "OriginalFormat" };
+        var result = new List<string> { "Message", "Category", "Application", "TraceId", "SpanId", "OriginalFormat" };
         result.AddRange(propertyKeys);
         return result;
     }
@@ -88,6 +88,7 @@ public class LogFilter
             "TraceId" => x.TraceId,
             "SpanId" => x.SpanId,
             "OriginalFormat" => x.OriginalFormat,
+            "Category" => x.Scope.ScopeName,
             _ => x.Properties.GetValue(Field)
         };
     }

@@ -155,6 +155,39 @@ public class DistributedApplicationTests
     }
 
     [LocalOnlyFact]
+    public async Task AllocatedPortsAssignedAfterHookRuns()
+    {
+        var testProgram = CreateTestProgram();
+        var tcs = new TaskCompletionSource<DistributedApplicationModel>(TaskCreationOptions.RunContinuationsAsynchronously);
+        testProgram.AppBuilder.Services.AddLifecycleHook(sp => new CheckAllocatedEndpointsLifecycleHook(tcs));
+
+        await using var app = testProgram.Build();
+
+        await app.StartAsync();
+
+        var appModel = await tcs.Task.WaitAsync(TimeSpan.FromSeconds(10));
+
+        foreach (var item in appModel.Resources)
+        {
+            if ((item is ContainerResource || item is ProjectResource || item is ExecutableResource) && item.TryGetServiceBindings(out _))
+            {
+                Assert.True(item.TryGetAllocatedEndPoints(out var endpoints));
+                Assert.NotEmpty(endpoints);
+            }
+        }
+    }
+
+    private sealed class CheckAllocatedEndpointsLifecycleHook(TaskCompletionSource<DistributedApplicationModel> tcs) : IDistributedApplicationLifecycleHook
+    {
+        public Task AfterEndpointsAllocatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
+        {
+            tcs.TrySetResult(appModel);
+
+            return Task.CompletedTask;
+        }
+    }
+
+    [LocalOnlyFact]
     public async Task TestProjectStartsAndStopsCleanly()
     {
         var testProgram = CreateTestProgram();
@@ -357,8 +390,8 @@ public class DistributedApplicationTests
 
         await app.StartAsync(cts.Token);
 
-        var response0 = await testProgram.NodeAppBuilder!.HttpGetAsync(client, "http", "/", cts.Token);
-        var response1 = await testProgram.NpmAppBuilder!.HttpGetAsync(client, "http", "/", cts.Token);
+        var response0 = await testProgram.NodeAppBuilder!.HttpGetWithRetryAsync(client, "http", "/", cts.Token);
+        var response1 = await testProgram.NpmAppBuilder!.HttpGetWithRetryAsync(client, "http", "/", cts.Token);
 
         Assert.Equal("Hello from node!", response0);
         Assert.Equal("Hello from node!", response1);
@@ -386,6 +419,32 @@ public class DistributedApplicationTests
                 Assert.Equal("redis:latest", item.Spec.Image);
                 Assert.Equal(["redis-cli", "-h", "host.docker.internal", "-p", "9999", "MONITOR"], item.Spec.Args);
             });
+
+        await app.StopAsync();
+    }
+
+    [LocalOnlyFact]
+    public async Task NoUrlInLaunchSettings()
+    {
+        var testProgram = CreateTestProgram();
+        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+
+        testProgram.AppBuilder.AddProject("launch", new Projects.TestProject_LaunchSettings().ProjectPath);
+
+        await using var app = testProgram.Build();
+
+        await app.StartAsync();
+
+        var s = app.Services.GetRequiredService<KubernetesService>();
+        var list = await s.ListAsync<Executable>();
+
+        var proj = list.FirstOrDefault(x => x.Spec.WorkingDirectory?.Contains("LaunchSettings") == true);
+
+        Assert.NotNull(proj);
+        Assert.NotNull(proj.Spec.Env);
+
+        // URLs isn't set in launch settings, and shouldn't be inherited from dashboard
+        Assert.Null(proj.Spec.Env.First(x => x.Name == "ASPNETCORE_URLS").Value);
 
         await app.StopAsync();
     }

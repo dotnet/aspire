@@ -7,6 +7,7 @@ builder.AddMySqlDataSource("mysql");
 builder.AddRedis("redis");
 builder.AddNpgsqlDataSource("postgres");
 builder.AddRabbitMQ("rabbitmq");
+builder.AddMongoDBClient("mongodb");
 
 var app = builder.Build();
 

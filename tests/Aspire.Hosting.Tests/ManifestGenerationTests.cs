@@ -45,6 +45,7 @@ public class ManifestGenerationTests
         // NPM app should still be executable.v0
         var npmapp = resources.GetProperty("npmapp");
         Assert.Equal("executable.v0", npmapp.GetProperty("type").GetString());
+        Assert.DoesNotContain("\\", npmapp.GetProperty("workingDirectory").GetString());
 
         // Node app should now be dockerfile.v0
         var nodeapp = resources.GetProperty("nodeapp");

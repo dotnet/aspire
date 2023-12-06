@@ -37,13 +37,15 @@ public class TestProgram
             var redis = AppBuilder.AddRedisContainer("redis");
             var postgres = AppBuilder.AddPostgresContainer("postgres");
             var rabbitmq = AppBuilder.AddRabbitMQContainer("rabbitmq");
+            var mongodb = AppBuilder.AddMongoDBContainer("mongodb");
 
             IntegrationServiceABuilder = AppBuilder.AddProject<Projects.IntegrationServiceA>("integrationservicea")
                 .WithReference(sqlserver)
                 .WithReference(mysql)
                 .WithReference(redis)
                 .WithReference(postgres)
-                .WithReference(rabbitmq);
+                .WithReference(rabbitmq)
+                .WithReference(mongodb);
         }
     }
 

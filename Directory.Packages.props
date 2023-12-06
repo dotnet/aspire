@@ -35,6 +35,7 @@
     <PackageVersion Include="AspNetCore.HealthChecks.Azure.Storage.Blobs" Version="7.0.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.Azure.Storage.Queues" Version="7.0.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.AzureServiceBus" Version="7.0.0" />
+    <PackageVersion Include="AspNetCore.HealthChecks.MongoDb" Version="7.0.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.MySql" Version="7.0.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.NpgSql" Version="7.1.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.Rabbitmq" Version="7.0.0" />
@@ -71,6 +72,8 @@
     <PackageVersion Include="JsonSchema.Net" Version="5.4.0" />
     <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.1.1" />
     <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.1.0" />
+    <PackageVersion Include="MongoDB.Driver" Version="2.22.0" />
+    <PackageVersion Include="MongoDB.Driver.Core.Extensions.DiagnosticSources" Version="1.3.0" />
     <PackageVersion Include="MySqlConnector.DependencyInjection" Version="2.3.1" />
     <PackageVersion Include="Npgsql.DependencyInjection" Version="8.0.0" />
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.0" />
