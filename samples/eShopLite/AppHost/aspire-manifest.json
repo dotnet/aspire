@@ -1,50 +1,14 @@
 {
   "resources": {
     "postgres": {
-      "type": "container.v0",
-      "image": "postgres:latest",
-      "env": {
-        "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
-        "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
-        "POSTGRES_PASSWORD": "{postgres.inputs.password}"
-      },
-      "bindings": {
-        "tcp": {
-          "scheme": "tcp",
-          "protocol": "tcp",
-          "transport": "tcp",
-          "containerPort": 5432
-        }
-      },
-      "connectionString": "Host={postgres.bindings.tcp.host};Port={postgres.bindings.tcp.port};Username=postgres;Password={postgres.inputs.password};",
-      "inputs": {
-        "password": {
-          "type": "string",
-          "secret": true,
-          "default": {
-            "generate": {
-              "minLength": 10
-            }
-          }
-        }
-      }
+      "type": "postgres.server.v0"
     },
     "catalogdb": {
       "type": "postgres.database.v0",
       "parent": "postgres"
     },
     "basketcache": {
-      "type": "container.v0",
-      "image": "redis:latest",
-      "bindings": {
-        "tcp": {
-          "scheme": "tcp",
-          "protocol": "tcp",
-          "transport": "tcp",
-          "containerPort": 6379
-        }
-      },
-      "connectionString": "{basketcache.bindings.tcp.host}:{basketcache.bindings.tcp.port}"
+      "type": "redis.v0"
     },
     "catalogservice": {
       "type": "project.v0",
@@ -68,38 +32,7 @@
       }
     },
     "messaging": {
-      "type": "container.v0",
-      "image": "rabbitmq:3-management",
-      "env": {
-        "RABBITMQ_DEFAULT_USER": "guest",
-        "RABBITMQ_DEFAULT_PASS": "{messaging.inputs.password}"
-      },
-      "bindings": {
-        "tcp": {
-          "scheme": "tcp",
-          "protocol": "tcp",
-          "transport": "tcp",
-          "containerPort": 5672
-        },
-        "management": {
-          "scheme": "http",
-          "protocol": "tcp",
-          "transport": "http",
-          "containerPort": 15672
-        }
-      },
-      "connectionString": "amqp://guest:{messaging.inputs.password}@{messaging.bindings.management.host}:{messaging.bindings.management.port}",
-      "inputs": {
-        "password": {
-          "type": "string",
-          "secret": true,
-          "default": {
-            "generate": {
-              "minLength": 10
-            }
-          }
-        }
-      }
+      "type": "rabbitmq.server.v0"
     },
     "basketservice": {
       "type": "project.v0",
