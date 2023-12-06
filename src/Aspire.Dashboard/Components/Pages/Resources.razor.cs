@@ -6,7 +6,6 @@ using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
-using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Pages;
 
@@ -21,11 +20,9 @@ public partial class Resources : ComponentBase, IDisposable
     public required TelemetryRepository TelemetryRepository { get; init; }
     [Inject]
     public required NavigationManager NavigationManager { get; set; }
-    [Inject]
-    public required IJSRuntime JS { get; set; }
 
     private IEnumerable<EnvironmentVariableViewModel>? SelectedEnvironmentVariables { get; set; }
-    private string? SelectedResourceName { get; set; }
+    private ResourceViewModel? SelectedResource { get; set; }
 
     private static ViewModelMonitor<ResourceViewModel> GetViewModelMonitor(IDashboardViewModelService dashboardViewModelService)
         => dashboardViewModelService.GetResources();
@@ -134,14 +131,14 @@ public partial class Resources : ComponentBase, IDisposable
         else
         {
             SelectedEnvironmentVariables = resource.Environment;
-            SelectedResourceName = resource.Name;
+            SelectedResource = resource;
         }
     }
 
     private void ClearSelectedResource()
     {
         SelectedEnvironmentVariables = null;
-        SelectedResourceName = null;
+        SelectedResource = null;
     }
 
     private async Task OnResourceListChanged(ObjectChangeType objectChangeType, ResourceViewModel resource)
@@ -163,6 +160,8 @@ public partial class Resources : ComponentBase, IDisposable
 
         await InvokeAsync(StateHasChanged);
     }
+
+    private string GetResourceName(ResourceViewModel resource) => ResourceViewModel.GetResourceName(resource, _resourcesMap.Values);
 
     protected virtual void Dispose(bool disposing)
     {
@@ -197,4 +196,7 @@ public partial class Resources : ComponentBase, IDisposable
     {
         NavigationManager.NavigateTo($"/StructuredLogs/{resource.Uid}?level=error");
     }
+
+    private string? GetRowClass(ResourceViewModel resource)
+        => string.Equals(resource.Name, SelectedResourceName, StringComparison.Ordinal) ? "selected-row" : null;
 }

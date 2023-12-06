@@ -34,16 +34,16 @@
                         @bind-Value:after="HandleClear"
                         slot="end" />
     </FluentToolbar>
-    <SummaryDetailsView DetailsTitle="@($"Environment Variables for {SelectedResourceName}")"
+    <SummaryDetailsView DetailsTitle="@($"Environment Variables for {((SelectedResource != null) ? GetResourceName(SelectedResource) : null)}")"
                         ShowDetails="@(SelectedEnvironmentVariables is not null)"
                         OnDismiss="() => ClearSelectedResource()"
                         ViewKey="ResourcesList">
         <Summary>
-            <FluentDataGrid Items="@FilteredResources" ResizableColumns="true" GridTemplateColumns="1fr 2fr 1fr 2fr 3fr 2fr 1fr 1fr" >
+            <FluentDataGrid Items="@FilteredResources" ResizableColumns="true" GridTemplateColumns="1fr 2fr 1fr 2fr 3fr 2fr 1fr 1fr" RowClass="GetRowClass">
                 <ChildContent>
                     <PropertyColumn Property="@(c => c.ResourceType)" Title="Type" Sortable="true" />
                     <TemplateColumn Title="Name" Sortable="true" SortBy="@_nameSort">
-                        <ResourceNameDisplay Resource="context" FilterText="@_filter" />
+                        <ResourceNameDisplay Resource="context" FilterText="@_filter" FormatName="GetResourceName" />
                     </TemplateColumn>
                     <TemplateColumn Title="State" Sortable="true" SortBy="@_stateSort">
                         <div class="resource-state-container">

@@ -24,6 +24,6 @@ public sealed class ManifestPublishingContext(string manifestPath, Utf8JsonWrite
         var manifestDirectory = Path.GetDirectoryName(fullyQualifiedManifestPath) ?? throw new DistributedApplicationException("Could not get directory name of output path");
         var relativePath = Path.GetRelativePath(manifestDirectory, path);
 
-        return relativePath;
+        return relativePath.Replace('\\', '/');
     }
 }

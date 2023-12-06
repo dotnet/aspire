@@ -105,7 +105,7 @@ public partial class Metrics : IDisposable
 
     private void UpdateApplications()
     {
-        _applications = TelemetryRepository.GetApplications().Select(a => new SelectViewModel<string> { Id = a.InstanceId, Name = a.ApplicationName }).ToList();
+        _applications = SelectViewModelFactory.CreateApplicationsSelectViewModel(TelemetryRepository.GetApplications());
         _applications.Insert(0, s_selectApplication);
         UpdateSubscription();
     }

@@ -90,7 +90,7 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
         }
     }
 
-    private static Option<string> GetOption(ResourceViewModel resource)
+    private Option<string> GetOption(ResourceViewModel resource)
     {
         return new Option<string>()
         {
@@ -231,7 +231,7 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
         await UpdateResourceListSelectedResourceAsync();
     }
 
-    private static string GetDisplayText(ResourceViewModel resource)
+    private string GetDisplayText(ResourceViewModel resource)
     {
         var stateText = "";
         if (string.IsNullOrEmpty(resource.State))
@@ -242,8 +242,10 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
         {
             stateText = $" ({resource.State})";
         }
-        return $"{resource.Name}{stateText}";
+        return $"{GetResourceName(resource)}{stateText}";
     }
+
+    private string GetResourceName(ResourceViewModel resource) => ResourceViewModel.GetResourceName(resource, _resourceNameMapping.Values);
 
     public async ValueTask DisposeAsync()
     {

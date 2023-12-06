@@ -78,6 +78,19 @@ Aspire.Microsoft.Data.SqlClient:
     - "number-of-stasis-connections"
     - "number-of-reclaimed-connections"
 
+Aspire.MongoDB.Driver:
+- Log categories:
+  - "MongoDB"
+  - "MongoDB.Command"
+  - "MongoDB.SDAM"
+  - "MongoDB.ServerSelection"
+  - "MongoDB.Connection"
+  - "MongoDB.Internal"
+- Activity source names:
+  - "MongoDB.Driver.Core.Extensions.DiagnosticSources"
+- Metric names:
+  - none
+
 Aspire.Microsoft.EntityFrameworkCore.Cosmos:
 - Log categories:
   - "Azure-Cosmos-Operation-Request-Diagnostics"
@@ -220,7 +233,7 @@ Aspire.RabbitMQ.Client:
 
 Aspire.StackExchange.Redis:
 - Log categories:
-  - "Aspire.StackExchange.Redis" (this name is defined by our component, we can change it)
+  - "StackExchange.Redis"
 - Activity source names:
   - "OpenTelemetry.Instrumentation.StackExchangeRedis"
 - Metric names:

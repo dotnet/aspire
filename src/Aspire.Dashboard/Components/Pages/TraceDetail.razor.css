@@ -116,10 +116,6 @@
     height: min-content;
 }
 
-::deep fluent-data-grid-row[row-type="default"]:hover .span-container .span-bar-label {
-    color: var(--foreground-subtext-hover);
-}
-
 ::deep .span-container .span-bar-label-detail {
     display: none;
 }
@@ -149,8 +145,13 @@
     font-size: 12px;
 }
 
-::deep fluent-data-grid-row[row-type="default"]:hover .span-row-name {
-    color: var(--foreground-subtext-hover);
+::deep .selected-row .span-row-name,
+::deep .selected-row fluent-data-grid-row[row-type="default"]:hover .span-row-name,
+::deep fluent-data-grid-row[row-type="default"]:hover .span-row-name,
+::deep .selected-row .span-container .span-bar-label,
+::deep .selected-row fluent-data-grid-row[row-type="default"]:hover .span-container .span-bar-label,
+::deep fluent-data-grid-row[row-type="default"]:hover .span-container .span-bar-label {
+    color: var(--neutral-foreground-rest);
 }
 
 ::deep.trace-detail-layout {
