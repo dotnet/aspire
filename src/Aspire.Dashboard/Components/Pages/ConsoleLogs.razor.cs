@@ -245,15 +245,7 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
         return $"{GetResourceName(resource)}{stateText}";
     }
 
-    private string GetResourceName(ResourceViewModel resource)
-    {
-        if (_resourceNameMapping.Count(kvp => kvp.Value.DisplayName == resource.DisplayName) >= 2)
-        {
-            return ResourceFormatter.GetName(resource.DisplayName, resource.Uid);
-        }
-
-        return resource.DisplayName;
-    }
+    private string GetResourceName(ResourceViewModel resource) => ResourceViewModel.GetResourceName(resource, _resourceNameMapping.Values);
 
     public async ValueTask DisposeAsync()
     {
