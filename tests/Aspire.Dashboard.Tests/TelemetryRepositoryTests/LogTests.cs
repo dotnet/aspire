@@ -31,6 +31,7 @@ public class LogTests
                 {
                     new ScopeLogs
                     {
+                        Scope = CreateScope("TestLogger"),
                         LogRecords = { CreateLogRecord() }
                     }
                 }
@@ -62,6 +63,7 @@ public class LogTests
                 Assert.Equal("5465737454726163654964", app.TraceId);
                 Assert.Equal("Test {Log}", app.OriginalFormat);
                 Assert.Equal("Test Value!", app.Message);
+                Assert.Equal("TestLogger", app.Scope.ScopeName);
                 Assert.Collection(app.Properties,
                     p =>
                     {
@@ -92,6 +94,7 @@ public class LogTests
                 {
                     new ScopeLogs
                     {
+                        Scope = CreateScope("TestLogger"),
                         LogRecords =
                         {
                             CreateLogRecord(time: s_testTime.AddMinutes(1), message: "1"),
@@ -150,6 +153,7 @@ public class LogTests
                 {
                     new ScopeLogs
                     {
+                        Scope = CreateScope("TestLogger"),
                         LogRecords =
                         {
                             CreateLogRecord(time: s_testTime.AddMinutes(1), message: "1", severity: SeverityNumber.Trace),
@@ -169,6 +173,7 @@ public class LogTests
                 {
                     new ScopeLogs
                     {
+                        Scope = CreateScope("TestLogger"),
                         LogRecords =
                         {
                             CreateLogRecord(time: s_testTime.AddMinutes(1), message: "1", severity: SeverityNumber.Fatal)
@@ -224,6 +229,7 @@ public class LogTests
                 {
                     new ScopeLogs
                     {
+                        Scope = CreateScope("TestLogger"),
                         LogRecords =
                         {
                             CreateLogRecord(time: s_testTime.AddMinutes(1), message: "1", severity: SeverityNumber.Error),
@@ -238,6 +244,7 @@ public class LogTests
                 {
                     new ScopeLogs
                     {
+                        Scope = CreateScope("TestLogger"),
                         LogRecords =
                         {
                             CreateLogRecord(time: s_testTime.AddMinutes(1), message: "1", severity: SeverityNumber.Fatal)
@@ -274,6 +281,7 @@ public class LogTests
                 {
                     new ScopeLogs
                     {
+                        Scope = CreateScope("TestLogger"),
                         LogRecords =
                         {
                             CreateLogRecord(time: s_testTime.AddMinutes(1), message: "1", severity: SeverityNumber.Error),
@@ -288,6 +296,7 @@ public class LogTests
                 {
                     new ScopeLogs
                     {
+                        Scope = CreateScope("TestLogger"),
                         LogRecords =
                         {
                             CreateLogRecord(time: s_testTime.AddMinutes(1), message: "1", severity: SeverityNumber.Fatal)
@@ -325,6 +334,7 @@ public class LogTests
                 {
                     new ScopeLogs
                     {
+                        Scope = CreateScope("TestLogger"),
                         LogRecords =
                         {
                             CreateLogRecord(time: s_testTime.AddMinutes(1), message: "1", severity: SeverityNumber.Error),
@@ -399,6 +409,7 @@ public class LogTests
                 {
                     new ScopeLogs
                     {
+                        Scope = CreateScope("TestLogger"),
                         LogRecords = { CreateLogRecord() }
                     }
                 }
@@ -435,6 +446,7 @@ public class LogTests
                 {
                     new ScopeLogs
                     {
+                        Scope = CreateScope("TestLogger"),
                         LogRecords = { CreateLogRecord() }
                     }
                 }
@@ -482,6 +494,7 @@ public class LogTests
                 {
                     new ScopeLogs
                     {
+                        Scope = CreateScope("TestLogger"),
                         LogRecords = { CreateLogRecord() }
                     }
                 }
