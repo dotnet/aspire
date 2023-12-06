@@ -63,16 +63,23 @@ public partial class Resources : ComponentBase, IDisposable
         }
     }
 
-    private bool AreAllTypesVisible
+    private bool? AreAllTypesVisible
     {
-        get => _visibleResourceTypes.SetEquals(_allResourceTypes);
+        get
+        {
+            return _visibleResourceTypes.SetEquals(_allResourceTypes)
+                ? true
+                : _visibleResourceTypes.Count == 0
+                    ? false
+                    : null;
+        }
         set
         {
-            if (value)
+            if (value is true)
             {
                 _visibleResourceTypes.UnionWith(_allResourceTypes);
             }
-            else
+            else if (value is false)
             {
                 _visibleResourceTypes.Clear();
             }

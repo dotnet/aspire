@@ -9,18 +9,20 @@
     <FluentToolbar Orientation="Orientation.Horizontal">
         <h1 slot="label">Resources</h1>
         <FluentButton id="typeFilterButton" slot="end"
-                      Appearance="@(AreAllTypesVisible ? Appearance.Stealth : Appearance.Accent)"
+                      Appearance="@(AreAllTypesVisible is true ? Appearance.Stealth : Appearance.Accent)"
                       IconEnd="@(new Icons.Regular.Size24.Filter())"
                       @onclick="() => _isTypeFilterVisible = !_isTypeFilterVisible"
-                      Title="@(AreAllTypesVisible ? "Type Filter: All Types Visible" : "Type Filter: Filtered")"
-                      aria-label="@(AreAllTypesVisible ? "Type Filter: All Types Visible" : "Type Filter: Filtered")" />
+                      Title="@(AreAllTypesVisible is true ? "Type Filter: All Types Visible" : "Type Filter: Filtered")"
+                      aria-label="@(AreAllTypesVisible is true ? "Type Filter: All Types Visible" : "Type Filter: Filtered")" />
         <FluentPopover AnchorId="typeFilterButton" @bind-Open="_isTypeFilterVisible">
             <Header>Resource Types</Header>
             <Body>
                 <FluentStack Orientation="Orientation.Vertical">
                     <FluentCheckbox
                         Label="All"
-                        @bind-Value="AreAllTypesVisible" />
+                        ThreeState="true"
+                        ShowIndeterminate="true"
+                        @bind-CheckState="AreAllTypesVisible" />
                     @foreach (string resourceType in _allResourceTypes) {
                         bool isChecked = _visibleResourceTypes.Contains(resourceType);
                         <FluentCheckbox
