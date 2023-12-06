@@ -5,11 +5,11 @@ namespace Aspire.Dashboard.Model;
 
 public interface IDashboardViewModelService
 {
-    public string ApplicationName { get; }
-    public ViewModelMonitor<ContainerViewModel> GetContainers();
-    public ViewModelMonitor<ExecutableViewModel> GetExecutables();
-    public ViewModelMonitor<ProjectViewModel> GetProjects();
-    public ViewModelMonitor<ResourceViewModel> GetResources();
+    string ApplicationName { get; }
+    ViewModelMonitor<ContainerViewModel> GetContainers();
+    ViewModelMonitor<ExecutableViewModel> GetExecutables();
+    ViewModelMonitor<ProjectViewModel> GetProjects();
+    ViewModelMonitor<ResourceViewModel> GetResources();
 }
 
 public record ViewModelMonitor<TViewModel>(List<TViewModel> Snapshot, IAsyncEnumerable<ResourceChanged<TViewModel>> Watch)
