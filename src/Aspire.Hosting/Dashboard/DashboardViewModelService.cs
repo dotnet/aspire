@@ -77,10 +77,10 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
         {
             try
             {
-                await foreach (var tuple in _kubernetesService.WatchAsync<T>(cancellationToken: _cancellationToken))
+                await foreach (var (eventType, resource) in _kubernetesService.WatchAsync<T>(cancellationToken: _cancellationToken))
                 {
                     await _kubernetesChangesChannel.Writer.WriteAsync(
-                        (tuple.Item1, tuple.Item2.Metadata.Name, tuple.Item2), _cancellationToken).ConfigureAwait(false);
+                        (eventType, resource.Metadata.Name, resource), _cancellationToken).ConfigureAwait(false);
                 }
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
@@ -94,17 +94,15 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
     {
         try
         {
-            await foreach (var tuple in _kubernetesChangesChannel.Reader.ReadAllAsync(_cancellationToken))
+            await foreach (var (watchEventType, name, resource) in _kubernetesChangesChannel.Reader.ReadAllAsync(_cancellationToken))
             {
-                var (watchEventType, name, resource) = tuple;
                 // resource is null when we get notification from the task which fetch docker env vars
                 // So we inject the resource from current copy of containersMap
                 // But this could change in future
                 Debug.Assert(resource is not null || _containersMap.ContainsKey(name),
                     "Received a change notification with null resource which doesn't correlate to existing container.");
-                resource ??= _containersMap[name];
 
-                switch (resource)
+                switch (resource ?? _containersMap[name])
                 {
                     case Container container:
                         await ProcessContainerChange(watchEventType, container).ConfigureAwait(false);
@@ -249,9 +247,8 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
             return;
         }
 
-        foreach (var kvp in _resourceAssociatedServicesMap.Where(e => e.Value.Contains(service.Metadata.Name)))
+        foreach (var ((resourceKind, resourceName), _) in _resourceAssociatedServicesMap.Where(e => e.Value.Contains(service.Metadata.Name)))
         {
-            var (resourceKind, resourceName) = kvp.Key;
             switch (resourceKind)
             {
                 case ResourceKind.Container:

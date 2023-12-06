@@ -41,22 +41,20 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
     {
         _status = LogStatus.LoadingResources;
 
-        var viewModelMonitor = DashboardViewModelService.GetResources();
-        var initialList = viewModelMonitor.Snapshot;
-        var watch = viewModelMonitor.Watch;
+        var (snapshot, subscription) = DashboardViewModelService.GetResources();
 
-        foreach (var result in initialList)
+        foreach (var resource in snapshot)
         {
-            _resourceNameMapping[result.Name] = result;
+            _resourceNameMapping[resource.Name] = resource;
         }
 
         UpdateResourcesList();
 
         _ = Task.Run(async () =>
         {
-            await foreach (var resourceChanged in watch.WithCancellation(_watchResourcesCts.Token))
+            await foreach (var (changeType, resource) in subscription.WithCancellation(_watchResourcesCts.Token))
             {
-                await OnResourceListChangedAsync(resourceChanged.ObjectChangeType, resourceChanged.Resource);
+                await OnResourceListChangedAsync(changeType, resource);
             }
         });
 
