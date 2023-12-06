@@ -11,6 +11,18 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 
+[assembly: ConfigurationSchema(
+    Types = [typeof(NpgsqlSettings)],
+    ConfigurationPaths = ["Aspire:Npgsql"],
+    LogCategories = [
+        "Npgsql",
+        "Npgsql.Command",
+        "Npgsql.Connection",
+        "Npgsql.Copy",
+        "Npgsql.Exception",
+        "Npgsql.Replication",
+        "Npgsql.Transaction"])]
+
 namespace Microsoft.Extensions.Hosting;
 
 /// <summary>

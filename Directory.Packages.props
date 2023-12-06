@@ -29,6 +29,8 @@
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="$(MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCorePackageVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="$(MicrosoftExtensionsDiagnosticsHealthChecksPackageVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Features" Version="$(MicrosoftExtensionsFeaturesPackageVersion)" />
+    <!-- Roslyn dependencies -->
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.7.0" />
     <!-- AspNetCore.HealthChecks dependencies (3rd party packages) -->
     <PackageVersion Include="AspNetCore.HealthChecks.Azure.Data.Tables" Version="7.0.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.Azure.KeyVault.Secrets" Version="7.0.0-rc1.1" />

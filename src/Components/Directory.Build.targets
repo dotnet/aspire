@@ -20,6 +20,14 @@
           PackagePath="ConfigurationSchema.json" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="$(MSBuildThisFileDirectory)..\Tools\ConfigurationSchemaGenerator\ConfigurationSchemaGenerator.csproj"
+                 SetTargetFramework="TargetFramework=netstandard2.0"
+                 OutputItemType="Analyzer"
+                 ReferenceOutputAssembly="false" />
+    <CompilerVisibleProperty Include="OutputPath"/>
+  </ItemGroup>
+
   <PropertyGroup Condition="'$(ConfigurationSchemaExists)' == 'true'">
     <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);AddPackageTargetsInPackage</TargetsForTfmSpecificContentInPackage>
   </PropertyGroup>
