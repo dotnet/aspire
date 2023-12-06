@@ -22,7 +22,7 @@ public partial class Resources : ComponentBase, IDisposable
     public required NavigationManager NavigationManager { get; set; }
 
     private IEnumerable<EnvironmentVariableViewModel>? SelectedEnvironmentVariables { get; set; }
-    private string? SelectedResourceName { get; set; }
+    private ResourceViewModel? SelectedResource { get; set; }
 
     private static ViewModelMonitor<ResourceViewModel> GetViewModelMonitor(IDashboardViewModelService dashboardViewModelService)
         => dashboardViewModelService.GetResources();
@@ -131,14 +131,14 @@ public partial class Resources : ComponentBase, IDisposable
         else
         {
             SelectedEnvironmentVariables = resource.Environment;
-            SelectedResourceName = resource.Name;
+            SelectedResource = resource;
         }
     }
 
     private void ClearSelectedResource()
     {
         SelectedEnvironmentVariables = null;
-        SelectedResourceName = null;
+        SelectedResource = null;
     }
 
     private async Task OnResourceListChanged(ObjectChangeType objectChangeType, ResourceViewModel resource)
@@ -160,6 +160,8 @@ public partial class Resources : ComponentBase, IDisposable
 
         await InvokeAsync(StateHasChanged);
     }
+
+    private string GetResourceName(ResourceViewModel resource) => ResourceViewModel.GetResourceName(resource, _resourcesMap.Values);
 
     protected virtual void Dispose(bool disposing)
     {

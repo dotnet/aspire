@@ -17,7 +17,8 @@ public partial class Traces
     private static readonly SelectViewModel<string> s_allApplication = new SelectViewModel<string> { Id = null, Name = "(All)" };
 
     private TotalItemsFooter _totalItemsFooter = default!;
-    private List<SelectViewModel<string>> _applications = default!;
+    private List<OtlpApplication> _applications = default!;
+    private List<SelectViewModel<string>> _applicationViewModels = default!;
     private SelectViewModel<string> _selectedApplication = s_allApplication;
     private Subscription? _applicationsSubscription;
     private Subscription? _tracesSubscription;
@@ -48,12 +49,12 @@ public partial class Traces
         return string.Create(CultureInfo.InvariantCulture, $"background: linear-gradient(to right, var(--neutral-fill-input-alt-active) {percentage:0.##}%, transparent {percentage:0.##}%);");
     }
 
-    private static string GetTooltip(IGrouping<OtlpApplication, OtlpSpan> applicationSpans)
+    private string GetTooltip(IGrouping<OtlpApplication, OtlpSpan> applicationSpans)
     {
         var count = applicationSpans.Count();
         var errorCount = applicationSpans.Count(s => s.Status == OtlpSpanStatusCode.Error);
 
-        var tooltip = $"{applicationSpans.Key.ApplicationName} spans";
+        var tooltip = $"{GetResourceName(applicationSpans.Key)} spans";
         tooltip += Environment.NewLine + $"Total: {count}";
         if (errorCount > 0)
         {
@@ -91,15 +92,16 @@ public partial class Traces
 
     protected override void OnParametersSet()
     {
-        _selectedApplication = _applications.SingleOrDefault(e => e.Id == ApplicationInstanceId) ?? s_allApplication;
+        _selectedApplication = _applicationViewModels.SingleOrDefault(e => e.Id == ApplicationInstanceId) ?? s_allApplication;
         ViewModel.ApplicationServiceId = _selectedApplication.Id;
         UpdateSubscription();
     }
 
     private void UpdateApplications()
     {
-        _applications = SelectViewModelFactory.CreateApplicationsSelectViewModel(TelemetryRepository.GetApplications());
-        _applications.Insert(0, s_allApplication);
+        _applications = TelemetryRepository.GetApplications();
+        _applicationViewModels = SelectViewModelFactory.CreateApplicationsSelectViewModel(_applications);
+        _applicationViewModels.Insert(0, s_allApplication);
         UpdateSubscription();
     }
 
@@ -149,6 +151,8 @@ public partial class Traces
         ViewModel.FilterText = string.Empty;
         StateHasChanged();
     }
+
+    private string GetResourceName(OtlpApplication app) => OtlpApplication.GetResourceName(app, _applications);
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

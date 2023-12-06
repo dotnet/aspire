@@ -17,6 +17,24 @@ public abstract class ResourceViewModel
     public List<ResourceService> Services { get; } = new();
     public int? ExpectedEndpointsCount { get; init; }
     public abstract string ResourceType { get; }
+
+    public static string GetResourceName(ResourceViewModel resource, IEnumerable<ResourceViewModel> allResources)
+    {
+        var count = 0;
+        foreach (var item in allResources)
+        {
+            if (item.DisplayName == resource.DisplayName)
+            {
+                count++;
+                if (count >= 2)
+                {
+                    return ResourceFormatter.GetName(resource.DisplayName, resource.Uid);
+                }
+            }
+        }
+
+        return resource.DisplayName;
+    }
 }
 
 public sealed class ResourceService(string name, string? allocatedAddress, int? allocatedPort)
