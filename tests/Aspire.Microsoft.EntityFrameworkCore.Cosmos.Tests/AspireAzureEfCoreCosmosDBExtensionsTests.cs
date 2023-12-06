@@ -25,12 +25,12 @@ public class AspireAzureEfCoreCosmosDBExtensionsTests
         ]);
 
         builder.AddCosmosDbContext<TestDbContext>("cosmosConnection", "databaseName", configureDbContextOptions: optionsBuilder =>
+        {
+            optionsBuilder.UseCosmos(ConnectionString, "databaseName", cosmosBuilder =>
             {
-                optionsBuilder.UseCosmos(ConnectionString, "databaseName", cosmosBuilder =>
-                {
-                    cosmosBuilder.RequestTimeout(TimeSpan.FromSeconds(608));
-                });
+                cosmosBuilder.RequestTimeout(TimeSpan.FromSeconds(608));
             });
+        });
 
         var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();

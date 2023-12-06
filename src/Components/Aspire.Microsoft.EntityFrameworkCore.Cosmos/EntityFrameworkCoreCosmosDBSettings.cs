@@ -54,11 +54,11 @@ public sealed class EntityFrameworkCoreCosmosDBSettings
 
     /// <summary>
     /// Gets or sets a string value that indicates what Azure region this client will run in.
-    /// </summary>s
+    /// </summary>
     public string? Region { get; set; }
 
     /// <summary>
-    /// Gets or sets the lifetime  with which to register the DbContext service in the container. Setting the lifetime has no effect when <see cref="DbContextPooling"/> is enabled.
+    /// Gets or sets the lifetime with which to register the DbContext service in the container. Setting the lifetime has no effect when <see cref="DbContextPooling"/> is enabled.
     /// </summary>
     public ServiceLifetime ServiceLifetime { get; set; } = ServiceLifetime.Scoped;
 }

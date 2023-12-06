@@ -55,7 +55,7 @@ public sealed class NpgsqlEntityFrameworkCorePostgreSQLSettings
     public bool Metrics { get; set; } = true;
 
     /// <summary>
-    /// Gets or sets the lifetime  with which to register the DbContext service in the container. Setting the lifetime has no effect when <see cref="DbContextPooling"/> is enabled.
+    /// Gets or sets the lifetime with which to register the DbContext service in the container. Setting the lifetime has no effect when <see cref="DbContextPooling"/> is enabled.
     /// </summary>
     public ServiceLifetime ServiceLifetime { get; set; } = ServiceLifetime.Scoped;
 }
