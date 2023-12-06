@@ -169,7 +169,14 @@ public partial class TraceDetail : ComponentBase
 
     private string GetRowClass(SpanWaterfallViewModel viewModel)
     {
-        return (viewModel.Span.SpanId == _span?.SpanId) ? "selected-span" : string.Empty;
+        if (viewModel.Span == SelectedSpan?.Span)
+        {
+            return "selected-row";
+        }
+        else
+        {
+            return (viewModel.Span.SpanId == _span?.SpanId) ? "selected-span" : string.Empty;
+        }
     }
 
     public SpanDetailsViewModel? SelectedSpan { get; set; }
