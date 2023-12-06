@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Immutable;
 using System.Threading.Channels;
 using Aspire.Dashboard.Model;
 
@@ -12,7 +13,7 @@ internal sealed class ViewModelProcessor
     private readonly Channel<ResourceChange> _incomingChannel;
     private readonly CancellationToken _cancellationToken;
     private readonly Dictionary<string, ResourceViewModel> _snapshot = [];
-    private readonly List<Channel<ResourceChange>> _subscribedChannels = [];
+    private ImmutableHashSet<Channel<ResourceChange>> _outgoingChannels = [];
 
     public ViewModelProcessor(Channel<ResourceChange> incomingChannel, CancellationToken cancellationToken)
     {
@@ -27,19 +28,17 @@ internal sealed class ViewModelProcessor
         lock (_syncLock)
         {
             var channel = Channel.CreateUnbounded<ResourceChange>();
-            _subscribedChannels.Add(channel);
+
+            ImmutableInterlocked.Update(ref _outgoingChannels, static (set, channel) => set.Add(channel), channel);
 
             return new ViewModelMonitor(
                 Snapshot: _snapshot.Values.ToList(),
                 Watch: new ChangeEnumerable(channel, RemoveChannel));
         }
-    }
 
-    private void RemoveChannel(Channel<ResourceChange> channel)
-    {
-        lock (_syncLock)
+        void RemoveChannel(Channel<ResourceChange> channel)
         {
-            _subscribedChannels.Remove(channel);
+            ImmutableInterlocked.Update(ref _outgoingChannels, static (set, channel) => set.Remove(channel), channel);
         }
     }
 
@@ -96,11 +95,11 @@ internal sealed class ViewModelProcessor
     {
         await foreach (var change in _incomingChannel.Reader.ReadAllAsync(_cancellationToken))
         {
-            List<Channel<ResourceChange>> outgoingChannels;
+            var (changeType, resource) = change;
+
             lock (_syncLock)
             {
-                var resource = change.Resource;
-                switch (change.ObjectChangeType)
+                switch (changeType)
                 {
                     case ObjectChangeType.Added:
                         _snapshot.Add(resource.Name, resource);
@@ -114,11 +113,9 @@ internal sealed class ViewModelProcessor
                         _snapshot.Remove(resource.Name);
                         break;
                 }
-
-                outgoingChannels = _subscribedChannels.ToList();
             }
 
-            foreach (var channel in outgoingChannels)
+            foreach (var channel in _outgoingChannels)
             {
                 await channel.Writer.WriteAsync(change, _cancellationToken).ConfigureAwait(false);
             }
