@@ -9,11 +9,10 @@ public class SelectViewModelFactory
 {
     public static List<SelectViewModel<string>> CreateApplicationsSelectViewModel(List<OtlpApplication> applications)
     {
-        var retval = applications.Select(a =>
+        return applications.Select(a => new SelectViewModel<string>
         {
-        var name = $"{a.ApplicationName} ({a.InstanceId.Substring(0, Math.Min(a.InstanceId.Length, 8))})";
-            return new SelectViewModel<string> { Id = a.InstanceId, Name = name };
+            Id = a.InstanceId,
+            Name = OtlpApplication.GetResourceName(a, applications)
         }).ToList();
-        return retval;
     }
 }

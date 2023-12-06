@@ -1,12 +1,11 @@
 ﻿@using Aspire.Dashboard.Model
 
 <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
-    <span><FluentHighlighter HighlightedText="@FilterText" Text="@Resource.DisplayName" /></span>
+    <span><FluentHighlighter HighlightedText="@FilterText" Text="@FormatName(Resource)" /></span>
     @if (Resource is ProjectViewModel projectViewModel)
     {
-        var content = projectViewModel.Uid.Substring(0, Math.Min(projectViewModel.Uid.Length, 8));
-        var title = $"({content})";
-        <span class="subtext" title="@title" aria-label="@title">@content</span>
+        var title = $"PID: {projectViewModel.ProcessId}";
+        <span class="subtext" title="@title" aria-label="@title">@projectViewModel.ProcessId</span>
     }
     else if (Resource is ContainerViewModel containerViewModel)
     {
@@ -20,15 +19,17 @@
     }
     else if (Resource is ExecutableViewModel executableViewModel)
     {
-        var content = executableViewModel.Uid.Substring(0, Math.Min(executableViewModel.Uid.Length, 8));
-        var title = $"({content})";
-        <span class="subtext" title="@title" aria-label="@title">@content</span>
+        var title = $"PID: {executableViewModel.ProcessId}";
+        <span class="subtext" title="@title" aria-label="@title">@executableViewModel.ProcessId</span>
     }
 </FluentStack>
 
 @code {
     [Parameter, EditorRequired]
     public required ResourceViewModel Resource { get; set; }
+
+    [Parameter, EditorRequired]
+    public required Func<ResourceViewModel, string> FormatName { get; set; }
 
     [Parameter, EditorRequired]
     public required string FilterText { get; set; }

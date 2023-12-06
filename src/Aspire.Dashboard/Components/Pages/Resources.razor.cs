@@ -164,6 +164,16 @@ public partial class Resources : ComponentBase, IDisposable
         await InvokeAsync(StateHasChanged);
     }
 
+    private string GetResourceName(ResourceViewModel resource)
+    {
+        if (_resourcesMap.Count(kvp => kvp.Value.DisplayName == resource.DisplayName) >= 2)
+        {
+            return ResourceFormatter.GetName(resource.DisplayName, resource.Uid);
+        }
+
+        return resource.DisplayName;
+    }
+
     protected virtual void Dispose(bool disposing)
     {
         if (disposing)

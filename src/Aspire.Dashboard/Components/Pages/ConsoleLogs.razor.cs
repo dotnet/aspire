@@ -37,8 +37,6 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
 
     private readonly Option<string> _noSelection = new() { Value = null, Text = "(Select a resource)" };
 
-    private const int InstanceIdHintLimit = 8;
-
     protected override void OnInitialized()
     {
         _status = LogStatus.LoadingResources;
@@ -92,7 +90,7 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
         }
     }
 
-    private static Option<string> GetOption(ResourceViewModel resource)
+    private Option<string> GetOption(ResourceViewModel resource)
     {
         return new Option<string>()
         {
@@ -233,7 +231,7 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
         await UpdateResourceListSelectedResourceAsync();
     }
 
-    private static string GetDisplayText(ResourceViewModel resource)
+    private string GetDisplayText(ResourceViewModel resource)
     {
         var stateText = "";
         if (string.IsNullOrEmpty(resource.State))
@@ -244,23 +242,17 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
         {
             stateText = $" ({resource.State})";
         }
-        var resourceName = resource.DisplayName;
-        switch (resource)
+        return $"{GetResourceName(resource)}{stateText}";
+    }
+
+    private string GetResourceName(ResourceViewModel resource)
+    {
+        if (_resourceNameMapping.Count(kvp => kvp.Value.DisplayName == resource.DisplayName) >= 2)
         {
-            case ExecutableViewModel evm:
-                resourceName += $" ({evm.Uid.Substring(0, Math.Min(evm.Uid.Length, InstanceIdHintLimit))})";
-                break;
-            case ProjectViewModel pvm:
-                resourceName += $" ({pvm.Uid.Substring(0, Math.Min(pvm.Uid.Length, InstanceIdHintLimit))})";
-                break;
-            case ContainerViewModel cvm:
-                if (cvm.ContainerId is not null)
-                {
-                    resourceName += $" (container ID: {cvm.ContainerId.Substring(0, Math.Min(cvm.ContainerId.Length, 8))})";
-                }
-                break;
+            return ResourceFormatter.GetName(resource.DisplayName, resource.Uid);
         }
-        return $"{resourceName}{stateText}";
+
+        return resource.DisplayName;
     }
 
     public async ValueTask DisposeAsync()

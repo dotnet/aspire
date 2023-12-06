@@ -18,7 +18,8 @@ public partial class StructuredLogs
     private static readonly SelectViewModel<string> s_allApplication = new SelectViewModel<string> { Id = null, Name = "(All)" };
 
     private TotalItemsFooter _totalItemsFooter = default!;
-    private List<SelectViewModel<string>> _applications = default!;
+    private List<OtlpApplication> _applications = default!;
+    private List<SelectViewModel<string>> _applicationViewModels = default!;
     private List<SelectViewModel<LogLevel?>> _logLevels = default!;
     private SelectViewModel<string> _selectedApplication = s_allApplication;
     private SelectViewModel<LogLevel?> _selectedLogLevel = default!;
@@ -106,7 +107,7 @@ public partial class StructuredLogs
 
     protected override void OnParametersSet()
     {
-        _selectedApplication = _applications.SingleOrDefault(e => e.Id == ApplicationInstanceId) ?? s_allApplication;
+        _selectedApplication = _applicationViewModels.SingleOrDefault(e => e.Id == ApplicationInstanceId) ?? s_allApplication;
         ViewModel.ApplicationServiceId = _selectedApplication.Id;
 
         if (LogLevelText != null && Enum.TryParse<LogLevel>(LogLevelText, ignoreCase: true, out var logLevel))
@@ -124,8 +125,9 @@ public partial class StructuredLogs
 
     private void UpdateApplications()
     {
-        _applications = SelectViewModelFactory.CreateApplicationsSelectViewModel(TelemetryRepository.GetApplications());
-        _applications.Insert(0, s_allApplication);
+        _applications = TelemetryRepository.GetApplications();
+        _applicationViewModels = SelectViewModelFactory.CreateApplicationsSelectViewModel(_applications);
+        _applicationViewModels.Insert(0, s_allApplication);
     }
 
     private Task HandleSelectedApplicationChangedAsync()
@@ -241,6 +243,8 @@ public partial class StructuredLogs
         ViewModel.FilterText = string.Empty;
         StateHasChanged();
     }
+
+    private string GetResourceName(OtlpApplication app) => OtlpApplication.GetResourceName(app, _applications);
 
     private void NavigateTo(string? applicationId, LogLevel? level)
     {

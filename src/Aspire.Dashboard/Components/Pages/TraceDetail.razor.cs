@@ -19,6 +19,7 @@ public partial class TraceDetail : ComponentBase
     private Subscription? _tracesSubscription;
     private List<SpanWaterfallViewModel>? _spanWaterfallViewModels;
     private int _maxDepth;
+    private List<OtlpApplication> _applications = default!;
 
     [Parameter]
     public required string TraceId { get; set; }
@@ -135,6 +136,8 @@ public partial class TraceDetail : ComponentBase
 
     private void UpdateDetailViewData()
     {
+        _applications = TelemetryRepository.GetApplications();
+
         _trace = null;
         _span = null;
 
@@ -187,7 +190,7 @@ public partial class TraceDetail : ComponentBase
             {
                 Span = viewModel.Span,
                 Properties = entryProperties,
-                Title = $"{viewModel.Span.Source.ApplicationName}: {viewModel.GetDisplaySummary()}"
+                Title = $"{GetResourceName(viewModel.Span.Source)}: {viewModel.GetDisplaySummary()}"
             };
 
             SelectedSpan = spanDetailsViewModel;
@@ -198,6 +201,8 @@ public partial class TraceDetail : ComponentBase
     {
         SelectedSpan = null;
     }
+
+    private string GetResourceName(OtlpApplication app) => OtlpApplication.GetResourceName(app, _applications);
 
     public void Dispose()
     {

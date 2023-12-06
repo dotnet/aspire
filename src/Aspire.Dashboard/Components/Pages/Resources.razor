@@ -43,7 +43,7 @@
                 <ChildContent>
                     <PropertyColumn Property="@(c => c.ResourceType)" Title="Type" Sortable="true" />
                     <TemplateColumn Title="Name" Sortable="true" SortBy="@_nameSort">
-                        <ResourceNameDisplay Resource="context" FilterText="@_filter" />
+                        <ResourceNameDisplay Resource="context" FilterText="@_filter" FormatName="GetResourceName" />
                     </TemplateColumn>
                     <TemplateColumn Title="State" Sortable="true" SortBy="@_stateSort">
                         <div class="resource-state-container">
