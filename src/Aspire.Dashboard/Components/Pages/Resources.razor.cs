@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Immutable;
+using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
@@ -31,45 +33,49 @@ public partial class Resources : ComponentBase, IDisposable
         => dashboardViewModelService.GetResources();
 
     private bool Filter(ResourceViewModel resource)
-        => ((resource.ResourceType == "Project" && _areProjectsVisible) ||
-            (resource.ResourceType == "Container" && _areContainersVisible) ||
-            (resource.ResourceType == "Executable" && _areExecutablesVisible)) &&
+        => _visibleResourceTypes.Contains(resource.ResourceType) &&
            (resource.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) ||
             (resource is ContainerViewModel containerViewModel &&
              containerViewModel.Image.Contains(_filter, StringComparison.CurrentCultureIgnoreCase)));
 
-    private readonly Dictionary<string, ResourceViewModel> _resourcesMap = new();
     private readonly CancellationTokenSource _watchTaskCancellationTokenSource = new();
+    private readonly Dictionary<string, ResourceViewModel> _resourcesMap = [];
+    // TODO populate resource types from server data
+    private readonly ImmutableArray<string> _allResourceTypes = ["Project", "Executable", "Container"];
+    private readonly HashSet<string> _visibleResourceTypes;
     private string _filter = "";
     private bool _isTypeFilterVisible;
-    private bool? _allTypesVisible = true;
-    private bool _areProjectsVisible = true;
-    private bool _areContainersVisible = true;
-    private bool _areExecutablesVisible = true;
 
-    private bool AreAllTypesVisible => _areProjectsVisible && _areContainersVisible && _areExecutablesVisible;
-
-    private void HandleTypeFilterShowAllChanged(bool? newValue)
+    public Resources()
     {
-        if (newValue.HasValue)
-        {
-            _allTypesVisible = _areProjectsVisible = _areContainersVisible = _areExecutablesVisible = newValue.Value;
-        }
+        _visibleResourceTypes = new HashSet<string>(_allResourceTypes, StringComparers.ResourceType);
     }
 
-    private void HandleTypeFilterTypeChanged()
+    protected void OnResourceTypeVisibilityChanged(string resourceType, bool isVisible)
     {
-        if (_areProjectsVisible && _areContainersVisible && _areExecutablesVisible)
+        if (isVisible)
         {
-            _allTypesVisible = true;
-        }
-        else if (!_areProjectsVisible && !_areContainersVisible && !_areExecutablesVisible)
-        {
-            _allTypesVisible = false;
+            _visibleResourceTypes.Add(resourceType);
         }
         else
         {
-            _allTypesVisible = null;
+            _visibleResourceTypes.Remove(resourceType);
+        }
+    }
+
+    private bool AreAllTypesVisible
+    {
+        get => _visibleResourceTypes.SetEquals(_allResourceTypes);
+        set
+        {
+            if (value)
+            {
+                _visibleResourceTypes.UnionWith(_allResourceTypes);
+            }
+            else
+            {
+                _visibleResourceTypes.Clear();
+            }
         }
     }
 

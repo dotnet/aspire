@@ -18,12 +18,17 @@
             <Header>Resource Types</Header>
             <Body>
                 <FluentStack Orientation="Orientation.Vertical">
-                    <FluentCheckbox Label="All" CheckStateChanged="HandleTypeFilterShowAllChanged"
-                                    ThreeState="true" ShowIndeterminate="false"
-                                    CheckState="_allTypesVisible" />
-                    <FluentCheckbox @bind-Value="_areProjectsVisible" Label="Projects" @bind-Value:after="HandleTypeFilterTypeChanged" />
-                    <FluentCheckbox @bind-Value="_areContainersVisible" Label="Containers" @bind-Value:after="HandleTypeFilterTypeChanged" />
-                    <FluentCheckbox @bind-Value="_areExecutablesVisible" Label="Executables" @bind-Value:after="HandleTypeFilterTypeChanged" />
+                    <FluentCheckbox
+                        Label="All"
+                        @bind-Value="AreAllTypesVisible" />
+                    @foreach (string resourceType in _allResourceTypes) {
+                        bool isChecked = _visibleResourceTypes.Contains(resourceType);
+                        <FluentCheckbox
+                            Label="@resourceType"
+                            @bind-Value:get="isChecked"
+                            @bind-Value:set="c => OnResourceTypeVisibilityChanged(resourceType, c)"
+                            />
+                    }
                 </FluentStack>
             </Body>
         </FluentPopover>
