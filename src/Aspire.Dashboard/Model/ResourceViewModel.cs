@@ -3,6 +3,7 @@
 
 using System.Collections.Immutable;
 using Aspire.Dashboard.Utils;
+using Google.Protobuf.WellKnownTypes;
 
 namespace Aspire.Dashboard.Model;
 
@@ -44,6 +45,26 @@ public abstract class ResourceViewModel
     internal virtual bool MatchesFilter(string filter)
     {
         return Name.Contains(filter, StringComparisons.UserTextSearch);
+    }
+
+    protected abstract IEnumerable<(string Key, Value Value)> GetCustomData();
+
+    public IEnumerable<(string Key, Value Value)> Data
+    {
+        get
+        {
+            yield return (ResourceDataKeys.Resource.Uid, Value.ForString(Uid));
+            yield return (ResourceDataKeys.Resource.Name, Value.ForString(Name));
+            yield return (ResourceDataKeys.Resource.Type, Value.ForString(ResourceType));
+            yield return (ResourceDataKeys.Resource.DisplayName, Value.ForString(DisplayName));
+            yield return (ResourceDataKeys.Resource.State, Value.ForString(State));
+            yield return (ResourceDataKeys.Resource.CreateTime, CreationTimeStamp is null ? Value.ForNull() : Value.ForString(CreationTimeStamp.Value.ToString("O")));
+
+            foreach (var pair in GetCustomData())
+            {
+                yield return pair;
+            }
+        }
     }
 }
 

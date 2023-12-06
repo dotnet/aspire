@@ -3,6 +3,7 @@
 
 using System.Collections.Immutable;
 using Aspire.Dashboard.Utils;
+using Google.Protobuf.WellKnownTypes;
 
 namespace Aspire.Dashboard.Model;
 
@@ -22,5 +23,12 @@ public class ContainerViewModel : ResourceViewModel
     internal override bool MatchesFilter(string filter)
     {
         return base.MatchesFilter(filter) || Image.Contains(filter, StringComparisons.UserTextSearch);
+    }
+
+    protected override IEnumerable<(string Key, Value Value)> GetCustomData()
+    {
+        yield return (ResourceDataKeys.Container.Id, Value.ForString(ContainerId));
+        yield return (ResourceDataKeys.Container.Image, Value.ForString(Image));
+        yield return (ResourceDataKeys.Container.Ports, Value.ForList(Ports.Select(port => Value.ForNumber(port)).ToArray()));
     }
 }
