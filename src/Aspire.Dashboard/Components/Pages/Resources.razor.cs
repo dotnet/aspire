@@ -198,5 +198,5 @@ public partial class Resources : ComponentBase, IDisposable
     }
 
     private string? GetRowClass(ResourceViewModel resource)
-        => string.Equals(resource.Name, SelectedResourceName, StringComparison.Ordinal) ? "selected-row" : null;
+        => resource == SelectedResource ? "selected-row" : null;
 }
