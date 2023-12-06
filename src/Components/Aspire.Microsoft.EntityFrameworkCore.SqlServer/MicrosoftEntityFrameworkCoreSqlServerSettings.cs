@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.Extensions.DependencyInjection;
+
 namespace Aspire.Microsoft.EntityFrameworkCore.SqlServer;
 
 /// <summary>
@@ -55,4 +57,9 @@ public sealed class MicrosoftEntityFrameworkCoreSqlServerSettings
     /// The time in seconds to wait for the command to execute.
     /// </summary>
     public int? Timeout { get; set; }
+
+    /// <summary>
+    /// Gets or sets the lifetime  with which to register the DbContext service in the container. Setting the lifetime has no effect when <see cref="DbContextPooling"/> is enabled.
+    /// </summary>
+    public ServiceLifetime ServiceLifetime { get; set; } = ServiceLifetime.Scoped;
 }

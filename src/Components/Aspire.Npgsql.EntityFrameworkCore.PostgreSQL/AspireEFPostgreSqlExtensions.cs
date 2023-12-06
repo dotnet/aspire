@@ -90,7 +90,7 @@ public static partial class AspireEFPostgreSqlExtensions
         }
         else
         {
-            builder.Services.AddDbContext<TContext>(ConfigureDbContext);
+            builder.Services.AddDbContext<TContext>(ConfigureDbContext, settings.ServiceLifetime);
         }
 
         if (settings.HealthChecks)

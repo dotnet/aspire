@@ -113,4 +113,20 @@ public class AspireEFPostgreSqlExtensionsTests
 
 #pragma warning restore EF1001 // Internal EF Core API usage.
     }
+
+    [Fact]
+    public void CanConfigureServiceLifetime()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        builder.AddNpgsqlDbContext<TestDbContext>("npgsql",
+            settingsBuilder =>
+            {
+                settingsBuilder.ServiceLifetime = ServiceLifetime.Transient;
+                settingsBuilder.DbContextPooling = false;
+            });
+
+        var dbContextServiceDescriptor = builder.Services.Single(s => s.ServiceType == typeof(TestDbContext));
+        Assert.Equal(ServiceLifetime.Transient, dbContextServiceDescriptor.Lifetime);
+    }
 }

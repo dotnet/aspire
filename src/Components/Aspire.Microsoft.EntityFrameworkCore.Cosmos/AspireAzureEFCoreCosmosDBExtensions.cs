@@ -73,7 +73,7 @@ public static class AspireAzureEFCoreCosmosDBExtensions
         }
         else
         {
-            builder.Services.AddDbContext<TContext>(ConfigureDbContext);
+            builder.Services.AddDbContext<TContext>(ConfigureDbContext, settings.ServiceLifetime);
         }
 
         if (settings.Tracing)

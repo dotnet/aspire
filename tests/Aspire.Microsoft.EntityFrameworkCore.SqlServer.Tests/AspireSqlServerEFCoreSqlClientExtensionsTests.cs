@@ -116,4 +116,20 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
 
 #pragma warning restore EF1001 // Internal EF Core API usage.
     }
+
+    [Fact]
+    public void CanConfigureServiceLifetime()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        builder.AddSqlServerDbContext<TestDbContext>("sqlconnection",
+            settingsBuilder =>
+            {
+                settingsBuilder.ServiceLifetime = ServiceLifetime.Transient;
+                settingsBuilder.DbContextPooling = false;
+            });
+
+        var dbContextServiceDescriptor = builder.Services.Single(s => s.ServiceType == typeof(TestDbContext));
+        Assert.Equal(ServiceLifetime.Transient, dbContextServiceDescriptor.Lifetime);
+    }
 }

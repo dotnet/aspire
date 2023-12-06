@@ -25,12 +25,12 @@ public class AspireAzureEfCoreCosmosDBExtensionsTests
         ]);
 
         builder.AddCosmosDbContext<TestDbContext>("cosmosConnection", "databaseName", configureDbContextOptions: optionsBuilder =>
-        {
-            optionsBuilder.UseCosmos(ConnectionString, "databaseName", cosmosBuilder =>
             {
-                cosmosBuilder.RequestTimeout(TimeSpan.FromSeconds(608));
+                optionsBuilder.UseCosmos(ConnectionString, "databaseName", cosmosBuilder =>
+                {
+                    cosmosBuilder.RequestTimeout(TimeSpan.FromSeconds(608));
+                });
             });
-        });
 
         var host = builder.Build();
         var context = host.Services.GetRequiredService<TestDbContext>();
@@ -47,5 +47,21 @@ public class AspireAzureEfCoreCosmosDBExtensionsTests
         Assert.Equal("westus", extension.Region);
 
 #pragma warning restore EF1001 // Internal EF Core API usage.
+    }
+
+    [Fact]
+    public void CanConfigureServiceLifetime()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        builder.AddCosmosDbContext<TestDbContext>("cosmosConnection", "databaseName",
+            settingsBuilder =>
+            {
+                settingsBuilder.ServiceLifetime = ServiceLifetime.Transient;
+                settingsBuilder.DbContextPooling = false;
+            });
+
+        var dbContextServiceDescriptor = builder.Services.Single(s => s.ServiceType == typeof(TestDbContext));
+        Assert.Equal(ServiceLifetime.Transient, dbContextServiceDescriptor.Lifetime);
     }
 }
