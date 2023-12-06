@@ -3,6 +3,7 @@
 
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
+using Microsoft.Extensions.Hosting;
 
 namespace Aspire.Hosting;
 
@@ -63,6 +64,24 @@ public static class ContainerResourceBuilderExtensions
             containerPort: containerPort);
 
         return builder.WithAnnotation(annotation);
+    }
+
+    /// <summary>
+    /// Adds a named volume mount to the container resource where the name is generated from
+    /// the <see cref="IHostEnvironment.ApplicationName"/> and <see cref="Resource.Name"/>.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="target">The target path in the container.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithPersistentVolume<T>(
+        this IResourceBuilder<T> builder,
+        string target)
+        where T : ContainerResource
+    {
+        var source = $"{builder.ApplicationBuilder.Environment.ApplicationName}.{builder.Resource.Name}.data";
+
+        return builder.WithVolumeMount(source, target, type: VolumeMountType.Named, isReadOnly: false);
     }
 
     /// <summary>
