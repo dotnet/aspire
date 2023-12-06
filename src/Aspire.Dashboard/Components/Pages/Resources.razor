@@ -34,7 +34,7 @@
                         @bind-Value:after="HandleClear"
                         slot="end" />
     </FluentToolbar>
-    <SummaryDetailsView DetailsTitle="@($"Environment Variables for {SelectedResourceName}")"
+    <SummaryDetailsView DetailsTitle="@($"Environment Variables for {((SelectedResource != null) ? GetResourceName(SelectedResource) : null)}")"
                         ShowDetails="@(SelectedEnvironmentVariables is not null)"
                         OnDismiss="() => ClearSelectedResource()"
                         ViewKey="ResourcesList">
