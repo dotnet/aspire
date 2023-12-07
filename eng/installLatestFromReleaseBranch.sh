@@ -1,5 +1,14 @@
 #!/bin/bash
 
+# Check if jq is installed
+if ! command -v jq &> /dev/null
+then
+    echo "Error: jq is not installed. Please install jq to run this script."
+    echo "On Ubuntu/Debian: sudo apt-get install jq"
+    echo "On macOS: brew install jq"
+    exit 1
+fi
+
 # NuGet Feed URL
 nugetUrl="https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json"
 
