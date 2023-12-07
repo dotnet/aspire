@@ -141,15 +141,6 @@ message WatchResourcesChanges {
 
 ////////////////////////////////////////////
 
-// Sent periodically from the server to prevent proxies closing the connection due to inactivity,
-// and to allow the client to detect when the connection drops, notify the user and attempt to reconnect.
-message Heartbeat {
-    // Time until the next heartbeat.
-    int32 interval_milliseconds = 1;
-}
-
-////////////////////////////////////////////
-
 // Initiates a subscription for data about resources.
 message WatchResourcesRequest {
     // True if the client is establishing this connection because a prior one closed unexpectedly.
@@ -163,8 +154,6 @@ message WatchResourcesUpdate {
         WatchResourcesSnapshot initial_snapshot = 1;
         // One or more deltas to apply.
         WatchResourcesChanges changes = 2;
-        // A sign of life from the server. Can arrive at any time.
-        Heartbeat heartbeat = 3;
     }
 }
 
