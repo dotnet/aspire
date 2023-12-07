@@ -103,7 +103,7 @@ var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(cosmosdb);
 ```
 
-The `WithReference` method configures a connection in the `MyService` project named `cosmosdb`. In the _Program.cs_ file of `MyService`, the database connection can be consumed using:
+The `AddAzureCosmosDB` method will read connection information from the AppHost's configuration (for example, from "user secrets") under the `ConnectionStrings:cosmosdb` config key. The `WithReference` method passes that connection information into a connection string named `cosmosdb` in the `MyService` project. In the _Program.cs_ file of `MyService`, the connection can be consumed using:
 
 ```csharp
 builder.AddCosmosDbContext<MyDbContext>("cosmosdb");
