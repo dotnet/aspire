@@ -46,7 +46,7 @@ public abstract class TestProgramFixture : IAsyncLifetime
         if (_app != null)
         {
             await _app.StopAsync();
-            await _app!.DisposeAsync();
+            await _app.DisposeAsync();
         }
 
         if (_httpClient != null)
