@@ -49,4 +49,10 @@
     </EmbeddedResource>
   </ItemGroup>
 
+  <ItemGroup>
+    <Protobuf Include="..\Aspire.Hosting\Dashboard\proto\resource_service.proto" GrpcServices="Client" Access="Internal">
+      <Link>Protos\resource_service.proto</Link>
+    </Protobuf>
+  </ItemGroup>
+
 </Project>

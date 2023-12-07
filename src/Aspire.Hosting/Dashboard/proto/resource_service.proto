@@ -1,0 +1,177 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+syntax = "proto3";
+
+package aspire.v1;
+
+import "google/protobuf/timestamp.proto";
+
+////////////////////////////////////////////
+
+message ApplicationInformationRequest {
+}
+
+message ApplicationInformationResponse {
+    string application_name = 1;
+    string application_version = 2;
+}
+
+////////////////////////////////////////////
+
+message ResourceCommandRequest {
+    string command_type = 1;
+    ResourceId resource_id = 2;
+    optional string confirmation_message = 3;
+}
+
+enum ResourceCommandResponseKind {
+    none = 0;
+    succeeded = 1;
+    failed = 2;
+    cancelled = 3;
+}
+
+message ResourceCommandResponse {
+    ResourceCommandResponseKind kind = 1;
+    optional string error_message = 2;
+}
+
+////////////////////////////////////////////
+
+message ResourceType {
+    // Unique name for the resource type. Not for display. Equivalent to ResourceId.resource_type
+    string unique_name = 1;
+
+    // Localised name for the resource type, for display use only.
+    optional string display_name = 2;
+
+    // Any commands that may be executed against resources of this type, avoiding
+    // the need to copy the value to every Resource instance.
+    //
+    // Note that these commands must apply to matching resources at any time.
+    //
+    // If the set of commands changes over time, use the "commands" property
+    // of the Resource itself.
+    repeated ResourceCommandRequest commands = 3;
+}
+
+////////////////////////////////////////////
+
+message EnvironmentVariable {
+    string name = 1;
+    optional string value = 2;
+    bool is_from_spec = 3;
+}
+
+message Endpoint {
+    string name = 1;
+    optional string allocated_address = 2;
+    optional int32 allocated_port = 3;
+    optional string http_address = 4;
+}
+
+message StringArray {
+    repeated string values = 1;
+}
+
+message AdditionalData {
+    // TODO do we need separate display value(s)?
+    string name = 1;
+    // Optional namespace, e.g. "container", "executable", "project", ...
+    optional string namespace = 2;
+    // A single value will be most common. Also support lists, to avoid escaping.
+    oneof kind {
+        string value = 3;
+        StringArray values = 4;
+    }
+}
+
+message ResourceId {
+    string uid = 1;
+    // TODO do we need resource_type to make unique names? if not, inline ResourceId type as string.
+    string resource_type = 2;
+}
+
+// Models the full state of an resource (container, executable, project, etc) at a particular point in time.
+message ResourceSnapshot {
+    ResourceId resource_id = 1;
+    string display_name = 2;
+    optional string state = 3;
+    optional google.protobuf.Timestamp created_at = 4;
+    repeated EnvironmentVariable environment = 5;
+    optional int32 expected_endpoints_count = 6;
+    repeated Endpoint endpoints = 7;
+    repeated ResourceCommandRequest commands = 8;
+
+    // TODO potentially remove endpoints/env vars/anything that might not be general purpose
+
+    // List of additional data, as name/value pairs.
+    // For:
+    // - Containers: image, container_id, ports
+    // - Executables: process_id, executable_path, working_directory, arguments
+    // - Projects: process_id, project_path
+    repeated AdditionalData additional_data = 9;
+}
+
+////////////////////////////////////////////
+
+// Models a snapshot of resource state
+message WatchResourcesSnapshot {
+    repeated ResourceSnapshot resources = 1;
+    repeated ResourceType types = 2;
+}
+
+////////////////////////////////////////////
+
+message ResourceDeletion {
+    ResourceId resource_id = 1;
+}
+
+message WatchResourcesChange  {
+    oneof kind {
+        ResourceDeletion delete = 1;
+        ResourceSnapshot upsert = 2;
+    }
+}
+
+message WatchResourcesChanges {
+    repeated WatchResourcesChange value = 1;
+}
+
+////////////////////////////////////////////
+
+// Sent periodically from the server to prevent proxies closing the connection due to inactivity,
+// and to allow the client to detect when the connection drops, notify the user and attempt to reconnect.
+message Heartbeat {
+    // Time until the next heartbeat.
+    int32 interval_milliseconds = 1;
+}
+
+////////////////////////////////////////////
+
+// Initiates a subscription for data about resources.
+message WatchResourcesRequest {
+    // True if the client is establishing this connection because a prior one closed unexpectedly.
+    optional bool is_reconnect = 1;
+}
+
+// A message received from the server when watching resources. Has multiple types of payload.
+message WatchResourcesUpdate {
+    oneof kind {
+        // Snapshot of current resource state. Received once upon connection, before any "changes".
+        WatchResourcesSnapshot initial_snapshot = 1;
+        // One or more deltas to apply.
+        WatchResourcesChanges changes = 2;
+        // A sign of life from the server. Can arrive at any time.
+        Heartbeat heartbeat = 3;
+    }
+}
+
+////////////////////////////////////////////
+
+service DashboardService {
+    rpc GetApplicationInformation(ApplicationInformationRequest) returns (ApplicationInformationResponse);
+    rpc WatchResources(WatchResourcesRequest) returns (stream WatchResourcesUpdate);
+    rpc ExecuteResourceCommand(ResourceCommandRequest) returns (ResourceCommandResponse);
+}
