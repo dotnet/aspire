@@ -16,6 +16,7 @@ public static class MongoDBExtensions
     {
         // Ensure the database is created
         var randomCollection = db.GetCollection<Movie>("random");
+        await randomCollection.DeleteManyAsync(x => true);
         randomCollection.InsertOne(new Movie(1, "123"));
 
         var databaseNames = new List<string>();
@@ -29,8 +30,9 @@ public static class MongoDBExtensions
     {
         db.CreateCollection("movies");
         var moviesCollection = db.GetCollection<Movie>("movies");
-        moviesCollection.InsertOne(new Movie(1, "Rocky I"));
-        moviesCollection.InsertOne(new Movie(2, "Rocky II"));
+        await moviesCollection.DeleteManyAsync(x => true);
+        await moviesCollection.InsertOneAsync(new Movie(1, "Rocky I"));
+        await moviesCollection.InsertOneAsync(new Movie(2, "Rocky II"));
 
         return (await moviesCollection.Find(x => true).ToListAsync()).Select(x => x.Name).ToList();
     }
