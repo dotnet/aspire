@@ -132,31 +132,6 @@
   <data name="FilterDialogRemoveFilterButtonText" xml:space="preserve">
     <value>Remove Filter</value>
   </data>
-  <data name="FilterConditionContains" xml:space="preserve">
-    <value>contains</value>
-  </data>
-  <data name="FilterConditionNotContains" xml:space="preserve">
-    <value>not contains</value>
-  </data>
-  <data name="FilterFieldMessage" xml:space="preserve">
-    <value>Message</value>
-    <comment>Message is a field name, not an action</comment>
-  </data>
-  <data name="FilterFieldApplication" xml:space="preserve">
-    <value>Application</value>
-  </data>
-  <data name="FilterFieldTraceId" xml:space="preserve">
-    <value>TraceId</value>
-  </data>
-  <data name="FilterFieldSpanId" xml:space="preserve">
-    <value>SpanId</value>
-  </data>
-  <data name="FilterFieldOriginalFormat" xml:space="preserve">
-    <value>OriginalFormat</value>
-  </data>
-  <data name="FilterFieldCategory" xml:space="preserve">
-    <value>Category</value>
-  </data>
   <data name="SettingsDialogSystemTheme" xml:space="preserve">
     <value>System</value>
   </data>
