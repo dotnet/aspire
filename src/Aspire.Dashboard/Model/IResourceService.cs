@@ -16,6 +16,6 @@ public interface IResourceService
     ResourceSubscription Subscribe();
 }
 
-public record ResourceSubscription(
+public sealed record ResourceSubscription(
     List<ResourceViewModel> Snapshot,
     IAsyncEnumerable<ResourceChange> Subscription);
