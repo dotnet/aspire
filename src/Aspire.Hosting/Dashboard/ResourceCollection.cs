@@ -7,6 +7,11 @@ using Aspire.Dashboard.Model;
 
 namespace Aspire.Hosting.Dashboard;
 
+/// <summary>
+/// Builds a collection of resources by integrating incoming changes from a channel,
+/// and allowing multiple subscribers to receive the current resource snapshot and future
+/// updates.
+/// </summary>
 internal sealed class ResourceCollection
 {
     private readonly object _syncLock = new();
