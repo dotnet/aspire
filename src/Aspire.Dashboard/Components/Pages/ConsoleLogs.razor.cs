@@ -31,15 +31,16 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
     private LogViewer? _logViewer;
     private readonly CancellationTokenSource _watchResourcesCts = new();
     private CancellationTokenSource? _watchLogsTokenSource;
-    private string _status = LogStatus.Initializing;
+    private string _status = "...";
 
     private readonly TaskCompletionSource _renderCompleteTcs = new();
 
-    private readonly Option<string> _noSelection = new() { Value = null, Text = "(Select a resource)" };
+    private Option<string> _noSelection = null!;
 
     protected override void OnInitialized()
     {
-        _status = LogStatus.LoadingResources;
+        _noSelection = new() { Value = null, Text = Loc[Dashboard.Resources.ConsoleLogs.ConsoleLogsSelectAResource] };
+        _status = Loc[Dashboard.Resources.ConsoleLogs.ConsoleLogsLoadingResources];
 
         var (snapshot, subscription) = DashboardViewModelService.GetResources();
 
@@ -84,7 +85,7 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
             await ClearLogsAsync();
             _selectedOption = _noSelection;
             _selectedResource = null;
-            _status = LogStatus.NoResourceSelected;
+            _status = Loc[Dashboard.Resources.ConsoleLogs.ConsoleLogsNoResourceSelected];
         }
     }
 
@@ -117,11 +118,11 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
 
         if (_selectedResource is null)
         {
-            _status = LogStatus.NoResourceSelected;
+            _status = Loc[Dashboard.Resources.ConsoleLogs.ConsoleLogsNoResourceSelected];
         }
         else if (_logViewer is null)
         {
-            _status = LogStatus.InitializingLogViewer;
+            _status = Loc[Dashboard.Resources.ConsoleLogs.ConsoleLogsInitializingLogViewer];
         }
         else
         {
@@ -159,22 +160,22 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
                     // cause a flash of text change before it changes again or the page is navigated away.
                     if (!task.IsCanceled)
                     {
-                        _status = LogStatus.FinishedWatchingLogs;
+                        _status = Loc[Dashboard.Resources.ConsoleLogs.ConsoleLogsFinishedWatchingLogs];
                     }
                 }, TaskScheduler.Current);
 
-                _status = LogStatus.WatchingLogs;
+                _status = Loc[Dashboard.Resources.ConsoleLogs.ConsoleLogsWatchingLogs];
             }
             else
             {
                 _watchLogsTokenSource = null;
                 if (_selectedResource is ContainerViewModel)
                 {
-                    _status = LogStatus.FailedToInitialize;
+                    _status = Loc[Dashboard.Resources.ConsoleLogs.ConsoleLogsFailedToInitialize];
                 }
                 else
                 {
-                    _status = LogStatus.LogsNotYetAvailable;
+                    _status = Loc[Dashboard.Resources.ConsoleLogs.ConsoleLogsLogsNotYetAvailable];
                 }
             }
         }
@@ -206,7 +207,7 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
                 }
                 else if (!string.Equals(_selectedResource.State, "Running", StringComparison.Ordinal))
                 {
-                    _status = LogStatus.FinishedWatchingLogs;
+                    _status = Loc[Dashboard.Resources.ConsoleLogs.ConsoleLogsFinishedWatchingLogs];
                 }
             }
         }
@@ -234,7 +235,7 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
         var stateText = "";
         if (string.IsNullOrEmpty(resource.State))
         {
-            stateText = " (Unknown State)";
+            stateText = $" ({Loc[Dashboard.Resources.ConsoleLogs.ConsoleLogsUnknownState]})";
         }
         else if (resource.State != "Running")
         {
