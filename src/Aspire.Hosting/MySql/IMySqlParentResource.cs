@@ -4,8 +4,8 @@
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// Represents a MySQL resource that requires a connection string.
+/// Represents a MySQL parent resource (container or server) that produces a connection string.
 /// </summary>
-public interface IMySqlResource : IResourceWithConnectionString
+public interface IMySqlParentResource : IResourceWithConnectionString, IResourceWithEnvironment
 {
 }

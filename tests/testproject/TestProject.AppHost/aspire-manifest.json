@@ -1,0 +1,421 @@
+{
+  "resources": {
+    "servicea": {
+      "type": "project.v0",
+      "path": "../TestProject.ServiceA/TestProject.ServiceA.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http"
+        }
+      }
+    },
+    "serviceb": {
+      "type": "project.v0",
+      "path": "../TestProject.ServiceB/TestProject.ServiceB.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http"
+        }
+      }
+    },
+    "servicec": {
+      "type": "project.v0",
+      "path": "../TestProject.ServiceC/TestProject.ServiceC.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http"
+        }
+      }
+    },
+    "workera": {
+      "type": "project.v0",
+      "path": "../TestProject.WorkerA/TestProject.WorkerA.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true"
+      }
+    },
+    "nodeapp": {
+      "type": "executable.v0",
+      "workingDirectory": "../nodeapp",
+      "command": "node",
+      "args": [
+        "C:\\Code\\dotnet\\aspire\\tests\\testproject\\TestProject.AppHost\\..\\nodeapp\\app.js"
+      ],
+      "env": {
+        "NODE_ENV": "production",
+        "PORT": "{nodeapp.bindings.http.port}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        }
+      }
+    },
+    "npmapp": {
+      "type": "executable.v0",
+      "workingDirectory": "../nodeapp",
+      "command": "npm",
+      "args": [
+        "run",
+        "start"
+      ],
+      "env": {
+        "NODE_ENV": "production",
+        "PORT": "{npmapp.bindings.http.port}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        }
+      }
+    },
+    "sqlservercontainer": {
+      "type": "container.v0",
+      "image": "mcr.microsoft.com/mssql/server:2022-latest",
+      "env": {
+        "ACCEPT_EULA": "Y",
+        "MSSQL_SA_PASSWORD": "{sqlservercontainer.inputs.password}"
+      },
+      "bindings": {
+        "tcp": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp",
+          "containerPort": 1433
+        }
+      },
+      "connectionString": "Server={sqlservercontainer.bindings.tcp.host},{sqlservercontainer.bindings.tcp.port};User ID=sa;Password={sqlservercontainer.inputs.password};TrustServerCertificate=true;",
+      "inputs": {
+        "password": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 10
+            }
+          }
+        }
+      }
+    },
+    "mysqlcontainer": {
+      "type": "container.v0",
+      "image": "mysql:latest",
+      "env": {
+        "MYSQL_ROOT_PASSWORD": "{mysqlcontainer.inputs.password}"
+      },
+      "bindings": {
+        "tcp": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp",
+          "containerPort": 3306
+        }
+      },
+      "connectionString": "Server={mysqlcontainer.bindings.tcp.host};Port={mysqlcontainer.bindings.tcp.port};User ID=root;Password={mysqlcontainer.inputs.password}",
+      "inputs": {
+        "password": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 10
+            }
+          }
+        }
+      }
+    },
+    "rediscontainer": {
+      "type": "container.v0",
+      "image": "redis:latest",
+      "bindings": {
+        "tcp": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp",
+          "containerPort": 6379
+        }
+      },
+      "connectionString": "{rediscontainer.bindings.tcp.host}:{rediscontainer.bindings.tcp.port}"
+    },
+    "postgrescontainer": {
+      "type": "container.v0",
+      "image": "postgres:latest",
+      "env": {
+        "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
+        "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
+        "POSTGRES_PASSWORD": "{postgrescontainer.inputs.password}"
+      },
+      "bindings": {
+        "tcp": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp",
+          "containerPort": 5432
+        }
+      },
+      "connectionString": "Host={postgrescontainer.bindings.tcp.host};Port={postgrescontainer.bindings.tcp.port};Username=postgres;Password={postgrescontainer.inputs.password};",
+      "inputs": {
+        "password": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 10
+            }
+          }
+        }
+      }
+    },
+    "rabbitmqcontainer": {
+      "type": "container.v0",
+      "image": "rabbitmq:3-management",
+      "env": {
+        "RABBITMQ_DEFAULT_USER": "guest",
+        "RABBITMQ_DEFAULT_PASS": "{rabbitmqcontainer.inputs.password}"
+      },
+      "bindings": {
+        "tcp": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp",
+          "containerPort": 5672
+        },
+        "management": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http",
+          "containerPort": 15672
+        }
+      },
+      "connectionString": "amqp://guest:{rabbitmqcontainer.inputs.password}@{rabbitmqcontainer.bindings.management.host}:{rabbitmqcontainer.bindings.management.port}",
+      "inputs": {
+        "password": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 10
+            }
+          }
+        }
+      }
+    },
+    "mongodbcontainer": {
+      "type": "container.v0",
+      "image": "mongo:latest",
+      "bindings": {
+        "tcp": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp",
+          "containerPort": 27017
+        }
+      },
+      "connectionString": "{mongodbcontainer.bindings.tcp.host}:{mongodbcontainer.bindings.tcp.port}"
+    },
+    "sqlserverabstract": {
+      "type": "container.v0",
+      "image": "mcr.microsoft.com/mssql/server:2022-latest",
+      "env": {
+        "ACCEPT_EULA": "Y",
+        "MSSQL_SA_PASSWORD": "{sqlserverabstract.inputs.password}"
+      },
+      "bindings": {
+        "tcp": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp",
+          "containerPort": 1433
+        }
+      },
+      "connectionString": "Server={sqlserverabstract.bindings.tcp.host},{sqlserverabstract.bindings.tcp.port};User ID=sa;Password={sqlserverabstract.inputs.password};TrustServerCertificate=true;",
+      "inputs": {
+        "password": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 10
+            }
+          }
+        }
+      }
+    },
+    "mysqlabstract": {
+      "type": "container.v0",
+      "image": "mysql:latest",
+      "env": {
+        "MYSQL_ROOT_PASSWORD": "{mysqlabstract.inputs.password}"
+      },
+      "bindings": {
+        "tcp": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp",
+          "containerPort": 3306
+        }
+      },
+      "connectionString": "Server={mysqlabstract.bindings.tcp.host};Port={mysqlabstract.bindings.tcp.port};User ID=root;Password={mysqlabstract.inputs.password}",
+      "inputs": {
+        "password": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 10
+            }
+          }
+        }
+      }
+    },
+    "redisabstract": {
+      "type": "container.v0",
+      "image": "redis:latest",
+      "bindings": {
+        "tcp": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp",
+          "containerPort": 6379
+        }
+      },
+      "connectionString": "{redisabstract.bindings.tcp.host}:{redisabstract.bindings.tcp.port}"
+    },
+    "postgresabstract": {
+      "type": "container.v0",
+      "image": "postgres:latest",
+      "env": {
+        "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
+        "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
+        "POSTGRES_PASSWORD": "{postgresabstract.inputs.password}"
+      },
+      "bindings": {
+        "tcp": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp",
+          "containerPort": 5432
+        }
+      },
+      "connectionString": "Host={postgresabstract.bindings.tcp.host};Port={postgresabstract.bindings.tcp.port};Username=postgres;Password={postgresabstract.inputs.password};",
+      "inputs": {
+        "password": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 10
+            }
+          }
+        }
+      }
+    },
+    "rabbitmqabstract": {
+      "type": "container.v0",
+      "image": "rabbitmq:3-management",
+      "env": {
+        "RABBITMQ_DEFAULT_USER": "guest",
+        "RABBITMQ_DEFAULT_PASS": "{rabbitmqabstract.inputs.password}"
+      },
+      "bindings": {
+        "tcp": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp",
+          "containerPort": 5672
+        },
+        "management": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http",
+          "containerPort": 15672
+        }
+      },
+      "connectionString": "amqp://guest:{rabbitmqabstract.inputs.password}@{rabbitmqabstract.bindings.management.host}:{rabbitmqabstract.bindings.management.port}",
+      "inputs": {
+        "password": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 10
+            }
+          }
+        }
+      }
+    },
+    "mongodbabstract": {
+      "type": "mongodb.server.v0"
+    },
+    "integrationservicea": {
+      "type": "project.v0",
+      "path": "../TestProject.IntegrationServiceA/TestProject.IntegrationServiceA.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "ConnectionStrings__sqlservercontainer": "{sqlservercontainer.connectionString}",
+        "ConnectionStrings__mysqlcontainer": "{mysqlcontainer.connectionString}",
+        "ConnectionStrings__rediscontainer": "{rediscontainer.connectionString}",
+        "ConnectionStrings__postgrescontainer": "{postgrescontainer.connectionString}",
+        "ConnectionStrings__rabbitmqcontainer": "{rabbitmqcontainer.connectionString}",
+        "ConnectionStrings__mongodbcontainer": "{mongodbcontainer.connectionString}",
+        "ConnectionStrings__sqlserverabstract": "{sqlserverabstract.connectionString}",
+        "ConnectionStrings__mysqlabstract": "{mysqlabstract.connectionString}",
+        "ConnectionStrings__redisabstract": "{redisabstract.connectionString}",
+        "ConnectionStrings__postgresabstract": "{postgresabstract.connectionString}",
+        "ConnectionStrings__rabbitmqabstract": "{rabbitmqabstract.connectionString}",
+        "ConnectionStrings__mongodbabstract": "{mongodbabstract.connectionString}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http"
+        }
+      }
+    }
+  }
+}
