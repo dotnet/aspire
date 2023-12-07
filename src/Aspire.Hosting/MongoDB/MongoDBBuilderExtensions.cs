@@ -31,25 +31,29 @@ public static class MongoDBBuilderExtensions
 
         return builder
             .AddResource(mongoDBContainer)
-            .WithManifestPublishingCallback(WriteMongoDBContainerToManifest)
+            .WithManifestPublishingCallback(context => WriteMongoDBContainerToManifest(context, mongoDBContainer))
             .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, port: port, containerPort: DefaultContainerPort)) // Internal port is always 27017.
             .WithAnnotation(new ContainerImageAnnotation { Image = "mongo", Tag = "latest" });
     }
 
     /// <summary>
-    /// Adds a MongoDB connection to the application model. Connection strings can also be read from the connection string section of the configuration using the name of the resource.
+    /// Adds a MongoDB resource to the application model. A container is used for local development.
     /// </summary>
+    /// <returns></returns>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <param name="connectionString">The MongoDB connection string (optional).</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{MongoDBConnectionResource}"/>.</returns>
-    public static IResourceBuilder<MongoDBConnectionResource> AddMongoDBConnection(this IDistributedApplicationBuilder builder, string name, string? connectionString = null)
+    /// <returns>A reference to the <see cref="IResourceBuilder{MongoDBContainerResource}"/>.</returns>
+    public static IResourceBuilder<MongoDBServerResource> AddMongoDB(
+        this IDistributedApplicationBuilder builder,
+        string name)
     {
-        var mongoDBConnection = new MongoDBConnectionResource(name, connectionString);
+        var mongoDBContainer = new MongoDBServerResource(name);
 
         return builder
-            .AddResource(mongoDBConnection)
-            .WithManifestPublishingCallback(context => context.WriteMongoDBConnectionToManifest(mongoDBConnection));
+            .AddResource(mongoDBContainer)
+            .WithManifestPublishingCallback(WriteMongoDBServerToManifest)
+            .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, containerPort: DefaultContainerPort)) // Internal port is always 27017.
+            .WithAnnotation(new ContainerImageAnnotation { Image = "mongo", Tag = "latest" });
     }
 
     /// <summary>
@@ -67,15 +71,17 @@ public static class MongoDBBuilderExtensions
             .WithManifestPublishingCallback(context => context.WriteMongoDBDatabaseToManifest(mongoDBDatabase));
     }
 
-    private static void WriteMongoDBContainerToManifest(this ManifestPublishingContext context)
+    private static void WriteMongoDBContainerToManifest(this ManifestPublishingContext context, MongoDBContainerResource resource)
     {
-        context.Writer.WriteString("type", "mongodb.server.v0");
+        context.WriteContainer(resource);
+        context.Writer.WriteString(                     // "connectionString": "...",
+            "connectionString",
+            $"{{{resource.Name}.bindings.tcp.host}}:{{{resource.Name}.bindings.tcp.port}}");
     }
 
-    private static void WriteMongoDBConnectionToManifest(this ManifestPublishingContext context, MongoDBConnectionResource mongoDbConnection)
+    private static void WriteMongoDBServerToManifest(this ManifestPublishingContext context)
     {
-        context.Writer.WriteString("type", "mongodb.connection.v0");
-        context.Writer.WriteString("connectionString", mongoDbConnection.GetConnectionString());
+        context.Writer.WriteString("type", "mongodb.server.v0");
     }
 
     private static void WriteMongoDBDatabaseToManifest(this ManifestPublishingContext context, MongoDBDatabaseResource mongoDbDatabase)

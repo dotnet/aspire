@@ -7,8 +7,9 @@ public interface IDashboardViewModelService
 {
     string ApplicationName { get; }
 
-    ViewModelMonitor<ResourceViewModel> GetResources();
+    ViewModelMonitor GetResources();
 }
 
-public record ViewModelMonitor<TViewModel>(List<TViewModel> Snapshot, IAsyncEnumerable<ResourceChanged<TViewModel>> Watch)
-    where TViewModel : ResourceViewModel;
+public record ViewModelMonitor(
+    List<ResourceViewModel> Snapshot,
+    IAsyncEnumerable<ResourceChange> Watch);
