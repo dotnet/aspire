@@ -49,10 +49,7 @@ public abstract class TestProgramFixture : IAsyncLifetime
             await _app.DisposeAsync();
         }
 
-        if (_httpClient != null)
-        {
-            _httpClient!.Dispose();
-        }
+        _httpClient?.Dispose();
     }
 }
 
