@@ -266,18 +266,18 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                 yield break;
             }
 
+            // Add $HOME/dapr path:
+            var homePath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            yield return Path.Combine(homePath, "dapr", "dapr");
+
+            // Linux & MacOS path:
+            yield return Path.Combine("/usr", "local", "bin", "dapr");
+
             // MacOS Homebrew path:
             if (OperatingSystem.IsMacOS() && Environment.GetEnvironmentVariable("HOMEBREW_PREFIX") is string homebrewPrefix)
             {
                 yield return Path.Combine(homebrewPrefix, "bin", "dapr");
             }
-
-            // Linux & MacOS path:
-            yield return Path.Combine("/usr", "local", "bin", "dapr");
-
-            // Add $HOME/dapr path:
-            var homePath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            yield return Path.Combine(homePath, "dapr", "dapr");
         }
     }
 
