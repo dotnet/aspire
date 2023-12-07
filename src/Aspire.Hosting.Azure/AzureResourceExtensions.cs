@@ -178,9 +178,9 @@ public static class AzureResourceExtensions
     /// When using the Azure Cosmos DB emulator, the container requires a TLS/SSL certificate.
     /// For more information, see <a href="https://learn.microsoft.com/azure/cosmos-db/how-to-develop-emulator?tabs=docker-linux#export-the-emulators-tlsssl-certificate"></a>
     /// </remarks>
-    public static IResourceBuilder<AzureCosmosDBResource> UseEmulator(this IResourceBuilder<AzureCosmosDBResource> builder, int port = 8081)
+    public static IResourceBuilder<AzureCosmosDBResource> UseEmulator(this IResourceBuilder<AzureCosmosDBResource> builder, int? port = null)
     {
-        return builder.WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, name: "emulator", port: port, containerPort: 8081))
+        return builder.WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, name: "emulator", port: port ?? 8081, containerPort: 8081))
             .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, containerPort: 10250))
             .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, containerPort: 10251))
             .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, containerPort: 10252))
