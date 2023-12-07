@@ -7,20 +7,17 @@ public static class MongoDBExtensions
 {
     public static void MapMongoMovieApi(this WebApplication app)
     {
-        // Resolving IMongoDatabase creates the database automatically from the connection string property
-
-        var database = app.Services.GetRequiredService<IMongoDatabase>();
-        database.CreateCollection("movies");
-        var collection = database.GetCollection<Movie>("movies");
-        collection.InsertOne(new Movie(1, "Rocky I"));
-        collection.InsertOne(new Movie(2, "Rocky II"));
-
         app.MapGet("/mongodb/databases", GetDatabaseNamesAsync);
 
         app.MapGet("/mongodb/movies", GetMoviesAsync);
     }
-    private static async Task<List<string>> GetDatabaseNamesAsync(IMongoClient client)
+
+    private static async Task<List<string>> GetDatabaseNamesAsync(IMongoClient client, IMongoDatabase db)
     {
+        // Ensure the database is created
+        var randomCollection = db.GetCollection<Movie>("random");
+        randomCollection.InsertOne(new Movie(1, "123"));
+
         var databaseNames = new List<string>();
 
         await client.ListDatabaseNames().ForEachAsync(databaseNames.Add);
@@ -30,7 +27,10 @@ public static class MongoDBExtensions
 
     private static async Task<List<string>> GetMoviesAsync(IMongoDatabase db)
     {
+        db.CreateCollection("movies");
         var moviesCollection = db.GetCollection<Movie>("movies");
+        moviesCollection.InsertOne(new Movie(1, "Rocky I"));
+        moviesCollection.InsertOne(new Movie(2, "Rocky II"));
 
         return (await moviesCollection.Find(x => true).ToListAsync()).Select(x => x.Name).ToList();
     }
