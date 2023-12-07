@@ -7,7 +7,12 @@ using Aspire.Dashboard.Model;
 
 namespace Aspire.Hosting.Dashboard;
 
-internal sealed class ViewModelProcessor
+/// <summary>
+/// Builds a collection of resources by integrating incoming changes from a channel,
+/// and allowing multiple subscribers to receive the current resource snapshot and future
+/// updates.
+/// </summary>
+internal sealed class ResourceCollection
 {
     private readonly object _syncLock = new();
     private readonly Channel<ResourceChange> _incomingChannel;
@@ -15,7 +20,7 @@ internal sealed class ViewModelProcessor
     private readonly Dictionary<string, ResourceViewModel> _snapshot = [];
     private ImmutableHashSet<Channel<ResourceChange>> _outgoingChannels = [];
 
-    public ViewModelProcessor(Channel<ResourceChange> incomingChannel, CancellationToken cancellationToken)
+    public ResourceCollection(Channel<ResourceChange> incomingChannel, CancellationToken cancellationToken)
     {
         _incomingChannel = incomingChannel;
         _cancellationToken = cancellationToken;
@@ -23,7 +28,7 @@ internal sealed class ViewModelProcessor
         Task.Run(ProcessChanges, cancellationToken);
     }
 
-    public ViewModelMonitor GetMonitor()
+    public ResourceSubscription Subscribe()
     {
         lock (_syncLock)
         {
@@ -31,9 +36,9 @@ internal sealed class ViewModelProcessor
 
             ImmutableInterlocked.Update(ref _outgoingChannels, static (set, channel) => set.Add(channel), channel);
 
-            return new ViewModelMonitor(
+            return new ResourceSubscription(
                 Snapshot: _snapshot.Values.ToList(),
-                Watch: new ChangeEnumerable(channel, RemoveChannel));
+                Subscription: new ChangeEnumerable(channel, RemoveChannel));
         }
 
         void RemoveChannel(Channel<ResourceChange> channel)

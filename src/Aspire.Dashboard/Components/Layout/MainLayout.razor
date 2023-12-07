@@ -2,7 +2,7 @@
 @using Aspire.Dashboard.Components.CustomIcons;
 @using Aspire.Dashboard.Model
 @using Microsoft.AspNetCore.Http
-@inject IDashboardViewModelService dashboardViewModelService
+@inject IResourceService resourceService
 @inject IDialogService dialogService
 @inherits LayoutComponentBase
 
@@ -10,7 +10,7 @@
     <FluentHeader>
         <div class="header-title">
             <FluentAnchor IconStart="@(new AspireIcons.Size32.Logo())" Appearance="Appearance.Stealth" Href="/" Class="logo">
-                @dashboardViewModelService.ApplicationName Dashboard
+                @resourceService.ApplicationName Dashboard
             </FluentAnchor>
         </div>
         <div class="header-right">

@@ -17,7 +17,7 @@ public partial class Resources : ComponentBase, IDisposable
     private Dictionary<OtlpApplication, int>? _applicationUnviewedErrorCounts;
 
     [Inject]
-    public required IDashboardViewModelService DashboardViewModelService { get; init; }
+    public required IResourceService ResourceService { get; init; }
     [Inject]
     public required TelemetryRepository TelemetryRepository { get; init; }
     [Inject]
@@ -85,7 +85,7 @@ public partial class Resources : ComponentBase, IDisposable
     {
         _applicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
 
-        var (snapshot, subscription) = DashboardViewModelService.GetResources();
+        var (snapshot, subscription) = ResourceService.Subscribe();
 
         foreach (var resource in snapshot)
         {

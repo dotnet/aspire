@@ -19,11 +19,8 @@ using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Dashboard;
 
-internal sealed partial class DashboardViewModelService : IDashboardViewModelService, IAsyncDisposable
+internal sealed partial class ResourceService : IResourceService, IAsyncDisposable
 {
-    private const string AppHostSuffix = ".AppHost";
-
-    private readonly string _applicationName;
     private readonly KubernetesService _kubernetesService;
     private readonly DistributedApplicationModel _applicationModel;
     private readonly ILogger _logger;
@@ -33,7 +30,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
 
     // Private channels, for decoupling producer/consumer and serialising updates.
     private readonly Channel<(WatchEventType, string, CustomResource?)> _kubernetesChangesChannel;
-    private readonly Channel<ResourceChange> _resourceViewModelChangesChannel;
+    private readonly Channel<ResourceChange> _resourceChannel;
 
     private readonly Dictionary<string, Container> _containersMap = [];
     private readonly Dictionary<string, Executable> _executablesMap = [];
@@ -43,19 +40,19 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
     private readonly ConcurrentDictionary<string, List<EnvVar>> _additionalEnvVarsMap = [];
     private readonly HashSet<string> _containersWithTaskStarted = [];
 
-    private readonly ViewModelProcessor _resourceViewModelProcessor;
+    private readonly ResourceCollection _resourceCollection;
 
-    public DashboardViewModelService(
+    public ResourceService(
         DistributedApplicationModel applicationModel, KubernetesService kubernetesService, IHostEnvironment hostEnvironment, ILoggerFactory loggerFactory)
     {
         _applicationModel = applicationModel;
         _kubernetesService = kubernetesService;
-        _applicationName = ComputeApplicationName(hostEnvironment.ApplicationName);
-        _logger = loggerFactory.CreateLogger<DashboardViewModelService>();
+        ApplicationName = ComputeApplicationName(hostEnvironment.ApplicationName);
+        _logger = loggerFactory.CreateLogger<ResourceService>();
         _cancellationToken = _cancellationTokenSource.Token;
 
         _kubernetesChangesChannel = Channel.CreateUnbounded<(WatchEventType, string, CustomResource?)>();
-        _resourceViewModelChangesChannel = Channel.CreateUnbounded<ResourceChange>();
+        _resourceChannel = Channel.CreateUnbounded<ResourceChange>();
 
         RunWatchTask<Executable>();
         RunWatchTask<Service>();
@@ -64,12 +61,24 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
 
         Task.Run(ProcessKubernetesChanges);
 
-        _resourceViewModelProcessor = new ViewModelProcessor(_resourceViewModelChangesChannel, _cancellationToken);
+        _resourceCollection = new ResourceCollection(_resourceChannel, _cancellationToken);
+
+        static string ComputeApplicationName(string applicationName)
+        {
+            const string AppHostSuffix = ".AppHost";
+
+            if (applicationName.EndsWith(AppHostSuffix, StringComparison.OrdinalIgnoreCase))
+            {
+                applicationName = applicationName[..^AppHostSuffix.Length];
+            }
+
+            return applicationName;
+        }
     }
 
-    public string ApplicationName => _applicationName;
+    public string ApplicationName { get; }
 
-    public ViewModelMonitor GetResources() => _resourceViewModelProcessor.GetMonitor();
+    public ResourceSubscription Subscribe() => _resourceCollection.Subscribe();
 
     private void RunWatchTask<T>()
             where T : CustomResource
@@ -131,7 +140,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            _logger.LogError(ex, "Task to compute view model changes terminated");
+            _logger.LogError(ex, "Task to compute resource changes terminated");
         }
     }
 
@@ -287,7 +296,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
 
     private async Task WriteChange(ResourceViewModel resourceViewModel, ObjectChangeType changeType = ObjectChangeType.Modified)
     {
-        await _resourceViewModelChangesChannel.Writer.WriteAsync(
+        await _resourceChannel.Writer.WriteAsync(
             new ResourceChange(changeType, resourceViewModel), _cancellationToken)
             .ConfigureAwait(false);
     }
@@ -436,7 +445,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
                 var service = _servicesMap.Values.FirstOrDefault(s => s.Metadata.Name == resourceViewModel.Name);
                 if (service != null)
                 {
-                    resourceViewModel.Services.Add(new ResourceService(service.Metadata.Name, service.AllocatedAddress, service.AllocatedPort));
+                    resourceViewModel.Services.Add(new Aspire.Dashboard.Model.ResourceService(service.Metadata.Name, service.AllocatedAddress, service.AllocatedPort));
                 }
             }
         }
@@ -610,16 +619,6 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
         // right now. We don't have to clean anything up for the channels.
 
         await _cancellationTokenSource.CancelAsync().ConfigureAwait(false);
-    }
-
-    private static string ComputeApplicationName(string applicationName)
-    {
-        if (applicationName.EndsWith(AppHostSuffix, StringComparison.OrdinalIgnoreCase))
-        {
-            applicationName = applicationName[..^AppHostSuffix.Length];
-        }
-
-        return applicationName;
     }
 
     private static string ComputeExecutableDisplayName(Executable executable)

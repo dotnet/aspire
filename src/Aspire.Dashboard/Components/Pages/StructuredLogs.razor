@@ -7,11 +7,11 @@
 @using Microsoft.Extensions.Logging
 @using System.Web
 @inject NavigationManager NavigationManager
-@inject IDashboardViewModelService DashboardViewModelService
+@inject IResourceService resourceService
 @inject IJSRuntime JS
 @implements IDisposable
 
-<PageTitle>@DashboardViewModelService.ApplicationName Structured Logs</PageTitle>
+<PageTitle>@resourceService.ApplicationName Structured Logs</PageTitle>
 
 <div class="logs-layout">
     <h1 class="page-header">Structured Logs</h1>
