@@ -12,7 +12,7 @@ namespace Aspire.Dashboard.Components.Pages;
 public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
 {
     [Inject]
-    public required IDashboardViewModelService DashboardViewModelService { get; init; }
+    public required IResourceService ResourceService { get; init; }
     [Inject]
     public required IJSRuntime JS { get; init; }
     [Inject]
@@ -41,7 +41,7 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
     {
         _status = LogStatus.LoadingResources;
 
-        var (snapshot, subscription) = DashboardViewModelService.GetResources();
+        var (snapshot, subscription) = ResourceService.GetResources();
 
         foreach (var resource in snapshot)
         {

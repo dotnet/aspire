@@ -19,7 +19,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Dashboard;
 
-internal sealed partial class DashboardViewModelService : IDashboardViewModelService, IAsyncDisposable
+internal sealed partial class ResourceService : IResourceService, IAsyncDisposable
 {
     private const string AppHostSuffix = ".AppHost";
 
@@ -45,13 +45,13 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
 
     private readonly ViewModelProcessor _resourceViewModelProcessor;
 
-    public DashboardViewModelService(
+    public ResourceService(
         DistributedApplicationModel applicationModel, KubernetesService kubernetesService, IHostEnvironment hostEnvironment, ILoggerFactory loggerFactory)
     {
         _applicationModel = applicationModel;
         _kubernetesService = kubernetesService;
         _applicationName = ComputeApplicationName(hostEnvironment.ApplicationName);
-        _logger = loggerFactory.CreateLogger<DashboardViewModelService>();
+        _logger = loggerFactory.CreateLogger<ResourceService>();
         _cancellationToken = _cancellationTokenSource.Token;
 
         _kubernetesChangesChannel = Channel.CreateUnbounded<(WatchEventType, string, CustomResource?)>();
@@ -436,7 +436,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
                 var service = _servicesMap.Values.FirstOrDefault(s => s.Metadata.Name == resourceViewModel.Name);
                 if (service != null)
                 {
-                    resourceViewModel.Services.Add(new ResourceService(service.Metadata.Name, service.AllocatedAddress, service.AllocatedPort));
+                    resourceViewModel.Services.Add(new Aspire.Dashboard.Model.ResourceService(service.Metadata.Name, service.AllocatedAddress, service.AllocatedPort));
                 }
             }
         }

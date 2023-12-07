@@ -8,9 +8,9 @@
 @using Aspire.Dashboard.Otlp.Storage
 @using System.Diagnostics
 @using System.Globalization
-@inject IDashboardViewModelService DashboardViewModelService
+@inject IResourceService dashboardService
 
-<PageTitle>@DashboardViewModelService.ApplicationName Traces</PageTitle>
+<PageTitle>@dashboardService.ApplicationName Traces</PageTitle>
 
 @if (_trace != null)
 {

@@ -3,7 +3,10 @@
 
 namespace Aspire.Dashboard.Model;
 
-public interface IDashboardViewModelService
+/// <summary>
+/// Provides data about active resources to external components, such as the dashboard.
+/// </summary>
+public interface IResourceService
 {
     string ApplicationName { get; }
 
