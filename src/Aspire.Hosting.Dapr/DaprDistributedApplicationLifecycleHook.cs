@@ -42,7 +42,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
 
         var fileName = this._options.DaprPath
             ?? GetDefaultDaprPath()
-            ?? throw new DistributedApplicationException("Unable to locate Dapr executable.");
+            ?? throw new DistributedApplicationException("Unable to locate the Dapr CLI.");
 
         foreach (var resource in appModel.Resources)
         {
