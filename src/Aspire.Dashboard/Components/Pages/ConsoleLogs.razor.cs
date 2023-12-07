@@ -41,7 +41,7 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
     {
         _status = LogStatus.LoadingResources;
 
-        var (snapshot, subscription) = ResourceService.GetResources();
+        var (snapshot, subscription) = ResourceService.Subscribe();
 
         foreach (var resource in snapshot)
         {

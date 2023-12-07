@@ -23,7 +23,7 @@ internal sealed class ViewModelProcessor
         Task.Run(ProcessChanges, cancellationToken);
     }
 
-    public ViewModelMonitor GetMonitor()
+    public ResourceSubscription Subscribe()
     {
         lock (_syncLock)
         {
@@ -31,9 +31,9 @@ internal sealed class ViewModelProcessor
 
             ImmutableInterlocked.Update(ref _outgoingChannels, static (set, channel) => set.Add(channel), channel);
 
-            return new ViewModelMonitor(
+            return new ResourceSubscription(
                 Snapshot: _snapshot.Values.ToList(),
-                Watch: new ChangeEnumerable(channel, RemoveChannel));
+                Subscription: new ChangeEnumerable(channel, RemoveChannel));
         }
 
         void RemoveChannel(Channel<ResourceChange> channel)

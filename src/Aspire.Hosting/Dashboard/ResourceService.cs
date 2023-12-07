@@ -78,7 +78,7 @@ internal sealed partial class ResourceService : IResourceService, IAsyncDisposab
 
     public string ApplicationName { get; }
 
-    public ViewModelMonitor GetResources() => _resourceViewModelProcessor.GetMonitor();
+    public ResourceSubscription Subscribe() => _resourceViewModelProcessor.Subscribe();
 
     private void RunWatchTask<T>()
             where T : CustomResource

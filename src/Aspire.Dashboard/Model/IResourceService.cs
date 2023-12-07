@@ -10,9 +10,12 @@ public interface IResourceService
 {
     string ApplicationName { get; }
 
-    ViewModelMonitor GetResources();
+    /// <summary>
+    /// Gets the current set of resources and a stream of updates.
+    /// </summary>
+    ResourceSubscription Subscribe();
 }
 
-public record ViewModelMonitor(
+public record ResourceSubscription(
     List<ResourceViewModel> Snapshot,
-    IAsyncEnumerable<ResourceChange> Watch);
+    IAsyncEnumerable<ResourceChange> Subscription);
