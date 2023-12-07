@@ -23,19 +23,29 @@ public sealed partial class ConfigSchemaGenerator
 
         public SourceGenerationSpec? GetSourceGenerationSpec(CancellationToken cancellationToken)
         {
-            TypeParseInfo typeParseInfo = TypeParseInfo.Create(configSchemaInfo.Types.First(), MethodsToGen.None, null, containingTypeDiagInfo: null);
-            _typesToParse.Enqueue(typeParseInfo);
-            CreateTypeSpecs(cancellationToken);
+            var types = new List<TypeSpec>();
+            foreach (var type in configSchemaInfo.Types)
+            {
+                TypeParseInfo typeParseInfo = TypeParseInfo.Create(type, MethodsToGen.None, null, containingTypeDiagInfo: null);
+
+                _typesToParse.Enqueue(typeParseInfo);
+                types.Add(CreateTypeSpecs(cancellationToken));
+            }
 
             return new SourceGenerationSpec
             {
-                ConfigTypes = _createdTypeSpecs.Values.OrderBy(s => s.TypeRef.FullyQualifiedName).ToImmutableEquatableArray(),
-                LogCategories = configSchemaInfo.LogCategories
+                ConfigurationTypes = types,
+                ConfigurationPaths = configSchemaInfo.ConfigurationPaths,
+                LogCategories = configSchemaInfo.LogCategories,
+                AllTypes = _createdTypeSpecs.Values.ToImmutableEquatableArray()
             };
         }
 
-        private void CreateTypeSpecs(CancellationToken cancellationToken)
+        private TypeSpec CreateTypeSpecs(CancellationToken cancellationToken)
         {
+            Debug.Assert(_typesToParse.Count == 1, "there should only be one type to parse to start.");
+            TypeSpec result = null;
+
             while (_typesToParse.Count > 0)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -43,11 +53,18 @@ public sealed partial class ConfigSchemaGenerator
                 TypeParseInfo typeParseInfo = _typesToParse.Dequeue();
                 ITypeSymbol typeSymbol = typeParseInfo.TypeSymbol;
 
-                if (!_createdTypeSpecs.ContainsKey(typeSymbol))
+                TypeSpec currentResult;
+                if (!_createdTypeSpecs.TryGetValue(typeSymbol, out currentResult))
                 {
-                    _createdTypeSpecs.Add(typeSymbol, CreateTypeSpec(typeParseInfo));
+                    currentResult = CreateTypeSpec(typeParseInfo);
+                    _createdTypeSpecs.Add(typeSymbol, currentResult);
                 }
+
+                result ??= currentResult;
             }
+
+            Debug.Assert(result is not null);
+            return result;
         }
 
         private TypeRef EnqueueTransitiveType(TypeParseInfo containingTypeParseInfo, ITypeSymbol memberTypeSymbol, DiagnosticDescriptor diagDescriptor, string? memberName = null)
@@ -770,7 +787,7 @@ public sealed partial class ConfigSchemaGenerator
 
         private void RecordTypeDiagnostic(TypeParseInfo typeParseInfo, DiagnosticDescriptor descriptor)
         {
-            RecordDiagnostic(descriptor, typeParseInfo.BinderInvocation.Location, [typeParseInfo.FullName]);
+            RecordDiagnostic(descriptor, typeParseInfo.BinderInvocation?.Location, [typeParseInfo.FullName]);
             ReportContainingTypeDiagnosticIfRequired(typeParseInfo);
         }
 
@@ -786,7 +803,7 @@ public sealed partial class ConfigSchemaGenerator
                     ? new[] { memberName, containingTypeName }
                     : new[] { containingTypeName };
 
-                RecordDiagnostic(containingTypeDiagInfo.Descriptor, typeParseInfo.BinderInvocation.Location, messageArgs);
+                RecordDiagnostic(containingTypeDiagInfo.Descriptor, typeParseInfo.BinderInvocation?.Location, messageArgs);
 
                 containingTypeDiagInfo = containingTypeDiagInfo.ContainingTypeInfo;
             }

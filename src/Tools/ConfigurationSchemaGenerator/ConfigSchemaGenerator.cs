@@ -44,20 +44,13 @@ public partial class ConfigSchemaGenerator : IIncrementalGenerator
                         return default;
                     }
 
-                    try
-                    {
-                        var parser = new Parser(configSchemaInfo, new KnownTypeSymbols(cSharpCompilation));
-                        SourceGenerationSpec? spec = parser.GetSourceGenerationSpec(cancellationToken);
-                        ImmutableEquatableArray<DiagnosticInfo>? diagnostics = parser.Diagnostics?.ToImmutableEquatableArray();
-                        return (spec, diagnostics, analyzerConfigOptions);
-                    }
-                    catch (Exception ex)
-                    {
-                        throw ex;
-                    }
+                    var parser = new Parser(configSchemaInfo, new KnownTypeSymbols(cSharpCompilation));
+                    SourceGenerationSpec? spec = parser.GetSourceGenerationSpec(cancellationToken);
+                    ImmutableEquatableArray<DiagnosticInfo>? diagnostics = parser.Diagnostics?.ToImmutableEquatableArray();
+                    return (spec, diagnostics, analyzerConfigOptions);
                 });
 
-        context.RegisterSourceOutput(genSpec, ReportDiagnosticsAndEmitSource);
+        context.RegisterImplementationSourceOutput(genSpec, ReportDiagnosticsAndEmitSource);
     }
 
     private void ReportDiagnosticsAndEmitSource(SourceProductionContext sourceProductionContext, (SourceGenerationSpec? SourceGenerationSpec, ImmutableEquatableArray<DiagnosticInfo>? Diagnostics, AnalyzerConfigOptionsProvider? AnalyzerConfigOptions) input)
@@ -98,7 +91,11 @@ public partial class ConfigSchemaGenerator : IIncrementalGenerator
 
             foreach (var item in items)
             {
-                if (item.Key == "ConfigurationPaths")
+                if (item.Key == "Types")
+                {
+                    types = item.Value.Values.Select(v => v.Value as INamedTypeSymbol).ToArray();
+                }
+                else if (item.Key == "ConfigurationPaths")
                 {
                     configurationPaths = item.Value.Values.Select(v => v.Value as string).ToArray();
                 }
@@ -106,15 +103,11 @@ public partial class ConfigSchemaGenerator : IIncrementalGenerator
                 {
                     logCategories = item.Value.Values.Select(v => v.Value as string).ToArray();
                 }
-                else if (item.Key == "Types")
-                {
-                    types = item.Value.Values.Select(v => v.Value as INamedTypeSymbol).ToArray();
-                }
             }
 
-            if (configurationPaths is null || logCategories is null)
+            if (types is null || configurationPaths is null || logCategories is null)
             {
-                throw new InvalidOperationException("Ensure ConfigurationPaths and LogCategories are set.");
+                throw new InvalidOperationException("Ensure Types, ConfigurationPaths, and LogCategories are set.");
             }
 
             return new ConfigSchemaAttributeInfo(types, configurationPaths, logCategories);

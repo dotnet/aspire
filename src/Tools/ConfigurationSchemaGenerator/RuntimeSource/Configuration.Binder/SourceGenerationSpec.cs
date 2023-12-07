@@ -7,7 +7,9 @@ namespace Microsoft.Extensions.Configuration.Binder.SourceGeneration
 {
     public sealed record SourceGenerationSpec
     {
-        public required ImmutableEquatableArray<TypeSpec> ConfigTypes { get; init; }
+        public required List<TypeSpec> ConfigurationTypes { get; init; }
+        public required string[] ConfigurationPaths { get; init; }
         public required string[] LogCategories { get; init; }
+        public required ImmutableEquatableArray<TypeSpec> AllTypes { get; init; }
     }
 }

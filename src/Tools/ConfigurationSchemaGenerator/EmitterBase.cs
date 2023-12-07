@@ -11,7 +11,7 @@ internal abstract class EmitterBase
 
     protected EmitterBase(string tabString)
     {
-        _writer = new(new StringWriter(), tabString);
+        _writer = new IndentedTextWriter(new StringWriter(), tabString);
     }
 
     protected void OutOpenBrace()
@@ -31,11 +31,6 @@ internal abstract class EmitterBase
         {
             OutLn("}");
         }
-    }
-
-    protected void OutLn()
-    {
-        _writer.WriteLine();
     }
 
     protected void OutLn(string line)
