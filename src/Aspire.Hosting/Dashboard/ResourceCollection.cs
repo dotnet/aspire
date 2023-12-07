@@ -7,7 +7,7 @@ using Aspire.Dashboard.Model;
 
 namespace Aspire.Hosting.Dashboard;
 
-internal sealed class ViewModelProcessor
+internal sealed class ResourceCollection
 {
     private readonly object _syncLock = new();
     private readonly Channel<ResourceChange> _incomingChannel;
@@ -15,7 +15,7 @@ internal sealed class ViewModelProcessor
     private readonly Dictionary<string, ResourceViewModel> _snapshot = [];
     private ImmutableHashSet<Channel<ResourceChange>> _outgoingChannels = [];
 
-    public ViewModelProcessor(Channel<ResourceChange> incomingChannel, CancellationToken cancellationToken)
+    public ResourceCollection(Channel<ResourceChange> incomingChannel, CancellationToken cancellationToken)
     {
         _incomingChannel = incomingChannel;
         _cancellationToken = cancellationToken;

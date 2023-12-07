@@ -30,7 +30,7 @@ internal sealed partial class ResourceService : IResourceService, IAsyncDisposab
 
     // Private channels, for decoupling producer/consumer and serialising updates.
     private readonly Channel<(WatchEventType, string, CustomResource?)> _kubernetesChangesChannel;
-    private readonly Channel<ResourceChange> _resourceViewModelChangesChannel;
+    private readonly Channel<ResourceChange> _resourceChannel;
 
     private readonly Dictionary<string, Container> _containersMap = [];
     private readonly Dictionary<string, Executable> _executablesMap = [];
@@ -40,7 +40,7 @@ internal sealed partial class ResourceService : IResourceService, IAsyncDisposab
     private readonly ConcurrentDictionary<string, List<EnvVar>> _additionalEnvVarsMap = [];
     private readonly HashSet<string> _containersWithTaskStarted = [];
 
-    private readonly ViewModelProcessor _resourceViewModelProcessor;
+    private readonly ResourceCollection _resourceCollection;
 
     public ResourceService(
         DistributedApplicationModel applicationModel, KubernetesService kubernetesService, IHostEnvironment hostEnvironment, ILoggerFactory loggerFactory)
@@ -52,7 +52,7 @@ internal sealed partial class ResourceService : IResourceService, IAsyncDisposab
         _cancellationToken = _cancellationTokenSource.Token;
 
         _kubernetesChangesChannel = Channel.CreateUnbounded<(WatchEventType, string, CustomResource?)>();
-        _resourceViewModelChangesChannel = Channel.CreateUnbounded<ResourceChange>();
+        _resourceChannel = Channel.CreateUnbounded<ResourceChange>();
 
         RunWatchTask<Executable>();
         RunWatchTask<Service>();
@@ -61,7 +61,7 @@ internal sealed partial class ResourceService : IResourceService, IAsyncDisposab
 
         Task.Run(ProcessKubernetesChanges);
 
-        _resourceViewModelProcessor = new ViewModelProcessor(_resourceViewModelChangesChannel, _cancellationToken);
+        _resourceCollection = new ResourceCollection(_resourceChannel, _cancellationToken);
 
         static string ComputeApplicationName(string applicationName)
         {
@@ -78,7 +78,7 @@ internal sealed partial class ResourceService : IResourceService, IAsyncDisposab
 
     public string ApplicationName { get; }
 
-    public ResourceSubscription Subscribe() => _resourceViewModelProcessor.Subscribe();
+    public ResourceSubscription Subscribe() => _resourceCollection.Subscribe();
 
     private void RunWatchTask<T>()
             where T : CustomResource
@@ -140,7 +140,7 @@ internal sealed partial class ResourceService : IResourceService, IAsyncDisposab
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            _logger.LogError(ex, "Task to compute view model changes terminated");
+            _logger.LogError(ex, "Task to compute resource changes terminated");
         }
     }
 
@@ -296,7 +296,7 @@ internal sealed partial class ResourceService : IResourceService, IAsyncDisposab
 
     private async Task WriteChange(ResourceViewModel resourceViewModel, ObjectChangeType changeType = ObjectChangeType.Modified)
     {
-        await _resourceViewModelChangesChannel.Writer.WriteAsync(
+        await _resourceChannel.Writer.WriteAsync(
             new ResourceChange(changeType, resourceViewModel), _cancellationToken)
             .ConfigureAwait(false);
     }
