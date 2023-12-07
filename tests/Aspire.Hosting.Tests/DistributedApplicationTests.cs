@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
-using System.Net.Http.Json;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Lifecycle;
@@ -367,66 +366,6 @@ public class DistributedApplicationTests
         // We wait until timeout for the /health endpoint to return successfully. We assume
         // that components wired up into this project have health checks enabled.
         await testProgram.IntegrationServiceABuilder!.WaitForHealthyStatusAsync(client, "http", cts.Token);
-    }
-
-    [LocalOnlyFact()]
-    public async Task VerifyMongoDBWorks()
-    {
-        var testProgram = CreateTestProgram(includeIntegrationServices: true);
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
-
-        testProgram.AppBuilder.Services
-            .AddHttpClient()
-            .ConfigureHttpClientDefaults(b =>
-            {
-                b.UseSocketsHttpHandler((handler, sp) => handler.PooledConnectionLifetime = TimeSpan.FromSeconds(5));
-            });
-
-        await using var app = testProgram.Build();
-
-        using var client = app.Services.GetRequiredService<IHttpClientFactory>().CreateClient();
-
-        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
-
-        await app.StartAsync(cts.Token);
-
-        var response1 = await testProgram.IntegrationServiceABuilder!.HttpGetAsync(client, "http", "/mongodb/databases", cts.Token);
-        var databases = await response1.Content.ReadFromJsonAsync<string[]>(cts.Token);
-
-        var response2 = await testProgram.IntegrationServiceABuilder!.HttpGetAsync(client, "http", "/mongodb/movies", cts.Token);
-        var movies = await response2.Content.ReadFromJsonAsync<string[]>(cts.Token);
-
-        Assert.Equivalent(new[] { "admin", "config", "local", "mymongodb" }, databases);
-        Assert.Equivalent(new[] { "Rocky I", "Rocky II" }, movies);
-    }
-
-    [LocalOnlyFact("node")]
-    public async Task VerifyNodeAppWorks()
-    {
-        var testProgram = CreateTestProgram(includeNodeApp: true);
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
-
-        testProgram.AppBuilder.Services
-            .AddHttpClient()
-            .ConfigureHttpClientDefaults(b =>
-            {
-                b.UseSocketsHttpHandler((handler, sp) => handler.PooledConnectionLifetime = TimeSpan.FromSeconds(5));
-                b.AddStandardResilienceHandler();
-            });
-
-        await using var app = testProgram.Build();
-
-        using var client = app.Services.GetRequiredService<IHttpClientFactory>().CreateClient();
-
-        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
-
-        await app.StartAsync(cts.Token);
-
-        var response0 = await testProgram.NodeAppBuilder!.HttpGetStringWithRetryAsync(client, "http", "/", cts.Token);
-        var response1 = await testProgram.NpmAppBuilder!.HttpGetStringWithRetryAsync(client, "http", "/", cts.Token);
-
-        Assert.Equal("Hello from node!", response0);
-        Assert.Equal("Hello from node!", response1);
     }
 
     [LocalOnlyFact("docker")]

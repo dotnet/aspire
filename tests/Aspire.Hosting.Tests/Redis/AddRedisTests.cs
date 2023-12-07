@@ -5,7 +5,7 @@ using System.Net.Sockets;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
-namespace Aspire.Hosting.Tests;
+namespace Aspire.Hosting.Tests.Redis;
 
 public class AddRedisTests
 {
