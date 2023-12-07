@@ -23,7 +23,6 @@ internal sealed partial class ResourceService : IResourceService, IAsyncDisposab
 {
     private const string AppHostSuffix = ".AppHost";
 
-    private readonly string _applicationName;
     private readonly KubernetesService _kubernetesService;
     private readonly DistributedApplicationModel _applicationModel;
     private readonly ILogger _logger;
@@ -50,7 +49,7 @@ internal sealed partial class ResourceService : IResourceService, IAsyncDisposab
     {
         _applicationModel = applicationModel;
         _kubernetesService = kubernetesService;
-        _applicationName = ComputeApplicationName(hostEnvironment.ApplicationName);
+        ApplicationName = ComputeApplicationName(hostEnvironment.ApplicationName);
         _logger = loggerFactory.CreateLogger<ResourceService>();
         _cancellationToken = _cancellationTokenSource.Token;
 
@@ -67,7 +66,7 @@ internal sealed partial class ResourceService : IResourceService, IAsyncDisposab
         _resourceViewModelProcessor = new ViewModelProcessor(_resourceViewModelChangesChannel, _cancellationToken);
     }
 
-    public string ApplicationName => _applicationName;
+    public string ApplicationName { get; }
 
     public ViewModelMonitor GetResources() => _resourceViewModelProcessor.GetMonitor();
 
