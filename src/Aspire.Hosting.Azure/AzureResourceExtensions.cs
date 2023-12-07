@@ -168,7 +168,7 @@ public static class AzureResourceExtensions
     }
 
     /// <summary>
-    /// Configures an Azure Cosmos DB resource to be emulated using the Azure Cosmos DB emulator. This resource requires an <see cref="AzureCosmosDBResource"/> to be added to the application model.
+    /// Configures an Azure Cosmos DB resource to be emulated using the Azure Cosmos DB emulator with the NoSQL API. This resource requires an <see cref="AzureCosmosDBResource"/> to be added to the application model.
     /// For more information on the Azure Cosmos DB emulator, see <a href="https://learn.microsoft.com/azure/cosmos-db/emulator#authentication"></a>
     /// </summary>
     /// <param name="builder">The Azure Cosmos DB resource builder.</param>
@@ -181,12 +181,6 @@ public static class AzureResourceExtensions
     public static IResourceBuilder<AzureCosmosDBResource> UseEmulator(this IResourceBuilder<AzureCosmosDBResource> builder, int? port = null)
     {
         return builder.WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, name: "emulator", port: port ?? 8081, containerPort: 8081))
-            .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, containerPort: 10250))
-            .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, containerPort: 10251))
-            .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, containerPort: 10252))
-            .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, containerPort: 10253))
-            .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, containerPort: 10254))
-            .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, containerPort: 10255))
             .WithAnnotation(new ContainerImageAnnotation { Image = "mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator", Tag = "latest" });
     }
 
