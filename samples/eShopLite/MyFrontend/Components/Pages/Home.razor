@@ -1,7 +1,6 @@
 ﻿@page "/"
 @attribute [StreamRendering(true)]
 
-@inject PetStoreClient PetStoreService
 @inject CatalogServiceClient CatalogService
 
 <PageTitle>eShopLite Product Catalog</PageTitle>
@@ -15,18 +14,6 @@
 </header>
 
 <div class="container">
-    @if (pets is null)
-    {
-        <p>Who let the dogs out!?</p>
-    }
-    else
-    {
-        @foreach (var pet in pets)
-        {
-            <p>@pet.Id: @pet.Name</p>
-        }
-    }
-
     @if (catalog is { Data: var data })
     {
         <div class="grid">
@@ -79,8 +66,6 @@
     Catalog? catalog;
     PaginationInfo paginationInfo = new(FirstId: 0, NextId: 0, HasPreviousPage: false, HasNextPage: false);
 
-    IReadOnlyList<Pet>? pets;
-
     [SupplyParameterFromQuery]
     public int? Before { get; set; }
 
@@ -89,8 +74,6 @@
 
     protected override async Task OnInitializedAsync()
     {
-        pets = await PetStoreService.GetPets();
-
         catalog = await CatalogService.GetItemsAsync(Before, After);
 
         if (catalog is null)
