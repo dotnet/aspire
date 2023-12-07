@@ -21,8 +21,6 @@ namespace Aspire.Hosting.Dashboard;
 
 internal sealed partial class ResourceService : IResourceService, IAsyncDisposable
 {
-    private const string AppHostSuffix = ".AppHost";
-
     private readonly KubernetesService _kubernetesService;
     private readonly DistributedApplicationModel _applicationModel;
     private readonly ILogger _logger;
@@ -64,6 +62,18 @@ internal sealed partial class ResourceService : IResourceService, IAsyncDisposab
         Task.Run(ProcessKubernetesChanges);
 
         _resourceViewModelProcessor = new ViewModelProcessor(_resourceViewModelChangesChannel, _cancellationToken);
+
+        static string ComputeApplicationName(string applicationName)
+        {
+            const string AppHostSuffix = ".AppHost";
+
+            if (applicationName.EndsWith(AppHostSuffix, StringComparison.OrdinalIgnoreCase))
+            {
+                applicationName = applicationName[..^AppHostSuffix.Length];
+            }
+
+            return applicationName;
+        }
     }
 
     public string ApplicationName { get; }
@@ -609,16 +619,6 @@ internal sealed partial class ResourceService : IResourceService, IAsyncDisposab
         // right now. We don't have to clean anything up for the channels.
 
         await _cancellationTokenSource.CancelAsync().ConfigureAwait(false);
-    }
-
-    private static string ComputeApplicationName(string applicationName)
-    {
-        if (applicationName.EndsWith(AppHostSuffix, StringComparison.OrdinalIgnoreCase))
-        {
-            applicationName = applicationName[..^AppHostSuffix.Length];
-        }
-
-        return applicationName;
     }
 
     private static string ComputeExecutableDisplayName(Executable executable)
