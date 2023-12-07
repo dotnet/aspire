@@ -12,7 +12,14 @@ If you want to install the latest build from the main branch, then skip this sec
 
 If you want to use the latest .NET Aspire build from release branches, you can use the scripts in this repo to install the latest .NET Aspire build from those. The reason why we provide scripts for builds from release branches but not for main, is that when working with dotnet workloads, it is not easy to specify exactly which version of the workload you want to install, and instead you get the latest NuGet package version that the SDK is able to find in your configured NuGet feeds. For release branches though, this will not work as main branch produces packages like 8.0.0-preview.x, while release branches produce packages like 8.0.0-preview.(x-1). For example, when main produces packages with version 8.0.0-preview.3, release branches produce packages with version 8.0.0-preview.2.
 
-The scripts to install these builds, are [installLatestFromReleaseBranch.ps1](../eng/installLatestFromReleaseBranch.ps1) for Windows, and [installLatestFromReleaseBranch.sh](../eng/installLatestFromReleaseBranch.sh) for Linux and macOS. These scripts will use rollback files, which at this time is the only way to specify which exact version of a workload you want to install. They will query the feed that contains all of the builds from the release branch, get the latest version, and generate a rollback file to be used for the installation. Finally, it will run the workload `update` and `install` commands for you, using the rollback file.
+The scripts to install these builds, are [installLatestFromReleaseBranch.ps1](../eng/installLatestFromReleaseBranch.ps1) for Windows, and [installLatestFromReleaseBranch.sh](../eng/installLatestFromReleaseBranch.sh) for Linux and macOS. These scripts will use rollback files, which at this time is the only way to specify which exact version of a workload you want to install. They will query the feed that contains all of the builds from the release branch, get the latest version, and generate a rollback file to be used for the installation. Finally, it will run the workload `update` and `install` commands for you, using the rollback file. Note that these scripts will work even if you already have a different version of the workload installed, independently of whether it is an older or newer version, and it will override it with the one calculated from the script. 
+
+### Troubleshooting
+
+Potential issues that may happen when using these scripts:
+
+- On Windows, there is a known issue with workloads when using rollback files, where the commands may fail with un-authorized permissions. This issue has been fixed in 8.0.2xx SDK, but if you are using 8.0.1xx SDK you will likely need to run the script as admin.
+- On Linux and macOS, you may need to install `jq` utility which is used by the script to parse the json response from the NuGet feed. You can install it using `sudo apt-get install jq` on Ubuntu, or `brew install jq` on macOS.
 
 ## Add necessary NuGet feeds
 

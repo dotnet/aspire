@@ -30,10 +30,10 @@ END
 echo "$fileContent" > aspire-rollback.txt
 
 # Run dotnet workload update command
-dotnet workload update --source "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json" --from-rollback-file ./aspire-rollback.txt
+dotnet workload update --source "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json" --skip-sign-check --from-rollback-file ./aspire-rollback.txt
 
 # Run dotnet workload install command
-dotnet workload install aspire --source "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json" --from-rollback-file ./aspire-rollback.txt
+dotnet workload install aspire --source "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json" --skip-sign-check --from-rollback-file ./aspire-rollback.txt
 
 # Delete the rollback file as it is no longer needed.
 rm -f ./aspire-rollback.txt
