@@ -21,16 +21,10 @@ public partial class Resources : ComponentBase, IDisposable
     [Inject]
     public required TelemetryRepository TelemetryRepository { get; init; }
     [Inject]
-    public required NavigationManager NavigationManager { get; set; }
+    public required NavigationManager NavigationManager { get; init; }
 
     private IEnumerable<EnvironmentVariableViewModel>? SelectedEnvironmentVariables { get; set; }
     private ResourceViewModel? SelectedResource { get; set; }
-
-    private bool Filter(ResourceViewModel resource)
-        => _visibleResourceTypes.Contains(resource.ResourceType) &&
-           (resource.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) ||
-            (resource is ContainerViewModel containerViewModel &&
-             containerViewModel.Image.Contains(_filter, StringComparison.CurrentCultureIgnoreCase)));
 
     private readonly CancellationTokenSource _watchTaskCancellationTokenSource = new();
     private readonly Dictionary<string, ResourceViewModel> _resourcesMap = [];
@@ -44,6 +38,8 @@ public partial class Resources : ComponentBase, IDisposable
     {
         _visibleResourceTypes = new HashSet<string>(_allResourceTypes, StringComparers.ResourceType);
     }
+
+    private bool Filter(ResourceViewModel resource) => _visibleResourceTypes.Contains(resource.ResourceType) && (_filter.Length == 0 || resource.MatchesFilter(_filter));
 
     protected void OnResourceTypeVisibilityChanged(string resourceType, bool isVisible)
     {
