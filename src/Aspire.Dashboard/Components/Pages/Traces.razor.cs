@@ -55,11 +55,11 @@ public partial class Traces
         var count = applicationSpans.Count();
         var errorCount = applicationSpans.Count(s => s.Status == OtlpSpanStatusCode.Error);
 
-        var tooltip = string.Format(Loc[Dashboard.Resources.Traces.TracesResourceSpans], GetResourceName(applicationSpans.Key));
-        tooltip += Environment.NewLine + string.Format(Loc[Dashboard.Resources.Traces.TracesTotalTraces], count);
+        var tooltip = string.Format(CultureInfo.InvariantCulture, Loc[Dashboard.Resources.Traces.TracesResourceSpans], GetResourceName(applicationSpans.Key));
+        tooltip += Environment.NewLine + string.Format(CultureInfo.InvariantCulture, Loc[Dashboard.Resources.Traces.TracesTotalTraces], count);
         if (errorCount > 0)
         {
-            tooltip += Environment.NewLine + string.Format(Loc[Dashboard.Resources.Traces.TracesTotalErroredTraces], errorCount);
+            tooltip += Environment.NewLine + string.Format(CultureInfo.InvariantCulture, Loc[Dashboard.Resources.Traces.TracesTotalErroredTraces], errorCount);
         }
 
         return tooltip;
