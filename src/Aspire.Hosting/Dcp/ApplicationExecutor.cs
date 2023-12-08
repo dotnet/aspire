@@ -106,13 +106,6 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
         }
     }
 
-    private async Task CreateContainerSingletonsAsync(CancellationToken cancellationToken = default)
-    {
-        // Find containers that consume no Services--their associated Services can be started in Proxyless mode
-        var toCreate = _appResources.Where(r => r.DcpResource is Container && !r.ServicesConsumed.Any());
-        await CreateContainersAsync(toCreate, cancellationToken).ConfigureAwait(false);
-    }
-
     private async Task CreateServicesAsync(CancellationToken cancellationToken = default)
     {
         try
@@ -337,20 +330,6 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
             var exeAppResource = new AppResource(project, ers);
             AddServicesProducedInfo(project, annotationHolder, exeAppResource);
             _appResources.Add(exeAppResource);
-        }
-    }
-
-    private void PrepareProxylessServices()
-    {
-        // Find containers that consume no Services--their associated Services can be started in Proxyless mode
-        var singletonContainers = _appResources.Where(r => r.DcpResource is Container && !r.ServicesConsumed.Any());
-
-        foreach (var container in singletonContainers)
-        {
-            foreach (var service in container.ServicesProduced)
-            {
-                service.Service.Spec.AddressAllocationMode = AddressAllocationModes.Proxyless;
-            }
         }
     }
 
