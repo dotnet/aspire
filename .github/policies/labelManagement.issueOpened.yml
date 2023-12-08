@@ -1,0 +1,22 @@
+name: New Issues
+description: Adds untriaged label to new issues
+resource: repository
+
+configuration:
+  resourceManagementConfiguration:
+    eventResponderTasks:
+      - description: Add untriaged to new issues
+        if:
+          - payloadType: Issues
+          - isAction:
+            action: Opened
+        then:
+          - addLabel:
+            label: untriaged
+      - description: Add CodeFlow link to new PRs
+        if:
+          - payloadType: Pull_Request
+          - isAction:
+              action: Opened
+        then:
+          - addCodeFlowLink
