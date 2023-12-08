@@ -89,7 +89,7 @@ internal sealed class ConfigSchemaEmitter(SourceGenerationSpec spec) : EmitterBa
         }
     }
 
-    private List<SchemaNode> GetSorted(List<SchemaNode> children)
+    private static List<SchemaNode> GetSorted(List<SchemaNode> children)
     {
         var sorted = children.OrderBy(c => c.Name).ToList();
         if (sorted.FindIndex(c => c.Name == "type") is int typeIndex && typeIndex > 0)
@@ -163,7 +163,7 @@ internal sealed class ConfigSchemaEmitter(SourceGenerationSpec spec) : EmitterBa
         }
     }
 
-    private string? GetDescription(PropertySpec property)
+    private static string? GetDescription(PropertySpec property)
     {
         string docComment = property.DocumentationCommentXml;
         if (string.IsNullOrEmpty(docComment))
@@ -196,7 +196,7 @@ internal sealed class ConfigSchemaEmitter(SourceGenerationSpec spec) : EmitterBa
         _ => throw new InvalidOperationException($"Unknown type {typeSpec}")
     };
 
-    private string GetParsableTypeName(ParsableFromStringSpec parsable)
+    private static string GetParsableTypeName(ParsableFromStringSpec parsable)
     {
         if (parsable.StringParsableTypeKind == StringParsableTypeKind.Enum)
         {
@@ -220,12 +220,12 @@ internal sealed class ConfigSchemaEmitter(SourceGenerationSpec spec) : EmitterBa
         public string Name { get; set; }
     }
 
-    private class SimpleNode : SchemaNode
+    private sealed class SimpleNode : SchemaNode
     {
         public string Value { get; set; }
     }
 
-    private class ObjectNode : SchemaNode
+    private sealed class ObjectNode : SchemaNode
     {
         public List<SchemaNode> Children { get; set; } = new();
 

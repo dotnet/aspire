@@ -12,6 +12,8 @@
     <Features Condition="'$(EnableConfigurationBindingGenerator)' == 'true'">$(Features);InterceptorsPreview</Features>
     <!-- AspNetCore.HealthChecks packages are unsigned, we ignore that warning on purpose  -->
     <NoWarn>$(NoWarn);CS8002</NoWarn>
+
+    <TargetsTriggeredByCompilation Condition="'$(DesignTimeBuild)' != 'true'">$(TargetsTriggeredByCompilation);GenerateConfigurationSchema</TargetsTriggeredByCompilation>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(ConfigurationSchemaExists)' == 'true'">
@@ -21,11 +23,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- ensure the config generator is built -->
     <ProjectReference Include="$(MSBuildThisFileDirectory)..\Tools\ConfigurationSchemaGenerator\ConfigurationSchemaGenerator.csproj"
-                 SetTargetFramework="TargetFramework=netstandard2.0"
-                 OutputItemType="Analyzer"
-                 ReferenceOutputAssembly="false" />
-    <CompilerVisibleProperty Include="OutputPath"/>
+                      SetTargetFramework="TargetFramework=$(NetCurrent)"
+                      OutputItemType="_ReferencedExecutable"
+                      Private="false"
+                      ReferenceOutputAssembly="false" />
   </ItemGroup>
 
   <PropertyGroup Condition="'$(ConfigurationSchemaExists)' == 'true'">
@@ -37,5 +40,18 @@
       <TfmSpecificPackageFile Include="$(MSBuildThisFileDirectory)Common\Package.targets"
                               PackagePath="buildTransitive\$(TargetFramework)\$(PackageId).targets" />
     </ItemGroup>
+  </Target>
+
+  <Target Name="GenerateConfigurationSchema">
+    <PropertyGroup>
+      <ConfigurationSchemaGeneratorPath>$(ArtifactsBinDir)ConfigurationSchemaGenerator\$(Configuration)\$(NetCurrent)\ConfigurationSchemaGenerator</ConfigurationSchemaGeneratorPath>
+
+      <GeneratorCommandLine>$(ConfigurationSchemaGeneratorPath)</GeneratorCommandLine>
+      <GeneratorCommandLine>$(GeneratorCommandLine) --input "@(IntermediateAssembly)"</GeneratorCommandLine>
+      <GeneratorCommandLine>$(GeneratorCommandLine) --reference "@(ReferencePathWithRefAssemblies, '" "')"</GeneratorCommandLine>
+      <GeneratorCommandLine>$(GeneratorCommandLine) --output "$(IntermediateOutputPath)ConfigurationSchema.json"</GeneratorCommandLine>
+    </PropertyGroup>
+    
+    <Exec Command="$(GeneratorCommandLine)" />
   </Target>
 </Project>

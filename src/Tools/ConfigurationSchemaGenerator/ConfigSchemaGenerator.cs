@@ -4,86 +4,54 @@
 using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.Extensions.Configuration.Binder.SourceGeneration;
-using SourceGenerators;
 
 namespace ConfigurationSchemaGenerator;
 
-[Generator]
-public partial class ConfigSchemaGenerator : IIncrementalGenerator
+public partial class ConfigSchemaGenerator
 {
     private const string ConfigurationSchemaAttributeName = "Aspire.ConfigurationSchemaAttribute";
 
-    private const string CompilationOutputPath = "build_property.outputpath";
-    private const string FileName = "ConfigurationSchema.json";
-
-    private string? _compilationOutputPath;
-
-    public void Initialize(IncrementalGeneratorInitializationContext context)
+    public static void GenerateSchema(string inputAssembly, string[] references, string outputFile)
     {
-#if LAUNCH_DEBUGGER
-        if (!System.Diagnostics.Debugger.IsAttached)
+        var inputReference = CreateMetadataReference(inputAssembly);
+        var compilation = CSharpCompilation.Create(
+            "ConfigGenerator",
+            references: references.Select(CreateMetadataReference)
+                .Concat([inputReference]));
+
+        var assemblySymbol = (IAssemblySymbol)compilation.GetAssemblyOrModuleSymbol(inputReference);
+        var configSchemaInfo = GetConfigurationSchema(assemblySymbol);
+
+        if (configSchemaInfo is not null)
         {
-            System.Diagnostics.Debugger.Launch();
-        }
-#endif
+            var parser = new Parser(configSchemaInfo, new KnownTypeSymbols(compilation));
+            var spec = parser.GetSourceGenerationSpec(CancellationToken.None);
 
-        var genSpec =
-            context.SyntaxProvider
-                .ForAttributeWithMetadataName(ConfigurationSchemaAttributeName, (node, _) => true, GetConfigurationSchema)
-                .Where(static m => m is not null)
-                .Combine(context.AnalyzerConfigOptionsProvider)
-                .Combine(context.CompilationProvider)
-                .Select((tuple, cancellationToken) =>
-                {
-                    if (tuple.Left.Left is not ConfigSchemaAttributeInfo configSchemaInfo ||
-                        tuple.Left.Right is not { } analyzerConfigOptions ||
-                        tuple.Right is not CSharpCompilation cSharpCompilation)
-                    {
-                        return default;
-                    }
-
-                    var parser = new Parser(configSchemaInfo, new KnownTypeSymbols(cSharpCompilation));
-                    SourceGenerationSpec? spec = parser.GetSourceGenerationSpec(cancellationToken);
-                    ImmutableEquatableArray<DiagnosticInfo>? diagnostics = parser.Diagnostics?.ToImmutableEquatableArray();
-                    return (spec, diagnostics, analyzerConfigOptions);
-                });
-
-        context.RegisterImplementationSourceOutput(genSpec, ReportDiagnosticsAndEmitSource);
-    }
-
-    private void ReportDiagnosticsAndEmitSource(SourceProductionContext sourceProductionContext, (SourceGenerationSpec? SourceGenerationSpec, ImmutableEquatableArray<DiagnosticInfo>? Diagnostics, AnalyzerConfigOptionsProvider? AnalyzerConfigOptions) input)
-    {
-        if (input.Diagnostics is ImmutableEquatableArray<DiagnosticInfo> diagnostics)
-        {
-            foreach (DiagnosticInfo diagnostic in diagnostics)
-            {
-                sourceProductionContext.ReportDiagnostic(diagnostic.CreateDiagnostic());
-            }
-        }
-
-        if (input.SourceGenerationSpec is SourceGenerationSpec spec)
-        {
             var emitter = new ConfigSchemaEmitter(spec);
             var schema = emitter.GenerateSchema();
 
-            var path = GetDefaultSchemaOutputPath(input.AnalyzerConfigOptions.GlobalOptions);
-            if (string.IsNullOrEmpty(path))
-            {
-                throw new InvalidOperationException("""You need to set <CompilerVisibleProperty Include="OutputPath"/>""");
-            }
-
-#pragma warning disable RS1035 // Do not use APIs banned for analyzers - needed until https://github.com/dotnet/roslyn/issues/57608 is implemented
-            File.WriteAllText(Path.Combine(path, FileName), schema, Encoding.UTF8);
-#pragma warning restore RS1035
+            File.WriteAllText(outputFile, schema, Encoding.UTF8);
         }
     }
 
-    private static object? GetConfigurationSchema(GeneratorAttributeSyntaxContext context, CancellationToken cancellationToken)
+    private static PortableExecutableReference CreateMetadataReference(string path)
     {
-        foreach (var attribute in context.Attributes)
+        var docPath = Path.ChangeExtension(path, "xml");
+        var documentationProvider = XmlDocumentationProvider.CreateFromFile(docPath);
+
+        return MetadataReference.CreateFromFile(path, documentation: documentationProvider);
+    }
+
+    private static ConfigSchemaAttributeInfo? GetConfigurationSchema(IAssemblySymbol assembly)
+    {
+        foreach (var attribute in assembly.GetAttributes())
         {
+            if (attribute.AttributeClass?.ToDisplayString() != ConfigurationSchemaAttributeName)
+            {
+                continue;
+            }
+
             var items = attribute.NamedArguments;
             INamedTypeSymbol?[]? types = null;
             string?[]? configurationPaths = null;
@@ -116,17 +84,6 @@ public partial class ConfigSchemaGenerator : IIncrementalGenerator
         return null;
     }
 
-    // /// <summary>Data about configuration schema directly from the ConfigurationSchemaAttribute.</summary>
-    internal sealed record ConfigSchemaAttributeInfo(INamedTypeSymbol?[]? Types, string?[] ConfigurationPaths, string?[] LogCategories);
-
-    private string GetDefaultSchemaOutputPath(AnalyzerConfigOptions options)
-    {
-        if (_compilationOutputPath is not null)
-        {
-            return _compilationOutputPath;
-        }
-
-        options.TryGetValue(CompilationOutputPath, out _compilationOutputPath);
-        return _compilationOutputPath;
-    }
+    /// <summary>Data about configuration schema directly from the ConfigurationSchemaAttribute.</summary>
+    internal sealed record ConfigSchemaAttributeInfo(INamedTypeSymbol[]? Types, string[] ConfigurationPaths, string[] LogCategories);
 }

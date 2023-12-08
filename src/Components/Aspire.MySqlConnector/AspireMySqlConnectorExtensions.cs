@@ -10,6 +10,17 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 using MySqlConnector;
 
+[assembly: ConfigurationSchema(
+    Types = [typeof(MySqlConnectorSettings)],
+    ConfigurationPaths = ["Aspire:MySqlConnector"],
+    LogCategories = [
+        "MySqlConnector",
+        "MySqlConnector.ConnectionPool",
+        "MySqlConnector.MySqlBulkCopy",
+        "MySqlConnector.MySqlCommand",
+        "MySqlConnector.MySqlConnection",
+        "MySqlConnector.MySqlDataSource"])]
+
 namespace Microsoft.Extensions.Hosting;
 
 /// <summary>

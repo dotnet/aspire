@@ -3,6 +3,7 @@
 
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Globalization;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.Extensions.Configuration.Binder.SourceGeneration;
@@ -535,7 +536,7 @@ public sealed partial class ConfigSchemaGenerator
                 if (!hasPublicParameterlessCtor && hasMultipleParameterizedCtors)
                 {
                     initDiagDescriptor = DiagnosticDescriptors.MultipleParameterizedConstructors;
-                    initExceptionMessage = string.Format("Cannot create instance of type '{0}' because it has multiple public parameterized constructors.", typeSymbol.GetFullName());
+                    initExceptionMessage = string.Format(CultureInfo.InvariantCulture, "Cannot create instance of type '{0}' because it has multiple public parameterized constructors.", typeSymbol.GetFullName());
                 }
 
                 ctor = typeSymbol.IsValueType
@@ -547,7 +548,7 @@ public sealed partial class ConfigSchemaGenerator
             if (ctor is null)
             {
                 initDiagDescriptor = DiagnosticDescriptors.MissingPublicInstanceConstructor;
-                initExceptionMessage = string.Format("Cannot create instance of type '{0}' because it is missing a public instance constructor.", typeSymbol.GetFullName());
+                initExceptionMessage = string.Format(CultureInfo.InvariantCulture, "Cannot create instance of type '{0}' because it is missing a public instance constructor.", typeSymbol.GetFullName());
             }
             else
             {
@@ -621,7 +622,7 @@ public sealed partial class ConfigSchemaGenerator
 
                 if (invalidParameters?.Count > 0)
                 {
-                    initExceptionMessage = string.Format("Cannot create instance of type '{0}' because one or more parameters cannot be bound to. Constructor parameters cannot be declared as in, out, or ref. Invalid parameters are: '{1}'", typeSymbol.GetFullName(), FormatParams(invalidParameters));
+                    initExceptionMessage = string.Format(CultureInfo.InvariantCulture, "Cannot create instance of type '{0}' because one or more parameters cannot be bound to. Constructor parameters cannot be declared as in, out, or ref. Invalid parameters are: '{1}'", typeSymbol.GetFullName(), FormatParams(invalidParameters));
                 }
                 else if (missingParameters?.Count > 0)
                 {
@@ -631,7 +632,7 @@ public sealed partial class ConfigSchemaGenerator
                     }
                     else
                     {
-                        initExceptionMessage = string.Format("Cannot create instance of type '{0}' because one or more parameters cannot be bound to. Constructor parameters must have corresponding properties. Fields are not supported. Missing properties are: '{1}'", typeSymbol.GetFullName(), FormatParams(missingParameters));
+                        initExceptionMessage = string.Format(CultureInfo.InvariantCulture, "Cannot create instance of type '{0}' because one or more parameters cannot be bound to. Constructor parameters must have corresponding properties. Fields are not supported. Missing properties are: '{1}'", typeSymbol.GetFullName(), FormatParams(missingParameters));
                     }
                 }
 
