@@ -30,14 +30,9 @@ public partial class Resources : ComponentBase, IDisposable
     private readonly Dictionary<string, ResourceViewModel> _resourcesMap = [];
     // TODO populate resource types from server data
     private ImmutableArray<string> _allResourceTypes;
-    private readonly HashSet<string> _visibleResourceTypes;
+    private HashSet<string> _visibleResourceTypes = null!;
     private string _filter = "";
     private bool _isTypeFilterVisible;
-
-    public Resources()
-    {
-        _visibleResourceTypes = new HashSet<string>(_allResourceTypes, StringComparers.ResourceType);
-    }
 
     private bool Filter(ResourceViewModel resource) => _visibleResourceTypes.Contains(resource.ResourceType) && (_filter.Length == 0 || resource.MatchesFilter(_filter));
 
@@ -84,6 +79,7 @@ public partial class Resources : ComponentBase, IDisposable
     protected override void OnInitialized()
     {
         _allResourceTypes = [Loc[Dashboard.Resources.Resources.ResourcesProjectType], Loc[Dashboard.Resources.Resources.ResourcesExecutableType], Loc[Dashboard.Resources.Resources.ResourcesContainerType]];
+        _visibleResourceTypes = new HashSet<string>(_allResourceTypes, StringComparers.ResourceType);
         _applicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
 
         var (snapshot, subscription) = ResourceService.Subscribe();
