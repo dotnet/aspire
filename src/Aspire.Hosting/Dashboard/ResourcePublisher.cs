@@ -12,7 +12,7 @@ namespace Aspire.Hosting.Dashboard;
 /// and allowing multiple subscribers to receive the current resource collection
 /// snapshot and future updates.
 /// </summary>
-internal sealed class ResourceCollection(CancellationToken cancellationToken)
+internal sealed class ResourcePublisher(CancellationToken cancellationToken)
 {
     private readonly object _syncLock = new();
     private readonly Dictionary<string, ResourceViewModel> _snapshot = [];

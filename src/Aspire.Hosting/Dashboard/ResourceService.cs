@@ -12,16 +12,16 @@ namespace Aspire.Hosting.Dashboard;
 internal sealed partial class ResourceService : IResourceService, IAsyncDisposable
 {
     private readonly CancellationTokenSource _cancellationTokenSource = new();
-    private readonly ResourceCollection _resourceCollection;
+    private readonly ResourcePublisher _resourcePublisher;
 
     public ResourceService(
         DistributedApplicationModel applicationModel, KubernetesService kubernetesService, IHostEnvironment hostEnvironment, ILoggerFactory loggerFactory)
     {
         ApplicationName = ComputeApplicationName(hostEnvironment.ApplicationName);
 
-        _resourceCollection = new ResourceCollection(_cancellationTokenSource.Token);
+        _resourcePublisher = new ResourcePublisher(_cancellationTokenSource.Token);
 
-        _ = new KubernetesDataSource(kubernetesService, applicationModel, loggerFactory, _resourceCollection.Integrate, _cancellationTokenSource.Token);
+        _ = new KubernetesDataSource(kubernetesService, applicationModel, loggerFactory, _resourcePublisher.Integrate, _cancellationTokenSource.Token);
 
         static string ComputeApplicationName(string applicationName)
         {
@@ -38,7 +38,7 @@ internal sealed partial class ResourceService : IResourceService, IAsyncDisposab
 
     public string ApplicationName { get; }
 
-    public ResourceSubscription Subscribe() => _resourceCollection.Subscribe();
+    public ResourceSubscription Subscribe() => _resourcePublisher.Subscribe();
 
     public async ValueTask DisposeAsync()
     {
