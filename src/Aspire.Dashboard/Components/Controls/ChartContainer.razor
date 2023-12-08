@@ -46,9 +46,9 @@ else
 
                     @if (_instrument.Type == OtlpInstrumentType.Histogram)
                     {
-                        <h5>@Loc[ControlsStrings.ChartContainerOptionsHeader]</h5>
+                        <h5>Options</h5>
                         <div>
-                            <FluentSwitch Label="@Loc[ControlsStrings.ChartContainerOptionsShowCountLabel]" @bind-Value="_showCount" @bind-Value:after="ShowCountChanged" />
+                            <FluentSwitch Label="Show count" @bind-Value="_showCount" @bind-Value:after="ShowCountChanged" />
                         </div>
                     }
                 </div>
