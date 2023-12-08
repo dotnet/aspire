@@ -24,7 +24,7 @@ internal sealed class KubernetesDataSource
 {
     private readonly KubernetesService _kubernetesService;
     private readonly DistributedApplicationModel _applicationModel;
-    private readonly Func<ResourceViewModel, ObjectChangeType, ValueTask> _callback;
+    private readonly Func<ResourceViewModel, ObjectChangeType, ValueTask> _onResourceChanged;
     private readonly CancellationToken _cancellationToken;
     private readonly ILogger _logger;
 
@@ -40,12 +40,12 @@ internal sealed class KubernetesDataSource
         KubernetesService kubernetesService,
         DistributedApplicationModel applicationModel,
         ILoggerFactory loggerFactory,
-        Func<ResourceViewModel, ObjectChangeType, ValueTask> callback,
+        Func<ResourceViewModel, ObjectChangeType, ValueTask> onResourceChanged,
         CancellationToken cancellationToken)
     {
         _kubernetesService = kubernetesService;
         _applicationModel = applicationModel;
-        _callback = callback;
+        _onResourceChanged = onResourceChanged;
         _cancellationToken = cancellationToken;
 
         _logger = loggerFactory.CreateLogger<ResourceService>();
@@ -128,7 +128,7 @@ internal sealed class KubernetesDataSource
 
         var containerViewModel = ConvertToContainerViewModel(container, extraEnvVars);
 
-        await WriteChange(containerViewModel, objectChangeType).ConfigureAwait(false);
+        await _onResourceChanged(containerViewModel, objectChangeType).ConfigureAwait(false);
     }
 
     private async Task ProcessExecutableChange(WatchEventType watchEventType, Executable executable)
@@ -143,7 +143,7 @@ internal sealed class KubernetesDataSource
         var objectChangeType = ToObjectChangeType(watchEventType);
         var executableViewModel = ConvertToExecutableViewModel(executable);
 
-        await WriteChange(executableViewModel, objectChangeType).ConfigureAwait(false);
+        await _onResourceChanged(executableViewModel, objectChangeType).ConfigureAwait(false);
     }
 
     private async Task ProcessProjectChange(WatchEventType watchEventType, Executable executable)
@@ -158,7 +158,7 @@ internal sealed class KubernetesDataSource
         var objectChangeType = ToObjectChangeType(watchEventType);
         var projectViewModel = ConvertToProjectViewModel(executable);
 
-        await WriteChange(projectViewModel, objectChangeType).ConfigureAwait(false);
+        await _onResourceChanged(projectViewModel, objectChangeType).ConfigureAwait(false);
     }
 
     private async Task ProcessEndpointChange(WatchEventType watchEventType, Endpoint endpoint)
@@ -184,7 +184,7 @@ internal sealed class KubernetesDataSource
                         var extraEnvVars = GetContainerEnvVars(container.Status?.ContainerId);
                         var containerViewModel = ConvertToContainerViewModel(container, extraEnvVars);
 
-                        await WriteChange(containerViewModel).ConfigureAwait(false);
+                        await _onResourceChanged(containerViewModel, ObjectChangeType.Modified).ConfigureAwait(false);
                     }
                     break;
 
@@ -196,14 +196,14 @@ internal sealed class KubernetesDataSource
                             // Project
                             var projectViewModel = ConvertToProjectViewModel(executable);
 
-                            await WriteChange(projectViewModel).ConfigureAwait(false);
+                            await _onResourceChanged(projectViewModel, ObjectChangeType.Modified).ConfigureAwait(false);
                         }
                         else
                         {
                             // Executable
                             var executableViewModel = ConvertToExecutableViewModel(executable);
 
-                            await WriteChange(executableViewModel).ConfigureAwait(false);
+                            await _onResourceChanged(executableViewModel, ObjectChangeType.Modified).ConfigureAwait(false);
                         }
                     }
                     break;
@@ -228,7 +228,7 @@ internal sealed class KubernetesDataSource
                         var extraEnvVars = GetContainerEnvVars(container.Status?.ContainerId);
                         var containerViewModel = ConvertToContainerViewModel(container, extraEnvVars);
 
-                        await WriteChange(containerViewModel).ConfigureAwait(false);
+                        await _onResourceChanged(containerViewModel, ObjectChangeType.Modified).ConfigureAwait(false);
                     }
                     break;
 
@@ -240,24 +240,19 @@ internal sealed class KubernetesDataSource
                             // Project
                             var projectViewModel = ConvertToProjectViewModel(executable);
 
-                            await WriteChange(projectViewModel).ConfigureAwait(false);
+                            await _onResourceChanged(projectViewModel, ObjectChangeType.Modified).ConfigureAwait(false);
                         }
                         else
                         {
                             // Executable
                             var executableViewModel = ConvertToExecutableViewModel(executable);
 
-                            await WriteChange(executableViewModel).ConfigureAwait(false);
+                            await _onResourceChanged(executableViewModel, ObjectChangeType.Modified).ConfigureAwait(false);
                         }
                     }
                     break;
             }
         }
-    }
-
-    private ValueTask WriteChange(ResourceViewModel resourceViewModel, ObjectChangeType changeType = ObjectChangeType.Modified)
-    {
-        return _callback(resourceViewModel, changeType);
     }
 
     private ContainerViewModel ConvertToContainerViewModel(Container container, List<EnvVar>? additionalEnvVars)
