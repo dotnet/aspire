@@ -8,25 +8,15 @@ using Aspire.Dashboard.Model;
 namespace Aspire.Hosting.Dashboard;
 
 /// <summary>
-/// Builds a collection of resources by integrating incoming changes from a channel,
-/// and allowing multiple subscribers to receive the current resource snapshot and future
-/// updates.
+/// Builds a collection of resources by integrating incoming resource changes,
+/// and allowing multiple subscribers to receive the current resource collection
+/// snapshot and future updates.
 /// </summary>
-internal sealed class ResourceCollection
+internal sealed class ResourceCollection(CancellationToken cancellationToken)
 {
     private readonly object _syncLock = new();
-    private readonly Channel<ResourceChange> _incomingChannel;
-    private readonly CancellationToken _cancellationToken;
     private readonly Dictionary<string, ResourceViewModel> _snapshot = [];
     private ImmutableHashSet<Channel<ResourceChange>> _outgoingChannels = [];
-
-    public ResourceCollection(Channel<ResourceChange> incomingChannel, CancellationToken cancellationToken)
-    {
-        _incomingChannel = incomingChannel;
-        _cancellationToken = cancellationToken;
-
-        Task.Run(ProcessChanges, cancellationToken);
-    }
 
     public ResourceSubscription Subscribe()
     {
@@ -37,8 +27,8 @@ internal sealed class ResourceCollection
             ImmutableInterlocked.Update(ref _outgoingChannels, static (set, channel) => set.Add(channel), channel);
 
             return new ResourceSubscription(
-                Snapshot: _snapshot.Values.ToList(),
-                Subscription: new ChangeEnumerable(channel, RemoveChannel));
+                Snapshot: [.. _snapshot.Values],
+                Subscription: new ResourceSubscriptionEnumerable(channel, disposeAction: RemoveChannel));
         }
 
         void RemoveChannel(Channel<ResourceChange> channel)
@@ -47,12 +37,44 @@ internal sealed class ResourceCollection
         }
     }
 
-    private sealed class ChangeEnumerable : IAsyncEnumerable<ResourceChange>
+    /// <summary>
+    /// Integrates a changed resource within the cache, and broadcasts the update to any subscribers.
+    /// </summary>
+    /// <param name="resource">The resource that was modified.</param>
+    /// <param name="changeType">The change type (Added, Modified, Deleted).</param>
+    /// <returns>A task that completes when the cache has been updated and all subscribers notified.</returns>
+    public async ValueTask Integrate(ResourceViewModel resource, ObjectChangeType changeType)
+    {
+        lock (_syncLock)
+        {
+            switch (changeType)
+            {
+                case ObjectChangeType.Added:
+                    _snapshot.Add(resource.Name, resource);
+                    break;
+
+                case ObjectChangeType.Modified:
+                    _snapshot[resource.Name] = resource;
+                    break;
+
+                case ObjectChangeType.Deleted:
+                    _snapshot.Remove(resource.Name);
+                    break;
+            }
+        }
+
+        foreach (var channel in _outgoingChannels)
+        {
+            await channel.Writer.WriteAsync(new(changeType, resource), cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private sealed class ResourceSubscriptionEnumerable : IAsyncEnumerable<ResourceChange>
     {
         private readonly Channel<ResourceChange> _channel;
         private readonly Action<Channel<ResourceChange>> _disposeAction;
 
-        public ChangeEnumerable(Channel<ResourceChange> channel, Action<Channel<ResourceChange>> disposeAction)
+        public ResourceSubscriptionEnumerable(Channel<ResourceChange> channel, Action<Channel<ResourceChange>> disposeAction)
         {
             _channel = channel;
             _disposeAction = disposeAction;
@@ -60,17 +82,17 @@ internal sealed class ResourceCollection
 
         public IAsyncEnumerator<ResourceChange> GetAsyncEnumerator(CancellationToken cancellationToken = default)
         {
-            return new ChangeEnumerator(_channel, _disposeAction, cancellationToken);
+            return new ResourceSubscriptionEnumerator(_channel, _disposeAction, cancellationToken);
         }
     }
 
-    private sealed class ChangeEnumerator : IAsyncEnumerator<ResourceChange>
+    private sealed class ResourceSubscriptionEnumerator : IAsyncEnumerator<ResourceChange>
     {
         private readonly Channel<ResourceChange> _channel;
         private readonly Action<Channel<ResourceChange>> _disposeAction;
         private readonly CancellationToken _cancellationToken;
 
-        public ChangeEnumerator(
+        public ResourceSubscriptionEnumerator(
             Channel<ResourceChange> channel, Action<Channel<ResourceChange>> disposeAction, CancellationToken cancellationToken)
         {
             _channel = channel;
@@ -93,37 +115,6 @@ internal sealed class ResourceCollection
             Current = await _channel.Reader.ReadAsync(_cancellationToken).ConfigureAwait(false);
 
             return true;
-        }
-    }
-
-    private async Task ProcessChanges()
-    {
-        await foreach (var change in _incomingChannel.Reader.ReadAllAsync(_cancellationToken))
-        {
-            var (changeType, resource) = change;
-
-            lock (_syncLock)
-            {
-                switch (changeType)
-                {
-                    case ObjectChangeType.Added:
-                        _snapshot.Add(resource.Name, resource);
-                        break;
-
-                    case ObjectChangeType.Modified:
-                        _snapshot[resource.Name] = resource;
-                        break;
-
-                    case ObjectChangeType.Deleted:
-                        _snapshot.Remove(resource.Name);
-                        break;
-                }
-            }
-
-            foreach (var channel in _outgoingChannels)
-            {
-                await channel.Writer.WriteAsync(change, _cancellationToken).ConfigureAwait(false);
-            }
         }
     }
 }
