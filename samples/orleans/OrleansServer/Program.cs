@@ -1,11 +1,11 @@
-using Aspire.Orleans.Server;
 using Orleans.Runtime;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder
-    .AddServiceDefaults()
-    .UseAspireOrleansServer();
+builder.AddServiceDefaults();
+builder.AddKeyedAzureTableService("clustering");
+builder.AddKeyedAzureBlobService("grainstate");
+builder.UseOrleans();
 
 var app = builder.Build();
 

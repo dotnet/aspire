@@ -11,9 +11,10 @@ namespace Aspire.Hosting;
 public static class OrleansServiceExtensions
 {
     internal const string OrleansConfigKeyPrefix = "Orleans";
-    private static readonly ProviderConfiguration s_inMemoryReminderService = new("InMemoryReminderService");
-    private static readonly ProviderConfiguration s_inMemoryStorage = new("MemoryGrainStorage");
-    private static readonly ProviderConfiguration s_localhostClustering = new("LocalhostClustering");
+    private static readonly ProviderConfiguration s_inMemoryReminderService = new("Memory");
+    private static readonly ProviderConfiguration s_inMemoryGrainStorage = new("Memory");
+    private static readonly ProviderConfiguration s_inMemoryStreaming = new("Memory");
+    private static readonly ProviderConfiguration s_developmentClustering = new("Development");
 
     /// <summary>
     /// Add Orleans to the resource.
@@ -27,7 +28,7 @@ public static class OrleansServiceExtensions
         => new(builder, name);
 
     /// <summary>
-    /// Set the ClusterId to use for the Orleans cluster.
+    /// Set the ClusterId to use for the Orleans service.
     /// </summary>
     /// <param name="orleansServiceBuilder">The target Orleans resource.</param>
     /// <param name="clusterId">The ClusterId value.</param>
@@ -41,7 +42,7 @@ public static class OrleansServiceExtensions
     }
 
     /// <summary>
-    /// Set the ServiceId to use for the Orleans cluster.
+    /// Set the ServiceId to use for the Orleans service.
     /// </summary>
     /// <param name="orleansServiceBuilder">The target Orleans resource.</param>
     /// <param name="serviceId">The ServiceId value.</param>
@@ -55,7 +56,7 @@ public static class OrleansServiceExtensions
     }
 
     /// <summary>
-    /// Set the clustering for the Orleans cluster.
+    /// Set the clustering for the Orleans service.
     /// </summary>
     /// <param name="orleansServiceBuilder">The target Orleans resource.</param>
     /// <param name="clustering">The clustering to use.</param>
@@ -69,7 +70,7 @@ public static class OrleansServiceExtensions
     }
 
     /// <summary>
-    /// Set the clustering for the Orleans cluster.
+    /// Set the clustering for the Orleans service.
     /// </summary>
     /// <param name="orleansServiceBuilder">The target Orleans resource.</param>
     /// <param name="clustering">The clustering to use.</param>
@@ -83,19 +84,19 @@ public static class OrleansServiceExtensions
     }
 
     /// <summary>
-    /// use the localhost clustering for the Orleans cluster (for development purpose only).
+    /// use the localhost clustering for the Orleans service (for development purpose only).
     /// </summary>
-    /// <param name="orleansServicebuilder">The target Orleans resource.</param>
+    /// <param name="orleansServiceBuilder">The target Orleans resource.</param>
     /// <returns>>The Orleans resource.</returns>
-    public static OrleansService WithLocalhostClustering(
-        this OrleansService orleansServicebuilder)
+    public static OrleansService WithDevelopmentClustering(
+        this OrleansService orleansServiceBuilder)
     {
-        orleansServicebuilder.Clustering = s_localhostClustering;
-        return orleansServicebuilder;
+        orleansServiceBuilder.Clustering = s_developmentClustering;
+        return orleansServiceBuilder;
     }
 
     /// <summary>
-    /// Add a grain storage provider for the Orleans silos.
+    /// Add a grain storage provider for the Orleans service.
     /// </summary>
     /// <param name="orleansServiceBuilder">The target Orleans resource.</param>
     /// <param name="storage">The storage provider to add.</param>
@@ -109,7 +110,7 @@ public static class OrleansServiceExtensions
     }
 
     /// <summary>
-    /// Add a grain storage provider for the Orleans silos.
+    /// Add a grain storage provider for the Orleans service.
     /// </summary>
     /// <param name="orleansServiceBuilder">The target Orleans resource.</param>
     /// <param name="name">The name of the storage provider.</param>
@@ -125,7 +126,7 @@ public static class OrleansServiceExtensions
     }
 
     /// <summary>
-    /// Add a grain storage provider for the Orleans silos.
+    /// Add a grain storage provider for the Orleans service.
     /// </summary>
     /// <param name="orleansServiceBuilder">The target Orleans resource.</param>
     /// <param name="name">The name of the storage provider.</param>
@@ -141,21 +142,35 @@ public static class OrleansServiceExtensions
     }
 
     /// <summary>
-    /// Add an in memory grain storage for the Orleans silos.
+    /// Add an in memory grain storage for the Orleans service.
     /// </summary>
     /// <param name="orleansServiceBuilder">The target Orleans resource.</param>
     /// <param name="name">The name of the storage provider.</param>
     /// <returns>>The Orleans resource.</returns>
-    public static OrleansService WithInMemoryGrainStorage(
+    public static OrleansService WithMemoryGrainStorage(
         this OrleansService orleansServiceBuilder,
         string name)
     {
-        orleansServiceBuilder.GrainStorage[name] = s_inMemoryStorage;
+        orleansServiceBuilder.GrainStorage[name] = s_inMemoryGrainStorage;
         return orleansServiceBuilder;
     }
 
     /// <summary>
-    /// Set the reminder storage for the Orleans cluster.
+    /// Add in-memory streaming for the Orleans service.
+    /// </summary>
+    /// <param name="orleansServiceBuilder">The target Orleans resource.</param>
+    /// <param name="name">The name of the storage provider.</param>
+    /// <returns>>The Orleans resource.</returns>
+    public static OrleansService WithMemoryStreaming(
+        this OrleansService orleansServiceBuilder,
+        string name)
+    {
+        orleansServiceBuilder.Streaming[name] = s_inMemoryStreaming;
+        return orleansServiceBuilder;
+    }
+
+    /// <summary>
+    /// Set the reminder storage for the Orleans service.
     /// </summary>
     /// <param name="orleansServiceBuilder">The target Orleans resource.</param>
     /// <param name="reminderStorage">The reminder storage to use.</param>
@@ -169,7 +184,7 @@ public static class OrleansServiceExtensions
     }
 
     /// <summary>
-    /// Set the reminder storage for the Orleans cluster.
+    /// Set the reminder storage for the Orleans service.
     /// </summary>
     /// <param name="orleansServiceBuilder">The target Orleans resource.</param>
     /// <param name="reminderStorage">The reminder storage to use.</param>
@@ -183,11 +198,11 @@ public static class OrleansServiceExtensions
     }
 
     /// <summary>
-    /// Configures in-memory reminder storage for the Orleans cluster.
+    /// Configures in-memory reminder storage for the Orleans service.
     /// </summary>
     /// <param name="orleansServiceBuilder">The target Orleans resource.</param>
     /// <returns>>The Orleans resource.</returns>
-    public static OrleansService WithInMemoryReminders(
+    public static OrleansService WithMemoryReminders(
         this OrleansService orleansServiceBuilder)
     {
         orleansServiceBuilder.Reminders = s_inMemoryReminderService;
@@ -207,34 +222,50 @@ public static class OrleansServiceExtensions
         where T : IResourceWithEnvironment
     {
         var res = orleansService;
-        foreach (var (name, storage) in res.GrainStorage)
-        {
-            storage.ConfigureResource(builder, $"{OrleansConfigKeyPrefix}__GrainStorage__{name}");
-        }
-
-        if (res.Reminders is { } reminders)
-        {
-            reminders.ConfigureResource(builder, $"{OrleansConfigKeyPrefix}__Reminders");
-        }
 
         // Configure clustering
         if (res.Clustering is { } clustering)
         {
-            clustering.ConfigureResource(builder, $"{OrleansConfigKeyPrefix}__Clustering");
+            clustering.ConfigureResource(builder, "Clustering");
         }
         else
         {
             throw new InvalidOperationException("Clustering has not been configured for this service.");
         }
 
+        if (res.Reminders is { } reminders)
+        {
+            reminders.ConfigureResource(builder, "Reminders");
+        }
+
+        foreach (var (name, provider) in res.GrainStorage)
+        {
+            provider.ConfigureResource(builder, $"GrainStorage:{name}");
+        }
+
+        foreach (var (name, provider) in res.GrainDirectory)
+        {
+            provider.ConfigureResource(builder, $"GrainDirectory:{name}");
+        }
+
+        foreach (var (name, provider) in res.Streaming)
+        {
+            provider.ConfigureResource(builder, $"Streaming:{name}");
+        }
+
+        foreach (var (name, provider) in res.BroadcastChannel)
+        {
+            provider.ConfigureResource(builder, $"BroadcastChannel:{name}");
+        }
+
         if (!string.IsNullOrWhiteSpace(res.ClusterId))
         {
-            builder.WithEnvironment($"{OrleansConfigKeyPrefix}__ClusterId", res.ClusterId);
+            builder.WithEnvironment("Orleans:ClusterId", res.ClusterId);
         }
 
         if (!string.IsNullOrWhiteSpace(res.ServiceId))
         {
-            builder.WithEnvironment($"{OrleansConfigKeyPrefix}__ServiceId", res.ServiceId);
+            builder.WithEnvironment("Orleans:ServiceId", res.ServiceId);
         }
 
         return builder;
