@@ -78,14 +78,16 @@ message StringArray {
 }
 
 message AdditionalData {
-    // TODO do we need separate display value(s)?
+    // Name of the data item, e.g. "id", "image", "path", ...
     string name = 1;
     // Optional namespace, e.g. "container", "executable", "project", ...
     optional string namespace = 2;
+    // Optional display name, may be localized
+    optional string display_name = 3;
     // A single value will be most common. Also support lists, to avoid escaping.
     oneof kind {
-        string value = 3;
-        StringArray values = 4;
+        string value = 4;
+        StringArray values = 5;
     }
 }
 
