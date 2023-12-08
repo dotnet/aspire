@@ -40,10 +40,12 @@ message ResourceCommandResponse {
 ////////////////////////////////////////////
 
 message ResourceType {
-    // Unique name for the resource type. Not for display. Equivalent to ResourceId.resource_type
+    // Unique name for the resource type. Equivalent to ResourceId.resource_type
+    // If "display_name" is omitted, this value will be used in UIs.
     string unique_name = 1;
 
-    // Localised name for the resource type, for display use only.
+    // Display string for references to this type in UI. May be localized.
+    // If this value is omitted, UIs will show "unique_name" instead.
     optional string display_name = 2;
 
     // Any commands that may be executed against resources of this type, avoiding
