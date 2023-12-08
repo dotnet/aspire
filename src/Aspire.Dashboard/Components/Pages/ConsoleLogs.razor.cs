@@ -189,13 +189,10 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
 
     private async Task OnResourceListChangedAsync(ObjectChangeType changeType, ResourceViewModel resourceViewModel)
     {
-        if (changeType == ObjectChangeType.Added)
+        if (changeType == ObjectChangeType.Upsert)
         {
             _resourceNameMapping[resourceViewModel.Name] = resourceViewModel;
-        }
-        else if (changeType == ObjectChangeType.Modified)
-        {
-            _resourceNameMapping[resourceViewModel.Name] = resourceViewModel;
+
             if (string.Equals(_selectedResource?.Name, resourceViewModel.Name, StringComparison.Ordinal))
             {
                 _selectedResource = resourceViewModel;
@@ -213,6 +210,7 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
         else if (changeType == ObjectChangeType.Deleted)
         {
             _resourceNameMapping.Remove(resourceViewModel.Name);
+
             if (string.Equals(_selectedResource?.Name, resourceViewModel.Name, StringComparison.Ordinal))
             {
                 _selectedOption = _noSelection;

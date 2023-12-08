@@ -151,11 +151,7 @@ public partial class Resources : ComponentBase, IDisposable
     {
         switch (objectChangeType)
         {
-            case ObjectChangeType.Added:
-                _resourcesMap.Add(resource.Name, resource);
-                break;
-
-            case ObjectChangeType.Modified:
+            case ObjectChangeType.Upsert:
                 _resourcesMap[resource.Name] = resource;
                 break;
 

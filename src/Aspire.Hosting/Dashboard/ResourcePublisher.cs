@@ -27,7 +27,7 @@ internal sealed class ResourcePublisher(CancellationToken cancellationToken)
             ImmutableInterlocked.Update(ref _outgoingChannels, static (set, channel) => set.Add(channel), channel);
 
             return new ResourceSubscription(
-                Snapshot: [.. _snapshot.Values],
+                Snapshot: _snapshot.Values.ToList(),
                 Subscription: new ResourceSubscriptionEnumerable(channel, disposeAction: RemoveChannel));
         }
 
@@ -49,11 +49,7 @@ internal sealed class ResourcePublisher(CancellationToken cancellationToken)
         {
             switch (changeType)
             {
-                case ObjectChangeType.Added:
-                    _snapshot.Add(resource.Name, resource);
-                    break;
-
-                case ObjectChangeType.Modified:
+                case ObjectChangeType.Upsert:
                     _snapshot[resource.Name] = resource;
                     break;
 

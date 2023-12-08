@@ -6,7 +6,14 @@ namespace Aspire.Dashboard.Model;
 public enum ObjectChangeType
 {
     Other,
-    Added,
-    Modified,
+
+    /// <summary>
+    /// The object was added if new, or updated if not.
+    /// </summary>
+    Upsert,
+
+    /// <summary>
+    /// The object was deleted.
+    /// </summary>
     Deleted
 }

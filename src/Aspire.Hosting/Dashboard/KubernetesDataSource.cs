@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -166,7 +165,7 @@ internal sealed class KubernetesDataSource
                     {
                         var containerViewModel = ConvertToContainerViewModel(container);
 
-                        await _onResourceChanged(containerViewModel, ObjectChangeType.Modified).ConfigureAwait(false);
+                        await _onResourceChanged(containerViewModel, ObjectChangeType.Upsert).ConfigureAwait(false);
                     }
                     break;
 
@@ -178,14 +177,14 @@ internal sealed class KubernetesDataSource
                             // Project
                             var projectViewModel = ConvertToProjectViewModel(executable);
 
-                            await _onResourceChanged(projectViewModel, ObjectChangeType.Modified).ConfigureAwait(false);
+                            await _onResourceChanged(projectViewModel, ObjectChangeType.Upsert).ConfigureAwait(false);
                         }
                         else
                         {
                             // Executable
                             var executableViewModel = ConvertToExecutableViewModel(executable);
 
-                            await _onResourceChanged(executableViewModel, ObjectChangeType.Modified).ConfigureAwait(false);
+                            await _onResourceChanged(executableViewModel, ObjectChangeType.Upsert).ConfigureAwait(false);
                         }
                     }
                     break;
@@ -209,7 +208,7 @@ internal sealed class KubernetesDataSource
                     {
                         var containerViewModel = ConvertToContainerViewModel(container);
 
-                        await _onResourceChanged(containerViewModel, ObjectChangeType.Modified).ConfigureAwait(false);
+                        await _onResourceChanged(containerViewModel, ObjectChangeType.Upsert).ConfigureAwait(false);
                     }
                     break;
 
@@ -221,14 +220,14 @@ internal sealed class KubernetesDataSource
                             // Project
                             var projectViewModel = ConvertToProjectViewModel(executable);
 
-                            await _onResourceChanged(projectViewModel, ObjectChangeType.Modified).ConfigureAwait(false);
+                            await _onResourceChanged(projectViewModel, ObjectChangeType.Upsert).ConfigureAwait(false);
                         }
                         else
                         {
                             // Executable
                             var executableViewModel = ConvertToExecutableViewModel(executable);
 
-                            await _onResourceChanged(executableViewModel, ObjectChangeType.Modified).ConfigureAwait(false);
+                            await _onResourceChanged(executableViewModel, ObjectChangeType.Upsert).ConfigureAwait(false);
                         }
                     }
                     break;
@@ -549,8 +548,8 @@ internal sealed class KubernetesDataSource
     private static ObjectChangeType ToObjectChangeType(WatchEventType watchEventType)
         => watchEventType switch
         {
-            WatchEventType.Added => ObjectChangeType.Added,
-            WatchEventType.Modified => ObjectChangeType.Modified,
+            WatchEventType.Added => ObjectChangeType.Upsert,
+            WatchEventType.Modified => ObjectChangeType.Upsert,
             WatchEventType.Deleted => ObjectChangeType.Deleted,
             _ => ObjectChangeType.Other
         };
