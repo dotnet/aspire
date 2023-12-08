@@ -93,7 +93,7 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
 
     private async Task RaisePeerChangesAsync()
     {
-        if (_subscriptions.Count == 0)
+        if (_subscriptions.Count == 0 || _watchContainersTokenSource.IsCancellationRequested)
         {
             return;
         }
