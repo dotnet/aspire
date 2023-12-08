@@ -20,6 +20,6 @@ configuration:
         if:
           - payloadType: Pull_Request
           - isAction:
-              action: Opened
+            action: Opened
         then:
           - addCodeFlowLink
