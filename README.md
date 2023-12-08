@@ -44,7 +44,7 @@ Also see info about related [Microsoft .NET Core and ASP.NET Core Bug Bounty Pro
 
 The .NET team cannot evaluate the underlying third-party containers for which we have API support for suitability for specific customer requirements.
 
-You should evaluate whichever containers you chose to compose and automate with Aspire to ensure they meet your, your employers or your government’s requirements on security and safety as well as cryptographic regulations and any other regulatory or corporate stands that may apply to your use of the container.
+You should evaluate whichever containers you chose to compose and automate with Aspire to ensure they meet your, your employers or your government’s requirements on security and safety as well as cryptographic regulations and any other regulatory or corporate standards that may apply to your use of the container.
 
 ## .NET Foundation
 
