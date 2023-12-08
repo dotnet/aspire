@@ -1,16 +1,14 @@
 ﻿@page "/Trace/{traceId}"
 @page "/Trace/{traceId}/Span/{spanId}"
 
-@using Aspire.Dashboard.Components.Dialogs
 @using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Model.Otlp
 @using Aspire.Dashboard.Otlp.Model
-@using Aspire.Dashboard.Otlp.Storage
-@using System.Diagnostics
 @using System.Globalization
 @inject IDashboardViewModelService DashboardViewModelService
+@inject IStringLocalizer<Dashboard.Resources.TraceDetail> Loc
 
-<PageTitle>@DashboardViewModelService.ApplicationName Traces</PageTitle>
+<PageTitle>@string.Format(Loc[Dashboard.Resources.TraceDetail.TraceDetailPageTitle], DashboardViewModelService.ApplicationName)</PageTitle>
 
 @if (_trace != null)
 {

@@ -12,6 +12,7 @@
 @inject IStringLocalizer<Dialogs> Loc
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
 @inject IStringLocalizer<Aspire.Dashboard.Resources.Resources> ResourcesLoc
+@inject IStringLocalizer<Metrics> MetricsLoc
 
 <PageTitle>@string.Format(Loc[Dashboard.Resources.StructuredLogs.StructuredLogsPageTitle], DashboardViewModelService.ApplicationName)</PageTitle>
 
@@ -23,7 +24,7 @@
                       OptionText="@(c => c.Name)"
                       @bind-SelectedOption="_selectedApplication"
                       @bind-SelectedOption:after="HandleSelectedApplicationChangedAsync"
-                      AriaLabel="@Loc[Dashboard.Resources.StructuredLogs.StructuredLogsSelectAnApplication]"/>
+                      AriaLabel="@MetricsLoc[Dashboard.Resources.Metrics.MetricsSelectAnApplication]"/>
         <FluentSearch @bind-Value="_filter"
                       @oninput="HandleFilter"
                       @bind-Value:after="HandleClear"
