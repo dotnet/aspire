@@ -22,7 +22,7 @@ public static class AspireTablesExtensions
     private const string DefaultConfigSectionName = "Aspire:Azure:Data:Tables";
 
     /// <summary>
-    /// Registers <see cref="TableServiceClient "/> as a singleton in the services provided by the <paramref name="builder"/>.
+    /// Registers <see cref="TableServiceClient"/> as a singleton in the services provided by the <paramref name="builder"/>.
     /// Enables retries, corresponding health check, logging and telemetry.
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
@@ -41,7 +41,7 @@ public static class AspireTablesExtensions
     }
 
     /// <summary>
-    /// Registers <see cref="TableServiceClient "/> as a singleton for given <paramref name="name"/> in the services provided by the <paramref name="builder"/>.
+    /// Registers <see cref="TableServiceClient"/> as a singleton for given <paramref name="name"/> in the services provided by the <paramref name="builder"/>.
     /// Enables retries, corresponding health check, logging and telemetry.
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
