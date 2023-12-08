@@ -306,6 +306,7 @@ internal sealed class KubernetesDataSource
         {
             FillEnvironmentVariables(model.Environment, executable.Status.EffectiveEnv, executable.Spec.Env);
         }
+
         return model;
     }
 
@@ -330,6 +331,7 @@ internal sealed class KubernetesDataSource
         {
             FillEnvironmentVariables(model.Environment, executable.Status.EffectiveEnv, executable.Spec.Env);
         }
+
         return model;
     }
 
@@ -544,13 +546,14 @@ internal sealed class KubernetesDataSource
     }
 
     private static ObjectChangeType ToObjectChangeType(WatchEventType watchEventType)
-        => watchEventType switch
+    {
+        return watchEventType switch
         {
-            WatchEventType.Added => ObjectChangeType.Upsert,
-            WatchEventType.Modified => ObjectChangeType.Upsert,
+            WatchEventType.Added or WatchEventType.Modified => ObjectChangeType.Upsert,
             WatchEventType.Deleted => ObjectChangeType.Deleted,
             _ => ObjectChangeType.Other
         };
+    }
 
     private static string ComputeExecutableDisplayName(Executable executable)
     {
