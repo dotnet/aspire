@@ -6,6 +6,6 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Represents a SQL Server resource that requires a connection string.
 /// </summary>
-public interface ISqlServerResource : IResourceWithConnectionString
+public interface ISqlServerParentResource : IResourceWithConnectionString
 {
 }

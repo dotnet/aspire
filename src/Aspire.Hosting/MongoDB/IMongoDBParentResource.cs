@@ -6,6 +6,6 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Represents a MongoDB resource that requires a connection string.
 /// </summary>
-public interface IMongoDBResource : IResourceWithConnectionString
+public interface IMongoDBParentResource : IResourceWithConnectionString
 {
 }
