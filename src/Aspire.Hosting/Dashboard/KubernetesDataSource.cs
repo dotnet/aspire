@@ -295,11 +295,11 @@ internal sealed class KubernetesDataSource
 
         if (model.ContainerId is not null && _dockerEnvironmentByContainerId.TryGetValue(model.ContainerId, out var dockerEnvironment))
         {
-            FillEnvironmentVariables(model.Environment, dockerEnvironment, dockerEnvironment);
+            FillEnvironmentVariables(model.Environment, dockerEnvironment, null);
         }
         else if (container.Spec.Env is not null)
         {
-            FillEnvironmentVariables(model.Environment, container.Spec.Env, container.Spec.Env);
+            FillEnvironmentVariables(model.Environment, container.Spec.Env, null);
         }
 
         return model;
@@ -453,7 +453,7 @@ internal sealed class KubernetesDataSource
                 {
                     Name = env.Name,
                     Value = env.Value,
-                    FromSpec = specSource?.Any(e => string.Equals(e.Name, env.Name, StringComparison.Ordinal)) == true
+                    FromSpec = specSource?.Any(e => string.Equals(e.Name, env.Name, StringComparison.Ordinal)) is true or null
                 });
             }
         }
