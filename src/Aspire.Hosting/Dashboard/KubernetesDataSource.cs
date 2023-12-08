@@ -6,7 +6,6 @@ using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using System.Threading.Channels;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
@@ -23,7 +22,6 @@ namespace Aspire.Hosting.Dashboard;
 /// </summary>
 internal sealed class KubernetesDataSource
 {
-    private readonly Channel<(WatchEventType, string, CustomResource?)> _kubernetesChangesChannel;
     private readonly KubernetesService _kubernetesService;
     private readonly DistributedApplicationModel _applicationModel;
     private readonly Func<ResourceViewModel, ObjectChangeType, ValueTask> _callback;
@@ -51,14 +49,11 @@ internal sealed class KubernetesDataSource
         _cancellationToken = cancellationToken;
 
         _logger = loggerFactory.CreateLogger<ResourceService>();
-        _kubernetesChangesChannel = Channel.CreateUnbounded<(WatchEventType, string, CustomResource?)>();
 
         Task.Run(WatchKubernetesResource<Executable>, cancellationToken);
         Task.Run(WatchKubernetesResource<Service>, cancellationToken);
         Task.Run(WatchKubernetesResource<Endpoint>, cancellationToken);
         Task.Run(WatchKubernetesResource<Container>, cancellationToken);
-
-        Task.Run(ProcessKubernetesChanges, cancellationToken);
 
         async Task WatchKubernetesResource<T>() where T : CustomResource
         {
@@ -66,8 +61,7 @@ internal sealed class KubernetesDataSource
             {
                 await foreach (var (eventType, resource) in _kubernetesService.WatchAsync<T>(cancellationToken: cancellationToken))
                 {
-                    await _kubernetesChangesChannel.Writer.WriteAsync(
-                        (eventType, resource.Metadata.Name, resource), cancellationToken).ConfigureAwait(false);
+                    await ProcessKubernetesChange(eventType, resource.Metadata.Name, resource).ConfigureAwait(false);
                 }
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
@@ -77,47 +71,37 @@ internal sealed class KubernetesDataSource
         }
     }
 
-    private async Task ProcessKubernetesChanges()
+    private async Task ProcessKubernetesChange(WatchEventType watchEventType, string name, CustomResource? resource)
     {
-        try
+        // resource is null when we get notification from the task which fetch docker env vars
+        // So we inject the resource from current copy of containersMap
+        // But this could change in future
+        Debug.Assert(resource is not null || _containersMap.ContainsKey(name),
+            "Received a change notification with null resource which doesn't correlate to existing container.");
+
+        switch (resource ?? _containersMap[name])
         {
-            await foreach (var (watchEventType, name, resource) in _kubernetesChangesChannel.Reader.ReadAllAsync(_cancellationToken))
-            {
-                // resource is null when we get notification from the task which fetch docker env vars
-                // So we inject the resource from current copy of containersMap
-                // But this could change in future
-                Debug.Assert(resource is not null || _containersMap.ContainsKey(name),
-                    "Received a change notification with null resource which doesn't correlate to existing container.");
+            case Container container:
+                await ProcessContainerChange(watchEventType, container).ConfigureAwait(false);
+                break;
 
-                switch (resource ?? _containersMap[name])
-                {
-                    case Container container:
-                        await ProcessContainerChange(watchEventType, container).ConfigureAwait(false);
-                        break;
+            case Executable executable
+            when !executable.IsCSharpProject():
+                await ProcessExecutableChange(watchEventType, executable).ConfigureAwait(false);
+                break;
 
-                    case Executable executable
-                    when !executable.IsCSharpProject():
-                        await ProcessExecutableChange(watchEventType, executable).ConfigureAwait(false);
-                        break;
+            case Executable executable
+            when executable.IsCSharpProject():
+                await ProcessProjectChange(watchEventType, executable).ConfigureAwait(false);
+                break;
 
-                    case Executable executable
-                    when executable.IsCSharpProject():
-                        await ProcessProjectChange(watchEventType, executable).ConfigureAwait(false);
-                        break;
+            case Endpoint endpoint:
+                await ProcessEndpointChange(watchEventType, endpoint).ConfigureAwait(false);
+                break;
 
-                    case Endpoint endpoint:
-                        await ProcessEndpointChange(watchEventType, endpoint).ConfigureAwait(false);
-                        break;
-
-                    case Service service:
-                        await ProcessServiceChange(watchEventType, service).ConfigureAwait(false);
-                        break;
-                }
-            }
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            _logger.LogError(ex, "Task to compute resource changes terminated");
+            case Service service:
+                await ProcessServiceChange(watchEventType, service).ConfigureAwait(false);
+                break;
         }
     }
 
@@ -533,7 +517,7 @@ internal sealed class KubernetesDataSource
                     }
 
                     _additionalEnvVarsMap[containerId] = envVars;
-                    await _kubernetesChangesChannel.Writer.WriteAsync((WatchEventType.Modified, name, null), _cancellationToken).ConfigureAwait(false);
+                    await ProcessKubernetesChange(WatchEventType.Modified, name, null).ConfigureAwait(false);
                 }
             }
         }
