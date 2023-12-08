@@ -15,7 +15,6 @@
     <ProjectReference Include="..\TestProject.ServiceB\TestProject.ServiceB.csproj" ServiceNameOverride="ServiceB" />
     <ProjectReference Include="..\TestProject.ServiceC\TestProject.ServiceC.csproj" ServiceNameOverride="ServiceC" />
     <ProjectReference Include="..\TestProject.WorkerA\TestProject.WorkerA.csproj" ServiceNameOverride="WorkerA" />
-    <ProjectReference Include="..\TestProject.LaunchSettings\TestProject.LaunchSettings.csproj" ServiceNameOverride="LaunchSettings" />
   </ItemGroup>
 
 </Project>
