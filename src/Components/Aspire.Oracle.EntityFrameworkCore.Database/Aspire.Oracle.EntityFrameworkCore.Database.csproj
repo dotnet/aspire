@@ -18,6 +18,7 @@
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
     <PackageReference Include="OpenTelemetry.Instrumentation.EntityFrameworkCore" />
     <PackageReference Include="OpenTelemetry.Instrumentation.EventCounters" />
+    <PackageReference Include="Oracle.EntityFrameworkCore" />
   </ItemGroup>
 
 </Project>
