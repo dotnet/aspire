@@ -49,10 +49,21 @@ internal sealed class KubernetesDataSource
 
         _logger = loggerFactory.CreateLogger<ResourceService>();
 
-        Task.Run(WatchKubernetesResource<Executable>, cancellationToken);
-        Task.Run(WatchKubernetesResource<Service>, cancellationToken);
-        Task.Run(WatchKubernetesResource<Endpoint>, cancellationToken);
-        Task.Run(WatchKubernetesResource<Container>, cancellationToken);
+        var semaphore = new SemaphoreSlim(1);
+
+        Task.Run(
+            async () =>
+            {
+                using (semaphore)
+                {
+                    await Task.WhenAll(
+                        Task.Run(WatchKubernetesResource<Executable>, cancellationToken),
+                        Task.Run(WatchKubernetesResource<Service>, cancellationToken),
+                        Task.Run(WatchKubernetesResource<Endpoint>, cancellationToken),
+                        Task.Run(WatchKubernetesResource<Container>, cancellationToken)).ConfigureAwait(false);
+                }
+            },
+            cancellationToken);
 
         async Task WatchKubernetesResource<T>() where T : CustomResource
         {
@@ -60,7 +71,16 @@ internal sealed class KubernetesDataSource
             {
                 await foreach (var (eventType, resource) in _kubernetesService.WatchAsync<T>(cancellationToken: cancellationToken))
                 {
-                    await ProcessKubernetesChange(eventType, resource).ConfigureAwait(false);
+                    await semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+                    try
+                    {
+                        await ProcessKubernetesChange(eventType, resource).ConfigureAwait(false);
+                    }
+                    finally
+                    {
+                        semaphore.Release();
+                    }
                 }
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
