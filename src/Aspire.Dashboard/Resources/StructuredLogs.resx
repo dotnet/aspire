@@ -43,22 +43,22 @@
   <data name="StructuredLogsEntryDetails" xml:space="preserve">
     <value>Log Entry Details</value>
   </data>
-  <data name="StructuredLogsResourceColumnTitle" xml:space="preserve">
+  <data name="StructuredLogsResourceColumnHeader" xml:space="preserve">
     <value>Resource</value>
   </data>
-  <data name="StructuredLogsLevelColumnTitle" xml:space="preserve">
+  <data name="StructuredLogsLevelColumnHeader" xml:space="preserve">
     <value>Level</value>
   </data>
-  <data name="StructuredLogsTimestampColumnTitle" xml:space="preserve">
+  <data name="StructuredLogsTimestampColumnHeader" xml:space="preserve">
     <value>Timestamp</value>
   </data>
-  <data name="StructuredLogsMessageColumnTitle" xml:space="preserve">
+  <data name="StructuredLogsMessageColumnHeader" xml:space="preserve">
     <value>Message</value>
   </data>
-  <data name="StructuredLogsTraceColumnTitle" xml:space="preserve">
+  <data name="StructuredLogsTraceColumnHeader" xml:space="preserve">
     <value>Trace</value>
   </data>
-  <data name="StructuredLogsDetailsColumnTitle" xml:space="preserve">
+  <data name="StructuredLogsDetailsColumnHeader" xml:space="preserve">
     <value>Details</value>
   </data>
   <data name="StructuredLogsNoLogsFound" xml:space="preserve">

@@ -25,9 +25,6 @@
   <data name="MetricsHeader" xml:space="preserve">
     <value>Metrics</value>
   </data>
-  <data name="MetricsSelectAnApplication" xml:space="preserve">
-    <value>Select an Application</value>
-  </data>
   <data name="MetricsSelectADuration" xml:space="preserve">
     <value>Select a Duration</value>
   </data>

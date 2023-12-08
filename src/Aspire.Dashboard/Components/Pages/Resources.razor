@@ -20,7 +20,7 @@
             <Body>
                 <FluentStack Orientation="Orientation.Vertical">
                     <FluentCheckbox
-                        Label="@Loc[Dashboard.Resources.Resources.ResourcesAllTypes]"
+                        Label="@ControlsStringsLoc[ControlsStrings.All]"
                         ThreeState="true"
                         ShowIndeterminate="false"
                         @bind-CheckState="AreAllTypesVisible" />
@@ -69,11 +69,11 @@
                     <TemplateColumn Title="@Loc[Dashboard.Resources.Resources.ResourcesEnvironmentVariablesGridEnvironmentColumnHeader]" Sortable="false">
                         <FluentButton Appearance="Appearance.Lightweight"
                                       Disabled="@(!context.Environment.Any())"
-                                      Title="@(context.Environment.Any() ? Loc[Dashboard.Resources.Resources.ResourcesViewButtonText] : @Loc[Dashboard.Resources.Resources.ResourcesNoEnvironmentVariables])"
-                                      OnClick="() => ShowEnvironmentVariables(context)">@Loc[Dashboard.Resources.Resources.ResourcesViewButtonText]</FluentButton>
+                                      Title="@(context.Environment.Any() ? ControlsStringsLoc[ControlsStrings.ViewAction] : @Loc[Dashboard.Resources.Resources.ResourcesNoEnvironmentVariables])"
+                                      OnClick="() => ShowEnvironmentVariables(context)">@ControlsStringsLoc[ControlsStrings.ViewAction]</FluentButton>
                     </TemplateColumn>
                     <TemplateColumn Title="Logs">
-                        <FluentAnchor Appearance="Appearance.Lightweight" Href="@($"/ConsoleLogs/{context.Name}")">@Loc[Dashboard.Resources.Resources.ResourcesViewButtonText]</FluentAnchor>
+                        <FluentAnchor Appearance="Appearance.Lightweight" Href="@($"/ConsoleLogs/{context.Name}")">@ControlsStringsLoc[ControlsStrings.ViewAction]</FluentAnchor>
                     </TemplateColumn>
                 </ChildContent>
                 <EmptyContent>

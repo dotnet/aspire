@@ -34,9 +34,6 @@
   <data name="ResourcesResourceTypesHeader" xml:space="preserve">
     <value>Resource Types</value>
   </data>
-  <data name="ResourcesAllTypes" xml:space="preserve">
-    <value>All</value>
-  </data>
   <data name="ResourcesEnvironmentVariablesHeader" xml:space="preserve">
     <value>Environment Variables for {0}</value>
     <comment>{0} is a resource</comment>
@@ -58,9 +55,6 @@
   </data>
   <data name="ResourcesEnvironmentVariablesGridEnvironmentColumnHeader" xml:space="preserve">
     <value>Environment</value>
-  </data>
-  <data name="ResourcesViewButtonText" xml:space="preserve">
-    <value>View</value>
   </data>
   <data name="ResourcesNoEnvironmentVariables" xml:space="preserve">
     <value>No Environment Variables</value>
