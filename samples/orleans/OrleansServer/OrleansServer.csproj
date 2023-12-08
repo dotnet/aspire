@@ -19,7 +19,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Components\Aspire.Microsoft.Orleans.Server\Aspire.Microsoft.Orleans.Server.csproj" />
+    <PackageReference Include="Microsoft.Orleans.Server" />
+    <PackageReference Include="Microsoft.Orleans.Persistence.AzureStorage" />
+    <PackageReference Include="Microsoft.Orleans.Clustering.AzureStorage" />
+    <ProjectReference Include="..\..\..\src\Components\Aspire.Azure.Data.Tables\Aspire.Azure.Data.Tables.csproj" />
+    <ProjectReference Include="..\..\..\src\Components\Aspire.Azure.Storage.Blobs\Aspire.Azure.Storage.Blobs.csproj" />
     <ProjectReference Include="..\ServiceDefaults\ServiceDefaults.csproj" />
   </ItemGroup>
 

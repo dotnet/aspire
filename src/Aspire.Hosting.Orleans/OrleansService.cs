@@ -44,4 +44,19 @@ public class OrleansService(IDistributedApplicationBuilder builder, string name)
     /// Gets the grain storage providers.
     /// </summary>
     public Dictionary<string, IProviderConfiguration> GrainStorage { get; } = [];
+
+    /// <summary>
+    /// Gets the grain directory providers.
+    /// </summary>
+    public Dictionary<string, IProviderConfiguration> GrainDirectory { get; } = [];
+
+    /// <summary>
+    /// Gets the broadcast channel providers.
+    /// </summary>
+    public Dictionary<string, IProviderConfiguration> BroadcastChannel { get; } = [];
+
+    /// <summary>
+    /// Gets the stream providers.
+    /// </summary>
+    public Dictionary<string, IProviderConfiguration> Streaming { get; } = [];
 }
