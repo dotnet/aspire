@@ -239,7 +239,7 @@ public class AspireRedisExtensionsTests
         {
             settings.ConnectionString = "localhost";
             settings.Tracing = true;
-        }, options => { });
+        });
         var host = builder.Build();
 
         //This will add the instrumentations.
