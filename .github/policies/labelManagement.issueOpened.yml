@@ -1,7 +1,10 @@
+id: labelManagement.issueOpened
 name: New Issues
 description: Adds untriaged label to new issues
+owner:
 resource: repository
-
+disabled: false
+where:
 configuration:
   resourceManagementConfiguration:
     eventResponderTasks:

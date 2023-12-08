@@ -1,7 +1,10 @@
+id: labelManagement.prUpdated
 name: PR Activity Responder
 description: Adds/Removes labels from PRs based on activity
+owner:
 resource: repository
-
+disabled: false
+where:
 configuration:
   resourceManagementConfiguration:
     eventResponderTasks:

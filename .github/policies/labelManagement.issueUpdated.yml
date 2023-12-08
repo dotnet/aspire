@@ -1,7 +1,10 @@
+id: labelManagement.issueUpdated
 name: Issue Activity Responder
 description: Adds/Removes labels from issues based on activity
+owner:
 resource: repository
-
+disabled: false
+where:
 configuration:
   resourceManagementConfiguration:
     eventResponderTasks:

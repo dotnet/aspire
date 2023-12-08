@@ -1,7 +1,10 @@
+id: scheduledSearch.closeStaleIssuesAndPrs
 name: Close Stale Issues and PRs
 description: Closes issues and PRs that have not been updated in a while
+owner:
 resource: repository
-
+disabled: false
+where:
 configuration:
   resourceManagementConfiguration:
     scheduledSearches:

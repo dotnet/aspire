@@ -1,7 +1,10 @@
+id: scheduledSearch.markNoRecentActivity
 name: No Recent Activity Monitor
 description: Adds no-recent-activity label to issues and PRs that have not been updated in a while
+owner:
 resource: repository
-
+disabled: false
+where:
 configuration:
   resourceManagementConfiguration:
     scheduledSearches:
