@@ -35,7 +35,7 @@ public partial class Resources : ComponentBase, IDisposable
     private readonly CancellationTokenSource _watchTaskCancellationTokenSource = new();
     private readonly Dictionary<string, ResourceViewModel> _resourcesMap = [];
     // TODO populate resource types from server data
-    private readonly ImmutableArray<string> _allResourceTypes = ["Project", "Executable", "Container"];
+    private ImmutableArray<string> _allResourceTypes;
     private readonly HashSet<string> _visibleResourceTypes;
     private string _filter = "";
     private bool _isTypeFilterVisible;
@@ -87,6 +87,7 @@ public partial class Resources : ComponentBase, IDisposable
 
     protected override void OnInitialized()
     {
+        _allResourceTypes = [Loc[Dashboard.Resources.Resources.ResourcesProjectType], Loc[Dashboard.Resources.Resources.ResourcesExecutableType], Loc[Dashboard.Resources.Resources.ResourcesContainerType]];
         _applicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
 
         var (snapshot, subscription) = DashboardViewModelService.GetResources();

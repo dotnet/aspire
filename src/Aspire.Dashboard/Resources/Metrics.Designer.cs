@@ -69,6 +69,87 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Last 15 minutes.
+        /// </summary>
+        public static string MetricsLastFifteenMinutes {
+            get {
+                return ResourceManager.GetString("MetricsLastFifteenMinutes", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Last 5 minutes.
+        /// </summary>
+        public static string MetricsLastFiveMinutes {
+            get {
+                return ResourceManager.GetString("MetricsLastFiveMinutes", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Last hour.
+        /// </summary>
+        public static string MetricsLastHour {
+            get {
+                return ResourceManager.GetString("MetricsLastHour", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Last 1 minute.
+        /// </summary>
+        public static string MetricsLastOneMinute {
+            get {
+                return ResourceManager.GetString("MetricsLastOneMinute", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Last 6 hours.
+        /// </summary>
+        public static string MetricsLastSixHours {
+            get {
+                return ResourceManager.GetString("MetricsLastSixHours", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Last 30 minutes.
+        /// </summary>
+        public static string MetricsLastThirtyMinutes {
+            get {
+                return ResourceManager.GetString("MetricsLastThirtyMinutes", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Last 3 hours.
+        /// </summary>
+        public static string MetricsLastThreeHours {
+            get {
+                return ResourceManager.GetString("MetricsLastThreeHours", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Last 12 hours.
+        /// </summary>
+        public static string MetricsLastTwelveHours {
+            get {
+                return ResourceManager.GetString("MetricsLastTwelveHours", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Last 24 hours.
+        /// </summary>
+        public static string MetricsLastTwentyFourHours {
+            get {
+                return ResourceManager.GetString("MetricsLastTwentyFourHours", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to No metrics for the selected resource.
         /// </summary>
         public static string MetricsNoMetricsForResource {

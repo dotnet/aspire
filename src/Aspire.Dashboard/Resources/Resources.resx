@@ -3,7 +3,7 @@
 <root>
   <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
     <xsd:element name="root" msdata:IsDataSet="true">
-      
+
     </xsd:element>
   </xsd:schema>
   <resheader name="resmimetype">
@@ -18,4 +18,63 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="ResourcesPageTitle" xml:space="preserve">
+    <value>{0} Resources</value>
+    <comment>{0} is an application name</comment>
+  </data>
+  <data name="ResourcesHeader" xml:space="preserve">
+    <value>Resources</value>
+  </data>
+  <data name="ResourcesTypeFilterAllVisible" xml:space="preserve">
+    <value>Type Filter: All Types Visible</value>
+  </data>
+  <data name="ResourcesTypeFiltered" xml:space="preserve">
+    <value>Type Filter: Filtered</value>
+  </data>
+  <data name="ResourcesResourceTypesHeader" xml:space="preserve">
+    <value>Resource Types</value>
+  </data>
+  <data name="ResourcesAllTypes" xml:space="preserve">
+    <value>All</value>
+  </data>
+  <data name="ResourcesEnvironmentVariablesHeader" xml:space="preserve">
+    <value>Environment Variables for {0}</value>
+    <comment>{0} is a resource</comment>
+  </data>
+  <data name="ResourcesEnvironmentVariablesGridNameColumnHeader" xml:space="preserve">
+    <value>Name (ID)</value>
+  </data>
+  <data name="ResourcesEnvironmentVariablesGridStateColumnHeader" xml:space="preserve">
+    <value>State</value>
+  </data>
+  <data name="ResourcesEnvironmentVariablesGridStartTimeColumnHeader" xml:space="preserve">
+    <value>Start Time</value>
+  </data>
+  <data name="ResourcesEnvironmentVariablesGridSourceColumnHeader" xml:space="preserve">
+    <value>Source</value>
+  </data>
+  <data name="ResourcesEnvironmentVariablesGridEndpointsColumnHeader" xml:space="preserve">
+    <value>Endpoints</value>
+  </data>
+  <data name="ResourcesEnvironmentVariablesGridEnvironmentColumnHeader" xml:space="preserve">
+    <value>Environment</value>
+  </data>
+  <data name="ResourcesViewButtonText" xml:space="preserve">
+    <value>View</value>
+  </data>
+  <data name="ResourcesNoEnvironmentVariables" xml:space="preserve">
+    <value>No Environment Variables</value>
+  </data>
+  <data name="ResourcesNoResources" xml:space="preserve">
+    <value>No resources found</value>
+  </data>
+  <data name="ResourcesProjectType" xml:space="preserve">
+    <value>Project</value>
+  </data>
+  <data name="ResourcesExecutableType" xml:space="preserve">
+    <value>Executable</value>
+  </data>
+  <data name="ResourcesContainerType" xml:space="preserve">
+    <value>Container</value>
+  </data>
 </root>

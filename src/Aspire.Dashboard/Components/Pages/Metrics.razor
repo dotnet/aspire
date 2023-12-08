@@ -19,7 +19,7 @@
                       AriaLabel="@Loc[Dashboard.Resources.Metrics.MetricsSelectAnApplication]"/>
         <FluentIcon slot="end" Icon="Icons.Regular.Size20.Clock" Style="margin-right:5px;" />
         <FluentSelect slot="end" TOption="SelectViewModel<TimeSpan>"
-                      Items="@s_durations"
+                      Items="@_durations"
                       OptionText="@(c => c.Name)"
                       @bind-SelectedOption="_selectedDuration"
                       @bind-SelectedOption:after="HandleSelectedDurationChangedAsync"

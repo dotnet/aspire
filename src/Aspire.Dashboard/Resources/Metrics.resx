@@ -40,4 +40,31 @@
   <data name="MetricsNoMetricsForResource" xml:space="preserve">
     <value>No metrics for the selected resource</value>
   </data>
+  <data name="MetricsLastOneMinute" xml:space="preserve">
+    <value>Last 1 minute</value>
+  </data>
+  <data name="MetricsLastFiveMinutes" xml:space="preserve">
+    <value>Last 5 minutes</value>
+  </data>
+  <data name="MetricsLastFifteenMinutes" xml:space="preserve">
+    <value>Last 15 minutes</value>
+  </data>
+  <data name="MetricsLastThirtyMinutes" xml:space="preserve">
+    <value>Last 30 minutes</value>
+  </data>
+  <data name="MetricsLastHour" xml:space="preserve">
+    <value>Last hour</value>
+  </data>
+  <data name="MetricsLastThreeHours" xml:space="preserve">
+    <value>Last 3 hours</value>
+  </data>
+  <data name="MetricsLastSixHours" xml:space="preserve">
+    <value>Last 6 hours</value>
+  </data>
+  <data name="MetricsLastTwelveHours" xml:space="preserve">
+    <value>Last 12 hours</value>
+  </data>
+  <data name="MetricsLastTwentyFourHours" xml:space="preserve">
+    <value>Last 24 hours</value>
+  </data>
 </root>
