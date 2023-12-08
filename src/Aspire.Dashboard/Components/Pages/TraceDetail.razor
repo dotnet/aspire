@@ -5,11 +5,10 @@
 @using Aspire.Dashboard.Model.Otlp
 @using Aspire.Dashboard.Otlp.Model
 @using System.Globalization
-@inject IDashboardViewModelService DashboardViewModelService
 @inject IStringLocalizer<Dashboard.Resources.TraceDetail> Loc
-@inject IResourceService dashboardService
+@inject IResourceService DashboardService
 
-<PageTitle>@string.Format(Loc[Dashboard.Resources.TraceDetail.TraceDetailPageTitle], DashboardViewModelService.ApplicationName)</PageTitle>
+<PageTitle>@string.Format(Loc[Dashboard.Resources.TraceDetail.TraceDetailPageTitle], DashboardService.ApplicationName)</PageTitle>
 
 @if (_trace != null)
 {

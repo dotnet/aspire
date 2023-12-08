@@ -6,7 +6,7 @@
 @using Aspire.Dashboard.Model.Otlp
 @inject IStringLocalizer<Dashboard.Resources.Metrics> Loc
 
-<PageTitle>@string.Format(Loc[Dashboard.Resources.Metrics.MetricsPageTitle], DashboardViewModelService.ApplicationName)</PageTitle>
+<PageTitle>@string.Format(Loc[Dashboard.Resources.Metrics.MetricsPageTitle], ResourceService.ApplicationName)</PageTitle>
 
 <div class="metrics-layout">
     <h1 class="page-header">@Loc[Dashboard.Resources.Metrics.MetricsHeader]</h1>

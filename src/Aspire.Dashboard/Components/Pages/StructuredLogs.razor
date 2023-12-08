@@ -14,7 +14,7 @@
 @inject IStringLocalizer<Aspire.Dashboard.Resources.Resources> ResourcesLoc
 @inject IStringLocalizer<Metrics> MetricsLoc
 
-<PageTitle>@string.Format(Loc[Dashboard.Resources.StructuredLogs.StructuredLogsPageTitle], DashboardViewModelService.ApplicationName)</PageTitle>
+<PageTitle>@string.Format(Loc[Dashboard.Resources.StructuredLogs.StructuredLogsPageTitle], resourceService.ApplicationName)</PageTitle>
 
 <div class="logs-layout">
     <h1 class="page-header">@Loc[Dashboard.Resources.StructuredLogs.StructuredLogsHeader]</h1>
