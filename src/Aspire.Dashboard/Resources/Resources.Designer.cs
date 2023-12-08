@@ -60,15 +60,6 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Container.
-        /// </summary>
-        public static string ResourcesContainerType {
-            get {
-                return ResourceManager.GetString("ResourcesContainerType", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Endpoints.
         /// </summary>
         public static string ResourcesEnvironmentVariablesGridEndpointsColumnHeader {
@@ -132,15 +123,6 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Executable.
-        /// </summary>
-        public static string ResourcesExecutableType {
-            get {
-                return ResourceManager.GetString("ResourcesExecutableType", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Resources.
         /// </summary>
         public static string ResourcesHeader {
@@ -173,15 +155,6 @@ namespace Aspire.Dashboard.Resources {
         public static string ResourcesPageTitle {
             get {
                 return ResourceManager.GetString("ResourcesPageTitle", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Project.
-        /// </summary>
-        public static string ResourcesProjectType {
-            get {
-                return ResourceManager.GetString("ResourcesProjectType", resourceCulture);
             }
         }
         

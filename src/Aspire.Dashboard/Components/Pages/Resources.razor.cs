@@ -78,7 +78,7 @@ public partial class Resources : ComponentBase, IDisposable
 
     protected override void OnInitialized()
     {
-        _allResourceTypes = [Loc[Dashboard.Resources.Resources.ResourcesProjectType], Loc[Dashboard.Resources.Resources.ResourcesExecutableType], Loc[Dashboard.Resources.Resources.ResourcesContainerType]];
+        _allResourceTypes = ["Project", "Executable", "Container"];
         _visibleResourceTypes = new HashSet<string>(_allResourceTypes, StringComparers.ResourceType);
         _applicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
 

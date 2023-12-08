@@ -62,13 +62,4 @@
   <data name="ResourcesNoResources" xml:space="preserve">
     <value>No resources found</value>
   </data>
-  <data name="ResourcesProjectType" xml:space="preserve">
-    <value>Project</value>
-  </data>
-  <data name="ResourcesExecutableType" xml:space="preserve">
-    <value>Executable</value>
-  </data>
-  <data name="ResourcesContainerType" xml:space="preserve">
-    <value>Container</value>
-  </data>
 </root>
