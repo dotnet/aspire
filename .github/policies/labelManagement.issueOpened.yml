@@ -12,14 +12,14 @@ configuration:
         if:
           - payloadType: Issues
           - isAction:
-            action: Opened
+              action: Opened
         then:
           - addLabel:
-            label: untriaged
+              label: untriaged
       - description: Add CodeFlow link to new PRs
         if:
           - payloadType: Pull_Request
           - isAction:
-            action: Opened
+              action: Opened
         then:
           - addCodeFlowLink

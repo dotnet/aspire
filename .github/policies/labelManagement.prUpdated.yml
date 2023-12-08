@@ -12,37 +12,37 @@ configuration:
         if:
           - payloadType: Pull_Request_Review
           - isAction:
-            action: Submitted
+              action: Submitted
           - isReviewState:
-            state: Changes_requested
+              reviewState: Changes_requested
         then:
           - addLabel:
-            label: needs-author-action
+              label: needs-author-action
       - description: Remove needs-author-action label from PRs when an author updates the PR
         if:
           - or:
             - payloadType: Pull_Request_Review
             - payloadType: Pull_Request_Review_Comment
           - not:
-            - isAction:
-              action: Closed
+              isAction:
+                action: Closed
           - isActivitySender:
-            issueAuthor: true
+              issueAuthor: true
           - hasLabel:
-            label: needs-author-action
+              label: needs-author-action
         then:
           - removeLabel:
-            label: needs-author-action
-        - description: Remove no-recent-activity label from PRs after an update
+              label: needs-author-action
+      - description: Remove no-recent-activity label from PRs after an update
         if:
           - or:
             - payloadType: Pull_Request_Review
             - payloadType: Pull_Request_Review_Comment
           - not:
-            - isAction:
-              action: Closed
+              isAction:
+                action: Closed
           - hasLabel:
-            label: no-recent-activity
+              label: no-recent-activity
         then:
           - removeLabel:
-            label: no-recent-activity
+              label: no-recent-activity
