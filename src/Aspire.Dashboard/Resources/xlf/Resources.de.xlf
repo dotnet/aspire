@@ -2,11 +2,6 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="de" original="../Resources.resx">
     <body>
-      <trans-unit id="ResourcesContainerType">
-        <source>Container</source>
-        <target state="new">Container</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourcesEnvironmentVariablesGridEndpointsColumnHeader">
         <source>Endpoints</source>
         <target state="new">Endpoints</target>
@@ -42,11 +37,6 @@
         <target state="new">Environment Variables for {0}</target>
         <note>{0} is a resource</note>
       </trans-unit>
-      <trans-unit id="ResourcesExecutableType">
-        <source>Executable</source>
-        <target state="new">Executable</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ResourcesHeader">
         <source>Resources</source>
         <target state="new">Resources</target>
@@ -66,11 +56,6 @@
         <source>{0} Resources</source>
         <target state="new">{0} Resources</target>
         <note>{0} is an application name</note>
-      </trans-unit>
-      <trans-unit id="ResourcesProjectType">
-        <source>Project</source>
-        <target state="new">Project</target>
-        <note />
       </trans-unit>
       <trans-unit id="ResourcesResourceTypesHeader">
         <source>Resource Types</source>
