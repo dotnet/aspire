@@ -57,15 +57,15 @@ internal sealed class KubernetesDataSource
                 using (semaphore)
                 {
                     await Task.WhenAll(
-                        Task.Run(WatchKubernetesResource<Executable>, cancellationToken),
-                        Task.Run(WatchKubernetesResource<Service>, cancellationToken),
-                        Task.Run(WatchKubernetesResource<Endpoint>, cancellationToken),
-                        Task.Run(WatchKubernetesResource<Container>, cancellationToken)).ConfigureAwait(false);
+                        Task.Run(() => WatchKubernetesResource<Executable>(ProcessExecutableChange), cancellationToken),
+                        Task.Run(() => WatchKubernetesResource<Service>(ProcessServiceChange), cancellationToken),
+                        Task.Run(() => WatchKubernetesResource<Endpoint>(ProcessEndpointChange), cancellationToken),
+                        Task.Run(() => WatchKubernetesResource<Container>(ProcessContainerChange), cancellationToken)).ConfigureAwait(false);
                 }
             },
             cancellationToken);
 
-        async Task WatchKubernetesResource<T>() where T : CustomResource
+        async Task WatchKubernetesResource<T>(Func<WatchEventType, T, Task> handler) where T : CustomResource
         {
             try
             {
@@ -75,7 +75,7 @@ internal sealed class KubernetesDataSource
 
                     try
                     {
-                        await ProcessKubernetesChange(eventType, resource).ConfigureAwait(false);
+                        await handler(eventType, resource).ConfigureAwait(false);
                     }
                     finally
                     {
@@ -87,28 +87,6 @@ internal sealed class KubernetesDataSource
             {
                 _logger.LogError(ex, "Watch task over kubernetes resource of type: {resourceType} terminated", typeof(T).Name);
             }
-        }
-    }
-
-    private async Task ProcessKubernetesChange(WatchEventType watchEventType, CustomResource resource)
-    {
-        switch (resource)
-        {
-            case Container container:
-                await ProcessContainerChange(watchEventType, container).ConfigureAwait(false);
-                break;
-
-            case Executable executable:
-                await ProcessExecutableChange(watchEventType, executable).ConfigureAwait(false);
-                break;
-
-            case Endpoint endpoint:
-                await ProcessEndpointChange(watchEventType, endpoint).ConfigureAwait(false);
-                break;
-
-            case Service service:
-                await ProcessServiceChange(watchEventType, service).ConfigureAwait(false);
-                break;
         }
     }
 
