@@ -24,6 +24,7 @@
         "chart";
     width: 100%;
     gap: calc(var(--design-unit) * 4px);
+    padding-left: 40px;
 }
 
 ::deep .metrics-chart-header {
@@ -86,4 +87,8 @@
     height: 100%;
     width: 100%;
     overflow: auto;
+}
+
+::deep #plotly-chart-container {
+    margin-left: -40px;
 }
