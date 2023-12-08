@@ -33,8 +33,8 @@ internal sealed class KubernetesDataSource
     private readonly Dictionary<string, Service> _servicesMap = [];
     private readonly Dictionary<string, Endpoint> _endpointsMap = [];
     private readonly Dictionary<(ResourceKind, string), List<string>> _resourceAssociatedServicesMap = [];
-    private readonly ConcurrentDictionary<string, List<EnvVar>> _additionalEnvVarsMap = [];
-    private readonly HashSet<string> _containersWithTaskStarted = [];
+    private readonly ConcurrentDictionary<string, List<EnvVar>> _dockerEnvironmentByContainerId = [];
+    private readonly HashSet<string> _containerIdsHavingDockerInspections = [];
 
     public KubernetesDataSource(
         KubernetesService kubernetesService,
@@ -61,7 +61,7 @@ internal sealed class KubernetesDataSource
             {
                 await foreach (var (eventType, resource) in _kubernetesService.WatchAsync<T>(cancellationToken: cancellationToken))
                 {
-                    await ProcessKubernetesChange(eventType, resource.Metadata.Name, resource).ConfigureAwait(false);
+                    await ProcessKubernetesChange(eventType, resource).ConfigureAwait(false);
                 }
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
@@ -71,15 +71,9 @@ internal sealed class KubernetesDataSource
         }
     }
 
-    private async Task ProcessKubernetesChange(WatchEventType watchEventType, string name, CustomResource? resource)
+    private async Task ProcessKubernetesChange(WatchEventType watchEventType, CustomResource resource)
     {
-        // resource is null when we get notification from the task which fetch docker env vars
-        // So we inject the resource from current copy of containersMap
-        // But this could change in future
-        Debug.Assert(resource is not null || _containersMap.ContainsKey(name),
-            "Received a change notification with null resource which doesn't correlate to existing container.");
-
-        switch (resource ?? _containersMap[name])
+        switch (resource)
         {
             case Container container:
                 await ProcessContainerChange(watchEventType, container).ConfigureAwait(false);
@@ -113,20 +107,9 @@ internal sealed class KubernetesDataSource
         }
 
         UpdateAssociatedServicesMap(ResourceKind.Container, watchEventType, container);
-        List<EnvVar>? extraEnvVars = null;
-        if (container.Status?.ContainerId is string containerId
-            && !_additionalEnvVarsMap.TryGetValue(containerId, out extraEnvVars)
-            && !_containersWithTaskStarted.Contains(containerId))
-        {
-            // Container is ready to be inspected
-            // This task when returns will generate a notification in channel
-            _ = Task.Run(() => ComputeEnvironmentVariablesFromDocker(containerId, container.Metadata.Name));
-            _containersWithTaskStarted.Add(containerId);
-        }
 
         var objectChangeType = ToObjectChangeType(watchEventType);
-
-        var containerViewModel = ConvertToContainerViewModel(container, extraEnvVars);
+        var containerViewModel = ConvertToContainerViewModel(container);
 
         await _onResourceChanged(containerViewModel, objectChangeType).ConfigureAwait(false);
     }
@@ -181,8 +164,7 @@ internal sealed class KubernetesDataSource
                 case "Container":
                     if (_containersMap.TryGetValue(ownerReference.Name, out var container))
                     {
-                        var extraEnvVars = GetContainerEnvVars(container.Status?.ContainerId);
-                        var containerViewModel = ConvertToContainerViewModel(container, extraEnvVars);
+                        var containerViewModel = ConvertToContainerViewModel(container);
 
                         await _onResourceChanged(containerViewModel, ObjectChangeType.Modified).ConfigureAwait(false);
                     }
@@ -225,8 +207,7 @@ internal sealed class KubernetesDataSource
                 case ResourceKind.Container:
                     if (_containersMap.TryGetValue(resourceName, out var container))
                     {
-                        var extraEnvVars = GetContainerEnvVars(container.Status?.ContainerId);
-                        var containerViewModel = ConvertToContainerViewModel(container, extraEnvVars);
+                        var containerViewModel = ConvertToContainerViewModel(container);
 
                         await _onResourceChanged(containerViewModel, ObjectChangeType.Modified).ConfigureAwait(false);
                     }
@@ -255,7 +236,7 @@ internal sealed class KubernetesDataSource
         }
     }
 
-    private ContainerViewModel ConvertToContainerViewModel(Container container, List<EnvVar>? additionalEnvVars)
+    private ContainerViewModel ConvertToContainerViewModel(Container container)
     {
         var model = new ContainerViewModel
         {
@@ -285,9 +266,17 @@ internal sealed class KubernetesDataSource
 
         FillEndpoints(container, model, ResourceKind.Container);
 
-        if (additionalEnvVars is not null)
+        if (model.ContainerId is not null && _containerIdsHavingDockerInspections.Add(model.ContainerId))
         {
-            FillEnvironmentVariables(model.Environment, additionalEnvVars, additionalEnvVars);
+            // This container has not yet been inspected. Call kubernetes on the CLI to obtain the environment
+            // for this container. When returned, the values will be cached in _dockerEnvironmentByContainerId
+            // and an updated container resource published, which will pick up the docker environment.
+            Task.Run(() => ComputeEnvironmentVariablesFromDocker(model.ContainerId, container.Metadata.Name));
+        }
+
+        if (model.ContainerId is not null && _dockerEnvironmentByContainerId.TryGetValue(model.ContainerId, out var dockerEnvironment))
+        {
+            FillEnvironmentVariables(model.Environment, dockerEnvironment, dockerEnvironment);
         }
         else if (container.Spec.Env is not null)
         {
@@ -472,7 +461,7 @@ internal sealed class KubernetesDataSource
         }
     }
 
-    private async Task ComputeEnvironmentVariablesFromDocker(string containerId, string name)
+    private async Task ComputeEnvironmentVariablesFromDocker(string containerId, string containerName)
     {
         IAsyncDisposable? processDisposable = null;
         try
@@ -507,12 +496,16 @@ internal sealed class KubernetesDataSource
                         if (item is not null)
                         {
                             var parts = item.ToString().Split('=', 2);
-                            envVars.Add(new EnvVar { Name = parts[0], Value = parts[1] });
+                            dockerEnvironment.Add(new EnvVar { Name = parts[0], Value = parts[1] });
                         }
                     }
 
-                    _additionalEnvVarsMap[containerId] = envVars;
-                    await ProcessKubernetesChange(WatchEventType.Modified, name, null).ConfigureAwait(false);
+                    _dockerEnvironmentByContainerId[containerId] = dockerEnvironment;
+
+                    if (_containersMap.TryGetValue(containerName, out var container))
+                    {
+                        await ProcessContainerChange(WatchEventType.Modified, container).ConfigureAwait(false);
+                    }
                 }
             }
         }
@@ -528,9 +521,6 @@ internal sealed class KubernetesDataSource
             }
         }
     }
-
-    private List<EnvVar>? GetContainerEnvVars(string? containerId)
-        => containerId is not null && _additionalEnvVarsMap.TryGetValue(containerId, out var envVars) ? envVars : null;
 
     private static bool ProcessResourceChange<T>(Dictionary<string, T> map, WatchEventType watchEventType, T resource)
             where T : CustomResource
