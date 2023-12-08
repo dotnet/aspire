@@ -490,7 +490,7 @@ internal sealed class KubernetesDataSource
                 var jsonArray = JsonNode.Parse(output)?.AsArray();
                 if (jsonArray is not null)
                 {
-                    var envVars = new List<EnvVar>();
+                    var dockerEnvironment = new List<EnvVar>(capacity: jsonArray.Count);
                     foreach (var item in jsonArray)
                     {
                         if (item is not null)
