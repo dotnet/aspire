@@ -23,6 +23,7 @@ public partial class PlotlyChart : ComponentBase
     private List<KeyValuePair<string, string>[]>? _renderedDimensionAttributes;
     private OtlpInstrumentKey? _renderedInstrument;
     private string? _renderedTheme;
+    private bool _renderedShowCount;
 
     [Inject]
     public required IJSRuntime JSRuntime { get; set; }
@@ -56,12 +57,14 @@ public partial class PlotlyChart : ComponentBase
         var dimensionAttributes = InstrumentViewModel.MatchedDimensions.Select(d => d.Attributes).ToList();
         if (_renderedInstrument is null || _renderedInstrument != InstrumentViewModel.Instrument.GetKey() ||
             _renderedDimensionAttributes is null || !_renderedDimensionAttributes.SequenceEqual(dimensionAttributes) ||
-            _renderedTheme != InstrumentViewModel.Theme)
+            _renderedTheme != InstrumentViewModel.Theme ||
+            _renderedShowCount != InstrumentViewModel.ShowCount)
         {
             // Dimensions (or entire chart) has changed. Re-render the entire chart.
             _renderedInstrument = InstrumentViewModel.Instrument.GetKey();
             _renderedDimensionAttributes = dimensionAttributes;
             _renderedTheme = InstrumentViewModel.Theme;
+            _renderedShowCount = InstrumentViewModel.ShowCount;
             await UpdateChart(tickUpdate: false, inProgressDataTime).ConfigureAwait(false);
         }
         else if (_lastUpdateTime.Add(TimeSpan.FromSeconds(0.2)) < DateTime.UtcNow)
@@ -366,6 +369,7 @@ public partial class PlotlyChart : ComponentBase
                     {
                         MetricValue<long> longMetric => longMetric.Value,
                         MetricValue<double> doubleMetric => doubleMetric.Value,
+                        HistogramValue histogramValue => histogramValue.Count,
                         _ => 0// throw new InvalidOperationException("Unexpected metric type: " + metric.GetType())
                     };
 
@@ -397,11 +401,17 @@ public partial class PlotlyChart : ComponentBase
         Debug.Assert(InstrumentViewModel.Instrument != null);
         Debug.Assert(InstrumentViewModel.MatchedDimensions != null);
 
-        var unit = GetDisplayedUnit(InstrumentViewModel.Instrument);
+        // Unit comes from the instrument and they're not localized.
+        // The hardcoded "Count" label isn't localized for consistency.
+        const string CountUnit = "Count";
+
+        var unit = !InstrumentViewModel.ShowCount
+            ? GetDisplayedUnit(InstrumentViewModel.Instrument)
+            : CountUnit;
 
         List<Trace> traces;
         List<DateTime> xValues;
-        if (InstrumentViewModel.Instrument.Type != OtlpInstrumentType.Histogram)
+        if (InstrumentViewModel.Instrument.Type != OtlpInstrumentType.Histogram || InstrumentViewModel.ShowCount)
         {
             (traces, xValues) = CalculateChartValues(InstrumentViewModel.MatchedDimensions, GraphPointCount, tickUpdate, inProgressDataTime, unit);
         }

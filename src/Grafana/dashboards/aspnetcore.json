@@ -1270,7 +1270,7 @@
       "type": "table"
     }
   ],
-  "refresh": "",
+  "refresh": "10s",
   "revision": 1,
   "schemaVersion": 38,
   "tags": [

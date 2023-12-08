@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Extensions;
+
 namespace Aspire.Dashboard.Model;
 
 public abstract class ResourceViewModel
@@ -33,6 +35,11 @@ public abstract class ResourceViewModel
         }
 
         return resource.DisplayName;
+    }
+
+    internal virtual bool MatchesFilter(string filter)
+    {
+        return Name.Contains(filter, StringComparisons.UserTextSearch);
     }
 }
 

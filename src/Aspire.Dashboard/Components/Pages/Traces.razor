@@ -7,11 +7,11 @@
 @using Aspire.Dashboard.Otlp.Storage
 @using System.Web
 @inject NavigationManager NavigationManager
-@inject IDashboardViewModelService DashboardViewModelService
+@inject IResourceService resourceService
 @inject IJSRuntime JS
 @implements IDisposable
 
-<PageTitle>@DashboardViewModelService.ApplicationName Traces</PageTitle>
+<PageTitle>@resourceService.ApplicationName Traces</PageTitle>
 
 
 <div class="traces-layout">

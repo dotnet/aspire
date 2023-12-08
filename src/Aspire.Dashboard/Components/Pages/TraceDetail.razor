@@ -7,6 +7,7 @@
 @using System.Globalization
 @inject IDashboardViewModelService DashboardViewModelService
 @inject IStringLocalizer<Dashboard.Resources.TraceDetail> Loc
+@inject IResourceService dashboardService
 
 <PageTitle>@string.Format(Loc[Dashboard.Resources.TraceDetail.TraceDetailPageTitle], DashboardViewModelService.ApplicationName)</PageTitle>
 

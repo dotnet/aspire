@@ -12,39 +12,47 @@
 }
 else
 {
-    <div class="metrics-chart" style="max-width: 1100px;">
-        <div class="metrics-chart-header" style="grid-column-end: span 2;">
+    <div class="metrics-chart">
+        <div class="metrics-chart-header">
             <h3>@_instrument.Name</h3>
             <p>@_instrument.Description</p>
         </div>
         <div class="metrics-chart-container">
             <PlotlyChart InstrumentViewModel="_instrumentViewModel" Duration="Duration" />
-        </div>
-        @if (_viewModel.DimensionFilters.Count > 0)
-        {
-            <div class="metrics-filters-container">
-                <div style="margin-left: 10px">
-                    <h5>@Loc[ControlsStrings.ChartContainerFiltersHeader]</h5>
-                    <table style="width:100%">
-                        @foreach (var item in _viewModel.DimensionFilters)
+            @if (_viewModel.DimensionFilters.Count > 0)
+            {
+                <div class="metrics-filters-container">
+                    <div>
+                        <h4>@Loc[ControlsStrings.ChartContainerFiltersHeader]</h4>
+                        <table style="width:100%">
+                            @foreach (var item in _viewModel.DimensionFilters)
+                            {
+                                <tr>
+                                    <td class="dimension-name" title="@item.Name">@item.Name</td>
+                                    <td class="dimension-values" title="@string.Join(", ", item.SelectedValues.Select(v => v.Name))">
+                                        <FluentAutocomplete TOption="DimensionValueViewModel"
+                                                            Width="250px"
+                                                            Placeholder="@Loc[ControlsStrings.ChartContainerSelectFilters]"
+                                                            AriaLabel="@Loc[ControlsStrings.ChartContainerSelectFilters]"
+                                                            OnOptionsSearch="item.OnSearchAsync"
+                                                            OptionText="@(item => item.Name)"
+                                                            @bind-SelectedOptions="item.SelectedValues"
+                                                            @bind-SelectedOptions:after="async () => await DimensionValuesChangedAsync(item)" />
+                                    </td>
+                                </tr>
+                            }
+                        </table>
+
+                        @if (_instrument.Type == OtlpInstrumentType.Histogram)
                         {
-                            <tr>
-                                <td class="dimension-name" title="@item.Name">@item.Name</td>
-                                <td class="dimension-values" title="@string.Join(", ", item.SelectedValues.Select(v => v.Name))">
-                                    <FluentAutocomplete TOption="DimensionValueViewModel"
-                                                        Width="250px"
-                                                        Placeholder="@Loc[ControlsStrings.ChartContainerSelectFilters]"
-                                                        AriaLabel="@Loc[ControlsStrings.ChartContainerSelectFilters]"
-                                                        OnOptionsSearch="item.OnSearchAsync"
-                                                        OptionText="@(item => item.Name)"
-                                                        @bind-SelectedOptions="item.SelectedValues"
-                                                        @bind-SelectedOptions:after="async () => await DimensionValuesChangedAsync(item)" />
-                                </td>
-                            </tr>
+                            <h5>Options</h5>
+                            <div>
+                                <FluentSwitch Label="Show count" @bind-Value="_showCount" @bind-Value:after="ShowCountChanged" />
+                            </div>
                         }
-                    </table>
+                    </div>
                 </div>
-            </div>
-        }
+            }
+        </div>
     </div>
 }

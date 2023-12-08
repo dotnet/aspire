@@ -15,7 +15,7 @@ public class BrowserLinkOutgoingPeerResolverTests
         var resolver = new BrowserLinkOutgoingPeerResolver();
 
         // Act & Assert
-        Assert.False(resolver.TryResolvePeerName([], out var name));
+        Assert.False(resolver.TryResolvePeerName([], out _));
     }
 
     [Fact]
@@ -25,7 +25,7 @@ public class BrowserLinkOutgoingPeerResolverTests
         var resolver = new BrowserLinkOutgoingPeerResolver();
 
         // Act & Assert
-        Assert.False(resolver.TryResolvePeerName([KeyValuePair.Create("http.url", "")], out var name));
+        Assert.False(resolver.TryResolvePeerName([KeyValuePair.Create("http.url", "")], out _));
     }
 
     [Fact]
@@ -35,7 +35,7 @@ public class BrowserLinkOutgoingPeerResolverTests
         var resolver = new BrowserLinkOutgoingPeerResolver();
 
         // Act & Assert
-        Assert.False(resolver.TryResolvePeerName([KeyValuePair.Create<string, string>("http.url", null!)], out var name));
+        Assert.False(resolver.TryResolvePeerName([KeyValuePair.Create<string, string>("http.url", null!)], out _));
     }
 
     // http://localhost:59267/6eed7c2dedc14419901b813e8fe87a86/getScriptTag
@@ -47,7 +47,7 @@ public class BrowserLinkOutgoingPeerResolverTests
         var resolver = new BrowserLinkOutgoingPeerResolver();
 
         // Act & Assert
-        Assert.False(resolver.TryResolvePeerName([KeyValuePair.Create("http.url", "/6eed7c2dedc14419901b813e8fe87a86/getScriptTag")], out var name));
+        Assert.False(resolver.TryResolvePeerName([KeyValuePair.Create("http.url", "/6eed7c2dedc14419901b813e8fe87a86/getScriptTag")], out _));
     }
 
     [Fact]
@@ -57,7 +57,7 @@ public class BrowserLinkOutgoingPeerResolverTests
         var resolver = new BrowserLinkOutgoingPeerResolver();
 
         // Act & Assert
-        Assert.False(resolver.TryResolvePeerName([KeyValuePair.Create("http.url", "http://dummy:59267/6eed7c2dedc14419901b813e8fe87a86/getScriptTag")], out var name));
+        Assert.False(resolver.TryResolvePeerName([KeyValuePair.Create("http.url", "http://dummy:59267/6eed7c2dedc14419901b813e8fe87a86/getScriptTag")], out _));
     }
 
     [Fact]
@@ -67,7 +67,7 @@ public class BrowserLinkOutgoingPeerResolverTests
         var resolver = new BrowserLinkOutgoingPeerResolver();
 
         // Act & Assert
-        Assert.False(resolver.TryResolvePeerName([KeyValuePair.Create("http.url", "http://localhost:59267/getScriptTag")], out var name));
+        Assert.False(resolver.TryResolvePeerName([KeyValuePair.Create("http.url", "http://localhost:59267/getScriptTag")], out _));
     }
 
     [Fact]
@@ -77,7 +77,7 @@ public class BrowserLinkOutgoingPeerResolverTests
         var resolver = new BrowserLinkOutgoingPeerResolver();
 
         // Act & Assert
-        Assert.False(resolver.TryResolvePeerName([KeyValuePair.Create("http.url", "ht$tp://localhost:59267/6eed7c2dedc14419901b813e8fe87a86/getScriptTag")], out var name));
+        Assert.False(resolver.TryResolvePeerName([KeyValuePair.Create("http.url", "ht$tp://localhost:59267/6eed7c2dedc14419901b813e8fe87a86/getScriptTag")], out _));
     }
 
     [Fact]
@@ -87,7 +87,7 @@ public class BrowserLinkOutgoingPeerResolverTests
         var resolver = new BrowserLinkOutgoingPeerResolver();
 
         // Act & Assert
-        Assert.False(resolver.TryResolvePeerName([KeyValuePair.Create("http.url", "http://localhost:59267/")], out var name));
+        Assert.False(resolver.TryResolvePeerName([KeyValuePair.Create("http.url", "http://localhost:59267/")], out _));
     }
 
     [Fact]
@@ -97,7 +97,7 @@ public class BrowserLinkOutgoingPeerResolverTests
         var resolver = new BrowserLinkOutgoingPeerResolver();
 
         // Act & Assert
-        Assert.False(resolver.TryResolvePeerName([KeyValuePair.Create("http.url", "http://localhost:59267/not-a-guid/getScriptTag")], out var name));
+        Assert.False(resolver.TryResolvePeerName([KeyValuePair.Create("http.url", "http://localhost:59267/not-a-guid/getScriptTag")], out _));
     }
 
     [Fact]

@@ -25,7 +25,7 @@ internal sealed class DcpDistributedApplicationLifecycleHook(IOptions<Publishing
         return Task.CompletedTask;
     }
 
-    private void PrepareServices(DistributedApplicationModel model)
+    private static void PrepareServices(DistributedApplicationModel model)
     {
         // Automatically add ServiceBindingAnnotations to project resources based on ApplicationUrl set in the launch profile.
         foreach (var projectResource in model.Resources.OfType<ProjectResource>())

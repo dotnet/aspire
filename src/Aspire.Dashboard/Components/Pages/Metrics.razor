@@ -34,10 +34,10 @@
                         <ChildContent>
                             @foreach (var meterGroup in _instruments.GroupBy(i => i.Parent).OrderBy(g => g.Key.MeterName))
                             {
-                                <FluentTreeItem Class="metrics-tree-item" Text="@meterGroup.Key.MeterName" Data="@meterGroup.Key" title="@meterGroup.Key.MeterName" InitiallyExpanded="true" InitiallySelected="@(_selectedInstrument == null && meterGroup.Key.MeterName == _selectedMeter?.MeterName)">
+                                <FluentTreeItem @key="meterGroup.Key" Text="@meterGroup.Key.MeterName" Data="@meterGroup.Key" title="@meterGroup.Key.MeterName" InitiallyExpanded="true" InitiallySelected="@(_selectedInstrument == null && meterGroup.Key.MeterName == _selectedMeter?.MeterName)">
                                     @foreach (var instrument in meterGroup.OrderBy(i => i.Name))
                                     {
-                                        <FluentTreeItem Class="metrics-tree-item" Text="@instrument.Name" Data="@instrument" title="@instrument.Name" InitiallySelected="@(instrument.Name == _selectedInstrument?.Name && instrument.Parent.MeterName == _selectedMeter?.MeterName)" />
+                                        <FluentTreeItem @key="instrument" Class="nested" Text="@instrument.Name" Data="@instrument" title="@instrument.Name" InitiallySelected="@(instrument.Name == _selectedInstrument?.Name && instrument.Parent.MeterName == _selectedMeter?.MeterName)" />
                                     }
                                 </FluentTreeItem>
                             }

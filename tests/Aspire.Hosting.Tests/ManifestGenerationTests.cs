@@ -334,6 +334,4 @@ public class ManifestGenerationTests
         program.AppBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, JsonDocumentManifestPublisher>("manifest");
         return program;
     }
-
-    private static TestProgram CreateTestProgram(string[]? args = null) => TestProgram.Create<ManifestGenerationTests>(args);
 }

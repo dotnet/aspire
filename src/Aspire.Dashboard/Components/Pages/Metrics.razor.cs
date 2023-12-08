@@ -44,7 +44,7 @@ public partial class Metrics : IDisposable
     public required NavigationManager NavigationManager { get; set; }
 
     [Inject]
-    public required IDashboardViewModelService DashboardViewModelService { get; set; }
+    public required IResourceService ResourceService { get; set; }
 
     [Inject]
     public required ProtectedSessionStorage ProtectedSessionStore { get; set; }

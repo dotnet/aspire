@@ -116,7 +116,13 @@ You can also setup the [TableClientOptions](https://learn.microsoft.com/dotnet/a
 
 ## AppHost extensions
 
-In your AppHost project, add a Table Storage connection and consume the connection using the following methods:
+In your AppHost project, install the Aspire Azure Hosting library with [NuGet](https://www.nuget.org):
+
+```dotnetcli
+dotnet add package Aspire.Hosting.Azure
+```
+
+Then, in the _Program.cs_ file of `AppHost`, add a Table Storage connection and consume the connection using the following methods:
 
 ```csharp
 var tables = builder.AddAzureStorage("storage").AddTables("tables");
