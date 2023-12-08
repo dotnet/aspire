@@ -9,12 +9,10 @@ namespace Aspire.Dashboard.Components.Controls;
 
 public partial class EnvironmentVariables
 {
-
     [Parameter, EditorRequired]
     public IEnumerable<EnvironmentVariableViewModel>? Items { get; set; }
 
-    [Parameter]
-    public bool ShowSpecOnlyToggle { get; set; }
+    public bool ShowSpecOnlyToggle => Items?.Any(i => i.FromSpec == false) == true;
 
     private bool _showAll;
 
