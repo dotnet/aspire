@@ -98,14 +98,8 @@ internal sealed class KubernetesDataSource
                 await ProcessContainerChange(watchEventType, container).ConfigureAwait(false);
                 break;
 
-            case Executable executable
-            when !executable.IsCSharpProject():
+            case Executable executable:
                 await ProcessExecutableChange(watchEventType, executable).ConfigureAwait(false);
-                break;
-
-            case Executable executable
-            when executable.IsCSharpProject():
-                await ProcessProjectChange(watchEventType, executable).ConfigureAwait(false);
                 break;
 
             case Endpoint endpoint:
@@ -135,6 +129,12 @@ internal sealed class KubernetesDataSource
 
     private async Task ProcessExecutableChange(WatchEventType watchEventType, Executable executable)
     {
+        if (executable.IsCSharpProject())
+        {
+            await ProcessProjectChange(watchEventType, executable).ConfigureAwait(false);
+            return;
+        }
+
         if (!ProcessResourceChange(_executablesMap, watchEventType, executable))
         {
             return;
