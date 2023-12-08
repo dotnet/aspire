@@ -42,9 +42,9 @@
                       "type": "string",
                       "description": "The client name to use for all connections."
                     },
-                    "ConnectTimeout": {
+                    "ConfigCheckSeconds": {
                       "type": "integer",
-                      "description": "Specifies the time in milliseconds that should be allowed for connection (defaults to 5 seconds unless SyncTimeout is higher)."
+                      "description": "Check configuration every n seconds (every minute by default)."
                     },
                     "ConfigurationChannel": {
                       "type": "string",
@@ -54,9 +54,9 @@
                       "type": "integer",
                       "description": "The number of times to repeat the initial connect cycle if no servers respond promptly."
                     },
-                    "ConfigCheckSeconds": {
+                    "ConnectTimeout": {
                       "type": "integer",
-                      "description": "Check configuration every n seconds (every minute by default)."
+                      "description": "Specifies the time in milliseconds that should be allowed for connection (defaults to 5 seconds unless SyncTimeout is higher)."
                     },
                     "DefaultDatabase": {
                       "type": "integer",
@@ -82,10 +82,6 @@
                     "KeepAlive": {
                       "type": "integer",
                       "description": "Specifies the time in seconds at which connections should be pinged to ensure validity. -1 Defaults to 60 Seconds."
-                    },
-                    "User": {
-                      "type": "string",
-                      "description": "The username to use to authenticate with the server."
                     },
                     "Password": {
                       "type": "string",
@@ -126,6 +122,10 @@
                     "TieBreaker": {
                       "type": "string",
                       "description": "Tie-breaker used to choose between primaries (must match the endpoint exactly)."
+                    },
+                    "User": {
+                      "type": "string",
+                      "description": "The username to use to authenticate with the server."
                     }
                   }
                 },

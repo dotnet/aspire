@@ -2,6 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Text;
+using System.Text.Json;
+using System.Xml.Linq;
 using Microsoft.Extensions.Configuration.Binder.SourceGeneration;
 
 namespace ConfigurationSchemaGenerator;
@@ -171,20 +174,72 @@ internal sealed class ConfigSchemaEmitter(SourceGenerationSpec spec) : EmitterBa
             return null;
         }
 
-        int summaryIndex = docComment.IndexOf("<summary>", StringComparison.Ordinal);
-        if (summaryIndex == -1)
+        var doc = XDocument.Parse(docComment);
+        var summary = doc.Element("member").Element("summary");
+        if (summary is null)
         {
             return null;
         }
 
-        int summaryEndIndex = docComment.IndexOf("</summary>", summaryIndex, StringComparison.Ordinal);
-        if (summaryEndIndex == -1)
+        var builder = new StringBuilder();
+        foreach (var node in StripXmlElements(summary))
         {
-            return null;
+            var value = node.ToString().Trim();
+            AppendSpaceIfNecessary(builder, value);
+            builder.Append(value);
         }
 
-        int summaryStart = summaryIndex + 9;
-        return docComment.Substring(summaryStart, summaryEndIndex - summaryStart).Trim();
+        builder.Replace("\r\n", null)
+            .Replace("\n", null);
+
+        return JsonEncodedText.Encode(builder.ToString()).Value;
+    }
+
+    private static IEnumerable<XNode> StripXmlElements(XContainer container)
+    {
+        return container.Nodes().SelectMany(n => n switch
+        {
+            XText => [n],
+            XElement e => StripXmlElements(e),
+            _ => Enumerable.Empty<XNode>()
+        });
+    }
+
+    private static IEnumerable<XNode> StripXmlElements(XElement element)
+    {
+        if (element.Nodes().Any())
+        {
+            return StripXmlElements((XContainer)element);
+        }
+        else if (element.HasAttributes)
+        {
+            // just get the first attribute value
+            // ex. <see cref="System.Diagnostics.Debug.Assert(bool)"/>
+            // ex. <see langword="true"/>
+            return [new XText(element.FirstAttribute.Value)];
+        }
+
+        return Enumerable.Empty<XNode>();
+    }
+
+    /// <summary>
+    /// Add a space between nodes except if the next node starts with a period to end the previous sentence
+    /// </summary>
+    private static void AppendSpaceIfNecessary(StringBuilder builder, string value)
+    {
+        if (builder.Length > 0)
+        {
+            var nextNodeFinishesPreviousSentence =
+                // previous node didn't end with a period
+                builder[^1] != '.' &&
+                // next node starts with a period
+                (value == "." || value.StartsWith(". "));
+
+            if (!nextNodeFinishesPreviousSentence)
+            {
+                builder.Append(' ');
+            }
+        }
     }
 
     private string GetTypeName(TypeSpec typeSpec) => typeSpec switch
