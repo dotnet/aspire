@@ -74,9 +74,6 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
             PrepareServices();
             PrepareContainers();
             PrepareExecutables();
-            // PrepareProxylessServices();
-
-            // await CreateContainerSingletonsAsync(cancellationToken).ConfigureAwait(false);
 
             await CreateServicesAsync(cancellationToken).ConfigureAwait(false);
 
