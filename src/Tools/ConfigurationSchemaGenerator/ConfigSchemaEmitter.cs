@@ -175,6 +175,12 @@ internal sealed class ConfigSchemaEmitter(SourceGenerationSpec spec, Compilation
                 propertyNode.Children.Add(new SimpleNode("description", description));
             }
 
+            // skip empty objects
+            if (propertyNode.GetChild("type") is SimpleNode { Value: "object" } && propertyNode.GetChild("properties") is null)
+            {
+                continue;
+            }
+
             currentNode.Children.Add(propertyNode);
         }
     }

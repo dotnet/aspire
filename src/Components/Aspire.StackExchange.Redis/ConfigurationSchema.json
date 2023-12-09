@@ -60,7 +60,7 @@
                     },
                     "DefaultDatabase": {
                       "type": "integer",
-                      "description": "Specifies the default database to be used when calling <see cref=\"ConnectionMultiplexer.GetDatabase(int, object)\"/> without any parameters."
+                      "description": "Specifies the default database to be used when calling M:StackExchange.Redis.ConnectionMultiplexer.GetDatabase(System.Int32,System.Object) without any parameters."
                     },
                     "DefaultVersion": {
                       "type": "string",
@@ -68,8 +68,8 @@
                     },
                     "HeartbeatInterval": {
                       "type": "string",
-                      "format": "duration",
-                      "description": "Controls how often the connection heartbeats. A heartbeat includes: evaluating if any messages have timed out, evaluating connection status (checking for failures), sending a server message to keep the connection alive if needed."
+                      "description": "Controls how often the connection heartbeats. A heartbeat includes:\r\n            - Evaluating if any messages have timed out\r\n            - Evaluating connection status (checking for failures)\r\n            - Sending a server message to keep the connection alive if needed",
+                      "format": "duration"
                     },
                     "IncludeDetailInExceptions": {
                       "type": "boolean",
@@ -81,14 +81,25 @@
                     },
                     "KeepAlive": {
                       "type": "integer",
-                      "description": "Specifies the time in seconds at which connections should be pinged to ensure validity. -1 Defaults to 60 Seconds."
+                      "description": "Specifies the time in seconds at which connections should be pinged to ensure validity.\r\n            -1 Defaults to 60 Seconds"
+                    },
+                    "LibraryName": {
+                      "type": "string",
+                      "description": "Gets or sets the library name to use for CLIENT SETINFO lib-name calls to Redis during handshake.\r\n            Defaults to \u0022SE.Redis\u0022."
                     },
                     "Password": {
                       "type": "string",
                       "description": "The password to use to authenticate with the server."
                     },
+                    "Protocol": {
+                      "description": "Specify the redis protocol type",
+                      "enum": [
+                        "Resp2",
+                        "Resp3"
+                      ]
+                    },
                     "Proxy": {
-                      "description": "Type of proxy to use (if any).",
+                      "description": "Type of proxy to use (if any); for example F:StackExchange.Redis.Proxy.Twemproxy.",
                       "enum": [
                         "None",
                         "Twemproxy",
@@ -97,7 +108,7 @@
                     },
                     "ResolveDns": {
                       "type": "boolean",
-                      "description": "Indicates whether endpoints should be resolved via DNS before connecting. If enabled the ConnectionMultiplexer will not re-resolve DNS when attempting to re-connect after a connection failure."
+                      "description": "Indicates whether endpoints should be resolved via DNS before connecting.\r\n            If enabled the ConnectionMultiplexer will not re-resolve DNS when attempting to re-connect after a connection failure."
                     },
                     "ServiceName": {
                       "type": "string",
