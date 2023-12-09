@@ -201,6 +201,34 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Injects service discovery information as environment variables from the uri into the destination resource, using the name as the service name.
+    /// The uri will be injected using the format "services__{name}={uri}."
+    /// </summary>
+    /// <typeparam name="TDestination"></typeparam>
+    /// <param name="builder">The resource where the service discovery information will be injected.</param>
+    /// <param name="name">The name of the service.</param>
+    /// <param name="uri">The uri of the service.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{TDestination}"/>.</returns>
+    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, string name, Uri uri)
+        where TDestination : IResourceWithEnvironment
+    {
+        if (!uri.IsAbsoluteUri)
+        {
+            throw new InvalidOperationException("The uri for service reference must be absolute.");
+        }
+
+        if (uri.AbsolutePath != "/")
+        {
+            throw new InvalidOperationException("The uri absolute path must be \"/\".");
+        }
+
+        return builder.WithEnvironment(context =>
+        {
+            context.EnvironmentVariables[$"services__{name}"] = uri.ToString();
+        });
+    }
+
+    /// <summary>
     /// Injects service discovery information from the specified endpoint into the project resource using the source resource's name as the service name.
     /// Each service binding will be injected using the format "services__{sourceResourceName}__{bindingIndex}={bindingNameQualifiedUriString}."
     /// </summary>
