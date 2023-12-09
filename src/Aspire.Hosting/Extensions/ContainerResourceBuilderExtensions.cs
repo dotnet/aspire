@@ -88,7 +88,7 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="args">The arguments to be passed to the container when it is started.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>    
-    public static IResourceBuilder<T> WithArgs<T>(this IResourceBuilder<T> builder, params string[] args) where T : IResource
+    public static IResourceBuilder<T> WithArgs<T>(this IResourceBuilder<T> builder, params string[] args) where T : ContainerResource
     {
         var annotation = new ExecutableArgsCallbackAnnotation(updatedArgs =>
         {
