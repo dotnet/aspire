@@ -2,10 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 var builder = WebApplication.CreateBuilder(args);
-builder.AddSqlServerClient("sqlserver");
-builder.AddMySqlDataSource("mysql");
+builder.AddSqlServerClient("tempdb");
+builder.AddMySqlDataSource("mysqldb");
 builder.AddRedis("redis");
-builder.AddNpgsqlDataSource("postgres");
+builder.AddNpgsqlDataSource("postgresdb");
 builder.AddRabbitMQ("rabbitmq");
 builder.AddMongoDBClient("mymongodb");
 
@@ -20,5 +20,13 @@ app.MapGet("/pid", () => Environment.ProcessId);
 app.MapRedisApi();
 
 app.MapMongoMovieApi();
+
+app.MapMySqlApi();
+
+app.MapPostgresApi();
+
+app.MapSqlServerApi();
+
+app.MapRabbitMQApi();
 
 app.Run();

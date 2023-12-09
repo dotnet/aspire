@@ -32,12 +32,26 @@ public class TestProgram
 
         if (includeIntegrationServices)
         {
-            var sqlserver = AppBuilder.AddSqlServerContainer("sqlserver");
-            var mysql = AppBuilder.AddMySqlContainer("mysql");
+            var sqlserverDbName = "tempdb";
+            var sqlserver = AppBuilder.AddSqlServerContainer("sqlserver")
+                .AddDatabase(sqlserverDbName);
+
+            var mysqlDbName = "mysqldb";
+            var mysql = AppBuilder.AddMySqlContainer("mysql")
+                .WithEnvironment("MYSQL_DATABASE", mysqlDbName)
+                .AddDatabase(mysqlDbName);
+
             var redis = AppBuilder.AddRedisContainer("redis");
-            var postgres = AppBuilder.AddPostgresContainer("postgres");
+
+            var postgresDbName = "postgresdb";
+            var postgres = AppBuilder.AddPostgresContainer("postgres")
+                .WithEnvironment("POSTGRES_DB", postgresDbName)
+                .AddDatabase(postgresDbName);
+
             var rabbitmq = AppBuilder.AddRabbitMQContainer("rabbitmq");
-            var mongodb = AppBuilder.AddMongoDBContainer("mongodb").AddDatabase("mymongodb");
+
+            var mongodb = AppBuilder.AddMongoDBContainer("mongodb")
+                .AddDatabase("mymongodb");
 
             IntegrationServiceABuilder = AppBuilder.AddProject<Projects.IntegrationServiceA>("integrationservicea")
                 .WithReference(sqlserver)

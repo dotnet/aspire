@@ -6,12 +6,12 @@ using Xunit;
 
 namespace Aspire.Hosting.Tests.Node;
 
-[Collection("NodeJs")]
+[Collection("NodeApp")]
 public class NodeFunctionalTests
 {
-    private readonly NodeJsFixture _nodeJsFixture;
+    private readonly NodeAppFixture _nodeJsFixture;
 
-    public NodeFunctionalTests(NodeJsFixture nodeJsFixture)
+    public NodeFunctionalTests(NodeAppFixture nodeJsFixture)
     {
         _nodeJsFixture = nodeJsFixture;
     }

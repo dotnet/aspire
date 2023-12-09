@@ -53,6 +53,43 @@ public abstract class TestProgramFixture : IAsyncLifetime
     }
 }
 
+/// <summary>
+/// TestProgram with no dashboard, node app or integration services.
+/// </summary>
+/// <remarks>
+/// Use <c>[Collection("SlimTestProgram")]</c> to inject this fixture in test constructors.
+/// </remarks>
+public class SlimTestProgramFixture : TestProgramFixture
+{
+    public override TestProgram CreateTestProgram()
+    {
+        var testProgram = TestProgram.Create<DistributedApplicationTests>();
+
+        testProgram.AppBuilder.Services
+            .AddHttpClient()
+            .ConfigureHttpClientDefaults(b =>
+            {
+                b.UseSocketsHttpHandler((handler, sp) => handler.PooledConnectionLifetime = TimeSpan.FromSeconds(5));
+            });
+
+        return testProgram;
+    }
+
+    public override async Task WaitReadyStateAsync(CancellationToken cancellationToken = default)
+    {
+        // Make sure services A, B and C are running
+        await TestProgram.ServiceABuilder.HttpGetPidAsync(HttpClient, "http", cancellationToken);
+        await TestProgram.ServiceBBuilder.HttpGetPidAsync(HttpClient, "http", cancellationToken);
+        await TestProgram.ServiceCBuilder.HttpGetPidAsync(HttpClient, "http", cancellationToken);
+    }
+}
+
+/// <summary>
+/// TestProgram with integration services but no dashboard or node app.
+/// </summary>
+/// <remarks>
+/// Use <c>[Collection("IntegrationServices")]</c> to inject this fixture in test constructors.
+/// </remarks>
 public class IntegrationServicesFixture : TestProgramFixture
 {
     public override TestProgram CreateTestProgram()
@@ -64,6 +101,9 @@ public class IntegrationServicesFixture : TestProgramFixture
             .ConfigureHttpClientDefaults(b =>
             {
                 b.UseSocketsHttpHandler((handler, sp) => handler.PooledConnectionLifetime = TimeSpan.FromSeconds(5));
+
+                // Ensure transient errors are retried.
+                b.AddStandardResilienceHandler();
             });
 
         return testProgram;
@@ -75,7 +115,13 @@ public class IntegrationServicesFixture : TestProgramFixture
     }
 }
 
-public class NodeJsFixture : TestProgramFixture
+/// <summary>
+/// TestProgram with node app but no dashboard or integration services.
+/// </summary>
+/// <remarks>
+/// Use <c>[Collection("NodeApp")]</c> to inject this fixture in test constructors.
+/// </remarks>
+public class NodeAppFixture : TestProgramFixture
 {
     public override TestProgram CreateTestProgram()
     {
@@ -86,7 +132,6 @@ public class NodeJsFixture : TestProgramFixture
             .ConfigureHttpClientDefaults(b =>
             {
                 b.UseSocketsHttpHandler((handler, sp) => handler.PooledConnectionLifetime = TimeSpan.FromSeconds(5));
-                b.AddStandardResilienceHandler();
             });
 
         return testProgram;
@@ -98,6 +143,14 @@ public class NodeJsFixture : TestProgramFixture
     }
 }
 
+[CollectionDefinition("SlimTestProgram")]
+public class SlimTestProgramCollection : ICollectionFixture<SlimTestProgramFixture>
+{
+    // This class has no code, and is never created. Its purpose is simply
+    // to be the place to apply [CollectionDefinition] and all the
+    // ICollectionFixture<> interfaces.
+}
+
 [CollectionDefinition("IntegrationServices")]
 public class IntegrationServicesCollection : ICollectionFixture<IntegrationServicesFixture>
 {
@@ -106,8 +159,8 @@ public class IntegrationServicesCollection : ICollectionFixture<IntegrationServi
     // ICollectionFixture<> interfaces.
 }
 
-[CollectionDefinition("NodeJs")]
-public class NodeJsCollection : ICollectionFixture<NodeJsFixture>
+[CollectionDefinition("NodeApp")]
+public class NodeJsCollection : ICollectionFixture<NodeAppFixture>
 {
     // This class has no code, and is never created. Its purpose is simply
     // to be the place to apply [CollectionDefinition] and all the
