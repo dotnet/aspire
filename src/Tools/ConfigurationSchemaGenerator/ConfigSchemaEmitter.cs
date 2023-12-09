@@ -4,6 +4,8 @@
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using System.Xml.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.DotnetRuntime.Extensions;
@@ -11,7 +13,7 @@ using Microsoft.Extensions.Configuration.Binder.SourceGeneration;
 
 namespace ConfigurationSchemaGenerator;
 
-internal sealed class ConfigSchemaEmitter(SourceGenerationSpec spec, Compilation compilation) : EmitterBase(tabString: "  ")
+internal sealed class ConfigSchemaEmitter(SourceGenerationSpec spec, Compilation compilation)
 {
     private readonly TypeIndex _typeIndex = new TypeIndex(spec.AllTypes);
     private readonly Compilation _compilation = compilation;
@@ -23,113 +25,50 @@ internal sealed class ConfigSchemaEmitter(SourceGenerationSpec spec, Compilation
             return string.Empty;
         }
 
-        OutOpenBrace();
+        var root = new JsonObject();
+        GenerateLogs(root);
+        root["properties"] = GenerateGraph();
+        root["type"] = "object";
 
-        GenerateLogs();
-        GenerateProperties();
-
-        OutLn("\"type\": \"object\"");
-        OutCloseBrace();
-        return Capture();
+        var options = new JsonSerializerOptions()
+        {
+            WriteIndented = true,
+            // ensure the properties are ordered correctly
+            Converters = { SchemaOrderJsonNodeConverter.Instance }
+        };
+        return JsonSerializer.Serialize(root, options);
     }
 
-    private void GenerateLogs()
+    private void GenerateLogs(JsonObject parent)
     {
-        OutLn("\"definitions\": {");
-        Indent();
-
-        OutLn("\"logLevel\": {");
-        Indent();
-
-        OutLn("\"properties\": {");
-        Indent();
-
+        var propertiesNode = new JsonObject();
         var categories = spec.LogCategories;
-        for (int i = 0; i < categories.Length; i++)
+        for (var i = 0; i < categories.Length; i++)
         {
-            OutLn($"\"{categories[i]}\": {{");
-            Indent();
-            OutLn("\"$ref\": \"#/definitions/logLevelThreshold\"");
-            OutCloseBrace(includeComma: i != categories.Length - 1);
+            var catObj = new JsonObject();
+            catObj["$ref"] = "#/definitions/logLevelThreshold";
+            propertiesNode.Add(categories[i], catObj);
         }
 
-        OutCloseBrace();
-        OutCloseBrace();
-        OutCloseBrace(includeComma: true);
-    }
-
-    private void GenerateProperties()
-    {
-        var root = GenerateGraph();
-        WriteNode(root, includeComma: true);
-    }
-
-    private void WriteNode(SchemaNode node, bool includeComma)
-    {
-        if (node is ValueNode value)
+        parent.Add("definitions", new JsonObject
         {
-            OutLn($"\"{value.Value}\"{(includeComma ? "," : null)}");
-            return;
-        }
-
-        var property = $"\"{node.Name}\":";
-        if (node is SimpleNode simple)
-        {
-            var simpleValue = $"\"{simple.Value}\"{(includeComma ? "," : null)}";
-            OutLn($"{property} {simpleValue}");
-        }
-        else if (node is ArrayNode array)
-        {
-            OutLn(property + " [");
-            Indent();
-
-            for (int i = 0; i < array.Values.Count; i++)
+            ["logLevel"] = new JsonObject()
             {
-                var includeArrayComma = i != array.Values.Count - 1;
-                WriteNode(array.Values[i], includeArrayComma);
+                ["properties"] = propertiesNode
             }
-
-            Unindent();
-            OutLn($"]{(includeComma ? "," : null)}");
-        }
-        else if (node is ObjectNode objectNode)
-        {
-            OutLn(property + " {");
-            Indent();
-
-            var sortedChildren = GetSorted(objectNode.Children);
-            for (int i = 0; i < sortedChildren.Count; i++)
-            {
-                var includeChildComma = i != sortedChildren.Count - 1;
-                WriteNode(sortedChildren[i], includeChildComma);
-            }
-
-            OutCloseBrace(includeComma);
-        }
+        });
     }
 
-    private static List<SchemaNode> GetSorted(List<SchemaNode> children)
-    {
-        var sorted = children.OrderBy(c => c.Name).ToList();
-        if (sorted.FindIndex(c => c.Name == "type") is int typeIndex && typeIndex > 0)
-        {
-            var typeChild = sorted[typeIndex];
-            sorted.RemoveAt(typeIndex);
-            sorted.Insert(0, typeChild);
-        }
-        return sorted;
-    }
-
-    private ObjectNode GenerateGraph()
+    private JsonObject GenerateGraph()
     {
         if (spec.ConfigurationTypes.Count != spec.ConfigurationPaths.Length)
         {
             throw new InvalidOperationException("Ensure Types and ConfigurationPaths are the same length.");
         }
 
-        var root = new ObjectNode("properties");
+        var root = new JsonObject();
 
-        for (int i = 0; i < spec.ConfigurationPaths.Length; i++)
+        for (var i = 0; i < spec.ConfigurationPaths.Length; i++)
         {
             var type = spec.ConfigurationTypes[i];
             var path = spec.ConfigurationPaths[i];
@@ -140,24 +79,25 @@ internal sealed class ConfigSchemaEmitter(SourceGenerationSpec spec, Compilation
         return root;
     }
 
-    private void GenerateChildren(ObjectNode parent, TypeSpec type, string path)
+    private void GenerateChildren(JsonObject parent, TypeSpec type, string path)
     {
         var pathSegments = path.Split(':');
         var currentNode = parent;
         foreach (var segment in pathSegments)
         {
-            if (currentNode.GetChild(segment) is ObjectNode child)
+            if (currentNode[segment] is JsonObject child)
             {
-                currentNode = child.GetChild("properties") as ObjectNode;
+                currentNode = child["properties"] as JsonObject;
                 Debug.Assert(currentNode is not null, "Didn't find a 'properties' child.");
             }
             else
             {
-                var propertiesNode = new ObjectNode("properties");
-                currentNode.Children.Add(new ObjectNode(segment)
+                var propertiesNode = new JsonObject();
+                currentNode[segment] = new JsonObject()
                 {
-                    Children = [new SimpleNode("type", "object"), propertiesNode]
-                });
+                    ["type"] = "object",
+                    ["properties"] = propertiesNode
+                };
                 currentNode = propertiesNode;
             }
         }
@@ -166,28 +106,31 @@ internal sealed class ConfigSchemaEmitter(SourceGenerationSpec spec, Compilation
         {
             var propertyTypeSpec = _typeIndex.GetTypeSpec(property.TypeRef);
 
-            var propertyNode = new ObjectNode(property.Name);
+            var propertyNode = new JsonObject();
 
             AppendTypeNodes(propertyNode, propertyTypeSpec);
 
             if (GetDescription(property) is string description)
             {
-                propertyNode.Children.Add(new SimpleNode("description", description));
+                propertyNode["description"] = description;
             }
 
             // skip empty objects
-            if (propertyNode.GetChild("type") is SimpleNode { Value: "object" } && propertyNode.GetChild("properties") is null)
+            if (propertyNode["type"] is JsonValue typeValue &&
+                typeValue.TryGetValue<string>(out var typeValueString) &&
+                typeValueString == "object" &&
+                propertyNode["properties"] is null)
             {
                 continue;
             }
 
-            currentNode.Children.Add(propertyNode);
+            currentNode[property.Name] = propertyNode;
         }
     }
 
     private static string? GetDescription(PropertySpec property)
     {
-        string docComment = property.DocumentationCommentXml;
+        var docComment = property.DocumentationCommentXml;
         if (string.IsNullOrEmpty(docComment))
         {
             return null;
@@ -258,7 +201,7 @@ internal sealed class ConfigSchemaEmitter(SourceGenerationSpec spec, Compilation
         }
     }
 
-    private void AppendTypeNodes(ObjectNode propertyNode, TypeSpec propertyTypeSpec)
+    private void AppendTypeNodes(JsonObject propertyNode, TypeSpec propertyTypeSpec)
     {
         if (propertyTypeSpec is ParsableFromStringSpec parsable)
         {
@@ -266,12 +209,12 @@ internal sealed class ConfigSchemaEmitter(SourceGenerationSpec spec, Compilation
         }
         else if (propertyTypeSpec is ObjectSpec)
         {
-            propertyNode.Children.Add(new SimpleNode("type", "object"));
+            propertyNode["type"] = "object";
         }
         else if (propertyTypeSpec is EnumerableSpec)
         {
             // TODO: support enumerables correctly
-            propertyNode.Children.Add(new SimpleNode("type", "object"));
+            propertyNode["type"] = "object";
         }
         else if (propertyTypeSpec is NullableSpec nullable)
         {
@@ -283,16 +226,16 @@ internal sealed class ConfigSchemaEmitter(SourceGenerationSpec spec, Compilation
         }
     }
 
-    private void AppendParsableFromString(ObjectNode propertyNode, ParsableFromStringSpec parsable)
+    private void AppendParsableFromString(JsonObject propertyNode, ParsableFromStringSpec parsable)
     {
         if (parsable.DisplayString == "TimeSpan")
         {
-            propertyNode.Children.Add(new SimpleNode("type", "string"));
-            propertyNode.Children.Add(new SimpleNode("format", "duration"));
+            propertyNode["type"] = "string";
+            propertyNode["format"] = "duration";
         }
         else if (parsable.StringParsableTypeKind == StringParsableTypeKind.Enum)
         {
-            var enumNode = new ArrayNode("enum");
+            var enumNode = new JsonArray();
             var enumTypeSpec = _typeIndex.GetTypeSpec(parsable.TypeRef);
             if (_compilation.GetBestTypeByMetadataName(enumTypeSpec.FullName) is { } enumType)
             {
@@ -300,15 +243,15 @@ internal sealed class ConfigSchemaEmitter(SourceGenerationSpec spec, Compilation
                 {
                     if (member != WellKnownMemberNames.InstanceConstructorName && member != WellKnownMemberNames.EnumBackingFieldName)
                     {
-                        enumNode.Values.Add(new ValueNode(member));
+                        enumNode.Add(member);
                     }
                 }
             }
-            propertyNode.Children.Add(enumNode);
+            propertyNode["enum"] = enumNode;
         }
         else
         {
-            propertyNode.Children.Add(new SimpleNode("type", GetParsableTypeName(parsable)));
+            propertyNode["type"] = GetParsableTypeName(parsable);
         }
     }
 
@@ -322,33 +265,51 @@ internal sealed class ConfigSchemaEmitter(SourceGenerationSpec spec, Compilation
         _ => throw new InvalidOperationException($"Unknown parsable type {parsable.DisplayString}")
     };
 
-    private abstract class SchemaNode(string name)
+    private sealed class SchemaOrderJsonNodeConverter : JsonConverter<JsonNode>
     {
-        public string Name { get; set; } = name;
-    }
+        public static SchemaOrderJsonNodeConverter Instance { get; } = new SchemaOrderJsonNodeConverter();
 
-    private sealed class SimpleNode(string name, string value) : SchemaNode(name)
-    {
-        public string Value { get; set; } = value;
-    }
+        public override bool CanConvert(Type typeToConvert) => typeof(JsonNode).IsAssignableFrom(typeToConvert) && typeToConvert != typeof(JsonValue);
 
-    private sealed class ObjectNode(string name) : SchemaNode(name)
-    {
-        public List<SchemaNode> Children { get; set; } = new();
-
-        internal SchemaNode? GetChild(string name)
+        public override void Write(Utf8JsonWriter writer, JsonNode? value, JsonSerializerOptions options)
         {
-            return Children.FirstOrDefault(c => c.Name == name);
+            switch (value)
+            {
+                case JsonObject obj:
+                    writer.WriteStartObject();
+                    // ensure "type" is written first
+                    if (obj["type"] is { } typeValue)
+                    {
+                        writer.WritePropertyName("type");
+                        Write(writer, typeValue, options);
+                    }
+                    foreach (var pair in obj.Where(p => p.Key != "type").OrderBy(p => p.Key, StringComparer.Ordinal))
+                    {
+                        writer.WritePropertyName(pair.Key);
+                        Write(writer, pair.Value, options);
+                    }
+                    writer.WriteEndObject();
+                    break;
+                case JsonArray array:
+                    writer.WriteStartArray();
+                    foreach (var item in array)
+                    {
+                        Write(writer, item, options);
+                    }
+                    writer.WriteEndArray();
+                    break;
+                case null:
+                    writer.WriteNullValue();
+                    break;
+                default: // JsonValue
+                    value.WriteTo(writer, options);
+                    break;
+            }
         }
-    }
 
-    private sealed class ArrayNode(string name) : SchemaNode(name)
-    {
-        public List<SchemaNode> Values { get; set; } = new();
-    }
-
-    private sealed class ValueNode(string value) : SchemaNode(string.Empty)
-    {
-        public string Value { get; set; } = value;
+        public override JsonNode? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            throw new NotSupportedException();
+        }
     }
 }
