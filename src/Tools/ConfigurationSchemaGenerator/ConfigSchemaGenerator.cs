@@ -28,7 +28,7 @@ public partial class ConfigSchemaGenerator
             var parser = new Parser(configSchemaInfo, new KnownTypeSymbols(compilation));
             var spec = parser.GetSourceGenerationSpec(CancellationToken.None);
 
-            var emitter = new ConfigSchemaEmitter(spec);
+            var emitter = new ConfigSchemaEmitter(spec, compilation);
             var schema = emitter.GenerateSchema();
 
             File.WriteAllText(outputFile, schema, Encoding.UTF8);

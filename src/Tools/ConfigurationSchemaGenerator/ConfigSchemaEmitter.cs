@@ -5,13 +5,16 @@ using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using System.Xml.Linq;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.DotnetRuntime.Extensions;
 using Microsoft.Extensions.Configuration.Binder.SourceGeneration;
 
 namespace ConfigurationSchemaGenerator;
 
-internal sealed class ConfigSchemaEmitter(SourceGenerationSpec spec) : EmitterBase(tabString: "  ")
+internal sealed class ConfigSchemaEmitter(SourceGenerationSpec spec, Compilation compilation) : EmitterBase(tabString: "  ")
 {
     private readonly TypeIndex _typeIndex = new TypeIndex(spec.AllTypes);
+    private readonly Compilation _compilation = compilation;
 
     public string GenerateSchema()
     {
@@ -58,37 +61,50 @@ internal sealed class ConfigSchemaEmitter(SourceGenerationSpec spec) : EmitterBa
     private void GenerateProperties()
     {
         var root = GenerateGraph();
-        OutLn($"\"{root.Name}\": {{");
-        Indent();
-
-        WriteChildren(root);
-
-        OutCloseBrace(includeComma: true);
+        WriteNode(root, includeComma: true);
     }
 
-    private void WriteChildren(ObjectNode parent)
+    private void WriteNode(SchemaNode node, bool includeComma)
     {
-        var sortedChildren = GetSorted(parent.Children);
-        for (int i = 0; i < sortedChildren.Count; i++)
+        if (node is ValueNode value)
         {
-            var child = sortedChildren[i];
-            var includeComma = i != sortedChildren.Count - 1;
+            OutLn($"\"{value.Value}\"{(includeComma ? "," : null)}");
+            return;
+        }
 
-            var property = $"\"{child.Name}\":";
-            if (child is SimpleNode simple)
+        var property = $"\"{node.Name}\":";
+        if (node is SimpleNode simple)
+        {
+            var simpleValue = $"\"{simple.Value}\"{(includeComma ? "," : null)}";
+            OutLn($"{property} {simpleValue}");
+        }
+        else if (node is ArrayNode array)
+        {
+            OutLn(property + " [");
+            Indent();
+
+            for (int i = 0; i < array.Values.Count; i++)
             {
-                var value = $"\"{simple.Value}\"{(includeComma ? "," : null)}";
-                OutLn($"{property} {value}");
+                var includeArrayComma = i != array.Values.Count - 1;
+                WriteNode(array.Values[i], includeArrayComma);
             }
-            else if (child is ObjectNode objectNode)
+
+            Unindent();
+            OutLn($"]{(includeComma ? "," : null)}");
+        }
+        else if (node is ObjectNode objectNode)
+        {
+            OutLn(property + " {");
+            Indent();
+
+            var sortedChildren = GetSorted(objectNode.Children);
+            for (int i = 0; i < sortedChildren.Count; i++)
             {
-                OutLn(property + " {");
-                Indent();
-
-                WriteChildren(objectNode);
-
-                OutCloseBrace(includeComma);
+                var includeChildComma = i != sortedChildren.Count - 1;
+                WriteNode(sortedChildren[i], includeChildComma);
             }
+
+            OutCloseBrace(includeComma);
         }
     }
 
@@ -111,7 +127,7 @@ internal sealed class ConfigSchemaEmitter(SourceGenerationSpec spec) : EmitterBa
             throw new InvalidOperationException("Ensure Types and ConfigurationPaths are the same length.");
         }
 
-        var root = new ObjectNode() { Name = "properties" };
+        var root = new ObjectNode("properties");
 
         for (int i = 0; i < spec.ConfigurationPaths.Length; i++)
         {
@@ -137,11 +153,10 @@ internal sealed class ConfigSchemaEmitter(SourceGenerationSpec spec) : EmitterBa
             }
             else
             {
-                var propertiesNode = new ObjectNode() { Name = "properties" };
-                currentNode.Children.Add(new ObjectNode()
+                var propertiesNode = new ObjectNode("properties");
+                currentNode.Children.Add(new ObjectNode(segment)
                 {
-                    Name = segment,
-                    Children = [new SimpleNode() { Name = "type", Value = "object" }, propertiesNode]
+                    Children = [new SimpleNode("type", "object"), propertiesNode]
                 });
                 currentNode = propertiesNode;
             }
@@ -151,15 +166,13 @@ internal sealed class ConfigSchemaEmitter(SourceGenerationSpec spec) : EmitterBa
         {
             var propertyTypeSpec = _typeIndex.GetTypeSpec(property.TypeRef);
 
-            var propertyNode = new ObjectNode()
-            {
-                Name = property.Name,
-                Children = [new SimpleNode() { Name = "type", Value = GetTypeName(propertyTypeSpec) }]
-            };
+            var propertyNode = new ObjectNode(property.Name);
+
+            AppendTypeNodes(propertyNode, propertyTypeSpec);
 
             if (GetDescription(property) is string description)
             {
-                propertyNode.Children.Add(new SimpleNode() { Name = "description", Value = description });
+                propertyNode.Children.Add(new SimpleNode("description", description));
             }
 
             currentNode.Children.Add(propertyNode);
@@ -188,9 +201,6 @@ internal sealed class ConfigSchemaEmitter(SourceGenerationSpec spec) : EmitterBa
             AppendSpaceIfNecessary(builder, value);
             builder.Append(value);
         }
-
-        builder.Replace("\r\n", null)
-            .Replace("\n", null);
 
         return JsonEncodedText.Encode(builder.ToString()).Value;
     }
@@ -242,45 +252,81 @@ internal sealed class ConfigSchemaEmitter(SourceGenerationSpec spec) : EmitterBa
         }
     }
 
-    private string GetTypeName(TypeSpec typeSpec) => typeSpec switch
+    private void AppendTypeNodes(ObjectNode propertyNode, TypeSpec propertyTypeSpec)
     {
-        ObjectSpec => "object",
-        EnumerableSpec => "object",
-        ParsableFromStringSpec parsable => GetParsableTypeName(parsable),
-        NullableSpec nullable => GetTypeName(_typeIndex.GetTypeSpec(nullable.EffectiveTypeRef)),
-        _ => throw new InvalidOperationException($"Unknown type {typeSpec}")
+        if (propertyTypeSpec is ParsableFromStringSpec parsable)
+        {
+            AppendParsableFromString(propertyNode, parsable);
+        }
+        else if (propertyTypeSpec is ObjectSpec)
+        {
+            propertyNode.Children.Add(new SimpleNode("type", "object"));
+        }
+        else if (propertyTypeSpec is EnumerableSpec)
+        {
+            // TODO: support enumerables correctly
+            propertyNode.Children.Add(new SimpleNode("type", "object"));
+        }
+        else if (propertyTypeSpec is NullableSpec nullable)
+        {
+            AppendTypeNodes(propertyNode, _typeIndex.GetTypeSpec(nullable.EffectiveTypeRef));
+        }
+        else
+        {
+            throw new InvalidOperationException($"Unknown type {propertyTypeSpec}");
+        }
+    }
+
+    private void AppendParsableFromString(ObjectNode propertyNode, ParsableFromStringSpec parsable)
+    {
+        if (parsable.DisplayString == "TimeSpan")
+        {
+            propertyNode.Children.Add(new SimpleNode("type", "string"));
+            propertyNode.Children.Add(new SimpleNode("format", "duration"));
+        }
+        else if (parsable.StringParsableTypeKind == StringParsableTypeKind.Enum)
+        {
+            var enumNode = new ArrayNode("enum");
+            var enumTypeSpec = _typeIndex.GetTypeSpec(parsable.TypeRef);
+            if (_compilation.GetBestTypeByMetadataName(enumTypeSpec.FullName) is { } enumType)
+            {
+                foreach (var member in enumType.MemberNames)
+                {
+                    if (member != WellKnownMemberNames.InstanceConstructorName && member != WellKnownMemberNames.EnumBackingFieldName)
+                    {
+                        enumNode.Values.Add(new ValueNode(member));
+                    }
+                }
+            }
+            propertyNode.Children.Add(enumNode);
+        }
+        else
+        {
+            propertyNode.Children.Add(new SimpleNode("type", GetParsableTypeName(parsable)));
+        }
+    }
+
+    private static string GetParsableTypeName(ParsableFromStringSpec parsable) => parsable.DisplayString switch
+    {
+        "bool" => "boolean",
+        "int" => "integer",
+        "long" => "integer",
+        "string" => "string",
+        "Version" => "string",
+        _ => throw new InvalidOperationException($"Unknown parsable type {parsable.DisplayString}")
     };
 
-    private static string GetParsableTypeName(ParsableFromStringSpec parsable)
+    private abstract class SchemaNode(string name)
     {
-        if (parsable.StringParsableTypeKind == StringParsableTypeKind.Enum)
-        {
-            return "enum";
-        }
-
-        return parsable.DisplayString switch
-        {
-            "bool" => "boolean",
-            "int" => "integer",
-            "long" => "integer",
-            "string" => "string",
-            "Version" => "string",
-            "TimeSpan" => "string",
-            _ => throw new InvalidOperationException($"Unknown parsable type {parsable.DisplayString}")
-        };
+        public string Name { get; set; } = name;
     }
 
-    private abstract class SchemaNode
+    private sealed class SimpleNode(string name, string value) : SchemaNode(name)
     {
-        public string Name { get; set; }
+        public string Value { get; set; } = value;
     }
 
-    private sealed class SimpleNode : SchemaNode
-    {
-        public string Value { get; set; }
-    }
-
-    private sealed class ObjectNode : SchemaNode
+    private sealed class ObjectNode(string name) : SchemaNode(name)
     {
         public List<SchemaNode> Children { get; set; } = new();
 
@@ -288,5 +334,15 @@ internal sealed class ConfigSchemaEmitter(SourceGenerationSpec spec) : EmitterBa
         {
             return Children.FirstOrDefault(c => c.Name == name);
         }
+    }
+
+    private sealed class ArrayNode(string name) : SchemaNode(name)
+    {
+        public List<SchemaNode> Values { get; set; } = new();
+    }
+
+    private sealed class ValueNode(string value) : SchemaNode(string.Empty)
+    {
+        public string Value { get; set; } = value;
     }
 }

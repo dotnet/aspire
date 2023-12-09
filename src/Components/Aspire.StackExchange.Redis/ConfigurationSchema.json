@@ -88,12 +88,16 @@
                       "description": "The password to use to authenticate with the server."
                     },
                     "Proxy": {
-                      "enum": [ "None", "Twemproxy", "Envoyproxy" ],
-                      "descripion": "Type of proxy to use (if any)."
+                      "description": "Type of proxy to use (if any).",
+                      "enum": [
+                        "None",
+                        "Twemproxy",
+                        "Envoyproxy"
+                      ]
                     },
                     "ResolveDns": {
                       "type": "boolean",
-                      "descripion": "Indicates whether endpoints should be resolved via DNS before connecting. If enabled the ConnectionMultiplexer will not re-resolve DNS when attempting to re-connect after a connection failure."
+                      "description": "Indicates whether endpoints should be resolved via DNS before connecting. If enabled the ConnectionMultiplexer will not re-resolve DNS when attempting to re-connect after a connection failure."
                     },
                     "ServiceName": {
                       "type": "string",
@@ -105,15 +109,24 @@
                     },
                     "Ssl": {
                       "type": "boolean",
-                      "descripion": "Indicates whether the connection should be encrypted."
+                      "description": "Indicates whether the connection should be encrypted."
                     },
                     "SslHost": {
                       "type": "string",
                       "description": "The target-host to use when validating SSL certificate; setting a value here enables SSL mode."
                     },
                     "SslProtocols": {
-                      "enum": [ "None", "Ssl2", "Ssl3", "Tls", "Default", "Tls11", "Tls12", "Tls13" ],
-                      "description": "Configures which SSL/TLS protocols should be allowed. If not set, defaults are chosen by the .NET framework."
+                      "description": "Configures which SSL/TLS protocols should be allowed.  If not set, defaults are chosen by the .NET framework.",
+                      "enum": [
+                        "None",
+                        "Ssl2",
+                        "Ssl3",
+                        "Tls",
+                        "Default",
+                        "Tls11",
+                        "Tls12",
+                        "Tls13"
+                      ]
                     },
                     "SyncTimeout": {
                       "type": "integer",
