@@ -4,10 +4,17 @@
 var builder = WebApplication.CreateBuilder(args);
 builder.AddSqlServerClient("tempdb");
 builder.AddMySqlDataSource("mysqldb");
-builder.AddRedis("redis");
+builder.AddRedis("rediscontainer");
 builder.AddNpgsqlDataSource("postgresdb");
-builder.AddRabbitMQ("rabbitmq");
+builder.AddRabbitMQ("rabbitmqcontainer");
 builder.AddMongoDBClient("mymongodb");
+
+builder.AddKeyedSqlServerClient("sqlserverabstract");
+builder.AddKeyedMySqlDataSource("mysqlabstract");
+builder.AddKeyedRedis("redisabstract");
+builder.AddKeyedNpgsqlDataSource("postgresabstract");
+builder.AddKeyedRabbitMQ("rabbitmqabstract");
+builder.AddKeyedMongoDBClient("mongodbabstract");
 
 var app = builder.Build();
 

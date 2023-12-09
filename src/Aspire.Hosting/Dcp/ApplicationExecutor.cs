@@ -74,9 +74,6 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
             PrepareServices();
             PrepareContainers();
             PrepareExecutables();
-            PrepareProxylessServices();
-
-            await CreateContainerSingletonsAsync(cancellationToken).ConfigureAwait(false);
 
             await CreateServicesAsync(cancellationToken).ConfigureAwait(false);
 
@@ -104,13 +101,6 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
             AspireEventSource.Instance.DcpModelCleanupStop();
             _appResources.Clear();
         }
-    }
-
-    private async Task CreateContainerSingletonsAsync(CancellationToken cancellationToken = default)
-    {
-        // Find containers that consume no Services--their associated Services can be started in Proxyless mode
-        var toCreate = _appResources.Where(r => r.DcpResource is Container && !r.ServicesConsumed.Any());
-        await CreateContainersAsync(toCreate, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task CreateServicesAsync(CancellationToken cancellationToken = default)
@@ -166,7 +156,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
             await lifecycleHook.AfterEndpointsAllocatedAsync(_model, cancellationToken).ConfigureAwait(false);
         }
 
-        await CreateContainersAsync(toCreate.Where(ar => ar.DcpResource is Container && ar.ServicesConsumed.Any()), cancellationToken).ConfigureAwait(false);
+        await CreateContainersAsync(toCreate.Where(ar => ar.DcpResource is Container), cancellationToken).ConfigureAwait(false);
         await CreateExecutablesAsync(toCreate.Where(ar => ar.DcpResource is Executable || ar.DcpResource is ExecutableReplicaSet), cancellationToken).ConfigureAwait(false);
     }
 
@@ -340,20 +330,6 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
         }
     }
 
-    private void PrepareProxylessServices()
-    {
-        // Find containers that consume no Services--their associated Services can be started in Proxyless mode
-        var singletonContainers = _appResources.Where(r => r.DcpResource is Container && !r.ServicesConsumed.Any());
-
-        foreach (var container in singletonContainers)
-        {
-            foreach (var service in container.ServicesProduced)
-            {
-                service.Service.Spec.AddressAllocationMode = AddressAllocationModes.Proxyless;
-            }
-        }
-    }
-
     private async Task CreateExecutablesAsync(IEnumerable<AppResource> executableResources, CancellationToken cancellationToken)
     {
         try
@@ -399,6 +375,12 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
                 }
                 else
                 {
+                    // If there is no launch profile, we want to make sure that certain environment variables are NOT inherited
+                    foreach (var envVar in s_doNotInheritEnvironmentVars)
+                    {
+                        config.Add(envVar, "");
+                    }
+
                     if (er.ServicesProduced.Count > 0)
                     {
                         if (er.ModelResource is ProjectResource)
@@ -434,12 +416,6 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
                     {
                         ann.Callback(context);
                     }
-                }
-
-                // We want to make sure that certain environment variables are NOT inherited
-                foreach (var envVar in s_doNotInheritEnvironmentVars)
-                {
-                    config.TryAdd(envVar, "");
                 }
 
                 spec.Env = new();

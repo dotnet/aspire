@@ -12,7 +12,7 @@ namespace Aspire.Dashboard.Components.Pages;
 public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
 {
     [Inject]
-    public required IDashboardViewModelService DashboardViewModelService { get; init; }
+    public required IResourceService ResourceService { get; init; }
     [Inject]
     public required IJSRuntime JS { get; init; }
     [Inject]
@@ -41,22 +41,20 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
     {
         _status = LogStatus.LoadingResources;
 
-        var viewModelMonitor = DashboardViewModelService.GetResources();
-        var initialList = viewModelMonitor.Snapshot;
-        var watch = viewModelMonitor.Watch;
+        var (snapshot, subscription) = ResourceService.Subscribe();
 
-        foreach (var result in initialList)
+        foreach (var resource in snapshot)
         {
-            _resourceNameMapping[result.Name] = result;
+            _resourceNameMapping[resource.Name] = resource;
         }
 
         UpdateResourcesList();
 
         _ = Task.Run(async () =>
         {
-            await foreach (var resourceChanged in watch.WithCancellation(_watchResourcesCts.Token))
+            await foreach (var (changeType, resource) in subscription.WithCancellation(_watchResourcesCts.Token))
             {
-                await OnResourceListChangedAsync(resourceChanged.ObjectChangeType, resourceChanged.Resource);
+                await OnResourceListChangedAsync(changeType, resource);
             }
         });
 
@@ -90,7 +88,7 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
         }
     }
 
-    private static Option<string> GetOption(ResourceViewModel resource)
+    private Option<string> GetOption(ResourceViewModel resource)
     {
         return new Option<string>()
         {
@@ -231,7 +229,7 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
         await UpdateResourceListSelectedResourceAsync();
     }
 
-    private static string GetDisplayText(ResourceViewModel resource)
+    private string GetDisplayText(ResourceViewModel resource)
     {
         var stateText = "";
         if (string.IsNullOrEmpty(resource.State))
@@ -242,30 +240,10 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
         {
             stateText = $" ({resource.State})";
         }
-        var resourceName = resource.DisplayName;
-        switch (resource)
-        {
-            case ExecutableViewModel evm:
-                if (evm.ProcessId is not null)
-                {
-                    resourceName += $" (PID: {evm.ProcessId})";
-                }
-                break;
-            case ProjectViewModel pvm:
-                if (pvm.ProcessId is not null)
-                {
-                    resourceName += $" (PID: {pvm.ProcessId})";
-                }
-                break;
-            case ContainerViewModel cvm:
-                if (cvm.ContainerId is not null)
-                {
-                    resourceName += $" (container ID: {cvm.ContainerId.Substring(0, Math.Min(cvm.ContainerId.Length, 8))})";
-                }
-                break;
-        }
-        return $"{resourceName}{stateText}";
+        return $"{GetResourceName(resource)}{stateText}";
     }
+
+    private string GetResourceName(ResourceViewModel resource) => ResourceViewModel.GetResourceName(resource, _resourceNameMapping.Values);
 
     public async ValueTask DisposeAsync()
     {

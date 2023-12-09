@@ -33,33 +33,42 @@ public class TestProgram
         if (includeIntegrationServices)
         {
             var sqlserverDbName = "tempdb";
-            var sqlserver = AppBuilder.AddSqlServerContainer("sqlserver")
-                .AddDatabase(sqlserverDbName);
-
             var mysqlDbName = "mysqldb";
-            var mysql = AppBuilder.AddMySqlContainer("mysql")
+            var postgresDbName = "postgresdb";
+            var mongoDbName = "mongodb";
+
+            var sqlserverContainer = AppBuilder.AddSqlServerContainer("sqlservercontainer")
+                .AddDatabase(sqlserverDbName);
+            var mysqlContainer = AppBuilder.AddMySqlContainer("mysqlcontainer")
                 .WithEnvironment("MYSQL_DATABASE", mysqlDbName)
                 .AddDatabase(mysqlDbName);
-
-            var redis = AppBuilder.AddRedisContainer("redis");
-
-            var postgresDbName = "postgresdb";
-            var postgres = AppBuilder.AddPostgresContainer("postgres")
+            var redisContainer = AppBuilder.AddRedisContainer("rediscontainer");
+            var postgresContainer = AppBuilder.AddPostgresContainer("postgrescontainer")
                 .WithEnvironment("POSTGRES_DB", postgresDbName)
                 .AddDatabase(postgresDbName);
-
-            var rabbitmq = AppBuilder.AddRabbitMQContainer("rabbitmq");
-
-            var mongodb = AppBuilder.AddMongoDBContainer("mongodb")
-                .AddDatabase("mymongodb");
+            var rabbitmqContainer = AppBuilder.AddRabbitMQContainer("rabbitmqcontainer");
+            var mongodbContainer = AppBuilder.AddMongoDBContainer("mongodbcontainer")
+                .AddDatabase(mongoDbName);
+            var sqlserverAbstract = AppBuilder.AddSqlServerContainer("sqlserverabstract");
+            var mysqlAbstract = AppBuilder.AddMySqlContainer("mysqlabstract");
+            var redisAbstract = AppBuilder.AddRedisContainer("redisabstract");
+            var postgresAbstract = AppBuilder.AddPostgresContainer("postgresabstract");
+            var rabbitmqAbstract = AppBuilder.AddRabbitMQContainer("rabbitmqabstract");
+            var mongodbAbstract = AppBuilder.AddMongoDB("mongodbabstract");
 
             IntegrationServiceABuilder = AppBuilder.AddProject<Projects.IntegrationServiceA>("integrationservicea")
-                .WithReference(sqlserver)
-                .WithReference(mysql)
-                .WithReference(redis)
-                .WithReference(postgres)
-                .WithReference(rabbitmq)
-                .WithReference(mongodb);
+                .WithReference(sqlserverContainer)
+                .WithReference(mysqlContainer)
+                .WithReference(redisContainer)
+                .WithReference(postgresContainer)
+                .WithReference(rabbitmqContainer)
+                .WithReference(mongodbContainer)
+                .WithReference(sqlserverAbstract)
+                .WithReference(mysqlAbstract)
+                .WithReference(redisAbstract)
+                .WithReference(postgresAbstract)
+                .WithReference(rabbitmqAbstract)
+                .WithReference(mongodbAbstract);
         }
     }
 

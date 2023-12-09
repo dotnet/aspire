@@ -9,32 +9,26 @@ namespace Aspire.Dashboard.Model;
 
 public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsyncDisposable
 {
-    private readonly IDashboardViewModelService _dashboardViewModelService;
     private readonly ConcurrentDictionary<string, ResourceViewModel> _resourceNameMapping = new();
     private readonly CancellationTokenSource _watchContainersTokenSource = new();
     private readonly Task _watchTask;
-    private readonly List<ModelSubscription> _subscriptions;
-    private readonly object _lock = new object();
+    private readonly List<ModelSubscription> _subscriptions = [];
+    private readonly object _lock = new();
 
-    public ResourceOutgoingPeerResolver(IDashboardViewModelService dashboardViewModelService)
+    public ResourceOutgoingPeerResolver(IResourceService resourceService)
     {
-        _dashboardViewModelService = dashboardViewModelService;
-        _subscriptions = new List<ModelSubscription>();
+        var (snapshot, subscription) = resourceService.Subscribe();
 
-        var viewModelMonitor = _dashboardViewModelService.GetResources();
-        var initialList = viewModelMonitor.Snapshot;
-        var watch = viewModelMonitor.Watch;
-
-        foreach (var result in initialList)
+        foreach (var resource in snapshot)
         {
-            _resourceNameMapping[result.Name] = result;
+            _resourceNameMapping[resource.Name] = resource;
         }
 
         _watchTask = Task.Run(async () =>
         {
-            await foreach (var resourceChanged in watch.WithCancellation(_watchContainersTokenSource.Token))
+            await foreach (var (changeType, resource) in subscription.WithCancellation(_watchContainersTokenSource.Token))
             {
-                await OnResourceListChanged(resourceChanged.ObjectChangeType, resourceChanged.Resource).ConfigureAwait(false);
+                await OnResourceListChanged(changeType, resource).ConfigureAwait(false);
             }
         });
     }

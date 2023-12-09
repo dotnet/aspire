@@ -92,22 +92,4 @@ public class AddRedisTests
         var connectionString = connectionStringResource.GetConnectionString();
         Assert.StartsWith("localhost:2000", connectionString);
     }
-
-    [Fact]
-    public void AddRedisAddsMetadata()
-    {
-        var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.AddRedis("myRedis", "endpoint");
-
-        var app = appBuilder.Build();
-
-        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-
-        var connectionStringResource = Assert.Single(appModel.Resources.OfType<IResourceWithConnectionString>());
-        Assert.Equal("endpoint", connectionStringResource.GetConnectionString());
-        Assert.Equal("myRedis", connectionStringResource.Name);
-
-        var manifestAnnotation = Assert.Single(connectionStringResource.Annotations.OfType<ManifestPublishingCallbackAnnotation>());
-        Assert.NotNull(manifestAnnotation.Callback);
-    }
 }

@@ -144,6 +144,17 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                 new EnvironmentCallbackAnnotation(
                     env =>
                     {
+                        if (resource is ContainerResource)
+                        {
+                            // By default, the Dapr sidecar will listen on localhost, which is not accessible from the container.
+
+                            var grpcEndpoint = $"http://localhost:{{{{- portFor \"{daprSideCarResourceName}_grpc\" -}}}}";
+                            var httpEndpoint = $"http://localhost:{{{{- portFor \"{daprSideCarResourceName}_http\" -}}}}";
+
+                            env.TryAdd("DAPR_GRPC_ENDPOINT", HostNameResolver.ReplaceLocalhostWithContainerHost(grpcEndpoint, _configuration));
+                            env.TryAdd("DAPR_HTTP_ENDPOINT", HostNameResolver.ReplaceLocalhostWithContainerHost(httpEndpoint, _configuration));
+                        }
+
                         env.TryAdd("DAPR_GRPC_PORT", $"{{{{- portFor \"{daprSideCarResourceName}_grpc\" -}}}}");
                         env.TryAdd("DAPR_HTTP_PORT", $"{{{{- portFor \"{daprSideCarResourceName}_http\" -}}}}");
                     }));

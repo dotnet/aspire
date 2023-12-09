@@ -55,7 +55,7 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger,
         await jsonWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private void WriteResources(DistributedApplicationModel model, ManifestPublishingContext context)
+    private static void WriteResources(DistributedApplicationModel model, ManifestPublishingContext context)
     {
         context.Writer.WriteStartObject("resources");
         foreach (var resource in model.Resources)
@@ -65,7 +65,7 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger,
         context.Writer.WriteEndObject();
     }
 
-    private void WriteResource(IResource resource, ManifestPublishingContext context)
+    private static void WriteResource(IResource resource, ManifestPublishingContext context)
     {
         // First see if the resource has a callback annotation with overrides the behavior for rendering
         // out the JSON. If so use that callback, otherwise use the fallback logic that we have.
@@ -78,7 +78,7 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger,
         }
         else if (resource is ContainerResource container)
         {
-            WriteResourceObject(container, () => WriteContainer(container, context));
+            WriteResourceObject(container, () => context.WriteContainer(container));
         }
         else if (resource is ProjectResource project)
         {
@@ -106,142 +106,6 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger,
         context.Writer.WriteString("error", "This resource does not support generation in the manifest.");
     }
 
-    private static void WriteServiceDiscoveryEnvironmentVariables(IResource resource, ManifestPublishingContext context)
-    {
-        var serviceReferenceAnnotations = resource.Annotations.OfType<ServiceReferenceAnnotation>();
-
-        if (serviceReferenceAnnotations.Any())
-        {
-            foreach (var serviceReferenceAnnotation in serviceReferenceAnnotations)
-            {
-                var bindingNames = serviceReferenceAnnotation.UseAllBindings
-                    ? serviceReferenceAnnotation.Resource.Annotations.OfType<ServiceBindingAnnotation>().Select(sb => sb.Name)
-                    : serviceReferenceAnnotation.BindingNames;
-
-                var serviceBindingAnnotationsGroupedByScheme = serviceReferenceAnnotation.Resource.Annotations
-                    .OfType<ServiceBindingAnnotation>()
-                    .Where(sba => bindingNames.Contains(sba.Name))
-                    .GroupBy(sba => sba.UriScheme);
-
-                var i = 0;
-                foreach (var serviceBindingAnnotationGroupedByScheme in serviceBindingAnnotationsGroupedByScheme)
-                {
-                    // HACK: For November we are only going to support a single service binding annotation
-                    //       per URI scheme per service reference.
-                    var binding = serviceBindingAnnotationGroupedByScheme.Single();
-
-                    context.Writer.WriteString($"services__{serviceReferenceAnnotation.Resource.Name}__{i++}", $"{{{serviceReferenceAnnotation.Resource.Name}.bindings.{binding.Name}.url}}");
-                }
-
-            }
-        }
-    }
-
-    internal static void WriteEnvironmentVariables(IResource resource, ManifestPublishingContext context)
-    {
-        var config = new Dictionary<string, string>();
-        var envContext = new EnvironmentCallbackContext("manifest", config);
-
-        if (resource.TryGetAnnotationsOfType<EnvironmentCallbackAnnotation>(out var callbacks))
-        {
-            context.Writer.WriteStartObject("env");
-            foreach (var callback in callbacks)
-            {
-                callback.Callback(envContext);
-            }
-
-            foreach (var (key, value) in config)
-            {
-                context.Writer.WriteString(key, value);
-            }
-
-            WriteServiceDiscoveryEnvironmentVariables(resource, context);
-
-            WritePortBindingEnvironmentVariables(resource, context);
-
-            context.Writer.WriteEndObject();
-        }
-    }
-
-    private static void WritePortBindingEnvironmentVariables(IResource resource, ManifestPublishingContext context)
-    {
-        if (resource.TryGetServiceBindings(out var serviceBindings))
-        {
-            foreach (var serviceBinding in serviceBindings)
-            {
-                if (serviceBinding.EnvironmentVariable is null)
-                {
-                    continue;
-                }
-
-                context.Writer.WriteString(serviceBinding.EnvironmentVariable, $"{{{resource.Name}.bindings.{serviceBinding.Name}.port}}");
-            }
-        }
-    }
-
-    internal static void WriteBindings(IResource resource, ManifestPublishingContext context, bool emitContainerPort = false)
-    {
-        if (resource.TryGetServiceBindings(out var serviceBindings))
-        {
-            context.Writer.WriteStartObject("bindings");
-            foreach (var serviceBinding in serviceBindings)
-            {
-                context.Writer.WriteStartObject(serviceBinding.Name);
-                context.Writer.WriteString("scheme", serviceBinding.UriScheme);
-                context.Writer.WriteString("protocol", serviceBinding.Protocol.ToString().ToLowerInvariant());
-                context.Writer.WriteString("transport", serviceBinding.Transport);
-
-                if (emitContainerPort && serviceBinding.ContainerPort is { } containerPort)
-                {
-                    context.Writer.WriteNumber("containerPort", containerPort);
-                }
-
-                if (serviceBinding.IsExternal)
-                {
-                    context.Writer.WriteBoolean("external", serviceBinding.IsExternal);
-                }
-
-                context.Writer.WriteEndObject();
-            }
-            context.Writer.WriteEndObject();
-        }
-    }
-
-    private static void WriteContainer(ContainerResource container, ManifestPublishingContext context)
-    {
-        context.Writer.WriteString("type", "container.v0");
-
-        if (!container.TryGetContainerImageName(out var image))
-        {
-            throw new DistributedApplicationException("Could not get container image name.");
-        }
-
-        context.Writer.WriteString("image", image);
-
-        if (container.TryGetAnnotationsOfType<ExecutableArgsCallbackAnnotation>(out var argsCallback))
-        {
-            var args = new List<string>();
-            foreach (var callback in argsCallback)
-            {
-                callback.Callback(args);
-            }
-
-            if (args.Count > 0)
-            {
-                context.Writer.WriteStartArray("args");
-
-                foreach (var arg in args ?? [])
-                {
-                    context.Writer.WriteStringValue(arg);
-                }
-                context.Writer.WriteEndArray();
-            }
-        }
-        
-        WriteEnvironmentVariables(container, context);
-        WriteBindings(container, context, emitContainerPort: true);
-    }
-
     private static void WriteProject(ProjectResource project, ManifestPublishingContext context)
     {
         context.Writer.WriteString("type", "project.v0");
@@ -255,11 +119,11 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger,
 
         context.Writer.WriteString("path", relativePathToProjectFile);
 
-        WriteEnvironmentVariables(project, context);
-        WriteBindings(project, context);
+        context.WriteEnvironmentVariables(project);
+        context.WriteBindings(project);
     }
 
-    private void WriteExecutable(ExecutableResource executable, ManifestPublishingContext context)
+    private static void WriteExecutable(ExecutableResource executable, ManifestPublishingContext context)
     {
         context.Writer.WriteString("type", "executable.v0");
 
@@ -276,7 +140,7 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger,
         }
         context.Writer.WriteEndArray();
 
-        WriteEnvironmentVariables(executable, context);
-        WriteBindings(executable, context);
+        context.WriteEnvironmentVariables(executable);
+        context.WriteBindings(executable);
     }
 }

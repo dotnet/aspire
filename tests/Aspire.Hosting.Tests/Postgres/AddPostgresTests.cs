@@ -53,7 +53,12 @@ public class AddPostgresTests
             env =>
             {
                 Assert.Equal("POSTGRES_HOST_AUTH_METHOD", env.Key);
-                Assert.Equal("trust", env.Value);
+                Assert.Equal("scram-sha-256", env.Value);
+            },
+            env =>
+            {
+                Assert.Equal("POSTGRES_INITDB_ARGS", env.Key);
+                Assert.Equal("--auth-host=scram-sha-256 --auth-local=scram-sha-256", env.Value);
             },
             env =>
             {
@@ -106,7 +111,12 @@ public class AddPostgresTests
             env =>
             {
                 Assert.Equal("POSTGRES_HOST_AUTH_METHOD", env.Key);
-                Assert.Equal("trust", env.Value);
+                Assert.Equal("scram-sha-256", env.Value);
+            },
+            env =>
+            {
+                Assert.Equal("POSTGRES_INITDB_ARGS", env.Key);
+                Assert.Equal("--auth-host=scram-sha-256 --auth-local=scram-sha-256", env.Value);
             },
             env =>
             {
@@ -210,30 +220,17 @@ public class AddPostgresTests
             env =>
             {
                 Assert.Equal("POSTGRES_HOST_AUTH_METHOD", env.Key);
-                Assert.Equal("trust", env.Value);
+                Assert.Equal("scram-sha-256", env.Value);
+            },
+            env =>
+            {
+                Assert.Equal("POSTGRES_INITDB_ARGS", env.Key);
+                Assert.Equal("--auth-host=scram-sha-256 --auth-local=scram-sha-256", env.Value);
             },
             env =>
             {
                 Assert.Equal("POSTGRES_PASSWORD", env.Key);
                 Assert.Equal("pass", env.Value);
             });
-    }
-
-    [Fact]
-    public void AddPostgresConnectionAddsMetadata()
-    {
-        var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.AddPostgresConnection("myPostgres", "endpoint");
-
-        var app = appBuilder.Build();
-
-        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-
-        var connectionStringResource = Assert.Single(appModel.Resources.OfType<IResourceWithConnectionString>());
-        Assert.Equal("endpoint", connectionStringResource.GetConnectionString());
-        Assert.Equal("myPostgres", connectionStringResource.Name);
-
-        var manifestAnnotation = Assert.Single(connectionStringResource.Annotations.OfType<ManifestPublishingCallbackAnnotation>());
-        Assert.NotNull(manifestAnnotation.Callback);
     }
 }

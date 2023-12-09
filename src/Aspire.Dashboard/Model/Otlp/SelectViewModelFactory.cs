@@ -9,14 +9,10 @@ public class SelectViewModelFactory
 {
     public static List<SelectViewModel<string>> CreateApplicationsSelectViewModel(List<OtlpApplication> applications)
     {
-        var byInstanceCount = applications.GroupBy(a => a.ApplicationName).ToDictionary(g => g.Key, g => g.Count());
-        var retval = applications.Select(a =>
+        return applications.Select(a => new SelectViewModel<string>
         {
-            var name = byInstanceCount[a.ApplicationName] > 1 ?
-                $"{a.ApplicationName} ({a.InstanceId.Substring(0, Math.Min(a.InstanceId.Length, 8))})"
-                : a.ApplicationName;
-            return new SelectViewModel<string> { Id = a.InstanceId, Name = name };
+            Id = a.InstanceId,
+            Name = OtlpApplication.GetResourceName(a, applications)
         }).ToList();
-        return retval;
     }
 }

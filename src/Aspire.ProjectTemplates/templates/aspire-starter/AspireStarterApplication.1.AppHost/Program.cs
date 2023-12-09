@@ -1,7 +1,7 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
 #if UseRedisCache
-var cache = builder.AddRedisContainer("cache");
+var cache = builder.AddRedis("cache");
 
 #endif
 var apiService = builder.AddProject<Projects.AspireStarterApplication__1_ApiService>("apiservice");

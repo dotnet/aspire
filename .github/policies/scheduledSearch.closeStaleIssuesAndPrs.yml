@@ -1,0 +1,24 @@
+id: scheduledSearch.closeStaleIssuesAndPrs
+name: Close Stale Issues and PRs
+description: Closes issues and PRs that have not been updated in a while
+owner:
+resource: repository
+disabled: false
+where:
+configuration:
+  resourceManagementConfiguration:
+    scheduledSearches:
+      - description: Close issues and PRs that have not been updated in a while
+        frequencies:
+          - hourly:
+              hour: 12
+        filters:
+          - isOpen
+          - hasLabel:
+              label: needs-author-action
+          - hasLabel:
+              label: no-recent-activity
+          - noActivitySince:
+              days: 7
+        actions:
+          - closeIssue

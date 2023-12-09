@@ -7,18 +7,18 @@
 @using Aspire.Dashboard.Otlp.Storage
 @using System.Web
 @inject NavigationManager NavigationManager
-@inject IDashboardViewModelService DashboardViewModelService
+@inject IResourceService resourceService
 @inject IJSRuntime JS
 @implements IDisposable
 
-<PageTitle>@DashboardViewModelService.ApplicationName Traces</PageTitle>
+<PageTitle>@resourceService.ApplicationName Traces</PageTitle>
 
 
 <div class="traces-layout">
     <h1 class="page-header">Traces</h1>
     <FluentToolbar Orientation="Orientation.Horizontal">
         <FluentSelect TOption="SelectViewModel<string>"
-                      Items="@_applications"
+                      Items="@_applicationViewModels"
                       OptionValue="@(c => c.Id)"
                       OptionText="@(c => c.Name)"
                       @bind-SelectedOption="_selectedApplication"
@@ -45,12 +45,12 @@
                             @foreach (var item in context.Spans.GroupBy(s => s.Source).OrderBy(g => g.Key.ApplicationName))
                             {
                                 <FluentOverflowItem>
-                                    <span class="trace-tag trace-service-tag" title="@(GetTooltip(item))" style="border-left-color: @(ColorGenerator.Instance.GetColorHexByKey(item.Key.ApplicationName));">
+                                    <span class="trace-tag trace-service-tag" title="@(GetTooltip(item))" style="border-left-color: @(ColorGenerator.Instance.GetColorHexByKey(GetResourceName(item.Key)));">
                                         @if (item.Any(s => s.Status == OtlpSpanStatusCode.Error))
                                         {
                                             <FluentIcon Icon="Icons.Filled.Size12.ErrorCircle" Color="Color.Error" Class="trace-tag-icon" />
                                         }
-                                        @item.Key.ApplicationName (@item.Count())
+                                        @GetResourceName(item.Key) (@item.Count())
                                     </span>
                                 </FluentOverflowItem>
                             }

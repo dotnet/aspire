@@ -10,7 +10,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 /// <param name="password">The MySQL server root password.</param>
-public class MySqlContainerResource(string name, string password) : ContainerResource(name), IMySqlResource
+public class MySqlContainerResource(string name, string password) : ContainerResource(name), IMySqlParentResource
 {
     public string Password { get; } = password;
 
