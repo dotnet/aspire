@@ -49,9 +49,10 @@ public partial class TraceDetail : ComponentBase
     {
         Debug.Assert(_spanWaterfallViewModels != null);
 
+        var visibleSpanWaterfallViewModels = _spanWaterfallViewModels.Where(viewModel => !viewModel.IsHidden).ToList();
         return ValueTask.FromResult(new GridItemsProviderResult<SpanWaterfallViewModel>
         {
-            Items = _spanWaterfallViewModels,
+            Items = visibleSpanWaterfallViewModels,
             TotalItemCount = _spanWaterfallViewModels.Count
         });
     }
@@ -72,15 +73,19 @@ public partial class TraceDetail : ComponentBase
 
         return orderedSpans;
 
-        static void AddSelfAndChildren(List<SpanWaterfallViewModel> orderedSpans, OtlpSpan span, int depth, IEnumerable<IOutgoingPeerResolver> outgoingPeerResolvers, Func<OtlpSpan, int, IEnumerable<IOutgoingPeerResolver>, SpanWaterfallViewModel> createViewModel)
+        static SpanWaterfallViewModel AddSelfAndChildren(List<SpanWaterfallViewModel> orderedSpans, OtlpSpan span, int depth, IEnumerable<IOutgoingPeerResolver> outgoingPeerResolvers, Func<OtlpSpan, int, IEnumerable<IOutgoingPeerResolver>, SpanWaterfallViewModel> createViewModel)
         {
-            orderedSpans.Add(createViewModel(span, depth, outgoingPeerResolvers));
+            var viewModel = createViewModel(span, depth, outgoingPeerResolvers);
+            orderedSpans.Add(viewModel);
             depth++;
 
             foreach (var child in span.GetChildSpans().OrderBy(s => s.StartTime))
             {
-                AddSelfAndChildren(orderedSpans, child, depth, outgoingPeerResolvers, createViewModel);
+                var childViewModel = AddSelfAndChildren(orderedSpans, child, depth, outgoingPeerResolvers, createViewModel);
+                viewModel.Children.Add(childViewModel);
             }
+
+            return viewModel;
         }
 
         static SpanWaterfallViewModel CreateViewModel(OtlpSpan span, int depth, IEnumerable<IOutgoingPeerResolver> outgoingPeerResolvers)
@@ -103,6 +108,7 @@ public partial class TraceDetail : ComponentBase
 
             var viewModel = new SpanWaterfallViewModel
             {
+                Children = [],
                 Span = span,
                 LeftOffset = leftOffset,
                 Width = width,
@@ -180,6 +186,11 @@ public partial class TraceDetail : ComponentBase
     }
 
     public SpanDetailsViewModel? SelectedSpan { get; set; }
+
+    private static void OnToggleCollapse(SpanWaterfallViewModel viewModel)
+    {
+        viewModel.IsCollapsed = !viewModel.IsCollapsed;
+    }
 
     private void OnShowProperties(SpanWaterfallViewModel viewModel)
     {
