@@ -9,7 +9,6 @@ namespace Aspire.Dashboard.Components.Controls;
 
 public partial class EnvironmentVariables
 {
-
     [Parameter, EditorRequired]
     public IEnumerable<EnvironmentVariableViewModel>? Items { get; set; }
 
@@ -46,19 +45,6 @@ public partial class EnvironmentVariables
                 vm.IsValueMasked = _defaultMasked;
             }
         }
-    }
-
-    private void HandleFilter(ChangeEventArgs args)
-    {
-        if (args.Value is string newFilter)
-        {
-            _filter = newFilter;
-        }
-    }
-
-    private void HandleClear()
-    {
-        _filter = string.Empty;
     }
 
     private void CheckAllMaskStates()

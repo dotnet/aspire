@@ -37,8 +37,6 @@
         <FluentSearch Placeholder="Filter..."
                         Immediate="true"
                         @bind-Value="_filter"
-                        @oninput="HandleFilter"
-                        @bind-Value:after="HandleClear"
                         slot="end" />
     </FluentToolbar>
     <SummaryDetailsView DetailsTitle="@($"Environment Variables for {((SelectedResource != null) ? GetResourceName(SelectedResource) : null)}")"

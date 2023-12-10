@@ -185,19 +185,6 @@ public partial class Resources : ComponentBase, IDisposable
         GC.SuppressFinalize(this);
     }
 
-    private void HandleFilter(ChangeEventArgs args)
-    {
-        if (args.Value is string newFilter)
-        {
-            _filter = newFilter;
-        }
-    }
-
-    private void HandleClear()
-    {
-        _filter = string.Empty;
-    }
-
     private void ViewErrorStructuredLogs(ResourceViewModel resource)
     {
         NavigationManager.NavigateTo($"/StructuredLogs/{resource.Uid}?level=error");
