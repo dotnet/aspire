@@ -167,8 +167,93 @@ message WatchResourcesUpdate {
 
 ////////////////////////////////////////////
 
+message ConsoleLogLine {
+    string text = 1;
+    optional bool is_error = 2;
+}
+
+// Initiates a subscription for the logs of a resource.
+message WatchResourceConsoleLogsRequest {
+    // Specifies the resource to watch logs from.
+    ResourceId resource_id = 1;
+}
+
+// A message received from the server when watching resource logs.
+// Contains potentially many lines to be appended to the log.
+message WatchResourceConsoleLogsUpdate {
+    repeated ConsoleLogLine log_lines = 1;
+}
+
+////////////////////////////////////////////
+
+message StructuredLog {
+    google.protobuf.Timestamp timestamp = 1;
+    uint32 flags = 2;
+    StructuredLogLevel level = 3;
+    string application_name = 4;
+    string message = 5;
+    string span_id = 6;
+    string trace_id = 7;
+    optional string original_format = 8;
+    optional string scope_name = 9;
+}
+
+// Maps to Microsoft.Extensions.Logging.LogLevel (in names, not numbers)
+enum StructuredLogLevel {
+    TRACE = 0;
+    DEBUG = 1;
+    INFORMATION = 2;
+    WARNING = 3;
+    ERROR = 4;
+    CRITICAL = 5;
+    NONE = 6;
+}
+
+enum StructuredLogFilterOperator {
+    EQUALS = 0;
+    CONTAINS = 1;
+    GREATER_THAN = 2;
+    LESS_THAN = 3;
+    GREATER_THAN_OR_EQUAL = 4;
+    LESS_THAN_OR_EQUAL = 5;
+    NOT_EQUAL = 6;
+    NOT_CONTAINS = 7;
+}
+
+message StructuredLogFilter {
+    string field = 1;
+    StructuredLogFilterOperator operator = 2;
+    string value = 3;
+}
+
+// TODO send set of filter options to client somewhere (app info? log response? new endpoint?)
+message StructuredLogFilterOption {
+    string field = 1;
+    repeated StructuredLogFilterOperator operators = 2;
+    repeated string valid_values = 3;
+}
+
+////////////////////////////////////////////
+
+message StructuredLogsRequest {
+    optional string application_service_id = 1;
+    int32 start_index = 2;
+    optional int32 count = 3;
+    optional StructuredLogLevel level = 4;
+    repeated StructuredLogFilter filters = 5;
+}
+
+message StructuredLogsResponse {
+    repeated StructuredLog logs = 1;
+    int32 total_item_count = 2;
+}
+
+////////////////////////////////////////////
+
 service DashboardService {
     rpc GetApplicationInformation(ApplicationInformationRequest) returns (ApplicationInformationResponse);
     rpc WatchResources(WatchResourcesRequest) returns (stream WatchResourcesUpdate);
+    rpc WatchResourceConsoleLogs(WatchResourceConsoleLogsRequest) returns (stream WatchResourceConsoleLogsUpdate);
+    rpc GetStructuredLogs(StructuredLogsRequest) returns (StructuredLogsResponse);
     rpc ExecuteResourceCommand(ResourceCommandRequest) returns (ResourceCommandResponse);
 }
