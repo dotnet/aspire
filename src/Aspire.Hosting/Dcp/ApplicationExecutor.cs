@@ -375,6 +375,12 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
                 }
                 else
                 {
+                    // If there is no launch profile, we want to make sure that certain environment variables are NOT inherited
+                    foreach (var envVar in s_doNotInheritEnvironmentVars)
+                    {
+                        config.Add(envVar, "");
+                    }
+
                     if (er.ServicesProduced.Count > 0)
                     {
                         if (er.ModelResource is ProjectResource)
@@ -410,12 +416,6 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
                     {
                         ann.Callback(context);
                     }
-                }
-
-                // We want to make sure that certain environment variables are NOT inherited
-                foreach (var envVar in s_doNotInheritEnvironmentVars)
-                {
-                    config.TryAdd(envVar, "");
                 }
 
                 spec.Env = new();

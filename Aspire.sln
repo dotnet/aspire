@@ -165,8 +165,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.MongoDB.Driver", "sr
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.MongoDB.Driver.Tests", "tests\Aspire.MongoDB.Driver.Tests\Aspire.MongoDB.Driver.Tests.csproj", "{E592E447-BA3C-44FA-86C1-EBEDC864A644}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestProject.LaunchSettings", "tests\testproject\TestProject.LaunchSettings\TestProject.LaunchSettings.csproj", "{A734177E-213B-4D68-98A4-6F5C00234053}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -449,10 +447,6 @@ Global
 		{6472D59F-7C04-43DE-AD33-9F20BE3804BF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6472D59F-7C04-43DE-AD33-9F20BE3804BF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6472D59F-7C04-43DE-AD33-9F20BE3804BF}.Release|Any CPU.Build.0 = Release|Any CPU
-		{A734177E-213B-4D68-98A4-6F5C00234053}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{A734177E-213B-4D68-98A4-6F5C00234053}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{A734177E-213B-4D68-98A4-6F5C00234053}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A734177E-213B-4D68-98A4-6F5C00234053}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -530,7 +524,6 @@ Global
 		{20A5A907-A135-4735-B4BF-E13514F360E3} = {27381127-6C45-4B4C-8F18-41FF48DFE4B2}
 		{E592E447-BA3C-44FA-86C1-EBEDC864A644} = {4981B3A5-4AFD-4191-BF7D-8692D9783D60}
 		{DCF2D47A-921A-4900-B5B2-CF97B3531CE8} = {975F6F41-B455-451D-A312-098DE4A167B6}
-		{A734177E-213B-4D68-98A4-6F5C00234053} = {975F6F41-B455-451D-A312-098DE4A167B6}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6DCEDFEC-988E-4CB3-B45B-191EB5086E0C}

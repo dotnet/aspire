@@ -423,32 +423,6 @@ public class DistributedApplicationTests
         await app.StopAsync();
     }
 
-    [LocalOnlyFact]
-    public async Task NoUrlInLaunchSettings()
-    {
-        var testProgram = CreateTestProgram();
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
-
-        testProgram.AppBuilder.AddProject("launch", new Projects.TestProject_LaunchSettings().ProjectPath);
-
-        await using var app = testProgram.Build();
-
-        await app.StartAsync();
-
-        var s = app.Services.GetRequiredService<KubernetesService>();
-        var list = await s.ListAsync<Executable>();
-
-        var proj = list.FirstOrDefault(x => x.Spec.WorkingDirectory?.Contains("LaunchSettings") == true);
-
-        Assert.NotNull(proj);
-        Assert.NotNull(proj.Spec.Env);
-
-        // URLs isn't set in launch settings, and shouldn't be inherited from dashboard
-        Assert.Null(proj.Spec.Env.First(x => x.Name == "ASPNETCORE_URLS").Value);
-
-        await app.StopAsync();
-    }
-
     private static TestProgram CreateTestProgram(string[]? args = null, bool includeIntegrationServices = false, bool includeNodeApp = false) =>
         TestProgram.Create<DistributedApplicationTests>(args, includeIntegrationServices: includeIntegrationServices, includeNodeApp: includeNodeApp);
 }
