@@ -105,9 +105,9 @@ public class LogFilter
                 }
             case nameof(OtlpLogEntry.Severity):
                 {
-                    var func = ConditionToFuncNumber(Condition);
-                    if (Enum.TryParse<LogLevel>(Value, true, out var value))
+                    if (Enum.TryParse<LogLevel>(Value, ignoreCase: true, out var value))
                     {
+                        var func = ConditionToFuncNumber(Condition);
                         return input.Where(x => func((int)x.Severity, (double)value));
                     }
                     return input;
