@@ -37,7 +37,7 @@ public class LogFilter
             _ => throw new ArgumentOutOfRangeException(nameof(c), c, null)
         };
 
-    private static Func<string, string, bool> ConditionToFuncString(FilterCondition c) =>
+    private static Func<string?, string, bool> ConditionToFuncString(FilterCondition c) =>
         c switch
         {
             FilterCondition.Equals => (a, b) => string.Equals(a, b, StringComparison.OrdinalIgnoreCase),
@@ -115,7 +115,7 @@ public class LogFilter
             default:
                 {
                     var func = ConditionToFuncString(Condition);
-                    return input.Where(x => func(GetFieldValue(x)!, Value));
+                    return input.Where(x => func(GetFieldValue(x), Value));
                 }
         }
     }
