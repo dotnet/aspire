@@ -2,12 +2,20 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 var builder = WebApplication.CreateBuilder(args);
-builder.AddSqlServerClient("sqlserver");
-builder.AddMySqlDataSource("mysql");
-builder.AddRedis("redis");
-builder.AddNpgsqlDataSource("postgres");
-builder.AddRabbitMQ("rabbitmq");
-builder.AddMongoDBClient("mongodb");
+
+builder.AddSqlServerClient("sqlservercontainer");
+builder.AddMySqlDataSource("mysqlcontainer");
+builder.AddRedis("rediscontainer");
+builder.AddNpgsqlDataSource("postgrescontainer");
+builder.AddRabbitMQ("rabbitmqcontainer");
+builder.AddMongoDBClient("mongodbcontainer");
+
+builder.AddKeyedSqlServerClient("sqlserverabstract");
+builder.AddKeyedMySqlDataSource("mysqlabstract");
+builder.AddKeyedRedis("redisabstract");
+builder.AddKeyedNpgsqlDataSource("postgresabstract");
+builder.AddKeyedRabbitMQ("rabbitmqabstract");
+builder.AddKeyedMongoDBClient("mongodbabstract");
 
 var app = builder.Build();
 

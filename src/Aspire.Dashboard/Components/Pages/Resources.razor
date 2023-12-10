@@ -3,7 +3,7 @@
 @using Aspire.Dashboard.Components.ResourcesGridColumns
 @implements IDisposable
 
-<PageTitle>@DashboardViewModelService.ApplicationName Resources</PageTitle>
+<PageTitle>@ResourceService.ApplicationName Resources</PageTitle>
 
 <div class="content-layout-with-toolbar">
     <FluentToolbar Orientation="Orientation.Horizontal">
@@ -46,7 +46,7 @@
                         OnDismiss="() => ClearSelectedResource()"
                         ViewKey="ResourcesList">
         <Summary>
-            <FluentDataGrid Items="@FilteredResources" ResizableColumns="true" GridTemplateColumns="1fr 2fr 1fr 2fr 3fr 2fr 1fr 1fr" RowClass="GetRowClass">
+            <FluentDataGrid Items="@FilteredResources" ResizableColumns="true" GridTemplateColumns="1fr 2fr 1fr 2fr 2.5fr 2fr 1fr 1fr" RowClass="GetRowClass">
                 <ChildContent>
                     <PropertyColumn Property="@(c => c.ResourceType)" Title="Type" Sortable="true" />
                     <TemplateColumn Title="Name (ID)" Sortable="true" SortBy="@_nameSort">

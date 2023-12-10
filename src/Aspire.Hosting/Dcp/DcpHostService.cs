@@ -12,7 +12,6 @@ using System.Text.RegularExpressions;
 using Aspire.Dashboard;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp.Process;
 using Aspire.Hosting.Properties;
 using Aspire.Hosting.Publishing;
@@ -21,6 +20,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using ResourceService = Aspire.Hosting.Dashboard.ResourceService;
 
 namespace Aspire.Hosting.Dcp;
 
@@ -62,7 +62,7 @@ internal sealed partial class DcpHostService : IHostedLifecycleService, IAsyncDi
             {
                 serviceCollection.AddSingleton(_applicationModel);
                 serviceCollection.AddSingleton(kubernetesService);
-                serviceCollection.AddScoped<IDashboardViewModelService, DashboardViewModelService>();
+                serviceCollection.AddScoped<IResourceService, ResourceService>();
             });
         }
     }

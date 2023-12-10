@@ -9,19 +9,15 @@ namespace Aspire.Dashboard.Model;
 
 public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsyncDisposable
 {
-    private readonly IDashboardViewModelService _dashboardViewModelService;
     private readonly ConcurrentDictionary<string, ResourceViewModel> _resourceNameMapping = new();
     private readonly CancellationTokenSource _watchContainersTokenSource = new();
     private readonly Task _watchTask;
-    private readonly List<ModelSubscription> _subscriptions;
-    private readonly object _lock = new object();
+    private readonly List<ModelSubscription> _subscriptions = [];
+    private readonly object _lock = new();
 
-    public ResourceOutgoingPeerResolver(IDashboardViewModelService dashboardViewModelService)
+    public ResourceOutgoingPeerResolver(IResourceService resourceService)
     {
-        _dashboardViewModelService = dashboardViewModelService;
-        _subscriptions = new List<ModelSubscription>();
-
-        var (snapshot, subscription) = _dashboardViewModelService.GetResources();
+        var (snapshot, subscription) = resourceService.Subscribe();
 
         foreach (var resource in snapshot)
         {
