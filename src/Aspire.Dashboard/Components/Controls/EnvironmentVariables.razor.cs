@@ -12,7 +12,10 @@ public partial class EnvironmentVariables
     [Parameter, EditorRequired]
     public IEnumerable<EnvironmentVariableViewModel>? Items { get; set; }
 
-    public bool ShowSpecOnlyToggle => Items?.Any(i => i.FromSpec == false) == true;
+    [Parameter]
+    public bool ShowSpecOnlyToggle { get; set; }
+
+    private bool IsSpecOnlyToggleDisabled => Items?.Any(i => i.FromSpec == false) is false or null;
 
     private bool _showAll;
 
