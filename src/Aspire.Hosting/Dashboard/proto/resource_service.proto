@@ -5,6 +5,7 @@ syntax = "proto3";
 
 package aspire.v1;
 
+import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
 
 ////////////////////////////////////////////
@@ -22,14 +23,20 @@ message ApplicationInformationResponse {
 message ResourceCommandRequest {
     string command_type = 1;
     ResourceId resource_id = 2;
+    // When present, this message must be shown to the user and their confirmation obtained
+    // before sending the request for this command to be executed.
     optional string confirmation_message = 3;
+    // Optional parameter that configures the command in some way.
+    // Clients must return any value provided by the server when invoking
+    // the command.
+    optional google.protobuf.Value parameter = 4;
 }
 
 enum ResourceCommandResponseKind {
-    none = 0;
-    succeeded = 1;
-    failed = 2;
-    cancelled = 3;
+    UNDEFINED = 0;
+    SUCCEEDED = 1;
+    FAILED = 2;
+    CANCELLED = 3;
 }
 
 message ResourceCommandResponse {
@@ -84,11 +91,8 @@ message AdditionalData {
     optional string namespace = 2;
     // Optional display name, may be localized
     optional string display_name = 3;
-    // A single value will be most common. Also support lists, to avoid escaping.
-    oneof kind {
-        string value = 4;
-        StringArray values = 5;
-    }
+    // The data value. May be null, a number, a string, a boolean, a dictionary of values (Struct), or a list of values (ValueList).
+    google.protobuf.Value value = 4;
 }
 
 message ResourceId {
