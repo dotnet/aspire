@@ -114,7 +114,8 @@ public class LogFilter
                 }
             default:
                 {
-                    return input.Where(x => ConditionToFuncString(Condition)(GetFieldValue(x)!, Value));
+                    var func = ConditionToFuncString(Condition);
+                    return input.Where(x => func(GetFieldValue(x)!, Value));
                 }
         }
     }
