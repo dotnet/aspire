@@ -92,9 +92,9 @@ internal sealed class DcpDataSource
         UpdateAssociatedServicesMap("Container", watchEventType, container);
 
         var objectChangeType = ToObjectChangeType(watchEventType);
-        var containerViewModel = ConvertToContainerViewModel(container);
+        var snapshot = ToSnapshot(container);
 
-        await _onResourceChanged(containerViewModel, objectChangeType).ConfigureAwait(false);
+        await _onResourceChanged(snapshot, objectChangeType).ConfigureAwait(false);
     }
 
     private async Task ProcessExecutableChange(WatchEventType watchEventType, Executable executable)
@@ -107,9 +107,9 @@ internal sealed class DcpDataSource
         UpdateAssociatedServicesMap("Executable", watchEventType, executable);
 
         var objectChangeType = ToObjectChangeType(watchEventType);
-        var executableViewModel = ConvertToExecutableViewModel(executable);
+        var snapshot = ToSnapshot(executable);
 
-        await _onResourceChanged(executableViewModel, objectChangeType).ConfigureAwait(false);
+        await _onResourceChanged(snapshot, objectChangeType).ConfigureAwait(false);
     }
 
     private async Task ProcessEndpointChange(WatchEventType watchEventType, Endpoint endpoint)
@@ -145,32 +145,32 @@ internal sealed class DcpDataSource
 
     private async ValueTask TryRefreshResource(string resourceKind, string resourceName)
     {
-        ResourceViewModel? resource = null;
+        ResourceViewModel? snapshot = null;
 
         switch (resourceKind)
         {
             case "Container":
                 if (_containersMap.TryGetValue(resourceName, out var container))
                 {
-                    resource = ConvertToContainerViewModel(container);
+                    snapshot = ToSnapshot(container);
                 }
                 break;
 
             case "Executable":
                 if (_executablesMap.TryGetValue(resourceName, out var executable))
                 {
-                    resource = ConvertToExecutableViewModel(executable);
+                    snapshot = ToSnapshot(executable);
                 }
                 break;
         }
 
-        if (resource is not null)
+        if (snapshot is not null)
         {
-            await _onResourceChanged(resource, ObjectChangeType.Upsert).ConfigureAwait(false);
+            await _onResourceChanged(snapshot, ObjectChangeType.Upsert).ConfigureAwait(false);
         }
     }
 
-    private ContainerViewModel ConvertToContainerViewModel(Container container)
+    private ContainerViewModel ToSnapshot(Container container)
     {
         var containerId = container.Status?.ContainerId;
         var (endpoints, services) = GetEndpointsAndServices(container, "Container");
@@ -215,7 +215,7 @@ internal sealed class DcpDataSource
         }
     }
 
-    private ExecutableViewModel ConvertToExecutableViewModel(Executable executable)
+    private ExecutableViewModel ToSnapshot(Executable executable)
     {
         string? projectPath = null;
         executable.Metadata.Annotations?.TryGetValue(Executable.CSharpProjectPathAnnotation, out projectPath);
