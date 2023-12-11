@@ -43,6 +43,9 @@ injected. An example is below:
 <p>@Loc[Resources.ResxFile.YourStringHere]</p>
 ```
 
+Note that injection doesn't happen until a component's `OnInitialized`, so if you are referencing a string from codebehind, you must wait to do that
+until `OnInitialized`.
+
 ## Tips and known issues
 
 Make sure you have started Docker before trying to run an Aspire app.
