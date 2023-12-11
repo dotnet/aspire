@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Immutable;
+
 namespace Aspire.Dashboard.Model;
 
 public class ExecutableViewModel : ResourceViewModel
@@ -9,6 +11,6 @@ public class ExecutableViewModel : ResourceViewModel
     public int? ProcessId { get; init; }
     public string? ExecutablePath { get; set; }
     public string? WorkingDirectory { get; set; }
-    public List<string>? Arguments { get; set; }
+    public required ImmutableArray<string>? Arguments { get; init; }
 }
 

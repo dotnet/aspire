@@ -303,7 +303,7 @@ internal sealed class KubernetesDataSource
             CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToLocalTime(),
             ExecutablePath = executable.Spec.ExecutablePath,
             WorkingDirectory = executable.Spec.WorkingDirectory,
-            Arguments = executable.Spec.Args,
+            Arguments = executable.Spec.Args?.ToImmutableArray(),
             State = executable.Status?.State,
             LogSource = new FileLogSource(executable.Status?.StdOutFile, executable.Status?.StdErrFile),
             ProcessId = executable.Status?.ProcessId,
