@@ -147,37 +147,30 @@ internal sealed class DcpDataSource
 
         foreach (var ownerReference in endpoint.Metadata.OwnerReferences)
         {
-            // Find better way for this string switch
+            ResourceViewModel? resource = null;
+
             switch (ownerReference.Kind)
             {
                 case "Container":
                     if (_containersMap.TryGetValue(ownerReference.Name, out var container))
                     {
-                        var containerViewModel = ConvertToContainerViewModel(container);
-
-                        await _onResourceChanged(containerViewModel, ObjectChangeType.Upsert).ConfigureAwait(false);
+                        resource = ConvertToContainerViewModel(container);
                     }
                     break;
 
                 case "Executable":
                     if (_executablesMap.TryGetValue(ownerReference.Name, out var executable))
                     {
-                        if (executable.IsCSharpProject())
-                        {
-                            // Project
-                            var projectViewModel = ConvertToProjectViewModel(executable);
-
-                            await _onResourceChanged(projectViewModel, ObjectChangeType.Upsert).ConfigureAwait(false);
-                        }
-                        else
-                        {
-                            // Executable
-                            var executableViewModel = ConvertToExecutableViewModel(executable);
-
-                            await _onResourceChanged(executableViewModel, ObjectChangeType.Upsert).ConfigureAwait(false);
-                        }
+                        resource = executable.IsCSharpProject()
+                            ? ConvertToProjectViewModel(executable)
+                            : ConvertToExecutableViewModel(executable);
                     }
                     break;
+            }
+
+            if (resource is not null)
+            {
+                await _onResourceChanged(resource, ObjectChangeType.Upsert).ConfigureAwait(false);
             }
         }
     }
@@ -191,36 +184,30 @@ internal sealed class DcpDataSource
 
         foreach (var ((resourceKind, resourceName), _) in _resourceAssociatedServicesMap.Where(e => e.Value.Contains(service.Metadata.Name)))
         {
+            ResourceViewModel? resource = null;
+
             switch (resourceKind)
             {
                 case ResourceKind.Container:
                     if (_containersMap.TryGetValue(resourceName, out var container))
                     {
-                        var containerViewModel = ConvertToContainerViewModel(container);
-
-                        await _onResourceChanged(containerViewModel, ObjectChangeType.Upsert).ConfigureAwait(false);
+                        resource = ConvertToContainerViewModel(container);
                     }
                     break;
 
                 case ResourceKind.Executable:
                     if (_executablesMap.TryGetValue(resourceName, out var executable))
                     {
-                        if (executable.IsCSharpProject())
-                        {
-                            // Project
-                            var projectViewModel = ConvertToProjectViewModel(executable);
-
-                            await _onResourceChanged(projectViewModel, ObjectChangeType.Upsert).ConfigureAwait(false);
-                        }
-                        else
-                        {
-                            // Executable
-                            var executableViewModel = ConvertToExecutableViewModel(executable);
-
-                            await _onResourceChanged(executableViewModel, ObjectChangeType.Upsert).ConfigureAwait(false);
-                        }
+                        resource = executable.IsCSharpProject()
+                            ? ConvertToProjectViewModel(executable)
+                            : ConvertToExecutableViewModel(executable);
                     }
                     break;
+            }
+
+            if (resource is not null)
+            {
+                await _onResourceChanged(resource, ObjectChangeType.Upsert).ConfigureAwait(false);
             }
         }
     }
