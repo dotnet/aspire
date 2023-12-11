@@ -10,29 +10,29 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class OrleansServiceExtensions
 {
-    internal const string OrleansConfigKeyPrefix = "Orleans";
     private static readonly ProviderConfiguration s_inMemoryReminderService = new("Memory");
     private static readonly ProviderConfiguration s_inMemoryGrainStorage = new("Memory");
     private static readonly ProviderConfiguration s_inMemoryStreaming = new("Memory");
+    private static readonly ProviderConfiguration s_defaultBroadcastChannel = new("Default");
     private static readonly ProviderConfiguration s_developmentClustering = new("Development");
 
     /// <summary>
-    /// Add Orleans to the resource.
+    /// Adds an Orleans service to the application.
     /// </summary>
-    /// <param name="builder">The target builder.</param>
-    /// <param name="name">The name of the Orleans resource.</param>
-    /// <returns>The Orleans resource.</returns>
+    /// <param name="builder">The application builder.</param>
+    /// <param name="name">The name of the Orleans service.</param>
+    /// <returns>The Orleans service builder.</returns>
     public static OrleansService AddOrleans(
         this IDistributedApplicationBuilder builder,
         string name)
         => new(builder, name);
 
     /// <summary>
-    /// Set the ClusterId to use for the Orleans service.
+    /// Sets the ClusterId of the Orleans service.
     /// </summary>
-    /// <param name="orleansServiceBuilder">The target Orleans resource.</param>
+    /// <param name="orleansServiceBuilder">The target Orleans service builder.</param>
     /// <param name="clusterId">The ClusterId value.</param>
-    /// <returns>>The Orleans resource.</returns>
+    /// <returns>>The Orleans service builder.</returns>
     public static OrleansService WithClusterId(
         this OrleansService orleansServiceBuilder,
         string clusterId)
@@ -42,11 +42,11 @@ public static class OrleansServiceExtensions
     }
 
     /// <summary>
-    /// Set the ServiceId to use for the Orleans service.
+    /// Sets the ServiceId of the Orleans service.
     /// </summary>
-    /// <param name="orleansServiceBuilder">The target Orleans resource.</param>
+    /// <param name="orleansServiceBuilder">The target Orleans service builder.</param>
     /// <param name="serviceId">The ServiceId value.</param>
-    /// <returns>>The Orleans resource.</returns>
+    /// <returns>>The Orleans service builder.</returns>
     public static OrleansService WithServiceId(
         this OrleansService orleansServiceBuilder,
         string serviceId)
@@ -56,152 +56,200 @@ public static class OrleansServiceExtensions
     }
 
     /// <summary>
-    /// Set the clustering for the Orleans service.
+    /// Configures the Orleans service to use the provided clustering provider.
     /// </summary>
-    /// <param name="orleansServiceBuilder">The target Orleans resource.</param>
-    /// <param name="clustering">The clustering to use.</param>
-    /// <returns>>The Orleans resource.</returns>
+    /// <param name="orleansServiceBuilder">The target Orleans service builder.</param>
+    /// <param name="provider">The provider.</param>
+    /// <returns>>The Orleans service builder.</returns>
     public static OrleansService WithClustering(
         this OrleansService orleansServiceBuilder,
-        IResourceBuilder<IResourceWithConnectionString> clustering)
+        IResourceBuilder<IResourceWithConnectionString> provider)
+        => WithClustering(orleansServiceBuilder, ProviderConfiguration.Create(provider));
+
+    /// <summary>
+    /// Configures the Orleans service to use the provided clustering provider.
+    /// </summary>
+    /// <param name="orleansServiceBuilder">The target Orleans service builder.</param>
+    /// <param name="provider">The provider.</param>
+    /// <returns>>The Orleans service builder.</returns>
+    public static OrleansService WithClustering(
+        this OrleansService orleansServiceBuilder,
+        IProviderConfiguration provider)
     {
-        orleansServiceBuilder.Clustering = ProviderConfiguration.Create(clustering);
+        orleansServiceBuilder.Clustering = provider;
         return orleansServiceBuilder;
     }
 
     /// <summary>
-    /// Set the clustering for the Orleans service.
+    /// Configures the Orleans service to use development-only clustering.
     /// </summary>
-    /// <param name="orleansServiceBuilder">The target Orleans resource.</param>
-    /// <param name="clustering">The clustering to use.</param>
-    /// <returns>>The Orleans resource.</returns>
-    public static OrleansService WithClustering(
-        this OrleansService orleansServiceBuilder,
-        IProviderConfiguration clustering)
-    {
-        orleansServiceBuilder.Clustering = clustering;
-        return orleansServiceBuilder;
-    }
-
-    /// <summary>
-    /// use the localhost clustering for the Orleans service (for development purpose only).
-    /// </summary>
-    /// <param name="orleansServiceBuilder">The target Orleans resource.</param>
-    /// <returns>>The Orleans resource.</returns>
+    /// <param name="orleansServiceBuilder">The target Orleans service builder.</param>
+    /// <returns>>The Orleans service builder.</returns>
     public static OrleansService WithDevelopmentClustering(
         this OrleansService orleansServiceBuilder)
-    {
-        orleansServiceBuilder.Clustering = s_developmentClustering;
-        return orleansServiceBuilder;
-    }
+        => WithClustering(orleansServiceBuilder, s_developmentClustering);
 
     /// <summary>
-    /// Add a grain storage provider for the Orleans service.
+    /// Adds a grain storage provider to the Orleans service.
     /// </summary>
-    /// <param name="orleansServiceBuilder">The target Orleans resource.</param>
-    /// <param name="storage">The storage provider to add.</param>
-    /// <returns>>The Orleans resource.</returns>
+    /// <param name="orleansServiceBuilder">The target Orleans service builder.</param>
+    /// <param name="provider">The provider to add.</param>
+    /// <returns>>The Orleans service builder.</returns>
+    /// <remarks>This resource name is the name the application will use to resolve the provider.</remarks>
     public static OrleansService WithGrainStorage(
         this OrleansService orleansServiceBuilder,
-        IResourceBuilder<IResourceWithConnectionString> storage)
-    {
-        orleansServiceBuilder.GrainStorage[storage.Resource.Name] = ProviderConfiguration.Create(storage);
-        return orleansServiceBuilder;
-    }
+        IResourceBuilder<IResourceWithConnectionString> provider)
+        => WithGrainStorage(orleansServiceBuilder, provider.Resource.Name, provider);
 
     /// <summary>
-    /// Add a grain storage provider for the Orleans service.
+    /// Adds a grain storage provider to the Orleans service.
     /// </summary>
-    /// <param name="orleansServiceBuilder">The target Orleans resource.</param>
-    /// <param name="name">The name of the storage provider.</param>
-    /// <param name="storage">The storage provider to add.</param>
-    /// <returns>>The Orleans resource.</returns>
+    /// <param name="orleansServiceBuilder">The target Orleans service builder.</param>
+    /// <param name="name">The name of the provider. This is the name the application will use to resolve the provider.</param>
+    /// <param name="provider">The provider to add.</param>
+    /// <returns>>The Orleans service builder.</returns>
     public static OrleansService WithGrainStorage(
         this OrleansService orleansServiceBuilder,
         string name,
-        IResourceBuilder<IResourceWithConnectionString> storage)
-    {
-        orleansServiceBuilder.GrainStorage[name] = ProviderConfiguration.Create(storage);
-        return orleansServiceBuilder;
-    }
+        IResourceBuilder<IResourceWithConnectionString> provider)
+        => WithGrainStorage(orleansServiceBuilder, name, ProviderConfiguration.Create(provider));
 
     /// <summary>
-    /// Add a grain storage provider for the Orleans service.
+    /// Adds a grain storage provider to the Orleans service.
     /// </summary>
-    /// <param name="orleansServiceBuilder">The target Orleans resource.</param>
-    /// <param name="name">The name of the storage provider.</param>
-    /// <param name="storage">The storage provider to add.</param>
-    /// <returns>>The Orleans resource.</returns>
+    /// <param name="orleansServiceBuilder">The target Orleans service builder.</param>
+    /// <param name="name">The name of the provider. This is the name the application will use to resolve the provider.</param>
+    /// <param name="provider">The provider to add.</param>
+    /// <returns>>The Orleans service builder.</returns>
     public static OrleansService WithGrainStorage(
         this OrleansService orleansServiceBuilder,
         string name,
-        IProviderConfiguration storage)
+        IProviderConfiguration provider)
     {
-        orleansServiceBuilder.GrainStorage[name] = storage;
+        orleansServiceBuilder.GrainStorage[name] = provider;
         return orleansServiceBuilder;
     }
 
     /// <summary>
-    /// Add an in memory grain storage for the Orleans service.
+    /// Adds an in-memory grain storage to the Orleans service.
     /// </summary>
-    /// <param name="orleansServiceBuilder">The target Orleans resource.</param>
-    /// <param name="name">The name of the storage provider.</param>
-    /// <returns>>The Orleans resource.</returns>
+    /// <param name="orleansServiceBuilder">The target Orleans service builder.</param>
+    /// <param name="name">The name of the provider. This is the name the application will use to resolve the provider.</param>
+    /// <returns>>The Orleans service builder.</returns>
     public static OrleansService WithMemoryGrainStorage(
         this OrleansService orleansServiceBuilder,
         string name)
+        => WithGrainStorage(orleansServiceBuilder, name, s_inMemoryGrainStorage);
+
+    /// <summary>
+    /// Adds a stream provider to the Orleans service.
+    /// </summary>
+    /// <param name="orleansServiceBuilder">The target Orleans service builder.</param>
+    /// <param name="provider">The provider to add.</param>
+    /// <returns>>The Orleans service builder.</returns>
+    /// <remarks>This resource name is the name the application will use to resolve the provider.</remarks>
+    public static OrleansService WithStreaming(
+        this OrleansService orleansServiceBuilder,
+        IResourceBuilder<IResourceWithConnectionString> provider)
+        => WithStreaming(orleansServiceBuilder, provider.Resource.Name, provider);
+
+    /// <summary>
+    /// Adds a stream provider to the Orleans service.
+    /// </summary>
+    /// <param name="orleansServiceBuilder">The target Orleans service builder.</param>
+    /// <param name="name">The name of the provider. This is the name the application will use to resolve the provider.</param>
+    /// <param name="provider">The provider to add.</param>
+    /// <returns>>The Orleans service builder.</returns>
+    public static OrleansService WithStreaming(
+        this OrleansService orleansServiceBuilder,
+        string name,
+        IResourceBuilder<IResourceWithConnectionString> provider)
+        => WithStreaming(orleansServiceBuilder, name, ProviderConfiguration.Create(provider));
+
+    /// <summary>
+    /// Adds a stream provider to the Orleans service.
+    /// </summary>
+    /// <param name="orleansServiceBuilder">The target Orleans service builder.</param>
+    /// <param name="name">The name of the provider. This is the name the application will use to resolve the provider.</param>
+    /// <param name="provider">The provider to add.</param>
+    /// <returns>>The Orleans service builder.</returns>
+    public static OrleansService WithStreaming(
+        this OrleansService orleansServiceBuilder,
+        string name,
+        IProviderConfiguration provider)
     {
-        orleansServiceBuilder.GrainStorage[name] = s_inMemoryGrainStorage;
+        orleansServiceBuilder.Streaming[name] = provider;
         return orleansServiceBuilder;
     }
 
     /// <summary>
-    /// Add in-memory streaming for the Orleans service.
+    /// Adds an in-memory stream provider to the Orleans service.
     /// </summary>
-    /// <param name="orleansServiceBuilder">The target Orleans resource.</param>
-    /// <param name="name">The name of the storage provider.</param>
-    /// <returns>>The Orleans resource.</returns>
+    /// <param name="orleansServiceBuilder">The target Orleans service builder.</param>
+    /// <param name="name">The name of the provider. This is the name the application will use to resolve the provider.</param>
+    /// <returns>>The Orleans service builder.</returns>
     public static OrleansService WithMemoryStreaming(
         this OrleansService orleansServiceBuilder,
         string name)
+        => WithStreaming(orleansServiceBuilder, name, s_inMemoryStreaming);
+
+    /// <summary>
+    /// Adds a broadcast channel provider to the Orleans service.
+    /// </summary>
+    /// <param name="orleansServiceBuilder">The target Orleans service builder.</param>
+    /// <param name="name">The name of the provider. This is the name the application will use to resolve the provider.</param>
+    /// <param name="provider">The provider to add.</param>
+    /// <returns>>The Orleans service builder.</returns>
+    public static OrleansService WithBroadcastChannel(
+        this OrleansService orleansServiceBuilder,
+        string name,
+        IProviderConfiguration provider)
     {
-        orleansServiceBuilder.Streaming[name] = s_inMemoryStreaming;
+        orleansServiceBuilder.Streaming[name] = provider;
         return orleansServiceBuilder;
     }
 
     /// <summary>
-    /// Set the reminder storage for the Orleans service.
+    /// Adds a broadcast channel provider to the Orleans service.
     /// </summary>
-    /// <param name="orleansServiceBuilder">The target Orleans resource.</param>
-    /// <param name="reminderStorage">The reminder storage to use.</param>
-    /// <returns>>The Orleans resource.</returns>
-    public static OrleansService WithReminders(
+    /// <param name="orleansServiceBuilder">The target Orleans service builder.</param>
+    /// <param name="name">The name of the provider. This is the name the application will use to resolve the provider.</param>
+    /// <returns>>The Orleans service builder.</returns>
+    public static OrleansService WithBroadcastChannel(
         this OrleansService orleansServiceBuilder,
-        IResourceBuilder<IResourceWithConnectionString> reminderStorage)
-    {
-        orleansServiceBuilder.Reminders = ProviderConfiguration.Create(reminderStorage);
-        return orleansServiceBuilder;
-    }
+        string name)
+        => WithBroadcastChannel(orleansServiceBuilder, name, s_defaultBroadcastChannel);
 
     /// <summary>
-    /// Set the reminder storage for the Orleans service.
+    /// Configures reminder storage for the Orleans service.
     /// </summary>
-    /// <param name="orleansServiceBuilder">The target Orleans resource.</param>
-    /// <param name="reminderStorage">The reminder storage to use.</param>
-    /// <returns>>The Orleans resource.</returns>
+    /// <param name="orleansServiceBuilder">The target Orleans service builder.</param>
+    /// <param name="provider">The reminder storage provider.</param>
+    /// <returns>>The Orleans service builder.</returns>
     public static OrleansService WithReminders(
         this OrleansService orleansServiceBuilder,
-        IProviderConfiguration reminderStorage)
+        IResourceBuilder<IResourceWithConnectionString> provider)
+        => WithReminders(orleansServiceBuilder, ProviderConfiguration.Create(provider));
+
+    /// <summary>
+    /// Configures reminder storage for the Orleans service.
+    /// </summary>
+    /// <param name="orleansServiceBuilder">The target Orleans service builder.</param>
+    /// <param name="provider">The reminder storage provider to use.</param>
+    /// <returns>>The Orleans service builder.</returns>
+    public static OrleansService WithReminders(
+        this OrleansService orleansServiceBuilder,
+        IProviderConfiguration provider)
     {
-        orleansServiceBuilder.Reminders = reminderStorage;
+        orleansServiceBuilder.Reminders = provider;
         return orleansServiceBuilder;
     }
 
     /// <summary>
     /// Configures in-memory reminder storage for the Orleans service.
     /// </summary>
-    /// <param name="orleansServiceBuilder">The target Orleans resource.</param>
-    /// <returns>>The Orleans resource.</returns>
+    /// <param name="orleansServiceBuilder">The target Orleans service builder.</param>
+    /// <returns>>The Orleans service builder.</returns>
     public static OrleansService WithMemoryReminders(
         this OrleansService orleansServiceBuilder)
     {
@@ -210,12 +258,53 @@ public static class OrleansServiceExtensions
     }
 
     /// <summary>
-    /// Add Orleans to the resource builder.
+    /// Adds a grain directory provider to the Orleans service.
     /// </summary>
-    /// <param name="builder">The builder on which add the Orleans resource.</param>
-    /// <param name="orleansService">The Orleans service, containing the clustering, etc.</param>
+    /// <param name="orleansServiceBuilder">The target Orleans service builder.</param>
+    /// <param name="provider">The provider to add.</param>
+    /// <returns>>The Orleans service builder.</returns>
+    /// <remarks>This resource name is the name the application will use to resolve the provider.</remarks>
+    public static OrleansService WithGrainDirectory(
+        this OrleansService orleansServiceBuilder,
+        IResourceBuilder<IResourceWithConnectionString> provider)
+        => WithGrainDirectory(orleansServiceBuilder, provider.Resource.Name, provider);
+
+    /// <summary>
+    /// Adds a grain directory provider to the Orleans service.
+    /// </summary>
+    /// <param name="orleansServiceBuilder">The target Orleans service builder.</param>
+    /// <param name="name">The name of the provider. This is the name the application will use to resolve the provider.</param>
+    /// <param name="provider">The provider to add.</param>
+    /// <returns>>The Orleans service builder.</returns>
+    public static OrleansService WithGrainDirectory(
+        this OrleansService orleansServiceBuilder,
+        string name,
+        IResourceBuilder<IResourceWithConnectionString> provider)
+        => WithGrainDirectory(orleansServiceBuilder, name, ProviderConfiguration.Create(provider));
+
+    /// <summary>
+    /// Adds a grain directory provider to the Orleans service.
+    /// </summary>
+    /// <param name="orleansServiceBuilder">The target Orleans service builder.</param>
+    /// <param name="name">The name of the provider. This is the name the application will use to resolve the provider.</param>
+    /// <param name="provider">The provider to add.</param>
+    /// <returns>>The Orleans service builder.</returns>
+    public static OrleansService WithGrainDirectory(
+        this OrleansService orleansServiceBuilder,
+        string name,
+        IProviderConfiguration provider)
+    {
+        orleansServiceBuilder.GrainDirectory[name] = provider;
+        return orleansServiceBuilder;
+    }
+
+    /// <summary>
+    /// Adds Orleans to the resource.
+    /// </summary>
+    /// <param name="builder">The builder on which add the Orleans service builder.</param>
+    /// <param name="orleansService">The Orleans service, containing clustering, etc.</param>
     /// <returns>The resource builder.</returns>
-    /// <exception cref="InvalidOperationException"></exception>
+    /// <exception cref="InvalidOperationException">Clustering has not been configured.</exception>
     public static IResourceBuilder<T> AddResource<T>(
         this IResourceBuilder<T> builder,
         OrleansService orleansService)
