@@ -34,7 +34,7 @@
                   Id="@_anchorId"
                   IconEnd="@(new Icons.Regular.Size16.Copy())"
                   Class="defaultHidden"
-                  @onclick="@(() => CopyTextToClipboardAsync(Value, @_anchorId))"
+                  @onclick="@(() => CopyTextToClipboardAsync(ValueToCopy ?? Value, @_anchorId))"
                   aria-label="@Loc[ControlsStrings.GridValueCopyToClipboard]" />
     <FluentTooltip Anchor="@_anchorId" Position="TooltipPosition.Top">@PreCopyToolTip</FluentTooltip>
 </div>
