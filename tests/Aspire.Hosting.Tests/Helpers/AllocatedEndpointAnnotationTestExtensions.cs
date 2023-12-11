@@ -18,8 +18,6 @@ public static class AllocatedEndpointAnnotationTestExtensions
     public static async Task<string> HttpGetStringAsync<T>(this IResourceBuilder<T> builder, HttpClient client, string bindingName, string path, CancellationToken cancellationToken)
         where T : IResourceWithBindings
     {
-        // We have to get the allocated endpoint each time through the loop
-        // because it may not be populated yet by the time we get here.
         var allocatedEndpoint = builder.Resource.Annotations.OfType<AllocatedEndpointAnnotation>().Single(a => a.Name == bindingName);
         var url = $"{allocatedEndpoint.UriString}{path}";
 
@@ -40,8 +38,6 @@ public static class AllocatedEndpointAnnotationTestExtensions
     public static async Task<HttpResponseMessage> HttpGetAsync<T>(this IResourceBuilder<T> builder, HttpClient client, string bindingName, string path, CancellationToken cancellationToken)
         where T : IResourceWithBindings
     {
-        // We have to get the allocated endpoint each time through the loop
-        // because it may not be populated yet by the time we get here.
         var allocatedEndpoint = builder.Resource.Annotations.OfType<AllocatedEndpointAnnotation>().Single(a => a.Name == bindingName);
         var url = $"{allocatedEndpoint.UriString}{path}";
 
@@ -63,8 +59,6 @@ public static class AllocatedEndpointAnnotationTestExtensions
     public static async Task<HttpResponseMessage> HttpPostAsync<T>(this IResourceBuilder<T> builder, HttpClient client, string bindingName, string path, HttpContent? content, CancellationToken cancellationToken)
         where T : IResourceWithBindings
     {
-        // We have to get the allocated endpoint each time through the loop
-        // because it may not be populated yet by the time we get here.
         var allocatedEndpoint = builder.Resource.Annotations.OfType<AllocatedEndpointAnnotation>().Single(a => a.Name == bindingName);
         var url = $"{allocatedEndpoint.UriString}{path}";
 
