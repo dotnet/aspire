@@ -26,7 +26,7 @@ internal sealed class DcpDataSource
     private readonly Dictionary<string, Executable> _executablesMap = [];
     private readonly Dictionary<string, Service> _servicesMap = [];
     private readonly Dictionary<string, Endpoint> _endpointsMap = [];
-    private readonly Dictionary<(ResourceKind, string), List<string>> _resourceAssociatedServicesMap = [];
+    private readonly Dictionary<(string, string), List<string>> _resourceAssociatedServicesMap = [];
 
     public DcpDataSource(
         KubernetesService kubernetesService,
@@ -89,7 +89,7 @@ internal sealed class DcpDataSource
             return;
         }
 
-        UpdateAssociatedServicesMap(ResourceKind.Container, watchEventType, container);
+        UpdateAssociatedServicesMap("Container", watchEventType, container);
 
         var objectChangeType = ToObjectChangeType(watchEventType);
         var containerViewModel = ConvertToContainerViewModel(container);
@@ -110,7 +110,7 @@ internal sealed class DcpDataSource
             return;
         }
 
-        UpdateAssociatedServicesMap(ResourceKind.Executable, watchEventType, executable);
+        UpdateAssociatedServicesMap("Executable", watchEventType, executable);
 
         var objectChangeType = ToObjectChangeType(watchEventType);
         var executableViewModel = ConvertToExecutableViewModel(executable);
@@ -125,7 +125,7 @@ internal sealed class DcpDataSource
             return;
         }
 
-        UpdateAssociatedServicesMap(ResourceKind.Executable, watchEventType, executable);
+        UpdateAssociatedServicesMap("Executable", watchEventType, executable);
 
         var objectChangeType = ToObjectChangeType(watchEventType);
         var projectViewModel = ConvertToProjectViewModel(executable);
@@ -147,31 +147,36 @@ internal sealed class DcpDataSource
 
         foreach (var ownerReference in endpoint.Metadata.OwnerReferences)
         {
-            ResourceViewModel? resource = null;
+            await TryRefreshResource(ownerReference.Kind, ownerReference.Name).ConfigureAwait(false);
+        }
+    }
 
-            switch (ownerReference.Kind)
-            {
-                case "Container":
-                    if (_containersMap.TryGetValue(ownerReference.Name, out var container))
-                    {
-                        resource = ConvertToContainerViewModel(container);
-                    }
-                    break;
+    private async ValueTask TryRefreshResource(string resourceKind, string resourceName)
+    {
+        ResourceViewModel? resource = null;
 
-                case "Executable":
-                    if (_executablesMap.TryGetValue(ownerReference.Name, out var executable))
-                    {
-                        resource = executable.IsCSharpProject()
-                            ? ConvertToProjectViewModel(executable)
-                            : ConvertToExecutableViewModel(executable);
-                    }
-                    break;
-            }
+        switch (resourceKind)
+        {
+            case "Container":
+                if (_containersMap.TryGetValue(resourceName, out var container))
+                {
+                    resource = ConvertToContainerViewModel(container);
+                }
+                break;
 
-            if (resource is not null)
-            {
-                await _onResourceChanged(resource, ObjectChangeType.Upsert).ConfigureAwait(false);
-            }
+            case "Executable":
+                if (_executablesMap.TryGetValue(resourceName, out var executable))
+                {
+                    resource = executable.IsCSharpProject()
+                        ? ConvertToProjectViewModel(executable)
+                        : ConvertToExecutableViewModel(executable);
+                }
+                break;
+        }
+
+        if (resource is not null)
+        {
+            await _onResourceChanged(resource, ObjectChangeType.Upsert).ConfigureAwait(false);
         }
     }
 
@@ -184,38 +189,14 @@ internal sealed class DcpDataSource
 
         foreach (var ((resourceKind, resourceName), _) in _resourceAssociatedServicesMap.Where(e => e.Value.Contains(service.Metadata.Name)))
         {
-            ResourceViewModel? resource = null;
-
-            switch (resourceKind)
-            {
-                case ResourceKind.Container:
-                    if (_containersMap.TryGetValue(resourceName, out var container))
-                    {
-                        resource = ConvertToContainerViewModel(container);
-                    }
-                    break;
-
-                case ResourceKind.Executable:
-                    if (_executablesMap.TryGetValue(resourceName, out var executable))
-                    {
-                        resource = executable.IsCSharpProject()
-                            ? ConvertToProjectViewModel(executable)
-                            : ConvertToExecutableViewModel(executable);
-                    }
-                    break;
-            }
-
-            if (resource is not null)
-            {
-                await _onResourceChanged(resource, ObjectChangeType.Upsert).ConfigureAwait(false);
-            }
+            await TryRefreshResource(resourceKind, resourceName).ConfigureAwait(false);
         }
     }
 
     private ContainerViewModel ConvertToContainerViewModel(Container container)
     {
         var containerId = container.Status?.ContainerId;
-        var (endpoints, services) = GetEndpointsAndServices(container, ResourceKind.Container);
+        var (endpoints, services) = GetEndpointsAndServices(container, "Container");
 
         var environment = GetEnvironmentVariables(container.Status?.EffectiveEnv ?? container.Spec.Env, container.Spec.Env);
 
@@ -261,7 +242,7 @@ internal sealed class DcpDataSource
 
     private ExecutableViewModel ConvertToExecutableViewModel(Executable executable)
     {
-        var (endpoints, services) = GetEndpointsAndServices(executable, ResourceKind.Executable);
+        var (endpoints, services) = GetEndpointsAndServices(executable, "Executable");
 
         var model = new ExecutableViewModel
         {
@@ -287,7 +268,7 @@ internal sealed class DcpDataSource
     private ProjectViewModel ConvertToProjectViewModel(Executable executable)
     {
         var projectPath = executable.Metadata.Annotations?[Executable.CSharpProjectPathAnnotation] ?? "";
-        var (endpoints, services) = GetEndpointsAndServices(executable, ResourceKind.Executable, projectPath);
+        var (endpoints, services) = GetEndpointsAndServices(executable, "Executable", projectPath);
 
         var model = new ProjectViewModel
         {
@@ -310,7 +291,7 @@ internal sealed class DcpDataSource
 
     private (ImmutableArray<string> Endpoints, ImmutableArray<ResourceServiceSnapshot> Services) GetEndpointsAndServices(
         CustomResource resource,
-        ResourceKind resourceKind,
+        string resourceKind,
         string? projectPath = null)
     {
         var endpoints = ImmutableArray.CreateBuilder<string>();
@@ -427,7 +408,7 @@ internal sealed class DcpDataSource
         return environment.ToImmutable();
     }
 
-    private void UpdateAssociatedServicesMap(ResourceKind resourceKind, WatchEventType watchEventType, CustomResource resource)
+    private void UpdateAssociatedServicesMap(string resourceKind, WatchEventType watchEventType, CustomResource resource)
     {
         // We keep track of associated services for the resource
         // So whenever we get the service we can figure out if the service can generate endpoint for the resource
@@ -496,11 +477,5 @@ internal sealed class DcpDataSource
             }
         }
         return displayName;
-    }
-
-    private enum ResourceKind
-    {
-        Container,
-        Executable
     }
 }
