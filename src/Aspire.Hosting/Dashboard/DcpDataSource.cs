@@ -258,7 +258,7 @@ internal sealed class DcpDataSource
             Endpoints = endpoints,
             Services = services,
             Command = container.Spec.Command,
-            Args = container.Spec.Args?.ToImmutableArray() ?? ImmutableArray<string>.Empty,
+            Args = container.Spec.Args?.ToImmutableArray() ?? [],
             Ports = GetPorts()
         };
 
@@ -276,7 +276,7 @@ internal sealed class DcpDataSource
         {
             if (container.Spec.Ports is null)
             {
-                return ImmutableArray<int>.Empty;
+                return [];
             }
 
             var ports = ImmutableArray.CreateBuilder<int>();
