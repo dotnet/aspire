@@ -236,6 +236,7 @@ message StructuredLogFilterOption {
 ////////////////////////////////////////////
 
 message StructuredLogsRequest {
+    // TODO need a way to make these available to the client (or to map them from resources)
     optional string application_service_id = 1;
     int32 start_index = 2;
     optional int32 count = 3;
