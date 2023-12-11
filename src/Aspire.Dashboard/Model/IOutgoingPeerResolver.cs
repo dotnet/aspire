@@ -5,6 +5,6 @@ namespace Aspire.Dashboard.Model;
 
 public interface IOutgoingPeerResolver
 {
-    string ResolvePeerName(string networkAddress);
+    bool TryResolvePeerName(KeyValuePair<string, string>[] attributes, out string? name);
     IDisposable OnPeerChanges(Func<Task> callback);
 }

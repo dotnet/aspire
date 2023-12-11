@@ -148,6 +148,11 @@ public sealed record DaprSidecarOptions
     public string? RunFile { get; init; }
 
     /// <summary>
+    /// Gets or sets the directory of the Dapr runtime (i.e. daprd).
+    /// </summary>
+    public string? RuntimePath { get; init; }
+
+    /// <summary>
     /// Gets or sets the path to a Unix Domain Socket (UDS) directory.
     /// </summary>
     /// <remarks>

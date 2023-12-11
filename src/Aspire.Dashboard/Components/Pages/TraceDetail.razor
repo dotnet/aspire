@@ -8,15 +8,15 @@
 @using Aspire.Dashboard.Otlp.Storage
 @using System.Diagnostics
 @using System.Globalization
-@inject IDashboardViewModelService DashboardViewModelService
+@inject IResourceService dashboardService
 
-<PageTitle>@DashboardViewModelService.ApplicationName Traces</PageTitle>
+<PageTitle>@dashboardService.ApplicationName Traces</PageTitle>
 
 @if (_trace != null)
 {
     <div class="trace-detail-layout">
-        <div class="trace-detail-header">
-            <h1 style="display:inline-block">@(_trace.FirstSpan.Source.ApplicationName): @_trace.FirstSpan.Name</h1>
+        <div class="trace-detail-header page-header">
+            <h1 style="display:inline-block">@GetResourceName(_trace.FirstSpan.Source): @_trace.FirstSpan.Name</h1>
             <span class="trace-id">@OtlpHelpers.ToShortenedId(_trace.TraceId)</span>
         </div>
         <FluentToolbar Orientation="Orientation.Horizontal">
@@ -29,7 +29,7 @@
             </div>
             <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
             <div>
-                Services <strong>@_trace.Spans.GroupBy(s => s.Source).Count()</strong>
+                Resources <strong>@_trace.Spans.GroupBy(s => s.Source).Count()</strong>
             </div>
             <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
             <div>
@@ -56,12 +56,12 @@
                 <FluentDataGrid Class="trace-view-grid" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="SpanWaterfallViewModel" RowClass="@GetRowClass" GridTemplateColumns="2fr 6fr">
                     <TemplateColumn Title="Name">
                         <div class="col-long-content" title="@context.GetTooltip()" @onclick="() => OnShowProperties(context)">
-                            <span class="span-name-container" style="@($"margin-left: {(context.Depth - 1) * 15}px; border-left-color: {ColorGenerator.Instance.GetColorHexByKey(context.Span.Source.ApplicationName)};")">
+                            <span class="span-name-container" style="@($"margin-left: {(context.Depth - 1) * 15}px; border-left-color: {ColorGenerator.Instance.GetColorHexByKey(GetResourceName(context.Span.Source))};")">
                                 @if (context.IsError)
                                 {
                                     <FluentIcon Icon="Icons.Filled.Size12.ErrorCircle" Color="Color.Error" Class="trace-tag-icon" />
                                 }
-                                @context.Span.Source.ApplicationName
+                                @GetResourceName(context.Span.Source)
                                 @if (context.HasUninstrumentedPeer)
                                 {
                                     <span class="uninstrumented-peer">
@@ -95,9 +95,9 @@
                         <ChildContent>
                             <div class="ticks" @onclick="() => OnShowProperties(context)">
                                 <div class="span-container" style="grid-template-columns: @context.LeftOffset.ToString("F2", CultureInfo.InvariantCulture)% @context.Width.ToString("F2", CultureInfo.InvariantCulture)% min-content;">
-                                    <div class="span-bar" style="grid-column: 2; background: @ColorGenerator.Instance.GetColorHexByKey(context.Span.Source.ApplicationName);"></div>
+                                    <div class="span-bar" style="grid-column: 2; background: @ColorGenerator.Instance.GetColorHexByKey(GetResourceName(context.Span.Source));"></div>
                                     <div class="span-bar-label @(context.LabelIsRight ? "span-bar-label-right" : "span-bar-label-left")">
-                                        <span class="span-bar-label-detail">@context.Span.Source.ApplicationName: @context.GetDisplaySummary()</span>
+                                        <span class="span-bar-label-detail">@GetResourceName(context.Span.Source): @context.GetDisplaySummary()</span>
                                         <span>@DurationFormatter.FormatDuration(context.Span.Duration)</span>
                                     </div>
                                 </div>

@@ -1,5 +1,17 @@
 {
   "resources": {
+    "statestore": {
+      "type": "dapr.component.v0",
+      "daprComponent": {
+        "type": "state"
+      }
+    },
+    "pubsub": {
+      "type": "dapr.component.v0",
+      "daprComponent": {
+        "type": "pubsub"
+      }
+    },
     "servicea": {
       "type": "project.v0",
       "path": "..\\ServiceA\\DaprServiceA.csproj",
@@ -40,46 +52,25 @@
         }
       }
     },
-    "service-a": {
-      "type": "executable.v0",
-      "env": {},
-      "bindings": {
-        "grpc": {
-          "scheme": "tcp",
-          "protocol": "tcp",
-          "transport": "tcp"
-        },
-        "http": {
-          "scheme": "tcp",
-          "protocol": "tcp",
-          "transport": "tcp"
-        },
-        "metrics": {
-          "scheme": "tcp",
-          "protocol": "tcp",
-          "transport": "tcp"
-        }
+    "servicea-dapr": {
+      "type": "dapr.v0",
+      "dapr": {
+        "application": "servicea",
+        "appId": "servicea",
+        "components": [
+          "statestore",
+          "pubsub"
+        ]
       }
     },
-    "service-b": {
-      "type": "executable.v0",
-      "env": {},
-      "bindings": {
-        "grpc": {
-          "scheme": "tcp",
-          "protocol": "tcp",
-          "transport": "tcp"
-        },
-        "http": {
-          "scheme": "tcp",
-          "protocol": "tcp",
-          "transport": "tcp"
-        },
-        "metrics": {
-          "scheme": "tcp",
-          "protocol": "tcp",
-          "transport": "tcp"
-        }
+    "serviceb-dapr": {
+      "type": "dapr.v0",
+      "dapr": {
+        "application": "serviceb",
+        "appId": "serviceb",
+        "components": [
+          "pubsub"
+        ]
       }
     }
   }

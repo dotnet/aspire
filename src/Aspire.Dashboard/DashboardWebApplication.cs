@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -86,13 +87,17 @@ public class DashboardWebApplication : IHostedService
         // OTLP services.
         builder.Services.AddGrpc();
         builder.Services.AddSingleton<TelemetryRepository>();
-        builder.Services.AddScoped<IOutgoingPeerResolver, ResourceOutgoingPeerResolver>();
         builder.Services.AddTransient<StructuredLogsViewModel>();
         builder.Services.AddTransient<TracesViewModel>();
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Scoped<IOutgoingPeerResolver, ResourceOutgoingPeerResolver>());
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Scoped<IOutgoingPeerResolver, BrowserLinkOutgoingPeerResolver>());
 
         builder.Services.AddFluentUIComponents();
 
+        builder.Services.AddSingleton<ThemeManager>();
+
         configureServices(builder.Services);
+        builder.Services.AddLocalization();
 
         _app = builder.Build();
 
@@ -111,7 +116,7 @@ public class DashboardWebApplication : IHostedService
         {
             OnPrepareResponse = (context) =>
             {
-                // If Cache-Control isn't already set to something, set it to 'no-cache' so that the 
+                // If Cache-Control isn't already set to something, set it to 'no-cache' so that the
                 // ETag and Last-Modified headers will be respected by the browser.
                 // This may be able to be removed if https://github.com/dotnet/aspnetcore/issues/44153
                 // is fixed to make this the default

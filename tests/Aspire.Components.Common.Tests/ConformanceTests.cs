@@ -3,7 +3,6 @@
 
 using System.Diagnostics;
 using System.Text.Json.Nodes;
-using Microsoft.DotNet.RemoteExecutor;
 using Microsoft.DotNet.XUnitExtensions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -504,12 +503,6 @@ public abstract class ConformanceTests<TService, TOptions>
 
     public static string CreateConfigKey(string prefix, string? key, string suffix)
         => string.IsNullOrEmpty(key) ? $"{prefix}:{suffix}" : $"{prefix}:{key}:{suffix}";
-
-    protected static RemoteInvokeOptions EnableTracingForAzureSdk()
-        => new()
-        {
-            RuntimeConfigurationOptions = { { "Azure.Experimental.EnableActivitySource", true } }
-        };
 
     protected HostApplicationBuilder CreateHostBuilder(HostApplicationBuilderSettings? hostSettings = null, string? key = null)
     {

@@ -4,9 +4,11 @@
 using Aspire.Components.ConformanceTests;
 using Azure.Data.Tables;
 using Azure.Identity;
+using Microsoft.DotNet.RemoteExecutor;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Xunit;
 
 namespace Aspire.Azure.Data.Tables.Tests;
 
@@ -104,10 +106,18 @@ public class ConformanceTests : ConformanceTests<TableServiceClient, AzureDataTa
 
     protected override void TriggerActivity(TableServiceClient service)
     {
-        string tableName = Guid.NewGuid().ToString();
-        service.CreateTableIfNotExists(tableName);
-        service.DeleteTable(tableName);
+        // table names must start with a letter and can't contain hyphens
+        string tableName = $"a{Guid.NewGuid().ToString("N")}";
+        service.Query(t => t.Name == tableName).FirstOrDefault();
     }
+
+    [Fact]
+    public void TracingEnablesTheRightActivitySource()
+        => RemoteExecutor.Invoke(() => ActivitySourceTest(key: null)).Dispose();
+
+    [Fact]
+    public void TracingEnablesTheRightActivitySource_Keyed()
+        => RemoteExecutor.Invoke(() => ActivitySourceTest(key: "key")).Dispose();
 
     private static bool GetCanConnect()
     {

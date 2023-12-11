@@ -34,7 +34,7 @@ internal sealed class DockerContainerLogSource(string containerId) : ILogSource
     {
         if (_containerLogWatcher is not null)
         {
-            await foreach (var logs in _containerLogWatcher!.WatchOutputLogsAsync(cancellationToken).ConfigureAwait(false))
+            await foreach (var logs in _containerLogWatcher.WatchOutputLogsAsync(cancellationToken).ConfigureAwait(false))
             {
                 yield return logs;
             }
@@ -45,7 +45,7 @@ internal sealed class DockerContainerLogSource(string containerId) : ILogSource
     {
         if (_containerLogWatcher is not null)
         {
-            await foreach (var logs in _containerLogWatcher!.WatchErrorLogsAsync(cancellationToken).ConfigureAwait(false))
+            await foreach (var logs in _containerLogWatcher.WatchErrorLogsAsync(cancellationToken).ConfigureAwait(false))
             {
                 yield return logs;
             }

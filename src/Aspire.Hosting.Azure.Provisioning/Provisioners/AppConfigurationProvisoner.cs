@@ -1,12 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics;
 using Aspire.Hosting.ApplicationModel;
 using Azure;
 using Azure.ResourceManager.AppConfiguration;
 using Azure.ResourceManager.AppConfiguration.Models;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Internal;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Azure.Provisioning;
@@ -49,12 +49,11 @@ internal sealed class AppConfigurationProvisioner(ILogger<AppConfigurationProvis
             var appConfigurationData = new AppConfigurationStoreData(context.Location, new AppConfigurationSku("free"));
             appConfigurationData.Tags.Add(AzureProvisioner.AspireResourceNameTag, resource.Name);
 
-            var sw = Stopwatch.StartNew();
+            var sw = ValueStopwatch.StartNew();
             var operation = await context.ResourceGroup.GetAppConfigurationStores().CreateOrUpdateAsync(WaitUntil.Completed, appConfigurationName, appConfigurationData, cancellationToken).ConfigureAwait(false);
             appConfigurationResource = operation.Value;
-            sw.Stop();
 
-            logger.LogInformation("App Configuration {appConfigurationName} created in {elapsed}", appConfigurationResource.Data.Name, sw.Elapsed);
+            logger.LogInformation("App Configuration {appConfigurationName} created in {elapsed}", appConfigurationResource.Data.Name, sw.GetElapsedTime());
         }
         resource.Endpoint = appConfigurationResource.Data.Endpoint;
 

@@ -4,13 +4,13 @@ var catalogDb = builder.AddPostgresContainer("postgres")
                     .WithPgAdmin(hostPort: 8081)
                     .AddDatabase("catalogdb");
 
-var basketCache = builder.AddRedisContainer("basketcache");
+var basketCache = builder.AddRedis("basketcache");
 
 var catalogService = builder.AddProject<Projects.CatalogService>("catalogservice")
                      .WithReference(catalogDb)
                      .WithReplicas(2);
 
-var messaging = builder.AddRabbitMQContainer("messaging");
+var messaging = builder.AddRabbitMQ("messaging");
 
 var basketService = builder.AddProject("basketservice", @"..\BasketService\BasketService.csproj")
                     .WithReference(basketCache)

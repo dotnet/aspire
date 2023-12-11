@@ -7,17 +7,17 @@
 @using Microsoft.Extensions.Logging
 @using System.Web
 @inject NavigationManager NavigationManager
-@inject IDashboardViewModelService DashboardViewModelService
+@inject IResourceService resourceService
 @inject IJSRuntime JS
 @implements IDisposable
 
-<PageTitle>@DashboardViewModelService.ApplicationName Structured Logs</PageTitle>
+<PageTitle>@resourceService.ApplicationName Structured Logs</PageTitle>
 
 <div class="logs-layout">
-    <h1>Structured Logs</h1>
+    <h1 class="page-header">Structured Logs</h1>
     <FluentToolbar Orientation="Orientation.Horizontal">
         <FluentSelect TOption="SelectViewModel<string>"
-                      Items="@_applications"
+                      Items="@_applicationViewModels"
                       OptionText="@(c => c.Name)"
                       @bind-SelectedOption="_selectedApplication"
                       @bind-SelectedOption:after="HandleSelectedApplicationChangedAsync"
@@ -63,9 +63,9 @@
                 <div class="logs-grid-container continuous-scroll-overflow">
                     <FluentDataGrid Virtualize="true" RowClass="@GetRowClass" GenerateHeader="GenerateHeaderOption.Sticky" ItemSize="46" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="OtlpLogEntry" GridTemplateColumns="1fr 1fr 1fr 5fr 0.8fr 0.8fr">
                         <ChildContent>
-                            <TemplateColumn Title="Service" Tooltip="true" TooltipText="(e) => e.Application.ApplicationName">
-                                <span style="padding-left:5px; border-left-width: 5px; border-left-style: solid; border-left-color: @(ColorGenerator.Instance.GetColorHexByKey(context.Application.ApplicationName));">
-                                    @context.Application.ApplicationName
+                            <TemplateColumn Title="Resource" Tooltip="true" TooltipText="@(e => GetResourceName(e.Application))">
+                                <span style="padding-left:5px; border-left-width: 5px; border-left-style: solid; border-left-color: @(ColorGenerator.Instance.GetColorHexByKey(GetResourceName(context.Application)));">
+                                    @GetResourceName(context.Application)
                                 </span>
                             </TemplateColumn>
                             <TemplateColumn Title="Level">
