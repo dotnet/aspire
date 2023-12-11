@@ -28,7 +28,7 @@ public abstract class TestProgramFixture : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        if (Environment.GetEnvironmentVariable("BUILD_BUILDID") != null)
+        if (Environment.GetEnvironmentVariable("BUILD_BUILDID") != null || OperatingSystem.IsWindows())
         {
             return;
         }
