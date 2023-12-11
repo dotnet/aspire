@@ -27,21 +27,21 @@ internal static class StringExtensions
 
     public static string SanitizeHtmlId(this string input)
     {
-        var sanitizedStringBuilder = new StringBuilder();
+        var sanitizedBuilder = new StringBuilder();
 
         foreach (var c in input)
         {
             if (IsValidHtmlIdCharacter(c))
             {
-                sanitizedStringBuilder.Append(c);
+                sanitizedBuilder.Append(c);
             }
             else
             {
-                sanitizedStringBuilder.Append('_');
+                sanitizedBuilder.Append('_');
             }
         }
 
-        return sanitizedStringBuilder.ToString();
+        return sanitizedBuilder.ToString();
 
         static bool IsValidHtmlIdCharacter(char c)
         {

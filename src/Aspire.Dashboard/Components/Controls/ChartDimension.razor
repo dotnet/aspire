@@ -4,7 +4,6 @@
 @using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Otlp.Model.MetricValues
 @using Aspire.Dashboard.Resources
-@inject IStringLocalizer<ControlsStrings> Loc
 
 <div title="@Model.Name"><span class="dimension-name">@Model.Name</span></div>
 <div title="@string.Join(", ", Model.SelectedValues.Select(v => v.Name))">
