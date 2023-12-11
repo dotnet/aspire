@@ -71,6 +71,13 @@
     min-width: 100px;
 }
 
+::deep .fluent-popover-content {
+    overflow-wrap: normal;
+    word-break: normal;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
 ::deep .metrics-tree {
     min-width: auto;
     margin-right: 3px;

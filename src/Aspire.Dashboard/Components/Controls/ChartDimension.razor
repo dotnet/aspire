@@ -37,6 +37,7 @@
                   Appearance="@(Model.AreAllTypesVisible is true ? Appearance.Stealth : Appearance.Accent)"
                   @onclick="() => Model.PopupVisible = !Model.PopupVisible" />
     <FluentPopover AnchorId="@($"typeFilterButton-{Model.Name}")" @bind-Open="Model.PopupVisible">
+        <Header>@Model.Name</Header>
         <Body>
             <FluentStack Orientation="Orientation.Vertical" Class="dimension-popup">
                 <FluentCheckbox Label="All"

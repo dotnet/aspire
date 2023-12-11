@@ -129,7 +129,7 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
         // No filter selected.
         if (!filter.SelectedValues.Any())
         {
-            return true;
+            return false;
         }
 
         var value = OtlpHelpers.GetValue(attributes, filter.Name);
@@ -235,7 +235,13 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
                     {
                         // Select previously selected.
                         item.SelectedValues.Clear();
-                        foreach (var v in item.Values.Where(newValue => existing.Values.Any(existingValue => existingValue.Name == newValue.Name)))
+
+                        // Automatically select new incoming values if existing values are all selected.
+                        var newSelectedValues = (existing.AreAllTypesVisible ?? false)
+                            ? item.Values
+                            : item.Values.Where(newValue => existing.Values.Any(existingValue => existingValue.Name == newValue.Name));
+
+                        foreach (var v in newSelectedValues)
                         {
                             item.SelectedValues.Add(v);
                         }

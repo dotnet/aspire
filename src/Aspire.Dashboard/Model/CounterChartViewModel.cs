@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Model;
 
@@ -18,12 +17,6 @@ public class DimensionFilterViewModel
     public List<DimensionValueViewModel> Values { get; } = new();
     public HashSet<DimensionValueViewModel> SelectedValues { get; } = new();
     public bool PopupVisible { get; set; }
-
-    public Task OnSearchAsync(OptionsSearchEventArgs<DimensionValueViewModel> e)
-    {
-        e.Items = Values.Where(i => i.Name.StartsWith(e.Text, StringComparison.OrdinalIgnoreCase)).OrderBy(i => i.Name);
-        return Task.CompletedTask;
-    }
 
     public bool? AreAllTypesVisible
     {
