@@ -24,7 +24,7 @@ else if (Resource is ContainerViewModel containerViewModel)
         @if (containerViewModel.Ports.Length > 0)
         {
             var title = string.Format(
-                Loc[containerViewModel.Ports.Count == 1
+                Loc[containerViewModel.Ports.Length == 1
                     ? Columns.SourceColumnDisplayPort
                     : Columns.SourceColumnDisplayPorts],
                 ports);
