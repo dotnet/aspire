@@ -1,17 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Collections.Concurrent;
 using System.Collections.Immutable;
-using System.Text;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
-using Aspire.Hosting.Dcp.Process;
-using Aspire.Hosting.Utils;
 using k8s;
 using Microsoft.Extensions.Logging;
 
@@ -25,7 +20,6 @@ internal sealed class DcpDataSource
     private readonly KubernetesService _kubernetesService;
     private readonly DistributedApplicationModel _applicationModel;
     private readonly Func<ResourceViewModel, ObjectChangeType, ValueTask> _onResourceChanged;
-    private readonly CancellationToken _cancellationToken;
     private readonly ILogger _logger;
 
     private readonly Dictionary<string, Container> _containersMap = [];
@@ -33,8 +27,6 @@ internal sealed class DcpDataSource
     private readonly Dictionary<string, Service> _servicesMap = [];
     private readonly Dictionary<string, Endpoint> _endpointsMap = [];
     private readonly Dictionary<(ResourceKind, string), List<string>> _resourceAssociatedServicesMap = [];
-    private readonly ConcurrentDictionary<string, List<EnvVar>> _dockerEnvironmentByContainerId = [];
-    private readonly HashSet<string> _containerIdsHavingDockerInspections = [];
 
     public DcpDataSource(
         KubernetesService kubernetesService,
@@ -46,7 +38,6 @@ internal sealed class DcpDataSource
         _kubernetesService = kubernetesService;
         _applicationModel = applicationModel;
         _onResourceChanged = onResourceChanged;
-        _cancellationToken = cancellationToken;
 
         _logger = loggerFactory.CreateLogger<ResourceService>();
 
@@ -239,9 +230,7 @@ internal sealed class DcpDataSource
         var containerId = container.Status?.ContainerId;
         var (endpoints, services) = GetEndpointsAndServices(container, ResourceKind.Container);
 
-        var environment = containerId is not null && _dockerEnvironmentByContainerId.TryGetValue(containerId, out var dockerEnvironment)
-            ? GetEnvironmentVariables(dockerEnvironment, null)
-            : GetEnvironmentVariables(container.Spec.Env, null);
+        var environment = GetEnvironmentVariables(container.Status?.EffectiveEnv ?? container.Spec.Env, container.Spec.Env);
 
         var model = new ContainerViewModel
         {
@@ -261,14 +250,6 @@ internal sealed class DcpDataSource
             Args = container.Spec.Args?.ToImmutableArray() ?? [],
             Ports = GetPorts()
         };
-
-        if (containerId is not null && _containerIdsHavingDockerInspections.Add(containerId))
-        {
-            // This container has not yet been inspected. Call kubernetes on the CLI to obtain the environment
-            // for this container. When returned, the values will be cached in _dockerEnvironmentByContainerId
-            // and an updated container resource published, which will pick up the docker environment.
-            Task.Run(() => ComputeEnvironmentVariablesFromDocker(containerId, container.Metadata.Name));
-        }
 
         return model;
 
@@ -474,67 +455,6 @@ internal sealed class DcpDataSource
             {
                 _resourceAssociatedServicesMap[(resourceKind, resource.Metadata.Name)]
                     = serviceProducerAnnotations.Select(e => e.ServiceName).ToList();
-            }
-        }
-    }
-
-    private async Task ComputeEnvironmentVariablesFromDocker(string containerId, string containerName)
-    {
-        IAsyncDisposable? processDisposable = null;
-        try
-        {
-            Task<ProcessResult> task;
-            var outputStringBuilder = new StringBuilder();
-            var spec = new ProcessSpec(FileUtil.FindFullPathFromPath("docker"))
-            {
-                Arguments = $"container inspect --format=\"{{{{json .Config.Env}}}}\" {containerId}",
-                OnOutputData = s => outputStringBuilder.Append(s),
-                KillEntireProcessTree = false,
-                ThrowOnNonZeroReturnCode = false
-            };
-
-            (task, processDisposable) = ProcessUtil.Run(spec);
-
-            var exitCode = (await task.WaitAsync(TimeSpan.FromSeconds(30), _cancellationToken).ConfigureAwait(false)).ExitCode;
-            if (exitCode == 0)
-            {
-                var output = outputStringBuilder.ToString();
-                if (output == string.Empty)
-                {
-                    return;
-                }
-
-                var jsonArray = JsonNode.Parse(output)?.AsArray();
-                if (jsonArray is not null)
-                {
-                    var dockerEnvironment = new List<EnvVar>(capacity: jsonArray.Count);
-                    foreach (var item in jsonArray)
-                    {
-                        if (item is not null)
-                        {
-                            var parts = item.ToString().Split('=', 2);
-                            dockerEnvironment.Add(new EnvVar { Name = parts[0], Value = parts[1] });
-                        }
-                    }
-
-                    _dockerEnvironmentByContainerId[containerId] = dockerEnvironment;
-
-                    if (_containersMap.TryGetValue(containerName, out var container))
-                    {
-                        await ProcessContainerChange(WatchEventType.Modified, container).ConfigureAwait(false);
-                    }
-                }
-            }
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            _logger.LogError(ex, "Failed to retrieve environment variables from docker container for {containerId}", containerId);
-        }
-        finally
-        {
-            if (processDisposable != null)
-            {
-                await processDisposable.DisposeAsync().ConfigureAwait(false);
             }
         }
     }
