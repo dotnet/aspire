@@ -6,6 +6,9 @@ using Aspire.Dashboard.Extensions;
 
 namespace Aspire.Dashboard.Model;
 
+/// <summary>
+/// Immutable snapshot of container state at a point in time.
+/// </summary>
 public class ContainerViewModel : ResourceViewModel
 {
     public override string ResourceType => "Container";

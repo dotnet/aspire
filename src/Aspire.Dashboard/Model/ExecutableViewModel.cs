@@ -5,6 +5,9 @@ using System.Collections.Immutable;
 
 namespace Aspire.Dashboard.Model;
 
+/// <summary>
+/// Immutable snapshot of executable state at a point in time.
+/// </summary>
 public class ExecutableViewModel : ResourceViewModel
 {
     public override string ResourceType => "Executable";

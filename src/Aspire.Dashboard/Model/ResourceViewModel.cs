@@ -6,6 +6,9 @@ using Aspire.Dashboard.Extensions;
 
 namespace Aspire.Dashboard.Model;
 
+/// <summary>
+/// Base class for immutable snapshots of resource state at a point in time.
+/// </summary>
 public abstract class ResourceViewModel
 {
     public required string Name { get; init; }
@@ -18,6 +21,7 @@ public abstract class ResourceViewModel
     public required ImmutableArray<string> Endpoints { get; init; }
     public required ImmutableArray<ResourceServiceSnapshot> Services { get; init; }
     public required int? ExpectedEndpointsCount { get; init; }
+
     public abstract string ResourceType { get; }
 
     public static string GetResourceName(ResourceViewModel resource, IEnumerable<ResourceViewModel> allResources)
