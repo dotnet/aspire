@@ -99,12 +99,6 @@ internal sealed class DcpDataSource
 
     private async Task ProcessExecutableChange(WatchEventType watchEventType, Executable executable)
     {
-        if (executable.IsCSharpProject())
-        {
-            await ProcessProjectChange(watchEventType, executable).ConfigureAwait(false);
-            return;
-        }
-
         if (!ProcessResourceChange(_executablesMap, watchEventType, executable))
         {
             return;
@@ -116,21 +110,6 @@ internal sealed class DcpDataSource
         var executableViewModel = ConvertToExecutableViewModel(executable);
 
         await _onResourceChanged(executableViewModel, objectChangeType).ConfigureAwait(false);
-    }
-
-    private async Task ProcessProjectChange(WatchEventType watchEventType, Executable executable)
-    {
-        if (!ProcessResourceChange(_executablesMap, watchEventType, executable))
-        {
-            return;
-        }
-
-        UpdateAssociatedServicesMap("Executable", watchEventType, executable);
-
-        var objectChangeType = ToObjectChangeType(watchEventType);
-        var projectViewModel = ConvertToProjectViewModel(executable);
-
-        await _onResourceChanged(projectViewModel, objectChangeType).ConfigureAwait(false);
     }
 
     private async Task ProcessEndpointChange(WatchEventType watchEventType, Endpoint endpoint)
@@ -167,9 +146,7 @@ internal sealed class DcpDataSource
             case "Executable":
                 if (_executablesMap.TryGetValue(resourceName, out var executable))
                 {
-                    resource = executable.IsCSharpProject()
-                        ? ConvertToProjectViewModel(executable)
-                        : ConvertToExecutableViewModel(executable);
+                    resource = ConvertToExecutableViewModel(executable);
                 }
                 break;
         }
@@ -200,7 +177,7 @@ internal sealed class DcpDataSource
 
         var environment = GetEnvironmentVariables(container.Status?.EffectiveEnv ?? container.Spec.Env, container.Spec.Env);
 
-        var model = new ContainerViewModel
+        return new ContainerViewModel
         {
             Name = container.Metadata.Name,
             DisplayName = container.Metadata.Name,
@@ -218,8 +195,6 @@ internal sealed class DcpDataSource
             Args = container.Spec.Args?.ToImmutableArray() ?? [],
             Ports = GetPorts()
         };
-
-        return model;
 
         ImmutableArray<int> GetPorts()
         {
@@ -242,35 +217,37 @@ internal sealed class DcpDataSource
 
     private ExecutableViewModel ConvertToExecutableViewModel(Executable executable)
     {
-        var (endpoints, services) = GetEndpointsAndServices(executable, "Executable");
+        string? projectPath = null;
+        executable.Metadata.Annotations?.TryGetValue(Executable.CSharpProjectPathAnnotation, out projectPath);
 
-        var model = new ExecutableViewModel
-        {
-            Name = executable.Metadata.Name,
-            DisplayName = ComputeExecutableDisplayName(executable),
-            Uid = executable.Metadata.Uid,
-            CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToLocalTime(),
-            ExecutablePath = executable.Spec.ExecutablePath,
-            WorkingDirectory = executable.Spec.WorkingDirectory,
-            Arguments = executable.Spec.Args?.ToImmutableArray(),
-            State = executable.Status?.State,
-            LogSource = new FileLogSource(executable.Status?.StdOutFile, executable.Status?.StdErrFile),
-            ProcessId = executable.Status?.ProcessId,
-            ExpectedEndpointsCount = GetExpectedEndpointsCount(executable),
-            Environment = GetEnvironmentVariables(executable.Status?.EffectiveEnv, executable.Spec.Env),
-            Endpoints = endpoints,
-            Services = services
-        };
-
-        return model;
-    }
-
-    private ProjectViewModel ConvertToProjectViewModel(Executable executable)
-    {
-        var projectPath = executable.Metadata.Annotations?[Executable.CSharpProjectPathAnnotation] ?? "";
         var (endpoints, services) = GetEndpointsAndServices(executable, "Executable", projectPath);
 
-        var model = new ProjectViewModel
+        if (projectPath is not null)
+        {
+            // This executable represents a C# project, so we create a slightly different type here
+            // that captures the project's path, making it more convenient for consumers to work with
+            // the project.
+            return new ProjectViewModel
+            {
+                Name = executable.Metadata.Name,
+                DisplayName = ComputeExecutableDisplayName(executable),
+                Uid = executable.Metadata.Uid,
+                CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToLocalTime(),
+                ExecutablePath = executable.Spec.ExecutablePath,
+                WorkingDirectory = executable.Spec.WorkingDirectory,
+                Arguments = executable.Spec.Args?.ToImmutableArray(),
+                ProjectPath = projectPath,
+                State = executable.Status?.State,
+                LogSource = new FileLogSource(executable.Status?.StdOutFile, executable.Status?.StdErrFile),
+                ProcessId = executable.Status?.ProcessId,
+                ExpectedEndpointsCount = GetExpectedEndpointsCount(executable),
+                Environment = GetEnvironmentVariables(executable.Status?.EffectiveEnv, executable.Spec.Env),
+                Endpoints = endpoints,
+                Services = services
+            };
+        }
+
+        return new ExecutableViewModel
         {
             Name = executable.Metadata.Name,
             DisplayName = ComputeExecutableDisplayName(executable),
@@ -279,7 +256,6 @@ internal sealed class DcpDataSource
             ExecutablePath = executable.Spec.ExecutablePath,
             WorkingDirectory = executable.Spec.WorkingDirectory,
             Arguments = executable.Spec.Args?.ToImmutableArray(),
-            ProjectPath = projectPath,
             State = executable.Status?.State,
             LogSource = new FileLogSource(executable.Status?.StdOutFile, executable.Status?.StdErrFile),
             ProcessId = executable.Status?.ProcessId,
@@ -288,8 +264,6 @@ internal sealed class DcpDataSource
             Endpoints = endpoints,
             Services = services
         };
-
-        return model;
     }
 
     private (ImmutableArray<string> Endpoints, ImmutableArray<ResourceServiceSnapshot> Services) GetEndpointsAndServices(
