@@ -18,7 +18,7 @@ public class DimensionFilterViewModel
     public HashSet<DimensionValueViewModel> SelectedValues { get; } = new();
     public bool PopupVisible { get; set; }
 
-    public bool? AreAllTypesVisible
+    public bool? AreAllValuesSelected
     {
         get
         {

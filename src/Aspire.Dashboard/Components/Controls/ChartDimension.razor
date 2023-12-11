@@ -32,24 +32,25 @@
     </FluentOverflow>
 </div>
 <div>
-    <FluentButton id="@($"typeFilterButton-{Model.Name}")"
+    <FluentButton id="@($"typeFilterButton-{SanitizedHtmlId}")"
                   IconEnd="@(new Icons.Regular.Size20.Filter())"
-                  Appearance="@(Model.AreAllTypesVisible is true ? Appearance.Stealth : Appearance.Accent)"
+                  Appearance="@(Model.AreAllValuesSelected is true ? Appearance.Stealth : Appearance.Accent)"
                   @onclick="() => Model.PopupVisible = !Model.PopupVisible" />
-    <FluentPopover AnchorId="@($"typeFilterButton-{Model.Name}")" @bind-Open="Model.PopupVisible">
+    <FluentPopover AnchorId="@($"typeFilterButton-{SanitizedHtmlId}")" @bind-Open="Model.PopupVisible">
         <Header>@Model.Name</Header>
         <Body>
             <FluentStack Orientation="Orientation.Vertical" Class="dimension-popup">
                 <FluentCheckbox Label="All"
                                 ThreeState="true"
                                 ShowIndeterminate="false"
-                                @bind-CheckState="Model.AreAllTypesVisible" />
+                                @bind-CheckState="Model.AreAllValuesSelected" />
                 @foreach (var tag in Model.Values)
                 {
-                    bool isChecked = Model.SelectedValues.Contains(tag);
+                    var isChecked = Model.SelectedValues.Contains(tag);
                     <FluentCheckbox Label="@tag.Name"
+                                    @key=tag
                                     @bind-Value:get="isChecked"
-                                    @bind-Value:set="c => OnResourceTypeVisibilityChanged(tag, c)" />
+                                    @bind-Value:set="c => OnTagSelectionChanged(tag, c)" />
                 }
             </FluentStack>
         </Body>

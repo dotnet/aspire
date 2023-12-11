@@ -237,7 +237,7 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
                         item.SelectedValues.Clear();
 
                         // Automatically select new incoming values if existing values are all selected.
-                        var newSelectedValues = (existing.AreAllTypesVisible ?? false)
+                        var newSelectedValues = (existing.AreAllValuesSelected ?? false)
                             ? item.Values
                             : item.Values.Where(newValue => existing.Values.Any(existingValue => existingValue.Name == newValue.Name));
 
