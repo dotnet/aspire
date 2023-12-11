@@ -5,35 +5,33 @@ using MongoDB.Driver;
 
 public static class MongoDBExtensions
 {
-    public static void MapMongoMovieApi(this WebApplication app)
+    public static void MapMongoDBApi(this WebApplication app)
     {
-        app.MapGet("/mongodb/databases", GetDatabaseNamesAsync);
-
-        app.MapGet("/mongodb/movies", GetMoviesAsync);
+        app.MapGet("/mongodb/verify", VerifyMongoDBAsync);
     }
 
-    private static async Task<List<string>> GetDatabaseNamesAsync(IMongoClient client, IMongoDatabase db)
+    private static async Task<IResult> VerifyMongoDBAsync(IMongoDatabase db)
     {
-        // Ensure the database is created
-        var randomCollection = db.GetCollection<Movie>("random");
-        await randomCollection.DeleteManyAsync(x => true);
-        randomCollection.InsertOne(new Movie(1, "123"));
+        try
+        {
+            // Use a random collection to make the test idempotent
 
-        var databaseNames = new List<string>();
+            var collectionName = Guid.NewGuid().ToString("N");
+            db.CreateCollection(collectionName);
+            var moviesCollection = db.GetCollection<Movie>(collectionName);
+            await moviesCollection.InsertOneAsync(new Movie(1, "Rocky I"));
+            await moviesCollection.InsertOneAsync(new Movie(2, "Rocky II"));
 
-        await client.ListDatabaseNames().ForEachAsync(databaseNames.Add);
+            var moviesCount = (await moviesCollection.Find(x => true).ToListAsync()).Count;
 
-        return databaseNames;
-    }
+            return moviesCount == 2 ? Results.Ok("Success!") : Results.Problem("Failed");
+        }
+        catch (Exception e)
+        {
+            return Results.Problem(e.ToString());
+        }
 
-    private static async Task<List<string>> GetMoviesAsync(IMongoDatabase db)
-    {
-        db.CreateCollection("movies");
-        var moviesCollection = db.GetCollection<Movie>("movies");
-        await moviesCollection.DeleteManyAsync(x => true);
-        await moviesCollection.InsertOneAsync(new Movie(1, "Rocky I"));
-        await moviesCollection.InsertOneAsync(new Movie(2, "Rocky II"));
-
-        return (await moviesCollection.Find(x => true).ToListAsync()).Select(x => x.Name).ToList();
+        
+            
     }
 }

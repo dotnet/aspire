@@ -26,7 +26,7 @@ app.MapGet("/pid", () => Environment.ProcessId);
 
 app.MapRedisApi();
 
-app.MapMongoMovieApi();
+app.MapMongoDBApi();
 
 app.MapMySqlApi();
 

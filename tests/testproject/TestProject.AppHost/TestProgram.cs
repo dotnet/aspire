@@ -49,6 +49,7 @@ public class TestProgram
             var rabbitmqContainer = AppBuilder.AddRabbitMQContainer("rabbitmqcontainer");
             var mongodbContainer = AppBuilder.AddMongoDBContainer("mongodbcontainer")
                 .AddDatabase(mongoDbName);
+
             var sqlserverAbstract = AppBuilder.AddSqlServerContainer("sqlserverabstract");
             var mysqlAbstract = AppBuilder.AddMySqlContainer("mysqlabstract");
             var redisAbstract = AppBuilder.AddRedisContainer("redisabstract");
