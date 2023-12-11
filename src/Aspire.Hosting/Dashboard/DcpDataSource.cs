@@ -130,6 +130,19 @@ internal sealed class DcpDataSource
         }
     }
 
+    private async Task ProcessServiceChange(WatchEventType watchEventType, Service service)
+    {
+        if (!ProcessResourceChange(_servicesMap, watchEventType, service))
+        {
+            return;
+        }
+
+        foreach (var ((resourceKind, resourceName), _) in _resourceAssociatedServicesMap.Where(e => e.Value.Contains(service.Metadata.Name)))
+        {
+            await TryRefreshResource(resourceKind, resourceName).ConfigureAwait(false);
+        }
+    }
+
     private async ValueTask TryRefreshResource(string resourceKind, string resourceName)
     {
         ResourceViewModel? resource = null;
@@ -154,19 +167,6 @@ internal sealed class DcpDataSource
         if (resource is not null)
         {
             await _onResourceChanged(resource, ObjectChangeType.Upsert).ConfigureAwait(false);
-        }
-    }
-
-    private async Task ProcessServiceChange(WatchEventType watchEventType, Service service)
-    {
-        if (!ProcessResourceChange(_servicesMap, watchEventType, service))
-        {
-            return;
-        }
-
-        foreach (var ((resourceKind, resourceName), _) in _resourceAssociatedServicesMap.Where(e => e.Value.Contains(service.Metadata.Name)))
-        {
-            await TryRefreshResource(resourceKind, resourceName).ConfigureAwait(false);
         }
     }
 
