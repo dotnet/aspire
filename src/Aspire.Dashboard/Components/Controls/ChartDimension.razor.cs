@@ -14,15 +14,15 @@ public partial class ChartDimension : ComponentBase
 
     public string SanitizedHtmlId => StringExtensions.SanitizeHtmlId(Model.Name);
 
-    protected void OnTagSelectionChanged(DimensionValueViewModel resourceType, bool isVisible)
+    protected void OnTagSelectionChanged(DimensionValueViewModel dimensionValue, bool isVisible)
     {
         if (isVisible)
         {
-            Model.SelectedValues.Add(resourceType);
+            Model.SelectedValues.Add(dimensionValue);
         }
         else
         {
-            Model.SelectedValues.Remove(resourceType);
+            Model.SelectedValues.Remove(dimensionValue);
         }
     }
 }

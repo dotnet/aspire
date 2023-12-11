@@ -219,10 +219,11 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
 
             foreach (var item in filters)
             {
+                item.SelectedValues.Clear();
+
                 if (hasInstrumentChanged)
                 {
                     // Select all by default.
-                    item.SelectedValues.Clear();
                     foreach (var v in item.Values)
                     {
                         item.SelectedValues.Add(v);
@@ -234,8 +235,6 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
                     if (existing != null)
                     {
                         // Select previously selected.
-                        item.SelectedValues.Clear();
-
                         // Automatically select new incoming values if existing values are all selected.
                         var newSelectedValues = (existing.AreAllValuesSelected ?? false)
                             ? item.Values
@@ -248,8 +247,11 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
                     }
                     else
                     {
-                        // No filter. Select none.
-                        item.SelectedValues.Clear();
+                        // New filter. Select all by default.
+                        foreach (var v in item.Values)
+                        {
+                            item.SelectedValues.Add(v);
+                        }
                     }
                 }
             }
