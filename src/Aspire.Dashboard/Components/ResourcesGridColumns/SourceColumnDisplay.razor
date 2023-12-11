@@ -3,6 +3,7 @@
 
 @if (Resource is ProjectViewModel projectViewModel)
 {
+    // NOTE projects are also executables, so we have to check for projects first
     <span title="@projectViewModel.ProjectPath" aria-label="@projectViewModel.ProjectPath">@Path.GetFileName(projectViewModel.ProjectPath)</span>
 }
 else if (Resource is ExecutableViewModel executableViewModel)
