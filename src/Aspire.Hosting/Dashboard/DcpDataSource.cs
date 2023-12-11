@@ -282,8 +282,9 @@ internal sealed class DcpDataSource
                 continue;
             }
 
-            var matchingService = _servicesMap.Values.SingleOrDefault(s => s.Metadata.Name == endpoint.Spec.ServiceName);
-            if (matchingService?.UsesHttpProtocol(out var uriScheme) == true)
+            if (endpoint.Spec.ServiceName is not null
+                && _servicesMap.TryGetValue(endpoint.Spec.ServiceName, out var service)
+                && service?.UsesHttpProtocol(out var uriScheme) == true)
             {
                 var endpointString = $"{uriScheme}://{endpoint.Spec.Address}:{endpoint.Spec.Port}";
 
