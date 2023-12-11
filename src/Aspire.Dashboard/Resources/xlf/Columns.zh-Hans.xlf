@@ -57,6 +57,11 @@
         <target state="new">Working Dir: {0}</target>
         <note>{0} is a path</note>
       </trans-unit>
+      <trans-unit id="SourceColumnSourceCopyFullPathToClipboard">
+        <source>Copy File Path to Clipboard</source>
+        <target state="new">Copy File Path to Clipboard</target>
+        <note />
+      </trans-unit>
       <trans-unit id="UnreadLogErrorsBadgeErrorLog">
         <source>{0} error log</source>
         <target state="new">{0} error log</target>
