@@ -11,13 +11,13 @@ public abstract class ResourceViewModel
     public required string Name { get; init; }
     public required string DisplayName { get; init; }
     public required string Uid { get; init; }
-    public string? State { get; init; }
-    public DateTime? CreationTimeStamp { get; init; }
+    public required string? State { get; init; }
+    public required DateTime? CreationTimeStamp { get; init; }
     public required ImmutableArray<EnvironmentVariableViewModel> Environment { get; init; }
     public required ILogSource LogSource { get; init; }
     public required ImmutableArray<string> Endpoints { get; init; }
     public required ImmutableArray<ResourceServiceSnapshot> Services { get; init; }
-    public int? ExpectedEndpointsCount { get; init; }
+    public required int? ExpectedEndpointsCount { get; init; }
     public abstract string ResourceType { get; }
 
     public static string GetResourceName(ResourceViewModel resource, IEnumerable<ResourceViewModel> allResources)

@@ -9,11 +9,12 @@ namespace Aspire.Dashboard.Model;
 public class ContainerViewModel : ResourceViewModel
 {
     public override string ResourceType => "Container";
-    public string? ContainerId { get; init; }
+
+    public required string? ContainerId { get; init; }
     public required string Image { get; init; }
-    public ImmutableArray<int> Ports { get; init; }
-    public string? Command { get; init; }
-    public ImmutableArray<string>? Args { get; init; }
+    public required ImmutableArray<int> Ports { get; init; }
+    public required string? Command { get; init; }
+    public required ImmutableArray<string>? Args { get; init; }
 
     internal override bool MatchesFilter(string filter)
     {
