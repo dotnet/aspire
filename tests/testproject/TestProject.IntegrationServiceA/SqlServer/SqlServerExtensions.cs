@@ -16,13 +16,8 @@ public static class SqlServerExtensions
         {
             await connection.OpenAsync();
 
-            var tableName = $"t" + Guid.NewGuid().ToString("n");
             var command = connection.CreateCommand();
-            command.CommandText = $"""
-                CREATE TABLE {tableName} (x INT);
-                INSERT INTO {tableName} VALUES (1);
-                SELECT x FROM {tableName};
-                """;
+            command.CommandText = $"SELECT 1";
             var results = await command.ExecuteReaderAsync();
 
             return results.HasRows ? Results.Ok("Success!") : Results.Problem("Failed");
