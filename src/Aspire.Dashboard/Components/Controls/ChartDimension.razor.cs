@@ -16,9 +16,9 @@ public partial class ChartDimension : ComponentBase
 
     public string SanitizedHtmlId => _sanitizedHtmlId ??= StringExtensions.SanitizeHtmlId(Model.Name);
 
-    protected void OnTagSelectionChanged(DimensionValueViewModel dimensionValue, bool isVisible)
+    protected void OnTagSelectionChanged(DimensionValueViewModel dimensionValue, bool isChecked)
     {
-        if (isVisible)
+        if (isChecked)
         {
             Model.SelectedValues.Add(dimensionValue);
         }
