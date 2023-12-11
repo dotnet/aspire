@@ -6,10 +6,9 @@ namespace Aspire.Dashboard.Model;
 /// <summary>
 /// Immutable snapshot of project state at a point in time.
 /// </summary>
-public class ProjectViewModel : ResourceViewModel
+public class ProjectViewModel : ExecutableViewModel
 {
     public override string ResourceType => "Project";
 
-    public required int? ProcessId { get; init; }
     public required string ProjectPath { get; init; }
 }
