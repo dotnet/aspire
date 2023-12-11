@@ -245,7 +245,7 @@ internal sealed class KubernetesDataSource
             Image = container.Spec.Image!,
             LogSource = new DockerContainerLogSource(container.Status!.ContainerId!),
             State = container.Status?.State,
-            ExpectedEndpointsCount = GetExpectedEndpointsCount(_servicesMap.Values, container),
+            ExpectedEndpointsCount = GetExpectedEndpointsCount(container),
             Command = container.Spec.Command,
             Args = container.Spec.Args
         };
@@ -297,7 +297,7 @@ internal sealed class KubernetesDataSource
             State = executable.Status?.State,
             LogSource = new FileLogSource(executable.Status?.StdOutFile, executable.Status?.StdErrFile),
             ProcessId = executable.Status?.ProcessId,
-            ExpectedEndpointsCount = GetExpectedEndpointsCount(_servicesMap.Values, executable)
+            ExpectedEndpointsCount = GetExpectedEndpointsCount(executable)
         };
 
         FillEndpoints(executable, model, ResourceKind.Executable);
@@ -322,7 +322,7 @@ internal sealed class KubernetesDataSource
             State = executable.Status?.State,
             LogSource = new FileLogSource(executable.Status?.StdOutFile, executable.Status?.StdErrFile),
             ProcessId = executable.Status?.ProcessId,
-            ExpectedEndpointsCount = GetExpectedEndpointsCount(_servicesMap.Values, executable)
+            ExpectedEndpointsCount = GetExpectedEndpointsCount(executable)
         };
 
         FillEndpoints(executable, model, ResourceKind.Executable);
@@ -384,8 +384,7 @@ internal sealed class KubernetesDataSource
         {
             foreach (var serviceName in resourceServiceMappings)
             {
-                var service = _servicesMap.Values.FirstOrDefault(s => s.Metadata.Name == resourceViewModel.Name);
-                if (service != null)
+                if (_servicesMap.TryGetValue(resourceViewModel.Name, out var service))
                 {
                     resourceViewModel.Services.Add(new ResourceServiceSnapshot(service.Metadata.Name, service.AllocatedAddress, service.AllocatedPort));
                 }
@@ -393,7 +392,7 @@ internal sealed class KubernetesDataSource
         }
     }
 
-    private static int? GetExpectedEndpointsCount(IEnumerable<Service> services, CustomResource resource)
+    private int? GetExpectedEndpointsCount(CustomResource resource)
     {
         var expectedCount = 0;
         if (resource.Metadata.Annotations?.TryGetValue(CustomResource.ServiceProducerAnnotation, out var servicesProducedAnnotationJson) == true)
@@ -403,8 +402,7 @@ internal sealed class KubernetesDataSource
             {
                 foreach (var serviceProducer in serviceProducerAnnotations)
                 {
-                    var matchingService = services.SingleOrDefault(s => s.Metadata.Name == serviceProducer.ServiceName);
-                    if (matchingService is null)
+                    if (!_servicesMap.TryGetValue(serviceProducer.ServiceName, out var service))
                     {
                         // We don't have matching service so we cannot compute endpoint count completely
                         // So we return null indicating that it is unknown.
@@ -412,7 +410,7 @@ internal sealed class KubernetesDataSource
                         return null;
                     }
 
-                    if (matchingService.UsesHttpProtocol(out _))
+                    if (service.UsesHttpProtocol(out _))
                     {
                         expectedCount++;
                     }
