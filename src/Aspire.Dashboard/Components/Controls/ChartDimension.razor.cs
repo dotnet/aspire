@@ -9,10 +9,12 @@ namespace Aspire.Dashboard.Components;
 
 public partial class ChartDimension : ComponentBase
 {
-    [Parameter, EditorRequired]
-    public required DimensionFilterViewModel Model { get; set; }
+    private string? _sanitizedHtmlId;
 
-    public string SanitizedHtmlId => StringExtensions.SanitizeHtmlId(Model.Name);
+    [Parameter, EditorRequired]
+    public required DimensionFilterViewModel Model { get; init; }
+
+    public string SanitizedHtmlId => _sanitizedHtmlId ??= StringExtensions.SanitizeHtmlId(Model.Name);
 
     protected void OnTagSelectionChanged(DimensionValueViewModel dimensionValue, bool isVisible)
     {

@@ -27,7 +27,7 @@ internal static class StringExtensions
 
     public static string SanitizeHtmlId(this string input)
     {
-        var sanitizedBuilder = new StringBuilder();
+        var sanitizedBuilder = new StringBuilder(capacity: input.Length);
 
         foreach (var c in input)
         {
