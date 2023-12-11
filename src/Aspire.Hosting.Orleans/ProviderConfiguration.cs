@@ -28,7 +28,16 @@ internal sealed class ProviderConfiguration(string providerType, string? service
     /// <param name="resourceBuilder">The resource which this provider configuration represents.</param>
     /// <returns>The new provider configuration.</returns>
     internal static ProviderConfiguration Create(IResourceBuilder<IResourceWithConnectionString> resourceBuilder)
-        => new( resourceBuilder.Resource.GetType().Name.Replace("Resource", ""), resourceBuilder.Resource.Name, resourceBuilder);
+    {
+        const string resource = "Resource";
+        var serviceKey = resourceBuilder.Resource.Name;
+        var resourceType = resourceBuilder.Resource.GetType().Name;
+
+        // Use a simple transformation to get the provider type: remove the "Resource" suffix if it exists.
+        var providerType = resourceType.EndsWith(resource) ? resourceType[..^resource.Length] : resourceType;
+
+        return new(providerType, serviceKey, resourceBuilder);
+    }
 
     /// <summary>
     /// Configures the provided resource.
