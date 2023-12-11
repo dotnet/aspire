@@ -14,12 +14,14 @@
         <span class="cellText" title="@(ToolTip ?? Value)">
             <FluentHighlighter HighlightedText="@HighlightText"
                                Text="@Value" />
+            @ContentAfterValue
         </span>
     }
     else
     {
         <span class="cellText" title="@(ToolTip ?? Value)">
             @(MaxDisplayLength.HasValue ? TrimLength(Value) : Value)
+            @ContentAfterValue
         </span>
     }
     @if (EnableMasking)

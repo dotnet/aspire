@@ -13,6 +13,12 @@ public partial class GridValue
     public string? Value { get; set; }
 
     /// <summary>
+    /// Content to include, if any, after the Value string
+    /// </summary>
+    [Parameter]
+    public RenderFragment? ContentAfterValue { get; set; }
+
+    /// <summary>
     /// If set, copies this value instead of <see cref="Value"/>.
     /// </summary>
     [Parameter]
