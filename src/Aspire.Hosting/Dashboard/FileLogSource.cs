@@ -62,10 +62,10 @@ internal sealed class FileLogSource(string? stdOutPath, string? stdErrPath) : IL
         while (!cancellationToken.IsCancellationRequested)
         {
             var reader = PipeReader.Create(fileStream, s_streamPipeReaderOptions);
-            
+
             while (!cancellationToken.IsCancellationRequested)
             {
-                var result = await reader!.ReadAsync(cancellationToken).ConfigureAwait(false);
+                var result = await reader.ReadAsync(cancellationToken).ConfigureAwait(false);
 
                 if (result.IsCompleted)
                 {

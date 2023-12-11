@@ -36,7 +36,7 @@ public class OtlpLogEntry
                     // Explicitly ignore these
                     break;
                 default:
-                    properties.Add(new KeyValuePair<string, string>(kv.Key, kv.Value.GetString()));
+                    properties.Add(KeyValuePair.Create(kv.Key, kv.Value.GetString()));
                     break;
             }
         }
