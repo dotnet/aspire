@@ -15,7 +15,7 @@ public abstract class ResourceViewModel
     public List<EnvironmentVariableViewModel> Environment { get; } = new();
     public required ILogSource LogSource { get; init; }
     public List<string> Endpoints { get; } = new();
-    public List<ResourceService> Services { get; } = new();
+    public List<ResourceServiceSnapshot> Services { get; } = new();
     public int? ExpectedEndpointsCount { get; init; }
     public abstract string ResourceType { get; }
 
@@ -43,7 +43,7 @@ public abstract class ResourceViewModel
     }
 }
 
-public sealed class ResourceService(string name, string? allocatedAddress, int? allocatedPort)
+public sealed class ResourceServiceSnapshot(string name, string? allocatedAddress, int? allocatedPort)
 {
     public string Name { get; } = name;
     public string? AllocatedAddress { get; } = allocatedAddress;

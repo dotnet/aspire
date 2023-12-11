@@ -387,7 +387,7 @@ internal sealed class KubernetesDataSource
                 var service = _servicesMap.Values.FirstOrDefault(s => s.Metadata.Name == resourceViewModel.Name);
                 if (service != null)
                 {
-                    resourceViewModel.Services.Add(new Aspire.Dashboard.Model.ResourceService(service.Metadata.Name, service.AllocatedAddress, service.AllocatedPort));
+                    resourceViewModel.Services.Add(new ResourceServiceSnapshot(service.Metadata.Name, service.AllocatedAddress, service.AllocatedPort));
                 }
             }
         }
