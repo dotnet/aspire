@@ -3,6 +3,7 @@
 
 @if (Resource is ProjectViewModel projectViewModel)
 {
+    // NOTE projects are also executables, so we have to check for projects first
     <span title="@projectViewModel.ProjectPath" aria-label="@projectViewModel.ProjectPath">@Path.GetFileName(projectViewModel.ProjectPath)</span>
 }
 else if (Resource is ExecutableViewModel executableViewModel)
@@ -18,9 +19,9 @@ else if (Resource is ContainerViewModel containerViewModel)
     var ports = string.Join("; ", containerViewModel.Ports);
     <FluentStack Orientation="Orientation.Horizontal">
         <span title="@containerViewModel.Image"><FluentHighlighter HighlightedText="@FilterText" Text="@containerViewModel.Image" /></span>
-        @if (containerViewModel.Ports.Count > 0)
+        @if (containerViewModel.Ports.Length > 0)
         {
-            var title = $"Port{(containerViewModel.Ports.Count > 1 ? "s" : string.Empty)}: {ports}";
+            var title = $"Port{(containerViewModel.Ports.Length > 1 ? "s" : string.Empty)}: {ports}";
             <span class="subtext" title="@title" aria-label="@title">@ports</span>
         }
     </FluentStack>
