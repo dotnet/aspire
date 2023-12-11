@@ -4,12 +4,7 @@
 
 <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
     <span><FluentHighlighter HighlightedText="@FilterText" Text="@FormatName(Resource)" /></span>
-    @if (Resource is ProjectViewModel projectViewModel)
-    {
-        var title = string.Format(Loc[Columns.ResourceNameDisplayProcessIdText], projectViewModel.ProcessId);
-        <span class="subtext" title="@title" aria-label="@title">@projectViewModel.ProcessId</span>
-    }
-    else if (Resource is ContainerViewModel containerViewModel)
+    @if (Resource is ContainerViewModel containerViewModel)
     {
         <div class="subtext">
             <GridValue Value="@containerViewModel.ContainerId"
@@ -21,6 +16,7 @@
     }
     else if (Resource is ExecutableViewModel executableViewModel)
     {
+        // NOTE projects are also executables, so this will handle both
         var title = string.Format(Loc[Columns.ResourceNameDisplayProcessIdText], executableViewModel.ProcessId);
         <span class="subtext" title="@title" aria-label="@title">@executableViewModel.ProcessId</span>
     }

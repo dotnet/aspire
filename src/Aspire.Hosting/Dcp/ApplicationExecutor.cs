@@ -270,12 +270,15 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
             exeSpec.WorkingDirectory = Path.GetDirectoryName(projectMetadata.ProjectPath);
 
             annotationHolder.Annotate(Executable.CSharpProjectPathAnnotation, projectMetadata.ProjectPath);
-            annotationHolder.Annotate(Executable.LaunchProfileNameAnnotation, project.SelectLaunchProfileName() ?? string.Empty);
             annotationHolder.Annotate(Executable.OtelServiceNameAnnotation, ers.Metadata.Name);
 
             if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable(DebugSessionPortVar)))
             {
                 exeSpec.ExecutionType = ExecutionType.IDE;
+                if (project.TryGetLastAnnotation<LaunchProfileAnnotation>(out var lpa))
+                {
+                    annotationHolder.Annotate(Executable.CSharpLaunchProfileAnnotation, lpa.LaunchProfileName);
+                }
             }
             else
             {
@@ -375,6 +378,12 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
                 }
                 else
                 {
+                    // If there is no launch profile, we want to make sure that certain environment variables are NOT inherited
+                    foreach (var envVar in s_doNotInheritEnvironmentVars)
+                    {
+                        config.Add(envVar, "");
+                    }
+
                     if (er.ServicesProduced.Count > 0)
                     {
                         if (er.ModelResource is ProjectResource)
@@ -410,12 +419,6 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
                     {
                         ann.Callback(context);
                     }
-                }
-
-                // We want to make sure that certain environment variables are NOT inherited
-                foreach (var envVar in s_doNotInheritEnvironmentVars)
-                {
-                    config.TryAdd(envVar, "");
                 }
 
                 spec.Env = new();

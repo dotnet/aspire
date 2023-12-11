@@ -188,15 +188,12 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
         NavigationManager.NavigateTo($"/ConsoleLogs/{_selectedOption?.Value}");
     }
 
-    private async Task OnResourceListChangedAsync(ObjectChangeType changeType, ResourceViewModel resourceViewModel)
+    private async Task OnResourceListChangedAsync(ResourceChangeType changeType, ResourceViewModel resourceViewModel)
     {
-        if (changeType == ObjectChangeType.Added)
+        if (changeType == ResourceChangeType.Upsert)
         {
             _resourceNameMapping[resourceViewModel.Name] = resourceViewModel;
-        }
-        else if (changeType == ObjectChangeType.Modified)
-        {
-            _resourceNameMapping[resourceViewModel.Name] = resourceViewModel;
+
             if (string.Equals(_selectedResource?.Name, resourceViewModel.Name, StringComparison.Ordinal))
             {
                 _selectedResource = resourceViewModel;
@@ -211,9 +208,10 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
                 }
             }
         }
-        else if (changeType == ObjectChangeType.Deleted)
+        else if (changeType == ResourceChangeType.Deleted)
         {
             _resourceNameMapping.Remove(resourceViewModel.Name);
+
             if (string.Equals(_selectedResource?.Name, resourceViewModel.Name, StringComparison.Ordinal))
             {
                 _selectedOption = _noSelection;

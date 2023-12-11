@@ -3,4 +3,4 @@
 
 namespace Aspire.Dashboard.Model;
 
-public sealed record ResourceChange(ObjectChangeType ObjectChangeType, ResourceViewModel Resource);
+public sealed record ResourceChange(ResourceChangeType ChangeType, ResourceViewModel Resource);
