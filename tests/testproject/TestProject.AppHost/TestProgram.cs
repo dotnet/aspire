@@ -35,7 +35,7 @@ public class TestProgram
             var sqlserverDbName = "tempdb";
             var mysqlDbName = "mysqldb";
             var postgresDbName = "postgresdb";
-            var mongoDbName = "mongodb";
+            var mongoDbName = "mymongodb";
 
             var sqlserverContainer = AppBuilder.AddSqlServerContainer("sqlservercontainer")
                 .AddDatabase(sqlserverDbName);

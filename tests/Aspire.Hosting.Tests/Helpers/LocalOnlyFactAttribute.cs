@@ -14,7 +14,7 @@ public class LocalOnlyFactAttribute(params string[] executablesOnPath) : FactAtt
         {
             // BUILD_BUILDID is defined by Azure Dev Ops
 
-            if (Environment.GetEnvironmentVariable("BUILD_BUILDID") != null)
+            if (Environment.GetEnvironmentVariable("BUILD_BUILDID") != null && !OperatingSystem.IsLinux())
             {
                 return "LocalOnlyFactAttribute tests are not run as part of CI.";
             }
