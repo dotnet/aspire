@@ -49,10 +49,10 @@ internal sealed class DcpDataSource
                 using (semaphore)
                 {
                     await Task.WhenAll(
-                        Task.Run(() => WatchKubernetesResource<Executable>(ProcessExecutableChange), cancellationToken),
+                        Task.Run(() => WatchKubernetesResource<Executable>((t, r) => ProcessResourceChange(t, r, _executablesMap, "Executable", ToSnapshot)), cancellationToken),
+                        Task.Run(() => WatchKubernetesResource<Container>((t, r) => ProcessResourceChange(t, r, _containersMap, "Container", ToSnapshot)), cancellationToken),
                         Task.Run(() => WatchKubernetesResource<Service>(ProcessServiceChange), cancellationToken),
-                        Task.Run(() => WatchKubernetesResource<Endpoint>(ProcessEndpointChange), cancellationToken),
-                        Task.Run(() => WatchKubernetesResource<Container>(ProcessContainerChange), cancellationToken)).ConfigureAwait(false);
+                        Task.Run(() => WatchKubernetesResource<Endpoint>(ProcessEndpointChange), cancellationToken)).ConfigureAwait(false);
                 }
             },
             cancellationToken);
@@ -82,34 +82,17 @@ internal sealed class DcpDataSource
         }
     }
 
-    private async Task ProcessContainerChange(WatchEventType watchEventType, Container container)
+    private async Task ProcessResourceChange<T>(WatchEventType watchEventType, T resource, Dictionary<string, T> resourceByName, string resourceKind, Func<T, ResourceViewModel> snapshotFactory) where T : CustomResource
     {
-        if (!ProcessResourceChange(_containersMap, watchEventType, container))
+        if (ProcessResourceChange(resourceByName, watchEventType, resource))
         {
-            return;
+            UpdateAssociatedServicesMap(resourceKind, watchEventType, resource);
+
+            var changeType = ToChangeType(watchEventType);
+            var snapshot = snapshotFactory(resource);
+
+            await _onResourceChanged(snapshot, changeType).ConfigureAwait(false);
         }
-
-        UpdateAssociatedServicesMap("Container", watchEventType, container);
-
-        var changeType = ToChangeType(watchEventType);
-        var snapshot = ToSnapshot(container);
-
-        await _onResourceChanged(snapshot, changeType).ConfigureAwait(false);
-    }
-
-    private async Task ProcessExecutableChange(WatchEventType watchEventType, Executable executable)
-    {
-        if (!ProcessResourceChange(_executablesMap, watchEventType, executable))
-        {
-            return;
-        }
-
-        UpdateAssociatedServicesMap("Executable", watchEventType, executable);
-
-        var changeType = ToChangeType(watchEventType);
-        var snapshot = ToSnapshot(executable);
-
-        await _onResourceChanged(snapshot, changeType).ConfigureAwait(false);
     }
 
     private async Task ProcessEndpointChange(WatchEventType watchEventType, Endpoint endpoint)
@@ -145,24 +128,12 @@ internal sealed class DcpDataSource
 
     private async ValueTask TryRefreshResource(string resourceKind, string resourceName)
     {
-        ResourceViewModel? snapshot = null;
-
-        switch (resourceKind)
+        ResourceViewModel? snapshot = resourceKind switch
         {
-            case "Container":
-                if (_containersMap.TryGetValue(resourceName, out var container))
-                {
-                    snapshot = ToSnapshot(container);
-                }
-                break;
-
-            case "Executable":
-                if (_executablesMap.TryGetValue(resourceName, out var executable))
-                {
-                    snapshot = ToSnapshot(executable);
-                }
-                break;
-        }
+            "Container" => _containersMap.TryGetValue(resourceName, out var container) ? ToSnapshot(container) : null,
+            "Executable" => _executablesMap.TryGetValue(resourceName, out var executable) ? ToSnapshot(executable) : null,
+            _ => null
+        };
 
         if (snapshot is not null)
         {
