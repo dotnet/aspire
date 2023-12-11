@@ -19,7 +19,7 @@ internal sealed class DcpDataSource
 {
     private readonly KubernetesService _kubernetesService;
     private readonly DistributedApplicationModel _applicationModel;
-    private readonly Func<ResourceViewModel, ObjectChangeType, ValueTask> _onResourceChanged;
+    private readonly Func<ResourceViewModel, ResourceChangeType, ValueTask> _onResourceChanged;
     private readonly ILogger _logger;
 
     private readonly Dictionary<string, Container> _containersMap = [];
@@ -32,7 +32,7 @@ internal sealed class DcpDataSource
         KubernetesService kubernetesService,
         DistributedApplicationModel applicationModel,
         ILoggerFactory loggerFactory,
-        Func<ResourceViewModel, ObjectChangeType, ValueTask> onResourceChanged,
+        Func<ResourceViewModel, ResourceChangeType, ValueTask> onResourceChanged,
         CancellationToken cancellationToken)
     {
         _kubernetesService = kubernetesService;
@@ -91,10 +91,10 @@ internal sealed class DcpDataSource
 
         UpdateAssociatedServicesMap("Container", watchEventType, container);
 
-        var objectChangeType = ToObjectChangeType(watchEventType);
+        var changeType = ToChangeType(watchEventType);
         var snapshot = ToSnapshot(container);
 
-        await _onResourceChanged(snapshot, objectChangeType).ConfigureAwait(false);
+        await _onResourceChanged(snapshot, changeType).ConfigureAwait(false);
     }
 
     private async Task ProcessExecutableChange(WatchEventType watchEventType, Executable executable)
@@ -106,10 +106,10 @@ internal sealed class DcpDataSource
 
         UpdateAssociatedServicesMap("Executable", watchEventType, executable);
 
-        var objectChangeType = ToObjectChangeType(watchEventType);
+        var changeType = ToChangeType(watchEventType);
         var snapshot = ToSnapshot(executable);
 
-        await _onResourceChanged(snapshot, objectChangeType).ConfigureAwait(false);
+        await _onResourceChanged(snapshot, changeType).ConfigureAwait(false);
     }
 
     private async Task ProcessEndpointChange(WatchEventType watchEventType, Endpoint endpoint)
@@ -166,7 +166,7 @@ internal sealed class DcpDataSource
 
         if (snapshot is not null)
         {
-            await _onResourceChanged(snapshot, ObjectChangeType.Upsert).ConfigureAwait(false);
+            await _onResourceChanged(snapshot, ResourceChangeType.Upsert).ConfigureAwait(false);
         }
     }
 
@@ -429,13 +429,13 @@ internal sealed class DcpDataSource
         return true;
     }
 
-    private static ObjectChangeType ToObjectChangeType(WatchEventType watchEventType)
+    private static ResourceChangeType ToChangeType(WatchEventType watchEventType)
     {
         return watchEventType switch
         {
-            WatchEventType.Added or WatchEventType.Modified => ObjectChangeType.Upsert,
-            WatchEventType.Deleted => ObjectChangeType.Deleted,
-            _ => ObjectChangeType.Other
+            WatchEventType.Added or WatchEventType.Modified => ResourceChangeType.Upsert,
+            WatchEventType.Deleted => ResourceChangeType.Deleted,
+            _ => ResourceChangeType.Other
         };
     }
 

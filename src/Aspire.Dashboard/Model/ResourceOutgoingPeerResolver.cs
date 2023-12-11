@@ -33,13 +33,13 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
         });
     }
 
-    private async Task OnResourceListChanged(ObjectChangeType changeType, ResourceViewModel resourceViewModel)
+    private async Task OnResourceListChanged(ResourceChangeType changeType, ResourceViewModel resourceViewModel)
     {
-        if (changeType == ObjectChangeType.Upsert)
+        if (changeType == ResourceChangeType.Upsert)
         {
             _resourceNameMapping[resourceViewModel.Name] = resourceViewModel;
         }
-        else if (changeType == ObjectChangeType.Deleted)
+        else if (changeType == ResourceChangeType.Deleted)
         {
             _resourceNameMapping.TryRemove(resourceViewModel.Name, out _);
         }

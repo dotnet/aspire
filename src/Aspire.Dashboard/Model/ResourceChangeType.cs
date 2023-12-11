@@ -3,7 +3,7 @@
 
 namespace Aspire.Dashboard.Model;
 
-public enum ObjectChangeType
+public enum ResourceChangeType
 {
     Other,
 

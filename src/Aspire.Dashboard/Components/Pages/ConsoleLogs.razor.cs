@@ -187,9 +187,9 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
         NavigationManager.NavigateTo($"/ConsoleLogs/{_selectedOption?.Value}");
     }
 
-    private async Task OnResourceListChangedAsync(ObjectChangeType changeType, ResourceViewModel resourceViewModel)
+    private async Task OnResourceListChangedAsync(ResourceChangeType changeType, ResourceViewModel resourceViewModel)
     {
-        if (changeType == ObjectChangeType.Upsert)
+        if (changeType == ResourceChangeType.Upsert)
         {
             _resourceNameMapping[resourceViewModel.Name] = resourceViewModel;
 
@@ -207,7 +207,7 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
                 }
             }
         }
-        else if (changeType == ObjectChangeType.Deleted)
+        else if (changeType == ResourceChangeType.Deleted)
         {
             _resourceNameMapping.Remove(resourceViewModel.Name);
 
