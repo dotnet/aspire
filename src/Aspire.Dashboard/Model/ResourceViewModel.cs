@@ -13,7 +13,7 @@ public abstract class ResourceViewModel
     public required string Uid { get; init; }
     public string? State { get; init; }
     public DateTime? CreationTimeStamp { get; init; }
-    public List<EnvironmentVariableViewModel> Environment { get; } = new();
+    public required ImmutableArray<EnvironmentVariableViewModel> Environment { get; init; }
     public required ILogSource LogSource { get; init; }
     public required ImmutableArray<string> Endpoints { get; init; }
     public required ImmutableArray<ResourceServiceSnapshot> Services { get; init; }

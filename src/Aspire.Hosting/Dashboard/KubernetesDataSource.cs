@@ -236,19 +236,25 @@ internal sealed class KubernetesDataSource
 
     private ContainerViewModel ConvertToContainerViewModel(Container container)
     {
+        var containerId = container.Status?.ContainerId;
         var (endpoints, services) = GetEndpointsAndServices(container, ResourceKind.Container);
+
+        var environment = containerId is not null && _dockerEnvironmentByContainerId.TryGetValue(containerId, out var dockerEnvironment)
+            ? GetEnvironmentVariables(dockerEnvironment, null)
+            : GetEnvironmentVariables(container.Spec.Env, null);
 
         var model = new ContainerViewModel
         {
             Name = container.Metadata.Name,
             DisplayName = container.Metadata.Name,
             Uid = container.Metadata.Uid,
-            ContainerId = container.Status?.ContainerId,
+            ContainerId = containerId,
             CreationTimeStamp = container.Metadata.CreationTimestamp?.ToLocalTime(),
             Image = container.Spec.Image!,
-            LogSource = new DockerContainerLogSource(container.Status!.ContainerId!),
+            LogSource = new DockerContainerLogSource(containerId!),
             State = container.Status?.State,
             ExpectedEndpointsCount = GetExpectedEndpointsCount(container),
+            Environment = environment,
             Endpoints = endpoints,
             Services = services,
             Command = container.Spec.Command,
@@ -266,21 +272,12 @@ internal sealed class KubernetesDataSource
             }
         }
 
-        if (model.ContainerId is not null && _containerIdsHavingDockerInspections.Add(model.ContainerId))
+        if (containerId is not null && _containerIdsHavingDockerInspections.Add(containerId))
         {
             // This container has not yet been inspected. Call kubernetes on the CLI to obtain the environment
             // for this container. When returned, the values will be cached in _dockerEnvironmentByContainerId
             // and an updated container resource published, which will pick up the docker environment.
-            Task.Run(() => ComputeEnvironmentVariablesFromDocker(model.ContainerId, container.Metadata.Name));
-        }
-
-        if (model.ContainerId is not null && _dockerEnvironmentByContainerId.TryGetValue(model.ContainerId, out var dockerEnvironment))
-        {
-            FillEnvironmentVariables(model.Environment, dockerEnvironment, null);
-        }
-        else if (container.Spec.Env is not null)
-        {
-            FillEnvironmentVariables(model.Environment, container.Spec.Env, null);
+            Task.Run(() => ComputeEnvironmentVariablesFromDocker(containerId, container.Metadata.Name));
         }
 
         return model;
@@ -303,14 +300,10 @@ internal sealed class KubernetesDataSource
             LogSource = new FileLogSource(executable.Status?.StdOutFile, executable.Status?.StdErrFile),
             ProcessId = executable.Status?.ProcessId,
             ExpectedEndpointsCount = GetExpectedEndpointsCount(executable),
+            Environment = GetEnvironmentVariables(executable.Status?.EffectiveEnv, executable.Spec.Env),
             Endpoints = endpoints,
             Services = services
         };
-
-        if (executable.Status?.EffectiveEnv is not null)
-        {
-            FillEnvironmentVariables(model.Environment, executable.Status.EffectiveEnv, executable.Spec.Env);
-        }
 
         return model;
     }
@@ -331,14 +324,10 @@ internal sealed class KubernetesDataSource
             LogSource = new FileLogSource(executable.Status?.StdOutFile, executable.Status?.StdErrFile),
             ProcessId = executable.Status?.ProcessId,
             ExpectedEndpointsCount = GetExpectedEndpointsCount(executable),
+            Environment = GetEnvironmentVariables(executable.Status?.EffectiveEnv, executable.Spec.Env),
             Endpoints = endpoints,
             Services = services
         };
-
-        if (executable.Status?.EffectiveEnv is not null)
-        {
-            FillEnvironmentVariables(model.Environment, executable.Status.EffectiveEnv, executable.Spec.Env);
-        }
 
         return model;
     }
@@ -435,13 +424,20 @@ internal sealed class KubernetesDataSource
         return expectedCount;
     }
 
-    private static void FillEnvironmentVariables(List<EnvironmentVariableViewModel> target, List<EnvVar> effectiveSource, List<EnvVar>? specSource)
+    private static ImmutableArray<EnvironmentVariableViewModel> GetEnvironmentVariables(List<EnvVar>? effectiveSource, List<EnvVar>? specSource)
     {
+        if (effectiveSource is null or { Count: 0 })
+        {
+            return [];
+        }
+
+        var environment = ImmutableArray.CreateBuilder<EnvironmentVariableViewModel>(effectiveSource.Count);
+
         foreach (var env in effectiveSource)
         {
             if (env.Name is not null)
             {
-                target.Add(new()
+                environment.Add(new()
                 {
                     Name = env.Name,
                     Value = env.Value,
@@ -450,7 +446,9 @@ internal sealed class KubernetesDataSource
             }
         }
 
-        target.Sort((v1, v2) => string.Compare(v1.Name, v2.Name));
+        environment.Sort((v1, v2) => string.Compare(v1.Name, v2.Name, StringComparison.Ordinal));
+
+        return environment.ToImmutable();
     }
 
     private void UpdateAssociatedServicesMap(ResourceKind resourceKind, WatchEventType watchEventType, CustomResource resource)

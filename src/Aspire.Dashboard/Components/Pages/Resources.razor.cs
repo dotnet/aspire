@@ -130,7 +130,7 @@ public partial class Resources : ComponentBase, IDisposable
 
     private void ShowEnvironmentVariables(ResourceViewModel resource)
     {
-        if (SelectedEnvironmentVariables == resource.Environment)
+        if (SelectedResource == resource)
         {
             ClearSelectedResource();
         }
