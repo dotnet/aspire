@@ -1,0 +1,47 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="tr" original="../TraceDetail.resx">
+    <body>
+      <trans-unit id="TraceDetailBackButtonText">
+        <source>Back</source>
+        <target state="new">Back</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TraceDetailDepthHeader">
+        <source>Depth</source>
+        <target state="new">Depth</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TraceDetailDurationHeader">
+        <source>Duration</source>
+        <target state="new">Duration</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TraceDetailPageTitle">
+        <source>{0} Traces</source>
+        <target state="new">{0} Traces</target>
+        <note>{0} is an application name</note>
+      </trans-unit>
+      <trans-unit id="TraceDetailResourcesHeader">
+        <source>Resources</source>
+        <target state="new">Resources</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TraceDetailTotalSpansHeader">
+        <source>Total Spans</source>
+        <target state="new">Total Spans</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TraceDetailTraceNotFound">
+        <source>Trace "{0}" not found</source>
+        <target state="new">Trace "{0}" not found</target>
+        <note>{0} is an identifier</note>
+      </trans-unit>
+      <trans-unit id="TraceDetailTraceStartHeader">
+        <source>Trace Detail</source>
+        <target state="new">Trace Detail</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

@@ -2,6 +2,11 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="es" original="../ControlsStrings.resx">
     <body>
+      <trans-unit id="All">
+        <source>All</source>
+        <target state="new">All</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ChartContainerFiltersHeader">
         <source>Filters</source>
         <target state="new">Filters</target>
@@ -57,6 +62,11 @@
         <target state="new">Show Value</target>
         <note />
       </trans-unit>
+      <trans-unit id="NameColumnHeader">
+        <source>Name</source>
+        <target state="new">Name</target>
+        <note />
+      </trans-unit>
       <trans-unit id="PlotlyChartCount">
         <source>Count</source>
         <target state="new">Count</target>
@@ -72,14 +82,14 @@
         <target state="new">Value</target>
         <note />
       </trans-unit>
-      <trans-unit id="PropertyGridNameColumnTitle">
-        <source>Name</source>
-        <target state="new">Name</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="PropertyGridValueColumnTitle">
+      <trans-unit id="PropertyGridValueColumnHeader">
         <source>Value</source>
         <target state="new">Value</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SelectAnApplication">
+        <source>Select an Application</source>
+        <target state="new">Select an Application</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanDetailsDuration">
@@ -97,7 +107,12 @@
         <target state="new">Start Time &lt;strong&gt;{0}&lt;/strong&gt;</target>
         <note />
       </trans-unit>
-      <trans-unit id="SpanDetailsViewLogsLink">
+      <trans-unit id="ViewAction">
+        <source>View</source>
+        <target state="new">View</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ViewLogsLink">
         <source>View Logs</source>
         <target state="new">View Logs</target>
         <note />

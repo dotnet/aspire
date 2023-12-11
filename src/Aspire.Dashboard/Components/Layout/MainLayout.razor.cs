@@ -12,8 +12,8 @@ public partial class MainLayout
     {
         DialogParameters parameters = new()
         {
-            Title = $"Settings",
-            PrimaryAction = "Close",
+            Title = Loc[Resources.Layout.MainLayoutSettingsDialogTitle],
+            PrimaryAction = Resources.Layout.MainLayoutSettingsDialogClose,
             PrimaryActionEnabled = true,
             SecondaryAction = null,
             TrapFocus = true,

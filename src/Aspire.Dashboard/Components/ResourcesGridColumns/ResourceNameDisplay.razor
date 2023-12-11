@@ -1,4 +1,6 @@
 ﻿@using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Resources
+@inject IStringLocalizer<Columns> Loc
 
 <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
     <span><FluentHighlighter HighlightedText="@FilterText" Text="@FormatName(Resource)" /></span>
@@ -8,14 +10,14 @@
             <GridValue Value="@containerViewModel.ContainerId"
                        MaxDisplayLength="8"
                        EnableHighlighting="false"
-                       PreCopyToolTip="Copy container ID to clipboard"
-                       ToolTip="@($"Container ID: {containerViewModel.ContainerId}")"/>
+                       PreCopyToolTip="@Loc[Columns.ResourceNameDisplayCopyContainerIdText]"
+                       ToolTip="@string.Format(Loc[Columns.ResourceNameDisplayContainerIdText], containerViewModel.ContainerId)"/>
         </div>
     }
     else if (Resource is ExecutableViewModel executableViewModel)
     {
         // NOTE projects are also executables, so this will handle both
-        var title = $"Process ID: {executableViewModel.ProcessId}";
+        var title = string.Format(Loc[Columns.ResourceNameDisplayProcessIdText], executableViewModel.ProcessId);
         <span class="subtext" title="@title" aria-label="@title">@executableViewModel.ProcessId</span>
     }
 </FluentStack>
