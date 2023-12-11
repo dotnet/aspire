@@ -169,6 +169,7 @@ message WatchResourcesUpdate {
 
 message ConsoleLogLine {
     string text = 1;
+    // Indicates whether this line came from STDERR or not.
     optional bool is_error = 2;
 }
 
