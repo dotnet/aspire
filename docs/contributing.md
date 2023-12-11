@@ -31,6 +31,18 @@ When you start the sample app in Visual Studio, it will automatically open your 
 
 Otherwise if you are using the command line, when you have the Aspire app running, open the dashboard URL in your browser. The URL is shown in the app's console output like this: `Now listening on: http://localhost:15888`. You can change the default URL in the launchSettings.json file in the AppHost project.
 
+## Localization
+
+If you are contributing to Aspire.Dashboard, please ensure that all strings are localized. If necessary,
+create a new resx file under `Aspire.Dashboard\Resources`. To reference a string, ensure the `IStringLocalizer` for the resx file is
+injected. An example is below:
+
+```xml
+@inject IStringLocalizer<Resources.ResxFile> Loc
+...
+<p>@Loc[Resources.ResxFile.YourStringHere]</p>
+```
+
 ## Tips and known issues
 
 Make sure you have started Docker before trying to run an Aspire app.
