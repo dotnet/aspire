@@ -18,9 +18,9 @@ using Microsoft.Extensions.Logging;
 namespace Aspire.Hosting.Dashboard;
 
 /// <summary>
-/// Pulls data about kubernetes resources from DCP's kubernetes API. Streams updates to consumers.
+/// Pulls data about resources from DCP's kubernetes API. Streams updates to consumers.
 /// </summary>
-internal sealed class KubernetesDataSource
+internal sealed class DcpDataSource
 {
     private readonly KubernetesService _kubernetesService;
     private readonly DistributedApplicationModel _applicationModel;
@@ -36,7 +36,7 @@ internal sealed class KubernetesDataSource
     private readonly ConcurrentDictionary<string, List<EnvVar>> _dockerEnvironmentByContainerId = [];
     private readonly HashSet<string> _containerIdsHavingDockerInspections = [];
 
-    public KubernetesDataSource(
+    public DcpDataSource(
         KubernetesService kubernetesService,
         DistributedApplicationModel applicationModel,
         ILoggerFactory loggerFactory,
