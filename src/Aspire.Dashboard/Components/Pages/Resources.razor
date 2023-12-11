@@ -24,7 +24,8 @@
                         ThreeState="true"
                         ShowIndeterminate="false"
                         @bind-CheckState="AreAllTypesVisible" />
-                    @foreach (string resourceType in _allResourceTypes) {
+                    @foreach (string resourceType in _allResourceTypes)
+                    {
                         bool isChecked = _visibleResourceTypes.Contains(resourceType);
                         <FluentCheckbox
                             Label="@resourceType"

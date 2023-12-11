@@ -16,7 +16,7 @@ public class DimensionFilterViewModel
 {
     public required string Name { get; init; }
     public List<DimensionValueViewModel> Values { get; } = new();
-    public IEnumerable<DimensionValueViewModel> SelectedValues { get; set; } = Array.Empty<DimensionValueViewModel>();
+    public HashSet<DimensionValueViewModel> SelectedValues { get; } = new();
     public bool PopupVisible { get; set; }
 
     public Task OnSearchAsync(OptionsSearchEventArgs<DimensionValueViewModel> e)
@@ -25,7 +25,30 @@ public class DimensionFilterViewModel
         return Task.CompletedTask;
     }
 
-    private string DebuggerToString() => $"Name = {Name}, SelectedValues = {SelectedValues.Count()}";
+    public bool? AreAllTypesVisible
+    {
+        get
+        {
+            return SelectedValues.SetEquals(Values)
+                ? true
+                : SelectedValues.Count == 0
+                    ? false
+                    : null;
+        }
+        set
+        {
+            if (value is true)
+            {
+                SelectedValues.UnionWith(Values);
+            }
+            else if (value is false)
+            {
+                SelectedValues.Clear();
+            }
+        }
+    }
+
+    private string DebuggerToString() => $"Name = {Name}, SelectedValues = {SelectedValues.Count}";
 }
 
 [DebuggerDisplay("Name = {Name}, Empty = {Empty}")]

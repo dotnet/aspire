@@ -222,7 +222,11 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
                 if (hasInstrumentChanged)
                 {
                     // Select all by default.
-                    item.SelectedValues = item.Values.ToList();
+                    item.SelectedValues.Clear();
+                    foreach (var v in item.Values)
+                    {
+                        item.SelectedValues.Add(v);
+                    }
                 }
                 else
                 {
@@ -230,12 +234,16 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
                     if (existing != null)
                     {
                         // Select previously selected.
-                        item.SelectedValues = item.Values.Where(newValue => existing.Values.Any(existingValue => existingValue.Name == newValue.Name)).ToList();
+                        item.SelectedValues.Clear();
+                        foreach (var v in item.Values.Where(newValue => existing.Values.Any(existingValue => existingValue.Name == newValue.Name)))
+                        {
+                            item.SelectedValues.Add(v);
+                        }
                     }
                     else
                     {
                         // No filter. Select none.
-                        item.SelectedValues = new List<DimensionValueViewModel>();
+                        item.SelectedValues.Clear();
                     }
                 }
             }

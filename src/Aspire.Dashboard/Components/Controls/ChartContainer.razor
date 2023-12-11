@@ -21,27 +21,15 @@ else
             <PlotlyChart InstrumentViewModel="_instrumentViewModel" Duration="Duration" />
             @if (_viewModel.DimensionFilters.Count > 0)
             {
-                <div class="metrics-filters-container">
+                <div class="metrics-filters-container" style="width:600px;">
                     <div>
                         <h4>@Loc[ControlsStrings.ChartContainerFiltersHeader]</h4>
-                        <table style="width:100%">
+                        <div class="filter-grid">
                             @foreach (var item in _viewModel.DimensionFilters)
                             {
-                                <tr>
-                                    <td class="dimension-name" title="@item.Name">@item.Name</td>
-                                    <td class="dimension-values" title="@string.Join(", ", item.SelectedValues.Select(v => v.Name))">
-                                        <FluentAutocomplete TOption="DimensionValueViewModel"
-                                                            Width="250px"
-                                                            Placeholder="@Loc[ControlsStrings.ChartContainerSelectFilters]"
-                                                            AriaLabel="@Loc[ControlsStrings.ChartContainerSelectFilters]"
-                                                            OnOptionsSearch="item.OnSearchAsync"
-                                                            OptionText="@(item => item.Name)"
-                                                            @bind-SelectedOptions="item.SelectedValues"
-                                                            @bind-SelectedOptions:after="async () => await DimensionValuesChangedAsync(item)" />
-                                    </td>
-                                </tr>
+                                <ChartDimension @key=item Model="item" />
                             }
-                        </table>
+                        </div>
 
                         @if (_instrument.Type == OtlpInstrumentType.Histogram)
                         {
