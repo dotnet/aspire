@@ -258,19 +258,9 @@ internal sealed class KubernetesDataSource
             Endpoints = endpoints,
             Services = services,
             Command = container.Spec.Command,
-            Args = container.Spec.Args
+            Args = container.Spec.Args?.ToImmutableArray() ?? ImmutableArray<string>.Empty,
+            Ports = GetPorts()
         };
-
-        if (container.Spec.Ports != null)
-        {
-            foreach (var port in container.Spec.Ports)
-            {
-                if (port.ContainerPort != null)
-                {
-                    model.Ports.Add(port.ContainerPort.Value);
-                }
-            }
-        }
 
         if (containerId is not null && _containerIdsHavingDockerInspections.Add(containerId))
         {
@@ -281,6 +271,24 @@ internal sealed class KubernetesDataSource
         }
 
         return model;
+
+        ImmutableArray<int> GetPorts()
+        {
+            if (container.Spec.Ports is null)
+            {
+                return ImmutableArray<int>.Empty;
+            }
+
+            var ports = ImmutableArray.CreateBuilder<int>();
+            foreach (var port in container.Spec.Ports)
+            {
+                if (port.ContainerPort != null)
+                {
+                    ports.Add(port.ContainerPort.Value);
+                }
+            }
+            return ports.ToImmutable();
+        }
     }
 
     private ExecutableViewModel ConvertToExecutableViewModel(Executable executable)
