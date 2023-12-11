@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Concurrent;
+using System.Collections.Immutable;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -235,6 +236,8 @@ internal sealed class KubernetesDataSource
 
     private ContainerViewModel ConvertToContainerViewModel(Container container)
     {
+        var (endpoints, services) = GetEndpointsAndServices(container, ResourceKind.Container);
+
         var model = new ContainerViewModel
         {
             Name = container.Metadata.Name,
@@ -246,6 +249,8 @@ internal sealed class KubernetesDataSource
             LogSource = new DockerContainerLogSource(container.Status!.ContainerId!),
             State = container.Status?.State,
             ExpectedEndpointsCount = GetExpectedEndpointsCount(container),
+            Endpoints = endpoints,
+            Services = services,
             Command = container.Spec.Command,
             Args = container.Spec.Args
         };
@@ -260,8 +265,6 @@ internal sealed class KubernetesDataSource
                 }
             }
         }
-
-        FillEndpoints(container, model, ResourceKind.Container);
 
         if (model.ContainerId is not null && _containerIdsHavingDockerInspections.Add(model.ContainerId))
         {
@@ -285,6 +288,8 @@ internal sealed class KubernetesDataSource
 
     private ExecutableViewModel ConvertToExecutableViewModel(Executable executable)
     {
+        var (endpoints, services) = GetEndpointsAndServices(executable, ResourceKind.Executable);
+
         var model = new ExecutableViewModel
         {
             Name = executable.Metadata.Name,
@@ -297,10 +302,10 @@ internal sealed class KubernetesDataSource
             State = executable.Status?.State,
             LogSource = new FileLogSource(executable.Status?.StdOutFile, executable.Status?.StdErrFile),
             ProcessId = executable.Status?.ProcessId,
-            ExpectedEndpointsCount = GetExpectedEndpointsCount(executable)
+            ExpectedEndpointsCount = GetExpectedEndpointsCount(executable),
+            Endpoints = endpoints,
+            Services = services
         };
-
-        FillEndpoints(executable, model, ResourceKind.Executable);
 
         if (executable.Status?.EffectiveEnv is not null)
         {
@@ -312,20 +317,23 @@ internal sealed class KubernetesDataSource
 
     private ProjectViewModel ConvertToProjectViewModel(Executable executable)
     {
+        var projectPath = executable.Metadata.Annotations?[Executable.CSharpProjectPathAnnotation] ?? "";
+        var (endpoints, services) = GetEndpointsAndServices(executable, ResourceKind.Executable, projectPath);
+
         var model = new ProjectViewModel
         {
             Name = executable.Metadata.Name,
             DisplayName = ComputeExecutableDisplayName(executable),
             Uid = executable.Metadata.Uid,
             CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToLocalTime(),
-            ProjectPath = executable.Metadata.Annotations?[Executable.CSharpProjectPathAnnotation] ?? "",
+            ProjectPath = projectPath,
             State = executable.Status?.State,
             LogSource = new FileLogSource(executable.Status?.StdOutFile, executable.Status?.StdErrFile),
             ProcessId = executable.Status?.ProcessId,
-            ExpectedEndpointsCount = GetExpectedEndpointsCount(executable)
+            ExpectedEndpointsCount = GetExpectedEndpointsCount(executable),
+            Endpoints = endpoints,
+            Services = services
         };
-
-        FillEndpoints(executable, model, ResourceKind.Executable);
 
         if (executable.Status?.EffectiveEnv is not null)
         {
@@ -335,14 +343,18 @@ internal sealed class KubernetesDataSource
         return model;
     }
 
-    private void FillEndpoints(
+    private (ImmutableArray<string> Endpoints, ImmutableArray<ResourceServiceSnapshot> Services) GetEndpointsAndServices(
         CustomResource resource,
-        ResourceViewModel resourceViewModel,
-        ResourceKind resourceKind)
+        ResourceKind resourceKind,
+        string? projectPath = null)
     {
+        var endpoints = ImmutableArray.CreateBuilder<string>();
+        var services = ImmutableArray.CreateBuilder<ResourceServiceSnapshot>();
+        var name = resource.Metadata.Name;
+
         foreach (var endpoint in _endpointsMap.Values)
         {
-            if (endpoint.Metadata.OwnerReferences?.Any(or => or.Kind == resource.Kind && or.Name == resource.Metadata.Name) != true)
+            if (endpoint.Metadata.OwnerReferences?.Any(or => or.Kind == resource.Kind && or.Name == name) != true)
             {
                 continue;
             }
@@ -353,8 +365,8 @@ internal sealed class KubernetesDataSource
                 var endpointString = $"{uriScheme}://{endpoint.Spec.Address}:{endpoint.Spec.Port}";
 
                 // For project look into launch profile to append launch url
-                if (resourceViewModel is ProjectViewModel projectViewModel
-                    && _applicationModel.TryGetProjectWithPath(projectViewModel.Name, projectViewModel.ProjectPath, out var project)
+                if (projectPath is not null
+                    && _applicationModel.TryGetProjectWithPath(name, projectPath, out var project)
                     && project.GetEffectiveLaunchProfile() is LaunchProfile launchProfile
                     && launchProfile.LaunchUrl is string launchUrl)
                 {
@@ -376,20 +388,22 @@ internal sealed class KubernetesDataSource
                     // If we cannot process launchUrl then we just show endpoint string
                 }
 
-                resourceViewModel.Endpoints.Add(endpointString);
+                endpoints.Add(endpointString);
             }
         }
 
-        if (_resourceAssociatedServicesMap.TryGetValue((resourceKind, resourceViewModel.Name), out var resourceServiceMappings))
+        if (_resourceAssociatedServicesMap.TryGetValue((resourceKind, name), out var resourceServiceMappings))
         {
             foreach (var serviceName in resourceServiceMappings)
             {
-                if (_servicesMap.TryGetValue(resourceViewModel.Name, out var service))
+                if (_servicesMap.TryGetValue(name, out var service))
                 {
-                    resourceViewModel.Services.Add(new ResourceServiceSnapshot(service.Metadata.Name, service.AllocatedAddress, service.AllocatedPort));
+                    services.Add(new ResourceServiceSnapshot(service.Metadata.Name, service.AllocatedAddress, service.AllocatedPort));
                 }
             }
         }
+
+        return (endpoints.ToImmutable(), services.ToImmutable());
     }
 
     private int? GetExpectedEndpointsCount(CustomResource resource)
