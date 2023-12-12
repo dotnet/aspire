@@ -348,7 +348,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
             CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToLocalTime(),
             ExecutablePath = executable.Spec.ExecutablePath,
             WorkingDirectory = executable.Spec.WorkingDirectory,
-            Arguments = executable.Spec.Args,
+            Arguments = executable.Status?.EffectiveArgs ?? [],
             State = executable.Status?.State,
             LogSource = new FileLogSource(executable.Status?.StdOutFile, executable.Status?.StdErrFile),
             ProcessId = executable.Status?.ProcessId,
