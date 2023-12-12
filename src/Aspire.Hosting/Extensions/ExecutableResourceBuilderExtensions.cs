@@ -41,7 +41,7 @@ public static class ExecutableResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Adds the arguments to be passed to a executable resource when the executable is started.
+    /// Adds the arguments to be passed to an executable resource when the executable is started.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
