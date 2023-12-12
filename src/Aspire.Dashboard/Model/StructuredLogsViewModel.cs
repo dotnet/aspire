@@ -90,4 +90,3 @@ public class StructuredLogsViewModel
         _logs = null;
     }
 }
-

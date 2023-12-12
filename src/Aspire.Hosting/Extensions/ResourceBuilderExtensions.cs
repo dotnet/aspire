@@ -201,6 +201,66 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Injects service discovery information as environment variables from the uri into the destination resource, using the name as the service name.
+    /// The uri will be injected using the format "services__{name}={uri}."
+    /// </summary>
+    /// <typeparam name="TDestination"></typeparam>
+    /// <param name="builder">The resource where the service discovery information will be injected.</param>
+    /// <param name="name">The name of the service.</param>
+    /// <param name="uri">The uri of the service.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{TDestination}"/>.</returns>
+    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, string name, Uri uri)
+        where TDestination : IResourceWithEnvironment
+    {
+        if (!uri.IsAbsoluteUri)
+        {
+            throw new InvalidOperationException("The uri for service reference must be absolute.");
+        }
+
+        if (uri.AbsolutePath != "/")
+        {
+            throw new InvalidOperationException("The uri absolute path must be \"/\".");
+        }
+
+        return builder.WithEnvironment(context =>
+        {
+            context.EnvironmentVariables[$"services__{name}"] = uri.ToString();
+        });
+    }
+
+    /// <summary>
+    /// Injects a connection string as an environment variable. The format of the environment variable will be "ConnectionStrings__{name}={value}." If the
+    /// connection string is not specified, the configuration system will be queried for a connection string using the connection string name.
+    /// </summary>
+    /// <typeparam name="TDestination"></typeparam>
+    /// <param name="builder">The resource where connection string will be injected.</param>
+    /// <param name="connectionString">A connection string</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{TDestination}"/>.</returns>
+    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, ConnectionString connectionString)
+        where TDestination : IResourceWithEnvironment
+    {
+        var connectionStringName = $"{ConnectionStringEnvironmentName}{connectionString.Name}";
+
+        return builder.WithEnvironment(context =>
+        {
+            var connectionStringValue = connectionString.Value ??
+                builder.ApplicationBuilder.Configuration.GetConnectionString(connectionString.Name);
+
+            if (string.IsNullOrEmpty(connectionStringValue))
+            {
+                throw new DistributedApplicationException($"A connection string for '{connectionString.Name}' could not be retrieved.");
+            }
+
+            if (builder.Resource is ContainerResource)
+            {
+                connectionStringValue = HostNameResolver.ReplaceLocalhostWithContainerHost(connectionStringValue, builder.ApplicationBuilder.Configuration);
+            }
+
+            context.EnvironmentVariables[connectionStringName] = connectionStringValue;
+        });
+    }
+
+    /// <summary>
     /// Injects service discovery information from the specified endpoint into the project resource using the source resource's name as the service name.
     /// Each service binding will be injected using the format "services__{sourceResourceName}__{bindingIndex}={bindingNameQualifiedUriString}."
     /// </summary>

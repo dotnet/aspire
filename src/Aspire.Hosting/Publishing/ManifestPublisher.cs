@@ -55,7 +55,7 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger,
         await jsonWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private void WriteResources(DistributedApplicationModel model, ManifestPublishingContext context)
+    private static void WriteResources(DistributedApplicationModel model, ManifestPublishingContext context)
     {
         context.Writer.WriteStartObject("resources");
         foreach (var resource in model.Resources)
@@ -65,7 +65,7 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger,
         context.Writer.WriteEndObject();
     }
 
-    private void WriteResource(IResource resource, ManifestPublishingContext context)
+    private static void WriteResource(IResource resource, ManifestPublishingContext context)
     {
         // First see if the resource has a callback annotation with overrides the behavior for rendering
         // out the JSON. If so use that callback, otherwise use the fallback logic that we have.
@@ -123,7 +123,7 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger,
         context.WriteBindings(project);
     }
 
-    private void WriteExecutable(ExecutableResource executable, ManifestPublishingContext context)
+    private static void WriteExecutable(ExecutableResource executable, ManifestPublishingContext context)
     {
         context.Writer.WriteString("type", "executable.v0");
 

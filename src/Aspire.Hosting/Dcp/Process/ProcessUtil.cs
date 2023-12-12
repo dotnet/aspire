@@ -34,7 +34,10 @@ internal static partial class ProcessUtil
             EnableRaisingEvents = true
         };
 
-        processSpec.EnvironmentVariables.ToList().ForEach(x => process.StartInfo.Environment[x.Key] = x.Value);
+        foreach (var (key, value) in processSpec.EnvironmentVariables)
+        {
+            process.StartInfo.Environment[key] = value;
+        }
 
         var processEventLock = new object();
 
@@ -109,7 +112,6 @@ internal static partial class ProcessUtil
         {
             AspireEventSource.Instance.ProcessLaunchStop(processSpec.ExecutablePath, processSpec.Arguments ?? "");
         }
-        
 
         return (processLifetimeTcs.Task, new ProcessDisposable(process, processLifetimeTcs.Task, processSpec.KillEntireProcessTree));
     }

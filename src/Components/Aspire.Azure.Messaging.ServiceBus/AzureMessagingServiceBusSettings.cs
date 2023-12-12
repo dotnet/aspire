@@ -45,7 +45,7 @@ public sealed class AzureMessagingServiceBusSettings : IConnectionStringSettings
     public string? HealthCheckTopicName { get; set; }
 
     /// <summary>
-    /// <para>Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.</para>
+    /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.
     /// </summary>
     /// <remarks>
     /// ServiceBus ActivitySource support in Azure SDK is experimental, the shape of Activities may change in the future without notice.

@@ -1,11 +1,13 @@
-﻿<Router AppAssembly="@typeof(App).Assembly">
+﻿@inject IStringLocalizer<Resources.Routes> Loc
+
+<Router AppAssembly="@typeof(App).Assembly">
     <Found Context="routeData">
         <RouteView RouteData="@routeData" DefaultLayout="@typeof(Layout.MainLayout)" />
     </Found>
     <NotFound>
-        <PageTitle>Not found</PageTitle>
+        <PageTitle>@Loc[Resources.Routes.RoutesPageTitle]</PageTitle>
         <LayoutView Layout="@typeof(Layout.MainLayout)">
-            <p role="alert">Sorry, there's nothing at this address.</p>
+            <p role="alert">@Loc[Resources.Routes.RoutesNotFoundDescription]</p>
         </LayoutView>
     </NotFound>
 </Router>

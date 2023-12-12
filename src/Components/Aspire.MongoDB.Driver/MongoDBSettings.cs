@@ -14,11 +14,11 @@ public sealed class MongoDBSettings
     public string? ConnectionString { get; set; }
 
     /// <summary>
-    /// <para>Gets or sets a boolean value that indicates whether the MongoDB health check is enabled or not.</para>
+    /// Gets or sets a boolean value that indicates whether the MongoDB health check is enabled or not.
+    /// </summary>
     /// <value>
     /// The default value is <see langword="true"/>.
     /// </value>
-    /// </summary>
     public bool HealthChecks { get; set; } = true;
 
     /// <summary>
@@ -27,11 +27,11 @@ public sealed class MongoDBSettings
     public int? HealthCheckTimeout { get; set; }
 
     /// <summary>
-    /// <para>Gets or sets a boolean value that indicates whether the Open Telemetry tracing is enabled or not.</para>
+    /// Gets or sets a boolean value that indicates whether the Open Telemetry tracing is enabled or not.
+    /// </summary>
     /// <value>
     /// The default value is <see langword="true"/>.
     /// </value>
-    /// </summary>
     public bool Tracing { get; set; } = true;
 
 }
