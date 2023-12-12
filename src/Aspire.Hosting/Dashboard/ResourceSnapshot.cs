@@ -4,12 +4,15 @@
 using System.Collections.Immutable;
 using System.Globalization;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Utils;
 using Google.Protobuf.WellKnownTypes;
 
 namespace Aspire.Hosting.Dashboard;
 
-internal abstract class ResourceSnapshot
+internal abstract class ResourceSnapshot : IEquatable<ResourceSnapshot>
 {
+    // IMPORTANT! Be sure to reflect any property changes here in the Equals method and Properties property below
+
     public abstract string ResourceType { get; }
 
     public required string Name { get; init; }
@@ -43,24 +46,69 @@ internal abstract class ResourceSnapshot
             }
         }
     }
+
+    public virtual bool Equals(ResourceSnapshot? other)
+    {
+        return other is not null
+            && StringComparers.ResourceType.Equals(ResourceType, other.ResourceType)
+            && StringComparers.ResourceName.Equals(Name, other.Name)
+            && StringComparer.Ordinal.Equals(Uid, other.Uid)
+            && StringComparer.Ordinal.Equals(DisplayName, other.DisplayName)
+            && StringComparer.Ordinal.Equals(State, other.State)
+            && ExitCode == other.ExitCode
+            && CreationTimeStamp == other.CreationTimeStamp
+            && ExpectedEndpointsCount == other.ExpectedEndpointsCount
+            && Environment.SequenceEqual(other.Environment)
+            && Endpoints.SequenceEqual(other.Endpoints)
+            && Services.SequenceEqual(other.Services);
+    }
 }
 
-internal sealed class EnvironmentVariableSnapshot(string name, string? value, bool isFromSpec)
+internal sealed class EnvironmentVariableSnapshot(string name, string? value, bool isFromSpec) : IEquatable<EnvironmentVariableSnapshot>
 {
+    // IMPORTANT! Be sure to reflect any property changes here in the Equals method below
+
     public string Name { get; } = name;
     public string? Value { get; } = value;
     public bool IsFromSpec { get; } = isFromSpec;
+
+    public bool Equals(EnvironmentVariableSnapshot? other)
+    {
+        return other is not null
+            && StringComparer.Ordinal.Equals(Name, other.Name)
+            && StringComparer.Ordinal.Equals(Value, other.Value)
+            && IsFromSpec == other.IsFromSpec;
+    }
 }
 
-internal sealed record EndpointSnapshot(string endpointUrl, string proxyUrl)
+internal sealed class EndpointSnapshot(string endpointUrl, string proxyUrl) : IEquatable<EndpointSnapshot>
 {
+    // IMPORTANT! Be sure to reflect any property changes here in the Equals method below
+
     public string EndpointUrl { get; } = endpointUrl;
     public string ProxyUrl { get; } = proxyUrl;
+
+    public bool Equals(EndpointSnapshot? other)
+    {
+        return other is not null
+            && StringComparer.Ordinal.Equals(EndpointUrl, other.EndpointUrl)
+            && StringComparer.Ordinal.Equals(ProxyUrl, other.ProxyUrl);
+    }
 }
 
-internal sealed class ResourceServiceSnapshot(string name, string? allocatedAddress, int? allocatedPort)
+internal sealed class ResourceServiceSnapshot(string name, string? allocatedAddress, int? allocatedPort) : IEquatable<ResourceServiceSnapshot>
 {
+    // IMPORTANT! Be sure to reflect any property changes here in the Equals method below
+
     public string Name { get; } = name;
     public string? AllocatedAddress { get; } = allocatedAddress;
     public int? AllocatedPort { get; } = allocatedPort;
+
+    public bool Equals(ResourceServiceSnapshot? other)
+    {
+        return other is not null
+            && StringComparer.Ordinal.Equals(Name, other.Name)
+            && StringComparer.Ordinal.Equals(AllocatedAddress, other.AllocatedAddress)
+            && AllocatedPort == other.AllocatedPort;
+    }
 }

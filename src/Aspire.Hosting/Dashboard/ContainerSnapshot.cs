@@ -12,6 +12,8 @@ namespace Aspire.Hosting.Dashboard;
 /// </summary>
 internal sealed class ContainerSnapshot : ResourceSnapshot
 {
+    // IMPORTANT! Be sure to reflect any property changes here in the Equals and GetProperties methods below
+
     public override string ResourceType => KnownResourceTypes.Container;
 
     public required string? ContainerId { get; init; }
@@ -27,5 +29,17 @@ internal sealed class ContainerSnapshot : ResourceSnapshot
         yield return (KnownProperties.Container.Ports, Value.ForList(Ports.Select(port => Value.ForNumber(port)).ToArray()));
         yield return (KnownProperties.Container.Command, Command is null ? Value.ForNull() : Value.ForString(Command));
         yield return (KnownProperties.Container.Args, Args is null ? Value.ForNull() : Value.ForList(Args.Value.Select(port => Value.ForString(port)).ToArray()));
+    }
+
+    public override bool Equals(ResourceSnapshot? other)
+    {
+        return other is ContainerSnapshot container
+            && StringComparer.Ordinal.Equals(ContainerId, container.ContainerId)
+            && StringComparer.Ordinal.Equals(Image, container.Image)
+            && StringComparer.Ordinal.Equals(Command, container.Command)
+            && Ports.SequenceEqual(container.Ports)
+            && Args is null == container.Args is null
+            && (Args is null || Args.Value.SequenceEqual(container.Args!.Value))
+            && base.Equals(other);
     }
 }

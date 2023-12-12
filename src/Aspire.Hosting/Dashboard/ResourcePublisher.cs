@@ -70,6 +70,12 @@ internal sealed class ResourcePublisher(CancellationToken cancellationToken)
             switch (changeType)
             {
                 case ResourceSnapshotChangeType.Upsert:
+                    if (_snapshot.TryGetValue(resource.Name, out var existing) && existing.Equals(resource))
+                    {
+                        // The new value is identical to the prior one, so don't send it.
+                        return;
+                    }
+
                     _snapshot[resource.Name] = resource;
                     break;
 
