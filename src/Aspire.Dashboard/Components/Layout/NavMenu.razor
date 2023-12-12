@@ -1,11 +1,14 @@
-﻿<div class="nav-menu-container">
+@using Aspire.Dashboard.Resources
+@inject IStringLocalizer<Layout> Loc
+
+<div class="nav-menu-container">
     <FluentNavMenu @bind-Expanded="@Expanded" Width="250" Collapsible="true">
-        <FluentNavLink Icon="@(new Icons.Regular.Size24.AppFolder())" Href="/" Match="NavLinkMatch.All" Tooltip="Resources">Resources</FluentNavLink>
-        <FluentNavGroup Title="Monitoring" Icon="@(new Icons.Regular.Size24.SlideText())" Expanded="true" Gap="10px 0;" Tooltip="Monitoring">
-            <FluentNavLink Icon="@(new Icons.Regular.Size24.SlideText())" Href="/ConsoleLogs" Tooltip="Console Logs">Console Logs</FluentNavLink>
-            <FluentNavLink Icon="@(new Icons.Regular.Size24.SlideTextSparkle())" Href="/StructuredLogs" Tooltip="Structured Logs">Structured Logs</FluentNavLink>
-            <FluentNavLink Icon="@(new Icons.Regular.Size24.GanttChart())" Href="/Traces" Tooltip="Traces">Traces</FluentNavLink>
-            <FluentNavLink Icon="@(new Icons.Regular.Size24.ChartMultiple())" Href="/Metrics" Tooltip="Metrics">Metrics</FluentNavLink>
+        <FluentNavLink Icon="@(new Icons.Regular.Size24.AppFolder())" Href="/" Match="NavLinkMatch.All" Tooltip="@Loc[Layout.NavMenuResourcesTab]">@Loc[Layout.NavMenuResourcesTab]</FluentNavLink>
+        <FluentNavGroup Title="@Loc[Layout.NavMenuMonitoringTab]" Icon="@(new Icons.Regular.Size24.SlideText())" Expanded="true" Gap="10px 0;" Tooltip="@Loc[Layout.NavMenuMonitoringTab]">
+            <FluentNavLink Icon="@(new Icons.Regular.Size24.SlideText())" Href="/ConsoleLogs" Tooltip="@Loc[Layout.NavMenuConsoleLogsTab]">@Loc[Layout.NavMenuConsoleLogsTab]</FluentNavLink>
+            <FluentNavLink Icon="@(new Icons.Regular.Size24.SlideTextSparkle())" Href="/StructuredLogs" Tooltip="@Loc[Layout.NavMenuStructuredLogsTab]">@Loc[Layout.NavMenuStructuredLogsTab]</FluentNavLink>
+            <FluentNavLink Icon="@(new Icons.Regular.Size24.GanttChart())" Href="/Traces" Tooltip="@Loc[Layout.NavMenuTracesTab]">@Loc[Layout.NavMenuTracesTab]</FluentNavLink>
+            <FluentNavLink Icon="@(new Icons.Regular.Size24.ChartMultiple())" Href="/Metrics" Tooltip="@Loc[Layout.NavMenuMetricsTab]">@Loc[Layout.NavMenuMetricsTab]</FluentNavLink>
         </FluentNavGroup>
     </FluentNavMenu>
 </div>

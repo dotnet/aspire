@@ -1,0 +1,43 @@
+id: labelManagement.prOpened
+name: New PRs
+description: Adds community-contribution label to new PRs that are coming from the community
+owner: 
+resource: repository
+disabled: false
+where: 
+configuration:
+  resourceManagementConfiguration:
+    eventResponderTasks:
+    - description: Label community PRs
+      if:
+      - payloadType: Pull_Request
+      - isAction:
+          action: Opened
+      - and:
+        - not:
+            activitySenderHasPermission:
+              permission: Admin
+        - not:
+            activitySenderHasPermission:
+              permission: Write
+        - not:
+            isActivitySender:
+              user: github-actions[bot]
+        - not:
+            isActivitySender:
+              user: dotnet-maestro[bot]
+        - not:
+            isActivitySender:
+              user: dotnet-maestro-bot[bot]
+        - not:
+            isActivitySender:
+              user: dotnet-maestro-bot
+        - not:
+            isActivitySender:
+              user: dotnet-maestro
+        - not:
+            isActivitySender:
+              user: github-actions
+      then:
+      - addLabel:
+          label: community-contribution
