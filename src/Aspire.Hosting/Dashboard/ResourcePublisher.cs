@@ -28,12 +28,22 @@ internal sealed class ResourcePublisher(CancellationToken cancellationToken)
 
             return new ResourceSubscription(
                 Snapshot: _snapshot.Values.ToList(),
-                Subscription: new ResourceSubscriptionEnumerable(channel, disposeAction: RemoveChannel));
-        }
+                Subscription: StreamUpdates());
 
-        void RemoveChannel(Channel<ResourceChange> channel)
-        {
-            ImmutableInterlocked.Update(ref _outgoingChannels, static (set, channel) => set.Remove(channel), channel);
+            async IAsyncEnumerable<ResourceChange> StreamUpdates()
+            {
+                try
+                {
+                    while (!cancellationToken.IsCancellationRequested)
+                    {
+                        yield return await channel.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
+                    }
+                }
+                finally
+                {
+                    ImmutableInterlocked.Update(ref _outgoingChannels, static (set, channel) => set.Remove(channel), channel);
+                }
+            }
         }
     }
 
@@ -62,55 +72,6 @@ internal sealed class ResourcePublisher(CancellationToken cancellationToken)
         foreach (var channel in _outgoingChannels)
         {
             await channel.Writer.WriteAsync(new(changeType, resource), cancellationToken).ConfigureAwait(false);
-        }
-    }
-
-    private sealed class ResourceSubscriptionEnumerable : IAsyncEnumerable<ResourceChange>
-    {
-        private readonly Channel<ResourceChange> _channel;
-        private readonly Action<Channel<ResourceChange>> _disposeAction;
-
-        public ResourceSubscriptionEnumerable(Channel<ResourceChange> channel, Action<Channel<ResourceChange>> disposeAction)
-        {
-            _channel = channel;
-            _disposeAction = disposeAction;
-        }
-
-        public IAsyncEnumerator<ResourceChange> GetAsyncEnumerator(CancellationToken cancellationToken = default)
-        {
-            return new ResourceSubscriptionEnumerator(_channel, _disposeAction, cancellationToken);
-        }
-    }
-
-    private sealed class ResourceSubscriptionEnumerator : IAsyncEnumerator<ResourceChange>
-    {
-        private readonly Channel<ResourceChange> _channel;
-        private readonly Action<Channel<ResourceChange>> _disposeAction;
-        private readonly CancellationToken _cancellationToken;
-
-        public ResourceSubscriptionEnumerator(
-            Channel<ResourceChange> channel, Action<Channel<ResourceChange>> disposeAction, CancellationToken cancellationToken)
-        {
-            _channel = channel;
-            _disposeAction = disposeAction;
-            _cancellationToken = cancellationToken;
-            Current = default!;
-        }
-
-        public ResourceChange Current { get; private set; }
-
-        public ValueTask DisposeAsync()
-        {
-            _disposeAction(_channel);
-
-            return ValueTask.CompletedTask;
-        }
-
-        public async ValueTask<bool> MoveNextAsync()
-        {
-            Current = await _channel.Reader.ReadAsync(_cancellationToken).ConfigureAwait(false);
-
-            return true;
         }
     }
 }
