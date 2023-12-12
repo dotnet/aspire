@@ -53,7 +53,7 @@ internal sealed class ResourcePublisher(CancellationToken cancellationToken)
     /// <param name="resource">The resource that was modified.</param>
     /// <param name="changeType">The change type (Added, Modified, Deleted).</param>
     /// <returns>A task that completes when the cache has been updated and all subscribers notified.</returns>
-    public async ValueTask Integrate(ResourceViewModel resource, ResourceChangeType changeType)
+    public async ValueTask IntegrateAsync(ResourceViewModel resource, ResourceChangeType changeType)
     {
         lock (_syncLock)
         {
