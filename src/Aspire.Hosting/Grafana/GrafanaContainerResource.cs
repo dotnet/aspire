@@ -3,7 +3,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 
-namespace Aspire.Hosting.Grafana;
+namespace Aspire.Hosting;
 
 public class GrafanaContainerResource : ContainerResource
 {

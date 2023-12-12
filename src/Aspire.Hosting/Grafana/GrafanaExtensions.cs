@@ -4,7 +4,7 @@
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 
-namespace Aspire.Hosting.Grafana;
+namespace Aspire.Hosting;
 
 public static class GrafanaBuilderExtensions
 {
