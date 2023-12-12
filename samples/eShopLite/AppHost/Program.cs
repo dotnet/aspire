@@ -1,7 +1,5 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
-builder.AddAzureProvisioning();
-
 builder.AddPrometheusContainer("prometheus", "../prometheus", "prom-data");
 
 var catalogDb = builder.AddPostgresContainer("postgres").AddDatabase("catalogdb");
