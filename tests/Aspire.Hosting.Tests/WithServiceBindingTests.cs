@@ -33,6 +33,29 @@ public class WithServiceBindingTests
         Assert.Equal("Service binding with name 'mybinding' already exists", ex.Message);
     }
 
+    [Fact]
+    public void GetEndpointReturnsEndpointMatchingServiceBinding()
+    {
+        var testProgram = CreateTestProgram();
+        testProgram.ServiceABuilder.WithServiceBinding(1000, scheme: "https", name: "mybinding");
+
+        var endpoint = testProgram.ServiceABuilder.GetEndpoint("mybinding");
+
+        Assert.Equal("mybinding", endpoint.BindingName);
+    }
+
+    [Fact]
+    public void GetEndpointWithoutMatchingServiceBindingThrows()
+    {
+        var ex = Assert.Throws<DistributedApplicationException>(() =>
+        {
+            var testProgram = CreateTestProgram();
+            testProgram.ServiceABuilder.GetEndpoint("not-exist");
+        });
+
+        Assert.Equal("Service binding with name 'not-exist' does not exist on the specified resource", ex.Message);
+    }
+
     private static TestProgram CreateTestProgram(string[]? args = null) => TestProgram.Create<WithServiceBindingTests>(args);
 
 }
