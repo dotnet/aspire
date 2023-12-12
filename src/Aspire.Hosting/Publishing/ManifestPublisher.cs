@@ -146,7 +146,7 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger,
         {
             context.Writer.WriteStartArray("args");
 
-            foreach (var arg in args ?? [])
+            foreach (var arg in args)
             {
                 context.Writer.WriteStringValue(arg);
             }
