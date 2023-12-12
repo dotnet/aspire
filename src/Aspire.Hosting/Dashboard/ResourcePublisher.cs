@@ -63,7 +63,7 @@ internal sealed class ResourcePublisher(CancellationToken cancellationToken)
                     _snapshot[resource.Name] = resource;
                     break;
 
-                case ResourceChangeType.Deleted:
+                case ResourceChangeType.Delete:
                     _snapshot.Remove(resource.Name);
                     break;
             }
