@@ -132,6 +132,10 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger,
         context.Writer.WriteString("workingDirectory", relativePathToProjectFile);
 
         context.Writer.WriteString("command", executable.Command);
+
+        // TODO: This should be calling into any added ExecutableArgsCallbackAnnotation instances on the resource to allow them to
+        //       add additional arguments to the executable, as is done for containers in ManifestPublishingContext.WriteContainer.
+        //       See https://github.com/dotnet/aspire/issues/1362
         context.Writer.WriteStartArray("args");
 
         foreach (var arg in executable.Args ?? [])
