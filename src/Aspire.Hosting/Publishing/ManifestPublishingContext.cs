@@ -51,7 +51,7 @@ public sealed class ManifestPublishingContext(string manifestPath, Utf8JsonWrite
             {
                 Writer.WriteStartArray("args");
 
-                foreach (var arg in args ?? [])
+                foreach (var arg in args)
                 {
                     Writer.WriteStringValue(arg);
                 }
