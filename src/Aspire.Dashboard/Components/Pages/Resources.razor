@@ -55,7 +55,7 @@
                     </TemplateColumn>
                     <TemplateColumn Title="@Loc[Dashboard.Resources.Resources.ResourcesEnvironmentVariablesGridStateColumnHeader]" Sortable="true" SortBy="@_stateSort">
                         <div class="resource-state-container">
-                            @context.State
+                            @context.Status?.State
                             <UnreadLogErrorsBadge UnviewedCount="@GetUnviewedErrorCount(context)" OnClick="@(() => ViewErrorStructuredLogs(context))" />
                         </div>
                     </TemplateColumn>

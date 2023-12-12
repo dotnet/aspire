@@ -4,7 +4,7 @@
 
 <FluentStack Orientation="Orientation.Vertical">
     @* If we have no endpoints, and the app isn't running anymore or we're not expecting any, then just say None *@
-    @if (Resource.Endpoints.Length == 0 && (Resource.State == FinishedState || Resource.ExpectedEndpointsCount == 0))
+    @if (Resource.Endpoints.Length == 0 && (Resource.Status?.State == FinishedState || Resource.ExpectedEndpointsCount == 0))
     {
         <span class="long-inner-content">@Loc[Columns.EndpointsColumnDisplayNone]</span>
     }
@@ -16,7 +16,7 @@
             <a href="@endpoint" target="_blank" class="long-inner-content">@endpoint</a>
         }
         @* If we're expecting more, say Starting..., unless the app isn't running anymore *@
-        if (Resource.State != FinishedState
+        if (Resource.Status?.State != FinishedState
         && (Resource.ExpectedEndpointsCount is null || Resource.ExpectedEndpointsCount > Resource.Endpoints.Length))
         {
             <span class="long-inner-content">@Loc[Columns.EndpointsColumnDisplayPlaceholder]</span>

@@ -202,7 +202,7 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
                 {
                     await LoadLogsAsync();
                 }
-                else if (!string.Equals(_selectedResource.State, "Running", StringComparison.Ordinal))
+                else if (!string.Equals(_selectedResource.Status?.State, "Running", StringComparison.Ordinal))
                 {
                     _status = Loc[Dashboard.Resources.ConsoleLogs.ConsoleLogsFinishedWatchingLogs];
                 }
@@ -231,13 +231,13 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
     private string GetDisplayText(ResourceViewModel resource)
     {
         var stateText = "";
-        if (string.IsNullOrEmpty(resource.State))
+        if (string.IsNullOrEmpty(resource.Status?.State))
         {
             stateText = $" ({Loc[Dashboard.Resources.ConsoleLogs.ConsoleLogsUnknownState]})";
         }
-        else if (resource.State != "Running")
+        else if (resource.Status?.State != "Running")
         {
-            stateText = $" ({resource.State})";
+            stateText = $" ({resource.Status?.State})";
         }
         return $"{GetResourceName(resource)}{stateText}";
     }
