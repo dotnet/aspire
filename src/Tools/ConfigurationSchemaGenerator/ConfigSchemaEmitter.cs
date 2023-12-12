@@ -17,6 +17,7 @@ internal sealed class ConfigSchemaEmitter(SourceGenerationSpec spec, Compilation
 {
     private readonly TypeIndex _typeIndex = new TypeIndex(spec.AllTypes);
     private readonly Compilation _compilation = compilation;
+    private readonly Stack<TypeSpec> _visitedTypes = new();
 
     public string GenerateSchema()
     {
@@ -26,7 +27,7 @@ internal sealed class ConfigSchemaEmitter(SourceGenerationSpec spec, Compilation
         }
 
         var root = new JsonObject();
-        GenerateLogs(root);
+        GenerateLogCategories(root);
         root["properties"] = GenerateGraph();
         root["type"] = "object";
 
@@ -39,7 +40,7 @@ internal sealed class ConfigSchemaEmitter(SourceGenerationSpec spec, Compilation
         return JsonSerializer.Serialize(root, options);
     }
 
-    private void GenerateLogs(JsonObject parent)
+    private void GenerateLogCategories(JsonObject parent)
     {
         var propertiesNode = new JsonObject();
         var categories = spec.LogCategories;
@@ -50,13 +51,13 @@ internal sealed class ConfigSchemaEmitter(SourceGenerationSpec spec, Compilation
             propertiesNode.Add(categories[i], catObj);
         }
 
-        parent.Add("definitions", new JsonObject
+        parent["definitions"] = new JsonObject
         {
             ["logLevel"] = new JsonObject()
             {
                 ["properties"] = propertiesNode
             }
-        });
+        };
     }
 
     private JsonObject GenerateGraph()
@@ -67,19 +68,18 @@ internal sealed class ConfigSchemaEmitter(SourceGenerationSpec spec, Compilation
         }
 
         var root = new JsonObject();
-
         for (var i = 0; i < spec.ConfigurationPaths.Length; i++)
         {
             var type = spec.ConfigurationTypes[i];
             var path = spec.ConfigurationPaths[i];
 
-            GenerateChildren(root, type, path);
+            GenerateProperties(root, type, path);
         }
 
         return root;
     }
 
-    private void GenerateChildren(JsonObject parent, TypeSpec type, string path)
+    private void GenerateProperties(JsonObject parent, TypeSpec type, string path)
     {
         var pathSegments = path.Split(':');
         var currentNode = parent;
@@ -102,35 +102,111 @@ internal sealed class ConfigSchemaEmitter(SourceGenerationSpec spec, Compilation
             }
         }
 
-        foreach (var property in (type as ObjectSpec).Properties)
-        {
-            var propertyTypeSpec = _typeIndex.GetTypeSpec(property.TypeRef);
-
-            var propertyNode = new JsonObject();
-
-            AppendTypeNodes(propertyNode, propertyTypeSpec);
-
-            if (GetDescription(property) is string description)
-            {
-                propertyNode["description"] = description;
-            }
-
-            // skip empty objects
-            if (propertyNode["type"] is JsonValue typeValue &&
-                typeValue.TryGetValue<string>(out var typeValueString) &&
-                typeValueString == "object" &&
-                propertyNode["properties"] is null)
-            {
-                continue;
-            }
-
-            currentNode[property.Name] = propertyNode;
-        }
+        GenerateProperties(currentNode, type);
     }
 
-    private static string? GetDescription(PropertySpec property)
+    private void GenerateProperties(JsonObject currentNode, TypeSpec type)
     {
-        var docComment = property.DocumentationCommentXml;
+        if (_visitedTypes.Contains(type))
+        {
+            return;
+        }
+        _visitedTypes.Push(type);
+
+        if (type is ObjectSpec objectSpec)
+        {
+            var properties = objectSpec.Properties;
+            if (properties is not null)
+            {
+                foreach (var property in properties)
+                {
+                    if (_typeIndex.ShouldBindTo(property))
+                    {
+                        var propertyTypeSpec = _typeIndex.GetTypeSpec(property.TypeRef);
+
+                        IPropertySymbol? propertySymbol = null;
+                        if (_compilation.GetBestTypeByMetadataName(type.FullName) is { } declaringTypeSymbol)
+                        {
+                            propertySymbol = declaringTypeSymbol.GetMembers(property.Name).FirstOrDefault() as IPropertySymbol;
+                        }
+
+                        var propertyNode = new JsonObject();
+
+                        AppendTypeNodes(propertyNode, propertyTypeSpec);
+
+                        if (propertyTypeSpec is ComplexTypeSpec complexPropertyTypeSpec)
+                        {
+                            var innerPropertiesNode = new JsonObject();
+                            GenerateProperties(innerPropertiesNode, complexPropertyTypeSpec);
+                            if (innerPropertiesNode.Count > 0)
+                            {
+                                propertyNode["properties"] = innerPropertiesNode;
+                            }
+                        }
+
+                        if (ShouldSkipProperty(propertyNode, property, propertyTypeSpec, propertySymbol))
+                        {
+                            continue;
+                        }
+
+                        if (GetDescription(propertySymbol) is string description)
+                        {
+                            propertyNode["description"] = description;
+                        }
+
+                        currentNode[property.Name] = propertyNode;
+                    }
+                }
+            }
+        }
+
+        _visitedTypes.Pop();
+    }
+
+    private static bool ShouldSkipProperty(JsonObject propertyNode, PropertySpec property, TypeSpec propertyTypeSpec, IPropertySymbol? propertySymbol)
+    {
+        // skip simple properties that can't be set
+        if (propertyTypeSpec is not ComplexTypeSpec &&
+            !property.CanSet)
+        {
+            return true;
+        }
+
+        // skip empty objects
+        if (propertyNode["type"] is JsonValue typeValue &&
+            typeValue.TryGetValue<string>(out var typeValueString) &&
+            typeValueString == "object" &&
+            propertyNode["properties"] is null)
+        {
+            return true;
+        }
+
+        // skip [Obsolete] or [EditorBrowsable(EditorBrowsableState.Never)]
+        var attributes = propertySymbol?.GetAttributes();
+        if (attributes is not null)
+        {
+            foreach (var attribute in attributes)
+            {
+                if (attribute.AttributeClass?.ToDisplayString() == "System.ObsoleteAttribute")
+                {
+                    return true;
+                }
+                else if (attribute.AttributeClass?.ToDisplayString() == "System.ComponentModel.EditorBrowsableAttribute" &&
+                    attribute.ConstructorArguments.Length == 1 &&
+                    attribute.ConstructorArguments[0].Value is int value &&
+                    value == 1) // EditorBrowsableState.Never
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static string? GetDescription(IPropertySymbol? propertySymbol)
+    {
+        var docComment = propertySymbol?.GetDocumentationCommentXml();
         if (string.IsNullOrEmpty(docComment))
         {
             return null;
@@ -151,7 +227,7 @@ internal sealed class ConfigSchemaEmitter(SourceGenerationSpec spec, Compilation
             builder.Append(value);
         }
 
-        return JsonEncodedText.Encode(builder.ToString()).Value;
+        return builder.ToString();
     }
 
     private static IEnumerable<XNode> StripXmlElements(XContainer container)
@@ -249,6 +325,11 @@ internal sealed class ConfigSchemaEmitter(SourceGenerationSpec spec, Compilation
             }
             propertyNode["enum"] = enumNode;
         }
+        else if (parsable.StringParsableTypeKind == StringParsableTypeKind.Uri)
+        {
+            propertyNode["type"] = "string";
+            propertyNode["format"] = "uri";
+        }
         else
         {
             propertyNode["type"] = GetParsableTypeName(parsable);
@@ -277,13 +358,13 @@ internal sealed class ConfigSchemaEmitter(SourceGenerationSpec spec, Compilation
             {
                 case JsonObject obj:
                     writer.WriteStartObject();
-                    // ensure "type" is written first
-                    if (obj["type"] is { } typeValue)
-                    {
-                        writer.WritePropertyName("type");
-                        Write(writer, typeValue, options);
-                    }
-                    foreach (var pair in obj.Where(p => p.Key != "type").OrderBy(p => p.Key, StringComparer.Ordinal))
+                    // ensure the children of a "properties" node are written in alphabetical order
+                    IEnumerable<KeyValuePair<string, JsonNode>> properties =
+                        obj.Parent is JsonObject && obj.GetPropertyName() == "properties" ?
+                            obj.OrderBy(p => p.Key, StringComparer.Ordinal) :
+                            obj;
+
+                    foreach (var pair in properties)
                     {
                         writer.WritePropertyName(pair.Key);
                         Write(writer, pair.Value, options);

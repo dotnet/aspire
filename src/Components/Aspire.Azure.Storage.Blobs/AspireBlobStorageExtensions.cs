@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire;
 using Aspire.Azure.Common;
 using Aspire.Azure.Storage.Blobs;
 using Azure.Core;
@@ -11,6 +12,14 @@ using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+
+[assembly: ConfigurationSchema(
+    Types = [typeof(AzureStorageBlobsSettings), typeof(BlobClientOptions)],
+    ConfigurationPaths = ["Aspire:Azure:Storage:Blobs", "Aspire:Azure:Storage:Blobs:ClientOptions"],
+    LogCategories = [
+        "Azure",
+        "Azure.Core",
+        "Azure.Identity"])]
 
 namespace Microsoft.Extensions.Hosting;
 

@@ -34,6 +34,16 @@
                       "type": "integer",
                       "description": "Specifies the time in milliseconds that the system should allow for asynchronous operations (defaults to SyncTimeout)."
                     },
+                    "ChannelPrefix": {
+                      "type": "object",
+                      "properties": {
+                        "UseImplicitAutoPattern": {
+                          "type": "boolean",
+                          "description": "Indicates whether channels should use F:StackExchange.Redis.RedisChannel.PatternMode.Auto when no T:StackExchange.Redis.RedisChannel.PatternMode is specified; this is enabled by default, but can be disabled to avoid unexpected wildcard scenarios."
+                        }
+                      },
+                      "description": "Automatically encodes and decodes channels."
+                    },
                     "CheckCertificateRevocation": {
                       "type": "boolean",
                       "description": "A Boolean value that specifies whether the certificate revocation list is checked during authentication."
@@ -68,8 +78,8 @@
                     },
                     "HeartbeatInterval": {
                       "type": "string",
-                      "description": "Controls how often the connection heartbeats. A heartbeat includes:\r\n            - Evaluating if any messages have timed out\r\n            - Evaluating connection status (checking for failures)\r\n            - Sending a server message to keep the connection alive if needed",
-                      "format": "duration"
+                      "format": "duration",
+                      "description": "Controls how often the connection heartbeats. A heartbeat includes:\r\n            - Evaluating if any messages have timed out\r\n            - Evaluating connection status (checking for failures)\r\n            - Sending a server message to keep the connection alive if needed"
                     },
                     "IncludeDetailInExceptions": {
                       "type": "boolean",
@@ -92,19 +102,19 @@
                       "description": "The password to use to authenticate with the server."
                     },
                     "Protocol": {
-                      "description": "Specify the redis protocol type",
                       "enum": [
                         "Resp2",
                         "Resp3"
-                      ]
+                      ],
+                      "description": "Specify the redis protocol type"
                     },
                     "Proxy": {
-                      "description": "Type of proxy to use (if any); for example F:StackExchange.Redis.Proxy.Twemproxy.",
                       "enum": [
                         "None",
                         "Twemproxy",
                         "Envoyproxy"
-                      ]
+                      ],
+                      "description": "Type of proxy to use (if any); for example F:StackExchange.Redis.Proxy.Twemproxy."
                     },
                     "ResolveDns": {
                       "type": "boolean",
@@ -127,7 +137,6 @@
                       "description": "The target-host to use when validating SSL certificate; setting a value here enables SSL mode."
                     },
                     "SslProtocols": {
-                      "description": "Configures which SSL/TLS protocols should be allowed.  If not set, defaults are chosen by the .NET framework.",
                       "enum": [
                         "None",
                         "Ssl2",
@@ -137,7 +146,8 @@
                         "Tls11",
                         "Tls12",
                         "Tls13"
-                      ]
+                      ],
+                      "description": "Configures which SSL/TLS protocols should be allowed.  If not set, defaults are chosen by the .NET framework."
                     },
                     "SyncTimeout": {
                       "type": "integer",

@@ -32,7 +32,7 @@
           "properties": {
             "ConnectionString": {
               "type": "string",
-              "description": "Gets or sets the connection string of the MySQL database to connect to."
+              "description": "The connection string of the MySQL database to connect to."
             },
             "HealthChecks": {
               "type": "boolean",

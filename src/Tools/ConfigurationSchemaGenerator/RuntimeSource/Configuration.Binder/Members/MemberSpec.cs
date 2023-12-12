@@ -14,14 +14,12 @@ namespace Microsoft.Extensions.Configuration.Binder.SourceGeneration
             Debug.Assert(member is IPropertySymbol or IParameterSymbol);
             Name = member.Name;
             DefaultValueExpr = "default";
-            DocumentationCommentXml = member.GetDocumentationCommentXml();
             TypeRef = typeRef;
         }
 
         public string Name { get; }
         public string DefaultValueExpr { get; protected set; }
 
-        public string DocumentationCommentXml { get; init; }
         public TypeRef TypeRef { get; }
         public required string ConfigurationKeyName { get; init; }
 
