@@ -104,6 +104,32 @@ public class ManifestGenerationTests
     }
 
     [Fact]
+    public void EnsureExecutableWithArgsEmitsExecutableArgs()
+    {
+        var program = CreateTestProgramJsonDocumentManifestPublisher();
+
+        program.AppBuilder.AddExecutable("program", "run program", "c:/", "args1", "args2")
+                          .WithArgs("withArgs1", "withArgs2");
+
+        // Build AppHost so that publisher can be resolved.
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+
+        var grafana = resources.GetProperty("program");
+        var args = grafana.GetProperty("args");
+        Assert.Equal(4, args.GetArrayLength());
+        Assert.Collection(args.EnumerateArray(),
+            arg => Assert.Equal("args1", arg.GetString()),
+            arg => Assert.Equal("args2", arg.GetString()),
+            arg => Assert.Equal("withArgs1", arg.GetString()),
+            arg => Assert.Equal("withArgs2", arg.GetString()));
+    }
+
+    [Fact]
     public void EnsureAllRedisManifestTypesHaveVersion0Suffix()
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher();

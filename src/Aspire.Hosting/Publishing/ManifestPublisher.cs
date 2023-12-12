@@ -132,13 +132,26 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger,
         context.Writer.WriteString("workingDirectory", relativePathToProjectFile);
 
         context.Writer.WriteString("command", executable.Command);
-        context.Writer.WriteStartArray("args");
 
-        foreach (var arg in executable.Args ?? [])
+        var args = new List<string>(executable.Args ?? []);
+        if (executable.TryGetAnnotationsOfType<ExecutableArgsCallbackAnnotation>(out var argsCallback))
         {
-            context.Writer.WriteStringValue(arg);
+            foreach (var callback in argsCallback)
+            {
+                callback.Callback(args);
+            }
         }
-        context.Writer.WriteEndArray();
+
+        if (args.Count > 0)
+        {
+            context.Writer.WriteStartArray("args");
+
+            foreach (var arg in args ?? [])
+            {
+                context.Writer.WriteStringValue(arg);
+            }
+            context.Writer.WriteEndArray();
+        }
 
         context.WriteEnvironmentVariables(executable);
         context.WriteBindings(executable);

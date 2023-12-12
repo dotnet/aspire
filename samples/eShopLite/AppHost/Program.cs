@@ -29,4 +29,9 @@ builder.AddProject<Projects.ApiGateway>("apigateway")
 builder.AddProject<Projects.CatalogDb>("catalogdbapp")
        .WithReference(catalogDb);
 
+builder.Add()
+
+builder.AddContainer(name: "myapp","aaa")
+    .WithArgs("do", "the", "thing");
+
 builder.Build().Run();
