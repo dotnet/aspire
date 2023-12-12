@@ -3,16 +3,13 @@
 @using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Resources
 @using Microsoft.AspNetCore.Http
-@inject IResourceService resourceService
-@inject IDialogService dialogService
-@inject IStringLocalizer<Layout> Loc
 @inherits LayoutComponentBase
 
 <div class="layout">
     <FluentHeader>
         <div class="header-title">
             <FluentAnchor IconStart="@(new AspireIcons.Size32.Logo())" Appearance="Appearance.Stealth" Href="/" Class="logo">
-                @string.Format(Loc[Layout.MainLayoutDashboardName], resourceService.ApplicationName)
+                @string.Format(Loc[Layout.MainLayoutDashboardName], ResourceService.ApplicationName)
             </FluentAnchor>
         </div>
         <div class="header-right">

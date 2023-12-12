@@ -5,9 +5,9 @@
 
 <FluentStack Orientation="Orientation.Vertical" Style="display: contents">
     <FluentRadioGroup TValue="string" Label="@Loc[Dialogs.SettingsDialogTheme]" Value="@_currentSetting" ValueChanged="SettingChangedAsync" Orientation="Orientation.Vertical">
-        <FluentRadio Value="@ThemeSettingSystem">@Loc[Dialogs.SettingsDialogSystemTheme]</FluentRadio>
-        <FluentRadio Value="@ThemeSettingLight">@Loc[Dialogs.SettingsDialogLightTheme]</FluentRadio>
-        <FluentRadio Value="@ThemeSettingDark">@Loc[Dialogs.SettingsDialogDarkTheme]</FluentRadio>
+        <FluentRadio Value="@Aspire.Dashboard.Model.ThemeManager.ThemeSettingSystem">@Loc[Dialogs.SettingsDialogSystemTheme]</FluentRadio>
+        <FluentRadio Value="@Aspire.Dashboard.Model.ThemeManager.ThemeSettingLight">@Loc[Dialogs.SettingsDialogLightTheme]</FluentRadio>
+        <FluentRadio Value="@Aspire.Dashboard.Model.ThemeManager.ThemeSettingDark">@Loc[Dialogs.SettingsDialogDarkTheme]</FluentRadio>
     </FluentRadioGroup>
     <div style="height: 100%;"></div>
     <div class="version">@string.Format(Loc[Dialogs.SettingsDialogVersion], s_version)</div>
