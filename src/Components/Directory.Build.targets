@@ -42,16 +42,56 @@
     </ItemGroup>
   </Target>
 
-  <Target Name="GenerateConfigurationSchema">
+  <PropertyGroup>
+    <ConfigurationSchemaGeneratorPath>$(ArtifactsBinDir)ConfigurationSchemaGenerator\$(Configuration)\$(NetCurrent)\ConfigurationSchemaGenerator</ConfigurationSchemaGeneratorPath>
+    <ConfigurationSchemaGeneratorPath Condition="$([MSBuild]::IsOSPlatform(`Windows`))">$(ConfigurationSchemaGeneratorPath).exe</ConfigurationSchemaGeneratorPath>
+
+    <GeneratedConfigurationSchemaOutputPath>$(IntermediateOutputPath)ConfigurationSchema.json</GeneratedConfigurationSchemaOutputPath>
+  </PropertyGroup>
+  
+  <Target Name="GenerateConfigurationSchema"
+          DependsOnTargets="CoreGenerateConfigurationSchema;
+                            CopyNewConfigurationSchema;
+                            CompareConfigurationSchema" />
+  
+  <Target Name="CoreGenerateConfigurationSchema"
+          Inputs="$(ConfigurationSchemaGeneratorPath);
+                  @(IntermediateAssembly);
+                  @(ReferencePathWithRefAssemblies)"
+          Outputs="$(GeneratedConfigurationSchemaOutputPath)">
     <PropertyGroup>
-      <ConfigurationSchemaGeneratorPath>$(ArtifactsBinDir)ConfigurationSchemaGenerator\$(Configuration)\$(NetCurrent)\ConfigurationSchemaGenerator</ConfigurationSchemaGeneratorPath>
 
       <GeneratorCommandLine>$(ConfigurationSchemaGeneratorPath)</GeneratorCommandLine>
       <GeneratorCommandLine>$(GeneratorCommandLine) --input "@(IntermediateAssembly)"</GeneratorCommandLine>
       <GeneratorCommandLine>$(GeneratorCommandLine) --reference "@(ReferencePathWithRefAssemblies, '" "')"</GeneratorCommandLine>
-      <GeneratorCommandLine>$(GeneratorCommandLine) --output "$(IntermediateOutputPath)ConfigurationSchema.json"</GeneratorCommandLine>
+      <GeneratorCommandLine>$(GeneratorCommandLine) --output "$(GeneratedConfigurationSchemaOutputPath)"</GeneratorCommandLine>
     </PropertyGroup>
     
     <Exec Command="$(GeneratorCommandLine)" />
+
+    <ItemGroup>
+      <FileWrites Include="$(GeneratedConfigurationSchemaOutputPath)" Condition="Exists('$(GeneratedConfigurationSchemaOutputPath)')"/>
+    </ItemGroup>
   </Target>
+
+  <Target Name="CopyNewConfigurationSchema"
+          Condition="'$(ConfigurationSchemaExists)' != 'true' OR '$(UpdateConfigurationSchema)' == 'true'">
+
+    <Copy SourceFiles="$(GeneratedConfigurationSchemaOutputPath)"
+          DestinationFiles="$(ConfigurationSchemaPath)" />
+
+  </Target>
+
+  <Target Name="CompareConfigurationSchema"
+          Condition="Exists('$(ConfigurationSchemaPath)') AND Exists('GeneratedConfigurationSchemaOutputPath')">
+
+    <PropertyGroup>
+      <CurrentConfigurationSchemaFileContent>$([System.IO.File]::ReadAllText('$(ConfigurationSchemaPath)'))</CurrentConfigurationSchemaFileContent>
+      <GeneratedConfigurationSchemaFileContent>$([System.IO.File]::ReadAllText('$(GeneratedConfigurationSchemaOutputPath)'))</GeneratedConfigurationSchemaFileContent>
+    </PropertyGroup>
+
+    <Error Condition="'$(CurrentConfigurationSchemaFileContent)' != '$(GeneratedConfigurationSchemaFileContent)'"
+           Text="ConfigurationSchema.json is out of date. Run 'dotnet build --no-incremental /p:UpdateConfigurationSchema=true' to update it." />
+  </Target>
+
 </Project>

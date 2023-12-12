@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.Extensions.Configuration.Binder.SourceGeneration;
@@ -31,7 +30,13 @@ public partial class ConfigSchemaGenerator
             var emitter = new ConfigSchemaEmitter(spec, compilation);
             var schema = emitter.GenerateSchema();
 
-            File.WriteAllText(outputFile, schema, Encoding.UTF8);
+            if (!schema.EndsWith(Environment.NewLine))
+            {
+                // Ensure the file always ends in a newline to stop certain text editors from injecting it
+                schema += Environment.NewLine;
+            }
+
+            File.WriteAllText(outputFile, schema);
         }
     }
 
