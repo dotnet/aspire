@@ -163,10 +163,10 @@
     <value>Value</value>
     <note>Value is the name of a plot y-axis label</note>
   </data>
-  <data name="PropertyGridNameColumnTitle" xml:space="preserve">
+  <data name="NameColumnHeader" xml:space="preserve">
     <value>Name</value>
   </data>
-  <data name="PropertyGridValueColumnTitle" xml:space="preserve">
+  <data name="PropertyGridValueColumnHeader" xml:space="preserve">
     <value>Value</value>
   </data>
   <data name="SpanDetailsService" xml:space="preserve">
@@ -181,7 +181,7 @@
     <value>Start Time &lt;strong&gt;{0}&lt;/strong&gt;</value>
     <note>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
   </data>
-  <data name="SpanDetailsViewLogsLink" xml:space="preserve">
+  <data name="ViewLogsLink" xml:space="preserve">
     <value>View Logs</value>
   </data>
   <data name="SummaryDetailsViewSplitHorizontal" xml:space="preserve">
@@ -196,5 +196,14 @@
   <data name="TotalItemsFooterText" xml:space="preserve">
     <value>Total: &lt;strong&gt;{0} results found&lt;/strong&gt;</value>
     <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+  </data>
+  <data name="SelectAnApplication" xml:space="preserve">
+    <value>Select an Application</value>
+  </data>
+  <data name="ViewAction" xml:space="preserve">
+    <value>View</value>
+  </data>
+  <data name="All" xml:space="preserve">
+    <value>All</value>
   </data>
 </root>
