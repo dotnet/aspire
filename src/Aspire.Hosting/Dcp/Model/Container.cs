@@ -178,6 +178,10 @@ internal sealed class ContainerStatus : V1Status
     [JsonPropertyName("effectiveEnv")]
     public List<EnvVar>? EffectiveEnv { get; set; }
 
+    // Effective values of launch arguments to be passed to the Container, after all substitutions are applied.
+    [JsonPropertyName("effectiveArgs")]
+    public List<string>? EffectiveArgs { get; set; }
+
     // Note: the ContainerStatus has "Message" property that represents a human-readable information about Container state.
     // It is provided by V1Status base class.
 }
