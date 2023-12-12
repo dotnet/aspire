@@ -119,8 +119,8 @@ public class ManifestGenerationTests
 
         var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
 
-        var grafana = resources.GetProperty("program");
-        var args = grafana.GetProperty("args");
+        var resource = resources.GetProperty("program");
+        var args = resource.GetProperty("args");
         Assert.Equal(4, args.GetArrayLength());
         Assert.Collection(args.EnumerateArray(),
             arg => Assert.Equal("args1", arg.GetString()),
