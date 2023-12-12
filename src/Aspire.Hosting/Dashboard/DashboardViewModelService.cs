@@ -405,6 +405,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
             if (matchingService?.UsesHttpProtocol(out var uriScheme) == true)
             {
                 var endpointString = $"{uriScheme}://{endpoint.Spec.Address}:{endpoint.Spec.Port}";
+                var proxyUrlString = $"{uriScheme}://{matchingService.AllocatedAddress}:{matchingService.AllocatedPort}";
 
                 // For project look into launch profile to append launch url
                 if (resourceViewModel is ProjectViewModel projectViewModel
@@ -416,6 +417,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
                     {
                         // This is relative URL
                         endpointString += $"/{launchUrl}";
+                        proxyUrlString += $"/{launchUrl}";
                     }
                     else
                     {
@@ -424,13 +426,14 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
                             && launchUrl.StartsWith(applicationUrl))
                         {
                             endpointString = launchUrl.Replace(applicationUrl, endpointString);
+                            proxyUrlString = launchUrl;
                         }
                     }
 
                     // If we cannot process launchUrl then we just show endpoint string
                 }
 
-                resourceViewModel.Endpoints.Add(endpointString);
+                resourceViewModel.Endpoints.Add(new(endpointString, proxyUrlString));
             }
         }
 
