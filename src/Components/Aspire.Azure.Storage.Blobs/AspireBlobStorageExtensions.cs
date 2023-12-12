@@ -16,6 +16,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 [assembly: ConfigurationSchema(
     Types = [typeof(AzureStorageBlobsSettings), typeof(BlobClientOptions)],
     ConfigurationPaths = ["Aspire:Azure:Storage:Blobs", "Aspire:Azure:Storage:Blobs:ClientOptions"],
+    ExclusionPaths = ["Aspire:Azure:Storage:Blobs:ClientOptions:Default"],
     LogCategories = [
         "Azure",
         "Azure.Core",

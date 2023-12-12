@@ -8,5 +8,6 @@ internal sealed class ConfigurationSchemaAttribute : Attribute
 {
     public Type[]? Types { get; set; }
     public string[]? ConfigurationPaths { get; set; }
+    public string[]? ExclusionPaths { get; set; }
     public string[]? LogCategories { get; set; }
 }

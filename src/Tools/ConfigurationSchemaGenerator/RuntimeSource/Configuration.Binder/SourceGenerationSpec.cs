@@ -9,6 +9,7 @@ namespace Microsoft.Extensions.Configuration.Binder.SourceGeneration
     {
         public required List<TypeSpec> ConfigurationTypes { get; init; }
         public required string[] ConfigurationPaths { get; init; }
+        public required string[] ExclusionPaths { get; init; }
         public required string[] LogCategories { get; init; }
         public required ImmutableEquatableArray<TypeSpec> AllTypes { get; init; }
     }

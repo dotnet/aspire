@@ -18,6 +18,7 @@ internal sealed class ConfigSchemaEmitter(SourceGenerationSpec spec, Compilation
     private readonly TypeIndex _typeIndex = new TypeIndex(spec.AllTypes);
     private readonly Compilation _compilation = compilation;
     private readonly Stack<TypeSpec> _visitedTypes = new();
+    private readonly string[] _exclusionPaths = CreateExclusionPaths(spec.ExclusionPaths);
 
     public string GenerateSchema()
     {
@@ -121,7 +122,7 @@ internal sealed class ConfigSchemaEmitter(SourceGenerationSpec spec, Compilation
             {
                 foreach (var property in properties)
                 {
-                    if (_typeIndex.ShouldBindTo(property))
+                    if (_typeIndex.ShouldBindTo(property) && !IsExcluded(currentNode, property))
                     {
                         var propertyTypeSpec = _typeIndex.GetTypeSpec(property.TypeRef);
                         var propertySymbol = GetPropertySymbol(type, property);
@@ -382,6 +383,34 @@ internal sealed class ConfigSchemaEmitter(SourceGenerationSpec spec, Compilation
         "Version" => "string",
         _ => throw new InvalidOperationException($"Unknown parsable type {parsable.DisplayString}")
     };
+
+    private bool IsExcluded(JsonObject currentNode, PropertySpec property)
+    {
+        var currentPath = currentNode.GetPath();
+        foreach (var excludedPath in _exclusionPaths)
+        {
+            if (excludedPath.StartsWith(currentPath) && excludedPath.EndsWith(property.Name))
+            {
+                var fullPath = $"{currentPath}.{property.Name}";
+                if (excludedPath == fullPath)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static string[] CreateExclusionPaths(string[] exclusionPaths)
+    {
+        var result = new string[exclusionPaths.Length];
+        for (var i = 0; i < exclusionPaths.Length; i++)
+        {
+            result[i] = $"$.{exclusionPaths[i].Replace(":", ".properties.", StringComparison.Ordinal)}";
+        }
+        return result;
+    }
 
     private sealed class SchemaOrderJsonNodeConverter : JsonConverter<JsonNode>
     {

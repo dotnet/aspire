@@ -37,6 +37,7 @@ public sealed partial class ConfigSchemaGenerator
             {
                 ConfigurationTypes = types,
                 ConfigurationPaths = configSchemaInfo.ConfigurationPaths,
+                ExclusionPaths = configSchemaInfo.ExclusionPaths,
                 LogCategories = configSchemaInfo.LogCategories,
                 AllTypes = _createdTypeSpecs.Values.ToImmutableEquatableArray()
             };

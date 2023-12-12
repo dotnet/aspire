@@ -55,6 +55,7 @@ public partial class ConfigSchemaGenerator
             var items = attribute.NamedArguments;
             INamedTypeSymbol?[]? types = null;
             string?[]? configurationPaths = null;
+            string?[]? exclusionPaths = Array.Empty<string>();
             string?[]? logCategories = null;
 
             foreach (var item in items)
@@ -67,6 +68,10 @@ public partial class ConfigSchemaGenerator
                 {
                     configurationPaths = item.Value.Values.Select(v => v.Value as string).ToArray();
                 }
+                else if (item.Key == "ExclusionPaths")
+                {
+                    exclusionPaths = item.Value.Values.Select(v => v.Value as string).ToArray();
+                }
                 else if (item.Key == "LogCategories")
                 {
                     logCategories = item.Value.Values.Select(v => v.Value as string).ToArray();
@@ -78,12 +83,12 @@ public partial class ConfigSchemaGenerator
                 throw new InvalidOperationException("Ensure Types, ConfigurationPaths, and LogCategories are set.");
             }
 
-            return new ConfigSchemaAttributeInfo(types, configurationPaths, logCategories);
+            return new ConfigSchemaAttributeInfo(types, configurationPaths, exclusionPaths, logCategories);
         }
 
         return null;
     }
 
     /// <summary>Data about configuration schema directly from the ConfigurationSchemaAttribute.</summary>
-    internal sealed record ConfigSchemaAttributeInfo(INamedTypeSymbol[]? Types, string[] ConfigurationPaths, string[] LogCategories);
+    internal sealed record ConfigSchemaAttributeInfo(INamedTypeSymbol[]? Types, string[] ConfigurationPaths, string[] ExclusionPaths, string[] LogCategories);
 }
