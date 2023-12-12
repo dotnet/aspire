@@ -149,9 +149,10 @@ internal sealed class ConfigSchemaEmitter(SourceGenerationSpec spec, Compilation
                             continue;
                         }
 
-                        if (GetDescription(propertySymbol) is string description)
+                        var docComment = propertySymbol?.GetDocumentationCommentXml();
+                        if (!string.IsNullOrEmpty(docComment))
                         {
-                            propertyNode["description"] = description;
+                            GenerateDocCommentsProperties(propertyNode, docComment);
                         }
 
                         currentNode[property.Name] = propertyNode;
@@ -204,30 +205,41 @@ internal sealed class ConfigSchemaEmitter(SourceGenerationSpec spec, Compilation
         return false;
     }
 
-    private static string? GetDescription(IPropertySymbol? propertySymbol)
+    private static void GenerateDocCommentsProperties(JsonObject propertyNode, string docComment)
     {
-        var docComment = propertySymbol?.GetDocumentationCommentXml();
-        if (string.IsNullOrEmpty(docComment))
-        {
-            return null;
-        }
-
         var doc = XDocument.Parse(docComment);
-        var summary = doc.Element("member").Element("summary");
-        if (summary is null)
+        var memberRoot = doc.Element("member");
+        var summary = memberRoot.Element("summary");
+        if (summary is not null)
         {
-            return null;
+            var builder = new StringBuilder();
+            foreach (var node in StripXmlElements(summary))
+            {
+                var value = node.ToString().Trim();
+                AppendSpaceIfNecessary(builder, value);
+                builder.Append(value);
+            }
+
+            propertyNode["description"] = builder.ToString();
         }
 
-        var builder = new StringBuilder();
-        foreach (var node in StripXmlElements(summary))
+        if (propertyNode["type"]?.GetValue<string>() == "boolean")
         {
-            var value = node.ToString().Trim();
-            AppendSpaceIfNecessary(builder, value);
-            builder.Append(value);
+            var value = memberRoot.Element("value")?.ToString();
+            if (value?.Contains("default value is", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                var containsTrue = value.Contains("true", StringComparison.OrdinalIgnoreCase);
+                var containsFalse = value.Contains("false", StringComparison.OrdinalIgnoreCase);
+                if (containsTrue && !containsFalse)
+                {
+                    propertyNode["default"] = true;
+                }
+                else if (!containsTrue && containsFalse)
+                {
+                    propertyNode["default"] = false;
+                }
+            }
         }
-
-        return builder.ToString();
     }
 
     private static IEnumerable<XNode> StripXmlElements(XContainer container)

@@ -22,7 +22,7 @@ public sealed class NpgsqlSettings
     public bool HealthChecks { get; set; } = true;
 
     /// <summary>
-    /// Gets or sets a boolean value that indicates whether the Open Telemetry tracing is enabled or not.
+    /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.
     /// </summary>
     /// <value>
     /// The default value is <see langword="true"/>.
@@ -30,7 +30,7 @@ public sealed class NpgsqlSettings
     public bool Tracing { get; set; } = true;
 
     /// <summary>
-    /// Gets or sets a boolean value that indicates whether the Open Telemetry metrics are enabled or not.
+    /// Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not.
     /// </summary>
     /// <value>
     /// The default value is <see langword="true"/>.
