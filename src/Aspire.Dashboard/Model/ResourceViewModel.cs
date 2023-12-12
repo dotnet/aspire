@@ -13,7 +13,7 @@ public abstract class ResourceViewModel
     public DateTime? CreationTimeStamp { get; init; }
     public List<EnvironmentVariableViewModel> Environment { get; } = new();
     public required ILogSource LogSource { get; init; }
-    public List<string> Endpoints { get; } = new();
+    public List<EndpointViewModel> Endpoints { get; } = new();
     public List<ResourceService> Services { get; } = new();
     public int? ExpectedEndpointsCount { get; init; }
     public abstract string ResourceType { get; }
@@ -46,3 +46,5 @@ public sealed class ResourceService(string name, string? allocatedAddress, int? 
 }
 
 public sealed record NamespacedName(string Name, string? Namespace);
+
+public sealed record EndpointViewModel(string EndpointUrl, string ProxyUrl);

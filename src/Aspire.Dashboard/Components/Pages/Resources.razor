@@ -56,7 +56,7 @@
                         <SourceColumnDisplay Resource="context" FilterText="@_filter" />
                     </TemplateColumn>
                     <TemplateColumn Title="Endpoints">
-                        <EndpointsColumnDisplay Resource="context" />
+                        <EndpointsColumnDisplay Resource="context" HasMultipleReplicas="HasMultipleReplicas(context)" />
                     </TemplateColumn>
                     <TemplateColumn Title="Environment" Sortable="false">
                         <FluentButton Appearance="Appearance.Lightweight"

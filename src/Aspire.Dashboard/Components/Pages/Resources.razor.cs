@@ -163,6 +163,24 @@ public partial class Resources : ComponentBase, IDisposable
 
     private string GetResourceName(ResourceViewModel resource) => ResourceViewModel.GetResourceName(resource, _resourcesMap.Values);
 
+    private bool HasMultipleReplicas(ResourceViewModel resource)
+    {
+        var count = 0;
+        foreach (var item in _resourcesMap.Values)
+        {
+            if (item.DisplayName == resource.DisplayName)
+            {
+                count++;
+                if (count >= 2)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     protected virtual void Dispose(bool disposing)
     {
         if (disposing)
