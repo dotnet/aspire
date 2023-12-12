@@ -52,7 +52,8 @@
               "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.",
               "default": true
             }
-          }
+          },
+          "description": "Provides the client configuration settings for connecting to a PostgreSQL database using Npgsql."
         }
       }
     }

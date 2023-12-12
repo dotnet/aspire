@@ -20,7 +20,6 @@
               "properties": {
                 "ConfigurationOptions": {
                   "type": "object",
-                  "description": "The options relevant to a set of redis connections.",
                   "properties": {
                     "AbortOnConnectFail": {
                       "type": "boolean",
@@ -161,7 +160,8 @@
                       "type": "string",
                       "description": "The username to use to authenticate with the server."
                     }
-                  }
+                  },
+                  "description": "The options relevant to a set of redis connections."
                 },
                 "ConnectionString": {
                   "type": "string",
@@ -177,7 +177,8 @@
                   "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.",
                   "default": true
                 }
-              }
+              },
+              "description": "Provides the client configuration settings for connecting to a Redis server."
             }
           }
         }

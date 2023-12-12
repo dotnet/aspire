@@ -103,6 +103,7 @@ internal sealed class ConfigSchemaEmitter(SourceGenerationSpec spec, Compilation
         }
 
         GenerateProperties(currentNode, type);
+        GenerateTypeDocCommentsProperties(currentNode.Parent as JsonObject, type);
     }
 
     private void GenerateProperties(JsonObject currentNode, TypeSpec type)
@@ -123,15 +124,9 @@ internal sealed class ConfigSchemaEmitter(SourceGenerationSpec spec, Compilation
                     if (_typeIndex.ShouldBindTo(property))
                     {
                         var propertyTypeSpec = _typeIndex.GetTypeSpec(property.TypeRef);
-
-                        IPropertySymbol? propertySymbol = null;
-                        if (_compilation.GetBestTypeByMetadataName(type.FullName) is { } declaringTypeSymbol)
-                        {
-                            propertySymbol = declaringTypeSymbol.GetMembers(property.Name).FirstOrDefault() as IPropertySymbol;
-                        }
+                        var propertySymbol = GetPropertySymbol(type, property);
 
                         var propertyNode = new JsonObject();
-
                         AppendTypeNodes(propertyNode, propertyTypeSpec);
 
                         if (propertyTypeSpec is ComplexTypeSpec complexPropertyTypeSpec)
@@ -164,9 +159,23 @@ internal sealed class ConfigSchemaEmitter(SourceGenerationSpec spec, Compilation
         _visitedTypes.Pop();
     }
 
+    private IPropertySymbol? GetPropertySymbol(TypeSpec type, PropertySpec property)
+    {
+        IPropertySymbol? propertySymbol = null;
+        var typeSymbol = _compilation.GetBestTypeByMetadataName(type.FullName) as ITypeSymbol;
+        while (propertySymbol is null && typeSymbol is not null)
+        {
+            propertySymbol = typeSymbol.GetMembers(property.Name).FirstOrDefault() as IPropertySymbol;
+            typeSymbol = typeSymbol.BaseType;
+        }
+
+        return propertySymbol;
+    }
+
     private static bool ShouldSkipProperty(JsonObject propertyNode, PropertySpec property, TypeSpec propertyTypeSpec, IPropertySymbol? propertySymbol)
     {
         // skip simple properties that can't be set
+        // TODO: this should allow for init properties set through the constructor. Need to figure out the correct rule here.
         if (propertyTypeSpec is not ComplexTypeSpec &&
             !property.CanSet)
         {
@@ -237,6 +246,22 @@ internal sealed class ConfigSchemaEmitter(SourceGenerationSpec spec, Compilation
                 else if (!containsTrue && containsFalse)
                 {
                     propertyNode["default"] = false;
+                }
+            }
+        }
+    }
+
+    private void GenerateTypeDocCommentsProperties(JsonObject? currentNode, TypeSpec type)
+    {
+        if (currentNode is not null && currentNode["description"] is null)
+        {
+            var typeSymbol = _compilation.GetBestTypeByMetadataName(type.FullName);
+            if (typeSymbol is not null)
+            {
+                var docComment = typeSymbol.GetDocumentationCommentXml();
+                if (!string.IsNullOrEmpty(docComment))
+                {
+                    GenerateDocCommentsProperties(currentNode, docComment);
                 }
             }
         }
