@@ -211,6 +211,8 @@ public class DistributedApplicationTests
 
         await app.StartAsync(cts.Token);
 
+        await Task.Delay(1000, cts.Token);
+
         // Make sure services A and C are running
         await testProgram.ServiceABuilder.HttpGetPidAsync(client, "http", cts.Token);
         await testProgram.ServiceCBuilder.HttpGetPidAsync(client, "http", cts.Token);

@@ -86,10 +86,6 @@ public static class AllocatedEndpointAnnotationTestExtensions
             {
                 return await builder.HttpGetStringAsync(client, bindingName, request, cancellationToken);
             }
-            catch (HttpRequestException ex)
-            {
-                Console.WriteLine(ex);
-            }
             catch
             {
                 await Task.Delay(100, cancellationToken);
