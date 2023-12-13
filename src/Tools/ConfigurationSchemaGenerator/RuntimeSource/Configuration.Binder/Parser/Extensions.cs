@@ -1,15 +1,14 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Generic;
 using System.Text;
 using Microsoft.CodeAnalysis;
 using SourceGenerators;
-using Microsoft.Extensions.Configuration.Binder.SourceGeneration;
 
-namespace ConfigurationSchemaGenerator
+namespace Microsoft.Extensions.Configuration.Binder.SourceGeneration
 {
-    public sealed partial class ConfigSchemaGenerator // TODO
+    public sealed partial class ConfigurationBindingGenerator
     {
         internal sealed partial class Parser
         {
@@ -63,10 +62,7 @@ namespace ConfigurationSchemaGenerator
             }
         }
     }
-}
 
-namespace Microsoft.Extensions.Configuration.Binder.SourceGeneration // TODO
-{
     internal static class ParserExtensions
     {
         private static readonly SymbolDisplayFormat s_identifierCompatibleFormat = new SymbolDisplayFormat(

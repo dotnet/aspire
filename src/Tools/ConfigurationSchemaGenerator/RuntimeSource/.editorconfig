@@ -3,6 +3,9 @@
 # Namespace settings
 dotnet_diagnostic.IDE0161.severity = none
 
+# CA1305: Specify IFormatProvider
+dotnet_diagnostic.CA1305.severity = none
+
 # IDE0005: Remove unnecessary usings
 dotnet_diagnostic.IDE0005.severity = none
 

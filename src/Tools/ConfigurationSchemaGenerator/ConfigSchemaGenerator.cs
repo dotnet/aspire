@@ -24,8 +24,8 @@ public partial class ConfigSchemaGenerator
 
         if (configSchemaInfo is not null)
         {
-            var parser = new Parser(configSchemaInfo, new KnownTypeSymbols(compilation));
-            var spec = parser.GetSourceGenerationSpec(CancellationToken.None);
+            var parser = new ConfigurationBindingGenerator.Parser(configSchemaInfo, new KnownTypeSymbols(compilation));
+            var spec = parser.GetSchemaGenerationSpec(CancellationToken.None);
 
             var emitter = new ConfigSchemaEmitter(spec, compilation);
             var schema = emitter.GenerateSchema();
