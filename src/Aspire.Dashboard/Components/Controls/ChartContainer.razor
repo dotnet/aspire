@@ -22,9 +22,9 @@ else
             <div class="metrics-filters-container">
                 @if (_viewModel.DimensionFilters.Count > 0)
                 {
-                    <div>
-                        <h4>@Loc[ControlsStrings.ChartContainerFiltersHeader]</h4>
-                        <FluentDataGrid Items="@Queryable.AsQueryable(_viewModel.DimensionFilters)" GridTemplateColumns="200px 1fr auto" GenerateHeader="GenerateHeaderOption.None" Class="filter-grid">
+                    <div class="metrics-filters-section">
+                        <h5>@Loc[ControlsStrings.ChartContainerFiltersHeader]</h5>
+                        <FluentDataGrid Items="@Queryable.AsQueryable(_viewModel.DimensionFilters)" GridTemplateColumns="200px 1fr auto" GenerateHeader="GenerateHeaderOption.None">
                             <ChildContent>
                                 <PropertyColumn Tooltip="true" TooltipText="@(c => c.Name)" Property="@(c => c.Name)" />
                                 <TemplateColumn Tooltip="true" TooltipText="@(c => c.SelectedValues.Count == 0 ? "(None)" : string.Join(", ", c.SelectedValues.Select(v => v.Name)))">
@@ -83,7 +83,7 @@ else
                 }
                 @if (_instrument.Type == OtlpInstrumentType.Histogram)
                 {
-                    <div>
+                    <div class="metrics-filters-section">
                         <h5>@Loc[ControlsStrings.ChartContainerOptionsHeader]</h5>
                         <div>
                             <FluentSwitch Label="@Loc[ControlsStrings.ChartContainerShowCountLabel]" @bind-Value="_showCount" @bind-Value:after="ShowCountChanged" />

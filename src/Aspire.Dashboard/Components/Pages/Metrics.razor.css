@@ -44,8 +44,8 @@
     width: 600px;
 }
 
-::deep .filter-grid {
-    margin-bottom: 10px;
+::deep .metrics-filters-section {
+    margin-bottom: 15px;
 }
 
 ::deep .dimension-popup {
