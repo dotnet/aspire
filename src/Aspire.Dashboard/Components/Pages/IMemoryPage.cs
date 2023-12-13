@@ -9,8 +9,8 @@ namespace Aspire.Dashboard.Components.Pages;
 public interface IMemoryPage<in T>
 {
     string MemoryKey { get; }
-    ProtectedSessionStorage ProtectedSessionStore { get; set; }
-    NavigationManager NavigationManager { get; set; }
+    ProtectedSessionStorage ProtectedSessionStore { get; }
+    NavigationManager NavigationManager { get; }
 
     string GetNavigationUrl(T state);
 

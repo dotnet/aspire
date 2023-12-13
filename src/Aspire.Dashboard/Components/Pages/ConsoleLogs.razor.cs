@@ -4,19 +4,24 @@
 using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Model;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Pages;
 
-public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
+public partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IMemoryPage<string>
 {
     [Inject]
     public required IResourceService ResourceService { get; init; }
     [Inject]
+    public required ProtectedSessionStorage ProtectedSessionStore { get; set; }
+    [Inject]
     public required IJSRuntime JS { get; init; }
     [Inject]
     public required NavigationManager NavigationManager { get; init; }
+
+    public string MemoryKey => "ConsoleLogs_SelectState";
 
     [Parameter]
     public string? ResourceName { get; set; }
@@ -62,12 +67,14 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
         StateHasChanged();
     }
 
-    protected override void OnAfterRender(bool firstRender)
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
             // Let anyone waiting know that the render is complete so we have access to the underlying log viewer
             _renderCompleteTcs.SetResult();
+
+            await ((IMemoryPage<string>)this).NavigateToCurrentStateIfSetAsync();
         }
     }
 
@@ -185,7 +192,9 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
     {
         await StopWatchingLogsAsync();
         await ClearLogsAsync();
-        NavigationManager.NavigateTo($"/ConsoleLogs/{_selectedOption?.Value}");
+
+        ((IMemoryPage<string>)this).NavigateTo(_selectedOption?.Value ?? string.Empty);
+        await ProtectedSessionStore.SetAsync(MemoryKey, _selectedOption?.Value ?? string.Empty);
     }
 
     private async Task OnResourceListChangedAsync(ResourceChangeType changeType, ResourceViewModel resourceViewModel)
@@ -276,5 +285,10 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
         {
             await JS.InvokeVoidAsync("updateFluentSelectDisplayValue", _resourceSelectComponent.Element);
         }
+    }
+
+    public string GetNavigationUrl(string state)
+    {
+        return $"/ConsoleLogs/{state}";
     }
 }
