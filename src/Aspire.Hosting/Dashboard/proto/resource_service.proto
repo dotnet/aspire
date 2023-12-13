@@ -112,8 +112,6 @@ message ResourceSnapshot {
     repeated Endpoint endpoints = 7;
     repeated ResourceCommandRequest commands = 8;
 
-    // TODO potentially remove endpoints/env vars/anything that might not be general purpose
-
     // List of additional data, as name/value pairs.
     // For:
     // - Containers: image, container_id, ports
