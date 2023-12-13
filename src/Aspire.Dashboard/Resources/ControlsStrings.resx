@@ -128,7 +128,7 @@
   </data>
   <data name="EnvironmentVariablesFilterToggleShowSpecOnly" xml:space="preserve">
     <value>Show Spec Only</value>
-    <note>Spec means from the resource specification</note>
+    <comment>Spec means from the resource specification</comment>
   </data>
   <data name="EnvironmentVariablesFilterToggleShowAll" xml:space="preserve">
     <value>Show All</value>
@@ -153,15 +153,15 @@
   </data>
   <data name="PlotlyChartCount" xml:space="preserve">
     <value>Count</value>
-    <note>Count is the name of a plot y-axis label</note>
+    <comment>Count is the name of a plot y-axis label</comment>
   </data>
   <data name="PlotlyChartLength" xml:space="preserve">
     <value>Length</value>
-    <note>Length is the name of a plot y-axis label</note>
+    <comment>Length is the name of a plot y-axis label</comment>
   </data>
   <data name="PlotlyChartValue" xml:space="preserve">
     <value>Value</value>
-    <note>Value is the name of a plot y-axis label</note>
+    <comment>Value is the name of a plot y-axis label</comment>
   </data>
   <data name="NameColumnHeader" xml:space="preserve">
     <value>Name</value>
@@ -171,15 +171,15 @@
   </data>
   <data name="SpanDetailsService" xml:space="preserve">
     <value>Service &lt;strong&gt;{0}&lt;/strong&gt;</value>
-    <note>{0} is the application name. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+    <comment>{0} is the application name. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</comment>
   </data>
   <data name="SpanDetailsDuration" xml:space="preserve">
     <value>Duration &lt;strong&gt;{0}&lt;/strong&gt;</value>
-    <note>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+    <comment>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</comment>
   </data>
   <data name="SpanDetailsStartTime" xml:space="preserve">
     <value>Start Time &lt;strong&gt;{0}&lt;/strong&gt;</value>
-    <note>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+    <comment>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</comment>
   </data>
   <data name="ViewLogsLink" xml:space="preserve">
     <value>View Logs</value>
@@ -195,7 +195,7 @@
   </data>
   <data name="TotalItemsFooterText" xml:space="preserve">
     <value>Total: &lt;strong&gt;{0} results found&lt;/strong&gt;</value>
-    <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+    <comment>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</comment>
   </data>
   <data name="SelectAnApplication" xml:space="preserve">
     <value>Select an Application</value>

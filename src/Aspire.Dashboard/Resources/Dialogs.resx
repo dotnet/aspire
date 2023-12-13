@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!--
     Microsoft ResX Schema
@@ -146,6 +146,6 @@
   </data>
   <data name="SettingsDialogVersion" xml:space="preserve">
     <value>Version: {0}</value>
-    <note>{0} is the dashboard version string</note>
+    <comment>{0} is the dashboard version string</comment>
   </data>
 </root>
