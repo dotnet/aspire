@@ -18,9 +18,16 @@
     }
     else
     {
-        <span class="cellText" title="@(ToolTip ?? Value)">
-            @(MaxDisplayLength.HasValue ? TrimLength(Value) : Value)
-        </span>
+        @if (IsMultilineValue is true && Value is not null)
+        {
+            <FluentTextArea Rows="@GetNumberOfLines(Value)" Resize="TextAreaResize.Both" Value="@Value" ReadOnly="true" />
+        }
+        else
+        {
+            <span class="cellText" title="@(ToolTip ?? Value)">
+                @(MaxDisplayLength.HasValue ? TrimLength(Value) : Value)
+            </span>
+        }
     }
     @if (EnableMasking)
     {
@@ -38,3 +45,8 @@
                   aria-label="@Loc[ControlsStrings.GridValueCopyToClipboard]" />
     <FluentTooltip Anchor="@_anchorId" Position="TooltipPosition.Top">@PreCopyToolTip</FluentTooltip>
 </div>
+
+@code {
+    [Parameter]
+    public bool? IsMultilineValue { get; set; }
+}

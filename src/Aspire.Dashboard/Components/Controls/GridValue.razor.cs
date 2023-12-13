@@ -70,4 +70,9 @@ public partial class GridValue
 
         return text ?? "";
     }
+
+    private static int GetNumberOfLines(string value)
+    {
+        return value.Length - value.Replace("\n", "").Length + 1;
+    }
 }
