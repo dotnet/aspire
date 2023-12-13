@@ -20,8 +20,6 @@ public partial class Resources : ComponentBase, IDisposable
     public required IResourceService ResourceService { get; init; }
     [Inject]
     public required TelemetryRepository TelemetryRepository { get; init; }
-    [Inject]
-    public required NavigationManager NavigationManager { get; init; }
 
     private IEnumerable<EnvironmentVariableViewModel>? SelectedEnvironmentVariables { get; set; }
     private ResourceViewModel? SelectedResource { get; set; }
@@ -33,6 +31,8 @@ public partial class Resources : ComponentBase, IDisposable
     private readonly HashSet<string> _visibleResourceTypes;
     private string _filter = "";
     private bool _isTypeFilterVisible;
+
+    private readonly GridSort<ResourceViewModel> _stateSort = GridSort<ResourceViewModel>.ByAscending(p => p.Status == null ? default : p.Status.State);
 
     public Resources()
     {
@@ -79,7 +79,6 @@ public partial class Resources : ComponentBase, IDisposable
     private IQueryable<ResourceViewModel>? FilteredResources => _resourcesMap.Values.Where(Filter).OrderBy(e => e.ResourceType).ThenBy(e => e.Name).AsQueryable();
 
     private readonly GridSort<ResourceViewModel> _nameSort = GridSort<ResourceViewModel>.ByAscending(p => p.Name);
-    private readonly GridSort<ResourceViewModel> _stateSort = GridSort<ResourceViewModel>.ByAscending(p => p.Status == null ? default : p.Status.State);
 
     protected override void OnInitialized()
     {
@@ -105,27 +104,6 @@ public partial class Resources : ComponentBase, IDisposable
             _applicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
             await InvokeAsync(StateHasChanged);
         });
-    }
-
-    private int GetUnviewedErrorCount(ResourceViewModel resource)
-    {
-        if (_applicationUnviewedErrorCounts is null)
-        {
-            return 0;
-        }
-
-        var application = TelemetryRepository.GetApplication(resource.Uid);
-        if (application is null)
-        {
-            return 0;
-        }
-
-        if (!_applicationUnviewedErrorCounts.TryGetValue(application, out var count))
-        {
-            return 0;
-        }
-
-        return count;
     }
 
     private void ShowEnvironmentVariables(ResourceViewModel resource)
@@ -192,11 +170,6 @@ public partial class Resources : ComponentBase, IDisposable
     private void HandleClear()
     {
         _filter = string.Empty;
-    }
-
-    private void ViewErrorStructuredLogs(ResourceViewModel resource)
-    {
-        NavigationManager.NavigateTo($"/StructuredLogs/{resource.Uid}?level=error");
     }
 
     private string? GetRowClass(ResourceViewModel resource)

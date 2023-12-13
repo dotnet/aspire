@@ -144,4 +144,11 @@
     <value>{0} error logs</value>
     <comment>{0} is a number</comment>
   </data>
+  <data name="StateColumnResourceExitedUnexpectedly" xml:space="preserve">
+    <value>Resource exited unexpectedly with exit code {0}</value>
+    <comment>{0} is a number</comment>
+  </data>
+  <data name="StateColumnResourceExited" xml:space="preserve">
+    <value>Resource exited</value>
+  </data>
 </root>

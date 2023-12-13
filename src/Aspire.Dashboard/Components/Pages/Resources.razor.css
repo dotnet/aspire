@@ -4,7 +4,7 @@
     align-items: center;
 }
 
-::deep .resource-error-badge {
+::deep .resource-state-badge {
     padding: 0 3px;
     cursor: pointer;
 }

@@ -1,0 +1,44 @@
+﻿@using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Otlp.Model
+@using Aspire.Dashboard.Resources
+@inject IStringLocalizer<Columns> Loc
+
+<div class="resource-state-container">
+    @Resource.Status?.State
+    @if (Resource.Status is { State: "Exited" /* containers */ or "Finished" /* executables */, ExitCode: not null and not 0 })
+    {
+        <!-- process completed unexpectedly, hence the non-zero code. this is almost certainly an error, so warn users -->
+        <div @onclick="() => ViewConsoleLogs(Resource)" class="resource-state-badge">
+            <FluentBadge title="@string.Format(Loc[Columns.StateColumnResourceExitedUnexpectedly], Resource.Status.ExitCode)"
+                         Appearance="Appearance.Accent"
+                         Circular="true"
+                         Fill="error"
+                         slot="end">
+                <FluentIcon Icon="Icons.Regular.Size16.Warning" Color="Color.Fill"/>
+            </FluentBadge>
+        </div>
+    }
+    else if (Resource.Status is { State: "Exited" /* containers */ or "Finished" /* containers */ })
+    {
+        <!-- process completed, which may not have been unexpected -->
+        <div @onclick="() => ViewConsoleLogs(Resource)" class="resource-state-badge">
+            <FluentBadge title="@Loc[Columns.StateColumnResourceExited]"
+                         Appearance="Appearance.Accent"
+                         Circular="true"
+                         Fill="warning"
+                         slot="end">
+                <FluentIcon Icon="Icons.Regular.Size16.RecordStop" Color="Color.Fill"/>
+            </FluentBadge>
+        </div>
+    }
+
+    <UnreadLogErrorsBadge UnviewedCount="@GetUnviewedErrorCount(Resource)" OnClick="@(() => ViewErrorStructuredLogs(Resource))"/>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public Dictionary<OtlpApplication, int>? UnviewedErrorCounts { get; set; }
+
+    [Parameter, EditorRequired]
+    public required ResourceViewModel Resource { get; set; }
+}
