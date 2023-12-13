@@ -1,0 +1,82 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="ru" original="../Metrics.resx">
+    <body>
+      <trans-unit id="MetricsHeader">
+        <source>Metrics</source>
+        <target state="new">Metrics</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MetricsLastFifteenMinutes">
+        <source>Last 15 minutes</source>
+        <target state="new">Last 15 minutes</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MetricsLastFiveMinutes">
+        <source>Last 5 minutes</source>
+        <target state="new">Last 5 minutes</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MetricsLastHour">
+        <source>Last hour</source>
+        <target state="new">Last hour</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MetricsLastOneMinute">
+        <source>Last 1 minute</source>
+        <target state="new">Last 1 minute</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MetricsLastSixHours">
+        <source>Last 6 hours</source>
+        <target state="new">Last 6 hours</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MetricsLastThirtyMinutes">
+        <source>Last 30 minutes</source>
+        <target state="new">Last 30 minutes</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MetricsLastThreeHours">
+        <source>Last 3 hours</source>
+        <target state="new">Last 3 hours</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MetricsLastTwelveHours">
+        <source>Last 12 hours</source>
+        <target state="new">Last 12 hours</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MetricsLastTwentyFourHours">
+        <source>Last 24 hours</source>
+        <target state="new">Last 24 hours</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MetricsNoMetricsForResource">
+        <source>No metrics for the selected resource</source>
+        <target state="new">No metrics for the selected resource</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MetricsPageTitle">
+        <source>{0} Metrics</source>
+        <target state="new">{0} Metrics</target>
+        <note>{0} is an application name</note>
+      </trans-unit>
+      <trans-unit id="MetricsSelectADuration">
+        <source>Select a Duration</source>
+        <target state="new">Select a Duration</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MetricsSelectAResource">
+        <source>Select a resource to view metrics</source>
+        <target state="new">Select a resource to view metrics</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MetricsSelectInstrument">
+        <source>Select instrument.</source>
+        <target state="new">Select instrument.</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

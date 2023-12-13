@@ -1,25 +1,23 @@
 ﻿@using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Resources
+@inject IStringLocalizer<Columns> Loc
 
 <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
-    <span><FluentHighlighter HighlightedText="@FilterText" Text="@Resource.Name" /></span>
-    @if (Resource is ProjectViewModel projectViewModel)
-    {
-        var title = $"PID: {projectViewModel.ProcessId}";
-        <span class="subtext" title="@title" aria-label="@title">@projectViewModel.ProcessId</span>
-    }
-    else if (Resource is ContainerViewModel containerViewModel)
+    <span><FluentHighlighter HighlightedText="@FilterText" Text="@FormatName(Resource)" /></span>
+    @if (Resource is ContainerViewModel containerViewModel)
     {
         <div class="subtext">
             <GridValue Value="@containerViewModel.ContainerId"
                        MaxDisplayLength="8"
                        EnableHighlighting="false"
-                       PreCopyToolTip="Copy container ID to clipboard"
-                       ToolTip="@($"Container Id: {containerViewModel.ContainerId}")"/>
+                       PreCopyToolTip="@Loc[Columns.ResourceNameDisplayCopyContainerIdText]"
+                       ToolTip="@string.Format(Loc[Columns.ResourceNameDisplayContainerIdText], containerViewModel.ContainerId)"/>
         </div>
     }
     else if (Resource is ExecutableViewModel executableViewModel)
     {
-        var title = $"PID: {executableViewModel.ProcessId}";
+        // NOTE projects are also executables, so this will handle both
+        var title = string.Format(Loc[Columns.ResourceNameDisplayProcessIdText], executableViewModel.ProcessId);
         <span class="subtext" title="@title" aria-label="@title">@executableViewModel.ProcessId</span>
     }
 </FluentStack>
@@ -27,6 +25,9 @@
 @code {
     [Parameter, EditorRequired]
     public required ResourceViewModel Resource { get; set; }
+
+    [Parameter, EditorRequired]
+    public required Func<ResourceViewModel, string> FormatName { get; set; }
 
     [Parameter, EditorRequired]
     public required string FilterText { get; set; }

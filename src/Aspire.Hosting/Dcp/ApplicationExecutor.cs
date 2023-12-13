@@ -4,6 +4,7 @@
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp.Model;
+using Aspire.Hosting.Lifecycle;
 using k8s;
 
 namespace Aspire.Hosting.Dcp;
@@ -44,9 +45,13 @@ internal sealed class ServiceAppResource : AppResource
     }
 }
 
-internal sealed class ApplicationExecutor(DistributedApplicationModel model, KubernetesService kubernetesService)
+internal sealed class ApplicationExecutor(DistributedApplicationModel model,
+                                          KubernetesService kubernetesService,
+                                          IEnumerable<IDistributedApplicationLifecycleHook> lifecycleHooks)
 {
     private const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
+
+    private readonly IDistributedApplicationLifecycleHook[] _lifecycleHooks = lifecycleHooks.ToArray();
 
     // These environment variables should never be inherited from app host;
     // they only make sense if they come from a launch profile of a service project.
@@ -69,9 +74,6 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
             PrepareServices();
             PrepareContainers();
             PrepareExecutables();
-            PrepareProxylessServices();
-
-            await CreateContainerSingletonsAsync(cancellationToken).ConfigureAwait(false);
 
             await CreateServicesAsync(cancellationToken).ConfigureAwait(false);
 
@@ -99,13 +101,6 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
             AspireEventSource.Instance.DcpModelCleanupStop();
             _appResources.Clear();
         }
-    }
-
-    private async Task CreateContainerSingletonsAsync(CancellationToken cancellationToken = default)
-    {
-        // Find containers that consume no Services--their associated Services can be started in Proxyless mode
-        var toCreate = _appResources.Where(r => r.DcpResource is Container && !r.ServicesConsumed.Any());
-        await CreateContainersAsync(toCreate, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task CreateServicesAsync(CancellationToken cancellationToken = default)
@@ -156,7 +151,12 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
         var toCreate = _appResources.Where(r => r.DcpResource is Container || r.DcpResource is Executable || r.DcpResource is ExecutableReplicaSet);
         AddAllocatedEndpointInfo(toCreate);
 
-        await CreateContainersAsync(toCreate.Where(ar => ar.DcpResource is Container && ar.ServicesConsumed.Any()), cancellationToken).ConfigureAwait(false);
+        foreach (var lifecycleHook in _lifecycleHooks)
+        {
+            await lifecycleHook.AfterEndpointsAllocatedAsync(_model, cancellationToken).ConfigureAwait(false);
+        }
+
+        await CreateContainersAsync(toCreate.Where(ar => ar.DcpResource is Container), cancellationToken).ConfigureAwait(false);
         await CreateExecutablesAsync(toCreate.Where(ar => ar.DcpResource is Executable || ar.DcpResource is ExecutableReplicaSet), cancellationToken).ConfigureAwait(false);
     }
 
@@ -177,7 +177,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
                     sp.ServiceBindingAnnotation.Name,
                     PortProtocol.ToProtocolType(svc.Spec.Protocol),
                     svc.AllocatedAddress!,
-                    (int)(sp.ServiceBindingAnnotation.Port ?? svc.AllocatedPort!), // Checked by HasCompleteAddress above.
+                    (int)svc.AllocatedPort!,
                     sp.ServiceBindingAnnotation.UriScheme
                     );
 
@@ -208,7 +208,6 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
         foreach (var sp in serviceProducers)
         {
             var sbAnnotations = sp.SBAnnotations.ToArray();
-            var replicas = sp.ModelResource.GetReplicaCount();
 
             foreach (var sba in sbAnnotations)
             {
@@ -217,13 +216,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
                 var uniqueServiceName = GenerateUniqueServiceName(serviceNames, candidateServiceName);
                 var svc = Service.Create(uniqueServiceName);
 
-                if (replicas > 1)
-                {
-                    // Treat the port specified in the ServiceBindingAnnotation as desired port for the whole service.
-                    // Each replica receives its own port.
-                    svc.Spec.Port = sba.Port;
-                }
-
+                svc.Spec.Port = sba.Port;
                 addServiceAppResource(svc, sp.ModelResource, sba);
             }
         }
@@ -249,6 +242,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
             exe.Spec.WorkingDirectory = executable.WorkingDirectory;
             exe.Spec.Args = executable.Args?.ToList();
             exe.Spec.ExecutionType = ExecutionType.Process;
+            exe.Annotate(Executable.OtelServiceNameAnnotation, exe.Metadata.Name);
 
             var exeAppResource = new AppResource(executable, exe);
             AddServicesProducedInfo(executable, exe, exeAppResource);
@@ -267,34 +261,24 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
                 throw new InvalidOperationException("A project resource is missing required metadata"); // Should never happen.
             }
 
-            CustomResource workload;
-            ExecutableSpec exeSpec;
-            IAnnotationHolder annotationHolder;
-            var workloadName = GetObjectNameForResource(project);
             int replicas = project.GetReplicaCount();
 
-            if (replicas > 1)
-            {
-                var ers = ExecutableReplicaSet.Create(workloadName, replicas, "dotnet");
-                exeSpec = ers.Spec.Template.Spec;
-                annotationHolder = ers.Spec.Template;
-                workload = ers;
-            }
-            else
-            {
-                var exe = Executable.Create(workloadName, "dotnet");
-                exeSpec = exe.Spec;
-                annotationHolder = workload = exe;
-            }
+            var ers = ExecutableReplicaSet.Create(GetObjectNameForResource(project), replicas, "dotnet");
+            var exeSpec = ers.Spec.Template.Spec;
+            IAnnotationHolder annotationHolder = ers.Spec.Template;
 
             exeSpec.WorkingDirectory = Path.GetDirectoryName(projectMetadata.ProjectPath);
 
             annotationHolder.Annotate(Executable.CSharpProjectPathAnnotation, projectMetadata.ProjectPath);
-            annotationHolder.Annotate(Executable.LaunchProfileNameAnnotation, project.SelectLaunchProfileName() ?? string.Empty);
+            annotationHolder.Annotate(Executable.OtelServiceNameAnnotation, ers.Metadata.Name);
 
             if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable(DebugSessionPortVar)))
             {
                 exeSpec.ExecutionType = ExecutionType.IDE;
+                if (project.TryGetLastAnnotation<LaunchProfileAnnotation>(out var lpa))
+                {
+                    annotationHolder.Annotate(Executable.CSharpLaunchProfileAnnotation, lpa.LaunchProfileName);
+                }
             }
             else
             {
@@ -343,23 +327,9 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
                 }
             }
 
-            var exeAppResource = new AppResource(project, workload);
+            var exeAppResource = new AppResource(project, ers);
             AddServicesProducedInfo(project, annotationHolder, exeAppResource);
             _appResources.Add(exeAppResource);
-        }
-    }
-
-    private void PrepareProxylessServices()
-    {
-        // Find containers that consume no Services--their associated Services can be started in Proxyless mode
-        var singletonContainers = _appResources.Where(r => r.DcpResource is Container && !r.ServicesConsumed.Any());
-
-        foreach (var container in singletonContainers)
-        {
-            foreach (var service in container.ServicesProduced)
-            {
-                service.Service.Spec.AddressAllocationMode = AddressAllocationModes.Proxyless;
-            }
         }
     }
 
@@ -475,12 +445,8 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
         var launchProfile = launchSettings.Profiles[launchProfileName];
         if (!string.IsNullOrWhiteSpace(launchProfile.ApplicationUrl))
         {
-            int replicas = executableResource.ModelResource.GetReplicaCount();
-
-            if (replicas > 1)
+            if (executableResource.DcpResource is ExecutableReplicaSet)
             {
-                // Can't use the information in ASPNETCORE_URLS directly when multiple replicas are in play.
-                // Instead we are going to SYNTHESIZE the new ASPNETCORE_URLS value based on the information about services produced by this resource.
                 var urls = executableResource.ServicesProduced.Select(sar =>
                 {
                     var url = sar.ServiceBindingAnnotation.UriScheme + "://localhost:{{- portForServing \"" + sar.Service.Metadata.Name + "\" -}}";
@@ -633,6 +599,10 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
         var servicesProduced = _appResources.OfType<ServiceAppResource>().Where(r => r.ModelResource == modelResource);
         foreach (var sp in servicesProduced)
         {
+            // Projects/Executables have their ports auto-allocated; the the port specified by the ServiceBindingAnnotation
+            // is applied to the Service objects and used by clients.
+            // Containers use the port from the ServiceBindingAnnotation directly.
+
             if (modelResource.IsContainer())
             {
                 if (sp.ServiceBindingAnnotation.ContainerPort is null)
@@ -641,23 +611,6 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model, Kub
                 }
 
                 sp.DcpServiceProducerAnnotation.Port = sp.ServiceBindingAnnotation.ContainerPort;
-            }
-            else if (modelResource is ExecutableResource)
-            {
-                sp.DcpServiceProducerAnnotation.Port = sp.ServiceBindingAnnotation.Port;
-            }
-            else
-            {
-                if (sp.ServiceBindingAnnotation.Port is null)
-                {
-                    throw new InvalidOperationException($"The ServiceBindingAnnotation for resource {modelResourceName} must specify the Port");
-                }
-
-                if (modelResource.GetReplicaCount() == 1)
-                {
-                    // If multiple replicas are used, each replica will get its own port.
-                    sp.DcpServiceProducerAnnotation.Port = sp.ServiceBindingAnnotation.Port;
-                }
             }
 
             dcpResource.AnnotateAsObjectList(CustomResource.ServiceProducerAnnotation, sp.DcpServiceProducerAnnotation);

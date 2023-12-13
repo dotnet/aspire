@@ -1,29 +1,57 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Immutable;
+using Aspire.Dashboard.Extensions;
+
 namespace Aspire.Dashboard.Model;
 
+/// <summary>
+/// Base class for immutable snapshots of resource state at a point in time.
+/// </summary>
 public abstract class ResourceViewModel
 {
     public required string Name { get; init; }
+    public required string DisplayName { get; init; }
     public required string Uid { get; init; }
-    public required NamespacedName NamespacedName { get; init; }
-    public string? State { get; init; }
-    public DateTime? CreationTimeStamp { get; init; }
-    public List<EnvironmentVariableViewModel> Environment { get; } = new();
+    public required string? State { get; init; }
+    public required DateTime? CreationTimeStamp { get; init; }
+    public required ImmutableArray<EnvironmentVariableViewModel> Environment { get; init; }
     public required ILogSource LogSource { get; init; }
-    public List<string> Endpoints { get; } = new();
-    public List<ResourceService> Services { get; } = new();
-    public int? ExpectedEndpointsCount { get; init; }
+    public required ImmutableArray<string> Endpoints { get; init; }
+    public required ImmutableArray<ResourceServiceSnapshot> Services { get; init; }
+    public required int? ExpectedEndpointsCount { get; init; }
+
     public abstract string ResourceType { get; }
+
+    public static string GetResourceName(ResourceViewModel resource, IEnumerable<ResourceViewModel> allResources)
+    {
+        var count = 0;
+        foreach (var item in allResources)
+        {
+            if (item.DisplayName == resource.DisplayName)
+            {
+                count++;
+                if (count >= 2)
+                {
+                    return ResourceFormatter.GetName(resource.DisplayName, resource.Uid);
+                }
+            }
+        }
+
+        return resource.DisplayName;
+    }
+
+    internal virtual bool MatchesFilter(string filter)
+    {
+        return Name.Contains(filter, StringComparisons.UserTextSearch);
+    }
 }
 
-public sealed class ResourceService(string name, string? allocatedAddress, int? allocatedPort)
+public sealed class ResourceServiceSnapshot(string name, string? allocatedAddress, int? allocatedPort)
 {
     public string Name { get; } = name;
     public string? AllocatedAddress { get; } = allocatedAddress;
     public int? AllocatedPort { get; } = allocatedPort;
     public string AddressAndPort { get; } = $"{allocatedAddress}:{allocatedPort}";
 }
-
-public sealed record NamespacedName(string Name, string? Namespace);

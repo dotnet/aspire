@@ -12,7 +12,7 @@ namespace Aspire.Dashboard.Components.Pages;
 public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
 {
     [Inject]
-    public required IDashboardViewModelService DashboardViewModelService { get; init; }
+    public required IResourceService ResourceService { get; init; }
     [Inject]
     public required IJSRuntime JS { get; init; }
     [Inject]
@@ -31,32 +31,31 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
     private LogViewer? _logViewer;
     private readonly CancellationTokenSource _watchResourcesCts = new();
     private CancellationTokenSource? _watchLogsTokenSource;
-    private string _status = LogStatus.Initializing;
+    private string _status = "...";
 
     private readonly TaskCompletionSource _renderCompleteTcs = new();
 
-    private readonly Option<string> _noSelection = new() { Value = null, Text = "(Select a resource)" };
+    private Option<string> _noSelection = null!;
 
     protected override void OnInitialized()
     {
-        _status = LogStatus.LoadingResources;
+        _noSelection = new() { Value = null, Text = Loc[Dashboard.Resources.ConsoleLogs.ConsoleLogsSelectAResource] };
+        _status = Loc[Dashboard.Resources.ConsoleLogs.ConsoleLogsLoadingResources];
 
-        var viewModelMonitor = DashboardViewModelService.GetResources();
-        var initialList = viewModelMonitor.Snapshot;
-        var watch = viewModelMonitor.Watch;
+        var (snapshot, subscription) = ResourceService.Subscribe();
 
-        foreach (var result in initialList)
+        foreach (var resource in snapshot)
         {
-            _resourceNameMapping[result.Name] = result;
+            _resourceNameMapping[resource.Name] = resource;
         }
 
         UpdateResourcesList();
 
         _ = Task.Run(async () =>
         {
-            await foreach (var resourceChanged in watch.WithCancellation(_watchResourcesCts.Token))
+            await foreach (var (changeType, resource) in subscription.WithCancellation(_watchResourcesCts.Token))
             {
-                await OnResourceListChangedAsync(resourceChanged.ObjectChangeType, resourceChanged.Resource);
+                await OnResourceListChangedAsync(changeType, resource);
             }
         });
 
@@ -86,11 +85,11 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
             await ClearLogsAsync();
             _selectedOption = _noSelection;
             _selectedResource = null;
-            _status = LogStatus.NoResourceSelected;
+            _status = Loc[Dashboard.Resources.ConsoleLogs.ConsoleLogsNoResourceSelected];
         }
     }
 
-    private static Option<string> GetOption(ResourceViewModel resource)
+    private Option<string> GetOption(ResourceViewModel resource)
     {
         return new Option<string>()
         {
@@ -119,11 +118,11 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
 
         if (_selectedResource is null)
         {
-            _status = LogStatus.NoResourceSelected;
+            _status = Loc[Dashboard.Resources.ConsoleLogs.ConsoleLogsNoResourceSelected];
         }
         else if (_logViewer is null)
         {
-            _status = LogStatus.InitializingLogViewer;
+            _status = Loc[Dashboard.Resources.ConsoleLogs.ConsoleLogsInitializingLogViewer];
         }
         else
         {
@@ -161,22 +160,22 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
                     // cause a flash of text change before it changes again or the page is navigated away.
                     if (!task.IsCanceled)
                     {
-                        _status = LogStatus.FinishedWatchingLogs;
+                        _status = Loc[Dashboard.Resources.ConsoleLogs.ConsoleLogsFinishedWatchingLogs];
                     }
                 }, TaskScheduler.Current);
 
-                _status = LogStatus.WatchingLogs;
+                _status = Loc[Dashboard.Resources.ConsoleLogs.ConsoleLogsWatchingLogs];
             }
             else
             {
                 _watchLogsTokenSource = null;
                 if (_selectedResource is ContainerViewModel)
                 {
-                    _status = LogStatus.FailedToInitialize;
+                    _status = Loc[Dashboard.Resources.ConsoleLogs.ConsoleLogsFailedToInitialize];
                 }
                 else
                 {
-                    _status = LogStatus.LogsNotYetAvailable;
+                    _status = Loc[Dashboard.Resources.ConsoleLogs.ConsoleLogsLogsNotYetAvailable];
                 }
             }
         }
@@ -189,15 +188,12 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
         NavigationManager.NavigateTo($"/ConsoleLogs/{_selectedOption?.Value}");
     }
 
-    private async Task OnResourceListChangedAsync(ObjectChangeType changeType, ResourceViewModel resourceViewModel)
+    private async Task OnResourceListChangedAsync(ResourceChangeType changeType, ResourceViewModel resourceViewModel)
     {
-        if (changeType == ObjectChangeType.Added)
+        if (changeType == ResourceChangeType.Upsert)
         {
             _resourceNameMapping[resourceViewModel.Name] = resourceViewModel;
-        }
-        else if (changeType == ObjectChangeType.Modified)
-        {
-            _resourceNameMapping[resourceViewModel.Name] = resourceViewModel;
+
             if (string.Equals(_selectedResource?.Name, resourceViewModel.Name, StringComparison.Ordinal))
             {
                 _selectedResource = resourceViewModel;
@@ -208,13 +204,14 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
                 }
                 else if (!string.Equals(_selectedResource.State, "Running", StringComparison.Ordinal))
                 {
-                    _status = LogStatus.FinishedWatchingLogs;
+                    _status = Loc[Dashboard.Resources.ConsoleLogs.ConsoleLogsFinishedWatchingLogs];
                 }
             }
         }
-        else if (changeType == ObjectChangeType.Deleted)
+        else if (changeType == ResourceChangeType.Delete)
         {
             _resourceNameMapping.Remove(resourceViewModel.Name);
+
             if (string.Equals(_selectedResource?.Name, resourceViewModel.Name, StringComparison.Ordinal))
             {
                 _selectedOption = _noSelection;
@@ -231,19 +228,21 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
         await UpdateResourceListSelectedResourceAsync();
     }
 
-    private static string GetDisplayText(ResourceViewModel resource)
+    private string GetDisplayText(ResourceViewModel resource)
     {
         var stateText = "";
         if (string.IsNullOrEmpty(resource.State))
         {
-            stateText = " (Unknown State)";
+            stateText = $" ({Loc[Dashboard.Resources.ConsoleLogs.ConsoleLogsUnknownState]})";
         }
         else if (resource.State != "Running")
         {
             stateText = $" ({resource.State})";
         }
-        return $"{resource.Name}{stateText}";
+        return $"{GetResourceName(resource)}{stateText}";
     }
+
+    private string GetResourceName(ResourceViewModel resource) => ResourceViewModel.GetResourceName(resource, _resourceNameMapping.Values);
 
     public async ValueTask DisposeAsync()
     {

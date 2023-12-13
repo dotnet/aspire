@@ -1,4 +1,6 @@
-﻿@inject IJSRuntime JS
+﻿@using Aspire.Dashboard.Resources
+@inject IJSRuntime JS
+@inject IStringLocalizer<ControlsStrings> Loc
 
 <div class="@GetContainerClass()">
     @if (EnableMasking && IsMasked)
@@ -24,15 +26,15 @@
     {
         <FluentButton Appearance="Appearance.Lightweight"
                       IconEnd="@(IsMasked ? _unmaskIcon : _maskIcon)"
-                      Title="@(IsMasked ? "Show Value" : "Hide Value")"
+                      Title="@(IsMasked ? Loc[ControlsStrings.GridValueMaskShowValue] : Loc[ControlsStrings.GridValueMaskHideValue])"
                       OnClick="ToggleMaskStateAsync"
-                      aria-label="@(IsMasked ? "Show Value" : "Hide Value")" />
+                      aria-label="@(IsMasked ? Loc[ControlsStrings.GridValueMaskShowValue] : Loc[ControlsStrings.GridValueMaskHideValue])" />
     }
     <FluentButton Appearance="Appearance.Lightweight"
                   Id="@_anchorId"
                   IconEnd="@(new Icons.Regular.Size16.Copy())"
                   Class="defaultHidden"
                   @onclick="@(() => CopyTextToClipboardAsync(Value, @_anchorId))"
-                  aria-label="Copy to Clipboard" />
+                  aria-label="@Loc[ControlsStrings.GridValueCopyToClipboard]" />
     <FluentTooltip Anchor="@_anchorId" Position="TooltipPosition.Top">@PreCopyToolTip</FluentTooltip>
 </div>
