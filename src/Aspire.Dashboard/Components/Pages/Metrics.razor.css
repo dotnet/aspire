@@ -41,29 +41,11 @@
 }
 
 ::deep .metrics-filters-container {
-    width: 550px;
+    width: 600px;
 }
 
 ::deep .filter-grid {
-    display: grid;
-    grid-template-columns: 200px 1fr auto;
-    grid-gap: 4px;
     margin-bottom: 10px;
-}
-
-::deep .filter-grid > div {
-    display: flex;
-    align-items: center;
-}
-
-::deep .filter-grid .dimension-overflow {
-    flex: 1;
-}
-
-::deep .filter-grid .dimension-name {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 }
 
 ::deep .dimension-popup {

@@ -7,9 +7,24 @@
         <target state="new">All</target>
         <note />
       </trans-unit>
+      <trans-unit id="ChartContainerAllTags">
+        <source>All tags</source>
+        <target state="new">All tags</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ChartContainerFilteredTags">
+        <source>Filtered tags</source>
+        <target state="new">Filtered tags</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ChartContainerFiltersHeader">
         <source>Filters</source>
         <target state="new">Filters</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ChartContainerOptionsHeader">
+        <source>Options</source>
+        <target state="new">Options</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerSelectFilters">
@@ -17,19 +32,14 @@
         <target state="new">Select filters</target>
         <note />
       </trans-unit>
+      <trans-unit id="ChartContainerShowCountLabel">
+        <source>Show count</source>
+        <target state="new">Show count</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ChartContainerUnableToDisplay">
         <source>Unable to display chart</source>
         <target state="new">Unable to display chart</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ChartDimensionAllTags">
-        <source>All tags</source>
-        <target state="new">All tags</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="ChartDimensionFilteredTags">
-        <source>Filtered tags</source>
-        <target state="new">Filtered tags</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterPlaceholder">

@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using Aspire.Dashboard.Extensions;
 
 namespace Aspire.Dashboard.Model;
 
@@ -13,6 +14,8 @@ public class CounterChartViewModel
 [DebuggerDisplay("{DebuggerToString(),nq}")]
 public class DimensionFilterViewModel
 {
+    private string? _sanitizedHtmlId;
+
     public required string Name { get; init; }
     public List<DimensionValueViewModel> Values { get; } = new();
     public HashSet<DimensionValueViewModel> SelectedValues { get; } = new();
@@ -38,6 +41,20 @@ public class DimensionFilterViewModel
             {
                 SelectedValues.Clear();
             }
+        }
+    }
+
+    public string SanitizedHtmlId => _sanitizedHtmlId ??= StringExtensions.SanitizeHtmlId(Name);
+
+    public void OnTagSelectionChanged(DimensionValueViewModel dimensionValue, bool isChecked)
+    {
+        if (isChecked)
+        {
+            SelectedValues.Add(dimensionValue);
+        }
+        else
+        {
+            SelectedValues.Remove(dimensionValue);
         }
     }
 

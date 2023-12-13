@@ -19,28 +19,78 @@ else
         </div>
         <div class="metrics-chart-container">
             <PlotlyChart InstrumentViewModel="_instrumentViewModel" Duration="Duration" />
-            @if (_viewModel.DimensionFilters.Count > 0)
-            {
-                <div class="metrics-filters-container">
+            <div class="metrics-filters-container">
+                @if (_viewModel.DimensionFilters.Count > 0)
+                {
                     <div>
                         <h4>@Loc[ControlsStrings.ChartContainerFiltersHeader]</h4>
-                        <div class="filter-grid">
-                            @foreach (var item in _viewModel.DimensionFilters)
-                            {
-                                <ChartDimension @key=item Model="item" />
-                            }
-                        </div>
-
-                        @if (_instrument.Type == OtlpInstrumentType.Histogram)
-                        {
-                            <h5>Options</h5>
-                            <div>
-                                <FluentSwitch Label="Show count" @bind-Value="_showCount" @bind-Value:after="ShowCountChanged" />
-                            </div>
-                        }
+                        <FluentDataGrid Items="@Queryable.AsQueryable(_viewModel.DimensionFilters)" GridTemplateColumns="200px 1fr auto" GenerateHeader="GenerateHeaderOption.None" Class="filter-grid">
+                            <ChildContent>
+                                <PropertyColumn Tooltip="true" TooltipText="@(c => c.Name)" Property="@(c => c.Name)" />
+                                <TemplateColumn Tooltip="true" TooltipText="@(c => c.SelectedValues.Count == 0 ? "(None)" : string.Join(", ", c.SelectedValues.Select(v => v.Name)))">
+                                    <FluentOverflow Class="dimension-overflow">
+                                        <ChildContent>
+                                            @if (context.SelectedValues.Count == 0)
+                                            {
+                                                <FluentBadge>(None)</FluentBadge>
+                                            }
+                                            else
+                                            {
+                                                foreach (var item in context.SelectedValues.OrderBy(g => g.Name))
+                                                {
+                                                    <FluentOverflowItem @key=item>
+                                                        <FluentBadge>@item.Name</FluentBadge>
+                                                    </FluentOverflowItem>
+                                                }
+                                            }
+                                        </ChildContent>
+                                        <MoreButtonTemplate Context="another_name">
+                                            <FluentBadge>
+                                                @($"+{another_name.ItemsOverflow.Count()}")
+                                            </FluentBadge>
+                                        </MoreButtonTemplate>
+                                    </FluentOverflow>
+                                </TemplateColumn>
+                                <TemplateColumn>
+                                    <FluentButton id="@($"typeFilterButton-{context.SanitizedHtmlId}")"
+                                                  IconEnd="@(new Icons.Regular.Size20.Filter())"
+                                                  Appearance="@(context.AreAllValuesSelected is true ? Appearance.Stealth : Appearance.Accent)"
+                                                  @onclick="() => context.PopupVisible = !context.PopupVisible"
+                                                  aria-label="@(context.AreAllValuesSelected is true ? Loc[ControlsStrings.ChartContainerAllTags] : Loc[ControlsStrings.ChartContainerFilteredTags])" />
+                                    <FluentPopover AnchorId="@($"typeFilterButton-{context.SanitizedHtmlId}")" @bind-Open="context.PopupVisible">
+                                        <Header>@context.Name</Header>
+                                        <Body>
+                                            <FluentStack Orientation="Orientation.Vertical" Class="dimension-popup">
+                                                <FluentCheckbox Label="All"
+                                                                ThreeState="true"
+                                                                ShowIndeterminate="false"
+                                                                @bind-CheckState="context.AreAllValuesSelected" />
+                                                @foreach (var tag in context.Values)
+                                                {
+                                                    var isChecked = context.SelectedValues.Contains(tag);
+                                                    <FluentCheckbox Label="@tag.Name"
+                                                                    @key=tag
+                                                                    @bind-Value:get="isChecked"
+                                                                    @bind-Value:set="c => context.OnTagSelectionChanged(tag, c)" />
+                                                }
+                                            </FluentStack>
+                                        </Body>
+                                    </FluentPopover>
+                                </TemplateColumn>
+                            </ChildContent>
+                        </FluentDataGrid>
                     </div>
-                </div>
-            }
+                }
+                @if (_instrument.Type == OtlpInstrumentType.Histogram)
+                {
+                    <div>
+                        <h5>@Loc[ControlsStrings.ChartContainerOptionsHeader]</h5>
+                        <div>
+                            <FluentSwitch Label="@Loc[ControlsStrings.ChartContainerShowCountLabel]" @bind-Value="_showCount" @bind-Value:after="ShowCountChanged" />
+                        </div>
+                    </div>
+                }
+            </div>
         </div>
     </div>
 }
