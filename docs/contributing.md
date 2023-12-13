@@ -48,7 +48,7 @@ until `OnInitialized`.
 
 ## Components
 
-Please check the [Aspire components contribution guidelines](../src/Components/README.md) if you intend to make contributions to a new or existing Aspire component.
+Please check the [.NET Aspire components contribution guidelines](../src/Components/README.md) if you intend to make contributions to a new or existing .NET Aspire component.
 
 ## Tips and known issues
 
