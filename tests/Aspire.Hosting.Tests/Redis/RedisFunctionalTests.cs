@@ -21,14 +21,12 @@ public class RedisFunctionalTests
     {
         var testProgram = _integrationServicesFixture.TestProgram;
         var client = _integrationServicesFixture.HttpClient;
-        var data = "Hello World!";
 
         using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
 
-        await testProgram.IntegrationServiceABuilder!.HttpPostAsync(client, "http", "/redis/hello", new StringContent(data), cts.Token);
-        var response = await testProgram.IntegrationServiceABuilder!.HttpGetAsync(client, "http", "/redis/hello", cts.Token);
-        var content = await response.Content.ReadAsStringAsync();
+        var response = await testProgram.IntegrationServiceABuilder!.HttpGetAsync(client, "http", "/redis/verify", cts.Token);
+        var responseContent = await response.Content.ReadAsStringAsync();
 
-        Assert.Equal(data, content);
+        Assert.True(response.IsSuccessStatusCode, responseContent);
     }
 }

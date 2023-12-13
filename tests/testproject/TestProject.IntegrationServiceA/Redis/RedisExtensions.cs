@@ -7,24 +7,25 @@ public static class RedisExtensions
 {
     public static void MapRedisApi(this WebApplication app)
     {
-        app.MapPost("/redis/{key}", SetKeyAsync);
-
-        app.MapGet("/redis/{key}", GetKeyAsync);
+        app.MapGet("/redis/verify", VerifyRedisAsync);
     }
 
-    private static async Task<IResult> SetKeyAsync(string key, HttpContext context, IConnectionMultiplexer cm)
+    private static async Task<IResult> VerifyRedisAsync(IConnectionMultiplexer cm)
     {
-        using var sr = new StreamReader(context.Request.Body);
-        var body = await sr.ReadToEndAsync();
+        try
+        { 
+        var key = "somekey";
+        var content = "somecontent";
 
         var database = cm.GetDatabase();
-        await database.StringSetAsync(key, body);
-        return Results.Ok();
-    }
+        await database.StringSetAsync(key, content);
+        var data = await database.StringGetAsync(key);
 
-    private static async Task<IResult> GetKeyAsync(string key, IConnectionMultiplexer cm)
-    {
-        var database = cm.GetDatabase();
-        return Results.Content(await database.StringGetAsync(key));
+            return data == content ? Results.Ok("Success!") : Results.Problem("Failed");
+        }
+        catch (Exception e)
+        {
+            return Results.Problem(e.ToString());
+        }
     }
 }
