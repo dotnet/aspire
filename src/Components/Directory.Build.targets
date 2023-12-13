@@ -60,7 +60,7 @@
           Outputs="$(GeneratedConfigurationSchemaOutputPath)">
     <PropertyGroup>
 
-      <GeneratorCommandLine>$(DotNetTool) exec $(ConfigurationSchemaGeneratorPath)</GeneratorCommandLine>
+      <GeneratorCommandLine>"$(DotNetTool)" exec $(ConfigurationSchemaGeneratorPath)</GeneratorCommandLine>
       <GeneratorCommandLine>$(GeneratorCommandLine) --input "@(IntermediateAssembly)"</GeneratorCommandLine>
       <GeneratorCommandLine>$(GeneratorCommandLine) --reference "@(ReferencePathWithRefAssemblies, '" "')"</GeneratorCommandLine>
       <GeneratorCommandLine>$(GeneratorCommandLine) --output "$(GeneratedConfigurationSchemaOutputPath)"</GeneratorCommandLine>
