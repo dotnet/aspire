@@ -27,6 +27,8 @@ public partial class Metrics : IDisposable, IMemoryPage<Metrics.MetricsSelectedS
     private OtlpMeter? _selectedMeter;
     private OtlpInstrument? _selectedInstrument;
 
+    public string MemoryKey => "Metrics_SelectState";
+
     [Parameter]
     public string? ApplicationInstanceId { get; set; }
 
@@ -119,7 +121,7 @@ public partial class Metrics : IDisposable, IMemoryPage<Metrics.MetricsSelectedS
         var state = new MetricsSelectedState { ApplicationId = _selectedApplication.Id, DurationMinutes = (int)_selectedDuration.Id.TotalMinutes };
 
         ((IMemoryPage<MetricsSelectedState>)this).NavigateTo(state);
-        await ProtectedSessionStore.SetAsync(MetricsSelectedState.Key, state);
+        await ProtectedSessionStore.SetAsync(MemoryKey, state);
     }
 
     private async Task HandleSelectedDurationChangedAsync()
@@ -127,12 +129,11 @@ public partial class Metrics : IDisposable, IMemoryPage<Metrics.MetricsSelectedS
         var state = new MetricsSelectedState { ApplicationId = _selectedApplication.Id, DurationMinutes = (int)_selectedDuration.Id.TotalMinutes, InstrumentName = InstrumentName, MeterName = MeterName };
 
         ((IMemoryPage<MetricsSelectedState>)this).NavigateTo(state);
-        await ProtectedSessionStore.SetAsync(MetricsSelectedState.Key, state);
+        await ProtectedSessionStore.SetAsync(MemoryKey, state);
     }
 
     public sealed class MetricsSelectedState
     {
-        public const string Key = "Metrics_SelectState";
         public string? ApplicationId { get; set; }
         public string? MeterName { get; set; }
         public string? InstrumentName { get; set; }
@@ -157,7 +158,7 @@ public partial class Metrics : IDisposable, IMemoryPage<Metrics.MetricsSelectedS
         }
 
         ((IMemoryPage<MetricsSelectedState>)this).NavigateTo(state);
-        await ProtectedSessionStore.SetAsync(MetricsSelectedState.Key, state);
+        await ProtectedSessionStore.SetAsync(MemoryKey, state);
     }
 
     public string GetNavigationUrl(MetricsSelectedState state)
@@ -214,11 +215,7 @@ public partial class Metrics : IDisposable, IMemoryPage<Metrics.MetricsSelectedS
     {
         if (firstRender)
         {
-            var result = await ProtectedSessionStore.GetAsync<MetricsSelectedState>(MetricsSelectedState.Key);
-            if (result is { Success: true, Value: not null })
-            {
-                ((IMemoryPage<MetricsSelectedState>)this).NavigateTo(result.Value);
-            }
+            await ((IMemoryPage<MetricsSelectedState>)this).NavigateToCurrentStateIfSetAsync();
         }
     }
 

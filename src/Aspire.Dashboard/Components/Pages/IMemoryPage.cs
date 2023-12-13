@@ -8,6 +8,7 @@ namespace Aspire.Dashboard.Components.Pages;
 
 public interface IMemoryPage<in T>
 {
+    string MemoryKey { get; }
     ProtectedSessionStorage ProtectedSessionStore { get; set; }
     NavigationManager NavigationManager { get; set; }
 
@@ -16,5 +17,14 @@ public interface IMemoryPage<in T>
     public void NavigateTo(T state)
     {
         NavigationManager.NavigateTo(GetNavigationUrl(state));
+    }
+
+    public async Task NavigateToCurrentStateIfSetAsync()
+    {
+        var result = await ProtectedSessionStore.GetAsync<T>(MemoryKey);
+        if (result is { Success: true, Value: not null })
+        {
+            NavigateTo(result.Value);
+        }
     }
 }
