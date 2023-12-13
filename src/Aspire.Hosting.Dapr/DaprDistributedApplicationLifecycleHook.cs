@@ -138,8 +138,13 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
 
             resource.Annotations.Add(
                 new EnvironmentCallbackAnnotation(
-                    env =>
+                    context =>
                     {
+                        if (context.PublisherName == "manifest")
+                        {
+                            return;
+                        }
+
                         if (resource is ContainerResource)
                         {
                             // By default, the Dapr sidecar will listen on localhost, which is not accessible from the container.
@@ -147,12 +152,12 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                             var grpcEndpoint = $"http://localhost:{{{{- portFor \"{daprSideCarResourceName}_grpc\" -}}}}";
                             var httpEndpoint = $"http://localhost:{{{{- portFor \"{daprSideCarResourceName}_http\" -}}}}";
 
-                            env.TryAdd("DAPR_GRPC_ENDPOINT", HostNameResolver.ReplaceLocalhostWithContainerHost(grpcEndpoint, _configuration));
-                            env.TryAdd("DAPR_HTTP_ENDPOINT", HostNameResolver.ReplaceLocalhostWithContainerHost(httpEndpoint, _configuration));
+                            context.EnvironmentVariables.TryAdd("DAPR_GRPC_ENDPOINT", HostNameResolver.ReplaceLocalhostWithContainerHost(grpcEndpoint, _configuration));
+                            context.EnvironmentVariables.TryAdd("DAPR_HTTP_ENDPOINT", HostNameResolver.ReplaceLocalhostWithContainerHost(httpEndpoint, _configuration));
                         }
 
-                        env.TryAdd("DAPR_GRPC_PORT", $"{{{{- portFor \"{daprSideCarResourceName}_grpc\" -}}}}");
-                        env.TryAdd("DAPR_HTTP_PORT", $"{{{{- portFor \"{daprSideCarResourceName}_http\" -}}}}");
+                        context.EnvironmentVariables.TryAdd("DAPR_GRPC_PORT", $"{{{{- portFor \"{daprSideCarResourceName}_grpc\" -}}}}");
+                        context.EnvironmentVariables.TryAdd("DAPR_HTTP_PORT", $"{{{{- portFor \"{daprSideCarResourceName}_http\" -}}}}");
                     }));
 
             daprSideCar.Annotations.Add(new ServiceBindingAnnotation(ProtocolType.Tcp, name: "grpc", port: sidecarOptions?.DaprGrpcPort));
