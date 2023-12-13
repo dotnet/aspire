@@ -97,6 +97,24 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to All tags.
+        /// </summary>
+        public static string ChartDimensionAllTags {
+            get {
+                return ResourceManager.GetString("ChartDimensionAllTags", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Filtered tags.
+        /// </summary>
+        public static string ChartDimensionFilteredTags {
+            get {
+                return ResourceManager.GetString("ChartDimensionFilteredTags", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Show All.
         /// </summary>
         public static string EnvironmentVariablesFilterToggleShowAll {

@@ -22,6 +22,16 @@
         <target state="new">Unable to display chart</target>
         <note />
       </trans-unit>
+      <trans-unit id="ChartDimensionAllTags">
+        <source>All tags</source>
+        <target state="new">All tags</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ChartDimensionFilteredTags">
+        <source>Filtered tags</source>
+        <target state="new">Filtered tags</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FilterPlaceholder">
         <source>Filter...</source>
         <target state="new">Filter...</target>

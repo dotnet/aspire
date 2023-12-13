@@ -4,6 +4,7 @@
 @using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Otlp.Model.MetricValues
 @using Aspire.Dashboard.Resources
+@inject IStringLocalizer<ControlsStrings> Loc
 
 <div title="@Model.Name"><span class="dimension-name">@Model.Name</span></div>
 <div title="@string.Join(", ", Model.SelectedValues.Select(v => v.Name))">
@@ -34,7 +35,8 @@
     <FluentButton id="@($"typeFilterButton-{SanitizedHtmlId}")"
                   IconEnd="@(new Icons.Regular.Size20.Filter())"
                   Appearance="@(Model.AreAllValuesSelected is true ? Appearance.Stealth : Appearance.Accent)"
-                  @onclick="() => Model.PopupVisible = !Model.PopupVisible" />
+                  @onclick="() => Model.PopupVisible = !Model.PopupVisible"
+                  aria-label="@(Model.AreAllValuesSelected is true ? Loc[ControlsStrings.ChartDimensionAllTags] : Loc[ControlsStrings.ChartDimensionFilteredTags])" />
     <FluentPopover AnchorId="@($"typeFilterButton-{SanitizedHtmlId}")" @bind-Open="Model.PopupVisible">
         <Header>@Model.Name</Header>
         <Body>
