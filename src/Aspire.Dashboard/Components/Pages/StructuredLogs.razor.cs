@@ -278,6 +278,22 @@ public partial class StructuredLogs
         }
     }
 
+    private static string GetDomIconId(OtlpLogEntry logEntry)
+    {
+        return $"log-{logEntry.GetHashCode()}";
+    }
+
+    private static string GetFirstLineOfExceptionMessage(string fullMessage)
+    {
+        var firstIndexOfNewline = fullMessage.IndexOf("\r\n", StringComparison.Ordinal);
+        if (firstIndexOfNewline == -1)
+        {
+            firstIndexOfNewline = fullMessage.IndexOf("\n", StringComparison.Ordinal);
+        }
+
+        return firstIndexOfNewline == -1 ? fullMessage : fullMessage[..firstIndexOfNewline];
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (_applicationChanged)

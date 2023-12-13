@@ -72,7 +72,10 @@
                             <TemplateColumn Title="@Loc[Dashboard.Resources.StructuredLogs.StructuredLogsLevelColumnHeader]">
                                 @if (context.Severity is LogLevel.Error or LogLevel.Critical)
                                 {
-                                    <FluentIcon Icon="Icons.Filled.Size16.ErrorCircle" Color="Color.Error" Class="logs-severity-icon" />
+                                    <FluentIcon Id="@GetDomIconId(context)" Icon="Icons.Filled.Size16.ErrorCircle" Color="Color.Error" Class="logs-severity-icon" />
+                                    <FluentTooltip Anchor="@GetDomIconId(context)">
+                                        @GetFirstLineOfExceptionMessage(context.Message)
+                                    </FluentTooltip>
                                 }
                                 else if (context.Severity is LogLevel.Warning)
                                 {
