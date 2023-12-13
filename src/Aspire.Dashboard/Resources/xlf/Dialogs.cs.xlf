@@ -50,7 +50,7 @@
       <trans-unit id="SettingsDialogVersion">
         <source>Version: {0}</source>
         <target state="new">Version: {0}</target>
-        <note />
+        <note>{0} is the dashboard version string</note>
       </trans-unit>
     </body>
   </file>
