@@ -155,7 +155,7 @@ public partial class Resources : ComponentBase, IDisposable
                 _resourcesMap[resource.Name] = resource;
                 break;
 
-            case ResourceChangeType.Deleted:
+            case ResourceChangeType.Delete:
                 _resourcesMap.Remove(resource.Name);
                 break;
         }

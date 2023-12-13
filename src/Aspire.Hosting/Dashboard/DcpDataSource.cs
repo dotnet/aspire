@@ -405,7 +405,7 @@ internal sealed class DcpDataSource
         return watchEventType switch
         {
             WatchEventType.Added or WatchEventType.Modified => ResourceChangeType.Upsert,
-            WatchEventType.Deleted => ResourceChangeType.Deleted,
+            WatchEventType.Deleted => ResourceChangeType.Delete,
             _ => ResourceChangeType.Other
         };
     }
