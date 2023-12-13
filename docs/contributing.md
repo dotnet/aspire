@@ -46,6 +46,10 @@ injected. An example is below:
 Note that injection doesn't happen until a component's `OnInitialized`, so if you are referencing a string from codebehind, you must wait to do that
 until `OnInitialized`.
 
+## Components
+
+Please check the [.NET Aspire components contribution guidelines](../src/Components/README.md) if you intend to make contributions to a new or existing .NET Aspire component.
+
 ## Tips and known issues
 
 Make sure you have started Docker before trying to run an Aspire app.
