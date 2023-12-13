@@ -1,0 +1,53 @@
+{
+  "definitions": {
+    "logLevel": {
+      "properties": {
+        "Azure.AI.OpenAI": {
+          "$ref": "#/definitions/logLevelThreshold"
+        }
+      }
+    }
+  },
+  "properties": {
+    "Aspire": {
+      "type": "object",
+      "properties": {
+        "Azure": {
+          "type": "object",
+          "properties": {
+            "AI": {
+              "type": "object",
+              "properties": {
+                "OpenAI": {
+                  "type": "object",
+                  "properties": {
+                    "ConnectionString": {
+                      "type": "string",
+                      "description": "Gets or sets the connection string used to connect to the OpenAI service."
+                    },
+                    "OpenAIApiKey": {
+                      "type": "string",
+                      "description": "Gets or sets the API key provided in the OpenAI's developer portal."
+                    },
+                    "Tracing": {
+                      "type": "boolean",
+                      "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.",
+                      "default": true
+                    },
+                    "UseAzureOpenAI": {
+                      "type": "boolean",
+                      "description": "Gets or sets whether to use Azure OpenAI or OpenAI.",
+                      "default": true
+                    }
+                  },
+                  "description": "The settings relevant to accessing Azure OpenAI."
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "type": "object"
+}

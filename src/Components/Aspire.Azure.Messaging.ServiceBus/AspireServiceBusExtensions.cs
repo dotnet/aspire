@@ -57,7 +57,7 @@ public static class AspireServiceBusExtensions
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        string configurationSectionName = MessageBusComponent.GetKeyedConfigurationSectionName(name, DefaultConfigSectionName);
+        var configurationSectionName = MessageBusComponent.GetKeyedConfigurationSectionName(name, DefaultConfigSectionName);
 
         new MessageBusComponent().AddClient(builder, configurationSectionName, configureSettings, configureClientBuilder, connectionName: name, serviceKey: name);
     }
