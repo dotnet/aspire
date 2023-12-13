@@ -211,6 +211,9 @@ public class DistributedApplicationTests
 
         await app.StartAsync(cts.Token);
 
+        // Give the server some time to be ready to handle requests to
+        // minimize the amount of retries the clients have to do (and log).
+
         await Task.Delay(1000, cts.Token);
 
         // Make sure services A and C are running
