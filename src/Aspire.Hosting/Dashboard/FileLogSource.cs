@@ -69,6 +69,16 @@ internal sealed class FileLogSource(string? stdOutPath, string? stdErrPath) : IL
 
                 if (result.IsCompleted)
                 {
+                    // There's no more data in the file. Because we are polling, we will loop
+                    // around again and land back here almost immediately. We introduce a small
+                    // sleep here in order to not burn CPU while polling. This sleep won't limit
+                    // the rate at which we can consume file changes when many exist, as the sleep
+                    // only occurs when we have caught up.
+                    //
+                    // Longer term we hope to have a log streaming API from DCP for this.
+                    // https://github.com/dotnet/aspire/issues/760
+                    await Task.Delay(100, cancellationToken).ConfigureAwait(false);
+
                     break;
                 }
 
