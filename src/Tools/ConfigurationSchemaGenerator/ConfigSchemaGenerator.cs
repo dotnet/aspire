@@ -57,13 +57,12 @@ public partial class ConfigSchemaGenerator
                 continue;
             }
 
-            var items = attribute.NamedArguments;
             INamedTypeSymbol?[]? types = null;
             string?[]? configurationPaths = null;
             string?[]? exclusionPaths = Array.Empty<string>();
             string?[]? logCategories = null;
 
-            foreach (var item in items)
+            foreach (var item in attribute.NamedArguments)
             {
                 if (item.Key == "Types")
                 {
@@ -94,6 +93,8 @@ public partial class ConfigSchemaGenerator
         return null;
     }
 
-    /// <summary>Data about configuration schema directly from the ConfigurationSchemaAttribute.</summary>
+    /// <summary>
+    /// Data about configuration schema directly from the ConfigurationSchemaAttribute.
+    /// </summary>
     internal sealed record ConfigSchemaAttributeInfo(INamedTypeSymbol[]? Types, string[] ConfigurationPaths, string[] ExclusionPaths, string[] LogCategories);
 }
