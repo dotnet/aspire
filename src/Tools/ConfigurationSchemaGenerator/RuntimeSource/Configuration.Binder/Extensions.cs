@@ -63,7 +63,10 @@ namespace ConfigurationSchemaGenerator
             }
         }
     }
+}
 
+namespace Microsoft.Extensions.Configuration.Binder.SourceGeneration // TODO
+{
     internal static class ParserExtensions
     {
         private static readonly SymbolDisplayFormat s_identifierCompatibleFormat = new SymbolDisplayFormat(

@@ -22,7 +22,7 @@ public sealed partial class ConfigSchemaGenerator
 
         public List<DiagnosticInfo>? Diagnostics { get; private set; }
 
-        public SourceGenerationSpec? GetSourceGenerationSpec(CancellationToken cancellationToken)
+        public SchemaGenerationSpec? GetSourceGenerationSpec(CancellationToken cancellationToken)
         {
             var types = new List<TypeSpec>();
             foreach (var type in configSchemaInfo.Types)
@@ -33,7 +33,7 @@ public sealed partial class ConfigSchemaGenerator
                 types.Add(CreateTypeSpecs(cancellationToken));
             }
 
-            return new SourceGenerationSpec
+            return new SchemaGenerationSpec
             {
                 ConfigurationTypes = types,
                 ConfigurationPaths = configSchemaInfo.ConfigurationPaths,

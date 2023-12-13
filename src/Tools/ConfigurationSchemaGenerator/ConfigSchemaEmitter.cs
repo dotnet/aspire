@@ -13,7 +13,7 @@ using Microsoft.Extensions.Configuration.Binder.SourceGeneration;
 
 namespace ConfigurationSchemaGenerator;
 
-internal sealed class ConfigSchemaEmitter(SourceGenerationSpec spec, Compilation compilation)
+internal sealed class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation compilation)
 {
     private readonly TypeIndex _typeIndex = new TypeIndex(spec.AllTypes);
     private readonly Compilation _compilation = compilation;
