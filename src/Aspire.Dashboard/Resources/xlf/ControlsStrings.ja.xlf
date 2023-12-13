@@ -7,14 +7,34 @@
         <target state="new">All</target>
         <note />
       </trans-unit>
+      <trans-unit id="ChartContainerAllTags">
+        <source>All tags</source>
+        <target state="new">All tags</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ChartContainerFilteredTags">
+        <source>Filtered tags</source>
+        <target state="new">Filtered tags</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ChartContainerFiltersHeader">
         <source>Filters</source>
         <target state="new">Filters</target>
         <note />
       </trans-unit>
+      <trans-unit id="ChartContainerOptionsHeader">
+        <source>Options</source>
+        <target state="new">Options</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ChartContainerSelectFilters">
         <source>Select filters</source>
         <target state="new">Select filters</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ChartContainerShowCountLabel">
+        <source>Show count</source>
+        <target state="new">Show count</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerUnableToDisplay">
@@ -35,7 +55,7 @@
       <trans-unit id="EnvironmentVariablesFilterToggleShowSpecOnly">
         <source>Show Spec Only</source>
         <target state="new">Show Spec Only</target>
-        <note />
+        <note>Spec means from the resource specification</note>
       </trans-unit>
       <trans-unit id="EnvironmentVariablesHideVariableValues">
         <source>Hide Values</source>
@@ -70,17 +90,17 @@
       <trans-unit id="PlotlyChartCount">
         <source>Count</source>
         <target state="new">Count</target>
-        <note />
+        <note>Count is the name of a plot y-axis label</note>
       </trans-unit>
       <trans-unit id="PlotlyChartLength">
         <source>Length</source>
         <target state="new">Length</target>
-        <note />
+        <note>Length is the name of a plot y-axis label</note>
       </trans-unit>
       <trans-unit id="PlotlyChartValue">
         <source>Value</source>
         <target state="new">Value</target>
-        <note />
+        <note>Value is the name of a plot y-axis label</note>
       </trans-unit>
       <trans-unit id="PropertyGridValueColumnHeader">
         <source>Value</source>
@@ -95,17 +115,17 @@
       <trans-unit id="SpanDetailsDuration">
         <source>Duration &lt;strong&gt;{0}&lt;/strong&gt;</source>
         <target state="new">Duration &lt;strong&gt;{0}&lt;/strong&gt;</target>
-        <note />
+        <note>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
       <trans-unit id="SpanDetailsService">
         <source>Service &lt;strong&gt;{0}&lt;/strong&gt;</source>
         <target state="new">Service &lt;strong&gt;{0}&lt;/strong&gt;</target>
-        <note />
+        <note>{0} is the application name. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
       <trans-unit id="SpanDetailsStartTime">
         <source>Start Time &lt;strong&gt;{0}&lt;/strong&gt;</source>
         <target state="new">Start Time &lt;strong&gt;{0}&lt;/strong&gt;</target>
-        <note />
+        <note>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
       <trans-unit id="ViewAction">
         <source>View</source>
@@ -135,7 +155,7 @@
       <trans-unit id="TotalItemsFooterText">
         <source>Total: &lt;strong&gt;{0} results found&lt;/strong&gt;</source>
         <target state="new">Total: &lt;strong&gt;{0} results found&lt;/strong&gt;</target>
-        <note />
+        <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
     </body>
   </file>

@@ -11,22 +11,31 @@ namespace Aspire.Dashboard.Components.Dialogs;
 
 public partial class SettingsDialog : IDialogContentComponent, IAsyncDisposable
 {
-    private const float DarkThemeLuminance = 0.15f;
-    private const float LightThemeLuminance = 0.95f;
-    private const string ThemeSettingSystem = "System";
-    private const string ThemeSettingDark = "Dark";
-    private const string ThemeSettingLight = "Light";
-
-    private string _currentSetting = ThemeSettingSystem;
+    private string _currentSetting = ThemeManager.ThemeSettingSystem;
     private static readonly string? s_version = typeof(SettingsDialog).Assembly.GetDisplayVersion();
 
     private IJSObjectReference? _jsModule;
+    private IDisposable? _themeChangedSubscription;
 
     [Inject]
     public required IJSRuntime JS { get; set; }
 
     [Inject]
     public required ThemeManager ThemeManager { get; set; }
+
+    protected override void OnInitialized()
+    {
+        // Handle value being changed in a different browser window.
+        _themeChangedSubscription = ThemeManager.OnThemeChanged(async () =>
+        {
+            var newValue = ThemeManager.Theme!;
+            if (_currentSetting != newValue)
+            {
+                _currentSetting = newValue;
+                await InvokeAsync(StateHasChanged);
+            }
+        });
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -40,51 +49,16 @@ public partial class SettingsDialog : IDialogContentComponent, IAsyncDisposable
 
     private async Task SettingChangedAsync(string newValue)
     {
-        if (_jsModule is not null)
-        {
-            var newLuminanceValue = await GetBaseLayerLuminanceForSetting(newValue);
-
-            await _jsModule.InvokeVoidAsync("setDefaultBaseLayerLuminance", newLuminanceValue);
-            await _jsModule.InvokeVoidAsync("setThemeCookie", newValue);
-            await _jsModule.InvokeVoidAsync("setThemeOnDocument", newValue);
-        }
-
+        // The theme isn't changed here. Instead, the MainLayout subscribes to the change event
+        // and applies the new theme to the browser window.
         _currentSetting = newValue;
         await ThemeManager.RaiseThemeChangedAsync(newValue);
     }
 
-    private Task<float> GetBaseLayerLuminanceForSetting(string setting)
-    {
-        if (setting == ThemeSettingLight)
-        {
-            return Task.FromResult(LightThemeLuminance);
-        }
-        else if (setting == ThemeSettingDark)
-        {
-            return Task.FromResult(DarkThemeLuminance);
-        }
-        else // "System"
-        {
-            return GetSystemThemeLuminance();
-        }
-    }
-
-    private async Task<float> GetSystemThemeLuminance()
-    {
-        if (_jsModule is not null)
-        {
-            var systemTheme = await _jsModule.InvokeAsync<string>("getSystemTheme");
-            if (systemTheme == ThemeSettingDark)
-            {
-                return DarkThemeLuminance;
-            }
-        }
-
-        return LightThemeLuminance;
-    }
-
     public async ValueTask DisposeAsync()
     {
+        _themeChangedSubscription?.Dispose();
+
         try
         {
             if (_jsModule is not null)

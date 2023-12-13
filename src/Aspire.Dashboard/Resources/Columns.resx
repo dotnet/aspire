@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
 	<!--
 		Microsoft ResX Schema
@@ -106,14 +106,14 @@
   </data>
   <data name="ResourceNameDisplayProcessIdText" xml:space="preserve">
     <value>Process ID: {0}</value>
-    <note>{0} is a numeric id</note>
+    <comment>{0} is a numeric id</comment>
   </data>
   <data name="ResourceNameDisplayCopyContainerIdText" xml:space="preserve">
     <value>Copy Container ID to clipboard</value>
   </data>
   <data name="ResourceNameDisplayContainerIdText" xml:space="preserve">
     <value>Container ID: {0}</value>
-    <note>{0} is an alphanumeric id</note>
+    <comment>{0} is an alphanumeric id</comment>
   </data>
   <data name="SourceColumnDisplayWorkingDirectory" xml:space="preserve">
     <value>Working Dir: {0}</value>

@@ -25,7 +25,7 @@ public readonly struct ConnectionString
     /// <summary>
     /// Initializes a new instance of <see cref="ConnectionString"/> with a name.
     /// </summary>
-    /// <param name="name"></param>
+    /// <param name="name">The name of the connection string.</param>
     public ConnectionString(string name)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);

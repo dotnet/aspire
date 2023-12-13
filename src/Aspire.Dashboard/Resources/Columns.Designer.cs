@@ -78,7 +78,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to .
+        ///   Looks up a localized string similar to Container ID: {0}.
         /// </summary>
         public static string ResourceNameDisplayContainerIdText {
             get {
@@ -96,7 +96,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to .
+        ///   Looks up a localized string similar to Process ID: {0}.
         /// </summary>
         public static string ResourceNameDisplayProcessIdText {
             get {
