@@ -11,7 +11,7 @@ using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Components.Pages;
 
-public partial class Metrics : IDisposable
+public partial class Metrics : IDisposable, IMemoryPage<Metrics.MetricsSelectedState>
 {
     private static readonly SelectViewModel<string> s_selectApplication = new SelectViewModel<string> { Id = null, Name = "(Select a resource)" };
     private List<SelectViewModel<TimeSpan>> _durations = null!;
@@ -118,7 +118,7 @@ public partial class Metrics : IDisposable
     {
         var state = new MetricsSelectedState { ApplicationId = _selectedApplication.Id, DurationMinutes = (int)_selectedDuration.Id.TotalMinutes };
 
-        NavigateTo(state);
+        ((IMemoryPage<MetricsSelectedState>)this).NavigateTo(state);
         await ProtectedSessionStore.SetAsync(MetricsSelectedState.Key, state);
     }
 
@@ -126,11 +126,11 @@ public partial class Metrics : IDisposable
     {
         var state = new MetricsSelectedState { ApplicationId = _selectedApplication.Id, DurationMinutes = (int)_selectedDuration.Id.TotalMinutes, InstrumentName = InstrumentName, MeterName = MeterName };
 
-        NavigateTo(state);
+        ((IMemoryPage<MetricsSelectedState>)this).NavigateTo(state);
         await ProtectedSessionStore.SetAsync(MetricsSelectedState.Key, state);
     }
 
-    private sealed class MetricsSelectedState
+    public sealed class MetricsSelectedState
     {
         public const string Key = "Metrics_SelectState";
         public string? ApplicationId { get; set; }
@@ -156,23 +156,18 @@ public partial class Metrics : IDisposable
             state = new MetricsSelectedState { ApplicationId = _selectedApplication.Id, DurationMinutes = (int)_selectedDuration.Id.TotalMinutes };
         }
 
-        NavigateTo(state);
+        ((IMemoryPage<MetricsSelectedState>)this).NavigateTo(state);
         await ProtectedSessionStore.SetAsync(MetricsSelectedState.Key, state);
     }
 
-    private void NavigateTo(MetricsSelectedState state)
+    public string GetNavigationUrl(MetricsSelectedState state)
     {
         string url;
         if (state.MeterName != null)
         {
-            if (state.InstrumentName != null)
-            {
-                url = $"/Metrics/{state.ApplicationId}/Meter/{state.MeterName}/Instrument/{state.InstrumentName}";
-            }
-            else
-            {
-                url = $"/Metrics/{state.ApplicationId}/Meter/{state.MeterName}";
-            }
+            url = state.InstrumentName != null
+                ? $"/Metrics/{state.ApplicationId}/Meter/{state.MeterName}/Instrument/{state.InstrumentName}"
+                : $"/Metrics/{state.ApplicationId}/Meter/{state.MeterName}";
         }
         else if (state.ApplicationId != null)
         {
@@ -188,7 +183,7 @@ public partial class Metrics : IDisposable
             url += $"?duration={state.DurationMinutes}";
         }
 
-        NavigationManager.NavigateTo(url);
+        return url;
     }
 
     private void UpdateSubscription()
@@ -220,9 +215,9 @@ public partial class Metrics : IDisposable
         if (firstRender)
         {
             var result = await ProtectedSessionStore.GetAsync<MetricsSelectedState>(MetricsSelectedState.Key);
-            if (result.Success && result.Value is not null)
+            if (result is { Success: true, Value: not null })
             {
-                NavigateTo(result.Value);
+                ((IMemoryPage<MetricsSelectedState>)this).NavigateTo(result.Value);
             }
         }
     }

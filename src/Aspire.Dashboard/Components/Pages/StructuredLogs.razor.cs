@@ -7,6 +7,7 @@ using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.Extensions.Logging;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
@@ -40,6 +41,9 @@ public partial class StructuredLogs
 
     [Inject]
     public required IDialogService DialogService { get; set; }
+
+    [Inject]
+    public required ProtectedSessionStorage ProtectedSessionStore { get; set; }
 
     [Parameter]
     [SupplyParameterFromQuery]
@@ -296,5 +300,14 @@ public partial class StructuredLogs
         _applicationsSubscription?.Dispose();
         _logsSubscription?.Dispose();
         _filterCts?.Dispose();
+    }
+
+    private sealed class StructuredLogsSelectedState
+    {
+        public const string Key = "StructuredLogs_SelectState";
+        public required string ApplicationId { get; set; }
+        public required LogLevel? LogLevel { get; set; }
+        public required List<LogFilter> Filters { get; set; }
+        public required string FilterText { get; set; }
     }
 }
