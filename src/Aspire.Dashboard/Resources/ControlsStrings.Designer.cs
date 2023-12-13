@@ -70,6 +70,24 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to All tags.
+        /// </summary>
+        public static string ChartContainerAllTags {
+            get {
+                return ResourceManager.GetString("ChartContainerAllTags", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Filtered tags.
+        /// </summary>
+        public static string ChartContainerFilteredTags {
+            get {
+                return ResourceManager.GetString("ChartContainerFilteredTags", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Filters.
         /// </summary>
         public static string ChartContainerFiltersHeader {
@@ -79,11 +97,29 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Options.
+        /// </summary>
+        public static string ChartContainerOptionsHeader {
+            get {
+                return ResourceManager.GetString("ChartContainerOptionsHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Select filters.
         /// </summary>
         public static string ChartContainerSelectFilters {
             get {
                 return ResourceManager.GetString("ChartContainerSelectFilters", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Show count.
+        /// </summary>
+        public static string ChartContainerShowCountLabel {
+            get {
+                return ResourceManager.GetString("ChartContainerShowCountLabel", resourceCulture);
             }
         }
         
