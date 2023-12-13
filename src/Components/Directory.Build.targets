@@ -43,8 +43,7 @@
   </Target>
 
   <PropertyGroup>
-    <ConfigurationSchemaGeneratorPath>$(ArtifactsBinDir)ConfigurationSchemaGenerator\$(Configuration)\$(NetCurrent)\ConfigurationSchemaGenerator</ConfigurationSchemaGeneratorPath>
-    <ConfigurationSchemaGeneratorPath Condition="$([MSBuild]::IsOSPlatform(`Windows`))">$(ConfigurationSchemaGeneratorPath).exe</ConfigurationSchemaGeneratorPath>
+    <ConfigurationSchemaGeneratorPath>$(ArtifactsBinDir)ConfigurationSchemaGenerator\$(Configuration)\$(NetCurrent)\ConfigurationSchemaGenerator.dll</ConfigurationSchemaGeneratorPath>
 
     <GeneratedConfigurationSchemaOutputPath>$(IntermediateOutputPath)ConfigurationSchema.json</GeneratedConfigurationSchemaOutputPath>
   </PropertyGroup>
@@ -61,7 +60,7 @@
           Outputs="$(GeneratedConfigurationSchemaOutputPath)">
     <PropertyGroup>
 
-      <GeneratorCommandLine>$(ConfigurationSchemaGeneratorPath)</GeneratorCommandLine>
+      <GeneratorCommandLine>$(DotNetTool) exec $(ConfigurationSchemaGeneratorPath)</GeneratorCommandLine>
       <GeneratorCommandLine>$(GeneratorCommandLine) --input "@(IntermediateAssembly)"</GeneratorCommandLine>
       <GeneratorCommandLine>$(GeneratorCommandLine) --reference "@(ReferencePathWithRefAssemblies, '" "')"</GeneratorCommandLine>
       <GeneratorCommandLine>$(GeneratorCommandLine) --output "$(GeneratedConfigurationSchemaOutputPath)"</GeneratorCommandLine>
