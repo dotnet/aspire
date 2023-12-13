@@ -130,7 +130,7 @@ public partial class Resources : ComponentBase, IDisposable
 
     private void ShowEnvironmentVariables(ResourceViewModel resource)
     {
-        if (SelectedEnvironmentVariables == resource.Environment)
+        if (SelectedResource == resource)
         {
             ClearSelectedResource();
         }
@@ -147,19 +147,15 @@ public partial class Resources : ComponentBase, IDisposable
         SelectedResource = null;
     }
 
-    private async Task OnResourceListChanged(ObjectChangeType objectChangeType, ResourceViewModel resource)
+    private async Task OnResourceListChanged(ResourceChangeType changeType, ResourceViewModel resource)
     {
-        switch (objectChangeType)
+        switch (changeType)
         {
-            case ObjectChangeType.Added:
-                _resourcesMap.Add(resource.Name, resource);
-                break;
-
-            case ObjectChangeType.Modified:
+            case ResourceChangeType.Upsert:
                 _resourcesMap[resource.Name] = resource;
                 break;
 
-            case ObjectChangeType.Deleted:
+            case ResourceChangeType.Deleted:
                 _resourcesMap.Remove(resource.Name);
                 break;
         }

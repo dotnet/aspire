@@ -61,6 +61,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to All.
+        /// </summary>
+        public static string All {
+            get {
+                return ResourceManager.GetString("All", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Filters.
         /// </summary>
         public static string ChartContainerFiltersHeader {
@@ -160,6 +169,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Name.
+        /// </summary>
+        public static string NameColumnHeader {
+            get {
+                return ResourceManager.GetString("NameColumnHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to .
         /// </summary>
         public static string PlotlyChartCount {
@@ -187,20 +205,20 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Name.
+        ///   Looks up a localized string similar to Value.
         /// </summary>
-        public static string PropertyGridNameColumnTitle {
+        public static string PropertyGridValueColumnHeader {
             get {
-                return ResourceManager.GetString("PropertyGridNameColumnTitle", resourceCulture);
+                return ResourceManager.GetString("PropertyGridValueColumnHeader", resourceCulture);
             }
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Value.
+        ///   Looks up a localized string similar to Select an Application.
         /// </summary>
-        public static string PropertyGridValueColumnTitle {
+        public static string SelectAnApplication {
             get {
-                return ResourceManager.GetString("PropertyGridValueColumnTitle", resourceCulture);
+                return ResourceManager.GetString("SelectAnApplication", resourceCulture);
             }
         }
         
@@ -228,15 +246,6 @@ namespace Aspire.Dashboard.Resources {
         public static string SpanDetailsStartTime {
             get {
                 return ResourceManager.GetString("SpanDetailsStartTime", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to View Logs.
-        /// </summary>
-        public static string SpanDetailsViewLogsLink {
-            get {
-                return ResourceManager.GetString("SpanDetailsViewLogsLink", resourceCulture);
             }
         }
         
@@ -273,6 +282,24 @@ namespace Aspire.Dashboard.Resources {
         public static string TotalItemsFooterText {
             get {
                 return ResourceManager.GetString("TotalItemsFooterText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to View.
+        /// </summary>
+        public static string ViewAction {
+            get {
+                return ResourceManager.GetString("ViewAction", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to View Logs.
+        /// </summary>
+        public static string ViewLogsLink {
+            get {
+                return ResourceManager.GetString("ViewLogsLink", resourceCulture);
             }
         }
     }

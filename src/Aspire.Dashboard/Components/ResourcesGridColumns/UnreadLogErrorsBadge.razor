@@ -1,9 +1,15 @@
-﻿@namespace Aspire.Dashboard.Components
+﻿@using Aspire.Dashboard.Resources
+@namespace Aspire.Dashboard.Components
+@inject IStringLocalizer<Columns> Loc
 
 @if (UnviewedCount > 0)
 {
     <div @onclick="OnClick" class="resource-error-badge">
-        <FluentBadge title="@($"{UnviewedCount} error logs")" Appearance="Appearance.Accent" Circular="true" Fill="error" slot="end">
+        <FluentBadge title="@string.Format(Loc[UnviewedCount == 1 ? Columns.UnreadLogErrorsBadgeErrorLog : Columns.UnreadLogErrorsBadgeErrorLogs], UnviewedCount)"
+                     Appearance="Appearance.Accent"
+                     Circular="true"
+                     Fill="error"
+                     slot="end">
             @((UnviewedCount > 9) ? "9+" : UnviewedCount.ToString())
         </FluentBadge>
     </div>
