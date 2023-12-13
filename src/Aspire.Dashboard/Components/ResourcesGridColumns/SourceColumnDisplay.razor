@@ -13,8 +13,8 @@ else if (Resource is ExecutableViewModel executableViewModel)
     var arguments = string.Join(" ", executableViewModel.Arguments ?? []);
     var fullCommandLine = $"{executableViewModel.ExecutablePath} {arguments}";
 
-    <div class="ellipsis-overflow" title="@fullCommandLine" aria-label="@fullCommandLine">@Path.GetFileName(executableViewModel.ExecutablePath) <span class="subtext">@arguments</span></div>
-    <div class="ellipsis-overflow" title="@executableViewModel.WorkingDirectory" aria-label="@executableViewModel.WorkingDirectory">@string.Format(Loc[Columns.SourceColumnDisplayWorkingDirectory], executableViewModel.WorkingDirectory?.TrimMiddle(35))</div>
+    <div class="ellipsis-overflow" title="@fullCommandLine">@Path.GetFileName(executableViewModel.ExecutablePath) <span class="subtext">@arguments</span></div>
+    <div class="ellipsis-overflow" title="@executableViewModel.WorkingDirectory">@string.Format(Loc[Columns.SourceColumnDisplayWorkingDirectory], executableViewModel.WorkingDirectory?.TrimMiddle(35))</div>
 }
 else if (Resource is ContainerViewModel containerViewModel)
 {
@@ -34,12 +34,12 @@ else if (Resource is ContainerViewModel containerViewModel)
     <FluentStack Orientation="Orientation.Horizontal">
         @if (containerViewModel.Command is not null)
         {
-            <div class="ellipsis-overflow" title="@Loc[Columns.SourceColumnDisplayContainerCommandTitle]" aria-label="@Loc[Columns.SourceColumnDisplayContainerCommandTitle]">@Loc[Columns.SourceColumnDisplayContainerCommand, containerViewModel.Command]</div>
+            <div class="ellipsis-overflow" title="@Loc[Columns.SourceColumnDisplayContainerCommandTitle]">@Loc[Columns.SourceColumnDisplayContainerCommand, containerViewModel.Command]</div>
         }
         @if (containerViewModel.Args is not null)
         {
             var args = string.Join(" ", containerViewModel.Args);
-            <div class="ellipsis-overflow" title="@Loc[Columns.SourceColumnDisplayContainerArgsTitle]" aria-label="@Loc[Columns.SourceColumnDisplayContainerArgsTitle]">@args</div>
+            <div class="ellipsis-overflow" title="@Loc[Columns.SourceColumnDisplayContainerArgsTitle]">@args</div>
         }
     </FluentStack>
 }
