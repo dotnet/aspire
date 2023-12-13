@@ -32,6 +32,9 @@ fluent-toolbar[orientation=horizontal] {
     --badge-color-error: var(--foreground-on-accent-rest);
     --foreground-subtext-rest: #636363;
     --foreground-subtext-hover: #6C6C6C;
+}
+
+[data-theme="light"] {
     --neutral-layer-4: #e0e0e0 !important;
 }
 
