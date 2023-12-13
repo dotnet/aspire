@@ -135,7 +135,7 @@ public class ResourcePublisherTests
         {
             Name = name,
             Uid = "",
-            State = "",
+            Status = new StatusViewModel { State = ""},
             CreationTimeStamp = null,
             DisplayName = "",
             Endpoints = [],

@@ -6,5 +6,5 @@ namespace Aspire.Dashboard.Model;
 public sealed class StatusViewModel
 {
     public required string? State { get; set; }
-    public required int? ExitCode { get; set; }
+    public int? ExitCode { get; set; }
 }
