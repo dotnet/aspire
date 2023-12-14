@@ -7,7 +7,8 @@ using Aspire.Dashboard.Model;
 using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components;
-public partial class LogViewer
+
+public sealed partial class LogViewer
 {
     private readonly ConcurrentQueue<IEnumerable<LogEntry>> _preRenderQueue = new();
     private bool _renderComplete;

@@ -9,7 +9,7 @@ using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Pages;
 
-public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
+public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable
 {
     [Inject]
     public required IResourceService ResourceService { get; init; }
