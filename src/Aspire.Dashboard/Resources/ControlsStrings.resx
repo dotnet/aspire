@@ -127,29 +127,29 @@
     <value>Select filters</value>
   </data>
   <data name="EnvironmentVariablesFilterToggleShowSpecOnly" xml:space="preserve">
-    <value>Show Spec Only</value>
+    <value>Show spec only</value>
     <note>Spec means from the resource specification</note>
   </data>
   <data name="EnvironmentVariablesFilterToggleShowAll" xml:space="preserve">
-    <value>Show All</value>
+    <value>Show all</value>
   </data>
   <data name="EnvironmentVariablesShowVariableValues" xml:space="preserve">
-    <value>Show Values</value>
+    <value>Show values</value>
   </data>
   <data name="EnvironmentVariablesHideVariableValues" xml:space="preserve">
-    <value>Hide Values</value>
+    <value>Hide values</value>
   </data>
   <data name="FilterPlaceholder" xml:space="preserve">
     <value>Filter...</value>
   </data>
   <data name="GridValueMaskShowValue" xml:space="preserve">
-    <value>Show Value</value>
+    <value>Show value</value>
   </data>
   <data name="GridValueMaskHideValue" xml:space="preserve">
-    <value>Hide Value</value>
+    <value>Hide value</value>
   </data>
   <data name="GridValueCopyToClipboard" xml:space="preserve">
-    <value>Copy to Clipboard</value>
+    <value>Copy to clipboard</value>
   </data>
   <data name="PlotlyChartCount" xml:space="preserve">
     <value>Count</value>
@@ -178,17 +178,17 @@
     <note>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
   </data>
   <data name="SpanDetailsStartTime" xml:space="preserve">
-    <value>Start Time &lt;strong&gt;{0}&lt;/strong&gt;</value>
+    <value>Start time &lt;strong&gt;{0}&lt;/strong&gt;</value>
     <note>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
   </data>
   <data name="ViewLogsLink" xml:space="preserve">
-    <value>View Logs</value>
+    <value>View logs</value>
   </data>
   <data name="SummaryDetailsViewSplitHorizontal" xml:space="preserve">
-    <value>Split Horizontal</value>
+    <value>Split horizontal</value>
   </data>
   <data name="SummaryDetailsViewSplitVertical" xml:space="preserve">
-    <value>Split Vertical</value>
+    <value>Split vertical</value>
   </data>
   <data name="SummaryDetailsViewCloseView" xml:space="preserve">
     <value>Close</value>
@@ -198,7 +198,7 @@
     <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
   </data>
   <data name="SelectAnApplication" xml:space="preserve">
-    <value>Select an Application</value>
+    <value>Select an application</value>
   </data>
   <data name="ViewAction" xml:space="preserve">
     <value>View</value>

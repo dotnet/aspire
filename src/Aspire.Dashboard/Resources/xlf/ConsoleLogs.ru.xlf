@@ -43,13 +43,13 @@
         <note>{0} is an application name</note>
       </trans-unit>
       <trans-unit id="ConsoleLogsSelectAResource">
-        <source>Select a Resource</source>
-        <target state="new">Select a Resource</target>
+        <source>Select a resource</source>
+        <target state="new">Select a resource</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsUnknownState">
-        <source>Unknown State</source>
-        <target state="new">Unknown State</target>
+        <source>Unknown state</source>
+        <target state="new">Unknown state</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsWatchingLogs">

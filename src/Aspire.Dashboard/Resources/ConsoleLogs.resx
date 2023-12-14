@@ -99,14 +99,14 @@
 		<value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.3500.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
 	</resheader>
   <data name="ConsoleLogsHeader" xml:space="preserve">
-    <value>Console Logs</value>
+    <value>Console logs</value>
   </data>
   <data name="ConsoleLogsPageTitle" xml:space="preserve">
-    <value>{0} Console Logs</value>
+    <value>{0} console logs</value>
     <comment>{0} is an application name</comment>
   </data>
   <data name="ConsoleLogsSelectAResource" xml:space="preserve">
-    <value>Select a Resource</value>
+    <value>Select a resource</value>
   </data>
   <data name="ConsoleLogsInitializingLogViewer" xml:space="preserve">
     <value>Initializing log viewer...</value>
@@ -130,6 +130,6 @@
     <value>No resource selected</value>
   </data>
   <data name="ConsoleLogsUnknownState" xml:space="preserve">
-    <value>Unknown State</value>
+    <value>Unknown state</value>
   </data>
 </root>

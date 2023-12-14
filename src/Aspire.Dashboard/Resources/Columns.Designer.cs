@@ -87,7 +87,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Copy Container ID to clipboard.
+        ///   Looks up a localized string similar to Copy container ID to clipboard.
         /// </summary>
         public static string ResourceNameDisplayCopyContainerIdText {
             get {
@@ -150,7 +150,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Working Dir: {0}.
+        ///   Looks up a localized string similar to Working directory: {0}.
         /// </summary>
         public static string SourceColumnDisplayWorkingDirectory {
             get {
@@ -159,7 +159,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Copy File Path to Clipboard.
+        ///   Looks up a localized string similar to Copy file path to clipboard.
         /// </summary>
         public static string SourceColumnSourceCopyFullPathToClipboard {
             get {
