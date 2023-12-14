@@ -85,7 +85,7 @@ public partial class Resources : ComponentBase, IDisposable
     {
         _applicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
 
-        var (snapshot, subscription) = ResourceService.Subscribe();
+        var (snapshot, subscription) = ResourceService.SubscribeResources();
 
         foreach (var resource in snapshot)
         {

@@ -13,7 +13,7 @@ public interface IResourceService
     /// <summary>
     /// Gets the current set of resources and a stream of updates.
     /// </summary>
-    ResourceSubscription Subscribe();
+    ResourceSubscription SubscribeResources();
 }
 
 public sealed record ResourceSubscription(

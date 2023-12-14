@@ -17,7 +17,7 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
 
     public ResourceOutgoingPeerResolver(IResourceService resourceService)
     {
-        var (snapshot, subscription) = resourceService.Subscribe();
+        var (snapshot, subscription) = resourceService.SubscribeResources();
 
         foreach (var resource in snapshot)
         {
