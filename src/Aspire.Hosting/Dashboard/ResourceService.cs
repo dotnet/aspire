@@ -14,8 +14,7 @@ internal sealed partial class ResourceService : IResourceService, IAsyncDisposab
     private readonly CancellationTokenSource _cancellationTokenSource = new();
     private readonly ResourcePublisher _resourcePublisher;
 
-    public ResourceService(
-        DistributedApplicationModel applicationModel, KubernetesService kubernetesService, IHostEnvironment hostEnvironment, ILoggerFactory loggerFactory)
+    public ResourceService(DistributedApplicationModel applicationModel, KubernetesService kubernetesService, IHostEnvironment hostEnvironment, ILoggerFactory loggerFactory)
     {
         ApplicationName = ComputeApplicationName(hostEnvironment.ApplicationName);
 
