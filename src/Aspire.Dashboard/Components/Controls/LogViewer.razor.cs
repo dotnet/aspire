@@ -37,6 +37,11 @@ public sealed partial class LogViewer
 
         await foreach (var batch in batches.WithCancellation(cancellationToken))
         {
+            if (batch.Count is 0)
+            {
+                continue;
+            }
+
             List<LogEntry> entries = new(batch.Count);
 
             foreach (var (content, isErrorOutput) in batch)
