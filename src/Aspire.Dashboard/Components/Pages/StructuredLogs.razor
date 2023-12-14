@@ -72,16 +72,23 @@
                             <TemplateColumn Title="@Loc[Dashboard.Resources.StructuredLogs.StructuredLogsLevelColumnHeader]">
                                 @if (context.Severity is LogLevel.Error or LogLevel.Critical)
                                 {
-                                    <FluentIcon Id="@GetDomIconId(context)" Icon="Icons.Filled.Size16.ErrorCircle" Color="Color.Error" Class="logs-severity-icon" />
-                                    <FluentTooltip Anchor="@GetDomIconId(context)">
-                                        @GetFirstLineOfExceptionMessage(context.Message)
-                                    </FluentTooltip>
+
+                                    <FluentButton IconEnd="@(new Icons.Filled.Size16.ErrorCircle().WithColor(Color.Error))"
+                                                  Title="@GetFirstLineOfExceptionMessage(context.Message)"
+                                                  Appearance="Appearance.Stealth"
+                                                  Class="logs-severity-icon"
+                                                  OnClick="@(() => OnShowProperties(context))"
+                                                  Id="@GetDomIconId(context)">@context.Severity</FluentButton>
                                 }
                                 else if (context.Severity is LogLevel.Warning)
                                 {
                                     <FluentIcon Icon="Icons.Filled.Size16.Warning" Color="Color.Warning" Class="logs-severity-icon" />
+                                    @context.Severity
                                 }
-                                @context.Severity
+                                else
+                                {
+                                    @context.Severity
+                                }
                             </TemplateColumn>
                             <PropertyColumn Title="@Loc[Dashboard.Resources.StructuredLogs.StructuredLogsTimestampColumnHeader]" Property="@(context => OtlpHelpers.FormatTimeStamp(context.TimeStamp))" Tooltip="true" />
                             <TemplateColumn Title="@Loc[Dashboard.Resources.StructuredLogs.StructuredLogsMessageColumnHeader]" Tooltip="true" TooltipText="(e) => e.Message">

@@ -41,6 +41,15 @@ public class RedisBasketRepository(ILogger<RedisBasketRepository> logger, IConne
 
     public async Task<CustomerBasket?> UpdateBasketAsync(CustomerBasket basket)
     {
+        try
+        {
+            throw new InvalidCastException("oh no");
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Oh no there was an exception");
+        }
+
         if (basket.BuyerId == null)
         {
             return null;

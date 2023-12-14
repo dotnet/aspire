@@ -2,11 +2,21 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text;
+using System.Web;
 
 namespace Aspire.Dashboard.Extensions;
 
 internal static class StringExtensions
 {
+    public static string WithUriQueryParameter(this string uri, string key, string value)
+    {
+        var uriBuilder = new UriBuilder(uri);
+        var query = HttpUtility.ParseQueryString(uriBuilder.Query);
+        query[key] = value;
+        uriBuilder.Query = query.ToString();
+        return uriBuilder.ToString();
+    }
+
     /// <summary>
     /// Shortens a string by replacing the middle with an ellipsis.
     /// </summary>

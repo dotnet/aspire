@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Components.Dialogs;
+using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
@@ -52,6 +53,10 @@ public partial class StructuredLogs
     [Parameter]
     [SupplyParameterFromQuery(Name = "level")]
     public string? LogLevelText { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? LogDetails { get; set; }
 
     public IEnumerable<LogEntryPropertyViewModel>? SelectedLogEntryProperties { get; set; }
     private OtlpLogEntry? _selectedLogEntry;
@@ -132,7 +137,7 @@ public partial class StructuredLogs
 
     private Task HandleSelectedApplicationChangedAsync()
     {
-        NavigateTo(_selectedApplication.Id, _selectedLogLevel.Id);
+        NavigateTo(_selectedApplication.Id, _selectedLogLevel.Id, _selectedLogEntry);
         _applicationChanged = true;
 
         return Task.CompletedTask;
@@ -140,7 +145,7 @@ public partial class StructuredLogs
 
     private Task HandleSelectedLogLevelChangedAsync()
     {
-        NavigateTo(_selectedApplication.Id, _selectedLogLevel.Id);
+        NavigateTo(_selectedApplication.Id, _selectedLogLevel.Id, _selectedLogEntry);
         _applicationChanged = true;
 
         return Task.CompletedTask;
@@ -162,6 +167,7 @@ public partial class StructuredLogs
 
     private void OnShowProperties(OtlpLogEntry entry)
     {
+
         if (_selectedLogEntry == entry)
         {
             ClearSelectedLogEntry();
@@ -172,6 +178,7 @@ public partial class StructuredLogs
             SelectedLogEntryProperties = entry.AllProperties()
                                               .Select(kvp => new LogEntryPropertyViewModel { Name = kvp.Key, Value = kvp.Value })
                                               .ToList();
+            NavigateTo(_selectedApplication.Id, _selectedLogLevel.Id, _selectedLogEntry);
         }
     }
 
@@ -179,6 +186,7 @@ public partial class StructuredLogs
     {
         _selectedLogEntry = null;
         SelectedLogEntryProperties = null;
+        NavigateTo(_selectedApplication.Id, _selectedLogLevel.Id, _selectedLogEntry);
     }
 
     private async Task OpenFilterAsync(LogFilter? entry)
@@ -246,21 +254,26 @@ public partial class StructuredLogs
 
     private string GetResourceName(OtlpApplication app) => OtlpApplication.GetResourceName(app, _applications);
 
-    private void NavigateTo(string? applicationId, LogLevel? level)
+    private void NavigateTo(string? applicationId, LogLevel? level, OtlpLogEntry? logEntry)
     {
-        string url;
+        var url = NavigationManager.BaseUri;
         if (applicationId != null)
         {
-            url = $"/StructuredLogs/{applicationId}";
+            url += $"StructuredLogs/{applicationId}";
         }
         else
         {
-            url = $"/StructuredLogs";
+            url += "StructuredLogs";
         }
 
         if (level != null)
         {
-            url += $"?level={level.Value.ToString().ToLowerInvariant()}";
+            url = url.WithUriQueryParameter("level", level.Value.ToString().ToLowerInvariant());
+        }
+
+        if (logEntry is not null)
+        {
+            url = url.WithUriQueryParameter("LogDetails", logEntry.TraceId + logEntry.SpanId);
         }
 
         NavigationManager.NavigateTo(url);
@@ -304,6 +317,16 @@ public partial class StructuredLogs
         if (firstRender)
         {
             await JS.InvokeVoidAsync("initializeContinuousScroll");
+
+            if (LogDetails is not null)
+            {
+                var logToSelect = ViewModel.GetLogs().Items.FirstOrDefault(log => string.Equals(LogDetails, log.TraceId + log.SpanId, StringComparison.Ordinal));
+                if (logToSelect is not null && logToSelect != _selectedLogEntry)
+                {
+                    OnShowProperties(logToSelect);
+                    StateHasChanged();
+                }
+            }
         }
     }
 
