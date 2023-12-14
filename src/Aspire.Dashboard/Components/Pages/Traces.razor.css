@@ -48,3 +48,12 @@
     grid-area: foot;
     padding-bottom: calc(var(--design-unit) * 2px);
 }
+
+::deep .trace-progress-ring {
+    transform: rotate(-90deg);
+}
+
+::deep .progress-percent {
+    stroke-dasharray: 100;
+    stroke-dashoffset: calc(100 - var(--val));
+}

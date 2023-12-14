@@ -34,7 +34,7 @@
                       slot="end" />
     </FluentToolbar>
     <div class="datagrid-overflow-area continuous-scroll-overflow" tabindex="-1">
-        <FluentDataGrid Virtualize="true" RowStyle="@GetRowStyle" GenerateHeader="GenerateHeaderOption.Sticky" ItemSize="46" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="OtlpTrace" GridTemplateColumns="0.8fr 2fr 3fr 0.5fr 0.5fr">
+        <FluentDataGrid Virtualize="true" GenerateHeader="GenerateHeaderOption.Sticky" ItemSize="46" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="OtlpTrace" GridTemplateColumns="0.8fr 2fr 3fr 0.8fr 0.5fr">
             <ChildContent>
                 <PropertyColumn Title="@StructuredLogsLoc[Dashboard.Resources.StructuredLogs.StructuredLogsTimestampColumnHeader]" Property="@(context => OtlpHelpers.FormatTimeStamp(context.FirstSpan.StartTime))" />
                 <TemplateColumn Title="@ControlsStringsLoc[ControlsStrings.NameColumnHeader]" Tooltip="true" TooltipText="@((t) => $"{t.FullName}: {OtlpHelpers.ToShortenedId(t.TraceId)}")">
@@ -64,7 +64,27 @@
                         </MoreButtonTemplate>
                     </FluentOverflow>
                 </TemplateColumn>
-                <PropertyColumn Title="@TraceDetailLoc[Dashboard.Resources.TraceDetail.TraceDetailDurationHeader]" Property="@(context => DurationFormatter.FormatDuration(context.Duration))" />
+                <TemplateColumn Title="@TraceDetailLoc[Dashboard.Resources.TraceDetail.TraceDetailDurationHeader]">
+                    @{
+                        var percentage = 0.0;
+                        if (ViewModel.MaxDuration != TimeSpan.Zero)
+                        {
+                            percentage = context.Duration / ViewModel.MaxDuration * 100.0;
+                        }
+                    }
+
+                    <div style="display:flex;align-items:center;max-width:110px;">
+                        <svg class="trace-progress-ring" width="20" height="20" viewBox="0 0 20 20">
+                            <circle cx="10" cy="10" r="8" fill="none" stroke="var(--neutral-fill-input-alt-active)" stroke-width="4" />
+                            <circle class="progress-percent" style="--val: @percentage.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)" cx="10" cy="10" r="8" fill="none" stroke="var(--accent-fill-rest)" stroke-width="4" pathLength="100" />
+                        </svg>
+                        <span style="padding-left:10px;">
+                            @DurationFormatter.FormatDuration(context.Duration)
+                        </span>
+
+                    </div>
+                </TemplateColumn>
+
                 <TemplateColumn>
                     <FluentAnchor Appearance="Appearance.Lightweight" Href="@($"/Trace/{context.TraceId}")">@ControlsStringsLoc[ControlsStrings.ViewAction]</FluentAnchor>
                 </TemplateColumn>
