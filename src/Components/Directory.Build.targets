@@ -45,6 +45,7 @@
   <PropertyGroup>
     <ConfigurationSchemaGeneratorPath>$(ArtifactsBinDir)ConfigurationSchemaGenerator\$(Configuration)\$(NetCurrent)\ConfigurationSchemaGenerator.dll</ConfigurationSchemaGeneratorPath>
 
+    <ConfigurationSchemaGeneratorRspPath>$(IntermediateOutputPath)$(AsemblyName).configschema.rsp</ConfigurationSchemaGeneratorRspPath>
     <GeneratedConfigurationSchemaOutputPath>$(IntermediateOutputPath)ConfigurationSchema.json</GeneratedConfigurationSchemaOutputPath>
   </PropertyGroup>
   
@@ -53,7 +54,27 @@
                             CopyNewConfigurationSchema;
                             CompareConfigurationSchema" />
   
+  <Target Name="WriteConfigurationSchemaGeneratorRspFile">
+    <PropertyGroup>
+      <ConfigSchemaInput>"@(IntermediateAssembly)"</ConfigSchemaInput>
+      <ConfigSchemaReferences>"@(ReferencePathWithRefAssemblies, '" "')"</ConfigSchemaReferences>
+      <ConfigSchemaOutput>"$(GeneratedConfigurationSchemaOutputPath)"</ConfigSchemaOutput>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ConfigSchemaGenArg Include="--input $(ConfigSchemaInput)" />
+      <ConfigSchemaGenArg Include="--reference $(ConfigSchemaReferences)" />
+      <ConfigSchemaGenArg Include="--output $(ConfigSchemaOutput)" />
+    </ItemGroup>
+
+    <WriteLinesToFile File="$(ConfigurationSchemaGeneratorRspPath)"
+                      Lines="@(ConfigSchemaGenArg)"
+                      Overwrite="true"
+                      WriteOnlyWhenDifferent="true" />
+  </Target>
+
   <Target Name="CoreGenerateConfigurationSchema"
+          DependsOnTargets="WriteConfigurationSchemaGeneratorRspFile"
           Inputs="$(ConfigurationSchemaGeneratorPath);
                   @(IntermediateAssembly);
                   @(ReferencePathWithRefAssemblies)"
@@ -61,9 +82,7 @@
     <PropertyGroup>
 
       <GeneratorCommandLine>"$(DotNetTool)" exec $(ConfigurationSchemaGeneratorPath)</GeneratorCommandLine>
-      <GeneratorCommandLine>$(GeneratorCommandLine) --input "@(IntermediateAssembly)"</GeneratorCommandLine>
-      <GeneratorCommandLine>$(GeneratorCommandLine) --reference "@(ReferencePathWithRefAssemblies, '" "')"</GeneratorCommandLine>
-      <GeneratorCommandLine>$(GeneratorCommandLine) --output "$(GeneratedConfigurationSchemaOutputPath)"</GeneratorCommandLine>
+      <GeneratorCommandLine>$(GeneratorCommandLine) @$(ConfigurationSchemaGeneratorRspPath)</GeneratorCommandLine>
     </PropertyGroup>
     
     <Exec Command="$(GeneratorCommandLine)" />
