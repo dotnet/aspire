@@ -159,6 +159,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Copy image name and tag to clipboard.
+        /// </summary>
+        public static string SourceColumnSourceCopyContainerToClipboard {
+            get {
+                return ResourceManager.GetString("SourceColumnSourceCopyContainerToClipboard", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Copy file path to clipboard.
         /// </summary>
         public static string SourceColumnSourceCopyFullPathToClipboard {

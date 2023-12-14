@@ -139,6 +139,9 @@
   <data name="SourceColumnSourceCopyFullPathToClipboard" xml:space="preserve">
     <value>Copy file path to clipboard</value>
   </data>
+  <data name="SourceColumnSourceCopyContainerToClipboard" xml:space="preserve">
+    <value>Copy image name and tag to clipboard</value>
+  </data>
   <data name="UnreadLogErrorsBadgeErrorLog" xml:space="preserve">
     <value>{0} error log</value>
     <comment>{0} is 1</comment>

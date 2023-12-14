@@ -8,7 +8,8 @@
     // NOTE projects are also executables, so we have to check for projects first
     <GridValue Value="@Path.GetFileName(projectViewModel.ProjectPath)"
                ValueToCopy="@projectViewModel.ProjectPath"
-               EnableHighlighting="false"
+               EnableHighlighting="true"
+               HighlightText="@FilterText"
                PreCopyToolTip="@Loc[Columns.SourceColumnSourceCopyFullPathToClipboard]"
                ToolTip="@projectViewModel.ProjectPath" />
 }
@@ -19,7 +20,8 @@ else if (Resource is ExecutableViewModel executableViewModel)
 
     <GridValue Value="@Path.GetFileName(executableViewModel.ExecutablePath)"
                ValueToCopy="@fullCommandLine"
-               EnableHighlighting="false"
+               EnableHighlighting="true"
+               HighlightText="@FilterText"
                PreCopyToolTip="@Loc[Columns.SourceColumnSourceCopyFullPathToClipboard]"
                ToolTip="@executableViewModel.ExecutablePath">
         <ContentAfterValue>
@@ -32,18 +34,23 @@ else if (Resource is ExecutableViewModel executableViewModel)
 else if (Resource is ContainerViewModel containerViewModel)
 {
     var ports = string.Join("; ", containerViewModel.Ports);
-    <FluentStack Orientation="Orientation.Horizontal">
-        <span title="@containerViewModel.Image"><FluentHighlighter HighlightedText="@FilterText" Text="@containerViewModel.Image" /></span>
-        @if (containerViewModel.Ports.Length > 0)
-        {
-            var title = string.Format(
-                Loc[containerViewModel.Ports.Length == 1
-                    ? Columns.SourceColumnDisplayPort
-                    : Columns.SourceColumnDisplayPorts],
-                ports);
-            <span class="subtext" title="@title" aria-label="@title">@ports</span>
-        }
-    </FluentStack>
+    <GridValue Value="@containerViewModel.Image"
+               EnableHighlighting="true"
+               HighlightText="@FilterText"
+               PreCopyToolTip="@Loc[Columns.SourceColumnSourceCopyContainerToClipboard]"
+               ToolTip="@containerViewModel.Image">
+        <ContentAfterValue>
+           @if (containerViewModel.Ports.Length > 0)
+           {
+               var title = string.Format(
+                   Loc[containerViewModel.Ports.Length == 1
+                       ? Columns.SourceColumnDisplayPort
+                       : Columns.SourceColumnDisplayPorts],
+                   ports);
+                   <span class="subtext" aria-label="@title">@title</span>
+           }
+        </ContentAfterValue>
+   </GridValue>
     <FluentStack Orientation="Orientation.Horizontal">
         @if (containerViewModel.Command is not null)
         {

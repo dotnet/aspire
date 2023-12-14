@@ -13,8 +13,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsHeader">
-        <source>Console Logs</source>
-        <target state="new">Console Logs</target>
+        <source>Console logs</source>
+        <target state="new">Console logs</target>
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsInitializingLogViewer">
@@ -38,8 +38,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ConsoleLogsPageTitle">
-        <source>{0} Console Logs</source>
-        <target state="new">{0} Console Logs</target>
+        <source>{0} console logs</source>
+        <target state="new">{0} console logs</target>
         <note>{0} is an application name</note>
       </trans-unit>
       <trans-unit id="ConsoleLogsSelectAResource">
