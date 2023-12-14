@@ -13,6 +13,11 @@ public interface IResourceService
     /// <summary>
     /// Gets the current set of resources and a stream of updates.
     /// </summary>
+    /// <remarks>
+    /// The returned subscription will not complete on its own.
+    /// Callers are required to manage the lifetime of the subscription,
+    /// using cancellation during enumeration.
+    /// </remarks>
     ResourceSubscription SubscribeResources();
 }
 
