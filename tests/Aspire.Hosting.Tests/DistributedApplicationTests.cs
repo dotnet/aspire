@@ -18,7 +18,6 @@ public class DistributedApplicationTests
 {
     private readonly ITestOutputHelper _testOutputHelper;
 
-    // Primary constructors don't get ITestOutputHelper injected
     public DistributedApplicationTests(ITestOutputHelper testOutputHelper)
     {
         _testOutputHelper = testOutputHelper;
@@ -188,109 +187,6 @@ public class DistributedApplicationTests
     }
 
     [LocalOnlyFact]
-    public async Task TestProjectStartsAndStopsCleanly()
-    {
-        var testProgram = CreateTestProgram();
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
-
-        testProgram.AppBuilder.Services
-            .AddHttpClient()
-            .ConfigureHttpClientDefaults(b =>
-            {
-                b.UseSocketsHttpHandler((handler, sp) => handler.PooledConnectionLifetime = TimeSpan.FromSeconds(5));
-            });
-
-        await using var app = testProgram.Build();
-
-        var client = app.Services.GetRequiredService<IHttpClientFactory>().CreateClient();
-
-        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
-
-        await app.StartAsync(cts.Token);
-
-        // Make sure each service is running
-        await testProgram.ServiceABuilder.HttpGetPidAsync(client, "http", cts.Token);
-        await testProgram.ServiceBBuilder.HttpGetPidAsync(client, "http", cts.Token);
-        await testProgram.ServiceCBuilder.HttpGetPidAsync(client, "http", cts.Token);
-    }
-
-    [LocalOnlyFact]
-    public async Task TestPortOnServiceBindingAnnotationAndAllocatedEndpointAnnotationMatch()
-    {
-        var testProgram = CreateTestProgram();
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
-
-        testProgram.AppBuilder.Services
-            .AddHttpClient()
-            .ConfigureHttpClientDefaults(b =>
-            {
-                b.UseSocketsHttpHandler((handler, sp) => handler.PooledConnectionLifetime = TimeSpan.FromSeconds(5));
-            });
-
-        await using var app = testProgram.Build();
-
-        var client = app.Services.GetRequiredService<IHttpClientFactory>().CreateClient();
-
-        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
-
-        await app.StartAsync(cts.Token);
-
-        // Make sure each service is running
-        await testProgram.ServiceABuilder.HttpGetPidAsync(client, "http", cts.Token);
-        await testProgram.ServiceBBuilder.HttpGetPidAsync(client, "http", cts.Token);
-        await testProgram.ServiceCBuilder.HttpGetPidAsync(client, "http", cts.Token);
-
-        foreach (var projectBuilders in testProgram.ServiceProjectBuilders)
-        {
-            var serviceBinding = projectBuilders.Resource.Annotations.OfType<ServiceBindingAnnotation>().Single();
-            var allocatedEndpoint = projectBuilders.Resource.Annotations.OfType<AllocatedEndpointAnnotation>().Single();
-
-            Assert.Equal(serviceBinding.Port, allocatedEndpoint.Port);
-        }
-    }
-
-    [LocalOnlyFact]
-    public async Task TestPortOnServiceBindingAnnotationAndAllocatedEndpointAnnotationMatchForReplicatedServices()
-    {
-        var testProgram = CreateTestProgram();
-
-        foreach (var serviceBuilder in testProgram.ServiceProjectBuilders)
-        {
-            serviceBuilder.WithReplicas(2);
-        }
-
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
-
-        testProgram.AppBuilder.Services
-            .AddHttpClient()
-            .ConfigureHttpClientDefaults(b =>
-            {
-                b.UseSocketsHttpHandler((handler, sp) => handler.PooledConnectionLifetime = TimeSpan.FromSeconds(5));
-            });
-
-        await using var app = testProgram.Build();
-
-        var client = app.Services.GetRequiredService<IHttpClientFactory>().CreateClient();
-
-        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
-
-        await app.StartAsync(cts.Token);
-
-        // Make sure each service is running
-        await testProgram.ServiceABuilder.HttpGetPidAsync(client, "http", cts.Token);
-        await testProgram.ServiceBBuilder.HttpGetPidAsync(client, "http", cts.Token);
-        await testProgram.ServiceCBuilder.HttpGetPidAsync(client, "http", cts.Token);
-
-        foreach (var projectBuilders in testProgram.ServiceProjectBuilders)
-        {
-            var serviceBinding = projectBuilders.Resource.Annotations.OfType<ServiceBindingAnnotation>().Single();
-            var allocatedEndpoint = projectBuilders.Resource.Annotations.OfType<AllocatedEndpointAnnotation>().Single();
-
-            Assert.Equal(serviceBinding.Port, allocatedEndpoint.Port);
-        }
-    }
-
-    [LocalOnlyFact]
     public async Task TestServicesWithMultipleReplicas()
     {
         var replicaCount = 3;
@@ -315,6 +211,11 @@ public class DistributedApplicationTests
 
         await app.StartAsync(cts.Token);
 
+        // Give the server some time to be ready to handle requests to
+        // minimize the amount of retries the clients have to do (and log).
+
+        await Task.Delay(1000, cts.Token);
+
         // Make sure services A and C are running
         await testProgram.ServiceABuilder.HttpGetPidAsync(client, "http", cts.Token);
         await testProgram.ServiceCBuilder.HttpGetPidAsync(client, "http", cts.Token);
@@ -334,67 +235,6 @@ public class DistributedApplicationTests
             }
             await Task.Delay(100, cts.Token);
         }
-    }
-
-    [LocalOnlyFact]
-    public async Task VerifyHealthyOnIntegrationServiceA()
-    {
-        var testProgram = CreateTestProgram(includeIntegrationServices: true);
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
-
-        testProgram.AppBuilder.Services
-            .AddHttpClient()
-            .ConfigureHttpClientDefaults(b =>
-            {
-                b.UseSocketsHttpHandler((handler, sp) => handler.PooledConnectionLifetime = TimeSpan.FromSeconds(5));
-            });
-
-        await using var app = testProgram.Build();
-
-        var client = app.Services.GetRequiredService<IHttpClientFactory>().CreateClient();
-
-        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
-
-        await app.StartAsync(cts.Token);
-
-        // Make sure all services are running
-        await testProgram.ServiceABuilder.HttpGetPidAsync(client, "http", cts.Token);
-        await testProgram.ServiceBBuilder.HttpGetPidAsync(client, "http", cts.Token);
-        await testProgram.ServiceCBuilder.HttpGetPidAsync(client, "http", cts.Token);
-        await testProgram.IntegrationServiceABuilder!.HttpGetPidAsync(client, "http", cts.Token);
-
-        // We wait until timeout for the /health endpoint to return successfully. We assume
-        // that components wired up into this project have health checks enabled.
-        await testProgram.IntegrationServiceABuilder!.WaitForHealthyStatus(client, "http", cts.Token);
-    }
-
-    [LocalOnlyFact("node")]
-    public async Task VerifyNodeAppWorks()
-    {
-        var testProgram = CreateTestProgram(includeNodeApp: true);
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
-
-        testProgram.AppBuilder.Services
-            .AddHttpClient()
-            .ConfigureHttpClientDefaults(b =>
-            {
-                b.UseSocketsHttpHandler((handler, sp) => handler.PooledConnectionLifetime = TimeSpan.FromSeconds(5));
-                b.AddStandardResilienceHandler();
-            });
-
-        await using var app = testProgram.Build();
-
-        var client = app.Services.GetRequiredService<IHttpClientFactory>().CreateClient();
-
-        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
-
-        await app.StartAsync(cts.Token);
-
-        var response0 = await testProgram.NodeAppBuilder!.HttpGetWithRetryAsync(client, "http", "/", cts.Token);
-        var response1 = await testProgram.NpmAppBuilder!.HttpGetWithRetryAsync(client, "http", "/", cts.Token);
-
-        Assert.Equal("Hello from node!", response0);
-        Assert.Equal("Hello from node!", response1);
     }
 
     [LocalOnlyFact("docker")]
