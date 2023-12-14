@@ -208,7 +208,7 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
                 }
             }
         }
-        else if (changeType == ResourceChangeType.Deleted)
+        else if (changeType == ResourceChangeType.Delete)
         {
             _resourceNameMapping.Remove(resourceViewModel.Name);
 

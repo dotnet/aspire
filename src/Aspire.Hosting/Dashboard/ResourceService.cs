@@ -21,7 +21,7 @@ internal sealed partial class ResourceService : IResourceService, IAsyncDisposab
 
         _resourcePublisher = new ResourcePublisher(_cancellationTokenSource.Token);
 
-        _ = new DcpDataSource(kubernetesService, applicationModel, loggerFactory, _resourcePublisher.Integrate, _cancellationTokenSource.Token);
+        _ = new DcpDataSource(kubernetesService, applicationModel, loggerFactory, _resourcePublisher.IntegrateAsync, _cancellationTokenSource.Token);
 
         static string ComputeApplicationName(string applicationName)
         {

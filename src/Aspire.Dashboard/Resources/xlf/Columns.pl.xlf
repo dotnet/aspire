@@ -15,7 +15,7 @@
       <trans-unit id="ResourceNameDisplayContainerIdText">
         <source>Container ID: {0}</source>
         <target state="new">Container ID: {0}</target>
-        <note />
+        <note>{0} is an alphanumeric id</note>
       </trans-unit>
       <trans-unit id="ResourceNameDisplayCopyContainerIdText">
         <source>Copy container ID to clipboard</source>
@@ -25,7 +25,7 @@
       <trans-unit id="ResourceNameDisplayProcessIdText">
         <source>Process ID: {0}</source>
         <target state="new">Process ID: {0}</target>
-        <note />
+        <note>{0} is a numeric id</note>
       </trans-unit>
       <trans-unit id="SourceColumnDisplayContainerArgsTitle">
         <source>Container args</source>

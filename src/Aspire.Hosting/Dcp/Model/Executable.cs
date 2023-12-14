@@ -83,6 +83,9 @@ internal sealed class ExecutableStatus : V1Status
     [JsonPropertyName("effectiveEnv")]
     public List<EnvVar>? EffectiveEnv { get; set; }
 
+    // Effective values of launch arguments to be passed to the Executable, after all substitutions are applied.
+    [JsonPropertyName("effectiveArgs")]
+    public List<string>? EffectiveArgs { get; set; }
 }
 
 internal static class ExecutableStates

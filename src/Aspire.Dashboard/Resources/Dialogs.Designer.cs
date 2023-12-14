@@ -141,7 +141,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to .
+        ///   Looks up a localized string similar to Version: {0}.
         /// </summary>
         public static string SettingsDialogVersion {
             get {
