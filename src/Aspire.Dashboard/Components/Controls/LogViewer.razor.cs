@@ -4,6 +4,7 @@
 using System.Collections.Concurrent;
 using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Utils;
 using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components;
