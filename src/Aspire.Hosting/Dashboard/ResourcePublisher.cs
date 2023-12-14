@@ -31,7 +31,8 @@ internal sealed class ResourcePublisher(CancellationToken cancellationToken)
     {
         lock (_syncLock)
         {
-            var channel = Channel.CreateUnbounded<ResourceChange>();
+            var channel = Channel.CreateUnbounded<ResourceChange>(
+                new UnboundedChannelOptions { AllowSynchronousContinuations = true, SingleReader = true, SingleWriter = true });
 
             ImmutableInterlocked.Update(ref _outgoingChannels, static (set, channel) => set.Add(channel), channel);
 
