@@ -18,7 +18,7 @@ public abstract class ResourceViewModel
     public required DateTime? CreationTimeStamp { get; init; }
     public required ImmutableArray<EnvironmentVariableViewModel> Environment { get; init; }
     public required ILogSource LogSource { get; init; }
-    public required ImmutableArray<string> Endpoints { get; init; }
+    public required ImmutableArray<EndpointViewModel> Endpoints { get; init; }
     public required ImmutableArray<ResourceServiceSnapshot> Services { get; init; }
     public required int? ExpectedEndpointsCount { get; init; }
 
@@ -55,3 +55,5 @@ public sealed class ResourceServiceSnapshot(string name, string? allocatedAddres
     public int? AllocatedPort { get; } = allocatedPort;
     public string AddressAndPort { get; } = $"{allocatedAddress}:{allocatedPort}";
 }
+
+public sealed record EndpointViewModel(string EndpointUrl, string ProxyUrl);
