@@ -9,7 +9,7 @@
     else
     {
         @* If we have any, regardless of the state, go ahead and display them *@
-        foreach (var endpoint in Resource.Endpoints.OrderBy(e => e))
+        foreach (var endpoint in Resource.Endpoints.OrderBy(e => e.ProxyUrl))
         {
             if (HasMultipleReplicas)
             {
