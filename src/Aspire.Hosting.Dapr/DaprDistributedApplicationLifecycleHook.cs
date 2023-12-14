@@ -9,7 +9,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 using System.Net.Sockets;
 using static Aspire.Hosting.Dapr.CommandLineArgs;
 
@@ -105,10 +104,6 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         fileName,
                         Command("run"),
                         daprAppPortArg(sidecarOptions?.AppPort),
-                        daprGrpcPortArg(sidecarOptions?.DaprGrpcPort?.ToString(CultureInfo.InvariantCulture)),
-                        daprHttpPortArg(sidecarOptions?.DaprHttpPort?.ToString(CultureInfo.InvariantCulture)),
-                        daprMetricsPortArg(sidecarOptions?.MetricsPort?.ToString(CultureInfo.InvariantCulture)),
-                        daprProfilePortArg(sidecarOptions?.ProfilePort?.ToString(CultureInfo.InvariantCulture)),
                         ModelNamedArg("--app-channel-address", sidecarOptions?.AppChannelAddress),
                         ModelNamedArg("--app-health-check-path", sidecarOptions?.AppHealthCheckPath),
                         ModelNamedArg("--app-health-probe-interval", sidecarOptions?.AppHealthProbeInterval),
@@ -143,8 +138,13 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
 
             resource.Annotations.Add(
                 new EnvironmentCallbackAnnotation(
-                    env =>
+                    context =>
                     {
+                        if (context.PublisherName == "manifest")
+                        {
+                            return;
+                        }
+
                         if (resource is ContainerResource)
                         {
                             // By default, the Dapr sidecar will listen on localhost, which is not accessible from the container.
@@ -152,12 +152,12 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                             var grpcEndpoint = $"http://localhost:{{{{- portFor \"{daprSideCarResourceName}_grpc\" -}}}}";
                             var httpEndpoint = $"http://localhost:{{{{- portFor \"{daprSideCarResourceName}_http\" -}}}}";
 
-                            env.TryAdd("DAPR_GRPC_ENDPOINT", HostNameResolver.ReplaceLocalhostWithContainerHost(grpcEndpoint, _configuration));
-                            env.TryAdd("DAPR_HTTP_ENDPOINT", HostNameResolver.ReplaceLocalhostWithContainerHost(httpEndpoint, _configuration));
+                            context.EnvironmentVariables.TryAdd("DAPR_GRPC_ENDPOINT", HostNameResolver.ReplaceLocalhostWithContainerHost(grpcEndpoint, _configuration));
+                            context.EnvironmentVariables.TryAdd("DAPR_HTTP_ENDPOINT", HostNameResolver.ReplaceLocalhostWithContainerHost(httpEndpoint, _configuration));
                         }
 
-                        env.TryAdd("DAPR_GRPC_PORT", $"{{{{- portFor \"{daprSideCarResourceName}_grpc\" -}}}}");
-                        env.TryAdd("DAPR_HTTP_PORT", $"{{{{- portFor \"{daprSideCarResourceName}_http\" -}}}}");
+                        context.EnvironmentVariables.TryAdd("DAPR_GRPC_PORT", $"{{{{- portFor \"{daprSideCarResourceName}_grpc\" -}}}}");
+                        context.EnvironmentVariables.TryAdd("DAPR_HTTP_PORT", $"{{{{- portFor \"{daprSideCarResourceName}_http\" -}}}}");
                     }));
 
             daprSideCar.Annotations.Add(new ServiceBindingAnnotation(ProtocolType.Tcp, name: "grpc", port: sidecarOptions?.DaprGrpcPort));

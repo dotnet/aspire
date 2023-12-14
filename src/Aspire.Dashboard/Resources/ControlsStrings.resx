@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <root>
-  <!--
-    Microsoft ResX Schema
-
+  <!-- 
+    Microsoft ResX Schema 
+    
     Version 2.0
-
-    The primary goals of this format is to allow a simple XML format
-    that is mostly human readable. The generation and parsing of the
-    various data types are done through the TypeConverter classes
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
     associated with the data types.
-
+    
     Example:
-
+    
     ... ado.net/XML headers & schema ...
     <resheader name="resmimetype">text/microsoft-resx</resheader>
     <resheader name="version">2.0</resheader>
@@ -26,36 +26,36 @@
         <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
         <comment>This is a comment</comment>
     </data>
-
-    There are any number of "resheader" rows that contain simple
+                
+    There are any number of "resheader" rows that contain simple 
     name/value pairs.
-
-    Each data row contains a name, and value. The row also contains a
-    type or mimetype. Type corresponds to a .NET class that support
-    text/value conversion through the TypeConverter architecture.
-    Classes that don't support this are serialized and stored with the
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
     mimetype set.
-
-    The mimetype is used for serialized objects, and tells the
-    ResXResourceReader how to depersist the object. This is currently not
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
     extensible. For a given mimetype the value must be set accordingly:
-
-    Note - application/x-microsoft.net.object.binary.base64 is the format
-    that the ResXResourceWriter will generate, however the reader can
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
     read any of the formats listed below.
-
+    
     mimetype: application/x-microsoft.net.object.binary.base64
-    value   : The object must be serialized with
+    value   : The object must be serialized with 
             : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
             : and then encoded with base64 encoding.
-
+    
     mimetype: application/x-microsoft.net.object.soap.base64
-    value   : The object must be serialized with
+    value   : The object must be serialized with 
             : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
             : and then encoded with base64 encoding.
 
     mimetype: application/x-microsoft.net.object.bytearray.base64
-    value   : The object must be serialized into a byte array
+    value   : The object must be serialized into a byte array 
             : using a System.ComponentModel.TypeConverter
             : and then encoded with base64 encoding.
     -->
@@ -128,7 +128,7 @@
   </data>
   <data name="EnvironmentVariablesFilterToggleShowSpecOnly" xml:space="preserve">
     <value>Show Spec Only</value>
-    <note>Spec means from the resource specification</note>
+    <comment>Spec means from the resource specification</comment>
   </data>
   <data name="EnvironmentVariablesFilterToggleShowAll" xml:space="preserve">
     <value>Show All</value>
@@ -153,15 +153,15 @@
   </data>
   <data name="PlotlyChartCount" xml:space="preserve">
     <value>Count</value>
-    <note>Count is the name of a plot y-axis label</note>
+    <comment>Count is the name of a plot y-axis label</comment>
   </data>
   <data name="PlotlyChartLength" xml:space="preserve">
     <value>Length</value>
-    <note>Length is the name of a plot y-axis label</note>
+    <comment>Length is the name of a plot y-axis label</comment>
   </data>
   <data name="PlotlyChartValue" xml:space="preserve">
     <value>Value</value>
-    <note>Value is the name of a plot y-axis label</note>
+    <comment>Value is the name of a plot y-axis label</comment>
   </data>
   <data name="NameColumnHeader" xml:space="preserve">
     <value>Name</value>
@@ -171,15 +171,15 @@
   </data>
   <data name="SpanDetailsService" xml:space="preserve">
     <value>Service &lt;strong&gt;{0}&lt;/strong&gt;</value>
-    <note>{0} is the application name. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+    <comment>{0} is the application name. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</comment>
   </data>
   <data name="SpanDetailsDuration" xml:space="preserve">
     <value>Duration &lt;strong&gt;{0}&lt;/strong&gt;</value>
-    <note>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+    <comment>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</comment>
   </data>
   <data name="SpanDetailsStartTime" xml:space="preserve">
     <value>Start Time &lt;strong&gt;{0}&lt;/strong&gt;</value>
-    <note>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+    <comment>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</comment>
   </data>
   <data name="ViewLogsLink" xml:space="preserve">
     <value>View Logs</value>
@@ -195,7 +195,7 @@
   </data>
   <data name="TotalItemsFooterText" xml:space="preserve">
     <value>Total: &lt;strong&gt;{0} results found&lt;/strong&gt;</value>
-    <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+    <comment>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</comment>
   </data>
   <data name="SelectAnApplication" xml:space="preserve">
     <value>Select an Application</value>
@@ -205,5 +205,17 @@
   </data>
   <data name="All" xml:space="preserve">
     <value>All</value>
+  </data>
+  <data name="ChartContainerAllTags" xml:space="preserve">
+    <value>All tags</value>
+  </data>
+  <data name="ChartContainerFilteredTags" xml:space="preserve">
+    <value>Filtered tags</value>
+  </data>
+  <data name="ChartContainerOptionsHeader" xml:space="preserve">
+    <value>Options</value>
+  </data>
+  <data name="ChartContainerShowCountLabel" xml:space="preserve">
+    <value>Show count</value>
   </data>
 </root>

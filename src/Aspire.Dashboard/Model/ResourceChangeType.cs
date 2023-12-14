@@ -15,5 +15,5 @@ public enum ResourceChangeType
     /// <summary>
     /// The object was deleted.
     /// </summary>
-    Deleted
+    Delete
 }

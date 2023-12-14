@@ -163,7 +163,7 @@ internal sealed class DcpDataSource
             Endpoints = endpoints,
             Services = services,
             Command = container.Spec.Command,
-            Args = container.Spec.Args?.ToImmutableArray() ?? [],
+            Args = container.Status?.EffectiveArgs?.ToImmutableArray() ?? [],
             Ports = GetPorts()
         };
 
@@ -206,7 +206,7 @@ internal sealed class DcpDataSource
                 CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToLocalTime(),
                 ExecutablePath = executable.Spec.ExecutablePath,
                 WorkingDirectory = executable.Spec.WorkingDirectory,
-                Arguments = executable.Spec.Args?.ToImmutableArray(),
+                Arguments = executable.Status?.EffectiveArgs?.ToImmutableArray() ?? [],
                 ProjectPath = projectPath,
                 State = executable.Status?.State,
                 LogSource = new FileLogSource(executable.Status?.StdOutFile, executable.Status?.StdErrFile),
@@ -226,7 +226,7 @@ internal sealed class DcpDataSource
             CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToLocalTime(),
             ExecutablePath = executable.Spec.ExecutablePath,
             WorkingDirectory = executable.Spec.WorkingDirectory,
-            Arguments = executable.Spec.Args?.ToImmutableArray(),
+            Arguments = executable.Status?.EffectiveArgs?.ToImmutableArray() ?? [],
             State = executable.Status?.State,
             LogSource = new FileLogSource(executable.Status?.StdOutFile, executable.Status?.StdErrFile),
             ProcessId = executable.Status?.ProcessId,
@@ -405,7 +405,7 @@ internal sealed class DcpDataSource
         return watchEventType switch
         {
             WatchEventType.Added or WatchEventType.Modified => ResourceChangeType.Upsert,
-            WatchEventType.Deleted => ResourceChangeType.Deleted,
+            WatchEventType.Deleted => ResourceChangeType.Delete,
             _ => ResourceChangeType.Other
         };
     }

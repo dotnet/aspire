@@ -39,7 +39,7 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
         {
             _resourceNameMapping[resourceViewModel.Name] = resourceViewModel;
         }
-        else if (changeType == ResourceChangeType.Deleted)
+        else if (changeType == ResourceChangeType.Delete)
         {
             _resourceNameMapping.TryRemove(resourceViewModel.Name, out _);
         }
