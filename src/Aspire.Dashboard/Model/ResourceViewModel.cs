@@ -17,7 +17,6 @@ public abstract class ResourceViewModel
     public required string? State { get; init; }
     public required DateTime? CreationTimeStamp { get; init; }
     public required ImmutableArray<EnvironmentVariableViewModel> Environment { get; init; }
-    public required ILogSource LogSource { get; init; }
     public required ImmutableArray<string> Endpoints { get; init; }
     public required ImmutableArray<ResourceServiceSnapshot> Services { get; init; }
     public required int? ExpectedEndpointsCount { get; init; }

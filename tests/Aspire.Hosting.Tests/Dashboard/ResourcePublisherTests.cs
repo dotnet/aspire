@@ -141,7 +141,6 @@ public class ResourcePublisherTests
             Endpoints = [],
             Environment = [],
             ExpectedEndpointsCount = null,
-            LogSource = null!,
             Services = [],
             Args = [],
             Command = "",
