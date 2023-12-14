@@ -49,11 +49,29 @@
     padding-bottom: calc(var(--design-unit) * 2px);
 }
 
-::deep .trace-progress-ring {
-    transform: rotate(-90deg);
+::deep fluent-progress-ring::part(background) {
+    stroke: var(--neutral-fill-input-alt-active);
+    stroke-width: 3px;
+    r: 6.5px;
 }
 
-::deep .progress-percent {
-    stroke-dasharray: 100;
-    stroke-dashoffset: calc(100 - var(--val));
+::deep fluent-progress-ring::part(determinate) {
+    transition: unset;
+    stroke-linecap: unset;
+    stroke-width: 3px;
+    r: 6.5px;
+}
+
+::deep .duration-container {
+    display: flex;
+    align-items: center;
+}
+
+::deep .duration-ring {
+    width: 20px;
+    height: 20px;
+}
+
+::deep .trace-duration {
+    padding-left: 10px;
 }
