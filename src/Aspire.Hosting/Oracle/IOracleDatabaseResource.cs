@@ -6,6 +6,6 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Represents a Oracle Database resource that requires a connection string.
 /// </summary>
-public interface IOracleDatabaseResource : IResourceWithConnectionString
+public interface IOracleDatabaseParentResource : IResourceWithConnectionString, IResourceWithEnvironment
 {
 }

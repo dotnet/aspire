@@ -12,7 +12,7 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class OracleDatabaseBuilderExtensions
 {
-    private const string PasswordEnvVarName = "ORACLE_DATABASE_PASSWORD";
+    private const string PasswordEnvVarName = "ORACLE_PWD";
 
     /// <summary>
     /// Adds a Oracle Database container to the application model. The default image is "database/free" and the tag is "latest".
@@ -27,25 +27,37 @@ public static class OracleDatabaseBuilderExtensions
         password = password ?? Guid.NewGuid().ToString("N");
         var oracleDatabaseContainer = new OracleDatabaseContainerResource(name, password);
         return builder.AddResource(oracleDatabaseContainer)
-                      .WithAnnotation(new ManifestPublishingCallbackAnnotation(WriteOracleDatabaseContainerToManifest))
+                      .WithManifestPublishingCallback(context => WriteOracleDatabaseContainerResourceToManifest(context, oracleDatabaseContainer))
                       .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, port: port, containerPort: 1521))
                       .WithAnnotation(new ContainerImageAnnotation { Image = "database/free", Tag = "latest", Registry = "container-registry.oracle.com" })
-                      .WithEnvironment(PasswordEnvVarName, () => oracleDatabaseContainer.Password);
+                      .WithEnvironment(context =>
+                      {
+                          if (context.PublisherName == "manifest")
+                          {
+                              context.EnvironmentVariables.Add(PasswordEnvVarName, $"{{{oracleDatabaseContainer.Name}.inputs.password}}");
+                          }
+                          else
+                          {
+                              context.EnvironmentVariables.Add(PasswordEnvVarName, oracleDatabaseContainer.Password);
+                          }
+                      });
     }
 
     /// <summary>
-    /// Adds a Oracle Database connection to the application model. Connection strings can also be read from the connection string section of the configuration using the name of the resource.
+    /// Adds a Oracle Database resource to the application model. A container is used for local development.
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <param name="connectionString">The Oracle Database connection string (optional).</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{OracleDatabaseConnectionResource}"/>.</returns>
-    public static IResourceBuilder<OracleDatabaseConnectionResource> AddOracleDatabaseConnection(this IDistributedApplicationBuilder builder, string name, string? connectionString = null)
+    /// <returns>A reference to the <see cref="IResourceBuilder{OracleDatabaseServerResource}"/>.</returns>
+    public static IResourceBuilder<OracleDatabaseServerResource> AddOracleDatabase(this IDistributedApplicationBuilder builder, string name)
     {
-        var oracleDatabaseConnection = new OracleDatabaseConnectionResource(name, connectionString);
-
-        return builder.AddResource(oracleDatabaseConnection)
-            .WithAnnotation(new ManifestPublishingCallbackAnnotation((context) => WriteOracleDatabaseConnectionToManifest(context, oracleDatabaseConnection)));
+        var password = "123"; // Guid.NewGuid().ToString("N");
+        var oracleDatabaseServer = new OracleDatabaseServerResource(name, password);
+        return builder.AddResource(oracleDatabaseServer)
+                      .WithManifestPublishingCallback(WriteOracleDatabaseContainerToManifest)
+                      .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, containerPort: 1521))
+                      .WithAnnotation(new ContainerImageAnnotation { Image = "database/free", Tag = "latest", Registry = "container-registry.oracle.com" })
+                      .WithEnvironment(PasswordEnvVarName, () => oracleDatabaseServer.Password);
     }
 
     /// <summary>
@@ -54,18 +66,11 @@ public static class OracleDatabaseBuilderExtensions
     /// <param name="builder">The Oracle Database server resource builder.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{OracleDatabaseResource}"/>.</returns>
-    public static IResourceBuilder<OracleDatabaseResource> AddDatabase(this IResourceBuilder<OracleDatabaseContainerResource> builder, string name)
+    public static IResourceBuilder<OracleDatabaseResource> AddDatabase(this IResourceBuilder<IOracleDatabaseParentResource> builder, string name)
     {
         var oracleDatabase = new OracleDatabaseResource(name, builder.Resource);
         return builder.ApplicationBuilder.AddResource(oracleDatabase)
-                                         .WithAnnotation(new ManifestPublishingCallbackAnnotation(
-                                             (json) => WriteOracleDatabaseToManifest(json, oracleDatabase)));
-    }
-
-    private static void WriteOracleDatabaseConnectionToManifest(ManifestPublishingContext context, OracleDatabaseConnectionResource oracleDatabaseConnection)
-    {
-        context.Writer.WriteString("type", "oracle.connection.v0");
-        context.Writer.WriteString("connectionString", oracleDatabaseConnection.GetConnectionString());
+                                         .WithManifestPublishingCallback(context => WriteOracleDatabaseToManifest(context, oracleDatabase));
     }
 
     private static void WriteOracleDatabaseContainerToManifest(ManifestPublishingContext context)
@@ -77,5 +82,24 @@ public static class OracleDatabaseBuilderExtensions
     {
         context.Writer.WriteString("type", "oracle.database.v0");
         context.Writer.WriteString("parent", oracleDatabase.Parent.Name);
+    }
+
+    private static void WriteOracleDatabaseContainerResourceToManifest(ManifestPublishingContext context, OracleDatabaseContainerResource resource)
+    {
+        context.WriteContainer(resource);
+        context.Writer.WriteString(                     // "connectionString": "...",
+            "connectionString",
+            $"user id=system;password={{{resource.Name}.inputs.password}};data source={{{resource.Name}.bindings.tcp.host}}:{{{resource.Name}.bindings.tcp.port}};");
+        context.Writer.WriteStartObject("inputs");      // "inputs": {
+        context.Writer.WriteStartObject("password");    //   "password": {
+        context.Writer.WriteString("type", "string");   //     "type": "string",
+        context.Writer.WriteBoolean("secret", true);    //     "secret": true,
+        context.Writer.WriteStartObject("default");     //     "default": {
+        context.Writer.WriteStartObject("generate");    //       "generate": {
+        context.Writer.WriteNumber("minLength", 10);    //         "minLength": 10,
+        context.Writer.WriteEndObject();                //       }
+        context.Writer.WriteEndObject();                //     }
+        context.Writer.WriteEndObject();                //   }
+        context.Writer.WriteEndObject();                // }
     }
 }

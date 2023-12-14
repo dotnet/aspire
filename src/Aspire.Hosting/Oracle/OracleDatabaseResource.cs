@@ -7,10 +7,10 @@ namespace Aspire.Hosting.ApplicationModel;
 /// A resource that represents a Oracle Database database. This is a child resource of a <see cref="OracleDatabaseContainerResource"/>.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
-/// <param name="oracleContainer">The Oracle Database server resource associated with this database.</param>
-public class OracleDatabaseResource(string name, OracleDatabaseContainerResource oracleContainer) : Resource(name), IOracleDatabaseResource, IResourceWithParent<OracleDatabaseContainerResource>
+/// <param name="oracleParentResource">The Oracle Database parent resource associated with this database.</param>
+public class OracleDatabaseResource(string name, IOracleDatabaseParentResource oracleParentResource) : Resource(name), IResourceWithParent<IOracleDatabaseParentResource>, IResourceWithConnectionString
 {
-    public OracleDatabaseContainerResource Parent { get; } = oracleContainer;
+    public IOracleDatabaseParentResource Parent { get; } = oracleParentResource;
 
     /// <summary>
     /// Gets the connection string for the Oracle Database.
