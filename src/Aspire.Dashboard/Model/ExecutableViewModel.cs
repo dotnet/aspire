@@ -16,5 +16,7 @@ public class ExecutableViewModel : ResourceViewModel
     public required string? ExecutablePath { get; init; }
     public required string? WorkingDirectory { get; init; }
     public required ImmutableArray<string>? Arguments { get; init; }
+    public required string? StdOutFile { get; init; }
+    public required string? StdErrFile { get; init; }
 }
 
