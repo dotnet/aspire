@@ -150,12 +150,6 @@ public static class PostgresBuilderExtensions
 
         return serversFile;
     }
-
-    private static void WritePostgresConnectionToManifest(ManifestPublishingContext context, PostgresConnectionResource postgresConnection)
-    {
-        context.Writer.WriteString("type", "postgres.connection.v0");
-        context.Writer.WriteString("connectionString", postgresConnection.GetConnectionString());
-    }
   
     private static void WritePostgresContainerToManifest(ManifestPublishingContext context)
     {
