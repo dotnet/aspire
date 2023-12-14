@@ -12,23 +12,12 @@
     <Features Condition="'$(EnableConfigurationBindingGenerator)' == 'true'">$(Features);InterceptorsPreview</Features>
     <!-- AspNetCore.HealthChecks packages are unsigned, we ignore that warning on purpose  -->
     <NoWarn>$(NoWarn);CS8002</NoWarn>
-
-    <TargetsTriggeredByCompilation Condition="'$(DesignTimeBuild)' != 'true'">$(TargetsTriggeredByCompilation);GenerateConfigurationSchema</TargetsTriggeredByCompilation>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(ConfigurationSchemaExists)' == 'true'">
     <None Include="$(ConfigurationSchemaPath)"
           Pack="True"
           PackagePath="ConfigurationSchema.json" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <!-- ensure the config generator is built -->
-    <ProjectReference Include="$(MSBuildThisFileDirectory)..\Tools\ConfigurationSchemaGenerator\ConfigurationSchemaGenerator.csproj"
-                      SetTargetFramework="TargetFramework=$(NetCurrent)"
-                      OutputItemType="_ReferencedExecutable"
-                      Private="false"
-                      ReferenceOutputAssembly="false" />
   </ItemGroup>
 
   <PropertyGroup Condition="'$(ConfigurationSchemaExists)' == 'true'">
@@ -42,18 +31,29 @@
     </ItemGroup>
   </Target>
 
+  <!--
+  Logic for generating and comparing the ConfigurationSchema.json file
+  -->
   <PropertyGroup>
-    <ConfigurationSchemaGeneratorPath>$(ArtifactsBinDir)ConfigurationSchemaGenerator\$(Configuration)\$(NetCurrent)\ConfigurationSchemaGenerator.dll</ConfigurationSchemaGeneratorPath>
+    <TargetsTriggeredByCompilation Condition="'$(DesignTimeBuild)' != 'true'">$(TargetsTriggeredByCompilation);GenerateConfigurationSchema</TargetsTriggeredByCompilation>
 
+    <ConfigurationSchemaGeneratorProjectPath>$(RepoRoot)src\Tools\ConfigurationSchemaGenerator\ConfigurationSchemaGenerator.csproj</ConfigurationSchemaGeneratorProjectPath>
     <ConfigurationSchemaGeneratorRspPath>$(IntermediateOutputPath)$(AsemblyName).configschema.rsp</ConfigurationSchemaGeneratorRspPath>
     <GeneratedConfigurationSchemaOutputPath>$(IntermediateOutputPath)ConfigurationSchema.json</GeneratedConfigurationSchemaOutputPath>
   </PropertyGroup>
-  
+
+  <ItemGroup>
+    <!-- ensure the config generator is built -->
+    <ProjectReference Include="$(ConfigurationSchemaGeneratorProjectPath)"
+                      Private="false"
+                      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
   <Target Name="GenerateConfigurationSchema"
           DependsOnTargets="CoreGenerateConfigurationSchema;
                             CopyNewConfigurationSchema;
                             CompareConfigurationSchema" />
-  
+
   <Target Name="WriteConfigurationSchemaGeneratorRspFile">
     <PropertyGroup>
       <ConfigSchemaInput>"@(IntermediateAssembly)"</ConfigSchemaInput>
@@ -73,8 +73,16 @@
                       WriteOnlyWhenDifferent="true" />
   </Target>
 
+  <Target Name="CalculateConfigurationSchemaGeneratorPath">
+    <MSBuild Projects="$(ConfigurationSchemaGeneratorProjectPath)"
+             Targets="GetTargetPath">
+      <Output TaskParameter="TargetOutputs" PropertyName="ConfigurationSchemaGeneratorPath" />
+    </MSBuild>
+  </Target>
+
   <Target Name="CoreGenerateConfigurationSchema"
-          DependsOnTargets="WriteConfigurationSchemaGeneratorRspFile"
+          DependsOnTargets="WriteConfigurationSchemaGeneratorRspFile;
+                            CalculateConfigurationSchemaGeneratorPath"
           Inputs="$(ConfigurationSchemaGeneratorPath);
                   @(IntermediateAssembly);
                   @(ReferencePathWithRefAssemblies)"
@@ -84,7 +92,7 @@
       <GeneratorCommandLine>"$(DotNetTool)" exec $(ConfigurationSchemaGeneratorPath)</GeneratorCommandLine>
       <GeneratorCommandLine>$(GeneratorCommandLine) @$(ConfigurationSchemaGeneratorRspPath)</GeneratorCommandLine>
     </PropertyGroup>
-    
+
     <Exec Command="$(GeneratorCommandLine)" />
 
     <ItemGroup>

@@ -6,18 +6,24 @@ using Microsoft.CodeAnalysis.DotnetRuntime.Extensions;
 
 namespace Microsoft.Extensions.Configuration.Binder.SourceGeneration;
 
+/// <summary>
+/// Mocks out the Configuration.Binder.SourceGeneration project's DiagnosticDescriptors class.
+/// 
+/// The real diagnostic descriptors can't be used because they use localized strings, which
+/// would require getting dotnet/runtime's "SR" generator working in this repo.
+/// </summary>
 internal static class DiagnosticDescriptors
 {
     private static readonly string s_projectName = typeof(DiagnosticDescriptors).Assembly.GetName().Name!;
 
     public static DiagnosticDescriptor TypeNotSupported { get; } = CreateTypeNotSupportedDescriptor("TypeNotSupported");
-    public static DiagnosticDescriptor MissingPublicInstanceConstructor { get; } = CreateTypeNotSupportedDescriptor("SR.MissingPublicInstanceConstructor");
-    public static DiagnosticDescriptor CollectionNotSupported { get; } = CreateTypeNotSupportedDescriptor("SR.CollectionNotSupported");
-    public static DiagnosticDescriptor DictionaryKeyNotSupported { get; } = CreateTypeNotSupportedDescriptor("SR.DictionaryKeyNotSupported");
-    public static DiagnosticDescriptor ElementTypeNotSupported { get; } = CreateTypeNotSupportedDescriptor("SR.ElementTypeNotSupported");
-    public static DiagnosticDescriptor MultipleParameterizedConstructors { get; } = CreateTypeNotSupportedDescriptor("SR.MultipleParameterizedConstructors");
-    public static DiagnosticDescriptor MultiDimArraysNotSupported { get; } = CreateTypeNotSupportedDescriptor("SR.MultiDimArraysNotSupported");
-    public static DiagnosticDescriptor NullableUnderlyingTypeNotSupported { get; } = CreateTypeNotSupportedDescriptor("SR.NullableUnderlyingTypeNotSupported");
+    public static DiagnosticDescriptor MissingPublicInstanceConstructor { get; } = CreateTypeNotSupportedDescriptor("MissingPublicInstanceConstructor");
+    public static DiagnosticDescriptor CollectionNotSupported { get; } = CreateTypeNotSupportedDescriptor("CollectionNotSupported");
+    public static DiagnosticDescriptor DictionaryKeyNotSupported { get; } = CreateTypeNotSupportedDescriptor("DictionaryKeyNotSupported");
+    public static DiagnosticDescriptor ElementTypeNotSupported { get; } = CreateTypeNotSupportedDescriptor("ElementTypeNotSupported");
+    public static DiagnosticDescriptor MultipleParameterizedConstructors { get; } = CreateTypeNotSupportedDescriptor("MultipleParameterizedConstructors");
+    public static DiagnosticDescriptor MultiDimArraysNotSupported { get; } = CreateTypeNotSupportedDescriptor("MultiDimArraysNotSupported");
+    public static DiagnosticDescriptor NullableUnderlyingTypeNotSupported { get; } = CreateTypeNotSupportedDescriptor("NullableUnderlyingTypeNotSupported");
 
     public static DiagnosticDescriptor PropertyNotSupported { get; } = new DiagnosticDescriptor(
         id: "SYSLIB1101",

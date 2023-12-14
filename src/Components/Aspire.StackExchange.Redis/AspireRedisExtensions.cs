@@ -15,11 +15,6 @@ using OpenTelemetry.Trace;
 using StackExchange.Redis;
 using StackExchange.Redis.Configuration;
 
-[assembly: ConfigurationSchema(
-    Types = [typeof(StackExchangeRedisSettings), typeof(ConfigurationOptions)],
-    ConfigurationPaths = ["Aspire:StackExchange:Redis", "Aspire:StackExchange:Redis:ConfigurationOptions"],
-    LogCategories = ["Aspire.StackExchange.Redis"])]
-
 namespace Microsoft.Extensions.Hosting;
 
 /// <summary>
