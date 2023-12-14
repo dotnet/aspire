@@ -21,21 +21,23 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable
     [Parameter]
     public string? ResourceName { get; set; }
 
+    private readonly TaskCompletionSource _whenFirstRenderComplete = new();
     private readonly CancellationTokenSource _resourceSubscriptionCancellation = new();
     private readonly CancellationSeries _logSubscriptionCancellationSeries = new();
     private readonly Dictionary<string, ResourceViewModel> _resourceByName = [];
 
+    // UI
     private FluentSelect<Option<string>>? _resourceSelectComponent;
+    private Option<string> _noSelection = null!;
+    private LogViewer _logViewer = null!;
+
+    // State
+    private string _status = null!;
     private Option<string>? _selectedOption;
     private ResourceViewModel? _selectedResource;
-    private List<Option<string>>? Resources { get; set; }
-    private LogViewer? _logViewer;
-    private string _status = "...";
     private bool? _initialisedSuccessfully;
 
-    private readonly TaskCompletionSource _whenFirstRenderComplete = new();
-
-    private Option<string> _noSelection = null!;
+    private List<Option<string>>? _resources;
 
     protected override void OnInitialized()
     {
@@ -78,9 +80,9 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable
 
     protected override async Task OnParametersSetAsync()
     {
-        if (Resources is not null && ResourceName is not null)
+        if (_resources is not null && ResourceName is not null)
         {
-            _selectedOption = Resources.FirstOrDefault(c => string.Equals(ResourceName, c.Value, StringComparison.Ordinal)) ?? _noSelection;
+            _selectedOption = _resources.FirstOrDefault(c => string.Equals(ResourceName, c.Value, StringComparison.Ordinal)) ?? _noSelection;
             _selectedResource = _selectedOption.Value is null ? null : _resourceByName[_selectedOption.Value];
             await LoadLogsAsync();
         }
@@ -96,10 +98,10 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable
 
     private void UpdateResourcesList()
     {
-        Resources ??= new(_resourceByName.Count + 1);
-        Resources.Clear();
-        Resources.Add(_noSelection);
-        Resources.AddRange(_resourceByName.Values
+        _resources ??= new(_resourceByName.Count + 1);
+        _resources.Clear();
+        _resources.Add(_noSelection);
+        _resources.AddRange(_resourceByName.Values
             .OrderBy(c => c.Name)
             .Select(ToOption));
 
