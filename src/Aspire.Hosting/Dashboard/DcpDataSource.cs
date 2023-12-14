@@ -238,12 +238,12 @@ internal sealed class DcpDataSource
         };
     }
 
-    private (ImmutableArray<string> Endpoints, ImmutableArray<ResourceServiceSnapshot> Services) GetEndpointsAndServices(
+    private (ImmutableArray<EndpointViewModel> Endpoints, ImmutableArray<ResourceServiceSnapshot> Services) GetEndpointsAndServices(
         CustomResource resource,
         string resourceKind,
         string? projectPath = null)
     {
-        var endpoints = ImmutableArray.CreateBuilder<string>();
+        var endpoints = ImmutableArray.CreateBuilder<EndpointViewModel>();
         var services = ImmutableArray.CreateBuilder<ResourceServiceSnapshot>();
         var name = resource.Metadata.Name;
 
@@ -259,6 +259,7 @@ internal sealed class DcpDataSource
                 && service?.UsesHttpProtocol(out var uriScheme) == true)
             {
                 var endpointString = $"{uriScheme}://{endpoint.Spec.Address}:{endpoint.Spec.Port}";
+                var proxyUrlString = $"{uriScheme}://{service.AllocatedAddress}:{service.AllocatedPort}";
 
                 // For project look into launch profile to append launch url
                 if (projectPath is not null
@@ -270,6 +271,7 @@ internal sealed class DcpDataSource
                     {
                         // This is relative URL
                         endpointString += $"/{launchUrl}";
+                        proxyUrlString += $"/{launchUrl}";
                     }
                     else
                     {
@@ -278,13 +280,14 @@ internal sealed class DcpDataSource
                             && launchUrl.StartsWith(applicationUrl))
                         {
                             endpointString = launchUrl.Replace(applicationUrl, endpointString);
+                            proxyUrlString = launchUrl;
                         }
                     }
 
                     // If we cannot process launchUrl then we just show endpoint string
                 }
 
-                endpoints.Add(endpointString);
+                endpoints.Add(new(endpointString, proxyUrlString));
             }
         }
 
