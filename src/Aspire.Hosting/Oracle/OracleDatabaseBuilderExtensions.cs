@@ -24,7 +24,7 @@ public static class OracleDatabaseBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{OracleDatabaseContainerResource}"/>.</returns>
     public static IResourceBuilder<OracleDatabaseContainerResource> AddOracleDatabaseContainer(this IDistributedApplicationBuilder builder, string name, int? port = null, string? password = null)
     {
-        password = password ?? Guid.NewGuid().ToString("N");
+        password = password ?? Guid.NewGuid().ToString("N").Substring(0, 30);
         var oracleDatabaseContainer = new OracleDatabaseContainerResource(name, password);
         return builder.AddResource(oracleDatabaseContainer)
                       .WithManifestPublishingCallback(context => WriteOracleDatabaseContainerResourceToManifest(context, oracleDatabaseContainer))
@@ -51,7 +51,7 @@ public static class OracleDatabaseBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{OracleDatabaseServerResource}"/>.</returns>
     public static IResourceBuilder<OracleDatabaseServerResource> AddOracleDatabase(this IDistributedApplicationBuilder builder, string name)
     {
-        var password = Guid.NewGuid().ToString("N");
+        var password = Guid.NewGuid().ToString("N").Substring(0, 30);
         var oracleDatabaseServer = new OracleDatabaseServerResource(name, password);
         return builder.AddResource(oracleDatabaseServer)
                       .WithManifestPublishingCallback(WriteOracleDatabaseContainerToManifest)
