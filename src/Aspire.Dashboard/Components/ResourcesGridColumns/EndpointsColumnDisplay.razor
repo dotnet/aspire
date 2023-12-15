@@ -11,6 +11,11 @@
         @* If we have any, regardless of the state, go ahead and display them *@
         foreach (var endpoint in Resource.Endpoints.OrderBy(e => e.ProxyUrl))
         {
+            if (!endpoint.ProxyUrlReady)
+            {
+                continue;
+            }
+
             if (HasMultipleReplicas)
             {
                 <a href="@endpoint.ProxyUrl" target="_blank" class="long-inner-content">@endpoint.ProxyUrl</a>
@@ -23,7 +28,8 @@
         }
         @* If we're expecting more, say Starting..., unless the app isn't running anymore *@
         if (Resource.State != FinishedState
-        && (Resource.ExpectedEndpointsCount is null || Resource.ExpectedEndpointsCount > Resource.Endpoints.Count))
+            && (Resource.ExpectedEndpointsCount is null
+                || Resource.ExpectedEndpointsCount > Resource.Endpoints.Count(evm => evm.ProxyUrlReady)))
         {
             <span class="long-inner-content">Starting...</span>
         }

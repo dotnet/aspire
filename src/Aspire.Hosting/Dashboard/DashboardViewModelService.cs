@@ -433,7 +433,8 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
                     // If we cannot process launchUrl then we just show endpoint string
                 }
 
-                resourceViewModel.Endpoints.Add(new(endpointString, proxyUrlString));
+                resourceViewModel.Endpoints.Add(
+                    new(endpointString, proxyUrlString, string.Equals(matchingService.Status?.State, "Ready", StringComparison.OrdinalIgnoreCase)));
             }
         }
 

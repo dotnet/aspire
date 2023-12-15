@@ -47,4 +47,4 @@ public sealed class ResourceService(string name, string? allocatedAddress, int? 
 
 public sealed record NamespacedName(string Name, string? Namespace);
 
-public sealed record EndpointViewModel(string EndpointUrl, string ProxyUrl);
+public sealed record EndpointViewModel(string EndpointUrl, string ProxyUrl, bool ProxyUrlReady);
