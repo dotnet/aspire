@@ -15,7 +15,7 @@ internal sealed partial class LogEntry
     public Guid? ParentId { get; set; }
     public Guid Id { get; } = Guid.NewGuid();
     public string? ParentTimestamp { get; set; }
-    public bool IsFirstLine { get; init; }    
+    public bool IsFirstLine { get; init; }
 }
 
 internal enum LogEntryType

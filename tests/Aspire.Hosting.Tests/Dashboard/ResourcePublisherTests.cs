@@ -42,7 +42,7 @@ public class ResourcePublisherTests
 
         await publisher.IntegrateAsync(c, ResourceChangeType.Upsert).ConfigureAwait(false);
 
-        sync.WaitOne(TimeSpan.FromSeconds(1));
+        Assert.True(sync.WaitOne(TimeSpan.FromSeconds(1)));
 
         var change = Assert.Single(changes);
         Assert.Equal(ResourceChangeType.Upsert, change.ChangeType);
@@ -141,7 +141,6 @@ public class ResourcePublisherTests
             Endpoints = [],
             Environment = [],
             ExpectedEndpointsCount = null,
-            LogSource = null!,
             Services = [],
             Args = [],
             Command = "",

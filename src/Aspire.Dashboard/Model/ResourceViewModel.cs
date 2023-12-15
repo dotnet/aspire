@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Immutable;
-using Aspire.Dashboard.Extensions;
+using Aspire.Dashboard.Utils;
 
 namespace Aspire.Dashboard.Model;
 
@@ -17,7 +17,6 @@ public abstract class ResourceViewModel
     public required string? State { get; init; }
     public required DateTime? CreationTimeStamp { get; init; }
     public required ImmutableArray<EnvironmentVariableViewModel> Environment { get; init; }
-    public required ILogSource LogSource { get; init; }
     public required ImmutableArray<EndpointViewModel> Endpoints { get; init; }
     public required ImmutableArray<ResourceServiceSnapshot> Services { get; init; }
     public required int? ExpectedEndpointsCount { get; init; }

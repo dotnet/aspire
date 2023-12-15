@@ -8,7 +8,7 @@
     <h1 class="page-header">@Loc[Dashboard.Resources.ConsoleLogs.ConsoleLogsHeader]</h1>
     <FluentToolbar Orientation="Orientation.Horizontal">
         <FluentSelect @ref="_resourceSelectComponent" TOption="Option<string>"
-                      Items="@Resources"
+                      Items="@_resources"
                       OptionText="(o) => o.Text"
                       OptionValue="(o) => o.Value"
                       @bind-SelectedOption="_selectedOption"

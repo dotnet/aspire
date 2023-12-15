@@ -2,10 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Immutable;
-using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 
@@ -85,7 +85,7 @@ public partial class Resources : ComponentBase, IDisposable
     {
         _applicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
 
-        var (snapshot, subscription) = ResourceService.Subscribe();
+        var (snapshot, subscription) = ResourceService.SubscribeResources();
 
         foreach (var resource in snapshot)
         {
