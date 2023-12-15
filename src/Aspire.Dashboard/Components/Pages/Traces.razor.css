@@ -51,15 +51,11 @@
 
 ::deep fluent-progress-ring::part(background) {
     stroke: var(--neutral-fill-input-alt-active);
-    stroke-width: 3px;
-    r: 6.5px;
 }
 
 ::deep fluent-progress-ring::part(determinate) {
     transition: unset;
     stroke-linecap: unset;
-    stroke-width: 3px;
-    r: 6.5px;
 }
 
 ::deep .duration-container {
