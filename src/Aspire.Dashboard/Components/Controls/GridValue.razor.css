@@ -21,7 +21,3 @@
 ::deep:hover .defaultHidden {
     visibility: visible;
 }
-
-::deep .copy-checkmark {
-    display: none;
-}
