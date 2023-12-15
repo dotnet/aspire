@@ -10,9 +10,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Xunit;
 
-namespace Aspire.Oracle.EntityFrameworkCore.Database.Tests;
+namespace Aspire.Oracle.EntityFrameworkCore.Tests;
 
-public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, OracleEntityFrameworkCoreDatabaseSettings>
+public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, OracleEntityFrameworkCoreSettings>
 {
     protected const string ConnectionString = "Data Source=fake;";
 
@@ -36,20 +36,18 @@ public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, OracleEn
         "Microsoft.EntityFrameworkCore.Migrations"
     };
 
-    protected override string JsonSchemaPath => "src/Components/Aspire.Oracle.EntityFrameworkCore.Database/ConfigurationSchema.json";
+    protected override string JsonSchemaPath => "src/Components/Aspire.Oracle.EntityFrameworkCore/ConfigurationSchema.json";
 
     protected override string ValidJsonConfig => """
         {
           "Aspire": {
             "Oracle": {
               "EntityFrameworkCore": {
-                "Database": {
-                  "ConnectionString": "YOUR_CONNECTION_STRING",
-                  "HealthChecks": false,
-                  "DbContextPooling": true,
-                  "Tracing": true,
-                  "Metrics": true
-                }
+                "ConnectionString": "YOUR_CONNECTION_STRING",
+                "HealthChecks": false,
+                "DbContextPooling": true,
+                "Tracing": true,
+                "Metrics": true
               }
             }
           }
@@ -58,27 +56,27 @@ public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, OracleEn
 
     protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
         {
-            ("""{"Aspire": { "Oracle": { "EntityFrameworkCore":{ "Database": { "MaxRetryCount": "5"}}}}}""", "Value is \"string\" but should be \"integer\""),
-            ("""{"Aspire": { "Oracle": { "EntityFrameworkCore":{ "Database": { "HealthChecks": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
-            ("""{"Aspire": { "Oracle": { "EntityFrameworkCore":{ "Database": { "ConnectionString": "", "DbContextPooling": "Yes"}}}}}""", "Value is \"string\" but should be \"boolean\"")
+            ("""{"Aspire": { "Oracle": { "EntityFrameworkCore":{ "MaxRetryCount": "5"}}}}""", "Value is \"string\" but should be \"integer\""),
+            ("""{"Aspire": { "Oracle": { "EntityFrameworkCore":{ "HealthChecks": "false"}}}}""", "Value is \"string\" but should be \"boolean\""),
+            ("""{"Aspire": { "Oracle": { "EntityFrameworkCore":{ "ConnectionString": "", "DbContextPooling": "Yes"}}}}""", "Value is \"string\" but should be \"boolean\"")
         };
 
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[1]
         {
-            new KeyValuePair<string, string?>("Aspire:Oracle:EntityFrameworkCore:Database:ConnectionString", ConnectionString)
+            new KeyValuePair<string, string?>("Aspire:Oracle:EntityFrameworkCore:ConnectionString", ConnectionString)
         });
 
-    protected override void RegisterComponent(HostApplicationBuilder builder, Action<OracleEntityFrameworkCoreDatabaseSettings>? configure = null, string? key = null)
+    protected override void RegisterComponent(HostApplicationBuilder builder, Action<OracleEntityFrameworkCoreSettings>? configure = null, string? key = null)
         => builder.AddOracleDatabaseDbContext<TestDbContext>("orclconnection", configure);
 
-    protected override void SetHealthCheck(OracleEntityFrameworkCoreDatabaseSettings options, bool enabled)
+    protected override void SetHealthCheck(OracleEntityFrameworkCoreSettings options, bool enabled)
         => options.HealthChecks = enabled;
 
-    protected override void SetTracing(OracleEntityFrameworkCoreDatabaseSettings options, bool enabled)
+    protected override void SetTracing(OracleEntityFrameworkCoreSettings options, bool enabled)
         => options.Tracing = enabled;
 
-    protected override void SetMetrics(OracleEntityFrameworkCoreDatabaseSettings options, bool enabled)
+    protected override void SetMetrics(OracleEntityFrameworkCoreSettings options, bool enabled)
         => options.Metrics = enabled;
 
     protected override void TriggerActivity(TestDbContext service)

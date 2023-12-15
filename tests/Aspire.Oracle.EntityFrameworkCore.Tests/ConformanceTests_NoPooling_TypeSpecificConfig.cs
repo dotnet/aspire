@@ -4,13 +4,13 @@
 using Aspire.Components.Common.Tests;
 using Microsoft.Extensions.Configuration;
 
-namespace Aspire.Oracle.EntityFrameworkCore.Database.Tests;
+namespace Aspire.Oracle.EntityFrameworkCore.Tests;
 
-public class ConformanceTests_Pooling_TypeSpecificConfig : ConformanceTests_Pooling
+public class ConformanceTests_NoPooling_TypeSpecificConfig : ConformanceTests_NoPooling
 {
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[1]
         {
-            new($"Aspire:Oracle:EntityFrameworkCore:Database:{typeof(TestDbContext).Name}:ConnectionString", ConnectionString)
+            new($"Aspire:Oracle:EntityFrameworkCore:{typeof(TestDbContext).Name}:ConnectionString", ConnectionString)
         });
 }

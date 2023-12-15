@@ -12,7 +12,7 @@ using Oracle.EntityFrameworkCore;
 using Oracle.EntityFrameworkCore.Infrastructure.Internal;
 using Xunit;
 
-namespace Aspire.Oracle.EntityFrameworkCore.Database.Tests;
+namespace Aspire.Oracle.EntityFrameworkCore.Tests;
 
 public class AspireOracleEFCoreDatabaseExtensionsTests
 {
@@ -58,7 +58,7 @@ public class AspireOracleEFCoreDatabaseExtensionsTests
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("Aspire:Oracle:EntityFrameworkCore:Database:ConnectionString", "unused"),
+            new KeyValuePair<string, string?>("Aspire:Oracle:EntityFrameworkCore:ConnectionString", "unused"),
             new KeyValuePair<string, string?>("ConnectionStrings:orclconnection", ConnectionString)
         ]);
 
@@ -79,8 +79,8 @@ public class AspireOracleEFCoreDatabaseExtensionsTests
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>("ConnectionStrings:orclconnection", ConnectionString),
-            new KeyValuePair<string, string?>("Aspire:Oracle:EntityFrameworkCore:Database:MaxRetryCount", "304"),
-            new KeyValuePair<string, string?>("Aspire:Oracle:EntityFrameworkCore:Database:Timeout", "608")
+            new KeyValuePair<string, string?>("Aspire:Oracle:EntityFrameworkCore:MaxRetryCount", "304"),
+            new KeyValuePair<string, string?>("Aspire:Oracle:EntityFrameworkCore:Timeout", "608")
         ]);
 
         builder.AddOracleDatabaseDbContext<TestDbContext>("orclconnection", configureDbContextOptions: optionsBuilder =>

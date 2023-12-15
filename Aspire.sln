@@ -167,9 +167,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.MongoDB.Driver.Tests
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestProject.LaunchSettings", "tests\testproject\TestProject.LaunchSettings\TestProject.LaunchSettings.csproj", "{A734177E-213B-4D68-98A4-6F5C00234053}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Oracle.EntityFrameworkCore.Database", "src\Components\Aspire.Oracle.EntityFrameworkCore.Database\Aspire.Oracle.EntityFrameworkCore.Database.csproj", "{A778F29A-6C40-4C53-A793-F23F20679ADE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Oracle.EntityFrameworkCore", "src\Components\Aspire.Oracle.EntityFrameworkCore\Aspire.Oracle.EntityFrameworkCore.csproj", "{A778F29A-6C40-4C53-A793-F23F20679ADE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Oracle.EntityFrameworkCore.Database.Tests", "tests\Aspire.Oracle.EntityFrameworkCore.Database.Tests\Aspire.Oracle.EntityFrameworkCore.Database.Tests.csproj", "{A331C123-35A5-4E81-9999-354159821374}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Oracle.EntityFrameworkCore.Tests", "tests\Aspire.Oracle.EntityFrameworkCore.Tests\Aspire.Oracle.EntityFrameworkCore.Tests.csproj", "{A331C123-35A5-4E81-9999-354159821374}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

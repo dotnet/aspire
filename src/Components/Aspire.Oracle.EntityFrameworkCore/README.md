@@ -88,6 +88,17 @@ Also you can pass the `Action<OracleEntityFrameworkCoreDatabaseSettings> configu
     builder.AddOracleDatabaseDbContext<MyDbContext>("orcl", settings => settings.HealthChecks = false);
 ```
 
+## AppHost extensions 
+  
+ In your AppHost project, register an Oracle container and consume the connection using the following methods: 
+  
+ ```csharp 
+ var oracledb = builder.AddPostgresContainer("oracle").AddDatabase("freepdb1"); 
+  
+ var myService = builder.AddProject<Projects.MyService>() 
+                        .WithReference(oracledb); 
+ ``` 
+
 ## Additional documentation
 
 * https://learn.microsoft.com/ef/core/

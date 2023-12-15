@@ -51,7 +51,7 @@ public static class OracleDatabaseBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{OracleDatabaseServerResource}"/>.</returns>
     public static IResourceBuilder<OracleDatabaseServerResource> AddOracleDatabase(this IDistributedApplicationBuilder builder, string name)
     {
-        var password = "123"; // Guid.NewGuid().ToString("N");
+        var password = Guid.NewGuid().ToString("N");
         var oracleDatabaseServer = new OracleDatabaseServerResource(name, password);
         return builder.AddResource(oracleDatabaseServer)
                       .WithManifestPublishingCallback(WriteOracleDatabaseContainerToManifest)

@@ -1,12 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-namespace Aspire.Oracle.EntityFrameworkCore.Database;
+namespace Aspire.Oracle.EntityFrameworkCore;
 
 /// <summary>
 /// Provides the client configuration settings for connecting to a Oracle database using EntityFrameworkCore.
 /// </summary>
-public sealed class OracleEntityFrameworkCoreDatabaseSettings
+public sealed class OracleEntityFrameworkCoreSettings
 {
     /// <summary>
     /// The connection string of the Oracle database to connect to.
