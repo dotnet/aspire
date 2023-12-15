@@ -27,7 +27,7 @@ public sealed class MongoDBSettings
     public int? HealthCheckTimeout { get; set; }
 
     /// <summary>
-    /// Gets or sets a boolean value that indicates whether the Open Telemetry tracing is enabled or not.
+    /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.
     /// </summary>
     /// <value>
     /// The default value is <see langword="true"/>.

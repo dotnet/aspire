@@ -22,11 +22,6 @@ internal sealed class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation
 
     public string GenerateSchema()
     {
-        if (spec == null || spec.ConfigurationTypes.Count == 0)
-        {
-            return string.Empty;
-        }
-
         var root = new JsonObject();
         GenerateLogCategories(root);
         root["properties"] = GenerateGraph();
@@ -68,18 +63,21 @@ internal sealed class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation
 
     private JsonObject GenerateGraph()
     {
-        if (spec.ConfigurationTypes.Count != spec.ConfigurationPaths.Count)
-        {
-            throw new InvalidOperationException("Ensure Types and ConfigurationPaths are the same length.");
-        }
-
         var root = new JsonObject();
-        for (var i = 0; i < spec.ConfigurationPaths.Count; i++)
+        if (spec.ConfigurationTypes.Count > 0)
         {
-            var type = spec.ConfigurationTypes[i];
-            var path = spec.ConfigurationPaths[i];
+            if (spec.ConfigurationTypes.Count != spec.ConfigurationPaths.Count)
+            {
+                throw new InvalidOperationException("Ensure Types and ConfigurationPaths are the same length.");
+            }
 
-            GenerateProperties(root, type, path);
+            for (var i = 0; i < spec.ConfigurationPaths.Count; i++)
+            {
+                var type = spec.ConfigurationTypes[i];
+                var path = spec.ConfigurationPaths[i];
+
+                GenerateProperties(root, type, path);
+            }
         }
 
         return root;
@@ -133,20 +131,25 @@ internal sealed class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation
                         var propertySymbol = GetPropertySymbol(type, property);
 
                         var propertyNode = new JsonObject();
+                        currentNode[property.Name] = propertyNode;
+
                         AppendTypeNodes(propertyNode, propertyTypeSpec);
 
                         if (propertyTypeSpec is ComplexTypeSpec complexPropertyTypeSpec)
                         {
                             var innerPropertiesNode = new JsonObject();
+                            propertyNode["properties"] = innerPropertiesNode;
+
                             GenerateProperties(innerPropertiesNode, complexPropertyTypeSpec);
-                            if (innerPropertiesNode.Count > 0)
+                            if (innerPropertiesNode.Count == 0)
                             {
-                                propertyNode["properties"] = innerPropertiesNode;
+                                propertyNode.Remove("properties");
                             }
                         }
 
                         if (ShouldSkipProperty(propertyNode, property, propertyTypeSpec, propertySymbol))
                         {
+                            currentNode.Remove(property.Name);
                             continue;
                         }
 
@@ -155,8 +158,6 @@ internal sealed class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation
                         {
                             GenerateDocCommentsProperties(propertyNode, docComment);
                         }
-
-                        currentNode[property.Name] = propertyNode;
                     }
                 }
             }
@@ -189,10 +190,11 @@ internal sealed class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation
         }
 
         // skip empty objects
-        if (propertyNode["type"] is JsonValue typeValue &&
-            typeValue.TryGetValue<string>(out var typeValueString) &&
-            typeValueString == "object" &&
-            propertyNode["properties"] is null)
+        if (propertyNode.Count == 0 ||
+            (propertyNode["type"] is JsonValue typeValue &&
+                typeValue.TryGetValue<string>(out var typeValueString) &&
+                typeValueString == "object" &&
+                propertyNode["properties"] is null))
         {
             return true;
         }
@@ -342,6 +344,11 @@ internal sealed class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation
         {
             AppendTypeNodes(propertyNode, _typeIndex.GetTypeSpec(nullable.EffectiveTypeRef));
         }
+        else if (propertyTypeSpec is UnsupportedTypeSpec unsupported &&
+            unsupported.NotSupportedReason == NotSupportedReason.CollectionNotSupported)
+        {
+            // skip unsupported collections
+        }
         else
         {
             throw new InvalidOperationException($"Unknown type {propertyTypeSpec}");
@@ -385,7 +392,10 @@ internal sealed class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation
     private static string GetParsableTypeName(ParsableFromStringSpec parsable) => parsable.DisplayString switch
     {
         "bool" => "boolean",
+        "short" => "integer",
+        "ushort" => "integer",
         "int" => "integer",
+        "uint" => "integer",
         "long" => "integer",
         "string" => "string",
         "Version" => "string",
