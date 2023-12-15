@@ -65,7 +65,7 @@
                         <SourceColumnDisplay Resource="context" FilterText="@_filter" />
                     </TemplateColumn>
                     <TemplateColumn Title="@Loc[Dashboard.Resources.Resources.ResourcesEnvironmentVariablesGridEndpointsColumnHeader]">
-                        <EndpointsColumnDisplay Resource="context" />
+                        <EndpointsColumnDisplay Resource="context" HasMultipleReplicas="HasMultipleReplicas(context)" />
                     </TemplateColumn>
                     <TemplateColumn Title="@Loc[Dashboard.Resources.Resources.ResourcesEnvironmentVariablesGridEnvironmentColumnHeader]" Sortable="false">
                         <FluentButton Appearance="Appearance.Lightweight"

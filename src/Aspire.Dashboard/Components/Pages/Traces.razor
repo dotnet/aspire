@@ -34,7 +34,7 @@
                       slot="end" />
     </FluentToolbar>
     <div class="datagrid-overflow-area continuous-scroll-overflow" tabindex="-1">
-        <FluentDataGrid Virtualize="true" RowStyle="@GetRowStyle" GenerateHeader="GenerateHeaderOption.Sticky" ItemSize="46" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="OtlpTrace" GridTemplateColumns="0.8fr 2fr 3fr 0.5fr 0.5fr">
+        <FluentDataGrid Virtualize="true" GenerateHeader="GenerateHeaderOption.Sticky" ItemSize="46" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="OtlpTrace" GridTemplateColumns="0.8fr 2fr 3fr 0.8fr 0.5fr">
             <ChildContent>
                 <PropertyColumn Title="@StructuredLogsLoc[Dashboard.Resources.StructuredLogs.StructuredLogsTimestampColumnHeader]" Property="@(context => OtlpHelpers.FormatTimeStamp(context.FirstSpan.StartTime))" />
                 <TemplateColumn Title="@ControlsStringsLoc[ControlsStrings.NameColumnHeader]" Tooltip="true" TooltipText="@((t) => $"{t.FullName}: {OtlpHelpers.ToShortenedId(t.TraceId)}")">
@@ -44,7 +44,7 @@
                 <TemplateColumn Title="@Loc[Dashboard.Resources.Traces.TracesSpansColumnHeader]">
                     <FluentOverflow>
                         <ChildContent>
-                            @foreach (var item in context.Spans.GroupBy(s => s.Source).OrderBy(g => g.Key.ApplicationName))
+                            @foreach (var item in context.Spans.GroupBy(s => s.Source).OrderBy(g => g.Min(s => s.StartTime)))
                             {
                                 <FluentOverflowItem @key=item>
                                     <span class="trace-tag trace-service-tag" title="@(GetTooltip(item))" style="border-left-color: @(ColorGenerator.Instance.GetColorHexByKey(GetResourceName(item.Key)));">
@@ -64,7 +64,19 @@
                         </MoreButtonTemplate>
                     </FluentOverflow>
                 </TemplateColumn>
-                <PropertyColumn Title="@TraceDetailLoc[Dashboard.Resources.TraceDetail.TraceDetailDurationHeader]" Property="@(context => DurationFormatter.FormatDuration(context.Duration))" />
+                <TemplateColumn Title="@TraceDetailLoc[Dashboard.Resources.TraceDetail.TraceDetailDurationHeader]">
+                    <div class="duration-container">
+                        <FluentProgressRing Class="duration-ring"
+                                            Min="0"
+                                            Max="@Convert.ToInt32(ViewModel.MaxDuration.TotalMilliseconds)"
+                                            Value="@Convert.ToInt32(context.Duration.TotalMilliseconds)"
+                                            aria-label="@TraceDetailLoc[Dashboard.Resources.TraceDetail.TraceDetailDurationHeader]" />
+                        <span class="trace-duration">
+                            @DurationFormatter.FormatDuration(context.Duration)
+                        </span>
+                    </div>
+                </TemplateColumn>
+
                 <TemplateColumn>
                     <FluentAnchor Appearance="Appearance.Lightweight" Href="@($"/Trace/{context.TraceId}")">@ControlsStringsLoc[ControlsStrings.ViewAction]</FluentAnchor>
                 </TemplateColumn>

@@ -2,10 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Immutable;
-using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 
@@ -85,7 +85,7 @@ public partial class Resources : ComponentBase, IDisposable
     {
         _applicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
 
-        var (snapshot, subscription) = ResourceService.Subscribe();
+        var (snapshot, subscription) = ResourceService.SubscribeResources();
 
         foreach (var resource in snapshot)
         {
@@ -164,6 +164,24 @@ public partial class Resources : ComponentBase, IDisposable
     }
 
     private string GetResourceName(ResourceViewModel resource) => ResourceViewModel.GetResourceName(resource, _resourcesMap.Values);
+
+    private bool HasMultipleReplicas(ResourceViewModel resource)
+    {
+        var count = 0;
+        foreach (var item in _resourcesMap.Values)
+        {
+            if (item.DisplayName == resource.DisplayName)
+            {
+                count++;
+                if (count >= 2)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
 
     protected virtual void Dispose(bool disposing)
     {

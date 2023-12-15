@@ -3,8 +3,8 @@
   <file datatype="xml" source-language="en" target-language="ja" original="../Dialogs.resx">
     <body>
       <trans-unit id="FilterDialogApplyFilterButtonText">
-        <source>Apply Filter</source>
-        <target state="new">Apply Filter</target>
+        <source>Apply filter</source>
+        <target state="new">Apply filter</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterDialogCancelButtonText">
@@ -23,8 +23,8 @@
         <note />
       </trans-unit>
       <trans-unit id="FilterDialogRemoveFilterButtonText">
-        <source>Remove Filter</source>
-        <target state="new">Remove Filter</target>
+        <source>Remove filter</source>
+        <target state="new">Remove filter</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterDialogTextValuePlaceholder">

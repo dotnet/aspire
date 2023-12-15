@@ -5,16 +5,16 @@ namespace Aspire.Hosting.Dcp.Process;
 
 internal sealed class ProcessSpec
 {
-    public string ExecutablePath { get; set; }
-    public string? WorkingDirectory { get; set; }
-    public IDictionary<string, string> EnvironmentVariables { get; set; } = new Dictionary<string, string>();
-    public string? Arguments { get; set; }
-    public Action<string>? OnOutputData { get; set; }
-    public Action<string>? OnErrorData { get; set; }
-    public Action<int>? OnStart { get; set; }
-    public Action<int>? OnStop { get; set; }
-    public bool KillEntireProcessTree { get; set; } = true;
-    public bool ThrowOnNonZeroReturnCode { get; set; } = true;
+    public string ExecutablePath { get; }
+    public string? WorkingDirectory { get; init; }
+    public IDictionary<string, string> EnvironmentVariables { get; init; } = new Dictionary<string, string>();
+    public string? Arguments { get; init; }
+    public Action<string>? OnOutputData { get; init; }
+    public Action<string>? OnErrorData { get; init; }
+    public Action<int>? OnStart { get; init; }
+    public Action<int>? OnStop { get; init; }
+    public bool KillEntireProcessTree { get; init; } = true;
+    public bool ThrowOnNonZeroReturnCode { get; init; } = true;
 
     public ProcessSpec(string executablePath)
     {

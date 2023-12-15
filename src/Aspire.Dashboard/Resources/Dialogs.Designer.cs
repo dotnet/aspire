@@ -60,7 +60,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Apply Filter.
+        ///   Looks up a localized string similar to Apply filter.
         /// </summary>
         public static string FilterDialogApplyFilterButtonText {
             get {
@@ -96,7 +96,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Remove Filter.
+        ///   Looks up a localized string similar to Remove filter.
         /// </summary>
         public static string FilterDialogRemoveFilterButtonText {
             get {

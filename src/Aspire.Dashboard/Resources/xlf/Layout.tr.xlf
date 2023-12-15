@@ -8,18 +8,18 @@
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutAspireRepoLink">
-        <source>.NET Aspire Repo</source>
-        <target state="new">.NET Aspire Repo</target>
+        <source>.NET Aspire repo</source>
+        <target state="new">.NET Aspire repo</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutDashboardName">
-        <source>{0} Dashboard</source>
-        <target state="new">{0} Dashboard</target>
+        <source>{0} dashboard</source>
+        <target state="new">{0} dashboard</target>
         <note>{0} is the name of the aspire application</note>
       </trans-unit>
       <trans-unit id="MainLayoutLaunchSettings">
-        <source>Launch Settings</source>
-        <target state="new">Launch Settings</target>
+        <source>Launch settings</source>
+        <target state="new">Launch settings</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutSettingsDialogClose">
@@ -43,8 +43,8 @@
         <note />
       </trans-unit>
       <trans-unit id="NavMenuConsoleLogsTab">
-        <source>Console Logs</source>
-        <target state="new">Console Logs</target>
+        <source>Console logs</source>
+        <target state="new">Console logs</target>
         <note />
       </trans-unit>
       <trans-unit id="NavMenuMetricsTab">
@@ -63,8 +63,8 @@
         <note />
       </trans-unit>
       <trans-unit id="NavMenuStructuredLogsTab">
-        <source>Structured Logs</source>
-        <target state="new">Structured Logs</target>
+        <source>Structured logs</source>
+        <target state="new">Structured logs</target>
         <note />
       </trans-unit>
       <trans-unit id="NavMenuTracesTab">

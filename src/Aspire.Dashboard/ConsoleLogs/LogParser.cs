@@ -6,14 +6,14 @@ using Aspire.Dashboard.Model;
 
 namespace Aspire.Dashboard.ConsoleLogs;
 
-internal sealed partial class LogParser(LogParserOptions options = default)
+internal sealed partial class LogParser(bool convertTimestampsFromUtc)
 {
     private string? _parentTimestamp;
     private Guid? _parentId;
     private int _lineIndex;
     private AnsiParser.ParserState? _residualState;
 
-    public LogEntry CreateLogEntry(string rawText)
+    public LogEntry CreateLogEntry(string rawText, bool isErrorOutput)
     {
         // Several steps to do here:
         //
@@ -33,13 +33,14 @@ internal sealed partial class LogParser(LogParserOptions options = default)
         var isFirstLine = false;
         string? timestamp = null;
 
-        if (TimestampParser.TryColorizeTimestamp(content, options.ConvertTimestampsFromUtc, out var timestampParseResult))
+        if (TimestampParser.TryColorizeTimestamp(content, convertTimestampsFromUtc, out var timestampParseResult))
         {
             isFirstLine = true;
             content = timestampParseResult.ModifiedText;
             timestamp = timestampParseResult.Timestamp;
         }
         // 3. Parse the content to look for info/warn/dbug header
+        // TODO extract log level and use here
         else if (LogLevelParser.StartsWithLogLevelHeader(content))
         {
             isFirstLine = true;
@@ -61,7 +62,7 @@ internal sealed partial class LogParser(LogParserOptions options = default)
         {
             Timestamp = timestamp,
             Content = content,
-            Type = options.LogEntryType,
+            Type = isErrorOutput ? LogEntryType.Error : LogEntryType.Default,
             IsFirstLine = isFirstLine
         };
 

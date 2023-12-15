@@ -39,17 +39,6 @@ public partial class Traces
     [Inject]
     public required IDialogService DialogService { get; set; }
 
-    private string GetRowStyle(OtlpTrace trace)
-    {
-        var percentage = 0.0;
-        if (ViewModel.MaxDuration != TimeSpan.Zero)
-        {
-            percentage = trace.Duration / ViewModel.MaxDuration * 100.0;
-        }
-
-        return string.Create(CultureInfo.InvariantCulture, $"background: linear-gradient(to right, var(--neutral-fill-input-alt-active) {percentage:0.##}%, transparent {percentage:0.##}%);");
-    }
-
     private string GetTooltip(IGrouping<OtlpApplication, OtlpSpan> applicationSpans)
     {
         var count = applicationSpans.Count();

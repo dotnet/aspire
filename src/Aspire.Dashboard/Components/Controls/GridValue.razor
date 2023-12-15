@@ -14,12 +14,14 @@
         <span class="cellText" title="@(ToolTip ?? Value)">
             <FluentHighlighter HighlightedText="@HighlightText"
                                Text="@Value" />
+            @ContentAfterValue
         </span>
     }
     else
     {
         <span class="cellText" title="@(ToolTip ?? Value)">
             @(MaxDisplayLength.HasValue ? TrimLength(Value) : Value)
+            @ContentAfterValue
         </span>
     }
     @if (EnableMasking)
@@ -34,7 +36,7 @@
                   Id="@_anchorId"
                   IconEnd="@(new Icons.Regular.Size16.Copy())"
                   Class="defaultHidden"
-                  @onclick="@(() => CopyTextToClipboardAsync(Value, @_anchorId))"
+                  @onclick="@(() => CopyTextToClipboardAsync(ValueToCopy ?? Value, @_anchorId))"
                   aria-label="@Loc[ControlsStrings.GridValueCopyToClipboard]" />
     <FluentTooltip Anchor="@_anchorId" Position="TooltipPosition.Top">@PreCopyToolTip</FluentTooltip>
 </div>

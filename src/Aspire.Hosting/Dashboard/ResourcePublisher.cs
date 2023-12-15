@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading.Channels;
 using Aspire.Dashboard.Model;
 
@@ -18,11 +19,20 @@ internal sealed class ResourcePublisher(CancellationToken cancellationToken)
     private readonly Dictionary<string, ResourceViewModel> _snapshot = [];
     private ImmutableHashSet<Channel<ResourceChange>> _outgoingChannels = [];
 
+    internal bool TryGetResource(string resourceName, [NotNullWhen(returnValue: true)] out ResourceViewModel? resource)
+    {
+        lock (_syncLock)
+        {
+            return _snapshot.TryGetValue(resourceName, out resource);
+        }
+    }
+
     public ResourceSubscription Subscribe()
     {
         lock (_syncLock)
         {
-            var channel = Channel.CreateUnbounded<ResourceChange>();
+            var channel = Channel.CreateUnbounded<ResourceChange>(
+                new UnboundedChannelOptions { AllowSynchronousContinuations = true, SingleReader = true, SingleWriter = true });
 
             ImmutableInterlocked.Update(ref _outgoingChannels, static (set, channel) => set.Add(channel), channel);
 

@@ -156,7 +156,6 @@ internal sealed class DcpDataSource
             ContainerId = containerId,
             CreationTimeStamp = container.Metadata.CreationTimestamp?.ToLocalTime(),
             Image = container.Spec.Image!,
-            LogSource = new DockerContainerLogSource(containerId!),
             State = container.Status?.State,
             ExpectedEndpointsCount = GetExpectedEndpointsCount(container),
             Environment = environment,
@@ -209,7 +208,8 @@ internal sealed class DcpDataSource
                 Arguments = executable.Status?.EffectiveArgs?.ToImmutableArray() ?? [],
                 ProjectPath = projectPath,
                 State = executable.Status?.State,
-                LogSource = new FileLogSource(executable.Status?.StdOutFile, executable.Status?.StdErrFile),
+                StdOutFile = executable.Status?.StdOutFile,
+                StdErrFile = executable.Status?.StdErrFile,
                 ProcessId = executable.Status?.ProcessId,
                 ExpectedEndpointsCount = GetExpectedEndpointsCount(executable),
                 Environment = GetEnvironmentVariables(executable.Status?.EffectiveEnv, executable.Spec.Env),
@@ -228,7 +228,8 @@ internal sealed class DcpDataSource
             WorkingDirectory = executable.Spec.WorkingDirectory,
             Arguments = executable.Status?.EffectiveArgs?.ToImmutableArray() ?? [],
             State = executable.Status?.State,
-            LogSource = new FileLogSource(executable.Status?.StdOutFile, executable.Status?.StdErrFile),
+            StdOutFile = executable.Status?.StdOutFile,
+            StdErrFile = executable.Status?.StdErrFile,
             ProcessId = executable.Status?.ProcessId,
             ExpectedEndpointsCount = GetExpectedEndpointsCount(executable),
             Environment = GetEnvironmentVariables(executable.Status?.EffectiveEnv, executable.Spec.Env),
@@ -237,12 +238,12 @@ internal sealed class DcpDataSource
         };
     }
 
-    private (ImmutableArray<string> Endpoints, ImmutableArray<ResourceServiceSnapshot> Services) GetEndpointsAndServices(
+    private (ImmutableArray<EndpointViewModel> Endpoints, ImmutableArray<ResourceServiceSnapshot> Services) GetEndpointsAndServices(
         CustomResource resource,
         string resourceKind,
         string? projectPath = null)
     {
-        var endpoints = ImmutableArray.CreateBuilder<string>();
+        var endpoints = ImmutableArray.CreateBuilder<EndpointViewModel>();
         var services = ImmutableArray.CreateBuilder<ResourceServiceSnapshot>();
         var name = resource.Metadata.Name;
 
@@ -258,6 +259,7 @@ internal sealed class DcpDataSource
                 && service?.UsesHttpProtocol(out var uriScheme) == true)
             {
                 var endpointString = $"{uriScheme}://{endpoint.Spec.Address}:{endpoint.Spec.Port}";
+                var proxyUrlString = $"{uriScheme}://{service.AllocatedAddress}:{service.AllocatedPort}";
 
                 // For project look into launch profile to append launch url
                 if (projectPath is not null
@@ -269,6 +271,7 @@ internal sealed class DcpDataSource
                     {
                         // This is relative URL
                         endpointString += $"/{launchUrl}";
+                        proxyUrlString += $"/{launchUrl}";
                     }
                     else
                     {
@@ -277,13 +280,14 @@ internal sealed class DcpDataSource
                             && launchUrl.StartsWith(applicationUrl))
                         {
                             endpointString = launchUrl.Replace(applicationUrl, endpointString);
+                            proxyUrlString = launchUrl;
                         }
                     }
 
                     // If we cannot process launchUrl then we just show endpoint string
                 }
 
-                endpoints.Add(endpointString);
+                endpoints.Add(new(endpointString, proxyUrlString));
             }
         }
 
@@ -418,11 +422,11 @@ internal sealed class DcpDataSource
         );
         if (replicaSetOwner is not null && displayName.Length > 3)
         {
-            var nameParts = displayName.Split('-');
-            if (nameParts.Length == 2 && nameParts[0].Length > 0 && nameParts[1].Length > 0)
+            var lastHyphenIndex = displayName.LastIndexOf('-');
+            if (lastHyphenIndex > 0 && lastHyphenIndex < displayName.Length - 1)
             {
                 // Strip the replica ID from the name.
-                displayName = nameParts[0];
+                displayName = displayName[..lastHyphenIndex];
             }
         }
         return displayName;
