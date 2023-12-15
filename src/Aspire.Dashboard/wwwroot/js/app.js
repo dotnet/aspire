@@ -53,7 +53,7 @@ function isScrolledToBottom(container) {
 }
 
 window.copyTextToClipboard = function (id, text, precopy, postcopy) {
-    const button = document.querySelector(`#${id}`);
+    const button = document.getElementById(id);
 
     // If there is a pending timeout then clear it. Otherwise the pending timeout will prematurely reset values.
     if (button.dataset.copyTimeout) {
