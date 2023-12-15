@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Immutable;
+
 namespace Aspire.Dashboard.Model;
 
 /// <summary>
@@ -34,5 +36,5 @@ public interface IResourceService
 }
 
 public sealed record ResourceSubscription(
-    List<ResourceViewModel> Snapshot,
+    ImmutableArray<ResourceViewModel> InitialState,
     IAsyncEnumerable<ResourceChange> Subscription);

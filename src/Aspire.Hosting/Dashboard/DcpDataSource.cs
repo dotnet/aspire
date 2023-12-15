@@ -19,7 +19,7 @@ internal sealed class DcpDataSource
 {
     private readonly KubernetesService _kubernetesService;
     private readonly DistributedApplicationModel _applicationModel;
-    private readonly Func<ResourceViewModel, ResourceChangeType, ValueTask> _onResourceChanged;
+    private readonly Func<ResourceSnapshot, ResourceChangeType, ValueTask> _onResourceChanged;
     private readonly ILogger _logger;
 
     private readonly Dictionary<string, Container> _containersMap = [];
@@ -32,7 +32,7 @@ internal sealed class DcpDataSource
         KubernetesService kubernetesService,
         DistributedApplicationModel applicationModel,
         ILoggerFactory loggerFactory,
-        Func<ResourceViewModel, ResourceChangeType, ValueTask> onResourceChanged,
+        Func<ResourceSnapshot, ResourceChangeType, ValueTask> onResourceChanged,
         CancellationToken cancellationToken)
     {
         _kubernetesService = kubernetesService;
@@ -82,7 +82,7 @@ internal sealed class DcpDataSource
         }
     }
 
-    private async Task ProcessResourceChange<T>(WatchEventType watchEventType, T resource, Dictionary<string, T> resourceByName, string resourceKind, Func<T, ResourceViewModel> snapshotFactory) where T : CustomResource
+    private async Task ProcessResourceChange<T>(WatchEventType watchEventType, T resource, Dictionary<string, T> resourceByName, string resourceKind, Func<T, ResourceSnapshot> snapshotFactory) where T : CustomResource
     {
         if (ProcessResourceChange(resourceByName, watchEventType, resource))
         {
@@ -128,7 +128,7 @@ internal sealed class DcpDataSource
 
     private async ValueTask TryRefreshResource(string resourceKind, string resourceName)
     {
-        ResourceViewModel? snapshot = resourceKind switch
+        ResourceSnapshot? snapshot = resourceKind switch
         {
             "Container" => _containersMap.TryGetValue(resourceName, out var container) ? ToSnapshot(container) : null,
             "Executable" => _executablesMap.TryGetValue(resourceName, out var executable) ? ToSnapshot(executable) : null,
@@ -141,14 +141,14 @@ internal sealed class DcpDataSource
         }
     }
 
-    private ContainerViewModel ToSnapshot(Container container)
+    private ContainerSnapshot ToSnapshot(Container container)
     {
         var containerId = container.Status?.ContainerId;
         var (endpoints, services) = GetEndpointsAndServices(container, "Container");
 
         var environment = GetEnvironmentVariables(container.Status?.EffectiveEnv ?? container.Spec.Env, container.Spec.Env);
 
-        return new ContainerViewModel
+        return new ContainerSnapshot
         {
             Name = container.Metadata.Name,
             DisplayName = container.Metadata.Name,
@@ -185,7 +185,7 @@ internal sealed class DcpDataSource
         }
     }
 
-    private ExecutableViewModel ToSnapshot(Executable executable)
+    private ExecutableSnapshot ToSnapshot(Executable executable)
     {
         string? projectPath = null;
         executable.Metadata.Annotations?.TryGetValue(Executable.CSharpProjectPathAnnotation, out projectPath);
@@ -197,7 +197,7 @@ internal sealed class DcpDataSource
             // This executable represents a C# project, so we create a slightly different type here
             // that captures the project's path, making it more convenient for consumers to work with
             // the project.
-            return new ProjectViewModel
+            return new ProjectSnapshot
             {
                 Name = executable.Metadata.Name,
                 DisplayName = ComputeExecutableDisplayName(executable),
@@ -218,7 +218,7 @@ internal sealed class DcpDataSource
             };
         }
 
-        return new ExecutableViewModel
+        return new ExecutableSnapshot
         {
             Name = executable.Metadata.Name,
             DisplayName = ComputeExecutableDisplayName(executable),
@@ -238,12 +238,12 @@ internal sealed class DcpDataSource
         };
     }
 
-    private (ImmutableArray<EndpointViewModel> Endpoints, ImmutableArray<ResourceServiceSnapshot> Services) GetEndpointsAndServices(
+    private (ImmutableArray<EndpointSnapshot> Endpoints, ImmutableArray<ResourceServiceSnapshot> Services) GetEndpointsAndServices(
         CustomResource resource,
         string resourceKind,
         string? projectPath = null)
     {
-        var endpoints = ImmutableArray.CreateBuilder<EndpointViewModel>();
+        var endpoints = ImmutableArray.CreateBuilder<EndpointSnapshot>();
         var services = ImmutableArray.CreateBuilder<ResourceServiceSnapshot>();
         var name = resource.Metadata.Name;
 
@@ -334,14 +334,14 @@ internal sealed class DcpDataSource
         return expectedCount;
     }
 
-    private static ImmutableArray<EnvironmentVariableViewModel> GetEnvironmentVariables(List<EnvVar>? effectiveSource, List<EnvVar>? specSource)
+    private static ImmutableArray<EnvironmentVariableSnapshot> GetEnvironmentVariables(List<EnvVar>? effectiveSource, List<EnvVar>? specSource)
     {
         if (effectiveSource is null or { Count: 0 })
         {
             return [];
         }
 
-        var environment = ImmutableArray.CreateBuilder<EnvironmentVariableViewModel>(effectiveSource.Count);
+        var environment = ImmutableArray.CreateBuilder<EnvironmentVariableSnapshot>(effectiveSource.Count);
 
         foreach (var env in effectiveSource)
         {

@@ -20,6 +20,8 @@ public static class ResourceDataKeys
         public const string Id = "container.id";
         public const string Image = "container.image";
         public const string Ports = "container.ports";
+        public const string Command = "container.command";
+        public const string Args = "container.args";
     }
 
     public static class Executable

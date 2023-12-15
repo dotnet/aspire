@@ -3,16 +3,17 @@
 
 using System.Collections.Immutable;
 using System.Globalization;
+using Aspire.Dashboard.Model;
 using Google.Protobuf.WellKnownTypes;
 
-namespace Aspire.Dashboard.Model;
+namespace Aspire.Hosting.Dashboard;
 
 /// <summary>
-/// Immutable snapshot of executable state at a point in time.
+/// Immutable snapshot of an executable's state at a point in time.
 /// </summary>
-public class ExecutableViewModel : ResourceViewModel
+public class ExecutableSnapshot : ResourceSnapshot
 {
-    public override string ResourceType => "Executable";
+    public override string ResourceType => KnownResourceTypes.Executable;
 
     public required int? ProcessId { get; init; }
     public required string? ExecutablePath { get; init; }

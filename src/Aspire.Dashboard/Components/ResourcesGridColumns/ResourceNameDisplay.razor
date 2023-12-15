@@ -4,21 +4,21 @@
 
 <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
     <span><FluentHighlighter HighlightedText="@FilterText" Text="@FormatName(Resource)" /></span>
-    @if (Resource is ContainerViewModel containerViewModel)
+    @if (Resource.TryGetContainerId(out var containerId))
     {
         <div class="subtext">
-            <GridValue Value="@containerViewModel.ContainerId"
+            <GridValue Value="@containerId"
                        MaxDisplayLength="8"
                        EnableHighlighting="false"
                        PreCopyToolTip="@Loc[Columns.ResourceNameDisplayCopyContainerIdText]"
-                       ToolTip="@string.Format(Loc[Columns.ResourceNameDisplayContainerIdText], containerViewModel.ContainerId)"/>
+                       ToolTip="@string.Format(Loc[Columns.ResourceNameDisplayContainerIdText], containerId)"/>
         </div>
     }
-    else if (Resource is ExecutableViewModel executableViewModel)
+    else if (Resource.TryGetProcessId(out int processId))
     {
         // NOTE projects are also executables, so this will handle both
-        var title = string.Format(Loc[Columns.ResourceNameDisplayProcessIdText], executableViewModel.ProcessId);
-        <span class="subtext" title="@title" aria-label="@title">@executableViewModel.ProcessId</span>
+        var title = string.Format(Loc[Columns.ResourceNameDisplayProcessIdText], processId);
+        <span class="subtext" title="@title" aria-label="@title">@processId</span>
     }
 </FluentStack>
 

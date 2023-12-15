@@ -6,11 +6,13 @@ namespace Aspire.Dashboard.Utils;
 internal static class StringComparers
 {
     public static StringComparer ResourceType => StringComparer.Ordinal;
+    public static StringComparer ResourceDataKey => StringComparer.Ordinal;
     public static StringComparer UserTextSearch => StringComparer.CurrentCultureIgnoreCase;
 }
 
 internal static class StringComparisons
 {
     public static StringComparison ResourceType => StringComparison.Ordinal;
+    public static StringComparison ResourceDataKey => StringComparison.Ordinal;
     public static StringComparison UserTextSearch => StringComparison.CurrentCultureIgnoreCase;
 }

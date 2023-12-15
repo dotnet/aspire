@@ -153,7 +153,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable
             {
                 var task = _logViewer.SetLogSourceAsync(
                     subscription,
-                    convertTimestampsFromUtc: _selectedResource is ContainerViewModel);
+                    convertTimestampsFromUtc: _selectedResource.ResourceType is "Container");
 
                 _initialisedSuccessfully = true;
                 _status = Loc[Dashboard.Resources.ConsoleLogs.ConsoleLogsWatchingLogs];
@@ -168,7 +168,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable
             else
             {
                 _initialisedSuccessfully = false;
-                _status = Loc[_selectedResource is ContainerViewModel
+                _status = Loc[_selectedResource.ResourceType is "Container"
                     ? Dashboard.Resources.ConsoleLogs.ConsoleLogsFailedToInitialize
                     : Dashboard.Resources.ConsoleLogs.ConsoleLogsLogsNotYetAvailable];
             }
