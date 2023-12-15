@@ -8,6 +8,7 @@ builder.AddRedis("rediscontainer");
 builder.AddNpgsqlDataSource("postgresdb");
 builder.AddRabbitMQ("rabbitmqcontainer");
 builder.AddMongoDBClient("mymongodb");
+builder.AddOracleClient("freepdb1");
 
 builder.AddKeyedSqlServerClient("sqlserverabstract");
 builder.AddKeyedMySqlDataSource("mysqlabstract");
@@ -15,6 +16,7 @@ builder.AddKeyedRedis("redisabstract");
 builder.AddKeyedNpgsqlDataSource("postgresabstract");
 builder.AddKeyedRabbitMQ("rabbitmqabstract");
 builder.AddKeyedMongoDBClient("mongodbabstract");
+builder.AddKeyedOracleClient("oracledatabaseabstract");
 
 var app = builder.Build();
 
@@ -35,5 +37,7 @@ app.MapPostgresApi();
 app.MapSqlServerApi();
 
 app.MapRabbitMQApi();
+
+app.MapOracleDatabaseApi();
 
 app.Run();

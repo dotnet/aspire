@@ -36,6 +36,7 @@ public class TestProgram
             var mysqlDbName = "mysqldb";
             var postgresDbName = "postgresdb";
             var mongoDbName = "mymongodb";
+            var oracleDbName = "freepdb1";
 
             var sqlserverContainer = AppBuilder.AddSqlServerContainer("sqlservercontainer")
                 .AddDatabase(sqlserverDbName);
@@ -49,6 +50,8 @@ public class TestProgram
             var rabbitmqContainer = AppBuilder.AddRabbitMQContainer("rabbitmqcontainer");
             var mongodbContainer = AppBuilder.AddMongoDBContainer("mongodbcontainer")
                 .AddDatabase(mongoDbName);
+            var oracleDatabaseContainer = AppBuilder.AddOracleDatabaseContainer("oracledatabasecontainer")
+                .AddDatabase(oracleDbName);
 
             var sqlserverAbstract = AppBuilder.AddSqlServerContainer("sqlserverabstract");
             var mysqlAbstract = AppBuilder.AddMySqlContainer("mysqlabstract");
@@ -56,6 +59,7 @@ public class TestProgram
             var postgresAbstract = AppBuilder.AddPostgresContainer("postgresabstract");
             var rabbitmqAbstract = AppBuilder.AddRabbitMQContainer("rabbitmqabstract");
             var mongodbAbstract = AppBuilder.AddMongoDB("mongodbabstract");
+            var oracleDatabaseAbstract = AppBuilder.AddOracleDatabaseContainer("oracledatabaseabstract");
 
             IntegrationServiceABuilder = AppBuilder.AddProject<Projects.IntegrationServiceA>("integrationservicea")
                 .WithReference(sqlserverContainer)
@@ -64,12 +68,14 @@ public class TestProgram
                 .WithReference(postgresContainer)
                 .WithReference(rabbitmqContainer)
                 .WithReference(mongodbContainer)
+                .WithReference(oracleDatabaseContainer)
                 .WithReference(sqlserverAbstract)
                 .WithReference(mysqlAbstract)
                 .WithReference(redisAbstract)
                 .WithReference(postgresAbstract)
                 .WithReference(rabbitmqAbstract)
-                .WithReference(mongodbAbstract);
+                .WithReference(mongodbAbstract)
+                .WithReference(oracleDatabaseAbstract);
         }
     }
 
