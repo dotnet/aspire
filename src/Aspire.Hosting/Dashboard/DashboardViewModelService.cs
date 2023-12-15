@@ -3,6 +3,7 @@
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -55,7 +56,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
         _kubernetesChangesChannel = Channel.CreateUnbounded<(WatchEventType, string, CustomResource?)>();
 
         RunWatchTask<Executable>();
-        RunWatchTask<Service>();
+        RunServiceWatchTask();
         RunWatchTask<Endpoint>();
         RunWatchTask<Container>();
 
@@ -86,6 +87,78 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 _logger.LogError(ex, "Watch task over kubernetes resource of type: {resourceType} terminated", typeof(T).Name);
+            }
+        });
+    }
+
+    private void RunServiceWatchTask()
+    {
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var checkedServices = new HashSet<string>();
+                var initialDelay = TimeSpan.FromMicroseconds(10);
+                var maxRetryDuration = TimeSpan.FromSeconds(5);
+                await foreach (var tuple in _kubernetesService.WatchAsync<Service>(cancellationToken: _cancellationToken))
+                {
+                    var service = tuple.Item2;
+                    if (service.UsesHttpProtocol(out var uriScheme)
+                        && !checkedServices.Contains(service.Metadata.Name))
+                    {
+                        // We need to verify if service is "actually" working
+                        if (!string.Equals(service.Status?.State, "Ready", StringComparison.OrdinalIgnoreCase))
+                        {
+                            // If service is not ready, we don't try to connect. We will get future notification that service moved to ready state
+                            _logger.LogInformation("service {name} was not in ready state.", service.Metadata.Name);
+                            continue;
+                        }
+
+                        var currentTimestamp = DateTime.UtcNow;
+                        var delay = TimeSpan.FromMicroseconds(10);
+                        var errorContent = "404 page not found\n";
+                        var proxyUrlString = $"{uriScheme}://{service.AllocatedAddress}:{service.AllocatedPort}";
+                        _logger.LogInformation("running 404 check for {name} at {url}", service.Metadata.Name, proxyUrlString);
+                        while (true)
+                        {
+                            using HttpClient client = new();
+                            // TODO: GetAsync can throw, how do we handle those errors?
+                            var response = await client.GetAsync(proxyUrlString).ConfigureAwait(false);
+                            if (response.StatusCode == HttpStatusCode.NotFound
+                                && response.Content.Headers.ContentLength == 19)
+                            {
+                                if (DateTime.UtcNow.Subtract(currentTimestamp) > maxRetryDuration)
+                                {
+                                    // We went over max retry so we just let it pass
+                                    _logger.LogInformation("{name} retry timed out.", service.Metadata.Name);
+                                    break;
+                                }
+
+                                var content = await response.Content.ReadAsStringAsync(_cancellationToken).ConfigureAwait(false);
+                                if (string.Equals(content, errorContent, StringComparison.Ordinal))
+                                {
+                                    _logger.LogInformation("{name} hit 404 error retrying", service.Metadata.Name);
+                                    // Additional conditions
+                                    await Task.Delay(delay, _cancellationToken).ConfigureAwait(false);
+                                    delay *= 2;
+                                    continue;
+                                }
+                            }
+
+                            _logger.LogInformation("{name} is working", service.Metadata.Name);
+                            break;
+                        }
+
+                        checkedServices.Add(service.Metadata.Name);
+                    }
+
+                    await _kubernetesChangesChannel.Writer.WriteAsync(
+                        (tuple.Item1, tuple.Item2.Metadata.Name, tuple.Item2), _cancellationToken).ConfigureAwait(false);
+                }
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.LogError(ex, "Watch task over kubernetes resource of type: {resourceType} terminated", typeof(Service).Name);
             }
         });
     }

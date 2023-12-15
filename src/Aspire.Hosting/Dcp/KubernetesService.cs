@@ -215,7 +215,6 @@ internal sealed class KubernetesService(Locations locations) : IDisposable
         {
             AspireEventSource.Instance.DcpApiCallStop(operationType, resourceType);
         }
-
     }
 
     private static bool IsRetryable(Exception ex) => ex is HttpRequestException || ex is KubeConfigException;
