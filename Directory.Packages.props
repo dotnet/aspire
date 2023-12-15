@@ -29,18 +29,20 @@
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="$(MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCorePackageVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="$(MicrosoftExtensionsDiagnosticsHealthChecksPackageVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Features" Version="$(MicrosoftExtensionsFeaturesPackageVersion)" />
+    <!-- Roslyn dependencies -->
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.8.0" />
     <!-- AspNetCore.HealthChecks dependencies (3rd party packages) -->
-    <PackageVersion Include="AspNetCore.HealthChecks.Azure.Data.Tables" Version="7.0.0" />
-    <PackageVersion Include="AspNetCore.HealthChecks.Azure.KeyVault.Secrets" Version="7.0.0-rc1.1" />
-    <PackageVersion Include="AspNetCore.HealthChecks.Azure.Storage.Blobs" Version="7.0.0" />
-    <PackageVersion Include="AspNetCore.HealthChecks.Azure.Storage.Queues" Version="7.0.0" />
-    <PackageVersion Include="AspNetCore.HealthChecks.AzureServiceBus" Version="7.0.0" />
-    <PackageVersion Include="AspNetCore.HealthChecks.MongoDb" Version="7.0.0" />
-    <PackageVersion Include="AspNetCore.HealthChecks.MySql" Version="7.0.0" />
-    <PackageVersion Include="AspNetCore.HealthChecks.NpgSql" Version="7.1.0" />
-    <PackageVersion Include="AspNetCore.HealthChecks.Rabbitmq" Version="7.0.0" />
-    <PackageVersion Include="AspNetCore.HealthChecks.Redis" Version="7.0.1" />
-    <PackageVersion Include="AspNetCore.HealthChecks.SqlServer" Version="7.0.0" />
+    <PackageVersion Include="AspNetCore.HealthChecks.Azure.Data.Tables" Version="8.0.0" />
+    <PackageVersion Include="AspNetCore.HealthChecks.Azure.KeyVault.Secrets" Version="8.0.0" />
+    <PackageVersion Include="AspNetCore.HealthChecks.Azure.Storage.Blobs" Version="8.0.0" />
+    <PackageVersion Include="AspNetCore.HealthChecks.Azure.Storage.Queues" Version="8.0.0" />
+    <PackageVersion Include="AspNetCore.HealthChecks.AzureServiceBus" Version="8.0.0" />
+    <PackageVersion Include="AspNetCore.HealthChecks.MongoDb" Version="8.0.0" />
+    <PackageVersion Include="AspNetCore.HealthChecks.MySql" Version="8.0.0" />
+    <PackageVersion Include="AspNetCore.HealthChecks.NpgSql" Version="8.0.0" />
+    <PackageVersion Include="AspNetCore.HealthChecks.Rabbitmq" Version="8.0.0" />
+    <PackageVersion Include="AspNetCore.HealthChecks.Redis" Version="8.0.0" />
+    <PackageVersion Include="AspNetCore.HealthChecks.SqlServer" Version="8.0.0" />
     <!-- arcade dependencies -->
     <PackageVersion Include="Microsoft.DotNet.RemoteExecutor" Version="$(MicrosoftDotNetRemoteExecutorPackageVersion)" />
     <PackageVersion Include="Microsoft.DotNet.XUnitExtensions" Version="$(MicrosoftDotNetXUnitExtensionsPackageVersion)" />
@@ -83,6 +85,7 @@
     <PackageVersion Include="StackExchange.Redis" Version="2.7.4" />
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="6.5.0" />
     <PackageVersion Include="Yarp.ReverseProxy" Version="2.1.0" />
+    <PackageVersion Include="System.CommandLine" Version="2.0.0-beta4.23407.1" />
     <!-- Open Telemetry -->
     <PackageVersion Include="Npgsql.OpenTelemetry" Version="8.0.0" />
     <PackageVersion Include="OpenTelemetry.Exporter.InMemory" Version="1.7.0-alpha.1" />

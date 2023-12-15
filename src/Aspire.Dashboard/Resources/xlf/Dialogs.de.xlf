@@ -12,6 +12,11 @@
         <target state="new">Cancel</target>
         <note />
       </trans-unit>
+      <trans-unit id="FilterDialogConditionSelectLabel">
+        <source>Select a filter condition</source>
+        <target state="new">Select a filter condition</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FilterDialogFieldPlaceholder">
         <source>Field</source>
         <target state="new">Field</target>

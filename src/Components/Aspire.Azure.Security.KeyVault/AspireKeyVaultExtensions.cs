@@ -133,7 +133,7 @@ public static class AspireKeyVaultExtensions
         }
 
         protected override IHealthCheck CreateHealthCheck(SecretClient client, AzureSecurityKeyVaultSettings settings)
-            => new AzureKeyVaultSecretsHealthCheck(client, new AzureKeyVaultSecretOptions());
+            => new AzureKeyVaultSecretsHealthCheck(client, new AzureKeyVaultSecretsHealthCheckOptions());
 
         protected override void BindClientOptionsToConfiguration(IAzureClientBuilder<SecretClient, SecretClientOptions> clientBuilder, IConfiguration configuration)
         {
