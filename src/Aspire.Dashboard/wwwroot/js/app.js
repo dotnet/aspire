@@ -53,7 +53,7 @@ function isScrolledToBottom(container) {
 }
 
 window.copyTextToClipboard = function (id, text, precopy, postcopy) {
-    let button = document.querySelector(`#${id}`);
+    const button = document.querySelector(`#${id}`);
 
     // If there is a pending timeout then clear it. Otherwise the pending timeout will prematurely reset values.
     if (button.dataset.copyTimeout) {
@@ -61,9 +61,9 @@ window.copyTextToClipboard = function (id, text, precopy, postcopy) {
         delete button.dataset.copyTimeout;
     }
 
-    let copyIcon = button.querySelector('.copy-icon');
-    let checkmarkIcon = button.querySelector('.checkmark-icon');
-    let tooltipDiv = document.querySelector(`fluent-tooltip[anchor="${id}"]`).children[0];
+    const copyIcon = button.querySelector('.copy-icon');
+    const checkmarkIcon = button.querySelector('.checkmark-icon');
+    const tooltipDiv = document.querySelector(`fluent-tooltip[anchor="${id}"]`).children[0];
     navigator.clipboard.writeText(text)
         .then(() => {
             tooltipDiv.innerText = postcopy;
