@@ -44,7 +44,7 @@
                 <TemplateColumn Title="@Loc[Dashboard.Resources.Traces.TracesSpansColumnHeader]">
                     <FluentOverflow>
                         <ChildContent>
-                            @foreach (var item in context.Spans.GroupBy(s => s.Source).OrderBy(g => g.Key.ApplicationName))
+                            @foreach (var item in context.Spans.GroupBy(s => s.Source).OrderBy(g => g.Min(s => s.StartTime)))
                             {
                                 <FluentOverflowItem @key=item>
                                     <span class="trace-tag trace-service-tag" title="@(GetTooltip(item))" style="border-left-color: @(ColorGenerator.Instance.GetColorHexByKey(GetResourceName(item.Key)));">
