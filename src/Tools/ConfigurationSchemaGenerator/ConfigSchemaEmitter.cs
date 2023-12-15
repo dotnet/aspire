@@ -235,6 +235,9 @@ internal sealed class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation
                 builder.Append(value);
             }
 
+            // normalize line endings
+            builder.Replace("\r\n", "\n");
+
             propertyNode["description"] = builder.ToString();
         }
 
