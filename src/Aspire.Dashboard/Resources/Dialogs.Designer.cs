@@ -78,6 +78,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Select a filter condition.
+        /// </summary>
+        public static string FilterDialogConditionSelectLabel {
+            get {
+                return ResourceManager.GetString("FilterDialogConditionSelectLabel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Field.
         /// </summary>
         public static string FilterDialogFieldPlaceholder {

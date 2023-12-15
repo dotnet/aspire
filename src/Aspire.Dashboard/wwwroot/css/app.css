@@ -30,7 +30,7 @@ fluent-toolbar[orientation=horizontal] {
     --log-warning: #FBF3DD;
     --badge-fill-error: var(--error);
     --badge-color-error: var(--foreground-on-accent-rest);
-    --foreground-subtext-rest: #6F6F6F;
+    --foreground-subtext-rest: #5D5D5D;
     --foreground-subtext-hover: #6C6C6C;
 }
 

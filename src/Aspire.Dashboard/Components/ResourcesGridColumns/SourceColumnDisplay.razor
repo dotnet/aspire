@@ -54,12 +54,12 @@ else if (Resource is ContainerViewModel containerViewModel)
     <FluentStack Orientation="Orientation.Horizontal">
         @if (containerViewModel.Command is not null)
         {
-            <div class="ellipsis-overflow" title="@Loc[Columns.SourceColumnDisplayContainerCommandTitle]" aria-label="@Loc[Columns.SourceColumnDisplayContainerCommandTitle]">@Loc[Columns.SourceColumnDisplayContainerCommand, containerViewModel.Command]</div>
+            <div class="ellipsis-overflow" title="@Loc[Columns.SourceColumnDisplayContainerCommandTitle]">@Loc[Columns.SourceColumnDisplayContainerCommand, containerViewModel.Command]</div>
         }
         @if (containerViewModel.Args is not null)
         {
             var args = string.Join(" ", containerViewModel.Args);
-            <div class="ellipsis-overflow" title="@Loc[Columns.SourceColumnDisplayContainerArgsTitle]" aria-label="@Loc[Columns.SourceColumnDisplayContainerArgsTitle]">@args</div>
+            <div class="ellipsis-overflow" title="@Loc[Columns.SourceColumnDisplayContainerArgsTitle]">@args</div>
         }
     </FluentStack>
 }
