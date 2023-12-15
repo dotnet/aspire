@@ -14,7 +14,7 @@ namespace Aspire.Dashboard.Components;
 public sealed partial class LogViewer
 {
     private readonly TaskCompletionSource _whenDomReady = new();
-    private readonly CancellationSeries _cts = new();
+    private readonly CancellationSeries _cancellationSeries = new();
     private IJSObjectReference? _jsModule;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -29,7 +29,7 @@ public sealed partial class LogViewer
 
     internal async Task SetLogSourceAsync(IAsyncEnumerable<IReadOnlyList<(string Content, bool IsErrorMessage)>> batches, bool convertTimestampsFromUtc)
     {
-        var cancellationToken = await _cts.NextAsync();
+        var cancellationToken = await _cancellationSeries.NextAsync();
         var logParser = new LogParser(convertTimestampsFromUtc);
 
         // Ensure we are able to write to the DOM.
@@ -55,7 +55,7 @@ public sealed partial class LogViewer
 
     internal async Task ClearLogsAsync(CancellationToken cancellationToken = default)
     {
-        await _cts.ClearAsync();
+        await _cancellationSeries.ClearAsync();
 
         if (_jsModule is not null)
         {
@@ -65,9 +65,9 @@ public sealed partial class LogViewer
 
     public async ValueTask DisposeAsync()
     {
-        _whenDomReady?.TrySetCanceled();
+        _whenDomReady.TrySetCanceled();
 
-        await _cts.ClearAsync();
+        await _cancellationSeries.ClearAsync();
 
         try
         {

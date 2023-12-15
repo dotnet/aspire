@@ -21,7 +21,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable
     [Parameter]
     public string? ResourceName { get; set; }
 
-    private readonly TaskCompletionSource _whenFirstRenderComplete = new();
+    private readonly TaskCompletionSource _whenDomReady = new();
     private readonly CancellationTokenSource _resourceSubscriptionCancellation = new();
     private readonly CancellationSeries _logSubscriptionCancellationSeries = new();
     private readonly Dictionary<string, ResourceViewModel> _resourceByName = [];
@@ -45,8 +45,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable
         _status = Loc[Dashboard.Resources.ConsoleLogs.ConsoleLogsLoadingResources];
 
         TrackResources();
-
-        StateHasChanged();
 
         void TrackResources()
         {
@@ -74,7 +72,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable
         if (firstRender)
         {
             // Let anyone waiting know that the render is complete, so we have access to the underlying log viewer.
-            _whenFirstRenderComplete.SetResult();
+            _whenDomReady.SetResult();
         }
     }
 
@@ -135,7 +133,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable
     private async ValueTask LoadLogsAsync()
     {
         // Wait for the first render to complete so that the log viewer is available
-        await _whenFirstRenderComplete.Task;
+        await _whenDomReady.Task;
 
         if (_selectedResource is null)
         {
