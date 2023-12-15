@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!--
     Microsoft ResX Schema
@@ -127,10 +127,10 @@
     <value>Cancel</value>
   </data>
   <data name="FilterDialogApplyFilterButtonText" xml:space="preserve">
-    <value>Apply Filter</value>
+    <value>Apply filter</value>
   </data>
   <data name="FilterDialogRemoveFilterButtonText" xml:space="preserve">
-    <value>Remove Filter</value>
+    <value>Remove filter</value>
   </data>
   <data name="SettingsDialogSystemTheme" xml:space="preserve">
     <value>System</value>
@@ -146,6 +146,6 @@
   </data>
   <data name="SettingsDialogVersion" xml:space="preserve">
     <value>Version: {0}</value>
-    <note>{0} is the dashboard version string</note>
+    <comment>{0} is the dashboard version string</comment>
   </data>
 </root>

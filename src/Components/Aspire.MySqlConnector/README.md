@@ -66,7 +66,7 @@ The .NET Aspire MySQL component supports [Microsoft.Extensions.Configuration](ht
 ```json
 {
   "Aspire": {
-    "MySql": {
+    "MySqlConnector": {
       "HealthChecks": false,
       "Tracing": false
     }

@@ -239,8 +239,6 @@ public static class ResourceBuilderExtensions
     public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, ConnectionString connectionString)
         where TDestination : IResourceWithEnvironment
     {
-        var connectionStringName = $"{ConnectionStringEnvironmentName}{connectionString.Name}";
-
         return builder.WithEnvironment(context =>
         {
             var connectionStringValue = connectionString.Value ??
@@ -256,7 +254,7 @@ public static class ResourceBuilderExtensions
                 connectionStringValue = HostNameResolver.ReplaceLocalhostWithContainerHost(connectionStringValue, builder.ApplicationBuilder.Configuration);
             }
 
-            context.EnvironmentVariables[connectionStringName] = connectionStringValue;
+            context.EnvironmentVariables[$"{ConnectionStringEnvironmentName}{connectionString.Name}"] = connectionStringValue;
         });
     }
 

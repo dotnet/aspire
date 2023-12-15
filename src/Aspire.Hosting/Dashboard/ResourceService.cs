@@ -13,15 +13,16 @@ internal sealed partial class ResourceService : IResourceService, IAsyncDisposab
 {
     private readonly CancellationTokenSource _cancellationTokenSource = new();
     private readonly ResourcePublisher _resourcePublisher;
+    private readonly ConsoleLogPublisher _consoleLogPublisher;
 
-    public ResourceService(
-        DistributedApplicationModel applicationModel, KubernetesService kubernetesService, IHostEnvironment hostEnvironment, ILoggerFactory loggerFactory)
+    public ResourceService(DistributedApplicationModel applicationModel, KubernetesService kubernetesService, IHostEnvironment hostEnvironment, ILoggerFactory loggerFactory)
     {
         ApplicationName = ComputeApplicationName(hostEnvironment.ApplicationName);
 
         _resourcePublisher = new ResourcePublisher(_cancellationTokenSource.Token);
+        _consoleLogPublisher = new ConsoleLogPublisher(_resourcePublisher);
 
-        _ = new DcpDataSource(kubernetesService, applicationModel, loggerFactory, _resourcePublisher.Integrate, _cancellationTokenSource.Token);
+        _ = new DcpDataSource(kubernetesService, applicationModel, loggerFactory, _resourcePublisher.IntegrateAsync, _cancellationTokenSource.Token);
 
         static string ComputeApplicationName(string applicationName)
         {
@@ -38,15 +39,30 @@ internal sealed partial class ResourceService : IResourceService, IAsyncDisposab
 
     public string ApplicationName { get; }
 
-    public ResourceSubscription Subscribe() => _resourcePublisher.Subscribe();
+    public ResourceSubscription SubscribeResources()
+    {
+        return _resourcePublisher.Subscribe();
+    }
+
+    public IAsyncEnumerable<IReadOnlyList<(string Content, bool IsErrorMessage)>>? SubscribeConsoleLogs(string resourceName, CancellationToken cancellationToken)
+    {
+        var subscription = _consoleLogPublisher.Subscribe(resourceName);
+
+        return subscription is null ? null : Enumerate();
+
+        async IAsyncEnumerable<IReadOnlyList<(string Content, bool IsErrorMessage)>> Enumerate()
+        {
+            using var token = CancellationTokenSource.CreateLinkedTokenSource(_cancellationTokenSource.Token, cancellationToken);
+
+            await foreach (var group in subscription.WithCancellation(token.Token))
+            {
+                yield return group;
+            }
+        }
+    }
 
     public async ValueTask DisposeAsync()
     {
-        // NOTE we don't complete channel writers, nor wait for channel readers to complete.
-        // Instead we signal cancellation, which causes both processes to halt immediately.
-        // Any pending messages will be collected along with this class, which is being disposed
-        // right now. We don't have to clean anything up for the channels.
-
         await _cancellationTokenSource.CancelAsync().ConfigureAwait(false);
     }
 }

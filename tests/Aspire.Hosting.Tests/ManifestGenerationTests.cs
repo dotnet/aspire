@@ -103,6 +103,65 @@ public class ManifestGenerationTests
             arg => Assert.Equal("more", arg.GetString()));
     }
 
+    [Theory]
+    [InlineData(new string[] { "args1", "args2" }, new string[] { "withArgs1", "withArgs2" })]
+    [InlineData(new string[] { }, new string[] { "withArgs1", "withArgs2" })]
+    [InlineData(new string[] { "args1", "args2" }, new string[] { })]
+    public void EnsureExecutableWithArgsEmitsExecutableArgs(string[] addExecutableArgs, string[] withArgsArgs)
+    {
+        var program = CreateTestProgramJsonDocumentManifestPublisher();
+
+        var resourceBuilder = program.AppBuilder.AddExecutable("program", "run program", "c:/", addExecutableArgs);
+        if (withArgsArgs.Length > 0)
+        {
+            resourceBuilder.WithArgs(withArgsArgs);
+        }
+
+        // Build AppHost so that publisher can be resolved.
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+
+        var resource = resources.GetProperty("program");
+        var args = resource.GetProperty("args");
+        Assert.Equal(addExecutableArgs.Length + withArgsArgs.Length, args.GetArrayLength());
+
+        var verify = new List<Action<JsonElement>>();
+        foreach (var addExecutableArg in addExecutableArgs)
+        {
+            verify.Add(arg => Assert.Equal(addExecutableArg, arg.GetString()));
+        }
+        foreach (var withArgsArg in withArgsArgs)
+        {
+            verify.Add(arg => Assert.Equal(withArgsArg, arg.GetString()));
+        }
+
+        Assert.Collection(args.EnumerateArray(), [.. verify]);
+    }
+
+    [Fact]
+    public void ExecutableManifestNotIncludeArgsWhenEmpty()
+    {
+        var program = CreateTestProgramJsonDocumentManifestPublisher();
+
+        program.AppBuilder.AddExecutable("program", "run program", "c:/");
+
+        // Build AppHost so that publisher can be resolved.
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+
+        var resource = resources.GetProperty("program");
+        var exists = resource.TryGetProperty("args", out _);
+        Assert.False(exists);
+    }
+
     [Fact]
     public void EnsureAllRedisManifestTypesHaveVersion0Suffix()
     {

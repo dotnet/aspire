@@ -58,13 +58,13 @@
         <note />
       </trans-unit>
       <trans-unit id="MetricsPageTitle">
-        <source>{0} Metrics</source>
-        <target state="new">{0} Metrics</target>
+        <source>{0} metrics</source>
+        <target state="new">{0} metrics</target>
         <note>{0} is an application name</note>
       </trans-unit>
       <trans-unit id="MetricsSelectADuration">
-        <source>Select a Duration</source>
-        <target state="new">Select a Duration</target>
+        <source>Select a duration</source>
+        <target state="new">Select a duration</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricsSelectAResource">

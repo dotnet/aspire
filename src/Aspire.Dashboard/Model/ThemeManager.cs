@@ -5,6 +5,12 @@ namespace Aspire.Dashboard.Model;
 
 public sealed class ThemeManager
 {
+    public const float DarkThemeLuminance = 0.15f;
+    public const float LightThemeLuminance = 0.95f;
+    public const string ThemeSettingSystem = "System";
+    public const string ThemeSettingDark = "Dark";
+    public const string ThemeSettingLight = "Light";
+
     private readonly object _lock = new object();
     private readonly List<ModelSubscription> _subscriptions = new List<ModelSubscription>();
 

@@ -17,7 +17,7 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
 
     public ResourceOutgoingPeerResolver(IResourceService resourceService)
     {
-        var (snapshot, subscription) = resourceService.Subscribe();
+        var (snapshot, subscription) = resourceService.SubscribeResources();
 
         foreach (var resource in snapshot)
         {
@@ -39,7 +39,7 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
         {
             _resourceNameMapping[resourceViewModel.Name] = resourceViewModel;
         }
-        else if (changeType == ResourceChangeType.Deleted)
+        else if (changeType == ResourceChangeType.Delete)
         {
             _resourceNameMapping.TryRemove(resourceViewModel.Name, out _);
         }
