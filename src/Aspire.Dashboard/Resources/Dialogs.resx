@@ -127,10 +127,10 @@
     <value>Cancel</value>
   </data>
   <data name="FilterDialogApplyFilterButtonText" xml:space="preserve">
-    <value>Apply Filter</value>
+    <value>Apply filter</value>
   </data>
   <data name="FilterDialogRemoveFilterButtonText" xml:space="preserve">
-    <value>Remove Filter</value>
+    <value>Remove filter</value>
   </data>
   <data name="SettingsDialogSystemTheme" xml:space="preserve">
     <value>System</value>

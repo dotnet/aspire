@@ -19,14 +19,14 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="MetricsPageTitle" xml:space="preserve">
-    <value>{0} Metrics</value>
+    <value>{0} metrics</value>
     <comment>{0} is an application name</comment>
   </data>
   <data name="MetricsHeader" xml:space="preserve">
     <value>Metrics</value>
   </data>
   <data name="MetricsSelectADuration" xml:space="preserve">
-    <value>Select a Duration</value>
+    <value>Select a duration</value>
   </data>
   <data name="MetricsSelectInstrument" xml:space="preserve">
     <value>Select instrument.</value>

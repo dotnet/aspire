@@ -3,8 +3,8 @@
   <file datatype="xml" source-language="en" target-language="pt-BR" original="../StructuredLogs.resx">
     <body>
       <trans-unit id="StructuredLogsAddFilter">
-        <source>Add Filter</source>
-        <target state="new">Add Filter</target>
+        <source>Add filter</source>
+        <target state="new">Add filter</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsAllTypes">
@@ -18,13 +18,13 @@
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsEditFilter">
-        <source>Edit Filter</source>
-        <target state="new">Edit Filter</target>
+        <source>Edit filter</source>
+        <target state="new">Edit filter</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsEntryDetails">
-        <source>Log Entry Details</source>
-        <target state="new">Log Entry Details</target>
+        <source>Log entry details</source>
+        <target state="new">Log entry details</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsFilters">
@@ -33,8 +33,8 @@
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsHeader">
-        <source>Structured Logs</source>
-        <target state="new">Structured Logs</target>
+        <source>Structured logs</source>
+        <target state="new">Structured logs</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsLevelColumnHeader">
@@ -58,8 +58,8 @@
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsNoFilters">
-        <source>No Filters</source>
-        <target state="new">No Filters</target>
+        <source>No filters</source>
+        <target state="new">No filters</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsNoLogsFound">
@@ -68,8 +68,8 @@
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsPageTitle">
-        <source>{0} Structured Logs</source>
-        <target state="new">{0} Structured Logs</target>
+        <source>{0} structured logs</source>
+        <target state="new">{0} structured logs</target>
         <note>{0} is an application name</note>
       </trans-unit>
       <trans-unit id="StructuredLogsResourceColumnHeader">
@@ -78,8 +78,8 @@
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsSelectMinimumLogLevel">
-        <source>Select a Minimum Log Level</source>
-        <target state="new">Select a Minimum Log Level</target>
+        <source>Select a minimum log level</source>
+        <target state="new">Select a minimum log level</target>
         <note />
       </trans-unit>
       <trans-unit id="StructuredLogsTimestampColumnHeader">

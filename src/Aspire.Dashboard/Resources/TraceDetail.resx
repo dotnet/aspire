@@ -23,7 +23,7 @@
     <comment>{0} is an application name</comment>
   </data>
   <data name="TraceDetailTraceStartHeader" xml:space="preserve">
-    <value>Trace Detail</value>
+    <value>Trace detail</value>
   </data>
   <data name="TraceDetailDurationHeader" xml:space="preserve">
     <value>Duration</value>
@@ -35,7 +35,7 @@
     <value>Depth</value>
   </data>
   <data name="TraceDetailTotalSpansHeader" xml:space="preserve">
-    <value>Total Spans</value>
+    <value>Total spans</value>
   </data>
   <data name="TraceDetailBackButtonText" xml:space="preserve">
     <value>Back</value>
