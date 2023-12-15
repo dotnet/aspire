@@ -74,12 +74,10 @@ public static class AspirePostgreSqlNpgsqlExtensions
         {
             builder.TryAddHealthCheck(new HealthCheckRegistration(
                 serviceKey is null ? "PostgreSql" : $"PostgreSql_{connectionName}",
-                sp => new NpgSqlHealthCheck(new NpgSqlHealthCheckOptions()
-                {
-                    DataSource = serviceKey is null
+                sp => new NpgSqlHealthCheck(
+                    new NpgSqlHealthCheckOptions(serviceKey is null
                         ? sp.GetRequiredService<NpgsqlDataSource>()
-                        : sp.GetRequiredKeyedService<NpgsqlDataSource>(serviceKey)
-                }),
+                        : sp.GetRequiredKeyedService<NpgsqlDataSource>(serviceKey))),
                 failureStatus: default,
                 tags: default,
                 timeout: default));
