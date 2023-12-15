@@ -634,11 +634,11 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
         );
         if (replicaSetOwner is not null && displayName.Length > 3)
         {
-            var nameParts = displayName.Split('-');
-            if (nameParts.Length == 2 && nameParts[0].Length > 0 && nameParts[1].Length > 0)
+            var lastHyphenIndex = displayName.LastIndexOf('-');
+            if (lastHyphenIndex > 0 && lastHyphenIndex < displayName.Length - 1)
             {
                 // Strip the replica ID from the name.
-                displayName = nameParts[0];
+                displayName = displayName[..lastHyphenIndex];
             }
         }
         return displayName;
