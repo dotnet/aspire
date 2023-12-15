@@ -57,8 +57,6 @@ public sealed class ResourceServiceViewModel(string name, string? allocatedAddre
     public string AddressAndPort { get; } = $"{allocatedAddress}:{allocatedPort}";
 }
 
-// TODO move this to back end?
-// TODO model this in the proto
 public sealed record EndpointSnapshot(string EndpointUrl, string ProxyUrl);
 
 internal static class ResourceViewModelExtensions
