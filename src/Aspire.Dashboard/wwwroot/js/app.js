@@ -53,15 +53,24 @@ function isScrolledToBottom(container) {
 }
 
 window.copyTextToClipboard = function (id, text, precopy, postcopy) {
+    let button = document.querySelector(`#${id}`);
+    let copyIcon = button.querySelector('.copy-icon');
+    let checkmarkIcon = button.querySelector('.checkmark-icon');
     let tooltipDiv = document.querySelector('fluent-tooltip[anchor="' + id + '"]').children[0];
     navigator.clipboard.writeText(text)
         .then(() => {
             tooltipDiv.innerText = postcopy;
+            copyIcon.style.display = 'none';
+            checkmarkIcon.style.display = 'inline';
         })
         .catch(() => {
             tooltipDiv.innerText = 'Could not access clipboard';
         });
-    setTimeout(function () { tooltipDiv.innerText = precopy }, 1500);
+    setTimeout(function () {
+        tooltipDiv.innerText = precopy;
+        copyIcon.style.display = 'inline';
+        checkmarkIcon.style.display = 'none';
+    }, 1500);
 };
 
 window.updateFluentSelectDisplayValue = function (fluentSelect) {
