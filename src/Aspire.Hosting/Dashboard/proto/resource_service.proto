@@ -104,7 +104,7 @@ message ResourceId {
 }
 
 // Models the full state of an resource (container, executable, project, etc) at a particular point in time.
-message ResourceSnapshot {
+message Resource {
     ResourceId resource_id = 1;
     string display_name = 2;
     optional string state = 3;
@@ -126,9 +126,9 @@ message ResourceSnapshot {
 ////////////////////////////////////////////
 
 // Models a snapshot of resource state
-message WatchResourcesSnapshot {
-    repeated ResourceSnapshot resources = 1;
-    repeated ResourceType types = 2;
+message InitialResourceData {
+    repeated Resource resources = 1;
+    repeated ResourceType resource_types = 2;
 }
 
 ////////////////////////////////////////////
@@ -140,7 +140,7 @@ message ResourceDeletion {
 message WatchResourcesChange  {
     oneof kind {
         ResourceDeletion delete = 1;
-        ResourceSnapshot upsert = 2;
+        Resource upsert = 2;
     }
 }
 
@@ -159,8 +159,9 @@ message WatchResourcesRequest {
 // A message received from the server when watching resources. Has multiple types of payload.
 message WatchResourcesUpdate {
     oneof kind {
-        // Snapshot of current resource state. Received once upon connection, before any "changes".
-        WatchResourcesSnapshot initial_snapshot = 1;
+        // The current resource state, along with other reference data such as the set of resource types that may exist.
+        // Received once upon connection, before any changes.
+        InitialResourceData initial_data = 1;
         // One or more deltas to apply.
         WatchResourcesChanges changes = 2;
     }
