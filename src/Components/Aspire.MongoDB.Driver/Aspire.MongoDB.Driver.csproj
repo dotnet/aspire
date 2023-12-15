@@ -5,6 +5,7 @@
     <IsPackable>true</IsPackable>
     <PackageTags>$(ComponentDatabasePackageTags) MongoDB</PackageTags>
     <Description>A generic MongoDB client that integrates with Aspire.</Description>
+    <NoWarn>$(NoWarn);CS8002</NoWarn> <!-- MongoDB packages are not signed -->
   </PropertyGroup>
 
   <ItemGroup>

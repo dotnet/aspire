@@ -10,8 +10,6 @@
     <ConfigurationSchemaPath>$(MSBuildProjectDirectory)\ConfigurationSchema.json</ConfigurationSchemaPath>
     <ConfigurationSchemaExists Condition="Exists('$(ConfigurationSchemaPath)')">true</ConfigurationSchemaExists>
     <Features Condition="'$(EnableConfigurationBindingGenerator)' == 'true'">$(Features);InterceptorsPreview</Features>
-    <!-- AspNetCore.HealthChecks packages are unsigned, we ignore that warning on purpose  -->
-    <NoWarn>$(NoWarn);CS8002</NoWarn>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(ConfigurationSchemaExists)' == 'true'">
