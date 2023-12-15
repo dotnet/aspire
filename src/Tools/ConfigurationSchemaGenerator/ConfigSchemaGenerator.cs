@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.Extensions.Configuration.Binder.SourceGeneration;
@@ -10,6 +11,7 @@ namespace ConfigurationSchemaGenerator;
 public partial class ConfigSchemaGenerator
 {
     private const string ConfigurationSchemaAttributeName = "Aspire.ConfigurationSchemaAttribute";
+    private const string LoggingCategoriesAttributeName = "Aspire.LoggingCategoriesAttribute";
 
     public static void GenerateSchema(string inputAssembly, string[] references, string outputFile)
     {
@@ -50,51 +52,53 @@ public partial class ConfigSchemaGenerator
 
     private static ConfigSchemaAttributeInfo? GetConfigurationSchema(IAssemblySymbol assembly)
     {
+        List<INamedTypeSymbol>? types = null;
+        List<string>? configurationPaths = null;
+        List<string>? exclusionPaths = null;
+        List<string>? logCategories = null;
+
         foreach (var attribute in assembly.GetAttributes())
         {
-            if (attribute.AttributeClass?.ToDisplayString() != ConfigurationSchemaAttributeName)
+            if (attribute.AttributeClass?.ToDisplayString() == ConfigurationSchemaAttributeName)
             {
-                continue;
-            }
+                ImmutableArray<TypedConstant> args = attribute.ConstructorArguments;
+                if (args.Length != 3)
+                {
+                    throw new InvalidOperationException("ConfigurationSchemaAttribute should only be used with 3 ctor arguments.");
+                }
 
-            INamedTypeSymbol?[]? types = null;
-            string?[]? configurationPaths = null;
-            string?[]? exclusionPaths = Array.Empty<string>();
-            string?[]? logCategories = null;
+                var path = (string)args[0].Value;
+                (configurationPaths ??= new()).Add((string)args[0].Value);
+                (types ??= new()).Add((INamedTypeSymbol)args[1].Value);
 
-            foreach (var item in attribute.NamedArguments)
-            {
-                if (item.Key == "Types")
+                var exclusionPathsArg = args[2];
+                if (!exclusionPathsArg.IsNull)
                 {
-                    types = item.Value.Values.Select(v => v.Value as INamedTypeSymbol).ToArray();
-                }
-                else if (item.Key == "ConfigurationPaths")
-                {
-                    configurationPaths = item.Value.Values.Select(v => v.Value as string).ToArray();
-                }
-                else if (item.Key == "ExclusionPaths")
-                {
-                    exclusionPaths = item.Value.Values.Select(v => v.Value as string).ToArray();
-                }
-                else if (item.Key == "LogCategories")
-                {
-                    logCategories = item.Value.Values.Select(v => v.Value as string).ToArray();
+                    (exclusionPaths ??= new()).AddRange(exclusionPathsArg.Values.Select(v => $"{path}:{(string)v.Value}"));
                 }
             }
-
-            if (types is null || configurationPaths is null || logCategories is null)
+            else if (attribute.AttributeClass?.ToDisplayString() == LoggingCategoriesAttributeName)
             {
-                throw new InvalidOperationException("Ensure Types, ConfigurationPaths, and LogCategories are set.");
-            }
+                ImmutableArray<TypedConstant> args = attribute.ConstructorArguments;
+                if (args.Length != 1)
+                {
+                    throw new InvalidOperationException("LoggingCategoriesAttribute should only be used with 1 ctor argument.");
+                }
 
-            return new ConfigSchemaAttributeInfo(types, configurationPaths, exclusionPaths, logCategories);
+                (logCategories ??= new()).AddRange(args[0].Values.Select(v => (string)v.Value));
+            }
         }
 
-        return null;
+        if (types == null && configurationPaths == null)
+        {
+            return null;
+        }
+
+        return new ConfigSchemaAttributeInfo(types, configurationPaths, exclusionPaths, logCategories);
     }
 
     /// <summary>
     /// Data about configuration schema directly from the ConfigurationSchemaAttribute.
     /// </summary>
-    internal sealed record ConfigSchemaAttributeInfo(INamedTypeSymbol[]? Types, string[] ConfigurationPaths, string[] ExclusionPaths, string[] LogCategories);
+    internal sealed record ConfigSchemaAttributeInfo(List<INamedTypeSymbol> Types, List<string> ConfigurationPaths, List<string>? ExclusionPaths, List<string>? LogCategories);
 }

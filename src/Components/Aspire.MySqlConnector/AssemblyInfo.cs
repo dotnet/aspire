@@ -4,13 +4,12 @@
 using Aspire.MySqlConnector;
 using Aspire;
 
-[assembly: ConfigurationSchema(
-    Types = [typeof(MySqlConnectorSettings)],
-    ConfigurationPaths = ["Aspire:MySqlConnector"],
-    LogCategories = [
-        "MySqlConnector",
-        "MySqlConnector.ConnectionPool",
-        "MySqlConnector.MySqlBulkCopy",
-        "MySqlConnector.MySqlCommand",
-        "MySqlConnector.MySqlConnection",
-        "MySqlConnector.MySqlDataSource"])]
+[assembly: ConfigurationSchema("Aspire:MySqlConnector", typeof(MySqlConnectorSettings))]
+
+[assembly: LoggingCategories(
+    "MySqlConnector",
+    "MySqlConnector.ConnectionPool",
+    "MySqlConnector.MySqlBulkCopy",
+    "MySqlConnector.MySqlCommand",
+    "MySqlConnector.MySqlConnection",
+    "MySqlConnector.MySqlDataSource")]

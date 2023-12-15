@@ -4,14 +4,13 @@
 using Aspire.Npgsql;
 using Aspire;
 
-[assembly: ConfigurationSchema(
-    Types = [typeof(NpgsqlSettings)],
-    ConfigurationPaths = ["Aspire:Npgsql"],
-    LogCategories = [
-        "Npgsql",
-        "Npgsql.Command",
-        "Npgsql.Connection",
-        "Npgsql.Copy",
-        "Npgsql.Exception",
-        "Npgsql.Replication",
-        "Npgsql.Transaction"])]
+[assembly: ConfigurationSchema("Aspire:Npgsql", typeof(NpgsqlSettings))]
+
+[assembly: LoggingCategories(
+    "Npgsql",
+    "Npgsql.Command",
+    "Npgsql.Connection",
+    "Npgsql.Copy",
+    "Npgsql.Exception",
+    "Npgsql.Replication",
+    "Npgsql.Transaction")]

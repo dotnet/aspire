@@ -43,9 +43,14 @@ internal sealed class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation
 
     private void GenerateLogCategories(JsonObject parent)
     {
-        var propertiesNode = new JsonObject();
         var categories = spec.LogCategories;
-        for (var i = 0; i < categories.Length; i++)
+        if (categories is null)
+        {
+            return;
+        }
+
+        var propertiesNode = new JsonObject();
+        for (var i = 0; i < categories.Count; i++)
         {
             var catObj = new JsonObject();
             catObj["$ref"] = "#/definitions/logLevelThreshold";
@@ -63,13 +68,13 @@ internal sealed class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation
 
     private JsonObject GenerateGraph()
     {
-        if (spec.ConfigurationTypes.Count != spec.ConfigurationPaths.Length)
+        if (spec.ConfigurationTypes.Count != spec.ConfigurationPaths.Count)
         {
             throw new InvalidOperationException("Ensure Types and ConfigurationPaths are the same length.");
         }
 
         var root = new JsonObject();
-        for (var i = 0; i < spec.ConfigurationPaths.Length; i++)
+        for (var i = 0; i < spec.ConfigurationPaths.Count; i++)
         {
             var type = spec.ConfigurationTypes[i];
             var path = spec.ConfigurationPaths[i];
@@ -402,10 +407,15 @@ internal sealed class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation
         return false;
     }
 
-    private static string[] CreateExclusionPaths(string[] exclusionPaths)
+    private static string[] CreateExclusionPaths(List<string>? exclusionPaths)
     {
-        var result = new string[exclusionPaths.Length];
-        for (var i = 0; i < exclusionPaths.Length; i++)
+        if (exclusionPaths is null)
+        {
+            return [];
+        }
+
+        var result = new string[exclusionPaths.Count];
+        for (var i = 0; i < exclusionPaths.Count; i++)
         {
             result[i] = $"$.{exclusionPaths[i].Replace(":", ".properties.", StringComparison.Ordinal)}";
         }

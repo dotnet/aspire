@@ -5,7 +5,7 @@ using Aspire.StackExchange.Redis;
 using Aspire;
 using StackExchange.Redis;
 
-[assembly: ConfigurationSchema(
-    Types = [typeof(StackExchangeRedisSettings), typeof(ConfigurationOptions)],
-    ConfigurationPaths = ["Aspire:StackExchange:Redis", "Aspire:StackExchange:Redis:ConfigurationOptions"],
-    LogCategories = ["Aspire.StackExchange.Redis"])]
+[assembly: ConfigurationSchema("Aspire:StackExchange:Redis", typeof(StackExchangeRedisSettings))]
+[assembly: ConfigurationSchema("Aspire:StackExchange:Redis:ConfigurationOptions", typeof(ConfigurationOptions))]
+
+[assembly: LoggingCategories("Aspire.StackExchange.Redis")]

@@ -10,7 +10,7 @@
 
   <ItemGroup>
     <Compile Include="..\Common\HealthChecksExtensions.cs" Link="HealthChecksExtensions.cs" />
-    <Compile Include="..\Common\ConfigurationSchemaAttribute.cs" Link="ConfigurationSchemaAttribute.cs" />
+    <Compile Include="..\Common\ConfigurationSchemaAttributes.cs" Link="ConfigurationSchemaAttributes.cs" />
   </ItemGroup>
 
   <ItemGroup>

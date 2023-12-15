@@ -109,7 +109,7 @@
   </Target>
 
   <Target Name="CompareConfigurationSchema"
-          Condition="Exists('$(ConfigurationSchemaPath)') AND Exists('GeneratedConfigurationSchemaOutputPath')">
+          Condition="Exists('$(ConfigurationSchemaPath)') AND Exists('$(GeneratedConfigurationSchemaOutputPath)')">
 
     <PropertyGroup>
       <CurrentConfigurationSchemaFileContent>$([System.IO.File]::ReadAllText('$(ConfigurationSchemaPath)'))</CurrentConfigurationSchemaFileContent>
