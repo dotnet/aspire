@@ -75,6 +75,11 @@ message EnvironmentVariable {
 }
 
 message Endpoint {
+    string endpoint_url = 1;
+    string proxy_url = 2;
+}
+
+message Service {
     string name = 1;
     optional string allocated_address = 2;
     optional int32 allocated_port = 3;
@@ -107,14 +112,15 @@ message ResourceSnapshot {
     repeated EnvironmentVariable environment = 5;
     optional int32 expected_endpoints_count = 6;
     repeated Endpoint endpoints = 7;
-    repeated ResourceCommandRequest commands = 8;
+    repeated Service services = 8;
+    repeated ResourceCommandRequest commands = 9;
 
     // List of additional data, as name/value pairs.
     // For:
     // - Containers: image, container_id, ports
     // - Executables: process_id, executable_path, working_directory, arguments
     // - Projects: process_id, project_path
-    repeated AdditionalData additional_data = 9;
+    repeated AdditionalData additional_data = 10;
 }
 
 ////////////////////////////////////////////
