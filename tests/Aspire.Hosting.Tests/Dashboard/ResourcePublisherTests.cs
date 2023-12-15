@@ -9,7 +9,7 @@ namespace Aspire.Hosting.Tests.Dashboard;
 
 public class ResourcePublisherTests
 {
-    [Fact]
+    [Fact(Skip = "Passes locally but fails in CI. https://github.com/dotnet/aspire/issues/1410")]
     public async Task ProducesExpectedSnapshotAndUpdates()
     {
         CancellationTokenSource cts = new();
