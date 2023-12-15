@@ -110,7 +110,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
                         if (!string.Equals(service.Status?.State, "Ready", StringComparison.OrdinalIgnoreCase))
                         {
                             // If service is not ready, we don't try to connect. We will get future notification that service moved to ready state
-                            _logger.LogInformation("service {name} was not in ready state.", service.Metadata.Name);
+                            _logger.LogWarning("service {name} was not in ready state.", service.Metadata.Name);
                             continue;
                         }
 
@@ -118,34 +118,40 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
                         var delay = TimeSpan.FromMicroseconds(10);
                         var errorContent = "404 page not found\n";
                         var proxyUrlString = $"{uriScheme}://{service.AllocatedAddress}:{service.AllocatedPort}";
-                        _logger.LogInformation("running 404 check for {name} at {url}", service.Metadata.Name, proxyUrlString);
+                        _logger.LogWarning("running 404 check for {name} at {url}", service.Metadata.Name, proxyUrlString);
                         while (true)
                         {
                             using HttpClient client = new();
-                            // TODO: GetAsync can throw, how do we handle those errors?
-                            var response = await client.GetAsync(proxyUrlString).ConfigureAwait(false);
-                            if (response.StatusCode == HttpStatusCode.NotFound
-                                && response.Content.Headers.ContentLength == 19)
+                            try
                             {
-                                if (DateTime.UtcNow.Subtract(currentTimestamp) > maxRetryDuration)
+                                var response = await client.GetAsync(proxyUrlString).ConfigureAwait(false);
+                                if (response.StatusCode == HttpStatusCode.NotFound
+                                    && response.Content.Headers.ContentLength == 19)
                                 {
-                                    // We went over max retry so we just let it pass
-                                    _logger.LogInformation("{name} retry timed out.", service.Metadata.Name);
-                                    break;
-                                }
+                                    if (DateTime.UtcNow.Subtract(currentTimestamp) > maxRetryDuration)
+                                    {
+                                        // We went over max retry so we just let it pass
+                                        _logger.LogInformation("{name} retry timed out.", service.Metadata.Name);
+                                        break;
+                                    }
 
-                                var content = await response.Content.ReadAsStringAsync(_cancellationToken).ConfigureAwait(false);
-                                if (string.Equals(content, errorContent, StringComparison.Ordinal))
-                                {
-                                    _logger.LogInformation("{name} hit 404 error retrying", service.Metadata.Name);
-                                    // Additional conditions
-                                    await Task.Delay(delay, _cancellationToken).ConfigureAwait(false);
-                                    delay *= 2;
-                                    continue;
+                                    var content = await response.Content.ReadAsStringAsync(_cancellationToken).ConfigureAwait(false);
+                                    if (string.Equals(content, errorContent, StringComparison.Ordinal))
+                                    {
+                                        _logger.LogInformation("{name} hit 404 error retrying", service.Metadata.Name);
+                                        // Additional conditions
+                                        await Task.Delay(delay, _cancellationToken).ConfigureAwait(false);
+                                        delay *= 2;
+                                        continue;
+                                    }
                                 }
                             }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(ex, "{name} hit error", service.Metadata.Name);
+                            }
 
-                            _logger.LogInformation("{name} is working", service.Metadata.Name);
+                            _logger.LogWarning("{name} is working", service.Metadata.Name);
                             break;
                         }
 
