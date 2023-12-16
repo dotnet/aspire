@@ -23,18 +23,19 @@ public static class PrometheusBuilderExtensions
     /// <param name="dataVolumeName">
     /// the name of the data volume to use for Prometheus data
     /// </param>
+    /// <param name="port">port to map to the host</param>
     /// <returns>
     /// <see cref="IResourceBuilder{PrometheusContainerResource}"/>
     /// </returns>
     public static IResourceBuilder<PrometheusContainerResource> AddPrometheusContainer(
-        this IDistributedApplicationBuilder builder, string name, string configFilePath, string dataVolumeName)
+        this IDistributedApplicationBuilder builder, string name, string configFilePath, string dataVolumeName, int? port = null)
     {
         // Define the resource
         var prometheusContainer = new PrometheusContainerResource(name, configFilePath, dataVolumeName);
 
         // Add the resource to the application
         return builder.AddResource(prometheusContainer)
-                      .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, containerPort: 9090))
+                      .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, containerPort: 9090, port: port))
                       .WithAnnotation(new ContainerImageAnnotation { Image = "prom/prometheus", Tag = "latest" })
                       .WithVolumeMount(configFilePath, "/etc/prometheus");
     }
