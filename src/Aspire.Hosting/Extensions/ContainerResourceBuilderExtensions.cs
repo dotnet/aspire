@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
 
@@ -66,6 +67,70 @@ public static class ContainerResourceBuilderExtensions
         var annotation = new ContainerMountAnnotation(source, target, ContainerMountType.Bind, isReadOnly);
         return builder.WithAnnotation(annotation);
     }
+
+    /// <summary>
+    /// Adds a named volume for the data folder to a container resource.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="source">The name of the mount. Defaults to a random id. </param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithVolumeForData<T>(this IResourceBuilder<T> builder, string? source = null, bool isReadOnly = false) where T : ContainerResource, IResourceWithDataDirectory
+        => builder.WithVolumeMount(source ?? ContainerUtils.GenerateRandomBindMountName(), T.DataDirectory, VolumeMountType.Named, isReadOnly);
+
+    /// <summary>
+    /// Adds a bind mount for the data folder to a container resource.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="source">The name of the mount. This is the physical location on the host.</param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithBindMountForData<T>(this IResourceBuilder<T> builder, string source, bool isReadOnly = false) where T : ContainerResource, IResourceWithDataDirectory
+        => builder.WithVolumeMount(source, T.DataDirectory, VolumeMountType.Bind, isReadOnly);
+
+    /// <summary>
+    /// Adds a named volume for the log folder to a container resource.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="source">The name of the mount. Defaults to a random id. </param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithVolumeForLogs<T>(this IResourceBuilder<T> builder, string? source = null) where T : ContainerResource, IResourceWithLogDirectory
+        => builder.WithVolumeMount(source ?? ContainerUtils.GenerateRandomBindMountName(), T.LogDirectory, VolumeMountType.Named);
+
+    /// <summary>
+    /// Adds a bind mount for the log folder to a container resource.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="source">The name of the mount. This is the physical location on the host.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithBindMountForLogs<T>(this IResourceBuilder<T> builder, string source) where T : ContainerResource, IResourceWithLogDirectory
+        => builder.WithVolumeMount(source, T.LogDirectory, VolumeMountType.Bind);
+
+    /// <summary>
+    /// Adds a named volume for the init folder to a container resource.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="source">The name of the mount. Defaults to a random id. </param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithVolumeForInit<T>(this IResourceBuilder<T> builder, string? source = null, bool isReadOnly = true) where T : ContainerResource, IResourceWithInitDirectory
+        => builder.WithVolumeMount(source ?? ContainerUtils.GenerateRandomBindMountName(), T.InitDirectory, VolumeMountType.Named, isReadOnly);
+
+    /// <summary>
+    /// Adds a bind mount for the init folder to a container resource.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="source">The name of the mount. This is the physical location on the host.</param>
+    /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithBindMountForInit<T>(this IResourceBuilder<T> builder, string source, bool isReadOnly = true) where T : ContainerResource, IResourceWithInitDirectory
+        => builder.WithVolumeMount(source, T.InitDirectory, VolumeMountType.Bind, isReadOnly);
 
     /// <summary>
     /// Adds the arguments to be passed to a container resource when the container is started.
