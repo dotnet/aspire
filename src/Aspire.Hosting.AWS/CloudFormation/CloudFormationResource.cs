@@ -15,9 +15,6 @@ internal sealed class CloudFormationResource(string name, string templatePath) :
     public string? Profile { get; set; }
 
     /// <inheritdoc/>
-    public string? ProfileLocation { get; set; }
-
-    /// <inheritdoc/>
     public RegionEndpoint? Region { get; set; }
 
     /// <inheritdoc/>

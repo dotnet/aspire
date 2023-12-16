@@ -33,11 +33,9 @@ public static class CloudFormationExtensions
     /// </summary>
     /// <param name="builder"></param>
     /// <param name="profile">The name of the AWS credential profile.</param>
-    /// <param name="profileLocation">The directory where the AWS credential is registered. Used when the profile is registered in the non default location "~/.aws".</param>
-    public static IResourceBuilder<ICloudFormationResource> WithAWSProfile(this IResourceBuilder<ICloudFormationResource> builder, string profile, string? profileLocation = null)
+    public static IResourceBuilder<ICloudFormationResource> WithAWSProfile(this IResourceBuilder<ICloudFormationResource> builder, string profile)
     {
         builder.Resource.Profile = profile;
-        builder.Resource.ProfileLocation = profileLocation;
         return builder;
     }
 

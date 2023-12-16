@@ -130,7 +130,7 @@ internal sealed class CloudFormationLifeCycle(ILogger<CloudFormationLifeCycle> l
 
             if (resource.Profile != null)
             {
-                config.Profile = new Amazon.Profile(resource.Profile, resource.ProfileLocation);
+                config.Profile = new Amazon.Profile(resource.Profile);
             }
 
             if (resource.Region != null)

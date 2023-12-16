@@ -19,11 +19,6 @@ public interface ICloudFormationResource : IResource
     string? Profile { get; set; }
 
     /// <summary>
-    /// The location where the profile is registered. Used when overriding the default location of credential profiles in the ~/.aws directory.
-    /// </summary>
-    string? ProfileLocation { get; set; }
-
-    /// <summary>
     /// The AWS region to deploy the CloudFormation Stack.
     /// </summary>
     RegionEndpoint? Region { get; set; }

@@ -5,10 +5,10 @@ using Amazon;
 var builder = DistributedApplication.CreateBuilder(args);
 
 var awsResource = builder.AddAWSCloudFormationProvisioning("AspireSampleDevResources", "app-resources.template")
-                        .WithAWSRegion(RegionEndpoint.USWest2)
-                        .WithAWSProfile("not-gonna-do-it");
+                        .WithAWSRegion(RegionEndpoint.USEast2);
 
 builder.AddProject<Projects.Frontend>("frontend")
-        .WithAWSCloudFormationReference(awsResource, "CloudResources");
+        .WithAWSCloudFormationReference(awsResource)
+        .WithAWSRegion(RegionEndpoint.USEast2);
 
 builder.Build().Run();
