@@ -41,6 +41,8 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
     private readonly ConcurrentDictionary<string, List<EnvVar>> _additionalEnvVarsMap = [];
     private readonly HashSet<string> _containersWithTaskStarted = [];
     private readonly ConcurrentDictionary<string, object?> _checkedServices = [];
+    // HttpClient with no connection re-use for checking service endpoint readiness
+    private readonly HttpClient _checkedServicesClient = new HttpClient(new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.Zero });
 
     private readonly Channel<ResourceChanged<ResourceViewModel>> _resourceViewModelChangesChannel;
 
@@ -324,11 +326,9 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
     // Check a service endpoint
     private async Task<bool> CheckServiceEndpointReady(string proxyUrlString, string errorContent)
     {
-        // Explicitly use a new HttpClient for each request to avoid re-using the same socket connection
-        using HttpClient client = new();
         try
         {
-            var response = await client.GetAsync(proxyUrlString).ConfigureAwait(false);
+            var response = await _checkedServicesClient.GetAsync(proxyUrlString).ConfigureAwait(false);
             // Traefik returns a 404 with content length of 19 when it is not ready
             if (response.StatusCode == HttpStatusCode.NotFound
                 && response.Content.Headers.ContentLength == 19)
@@ -725,6 +725,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
     {
         // TODO: close all channels
         await _cancellationTokenSource.CancelAsync().ConfigureAwait(false);
+        _checkedServicesClient.Dispose();
     }
 
     private static string ComputeApplicationName(string applicationName)
