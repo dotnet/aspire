@@ -10,8 +10,13 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 /// <param name="password">The MySQL server root password.</param>
-public class MySqlContainerResource(string name, string password) : ContainerResource(name), IMySqlParentResource
+public class MySqlContainerResource(string name, string password) : ContainerResource(name), IMySqlParentResource, IResourceWithDataDirectory, IResourceWithInitDirectory
 {
+    /// <inheritdoc/>
+    public static string DataDirectory => "/var/lib/mysql";
+    /// <inheritdoc/>
+    public static string InitDirectory => "/docker-entrypoint-initdb.d";
+
     public string Password { get; } = password;
 
     /// <summary>
