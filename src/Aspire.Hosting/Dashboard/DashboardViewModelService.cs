@@ -101,15 +101,17 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
     {
         var maxRetryDuration = TimeSpan.FromSeconds(5);
 
-        List<Task> tasks = new List<Task>();
         _ = Task.Run(async () =>
         {
+            List<Task> tasks = new List<Task>();
+
             try
             {
                 await foreach ((WatchEventType eventType, Service service) in _kubernetesService.WatchAsync<Service>(cancellationToken: _cancellationToken))
                 {
                     tasks.Add(PollUntilServiceEndpointValid(eventType, service, maxRetryDuration));
                 }
+
                 await Task.WhenAll(tasks).ConfigureAwait(false);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
