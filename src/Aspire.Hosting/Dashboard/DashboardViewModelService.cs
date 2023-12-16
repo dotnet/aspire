@@ -329,7 +329,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
     {
         try
         {
-            var response = await _checkedServicesClient.GetAsync(proxyUrlString).ConfigureAwait(false);
+            var response = await _checkedServicesClient.GetAsync(proxyUrlString, _cancellationToken).ConfigureAwait(false);
             // Traefik returns a 404 with content length of 19 when it is not ready
             if (response.StatusCode == HttpStatusCode.NotFound
                 && response.Content.Headers.ContentLength == 19)
@@ -375,7 +375,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
                 if (!_checkedServices.ContainsKey(service.Metadata.Name))
                 {
                     var semaphore = _serviceCheckSemaphores.GetOrAdd(service.Metadata.Name, _ => new SemaphoreSlim(1, 1));
-                    await semaphore.WaitAsync().ConfigureAwait(false);
+                    await semaphore.WaitAsync(_cancellationToken).ConfigureAwait(false);
                     try
                     {
                         if (!_checkedServices.ContainsKey(service.Metadata.Name))
