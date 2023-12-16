@@ -3,9 +3,11 @@
 
 using System.Diagnostics;
 using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.DotnetRuntime.Extensions;
@@ -13,12 +15,15 @@ using Microsoft.Extensions.Configuration.Binder.SourceGeneration;
 
 namespace ConfigurationSchemaGenerator;
 
-internal sealed class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation compilation)
+internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation compilation)
 {
     private readonly TypeIndex _typeIndex = new TypeIndex(spec.AllTypes);
     private readonly Compilation _compilation = compilation;
     private readonly Stack<TypeSpec> _visitedTypes = new();
     private readonly string[] _exclusionPaths = CreateExclusionPaths(spec.ExclusionPaths);
+
+    [GeneratedRegex(@"( *)\r?\n( *)")]
+    private static partial Regex Indentation();
 
     public string GenerateSchema()
     {
@@ -31,7 +36,9 @@ internal sealed class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation
         {
             WriteIndented = true,
             // ensure the properties are ordered correctly
-            Converters = { SchemaOrderJsonNodeConverter.Instance }
+            Converters = { SchemaOrderJsonNodeConverter.Instance },
+            // prevent known escaped characters from being \uxxxx encoded
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
         };
         return JsonSerializer.Serialize(root, options);
     }
@@ -234,11 +241,8 @@ internal sealed class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation
             {
                 var value = node.ToString().Trim();
                 AppendSpaceIfNecessary(builder, value);
-                builder.Append(value);
+                AppendUnindentedValue(builder, value);
             }
-
-            // normalize line endings
-            builder.Replace("\r\n", "\n");
 
             propertyNode["description"] = builder.ToString();
         }
@@ -322,6 +326,29 @@ internal sealed class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation
             {
                 builder.Append(' ');
             }
+        }
+    }
+
+    internal static void AppendUnindentedValue(StringBuilder builder, string value)
+    {
+        var index = 0;
+
+        foreach (var match in Indentation().EnumerateMatches(value))
+        {
+            if (match.Index > index)
+            {
+                builder.Append(value, index, match.Index - index);
+            }
+
+            builder.Append('\n');
+            index = match.Index + match.Length;
+        }
+
+        var remaining = value.Length - index;
+
+        if (remaining > 0)
+        {
+            builder.Append(value, index, remaining);
         }
     }
 

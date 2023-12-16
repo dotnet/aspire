@@ -35,7 +35,7 @@
                           "properties": {
                             "ApplicationId": {
                               "type": "string",
-                              "description": "Gets or sets the value sent as the first part of \u0022User-Agent\u0022 headers for all requests issues by this client. Defaults to P:Azure.Core.DiagnosticsOptions.DefaultApplicationId."
+                              "description": "Gets or sets the value sent as the first part of \"User-Agent\" headers for all requests issues by this client. Defaults to P:Azure.Core.DiagnosticsOptions.DefaultApplicationId."
                             },
                             "DefaultApplicationId": {
                               "type": "string",
@@ -55,7 +55,7 @@
                             },
                             "IsTelemetryEnabled": {
                               "type": "boolean",
-                              "description": "Gets or sets value indicating whether the \u0022User-Agent\u0022 header containing P:Azure.Core.DiagnosticsOptions.ApplicationId , client library package name and version, P:System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription and P:System.Runtime.InteropServices.RuntimeInformation.OSDescription should be sent.\n            The default value can be controlled process wide by setting AZURE_TELEMETRY_DISABLED to true , false , 1 or 0."
+                              "description": "Gets or sets value indicating whether the \"User-Agent\" header containing P:Azure.Core.DiagnosticsOptions.ApplicationId , client library package name and version, P:System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription and P:System.Runtime.InteropServices.RuntimeInformation.OSDescription should be sent.\nThe default value can be controlled process wide by setting AZURE_TELEMETRY_DISABLED to true , false , 1 or 0."
                             },
                             "LoggedContentSizeLimit": {
                               "type": "integer",
@@ -74,12 +74,12 @@
                             "Delay": {
                               "type": "string",
                               "format": "duration",
-                              "description": "The delay between retry attempts for a fixed approach or the delay\n            on which to base calculations for a backoff-based approach.\n            If the service provides a Retry-After response header, the next retry will be delayed by the duration specified by the header value."
+                              "description": "The delay between retry attempts for a fixed approach or the delay\non which to base calculations for a backoff-based approach.\nIf the service provides a Retry-After response header, the next retry will be delayed by the duration specified by the header value."
                             },
                             "MaxDelay": {
                               "type": "string",
                               "format": "duration",
-                              "description": "The maximum permissible delay between retry attempts when the service does not provide a Retry-After response header.\n            If the service provides a Retry-After response header, the next retry will be delayed by the duration specified by the header value."
+                              "description": "The maximum permissible delay between retry attempts when the service does not provide a Retry-After response header.\nIf the service provides a Retry-After response header, the next retry will be delayed by the duration specified by the header value."
                             },
                             "MaxRetries": {
                               "type": "integer",
@@ -116,7 +116,7 @@
                     "VaultUri": {
                       "type": "string",
                       "format": "uri",
-                      "description": "A T:System.Uri to the vault on which the client operates. Appears as \u0022DNS Name\u0022 in the Azure portal.\n            If you have a secret T:System.Uri , use T:Azure.Security.KeyVault.Secrets.KeyVaultSecretIdentifier to parse the P:Azure.Security.KeyVault.Secrets.KeyVaultSecretIdentifier.VaultUri and other information.\n            You should validate that this URI references a valid Key Vault resource. See https://aka.ms/azsdk/blog/vault-uri for details."
+                      "description": "A T:System.Uri to the vault on which the client operates. Appears as \"DNS Name\" in the Azure portal.\nIf you have a secret T:System.Uri , use T:Azure.Security.KeyVault.Secrets.KeyVaultSecretIdentifier to parse the P:Azure.Security.KeyVault.Secrets.KeyVaultSecretIdentifier.VaultUri and other information.\nYou should validate that this URI references a valid Key Vault resource. See https://aka.ms/azsdk/blog/vault-uri for details."
                     }
                   },
                   "description": "Provides the client configuration settings for connecting to Azure Key Vault."

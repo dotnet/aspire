@@ -36,20 +36,20 @@
                         "ConnectionIdleTimeout": {
                           "type": "string",
                           "format": "duration",
-                          "description": "The amount of time to allow a connection to have no observed traffic before considering\n               it idle and eligible to close."
+                          "description": "The amount of time to allow a connection to have no observed traffic before considering\nit idle and eligible to close."
                         },
                         "CustomEndpointAddress": {
                           "type": "string",
                           "format": "uri",
-                          "description": "A custom endpoint address that can be used when establishing the connection to the Service Bus\n               service."
+                          "description": "A custom endpoint address that can be used when establishing the connection to the Service Bus\nservice."
                         },
                         "EnableCrossEntityTransactions": {
                           "type": "boolean",
-                          "description": "Gets or sets a flag that indicates whether or not transactions may span multiple\n             Service Bus entities."
+                          "description": "Gets or sets a flag that indicates whether or not transactions may span multiple\nService Bus entities."
                         },
                         "Identifier": {
                           "type": "string",
-                          "description": "A property used to set the T:Azure.Messaging.ServiceBus.ServiceBusClient ID to identify the client. This can be used to correlate logs\n             and exceptions. If null or empty, a random unique value will be used."
+                          "description": "A property used to set the T:Azure.Messaging.ServiceBus.ServiceBusClient ID to identify the client. This can be used to correlate logs\nand exceptions. If null or empty, a random unique value will be used."
                         },
                         "RetryOptions": {
                           "type": "object",
@@ -57,7 +57,7 @@
                             "Delay": {
                               "type": "string",
                               "format": "duration",
-                              "description": "The delay between retry attempts for a fixed approach or the delay\n              on which to base calculations for a backoff-based approach."
+                              "description": "The delay between retry attempts for a fixed approach or the delay\non which to base calculations for a backoff-based approach."
                             },
                             "MaxDelay": {
                               "type": "string",
@@ -66,7 +66,7 @@
                             },
                             "MaxRetries": {
                               "type": "integer",
-                              "description": "The maximum number of retry attempts before considering the associated operation\n              to have failed."
+                              "description": "The maximum number of retry attempts before considering the associated operation\nto have failed."
                             },
                             "Mode": {
                               "enum": [
@@ -78,17 +78,17 @@
                             "TryTimeout": {
                               "type": "string",
                               "format": "duration",
-                              "description": "The maximum duration to wait for completion of a single attempt, whether the initial\n               attempt or a retry."
+                              "description": "The maximum duration to wait for completion of a single attempt, whether the initial\nattempt or a retry."
                             }
                           },
-                          "description": "The set of options to use for determining whether a failed service operation should be retried and,\n             if so, the amount of time to wait between retry attempts.  These options also control the\n             amount of time allowed for the individual network operations used for interactions with the Service Bus service."
+                          "description": "The set of options to use for determining whether a failed service operation should be retried and,\nif so, the amount of time to wait between retry attempts.  These options also control the\namount of time allowed for the individual network operations used for interactions with the Service Bus service."
                         },
                         "TransportType": {
                           "enum": [
                             "AmqpTcp",
                             "AmqpWebSockets"
                           ],
-                          "description": "The type of protocol and transport that will be used for communicating with the Service Bus\n               service."
+                          "description": "The type of protocol and transport that will be used for communicating with the Service Bus\nservice."
                         }
                       },
                       "description": "The set of options that can be specified when creating an T:Azure.Messaging.ServiceBus.ServiceBusConnection to configure its behavior."

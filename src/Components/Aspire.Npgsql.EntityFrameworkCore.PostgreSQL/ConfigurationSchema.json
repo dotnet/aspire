@@ -60,7 +60,7 @@
                     },
                     "DbContextPooling": {
                       "type": "boolean",
-                      "description": "Gets or sets a boolean value that indicates whether the DbContext will be pooled or explicitly created every time it\u0027s requested.",
+                      "description": "Gets or sets a boolean value that indicates whether the DbContext will be pooled or explicitly created every time it's requested.",
                       "default": true
                     },
                     "HealthChecks": {

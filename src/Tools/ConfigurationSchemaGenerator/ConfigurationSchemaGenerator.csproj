@@ -13,6 +13,8 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" />
     <PackageReference Include="System.CommandLine" />
+
+    <InternalsVisibleTo Include="$(AssemblyName).Tests" />
   </ItemGroup>
   
 </Project>
