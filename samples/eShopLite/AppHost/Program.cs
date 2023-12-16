@@ -1,10 +1,13 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
-builder.AddPrometheusContainer("prometheus", "../prometheus", "prom-data");
+var prometheusPort = 9090;
+builder.AddPrometheusContainer("prometheus-container", "../prometheus", "prom-data", prometheusPort);
 
-builder.AddPrometheusContainer("prometheus", "../prometheus", "prom-data");
+var grafanaPort = 3000;
+builder.AddGrafanaContainer("grafana-container", "../grafana/config", "../grafana/dashboards", "grafana-data", grafanaPort);
 
-var catalogDb = builder.AddPostgres("postgres").AddDatabase("catalogdb");
+var catalogDb = builder.AddPostgres("postgres")
+                       .AddDatabase("catalogdb");
 
 var basketCache = builder.AddRedis("basketcache");
 
