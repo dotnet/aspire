@@ -41,6 +41,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
     private readonly ConcurrentDictionary<string, List<EnvVar>> _additionalEnvVarsMap = [];
     private readonly HashSet<string> _containersWithTaskStarted = [];
     private readonly ConcurrentDictionary<string, object?> _checkedServices = [];
+    private readonly ConcurrentDictionary<string, SemaphoreSlim> _serviceCheckSemaphores = [];
     // HttpClient with no connection re-use for checking service endpoint readiness
     private readonly HttpClient _checkedServicesClient = new HttpClient(new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.Zero });
 
@@ -362,8 +363,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
         {
             const string errorContent = "404 page not found\n";
 
-            if (service.UsesHttpProtocol(out var uriScheme)
-                && !_checkedServices.ContainsKey(service.Metadata.Name))
+            if (service.UsesHttpProtocol(out var uriScheme))
             {
                 // We need to verify if service is "actually" working
                 if (!string.Equals(service.Status?.State, "Ready", StringComparison.OrdinalIgnoreCase))
@@ -372,32 +372,47 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
                     return;
                 }
 
-                var currentTimestamp = DateTime.UtcNow;
-                var delay = TimeSpan.FromMilliseconds(40);
-                var proxyUrlString = $"{uriScheme}://{service.AllocatedAddress}:{service.AllocatedPort}";
-                while (true)
+                if (!_checkedServices.ContainsKey(service.Metadata.Name))
                 {
-                    if (await CheckServiceEndpointReady(proxyUrlString, errorContent).ConfigureAwait(false))
+                    var semaphore = _serviceCheckSemaphores.GetOrAdd(service.Metadata.Name, _ => new SemaphoreSlim(1, 1));
+                    await semaphore.WaitAsync().ConfigureAwait(false);
+                    try
                     {
-                        break;
-                    }
+                        if (!_checkedServices.ContainsKey(service.Metadata.Name))
+                        {
+                            var currentTimestamp = DateTime.UtcNow;
+                            var delay = TimeSpan.FromMilliseconds(40);
+                            var proxyUrlString = $"{uriScheme}://{service.AllocatedAddress}:{service.AllocatedPort}";
+                            while (true)
+                            {
+                                if (await CheckServiceEndpointReady(proxyUrlString, errorContent).ConfigureAwait(false))
+                                {
+                                    break;
+                                }
 
-                    if (DateTime.UtcNow.Subtract(currentTimestamp) > maxRetryDuration)
+                                if (DateTime.UtcNow.Subtract(currentTimestamp) > maxRetryDuration)
+                                {
+                                    // We went over max retry duration so exit while
+                                    _logger.LogDebug("Couldn't confirm {ServiceName} endpoint ready in {TimeoutSeconds}, assuming ready", service.Metadata.Name, maxRetryDuration.TotalSeconds);
+                                    break;
+                                }
+
+                                await Task.Delay(delay, _cancellationToken).ConfigureAwait(false);
+                                delay *= 2;
+                            }
+
+                            _checkedServices.TryAdd(service.Metadata.Name, null);
+                        }
+                    }
+                    finally
                     {
-                        // We went over max retry duration so exit while
-                        _logger.LogDebug("Couldn't confirm {ServiceName} endpoint ready in {TimeoutSeconds}, assuming ready", service.Metadata.Name, maxRetryDuration.TotalSeconds);
-                        break;
+                        semaphore.Release();
                     }
-
-                    await Task.Delay(delay, _cancellationToken).ConfigureAwait(false);
-                    delay *= 2;
                 }
 
-                _checkedServices.TryAdd(service.Metadata.Name, null);
+                await _kubernetesChangesChannel.Writer.WriteAsync(
+                            (eventType, service.Metadata.Name, service), _cancellationToken).ConfigureAwait(false);
             }
-
-            await _kubernetesChangesChannel.Writer.WriteAsync(
-                (eventType, service.Metadata.Name, service), _cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -698,7 +713,24 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
                 break;
 
             case WatchEventType.Modified:
-                map[resource.Metadata.Name] = resource;
+                if (map.TryGetValue(resource.Metadata.Name, out var existingResource))
+                {
+                    if (Int32.TryParse(existingResource.Metadata.ResourceVersion, out var existingResourceVersion)
+                        && Int32.TryParse(resource.Metadata.ResourceVersion, out var resourceVersion))
+                    {
+                        if (existingResourceVersion < resourceVersion)
+                        {
+                            map[resource.Metadata.Name] = resource;
+                        }
+                        else
+                        {
+                            // We already have a newer version of resource, don't update
+                            break;
+                        }
+                    }
+                }
+
+                map.Add(resource.Metadata.Name, resource);
                 break;
 
             case WatchEventType.Deleted:
