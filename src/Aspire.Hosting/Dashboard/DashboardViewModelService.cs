@@ -409,10 +409,10 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
                         semaphore.Release();
                     }
                 }
-
-                await _kubernetesChangesChannel.Writer.WriteAsync(
-                            (eventType, service.Metadata.Name, service), _cancellationToken).ConfigureAwait(false);
             }
+
+            await _kubernetesChangesChannel.Writer.WriteAsync(
+                            (eventType, service.Metadata.Name, service), _cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
