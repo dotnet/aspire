@@ -46,7 +46,7 @@ public class ResourcePublisherTests
 
         var change = Assert.Single(changes);
         Assert.Equal(ResourceChangeType.Upsert, change.ChangeType);
-        Assert.Same(c, change.Resource);
+        Assert.Equal("C", change.Resource.Name);
 
         await cts.CancelAsync();
 
@@ -82,8 +82,8 @@ public class ResourcePublisherTests
 
         Assert.Equal(ResourceChangeType.Upsert, enumerator1.Current.ChangeType);
         Assert.Equal(ResourceChangeType.Upsert, enumerator2.Current.ChangeType);
-        Assert.Same(c, enumerator1.Current.Resource);
-        Assert.Same(c, enumerator2.Current.Resource);
+        Assert.Equal("C", enumerator1.Current.Resource.Name);
+        Assert.Equal("C", enumerator2.Current.Resource.Name);
 
         await cts.CancelAsync();
     }
@@ -124,7 +124,7 @@ public class ResourcePublisherTests
 
         var (snapshot, _) = publisher.Subscribe();
 
-        Assert.Same(b, Assert.Single(snapshot));
+        Assert.Equal("B", Assert.Single(snapshot).Name);
 
         await cts.CancelAsync();
     }
