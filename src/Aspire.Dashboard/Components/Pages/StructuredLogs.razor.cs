@@ -18,7 +18,8 @@ public partial class StructuredLogs
     private static readonly SelectViewModel<string> s_allApplication = new SelectViewModel<string> { Id = null, Name = "(All)" };
 
     private TotalItemsFooter _totalItemsFooter = default!;
-    private List<SelectViewModel<string>> _applications = default!;
+    private List<OtlpApplication> _applications = default!;
+    private List<SelectViewModel<string>> _applicationViewModels = default!;
     private List<SelectViewModel<LogLevel?>> _logLevels = default!;
     private SelectViewModel<string> _selectedApplication = s_allApplication;
     private SelectViewModel<LogLevel?> _selectedLogLevel = default!;
@@ -79,12 +80,12 @@ public partial class StructuredLogs
         }
         if (!string.IsNullOrEmpty(SpanId))
         {
-            ViewModel.AddFilter(new LogFilter { Field = "SpanId", Condition = FilterCondition.Equals, Value = SpanId });
+            ViewModel.AddFilter(new LogFilter { Field = "SpanId", Condition = FilterCondition.Equals, Value = SpanId  });
         }
 
         _logLevels = new List<SelectViewModel<LogLevel?>>
         {
-            new SelectViewModel<LogLevel?> { Id = null, Name = "(All)" },
+            new SelectViewModel<LogLevel?> { Id = null, Name = $"({Loc[Dashboard.Resources.StructuredLogs.StructuredLogsAllTypes]})" },
             new SelectViewModel<LogLevel?> { Id = LogLevel.Trace, Name = "Trace" },
             new SelectViewModel<LogLevel?> { Id = LogLevel.Debug, Name = "Debug" },
             new SelectViewModel<LogLevel?> { Id = LogLevel.Information, Name = "Information" },
@@ -106,7 +107,7 @@ public partial class StructuredLogs
 
     protected override void OnParametersSet()
     {
-        _selectedApplication = _applications.SingleOrDefault(e => e.Id == ApplicationInstanceId) ?? s_allApplication;
+        _selectedApplication = _applicationViewModels.SingleOrDefault(e => e.Id == ApplicationInstanceId) ?? s_allApplication;
         ViewModel.ApplicationServiceId = _selectedApplication.Id;
 
         if (LogLevelText != null && Enum.TryParse<LogLevel>(LogLevelText, ignoreCase: true, out var logLevel))
@@ -124,8 +125,9 @@ public partial class StructuredLogs
 
     private void UpdateApplications()
     {
-        _applications = TelemetryRepository.GetApplications().Select(a => new SelectViewModel<string> { Id = a.InstanceId, Name = a.ApplicationName }).ToList();
-        _applications.Insert(0, s_allApplication);
+        _applications = TelemetryRepository.GetApplications();
+        _applicationViewModels = SelectViewModelFactory.CreateApplicationsSelectViewModel(_applications);
+        _applicationViewModels.Insert(0, s_allApplication);
     }
 
     private Task HandleSelectedApplicationChangedAsync()
@@ -183,7 +185,7 @@ public partial class StructuredLogs
     {
         var logPropertyKeys = TelemetryRepository.GetLogPropertyKeys(_selectedApplication.Id);
 
-        var title = entry is not null ? "Edit Filter" : "Add Filter";
+        var title = entry is not null ? Loc[Dashboard.Resources.StructuredLogs.StructuredLogsEditFilter] : Loc[Dashboard.Resources.StructuredLogs.StructuredLogsAddFilter];
         var parameters = new DialogParameters
         {
             OnDialogResult = DialogService.CreateDialogCallback(this, HandleFilterDialog),
@@ -229,7 +231,7 @@ public partial class StructuredLogs
             _ = Task.Run(async () =>
             {
                 await Task.Delay(400, cts.Token);
-                ViewModel.FilterText = newFilter ?? string.Empty;
+                ViewModel.FilterText = newFilter;
                 await InvokeAsync(StateHasChanged);
             });
         }
@@ -241,6 +243,8 @@ public partial class StructuredLogs
         ViewModel.FilterText = string.Empty;
         StateHasChanged();
     }
+
+    private string GetResourceName(OtlpApplication app) => OtlpApplication.GetResourceName(app, _applications);
 
     private void NavigateTo(string? applicationId, LogLevel? level)
     {
@@ -262,9 +266,16 @@ public partial class StructuredLogs
         NavigationManager.NavigateTo(url);
     }
 
-    private static string GetRowClass(OtlpLogEntry entry)
+    private string GetRowClass(OtlpLogEntry entry)
     {
-        return $"log-row-{entry.Severity.ToString().ToLowerInvariant()}";
+        if (entry == _selectedLogEntry)
+        {
+            return "selected-row";
+        }
+        else
+        {
+            return $"log-row-{entry.Severity.ToString().ToLowerInvariant()}";
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

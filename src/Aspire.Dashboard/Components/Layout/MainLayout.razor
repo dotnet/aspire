@@ -1,27 +1,29 @@
 ﻿@using Aspire.Dashboard.Components.Dialogs
 @using Aspire.Dashboard.Components.CustomIcons;
 @using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Resources
 @using Microsoft.AspNetCore.Http
-@inject IDashboardViewModelService dashboardViewModelService
+@inject IResourceService resourceService
 @inject IDialogService dialogService
+@inject IStringLocalizer<Layout> Loc
 @inherits LayoutComponentBase
 
 <div class="layout">
     <FluentHeader>
         <div class="header-title">
             <FluentAnchor IconStart="@(new AspireIcons.Size32.Logo())" Appearance="Appearance.Stealth" Href="/" Class="logo">
-                @dashboardViewModelService.ApplicationName Dashboard
+                @string.Format(Loc[Layout.MainLayoutDashboardName], resourceService.ApplicationName)
             </FluentAnchor>
         </div>
         <div class="header-right">
             <FluentAnchor Appearance="Appearance.Stealth" IconEnd="@(new AspireIcons.Size24.GitHub())"
                           Href="https://aka.ms/dotnet/aspire/repo" Target="_blank" Rel="noreferrer noopener"
-                          Title=".NET Aspire Repo" aria-label=".NET Aspire Repo" />
+                          Title="@Loc[Layout.MainLayoutAspireRepoLink]" aria-label="@Loc[Layout.MainLayoutAspireRepoLink]" />
             <FluentAnchor Appearance="Appearance.Stealth" IconEnd="@(new Icons.Regular.Size24.QuestionCircle())"
                           Href="https://aka.ms/dotnet/aspire/dashboard" Target="_blank" Rel="noreferrer noopener"
-                          Title="Help" aria-label="Help" />
+                          Title="@Loc[Layout.MainLayoutAspireDashboardHelpLink]" aria-label="@Loc[Layout.MainLayoutAspireDashboardHelpLink]" />
             <FluentButton Appearance="Appearance.Stealth" OnClick="LaunchSettings" IconEnd="@(new Icons.Regular.Size24.Settings())"
-                          Title="Launch Settings" aria-label="Launch Settings" />
+                          Title="@Loc[Layout.MainLayoutLaunchSettings]" aria-label="@Loc[Layout.MainLayoutLaunchSettings]" />
         </div>
     </FluentHeader>
     <NavMenu />
@@ -32,8 +34,8 @@
     <FluentDialogProvider />
     <FluentTooltipProvider />
     <div id="blazor-error-ui">
-        An unhandled error has occurred.
-        <a href="" class="reload">Reload</a>
+        @Loc[Layout.MainLayoutUnhandledErrorMessage]
+        <a href="" class="reload">@Loc[Layout.MainLayoutUnhandledErrorReload]</a>
         <a class="dismiss">🗙</a>
     </div>
 </div>

@@ -1,0 +1,142 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="pt-BR" original="../ControlsStrings.resx">
+    <body>
+      <trans-unit id="All">
+        <source>All</source>
+        <target state="new">All</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ChartContainerFiltersHeader">
+        <source>Filters</source>
+        <target state="new">Filters</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ChartContainerSelectFilters">
+        <source>Select filters</source>
+        <target state="new">Select filters</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ChartContainerUnableToDisplay">
+        <source>Unable to display chart</source>
+        <target state="new">Unable to display chart</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FilterPlaceholder">
+        <source>Filter...</source>
+        <target state="new">Filter...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="EnvironmentVariablesFilterToggleShowAll">
+        <source>Show All</source>
+        <target state="new">Show All</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="EnvironmentVariablesFilterToggleShowSpecOnly">
+        <source>Show Spec Only</source>
+        <target state="new">Show Spec Only</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="EnvironmentVariablesHideVariableValues">
+        <source>Hide Values</source>
+        <target state="new">Hide Values</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="EnvironmentVariablesShowVariableValues">
+        <source>Show Values</source>
+        <target state="new">Show Values</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GridValueCopyToClipboard">
+        <source>Copy to Clipboard</source>
+        <target state="new">Copy to Clipboard</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GridValueMaskHideValue">
+        <source>Hide Value</source>
+        <target state="new">Hide Value</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GridValueMaskShowValue">
+        <source>Show Value</source>
+        <target state="new">Show Value</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NameColumnHeader">
+        <source>Name</source>
+        <target state="new">Name</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PlotlyChartCount">
+        <source>Count</source>
+        <target state="new">Count</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PlotlyChartLength">
+        <source>Length</source>
+        <target state="new">Length</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PlotlyChartValue">
+        <source>Value</source>
+        <target state="new">Value</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PropertyGridValueColumnHeader">
+        <source>Value</source>
+        <target state="new">Value</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SelectAnApplication">
+        <source>Select an Application</source>
+        <target state="new">Select an Application</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanDetailsDuration">
+        <source>Duration &lt;strong&gt;{0}&lt;/strong&gt;</source>
+        <target state="new">Duration &lt;strong&gt;{0}&lt;/strong&gt;</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanDetailsService">
+        <source>Service &lt;strong&gt;{0}&lt;/strong&gt;</source>
+        <target state="new">Service &lt;strong&gt;{0}&lt;/strong&gt;</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanDetailsStartTime">
+        <source>Start Time &lt;strong&gt;{0}&lt;/strong&gt;</source>
+        <target state="new">Start Time &lt;strong&gt;{0}&lt;/strong&gt;</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ViewAction">
+        <source>View</source>
+        <target state="new">View</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ViewLogsLink">
+        <source>View Logs</source>
+        <target state="new">View Logs</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SummaryDetailsViewCloseView">
+        <source>Close</source>
+        <target state="new">Close</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SummaryDetailsViewSplitHorizontal">
+        <source>Split Horizontal</source>
+        <target state="new">Split Horizontal</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SummaryDetailsViewSplitVertical">
+        <source>Split Vertical</source>
+        <target state="new">Split Vertical</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TotalItemsFooterText">
+        <source>Total: &lt;strong&gt;{0} results found&lt;/strong&gt;</source>
+        <target state="new">Total: &lt;strong&gt;{0} results found&lt;/strong&gt;</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

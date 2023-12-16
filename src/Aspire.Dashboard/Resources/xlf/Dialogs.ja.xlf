@@ -1,0 +1,57 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="ja" original="../Dialogs.resx">
+    <body>
+      <trans-unit id="FilterDialogApplyFilterButtonText">
+        <source>Apply Filter</source>
+        <target state="new">Apply Filter</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FilterDialogCancelButtonText">
+        <source>Cancel</source>
+        <target state="new">Cancel</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FilterDialogFieldPlaceholder">
+        <source>Field</source>
+        <target state="new">Field</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FilterDialogRemoveFilterButtonText">
+        <source>Remove Filter</source>
+        <target state="new">Remove Filter</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FilterDialogTextValuePlaceholder">
+        <source>Value</source>
+        <target state="new">Value</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogDarkTheme">
+        <source>Dark</source>
+        <target state="new">Dark</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogLightTheme">
+        <source>Light</source>
+        <target state="new">Light</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogSystemTheme">
+        <source>System</source>
+        <target state="new">System</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogTheme">
+        <source>Theme</source>
+        <target state="new">Theme</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogVersion">
+        <source>Version: {0}</source>
+        <target state="new">Version: {0}</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

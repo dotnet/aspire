@@ -62,7 +62,7 @@ public class ProjectResourceTests
             env =>
             {
                 Assert.Equal("OTEL_SERVICE_NAME", env.Key);
-                Assert.Equal("{{- .Name -}}", env.Value);
+                Assert.Equal("{{- index .Annotations \"otel-service-name\" -}}", env.Value);
             },
             env =>
             {
@@ -150,7 +150,7 @@ public class ProjectResourceTests
         Assert.Equal("Project does not contain service metadata.", ex.Message);
     }
 
-    private IDistributedApplicationBuilder CreateBuilder()
+    private static IDistributedApplicationBuilder CreateBuilder()
     {
         var appBuilder = DistributedApplication.CreateBuilder(["--publisher", "manifest"]);
         // Block DCP from actually starting anything up as we don't need it for this test.

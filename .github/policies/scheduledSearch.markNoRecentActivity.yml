@@ -1,0 +1,30 @@
+id: scheduledSearch.markNoRecentActivity
+name: No Recent Activity Monitor
+description: Adds no-recent-activity label to issues and PRs that have not been updated in a while
+owner:
+resource: repository
+disabled: false
+where:
+configuration:
+  resourceManagementConfiguration:
+    scheduledSearches:
+      - description: Add no-recent-activity label to issues and PRs that have not been updated in a while
+        frequencies:
+          - hourly:
+              hour: 3
+        filters:
+          - isOpen
+          - isNotLabeledWith:
+              label: no-recent-activity
+          - hasLabel:
+              label: needs-author-action
+          - noActivitySince:
+              days: 14
+        actions:
+          - addLabel:
+              label: no-recent-activity
+          - addReply:
+              reply: >-
+                This submission has been automatically marked as stale because it has been marked as requiring author action but has not had any activity for **14 days**.
+              
+                It will be closed if no further activity occurs **within 7 days of this comment**.

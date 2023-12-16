@@ -2,15 +2,17 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 builder.AddPrometheusContainer("prometheus", "../prometheus", "prom-data");
 
-var catalogDb = builder.AddPostgresContainer("postgres").AddDatabase("catalogdb");
+builder.AddPrometheusContainer("prometheus", "../prometheus", "prom-data");
 
-var basketCache = builder.AddRedisContainer("basketcache");
+var catalogDb = builder.AddPostgres("postgres").AddDatabase("catalogdb");
+
+var basketCache = builder.AddRedis("basketcache");
 
 var catalogService = builder.AddProject<Projects.CatalogService>("catalogservice")
                      .WithReference(catalogDb)
                      .WithReplicas(2);
 
-var messaging = builder.AddRabbitMQContainer("messaging");
+var messaging = builder.AddRabbitMQ("messaging");
 
 var basketService = builder.AddProject("basketservice", @"..\BasketService\BasketService.csproj")
                     .WithReference(basketCache)

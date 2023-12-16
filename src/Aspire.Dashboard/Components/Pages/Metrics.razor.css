@@ -18,27 +18,26 @@
 
 ::deep .metrics-chart {
     display: grid;
-    grid-template-columns: min-content auto;
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+        "header"
+        "chart";
+    width: 100%;
+    gap: calc(var(--design-unit) * 4px);
+    padding-left: 40px;
 }
 
 ::deep .metrics-chart-header {
-    margin-left: 40px;
+    grid-area: header;
 }
 
 ::deep .metrics-chart-container {
-    grid-column: 1;
-    margin-bottom: 60px;
-}
-
-::deep .metrics-filters-container {
-    grid-column: 2;
-}
-
-@media (max-width: 1700px) {
-    ::deep .metrics-filters-container {
-        grid-column: 1;
-        margin-left: 40px;
-    }
+    grid-area: chart;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    row-gap: calc(var(--design-unit) * 4px);
+    column-gap: calc(var(--design-unit) * 4px);
 }
 
 ::deep .metrics-filters-container td.dimension-name {
@@ -88,4 +87,8 @@
     height: 100%;
     width: 100%;
     overflow: auto;
+}
+
+::deep #plotly-chart-container {
+    margin-left: -40px;
 }
