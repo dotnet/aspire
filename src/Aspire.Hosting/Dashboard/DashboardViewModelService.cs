@@ -726,7 +726,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
                     }
                 }
 
-                map[resource.Metadta.Name] = resource;
+                map[resource.Metadata.Name] = resource;
 
                 break;
 
