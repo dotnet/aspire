@@ -145,6 +145,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CatalogDb", "samples\eShopL
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{991DB378-6CB5-4441-BFC3-657400690FC3}"
 	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
 		Directory.Packages.props = Directory.Packages.props
 		spelling.dic = spelling.dic
 	EndProjectSection
@@ -160,6 +161,10 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.MySqlConnector.Tests", "tests\Aspire.MySqlConnector.Tests\Aspire.MySqlConnector.Tests.csproj", "{C8079F06-304F-49B1-A0C1-45AA3782A923}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestProject.IntegrationServiceA", "tests\testproject\TestProject.IntegrationServiceA\TestProject.IntegrationServiceA.csproj", "{DCF2D47A-921A-4900-B5B2-CF97B3531CE8}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{2136E31D-2CBB-41BB-8618-716FF8E46E9E}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConfigurationSchemaGenerator", "src\Tools\ConfigurationSchemaGenerator\ConfigurationSchemaGenerator.csproj", "{39FA2A64-012F-4EB9-A14F-E8AC54C975F6}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.MongoDB.Driver", "src\Components\Aspire.MongoDB.Driver\Aspire.MongoDB.Driver.csproj", "{20A5A907-A135-4735-B4BF-E13514F360E3}"
 EndProject
@@ -447,6 +452,10 @@ Global
 		{6472D59F-7C04-43DE-AD33-9F20BE3804BF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6472D59F-7C04-43DE-AD33-9F20BE3804BF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6472D59F-7C04-43DE-AD33-9F20BE3804BF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{39FA2A64-012F-4EB9-A14F-E8AC54C975F6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{39FA2A64-012F-4EB9-A14F-E8AC54C975F6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{39FA2A64-012F-4EB9-A14F-E8AC54C975F6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{39FA2A64-012F-4EB9-A14F-E8AC54C975F6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -524,6 +533,7 @@ Global
 		{20A5A907-A135-4735-B4BF-E13514F360E3} = {27381127-6C45-4B4C-8F18-41FF48DFE4B2}
 		{E592E447-BA3C-44FA-86C1-EBEDC864A644} = {4981B3A5-4AFD-4191-BF7D-8692D9783D60}
 		{DCF2D47A-921A-4900-B5B2-CF97B3531CE8} = {975F6F41-B455-451D-A312-098DE4A167B6}
+		{39FA2A64-012F-4EB9-A14F-E8AC54C975F6} = {2136E31D-2CBB-41BB-8618-716FF8E46E9E}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6DCEDFEC-988E-4CB3-B45B-191EB5086E0C}

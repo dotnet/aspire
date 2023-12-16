@@ -109,7 +109,7 @@
 }
 
 ::deep .ansi-fg-magenta {
-    color: #881798;
+    color: #CD13E8;
 }
 
 ::deep .ansi-fg-red {
@@ -141,7 +141,7 @@
 }
 
 ::deep .ansi-fg-brightmagenta {
-    color: #B4009E;
+    color: #DA01FA;
 }
 
 ::deep .ansi-fg-brightred {
@@ -173,11 +173,11 @@
 }
 
 ::deep .ansi-bg-magenta {
-    background-color: #881798;
+    background-color: #CD13E8;
 }
 
 ::deep .ansi-bg-red {
-    background-color: #C50F1F;
+    background-color: #f80f24;
 }
 
 ::deep .ansi-bg-white {
