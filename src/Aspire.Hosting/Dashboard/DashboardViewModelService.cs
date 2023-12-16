@@ -718,19 +718,16 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
                     if (Int32.TryParse(existingResource.Metadata.ResourceVersion, out var existingResourceVersion)
                         && Int32.TryParse(resource.Metadata.ResourceVersion, out var resourceVersion))
                     {
-                        if (existingResourceVersion < resourceVersion)
+                        if (existingResourceVersion >= resourceVersion)
                         {
-                            map[resource.Metadata.Name] = resource;
-                        }
-                        else
-                        {
-                            // We already have a newer version of resource, don't update
+                            // If we already have a resource with higher version, we ignore this change
                             break;
                         }
                     }
                 }
 
-                map.Add(resource.Metadata.Name, resource);
+                map[resource.Metadta.Name] = resource;
+
                 break;
 
             case WatchEventType.Deleted:
