@@ -21,17 +21,18 @@
                       "description": "Gets or sets a boolean value that indicates whether the database health check is enabled or not.",
                       "default": true
                     },
-                    "Tracing": {
-                      "type": "boolean",
-                      "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.",
-                      "default": true
-                    },
                     "Metrics": {
                       "type": "boolean",
                       "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not.",
                       "default": true
+                    },
+                    "Tracing": {
+                      "type": "boolean",
+                      "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.",
+                      "default": true
                     }
-                  }
+                  },
+                  "description": "Provides the client configuration settings for connecting to a SQL Server database using SqlClient."
                 }
               }
             }

@@ -3,9 +3,11 @@
 
 using System.Diagnostics;
 using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.DotnetRuntime.Extensions;
@@ -13,20 +15,18 @@ using Microsoft.Extensions.Configuration.Binder.SourceGeneration;
 
 namespace ConfigurationSchemaGenerator;
 
-internal sealed class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation compilation)
+internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation compilation)
 {
     private readonly TypeIndex _typeIndex = new TypeIndex(spec.AllTypes);
     private readonly Compilation _compilation = compilation;
     private readonly Stack<TypeSpec> _visitedTypes = new();
     private readonly string[] _exclusionPaths = CreateExclusionPaths(spec.ExclusionPaths);
 
+    [GeneratedRegex(@"( *)\r?\n( *)")]
+    private static partial Regex Indentation();
+
     public string GenerateSchema()
     {
-        if (spec == null || spec.ConfigurationTypes.Count == 0)
-        {
-            return string.Empty;
-        }
-
         var root = new JsonObject();
         GenerateLogCategories(root);
         root["properties"] = GenerateGraph();
@@ -36,7 +36,9 @@ internal sealed class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation
         {
             WriteIndented = true,
             // ensure the properties are ordered correctly
-            Converters = { SchemaOrderJsonNodeConverter.Instance }
+            Converters = { SchemaOrderJsonNodeConverter.Instance },
+            // prevent known escaped characters from being \uxxxx encoded
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
         };
         return JsonSerializer.Serialize(root, options);
     }
@@ -68,18 +70,21 @@ internal sealed class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation
 
     private JsonObject GenerateGraph()
     {
-        if (spec.ConfigurationTypes.Count != spec.ConfigurationPaths.Count)
-        {
-            throw new InvalidOperationException("Ensure Types and ConfigurationPaths are the same length.");
-        }
-
         var root = new JsonObject();
-        for (var i = 0; i < spec.ConfigurationPaths.Count; i++)
+        if (spec.ConfigurationTypes.Count > 0)
         {
-            var type = spec.ConfigurationTypes[i];
-            var path = spec.ConfigurationPaths[i];
+            if (spec.ConfigurationTypes.Count != spec.ConfigurationPaths.Count)
+            {
+                throw new InvalidOperationException("Ensure Types and ConfigurationPaths are the same length.");
+            }
 
-            GenerateProperties(root, type, path);
+            for (var i = 0; i < spec.ConfigurationPaths.Count; i++)
+            {
+                var type = spec.ConfigurationTypes[i];
+                var path = spec.ConfigurationPaths[i];
+
+                GenerateProperties(root, type, path);
+            }
         }
 
         return root;
@@ -133,20 +138,25 @@ internal sealed class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation
                         var propertySymbol = GetPropertySymbol(type, property);
 
                         var propertyNode = new JsonObject();
+                        currentNode[property.Name] = propertyNode;
+
                         AppendTypeNodes(propertyNode, propertyTypeSpec);
 
                         if (propertyTypeSpec is ComplexTypeSpec complexPropertyTypeSpec)
                         {
                             var innerPropertiesNode = new JsonObject();
+                            propertyNode["properties"] = innerPropertiesNode;
+
                             GenerateProperties(innerPropertiesNode, complexPropertyTypeSpec);
-                            if (innerPropertiesNode.Count > 0)
+                            if (innerPropertiesNode.Count == 0)
                             {
-                                propertyNode["properties"] = innerPropertiesNode;
+                                propertyNode.Remove("properties");
                             }
                         }
 
                         if (ShouldSkipProperty(propertyNode, property, propertyTypeSpec, propertySymbol))
                         {
+                            currentNode.Remove(property.Name);
                             continue;
                         }
 
@@ -155,8 +165,6 @@ internal sealed class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation
                         {
                             GenerateDocCommentsProperties(propertyNode, docComment);
                         }
-
-                        currentNode[property.Name] = propertyNode;
                     }
                 }
             }
@@ -189,10 +197,11 @@ internal sealed class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation
         }
 
         // skip empty objects
-        if (propertyNode["type"] is JsonValue typeValue &&
-            typeValue.TryGetValue<string>(out var typeValueString) &&
-            typeValueString == "object" &&
-            propertyNode["properties"] is null)
+        if (propertyNode.Count == 0 ||
+            (propertyNode["type"] is JsonValue typeValue &&
+                typeValue.TryGetValue<string>(out var typeValueString) &&
+                typeValueString == "object" &&
+                propertyNode["properties"] is null))
         {
             return true;
         }
@@ -232,11 +241,8 @@ internal sealed class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation
             {
                 var value = node.ToString().Trim();
                 AppendSpaceIfNecessary(builder, value);
-                builder.Append(value);
+                AppendUnindentedValue(builder, value);
             }
-
-            // normalize line endings
-            builder.Replace("\r\n", "\n");
 
             propertyNode["description"] = builder.ToString();
         }
@@ -323,6 +329,29 @@ internal sealed class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation
         }
     }
 
+    internal static void AppendUnindentedValue(StringBuilder builder, string value)
+    {
+        var index = 0;
+
+        foreach (var match in Indentation().EnumerateMatches(value))
+        {
+            if (match.Index > index)
+            {
+                builder.Append(value, index, match.Index - index);
+            }
+
+            builder.Append('\n');
+            index = match.Index + match.Length;
+        }
+
+        var remaining = value.Length - index;
+
+        if (remaining > 0)
+        {
+            builder.Append(value, index, remaining);
+        }
+    }
+
     private void AppendTypeNodes(JsonObject propertyNode, TypeSpec propertyTypeSpec)
     {
         if (propertyTypeSpec is ParsableFromStringSpec parsable)
@@ -341,6 +370,11 @@ internal sealed class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation
         else if (propertyTypeSpec is NullableSpec nullable)
         {
             AppendTypeNodes(propertyNode, _typeIndex.GetTypeSpec(nullable.EffectiveTypeRef));
+        }
+        else if (propertyTypeSpec is UnsupportedTypeSpec unsupported &&
+            unsupported.NotSupportedReason == NotSupportedReason.CollectionNotSupported)
+        {
+            // skip unsupported collections
         }
         else
         {
@@ -385,7 +419,10 @@ internal sealed class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation
     private static string GetParsableTypeName(ParsableFromStringSpec parsable) => parsable.DisplayString switch
     {
         "bool" => "boolean",
+        "short" => "integer",
+        "ushort" => "integer",
         "int" => "integer",
+        "uint" => "integer",
         "long" => "integer",
         "string" => "string",
         "Version" => "string",
