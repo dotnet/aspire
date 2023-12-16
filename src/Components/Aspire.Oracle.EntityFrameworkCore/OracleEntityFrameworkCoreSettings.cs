@@ -20,34 +20,26 @@ public sealed class OracleEntityFrameworkCoreSettings
 
     /// <summary>
     /// <para>Gets or sets the maximum number of retry attempts.</para>
-    /// <value>
-    /// The default is 6.
-    /// Set it to 0 to disable the retry mechanism.
-    /// </value>
+    /// <para>The default is 6.</para>
+    /// <para>Set it to 0 to disable the retry mechanism.</para>
     /// </summary>
     public int MaxRetryCount { get; set; } = 6;
 
     /// <summary>
     /// <para>Gets or sets a boolean value that indicates whether the database health check is enabled or not.</para>
-    /// <value>
-    /// The default value is <see langword="true"/>.
-    /// </value>
+    /// <para>The default value is <see langword="true"/>.</para>
     /// </summary>
     public bool HealthChecks { get; set; } = true;
 
     /// <summary>
     /// <para>Gets or sets a boolean value that indicates whether the Open Telemetry tracing is enabled or not.</para>
-    /// <value>
-    /// The default value is <see langword="true"/>.
-    /// </value>
+    /// <para>The default value is <see langword="true"/>.</para>
     /// </summary>
     public bool Tracing { get; set; } = true;
 
     /// <summary>
     /// <para>Gets or sets a boolean value that indicates whether the Open Telemetry metrics are enabled or not.</para>
-    /// <value>
-    /// The default value is <see langword="true"/>.
-    /// </value>
+    /// <para>The default value is <see langword="true"/>.</para>
     /// </summary>
     public bool Metrics { get; set; } = true;
 

@@ -1,4 +1,4 @@
-# Aspire.Oracle.EntityFrameworkCore.Database library
+# Aspire.Oracle.EntityFrameworkCore library
 
 Registers [EntityFrameworkCore](https://learn.microsoft.com/ef/core/) [DbContext](https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbcontext) service for connecting Oracle database. Enables connection pooling, health check, logging and telemetry.
 
@@ -10,10 +10,10 @@ Registers [EntityFrameworkCore](https://learn.microsoft.com/ef/core/) [DbContext
 
 ### Install the package
 
-Install the .NET Aspire Oracle EntityFrameworkCore Database library with [NuGet](https://www.nuget.org):
+Install the .NET Aspire Oracle EntityFrameworkCore library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
-dotnet add package Aspire.Oracle.EntityFrameworkCore.Database
+dotnet add package Aspire.Oracle.EntityFrameworkCore
 ```
 
 ## Usage example
@@ -37,7 +37,7 @@ public ProductsController(MyDbContext context)
 
 ## Configuration
 
-The .NET Aspire Oracle EntityFrameworkCore Database component provides multiple options to configure the SQL connection based on the requirements and conventions of your project.
+The .NET Aspire Oracle EntityFrameworkCore component provides multiple options to configure the database connection based on the requirements and conventions of your project.
 
 ### Use a connection string
 
@@ -61,19 +61,17 @@ See the [ODP.NET documentation](https://docs.oracle.com/en/database/oracle/oracl
 
 ### Use configuration providers
 
-The .NET Aspire Oracle EntityFrameworkCore Database component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `OracleEntityFrameworkCoreDatabaseSettings` from configuration by using the `Aspire:Microsoft:EntityFrameworkCore:OracleDatabase` key. Example `appsettings.json` that configures some of the options:
+The .NET Aspire Oracle EntityFrameworkCore component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `OracleEntityFrameworkCoreSettings` from configuration by using the `Aspire:Oracle:EntityFrameworkCore` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {
   "Aspire": {
     "Oracle": {
       "EntityFrameworkCore": {
-        "Database": {
-          "DbContextPooling": true,
-          "HealthChecks": false,
-          "Tracing": false,
-          "Metrics": true
-        }
+        "DbContextPooling": true,
+        "HealthChecks": false,
+        "Tracing": false,
+        "Metrics": true
       }
     }
   }
@@ -82,7 +80,7 @@ The .NET Aspire Oracle EntityFrameworkCore Database component supports [Microsof
 
 ### Use inline delegates
 
-Also you can pass the `Action<OracleEntityFrameworkCoreDatabaseSettings> configureSettings` delegate to set up some or all the options inline, for example to disable health checks from code:
+Also you can pass the `Action<OracleEntityFrameworkCoreSettings> configureSettings` delegate to set up some or all the options inline, for example to disable health checks from code:
 
 ```csharp
     builder.AddOracleDatabaseDbContext<MyDbContext>("orcl", settings => settings.HealthChecks = false);
@@ -93,11 +91,17 @@ Also you can pass the `Action<OracleEntityFrameworkCoreDatabaseSettings> configu
  In your AppHost project, register an Oracle container and consume the connection using the following methods: 
   
  ```csharp 
- var oracledb = builder.AddPostgresContainer("oracle").AddDatabase("freepdb1"); 
+ var freepdb1 = builder.AddOracleDatabaseContainer("oracle").AddDatabase("freepdb1"); 
   
  var myService = builder.AddProject<Projects.MyService>() 
-                        .WithReference(oracledb); 
+                        .WithReference(freepdb1); 
  ``` 
+
+The `WithReference` method configures a connection in the `MyService` project named `freepdb1`. In the _Program.cs_ file of `MyService`, the database connection can be consumed using:
+
+```csharp
+builder.AddOracleDatabaseDbContext<MyDbContext>("freepdb1");
+```
 
 ## Additional documentation
 

@@ -223,32 +223,6 @@ Aspire.Npgsql.EntityFrameworkCore.PostgreSQL:
     - "db.client.connections.timeouts"
     - "db.client.connections.usage"
 
-Aspire.RabbitMQ.Client:
-- Log categories:
-  - "RabbitMQ.Client"
-- Activity source names:
-  - "Aspire.RabbitMQ.Client"
-- Metric names:
-  - none (currently not supported by RabbitMQ.Client library)
-
-Aspire.StackExchange.Redis:
-- Log categories:
-  - "Aspire.StackExchange.Redis" (this name is defined by our component, we can change it)
-- Activity source names:
-  - "OpenTelemetry.Instrumentation.StackExchangeRedis"
-- Metric names:
-  - none (currently not supported by StackExchange.Redis library)
-
-Aspire.StackExchange.Redis.DistributedCaching:
-- Everything from `Aspire.StackExchange.Redis` plus:
-- Log categories:
-  - "Microsoft.Extensions.Caching.StackExchangeRedis"
-
-Aspire.StackExchange.Redis.OutputCaching:
-- Everything from `Aspire.StackExchange.Redis` plus:
-- Log categories:
-  - "Microsoft.AspNetCore.OutputCaching.StackExchangeRedis"
-
 Aspire.Oracle.EntityFrameworkCore:
 - Log categories:
   - "Microsoft.EntityFrameworkCore.ChangeTracking"
@@ -275,3 +249,29 @@ Aspire.Oracle.EntityFrameworkCore:
     - "ec_Microsoft_E_execution_strategy_operation_failures_per_second"
     - "ec_Microsoft_EntityFramew_total_optimistic_concurrency_failures"
     - "ec_Microsoft_EntityF_optimistic_concurrency_failures_per_second"
+
+Aspire.RabbitMQ.Client:
+- Log categories:
+  - "RabbitMQ.Client"
+- Activity source names:
+  - "Aspire.RabbitMQ.Client"
+- Metric names:
+  - none (currently not supported by RabbitMQ.Client library)
+
+Aspire.StackExchange.Redis:
+- Log categories:
+  - "Aspire.StackExchange.Redis" (this name is defined by our component, we can change it)
+- Activity source names:
+  - "OpenTelemetry.Instrumentation.StackExchangeRedis"
+- Metric names:
+  - none (currently not supported by StackExchange.Redis library)
+
+Aspire.StackExchange.Redis.DistributedCaching:
+- Everything from `Aspire.StackExchange.Redis` plus:
+- Log categories:
+  - "Microsoft.Extensions.Caching.StackExchangeRedis"
+
+Aspire.StackExchange.Redis.OutputCaching:
+- Everything from `Aspire.StackExchange.Redis` plus:
+- Log categories:
+  - "Microsoft.AspNetCore.OutputCaching.StackExchangeRedis"

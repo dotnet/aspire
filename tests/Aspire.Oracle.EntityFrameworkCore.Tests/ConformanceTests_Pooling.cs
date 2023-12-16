@@ -90,12 +90,13 @@ public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, OracleEn
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "EF1001:Internal EF Core API usage.", Justification = "Required to verify pooling without touching DB")]
     public void DbContextPoolingRegistersIDbContextPool(bool enabled)
     {
         using IHost host = CreateHostWithComponent(options => options.DbContextPooling = enabled);
 
+#pragma warning disable EF1001 // Internal EF Core API usage.
         IDbContextPool<TestDbContext>? pool = host.Services.GetService<IDbContextPool<TestDbContext>>();
+#pragma warning restore EF1001
 
         Assert.Equal(enabled, pool is not null);
     }
