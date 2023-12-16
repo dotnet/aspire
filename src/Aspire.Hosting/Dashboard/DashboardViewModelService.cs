@@ -103,16 +103,12 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
 
         _ = Task.Run(async () =>
         {
-            List<Task> tasks = new List<Task>();
-
             try
             {
                 await foreach ((WatchEventType eventType, Service service) in _kubernetesService.WatchAsync<Service>(cancellationToken: _cancellationToken))
                 {
-                    tasks.Add(PollUntilServiceEndpointValid(eventType, service, maxRetryDuration));
+                    var _ = PollUntilServiceEndpointValid(eventType, service, maxRetryDuration);
                 }
-
-                await Task.WhenAll(tasks).ConfigureAwait(false);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
@@ -361,44 +357,51 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
     // Poll a given service endpoint until it doesn't return a bad 404 response from the proxy (or the attempt times out)
     private async Task PollUntilServiceEndpointValid(WatchEventType eventType, Service service, TimeSpan maxRetryDuration)
     {
-        const string errorContent = "404 page not found\n";
-
-        if (service.UsesHttpProtocol(out var uriScheme)
-            && !_checkedServices.Contains(service.Metadata.Name))
+        try
         {
-            // We need to verify if service is "actually" working
-            if (!string.Equals(service.Status?.State, "Ready", StringComparison.OrdinalIgnoreCase))
-            {
-                // If service is not ready, we don't try to connect. We will get future notification that service moved to ready state
-                return;
-            }
+            const string errorContent = "404 page not found\n";
 
-            var currentTimestamp = DateTime.UtcNow;
-            var delay = TimeSpan.FromMilliseconds(40);
-            var proxyUrlString = $"{uriScheme}://{service.AllocatedAddress}:{service.AllocatedPort}";
-            while (true)
+            if (service.UsesHttpProtocol(out var uriScheme)
+                && !_checkedServices.Contains(service.Metadata.Name))
             {
-                if (await CheckServiceEndpointReady(proxyUrlString, errorContent).ConfigureAwait(false))
+                // We need to verify if service is "actually" working
+                if (!string.Equals(service.Status?.State, "Ready", StringComparison.OrdinalIgnoreCase))
                 {
-                    break;
+                    // If service is not ready, we don't try to connect. We will get future notification that service moved to ready state
+                    return;
                 }
 
-                if (DateTime.UtcNow.Subtract(currentTimestamp) > maxRetryDuration)
+                var currentTimestamp = DateTime.UtcNow;
+                var delay = TimeSpan.FromMilliseconds(40);
+                var proxyUrlString = $"{uriScheme}://{service.AllocatedAddress}:{service.AllocatedPort}";
+                while (true)
                 {
-                    // We went over max retry duration so exit while
-                    _logger.LogInformation("Couldn't confirm {ServiceName} endpoint ready in {TimeoutSeconds}, assuming ready", service.Metadata.Name, maxRetryDuration.TotalSeconds);
-                    break;
+                    if (await CheckServiceEndpointReady(proxyUrlString, errorContent).ConfigureAwait(false))
+                    {
+                        break;
+                    }
+
+                    if (DateTime.UtcNow.Subtract(currentTimestamp) > maxRetryDuration)
+                    {
+                        // We went over max retry duration so exit while
+                        _logger.LogInformation("Couldn't confirm {ServiceName} endpoint ready in {TimeoutSeconds}, assuming ready", service.Metadata.Name, maxRetryDuration.TotalSeconds);
+                        break;
+                    }
+
+                    await Task.Delay(delay, _cancellationToken).ConfigureAwait(false);
+                    delay *= 2;
                 }
 
-                await Task.Delay(delay, _cancellationToken).ConfigureAwait(false);
-                delay *= 2;
+                _checkedServices.Add(service.Metadata.Name);
             }
 
-            _checkedServices.Add(service.Metadata.Name);
+            await _kubernetesChangesChannel.Writer.WriteAsync(
+                (eventType, service.Metadata.Name, service), _cancellationToken).ConfigureAwait(false);
         }
-
-        await _kubernetesChangesChannel.Writer.WriteAsync(
-            (eventType, service.Metadata.Name, service), _cancellationToken).ConfigureAwait(false);
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to confirm {ServiceName} endpoint ready", service.Metadata.Name);
+        }
     }
 
     private ContainerViewModel ConvertToContainerViewModel(Container container, List<EnvVar>? additionalEnvVars)
