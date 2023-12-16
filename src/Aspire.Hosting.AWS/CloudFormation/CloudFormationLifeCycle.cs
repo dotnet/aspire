@@ -3,6 +3,7 @@
 
 using Amazon.CloudFormation;
 using Amazon.CloudFormation.Model;
+using Amazon.Runtime;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 using Microsoft.Extensions.Logging;
@@ -31,7 +32,7 @@ internal sealed class CloudFormationLifeCycle(ILogger<CloudFormationLifeCycle> l
     public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
         // TODO: Figure out how to get the right credentials and region in here.
-        var cfClient = new AmazonCloudFormationClient();
+        var cfClient = GetCloudFormationClient(cloudFormationResource);
 
         var templateBody = File.ReadAllText(cloudFormationResource.TemplatePath);
         var templateSha256 = ComputeSHA256(templateBody);
@@ -114,6 +115,36 @@ internal sealed class CloudFormationLifeCycle(ILogger<CloudFormationLifeCycle> l
         // allows projects that have a reference to the stack have the output parameters applied to the
         // projects IConfiguration.
         cloudFormationResource.Outputs = stack.Outputs;
+    }
+
+    private static IAmazonCloudFormation GetCloudFormationClient(ICloudFormationResource resource)
+    {
+        if (resource.CloudFormationClient != null)
+        {
+            return resource.CloudFormationClient;
+        }
+
+        try
+        {
+            var config = new AmazonCloudFormationConfig();
+
+            if (resource.Profile != null)
+            {
+                config.Profile = new Amazon.Profile(resource.Profile, resource.ProfileLocation);
+            }
+
+            if (resource.Region != null)
+            {
+                config.RegionEndpoint = resource.Region;
+            }
+
+            var awsCredentials = FallbackCredentialsFactory.GetCredentials(config);
+            return new AmazonCloudFormationClient(awsCredentials, config);
+        }
+        catch(Exception e)
+        {
+            throw new AWSProvisioningException("Failed to construct AWS CloudFormation service client to provision AWS resources.", e);
+        }
     }
 
     /// <summary>

@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Amazon;
+using Amazon.CloudFormation;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.AWS.CloudFormation;
 using Aspire.Hosting.Lifecycle;
@@ -24,6 +26,42 @@ public static class CloudFormationExtensions
 
         builder.Services.AddLifecycleHook<CloudFormationLifeCycle>(sp => ActivatorUtilities.CreateInstance<CloudFormationLifeCycle>(sp, resource));
         return cfBuilder;
+    }
+
+    /// <summary>
+    /// The AWS credential profile to use for resolving credentials to make AWS service API calls.
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="profile">The name of the AWS credential profile.</param>
+    /// <param name="profileLocation">The directory where the AWS credential is registered. Used when the profile is registered in the non default location "~/.aws".</param>
+    public static IResourceBuilder<ICloudFormationResource> WithAWSProfile(this IResourceBuilder<ICloudFormationResource> builder, string profile, string? profileLocation = null)
+    {
+        builder.Resource.Profile = profile;
+        builder.Resource.ProfileLocation = profileLocation;
+        return builder;
+    }
+
+    /// <summary>
+    /// The AWS region to deploy the CloudFormation Stack.
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="region">The AWS region to send service requests to.</param>
+    public static IResourceBuilder<ICloudFormationResource> WithAWSRegion(this IResourceBuilder<ICloudFormationResource> builder, RegionEndpoint region)
+    {
+        builder.Resource.Region = region;
+        return builder;
+    }
+
+    /// <summary>
+    /// The configured Amazon CloudFormation service client used to make service calls. If the service client is provided
+    /// then the value for WithProfile and WithRegion are ignored.
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="cloudFormationClient">The AWS CloudFormation service client.</param>
+    public static IResourceBuilder<ICloudFormationResource> WithAWSCloudFormationClient(this IResourceBuilder<ICloudFormationResource> builder, IAmazonCloudFormation cloudFormationClient)
+    {
+        builder.Resource.CloudFormationClient = cloudFormationClient;
+        return builder;
     }
 
     /// <summary>

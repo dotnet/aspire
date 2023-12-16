@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <Description>Provisions AWS resources for development in .NET Aspire projects.</Description>
+    <Description>Add support for adding AWS resources and components to an Aspire project.</Description>
   </PropertyGroup>
 
   <ItemGroup>
