@@ -401,7 +401,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
         }
         catch (Exception ex)
         {
-            _logger.LogDebug("Failed to confirm {ServiceName} endpoint ready: {Error}", service.Metadata.Name, ex.Message);
+            _logger.LogDebug(ex, "Failed to confirm {ServiceName} endpoint ready", service.Metadata.Name);
         }
     }
 
