@@ -89,7 +89,7 @@ public partial class ConfigSchemaGenerator
             }
         }
 
-        if (types == null && configurationPaths == null)
+        if (types == null && logCategories == null)
         {
             return null;
         }
@@ -100,5 +100,5 @@ public partial class ConfigSchemaGenerator
     /// <summary>
     /// Data about configuration schema directly from the ConfigurationSchemaAttribute.
     /// </summary>
-    internal sealed record ConfigSchemaAttributeInfo(List<INamedTypeSymbol> Types, List<string> ConfigurationPaths, List<string>? ExclusionPaths, List<string>? LogCategories);
+    internal sealed record ConfigSchemaAttributeInfo(List<INamedTypeSymbol>? Types, List<string>? ConfigurationPaths, List<string>? ExclusionPaths, List<string>? LogCategories);
 }

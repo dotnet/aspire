@@ -8,4 +8,7 @@ using Azure.Storage.Blobs;
 [assembly: ConfigurationSchema("Aspire:Azure:Storage:Blobs", typeof(AzureStorageBlobsSettings))]
 [assembly: ConfigurationSchema("Aspire:Azure:Storage:Blobs:ClientOptions", typeof(BlobClientOptions), exclusionPaths: ["Default"])]
 
-[assembly: LoggingCategories("Azure", "Azure.Core", "Azure.Identity")]
+[assembly: LoggingCategories(
+    "Azure",
+    "Azure.Core",
+    "Azure.Identity")]

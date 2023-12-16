@@ -40,12 +40,15 @@ public sealed partial class ConfigurationBindingGenerator : IIncrementalGenerato
         public SchemaGenerationSpec? GetSchemaGenerationSpec(CancellationToken cancellationToken)
         {
             var types = new List<TypeSpec>();
-            foreach (var type in _configSchemaInfo.Types)
+            if (_configSchemaInfo.Types is not null)
             {
-                var typeParseInfo = TypeParseInfo.Create(type, MethodsToGen.None, invocation: null);
+                foreach (var type in _configSchemaInfo.Types)
+                {
+                    var typeParseInfo = TypeParseInfo.Create(type, MethodsToGen.None, invocation: null);
 
-                _typesToParse.Enqueue(typeParseInfo);
-                types.Add(CreateTopTypeSpec(cancellationToken));
+                    _typesToParse.Enqueue(typeParseInfo);
+                    types.Add(CreateTopTypeSpec(cancellationToken));
+                }
             }
 
             return new SchemaGenerationSpec
