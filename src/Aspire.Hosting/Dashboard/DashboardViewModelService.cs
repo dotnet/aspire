@@ -40,6 +40,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
     private readonly Dictionary<(ResourceKind, string), List<string>> _resourceAssociatedServicesMap = [];
     private readonly ConcurrentDictionary<string, List<EnvVar>> _additionalEnvVarsMap = [];
     private readonly HashSet<string> _containersWithTaskStarted = [];
+    private readonly HashSet<string> _checkedServices = [];
 
     private readonly Channel<ResourceChanged<ResourceViewModel>> _resourceViewModelChangesChannel;
 
@@ -98,73 +99,16 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
     /// </summary>
     private void RunServiceWatchTask()
     {
+        var maxRetryDuration = TimeSpan.FromSeconds(5);
+
         List<Task> tasks = new List<Task>();
         _ = Task.Run(async () =>
         {
             try
             {
-                var checkedServices = new HashSet<string>();
-                var maxRetryDuration = TimeSpan.FromSeconds(5);
-                await foreach (var tuple in _kubernetesService.WatchAsync<Service>(cancellationToken: _cancellationToken))
+                await foreach ((WatchEventType eventType, Service service) in _kubernetesService.WatchAsync<Service>(cancellationToken: _cancellationToken))
                 {
-                    Task checkTask = Task.Run(async () =>
-                    {
-                        var service = tuple.Item2;
-                        if (service.UsesHttpProtocol(out var uriScheme)
-                            && !checkedServices.Contains(service.Metadata.Name))
-                        {
-                            // We need to verify if service is "actually" working
-                            if (!string.Equals(service.Status?.State, "Ready", StringComparison.OrdinalIgnoreCase))
-                            {
-                                // If service is not ready, we don't try to connect. We will get future notification that service moved to ready state
-                                return;
-                            }
-
-                            var currentTimestamp = DateTime.UtcNow;
-                            var delay = TimeSpan.FromMilliseconds(40);
-                            var errorContent = "404 page not found\n";
-                            var proxyUrlString = $"{uriScheme}://{service.AllocatedAddress}:{service.AllocatedPort}";
-                            while (true)
-                            {
-                                using HttpClient client = new();
-                                try
-                                {
-                                    var response = await client.GetAsync(proxyUrlString).ConfigureAwait(false);
-                                    // Traefik returns a 404 with content length of 19 when it is not ready 
-                                    if (response.StatusCode == HttpStatusCode.NotFound
-                                        && response.Content.Headers.ContentLength == 19)
-                                    {
-                                        var content = await response.Content.ReadAsStringAsync(_cancellationToken).ConfigureAwait(false);
-                                        if (!string.Equals(content, errorContent, StringComparison.Ordinal))
-                                        {
-                                            break;
-                                        }
-                                    }
-                                    else
-                                    {
-                                        break;
-                                    }
-                                }
-                                catch
-                                {
-                                    // catch exceptions and continue
-                                }
-
-                                if (DateTime.UtcNow.Subtract(currentTimestamp) > maxRetryDuration)
-                                {
-                                    // We went over max retry duration so exit while
-                                    break;
-                                }
-
-                                await Task.Delay(delay, _cancellationToken).ConfigureAwait(false);
-                                delay *= 2;
-                            }
-                            checkedServices.Add(service.Metadata.Name);
-                        }
-                        await _kubernetesChangesChannel.Writer.WriteAsync(
-                            (tuple.Item1, tuple.Item2.Metadata.Name, tuple.Item2), _cancellationToken).ConfigureAwait(false);
-                    });
-                    tasks.Add(checkTask);
+                    tasks.Add(PollUntilServiceEndpointValid(eventType, service, maxRetryDuration));
                 }
                 await Task.WhenAll(tasks).ConfigureAwait(false);
             }
@@ -377,6 +321,82 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
         await _resourceViewModelChangesChannel.Writer.WriteAsync(
             new ResourceChanged<ResourceViewModel>(changeType, resourceViewModel), _cancellationToken)
             .ConfigureAwait(false);
+    }
+
+    // Check a service endpoint
+    private async Task<bool> CheckServiceEndpointReady(string proxyUrlString, string errorContent)
+    {
+        using HttpClient client = new();
+        try
+        {
+            var response = await client.GetAsync(proxyUrlString).ConfigureAwait(false);
+            // Traefik returns a 404 with content length of 19 when it is not ready
+            if (response.StatusCode == HttpStatusCode.NotFound
+                && response.Content.Headers.ContentLength == 19)
+            {
+                // If the response content doesn't exactly match the expected return from traefik, we assume
+                // the endpoint is ready
+                var content = await response.Content.ReadAsStringAsync(_cancellationToken).ConfigureAwait(false);
+                if (!string.Equals(content, errorContent, StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+            else
+            {
+                // Endpoint returned a valid response
+                return true;
+            }
+        }
+        catch
+        {
+            // Catch exceptions, we'll retry again
+        }
+
+        return false;
+    }
+
+    // Poll a given service endpoint until it doesn't return a bad 404 response from the proxy (or the attempt times out)
+    private async Task PollUntilServiceEndpointValid(WatchEventType eventType, Service service, TimeSpan maxRetryDuration)
+    {
+        const string errorContent = "404 page not found\n";
+
+        if (service.UsesHttpProtocol(out var uriScheme)
+            && !_checkedServices.Contains(service.Metadata.Name))
+        {
+            // We need to verify if service is "actually" working
+            if (!string.Equals(service.Status?.State, "Ready", StringComparison.OrdinalIgnoreCase))
+            {
+                // If service is not ready, we don't try to connect. We will get future notification that service moved to ready state
+                return;
+            }
+
+            var currentTimestamp = DateTime.UtcNow;
+            var delay = TimeSpan.FromMilliseconds(40);
+            var proxyUrlString = $"{uriScheme}://{service.AllocatedAddress}:{service.AllocatedPort}";
+            while (true)
+            {
+                if (await CheckServiceEndpointReady(proxyUrlString, errorContent).ConfigureAwait(false))
+                {
+                    break;
+                }
+
+                if (DateTime.UtcNow.Subtract(currentTimestamp) > maxRetryDuration)
+                {
+                    // We went over max retry duration so exit while
+                    _logger.LogInformation("Couldn't confirm {ServiceName} endpoint ready in {TimeoutSeconds}, assuming ready", service.Metadata.Name, maxRetryDuration.TotalSeconds);
+                    break;
+                }
+
+                await Task.Delay(delay, _cancellationToken).ConfigureAwait(false);
+                delay *= 2;
+            }
+
+            _checkedServices.Add(service.Metadata.Name);
+        }
+
+        await _kubernetesChangesChannel.Writer.WriteAsync(
+            (eventType, service.Metadata.Name, service), _cancellationToken).ConfigureAwait(false);
     }
 
     private ContainerViewModel ConvertToContainerViewModel(Container container, List<EnvVar>? additionalEnvVars)
