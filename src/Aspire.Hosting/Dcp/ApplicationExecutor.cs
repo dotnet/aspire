@@ -539,21 +539,17 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
                 var dcpContainerResource = (Container)cr.DcpResource;
                 var modelContainerResource = cr.ModelResource;
 
+                var config = new Dictionary<string, string>();
+
                 dcpContainerResource.Spec.Env = new();
 
                 if (modelContainerResource.TryGetEnvironmentVariables(out var containerEnvironmentVariables))
                 {
-                    var config = new Dictionary<string, string>();
                     var context = new EnvironmentCallbackContext("dcp", config);
 
                     foreach (var v in containerEnvironmentVariables)
                     {
                         v.Callback(context);
-                    }
-
-                    foreach (var kvp in config)
-                    {
-                        dcpContainerResource.Spec.Env.Add(new EnvVar { Name = kvp.Key, Value = kvp.Value });
                     }
                 }
 
@@ -587,7 +583,20 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
                         }
 
                         dcpContainerResource.Spec.Ports.Add(portSpec);
+
+                        var name = sp.Service.Metadata.Name;
+                        var envVar = sp.ServiceBindingAnnotation.EnvironmentVariable;
+
+                        if (envVar is not null)
+                        {
+                            config.Add(envVar, $"{{{{- portForServing \"{name}\" }}}}");
+                        }
                     }
+                }
+
+                foreach (var kvp in config)
+                {
+                    dcpContainerResource.Spec.Env.Add(new EnvVar { Name = kvp.Key, Value = kvp.Value });
                 }
 
                 if (modelContainerResource.TryGetAnnotationsOfType<ExecutableArgsCallbackAnnotation>(out var argsCallback))
