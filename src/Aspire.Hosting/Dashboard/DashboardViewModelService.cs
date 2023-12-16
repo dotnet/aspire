@@ -324,6 +324,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
     // Check a service endpoint
     private async Task<bool> CheckServiceEndpointReady(string proxyUrlString, string errorContent)
     {
+        // Explicitly use a new HttpClient for each request to avoid re-using the same socket connection
         using HttpClient client = new();
         try
         {
