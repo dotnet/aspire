@@ -40,7 +40,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
     private readonly Dictionary<(ResourceKind, string), List<string>> _resourceAssociatedServicesMap = [];
     private readonly ConcurrentDictionary<string, List<EnvVar>> _additionalEnvVarsMap = [];
     private readonly HashSet<string> _containersWithTaskStarted = [];
-    private readonly HashSet<string> _checkedServices = [];
+    private readonly ConcurrentDictionary<string, object?> _checkedServices = [];
 
     private readonly Channel<ResourceChanged<ResourceViewModel>> _resourceViewModelChangesChannel;
 
@@ -107,7 +107,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
             {
                 await foreach ((WatchEventType eventType, Service service) in _kubernetesService.WatchAsync<Service>(cancellationToken: _cancellationToken))
                 {
-                    var _ = PollUntilServiceEndpointValid(eventType, service, maxRetryDuration);
+                    _ = PollUntilServiceEndpointValid(eventType, service, maxRetryDuration);
                 }
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
@@ -363,7 +363,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
             const string errorContent = "404 page not found\n";
 
             if (service.UsesHttpProtocol(out var uriScheme)
-                && !_checkedServices.Contains(service.Metadata.Name))
+                && !_checkedServices.ContainsKey(service.Metadata.Name))
             {
                 // We need to verify if service is "actually" working
                 if (!string.Equals(service.Status?.State, "Ready", StringComparison.OrdinalIgnoreCase))
@@ -385,7 +385,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
                     if (DateTime.UtcNow.Subtract(currentTimestamp) > maxRetryDuration)
                     {
                         // We went over max retry duration so exit while
-                        _logger.LogInformation("Couldn't confirm {ServiceName} endpoint ready in {TimeoutSeconds}, assuming ready", service.Metadata.Name, maxRetryDuration.TotalSeconds);
+                        _logger.LogDebug("Couldn't confirm {ServiceName} endpoint ready in {TimeoutSeconds}, assuming ready", service.Metadata.Name, maxRetryDuration.TotalSeconds);
                         break;
                     }
 
@@ -393,7 +393,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
                     delay *= 2;
                 }
 
-                _checkedServices.Add(service.Metadata.Name);
+                _checkedServices.TryAdd(service.Metadata.Name, null);
             }
 
             await _kubernetesChangesChannel.Writer.WriteAsync(
@@ -401,7 +401,7 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to confirm {ServiceName} endpoint ready", service.Metadata.Name);
+            _logger.LogDebug("Failed to confirm {ServiceName} endpoint ready: {Error}", service.Metadata.Name, ex.Message);
         }
     }
 
