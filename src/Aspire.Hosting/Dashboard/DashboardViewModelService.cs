@@ -91,76 +91,82 @@ internal sealed partial class DashboardViewModelService : IDashboardViewModelSer
         });
     }
 
+    /// <summary>
+    /// This is workaround for https://github.com/dotnet/aspire/issues/1364 where there is a timing issue where an existing connection to Traefik
+    /// will return a 404 for potentially several minutes if that connection is made before it is finished loading its configuration. The below code
+    /// will hit the proxy endpoint setup in that configuration until we do not see the known 404 response from Traefik.
+    /// </summary>
     private void RunServiceWatchTask()
     {
+        List<Task> tasks = new List<Task>();
         _ = Task.Run(async () =>
         {
             try
             {
                 var checkedServices = new HashSet<string>();
-                var initialDelay = TimeSpan.FromMicroseconds(10);
                 var maxRetryDuration = TimeSpan.FromSeconds(5);
                 await foreach (var tuple in _kubernetesService.WatchAsync<Service>(cancellationToken: _cancellationToken))
                 {
-                    var service = tuple.Item2;
-                    if (service.UsesHttpProtocol(out var uriScheme)
-                        && !checkedServices.Contains(service.Metadata.Name))
+                    Task checkTask = Task.Run(async () =>
                     {
-                        // We need to verify if service is "actually" working
-                        if (!string.Equals(service.Status?.State, "Ready", StringComparison.OrdinalIgnoreCase))
+                        var service = tuple.Item2;
+                        if (service.UsesHttpProtocol(out var uriScheme)
+                            && !checkedServices.Contains(service.Metadata.Name))
                         {
-                            // If service is not ready, we don't try to connect. We will get future notification that service moved to ready state
-                            _logger.LogWarning("service {name} was not in ready state.", service.Metadata.Name);
-                            continue;
-                        }
-
-                        var currentTimestamp = DateTime.UtcNow;
-                        var delay = TimeSpan.FromMicroseconds(10);
-                        var errorContent = "404 page not found\n";
-                        var proxyUrlString = $"{uriScheme}://{service.AllocatedAddress}:{service.AllocatedPort}";
-                        _logger.LogWarning("running 404 check for {name} at {url}", service.Metadata.Name, proxyUrlString);
-                        while (true)
-                        {
-                            using HttpClient client = new();
-                            try
+                            // We need to verify if service is "actually" working
+                            if (!string.Equals(service.Status?.State, "Ready", StringComparison.OrdinalIgnoreCase))
                             {
-                                var response = await client.GetAsync(proxyUrlString).ConfigureAwait(false);
-                                if (response.StatusCode == HttpStatusCode.NotFound
-                                    && response.Content.Headers.ContentLength == 19)
+                                // If service is not ready, we don't try to connect. We will get future notification that service moved to ready state
+                                return;
+                            }
+
+                            var currentTimestamp = DateTime.UtcNow;
+                            var delay = TimeSpan.FromMilliseconds(40);
+                            var errorContent = "404 page not found\n";
+                            var proxyUrlString = $"{uriScheme}://{service.AllocatedAddress}:{service.AllocatedPort}";
+                            while (true)
+                            {
+                                using HttpClient client = new();
+                                try
                                 {
-                                    if (DateTime.UtcNow.Subtract(currentTimestamp) > maxRetryDuration)
+                                    var response = await client.GetAsync(proxyUrlString).ConfigureAwait(false);
+                                    // Traefik returns a 404 with content length of 19 when it is not ready 
+                                    if (response.StatusCode == HttpStatusCode.NotFound
+                                        && response.Content.Headers.ContentLength == 19)
                                     {
-                                        // We went over max retry so we just let it pass
-                                        _logger.LogInformation("{name} retry timed out.", service.Metadata.Name);
+                                        var content = await response.Content.ReadAsStringAsync(_cancellationToken).ConfigureAwait(false);
+                                        if (!string.Equals(content, errorContent, StringComparison.Ordinal))
+                                        {
+                                            break;
+                                        }
+                                    }
+                                    else
+                                    {
                                         break;
                                     }
-
-                                    var content = await response.Content.ReadAsStringAsync(_cancellationToken).ConfigureAwait(false);
-                                    if (string.Equals(content, errorContent, StringComparison.Ordinal))
-                                    {
-                                        _logger.LogInformation("{name} hit 404 error retrying", service.Metadata.Name);
-                                        // Additional conditions
-                                        await Task.Delay(delay, _cancellationToken).ConfigureAwait(false);
-                                        delay *= 2;
-                                        continue;
-                                    }
                                 }
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.LogError(ex, "{name} hit error", service.Metadata.Name);
-                            }
+                                catch
+                                {
+                                    // catch exceptions and continue
+                                }
 
-                            _logger.LogWarning("{name} is working", service.Metadata.Name);
-                            break;
+                                if (DateTime.UtcNow.Subtract(currentTimestamp) > maxRetryDuration)
+                                {
+                                    // We went over max retry duration so exit while
+                                    break;
+                                }
+
+                                await Task.Delay(delay, _cancellationToken).ConfigureAwait(false);
+                                delay *= 2;
+                            }
+                            checkedServices.Add(service.Metadata.Name);
                         }
-
-                        checkedServices.Add(service.Metadata.Name);
-                    }
-
-                    await _kubernetesChangesChannel.Writer.WriteAsync(
-                        (tuple.Item1, tuple.Item2.Metadata.Name, tuple.Item2), _cancellationToken).ConfigureAwait(false);
+                        await _kubernetesChangesChannel.Writer.WriteAsync(
+                            (tuple.Item1, tuple.Item2.Metadata.Name, tuple.Item2), _cancellationToken).ConfigureAwait(false);
+                    });
+                    tasks.Add(checkTask);
                 }
+                await Task.WhenAll(tasks).ConfigureAwait(false);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
