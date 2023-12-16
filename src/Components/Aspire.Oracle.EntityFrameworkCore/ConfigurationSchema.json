@@ -57,7 +57,7 @@
                 },
                 "DbContextPooling": {
                   "type": "boolean",
-                  "description": "Gets or sets a boolean value that indicates whether the db context will be pooled or explicitly created every time it\u0027s requested."
+                  "description": "Gets or sets a boolean value that indicates whether the db context will be pooled or explicitly created every time it's requested."
                 },
                 "HealthChecks": {
                   "type": "boolean",
