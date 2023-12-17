@@ -206,4 +206,16 @@
   <data name="All" xml:space="preserve">
     <value>All</value>
   </data>
+  <data name="ChartContainerAllTags" xml:space="preserve">
+    <value>All tags</value>
+  </data>
+  <data name="ChartContainerFilteredTags" xml:space="preserve">
+    <value>Filtered tags</value>
+  </data>
+  <data name="ChartContainerOptionsHeader" xml:space="preserve">
+    <value>Options</value>
+  </data>
+  <data name="ChartContainerShowCountLabel" xml:space="preserve">
+    <value>Show count</value>
+  </data>
 </root>
