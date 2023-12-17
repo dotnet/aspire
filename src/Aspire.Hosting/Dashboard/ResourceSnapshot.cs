@@ -41,3 +41,5 @@ public abstract class ResourceSnapshot
         }
     }
 }
+
+public sealed record EndpointSnapshot(string EndpointUrl, string ProxyUrl);

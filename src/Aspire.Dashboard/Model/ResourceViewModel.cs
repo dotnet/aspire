@@ -17,7 +17,7 @@ public sealed class ResourceViewModel
     public required string? State { get; init; }
     public required DateTime? CreationTimeStamp { get; init; }
     public required ImmutableArray<EnvironmentVariableViewModel> Environment { get; init; }
-    public required ImmutableArray<EndpointSnapshot> Endpoints { get; init; }
+    public required ImmutableArray<EndpointViewModel> Endpoints { get; init; }
     public required ImmutableArray<ResourceServiceViewModel> Services { get; init; }
     public required int? ExpectedEndpointsCount { get; init; }
     public required FrozenDictionary<string, Value> Properties { get; init; }
@@ -55,4 +55,4 @@ public sealed class ResourceServiceViewModel(string name, string? allocatedAddre
     public string AddressAndPort { get; } = $"{allocatedAddress}:{allocatedPort}";
 }
 
-public sealed record EndpointSnapshot(string EndpointUrl, string ProxyUrl);
+public sealed record EndpointViewModel(string EndpointUrl, string ProxyUrl);
