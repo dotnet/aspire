@@ -1,14 +1,17 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
-var catalogDb = builder.AddPostgres("postgres").AddDatabase("catalogdb");
+var catalogDb = builder.AddPostgresContainer("postgres")
+                       .WithNamedVolume();
 
-var basketCache = builder.AddRedis("basketcache");
+var basketCache = builder.AddRedisContainer("basketcache")
+                         .WithNamedVolume();
 
 var catalogService = builder.AddProject<Projects.CatalogService>("catalogservice")
                      .WithReference(catalogDb)
                      .WithReplicas(2);
 
-var messaging = builder.AddRabbitMQ("messaging");
+var messaging = builder.AddRabbitMQContainer("messaging")
+                       .WithNamedVolume();
 
 var basketService = builder.AddProject("basketservice", @"..\BasketService\BasketService.csproj")
                     .WithReference(basketCache)
