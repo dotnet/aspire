@@ -1,7 +1,7 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
 var catalogDb = builder.AddPostgresContainer("postgres")
-                       .WithNamedVolume();
+                       .WithNamedVolume("VolumeMount.example.data");
 
 var basketCache = builder.AddRedisContainer("basketcache")
                          .WithNamedVolume();
