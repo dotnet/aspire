@@ -83,7 +83,7 @@ public static class ContainerResourceBuilderExtensions
         return builder.WithAnnotation(annotation);
     }
 
-    public static IResourceBuilder<T> WithNamedVolume<T>(this IResourceBuilder<T> builder) where T : ContainerResource
+    public static IResourceBuilder<T> WithNamedVolume<T>(this IResourceBuilder<T> builder, string? volumeName = null) where T : ContainerResource
     {
         // guid so that if two containers are created, they don't collide
         var randomGuidForVolumeName = Guid.NewGuid().ToString();
@@ -111,8 +111,14 @@ public static class ContainerResourceBuilderExtensions
 
             if (containsIContainerParentResourceInterface || containsIContainerWithParentResourceInterface)
             {
-                string volumeName = $"{resourceType.Name.ToLower()}-volume-{randomGuidForVolumeName}";
-                builder.WithVolumeMount(volumeName, entry.Value, VolumeMountType.Named);
+                var containerVolumeName = $"{resourceType.Name}.Volume.{randomGuidForVolumeName}";
+
+                if (!string.IsNullOrWhiteSpace(volumeName))
+                {
+                    containerVolumeName = volumeName;
+                }
+
+                builder.WithVolumeMount(containerVolumeName, entry.Value, VolumeMountType.Named);
                 break; // Assuming only one type match is expected
             }
         }
