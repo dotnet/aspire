@@ -1,9 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Collections.Frozen;
 using System.Collections.Immutable;
-using Aspire.Dashboard.Utils;
 using Aspire.V1;
 using Grpc.Core;
 using Grpc.Net.Client;
@@ -179,26 +177,5 @@ internal sealed class DashboardClient
 
             return (channel, client);
         }
-    }
-}
-
-internal static class MessageExtensions
-{
-    public static ResourceViewModel ToViewModel(this Resource resource)
-    {
-        return new()
-        {
-            Uid = resource.Id.Uid,
-            ResourceType = resource.Id.ResourceType,
-            Name = resource.DisplayName,
-            DisplayName = resource.DisplayName,
-            CreationTimeStamp = resource.CreatedAt.ToDateTime(),
-            Properties = resource.Properties.ToFrozenDictionary(data => data.Name, data => data.Value, StringComparers.ResourceDataKey),
-            Endpoints = [], // TODO
-            Environment = [], // TODO
-            ExpectedEndpointsCount = 0, // TODO
-            Services = [], // TODO
-            State = resource.HasState ? resource.State : null,
-        };
     }
 }
