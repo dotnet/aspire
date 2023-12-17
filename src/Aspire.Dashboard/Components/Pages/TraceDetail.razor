@@ -8,9 +8,9 @@
 @using Aspire.Dashboard.Resources
 @inject IStringLocalizer<Dashboard.Resources.TraceDetail> Loc
 @inject IStringLocalizer<ControlsStrings> ControlStringsLoc
-@inject IResourceService DashboardService
+@inject IResourceService ResourceService
 
-<PageTitle>@string.Format(Loc[Dashboard.Resources.TraceDetail.TraceDetailPageTitle], DashboardService.ApplicationName)</PageTitle>
+<PageTitle>@string.Format(Loc[Dashboard.Resources.TraceDetail.TraceDetailPageTitle], ResourceService.ApplicationName)</PageTitle>
 
 @if (_trace != null)
 {

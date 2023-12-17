@@ -6,13 +6,13 @@
 @using System.Web
 @using Aspire.Dashboard.Resources
 @inject NavigationManager NavigationManager
-@inject IResourceService resourceService
+@inject IResourceService ResourceService
 @inject IJSRuntime JS
 @implements IDisposable
 @inject IStringLocalizer<Dialogs> Loc
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
 
-<PageTitle>@string.Format(Loc[Dashboard.Resources.StructuredLogs.StructuredLogsPageTitle], resourceService.ApplicationName)</PageTitle>
+<PageTitle>@string.Format(Loc[Dashboard.Resources.StructuredLogs.StructuredLogsPageTitle], ResourceService.ApplicationName)</PageTitle>
 
 <div class="logs-layout">
     <h1 class="page-header">@Loc[Dashboard.Resources.StructuredLogs.StructuredLogsHeader]</h1>
