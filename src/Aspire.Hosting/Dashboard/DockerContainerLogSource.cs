@@ -41,7 +41,7 @@ internal sealed class DockerContainerLogSource(string containerId) : IAsyncEnume
             // Don't forward cancellationToken here, because it's handled internally in WaitForExit
             _ = Task.Run(() => WaitForExit(tcs, ctr), CancellationToken.None);
 
-            await foreach (var batch in channel.GetBatches(cancellationToken))
+            await foreach (var batch in channel.GetBatchesAsync(cancellationToken))
             {
                 yield return batch;
             }

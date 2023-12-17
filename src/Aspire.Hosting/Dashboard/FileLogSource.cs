@@ -23,7 +23,7 @@ internal sealed partial class FileLogSource(string stdOutPath, string stdErrPath
         var stdOut = Task.Run(() => WatchFileAsync(stdOutPath, isError: false), cancellationToken);
         var stdErr = Task.Run(() => WatchFileAsync(stdErrPath, isError: true), cancellationToken);
 
-        await foreach (var batch in channel.GetBatches(cancellationToken))
+        await foreach (var batch in channel.GetBatchesAsync(cancellationToken))
         {
             yield return batch;
         }

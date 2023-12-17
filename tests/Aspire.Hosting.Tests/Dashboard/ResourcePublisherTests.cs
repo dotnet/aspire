@@ -11,8 +11,8 @@ public class ResourcePublisherTests
     [Fact(Skip = "Passes locally but fails in CI. https://github.com/dotnet/aspire/issues/1410")]
     public async Task ProducesExpectedSnapshotAndUpdates()
     {
-        CancellationTokenSource cts = new();
-        ResourcePublisher publisher = new(cts.Token);
+        using CancellationTokenSource cts = new();
+        ResourcePublisher publisher = new();
 
         var a = CreateResourceSnapshot("A");
         var b = CreateResourceSnapshot("B");
@@ -47,16 +47,16 @@ public class ResourcePublisherTests
         Assert.Equal(ResourceSnapshotChangeType.Upsert, change.ChangeType);
         Assert.Equal("C", change.Resource.Name);
 
-        await cts.CancelAsync();
+        publisher.Dispose();
 
-        await Assert.ThrowsAsync<OperationCanceledException>(() => task);
+        await task;
     }
 
     [Fact]
     public async Task SupportsMultipleSubscribers()
     {
-        CancellationTokenSource cts = new();
-        ResourcePublisher publisher = new(cts.Token);
+        using CancellationTokenSource cts = new();
+        ResourcePublisher publisher = new();
 
         var a = CreateResourceSnapshot("A");
         var b = CreateResourceSnapshot("B");
@@ -73,8 +73,8 @@ public class ResourcePublisherTests
 
         await publisher.IntegrateAsync(c, ResourceSnapshotChangeType.Upsert).ConfigureAwait(false);
 
-        var enumerator1 = subscription1.GetAsyncEnumerator(cts.Token);
-        var enumerator2 = subscription2.GetAsyncEnumerator(cts.Token);
+        var enumerator1 = subscription1.GetAsyncEnumerator();
+        var enumerator2 = subscription2.GetAsyncEnumerator();
 
         await enumerator1.MoveNextAsync();
         await enumerator2.MoveNextAsync();
@@ -87,14 +87,17 @@ public class ResourcePublisherTests
         Assert.Equal("C", v1.Resource.Name);
         Assert.Equal("C", v2.Resource.Name);
 
-        await cts.CancelAsync();
+        publisher.Dispose();
+
+        await enumerator1.DisposeAsync();
+        await enumerator2.DisposeAsync();
     }
 
     [Fact]
     public async Task MergesResourcesInSnapshot()
     {
-        CancellationTokenSource cts = new();
-        ResourcePublisher publisher = new(cts.Token);
+        using CancellationTokenSource cts = new();
+        using ResourcePublisher publisher = new();
 
         var a1 = CreateResourceSnapshot("A");
         var a2 = CreateResourceSnapshot("A");
@@ -107,15 +110,56 @@ public class ResourcePublisherTests
         var (snapshot, _) = publisher.Subscribe();
 
         Assert.Equal("A", Assert.Single(snapshot).Name);
+    }
+
+    [Fact]
+    public async Task SubscriptionWithCancellation_Removed()
+    {
+        using CancellationTokenSource cts = new();
+        ResourcePublisher publisher = new();
+
+        var (snapshot, subscription) = publisher.Subscribe();
+        Assert.Single(publisher._outgoingChannels);
+
+        var task = Task.Run(async () =>
+        {
+            await foreach (var _ in subscription.WithCancellation(cts.Token).ConfigureAwait(false))
+            {
+            }
+        });
 
         await cts.CancelAsync();
+        await Assert.ThrowsAsync<OperationCanceledException>(() => task);
+
+        Assert.Empty(publisher._outgoingChannels);
+    }
+
+    [Fact]
+    public async void SubscriptionWithDispose_Removed()
+    {
+        ResourcePublisher publisher = new();
+
+        var (snapshot, subscription) = publisher.Subscribe();
+        Assert.Single(publisher._outgoingChannels);
+
+        var task = Task.Run(async () =>
+        {
+            await foreach (var _ in subscription.ConfigureAwait(false))
+            {
+            }
+        });
+
+        publisher.Dispose();
+        await task;
+
+        Assert.Empty(publisher._outgoingChannels);
     }
 
     [Fact]
     public async Task DeletesRemoveFromSnapshot()
     {
-        CancellationTokenSource cts = new();
-        ResourcePublisher publisher = new(cts.Token);
+        using CancellationTokenSource cts = new();
+        using ResourcePublisher publisher = new();
 
         var a = CreateResourceSnapshot("A");
         var b = CreateResourceSnapshot("B");
@@ -127,8 +171,6 @@ public class ResourcePublisherTests
         var (snapshot, _) = publisher.Subscribe();
 
         Assert.Equal("B", Assert.Single(snapshot).Name);
-
-        await cts.CancelAsync();
     }
 
     private static ContainerSnapshot CreateResourceSnapshot(string name)
