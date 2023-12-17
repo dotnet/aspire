@@ -3,7 +3,7 @@
 
 namespace Aspire.Dashboard.Model;
 
-public static class ResourceDataKeys
+public static class KnownProperties
 {
     public static class Resource
     {

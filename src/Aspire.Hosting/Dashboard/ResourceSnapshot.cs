@@ -27,12 +27,12 @@ public abstract class ResourceSnapshot
     {
         get
         {
-            yield return (ResourceDataKeys.Resource.Uid, Value.ForString(Uid));
-            yield return (ResourceDataKeys.Resource.Name, Value.ForString(Name));
-            yield return (ResourceDataKeys.Resource.Type, Value.ForString(ResourceType));
-            yield return (ResourceDataKeys.Resource.DisplayName, Value.ForString(DisplayName));
-            yield return (ResourceDataKeys.Resource.State, Value.ForString(State));
-            yield return (ResourceDataKeys.Resource.CreateTime, CreationTimeStamp is null ? Value.ForNull() : Value.ForString(CreationTimeStamp.Value.ToString("O")));
+            yield return (KnownProperties.Resource.Uid, Value.ForString(Uid));
+            yield return (KnownProperties.Resource.Name, Value.ForString(Name));
+            yield return (KnownProperties.Resource.Type, Value.ForString(ResourceType));
+            yield return (KnownProperties.Resource.DisplayName, Value.ForString(DisplayName));
+            yield return (KnownProperties.Resource.State, Value.ForString(State));
+            yield return (KnownProperties.Resource.CreateTime, CreationTimeStamp is null ? Value.ForNull() : Value.ForString(CreationTimeStamp.Value.ToString("O")));
 
             foreach (var pair in GetProperties())
             {

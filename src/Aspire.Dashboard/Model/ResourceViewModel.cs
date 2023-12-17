@@ -88,52 +88,52 @@ internal static class ResourceViewModelExtensions
 
     public static bool TryGetContainerId(this ResourceViewModel resource, [NotNullWhen(returnValue: true)] out string? containerId)
     {
-        return resource.TryGetCustomDataString(ResourceDataKeys.Container.Id, out containerId);
+        return resource.TryGetCustomDataString(KnownProperties.Container.Id, out containerId);
     }
 
     public static bool TryGetContainerImage(this ResourceViewModel resource, [NotNullWhen(returnValue: true)] out string? containerImage)
     {
-        return resource.TryGetCustomDataString(ResourceDataKeys.Container.Image, out containerImage);
+        return resource.TryGetCustomDataString(KnownProperties.Container.Image, out containerImage);
     }
 
     public static bool TryGetContainerPorts(this ResourceViewModel resource, out ImmutableArray<int> containerImage)
     {
-        return resource.TryGetCustomDataIntArray(ResourceDataKeys.Container.Ports, out containerImage);
+        return resource.TryGetCustomDataIntArray(KnownProperties.Container.Ports, out containerImage);
     }
 
     public static bool TryGetContainerCommand(this ResourceViewModel resource, [NotNullWhen(returnValue: true)] out string? command)
     {
-        return resource.TryGetCustomDataString(ResourceDataKeys.Container.Command, out command);
+        return resource.TryGetCustomDataString(KnownProperties.Container.Command, out command);
     }
 
     public static bool TryGetContainerArgs(this ResourceViewModel resource, out ImmutableArray<string> args)
     {
-        return resource.TryGetCustomDataStringArray(ResourceDataKeys.Container.Args, out args);
+        return resource.TryGetCustomDataStringArray(KnownProperties.Container.Args, out args);
     }
 
     public static bool TryGetProcessId(this ResourceViewModel resource, out int processId)
     {
-        return resource.TryGetCustomDataInt(ResourceDataKeys.Executable.Pid, out processId);
+        return resource.TryGetCustomDataInt(KnownProperties.Executable.Pid, out processId);
     }
 
     public static bool TryGetProjectPath(this ResourceViewModel resource, [NotNullWhen(returnValue: true)] out string? projectPath)
     {
-        return resource.TryGetCustomDataString(ResourceDataKeys.Project.Path, out projectPath);
+        return resource.TryGetCustomDataString(KnownProperties.Project.Path, out projectPath);
     }
 
     public static bool TryGetExecutablePath(this ResourceViewModel resource, [NotNullWhen(returnValue: true)] out string? executablePath)
     {
-        return resource.TryGetCustomDataString(ResourceDataKeys.Executable.Path, out executablePath);
+        return resource.TryGetCustomDataString(KnownProperties.Executable.Path, out executablePath);
     }
 
     public static bool TryGetExecutableArguments(this ResourceViewModel resource, out ImmutableArray<string> arguments)
     {
-        return resource.TryGetCustomDataStringArray(ResourceDataKeys.Executable.Args, out arguments);
+        return resource.TryGetCustomDataStringArray(KnownProperties.Executable.Args, out arguments);
     }
 
     public static bool TryGetWorkingDirectory(this ResourceViewModel resource, [NotNullWhen(returnValue: true)] out string? workingDirectory)
     {
-        return resource.TryGetCustomDataString(ResourceDataKeys.Executable.WorkDir, out workingDirectory);
+        return resource.TryGetCustomDataString(KnownProperties.Executable.WorkDir, out workingDirectory);
     }
 
     private static bool TryGetCustomDataString(this ResourceViewModel resource, string key, [NotNullWhen(returnValue: true)] out string? s)

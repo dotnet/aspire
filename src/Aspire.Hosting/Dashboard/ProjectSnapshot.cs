@@ -17,7 +17,7 @@ public class ProjectSnapshot : ExecutableSnapshot
 
     protected override IEnumerable<(string Key, Value Value)> GetProperties()
     {
-        yield return (ResourceDataKeys.Project.Path, Value.ForString(ProjectPath));
+        yield return (KnownProperties.Project.Path, Value.ForString(ProjectPath));
 
         foreach (var pair in base.GetProperties())
         {

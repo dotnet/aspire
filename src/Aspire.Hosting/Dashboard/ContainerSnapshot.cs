@@ -22,10 +22,10 @@ public sealed class ContainerSnapshot : ResourceSnapshot
 
     protected override IEnumerable<(string Key, Value Value)> GetProperties()
     {
-        yield return (ResourceDataKeys.Container.Id, Value.ForString(ContainerId));
-        yield return (ResourceDataKeys.Container.Image, Value.ForString(Image));
-        yield return (ResourceDataKeys.Container.Ports, Value.ForList(Ports.Select(port => Value.ForNumber(port)).ToArray()));
-        yield return (ResourceDataKeys.Container.Command, Command is null ? Value.ForNull() : Value.ForString(Command));
-        yield return (ResourceDataKeys.Container.Args, Args is null ? Value.ForNull() : Value.ForList(Args.Value.Select(port => Value.ForString(port)).ToArray()));
+        yield return (KnownProperties.Container.Id, Value.ForString(ContainerId));
+        yield return (KnownProperties.Container.Image, Value.ForString(Image));
+        yield return (KnownProperties.Container.Ports, Value.ForList(Ports.Select(port => Value.ForNumber(port)).ToArray()));
+        yield return (KnownProperties.Container.Command, Command is null ? Value.ForNull() : Value.ForString(Command));
+        yield return (KnownProperties.Container.Args, Args is null ? Value.ForNull() : Value.ForList(Args.Value.Select(port => Value.ForString(port)).ToArray()));
     }
 }
