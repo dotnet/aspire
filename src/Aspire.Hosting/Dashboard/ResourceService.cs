@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Dashboard;
 
-internal sealed partial class ResourceService : IResourceService, IAsyncDisposable
+internal sealed partial class ResourceService : IAsyncDisposable
 {
     private readonly CancellationTokenSource _cancellationTokenSource = new();
     private readonly ResourcePublisher _resourcePublisher;

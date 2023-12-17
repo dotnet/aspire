@@ -22,7 +22,7 @@ public class ExecutableSnapshot : ResourceSnapshot
     public required string? StdOutFile { get; init; }
     public required string? StdErrFile { get; init; }
 
-    protected override IEnumerable<(string Key, Value Value)> GetCustomData()
+    protected override IEnumerable<(string Key, Value Value)> GetProperties()
     {
         yield return (ResourceDataKeys.Executable.Path, Value.ForString(ExecutablePath));
         yield return (ResourceDataKeys.Executable.WorkDir, Value.ForString(WorkingDirectory));

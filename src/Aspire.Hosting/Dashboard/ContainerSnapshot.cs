@@ -20,7 +20,7 @@ public sealed class ContainerSnapshot : ResourceSnapshot
     public required string? Command { get; init; }
     public required ImmutableArray<string>? Args { get; init; }
 
-    protected override IEnumerable<(string Key, Value Value)> GetCustomData()
+    protected override IEnumerable<(string Key, Value Value)> GetProperties()
     {
         yield return (ResourceDataKeys.Container.Id, Value.ForString(ContainerId));
         yield return (ResourceDataKeys.Container.Image, Value.ForString(Image));

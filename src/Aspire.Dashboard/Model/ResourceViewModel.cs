@@ -22,7 +22,7 @@ public sealed class ResourceViewModel
     public required ImmutableArray<EndpointSnapshot> Endpoints { get; init; }
     public required ImmutableArray<ResourceServiceViewModel> Services { get; init; }
     public required int? ExpectedEndpointsCount { get; init; }
-    public required FrozenDictionary<string, Value> CustomData { get; init; }
+    public required FrozenDictionary<string, Value> Properties { get; init; }
 
     internal bool MatchesFilter(string filter)
     {
@@ -138,7 +138,7 @@ internal static class ResourceViewModelExtensions
 
     private static bool TryGetCustomDataString(this ResourceViewModel resource, string key, [NotNullWhen(returnValue: true)] out string? s)
     {
-        if (resource.CustomData.TryGetValue(key, out var value) && value.TryConvertToString(out var valueString))
+        if (resource.Properties.TryGetValue(key, out var value) && value.TryConvertToString(out var valueString))
         {
             s = valueString;
             return true;
@@ -150,7 +150,7 @@ internal static class ResourceViewModelExtensions
 
     private static bool TryGetCustomDataStringArray(this ResourceViewModel resource, string key, out ImmutableArray<string> strings)
     {
-        if (resource.CustomData.TryGetValue(key, out var value) && value.ListValue is not null)
+        if (resource.Properties.TryGetValue(key, out var value) && value.ListValue is not null)
         {
             var builder = ImmutableArray.CreateBuilder<string>(value.ListValue.Values.Count);
 
@@ -175,7 +175,7 @@ internal static class ResourceViewModelExtensions
 
     private static bool TryGetCustomDataInt(this ResourceViewModel resource, string key, out int i)
     {
-        if (resource.CustomData.TryGetValue(key, out var value) && value.TryConvertToInt(out i))
+        if (resource.Properties.TryGetValue(key, out var value) && value.TryConvertToInt(out i))
         {
             return true;
         }
@@ -186,7 +186,7 @@ internal static class ResourceViewModelExtensions
 
     private static bool TryGetCustomDataIntArray(this ResourceViewModel resource, string key, out ImmutableArray<int> ints)
     {
-        if (resource.CustomData.TryGetValue(key, out var value) && value.ListValue is not null)
+        if (resource.Properties.TryGetValue(key, out var value) && value.ListValue is not null)
         {
             var builder = ImmutableArray.CreateBuilder<int>(value.ListValue.Values.Count);
 

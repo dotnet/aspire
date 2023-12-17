@@ -3,10 +3,13 @@
 
 using System.Collections.Frozen;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading.Channels;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.Dashboard;
 
@@ -15,11 +18,35 @@ namespace Aspire.Hosting.Dashboard;
 /// and allowing multiple subscribers to receive the current resource collection
 /// snapshot and future updates.
 /// </summary>
-internal sealed class ResourcePublisher(CancellationToken cancellationToken)
+internal sealed class ResourcePublisher
 {
     private readonly object _syncLock = new();
     private readonly Dictionary<string, ResourceSnapshot> _snapshot = [];
+    private readonly CancellationToken _cancellationToken;
     private ImmutableHashSet<Channel<ResourceChange>> _outgoingChannels = [];
+
+    public ResourcePublisher(CancellationToken cancellationToken)
+    {
+        _cancellationToken = cancellationToken;
+
+        var builder = WebApplication.CreateBuilder();
+
+        // Add services to the container.
+        builder.Services.AddGrpc();
+
+        var app = builder.Build();
+
+        // Configure the HTTP request pipeline.
+        app.MapGrpcService<DashboardService>();
+        app.MapGet("/", () => "Communication with gRPC endpoints must be made through a gRPC client. To learn how to create a client, visit: https://go.microsoft.com/fwlink/?linkid=2086909");
+
+        // RunAsync starts the gRPC server but 
+        _ = app.RunAsync();
+
+        Debug.Assert(cancellationToken.CanBeCanceled, "Should not be receiving a token that will never be cancelled (such as CancellationToken.None or default(CancellationToken)).");
+
+        cancellationToken.Register(() => app.StopAsync());
+    }
 
     internal bool TryGetResource(string resourceName, [NotNullWhen(returnValue: true)] out ResourceSnapshot? resource)
     {
@@ -53,9 +80,9 @@ internal sealed class ResourcePublisher(CancellationToken cancellationToken)
             {
                 try
                 {
-                    while (!cancellationToken.IsCancellationRequested)
+                    while (!_cancellationToken.IsCancellationRequested)
                     {
-                        yield return await channel.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
+                        yield return await channel.Reader.ReadAsync(_cancellationToken).ConfigureAwait(false);
                     }
                 }
                 finally
@@ -90,7 +117,7 @@ internal sealed class ResourcePublisher(CancellationToken cancellationToken)
 
         foreach (var channel in _outgoingChannels)
         {
-            await channel.Writer.WriteAsync(new(changeType, ToViewModel(resource)), cancellationToken).ConfigureAwait(false);
+            await channel.Writer.WriteAsync(new(changeType, ToViewModel(resource)), _cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -112,7 +139,7 @@ internal sealed class ResourcePublisher(CancellationToken cancellationToken)
             Endpoints = snapshot.Endpoints,
             Services = snapshot.Services.Select(s => new ResourceServiceViewModel(s.Name, s.AllocatedAddress, s.AllocatedPort)).ToImmutableArray(),
             ExpectedEndpointsCount = snapshot.ExpectedEndpointsCount,
-            CustomData = snapshot.Data.ToFrozenDictionary(pair => pair.Key, pair => pair.Value, StringComparers.ResourceDataKey)
+            Properties = snapshot.Properties.ToFrozenDictionary(pair => pair.Key, pair => pair.Value, StringComparers.ResourceDataKey)
         };
     }
 }

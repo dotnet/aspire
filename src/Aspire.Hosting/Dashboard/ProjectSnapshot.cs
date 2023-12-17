@@ -15,11 +15,11 @@ public class ProjectSnapshot : ExecutableSnapshot
 
     public required string ProjectPath { get; init; }
 
-    protected override IEnumerable<(string Key, Value Value)> GetCustomData()
+    protected override IEnumerable<(string Key, Value Value)> GetProperties()
     {
         yield return (ResourceDataKeys.Project.Path, Value.ForString(ProjectPath));
 
-        foreach (var pair in base.GetCustomData())
+        foreach (var pair in base.GetProperties())
         {
             yield return pair;
         }

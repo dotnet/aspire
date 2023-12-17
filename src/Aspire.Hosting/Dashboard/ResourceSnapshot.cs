@@ -21,9 +21,9 @@ public abstract class ResourceSnapshot
     public required ImmutableArray<ResourceServiceSnapshot> Services { get; init; }
     public required int? ExpectedEndpointsCount { get; init; }
 
-    protected abstract IEnumerable<(string Key, Value Value)> GetCustomData();
+    protected abstract IEnumerable<(string Key, Value Value)> GetProperties();
 
-    public IEnumerable<(string Key, Value Value)> Data
+    public IEnumerable<(string Key, Value Value)> Properties
     {
         get
         {
@@ -34,7 +34,7 @@ public abstract class ResourceSnapshot
             yield return (ResourceDataKeys.Resource.State, Value.ForString(State));
             yield return (ResourceDataKeys.Resource.CreateTime, CreationTimeStamp is null ? Value.ForNull() : Value.ForString(CreationTimeStamp.Value.ToString("O")));
 
-            foreach (var pair in GetCustomData())
+            foreach (var pair in GetProperties())
             {
                 yield return pair;
             }

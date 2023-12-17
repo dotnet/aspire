@@ -86,15 +86,14 @@ message Service {
     optional string http_address = 4;
 }
 
-message AdditionalData {
-    // Name of the data item, e.g. "id", "image", "path", ...
+message ResourceProperty {
+    // Name of the data item, e.g. "container.id", "executable.pid", "project.path", ...
     string name = 1;
-    // Optional namespace, e.g. "container", "executable", "project", ...
-    optional string namespace = 2;
+    // TODO move display_name to reference data, sent once when the connection starts
     // Optional display name, may be localized
-    optional string display_name = 3;
+    optional string display_name = 2;
     // The data value. May be null, a number, a string, a boolean, a dictionary of values (Struct), or a list of values (ValueList).
-    google.protobuf.Value value = 4;
+    google.protobuf.Value value = 3;
 }
 
 message ResourceId {
@@ -115,12 +114,13 @@ message Resource {
     repeated Service services = 8;
     repeated ResourceCommandRequest commands = 9;
 
-    // List of additional data, as name/value pairs.
+    // Properties holding data not modeled directly on the message.
+    //
     // For:
     // - Containers: image, container_id, ports
     // - Executables: process_id, executable_path, working_directory, arguments
     // - Projects: process_id, project_path
-    repeated AdditionalData additional_data = 10;
+    repeated ResourceProperty properties = 10;
 }
 
 ////////////////////////////////////////////
