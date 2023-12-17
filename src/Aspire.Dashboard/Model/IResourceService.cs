@@ -188,17 +188,17 @@ internal static class MessageExtensions
     {
         return new()
         {
+            Uid = resource.Id.Uid,
+            ResourceType = resource.Id.ResourceType,
+            Name = resource.DisplayName,
+            DisplayName = resource.DisplayName,
             CreationTimeStamp = resource.CreatedAt.ToDateTime(),
             Properties = resource.Properties.ToFrozenDictionary(data => data.Name, data => data.Value, StringComparers.ResourceDataKey),
-            DisplayName = resource.DisplayName,
-            Endpoints = asd,
-            Environment = asd,
-            ExpectedEndpointsCount = asd,
-            Name = resource.,
-            ResourceType = asd,
-            Services = asd,
+            Endpoints = [], // TODO
+            Environment = [], // TODO
+            ExpectedEndpointsCount = 0, // TODO
+            Services = [], // TODO
             State = resource.HasState ? resource.State : null,
-            Uid = resource.ResourceId.Uid,
         };
     }
 }

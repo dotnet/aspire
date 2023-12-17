@@ -104,7 +104,7 @@ message ResourceId {
 
 // Models the full state of an resource (container, executable, project, etc) at a particular point in time.
 message Resource {
-    ResourceId resource_id = 1;
+    ResourceId id = 1;
     string display_name = 2;
     optional string state = 3;
     optional google.protobuf.Timestamp created_at = 4;
