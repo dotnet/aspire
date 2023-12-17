@@ -28,6 +28,12 @@ public class TestProgram
 
             NpmAppBuilder = AppBuilder.AddNpmApp("npmapp", path)
                 .WithServiceBinding(hostPort: 5032, scheme: "http", env: "PORT");
+
+            PnpmAppBuilder = AppBuilder.AddPnpmApp("pnpmapp", path)
+                .WithServiceBinding(hostPort: 5033, scheme: "http", env: "PORT");
+
+            YarnAppBuilder = AppBuilder.AddYarnApp("yarnapp", path)
+                .WithServiceBinding(hostPort: 5034, scheme: "http", env: "PORT");
         }
 
         if (includeIntegrationServices)
@@ -84,6 +90,8 @@ public class TestProgram
     public IResourceBuilder<ProjectResource>? IntegrationServiceABuilder { get; private set; }
     public IResourceBuilder<NodeAppResource>? NodeAppBuilder { get; private set; }
     public IResourceBuilder<NodeAppResource>? NpmAppBuilder { get; private set; }
+    public IResourceBuilder<NodeAppResource>? PnpmAppBuilder { get; private set; }
+    public IResourceBuilder<NodeAppResource>? YarnAppBuilder { get; private set; }
     public DistributedApplication? App { get; private set; }
 
     public List<IResourceBuilder<ProjectResource>> ServiceProjectBuilders => [ServiceABuilder, ServiceBBuilder, ServiceCBuilder];
