@@ -83,6 +83,43 @@ public static class ContainerResourceBuilderExtensions
         return builder.WithAnnotation(annotation);
     }
 
+    public static IResourceBuilder<T> WithNamedVolume<T>(this IResourceBuilder<T> builder) where T : ContainerResource
+    {
+        // guid so that if two containers are created, they don't collide
+        var randomGuidForVolumeName = Guid.NewGuid().ToString();
+
+        // Mapping of parent resource types to their volume paths
+        var volumePaths = new Dictionary<Type, string>
+        {
+            { typeof(ISqlServerParentResource), "/var/opt/mssql" },
+            { typeof(IMongoDBParentResource), "/data/db" },
+            { typeof(IRedisParentResource), "/data" },
+            { typeof(IPostgresParentResource), "/var/lib/postgresql/data" },
+            { typeof(IRabbitMQParentResource), "/var/lib/rabbitmq" },
+            { typeof(IMySqlParentResource), "/var/lib/mysql" }
+        };
+
+        foreach (var entry in volumePaths)
+        {
+            Type resourceType = entry.Key;
+            Type resourceWithParentType = typeof(IResourceWithParent<>).MakeGenericType(resourceType);
+
+            var interfaces = builder.GetType().GetInterfaces();
+
+            var containsIContainerParentResourceInterface = interfaces.Contains(resourceType);
+            var containsIContainerWithParentResourceInterface = interfaces.Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == resourceWithParentType);
+
+            if (containsIContainerParentResourceInterface || containsIContainerWithParentResourceInterface)
+            {
+                string volumeName = $"{resourceType.Name.ToLower()}-volume-{randomGuidForVolumeName}";
+                builder.WithVolumeMount(volumeName, entry.Value, VolumeMountType.Named);
+                break; // Assuming only one type match is expected
+            }
+        }
+
+        return builder;
+    }
+
     /// <summary>
     /// Adds the arguments to be passed to a container resource when the container is started.
     /// </summary>

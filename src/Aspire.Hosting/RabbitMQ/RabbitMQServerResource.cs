@@ -8,7 +8,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 /// <param name="password">The RabbitMQ server password.</param>
-public class RabbitMQServerResource(string name, string password) : Resource(name), IResourceWithConnectionString, IResourceWithEnvironment
+public class RabbitMQServerResource(string name, string password) : Resource(name), IResourceWithEnvironment, IRabbitMQParentResource
 {
     /// <summary>
     /// The RabbitMQ server password.
