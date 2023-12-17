@@ -34,9 +34,11 @@
     }
     <FluentButton Appearance="Appearance.Lightweight"
                   Id="@_anchorId"
-                  IconEnd="@(new Icons.Regular.Size16.Copy())"
                   Class="defaultHidden"
-                  @onclick="@(() => CopyTextToClipboardAsync(ValueToCopy ?? Value, @_anchorId))"
-                  aria-label="@Loc[nameof(ControlsStrings.GridValueCopyToClipboard)]" />
+                  @onclick="@(() => CopyTextToClipboardAsync(ValueToCopy ?? Value, _anchorId))"
+                  aria-label="@Loc[nameof(ControlsStrings.GridValueCopyToClipboard)]">
+        <FluentIcon Class="copy-icon" Style="display:inline;" Icon="Icons.Regular.Size16.Copy" />
+        <FluentIcon Class="checkmark-icon" Style="display:none;" Icon="Icons.Regular.Size16.Checkmark" />
+    </FluentButton>
     <FluentTooltip Anchor="@_anchorId" Position="TooltipPosition.Top">@PreCopyToolTip</FluentTooltip>
 </div>

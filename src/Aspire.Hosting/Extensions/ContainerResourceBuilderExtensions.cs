@@ -47,8 +47,9 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="hostPort">The host machine port.</param>
     /// <param name="scheme">The scheme e.g http/https/amqp</param>
     /// <param name="name">The name of the binding.</param>
+    /// <param name="env">The name of the environment variable to inject.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<T> WithServiceBinding<T>(this IResourceBuilder<T> builder, int containerPort, int? hostPort = null, string? scheme = null, string? name = null) where T : IResource
+    public static IResourceBuilder<T> WithServiceBinding<T>(this IResourceBuilder<T> builder, int containerPort, int? hostPort = null, string? scheme = null, string? name = null, string? env = null) where T : IResource
     {
         if (builder.Resource.Annotations.OfType<ServiceBindingAnnotation>().Any(sb => sb.Name == name))
         {
@@ -60,7 +61,8 @@ public static class ContainerResourceBuilderExtensions
             uriScheme: scheme,
             name: name,
             port: hostPort,
-            containerPort: containerPort);
+            containerPort: containerPort,
+            env: env);
 
         return builder.WithAnnotation(annotation);
     }

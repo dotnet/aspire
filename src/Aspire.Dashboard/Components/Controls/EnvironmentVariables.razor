@@ -8,6 +8,7 @@
         @if (ShowSpecOnlyToggle)
         {
             <FluentButton Appearance="Appearance.Lightweight"
+                          Disabled="IsSpecOnlyToggleDisabled"
                           IconEnd="@(_showAll ? _showSpecOnlyIcon : _showAllIcon)"
                           Title="@(_showAll ? Loc[nameof(ControlsStrings.EnvironmentVariablesFilterToggleShowSpecOnly)] : ControlsStrings.EnvironmentVariablesFilterToggleShowAll)"
                           aria-label="@(_showAll ? Loc[nameof(ControlsStrings.EnvironmentVariablesFilterToggleShowSpecOnly)] : ControlsStrings.EnvironmentVariablesFilterToggleShowAll)"
