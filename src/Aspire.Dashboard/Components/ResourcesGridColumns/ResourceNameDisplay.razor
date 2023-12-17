@@ -10,14 +10,14 @@
             <GridValue Value="@containerViewModel.ContainerId"
                        MaxDisplayLength="8"
                        EnableHighlighting="false"
-                       PreCopyToolTip="@Loc[Columns.ResourceNameDisplayCopyContainerIdText]"
-                       ToolTip="@string.Format(Loc[Columns.ResourceNameDisplayContainerIdText], containerViewModel.ContainerId)"/>
+                       PreCopyToolTip="@Loc[nameof(Columns.ResourceNameDisplayCopyContainerIdText)]"
+                       ToolTip="@string.Format(Loc[nameof(Columns.ResourceNameDisplayContainerIdText)], containerViewModel.ContainerId)"/>
         </div>
     }
     else if (Resource is ExecutableViewModel executableViewModel)
     {
         // NOTE projects are also executables, so this will handle both
-        var title = string.Format(Loc[Columns.ResourceNameDisplayProcessIdText], executableViewModel.ProcessId);
+        var title = string.Format(Loc[nameof(Columns.ResourceNameDisplayProcessIdText)], executableViewModel.ProcessId);
         <span class="subtext" title="@title" aria-label="@title">@executableViewModel.ProcessId</span>
     }
 </FluentStack>

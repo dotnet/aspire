@@ -16,9 +16,9 @@
         <div>
             @((MarkupString)string.Format(ControlsStrings.SpanDetailsStartTime, DurationFormatter.FormatDuration(ViewModel.Span.StartTime - ViewModel.Span.Trace.FirstSpan.StartTime)))
         </div>
-        <FluentAnchor slot="end" Appearance="Appearance.Lightweight" Href="@($"/StructuredLogs?spanId={ViewModel.Span.SpanId}")">@Loc[ControlsStrings.ViewLogsLink]</FluentAnchor>
+        <FluentAnchor slot="end" Appearance="Appearance.Lightweight" Href="@($"/StructuredLogs?spanId={ViewModel.Span.SpanId}")">@Loc[nameof(ControlsStrings.ViewLogsLink)]</FluentAnchor>
         <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
-        <FluentSearch Placeholder="@Loc[ControlsStrings.FilterPlaceholder]"
+        <FluentSearch Placeholder="@Loc[nameof(ControlsStrings.FilterPlaceholder)]"
                       Immediate="true"
                       Autofocus="true"
                       @bind-Value="_filter"

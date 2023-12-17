@@ -10,19 +10,19 @@
     <DataAnnotationsValidator />
 
     <FluentStack Orientation="Orientation.Vertical" VerticalGap="8">
-        <FluentCombobox Placeholder="@Loc[Dialogs.FilterDialogFieldPlaceholder]" Items=@Parameters @bind-Value="@_formModel.Parameter" Width="100%" Height="500px" />
+        <FluentCombobox Placeholder="@Loc[nameof(Dialogs.FilterDialogFieldPlaceholder)]" Items=@Parameters @bind-Value="@_formModel.Parameter" Width="100%" Height="500px" />
 
         <FluentSelect TOption="SelectViewModel<FilterCondition>" Items="@s_filterConditions" @bind-SelectedOption="@_formModel.Condition" OptionText="@(i => i.Name)" Width="100%" />
 
-        <FluentTextField @bind-Value="_formModel.Value" Placeholder="@Loc[Dialogs.FilterDialogTextValuePlaceholder]" />
+        <FluentTextField @bind-Value="_formModel.Value" Placeholder="@Loc[nameof(Dialogs.FilterDialogTextValuePlaceholder)]" />
         <ValidationMessage For="() => _formModel.Value" />
 
         <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.Right">
-            <FluentButton OnClick="Cancel">@Loc[Dialogs.FilterDialogCancelButtonText]</FluentButton>
-            <FluentButton Color="Color.Primary" Type="ButtonType.Submit">@Loc[Dialogs.FilterDialogApplyFilterButtonText]</FluentButton>
+            <FluentButton OnClick="Cancel">@Loc[nameof(Dialogs.FilterDialogCancelButtonText)]</FluentButton>
+            <FluentButton Color="Color.Primary" Type="ButtonType.Submit">@Loc[nameof(Dialogs.FilterDialogApplyFilterButtonText)]</FluentButton>
             @if (Content.Filter is not null)
             {
-                <FluentButton Appearance="Appearance.Stealth" aria-label="@Loc[Dialogs.FilterDialogRemoveFilterButtonText]" OnClick="Delete"><FluentIcon Value="@(new Icons.Regular.Size16.Delete())" /></FluentButton>
+                <FluentButton Appearance="Appearance.Stealth" aria-label="@Loc[nameof(Dialogs.FilterDialogRemoveFilterButtonText)]" OnClick="Delete"><FluentIcon Value="@(new Icons.Regular.Size16.Delete())" /></FluentButton>
             }
         </FluentStack>
     </FluentStack>

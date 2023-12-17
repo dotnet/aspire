@@ -2,10 +2,10 @@
 @namespace Aspire.Dashboard.Components.Pages
 @inject IStringLocalizer<Dashboard.Resources.ConsoleLogs> Loc
 
-<PageTitle>@string.Format(Loc[Dashboard.Resources.ConsoleLogs.ConsoleLogsPageTitle], ResourceService.ApplicationName)</PageTitle>
+<PageTitle>@string.Format(Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsPageTitle)], ResourceService.ApplicationName)</PageTitle>
 
 <div class="resource-logs-layout">
-    <h1 class="page-header">@Loc[Dashboard.Resources.ConsoleLogs.ConsoleLogsHeader]</h1>
+    <h1 class="page-header">@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsHeader)]</h1>
     <FluentToolbar Orientation="Orientation.Horizontal">
         <FluentSelect @ref="_resourceSelectComponent" TOption="Option<string>"
                       Items="@_resources"
@@ -13,7 +13,7 @@
                       OptionValue="(o) => o.Value"
                       @bind-SelectedOption="_selectedOption"
                       @bind-SelectedOption:after="HandleSelectedOptionChangedAsync"
-                      AriaLabel="@Loc[Dashboard.Resources.ConsoleLogs.ConsoleLogsSelectAResource]"/>
+                      AriaLabel="@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsSelectAResource)]"/>
         <FluentLabel Typo="Typography.Body">@_status</FluentLabel>
     </FluentToolbar>
     <LogViewer @ref="_logViewer" />

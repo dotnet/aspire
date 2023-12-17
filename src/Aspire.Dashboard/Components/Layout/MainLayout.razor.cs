@@ -91,7 +91,7 @@ public partial class MainLayout : IDisposable
     {
         DialogParameters parameters = new()
         {
-            Title = Loc[Resources.Layout.MainLayoutSettingsDialogTitle],
+            Title = Loc[nameof(Resources.Layout.MainLayoutSettingsDialogTitle)],
             PrimaryAction = Resources.Layout.MainLayoutSettingsDialogClose,
             PrimaryActionEnabled = true,
             SecondaryAction = null,

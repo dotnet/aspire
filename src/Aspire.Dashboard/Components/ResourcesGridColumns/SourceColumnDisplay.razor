@@ -10,7 +10,7 @@
                ValueToCopy="@projectViewModel.ProjectPath"
                EnableHighlighting="true"
                HighlightText="@FilterText"
-               PreCopyToolTip="@Loc[Columns.SourceColumnSourceCopyFullPathToClipboard]"
+               PreCopyToolTip="@Loc[nameof(Columns.SourceColumnSourceCopyFullPathToClipboard)]"
                ToolTip="@projectViewModel.ProjectPath" />
 }
 else if (Resource is ExecutableViewModel executableViewModel)
@@ -22,14 +22,14 @@ else if (Resource is ExecutableViewModel executableViewModel)
                ValueToCopy="@fullCommandLine"
                EnableHighlighting="true"
                HighlightText="@FilterText"
-               PreCopyToolTip="@Loc[Columns.SourceColumnSourceCopyFullPathToClipboard]"
+               PreCopyToolTip="@Loc[nameof(Columns.SourceColumnSourceCopyFullPathToClipboard)]"
                ToolTip="@executableViewModel.ExecutablePath">
         <ContentAfterValue>
             <span class="subtext">@arguments</span>
         </ContentAfterValue>
     </GridValue>
 
-    <div class="ellipsis-overflow" title="@executableViewModel.WorkingDirectory" aria-label="@executableViewModel.WorkingDirectory">@string.Format(Loc[Columns.SourceColumnDisplayWorkingDirectory], executableViewModel.WorkingDirectory?.TrimMiddle(35))</div>
+    <div class="ellipsis-overflow" title="@executableViewModel.WorkingDirectory" aria-label="@executableViewModel.WorkingDirectory">@string.Format(Loc[nameof(Columns.SourceColumnDisplayWorkingDirectory)], executableViewModel.WorkingDirectory?.TrimMiddle(35))</div>
 }
 else if (Resource is ContainerViewModel containerViewModel)
 {
@@ -37,15 +37,15 @@ else if (Resource is ContainerViewModel containerViewModel)
     <GridValue Value="@containerViewModel.Image"
                EnableHighlighting="true"
                HighlightText="@FilterText"
-               PreCopyToolTip="@Loc[Columns.SourceColumnSourceCopyContainerToClipboard]"
+               PreCopyToolTip="@Loc[nameof(Columns.SourceColumnSourceCopyContainerToClipboard)]"
                ToolTip="@containerViewModel.Image">
         <ContentAfterValue>
            @if (containerViewModel.Ports.Length > 0)
            {
                var title = string.Format(
                    Loc[containerViewModel.Ports.Length == 1
-                       ? Columns.SourceColumnDisplayPort
-                       : Columns.SourceColumnDisplayPorts],
+                       ? nameof(Columns.SourceColumnDisplayPort)
+                       : nameof(Columns.SourceColumnDisplayPorts)],
                    ports);
                    <span class="subtext" aria-label="@title">@title</span>
            }
@@ -54,12 +54,12 @@ else if (Resource is ContainerViewModel containerViewModel)
     <FluentStack Orientation="Orientation.Horizontal">
         @if (containerViewModel.Command is not null)
         {
-            <div class="ellipsis-overflow" title="@Loc[Columns.SourceColumnDisplayContainerCommandTitle]" aria-label="@Loc[Columns.SourceColumnDisplayContainerCommandTitle]">@Loc[Columns.SourceColumnDisplayContainerCommand, containerViewModel.Command]</div>
+            <div class="ellipsis-overflow" title="@Loc[nameof(Columns.SourceColumnDisplayContainerCommandTitle)]" aria-label="@Loc[nameof(Columns.SourceColumnDisplayContainerCommandTitle)]">@Loc[nameof(Columns.SourceColumnDisplayContainerCommand), containerViewModel.Command]</div>
         }
         @if (containerViewModel.Args is not null)
         {
             var args = string.Join(" ", containerViewModel.Args);
-            <div class="ellipsis-overflow" title="@Loc[Columns.SourceColumnDisplayContainerArgsTitle]" aria-label="@Loc[Columns.SourceColumnDisplayContainerArgsTitle]">@args</div>
+            <div class="ellipsis-overflow" title="@Loc[nameof(Columns.SourceColumnDisplayContainerArgsTitle)]" aria-label="@Loc[nameof(Columns.SourceColumnDisplayContainerArgsTitle)]">@args</div>
         }
     </FluentStack>
 }
