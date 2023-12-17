@@ -543,16 +543,6 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
 
                 dcpContainerResource.Spec.Env = new();
 
-                if (modelContainerResource.TryGetEnvironmentVariables(out var containerEnvironmentVariables))
-                {
-                    var context = new EnvironmentCallbackContext("dcp", config);
-
-                    foreach (var v in containerEnvironmentVariables)
-                    {
-                        v.Callback(context);
-                    }
-                }
-
                 if (cr.ServicesProduced.Count > 0)
                 {
                     dcpContainerResource.Spec.Ports = new();
@@ -591,6 +581,16 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
                         {
                             config.Add(envVar, $"{{{{- portForServing \"{name}\" }}}}");
                         }
+                    }
+                }
+
+                if (modelContainerResource.TryGetEnvironmentVariables(out var containerEnvironmentVariables))
+                {
+                    var context = new EnvironmentCallbackContext("dcp", config);
+
+                    foreach (var v in containerEnvironmentVariables)
+                    {
+                        v.Callback(context);
                     }
                 }
 
