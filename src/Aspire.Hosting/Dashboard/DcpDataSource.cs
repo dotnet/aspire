@@ -86,12 +86,37 @@ internal sealed class DcpDataSource
     {
         if (ProcessResourceChange(resourceByName, watchEventType, resource))
         {
-            UpdateAssociatedServicesMap(resourceKind, watchEventType, resource);
+            UpdateAssociatedServicesMap();
 
-            var changeType = ToChangeType(watchEventType);
+            var changeType = watchEventType switch
+            {
+                WatchEventType.Added or WatchEventType.Modified => ResourceChangeType.Upsert,
+                WatchEventType.Deleted => ResourceChangeType.Delete,
+                _ => ResourceChangeType.Other
+            };
+
             var snapshot = snapshotFactory(resource);
 
             await _onResourceChanged(snapshot, changeType).ConfigureAwait(false);
+        }
+
+        void UpdateAssociatedServicesMap()
+        {
+            // We keep track of associated services for the resource
+            // So whenever we get the service we can figure out if the service can generate endpoint for the resource
+            if (watchEventType == WatchEventType.Deleted)
+            {
+                _resourceAssociatedServicesMap.Remove((resourceKind, resource.Metadata.Name));
+            }
+            else if (resource.Metadata.Annotations?.TryGetValue(CustomResource.ServiceProducerAnnotation, out var servicesProducedAnnotationJson) == true)
+            {
+                var serviceProducerAnnotations = JsonSerializer.Deserialize<ServiceProducerAnnotation[]>(servicesProducedAnnotationJson);
+                if (serviceProducerAnnotations is not null)
+                {
+                    _resourceAssociatedServicesMap[(resourceKind, resource.Metadata.Name)]
+                        = serviceProducerAnnotations.Select(e => e.ServiceName).ToList();
+                }
+            }
         }
     }
 
@@ -200,7 +225,7 @@ internal sealed class DcpDataSource
             return new ProjectSnapshot
             {
                 Name = executable.Metadata.Name,
-                DisplayName = ComputeExecutableDisplayName(executable),
+                DisplayName = GetDisplayName(executable),
                 Uid = executable.Metadata.Uid,
                 CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToLocalTime(),
                 ExecutablePath = executable.Spec.ExecutablePath,
@@ -221,7 +246,7 @@ internal sealed class DcpDataSource
         return new ExecutableSnapshot
         {
             Name = executable.Metadata.Name,
-            DisplayName = ComputeExecutableDisplayName(executable),
+            DisplayName = GetDisplayName(executable),
             Uid = executable.Metadata.Uid,
             CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToLocalTime(),
             ExecutablePath = executable.Spec.ExecutablePath,
@@ -236,6 +261,24 @@ internal sealed class DcpDataSource
             Endpoints = endpoints,
             Services = services
         };
+
+        static string GetDisplayName(Executable executable)
+        {
+            var displayName = executable.Metadata.Name;
+            var replicaSetOwner = executable.Metadata.OwnerReferences?.FirstOrDefault(
+                or => or.Kind == Dcp.Model.Dcp.ExecutableReplicaSetKind
+            );
+            if (replicaSetOwner is not null && displayName.Length > 3)
+            {
+                var lastHyphenIndex = displayName.LastIndexOf('-');
+                if (lastHyphenIndex > 0 && lastHyphenIndex < displayName.Length - 1)
+                {
+                    // Strip the replica ID from the name.
+                    displayName = displayName[..lastHyphenIndex];
+                }
+            }
+            return displayName;
+        }
     }
 
     private (ImmutableArray<EndpointSnapshot> Endpoints, ImmutableArray<ResourceServiceSnapshot> Services) GetEndpointsAndServices(
@@ -361,25 +404,6 @@ internal sealed class DcpDataSource
         return environment.ToImmutable();
     }
 
-    private void UpdateAssociatedServicesMap(string resourceKind, WatchEventType watchEventType, CustomResource resource)
-    {
-        // We keep track of associated services for the resource
-        // So whenever we get the service we can figure out if the service can generate endpoint for the resource
-        if (watchEventType == WatchEventType.Deleted)
-        {
-            _resourceAssociatedServicesMap.Remove((resourceKind, resource.Metadata.Name));
-        }
-        else if (resource.Metadata.Annotations?.TryGetValue(CustomResource.ServiceProducerAnnotation, out var servicesProducedAnnotationJson) == true)
-        {
-            var serviceProducerAnnotations = JsonSerializer.Deserialize<ServiceProducerAnnotation[]>(servicesProducedAnnotationJson);
-            if (serviceProducerAnnotations is not null)
-            {
-                _resourceAssociatedServicesMap[(resourceKind, resource.Metadata.Name)]
-                    = serviceProducerAnnotations.Select(e => e.ServiceName).ToList();
-            }
-        }
-    }
-
     private static bool ProcessResourceChange<T>(Dictionary<string, T> map, WatchEventType watchEventType, T resource)
             where T : CustomResource
     {
@@ -402,33 +426,5 @@ internal sealed class DcpDataSource
         }
 
         return true;
-    }
-
-    private static ResourceChangeType ToChangeType(WatchEventType watchEventType)
-    {
-        return watchEventType switch
-        {
-            WatchEventType.Added or WatchEventType.Modified => ResourceChangeType.Upsert,
-            WatchEventType.Deleted => ResourceChangeType.Delete,
-            _ => ResourceChangeType.Other
-        };
-    }
-
-    private static string ComputeExecutableDisplayName(Executable executable)
-    {
-        var displayName = executable.Metadata.Name;
-        var replicaSetOwner = executable.Metadata.OwnerReferences?.FirstOrDefault(
-            or => or.Kind == Dcp.Model.Dcp.ExecutableReplicaSetKind
-        );
-        if (replicaSetOwner is not null && displayName.Length > 3)
-        {
-            var lastHyphenIndex = displayName.LastIndexOf('-');
-            if (lastHyphenIndex > 0 && lastHyphenIndex < displayName.Length - 1)
-            {
-                // Strip the replica ID from the name.
-                displayName = displayName[..lastHyphenIndex];
-            }
-        }
-        return displayName;
     }
 }
