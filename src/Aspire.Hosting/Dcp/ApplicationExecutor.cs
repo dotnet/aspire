@@ -420,17 +420,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
                             config["ASPNETCORE_URLS"] = string.Join(";", urls);
                         }
 
-                        // Inject environment variables for services produced by this executable.
-                        foreach (var serviceProduced in er.ServicesProduced)
-                        {
-                            var name = serviceProduced.Service.Metadata.Name;
-                            var envVar = serviceProduced.ServiceBindingAnnotation.EnvironmentVariable;
-
-                            if (envVar is not null)
-                            {
-                                config.Add(envVar, $"{{{{- portForServing \"{name}\" }}}}");
-                            }
-                        }
+                        InjectPortEnvVars(er, config);
                     }
                 }
 
@@ -473,18 +463,36 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
                     var url = sar.ServiceBindingAnnotation.UriScheme + "://localhost:{{- portForServing \"" + sar.Service.Metadata.Name + "\" -}}";
                     return url;
                 });
+
                 config.Add("ASPNETCORE_URLS", string.Join(";", urls));
             }
             else
             {
                 config.Add("ASPNETCORE_URLS", launchProfile.ApplicationUrl);
             }
+
+            InjectPortEnvVars(executableResource, config);
         }
 
         foreach (var envVar in launchProfile.EnvironmentVariables)
         {
             string value = Environment.ExpandEnvironmentVariables(envVar.Value);
             config[envVar.Key] = value;
+        }
+    }
+
+    private static void InjectPortEnvVars(AppResource executableResource, Dictionary<string, string> config)
+    {
+        // Inject environment variables for services produced by this executable.
+        foreach (var serviceProduced in executableResource.ServicesProduced)
+        {
+            var name = serviceProduced.Service.Metadata.Name;
+            var envVar = serviceProduced.ServiceBindingAnnotation.EnvironmentVariable;
+
+            if (envVar is not null)
+            {
+                config.Add(envVar, $"{{{{- portForServing \"{name}\" }}}}");
+            }
         }
     }
 

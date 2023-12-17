@@ -1,11 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using System.Globalization;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Tests.Helpers;
+using k8s.Models;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -419,6 +421,75 @@ public class DistributedApplicationTests
                 Assert.Equal("redis:latest", item.Spec.Image);
                 Assert.Equal(["redis-cli", "-h", "host.docker.internal", "-p", "9999", "MONITOR"], item.Spec.Args);
             });
+
+        await app.StopAsync();
+    }
+
+    [LocalOnlyFact("docker")]
+    public async Task SpecifyingEnvPortInServiceBindingFlowsToEnv()
+    {
+        var testProgram = CreateTestProgram(includeNodeApp: true);
+
+        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+
+        testProgram.ServiceABuilder
+            .WithServiceBinding(scheme: "http", name: "http0", env: "PORT0");
+
+        testProgram.AppBuilder.AddContainer("redis0", "redis")
+            .WithServiceBinding(containerPort: 6379, name: "tcp", env: "REDIS_PORT");
+
+        await using var app = testProgram.Build();
+
+        var kubernetes = app.Services.GetRequiredService<KubernetesService>();
+
+        await app.StartAsync();
+
+        async Task<T> GetResourceByNameAsync<T>(string resourceName, Func<T, bool> ready, CancellationToken cancellationToken) where T : CustomResource
+        {
+            await foreach (var (_, r) in kubernetes!.WatchAsync<T>(cancellationToken: cancellationToken))
+            {
+                var name = r.Name();
+
+                if ((name == resourceName || name.StartsWith(resourceName + "-", StringComparison.Ordinal)) && ready(r))
+                {
+                    return r;
+                }
+            }
+
+            throw new InvalidOperationException($"Resource {resourceName}, not ready");
+        }
+
+        using var cts = new CancellationTokenSource(Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(10));
+        var token = cts.Token;
+
+        var redisContainer = await GetResourceByNameAsync<Container>("redis0", r => r.Status?.EffectiveEnv is not null, token);
+        Assert.NotNull(redisContainer);
+
+        var serviceA = await GetResourceByNameAsync<Executable>("servicea", r => r.Status?.EffectiveEnv is not null, token);
+        Assert.NotNull(serviceA);
+
+        var nodeApp = await GetResourceByNameAsync<Executable>("nodeapp", r => r.Status?.EffectiveEnv is not null, token);
+        Assert.NotNull(nodeApp);
+
+        string? GetEnv(IEnumerable<EnvVar>? envVars, string name)
+        {
+            Assert.NotNull(envVars);
+            return Assert.Single(envVars.Where(e => e.Name == name)).Value;
+        };
+
+        Assert.Equal("redis:latest", redisContainer.Spec.Image);
+        Assert.Equal("{{- portForServing \"redis0\" }}", GetEnv(redisContainer.Spec.Env, "REDIS_PORT"));
+        Assert.Equal("6379", GetEnv(redisContainer.Status!.EffectiveEnv, "REDIS_PORT"));
+
+        Assert.Equal("{{- portForServing \"servicea_http0\" }}", GetEnv(serviceA.Spec.Env, "PORT0"));
+        var serviceAPortValue = GetEnv(serviceA.Status!.EffectiveEnv, "PORT0");
+        Assert.False(string.IsNullOrEmpty(serviceAPortValue));
+        Assert.NotEqual(0, int.Parse(serviceAPortValue, CultureInfo.InvariantCulture));
+
+        Assert.Equal("{{- portForServing \"nodeapp\" }}", GetEnv(nodeApp.Spec.Env, "PORT"));
+        var nodeAppPortValue = GetEnv(nodeApp.Status!.EffectiveEnv, "PORT");
+        Assert.False(string.IsNullOrEmpty(nodeAppPortValue));
+        Assert.NotEqual(0, int.Parse(nodeAppPortValue, CultureInfo.InvariantCulture));
 
         await app.StopAsync();
     }
