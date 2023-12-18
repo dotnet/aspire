@@ -5,17 +5,17 @@ var catalogDb = builder.AddPostgresContainer("postgres")
 
 // Add another Postgres container with the same named volume to see if named volumes name validation works correctly
 builder.AddPostgresContainer("randomdb")
-                      .WithNamedVolume("VolumeMount.example.data");
+       .WithNamedVolume("VolumeMount.example.data");
 
 var basketCache = builder.AddRedisContainer("basketcache")
-                         .WithNamedVolume();
+                         .WithNamedVolume("basketcachvolume");
 
 var catalogService = builder.AddProject<Projects.CatalogService>("catalogservice")
                      .WithReference(catalogDb)
                      .WithReplicas(2);
 
 var messaging = builder.AddRabbitMQContainer("messaging")
-                       .WithNamedVolume();
+                       .WithNamedVolume("messagingvolume");
 
 var basketService = builder.AddProject("basketservice", @"..\BasketService\BasketService.csproj")
                     .WithReference(basketCache)
