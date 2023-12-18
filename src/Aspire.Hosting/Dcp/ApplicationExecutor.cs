@@ -216,7 +216,13 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
                 var uniqueServiceName = GenerateUniqueServiceName(serviceNames, candidateServiceName);
                 var svc = Service.Create(uniqueServiceName);
 
-                svc.Spec.Port = sba.Port;
+                if (!sp.ModelResource.IsContainer())
+                {
+                    // Treat the port specified in the ServiceBindingAnnotation as desired port for the whole service.
+                    // Each replica receives its own port.
+                    svc.Spec.Port = sba.Port;
+                }
+
                 addServiceAppResource(svc, sp.ModelResource, sba);
             }
         }
