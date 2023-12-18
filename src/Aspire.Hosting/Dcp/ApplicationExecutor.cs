@@ -199,9 +199,8 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
         void addServiceAppResource(Service svc, IResource producingResource, ServiceBindingAnnotation sba)
         {
             svc.Spec.Protocol = PortProtocol.FromProtocolType(sba.Protocol);
-            svc.Spec.AddressAllocationMode = AddressAllocationModes.Localhost;
             svc.Annotate(CustomResource.UriSchemeAnnotation, sba.UriScheme);
-
+            svc.Spec.AddressAllocationMode = AddressAllocationModes.Localhost;
             _appResources.Add(new ServiceAppResource(producingResource, svc, sba));
         }
 
@@ -216,12 +215,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
                 var uniqueServiceName = GenerateUniqueServiceName(serviceNames, candidateServiceName);
                 var svc = Service.Create(uniqueServiceName);
 
-                if (!sp.ModelResource.IsContainer())
-                {
-                    // Treat the port specified in the ServiceBindingAnnotation as desired port for the whole service.
-                    // Each replica receives its own port.
-                    svc.Spec.Port = sba.Port;
-                }
+                svc.Spec.Port = sba.Port;
 
                 addServiceAppResource(svc, sp.ModelResource, sba);
             }
@@ -550,11 +544,6 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
                         if (!string.IsNullOrEmpty(sp.DcpServiceProducerAnnotation.Address))
                         {
                             portSpec.HostIP = sp.DcpServiceProducerAnnotation.Address;
-                        }
-
-                        if (sp.ServiceBindingAnnotation.Port is not null)
-                        {
-                            portSpec.HostPort = sp.ServiceBindingAnnotation.Port;
                         }
 
                         switch (sp.ServiceBindingAnnotation.Protocol)
