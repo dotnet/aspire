@@ -3,6 +3,10 @@ var builder = DistributedApplication.CreateBuilder(args);
 var catalogDb = builder.AddPostgresContainer("postgres")
                        .WithNamedVolume("VolumeMount.example.data");
 
+// Add another Postgres container with the same named volume to see if named volumes name validation works correctly
+builder.AddPostgresContainer("randomdb")
+                      .WithNamedVolume("VolumeMount.example.data");
+
 var basketCache = builder.AddRedisContainer("basketcache")
                          .WithNamedVolume();
 

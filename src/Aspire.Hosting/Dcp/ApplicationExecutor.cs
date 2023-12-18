@@ -509,10 +509,64 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
                 }
             }
 
+            // Ensure no duplicate target volumes are mounted.
+            ValidateNamedVolumes(ctr);
+
             var containerAppResource = new AppResource(container, ctr);
             AddServicesProducedInfo(container, ctr, containerAppResource);
             _appResources.Add(containerAppResource);
         }
+    }
+
+    private static void ValidateNamedVolumes(Container? container)
+    {
+
+        if(container is null)
+        {
+            return;
+        }
+
+        var volumeList = container.Spec.VolumeMounts;
+
+        if(volumeList is null)
+        {
+            return;
+        }
+
+        if(volumeList.Count == 0)
+        {
+            return;
+        }
+
+        var volumeNameToMountCount = new Dictionary<string, int>();
+
+        var namedVolumes = volumeList.Where(v => v.Type == Model.VolumeMountType.Named).ToArray();
+
+        foreach(VolumeMount namedVolume in namedVolumes)
+        {
+            if(namedVolume.Source is null)
+            {
+                continue;
+            }
+
+            if(volumeNameToMountCount.TryGetValue(namedVolume.Source, out var value))
+            {
+                volumeNameToMountCount[namedVolume.Source] = ++value;
+            }
+            else
+            {
+                volumeNameToMountCount.Add(namedVolume.Source, 1);
+            }
+        }
+
+        foreach(var volumeName in volumeNameToMountCount.Keys)
+        {
+            if (volumeNameToMountCount[volumeName] > 1)
+            {
+                throw new InvalidOperationException($"Volume {volumeName} is mounted more than once in container {container.Metadata.Name}");
+            }
+        }
+
     }
 
     private async Task CreateContainersAsync(IEnumerable<AppResource> containerResources, CancellationToken cancellationToken)
