@@ -188,16 +188,16 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         {
             Debug.Assert(serializable.ApplicationId is not null);
             path = serializable.InstrumentName != null
-                ? $"/Metrics/{serializable.ApplicationId}/Meter/{serializable.MeterName}/Instrument/{serializable.InstrumentName}"
-                : $"/Metrics/{serializable.ApplicationId}/Meter/{serializable.MeterName}";
+                ? $"/{BasePath}/{serializable.ApplicationId}/Meter/{serializable.MeterName}/Instrument/{serializable.InstrumentName}"
+                : $"/{BasePath}/{serializable.ApplicationId}/Meter/{serializable.MeterName}";
         }
         else if (serializable.ApplicationId != null)
         {
-            path = $"/Metrics/{serializable.ApplicationId}";
+            path = $"/{BasePath}/{serializable.ApplicationId}";
         }
         else
         {
-            path = $"/Metrics";
+            path = $"/{BasePath}";
         }
 
         var queryParameters = new Dictionary<string, string?>();
@@ -236,7 +236,10 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await this.InitializeViewModelAsync(hasComponentRendered: true);
+        if (firstRender)
+        {
+            await this.InitializeViewModelAsync(hasComponentRendered: true);
+        }
     }
 
     public void Dispose()
