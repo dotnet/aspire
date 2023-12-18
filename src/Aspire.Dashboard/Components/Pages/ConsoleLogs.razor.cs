@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Concurrent;
+using System.Diagnostics;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
@@ -24,7 +26,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable
     private readonly TaskCompletionSource _whenDomReady = new();
     private readonly CancellationTokenSource _resourceSubscriptionCancellation = new();
     private readonly CancellationSeries _logSubscriptionCancellationSeries = new();
-    private readonly Dictionary<string, ResourceViewModel> _resourceByName = [];
+    private readonly ConcurrentDictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
 
     // UI
     private FluentSelect<Option<string>>? _resourceSelectComponent;
@@ -52,7 +54,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable
 
             foreach (var resource in snapshot)
             {
-                _resourceByName[resource.Name] = resource;
+                var added = _resourceByName.TryAdd(resource.Name, resource);
+                Debug.Assert(added, "Should not receive duplicate resources in initial snapshot data.");
             }
 
             UpdateResourcesList();
@@ -80,7 +83,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable
     {
         if (_resources is not null && ResourceName is not null)
         {
-            _selectedOption = _resources.FirstOrDefault(c => string.Equals(ResourceName, c.Value, StringComparison.Ordinal)) ?? _noSelection;
+            _selectedOption = _resources.FirstOrDefault(c => string.Equals(ResourceName, c.Value, StringComparisons.ResourceName)) ?? _noSelection;
             _selectedResource = _selectedOption.Value is null ? null : _resourceByName[_selectedOption.Value];
             await LoadLogsAsync();
         }
@@ -205,7 +208,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable
         }
         else if (changeType == ResourceChangeType.Delete)
         {
-            _resourceByName.Remove(resource.Name);
+            var removed = _resourceByName.TryRemove(resource.Name, out _);
+            Debug.Assert(removed, "Cannot remove unknown resource.");
 
             if (string.Equals(_selectedResource?.Name, resource.Name, StringComparison.Ordinal))
             {

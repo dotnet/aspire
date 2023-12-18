@@ -1,7 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
@@ -27,7 +29,7 @@ public partial class Resources : ComponentBase, IDisposable
     private ResourceViewModel? SelectedResource { get; set; }
 
     private readonly CancellationTokenSource _watchTaskCancellationTokenSource = new();
-    private readonly Dictionary<string, ResourceViewModel> _resourcesMap = [];
+    private readonly ConcurrentDictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
     // TODO populate resource types from server data
     private readonly ImmutableArray<string> _allResourceTypes = ["Project", "Executable", "Container"];
     private readonly HashSet<string> _visibleResourceTypes;
@@ -76,7 +78,7 @@ public partial class Resources : ComponentBase, IDisposable
         }
     }
 
-    private IQueryable<ResourceViewModel>? FilteredResources => _resourcesMap.Values.Where(Filter).OrderBy(e => e.ResourceType).ThenBy(e => e.Name).AsQueryable();
+    private IQueryable<ResourceViewModel>? FilteredResources => _resourceByName.Values.Where(Filter).OrderBy(e => e.ResourceType).ThenBy(e => e.Name).AsQueryable();
 
     private readonly GridSort<ResourceViewModel> _nameSort = GridSort<ResourceViewModel>.ByAscending(p => p.Name);
     private readonly GridSort<ResourceViewModel> _stateSort = GridSort<ResourceViewModel>.ByAscending(p => p.State);
@@ -89,7 +91,8 @@ public partial class Resources : ComponentBase, IDisposable
 
         foreach (var resource in snapshot)
         {
-            _resourcesMap.Add(resource.Name, resource);
+            var added = _resourceByName.TryAdd(resource.Name, resource);
+            Debug.Assert(added, "Should not receive duplicate resources in initial snapshot data.");
         }
 
         _ = Task.Run(async () =>
@@ -152,23 +155,24 @@ public partial class Resources : ComponentBase, IDisposable
         switch (changeType)
         {
             case ResourceChangeType.Upsert:
-                _resourcesMap[resource.Name] = resource;
+                _resourceByName[resource.Name] = resource;
                 break;
 
             case ResourceChangeType.Delete:
-                _resourcesMap.Remove(resource.Name);
+                var removed = _resourceByName.TryRemove(resource.Name, out _);
+                Debug.Assert(removed, "Cannot remove unknown resource.");
                 break;
         }
 
         await InvokeAsync(StateHasChanged);
     }
 
-    private string GetResourceName(ResourceViewModel resource) => ResourceViewModel.GetResourceName(resource, _resourcesMap.Values);
+    private string GetResourceName(ResourceViewModel resource) => ResourceViewModel.GetResourceName(resource, _resourceByName.Values);
 
     private bool HasMultipleReplicas(ResourceViewModel resource)
     {
         var count = 0;
-        foreach (var item in _resourcesMap.Values)
+        foreach (var item in _resourceByName.Values)
         {
             if (item.DisplayName == resource.DisplayName)
             {
