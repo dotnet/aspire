@@ -7,7 +7,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// Represents a Redis resource independent of hosting model.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
-public class RedisResource(string name) : Resource(name) , IRedisParentResource
+public class RedisResource(string name) : Resource(name), IResourceWithConnectionString
 {
     /// <summary>
     /// Gets the connection string for the Redis server.
