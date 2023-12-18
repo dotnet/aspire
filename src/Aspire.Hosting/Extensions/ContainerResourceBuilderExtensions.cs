@@ -85,33 +85,24 @@ public static class ContainerResourceBuilderExtensions
 
     public static IResourceBuilder<T> WithNamedVolume<T>(this IResourceBuilder<T> builder, string volumeName) where T : ContainerResource
     {
+        ArgumentNullException.ThrowIfNullOrWhiteSpace(volumeName, nameof(volumeName));
 
         // Mapping of parent resource types to their volume paths
         var volumePaths = new Dictionary<Type, string>
         {
-            { typeof(ISqlServerParentResource), "/var/opt/mssql" },
-            { typeof(IMongoDBParentResource), "/data/db" },
-            { typeof(IRedisParentResource), "/data" },
-            { typeof(IPostgresParentResource), "/var/lib/postgresql/data" },
-            { typeof(IRabbitMQParentResource), "/var/lib/rabbitmq" },
-            { typeof(IMySqlParentResource), "/var/lib/mysql" }
+            { typeof(SqlServerContainerResource), "/var/opt/mssql" },
+            { typeof(MongoDBContainerResource), "/data/db" },
+            { typeof(RedisContainerResource), "/data" },
+            { typeof(PostgresContainerResource), "/var/lib/postgresql/data" },
+            { typeof(RabbitMQContainerResource), "/var/lib/rabbitmq" },
+            { typeof(MySqlContainerResource), "/var/lib/mysql" }
         };
 
-        foreach (var entry in volumePaths)
+        Type resourceType = typeof(T);
+
+        if (volumePaths.TryGetValue(resourceType, out var volumePath))
         {
-            Type resourceType = entry.Key;
-            Type resourceWithParentType = typeof(IResourceWithParent<>).MakeGenericType(resourceType);
-
-            var interfaces = builder.GetType().GetInterfaces();
-
-            var containsIContainerParentResourceInterface = interfaces.Contains(resourceType);
-            var containsIContainerWithParentResourceInterface = interfaces.Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == resourceWithParentType);
-
-            if (containsIContainerParentResourceInterface || containsIContainerWithParentResourceInterface)
-            {
-                builder.WithVolumeMount(volumeName, entry.Value, VolumeMountType.Named);
-                break;
-            }
+            builder.WithVolumeMount(volumeName, volumePath, VolumeMountType.Named);
         }
 
         return builder;
