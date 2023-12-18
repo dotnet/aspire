@@ -7,7 +7,7 @@ using Google.Protobuf.WellKnownTypes;
 
 namespace Aspire.Hosting.Dashboard;
 
-public abstract class ResourceSnapshot
+internal abstract class ResourceSnapshot
 {
     public abstract string ResourceType { get; }
 
@@ -42,4 +42,4 @@ public abstract class ResourceSnapshot
     }
 }
 
-public sealed record EndpointSnapshot(string EndpointUrl, string ProxyUrl);
+internal sealed record EndpointSnapshot(string EndpointUrl, string ProxyUrl);

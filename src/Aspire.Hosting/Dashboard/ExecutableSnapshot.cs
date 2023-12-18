@@ -11,7 +11,7 @@ namespace Aspire.Hosting.Dashboard;
 /// <summary>
 /// Immutable snapshot of an executable's state at a point in time.
 /// </summary>
-public class ExecutableSnapshot : ResourceSnapshot
+internal class ExecutableSnapshot : ResourceSnapshot
 {
     public override string ResourceType => KnownResourceTypes.Executable;
 

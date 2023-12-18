@@ -9,7 +9,7 @@ namespace Aspire.Hosting.Dashboard;
 /// <summary>
 /// Immutable snapshot of a project's state at a point in time.
 /// </summary>
-public class ProjectSnapshot : ExecutableSnapshot
+internal class ProjectSnapshot : ExecutableSnapshot
 {
     public override string ResourceType => KnownResourceTypes.Project;
 

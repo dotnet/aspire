@@ -3,7 +3,7 @@
 
 namespace Aspire.Hosting.Dashboard;
 
-public sealed class EnvironmentVariableSnapshot
+internal sealed class EnvironmentVariableSnapshot
 {
     public required string Name { get; init; }
     public required string? Value { get; init; }

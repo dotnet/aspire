@@ -10,7 +10,7 @@ namespace Aspire.Hosting.Dashboard;
 /// <summary>
 /// Immutable snapshot of a container's state at a point in time.
 /// </summary>
-public sealed class ContainerSnapshot : ResourceSnapshot
+internal sealed class ContainerSnapshot : ResourceSnapshot
 {
     public override string ResourceType => KnownResourceTypes.Container;
 
