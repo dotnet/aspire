@@ -8,7 +8,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 public class RedisContainerResource(string name) : ContainerResource(name), IResourceWithConnectionString
-
+{
     /// <summary>
     /// Gets the connection string for the Redis server.
     /// </summary>
