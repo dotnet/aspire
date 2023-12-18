@@ -4,6 +4,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
@@ -48,11 +49,11 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
     protected override void OnInitialized()
     {
-        _noSelection = new() { Value = null, Text = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsSelectAResource)] };
+        _noSelection = new() { Value = null, Text = ControlsStringsLoc[nameof(ControlsStrings.SelectAResource)] };
 
-        TrackResources();
+        TrackResourceSnapshots();
 
-        void TrackResources()
+        void TrackResourceSnapshots()
         {
             var (snapshot, subscription) = ResourceService.SubscribeResources();
 
@@ -69,6 +70,19 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                 await foreach (var (changeType, resource) in subscription.WithCancellation(_resourceSubscriptionCancellation.Token))
                 {
                     await OnResourceChanged(changeType, resource);
+
+                    // the initial snapshot we obtain is [almost] never correct (it's always empty)
+                    // we still want to select the user's initial queried resource on page load,
+                    // so if there is no selected resource when we
+                    // receive an added resource, and that added resource name == ResourceName,
+                    // we should mark it as selected
+                    if (ResourceName is not null && ViewModel.SelectedResource is null && changeType == ResourceChangeType.Upsert && string.Equals(ResourceName, resource.Name))
+                    {
+                        ViewModel.SelectedResource = resource;
+                        Debug.Assert(_resources is not null);
+                        ViewModel.SelectedOption = _resources.Single(option => string.Equals(ResourceName, option.Value, StringComparison.Ordinal));
+                        await SetSelectedConsoleResource(resource);
+                    }
                 }
             });
         }
@@ -186,6 +200,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         await StopWatchingLogsAsync();
         await ClearLogsAsync();
 
+        ViewModel.SelectedResource = ViewModel.SelectedOption?.Value is null ? null : _resourceByName[ViewModel.SelectedOption.Value];
         await this.AfterViewModelChangedAsync();
     }
 
@@ -194,20 +209,11 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         if (changeType == ResourceChangeType.Upsert)
         {
             _resourceByName[resource.Name] = resource;
+            UpdateResourcesList();
 
             if (string.Equals(ViewModel.SelectedResource?.Name, resource.Name, StringComparison.Ordinal))
             {
-                // The selected resource was updated
-                ViewModel.SelectedResource = resource;
-
-                if (ViewModel.InitialisedSuccessfully is false)
-                {
-                    await LoadLogsAsync();
-                }
-                else if (!string.Equals(ViewModel.SelectedResource.State, "Running", StringComparison.Ordinal))
-                {
-                    ViewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsFinishedWatchingLogs)];
-                }
+                await SetSelectedConsoleResource(resource);
             }
         }
         else if (changeType == ResourceChangeType.Delete)
@@ -221,9 +227,9 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                 ViewModel.SelectedOption = _noSelection;
                 await HandleSelectedOptionChangedAsync();
             }
-        }
 
-        UpdateResourcesList();
+            UpdateResourcesList();
+        }
 
         await InvokeAsync(StateHasChanged);
 
@@ -232,6 +238,21 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         if (_resourceSelectComponent is not null && JS is not null)
         {
             await JS.InvokeVoidAsync("updateFluentSelectDisplayValue", _resourceSelectComponent.Element);
+        }
+    }
+
+    private async Task SetSelectedConsoleResource(ResourceViewModel resource)
+    {
+        // The selected resource was updated
+        ViewModel.SelectedResource = resource;
+
+        if (ViewModel.InitialisedSuccessfully is not true)
+        {
+            await LoadLogsAsync();
+        }
+        else if (!string.Equals(ViewModel.SelectedResource.State, "Running", StringComparison.Ordinal))
+        {
+            ViewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsFinishedWatchingLogs)];
         }
     }
 
@@ -248,10 +269,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         }
     }
 
-    private async Task StopWatchingLogsAsync()
-    {
-        await _logSubscriptionCancellationSeries.ClearAsync();
-    }
+    private Task StopWatchingLogsAsync() => _logSubscriptionCancellationSeries.ClearAsync();
 
     public class ConsoleLogsViewModel
     {
@@ -292,9 +310,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
     public (string Path, Dictionary<string, string?>? QueryParameters) GetUrlFromSerializableViewModel(ConsoleLogsPageState serializable)
     {
-        NavigationManager.NavigateTo($"/ConsoleLogs/{ViewModel.SelectedOption?.Value}");
-
-        if (ViewModel.SelectedOption?.Value is { } selectedOption)
+        if (serializable.SelectedResource is { } selectedOption)
         {
             return ($"{BasePath}/{selectedOption}", null);
         }

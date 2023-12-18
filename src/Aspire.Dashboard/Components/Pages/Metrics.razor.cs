@@ -7,6 +7,7 @@ using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Resources;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -15,7 +16,7 @@ namespace Aspire.Dashboard.Components.Pages;
 
 public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.MetricsViewModel, Metrics.MetricsPageState>
 {
-    private static readonly SelectViewModel<string> s_selectApplication = new SelectViewModel<string> { Id = null, Name = "(Select a resource)" };
+    private SelectViewModel<string> _selectApplication = null!;
     private List<SelectViewModel<TimeSpan>> _durations = null!;
     private static readonly TimeSpan s_defaultDuration = TimeSpan.FromMinutes(5);
 
@@ -71,6 +72,8 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
             new() { Name = Loc[nameof(Dashboard.Resources.Metrics.MetricsLastTwentyFourHours)], Id = TimeSpan.FromHours(24) },
         };
 
+        _selectApplication = new SelectViewModel<string> { Id = null, Name = ControlsStringsLoc[ControlsStrings.SelectAResource] };
+
         UpdateApplications();
         _applicationsSubscription = TelemetryRepository.OnNewApplications(() => InvokeAsync(() =>
         {
@@ -101,7 +104,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         var viewModel = new MetricsViewModel
         {
             SelectedDuration = _durations.SingleOrDefault(d => (int)d.Id.TotalMinutes == DurationMinutes) ?? _durations.Single(d => d.Id == s_defaultDuration),
-            SelectedApplication = _applications.SingleOrDefault(e => e.Id == ApplicationInstanceId) ?? s_selectApplication,
+            SelectedApplication = _applications.SingleOrDefault(e => e.Id == ApplicationInstanceId) ?? _selectApplication,
             SelectedMeter = null,
             SelectedInstrument = null
         };
@@ -129,7 +132,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     private void UpdateApplications()
     {
         _applications = SelectViewModelFactory.CreateApplicationsSelectViewModel(TelemetryRepository.GetApplications());
-        _applications.Insert(0, s_selectApplication);
+        _applications.Insert(0, _selectApplication);
         UpdateSubscription();
     }
 
@@ -148,7 +151,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         public FluentTreeItem? SelectedTreeItem { get; set; }
         public OtlpMeter? SelectedMeter { get; set; }
         public OtlpInstrument? SelectedInstrument { get; set; }
-        public SelectViewModel<string> SelectedApplication = s_selectApplication;
+        public required SelectViewModel<string> SelectedApplication { get; set; }
         public SelectViewModel<TimeSpan> SelectedDuration { get; set; } = null!;
     }
 
@@ -212,7 +215,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
 
     private void UpdateSubscription()
     {
-        var selectedApplication = (ViewModel?.SelectedApplication ?? s_selectApplication).Id;
+        var selectedApplication = (ViewModel?.SelectedApplication ?? _selectApplication).Id;
         // Subscribe to updates.
         if (_metricsSubscription is null || _metricsSubscription.ApplicationId != selectedApplication)
         {

@@ -218,4 +218,7 @@
   <data name="ChartContainerShowCountLabel" xml:space="preserve">
     <value>Show count</value>
   </data>
+  <data name="SelectAResource" xml:space="preserve">
+    <value>Select a resource</value>
+  </data>
 </root>

@@ -1,6 +1,8 @@
 ﻿@page "/ConsoleLogs/{resourceName?}"
+@using Aspire.Dashboard.Resources
 @namespace Aspire.Dashboard.Components.Pages
 @inject IStringLocalizer<Dashboard.Resources.ConsoleLogs> Loc
+@inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
 
 <PageTitle>@string.Format(Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsPageTitle)], ResourceService.ApplicationName)</PageTitle>
 
@@ -13,7 +15,7 @@
                       OptionValue="(o) => o.Value"
                       @bind-SelectedOption="ViewModel.SelectedOption"
                       @bind-SelectedOption:after="HandleSelectedOptionChangedAsync"
-                      AriaLabel="@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsSelectAResource)]"/>
+                      AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAResource)]"/>
         <FluentLabel Typo="Typography.Body">@(ViewModel?.Status ?? Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLoadingResources)])</FluentLabel>
     </FluentToolbar>
     <LogViewer @ref="_logViewer" />

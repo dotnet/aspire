@@ -258,6 +258,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Select a resource.
+        /// </summary>
+        public static string SelectAResource {
+            get {
+                return ResourceManager.GetString("SelectAResource", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Duration &lt;strong&gt;{0}&lt;/strong&gt;.
         /// </summary>
         public static string SpanDetailsDuration {
