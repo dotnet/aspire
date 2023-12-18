@@ -53,7 +53,7 @@ public partial class Metrics : IDisposable
     public required TelemetryRepository TelemetryRepository { get; set; }
 
     [Inject]
-    public required TracesViewModel ViewModel { get; set; }
+    public required TracesViewModel TracesViewModel { get; set; }
 
     protected override Task OnInitializedAsync()
     {
@@ -85,7 +85,7 @@ public partial class Metrics : IDisposable
     {
         _selectedDuration = _durations.SingleOrDefault(d => (int)d.Id.TotalMinutes == DurationMinutes) ?? _durations.Single(d => d.Id == s_defaultDuration);
         _selectedApplication = _applications.SingleOrDefault(e => e.Id == ApplicationInstanceId) ?? s_selectApplication;
-        ViewModel.ApplicationServiceId = _selectedApplication.Id;
+        TracesViewModel.ApplicationServiceId = _selectedApplication.Id;
         _instruments = !string.IsNullOrEmpty(_selectedApplication.Id) ? TelemetryRepository.GetInstrumentsSummary(_selectedApplication.Id) : null;
 
         _selectedMeter = null;

@@ -38,7 +38,7 @@
             <ChildContent>
                 <PropertyColumn Title="@StructuredLogsLoc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsTimestampColumnHeader)]" Property="@(context => OtlpHelpers.FormatTimeStamp(context.FirstSpan.StartTime))" />
                 <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Tooltip="true" TooltipText="@((t) => $"{t.FullName}: {OtlpHelpers.ToShortenedId(t.TraceId)}")">
-                    <span><FluentHighlighter HighlightedText="@(ViewModel.FilterText)" Text="@(context.FullName)" /></span>
+                    <span><FluentHighlighter HighlightedText="@(TracesViewModel.FilterText)" Text="@(context.FullName)" /></span>
                     <span class="trace-id">@OtlpHelpers.ToShortenedId(context.TraceId)</span>
                 </TemplateColumn>
                 <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Traces.TracesSpansColumnHeader)]">
@@ -68,7 +68,7 @@
                     <div class="duration-container">
                         <FluentProgressRing Class="duration-ring"
                                             Min="0"
-                                            Max="@Convert.ToInt32(ViewModel.MaxDuration.TotalMilliseconds)"
+                                            Max="@Convert.ToInt32(TracesViewModel.MaxDuration.TotalMilliseconds)"
                                             Value="@Convert.ToInt32(context.Duration.TotalMilliseconds)"
                                             aria-label="@TraceDetailLoc[nameof(Dashboard.Resources.TraceDetail.TraceDetailDurationHeader)]" />
                         <span class="trace-duration">
