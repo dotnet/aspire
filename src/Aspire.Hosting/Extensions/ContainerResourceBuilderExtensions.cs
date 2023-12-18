@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
 
@@ -76,8 +75,8 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="source">The name of the mount. Defaults to a random id. </param>
     /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<T> WithVolumeForData<T>(this IResourceBuilder<T> builder, string? source = null, bool isReadOnly = false) where T : ContainerResource, IResourceWithDataDirectory
-        => builder.WithVolumeMount(source ?? ContainerUtils.GenerateRandomBindMountName(), T.DataDirectory, VolumeMountType.Named, isReadOnly);
+    public static IResourceBuilder<T> WithVolumeForData<T>(this IResourceBuilder<T> builder, string source, bool isReadOnly = false) where T : ContainerResource, IResourceWithDataDirectory
+        => builder.WithVolumeMount(source, T.DataDirectory, VolumeMountType.Named, isReadOnly);
 
     /// <summary>
     /// Adds a bind mount for the data folder to a container resource.
@@ -97,8 +96,8 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="source">The name of the mount. Defaults to a random id. </param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<T> WithVolumeForLogs<T>(this IResourceBuilder<T> builder, string? source = null) where T : ContainerResource, IResourceWithLogDirectory
-        => builder.WithVolumeMount(source ?? ContainerUtils.GenerateRandomBindMountName(), T.LogDirectory, VolumeMountType.Named);
+    public static IResourceBuilder<T> WithVolumeForLogs<T>(this IResourceBuilder<T> builder, string source) where T : ContainerResource, IResourceWithLogDirectory
+        => builder.WithVolumeMount(source, T.LogDirectory, VolumeMountType.Named);
 
     /// <summary>
     /// Adds a bind mount for the log folder to a container resource.
@@ -118,8 +117,8 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="source">The name of the mount. Defaults to a random id. </param>
     /// <param name="isReadOnly">A flag that indicates if this is a read-only mount.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<T> WithVolumeForInit<T>(this IResourceBuilder<T> builder, string? source = null, bool isReadOnly = true) where T : ContainerResource, IResourceWithInitDirectory
-        => builder.WithVolumeMount(source ?? ContainerUtils.GenerateRandomBindMountName(), T.InitDirectory, VolumeMountType.Named, isReadOnly);
+    public static IResourceBuilder<T> WithVolumeForInit<T>(this IResourceBuilder<T> builder, string source, bool isReadOnly = true) where T : ContainerResource, IResourceWithInitDirectory
+        => builder.WithVolumeMount(source, T.InitDirectory, VolumeMountType.Named, isReadOnly);
 
     /// <summary>
     /// Adds a bind mount for the init folder to a container resource.
