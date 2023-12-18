@@ -32,7 +32,8 @@ public class ManifestGenerationTests
     public void EnsureExecutablesWithDockerfileProduceDockerfilev0Manifest()
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher(includeNodeApp: true);
-        program.NodeAppBuilder!.AsDockerfileInManifest();
+        program.NodeAppBuilder!.WithServiceBinding(containerPort: 3000, scheme: "https", env: "HTTPS_PORT")
+            .AsDockerfileInManifest();
 
         // Build AppHost so that publisher can be resolved.
         program.Build();
@@ -52,8 +53,12 @@ public class ManifestGenerationTests
         Assert.Equal("dockerfile.v0", nodeapp.GetProperty("type").GetString());
         Assert.True(nodeapp.TryGetProperty("path", out _));
         Assert.True(nodeapp.TryGetProperty("context", out _));
-        Assert.True(nodeapp.TryGetProperty("env", out _));
-        Assert.True(nodeapp.TryGetProperty("bindings", out _));
+        Assert.True(nodeapp.TryGetProperty("env", out var env));
+        Assert.True(nodeapp.TryGetProperty("bindings", out var bindings));
+
+        Assert.Equal(3000, bindings.GetProperty("https").GetProperty("containerPort").GetInt32());
+        Assert.Equal("https", bindings.GetProperty("https").GetProperty("scheme").GetString());
+        Assert.Equal("{nodeapp.bindings.https.port}", env.GetProperty("HTTPS_PORT").GetString());
     }
 
     [Fact]

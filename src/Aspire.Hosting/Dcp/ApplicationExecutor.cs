@@ -399,17 +399,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
                             config["ASPNETCORE_URLS"] = string.Join(";", urls);
                         }
 
-                        // Inject environment variables for services produced by this executable.
-                        foreach (var serviceProduced in er.ServicesProduced)
-                        {
-                            var name = serviceProduced.Service.Metadata.Name;
-                            var envVar = serviceProduced.ServiceBindingAnnotation.EnvironmentVariable;
-
-                            if (envVar is not null)
-                            {
-                                config.Add(envVar, $"{{{{- portForServing \"{name}\" }}}}");
-                            }
-                        }
+                        InjectPortEnvVars(er, config);
                     }
                 }
 
@@ -452,18 +442,36 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
                     var url = sar.ServiceBindingAnnotation.UriScheme + "://localhost:{{- portForServing \"" + sar.Service.Metadata.Name + "\" -}}";
                     return url;
                 });
+
                 config.Add("ASPNETCORE_URLS", string.Join(";", urls));
             }
             else
             {
                 config.Add("ASPNETCORE_URLS", launchProfile.ApplicationUrl);
             }
+
+            InjectPortEnvVars(executableResource, config);
         }
 
         foreach (var envVar in launchProfile.EnvironmentVariables)
         {
             string value = Environment.ExpandEnvironmentVariables(envVar.Value);
             config[envVar.Key] = value;
+        }
+    }
+
+    private static void InjectPortEnvVars(AppResource executableResource, Dictionary<string, string> config)
+    {
+        // Inject environment variables for services produced by this executable.
+        foreach (var serviceProduced in executableResource.ServicesProduced)
+        {
+            var name = serviceProduced.Service.Metadata.Name;
+            var envVar = serviceProduced.ServiceBindingAnnotation.EnvironmentVariable;
+
+            if (envVar is not null)
+            {
+                config.Add(envVar, $"{{{{- portForServing \"{name}\" }}}}");
+            }
         }
     }
 
@@ -518,23 +526,9 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
                 var dcpContainerResource = (Container)cr.DcpResource;
                 var modelContainerResource = cr.ModelResource;
 
+                var config = new Dictionary<string, string>();
+
                 dcpContainerResource.Spec.Env = new();
-
-                if (modelContainerResource.TryGetEnvironmentVariables(out var containerEnvironmentVariables))
-                {
-                    var config = new Dictionary<string, string>();
-                    var context = new EnvironmentCallbackContext("dcp", config);
-
-                    foreach (var v in containerEnvironmentVariables)
-                    {
-                        v.Callback(context);
-                    }
-
-                    foreach (var kvp in config)
-                    {
-                        dcpContainerResource.Spec.Env.Add(new EnvVar { Name = kvp.Key, Value = kvp.Value });
-                    }
-                }
 
                 if (cr.ServicesProduced.Count > 0)
                 {
@@ -566,7 +560,30 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
                         }
 
                         dcpContainerResource.Spec.Ports.Add(portSpec);
+
+                        var name = sp.Service.Metadata.Name;
+                        var envVar = sp.ServiceBindingAnnotation.EnvironmentVariable;
+
+                        if (envVar is not null)
+                        {
+                            config.Add(envVar, $"{{{{- portForServing \"{name}\" }}}}");
+                        }
                     }
+                }
+
+                if (modelContainerResource.TryGetEnvironmentVariables(out var containerEnvironmentVariables))
+                {
+                    var context = new EnvironmentCallbackContext("dcp", config);
+
+                    foreach (var v in containerEnvironmentVariables)
+                    {
+                        v.Callback(context);
+                    }
+                }
+
+                foreach (var kvp in config)
+                {
+                    dcpContainerResource.Spec.Env.Add(new EnvVar { Name = kvp.Key, Value = kvp.Value });
                 }
 
                 if (modelContainerResource.TryGetAnnotationsOfType<ExecutableArgsCallbackAnnotation>(out var argsCallback))

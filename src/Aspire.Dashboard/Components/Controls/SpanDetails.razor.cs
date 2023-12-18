@@ -29,17 +29,4 @@ public partial class SpanDetails
 
     private readonly GridSort<SpanPropertyViewModel> _nameSort = GridSort<SpanPropertyViewModel>.ByAscending(vm => vm.Name);
     private readonly GridSort<SpanPropertyViewModel> _valueSort = GridSort<SpanPropertyViewModel>.ByAscending(vm => vm.Value);
-
-    private void HandleFilter(ChangeEventArgs args)
-    {
-        if (args.Value is string newFilter)
-        {
-            _filter = newFilter;
-        }
-    }
-
-    private void HandleClear()
-    {
-        _filter = string.Empty;
-    }
 }

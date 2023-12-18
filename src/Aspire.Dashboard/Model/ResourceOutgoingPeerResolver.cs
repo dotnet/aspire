@@ -2,14 +2,16 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Dashboard.Otlp.Model;
+using Aspire.Dashboard.Utils;
 
 namespace Aspire.Dashboard.Model;
 
 public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsyncDisposable
 {
-    private readonly ConcurrentDictionary<string, ResourceViewModel> _resourceNameMapping = new();
+    private readonly ConcurrentDictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
     private readonly CancellationTokenSource _watchContainersTokenSource = new();
     private readonly Task _watchTask;
     private readonly List<ModelSubscription> _subscriptions = [];
@@ -17,11 +19,12 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
 
     public ResourceOutgoingPeerResolver(IResourceService resourceService)
     {
-        var (snapshot, subscription) = resourceService.Subscribe();
+        var (snapshot, subscription) = resourceService.SubscribeResources();
 
         foreach (var resource in snapshot)
         {
-            _resourceNameMapping[resource.Name] = resource;
+            var added = _resourceByName.TryAdd(resource.Name, resource);
+            Debug.Assert(added, "Should not receive duplicate resources in initial snapshot data.");
         }
 
         _watchTask = Task.Run(async () =>
@@ -37,11 +40,12 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
     {
         if (changeType == ResourceChangeType.Upsert)
         {
-            _resourceNameMapping[resourceViewModel.Name] = resourceViewModel;
+            _resourceByName[resourceViewModel.Name] = resourceViewModel;
         }
         else if (changeType == ResourceChangeType.Delete)
         {
-            _resourceNameMapping.TryRemove(resourceViewModel.Name, out _);
+            var removed = _resourceByName.TryRemove(resourceViewModel.Name, out _);
+            Debug.Assert(removed, "Cannot remove unknown resource.");
         }
 
         await RaisePeerChangesAsync().ConfigureAwait(false);
@@ -52,7 +56,7 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
         var address = OtlpHelpers.GetValue(attributes, OtlpSpan.PeerServiceAttributeKey);
         if (address != null)
         {
-            foreach (var (resourceName, resource) in _resourceNameMapping)
+            foreach (var (resourceName, resource) in _resourceByName)
             {
                 foreach (var service in resource.Services)
                 {

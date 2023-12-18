@@ -39,27 +39,16 @@ public partial class Traces
     [Inject]
     public required IDialogService DialogService { get; set; }
 
-    private string GetRowStyle(OtlpTrace trace)
-    {
-        var percentage = 0.0;
-        if (ViewModel.MaxDuration != TimeSpan.Zero)
-        {
-            percentage = trace.Duration / ViewModel.MaxDuration * 100.0;
-        }
-
-        return string.Create(CultureInfo.InvariantCulture, $"background: linear-gradient(to right, var(--neutral-fill-input-alt-active) {percentage:0.##}%, transparent {percentage:0.##}%);");
-    }
-
     private string GetTooltip(IGrouping<OtlpApplication, OtlpSpan> applicationSpans)
     {
         var count = applicationSpans.Count();
         var errorCount = applicationSpans.Count(s => s.Status == OtlpSpanStatusCode.Error);
 
-        var tooltip = string.Format(CultureInfo.InvariantCulture, Loc[Dashboard.Resources.Traces.TracesResourceSpans], GetResourceName(applicationSpans.Key));
-        tooltip += Environment.NewLine + string.Format(CultureInfo.InvariantCulture, Loc[Dashboard.Resources.Traces.TracesTotalTraces], count);
+        var tooltip = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Traces.TracesResourceSpans)], GetResourceName(applicationSpans.Key));
+        tooltip += Environment.NewLine + string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Traces.TracesTotalTraces)], count);
         if (errorCount > 0)
         {
-            tooltip += Environment.NewLine + string.Format(CultureInfo.InvariantCulture, Loc[Dashboard.Resources.Traces.TracesTotalErroredTraces], errorCount);
+            tooltip += Environment.NewLine + string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Traces.TracesTotalErroredTraces)], errorCount);
         }
 
         return tooltip;
@@ -81,7 +70,7 @@ public partial class Traces
 
     protected override Task OnInitializedAsync()
     {
-        _allApplication  = new SelectViewModel<string> { Id = null, Name = $"({ControlsStringsLoc[ControlsStrings.All]})" };
+        _allApplication  = new SelectViewModel<string> { Id = null, Name = $"({ControlsStringsLoc[nameof(ControlsStrings.All)]})" };
         _selectedApplication = _allApplication;
 
         UpdateApplications();

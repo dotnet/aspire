@@ -87,7 +87,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Copy Container ID to clipboard.
+        ///   Looks up a localized string similar to Copy container ID to clipboard.
         /// </summary>
         public static string ResourceNameDisplayCopyContainerIdText {
             get {
@@ -150,7 +150,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Working Dir: {0}.
+        ///   Looks up a localized string similar to Working directory: {0}.
         /// </summary>
         public static string SourceColumnDisplayWorkingDirectory {
             get {
@@ -159,20 +159,20 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Resource exited.
+        ///   Looks up a localized string similar to Copy image name and tag to clipboard.
         /// </summary>
-        public static string StateColumnResourceExited {
+        public static string SourceColumnSourceCopyContainerToClipboard {
             get {
-                return ResourceManager.GetString("StateColumnResourceExited", resourceCulture);
+                return ResourceManager.GetString("SourceColumnSourceCopyContainerToClipboard", resourceCulture);
             }
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Resource exited unexpectedly with exit code {0}.
+        ///   Looks up a localized string similar to Copy file path to clipboard.
         /// </summary>
-        public static string StateColumnResourceExitedUnexpectedly {
+        public static string SourceColumnSourceCopyFullPathToClipboard {
             get {
-                return ResourceManager.GetString("StateColumnResourceExitedUnexpectedly", resourceCulture);
+                return ResourceManager.GetString("SourceColumnSourceCopyFullPathToClipboard", resourceCulture);
             }
         }
         

@@ -9,12 +9,13 @@ namespace Aspire.Dashboard.Components.Controls;
 
 public partial class EnvironmentVariables
 {
-
     [Parameter, EditorRequired]
     public IEnumerable<EnvironmentVariableViewModel>? Items { get; set; }
 
     [Parameter]
     public bool ShowSpecOnlyToggle { get; set; }
+
+    private bool IsSpecOnlyToggleDisabled => Items?.Any(i => i.FromSpec == false) is false or null;
 
     private bool _showAll;
 
@@ -46,19 +47,6 @@ public partial class EnvironmentVariables
                 vm.IsValueMasked = _defaultMasked;
             }
         }
-    }
-
-    private void HandleFilter(ChangeEventArgs args)
-    {
-        if (args.Value is string newFilter)
-        {
-            _filter = newFilter;
-        }
-    }
-
-    private void HandleClear()
-    {
-        _filter = string.Empty;
     }
 
     private void CheckAllMaskStates()

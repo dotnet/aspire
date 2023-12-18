@@ -23,8 +23,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ResourcesEnvironmentVariablesGridStartTimeColumnHeader">
-        <source>Start Time</source>
-        <target state="new">Start Time</target>
+        <source>Start time</source>
+        <target state="new">Start time</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesEnvironmentVariablesGridStateColumnHeader">
@@ -33,8 +33,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ResourcesEnvironmentVariablesHeader">
-        <source>Environment Variables for {0}</source>
-        <target state="new">Environment Variables for {0}</target>
+        <source>Environment variables for {0}</source>
+        <target state="new">Environment variables for {0}</target>
         <note>{0} is a resource</note>
       </trans-unit>
       <trans-unit id="ResourcesHeader">
@@ -43,8 +43,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ResourcesNoEnvironmentVariables">
-        <source>No Environment Variables</source>
-        <target state="new">No Environment Variables</target>
+        <source>No environment variables</source>
+        <target state="new">No environment variables</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesNoResources">
@@ -53,23 +53,23 @@
         <note />
       </trans-unit>
       <trans-unit id="ResourcesPageTitle">
-        <source>{0} Resources</source>
-        <target state="new">{0} Resources</target>
+        <source>{0} resources</source>
+        <target state="new">{0} resources</target>
         <note>{0} is an application name</note>
       </trans-unit>
       <trans-unit id="ResourcesResourceTypesHeader">
-        <source>Resource Types</source>
-        <target state="new">Resource Types</target>
+        <source>Resource types</source>
+        <target state="new">Resource types</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesTypeFilterAllVisible">
-        <source>Type Filter: All Types Visible</source>
-        <target state="new">Type Filter: All Types Visible</target>
+        <source>Type filter: All types visible</source>
+        <target state="new">Type filter: All types visible</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesTypeFiltered">
-        <source>Type Filter: Filtered</source>
-        <target state="new">Type Filter: Filtered</target>
+        <source>Type filter: Filtered</source>
+        <target state="new">Type filter: Filtered</target>
         <note />
       </trans-unit>
     </body>

@@ -109,14 +109,14 @@
     <comment>{0} is a numeric id</comment>
   </data>
   <data name="ResourceNameDisplayCopyContainerIdText" xml:space="preserve">
-    <value>Copy Container ID to clipboard</value>
+    <value>Copy container ID to clipboard</value>
   </data>
   <data name="ResourceNameDisplayContainerIdText" xml:space="preserve">
     <value>Container ID: {0}</value>
     <comment>{0} is an alphanumeric id</comment>
   </data>
   <data name="SourceColumnDisplayWorkingDirectory" xml:space="preserve">
-    <value>Working Dir: {0}</value>
+    <value>Working directory: {0}</value>
     <comment>{0} is a path</comment>
   </data>
   <data name="SourceColumnDisplayPort" xml:space="preserve">
@@ -135,6 +135,12 @@
   </data>
   <data name="SourceColumnDisplayContainerCommand" xml:space="preserve">
     <value>Command: {0}</value>
+  </data>
+  <data name="SourceColumnSourceCopyFullPathToClipboard" xml:space="preserve">
+    <value>Copy file path to clipboard</value>
+  </data>
+  <data name="SourceColumnSourceCopyContainerToClipboard" xml:space="preserve">
+    <value>Copy image name and tag to clipboard</value>
   </data>
   <data name="UnreadLogErrorsBadgeErrorLog" xml:space="preserve">
     <value>{0} error log</value>

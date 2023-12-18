@@ -13,6 +13,18 @@ public partial class GridValue
     public string? Value { get; set; }
 
     /// <summary>
+    /// Content to include, if any, after the Value string
+    /// </summary>
+    [Parameter]
+    public RenderFragment? ContentAfterValue { get; set; }
+
+    /// <summary>
+    /// If set, copies this value instead of <see cref="Value"/>.
+    /// </summary>
+    [Parameter]
+    public string? ValueToCopy { get; set; }
+
+    /// <summary>
     /// Determines whether or not masking support is enabled for this value
     /// </summary>
     [Parameter]

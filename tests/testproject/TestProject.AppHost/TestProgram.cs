@@ -32,12 +32,24 @@ public class TestProgram
 
         if (includeIntegrationServices)
         {
-            var sqlserverContainer = AppBuilder.AddSqlServerContainer("sqlservercontainer");
-            var mysqlContainer = AppBuilder.AddMySqlContainer("mysqlcontainer");
+            var sqlserverDbName = "tempdb";
+            var mysqlDbName = "mysqldb";
+            var postgresDbName = "postgresdb";
+            var mongoDbName = "mymongodb";
+
+            var sqlserverContainer = AppBuilder.AddSqlServerContainer("sqlservercontainer")
+                .AddDatabase(sqlserverDbName);
+            var mysqlContainer = AppBuilder.AddMySqlContainer("mysqlcontainer")
+                .WithEnvironment("MYSQL_DATABASE", mysqlDbName)
+                .AddDatabase(mysqlDbName);
             var redisContainer = AppBuilder.AddRedisContainer("rediscontainer");
-            var postgresContainer = AppBuilder.AddPostgresContainer("postgrescontainer");
+            var postgresContainer = AppBuilder.AddPostgresContainer("postgrescontainer")
+                .WithEnvironment("POSTGRES_DB", postgresDbName)
+                .AddDatabase(postgresDbName);
             var rabbitmqContainer = AppBuilder.AddRabbitMQContainer("rabbitmqcontainer");
-            var mongodbContainer = AppBuilder.AddMongoDBContainer("mongodbcontainer");
+            var mongodbContainer = AppBuilder.AddMongoDBContainer("mongodbcontainer")
+                .AddDatabase(mongoDbName);
+
             var sqlserverAbstract = AppBuilder.AddSqlServerContainer("sqlserverabstract");
             var mysqlAbstract = AppBuilder.AddMySqlContainer("mysqlabstract");
             var redisAbstract = AppBuilder.AddRedisContainer("redisabstract");
