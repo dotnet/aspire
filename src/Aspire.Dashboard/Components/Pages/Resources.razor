@@ -39,8 +39,6 @@
         <FluentSearch Placeholder="@ControlsStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"
                         Immediate="true"
                         @bind-Value="_filter"
-                        @oninput="HandleFilter"
-                        @bind-Value:after="HandleClear"
                         slot="end" />
     </FluentToolbar>
     <SummaryDetailsView DetailsTitle="@string.Format(Loc[nameof(Dashboard.Resources.Resources.ResourcesEnvironmentVariablesHeader)], SelectedResource != null ? GetResourceName(SelectedResource) : null)"

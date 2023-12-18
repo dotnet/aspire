@@ -22,17 +22,4 @@ public partial class StructuredLogDetails
 
     private readonly GridSort<LogEntryPropertyViewModel> _nameSort = GridSort<LogEntryPropertyViewModel>.ByAscending(vm => vm.Name);
     private readonly GridSort<LogEntryPropertyViewModel> _valueSort = GridSort<LogEntryPropertyViewModel>.ByAscending(vm => vm.Value);
-
-    private void HandleFilter(ChangeEventArgs args)
-    {
-        if (args.Value is string newFilter)
-        {
-            _filter = newFilter;
-        }
-    }
-
-    private void HandleClear()
-    {
-        _filter = string.Empty;
-    }
 }

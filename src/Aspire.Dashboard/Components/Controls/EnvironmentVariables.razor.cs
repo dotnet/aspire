@@ -49,19 +49,6 @@ public partial class EnvironmentVariables
         }
     }
 
-    private void HandleFilter(ChangeEventArgs args)
-    {
-        if (args.Value is string newFilter)
-        {
-            _filter = newFilter;
-        }
-    }
-
-    private void HandleClear()
-    {
-        _filter = string.Empty;
-    }
-
     private void CheckAllMaskStates()
     {
         if (Items is not null)
