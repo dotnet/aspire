@@ -101,7 +101,7 @@ public static class PostgresBuilderExtensions
                                   .WithAnnotation(new ContainerImageAnnotation { Image = "dpage/pgadmin4", Tag = "latest" })
                                   .WithServiceBinding(containerPort: 80, hostPort: hostPort, scheme: "http", name: containerName)
                                   .WithEnvironment(SetPgAdminEnviromentVariables)
-                                  .WithVolumeMount(WritePgAdminTmpServersJson(builder), "/pgadmin4/servers.json")
+                                  .WithVolumeMount(WritePgAdminTempServersJson(builder), "/pgadmin4/servers.json")
                                   .ExcludeFromManifest();
 
         return builder;
@@ -118,7 +118,7 @@ public static class PostgresBuilderExtensions
         context.EnvironmentVariables.Add("PGADMIN_DEFAULT_PASSWORD", "admin");
     }
 
-    private static string WritePgAdminTmpServersJson(IResourceBuilder<PostgresContainerResource> builder)
+    private static string WritePgAdminTempServersJson(IResourceBuilder<PostgresContainerResource> builder)
     {
         var serversFile = Path.GetTempFileName();
 
