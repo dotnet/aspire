@@ -10,18 +10,18 @@
             <FluentButton Appearance="Appearance.Lightweight"
                           Disabled="IsSpecOnlyToggleDisabled"
                           IconEnd="@(_showAll ? _showSpecOnlyIcon : _showAllIcon)"
-                          Title="@(_showAll ? Loc[ControlsStrings.EnvironmentVariablesFilterToggleShowSpecOnly] : ControlsStrings.EnvironmentVariablesFilterToggleShowAll)"
-                          aria-label="@(_showAll ? Loc[ControlsStrings.EnvironmentVariablesFilterToggleShowSpecOnly] : ControlsStrings.EnvironmentVariablesFilterToggleShowAll)"
+                          Title="@(_showAll ? Loc[nameof(ControlsStrings.EnvironmentVariablesFilterToggleShowSpecOnly)] : ControlsStrings.EnvironmentVariablesFilterToggleShowAll)"
+                          aria-label="@(_showAll ? Loc[nameof(ControlsStrings.EnvironmentVariablesFilterToggleShowSpecOnly)] : ControlsStrings.EnvironmentVariablesFilterToggleShowAll)"
                           OnClick="() => _showAll = !_showAll"
                           slot="end" />
         }
         <FluentButton Appearance="Appearance.Lightweight"
                       IconEnd="@(_defaultMasked ? _unmaskIcon : _maskIcon)"
-                      Title="@(_defaultMasked ? Loc[ControlsStrings.EnvironmentVariablesShowVariableValues] : Loc[ControlsStrings.EnvironmentVariablesHideVariableValues])"
-                      aria-label="@(_defaultMasked ? Loc[ControlsStrings.EnvironmentVariablesShowVariableValues] : Loc[ControlsStrings.EnvironmentVariablesHideVariableValues])"
+                      Title="@(_defaultMasked ? Loc[nameof(ControlsStrings.EnvironmentVariablesShowVariableValues)] : Loc[nameof(ControlsStrings.EnvironmentVariablesHideVariableValues)])"
+                      aria-label="@(_defaultMasked ? Loc[nameof(ControlsStrings.EnvironmentVariablesShowVariableValues)] : Loc[nameof(ControlsStrings.EnvironmentVariablesHideVariableValues)])"
                       OnClick="ToggleMaskState"
                       slot="end" />
-        <FluentSearch Placeholder="@Loc[ControlsStrings.FilterPlaceholder]"
+        <FluentSearch Placeholder="@Loc[nameof(ControlsStrings.FilterPlaceholder)]"
                       Immediate="true"
                       Autofocus="true"
                       @bind-Value="_filter"

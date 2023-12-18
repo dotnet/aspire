@@ -43,8 +43,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable
 
     protected override void OnInitialized()
     {
-        _noSelection = new() { Value = null, Text = Loc[Dashboard.Resources.ConsoleLogs.ConsoleLogsSelectAResource] };
-        _status = Loc[Dashboard.Resources.ConsoleLogs.ConsoleLogsLoadingResources];
+        _noSelection = new() { Value = null, Text = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsSelectAResource)] };
+        _status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLoadingResources)];
 
         TrackResources();
 
@@ -93,7 +93,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable
             await ClearLogsAsync();
             _selectedOption = _noSelection;
             _selectedResource = null;
-            _status = Loc[Dashboard.Resources.ConsoleLogs.ConsoleLogsNoResourceSelected];
+            _status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsNoResourceSelected)];
         }
     }
 
@@ -120,7 +120,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable
 
                 return resource.State switch
                 {
-                    null or { Length: 0 } => $"{resourceName} ({Loc[Dashboard.Resources.ConsoleLogs.ConsoleLogsUnknownState]})",
+                    null or { Length: 0 } => $"{resourceName} ({Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsUnknownState)]})",
                     "Running" => resourceName,
                     _ => $"{resourceName} ({resource.State})"
                 };
@@ -140,11 +140,11 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable
 
         if (_selectedResource is null)
         {
-            _status = Loc[Dashboard.Resources.ConsoleLogs.ConsoleLogsNoResourceSelected];
+            _status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsNoResourceSelected)];
         }
         else if (_logViewer is null)
         {
-            _status = Loc[Dashboard.Resources.ConsoleLogs.ConsoleLogsInitializingLogViewer];
+            _status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsInitializingLogViewer)];
         }
         else
         {
@@ -159,11 +159,11 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable
                     convertTimestampsFromUtc: _selectedResource is ContainerViewModel);
 
                 _initialisedSuccessfully = true;
-                _status = Loc[Dashboard.Resources.ConsoleLogs.ConsoleLogsWatchingLogs];
+                _status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsWatchingLogs)];
 
                 // Indicate when logs finish (other than by cancellation).
                 _ = task.ContinueWith(
-                    _ => _status = Loc[Dashboard.Resources.ConsoleLogs.ConsoleLogsFinishedWatchingLogs],
+                    _ => _status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsFinishedWatchingLogs)],
                     CancellationToken.None,
                     TaskContinuationOptions.NotOnCanceled,
                     TaskScheduler.Current);
@@ -172,8 +172,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable
             {
                 _initialisedSuccessfully = false;
                 _status = Loc[_selectedResource is ContainerViewModel
-                    ? Dashboard.Resources.ConsoleLogs.ConsoleLogsFailedToInitialize
-                    : Dashboard.Resources.ConsoleLogs.ConsoleLogsLogsNotYetAvailable];
+                    ? nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsFailedToInitialize)
+                    : nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLogsNotYetAvailable)];
             }
         }
     }
@@ -202,7 +202,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable
                 }
                 else if (!string.Equals(_selectedResource.State, "Running", StringComparison.Ordinal))
                 {
-                    _status = Loc[Dashboard.Resources.ConsoleLogs.ConsoleLogsFinishedWatchingLogs];
+                    _status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsFinishedWatchingLogs)];
                 }
             }
         }

@@ -459,15 +459,15 @@ public partial class PlotlyChart : ComponentBase
         // but have a descriptive name that lets us infer the unit.
         if (instrument.Name.EndsWith(".count"))
         {
-            return Loc[ControlsStrings.PlotlyChartCount];
+            return Loc[nameof(ControlsStrings.PlotlyChartCount)];
         }
         else if (instrument.Name.EndsWith(".length"))
         {
-            return Loc[ControlsStrings.PlotlyChartLength];
+            return Loc[nameof(ControlsStrings.PlotlyChartLength)];
         }
         else
         {
-            return Loc[ControlsStrings.PlotlyChartValue];
+            return Loc[nameof(ControlsStrings.PlotlyChartValue)];
         }
     }
 }

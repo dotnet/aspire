@@ -28,15 +28,15 @@
     {
         <FluentButton Appearance="Appearance.Lightweight"
                       IconEnd="@(IsMasked ? _unmaskIcon : _maskIcon)"
-                      Title="@(IsMasked ? Loc[ControlsStrings.GridValueMaskShowValue] : Loc[ControlsStrings.GridValueMaskHideValue])"
+                      Title="@(IsMasked ? Loc[nameof(ControlsStrings.GridValueMaskShowValue)] : Loc[nameof(ControlsStrings.GridValueMaskHideValue)])"
                       OnClick="ToggleMaskStateAsync"
-                      aria-label="@(IsMasked ? Loc[ControlsStrings.GridValueMaskShowValue] : Loc[ControlsStrings.GridValueMaskHideValue])" />
+                      aria-label="@(IsMasked ? Loc[nameof(ControlsStrings.GridValueMaskShowValue)] : Loc[nameof(ControlsStrings.GridValueMaskHideValue)])" />
     }
     <FluentButton Appearance="Appearance.Lightweight"
                   Id="@_anchorId"
                   Class="defaultHidden"
                   @onclick="@(() => CopyTextToClipboardAsync(ValueToCopy ?? Value, _anchorId))"
-                  aria-label="@Loc[ControlsStrings.GridValueCopyToClipboard]">
+                  aria-label="@Loc[nameof(ControlsStrings.GridValueCopyToClipboard)]">
         <FluentIcon Class="copy-icon" Style="display:inline;" Icon="Icons.Regular.Size16.Copy" />
         <FluentIcon Class="checkmark-icon" Style="display:none;" Icon="Icons.Regular.Size16.Checkmark" />
     </FluentButton>
