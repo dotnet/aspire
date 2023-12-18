@@ -3,27 +3,56 @@
 
 using Amazon;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.AWS;
 
 namespace Aspire.Hosting;
 
 public static class SDKResourceExtensions
 {
-    public static IResourceBuilder<ProjectResource> WithAWSProfile(this IResourceBuilder<ProjectResource> builder, string profile)
+    /// <summary>
+    /// Add a configuration for resolving region and credentials for the AWS SDK for .NET.
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="name"></param>
+    /// <returns></returns>
+    public static IResourceBuilder<IAWSSDKConfigResource> AddAWSSDKConfig(this IDistributedApplicationBuilder builder, string name)
     {
-        builder.WithEnvironment(context =>
-        {
-            if (context.PublisherName == "manifest")
-            {
-                return;
-            }
+        var resource = new AWSSDKConfigResource(name);
+        var sdkBuilder = builder.AddResource(resource);
 
-            context.EnvironmentVariables["AWS_PROFILE"] = profile;
-        });
+        return sdkBuilder;
+    }
 
+    /// <summary>
+    /// Assign the AWS credential profile to the IAWSSDKConfigResource.
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="profile">The name of the AWS credential profile.</param>
+    /// <returns></returns>
+    public static IResourceBuilder<IAWSSDKConfigResource> WithProfile(this IResourceBuilder<IAWSSDKConfigResource> builder, string profile)
+    {
+        builder.Resource.Profile = profile;
         return builder;
     }
 
-    public static IResourceBuilder<ProjectResource> WithAWSRegion(this IResourceBuilder<ProjectResource> builder, RegionEndpoint region)
+    /// <summary>
+    /// Assign the region for the IAWSSDKConfigResource.
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="region">The AWS region.</param>
+    public static IResourceBuilder<IAWSSDKConfigResource> WithRegion(this IResourceBuilder<IAWSSDKConfigResource> builder, RegionEndpoint region)
+    {
+        builder.Resource.Region = region;
+        return builder;
+    }
+
+    /// <summary>
+    /// Add a reference to an AWS SDK configuration a project.
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="awsSdkConfig">The AWS SDK configuration</param>
+    /// <returns></returns>
+    public static IResourceBuilder<ProjectResource> WithAWSSDKReference(this IResourceBuilder<ProjectResource> builder, IResourceBuilder<IAWSSDKConfigResource> awsSdkConfig)
     {
         builder.WithEnvironment(context =>
         {
@@ -32,7 +61,15 @@ public static class SDKResourceExtensions
                 return;
             }
 
-            context.EnvironmentVariables["AWS_REGION"] = region.SystemName;
+            if(!string.IsNullOrEmpty(awsSdkConfig.Resource.Profile))
+            {
+                context.EnvironmentVariables["AWS_PROFILE"] = awsSdkConfig.Resource.Profile;
+            }
+
+            if(awsSdkConfig.Resource.Region != null)
+            {
+                context.EnvironmentVariables["AWS_REGION"] = awsSdkConfig.Resource.Region.SystemName;
+            }
         });
 
         return builder;

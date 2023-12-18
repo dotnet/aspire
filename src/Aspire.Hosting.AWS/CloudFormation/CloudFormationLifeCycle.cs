@@ -126,20 +126,15 @@ internal sealed class CloudFormationLifeCycle(ILogger<CloudFormationLifeCycle> l
 
         try
         {
-            var config = new AmazonCloudFormationConfig();
-
-            if (resource.Profile != null)
+            if(resource.AWSSDKConfig != null)
             {
-                config.Profile = new Amazon.Profile(resource.Profile);
+                var config = resource.AWSSDKConfig.CreateServiceConfig<AmazonCloudFormationConfig>();
+
+                var awsCredentials = FallbackCredentialsFactory.GetCredentials(config);
+                return new AmazonCloudFormationClient(awsCredentials, config);
             }
 
-            if (resource.Region != null)
-            {
-                config.RegionEndpoint = resource.Region;
-            }
-
-            var awsCredentials = FallbackCredentialsFactory.GetCredentials(config);
-            return new AmazonCloudFormationClient(awsCredentials, config);
+            return new AmazonCloudFormationClient();
         }
         catch(Exception e)
         {
