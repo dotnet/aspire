@@ -11,3 +11,7 @@
 ::deep fluent-toolbar > h1 {
     padding-left: calc(var(--design-unit) * 1px);
 }
+
+::deep .unread-logs-errors-button {
+    margin-left: 3px;
+}
