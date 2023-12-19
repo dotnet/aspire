@@ -39,6 +39,7 @@ fluent-toolbar[orientation=horizontal] {
     --log-critical: #493634;
     --log-error: #493634;
     --log-warning: #3F3A2B;
+    --error: #F8040A !important;
     --foreground-subtext-rest: #8D8D8D;
     --foreground-subtext-hover: #A1A1A1;
 }
