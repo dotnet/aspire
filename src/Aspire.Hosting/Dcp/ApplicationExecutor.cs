@@ -462,6 +462,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
 
     private static void InjectPortEnvVars(AppResource executableResource, Dictionary<string, string> config)
     {
+        ServiceAppResource? httpsServiceAppResource = null;
         // Inject environment variables for services produced by this executable.
         foreach (var serviceProduced in executableResource.ServicesProduced)
         {
@@ -471,6 +472,23 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
             if (envVar is not null)
             {
                 config.Add(envVar, $"{{{{- portForServing \"{name}\" }}}}");
+            }
+
+            if (httpsServiceAppResource is null && serviceProduced.ServiceBindingAnnotation.UriScheme == "https")
+            {
+                httpsServiceAppResource = serviceProduced;
+            }
+        }
+
+        // REVIEW: If you run as an executable, we don't know that you're an ASP.NET Core application so we don't want to
+        // inject ASPNETCORE_HTTPS_PORT.
+        if (executableResource.ModelResource is ProjectResource)
+        {
+            // Add the environment variable for the HTTPS port if we have an HTTPS service. This will make sure the
+            // HTTPS redirection middleware avoids redirecting to the internal port.
+            if (httpsServiceAppResource is not null)
+            {
+                config.Add("ASPNETCORE_HTTPS_PORT", $"{{{{- portFor \"{httpsServiceAppResource.Service.Metadata.Name}\" }}}}");
             }
         }
     }
