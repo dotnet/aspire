@@ -39,7 +39,7 @@ internal static partial class ProcessUtil
             process.StartInfo.Environment[key] = value;
         }
 
-        var processEventSemaphore = new SemaphoreSlim(1);
+        var startupComplete = new ManualResetEventSlim(false);
 
         // Note: even though the child process has exited, its children may be alive and still producing output.
         // See https://github.com/dotnet/runtime/issues/29232#issuecomment-1451584094 for how this might affect waiting for process exit.
@@ -49,17 +49,11 @@ internal static partial class ProcessUtil
         {
             process.OutputDataReceived += (_, e) =>
             {
-                try
+                startupComplete.Wait();
+
+                if (e.Data == null || process.HasExited)
                 {
-                    processEventSemaphore.Wait();
-                    if (e.Data == null || process.HasExited)
-                    {
-                        return;
-                    }
-                }
-                finally
-                {
-                    processEventSemaphore.Release();
+                    return;
                 }
 
                 processSpec.OnOutputData.Invoke(e.Data);
@@ -70,17 +64,10 @@ internal static partial class ProcessUtil
         {
             process.ErrorDataReceived += (_, e) =>
             {
-                try
+                startupComplete.Wait();
+                if (e.Data == null || process.HasExited)
                 {
-                    processEventSemaphore.Wait();
-                    if (e.Data == null || process.HasExited)
-                    {
-                        return;
-                    }
-                }
-                finally
-                {
-                    processEventSemaphore.Release();
+                    return;
                 }
 
                 processSpec.OnErrorData.Invoke(e.Data);
@@ -91,32 +78,22 @@ internal static partial class ProcessUtil
 
         process.Exited += (_, e) =>
         {
-            try
-            {
-                processEventSemaphore.Wait();
+            startupComplete.Wait();
 
-                if (processSpec.ThrowOnNonZeroReturnCode && process.ExitCode != 0)
-                {
-                    processLifetimeTcs.TrySetException(new InvalidOperationException(
-                        $"Command {processSpec.ExecutablePath} {processSpec.Arguments} returned non-zero exit code {process.ExitCode}"));
-                }
-                else
-                {
-                    processLifetimeTcs.TrySetResult(new ProcessResult(process.ExitCode));
-                }
-            }
-            finally
+            if (processSpec.ThrowOnNonZeroReturnCode && process.ExitCode != 0)
             {
-                processEventSemaphore.Release();
+                processLifetimeTcs.TrySetException(new InvalidOperationException(
+                    $"Command {processSpec.ExecutablePath} {processSpec.Arguments} returned non-zero exit code {process.ExitCode}"));
+            }
+            else
+            {
+                processLifetimeTcs.TrySetResult(new ProcessResult(process.ExitCode));
             }
         };
 
         try
         {
             AspireEventSource.Instance.ProcessLaunchStart(processSpec.ExecutablePath, processSpec.Arguments ?? "");
-
-            // Grab the semaphore to ensure that OnStart() is called before the lifetime task ends.
-            processEventSemaphore.Wait();
 
             process.Start();
             process.BeginOutputReadLine();
@@ -125,11 +102,7 @@ internal static partial class ProcessUtil
         }
         finally
         {
-            // Querying System.Diagnostics.Process.HasExited can under some circumstances call Process.Exited handler.
-            // Release the semaphore twice to avoid a deadlock between OutputDataReceived/ErrorDataReceived handlers
-            // (that call Process.HasExited) and Exited handler.
-            // For reference see https://github.com/dotnet/aspire/issues/1420
-            processEventSemaphore.Release(2);
+            startupComplete.Set(); // Allow output/error/exit handlers to start processing data.
 
             AspireEventSource.Instance.ProcessLaunchStop(processSpec.ExecutablePath, processSpec.Arguments ?? "");
         }
