@@ -36,9 +36,4 @@ public partial class StateColumnDisplay
 
         return count;
     }
-
-    private static string GetResourceConsoleLogsUrl(ResourceViewModel resource)
-    {
-        return $"/ConsoleLogs/{resource.Name}";
-    }
 }

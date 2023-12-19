@@ -177,6 +177,24 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Resource exited.
+        /// </summary>
+        public static string StateColumnResourceExited {
+            get {
+                return ResourceManager.GetString("StateColumnResourceExited", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Resource exited unexpectedly with exit code {0}.
+        /// </summary>
+        public static string StateColumnResourceExitedUnexpectedly {
+            get {
+                return ResourceManager.GetString("StateColumnResourceExitedUnexpectedly", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to {0} error log.
         /// </summary>
         public static string UnreadLogErrorsBadgeErrorLog {

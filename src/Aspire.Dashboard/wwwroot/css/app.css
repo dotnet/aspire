@@ -172,7 +172,7 @@ fluent-data-grid-cell .long-inner-content {
     background-color: var(--neutral-fill-stealth-rest); /* Essentially inverts the hover compared to an unselected row */
 }
 
-::deep .severity-icon {
+.severity-icon {
     vertical-align: text-bottom;
     margin-right: 3px;
 }

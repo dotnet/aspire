@@ -8,7 +8,7 @@
     <FluentButton title="@string.Format(Loc[UnviewedCount == 1 ? nameof(Columns.UnreadLogErrorsBadgeErrorLog) : nameof(Columns.UnreadLogErrorsBadgeErrorLogs)], UnviewedCount)"
                   Appearance="Appearance.Stealth"
                   BackgroundColor="var(--error)"
-                  Style="padding-left: 3px;"
+                  Style="margin-left: 3px;"
                   OnClick="@(() => ViewResourceErrorStructuredLogsUrl(Resource))">
         @(UnviewedCount > 9 ? "9+" : UnviewedCount.ToString())
     </FluentButton>
