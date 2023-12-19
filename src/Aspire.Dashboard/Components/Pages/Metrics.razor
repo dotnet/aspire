@@ -5,6 +5,7 @@
 
 @using Aspire.Dashboard.Model.Otlp
 @using Aspire.Dashboard.Resources
+@using Aspire.Dashboard.Otlp.Model
 @inject IStringLocalizer<Dashboard.Resources.Metrics> Loc
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
 
@@ -55,18 +56,16 @@
                         else if (_selectedMeter != null)
                         {
                             <h3>@_selectedMeter.MeterName</h3>
-                            <table style="max-width:1100px;">
-                                @foreach (var item in _instruments.Where(i => i.Parent == _selectedMeter).OrderBy(i => i.Name))
-                                {
-                                    <tr>
-                                        <td>
-                                            <FluentAnchor Href="@($"/Metrics/{_selectedApplication.Id}/Meter/{item.Parent.MeterName}/Instrument/{item.Name}")" Appearance="Appearance.Lightweight">@item.Name</FluentAnchor>
-                                        </td>
-                                        <td>@item.Description</td>
-                                    </tr>
-                                }
-
-                            </table>
+                            <FluentDataGrid Style="max-width:1100px;" Items="@Queryable.AsQueryable(_instruments.Where(i => i.Parent == _selectedMeter).OrderBy(i => i.Name))" GridTemplateColumns="3fr 5fr" TGridItem="OtlpInstrument">
+                                <ChildContent>
+                                    <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Metrics.MetricsInsturementNameGridNameColumnHeader)]">
+                                        <FluentAnchor Href="@($"/Metrics/{_selectedApplication.Id}/Meter/{context.Parent.MeterName}/Instrument/{context.Name}")" Appearance="Appearance.Lightweight">
+                                            @context.Name
+                                        </FluentAnchor>
+                                    </TemplateColumn>
+                                    <PropertyColumn Title="@Loc[nameof(Dashboard.Resources.Metrics.MetricsInsturementDescriptionGridNameColumnHeader)]" Property="@(c => c.Description)" Class="multiline-text" />
+                                </ChildContent>
+                            </FluentDataGrid>
                         }
                         else
                         {
