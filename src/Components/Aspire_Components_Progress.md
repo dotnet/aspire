@@ -22,6 +22,7 @@ As part of the .NET Aspire November preview, we want to include a set of .NET As
 | StackExchange.Redis.OutputCaching       |                  ✅                  |             ✅             |                           N/A                            |              ✅              |          ✅          |        ✅            |         ❌           |              ✅                  |
 | RabbitMQ                                |                  ✅                  |             ✅             |                           ✅                            |              ✅              |                      |                      |         ❌           |              ✅                  |
 | MySqlConnector                          |                  ✅                  |                           |                           ✅                            |              ✅              |          ✅          |        ✅            |         ✅           |              ✅                  |
+| Pomelo.EntityFrameworkCore.MySql        |                  ✅                  |                           |                           ✅                            |              ✅              |          ✅          |        ✅            |         ✅           |              ✅                  |
 
 Nomenclature used in the table above:
 
