@@ -14,23 +14,12 @@ namespace Aspire.Dashboard.Components.Pages;
 public partial class Metrics : IDisposable
 {
     private static readonly SelectViewModel<string> s_selectApplication = new SelectViewModel<string> { Id = null, Name = "(Select a resource)" };
-    private static readonly List<SelectViewModel<TimeSpan>> s_durations = new List<SelectViewModel<TimeSpan>>
-    {
-        new SelectViewModel<TimeSpan> { Name = "Last 1 minute", Id = TimeSpan.FromMinutes(1) },
-        new SelectViewModel<TimeSpan> { Name = "Last 5 minutes", Id = TimeSpan.FromMinutes(5) },
-        new SelectViewModel<TimeSpan> { Name = "Last 15 minutes", Id = TimeSpan.FromMinutes(15) },
-        new SelectViewModel<TimeSpan> { Name = "Last 30 minutes", Id = TimeSpan.FromMinutes(30) },
-        new SelectViewModel<TimeSpan> { Name = "Last 1 hour", Id = TimeSpan.FromHours(1) },
-        new SelectViewModel<TimeSpan> { Name = "Last 3 hours", Id = TimeSpan.FromHours(3) },
-        new SelectViewModel<TimeSpan> { Name = "Last 6 hours", Id = TimeSpan.FromHours(6) },
-        new SelectViewModel<TimeSpan> { Name = "Last 12 hours", Id = TimeSpan.FromHours(12) },
-        new SelectViewModel<TimeSpan> { Name = "Last 24 hours", Id = TimeSpan.FromHours(24) },
-    };
+    private List<SelectViewModel<TimeSpan>> _durations = null!;
     private static readonly TimeSpan s_defaultDuration = TimeSpan.FromMinutes(5);
 
     private List<SelectViewModel<string>> _applications = default!;
     private SelectViewModel<string> _selectedApplication = s_selectApplication;
-    private SelectViewModel<TimeSpan> _selectedDuration = s_durations.Single(d => d.Id == s_defaultDuration);
+    private SelectViewModel<TimeSpan> _selectedDuration = null!;
     private Subscription? _applicationsSubscription;
     private Subscription? _metricsSubscription;
     private List<OtlpInstrument>? _instruments;
@@ -55,7 +44,7 @@ public partial class Metrics : IDisposable
     public required NavigationManager NavigationManager { get; set; }
 
     [Inject]
-    public required IDashboardViewModelService DashboardViewModelService { get; set; }
+    public required IResourceService ResourceService { get; set; }
 
     [Inject]
     public required ProtectedSessionStorage ProtectedSessionStore { get; set; }
@@ -68,6 +57,21 @@ public partial class Metrics : IDisposable
 
     protected override Task OnInitializedAsync()
     {
+        _durations = new List<SelectViewModel<TimeSpan>>
+        {
+            new() { Name = Loc[nameof(Dashboard.Resources.Metrics.MetricsLastOneMinute)], Id = TimeSpan.FromMinutes(1) },
+            new() { Name = Loc[nameof(Dashboard.Resources.Metrics.MetricsLastFiveMinutes)], Id = TimeSpan.FromMinutes(5) },
+            new() { Name = Loc[nameof(Dashboard.Resources.Metrics.MetricsLastFifteenMinutes)], Id = TimeSpan.FromMinutes(15) },
+            new() { Name = Loc[nameof(Dashboard.Resources.Metrics.MetricsLastThirtyMinutes)], Id = TimeSpan.FromMinutes(30) },
+            new() { Name = Loc[nameof(Dashboard.Resources.Metrics.MetricsLastHour)], Id = TimeSpan.FromHours(1) },
+            new() { Name = Loc[nameof(Dashboard.Resources.Metrics.MetricsLastThreeHours)], Id = TimeSpan.FromHours(3) },
+            new() { Name = Loc[nameof(Dashboard.Resources.Metrics.MetricsLastSixHours)], Id = TimeSpan.FromHours(6) },
+            new() { Name = Loc[nameof(Dashboard.Resources.Metrics.MetricsLastTwelveHours)], Id = TimeSpan.FromHours(12) },
+            new() { Name = Loc[nameof(Dashboard.Resources.Metrics.MetricsLastTwentyFourHours)], Id = TimeSpan.FromHours(24) },
+        };
+
+        _selectedDuration = _durations.Single(d => d.Id == s_defaultDuration);
+
         UpdateApplications();
         _applicationsSubscription = TelemetryRepository.OnNewApplications(() => InvokeAsync(() =>
         {
@@ -79,7 +83,7 @@ public partial class Metrics : IDisposable
 
     protected override void OnParametersSet()
     {
-        _selectedDuration = s_durations.SingleOrDefault(d => (int)d.Id.TotalMinutes == DurationMinutes) ?? s_durations.Single(d => d.Id == s_defaultDuration);
+        _selectedDuration = _durations.SingleOrDefault(d => (int)d.Id.TotalMinutes == DurationMinutes) ?? _durations.Single(d => d.Id == s_defaultDuration);
         _selectedApplication = _applications.SingleOrDefault(e => e.Id == ApplicationInstanceId) ?? s_selectApplication;
         ViewModel.ApplicationServiceId = _selectedApplication.Id;
         _instruments = !string.IsNullOrEmpty(_selectedApplication.Id) ? TelemetryRepository.GetInstrumentsSummary(_selectedApplication.Id) : null;
@@ -105,7 +109,7 @@ public partial class Metrics : IDisposable
 
     private void UpdateApplications()
     {
-        _applications = TelemetryRepository.GetApplications().Select(a => new SelectViewModel<string> { Id = a.InstanceId, Name = a.ApplicationName }).ToList();
+        _applications = SelectViewModelFactory.CreateApplicationsSelectViewModel(TelemetryRepository.GetApplications());
         _applications.Insert(0, s_selectApplication);
         UpdateSubscription();
     }

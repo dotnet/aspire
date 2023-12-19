@@ -6,6 +6,7 @@ using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Resources;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
@@ -14,11 +15,12 @@ namespace Aspire.Dashboard.Components.Pages;
 
 public partial class Traces
 {
-    private static readonly SelectViewModel<string> s_allApplication = new SelectViewModel<string> { Id = null, Name = "(All)" };
+    private SelectViewModel<string> _allApplication = null!;
 
     private TotalItemsFooter _totalItemsFooter = default!;
-    private List<SelectViewModel<string>> _applications = default!;
-    private SelectViewModel<string> _selectedApplication = s_allApplication;
+    private List<OtlpApplication> _applications = default!;
+    private List<SelectViewModel<string>> _applicationViewModels = default!;
+    private SelectViewModel<string> _selectedApplication = null!;
     private Subscription? _applicationsSubscription;
     private Subscription? _tracesSubscription;
     private bool _applicationChanged;
@@ -37,27 +39,16 @@ public partial class Traces
     [Inject]
     public required IDialogService DialogService { get; set; }
 
-    private string GetRowStyle(OtlpTrace trace)
-    {
-        var percentage = 0.0;
-        if (ViewModel.MaxDuration != TimeSpan.Zero)
-        {
-            percentage = trace.Duration / ViewModel.MaxDuration * 100.0;
-        }
-
-        return string.Create(CultureInfo.InvariantCulture, $"background: linear-gradient(to right, var(--neutral-fill-input-alt-active) {percentage:0.##}%, transparent {percentage:0.##}%);");
-    }
-
-    private static string GetTooltip(IGrouping<OtlpApplication, OtlpSpan> applicationSpans)
+    private string GetTooltip(IGrouping<OtlpApplication, OtlpSpan> applicationSpans)
     {
         var count = applicationSpans.Count();
         var errorCount = applicationSpans.Count(s => s.Status == OtlpSpanStatusCode.Error);
 
-        var tooltip = $"{applicationSpans.Key.ApplicationName} spans";
-        tooltip += Environment.NewLine + $"Total: {count}";
+        var tooltip = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Traces.TracesResourceSpans)], GetResourceName(applicationSpans.Key));
+        tooltip += Environment.NewLine + string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Traces.TracesTotalTraces)], count);
         if (errorCount > 0)
         {
-            tooltip += Environment.NewLine + $"Errored: {errorCount}";
+            tooltip += Environment.NewLine + string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Traces.TracesTotalErroredTraces)], errorCount);
         }
 
         return tooltip;
@@ -79,6 +70,9 @@ public partial class Traces
 
     protected override Task OnInitializedAsync()
     {
+        _allApplication  = new SelectViewModel<string> { Id = null, Name = $"({ControlsStringsLoc[nameof(ControlsStrings.All)]})" };
+        _selectedApplication = _allApplication;
+
         UpdateApplications();
         _applicationsSubscription = TelemetryRepository.OnNewApplications(() => InvokeAsync(() =>
         {
@@ -91,15 +85,16 @@ public partial class Traces
 
     protected override void OnParametersSet()
     {
-        _selectedApplication = _applications.SingleOrDefault(e => e.Id == ApplicationInstanceId) ?? s_allApplication;
+        _selectedApplication = _applicationViewModels.SingleOrDefault(e => e.Id == ApplicationInstanceId) ?? _allApplication;
         ViewModel.ApplicationServiceId = _selectedApplication.Id;
         UpdateSubscription();
     }
 
     private void UpdateApplications()
     {
-        _applications = TelemetryRepository.GetApplications().Select(a => new SelectViewModel<string> { Id = a.InstanceId, Name = a.ApplicationName }).ToList();
-        _applications.Insert(0, s_allApplication);
+        _applications = TelemetryRepository.GetApplications();
+        _applicationViewModels = SelectViewModelFactory.CreateApplicationsSelectViewModel(_applications);
+        _applicationViewModels.Insert(0, _allApplication);
         UpdateSubscription();
     }
 
@@ -137,7 +132,7 @@ public partial class Traces
             _ = Task.Run(async () =>
             {
                 await Task.Delay(400, cts.Token);
-                ViewModel.FilterText = newFilter ?? string.Empty;
+                ViewModel.FilterText = newFilter;
                 await InvokeAsync(StateHasChanged);
             });
         }
@@ -149,6 +144,8 @@ public partial class Traces
         ViewModel.FilterText = string.Empty;
         StateHasChanged();
     }
+
+    private string GetResourceName(OtlpApplication app) => OtlpApplication.GetResourceName(app, _applications);
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

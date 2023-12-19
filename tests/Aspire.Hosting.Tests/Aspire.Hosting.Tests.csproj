@@ -3,6 +3,8 @@
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsAspireHost>true</IsAspireHost>
+    <!-- MongoDB.Driver package is unsigned, we ignore that warning on purpose  -->
+    <NoWarn>$(NoWarn),CS8002</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

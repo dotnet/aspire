@@ -34,9 +34,14 @@ internal static partial class ProcessUtil
             EnableRaisingEvents = true
         };
 
-        processSpec.EnvironmentVariables.ToList().ForEach(x => process.StartInfo.Environment[x.Key] = x.Value);
+        foreach (var (key, value) in processSpec.EnvironmentVariables)
+        {
+            process.StartInfo.Environment[key] = value;
+        }
 
-        var processEventLock = new object();
+        // Use a reset event to prevent output processing and exited events from running until OnStart is complete.
+        // OnStart might have logic that sets up data structures that then are used by these events.
+        var startupComplete = new ManualResetEventSlim(false);
 
         // Note: even though the child process has exited, its children may be alive and still producing output.
         // See https://github.com/dotnet/runtime/issues/29232#issuecomment-1451584094 for how this might affect waiting for process exit.
@@ -46,15 +51,14 @@ internal static partial class ProcessUtil
         {
             process.OutputDataReceived += (_, e) =>
             {
-                lock (processEventLock)
+                startupComplete.Wait();
+
+                if (e.Data == null || process.HasExited)
                 {
-                    if (e.Data == null || process.HasExited)
-                    {
-                        return;
-                    }
+                    return;
                 }
 
-                processSpec.OnOutputData.Invoke(e.Data); // not holding the event lock
+                processSpec.OnOutputData.Invoke(e.Data);
             };
         }
 
@@ -62,15 +66,13 @@ internal static partial class ProcessUtil
         {
             process.ErrorDataReceived += (_, e) =>
             {
-                lock (processEventLock)
+                startupComplete.Wait();
+                if (e.Data == null || process.HasExited)
                 {
-                    if (e.Data == null || process.HasExited)
-                    {
-                        return;
-                    }
+                    return;
                 }
 
-                processSpec.OnErrorData.Invoke(e.Data); // not holding the event lock
+                processSpec.OnErrorData.Invoke(e.Data);
             };
         }
 
@@ -78,17 +80,16 @@ internal static partial class ProcessUtil
 
         process.Exited += (_, e) =>
         {
-            lock (processEventLock)
+            startupComplete.Wait();
+
+            if (processSpec.ThrowOnNonZeroReturnCode && process.ExitCode != 0)
             {
-                if (processSpec.ThrowOnNonZeroReturnCode && process.ExitCode != 0)
-                {
-                    processLifetimeTcs.TrySetException(new InvalidOperationException(
-                        $"Command {processSpec.ExecutablePath} {processSpec.Arguments} returned non-zero exit code {process.ExitCode}"));
-                }
-                else
-                {
-                    processLifetimeTcs.TrySetResult(new ProcessResult(process.ExitCode));
-                }
+                processLifetimeTcs.TrySetException(new InvalidOperationException(
+                    $"Command {processSpec.ExecutablePath} {processSpec.Arguments} returned non-zero exit code {process.ExitCode}"));
+            }
+            else
+            {
+                processLifetimeTcs.TrySetResult(new ProcessResult(process.ExitCode));
             }
         };
 
@@ -96,20 +97,17 @@ internal static partial class ProcessUtil
         {
             AspireEventSource.Instance.ProcessLaunchStart(processSpec.ExecutablePath, processSpec.Arguments ?? "");
 
-            // Take the event lock to ensure that OnStart() is called before the lifetime task ends.
-            lock (processEventLock)
-            {
-                process.Start();
-                process.BeginOutputReadLine();
-                process.BeginErrorReadLine();
-                processSpec.OnStart?.Invoke(process.Id);
-            }
+            process.Start();
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
+            processSpec.OnStart?.Invoke(process.Id);
         }
         finally
         {
+            startupComplete.Set(); // Allow output/error/exit handlers to start processing data.
+
             AspireEventSource.Instance.ProcessLaunchStop(processSpec.ExecutablePath, processSpec.Arguments ?? "");
         }
-        
 
         return (processLifetimeTcs.Task, new ProcessDisposable(process, processLifetimeTcs.Task, processSpec.KillEntireProcessTree));
     }

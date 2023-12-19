@@ -2,56 +2,50 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Dashboard.Otlp.Model;
+using Aspire.Dashboard.Utils;
 
 namespace Aspire.Dashboard.Model;
 
 public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsyncDisposable
 {
-    private readonly IDashboardViewModelService _dashboardViewModelService;
-    private readonly ConcurrentDictionary<string, ResourceViewModel> _resourceNameMapping = new();
+    private readonly ConcurrentDictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
     private readonly CancellationTokenSource _watchContainersTokenSource = new();
     private readonly Task _watchTask;
-    private readonly List<ModelSubscription> _subscriptions;
-    private readonly object _lock = new object();
+    private readonly List<ModelSubscription> _subscriptions = [];
+    private readonly object _lock = new();
 
-    public ResourceOutgoingPeerResolver(IDashboardViewModelService dashboardViewModelService)
+    public ResourceOutgoingPeerResolver(IResourceService resourceService)
     {
-        _dashboardViewModelService = dashboardViewModelService;
-        _subscriptions = new List<ModelSubscription>();
+        var (snapshot, subscription) = resourceService.SubscribeResources();
 
-        var viewModelMonitor = _dashboardViewModelService.GetResources();
-        var initialList = viewModelMonitor.Snapshot;
-        var watch = viewModelMonitor.Watch;
-
-        foreach (var result in initialList)
+        foreach (var resource in snapshot)
         {
-            _resourceNameMapping[result.Name] = result;
+            var added = _resourceByName.TryAdd(resource.Name, resource);
+            Debug.Assert(added, "Should not receive duplicate resources in initial snapshot data.");
         }
 
         _watchTask = Task.Run(async () =>
         {
-            await foreach (var resourceChanged in watch.WithCancellation(_watchContainersTokenSource.Token))
+            await foreach (var (changeType, resource) in subscription.WithCancellation(_watchContainersTokenSource.Token))
             {
-                await OnResourceListChanged(resourceChanged.ObjectChangeType, resourceChanged.Resource).ConfigureAwait(false);
+                await OnResourceListChanged(changeType, resource).ConfigureAwait(false);
             }
         });
     }
 
-    private async Task OnResourceListChanged(ObjectChangeType changeType, ResourceViewModel resourceViewModel)
+    private async Task OnResourceListChanged(ResourceChangeType changeType, ResourceViewModel resourceViewModel)
     {
-        if (changeType == ObjectChangeType.Added)
+        if (changeType == ResourceChangeType.Upsert)
         {
-            _resourceNameMapping[resourceViewModel.Name] = resourceViewModel;
+            _resourceByName[resourceViewModel.Name] = resourceViewModel;
         }
-        else if (changeType == ObjectChangeType.Modified)
+        else if (changeType == ResourceChangeType.Delete)
         {
-            _resourceNameMapping[resourceViewModel.Name] = resourceViewModel;
-        }
-        else if (changeType == ObjectChangeType.Deleted)
-        {
-            _resourceNameMapping.TryRemove(resourceViewModel.Name, out _);
+            var removed = _resourceByName.TryRemove(resourceViewModel.Name, out _);
+            Debug.Assert(removed, "Cannot remove unknown resource.");
         }
 
         await RaisePeerChangesAsync().ConfigureAwait(false);
@@ -62,7 +56,7 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
         var address = OtlpHelpers.GetValue(attributes, OtlpSpan.PeerServiceAttributeKey);
         if (address != null)
         {
-            foreach (var (resourceName, resource) in _resourceNameMapping)
+            foreach (var (resourceName, resource) in _resourceByName)
             {
                 foreach (var service in resource.Services)
                 {
@@ -99,7 +93,7 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
 
     private async Task RaisePeerChangesAsync()
     {
-        if (_subscriptions.Count == 0)
+        if (_subscriptions.Count == 0 || _watchContainersTokenSource.IsCancellationRequested)
         {
             return;
         }

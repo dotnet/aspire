@@ -13,6 +13,18 @@ public partial class GridValue
     public string? Value { get; set; }
 
     /// <summary>
+    /// Content to include, if any, after the Value string
+    /// </summary>
+    [Parameter]
+    public RenderFragment? ContentAfterValue { get; set; }
+
+    /// <summary>
+    /// If set, copies this value instead of <see cref="Value"/>.
+    /// </summary>
+    [Parameter]
+    public string? ValueToCopy { get; set; }
+
+    /// <summary>
     /// Determines whether or not masking support is enabled for this value
     /// </summary>
     [Parameter]
@@ -61,6 +73,13 @@ public partial class GridValue
     private async Task CopyTextToClipboardAsync(string? text, string id)
         => await JS.InvokeVoidAsync("copyTextToClipboard", id, text, PreCopyToolTip, PostCopyToolTip);
 
-    private static string TrimLength(string? text)
-        => text?.Length > 8 ? text.Substring(0, 8) : text ?? string.Empty;
+    private string TrimLength(string? text)
+    {
+        if (text is not null && MaxDisplayLength is int maxLength && text.Length > maxLength)
+        {
+            return text[..maxLength];
+        }
+
+        return text ?? "";
+    }
 }

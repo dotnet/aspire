@@ -12,7 +12,7 @@ namespace Aspire.Dashboard.Components.Dialogs;
 
 public partial class FilterDialog
 {
-    private static readonly List<SelectViewModel<FilterCondition>> s_filterConditions = new List<SelectViewModel<FilterCondition>>
+    private static readonly List<SelectViewModel<FilterCondition>> s_filterConditions = new()
     {
         CreateFilterSelectViewModel(FilterCondition.Equals),
         CreateFilterSelectViewModel(FilterCondition.Contains),

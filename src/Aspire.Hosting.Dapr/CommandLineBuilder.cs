@@ -108,11 +108,49 @@ internal static class CommandLineArgs
         };
     }
 
+    public static CommandLineArgBuilder ModelNamedArg<T>(string name, T value, bool assignValue = false) where T : struct
+    {
+        return () =>
+        {
+            string? stringValue = Convert.ToString(value, CultureInfo.InvariantCulture);
+
+            return stringValue is not null
+                ? ModelNamedStringArg(name, stringValue, assignValue)()
+                : Enumerable.Empty<string>();
+        };
+    }
+
+    public static CommandLineArgBuilder ModelNamedArg<T>(string name, T? value, bool assignValue = false) where T : struct
+    {
+        return () =>
+            value.HasValue
+                ? ModelNamedArg(name, value.Value, assignValue)()
+                : Enumerable.Empty<string>();
+    }
+
+    public static CommandLineArgBuilder ModelNamedArg(string name, string? value, bool assignValue = false)
+    {
+        return () =>
+        {
+            return value is not null
+                ? ModelNamedStringArg(name, value, assignValue)()
+                : Enumerable.Empty<string>();
+        };
+    }
+
     public static CommandLineArgBuilder NamedArg(string name, IEnumerable<string>? values, bool assignValue = false)
     {
         return () =>
         {
             return (values ?? Enumerable.Empty<string>()).SelectMany(value => NamedArg(name, value, assignValue)());
+        };
+    }
+
+    public static CommandLineArgBuilder ModelNamedArg(string name, IEnumerable<string>? values, bool assignValue = false)
+    {
+        return () =>
+        {
+            return (values ?? Enumerable.Empty<string>()).SelectMany(value => ModelNamedArg(name, value, assignValue)());
         };
     }
 
@@ -127,6 +165,16 @@ internal static class CommandLineArgs
             return assignValue
                 ? new[] { $"\"{name}={value}\"" }
                 : new[] { name, hasReservedChars ? $"\"{value}\"" : value };
+        };
+    }
+
+    private static CommandLineArgBuilder ModelNamedStringArg(string name, string value, bool assignValue)
+    {
+        return () =>
+        {
+            return assignValue
+                ? new[] { $"{name}={value}" }
+                : new[] { name, value };
         };
     }
 

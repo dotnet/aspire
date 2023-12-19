@@ -35,15 +35,19 @@ public sealed class AzureStorageBlobsSettings : IConnectionStringSettings
     public TokenCredential? Credential { get; set; }
 
     /// <summary>
-    /// <para>Gets or sets a boolean value that indicates whether the Blob Storage health check is enabled or not.</para>
-    /// <para>Enabled by default.</para>
+    /// Gets or sets a boolean value that indicates whether the Blob Storage health check is enabled or not.
     /// </summary>
+    /// <value>
+    /// The default value is <see langword="true"/>.
+    /// </value>
     public bool HealthChecks { get; set; } = true;
 
     /// <summary>
-    /// <para>Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.</para>
-    /// <para>Enabled by default.</para>
+    /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.
     /// </summary>
+    /// <value>
+    /// The default value is <see langword="true"/>.
+    /// </value>
     public bool Tracing { get; set; } = true;
 
     void IConnectionStringSettings.ParseConnectionString(string? connectionString)

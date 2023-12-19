@@ -1,0 +1,76 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>1.3</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="StructuredLogsPageTitle" xml:space="preserve">
+    <value>{0} structured logs</value>
+    <comment>{0} is an application name</comment>
+  </data>
+  <data name="StructuredLogsHeader" xml:space="preserve">
+    <value>Structured logs</value>
+  </data>
+  <data name="StructuredLogsMinimumLogFilter" xml:space="preserve">
+    <value>Minimum log level filter</value>
+  </data>
+  <data name="StructuredLogsSelectMinimumLogLevel" xml:space="preserve">
+    <value>Select a minimum log level</value>
+  </data>
+  <data name="StructuredLogsFilters" xml:space="preserve">
+    <value>Filters: </value>
+  </data>
+  <data name="StructuredLogsNoFilters" xml:space="preserve">
+    <value>No filters</value>
+  </data>
+  <data name="StructuredLogsAddFilter" xml:space="preserve">
+    <value>Add filter</value>
+  </data>
+  <data name="StructuredLogsEntryDetails" xml:space="preserve">
+    <value>Log entry details</value>
+  </data>
+  <data name="StructuredLogsResourceColumnHeader" xml:space="preserve">
+    <value>Resource</value>
+  </data>
+  <data name="StructuredLogsLevelColumnHeader" xml:space="preserve">
+    <value>Level</value>
+  </data>
+  <data name="StructuredLogsTimestampColumnHeader" xml:space="preserve">
+    <value>Timestamp</value>
+  </data>
+  <data name="StructuredLogsMessageColumnHeader" xml:space="preserve">
+    <value>Message</value>
+  </data>
+  <data name="StructuredLogsTraceColumnHeader" xml:space="preserve">
+    <value>Trace</value>
+  </data>
+  <data name="StructuredLogsDetailsColumnHeader" xml:space="preserve">
+    <value>Details</value>
+  </data>
+  <data name="StructuredLogsNoLogsFound" xml:space="preserve">
+    <value>No structured logs found</value>
+  </data>
+  <data name="StructuredLogsAllTypes" xml:space="preserve">
+    <value>All</value>
+  </data>
+  <data name="StructuredLogsEditFilter" xml:space="preserve">
+    <value>Edit filter</value>
+  </data>
+  <data name="StructuredLogsMessageFilter" xml:space="preserve">
+    <value>Message filter</value>
+  </data>
+</root>

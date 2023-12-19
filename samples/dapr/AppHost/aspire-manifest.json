@@ -52,22 +52,22 @@
         }
       }
     },
-    "service-a": {
+    "servicea-dapr": {
       "type": "dapr.v0",
       "dapr": {
         "application": "servicea",
-        "appId": "service-a",
+        "appId": "servicea",
         "components": [
           "statestore",
           "pubsub"
         ]
       }
     },
-    "service-b": {
+    "serviceb-dapr": {
       "type": "dapr.v0",
       "dapr": {
         "application": "serviceb",
-        "appId": "service-b",
+        "appId": "serviceb",
         "components": [
           "pubsub"
         ]

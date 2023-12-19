@@ -1,11 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using System.Globalization;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Tests.Helpers;
+using k8s.Models;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -18,7 +20,6 @@ public class DistributedApplicationTests
 {
     private readonly ITestOutputHelper _testOutputHelper;
 
-    // Primary constructors don't get ITestOutputHelper injected
     public DistributedApplicationTests(ITestOutputHelper testOutputHelper)
     {
         _testOutputHelper = testOutputHelper;
@@ -155,105 +156,35 @@ public class DistributedApplicationTests
     }
 
     [LocalOnlyFact]
-    public async Task TestProjectStartsAndStopsCleanly()
+    public async Task AllocatedPortsAssignedAfterHookRuns()
     {
         var testProgram = CreateTestProgram();
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
-
-        testProgram.AppBuilder.Services
-            .AddHttpClient()
-            .ConfigureHttpClientDefaults(b =>
-            {
-                b.UseSocketsHttpHandler((handler, sp) => handler.PooledConnectionLifetime = TimeSpan.FromSeconds(5));
-            });
+        var tcs = new TaskCompletionSource<DistributedApplicationModel>(TaskCreationOptions.RunContinuationsAsynchronously);
+        testProgram.AppBuilder.Services.AddLifecycleHook(sp => new CheckAllocatedEndpointsLifecycleHook(tcs));
 
         await using var app = testProgram.Build();
 
-        var client = app.Services.GetRequiredService<IHttpClientFactory>().CreateClient();
+        await app.StartAsync();
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
+        var appModel = await tcs.Task.WaitAsync(TimeSpan.FromSeconds(10));
 
-        await app.StartAsync(cts.Token);
-
-        // Make sure each service is running
-        await testProgram.ServiceABuilder.HttpGetPidAsync(client, "http", cts.Token);
-        await testProgram.ServiceBBuilder.HttpGetPidAsync(client, "http", cts.Token);
-        await testProgram.ServiceCBuilder.HttpGetPidAsync(client, "http", cts.Token);
-    }
-
-    [LocalOnlyFact]
-    public async Task TestPortOnServiceBindingAnnotationAndAllocatedEndpointAnnotationMatch()
-    {
-        var testProgram = CreateTestProgram();
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
-
-        testProgram.AppBuilder.Services
-            .AddHttpClient()
-            .ConfigureHttpClientDefaults(b =>
-            {
-                b.UseSocketsHttpHandler((handler, sp) => handler.PooledConnectionLifetime = TimeSpan.FromSeconds(5));
-            });
-
-        await using var app = testProgram.Build();
-
-        var client = app.Services.GetRequiredService<IHttpClientFactory>().CreateClient();
-
-        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
-
-        await app.StartAsync(cts.Token);
-
-        // Make sure each service is running
-        await testProgram.ServiceABuilder.HttpGetPidAsync(client, "http", cts.Token);
-        await testProgram.ServiceBBuilder.HttpGetPidAsync(client, "http", cts.Token);
-        await testProgram.ServiceCBuilder.HttpGetPidAsync(client, "http", cts.Token);
-
-        foreach (var projectBuilders in testProgram.ServiceProjectBuilders)
+        foreach (var item in appModel.Resources)
         {
-            var serviceBinding = projectBuilders.Resource.Annotations.OfType<ServiceBindingAnnotation>().Single();
-            var allocatedEndpoint = projectBuilders.Resource.Annotations.OfType<AllocatedEndpointAnnotation>().Single();
-
-            Assert.Equal(serviceBinding.Port, allocatedEndpoint.Port);
+            if ((item is ContainerResource || item is ProjectResource || item is ExecutableResource) && item.TryGetServiceBindings(out _))
+            {
+                Assert.True(item.TryGetAllocatedEndPoints(out var endpoints));
+                Assert.NotEmpty(endpoints);
+            }
         }
     }
 
-    [LocalOnlyFact]
-    public async Task TestPortOnServiceBindingAnnotationAndAllocatedEndpointAnnotationMatchForReplicatedServices()
+    private sealed class CheckAllocatedEndpointsLifecycleHook(TaskCompletionSource<DistributedApplicationModel> tcs) : IDistributedApplicationLifecycleHook
     {
-        var testProgram = CreateTestProgram();
-
-        foreach (var serviceBuilder in testProgram.ServiceProjectBuilders)
+        public Task AfterEndpointsAllocatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
         {
-            serviceBuilder.WithReplicas(2);
-        }
+            tcs.TrySetResult(appModel);
 
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
-
-        testProgram.AppBuilder.Services
-            .AddHttpClient()
-            .ConfigureHttpClientDefaults(b =>
-            {
-                b.UseSocketsHttpHandler((handler, sp) => handler.PooledConnectionLifetime = TimeSpan.FromSeconds(5));
-            });
-
-        await using var app = testProgram.Build();
-
-        var client = app.Services.GetRequiredService<IHttpClientFactory>().CreateClient();
-
-        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
-
-        await app.StartAsync(cts.Token);
-
-        // Make sure each service is running
-        await testProgram.ServiceABuilder.HttpGetPidAsync(client, "http", cts.Token);
-        await testProgram.ServiceBBuilder.HttpGetPidAsync(client, "http", cts.Token);
-        await testProgram.ServiceCBuilder.HttpGetPidAsync(client, "http", cts.Token);
-
-        foreach (var projectBuilders in testProgram.ServiceProjectBuilders)
-        {
-            var serviceBinding = projectBuilders.Resource.Annotations.OfType<ServiceBindingAnnotation>().Single();
-            var allocatedEndpoint = projectBuilders.Resource.Annotations.OfType<AllocatedEndpointAnnotation>().Single();
-
-            Assert.Equal(serviceBinding.Port, allocatedEndpoint.Port);
+            return Task.CompletedTask;
         }
     }
 
@@ -282,6 +213,11 @@ public class DistributedApplicationTests
 
         await app.StartAsync(cts.Token);
 
+        // Give the server some time to be ready to handle requests to
+        // minimize the amount of retries the clients have to do (and log).
+
+        await Task.Delay(1000, cts.Token);
+
         // Make sure services A and C are running
         await testProgram.ServiceABuilder.HttpGetPidAsync(client, "http", cts.Token);
         await testProgram.ServiceCBuilder.HttpGetPidAsync(client, "http", cts.Token);
@@ -301,67 +237,6 @@ public class DistributedApplicationTests
             }
             await Task.Delay(100, cts.Token);
         }
-    }
-
-    [LocalOnlyFact]
-    public async Task VerifyHealthyOnIntegrationServiceA()
-    {
-        var testProgram = CreateTestProgram(includeIntegrationServices: true);
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
-
-        testProgram.AppBuilder.Services
-            .AddHttpClient()
-            .ConfigureHttpClientDefaults(b =>
-            {
-                b.UseSocketsHttpHandler((handler, sp) => handler.PooledConnectionLifetime = TimeSpan.FromSeconds(5));
-            });
-
-        await using var app = testProgram.Build();
-
-        var client = app.Services.GetRequiredService<IHttpClientFactory>().CreateClient();
-
-        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
-
-        await app.StartAsync(cts.Token);
-
-        // Make sure all services are running
-        await testProgram.ServiceABuilder.HttpGetPidAsync(client, "http", cts.Token);
-        await testProgram.ServiceBBuilder.HttpGetPidAsync(client, "http", cts.Token);
-        await testProgram.ServiceCBuilder.HttpGetPidAsync(client, "http", cts.Token);
-        await testProgram.IntegrationServiceABuilder!.HttpGetPidAsync(client, "http", cts.Token);
-
-        // We wait until timeout for the /health endpoint to return successfully. We assume
-        // that components wired up into this project have health checks enabled.
-        await testProgram.IntegrationServiceABuilder!.WaitForHealthyStatus(client, "http", cts.Token);
-    }
-
-    [LocalOnlyFact("node")]
-    public async Task VerifyNodeAppWorks()
-    {
-        var testProgram = CreateTestProgram(includeNodeApp: true);
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
-
-        testProgram.AppBuilder.Services
-            .AddHttpClient()
-            .ConfigureHttpClientDefaults(b =>
-            {
-                b.UseSocketsHttpHandler((handler, sp) => handler.PooledConnectionLifetime = TimeSpan.FromSeconds(5));
-                b.AddStandardResilienceHandler();
-            });
-
-        await using var app = testProgram.Build();
-
-        var client = app.Services.GetRequiredService<IHttpClientFactory>().CreateClient();
-
-        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
-
-        await app.StartAsync(cts.Token);
-
-        var response0 = await testProgram.NodeAppBuilder!.HttpGetAsync(client, "http", "/", cts.Token);
-        var response1 = await testProgram.NpmAppBuilder!.HttpGetAsync(client, "http", "/", cts.Token);
-
-        Assert.Equal("Hello from node!", response0);
-        Assert.Equal("Hello from node!", response1);
     }
 
     [LocalOnlyFact("docker")]
@@ -386,6 +261,75 @@ public class DistributedApplicationTests
                 Assert.Equal("redis:latest", item.Spec.Image);
                 Assert.Equal(["redis-cli", "-h", "host.docker.internal", "-p", "9999", "MONITOR"], item.Spec.Args);
             });
+
+        await app.StopAsync();
+    }
+
+    [LocalOnlyFact("docker")]
+    public async Task SpecifyingEnvPortInServiceBindingFlowsToEnv()
+    {
+        var testProgram = CreateTestProgram(includeNodeApp: true);
+
+        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+
+        testProgram.ServiceABuilder
+            .WithServiceBinding(scheme: "http", name: "http0", env: "PORT0");
+
+        testProgram.AppBuilder.AddContainer("redis0", "redis")
+            .WithServiceBinding(containerPort: 6379, name: "tcp", env: "REDIS_PORT");
+
+        await using var app = testProgram.Build();
+
+        var kubernetes = app.Services.GetRequiredService<KubernetesService>();
+
+        await app.StartAsync();
+
+        async Task<T> GetResourceByNameAsync<T>(string resourceName, Func<T, bool> ready, CancellationToken cancellationToken) where T : CustomResource
+        {
+            await foreach (var (_, r) in kubernetes!.WatchAsync<T>(cancellationToken: cancellationToken))
+            {
+                var name = r.Name();
+
+                if ((name == resourceName || name.StartsWith(resourceName + "-", StringComparison.Ordinal)) && ready(r))
+                {
+                    return r;
+                }
+            }
+
+            throw new InvalidOperationException($"Resource {resourceName}, not ready");
+        }
+
+        using var cts = new CancellationTokenSource(Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(10));
+        var token = cts.Token;
+
+        var redisContainer = await GetResourceByNameAsync<Container>("redis0", r => r.Status?.EffectiveEnv is not null, token);
+        Assert.NotNull(redisContainer);
+
+        var serviceA = await GetResourceByNameAsync<Executable>("servicea", r => r.Status?.EffectiveEnv is not null, token);
+        Assert.NotNull(serviceA);
+
+        var nodeApp = await GetResourceByNameAsync<Executable>("nodeapp", r => r.Status?.EffectiveEnv is not null, token);
+        Assert.NotNull(nodeApp);
+
+        string? GetEnv(IEnumerable<EnvVar>? envVars, string name)
+        {
+            Assert.NotNull(envVars);
+            return Assert.Single(envVars.Where(e => e.Name == name)).Value;
+        };
+
+        Assert.Equal("redis:latest", redisContainer.Spec.Image);
+        Assert.Equal("{{- portForServing \"redis0\" }}", GetEnv(redisContainer.Spec.Env, "REDIS_PORT"));
+        Assert.Equal("6379", GetEnv(redisContainer.Status!.EffectiveEnv, "REDIS_PORT"));
+
+        Assert.Equal("{{- portForServing \"servicea_http0\" }}", GetEnv(serviceA.Spec.Env, "PORT0"));
+        var serviceAPortValue = GetEnv(serviceA.Status!.EffectiveEnv, "PORT0");
+        Assert.False(string.IsNullOrEmpty(serviceAPortValue));
+        Assert.NotEqual(0, int.Parse(serviceAPortValue, CultureInfo.InvariantCulture));
+
+        Assert.Equal("{{- portForServing \"nodeapp\" }}", GetEnv(nodeApp.Spec.Env, "PORT"));
+        var nodeAppPortValue = GetEnv(nodeApp.Status!.EffectiveEnv, "PORT");
+        Assert.False(string.IsNullOrEmpty(nodeAppPortValue));
+        Assert.NotEqual(0, int.Parse(nodeAppPortValue, CultureInfo.InvariantCulture));
 
         await app.StopAsync();
     }

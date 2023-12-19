@@ -1,6 +1,8 @@
-﻿@namespace Aspire.Dashboard.Components
+﻿@using Aspire.Dashboard.Resources
+@namespace Aspire.Dashboard.Components
+@inject IStringLocalizer<ControlsStrings> Loc
 
-<div class="total-items-footer">Total: <strong>@_totalItemCount results found</strong></div>
+<div class="total-items-footer">@((MarkupString)string.Format(Loc[nameof(ControlsStrings.TotalItemsFooterText)], _totalItemCount))</div>
 
 @code {
     private int _totalItemCount;

@@ -1,27 +1,65 @@
 ﻿@using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Extensions
+@using Aspire.Dashboard.Resources
+@inject IStringLocalizer<Columns> Loc
 
 @if (Resource is ProjectViewModel projectViewModel)
 {
-    <span title="@projectViewModel.ProjectPath" aria-label="@projectViewModel.ProjectPath">@projectViewModel.ProjectPath.TrimMiddle(50)</span>
+    // NOTE projects are also executables, so we have to check for projects first
+    <GridValue Value="@Path.GetFileName(projectViewModel.ProjectPath)"
+               ValueToCopy="@projectViewModel.ProjectPath"
+               EnableHighlighting="true"
+               HighlightText="@FilterText"
+               PreCopyToolTip="@Loc[nameof(Columns.SourceColumnSourceCopyFullPathToClipboard)]"
+               ToolTip="@projectViewModel.ProjectPath" />
 }
 else if (Resource is ExecutableViewModel executableViewModel)
 {
     var arguments = string.Join(" ", executableViewModel.Arguments ?? []);
     var fullCommandLine = $"{executableViewModel.ExecutablePath} {arguments}";
 
-    <div class="ellipsis-overflow" title="@fullCommandLine" aria-label="@fullCommandLine">@executableViewModel.ExecutablePath?.TrimMiddle(35) <span class="subtext">@arguments</span></div>
-    <div class="ellipsis-overflow" title="@executableViewModel.WorkingDirectory" aria-label="@executableViewModel.WorkingDirectory">Working Dir: @executableViewModel.WorkingDirectory?.TrimMiddle(35)</div>
+    <GridValue Value="@Path.GetFileName(executableViewModel.ExecutablePath)"
+               ValueToCopy="@fullCommandLine"
+               EnableHighlighting="true"
+               HighlightText="@FilterText"
+               PreCopyToolTip="@Loc[nameof(Columns.SourceColumnSourceCopyFullPathToClipboard)]"
+               ToolTip="@executableViewModel.ExecutablePath">
+        <ContentAfterValue>
+            <span class="subtext">@arguments</span>
+        </ContentAfterValue>
+    </GridValue>
+
+    <div class="ellipsis-overflow" title="@executableViewModel.WorkingDirectory" aria-label="@executableViewModel.WorkingDirectory">@string.Format(Loc[nameof(Columns.SourceColumnDisplayWorkingDirectory)], executableViewModel.WorkingDirectory?.TrimMiddle(35))</div>
 }
 else if (Resource is ContainerViewModel containerViewModel)
 {
     var ports = string.Join("; ", containerViewModel.Ports);
+    <GridValue Value="@containerViewModel.Image"
+               EnableHighlighting="true"
+               HighlightText="@FilterText"
+               PreCopyToolTip="@Loc[nameof(Columns.SourceColumnSourceCopyContainerToClipboard)]"
+               ToolTip="@containerViewModel.Image">
+        <ContentAfterValue>
+           @if (containerViewModel.Ports.Length > 0)
+           {
+               var title = string.Format(
+                   Loc[containerViewModel.Ports.Length == 1
+                       ? nameof(Columns.SourceColumnDisplayPort)
+                       : nameof(Columns.SourceColumnDisplayPorts)],
+                   ports);
+                   <span class="subtext" aria-label="@title">@title</span>
+           }
+        </ContentAfterValue>
+   </GridValue>
     <FluentStack Orientation="Orientation.Horizontal">
-        <span title="@containerViewModel.Image"><FluentHighlighter HighlightedText="@FilterText" Text="@containerViewModel.Image" /></span>
-        @if (containerViewModel.Ports.Count > 0)
+        @if (containerViewModel.Command is not null)
         {
-            var title = $"Port{(containerViewModel.Ports.Count > 1 ? "s" : string.Empty)}: {ports}";
-            <span class="subtext" title="@title" aria-label="@title">@ports</span>
+            <div class="ellipsis-overflow" title="@Loc[nameof(Columns.SourceColumnDisplayContainerCommandTitle)]">@Loc[nameof(Columns.SourceColumnDisplayContainerCommand), containerViewModel.Command]</div>
+        }
+        @if (containerViewModel.Args is not null)
+        {
+            var args = string.Join(" ", containerViewModel.Args);
+            <div class="ellipsis-overflow" title="@Loc[nameof(Columns.SourceColumnDisplayContainerArgsTitle)]">@args</div>
         }
     </FluentStack>
 }
