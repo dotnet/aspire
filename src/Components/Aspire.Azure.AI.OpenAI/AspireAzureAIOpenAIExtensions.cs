@@ -6,6 +6,7 @@ using Aspire.Azure.Common;
 using Azure.AI.OpenAI;
 using Azure.Core;
 using Azure.Core.Extensions;
+using Azure.Identity;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -67,24 +68,20 @@ public static class AspireAzureAIOpenAIExtensions
             return azureFactoryBuilder.RegisterClientFactory<OpenAIClient, OpenAIClientOptions>((options, cred) =>
             {
                 var connectionString = settings.ConnectionString;
+                if (settings.ServiceUri is null)
+                {
+                    throw new InvalidOperationException($"An OpenAIClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'ConnectionString' or 'ServiceUri' in the '{configurationSectionName}' configuration section.");
+                }
 
                 if (settings.UseAzureOpenAI)
                 {
-                    if (string.IsNullOrEmpty(connectionString))
-                    {
-                        throw new InvalidOperationException($"An OpenAIClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'ConnectionString' in the '{configurationSectionName}' configuration section.");
-                    }
+                    var credential = settings.Credential ?? new DefaultAzureCredential();
 
-                    return new OpenAIClient(new Uri(connectionString), cred, options);
+                    return new OpenAIClient(settings.ServiceUri, credential, options);
                 }
                 else
                 {
-                    if (string.IsNullOrEmpty(settings.OpenAIApiKey))
-                    {
-                        throw new InvalidOperationException($"An OpenAI API key could not be found. Ensure a valid API key was provided.");
-                    }
-
-                    return new OpenAIClient(settings.OpenAIApiKey, options);
+                    return new OpenAIClient(settings.ServiceUri.ToString(), options);
                 }
             });
         }

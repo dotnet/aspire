@@ -25,9 +25,10 @@
                       "type": "string",
                       "description": "Gets or sets the connection string used to connect to the OpenAI service."
                     },
-                    "OpenAIApiKey": {
+                    "ServiceUri": {
                       "type": "string",
-                      "description": "Gets or sets the API key provided in the OpenAI's developer portal."
+                      "format": "uri",
+                      "description": "A T:System.Uri referencing the Azure OpenAI Endpoint.\nThis is likely to be similar to \"https://{account_name}.openai.azure.com\"."
                     },
                     "Tracing": {
                       "type": "boolean",
@@ -40,7 +41,7 @@
                       "default": true
                     }
                   },
-                  "description": "The settings relevant to accessing Azure OpenAI."
+                  "description": "The settings relevant to accessing Azure OpenAI or OpenAI."
                 }
               }
             }
