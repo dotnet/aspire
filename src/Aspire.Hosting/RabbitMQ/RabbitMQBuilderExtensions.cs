@@ -4,6 +4,7 @@
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
 
@@ -22,7 +23,7 @@ public static class RabbitMQBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{RabbitMQContainerResource}"/>.</returns>
     public static IResourceBuilder<RabbitMQContainerResource> AddRabbitMQContainer(this IDistributedApplicationBuilder builder, string name, int? port = null, string? password = null)
     {
-        password ??= Guid.NewGuid().ToString("N");
+        password ??= PasswordUtil.GeneratePassword();
         var rabbitMq = new RabbitMQContainerResource(name, password);
         return builder.AddResource(rabbitMq)
                        .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, port: port, containerPort: 5672))
@@ -52,7 +53,7 @@ public static class RabbitMQBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{RabbitMQContainerResource}"/>.</returns>
     public static IResourceBuilder<RabbitMQServerResource> AddRabbitMQ(this IDistributedApplicationBuilder builder, string name)
     {
-        var password = Guid.NewGuid().ToString("N");
+        var password = PasswordUtil.GeneratePassword();
         var rabbitMq = new RabbitMQServerResource(name, password);
         return builder.AddResource(rabbitMq)
                        .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, containerPort: 5672))

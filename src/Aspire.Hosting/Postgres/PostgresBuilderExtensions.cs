@@ -4,6 +4,7 @@
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
 
@@ -24,7 +25,7 @@ public static class PostgresBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{PostgresContainerResource}"/>.</returns>
     public static IResourceBuilder<PostgresContainerResource> AddPostgresContainer(this IDistributedApplicationBuilder builder, string name, int? port = null, string? password = null)
     {
-        password = password ?? Guid.NewGuid().ToString("N");
+        password = password ?? PasswordUtil.GeneratePassword();
         var postgresContainer = new PostgresContainerResource(name, password);
         return builder.AddResource(postgresContainer)
                       .WithManifestPublishingCallback(context => WritePostgresContainerResourceToManifest(context, postgresContainer))
@@ -53,7 +54,7 @@ public static class PostgresBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{PostgresContainerResource}"/>.</returns>
     public static IResourceBuilder<PostgresServerResource> AddPostgres(this IDistributedApplicationBuilder builder, string name)
     {
-        var password = Guid.NewGuid().ToString("N");
+        var password = PasswordUtil.GeneratePassword();
         var postgresServer = new PostgresServerResource(name, password);
         return builder.AddResource(postgresServer)
                       .WithManifestPublishingCallback(WritePostgresContainerToManifest)

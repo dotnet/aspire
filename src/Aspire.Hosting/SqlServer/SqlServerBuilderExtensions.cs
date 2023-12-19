@@ -4,6 +4,7 @@
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
 
@@ -22,7 +23,7 @@ public static class SqlServerBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{SqlServerContainerResource}"/>.</returns>
     public static IResourceBuilder<SqlServerContainerResource> AddSqlServerContainer(this IDistributedApplicationBuilder builder, string name, string? password = null, int? port = null)
     {
-        password = password ?? Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N").ToUpper();
+        password = password ?? PasswordUtil.GeneratePassword();
         var sqlServer = new SqlServerContainerResource(name, password);
 
         return builder.AddResource(sqlServer)
@@ -52,7 +53,7 @@ public static class SqlServerBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{SqlServerContainerResource}"/>.</returns>
     public static IResourceBuilder<SqlServerServerResource> AddSqlServer(this IDistributedApplicationBuilder builder, string name)
     {
-        var password = Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N").ToUpper();
+        var password = PasswordUtil.GeneratePassword();
         var sqlServer = new SqlServerServerResource(name, password);
 
         return builder.AddResource(sqlServer)
