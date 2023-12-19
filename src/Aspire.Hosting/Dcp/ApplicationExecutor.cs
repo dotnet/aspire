@@ -567,11 +567,6 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
                             portSpec.HostIP = sp.DcpServiceProducerAnnotation.Address;
                         }
 
-                        if (sp.ServiceBindingAnnotation.Port is not null)
-                        {
-                            portSpec.HostPort = sp.ServiceBindingAnnotation.Port;
-                        }
-
                         switch (sp.ServiceBindingAnnotation.Protocol)
                         {
                             case ProtocolType.Tcp:
