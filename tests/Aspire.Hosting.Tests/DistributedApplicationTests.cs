@@ -337,12 +337,14 @@ public class DistributedApplicationTests
     [LocalOnlyFact("docker")]
     public async Task ContainerHostPortDoesNotConflictWithServiceHostPort()
     {
+        var hostPort = 6380;
+
         var testProgram = CreateTestProgram();
 
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
         testProgram.AppBuilder.AddContainer("redis0", "redis")
-            .WithServiceBinding(containerPort: 6379, hostPort: 6379, name: "tcp", env: "REDIS_PORT");
+            .WithServiceBinding(containerPort: 6380, hostPort: hostPort, name: "tcp", env: "REDIS_PORT");
 
         await using var app = testProgram.Build();
 
@@ -371,7 +373,12 @@ public class DistributedApplicationTests
         var redisContainer = await GetResourceByNameAsync<Container>("redis0", r => r.Status?.EffectiveEnv is not null, token);
         Assert.NotNull(redisContainer);
         Assert.NotNull(redisContainer.Spec.Ports);
-        Assert.DoesNotContain(redisContainer.Spec.Ports, port => port.HostPort == 6379);
+
+        var redisService = await GetResourceByNameAsync<Service>("redis0", r => r.Status?.EffectivePort is not null, token);
+        Assert.NotNull(redisService);
+        Assert.Equal(hostPort, redisService.Spec.Port);
+        Assert.Equal(hostPort, redisService.Status?.EffectivePort);
+        Assert.DoesNotContain(redisContainer.Spec.Ports, port => port.HostPort == hostPort);
 
         await app.StopAsync();
     }
