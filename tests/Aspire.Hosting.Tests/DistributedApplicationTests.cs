@@ -334,6 +334,48 @@ public class DistributedApplicationTests
         await app.StopAsync();
     }
 
+    [LocalOnlyFact("docker")]
+    public async Task ContainerHostPortDoesNotConflictWithServiceHostPort()
+    {
+        var testProgram = CreateTestProgram();
+
+        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+
+        testProgram.AppBuilder.AddContainer("redis0", "redis")
+            .WithServiceBinding(containerPort: 6379, hostPort: 6379, name: "tcp", env: "REDIS_PORT");
+
+        await using var app = testProgram.Build();
+
+        var kubernetes = app.Services.GetRequiredService<KubernetesService>();
+
+        await app.StartAsync();
+
+        async Task<T> GetResourceByNameAsync<T>(string resourceName, Func<T, bool> ready, CancellationToken cancellationToken) where T : CustomResource
+        {
+            await foreach (var (_, r) in kubernetes!.WatchAsync<T>(cancellationToken: cancellationToken))
+            {
+                var name = r.Name();
+
+                if ((name == resourceName || name.StartsWith(resourceName + "-", StringComparison.Ordinal)) && ready(r))
+                {
+                    return r;
+                }
+            }
+
+            throw new InvalidOperationException($"Resource {resourceName}, not ready");
+        }
+
+        using var cts = new CancellationTokenSource(Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(10));
+        var token = cts.Token;
+
+        var redisContainer = await GetResourceByNameAsync<Container>("redis0", r => r.Status?.EffectiveEnv is not null, token);
+        Assert.NotNull(redisContainer);
+        Assert.NotNull(redisContainer.Spec.Ports);
+        Assert.DoesNotContain(redisContainer.Spec.Ports, port => port.HostPort == 6379);
+
+        await app.StopAsync();
+    }
+
     private static TestProgram CreateTestProgram(string[]? args = null, bool includeIntegrationServices = false, bool includeNodeApp = false) =>
         TestProgram.Create<DistributedApplicationTests>(args, includeIntegrationServices: includeIntegrationServices, includeNodeApp: includeNodeApp);
 }
