@@ -91,9 +91,6 @@ public static partial class AspireEFMySqlExtensions
                 {
                     // add tracing from the underlying MySqlConnector ADO.NET library
                     tracerProviderBuilder.AddSource("MySqlConnector");
-
-                    // TODO: add any Pomelo EF Core tracing
-                    // We don't need to enable it for EF via OpenTelemetry.Instrumentation.EntityFrameworkCore.
                 });
         }
 
@@ -113,8 +110,6 @@ public static partial class AspireEFMySqlExtensions
 
                     // add metrics from the underlying MySqlConnector ADO.NET library
                     meterProviderBuilder.AddMeter("MySqlConnector");
-
-                    // TODO: add any Pomelo EF Core metrics
                 });
         }
 
