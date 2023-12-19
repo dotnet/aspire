@@ -509,7 +509,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
             // HTTPS redirection middleware avoids redirecting to the internal port.
             if (httpsServiceAppResource is not null)
             {
-                config.Add("ASPNETCORE_HTTPS_PORT", $"{{{{- portFor \"{httpsServiceAppResource.Service.Metadata.Name}\" }}}}}}");
+                config.Add("ASPNETCORE_HTTPS_PORT", $"{{{{- portFor \"{httpsServiceAppResource.Service.Metadata.Name}\" }}}}");
             }
         }
     }
