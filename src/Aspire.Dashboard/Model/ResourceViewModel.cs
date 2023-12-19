@@ -14,7 +14,8 @@ public abstract class ResourceViewModel
     public required string Name { get; init; }
     public required string DisplayName { get; init; }
     public required string Uid { get; init; }
-    public required StatusViewModel? Status { get; init; }
+    public required string? State { get; init; }
+    public required int? ExitCode { get; init; }
     public required DateTime? CreationTimeStamp { get; init; }
     public required ImmutableArray<EnvironmentVariableViewModel> Environment { get; init; }
     public required ImmutableArray<EndpointViewModel> Endpoints { get; init; }
@@ -56,3 +57,9 @@ public sealed class ResourceServiceSnapshot(string name, string? allocatedAddres
 }
 
 public sealed record EndpointViewModel(string EndpointUrl, string ProxyUrl);
+
+public static class ResourceStates
+{
+    public const string FinishedState = "Finished";
+    public const string ExitedState = "Exited";
+}

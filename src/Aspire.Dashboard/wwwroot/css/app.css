@@ -170,3 +170,8 @@ fluent-data-grid-cell .long-inner-content {
 .selected-row fluent-anchor[appearance=lightweight]:hover::part(control){
     background-color: var(--neutral-fill-stealth-rest); /* Essentially inverts the hover compared to an unselected row */
 }
+
+::deep .severity-icon {
+    vertical-align: text-bottom;
+    margin-right: 3px;
+}

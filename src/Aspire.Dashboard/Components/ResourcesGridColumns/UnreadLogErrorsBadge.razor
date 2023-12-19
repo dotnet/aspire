@@ -1,23 +1,22 @@
 ﻿@using Aspire.Dashboard.Resources
+@using Aspire.Dashboard.Model
 @namespace Aspire.Dashboard.Components
 @inject IStringLocalizer<Columns> Loc
 
 @if (UnviewedCount > 0)
 {
-    <div @onclick="OnClick" class="resource-error-badge">
-        <FluentBadge title="@string.Format(Loc[UnviewedCount == 1 ? nameof(Columns.UnreadLogErrorsBadgeErrorLog) : nameof(Columns.UnreadLogErrorsBadgeErrorLogs)], UnviewedCount)"
-                     Appearance="Appearance.Accent"
-                     Circular="true"
-                     Fill="error"
-                     slot="end">
-            @((UnviewedCount > 9) ? "9+" : UnviewedCount.ToString())
-        </FluentBadge>
-    </div>
+    <FluentButton title="@string.Format(Loc[UnviewedCount == 1 ? nameof(Columns.UnreadLogErrorsBadgeErrorLog) : nameof(Columns.UnreadLogErrorsBadgeErrorLogs)], UnviewedCount)"
+                  Appearance="Appearance.Stealth"
+                  BackgroundColor="var(--error)"
+                  Style="margin-left: 3px;"
+                  href="@GetResourceErrorStructuredLogsUrl(Resource)">
+        @(UnviewedCount > 9 ? "9+" : UnviewedCount.ToString())
+    </FluentButton>
 }
 
 @code {
-    [Parameter]
-    public EventCallback<MouseEventArgs> OnClick { get; set; }
+    [Parameter, EditorRequired]
+    public required ResourceViewModel Resource { get; set; }
 
     [Parameter]
     public int UnviewedCount { get; set; }

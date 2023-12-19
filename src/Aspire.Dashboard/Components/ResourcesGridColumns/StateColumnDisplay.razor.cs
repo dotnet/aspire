@@ -37,13 +37,8 @@ public partial class StateColumnDisplay
         return count;
     }
 
-    private void ViewErrorStructuredLogs(ResourceViewModel resource)
+    private static string GetResourceConsoleLogsUrl(ResourceViewModel resource)
     {
-        NavigationManager.NavigateTo($"/StructuredLogs/{resource.Uid}?level=error");
-    }
-
-    private void ViewConsoleLogs(ResourceViewModel resource)
-    {
-        NavigationManager.NavigateTo($"/ConsoleLogs/{resource.Name}");
+        return $"/ConsoleLogs/{resource.Name}";
     }
 }

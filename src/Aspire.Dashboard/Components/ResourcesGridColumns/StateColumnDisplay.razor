@@ -4,35 +4,21 @@
 @inject IStringLocalizer<Columns> Loc
 
 <div class="resource-state-container">
-    @Resource.Status?.State
-    @if (Resource.Status is { State: "Exited" /* containers */ or "Finished" /* executables */, ExitCode: not null and not 0 })
+    @if (Resource is { State: ResourceStates.ExitedState /* containers */ or ResourceStates.FinishedState /* executables */, ExitCode: not null and not 0 })
     {
         <!-- process completed unexpectedly, hence the non-zero code. this is almost certainly an error, so warn users -->
-        <div @onclick="() => ViewConsoleLogs(Resource)" class="resource-state-badge">
-            <FluentBadge title="@string.Format(Loc[Columns.StateColumnResourceExitedUnexpectedly], Resource.Status.ExitCode)"
-                         Appearance="Appearance.Accent"
-                         Circular="true"
-                         Fill="error"
-                         slot="end">
-                <FluentIcon Icon="Icons.Regular.Size16.Warning" Color="Color.Fill"/>
-            </FluentBadge>
-        </div>
+        <FluentIcon Icon="Icons.Filled.Size16.ErrorCircle" Color="Color.Error" Class="severity-icon" />
+        <FluentNavLink Href="@GetResourceConsoleLogsUrl(Resource)" Tooltip="Test tooltip">Test</FluentNavLink>
     }
-    else if (Resource.Status is { State: "Exited" /* containers */ or "Finished" /* containers */ })
+    else if (Resource is { State: ResourceStates.ExitedState /* containers */ or ResourceStates.FinishedState /* containers */ })
     {
         <!-- process completed, which may not have been unexpected -->
-        <div @onclick="() => ViewConsoleLogs(Resource)" class="resource-state-badge">
-            <FluentBadge title="@Loc[Columns.StateColumnResourceExited]"
-                         Appearance="Appearance.Accent"
-                         Circular="true"
-                         Fill="warning"
-                         slot="end">
-                <FluentIcon Icon="Icons.Regular.Size16.RecordStop" Color="Color.Fill"/>
-            </FluentBadge>
-        </div>
+        <FluentIcon Icon="Icons.Filled.Size16.Warning" Color="Color.Warning" Class="severity-icon" />
+        <FluentNavLink Href="@GetResourceConsoleLogsUrl(Resource)" Tooltip="Test tooltip">Test</FluentNavLink>
     }
 
-    <UnreadLogErrorsBadge UnviewedCount="@GetUnviewedErrorCount(Resource)" OnClick="@(() => ViewErrorStructuredLogs(Resource))"/>
+    @Resource.State
+    <UnreadLogErrorsBadge UnviewedCount="@GetUnviewedErrorCount(Resource)" Resource="@Resource" />
 </div>
 
 @code {
