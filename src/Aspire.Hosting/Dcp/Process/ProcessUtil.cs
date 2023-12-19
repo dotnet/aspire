@@ -39,8 +39,8 @@ internal static partial class ProcessUtil
             process.StartInfo.Environment[key] = value;
         }
 
-        Use a reset event to prevent output processing and exited events from running until OnStart is complete.
-        OnStart might have logic that sets up data structures that then are used by these events.
+        // Use a reset event to prevent output processing and exited events from running until OnStart is complete.
+        // OnStart might have logic that sets up data structures that then are used by these events.
         var startupComplete = new ManualResetEventSlim(false);
 
         // Note: even though the child process has exited, its children may be alive and still producing output.
