@@ -19,9 +19,11 @@ public sealed class PomeloEntityFrameworkCoreMySqlSettings
     public string? ServerVersion { get; set; }
 
     /// <summary>
-    /// <para>Gets or sets a boolean value that indicates whether the DbContext will be pooled or explicitly created every time it's requested.</para>
-    /// <para>Enabled by default.</para>
+    /// Gets or sets a boolean value that indicates whether the DbContext will be pooled or explicitly created every time it's requested.
     /// </summary>
+    /// <value>
+    /// The default value is <see langword="true"/>.
+    /// </value>
     /// <remarks>Should be set to false in multi-tenant scenarios.</remarks>
     public bool DbContextPooling { get; set; } = true;
 
