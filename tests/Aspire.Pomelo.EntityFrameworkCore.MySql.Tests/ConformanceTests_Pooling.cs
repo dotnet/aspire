@@ -9,7 +9,6 @@ using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using MySqlConnector;
 using Xunit;
 
 namespace Aspire.Pomelo.EntityFrameworkCore.MySql.Tests;
@@ -146,7 +145,7 @@ public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, PomeloEn
 
             return true;
         }
-        catch (MySqlException)
+        catch (InvalidOperationException)
         {
             return false;
         }
