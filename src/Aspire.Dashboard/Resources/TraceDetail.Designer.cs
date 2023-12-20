@@ -105,6 +105,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Back.
+        /// </summary>
+        public static string TraceDetailShowSpanPropertiesButton {
+            get {
+                return ResourceManager.GetString("TraceDetailShowSpanPropertiesButton", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Total spans.
         /// </summary>
         public static string TraceDetailTotalSpansHeader {

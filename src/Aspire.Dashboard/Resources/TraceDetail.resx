@@ -44,4 +44,7 @@
     <value>Trace "{0}" not found</value>
     <comment>{0} is an identifier</comment>
   </data>
+  <data name="TraceDetailShowSpanPropertiesButton" xml:space="preserve">
+    <value>Back</value>
+  </data>
 </root>
