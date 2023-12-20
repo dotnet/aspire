@@ -46,7 +46,7 @@
                         OnDismiss="() => ClearSelectedResource()"
                         ViewKey="ResourcesList">
         <Summary>
-            <FluentDataGrid Items="@FilteredResources" ResizableColumns="true" GridTemplateColumns="1fr 2fr 1.02fr 2fr 2.5fr 2fr 1fr 1fr" RowClass="GetRowClass">
+            <FluentDataGrid Items="@FilteredResources" ResizableColumns="true" GridTemplateColumns="1fr 2fr 1fr 2fr 2.5fr 2fr 1fr 1fr" RowClass="GetRowClass">
                 <ChildContent>
                     <PropertyColumn Property="@(c => c.ResourceType)" Title="Type" Sortable="true" />
                     <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesEnvironmentVariablesGridNameColumnHeader)]" Sortable="true" SortBy="@_nameSort">
