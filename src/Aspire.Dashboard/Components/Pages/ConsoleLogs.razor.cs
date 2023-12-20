@@ -12,7 +12,7 @@ namespace Aspire.Dashboard.Components.Pages;
 public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable
 {
     [Inject]
-    public required IResourceService ResourceService { get; init; }
+    public required IDashboardClient DashboardClient { get; init; }
     [Inject]
     public required IJSRuntime JS { get; init; }
     [Inject]
@@ -48,7 +48,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable
 
         void TrackResources()
         {
-            var (snapshot, subscription) = ResourceService.SubscribeResources();
+            var (snapshot, subscription) = DashboardClient.SubscribeResources();
 
             foreach (var resource in snapshot)
             {
@@ -147,7 +147,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable
         {
             var cancellationToken = await _logSubscriptionCancellationSeries.NextAsync();
 
-            var subscription = ResourceService.SubscribeConsoleLogs(_selectedResource.Name, cancellationToken);
+            var subscription = DashboardClient.SubscribeConsoleLogs(_selectedResource.Name, cancellationToken);
 
             if (subscription is not null)
             {
