@@ -37,4 +37,19 @@ public class GeneratorTests
 
         Assert.Equal(expected, builder.ToString());
     }
+
+    [Theory]
+    [InlineData("", "")]
+    [InlineData("no namespace", "no namespace")]
+    [InlineData("no-namespace", "no-namespace")]
+    [InlineData("T:System.Uri", "'System.Uri'")]
+    [InlineData("T:Azure.Security.KeyVault.Secrets.KeyVaultSecretIdentifier", "'Azure.Security.KeyVault.Secrets.KeyVaultSecretIdentifier'")]
+    [InlineData("P:Azure.Security.KeyVault.Secrets.KeyVaultSecretIdentifier.VaultUri", "'Azure.Security.KeyVault.Secrets.KeyVaultSecretIdentifier.VaultUri'")]
+    [InlineData("https://aka.ms/azsdk/blog/vault-uri", "https://aka.ms/azsdk/blog/vault-uri")]
+    public void ShouldTrimAndSanitize(string input, string expected)
+    {
+        var result = ConfigSchemaEmitter.ReplacePropertyOrTypeNamespacePrefixIfNecessary(input);
+
+        Assert.Equal(expected, result);
+    }
 }

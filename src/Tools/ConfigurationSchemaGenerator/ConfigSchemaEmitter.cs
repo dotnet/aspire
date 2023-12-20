@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Globalization;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -24,6 +25,9 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
 
     [GeneratedRegex(@"( *)\r?\n( *)")]
     private static partial Regex Indentation();
+
+    [GeneratedRegex(@"(?<namespace>[A-Z]):(?<actual>[a-zA-Z0-9.]+)")]
+    private static partial Regex TypeOrPropertyPrefix();
 
     public string GenerateSchema()
     {
@@ -240,6 +244,7 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
             foreach (var node in StripXmlElements(summary))
             {
                 var value = node.ToString().Trim();
+                value = ReplacePropertyOrTypeNamespacePrefixIfNecessary(value);
                 AppendSpaceIfNecessary(builder, value);
                 AppendUnindentedValue(builder, value);
             }
@@ -327,6 +332,14 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
                 builder.Append(' ');
             }
         }
+    }
+
+    internal static string ReplacePropertyOrTypeNamespacePrefixIfNecessary(string value)
+    {
+        const string quotedName = "'{0}'";
+
+        return TypeOrPropertyPrefix().IsMatch(value) ?
+            string.Format(CultureInfo.InvariantCulture, quotedName, value[2..]) : value;
     }
 
     internal static void AppendUnindentedValue(StringBuilder builder, string value)
