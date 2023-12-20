@@ -96,7 +96,16 @@ public partial class Resources : ComponentBase, IDisposable
         {
             await foreach (var (changeType, resource) in subscription.WithCancellation(_watchTaskCancellationTokenSource.Token))
             {
-                await OnResourceListChanged(changeType, resource);
+                if (changeType == ResourceViewModelChangeType.Upsert)
+                {
+                    _resourcesMap[resource.Name] = resource;
+                }
+                else if (changeType == ResourceViewModelChangeType.Delete)
+                {
+                    _resourcesMap.Remove(resource.Name);
+                }
+
+                await InvokeAsync(StateHasChanged);
             }
         });
 
@@ -145,22 +154,6 @@ public partial class Resources : ComponentBase, IDisposable
     {
         SelectedEnvironmentVariables = null;
         SelectedResource = null;
-    }
-
-    private async Task OnResourceListChanged(ResourceChangeType changeType, ResourceViewModel resource)
-    {
-        switch (changeType)
-        {
-            case ResourceChangeType.Upsert:
-                _resourcesMap[resource.Name] = resource;
-                break;
-
-            case ResourceChangeType.Delete:
-                _resourcesMap.Remove(resource.Name);
-                break;
-        }
-
-        await InvokeAsync(StateHasChanged);
     }
 
     private string GetResourceName(ResourceViewModel resource) => ResourceViewModel.GetResourceName(resource, _resourcesMap.Values);

@@ -158,29 +158,23 @@ public class DashboardWebApplication : IHostedService
         {
             if (uri.IsLoopback)
             {
-                kestrelOptions.ListenLocalhost(uri.Port, options =>
-                {
-                    ConfigureListenOptions(options, uri, httpProtocols);
-                });
+                kestrelOptions.ListenLocalhost(uri.Port, ConfigureListenOptions);
             }
             else
             {
-                kestrelOptions.Listen(IPAddress.Parse(uri.Host), uri.Port, options =>
-                {
-                    ConfigureListenOptions(options, uri, httpProtocols);
-                });
+                kestrelOptions.Listen(IPAddress.Parse(uri.Host), uri.Port, ConfigureListenOptions);
             }
-        }
 
-        static void ConfigureListenOptions(ListenOptions options, Uri uri, HttpProtocols? httpProtocols)
-        {
-            if (IsHttps(uri))
+            void ConfigureListenOptions(ListenOptions options)
             {
-                options.UseHttps();
-            }
-            if (httpProtocols is not null)
-            {
-                options.Protocols = httpProtocols.Value;
+                if (IsHttps(uri))
+                {
+                    options.UseHttps();
+                }
+                if (httpProtocols is not null)
+                {
+                    options.Protocols = httpProtocols.Value;
+                }
             }
         }
     }

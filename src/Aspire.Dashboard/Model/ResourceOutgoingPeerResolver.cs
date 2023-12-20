@@ -11,9 +11,9 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
 {
     private readonly ConcurrentDictionary<string, ResourceViewModel> _resourceNameMapping = new();
     private readonly CancellationTokenSource _watchContainersTokenSource = new();
-    private readonly Task _watchTask;
     private readonly List<ModelSubscription> _subscriptions = [];
     private readonly object _lock = new();
+    private readonly Task _watchTask;
 
     public ResourceOutgoingPeerResolver(IResourceService resourceService)
     {
@@ -28,23 +28,18 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
         {
             await foreach (var (changeType, resource) in subscription.WithCancellation(_watchContainersTokenSource.Token))
             {
-                await OnResourceListChanged(changeType, resource).ConfigureAwait(false);
+                if (changeType == ResourceViewModelChangeType.Upsert)
+                {
+                    _resourceNameMapping[resource.Name] = resource;
+                }
+                else if (changeType == ResourceViewModelChangeType.Delete)
+                {
+                    _resourceNameMapping.TryRemove(resource.Name, out _);
+                }
+
+                await RaisePeerChangesAsync().ConfigureAwait(false);
             }
         });
-    }
-
-    private async Task OnResourceListChanged(ResourceChangeType changeType, ResourceViewModel resourceViewModel)
-    {
-        if (changeType == ResourceChangeType.Upsert)
-        {
-            _resourceNameMapping[resourceViewModel.Name] = resourceViewModel;
-        }
-        else if (changeType == ResourceChangeType.Delete)
-        {
-            _resourceNameMapping.TryRemove(resourceViewModel.Name, out _);
-        }
-
-        await RaisePeerChangesAsync().ConfigureAwait(false);
     }
 
     public bool TryResolvePeerName(KeyValuePair<string, string>[] attributes, [NotNullWhen(true)] out string? name)
