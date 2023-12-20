@@ -39,7 +39,7 @@ internal sealed class DcpDataSource
         _applicationModel = applicationModel;
         _onResourceChanged = onResourceChanged;
 
-        _logger = loggerFactory.CreateLogger<ResourceService>();
+        _logger = loggerFactory.CreateLogger<DcpDataSource>();
 
         var semaphore = new SemaphoreSlim(1);
 
