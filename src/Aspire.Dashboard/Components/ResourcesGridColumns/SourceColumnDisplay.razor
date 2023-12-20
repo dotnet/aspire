@@ -47,7 +47,7 @@ else if (Resource.TryGetContainerImage(out var containerImage) && Resource.TryGe
                    Loc[ports.Length == 1
                        ? nameof(Columns.SourceColumnDisplayPort)
                        : nameof(Columns.SourceColumnDisplayPorts)],
-                   ports);
+                   string.Join(",", ports));
                    <span class="subtext" aria-label="@title">@title</span>
            }
         </ContentAfterValue>
