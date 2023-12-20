@@ -12,6 +12,8 @@
     padding-left: calc(var(--design-unit) * 1px);
 }
 
-::deep .unread-logs-errors-button {
-    margin-left: 3px;
+::deep .unread-logs-errors-link::part(control) {
+    padding-right: 0;
+    padding-left: 3px;
 }
+
