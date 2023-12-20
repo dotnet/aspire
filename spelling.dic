@@ -1,4 +1,6 @@
 ansi
+apigateway
+apiserver
 brightblack
 brightblue
 brightcyan
@@ -8,9 +10,11 @@ brightred
 brightwhite
 brightyellow
 dbug
+dcpctrl
 dylib
 equatable
 grpc
+kubeconfig
 Kubelet
 kubernetes
 libc
@@ -20,4 +24,6 @@ protoc
 redis
 runtimeconfig
 trce
+upsert
 uris
+urls
