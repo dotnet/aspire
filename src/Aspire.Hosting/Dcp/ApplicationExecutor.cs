@@ -199,9 +199,8 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
         void addServiceAppResource(Service svc, IResource producingResource, ServiceBindingAnnotation sba)
         {
             svc.Spec.Protocol = PortProtocol.FromProtocolType(sba.Protocol);
-            svc.Spec.AddressAllocationMode = AddressAllocationModes.Localhost;
             svc.Annotate(CustomResource.UriSchemeAnnotation, sba.UriScheme);
-
+            svc.Spec.AddressAllocationMode = AddressAllocationModes.Localhost;
             _appResources.Add(new ServiceAppResource(producingResource, svc, sba));
         }
 
@@ -217,6 +216,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
                 var svc = Service.Create(uniqueServiceName);
 
                 svc.Spec.Port = sba.Port;
+
                 addServiceAppResource(svc, sp.ModelResource, sba);
             }
         }
@@ -462,6 +462,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
 
     private static void InjectPortEnvVars(AppResource executableResource, Dictionary<string, string> config)
     {
+        ServiceAppResource? httpsServiceAppResource = null;
         // Inject environment variables for services produced by this executable.
         foreach (var serviceProduced in executableResource.ServicesProduced)
         {
@@ -471,6 +472,23 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
             if (envVar is not null)
             {
                 config.Add(envVar, $"{{{{- portForServing \"{name}\" }}}}");
+            }
+
+            if (httpsServiceAppResource is null && serviceProduced.ServiceBindingAnnotation.UriScheme == "https")
+            {
+                httpsServiceAppResource = serviceProduced;
+            }
+        }
+
+        // REVIEW: If you run as an executable, we don't know that you're an ASP.NET Core application so we don't want to
+        // inject ASPNETCORE_HTTPS_PORT.
+        if (executableResource.ModelResource is ProjectResource)
+        {
+            // Add the environment variable for the HTTPS port if we have an HTTPS service. This will make sure the
+            // HTTPS redirection middleware avoids redirecting to the internal port.
+            if (httpsServiceAppResource is not null)
+            {
+                config.Add("ASPNETCORE_HTTPS_PORT", $"{{{{- portFor \"{httpsServiceAppResource.Service.Metadata.Name}\" }}}}");
             }
         }
     }
@@ -544,11 +562,6 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
                         if (!string.IsNullOrEmpty(sp.DcpServiceProducerAnnotation.Address))
                         {
                             portSpec.HostIP = sp.DcpServiceProducerAnnotation.Address;
-                        }
-
-                        if (sp.ServiceBindingAnnotation.Port is not null)
-                        {
-                            portSpec.HostPort = sp.ServiceBindingAnnotation.Port;
                         }
 
                         switch (sp.ServiceBindingAnnotation.Protocol)
