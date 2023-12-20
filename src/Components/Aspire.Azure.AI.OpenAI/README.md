@@ -59,7 +59,7 @@ The recommended approach is to use an AccountEndpoint, which works with the `Azu
 ```json
 {
   "ConnectionStrings": {
-    "openaiConnectionName": "https://{account_name}.openapi.azure.com/"
+    "openaiConnectionName": "https://{account_name}.openai.azure.com/"
   }
 }
 ```
@@ -71,7 +71,7 @@ Alternatively, a custom connection string can be used.
 ```json
 {
   "ConnectionStrings": {
-    "openaiConnectionName": "AccountEndpoint=https://{account_name}.openapi.azure.com/;AccountKey={account_key};"
+    "openaiConnectionName": "AccountEndpoint=https://{account_name}.openai.azure.com/;AccountKey={account_key};"
   }
 }
 ```

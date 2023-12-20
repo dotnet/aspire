@@ -174,6 +174,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConfigurationSchemaGenerato
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Azure.AI.OpenAI", "src\Components\Aspire.Azure.AI.OpenAI\Aspire.Azure.AI.OpenAI.csproj", "{1828FA88-6BFB-437E-A163-A98AE2B948F1}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Azure.AI.OpenAI.Tests", "tests\Aspire.Azure.AI.OpenAI.Tests\Aspire.Azure.AI.OpenAI.Tests.csproj", "{52CF3584-4861-4769-AD20-F7173F2D8F75}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -464,6 +466,10 @@ Global
 		{1828FA88-6BFB-437E-A163-A98AE2B948F1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1828FA88-6BFB-437E-A163-A98AE2B948F1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1828FA88-6BFB-437E-A163-A98AE2B948F1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{52CF3584-4861-4769-AD20-F7173F2D8F75}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{52CF3584-4861-4769-AD20-F7173F2D8F75}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{52CF3584-4861-4769-AD20-F7173F2D8F75}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{52CF3584-4861-4769-AD20-F7173F2D8F75}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -544,6 +550,7 @@ Global
 		{E592E447-BA3C-44FA-86C1-EBEDC864A644} = {4981B3A5-4AFD-4191-BF7D-8692D9783D60}
 		{00FEA181-84C9-42A7-AC81-29A9F176A1A0} = {4981B3A5-4AFD-4191-BF7D-8692D9783D60}
 		{1828FA88-6BFB-437E-A163-A98AE2B948F1} = {27381127-6C45-4B4C-8F18-41FF48DFE4B2}
+		{52CF3584-4861-4769-AD20-F7173F2D8F75} = {4981B3A5-4AFD-4191-BF7D-8692D9783D60}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6DCEDFEC-988E-4CB3-B45B-191EB5086E0C}
