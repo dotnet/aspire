@@ -10,7 +10,7 @@
                ValueToCopy="@projectPath"
                EnableHighlighting="true"
                HighlightText="@FilterText"
-               PreCopyToolTip="@Loc[Columns.SourceColumnSourceCopyFullPathToClipboard]"
+               PreCopyToolTip="@Loc[nameof(Columns.SourceColumnSourceCopyFullPathToClipboard)]"
                ToolTip="@projectPath" />
 }
 else if (Resource.TryGetExecutablePath(out var executablePath) && Resource.TryGetWorkingDirectory(out var workingDirectory))
@@ -23,14 +23,14 @@ else if (Resource.TryGetExecutablePath(out var executablePath) && Resource.TryGe
                ValueToCopy="@fullCommandLine"
                EnableHighlighting="true"
                HighlightText="@FilterText"
-               PreCopyToolTip="@Loc[Columns.SourceColumnSourceCopyFullPathToClipboard]"
+               PreCopyToolTip="@Loc[nameof(Columns.SourceColumnSourceCopyFullPathToClipboard)]"
                ToolTip="@executablePath">
         <ContentAfterValue>
             <span class="subtext">@argumentsString</span>
         </ContentAfterValue>
     </GridValue>
 
-    <div class="ellipsis-overflow" title="@workingDirectory" aria-label="@workingDirectory">@string.Format(Loc[Columns.SourceColumnDisplayWorkingDirectory], workingDirectory?.TrimMiddle(35))</div>
+    <div class="ellipsis-overflow" title="@workingDirectory" aria-label="@workingDirectory">@string.Format(Loc[nameof(Columns.SourceColumnDisplayWorkingDirectory)], workingDirectory?.TrimMiddle(35))</div>
 }
 else if (Resource.TryGetContainerImage(out var containerImage) && Resource.TryGetContainerPorts(out var ports))
 {
@@ -38,15 +38,15 @@ else if (Resource.TryGetContainerImage(out var containerImage) && Resource.TryGe
     <GridValue Value="@containerImage"
                EnableHighlighting="true"
                HighlightText="@FilterText"
-               PreCopyToolTip="@Loc[Columns.SourceColumnSourceCopyContainerToClipboard]"
+               PreCopyToolTip="@Loc[nameof(Columns.SourceColumnSourceCopyContainerToClipboard)]"
                ToolTip="@containerImage">
         <ContentAfterValue>
            @if (ports.Length > 0)
            {
                var title = string.Format(
                    Loc[ports.Length == 1
-                       ? Columns.SourceColumnDisplayPort
-                       : Columns.SourceColumnDisplayPorts],
+                       ? nameof(Columns.SourceColumnDisplayPort)
+                       : nameof(Columns.SourceColumnDisplayPorts)],
                    ports);
                    <span class="subtext" aria-label="@title">@title</span>
            }
@@ -55,12 +55,12 @@ else if (Resource.TryGetContainerImage(out var containerImage) && Resource.TryGe
     <FluentStack Orientation="Orientation.Horizontal">
         @if (Resource.TryGetContainerCommand(out var command))
         {
-            <div class="ellipsis-overflow" title="@Loc[Columns.SourceColumnDisplayContainerCommandTitle]">@Loc[Columns.SourceColumnDisplayContainerCommand, command]</div>
+            <div class="ellipsis-overflow" title="@Loc[nameof(Columns.SourceColumnDisplayContainerCommandTitle)]">@Loc[nameof(Columns.SourceColumnDisplayContainerCommand), command]</div>
         }
         @if (Resource.TryGetContainerArgs(out var args))
         {
             var argsString = string.Join(" ", args);
-            <div class="ellipsis-overflow" title="@Loc[Columns.SourceColumnDisplayContainerArgsTitle]">@argsString</div>
+            <div class="ellipsis-overflow" title="@Loc[nameof(Columns.SourceColumnDisplayContainerArgsTitle)]">@argsString</div>
         }
     </FluentStack>
 }

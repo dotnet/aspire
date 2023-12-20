@@ -10,14 +10,14 @@
             <GridValue Value="@containerId"
                        MaxDisplayLength="8"
                        EnableHighlighting="false"
-                       PreCopyToolTip="@Loc[Columns.ResourceNameDisplayCopyContainerIdText]"
-                       ToolTip="@string.Format(Loc[Columns.ResourceNameDisplayContainerIdText], containerId)"/>
+                       PreCopyToolTip="@Loc[nameof(Columns.ResourceNameDisplayCopyContainerIdText)]"
+                       ToolTip="@string.Format(Loc[nameof(Columns.ResourceNameDisplayContainerIdText)], containerId)"/>
         </div>
     }
     else if (Resource.TryGetProcessId(out int processId))
     {
         // NOTE projects are also executables, so this will handle both
-        var title = string.Format(Loc[Columns.ResourceNameDisplayProcessIdText], processId);
+        var title = string.Format(Loc[nameof(Columns.ResourceNameDisplayProcessIdText)], processId);
         <span class="subtext" title="@title" aria-label="@title">@processId</span>
     }
 </FluentStack>

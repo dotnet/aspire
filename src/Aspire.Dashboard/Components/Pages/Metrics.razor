@@ -8,24 +8,24 @@
 @inject IStringLocalizer<Dashboard.Resources.Metrics> Loc
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
 
-<PageTitle>@string.Format(Loc[Dashboard.Resources.Metrics.MetricsPageTitle], DashboardClient.ApplicationName)</PageTitle>
+<PageTitle>@string.Format(Loc[nameof(Dashboard.Resources.Metrics.MetricsPageTitle)], DashboardClient.ApplicationName)</PageTitle>
 
 <div class="metrics-layout">
-    <h1 class="page-header">@Loc[Dashboard.Resources.Metrics.MetricsHeader]</h1>
+    <h1 class="page-header">@Loc[nameof(Dashboard.Resources.Metrics.MetricsHeader)]</h1>
     <FluentToolbar Orientation="Orientation.Horizontal">
         <FluentSelect TOption="SelectViewModel<string>"
                       Items="@_applications"
                       OptionText="@(c => c.Name)"
                       @bind-SelectedOption="_selectedApplication"
                       @bind-SelectedOption:after="HandleSelectedApplicationChangedAsync"
-                      AriaLabel="@ControlsStringsLoc[ControlsStrings.SelectAnApplication]"/>
+                      AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAnApplication)]"/>
         <FluentIcon slot="end" Icon="Icons.Regular.Size20.Clock" Style="margin-right:5px;" />
         <FluentSelect slot="end" TOption="SelectViewModel<TimeSpan>"
                       Items="@_durations"
                       OptionText="@(c => c.Name)"
                       @bind-SelectedOption="_selectedDuration"
                       @bind-SelectedOption:after="HandleSelectedDurationChangedAsync"
-                      AriaLabel="@Loc[Dashboard.Resources.Metrics.MetricsSelectADuration]"/>
+                      AriaLabel="@Loc[nameof(Dashboard.Resources.Metrics.MetricsSelectADuration)]"/>
     </FluentToolbar>
     <div class="page-content-area">
         @if (_instruments?.Count > 0)
@@ -70,7 +70,7 @@
                         }
                         else
                         {
-                            <p>@Loc[Dashboard.Resources.Metrics.MetricsSelectInstrument]</p>
+                            <p>@Loc[nameof(Dashboard.Resources.Metrics.MetricsSelectInstrument)]</p>
                         }
                     </div>
                 </Panel2>
@@ -79,13 +79,13 @@
         else if (_instruments == null)
         {
             <div class="empty-content">
-                <FluentIcon Icon="Icons.Regular.Size24.ChartMultiple" />&nbsp;@Loc[Dashboard.Resources.Metrics.MetricsSelectAResource]
+                <FluentIcon Icon="Icons.Regular.Size24.ChartMultiple" />&nbsp;@Loc[nameof(Dashboard.Resources.Metrics.MetricsSelectAResource)]
             </div>
         }
         else
         {
             <div class="empty-content">
-                <FluentIcon Icon="Icons.Regular.Size24.ChartMultiple" />&nbsp;@Loc[Dashboard.Resources.Metrics.MetricsNoMetricsForResource]
+                <FluentIcon Icon="Icons.Regular.Size24.ChartMultiple" />&nbsp;@Loc[nameof(Dashboard.Resources.Metrics.MetricsNoMetricsForResource)]
             </div>
         }
     </div>

@@ -10,7 +10,7 @@
 @inject IStringLocalizer<ControlsStrings> ControlStringsLoc
 @inject IDashboardClient DashboardClient
 
-<PageTitle>@string.Format(Loc[Dashboard.Resources.TraceDetail.TraceDetailPageTitle], DashboardClient.ApplicationName)</PageTitle>
+<PageTitle>@string.Format(Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailPageTitle)], DashboardClient.ApplicationName)</PageTitle>
 
 @if (_trace != null)
 {
@@ -21,27 +21,27 @@
         </div>
         <FluentToolbar Orientation="Orientation.Horizontal">
             <div>
-                @Loc[Dashboard.Resources.TraceDetail.TraceDetailTraceStartHeader] <strong>@_trace.FirstSpan.StartTime.ToString("MMMM d yyyy"), @OtlpHelpers.FormatTimeStamp(_trace.FirstSpan.StartTime)</strong>
+                @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailTraceStartHeader)] <strong>@_trace.FirstSpan.StartTime.ToString("MMMM d yyyy"), @OtlpHelpers.FormatTimeStamp(_trace.FirstSpan.StartTime)</strong>
             </div>
             <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
             <div>
-                @Loc[Dashboard.Resources.TraceDetail.TraceDetailDurationHeader] <strong>@DurationFormatter.FormatDuration(_trace.Duration)</strong>
+                @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailDurationHeader)] <strong>@DurationFormatter.FormatDuration(_trace.Duration)</strong>
             </div>
             <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
             <div>
-                @Loc[Dashboard.Resources.TraceDetail.TraceDetailResourcesHeader] <strong>@_trace.Spans.GroupBy(s => s.Source).Count()</strong>
+                @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailResourcesHeader)] <strong>@_trace.Spans.GroupBy(s => s.Source).Count()</strong>
             </div>
             <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
             <div>
-                @Loc[Dashboard.Resources.TraceDetail.TraceDetailDepthHeader] <strong>@_maxDepth</strong>
+                @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailDepthHeader)] <strong>@_maxDepth</strong>
             </div>
             <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
             <div>
-                @Loc[Dashboard.Resources.TraceDetail.TraceDetailTotalSpansHeader] <strong>@_trace.Spans.Count</strong>
+                @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailTotalSpansHeader)] <strong>@_trace.Spans.Count</strong>
             </div>
-            <FluentAnchor slot="end" Appearance="Appearance.Lightweight" Href="@($"/StructuredLogs?traceId={_trace.TraceId}")">@ControlStringsLoc[ControlsStrings.ViewLogsLink]</FluentAnchor>
+            <FluentAnchor slot="end" Appearance="Appearance.Lightweight" Href="@($"/StructuredLogs?traceId={_trace.TraceId}")">@ControlStringsLoc[nameof(ControlsStrings.ViewLogsLink)]</FluentAnchor>
             <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
-            <FluentAnchor slot="end" Appearance="Appearance.Lightweight" Href="@($"/Traces")">@Loc[Dashboard.Resources.TraceDetail.TraceDetailBackButtonText]</FluentAnchor>
+            <FluentAnchor slot="end" Appearance="Appearance.Lightweight" Href="@($"/Traces")">@Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailBackButtonText)]</FluentAnchor>
         </FluentToolbar>
 
         <SummaryDetailsView ShowDetails="SelectedSpan is not null" OnDismiss="() => ClearSelectedSpan()" ViewKey="TraceDetail">
@@ -120,6 +120,6 @@
 else
 {
     <div class="empty-content">
-        <FluentIcon Icon="Icons.Regular.Size24.GanttChart" /> &nbsp; @Loc[Dashboard.Resources.TraceDetail.TraceDetailTraceNotFound]
+        <FluentIcon Icon="Icons.Regular.Size24.GanttChart" /> &nbsp; @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailTraceNotFound)]
     </div>
 }

@@ -26,10 +26,10 @@
                         <FluentButton Appearance="Appearance.Stealth"
                                       IconEnd="@(Orientation == Orientation.Horizontal ? _splitHorizontalIcon : _splitVerticalIcon)"
                                       OnClick="HandleToggleOrientation"
-                                      Title="@(Orientation == Orientation.Horizontal ? Loc[ControlsStrings.SummaryDetailsViewSplitHorizontal] : Loc[ControlsStrings.SummaryDetailsViewSplitVertical])"
-                                      aria-label="@(Orientation == Orientation.Horizontal ? Loc[ControlsStrings.SummaryDetailsViewSplitHorizontal] : Loc[ControlsStrings.SummaryDetailsViewSplitVertical])" />
+                                      Title="@(Orientation == Orientation.Horizontal ? Loc[nameof(ControlsStrings.SummaryDetailsViewSplitHorizontal)] : Loc[nameof(ControlsStrings.SummaryDetailsViewSplitVertical)])"
+                                      aria-label="@(Orientation == Orientation.Horizontal ? Loc[nameof(ControlsStrings.SummaryDetailsViewSplitHorizontal)] : Loc[nameof(ControlsStrings.SummaryDetailsViewSplitVertical)])" />
                         <FluentButton Appearance="Appearance.Stealth" IconEnd="@(new Icons.Regular.Size16.Dismiss())"
-                                      OnClick="HandleDismissAsync" Title="@Loc[ControlsStrings.SummaryDetailsViewCloseView]" aria-label="@Loc[ControlsStrings.SummaryDetailsViewCloseView]" />
+                                      OnClick="HandleDismissAsync" Title="@Loc[nameof(ControlsStrings.SummaryDetailsViewCloseView)]" aria-label="@Loc[nameof(ControlsStrings.SummaryDetailsViewCloseView)]" />
                     </div>
                 </header>
                 @Details

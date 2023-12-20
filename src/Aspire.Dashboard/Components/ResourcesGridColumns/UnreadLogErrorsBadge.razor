@@ -5,7 +5,7 @@
 @if (UnviewedCount > 0)
 {
     <div @onclick="OnClick" class="resource-error-badge">
-        <FluentBadge title="@string.Format(Loc[UnviewedCount == 1 ? Columns.UnreadLogErrorsBadgeErrorLog : Columns.UnreadLogErrorsBadgeErrorLogs], UnviewedCount)"
+        <FluentBadge title="@string.Format(Loc[UnviewedCount == 1 ? nameof(Columns.UnreadLogErrorsBadgeErrorLog) : nameof(Columns.UnreadLogErrorsBadgeErrorLogs)], UnviewedCount)"
                      Appearance="Appearance.Accent"
                      Circular="true"
                      Fill="error"

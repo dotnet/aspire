@@ -78,7 +78,7 @@
                     "HeartbeatInterval": {
                       "type": "string",
                       "format": "duration",
-                      "description": "Controls how often the connection heartbeats. A heartbeat includes:\n            - Evaluating if any messages have timed out\n            - Evaluating connection status (checking for failures)\n            - Sending a server message to keep the connection alive if needed"
+                      "description": "Controls how often the connection heartbeats. A heartbeat includes:\n- Evaluating if any messages have timed out\n- Evaluating connection status (checking for failures)\n- Sending a server message to keep the connection alive if needed"
                     },
                     "IncludeDetailInExceptions": {
                       "type": "boolean",
@@ -90,11 +90,11 @@
                     },
                     "KeepAlive": {
                       "type": "integer",
-                      "description": "Specifies the time in seconds at which connections should be pinged to ensure validity.\n            -1 Defaults to 60 Seconds"
+                      "description": "Specifies the time in seconds at which connections should be pinged to ensure validity.\n-1 Defaults to 60 Seconds"
                     },
                     "LibraryName": {
                       "type": "string",
-                      "description": "Gets or sets the library name to use for CLIENT SETINFO lib-name calls to Redis during handshake.\n            Defaults to \u0022SE.Redis\u0022."
+                      "description": "Gets or sets the library name to use for CLIENT SETINFO lib-name calls to Redis during handshake.\nDefaults to \"SE.Redis\"."
                     },
                     "Password": {
                       "type": "string",
@@ -117,7 +117,7 @@
                     },
                     "ResolveDns": {
                       "type": "boolean",
-                      "description": "Indicates whether endpoints should be resolved via DNS before connecting.\n            If enabled the ConnectionMultiplexer will not re-resolve DNS when attempting to re-connect after a connection failure."
+                      "description": "Indicates whether endpoints should be resolved via DNS before connecting.\nIf enabled the ConnectionMultiplexer will not re-resolve DNS when attempting to re-connect after a connection failure."
                     },
                     "ServiceName": {
                       "type": "string",

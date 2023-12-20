@@ -5,9 +5,9 @@
         <RouteView RouteData="@routeData" DefaultLayout="@typeof(Layout.MainLayout)" />
     </Found>
     <NotFound>
-        <PageTitle>@Loc[Resources.Routes.RoutesPageTitle]</PageTitle>
+        <PageTitle>@Loc[nameof(Resources.Routes.RoutesPageTitle)]</PageTitle>
         <LayoutView Layout="@typeof(Layout.MainLayout)">
-            <p role="alert">@Loc[Resources.Routes.RoutesNotFoundDescription]</p>
+            <p role="alert">@Loc[nameof(Resources.Routes.RoutesNotFoundDescription)]</p>
         </LayoutView>
     </NotFound>
 </Router>

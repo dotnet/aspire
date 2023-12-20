@@ -59,15 +59,15 @@ public partial class Metrics : IDisposable
     {
         _durations = new List<SelectViewModel<TimeSpan>>
         {
-            new() { Name = Loc[Dashboard.Resources.Metrics.MetricsLastOneMinute], Id = TimeSpan.FromMinutes(1) },
-            new() { Name = Loc[Dashboard.Resources.Metrics.MetricsLastFiveMinutes], Id = TimeSpan.FromMinutes(5) },
-            new() { Name = Loc[Dashboard.Resources.Metrics.MetricsLastFifteenMinutes], Id = TimeSpan.FromMinutes(15) },
-            new() { Name = Loc[Dashboard.Resources.Metrics.MetricsLastThirtyMinutes], Id = TimeSpan.FromMinutes(30) },
-            new() { Name = Loc[Dashboard.Resources.Metrics.MetricsLastHour], Id = TimeSpan.FromHours(1) },
-            new() { Name = Loc[Dashboard.Resources.Metrics.MetricsLastThreeHours], Id = TimeSpan.FromHours(3) },
-            new() { Name = Loc[Dashboard.Resources.Metrics.MetricsLastSixHours], Id = TimeSpan.FromHours(6) },
-            new() { Name = Loc[Dashboard.Resources.Metrics.MetricsLastTwelveHours], Id = TimeSpan.FromHours(12) },
-            new() { Name = Loc[Dashboard.Resources.Metrics.MetricsLastTwentyFourHours], Id = TimeSpan.FromHours(24) },
+            new() { Name = Loc[nameof(Dashboard.Resources.Metrics.MetricsLastOneMinute)], Id = TimeSpan.FromMinutes(1) },
+            new() { Name = Loc[nameof(Dashboard.Resources.Metrics.MetricsLastFiveMinutes)], Id = TimeSpan.FromMinutes(5) },
+            new() { Name = Loc[nameof(Dashboard.Resources.Metrics.MetricsLastFifteenMinutes)], Id = TimeSpan.FromMinutes(15) },
+            new() { Name = Loc[nameof(Dashboard.Resources.Metrics.MetricsLastThirtyMinutes)], Id = TimeSpan.FromMinutes(30) },
+            new() { Name = Loc[nameof(Dashboard.Resources.Metrics.MetricsLastHour)], Id = TimeSpan.FromHours(1) },
+            new() { Name = Loc[nameof(Dashboard.Resources.Metrics.MetricsLastThreeHours)], Id = TimeSpan.FromHours(3) },
+            new() { Name = Loc[nameof(Dashboard.Resources.Metrics.MetricsLastSixHours)], Id = TimeSpan.FromHours(6) },
+            new() { Name = Loc[nameof(Dashboard.Resources.Metrics.MetricsLastTwelveHours)], Id = TimeSpan.FromHours(12) },
+            new() { Name = Loc[nameof(Dashboard.Resources.Metrics.MetricsLastTwentyFourHours)], Id = TimeSpan.FromHours(24) },
         };
 
         _selectedDuration = _durations.Single(d => d.Id == s_defaultDuration);
