@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
@@ -17,6 +17,9 @@ internal static class ValueExtensions
         }
         else if (value.HasNumberValue)
         {
+            // gRPC doesn't have an integer type, only 'number', which is modelled as 'double'
+            // in the .NET API. Here we round to get an integer from that double. If we were just
+            // to cast, a number like 3.999 would be converted to 3 rather than 4.
             i = (int)Math.Round(value.NumberValue);
             return true;
         }
