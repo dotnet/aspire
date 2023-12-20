@@ -3,7 +3,6 @@
 
 using System.Collections.Immutable;
 using System.Text.Json;
-using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
@@ -15,11 +14,15 @@ namespace Aspire.Hosting.Dashboard;
 /// <summary>
 /// Pulls data about resources from DCP's kubernetes API. Streams updates to consumers.
 /// </summary>
+/// <remarks>
+/// DCP data is obtained from <see cref="KubernetesService"/>. <see cref="DistributedApplicationModel"/>
+/// is also used for mapping some project data.
+/// </remarks>
 internal sealed class DcpDataSource
 {
     private readonly KubernetesService _kubernetesService;
     private readonly DistributedApplicationModel _applicationModel;
-    private readonly Func<ResourceSnapshot, ResourceChangeType, ValueTask> _onResourceChanged;
+    private readonly Func<ResourceSnapshot, ResourceSnapshotChangeType, ValueTask> _onResourceChanged;
     private readonly ILogger _logger;
 
     private readonly Dictionary<string, Container> _containersMap = [];
@@ -32,7 +35,7 @@ internal sealed class DcpDataSource
         KubernetesService kubernetesService,
         DistributedApplicationModel applicationModel,
         ILoggerFactory loggerFactory,
-        Func<ResourceSnapshot, ResourceChangeType, ValueTask> onResourceChanged,
+        Func<ResourceSnapshot, ResourceSnapshotChangeType, ValueTask> onResourceChanged,
         CancellationToken cancellationToken)
     {
         _kubernetesService = kubernetesService;
@@ -90,9 +93,9 @@ internal sealed class DcpDataSource
 
             var changeType = watchEventType switch
             {
-                WatchEventType.Added or WatchEventType.Modified => ResourceChangeType.Upsert,
-                WatchEventType.Deleted => ResourceChangeType.Delete,
-                _ => ResourceChangeType.Other
+                WatchEventType.Added or WatchEventType.Modified => ResourceSnapshotChangeType.Upsert,
+                WatchEventType.Deleted => ResourceSnapshotChangeType.Delete,
+                _ => throw new System.ComponentModel.InvalidEnumArgumentException($"Cannot convert {nameof(WatchEventType)} with value {watchEventType} into enum of type {nameof(ResourceSnapshotChangeType)}.")
             };
 
             var snapshot = snapshotFactory(resource);
@@ -162,7 +165,7 @@ internal sealed class DcpDataSource
 
         if (snapshot is not null)
         {
-            await _onResourceChanged(snapshot, ResourceChangeType.Upsert).ConfigureAwait(false);
+            await _onResourceChanged(snapshot, ResourceSnapshotChangeType.Upsert).ConfigureAwait(false);
         }
     }
 
@@ -390,12 +393,9 @@ internal sealed class DcpDataSource
         {
             if (env.Name is not null)
             {
-                environment.Add(new()
-                {
-                    Name = env.Name,
-                    Value = env.Value,
-                    FromSpec = specSource?.Any(e => string.Equals(e.Name, env.Name, StringComparison.Ordinal)) is true or null
-                });
+                var isFromSpec = specSource?.Any(e => string.Equals(e.Name, env.Name, StringComparison.Ordinal)) is true or null;
+
+                environment.Add(new(env.Name, env.Value, isFromSpec));
             }
         }
 

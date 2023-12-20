@@ -182,9 +182,9 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable
         NavigationManager.NavigateTo($"/ConsoleLogs/{_selectedOption?.Value}");
     }
 
-    private async Task OnResourceChanged(ResourceChangeType changeType, ResourceViewModel resource)
+    private async Task OnResourceChanged(ResourceViewModelChangeType changeType, ResourceViewModel resource)
     {
-        if (changeType == ResourceChangeType.Upsert)
+        if (changeType == ResourceViewModelChangeType.Upsert)
         {
             _resourceByName[resource.Name] = resource;
 
@@ -203,7 +203,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable
                 }
             }
         }
-        else if (changeType == ResourceChangeType.Delete)
+        else if (changeType == ResourceViewModelChangeType.Delete)
         {
             _resourceByName.Remove(resource.Name);
 

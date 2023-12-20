@@ -15,7 +15,7 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
     private readonly object _lock = new();
     private readonly Task _watchTask;
 
-    public ResourceOutgoingPeerResolver(IResourceService resourceService)
+    public ResourceOutgoingPeerResolver(IDashboardClient resourceService)
     {
         var (snapshot, subscription) = resourceService.SubscribeResources();
 

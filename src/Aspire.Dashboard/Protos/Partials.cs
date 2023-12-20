@@ -3,49 +3,59 @@
 
 using System.Collections.Frozen;
 using System.Collections.Immutable;
+using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
-using Aspire.V1;
 
-namespace Aspire.Dashboard.Model;
+namespace Aspire.V1;
 
-internal static class ResourceServiceMessageExtensions
+partial class Resource
 {
-    public static ResourceViewModel ToViewModel(this Resource resource)
+    public ResourceId Id => new(Name, ResourceType);
+
+    /// <summary>
+    /// Converts this gRPC message object to a view model for use in the dashboard UI.
+    /// </summary>
+    public ResourceViewModel ToViewModel()
     {
         return new()
         {
-            Name = resource.Name,
-            ResourceType = resource.ResourceType,
-            DisplayName = resource.DisplayName,
-            Uid = resource.Uid,
-            CreationTimeStamp = resource.CreatedAt.ToDateTime(),
-            Properties = resource.Properties.ToFrozenDictionary(data => data.Name, data => data.Value, StringComparers.ResourceDataKey),
+            Name = Name,
+            ResourceType = ResourceType,
+            DisplayName = DisplayName,
+            Uid = Uid,
+            CreationTimeStamp = CreatedAt.ToDateTime(),
+            Properties = Properties.ToFrozenDictionary(data => data.Name, data => data.Value, StringComparers.ResourceDataKey),
             Endpoints = GetEndpoints(),
             Environment = GetEnvironment(),
-            ExpectedEndpointsCount = resource.ExpectedEndpointsCount,
+            ExpectedEndpointsCount = ExpectedEndpointsCount,
             Services = GetServices(),
-            State = resource.HasState ? resource.State : null,
+            State = HasState ? State : null,
         };
 
         ImmutableArray<ResourceServiceViewModel> GetServices()
         {
-            return resource.Services
+            return Services
                 .Select(s => new ResourceServiceViewModel(s.Name, s.AllocatedAddress, s.AllocatedPort))
                 .ToImmutableArray();
         }
 
         ImmutableArray<EnvironmentVariableViewModel> GetEnvironment()
         {
-            return resource.Environment
+            return Environment
                 .Select(s => new EnvironmentVariableViewModel(s.Name, s.Value, s.IsFromSpec))
                 .ToImmutableArray();
         }
 
         ImmutableArray<EndpointViewModel> GetEndpoints()
         {
-            return resource.Endpoints
+            return Endpoints
                 .Select(e => new EndpointViewModel(e.EndpointUrl, e.ProxyUrl))
                 .ToImmutableArray();
         }
     }
+}
+
+partial class ResourceDeletion
+{
+    public ResourceId Id => new(ResourceName, ResourceType);
 }

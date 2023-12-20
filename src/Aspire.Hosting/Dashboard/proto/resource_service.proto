@@ -22,15 +22,16 @@ message ApplicationInformationResponse {
 
 message ResourceCommandRequest {
     string command_type = 1;
-    ResourceId resource_id = 2;
+    string name = 2;
+    string resource_type = 3;
     // When present, this message must be shown to the user and their confirmation obtained
     // before sending the request for this command to be executed.
     // The user will be presented with Ok/Cancel options.
-    optional string confirmation_message = 3;
+    optional string confirmation_message = 4;
     // Optional parameter that configures the command in some way.
     // Clients must return any value provided by the server when invoking
     // the command.
-    optional google.protobuf.Value parameter = 4;
+    optional google.protobuf.Value parameter = 5;
 }
 
 enum ResourceCommandResponseKind {
@@ -71,7 +72,7 @@ message ResourceType {
 message EnvironmentVariable {
     string name = 1;
     optional string value = 2;
-    optional bool is_from_spec = 3;
+    bool is_from_spec = 3;
 }
 
 message Endpoint {
@@ -83,7 +84,6 @@ message Service {
     string name = 1;
     optional string allocated_address = 2;
     optional int32 allocated_port = 3;
-    optional string http_address = 4;
 }
 
 message ResourceProperty {
@@ -96,23 +96,19 @@ message ResourceProperty {
     google.protobuf.Value value = 3;
 }
 
-message ResourceId {
-    string uid = 1;
-    // TODO do we need resource_type to make unique names? if not, inline ResourceId type as string.
-    string resource_type = 2;
-}
-
 // Models the full state of an resource (container, executable, project, etc) at a particular point in time.
 message Resource {
-    ResourceId id = 1;
-    string display_name = 2;
-    optional string state = 3;
-    optional google.protobuf.Timestamp created_at = 4;
-    repeated EnvironmentVariable environment = 5;
-    optional int32 expected_endpoints_count = 6;
-    repeated Endpoint endpoints = 7;
-    repeated Service services = 8;
-    repeated ResourceCommandRequest commands = 9;
+    string name = 1;
+    string resource_type = 2;
+    string display_name = 3;
+    string uid = 4;
+    optional string state = 5;
+    optional google.protobuf.Timestamp created_at = 6;
+    repeated EnvironmentVariable environment = 7;
+    optional int32 expected_endpoints_count = 8;
+    repeated Endpoint endpoints = 9;
+    repeated Service services = 10;
+    repeated ResourceCommandRequest commands = 11;
 
     // Properties holding data not modeled directly on the message.
     //
@@ -120,7 +116,7 @@ message Resource {
     // - Containers: image, container_id, ports
     // - Executables: process_id, executable_path, working_directory, arguments
     // - Projects: process_id, project_path
-    repeated ResourceProperty properties = 10;
+    repeated ResourceProperty properties = 12;
 }
 
 ////////////////////////////////////////////
@@ -134,7 +130,8 @@ message InitialResourceData {
 ////////////////////////////////////////////
 
 message ResourceDeletion {
-    ResourceId resource_id = 1;
+    string resource_name = 1;
+    string resource_type = 2;
 }
 
 message WatchResourcesChange  {
@@ -178,7 +175,7 @@ message ConsoleLogLine {
 // Initiates a subscription for the logs of a resource.
 message WatchResourceConsoleLogsRequest {
     // Specifies the resource to watch logs from.
-    ResourceId resource_id = 1;
+    string resource_name = 1;
 }
 
 // A message received from the server when watching resource logs.

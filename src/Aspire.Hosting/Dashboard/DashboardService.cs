@@ -1,31 +1,23 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Threading.Channels;
 using Aspire.V1;
-using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
+using Microsoft.Extensions.Hosting;
 
 namespace Aspire.Hosting.Dashboard;
 
-internal class DashboardService : V1.DashboardService.DashboardServiceBase
+/// <summary>
+/// Implements a gRPC service that a dashboard can consume.
+/// </summary>
+/// <remarks>
+/// An instance of this type is created for every gRPC service call, so it may not hold onto any state
+/// required beyond a single request. Longer-scoped data is stored in <see cref="DashboardServiceData"/>.
+/// </remarks>
+internal sealed class DashboardService(DashboardServiceData serviceData, IHostEnvironment hostEnvironment)
+    : V1.DashboardService.DashboardServiceBase
 {
-    private readonly IResourceService _resourceService;
-
-    public DashboardService(IResourceService resourceService)
-    {
-        _resourceService = resourceService;
-    }
-
-    public override Task<ResourceCommandResponse> ExecuteResourceCommand(
-        ResourceCommandRequest request,
-        ServerCallContext context)
-    {
-        // TODO implement command handling
-        Console.WriteLine($"Command \"{request.CommandType}\" requested for resource \"{request.ResourceId.Uid}\" ({request.ResourceId.ResourceType})");
-
-        return Task.FromResult(new ResourceCommandResponse { Kind = ResourceCommandResponseKind.Succeeded });
-    }
+    // TODO implement command handling
 
     public override Task<ApplicationInformationResponse> GetApplicationInformation(
         ApplicationInformationRequest request,
@@ -33,9 +25,21 @@ internal class DashboardService : V1.DashboardService.DashboardServiceBase
     {
         return Task.FromResult(new ApplicationInformationResponse
         {
-            ApplicationName = _resourceService.ApplicationName,
+            ApplicationName = ComputeApplicationName(hostEnvironment.ApplicationName),
             ApplicationVersion = "0.0.0" // TODO obtain correct version
         });
+
+        static string ComputeApplicationName(string applicationName)
+        {
+            const string AppHostSuffix = ".AppHost";
+
+            if (applicationName.EndsWith(AppHostSuffix, StringComparison.OrdinalIgnoreCase))
+            {
+                applicationName = applicationName[..^AppHostSuffix.Length];
+            }
+
+            return applicationName;
+        }
     }
 
     public override async Task WatchResources(
@@ -43,88 +47,63 @@ internal class DashboardService : V1.DashboardService.DashboardServiceBase
         IServerStreamWriter<WatchResourcesUpdate> responseStream,
         ServerCallContext context)
     {
-        var channel = Channel.CreateUnbounded<WatchResourcesUpdate>();
+        var (initialData, updates) = serviceData.SubscribeResources();
 
-        // Send data
-        _ = Task.Run(async () =>
+        var data = new InitialResourceData();
+
+        foreach (var resource in initialData)
         {
-            // Initial snapshot
-            var initialSnapshot = new WatchResourcesUpdate
+            data.Resources.Add(Resource.FromSnapshot(resource));
+        }
+
+        await responseStream.WriteAsync(new() { InitialData = data }).ConfigureAwait(false);
+
+        await foreach (var batch in updates.WithCancellation(context.CancellationToken))
+        {
+            WatchResourcesChanges changes = new();
+
+            foreach (var update in batch)
             {
-                InitialData = new InitialResourceData
+                var change = new WatchResourcesChange();
+
+                if (update.ChangeType is ResourceSnapshotChangeType.Upsert)
                 {
-                    Resources =
-                    {
-                        CreateRandomResourceSnapshot("One"),
-                        CreateRandomResourceSnapshot("Two")
-                    },
-                    ResourceTypes =
-                    {
-                        new ResourceType { UniqueName = "test", DisplayName = "Test", Commands = { } }
-                    }
+                    change.Upsert = Resource.FromSnapshot(update.Resource);
                 }
-            };
-
-            await channel.Writer.WriteAsync(initialSnapshot).ConfigureAwait(false);
-
-            // Send random updates
-            while (true)
-            {
-                await Task.Delay(3000).ConfigureAwait(false);
-
-                var update = new WatchResourcesUpdate
+                else if (update.ChangeType is ResourceSnapshotChangeType.Delete)
                 {
-                    Changes = new WatchResourcesChanges
-                    {
-                        Value =
-                        {
-                            new WatchResourcesChange { Upsert = CreateRandomResourceSnapshot("One") }
-                        }
-                    }
-                };
+                    change.Delete = new() { ResourceName = update.Resource.Name, ResourceType = update.Resource.ResourceType };
+                }
 
-                await channel.Writer.WriteAsync(update).ConfigureAwait(false);
+                changes.Value.Add(change);
             }
-        });
 
-        await foreach (var update in channel.Reader.ReadAllAsync(context.CancellationToken))
-        {
-            await responseStream.WriteAsync(update, context.CancellationToken).ConfigureAwait(false);
+            await responseStream.WriteAsync(new() { Changes = changes }, context.CancellationToken).ConfigureAwait(false);
         }
     }
 
-    private static V1.Resource CreateRandomResourceSnapshot(string id)
+    public override async Task WatchResourceConsoleLogs(
+        WatchResourceConsoleLogsRequest request,
+        IServerStreamWriter<WatchResourceConsoleLogsUpdate> responseStream,
+        ServerCallContext context)
     {
-        // Construct dummy data
-        return new()
+        var subscription = serviceData.SubscribeConsoleLogs(request.ResourceName);
+
+        if (subscription is null)
         {
-            ResourceId = new()
+            return;
+        }
+
+        await foreach (var group in subscription.WithCancellation(context.CancellationToken))
+        {
+            WatchResourceConsoleLogsUpdate update = new();
+
+            foreach (var (content, isErrorMessage) in group)
             {
-                Uid = id,
-                ResourceType = "test"
-            },
-            DisplayName = id,
-            State = "Running",
-            CreatedAt = Timestamp.FromDateTime(DateTime.UtcNow.Date),
-            ExpectedEndpointsCount = 2,
-            Endpoints =
-            {
-                new Endpoint { EndpointUrl = "endpoint", ProxyUrl = "http://proxy" },
-            },
-            Services =
-            {
-                new Service { Name = "service1", HttpAddress = "http://service1" },
-                new Service { Name = "service2", AllocatedAddress = "service2", AllocatedPort = 1234 }
-            },
-            Environment =
-            {
-                new EnvironmentVariable { Name = "key", Value = "value" }
-            },
-            AdditionalData =
-            {
-                new AdditionalData { Namespace = "test", Name = "dummy1", Value = Value.ForString("foo") },
-                new AdditionalData { Namespace = "test", Name = "dummy2", Value = Value.ForList(Value.ForString("foo"), Value.ForString("bar")) },
+                update.LogLines.Add(new ConsoleLogLine() { Text = content, IsStdErr = isErrorMessage });
             }
-        };
+
+            await responseStream.WriteAsync(update, context.CancellationToken).ConfigureAwait(false);
+        }
     }
 }

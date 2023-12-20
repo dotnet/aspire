@@ -23,7 +23,7 @@ internal abstract class ResourceSnapshot
 
     protected abstract IEnumerable<(string Key, Value Value)> GetProperties();
 
-    public IEnumerable<(string Key, Value Value)> Properties
+    public IEnumerable<(string Name, Value Value)> Properties
     {
         get
         {
@@ -41,5 +41,22 @@ internal abstract class ResourceSnapshot
         }
     }
 }
+internal sealed class EnvironmentVariableSnapshot(string name, string? value, bool isFromSpec)
+{
+    public string Name { get; } = name;
+    public string? Value { get; } = value;
+    public bool IsFromSpec { get; } = isFromSpec;
+}
 
-internal sealed record EndpointSnapshot(string EndpointUrl, string ProxyUrl);
+internal sealed record EndpointSnapshot(string endpointUrl, string proxyUrl)
+{
+    public string EndpointUrl { get; } = endpointUrl;
+    public string ProxyUrl { get; } = proxyUrl;
+}
+
+internal sealed class ResourceServiceSnapshot(string name, string? allocatedAddress, int? allocatedPort)
+{
+    public string Name { get; } = name;
+    public string? AllocatedAddress { get; } = allocatedAddress;
+    public int? AllocatedPort { get; } = allocatedPort;
+}
