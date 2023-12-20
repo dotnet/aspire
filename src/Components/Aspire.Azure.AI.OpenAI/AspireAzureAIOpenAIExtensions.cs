@@ -3,6 +3,7 @@
 
 using Aspire.Azure.AI.OpenAI;
 using Aspire.Azure.Common;
+using Azure;
 using Azure.AI.OpenAI;
 using Azure.Core;
 using Azure.Core.Extensions;
@@ -67,21 +68,24 @@ public static class AspireAzureAIOpenAIExtensions
         {
             return azureFactoryBuilder.RegisterClientFactory<OpenAIClient, OpenAIClientOptions>((options, cred) =>
             {
-                var connectionString = settings.ConnectionString;
                 if (settings.ServiceUri is null)
                 {
                     throw new InvalidOperationException($"An OpenAIClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'ConnectionString' or 'ServiceUri' in the '{configurationSectionName}' configuration section.");
                 }
 
-                if (settings.UseAzureOpenAI)
+                if (!string.IsNullOrEmpty(settings.Key))
                 {
-                    var credential = settings.Credential ?? new DefaultAzureCredential();
-
+                    var credential = new AzureKeyCredential(settings.Key);
                     return new OpenAIClient(settings.ServiceUri, credential, options);
+                }
+                else if (settings.Credential != null)
+                {
+                    return new OpenAIClient(settings.ServiceUri, settings.Credential, options);
                 }
                 else
                 {
-                    return new OpenAIClient(settings.ServiceUri.ToString(), options);
+                    var credential = new DefaultAzureCredential();
+                    return new OpenAIClient(settings.ServiceUri, credential, options);
                 }
             });
         }

@@ -21,23 +21,18 @@
                 "OpenAI": {
                   "type": "object",
                   "properties": {
-                    "ConnectionString": {
+                    "Key": {
                       "type": "string",
-                      "description": "Gets or sets the connection string used to connect to the OpenAI service."
+                      "description": "Gets or sets the key to use to authenticate to the Azure OpenAI endpoint."
                     },
                     "ServiceUri": {
                       "type": "string",
                       "format": "uri",
-                      "description": "A T:System.Uri referencing the Azure OpenAI Endpoint.\nThis is likely to be similar to \"https://{account_name}.openai.azure.com\"."
+                      "description": "Gets or sets a T:System.Uri referencing the Azure OpenAI endpoint.\nThis is likely to be similar to \"https://{account_name}.openai.azure.com\"."
                     },
                     "Tracing": {
                       "type": "boolean",
                       "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.",
-                      "default": true
-                    },
-                    "UseAzureOpenAI": {
-                      "type": "boolean",
-                      "description": "Gets or sets whether to use Azure OpenAI or OpenAI.",
                       "default": true
                     }
                   },
