@@ -9,5 +9,9 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 public class ContainerResource(string name, string? entrypoint = null) : Resource(name), IResourceWithEnvironment, IResourceWithBindings
 {
+    /// <summary>
+    /// The container Entrypoint.
+    /// </summary>
+    /// <remarks><c>null</c> means use the default Entrypoint defined by the container.</remarks>
     public string? Entrypoint { get; set; } = entrypoint;
 }

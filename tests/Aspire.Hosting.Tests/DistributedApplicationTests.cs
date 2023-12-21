@@ -325,7 +325,7 @@ public class DistributedApplicationTests
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
         testProgram.AppBuilder.AddContainer("redis-cli", "redis")
-            .Resource.Entrypoint = "bob";
+            .WithEntrypoint("bob");
 
         await using var app = testProgram.Build();
 
