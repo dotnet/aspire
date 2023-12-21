@@ -9,7 +9,7 @@ using Xunit;
 
 namespace Aspire.Azure.AI.OpenAI.Tests;
 
-public class AspireServiceBusExtensionsTests
+public class AspireAzureAIOpenAIExtensionsTests
 {
     private const string ConnectionString = "AccountEndpoint=https://aspireopenaitests.openai.azure.com/;AccountKey=fake";
 

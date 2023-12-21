@@ -6,7 +6,7 @@ using Xunit;
 
 namespace Aspire.Azure.AI.OpenAI.Tests;
 
-public class AzureMessagingServiceBusSettingsTests
+public class AzureOpenAISettingsTests
 {
     [Fact]
     public void TracingIsEnabledWhenAzureSwitchIsSet()

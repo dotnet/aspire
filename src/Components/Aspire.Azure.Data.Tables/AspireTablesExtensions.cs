@@ -58,7 +58,7 @@ public static class AspireTablesExtensions
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        var configurationSectionName = TableServiceComponent.GetKeyedConfigurationSectionName(name, DefaultConfigSectionName);
+        string configurationSectionName = TableServiceComponent.GetKeyedConfigurationSectionName(name, DefaultConfigSectionName);
 
         new TableServiceComponent().AddClient(builder, configurationSectionName, configureSettings, configureClientBuilder, connectionName: name, serviceKey: name);
     }
