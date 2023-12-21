@@ -80,7 +80,7 @@ internal sealed class DcpDataSource
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                _logger.LogError(ex, "Watch task over kubernetes resource of type: {resourceType} terminated", typeof(T).Name);
+                _logger.LogError(ex, "Watch task over kubernetes {resourceType} resources terminated", typeof(T).Name);
             }
         }
     }

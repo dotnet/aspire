@@ -9,6 +9,7 @@ using Aspire.Dashboard.Utils;
 using Aspire.V1;
 using Grpc.Core;
 using Grpc.Net.Client;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Dashboard.Model;
 
@@ -20,7 +21,7 @@ namespace Aspire.Dashboard.Model;
 /// expected to live longer than a single RPC request. In the case of streaming requests, the instance
 /// lives until the stream is closed.
 /// </remarks>
-internal sealed class DashboardClient : IDashboardClient
+internal sealed class DashboardClient(ILogger<DashboardClient> logger) : IDashboardClient
 {
     private const string DashboardServiceUrlVariableName = "DOTNET_DASHBOARD_GRPC_ENDPOINT_URL";
     private const string DashboardServiceUrlDefaultValue = "http://localhost:18999";
@@ -28,6 +29,7 @@ internal sealed class DashboardClient : IDashboardClient
     private readonly Dictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
     private readonly CancellationTokenSource _cts = new();
     private readonly object _lock = new();
+    private readonly ILogger<DashboardClient> _logger = logger;
 
     private ImmutableHashSet<Channel<ResourceViewModelChange>> _outgoingChannels = [];
     private string? _applicationName;
@@ -70,6 +72,8 @@ internal sealed class DashboardClient : IDashboardClient
                     if (channel.State == ConnectivityState.Shutdown)
                     {
                         // Recreate connection
+                        _logger.LogWarning("Lost connection to dashboard service. Reconnecting.");
+
                         channel.Dispose();
                         Debug.Assert(_client.Task.IsCompleted);
                         _client = new();
@@ -97,8 +101,7 @@ internal sealed class DashboardClient : IDashboardClient
                     {
                         errorCount++;
 
-                        // TODO how to log messages somewhere sensible
-                        Console.WriteLine($"Error {errorCount} watching resources: {ex.Message}");
+                        _logger.LogError("Error {errorCount} watching resources: {error}", errorCount, ex.Message);
                     }
                 }
             }
@@ -111,6 +114,8 @@ internal sealed class DashboardClient : IDashboardClient
 
             async Task<(GrpcChannel, DashboardService.DashboardServiceClient)> ConnectAsync()
             {
+                _logger.LogInformation("Connecting to dashboard service at: {address}", address);
+
                 var httpHandler = new SocketsHttpHandler
                 {
                     EnableMultipleHttp2Connections = true,
