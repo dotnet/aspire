@@ -608,6 +608,11 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
                     }
                 }
 
+                if (modelContainerResource is ContainerResource containerResource)
+                {
+                    dcpContainerResource.Spec.Command = containerResource.Entrypoint;
+                }
+
                 await kubernetesService.CreateAsync(dcpContainerResource, cancellationToken).ConfigureAwait(false);
             }
         }
