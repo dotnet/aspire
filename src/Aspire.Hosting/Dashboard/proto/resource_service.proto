@@ -49,7 +49,7 @@ message ResourceCommandResponse {
 ////////////////////////////////////////////
 
 message ResourceType {
-    // Unique name for the resource type. Equivalent to ResourceId.resource_type
+    // Unique name for the resource type. Equivalent to Resource.resource_type
     // If "display_name" is omitted, this value will be used in UIs.
     string unique_name = 1;
 

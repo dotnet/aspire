@@ -10,8 +10,6 @@ namespace Aspire.V1;
 
 partial class Resource
 {
-    public ResourceId Id => new(Name, ResourceType);
-
     /// <summary>
     /// Converts this gRPC message object to a view model for use in the dashboard UI.
     /// </summary>
@@ -53,9 +51,4 @@ partial class Resource
                 .ToImmutableArray();
         }
     }
-}
-
-partial class ResourceDeletion
-{
-    public ResourceId Id => new(ResourceName, ResourceType);
 }

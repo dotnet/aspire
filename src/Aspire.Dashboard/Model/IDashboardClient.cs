@@ -61,5 +61,3 @@ public enum ResourceViewModelChangeType
     /// </summary>
     Delete
 }
-
-public readonly record struct ResourceId(string Name, string ResourceType);

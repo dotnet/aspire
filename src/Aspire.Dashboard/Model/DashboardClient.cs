@@ -5,6 +5,7 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
+using Aspire.Dashboard.Utils;
 using Aspire.V1;
 using Grpc.Core;
 using Grpc.Net.Client;
@@ -24,7 +25,7 @@ internal sealed class DashboardClient : IDashboardClient
     private const string DashboardServiceUrlVariableName = "DOTNET_DASHBOARD_GRPC_ENDPOINT_URL";
     private const string DashboardServiceUrlDefaultValue = "http://localhost:18999";
 
-    private readonly Dictionary<ResourceId, ResourceViewModel> _resourceById = [];
+    private readonly Dictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
     private readonly CancellationTokenSource _cts = new();
     private readonly object _lock = new();
 
@@ -155,7 +156,7 @@ internal sealed class DashboardClient : IDashboardClient
                         // The most reliable way to check that a streaming call succeeded is to successfully read a response.
                         if (errorCount > 0)
                         {
-                            _resourceById.Clear();
+                            _resourceByName.Clear();
                             errorCount = 0;
                         }
 
@@ -168,7 +169,7 @@ internal sealed class DashboardClient : IDashboardClient
                                 changes ??= [];
 
                                 var viewModel = resource.ToViewModel();
-                                _resourceById[resource.Id] = viewModel;
+                                _resourceByName[resource.Name] = viewModel;
                                 changes.Add(new(ResourceViewModelChangeType.Upsert, viewModel));
                             }
                         }
@@ -183,13 +184,13 @@ internal sealed class DashboardClient : IDashboardClient
                                 {
                                     // Upsert (i.e. add or replace)
                                     var viewModel = change.Upsert.ToViewModel();
-                                    _resourceById[change.Upsert.Id] = viewModel;
+                                    _resourceByName[change.Upsert.Name] = viewModel;
                                     changes.Add(new(ResourceViewModelChangeType.Upsert, viewModel));
                                 }
                                 else if (change.KindCase == WatchResourcesChange.KindOneofCase.Delete)
                                 {
                                     // Remove
-                                    if (_resourceById.Remove(change.Delete.Id, out var removed))
+                                    if (_resourceByName.Remove(change.Delete.ResourceName, out var removed))
                                     {
                                         changes.Add(new(ResourceViewModelChangeType.Delete, removed));
                                     }
@@ -253,7 +254,7 @@ internal sealed class DashboardClient : IDashboardClient
             ImmutableInterlocked.Update(ref _outgoingChannels, static (set, channel) => set.Add(channel), channel);
 
             return new ResourceViewModelSubscription(
-                InitialState: _resourceById.Values.ToImmutableArray(),
+                InitialState: _resourceByName.Values.ToImmutableArray(),
                 Subscription: StreamUpdates());
 
             async IAsyncEnumerable<ResourceViewModelChange> StreamUpdates()

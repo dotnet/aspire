@@ -8,8 +8,6 @@ namespace Aspire.V1;
 
 partial class Resource
 {
-    public ResourceId Id => new(Name, ResourceType);
-
     public static Resource FromSnapshot(ResourceSnapshot snapshot)
     {
         Resource resource = new()
@@ -65,9 +63,4 @@ partial class Resource
 
         return resource;
     }
-}
-
-partial class ResourceDeletion
-{
-    public ResourceId Id => new(ResourceName, ResourceType);
 }
