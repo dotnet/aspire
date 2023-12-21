@@ -136,6 +136,7 @@ public class ResourcePublisherTests
             Name = name,
             Uid = "",
             State = "",
+            ExitCode = null,
             CreationTimeStamp = null,
             DisplayName = "",
             Endpoints = [],
