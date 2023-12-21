@@ -29,18 +29,17 @@ public static class RedisBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a Redis container to the application model. The default image is "redis" and tag is "latest".
+    /// Adds a Redis resource to the application model.
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{RedisContainerResource}"/>.</returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{RedisResource}"/>.</returns>
     public static IResourceBuilder<RedisResource> AddRedis(this IDistributedApplicationBuilder builder, string name)
     {
         var redis = new RedisResource(name);
         return builder.AddResource(redis)
                       .WithManifestPublishingCallback(WriteRedisResourceToManifest)
-                      .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, containerPort: 6379))
-                      .WithAnnotation(new ContainerImageAnnotation { Image = "redis", Tag = "latest" });
+                      .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, containerPort: 6379));
     }
 
     private static void WriteRedisResourceToManifest(ManifestPublishingContext context)
