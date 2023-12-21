@@ -48,7 +48,7 @@ public class GeneratorTests
     [InlineData("https://aka.ms/azsdk/blog/vault-uri", "https://aka.ms/azsdk/blog/vault-uri")]
     public void ShouldTrimAndSanitize(string input, string expected)
     {
-        var result = ConfigSchemaEmitter.ReplacePropertyOrTypeNamespacePrefixIfNecessary(input);
+        var result = ConfigSchemaEmitter.ReplaceMemberTypePrefixIfNecessary(input);
 
         Assert.Equal(expected, result);
     }

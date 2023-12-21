@@ -26,7 +26,7 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
     [GeneratedRegex(@"( *)\r?\n( *)")]
     private static partial Regex Indentation();
 
-    [GeneratedRegex(@"(?<namespace>[A-Z]):(?<actual>[a-zA-Z0-9.]+)")]
+    [GeneratedRegex(@"(?<memberType>[A-Z]):(?<memberName>[a-zA-Z0-9.]+)")]
     private static partial Regex TypeOrPropertyPrefix();
 
     public string GenerateSchema()
@@ -244,7 +244,7 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
             foreach (var node in StripXmlElements(summary))
             {
                 var value = node.ToString().Trim();
-                value = ReplacePropertyOrTypeNamespacePrefixIfNecessary(value);
+                value = ReplaceMemberTypePrefixIfNecessary(value);
                 AppendSpaceIfNecessary(builder, value);
                 AppendUnindentedValue(builder, value);
             }
@@ -334,7 +334,7 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
         }
     }
 
-    internal static string ReplacePropertyOrTypeNamespacePrefixIfNecessary(string value)
+    internal static string ReplaceMemberTypePrefixIfNecessary(string value)
     {
         const string quotedName = "'{0}'";
 
