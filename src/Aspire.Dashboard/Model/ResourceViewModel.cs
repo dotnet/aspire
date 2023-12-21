@@ -47,12 +47,26 @@ public sealed class ResourceViewModel
     }
 }
 
+public sealed class EnvironmentVariableViewModel(string name, string? value, bool fromSpec)
+{
+    public string Name { get; } = name;
+    public string? Value { get; } = value;
+    public bool FromSpec { get; } = fromSpec;
+
+    public bool IsValueMasked { get; set; } = true;
+}
+
+public sealed class EndpointViewModel(string endpointUrl, string proxyUrl)
+{
+    public string EndpointUrl { get; } = endpointUrl;
+    public string ProxyUrl { get; } = proxyUrl;
+}
+
 public sealed class ResourceServiceViewModel(string name, string? allocatedAddress, int? allocatedPort)
 {
     public string Name { get; } = name;
     public string? AllocatedAddress { get; } = allocatedAddress;
     public int? AllocatedPort { get; } = allocatedPort;
+
     public string AddressAndPort { get; } = $"{allocatedAddress}:{allocatedPort}";
 }
-
-public sealed record EndpointViewModel(string EndpointUrl, string ProxyUrl);
