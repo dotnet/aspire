@@ -42,6 +42,7 @@ internal sealed class DashboardClient(ILogger<DashboardClient> logger) : IDashbo
     private int _state;
 
     private TaskCompletionSource<DashboardService.DashboardServiceClient> _client = new();
+    private Task? _connection;
 
     private void EnsureInitialized()
     {
@@ -55,7 +56,9 @@ internal sealed class DashboardClient(ILogger<DashboardClient> logger) : IDashbo
 
         var address = GetAddressUri(DashboardServiceUrlVariableName, DashboardServiceUrlDefaultValue);
 
-        _ = Task.Run(() => ConnectAndStayConnectedAsync(address, _cts.Token), _cts.Token);
+        _connection = Task.Run(() => ConnectAndStayConnectedAsync(address, _cts.Token), _cts.Token);
+
+        return;
 
         async Task ConnectAndStayConnectedAsync(Uri address, CancellationToken cancellationToken)
         {
@@ -317,6 +320,22 @@ internal sealed class DashboardClient(ILogger<DashboardClient> logger) : IDashbo
             await _cts.CancelAsync().ConfigureAwait(false);
 
             _cts.Dispose();
+
+            try
+            {
+                if (_connection is { IsCanceled: false })
+                {
+                    await _connection.ConfigureAwait(false);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // Ignore cancellation
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error from connection task.");
+            }
         }
     }
 }
