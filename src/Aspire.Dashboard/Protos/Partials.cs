@@ -24,7 +24,7 @@ partial class Resource
             DisplayName = DisplayName,
             Uid = Uid,
             CreationTimeStamp = CreatedAt.ToDateTime(),
-            Properties = Properties.ToFrozenDictionary(data => data.Name, data => data.Value, StringComparers.ResourceDataKey),
+            Properties = Properties.ToFrozenDictionary(p => p.Name, p => p.Value, StringComparers.ResourcePropertyName),
             Endpoints = GetEndpoints(),
             Environment = GetEnvironment(),
             ExpectedEndpointsCount = ExpectedEndpointsCount,
