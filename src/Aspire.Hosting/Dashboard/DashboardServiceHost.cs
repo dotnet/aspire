@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Dashboard;
 
@@ -29,10 +30,12 @@ internal sealed class DashboardServiceHost : IHostedService
     public DashboardServiceHost(
         DistributedApplicationOptions options,
         DistributedApplicationModel applicationModel,
-        KubernetesService kubernetesService)
+        KubernetesService kubernetesService,
+        ILogger<DashboardServiceHost> logger)
     {
         if (!options.DashboardEnabled)
         {
+            logger.LogInformation("Dashboard is disabled, so skipping construction.");
             return;
         }
 
