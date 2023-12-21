@@ -74,6 +74,10 @@ internal sealed class DashboardService(DashboardServiceData serviceData, IHostEn
                 {
                     change.Delete = new() { ResourceName = update.Resource.Name, ResourceType = update.Resource.ResourceType };
                 }
+                else
+                {
+                    throw new FormatException($"Unexpected {nameof(ResourceSnapshotChange)} type: {update.ChangeType}");
+                }
 
                 changes.Value.Add(change);
             }

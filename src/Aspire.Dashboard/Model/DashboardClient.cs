@@ -215,11 +215,15 @@ internal sealed class DashboardClient(ILogger<DashboardClient> logger) : IDashbo
                                         Debug.Fail("Attempt to remove an unknown resource view model.");
                                     }
                                 }
+                                else
+                                {
+                                    throw new FormatException($"Unexpected {nameof(WatchResourcesChange)} kind: {change.KindCase}");
+                                }
                             }
                         }
                         else
                         {
-                            throw new FormatException("Unsupported response kind: " + response.KindCase);
+                            throw new FormatException($"Unexpected {nameof(WatchResourcesUpdate)} kind: {response.KindCase}");
                         }
                     }
 
