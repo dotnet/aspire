@@ -23,12 +23,25 @@ internal sealed class DashboardWebApplicationHost : IHostedService
         DistributedApplicationOptions options,
         IOptions<PublishingOptions> publishingOptions)
     {
-        // HACK: Manifest publisher check is temporary util DcpHostService is integrated with DcpPublisher.
-        if (options.DashboardEnabled && publishingOptions.Value.Publisher != "manifest")
+        if (!options.DashboardEnabled)
+        {
+            Log("Dashboard is not enabled, so skipping construction and hosting.");
+        }
+        else if (publishingOptions.Value.Publisher == "manifest")
+        {
+            // HACK: Manifest publisher check is temporary until DcpHostService is integrated with DcpPublisher.
+            Log("Dashboard is disabled for the 'manifest' publisher, so skipping construction and hosting.");
+        }
+        else
         {
             var dashboardLogger = loggerFactory.CreateLogger<DashboardWebApplication>();
 
             _dashboardWebApp = new DashboardWebApplication(dashboardLogger);
+        }
+
+        void Log(string s)
+        {
+            loggerFactory.CreateLogger<DashboardWebApplicationHost>().LogInformation(s);
         }
     }
 
