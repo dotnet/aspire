@@ -78,7 +78,7 @@ Alternatively, a custom connection string can be used.
 
 ### Use configuration providers
 
-The .NET Aspire Azure AI OpenAI library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureCosmosDBSettings` and `QueueClientOptions` from configuration by using the `Aspire:Azure:AI:OpenAI` key. Example `appsettings.json` that configures some of the options:
+The .NET Aspire Azure AI OpenAI library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureOpenAISettings` and `OpenAIClientOptions` from configuration by using the `Aspire:Azure:AI:OpenAI` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {
@@ -116,7 +116,7 @@ In your AppHost project, install the Aspire Azure Hosting library with [NuGet](h
 dotnet add package Aspire.Hosting.Azure
 ```
 
-Then, in the _Program.cs_ file of `AppHost`, add a Cosmos DB connection and consume the connection using the following methods:
+Then, in the _Program.cs_ file of `AppHost`, add an Azure AI OpenAI service and consume the connection using the following methods:
 
 ```csharp
 var openai = builder.AddAzureAIOpenAI("openai");

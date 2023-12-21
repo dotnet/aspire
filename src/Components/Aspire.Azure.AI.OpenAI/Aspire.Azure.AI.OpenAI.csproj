@@ -7,7 +7,7 @@
     <IsAotCompatible>false</IsAotCompatible>
     <PackageTags>$(ComponentAzurePackageTags) ai openai</PackageTags>
     <Description>A client for Azure OpenAI that integrates with Aspire, including logging and telemetry.</Description>
-    <PackageIconFullPath>$(SharedDir)AzureCosmosDB_256x.png</PackageIconFullPath>
+    <PackageIconFullPath>$(SharedDir)AzureOpenAI_256x.png</PackageIconFullPath>
   </PropertyGroup>
 
   <ItemGroup>
