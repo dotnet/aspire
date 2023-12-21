@@ -4,6 +4,7 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.ExceptionServices;
 using System.Threading.Channels;
 using Aspire.Dashboard.Utils;
 using Aspire.V1;
@@ -99,6 +100,13 @@ internal sealed class DashboardClient(ILogger<DashboardClient> logger) : IDashbo
                     }
                     catch (RpcException ex)
                     {
+                        // Cancellation is reported in an RpcException, so unwrap it to throw the original OperationCanceledException instead.
+                        if (ex.StatusCode == StatusCode.Cancelled && ex.InnerException is OperationCanceledException oce)
+                        {
+                            // Rethrow cancellation
+                            ExceptionDispatchInfo.Capture(oce).Throw();
+                        }
+
                         errorCount++;
 
                         _logger.LogError("Error {errorCount} watching resources: {error}", errorCount, ex.Message);
