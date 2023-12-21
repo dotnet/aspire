@@ -61,9 +61,6 @@ public static class AspireAzureAIOpenAIExtensions
 
     private sealed class OpenAIComponent : AzureComponent<AzureOpenAISettings, OpenAIClient, OpenAIClientOptions>
     {
-        // TODO: Remove "Azure.AI.OpenAI" source when https://github.com/Azure/azure-sdk-for-net/issues/39166 is fixed
-        protected override string[] ActivitySourceNames => ["Azure.AI.OpenAI.*", "Azure.AI.OpenAI"];
-
         protected override IAzureClientBuilder<OpenAIClient, OpenAIClientOptions> AddClient<TBuilder>(TBuilder azureFactoryBuilder, AzureOpenAISettings settings, string connectionName, string configurationSectionName)
         {
             return azureFactoryBuilder.RegisterClientFactory<OpenAIClient, OpenAIClientOptions>((options, cred) =>
