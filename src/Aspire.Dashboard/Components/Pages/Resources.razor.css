@@ -13,7 +13,8 @@
 }
 
 ::deep .unread-logs-errors-link::part(control) {
+    padding-left: 0;
     padding-right: 0;
-    padding-left: 3px;
+    margin-left: 3px;
 }
 
