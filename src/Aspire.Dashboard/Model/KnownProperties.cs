@@ -1,8 +1,17 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Utils;
+
 namespace Aspire.Dashboard.Model;
 
+/// <summary>
+/// Models some known property names for known types of resources.
+/// </summary>
+/// <remarks>
+/// Used as keys in the "properties" dictionary on resource snapshots and view models.
+/// Should be compared using <see cref="StringComparers.ResourcePropertyName"/>.
+/// </remarks>
 public static class KnownProperties
 {
     public static class Resource
