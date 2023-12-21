@@ -110,10 +110,7 @@ public static class AspirePostgreSqlNpgsqlExtensions
             {
                 ValidateConnection();
 
-                if (configureDataSourceBuilder is not null)
-                {
-                    configureDataSourceBuilder(dataSourceBuilder);
-                }
+                configureDataSourceBuilder?.Invoke(dataSourceBuilder);
             });
         }
         else
@@ -127,10 +124,7 @@ public static class AspirePostgreSqlNpgsqlExtensions
                 var dataSourceBuilder = new NpgsqlDataSourceBuilder(settings.ConnectionString);
                 dataSourceBuilder.UseLoggerFactory(serviceProvider.GetService<ILoggerFactory>());
 
-                if (configureDataSourceBuilder is not null)
-                {
-                    configureDataSourceBuilder(dataSourceBuilder);
-                }
+                configureDataSourceBuilder?.Invoke(dataSourceBuilder);
 
                 return dataSourceBuilder.Build();
             });
