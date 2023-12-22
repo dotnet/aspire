@@ -31,4 +31,3 @@ internal class ExecutableSnapshot : ResourceSnapshot
         // TODO decide whether to send StdOut/StdErr file paths or not, and what we could use them for in the client.
     }
 }
-

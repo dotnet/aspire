@@ -44,6 +44,7 @@ internal abstract class ResourceSnapshot
         }
     }
 }
+
 internal sealed class EnvironmentVariableSnapshot(string name, string? value, bool isFromSpec)
 {
     public string Name { get; } = name;

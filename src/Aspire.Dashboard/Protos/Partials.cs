@@ -27,7 +27,7 @@ partial class Resource
             Environment = GetEnvironment(),
             ExpectedEndpointsCount = ExpectedEndpointsCount,
             Services = GetServices(),
-            State = HasState ? State : null,
+            State = HasState ? State : null
         };
 
         ImmutableArray<ResourceServiceViewModel> GetServices()
