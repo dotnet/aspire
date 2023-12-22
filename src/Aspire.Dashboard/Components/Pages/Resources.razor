@@ -23,6 +23,7 @@
                         Label="@ControlsStringsLoc[nameof(ControlsStrings.All)]"
                         ThreeState="true"
                         ShowIndeterminate="false"
+                        ThreeStateOrderUncheckToIntermediate="true"
                         @bind-CheckState="AreAllTypesVisible" />
                     @foreach (var resourceType in _allResourceTypes)
                     {
