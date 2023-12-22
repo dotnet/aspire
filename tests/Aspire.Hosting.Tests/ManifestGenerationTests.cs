@@ -355,6 +355,10 @@ public class ManifestGenerationTests
             .WithServiceBinding(hostPort: 5031, scheme: "http", env: "PORT");
         program.AppBuilder.AddNpmApp("npmapp", "..\\foo")
             .WithServiceBinding(hostPort: 5032, scheme: "http", env: "PORT");
+        program.AppBuilder.AddPnpmApp("pnpmapp", "..\\foo")
+            .WithServiceBinding(hostPort: 5033, scheme: "http", env: "PORT");
+        program.AppBuilder.AddYarnApp("yarnapp", "..\\foo")
+            .WithServiceBinding(hostPort: 5034, scheme: "http", env: "PORT");
 
         // Build AppHost so that publisher can be resolved.
         program.Build();
@@ -366,6 +370,8 @@ public class ManifestGenerationTests
 
         var nodeApp = resources.GetProperty("nodeapp");
         var npmApp = resources.GetProperty("npmapp");
+        var pnpmApp = resources.GetProperty("pnpmapp");
+        var yarnApp = resources.GetProperty("yarnapp");
 
         static void AssertNodeResource(string resourceName, JsonElement jsonElement, string expectedCommand, string[] expectedArgs)
         {
@@ -389,6 +395,8 @@ public class ManifestGenerationTests
 
         AssertNodeResource("nodeapp", nodeApp, "node", ["..\\foo\\app.js"]);
         AssertNodeResource("npmapp", npmApp, "npm", ["run", "start"]);
+        AssertNodeResource("pnpmapp", pnpmApp, "pnpm", ["run", "start"]);
+        AssertNodeResource("yarnapp", yarnApp, "yarn", ["run", "start"]);
     }
 
     private static TestProgram CreateTestProgramJsonDocumentManifestPublisher(bool includeNodeApp = false)
