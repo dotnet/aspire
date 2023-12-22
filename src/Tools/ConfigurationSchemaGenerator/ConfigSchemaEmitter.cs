@@ -18,6 +18,15 @@ namespace ConfigurationSchemaGenerator;
 
 internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation compilation)
 {
+    private static readonly JsonSerializerOptions s_serializerOptions = new()
+    {
+        WriteIndented = true,
+        // ensure the properties are ordered correctly
+        Converters = { SchemaOrderJsonNodeConverter.Instance },
+        // prevent known escaped characters from being \uxxxx encoded
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    };
+
     private readonly TypeIndex _typeIndex = new TypeIndex(spec.AllTypes);
     private readonly Compilation _compilation = compilation;
     private readonly Stack<TypeSpec> _visitedTypes = new();
@@ -36,15 +45,7 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
         root["properties"] = GenerateGraph();
         root["type"] = "object";
 
-        var options = new JsonSerializerOptions()
-        {
-            WriteIndented = true,
-            // ensure the properties are ordered correctly
-            Converters = { SchemaOrderJsonNodeConverter.Instance },
-            // prevent known escaped characters from being \uxxxx encoded
-            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
-        };
-        return JsonSerializer.Serialize(root, options);
+        return JsonSerializer.Serialize(root, s_serializerOptions);
     }
 
     private void GenerateLogCategories(JsonObject parent)
