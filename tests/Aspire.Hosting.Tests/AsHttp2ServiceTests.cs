@@ -21,13 +21,13 @@ public class AsHttp2ServiceTests
         testProgram.Build();
         testProgram.Run();
 
-        var serviceBindingsForAllServices = testProgram.AppBuilder.Resources.SelectMany(
-            r => r.Annotations.OfType<ServiceBindingAnnotation>()
+        var endpointsForAllServices = testProgram.AppBuilder.Resources.SelectMany(
+            r => r.Annotations.OfType<EndpointAnnotation>()
                               .Where(sb => sb.Transport == "http2")
             );
 
-        // There should be no service bindings which are set to transport http2.
-        Assert.False(serviceBindingsForAllServices.Any());
+        // There should be no endpoints which are set to transport http2.
+        Assert.False(endpointsForAllServices.Any());
     }
 
     [Fact]
@@ -42,16 +42,16 @@ public class AsHttp2ServiceTests
         testProgram.Build();
         testProgram.Run();
 
-        var httpServiceBindings = testProgram.ServiceABuilder.Resource.Annotations.OfType<ServiceBindingAnnotation>().Where(sb => sb.UriScheme == "http" || sb.UriScheme == "https");
-        Assert.Equal(2, httpServiceBindings.Count());
-        Assert.True(httpServiceBindings.All(sb => sb.Transport == "http2"));
+        var httpEndpoints = testProgram.ServiceABuilder.Resource.Annotations.OfType<EndpointAnnotation>().Where(sb => sb.UriScheme == "http" || sb.UriScheme == "https");
+        Assert.Equal(2, httpEndpoints.Count());
+        Assert.True(httpEndpoints.All(sb => sb.Transport == "http2"));
     }
 
     [Fact]
-    public void Http2TransportIsNotAppliedToNonHttpServiceBindings()
+    public void Http2TransportIsNotAppliedToNonHttpEndpoints()
     {
         var testProgram = CreateTestProgram(["--publisher", "manifest"]);
-        testProgram.ServiceABuilder.WithServiceBinding(9999, scheme: "tcp");
+        testProgram.ServiceABuilder.WithEndpoint(9999, scheme: "tcp");
         testProgram.ServiceABuilder.AsHttp2Service();
 
         // Block DCP from actually starting anything up as we don't need it for this test.
@@ -60,14 +60,14 @@ public class AsHttp2ServiceTests
         testProgram.Build();
         testProgram.Run();
 
-        var serviceBindings = testProgram.ServiceABuilder.Resource.Annotations.OfType<ServiceBindingAnnotation>();
-        var tcpBinding = serviceBindings.Single(sb => sb.UriScheme == "tcp");
+        var endpoints = testProgram.ServiceABuilder.Resource.Annotations.OfType<EndpointAnnotation>();
+        var tcpBinding = endpoints.Single(sb => sb.UriScheme == "tcp");
         Assert.Equal("tcp", tcpBinding.Transport);
 
-        var httpsBinding = serviceBindings.Single(sb => sb.UriScheme == "https");
+        var httpsBinding = endpoints.Single(sb => sb.UriScheme == "https");
         Assert.Equal("http2", httpsBinding.Transport);
 
-        var httpBinding = serviceBindings.Single(sb => sb.UriScheme == "http");
+        var httpBinding = endpoints.Single(sb => sb.UriScheme == "http");
         Assert.Equal("http2", httpsBinding.Transport);
     }
 

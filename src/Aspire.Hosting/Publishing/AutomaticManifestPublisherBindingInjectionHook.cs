@@ -53,9 +53,9 @@ internal sealed class AutomaticManifestPublisherBindingInjectionHook(IOptions<Pu
                 continue;
             }
 
-            if (!projectResource.Annotations.OfType<ServiceBindingAnnotation>().Any(sb => sb.UriScheme == "http" || sb.Name == "http"))
+            if (!projectResource.Annotations.OfType<EndpointAnnotation>().Any(sb => sb.UriScheme == "http" || sb.Name == "http"))
             {
-                var httpBinding = new ServiceBindingAnnotation(
+                var httpBinding = new EndpointAnnotation(
                     System.Net.Sockets.ProtocolType.Tcp,
                     uriScheme: "http"
                     );
@@ -63,9 +63,9 @@ internal sealed class AutomaticManifestPublisherBindingInjectionHook(IOptions<Pu
                 httpBinding.Transport = isHttp2ConfiguredInAppSettings ? "http2" : httpBinding.Transport;
             }
 
-            if (!projectResource.Annotations.OfType<ServiceBindingAnnotation>().Any(sb => sb.UriScheme == "https" || sb.Name == "https"))
+            if (!projectResource.Annotations.OfType<EndpointAnnotation>().Any(sb => sb.UriScheme == "https" || sb.Name == "https"))
             {
-                var httpsBinding = new ServiceBindingAnnotation(
+                var httpsBinding = new EndpointAnnotation(
                     System.Net.Sockets.ProtocolType.Tcp,
                     uriScheme: "https"
                     );

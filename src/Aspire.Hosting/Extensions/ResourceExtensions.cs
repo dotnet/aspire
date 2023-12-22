@@ -77,14 +77,14 @@ public static class ResourceExtensions
     }
 
     /// <summary>
-    /// Attempts to retrieve the service bindings for the given resource.
+    /// Attempts to retrieve the endpoints for the given resource.
     /// </summary>
-    /// <param name="resource">The resource to retrieve the service bindings for.</param>
-    /// <param name="serviceBindings">The service bindings for the given resource, if found.</param>
-    /// <returns>True if the service bindings were found, false otherwise.</returns>
-    public static bool TryGetServiceBindings(this IResource resource, [NotNullWhen(true)] out IEnumerable<ServiceBindingAnnotation>? serviceBindings)
+    /// <param name="resource">The resource to retrieve the endpoints for.</param>
+    /// <param name="endpoints">The endpoints for the given resource, if found.</param>
+    /// <returns>True if the endpoints were found, false otherwise.</returns>
+    public static bool TryGetEndpoints(this IResource resource, [NotNullWhen(true)] out IEnumerable<EndpointAnnotation>? endpoints)
     {
-        return TryGetAnnotationsOfType(resource, out serviceBindings);
+        return TryGetAnnotationsOfType(resource, out endpoints);
     }
 
     /// <summary>
