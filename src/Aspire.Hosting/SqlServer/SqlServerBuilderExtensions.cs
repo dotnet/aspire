@@ -27,7 +27,7 @@ public static class SqlServerBuilderExtensions
 
         return builder.AddResource(sqlServer)
                       .WithManifestPublishingCallback(context => WriteSqlServerContainerToManifest(context, sqlServer))
-                      .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, port: port, containerPort: 1433))
+                      .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 1433))
                       .WithAnnotation(new ContainerImageAnnotation { Registry = "mcr.microsoft.com", Image = "mssql/server", Tag = "2022-latest" })
                       .WithEnvironment("ACCEPT_EULA", "Y")
                       .WithEnvironment(context =>
@@ -57,7 +57,7 @@ public static class SqlServerBuilderExtensions
 
         return builder.AddResource(sqlServer)
                       .WithManifestPublishingCallback(WriteSqlServerToManifest)
-                      .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, containerPort: 1433))
+                      .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, containerPort: 1433))
                       .WithAnnotation(new ContainerImageAnnotation { Registry = "mcr.microsoft.com", Image = "mssql/server", Tag = "2022-latest" })
                       .WithEnvironment("ACCEPT_EULA", "Y")
                       .WithEnvironment("MSSQL_SA_PASSWORD", sqlServer.Password);

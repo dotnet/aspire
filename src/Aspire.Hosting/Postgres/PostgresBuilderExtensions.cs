@@ -28,7 +28,7 @@ public static class PostgresBuilderExtensions
         var postgresContainer = new PostgresContainerResource(name, password);
         return builder.AddResource(postgresContainer)
                       .WithManifestPublishingCallback(context => WritePostgresContainerResourceToManifest(context, postgresContainer))
-                      .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, port: port, containerPort: 5432)) // Internal port is always 5432.
+                      .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 5432)) // Internal port is always 5432.
                       .WithAnnotation(new ContainerImageAnnotation { Image = "postgres", Tag = "latest" })
                       .WithEnvironment("POSTGRES_HOST_AUTH_METHOD", "scram-sha-256")
                       .WithEnvironment("POSTGRES_INITDB_ARGS", "--auth-host=scram-sha-256 --auth-local=scram-sha-256")
@@ -57,7 +57,7 @@ public static class PostgresBuilderExtensions
         var postgresServer = new PostgresServerResource(name, password);
         return builder.AddResource(postgresServer)
                       .WithManifestPublishingCallback(WritePostgresContainerToManifest)
-                      .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, containerPort: 5432)) // Internal port is always 5432.
+                      .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, containerPort: 5432)) // Internal port is always 5432.
                       .WithAnnotation(new ContainerImageAnnotation { Image = "postgres", Tag = "latest" })
                       .WithEnvironment("POSTGRES_HOST_AUTH_METHOD", "scram-sha-256")
                       .WithEnvironment("POSTGRES_INITDB_ARGS", "--auth-host=scram-sha-256 --auth-local=scram-sha-256")
