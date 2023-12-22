@@ -69,7 +69,7 @@
                     },
                     "DefaultDatabase": {
                       "type": "integer",
-                      "description": "Specifies the default database to be used when calling 'StackExchange.Redis.ConnectionMultiplexer.GetDatabase(System.Int32,System.Object)' without any parameters."
+                      "description": "Specifies the default database to be used when calling M:StackExchange.Redis.ConnectionMultiplexer.GetDatabase(System.Int32,System.Object) without any parameters."
                     },
                     "DefaultVersion": {
                       "type": "string",
