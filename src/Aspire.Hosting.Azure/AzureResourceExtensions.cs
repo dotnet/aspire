@@ -4,6 +4,7 @@
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
 
@@ -264,16 +265,34 @@ public static class AzureResourceExtensions
     /// <param name="name">The name of the deployment.</param>
     /// <param name="arguments">The arguments of the deployment.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{AzureSqlDatabaseResource}"/>.</returns>
-    public static IResourceBuilder<AzureOpenDeploymentResource> AddDeployment(this IResourceBuilder<AzureOpenAIResource> serverBuilder, string name, IEnumerable<KeyValuePair<string, object>> arguments)
+    public static IResourceBuilder<AzureOpenDeploymentResource> AddDeployment(this IResourceBuilder<AzureOpenAIResource> serverBuilder, string name, IReadOnlyCollection<KeyValuePair<string, string?>> arguments)
     {
-        var resource = new AzureOpenDeploymentResource(name, serverBuilder.Resource);
+        var resource = new AzureOpenDeploymentResource(name, serverBuilder.Resource, arguments);
         return serverBuilder.ApplicationBuilder.AddResource(resource)
                             .WithManifestPublishingCallback(context => WriteAzureOpenAIDeploymentToManifest(context, resource));
     }
 
     private static void WriteAzureOpenAIDeploymentToManifest(ManifestPublishingContext context, AzureOpenDeploymentResource resource)
     {
+        // Example:
+        // "type": "azure.openai.deployment.v0",
+        // "parent": "azureOpenAi",
+        // "name": "myDeployment",
+        // "model": {
+        //     "format": "OpenAI",
+        //     "name": "chatGptModelName",
+        //     "version": "0613"
+        // }
+
         context.Writer.WriteString("type", "azure.openai.deployment.v0");
         context.Writer.WriteString("parent", resource.Parent.Name);
+
+        context.Writer.WriteString("name", resource.Name);
+        context.Writer.WriteStartObject("model");
+        foreach (var argument in resource.Arguments)
+        {
+            context.Writer.TryWriteString(argument.Key, argument.Value);
+        }
+        context.Writer.WriteEndObject();
     }
 }

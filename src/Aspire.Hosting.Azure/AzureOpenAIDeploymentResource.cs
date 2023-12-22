@@ -14,9 +14,11 @@ public class AzureOpenDeploymentResource : Resource,
     /// </summary>
     /// <param name="name">The name of the resource.</param>
     /// <param name="openai">The <see cref="AzureOpenAIResource"/> that the resource is stored in.</param>
-    public AzureOpenDeploymentResource(string name, AzureOpenAIResource openai) : base(name)
+    /// <param name="arguments">The arguments of the deployment.</param>
+    public AzureOpenDeploymentResource(string name, AzureOpenAIResource openai, IReadOnlyCollection<KeyValuePair<string, string?>> arguments) : base(name)
     {
         Parent = openai;
+        Arguments = arguments;
         Parent.AddDeployment(this);
     }
 
@@ -24,4 +26,9 @@ public class AzureOpenDeploymentResource : Resource,
     /// Gets the parent <see cref="AzureOpenAIResource"/> of this <see cref="AzureOpenDeploymentResource"/>.
     /// </summary>
     public AzureOpenAIResource Parent { get; }
+
+    /// <summary>
+    /// Gets the list of arguments of the deployment resource.
+    /// </summary>
+    public IReadOnlyCollection<KeyValuePair<string, string?>> Arguments { get; private set; }
 }
