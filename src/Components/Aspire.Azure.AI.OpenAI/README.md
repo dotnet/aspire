@@ -76,6 +76,8 @@ Alternatively, a custom connection string can be used.
 }
 ```
 
+In order to connect to the non-Azure OpenAI service, use the AccountKey property only to set the API key (https://platform.openai.com/account/api-keys).
+
 ### Use configuration providers
 
 The .NET Aspire Azure AI OpenAI library supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureOpenAISettings` and `OpenAIClientOptions` from configuration by using the `Aspire:Azure:AI:OpenAI` key. Example `appsettings.json` that configures some of the options:

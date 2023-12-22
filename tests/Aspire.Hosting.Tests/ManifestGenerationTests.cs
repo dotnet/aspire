@@ -248,7 +248,7 @@ public class ManifestGenerationTests
     }
 
     [Fact]
-    public void EnsureAllRabitMQManifestTypesHaveVersion0Suffix()
+    public void EnsureAllRabbitMQManifestTypesHaveVersion0Suffix()
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher();
 

@@ -254,6 +254,26 @@ public static class AzureResourceExtensions
 
     private static void WriteAzureOpenAIToManifest(ManifestPublishingContext context)
     {
-        context.Writer.WriteString("type", "azure.openai.v0");
+        context.Writer.WriteString("type", "azure.openai.account.v0");
+    }
+
+    /// <summary>
+    /// Adds an Azure OpenAI Deployment resource to the application model. This resource requires an <see cref="AzureOpenAIResource"/> to be added to the application model.
+    /// </summary>
+    /// <param name="serverBuilder">The Azure SQL Server resource builder.</param>
+    /// <param name="name">The name of the deployment.</param>
+    /// <param name="arguments">The arguments of the deployment.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{AzureSqlDatabaseResource}"/>.</returns>
+    public static IResourceBuilder<AzureOpenDeploymentResource> AddDeployment(this IResourceBuilder<AzureOpenAIResource> serverBuilder, string name, IEnumerable<KeyValuePair<string, object>> arguments)
+    {
+        var resource = new AzureOpenDeploymentResource(name, serverBuilder.Resource);
+        return serverBuilder.ApplicationBuilder.AddResource(resource)
+                            .WithManifestPublishingCallback(context => WriteAzureOpenAIDeploymentToManifest(context, resource));
+    }
+
+    private static void WriteAzureOpenAIDeploymentToManifest(ManifestPublishingContext context, AzureOpenDeploymentResource resource)
+    {
+        context.Writer.WriteString("type", "azure.openai.deployment.v0");
+        context.Writer.WriteString("parent", resource.Parent.Name);
     }
 }

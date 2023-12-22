@@ -18,7 +18,7 @@ namespace Microsoft.Extensions.Hosting;
 /// <summary>
 /// Provides extension methods for registering <see cref="OpenAIClient"/> as a singleton in the services provided by the <see cref="IHostApplicationBuilder"/>.
 /// </summary>
-public static class AspireAzureAIOpenAIExtensions
+public static class AspireOpenAIExtensions
 {
     private const string DefaultConfigSectionName = "Aspire:Azure:AI:OpenAI";
     /// <summary>
@@ -67,22 +67,33 @@ public static class AspireAzureAIOpenAIExtensions
             {
                 if (settings.ServiceUri is null)
                 {
-                    throw new InvalidOperationException($"An OpenAIClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'ConnectionString' or 'ServiceUri' in the '{configurationSectionName}' configuration section.");
-                }
+                    // Connect to non-Azure OpenAI
 
-                if (!string.IsNullOrEmpty(settings.Key))
-                {
-                    var credential = new AzureKeyCredential(settings.Key);
-                    return new OpenAIClient(settings.ServiceUri, credential, options);
-                }
-                else if (settings.Credential != null)
-                {
-                    return new OpenAIClient(settings.ServiceUri, settings.Credential, options);
+                    if (!string.IsNullOrEmpty(settings.Key))
+                    {
+                        return new OpenAIClient(settings.Key, options);
+                    }
+
+                    throw new InvalidOperationException($"An OpenAIClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a '{nameof(AzureOpenAISettings.ServiceUri)}' or '{nameof(AzureOpenAISettings.Key)}' in the '{configurationSectionName}' configuration section.");
                 }
                 else
                 {
-                    var credential = new DefaultAzureCredential();
-                    return new OpenAIClient(settings.ServiceUri, credential, options);
+                    // Connect to Azure OpenAI
+
+                    if (!string.IsNullOrEmpty(settings.Key))
+                    {
+                        var credential = new AzureKeyCredential(settings.Key);
+                        return new OpenAIClient(settings.ServiceUri, credential, options);
+                    }
+                    else if (settings.Credential != null)
+                    {
+                        return new OpenAIClient(settings.ServiceUri, settings.Credential, options);
+                    }
+                    else
+                    {
+                        var credential = new DefaultAzureCredential();
+                        return new OpenAIClient(settings.ServiceUri, credential, options);
+                    }
                 }
             });
         }

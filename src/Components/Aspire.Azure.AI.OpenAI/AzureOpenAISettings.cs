@@ -21,6 +21,7 @@ public sealed class AzureOpenAISettings : IConnectionStringSettings
     /// This is likely to be similar to "https://{account_name}.openai.azure.com".
     /// </summary>
     /// <remarks>
+    /// Leave empty and provide a <see cref="Key"/> value to use a non-Azure OpenAI inference endpoint.
     /// Used along with <see cref="Credential"/> or <see cref="Key"/> to establish the connection.
     /// </remarks>
     public Uri? ServiceUri { get; set; }
