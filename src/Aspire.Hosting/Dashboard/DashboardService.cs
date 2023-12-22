@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text.RegularExpressions;
 using Aspire.V1;
 using Grpc.Core;
 using Microsoft.Extensions.Hosting;
@@ -14,10 +15,13 @@ namespace Aspire.Hosting.Dashboard;
 /// An instance of this type is created for every gRPC service call, so it may not hold onto any state
 /// required beyond a single request. Longer-scoped data is stored in <see cref="DashboardServiceData"/>.
 /// </remarks>
-internal sealed class DashboardService(DashboardServiceData serviceData, IHostEnvironment hostEnvironment)
+internal sealed partial class DashboardService(DashboardServiceData serviceData, IHostEnvironment hostEnvironment)
     : V1.DashboardService.DashboardServiceBase
 {
     // TODO implement command handling
+
+    [GeneratedRegex("""^(?<name>.+?)\.?AppHost$""", RegexOptions.ExplicitCapture | RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.CultureInvariant)]
+    private static partial Regex ApplicationNameRegex();
 
     public override Task<ApplicationInformationResponse> GetApplicationInformation(
         ApplicationInformationRequest request,
@@ -30,14 +34,11 @@ internal sealed class DashboardService(DashboardServiceData serviceData, IHostEn
 
         static string ComputeApplicationName(string applicationName)
         {
-            const string AppHostSuffix = ".AppHost";
-
-            if (applicationName.EndsWith(AppHostSuffix, StringComparison.OrdinalIgnoreCase))
+            return ApplicationNameRegex().Match(applicationName) switch
             {
-                applicationName = applicationName[..^AppHostSuffix.Length];
-            }
-
-            return applicationName;
+                Match { Success: true } match => match.Groups["name"].Value,
+                _ => applicationName
+            };
         }
     }
 
