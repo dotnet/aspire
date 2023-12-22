@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Model;
@@ -9,8 +9,6 @@ namespace Aspire.Dashboard.Components.ResourcesGridColumns;
 
 public partial class StateColumnDisplay
 {
-    [Inject]
-    public required IResourceService ResourceService { get; init; }
     [Inject]
     public required TelemetryRepository TelemetryRepository { get; init; }
     [Inject]

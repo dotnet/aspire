@@ -120,27 +120,6 @@ public partial class Resources : ComponentBase, IDisposable
         });
     }
 
-    private int GetUnviewedErrorCount(ResourceViewModel resource)
-    {
-        if (_applicationUnviewedErrorCounts is null)
-        {
-            return 0;
-        }
-
-        var application = TelemetryRepository.GetApplication(resource.Uid);
-        if (application is null)
-        {
-            return 0;
-        }
-
-        if (!_applicationUnviewedErrorCounts.TryGetValue(application, out var count))
-        {
-            return 0;
-        }
-
-        return count;
-    }
-
     private void ShowEnvironmentVariables(ResourceViewModel resource)
     {
         if (SelectedResource == resource)
@@ -194,11 +173,6 @@ public partial class Resources : ComponentBase, IDisposable
     {
         Dispose(true);
         GC.SuppressFinalize(this);
-    }
-
-    private void ViewErrorStructuredLogs(ResourceViewModel resource)
-    {
-        NavigationManager.NavigateTo($"/StructuredLogs/{resource.Uid}?level=error");
     }
 
     private string? GetRowClass(ResourceViewModel resource)
