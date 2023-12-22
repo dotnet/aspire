@@ -29,6 +29,7 @@ internal sealed class DashboardClient(ILogger<DashboardClient> logger) : IDashbo
 
     private readonly Dictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
     private readonly CancellationTokenSource _cts = new();
+    private readonly TaskCompletionSource _whenConnected = new();
     private readonly object _lock = new();
     private readonly ILogger<DashboardClient> _logger = logger;
 
@@ -151,6 +152,8 @@ internal sealed class DashboardClient(ILogger<DashboardClient> logger) : IDashbo
 
                 _client.SetResult(client);
 
+                _whenConnected.TrySetResult();
+
                 return (channel, client);
             }
 
@@ -257,7 +260,9 @@ internal sealed class DashboardClient(ILogger<DashboardClient> logger) : IDashbo
         }
     }
 
-    public string ApplicationName => _applicationName ?? "";
+    Task IDashboardClient.WhenConnected => _whenConnected.Task;
+
+    string IDashboardClient.ApplicationName => _applicationName ?? "";
 
     ResourceViewModelSubscription IDashboardClient.SubscribeResources()
     {
@@ -294,7 +299,7 @@ internal sealed class DashboardClient(ILogger<DashboardClient> logger) : IDashbo
         }
     }
 
-    public async IAsyncEnumerable<IReadOnlyList<(string Content, bool IsErrorMessage)>>? SubscribeConsoleLogs(string resourceName, [EnumeratorCancellation] CancellationToken cancellationToken)
+    async IAsyncEnumerable<IReadOnlyList<(string Content, bool IsErrorMessage)>>? IDashboardClient.SubscribeConsoleLogs(string resourceName, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         EnsureInitialized();
 

@@ -10,7 +10,7 @@
 @inject IStringLocalizer<ControlsStrings> ControlStringsLoc
 @inject IDashboardClient DashboardClient
 
-<PageTitle>@string.Format(Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailPageTitle)], DashboardClient.ApplicationName)</PageTitle>
+<PageTitle>@DashboardClient.FormatApplicationName(Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailPageTitle)], () => InvokeAsync(StateHasChanged))</PageTitle>
 
 @if (_trace != null)
 {

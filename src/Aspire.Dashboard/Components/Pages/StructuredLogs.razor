@@ -12,7 +12,7 @@
 @inject IStringLocalizer<Dashboard.Resources.StructuredLogs> Loc
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
 
-<PageTitle>@string.Format(Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsPageTitle)], DashboardClient.ApplicationName)</PageTitle>
+<PageTitle>@DashboardClient.FormatApplicationName(Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsPageTitle)], () => InvokeAsync(StateHasChanged))</PageTitle>
 
 <div class="logs-layout">
     <h1 class="page-header">@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsHeader)]</h1>

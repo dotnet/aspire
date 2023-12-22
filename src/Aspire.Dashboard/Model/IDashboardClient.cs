@@ -10,6 +10,8 @@ namespace Aspire.Dashboard.Model;
 /// </summary>
 public interface IDashboardClient : IAsyncDisposable
 {
+    Task WhenConnected { get; }
+
     /// <summary>
     /// Gets the application name advertised by the server.
     /// </summary>
