@@ -10,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Dashboard;
 
@@ -31,7 +32,9 @@ internal sealed class DashboardServiceHost : IHostedService
         DistributedApplicationOptions options,
         DistributedApplicationModel applicationModel,
         KubernetesService kubernetesService,
-        ILogger<DashboardServiceHost> logger)
+        ILogger<DashboardServiceHost> logger,
+        ILoggerFactory loggerFactory,
+        IConfigureOptions<LoggerFilterOptions> loggerOptions)
     {
         if (!options.DashboardEnabled)
         {
@@ -40,6 +43,11 @@ internal sealed class DashboardServiceHost : IHostedService
         }
 
         var builder = WebApplication.CreateBuilder();
+
+        // Logging
+        builder.Services.AddSingleton(loggerFactory);
+        builder.Services.AddSingleton(loggerOptions);
+        builder.Services.Add(ServiceDescriptor.Singleton(typeof(ILogger<>), typeof(Logger<>)));
 
         builder.Services.AddGrpc();
         builder.Services.AddSingleton(applicationModel);
