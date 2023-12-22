@@ -39,17 +39,36 @@ public class GeneratorTests
     }
 
     [Theory]
-    [InlineData("", "")]
-    [InlineData("no namespace", "no namespace")]
-    [InlineData("no-namespace", "no-namespace")]
-    [InlineData("T:System.Uri", "'System.Uri'")]
-    [InlineData("T:Azure.Security.KeyVault.Secrets.KeyVaultSecretIdentifier", "'Azure.Security.KeyVault.Secrets.KeyVaultSecretIdentifier'")]
-    [InlineData("P:Azure.Security.KeyVault.Secrets.KeyVaultSecretIdentifier.VaultUri", "'Azure.Security.KeyVault.Secrets.KeyVaultSecretIdentifier.VaultUri'")]
-    [InlineData("https://aka.ms/azsdk/blog/vault-uri", "https://aka.ms/azsdk/blog/vault-uri")]
-    public void ShouldTrimAndSanitize(string input, string expected)
+    [InlineData("T:System.Int32")]
+    [InlineData("T:system.int32")]
+    [InlineData("T:Azure.Response`1")]
+    [InlineData("T:azure.response`1")]
+    [InlineData("M:System.Module")]
+    [InlineData("M:system.module")]
+    [InlineData("M:System.Module`1")]
+    [InlineData("M:system.module`1")]
+    [InlineData("M:<>__c")]
+    [InlineData("M:<>__C")]
+    [InlineData("P:<Tracing>k__BackingField")]
+    [InlineData("P:Azure.Security.KeyVault.Secrets.KeyVaultSecretIdentifier.VaultUri")]
+    [InlineData("P:azure.Security.keyVault.Secrets.KeyVaultSecretIdentifier.VaultUri")]
+    public void MatchesXmlDocumentMemberTypePattern(string input)
     {
-        var result = ConfigSchemaEmitter.ReplaceMemberTypePrefixIfNecessary(input);
+        Assert.Matches(ConfigSchemaEmitter.XmlDocumentMemberType(), input);
+    }
 
-        Assert.Equal(expected, result);
+    [Theory]
+    [InlineData("")]
+    [InlineData("no namespace")]
+    [InlineData("no-namespace")]
+    [InlineData("( abcde )")]
+    [InlineData("TM:System.Int32")]
+    [InlineData("t:System.Int32")]
+    [InlineData("AAAAA:AAAAAA")]
+    [InlineData("     A:P    ")]
+    [InlineData("https://aka.ms/azsdk/blog/vault-uri")]
+    public void DoesNotMatchXmlDocumentMemberTypePattern(string input)
+    {
+        Assert.DoesNotMatch(ConfigSchemaEmitter.XmlDocumentMemberType(), input);
     }
 }

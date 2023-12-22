@@ -26,8 +26,8 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
     [GeneratedRegex(@"( *)\r?\n( *)")]
     private static partial Regex Indentation();
 
-    [GeneratedRegex(@"(?<memberType>[A-Z]):(?<memberName>[a-zA-Z0-9.]+)")]
-    private static partial Regex TypeOrPropertyPrefix();
+    [GeneratedRegex(@"^(?<memberType>[A-Z]):(?<memberName>[a-zA-Z0-9.`_<>]+)$")]
+    internal static partial Regex XmlDocumentMemberType();
 
     public string GenerateSchema()
     {
@@ -334,11 +334,11 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
         }
     }
 
-    internal static string ReplaceMemberTypePrefixIfNecessary(string value)
+    private static string ReplaceMemberTypePrefixIfNecessary(string value)
     {
         const string quotedName = "'{0}'";
 
-        return TypeOrPropertyPrefix().IsMatch(value) ?
+        return XmlDocumentMemberType().IsMatch(value) ?
             string.Format(CultureInfo.InvariantCulture, quotedName, value[2..]) : value;
     }
 
