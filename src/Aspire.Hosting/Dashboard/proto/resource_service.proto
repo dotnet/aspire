@@ -15,7 +15,6 @@ message ApplicationInformationRequest {
 
 message ApplicationInformationResponse {
     string application_name = 1;
-    string application_version = 2;
 }
 
 ////////////////////////////////////////////

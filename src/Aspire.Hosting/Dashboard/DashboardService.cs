@@ -25,8 +25,7 @@ internal sealed class DashboardService(DashboardServiceData serviceData, IHostEn
     {
         return Task.FromResult(new ApplicationInformationResponse
         {
-            ApplicationName = ComputeApplicationName(hostEnvironment.ApplicationName),
-            ApplicationVersion = "0.0.0" // TODO obtain correct version
+            ApplicationName = ComputeApplicationName(hostEnvironment.ApplicationName)
         });
 
         static string ComputeApplicationName(string applicationName)

@@ -35,7 +35,6 @@ internal sealed class DashboardClient(ILogger<DashboardClient> logger) : IDashbo
 
     private ImmutableHashSet<Channel<ResourceViewModelChange>> _outgoingChannels = [];
     private string? _applicationName;
-    private string? _applicationVersion;
 
     private const int StateNone = 0;
     private const int StateInitialized = 1;
@@ -148,7 +147,6 @@ internal sealed class DashboardClient(ILogger<DashboardClient> logger) : IDashbo
                 var response = await client.GetApplicationInformationAsync(new(), cancellationToken: cancellationToken);
 
                 _applicationName = response.ApplicationName;
-                _applicationVersion = response.ApplicationVersion;
 
                 _client.SetResult(client);
 
