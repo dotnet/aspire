@@ -34,7 +34,7 @@ public static class ExecutableResourceBuilderExtensions
     /// </summary>
     /// <typeparam name="T">Type of executable resource</typeparam>
     /// <param name="builder">Resource builder</param>
-    /// <returns></returns>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> AsDockerfileInManifest<T>(this IResourceBuilder<T> builder) where T : ExecutableResource
     {
         return builder.WithManifestPublishingCallback(context => WriteExecutableAsDockerfileResource(context, builder.Resource));
