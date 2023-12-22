@@ -21,6 +21,7 @@ public static class KnownProperties
         public const string Type = "resource.type";
         public const string DisplayName = "resource.displayName";
         public const string State = "resource.state";
+        public const string ExitCode = "resource.exitCode";
         public const string CreateTime = "resource.createTime";
     }
 

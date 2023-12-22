@@ -4,11 +4,10 @@
 @inject IStringLocalizer<Columns> Loc
 
 <div class="resource-state-container">
-    @if (Resource is { State: ResourceStates.ExitedState /* containers */ or ResourceStates.FinishedState /* executables */, ExitCode: not null and not 0 })
+    @if (Resource is { State: ResourceStates.ExitedState /* containers */ or ResourceStates.FinishedState /* executables */ } && Resource.TryGetExitCode(out int exitCode))
     {
         <!-- process completed unexpectedly, hence the non-zero code. this is almost certainly an error, so warn users -->
-        <FluentIcon
-            Title="@string.Format(Loc[Columns.StateColumnResourceExitedUnexpectedly], Resource.ResourceType, Resource.ExitCode)"
+        <FluentIcon Title="@string.Format(Loc[Columns.StateColumnResourceExitedUnexpectedly], Resource.ResourceType, exitCode)"
             Icon="Icons.Filled.Size16.ErrorCircle"
             Color="Color.Error"
             Class="severity-icon"/>

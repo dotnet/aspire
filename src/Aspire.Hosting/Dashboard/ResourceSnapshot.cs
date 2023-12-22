@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Immutable;
+using System.Globalization;
 using Aspire.Dashboard.Model;
 using Google.Protobuf.WellKnownTypes;
 
@@ -15,6 +16,7 @@ internal abstract class ResourceSnapshot
     public required string DisplayName { get; init; }
     public required string Uid { get; init; }
     public required string? State { get; init; }
+    public required int? ExitCode { get; init; }
     public required DateTime? CreationTimeStamp { get; init; }
     public required ImmutableArray<EnvironmentVariableSnapshot> Environment { get; init; }
     public required ImmutableArray<EndpointSnapshot> Endpoints { get; init; }
@@ -32,6 +34,7 @@ internal abstract class ResourceSnapshot
             yield return (KnownProperties.Resource.Type, Value.ForString(ResourceType));
             yield return (KnownProperties.Resource.DisplayName, Value.ForString(DisplayName));
             yield return (KnownProperties.Resource.State, Value.ForString(State));
+            yield return (KnownProperties.Resource.ExitCode, ExitCode is null ? Value.ForNull() : Value.ForString(ExitCode.Value.ToString("N", CultureInfo.InvariantCulture)));
             yield return (KnownProperties.Resource.CreateTime, CreationTimeStamp is null ? Value.ForNull() : Value.ForString(CreationTimeStamp.Value.ToString("O")));
 
             foreach (var pair in GetProperties())

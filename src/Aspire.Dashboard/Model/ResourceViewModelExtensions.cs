@@ -34,6 +34,11 @@ internal static class ResourceViewModelExtensions
         return false;
     }
 
+    public static bool TryGetExitCode(this ResourceViewModel resource, out int exitCode)
+    {
+        return resource.TryGetCustomDataInt(KnownProperties.Resource.ExitCode, out exitCode);
+    }
+
     public static bool TryGetContainerId(this ResourceViewModel resource, [NotNullWhen(returnValue: true)] out string? containerId)
     {
         return resource.TryGetCustomDataString(KnownProperties.Container.Id, out containerId);

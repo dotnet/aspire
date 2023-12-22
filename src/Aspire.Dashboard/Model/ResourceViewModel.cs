@@ -15,7 +15,6 @@ public sealed class ResourceViewModel
     public required string DisplayName { get; init; }
     public required string Uid { get; init; }
     public required string? State { get; init; }
-    public required int? ExitCode { get; init; }
     public required DateTime? CreationTimeStamp { get; init; }
     public required ImmutableArray<EnvironmentVariableViewModel> Environment { get; init; }
     public required ImmutableArray<EndpointViewModel> Endpoints { get; init; }
