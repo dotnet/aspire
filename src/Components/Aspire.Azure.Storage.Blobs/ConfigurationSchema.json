@@ -151,7 +151,7 @@
                         },
                         "TrimBlobNameSlashes": {
                           "type": "boolean",
-                          "description": "Whether to trim leading and trailing slashes on a blob name when using M:Azure.Storage.Blobs.BlobContainerClient.GetBlobClient(System.String) and similar methods.\nDefaults to true for backwards compatibility."
+                          "description": "Whether to trim leading and trailing slashes on a blob name when using 'Azure.Storage.Blobs.BlobContainerClient.GetBlobClient(System.String)' and similar methods.\nDefaults to true for backwards compatibility."
                         }
                       },
                       "description": "Provides the client configuration options for connecting to Azure Blob\nStorage."

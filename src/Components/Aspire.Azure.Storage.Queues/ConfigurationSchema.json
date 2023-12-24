@@ -78,7 +78,7 @@
                             "None",
                             "Base64"
                           ],
-                          "description": "Gets or sets a message encoding that determines how 'Azure.Storage.Queues.Models.QueueMessage.Body' is represented in HTTP requests and responses.\nThe default is 'Azure.Storage.Queues.QueueMessageEncoding.None'."
+                          "description": "Gets or sets a message encoding that determines how 'Azure.Storage.Queues.Models.QueueMessage.Body' is represented in HTTP requests and responses.\nThe default is F:Azure.Storage.Queues.QueueMessageEncoding.None."
                         },
                         "Retry": {
                           "type": "object",

@@ -35,9 +35,6 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
     [GeneratedRegex(@"( *)\r?\n( *)")]
     private static partial Regex Indentation();
 
-    [GeneratedRegex(@"^(?<memberType>[A-Z]):(?<memberName>[a-zA-Z0-9.`_<>]+)$")]
-    internal static partial Regex XmlDocumentMemberType();
-
     public string GenerateSchema()
     {
         var root = new JsonObject();
@@ -245,7 +242,6 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
             foreach (var node in StripXmlElements(summary))
             {
                 var value = node.ToString().Trim();
-                value = ReplaceMemberTypePrefixIfNecessary(value);
                 AppendSpaceIfNecessary(builder, value);
                 AppendUnindentedValue(builder, value);
             }
@@ -298,8 +294,13 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
         });
     }
 
-    private static IEnumerable<XNode> StripXmlElements(XElement element)
+    internal static IEnumerable<XNode> StripXmlElements(XElement element)
     {
+        const string typePrefix = "T:";
+        const string methodPrefix = "M:";
+        const string propertyPrefix = "P:";
+        const string quotedFormat = "'{0}'";
+
         if (element.Nodes().Any())
         {
             return StripXmlElements((XContainer)element);
@@ -309,7 +310,19 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
             // just get the first attribute value
             // ex. <see cref="System.Diagnostics.Debug.Assert(bool)"/>
             // ex. <see langword="true"/>
-            return [new XText(element.FirstAttribute.Value)];
+            var attributeValue = element.FirstAttribute.Value;
+
+            // format the attribute value only if its a Type, Method or Property.
+            // i.e., is prefixed with 'T:', 'M:', or, 'P:' in the xml.
+            var formattedValue = attributeValue switch
+            {
+                var s when s.StartsWith(typePrefix, StringComparison.Ordinal) => string.Format(CultureInfo.InvariantCulture, quotedFormat, s[2..]),
+                var s when s.StartsWith(methodPrefix, StringComparison.Ordinal) => string.Format(CultureInfo.InvariantCulture, quotedFormat, s[2..]),
+                var s when s.StartsWith(propertyPrefix, StringComparison.Ordinal) => string.Format(CultureInfo.InvariantCulture, quotedFormat, s[2..]),
+                _ => attributeValue,
+            };
+
+            return [new XText(formattedValue)];
         }
 
         return Enumerable.Empty<XNode>();
@@ -333,14 +346,6 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
                 builder.Append(' ');
             }
         }
-    }
-
-    private static string ReplaceMemberTypePrefixIfNecessary(string value)
-    {
-        const string quotedName = "'{0}'";
-
-        return XmlDocumentMemberType().IsMatch(value) ?
-            string.Format(CultureInfo.InvariantCulture, quotedName, value[2..]) : value;
     }
 
     internal static void AppendUnindentedValue(StringBuilder builder, string value)

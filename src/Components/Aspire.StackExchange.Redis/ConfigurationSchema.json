@@ -38,7 +38,7 @@
                       "properties": {
                         "UseImplicitAutoPattern": {
                           "type": "boolean",
-                          "description": "Indicates whether channels should use 'StackExchange.Redis.RedisChannel.PatternMode.Auto' when no 'StackExchange.Redis.RedisChannel.PatternMode' is specified; this is enabled by default, but can be disabled to avoid unexpected wildcard scenarios."
+                          "description": "Indicates whether channels should use F:StackExchange.Redis.RedisChannel.PatternMode.Auto when no 'StackExchange.Redis.RedisChannel.PatternMode' is specified; this is enabled by default, but can be disabled to avoid unexpected wildcard scenarios."
                         }
                       },
                       "description": "Automatically encodes and decodes channels."
@@ -69,7 +69,7 @@
                     },
                     "DefaultDatabase": {
                       "type": "integer",
-                      "description": "Specifies the default database to be used when calling M:StackExchange.Redis.ConnectionMultiplexer.GetDatabase(System.Int32,System.Object) without any parameters."
+                      "description": "Specifies the default database to be used when calling 'StackExchange.Redis.ConnectionMultiplexer.GetDatabase(System.Int32,System.Object)' without any parameters."
                     },
                     "DefaultVersion": {
                       "type": "string",
@@ -113,7 +113,7 @@
                         "Twemproxy",
                         "Envoyproxy"
                       ],
-                      "description": "Type of proxy to use (if any); for example 'StackExchange.Redis.Proxy.Twemproxy'."
+                      "description": "Type of proxy to use (if any); for example F:StackExchange.Redis.Proxy.Twemproxy."
                     },
                     "ResolveDns": {
                       "type": "boolean",

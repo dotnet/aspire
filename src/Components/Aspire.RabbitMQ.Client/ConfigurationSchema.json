@@ -87,7 +87,7 @@
                         "Packet",
                         "ControllerAreaNetwork"
                       ],
-                      "description": "Address family used by default.\nUse 'System.Net.Sockets.AddressFamily.InterNetwork' to force to IPv4.\nUse 'System.Net.Sockets.AddressFamily.InterNetworkV6' to force to IPv6.\nOr use 'System.Net.Sockets.AddressFamily.Unknown' to attempt both IPv6 and IPv4."
+                      "description": "Address family used by default.\nUse F:System.Net.Sockets.AddressFamily.InterNetwork to force to IPv4.\nUse F:System.Net.Sockets.AddressFamily.InterNetworkV6 to force to IPv6.\nOr use F:System.Net.Sockets.AddressFamily.Unknown to attempt both IPv6 and IPv4."
                     },
                     "DefaultAmqpUriSslProtocols": {
                       "enum": [
@@ -145,7 +145,7 @@
                             "Packet",
                             "ControllerAreaNetwork"
                           ],
-                          "description": "Used to force the address family of the endpoint.\nUse 'System.Net.Sockets.AddressFamily.InterNetwork' to force to IPv4.\nUse 'System.Net.Sockets.AddressFamily.InterNetworkV6' to force to IPv6.\nOr use 'System.Net.Sockets.AddressFamily.Unknown' to attempt both IPv6 and IPv4."
+                          "description": "Used to force the address family of the endpoint.\nUse F:System.Net.Sockets.AddressFamily.InterNetwork to force to IPv4.\nUse F:System.Net.Sockets.AddressFamily.InterNetworkV6 to force to IPv6.\nOr use F:System.Net.Sockets.AddressFamily.Unknown to attempt both IPv6 and IPv4."
                         },
                         "HostName": {
                           "type": "string",
@@ -198,7 +198,7 @@
                                 "Tls12",
                                 "Tls13"
                               ],
-                              "description": "Retrieve or set the TLS protocol version.\nThe client will let the OS pick a suitable version by using 'System.Security.Authentication.SslProtocols.None' .\nIf this option is disabled, e.g.see via app context, the client will attempt to fall back\nto TLSv1.2."
+                              "description": "Retrieve or set the TLS protocol version.\nThe client will let the OS pick a suitable version by using F:System.Security.Authentication.SslProtocols.None .\nIf this option is disabled, e.g.see via app context, the client will attempt to fall back\nto TLSv1.2."
                             }
                           },
                           "description": "Retrieve the TLS options for this AmqpTcpEndpoint. If not set, null is returned."
@@ -230,7 +230,7 @@
                     },
                     "Port": {
                       "type": "integer",
-                      "description": "The port to connect on. 'RabbitMQ.Client.AmqpTcpEndpoint.UseDefaultPort' indicates the default for the protocol should be used."
+                      "description": "The port to connect on. F:RabbitMQ.Client.AmqpTcpEndpoint.UseDefaultPort indicates the default for the protocol should be used."
                     },
                     "RequestedChannelMax": {
                       "type": "integer",
@@ -303,7 +303,7 @@
                             "Tls12",
                             "Tls13"
                           ],
-                          "description": "Retrieve or set the TLS protocol version.\nThe client will let the OS pick a suitable version by using 'System.Security.Authentication.SslProtocols.None' .\nIf this option is disabled, e.g.see via app context, the client will attempt to fall back\nto TLSv1.2."
+                          "description": "Retrieve or set the TLS protocol version.\nThe client will let the OS pick a suitable version by using F:System.Security.Authentication.SslProtocols.None .\nIf this option is disabled, e.g.see via app context, the client will attempt to fall back\nto TLSv1.2."
                         }
                       },
                       "description": "TLS options setting."

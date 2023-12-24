@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text;
+using System.Xml;
+using System.Xml.Linq;
 using Xunit;
 
 namespace ConfigurationSchemaGenerator.Tests;
@@ -39,36 +41,53 @@ public class GeneratorTests
     }
 
     [Theory]
-    [InlineData("T:System.Int32")]
-    [InlineData("T:system.int32")]
-    [InlineData("T:Azure.Response`1")]
-    [InlineData("T:azure.response`1")]
-    [InlineData("M:System.Module")]
-    [InlineData("M:system.module")]
-    [InlineData("M:System.Module`1")]
-    [InlineData("M:system.module`1")]
-    [InlineData("M:<>__c")]
-    [InlineData("M:<>__C")]
-    [InlineData("P:<Tracing>k__BackingField")]
-    [InlineData("P:Azure.Security.KeyVault.Secrets.KeyVaultSecretIdentifier.VaultUri")]
-    [InlineData("P:azure.Security.keyVault.Secrets.KeyVaultSecretIdentifier.VaultUri")]
-    public void MatchesXmlDocumentMemberTypePattern(string input)
+    [InlineData("<see cref=\"T:System.Uri\"/>", "'System.Uri'")]
+    [InlineData("<see cref=\"T:Azure.Core.Extensions.IAzureClientBuilder`2\"/>", "'Azure.Core.Extensions.IAzureClientBuilder`2'")]
+    [InlineData("<see cref=\"P:Aspire.Azure.Storage.Blobs.AzureStorageBlobsSettings.ConnectionString\"/>", "'Aspire.Azure.Storage.Blobs.AzureStorageBlobsSettings.ConnectionString'")]
+    [InlineData("<see cref=\"M:System.Diagnostics.Debug.Assert(bool)\"/>", "'System.Diagnostics.Debug.Assert(bool)'")]
+    [InlineData("<exception cref=\"T:System.InvalidOperationException\" />", "'System.InvalidOperationException'")]
+    public void StripXmlElementsShouldFormatCrefAttributes(string input, string expected)
     {
-        Assert.Matches(ConfigSchemaEmitter.XmlDocumentMemberType(), input);
+        var bytes = Encoding.UTF8.GetBytes(input);
+        using Stream stream = new MemoryStream(bytes);
+        using var reader = XmlReader.Create(stream);
+        reader.MoveToContent();
+        var node = (XElement)XNode.ReadFrom(reader);
+        var stripedNodes = ConfigSchemaEmitter.StripXmlElements(node);
+
+        var first = stripedNodes.First();
+        Assert.Equal(expected, first.ToString().Trim());
     }
 
     [Theory]
-    [InlineData("")]
-    [InlineData("no namespace")]
-    [InlineData("no-namespace")]
-    [InlineData("( abcde )")]
-    [InlineData("TM:System.Int32")]
-    [InlineData("t:System.Int32")]
-    [InlineData("AAAAA:AAAAAA")]
-    [InlineData("     A:P    ")]
-    [InlineData("https://aka.ms/azsdk/blog/vault-uri")]
-    public void DoesNotMatchXmlDocumentMemberTypePattern(string input)
+    [InlineData("<see href=\"https://aka.ms/azsdk/blog/vault-uri\"/>", "https://aka.ms/azsdk/blog/vault-uri")]
+    [InlineData("<see langword=\"true\"/>", "true")]
+    public void StripXmlElementsShouldNotFormatNonCrefAttributes(string input, string expected)
     {
-        Assert.DoesNotMatch(ConfigSchemaEmitter.XmlDocumentMemberType(), input);
+        var bytes = Encoding.UTF8.GetBytes(input);
+        using Stream stream = new MemoryStream(bytes);
+        using var reader = XmlReader.Create(stream);
+        reader.MoveToContent();
+        var node = (XElement)XNode.ReadFrom(reader);
+        var stripedNodes = ConfigSchemaEmitter.StripXmlElements(node);
+
+        var first = stripedNodes.First();
+        Assert.Equal(expected, first.ToString().Trim());
+    }
+
+    [Theory]
+    [InlineData("<param name=\"connectionName\">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>", "A name used to retrieve the connection string from the ConnectionStrings configuration section.")]
+    [InlineData("<paramref name=\"name\"/>", "name")]
+    public void StripXmlElementsShouldNotFormatMiscAttributes(string input, string expected)
+    {
+        var bytes = Encoding.UTF8.GetBytes(input);
+        using Stream stream = new MemoryStream(bytes);
+        using var reader = XmlReader.Create(stream);
+        reader.MoveToContent();
+        var node = (XElement)XNode.ReadFrom(reader);
+        var stripedNodes = ConfigSchemaEmitter.StripXmlElements(node);
+
+        var first = stripedNodes.First();
+        Assert.Equal(expected, first.ToString().Trim());
     }
 }
