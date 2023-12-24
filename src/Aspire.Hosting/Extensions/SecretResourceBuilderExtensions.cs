@@ -35,7 +35,7 @@ public static class SecretResourceBuilderExtensions
         context.Writer.WriteStartObject("inputs");
         context.Writer.WriteStartObject("value");
         context.Writer.WriteString("type", "string");
-        context.Writer.WriteString("secret", "true");
+        context.Writer.WriteBoolean("secret", true);
         context.Writer.WriteEndObject();
         context.Writer.WriteEndObject();
     }
