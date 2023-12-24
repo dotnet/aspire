@@ -170,7 +170,7 @@ public class DistributedApplicationTests
 
         foreach (var item in appModel.Resources)
         {
-            if ((item is ContainerResource || item is ProjectResource || item is ExecutableResource) && item.TryGetServiceBindings(out _))
+            if ((item is ContainerResource || item is ProjectResource || item is ExecutableResource) && item.TryGetEndpoints(out _))
             {
                 Assert.True(item.TryGetAllocatedEndPoints(out var endpoints));
                 Assert.NotEmpty(endpoints);
@@ -266,17 +266,17 @@ public class DistributedApplicationTests
     }
 
     [LocalOnlyFact("docker")]
-    public async Task SpecifyingEnvPortInServiceBindingFlowsToEnv()
+    public async Task SpecifyingEnvPortInEndpointFlowsToEnv()
     {
         var testProgram = CreateTestProgram(includeNodeApp: true);
 
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
         testProgram.ServiceABuilder
-            .WithServiceBinding(scheme: "http", name: "http0", env: "PORT0");
+            .WithEndpoint(scheme: "http", name: "http0", env: "PORT0");
 
         testProgram.AppBuilder.AddContainer("redis0", "redis")
-            .WithServiceBinding(containerPort: 6379, name: "tcp", env: "REDIS_PORT");
+            .WithEndpoint(containerPort: 6379, name: "tcp", env: "REDIS_PORT");
 
         await using var app = testProgram.Build();
 

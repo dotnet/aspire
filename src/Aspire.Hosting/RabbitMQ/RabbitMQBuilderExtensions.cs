@@ -25,8 +25,8 @@ public static class RabbitMQBuilderExtensions
         password ??= Guid.NewGuid().ToString("N");
         var rabbitMq = new RabbitMQContainerResource(name, password);
         return builder.AddResource(rabbitMq)
-                       .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, port: port, containerPort: 5672))
-                       .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, uriScheme: "http", name: "management", port: null, containerPort: 15672))
+                       .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 5672))
+                       .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, uriScheme: "http", name: "management", port: null, containerPort: 15672))
                        .WithAnnotation(new ContainerImageAnnotation { Image = "rabbitmq", Tag = "3-management" })
                        .WithManifestPublishingCallback(context => WriteRabbitMQContainerToManifest(context, rabbitMq))
                        .WithEnvironment("RABBITMQ_DEFAULT_USER", "guest")
@@ -55,8 +55,8 @@ public static class RabbitMQBuilderExtensions
         var password = Guid.NewGuid().ToString("N");
         var rabbitMq = new RabbitMQServerResource(name, password);
         return builder.AddResource(rabbitMq)
-                       .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, containerPort: 5672))
-                       .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, uriScheme: "http", name: "management", port: null, containerPort: 15672))
+                       .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, containerPort: 5672))
+                       .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, uriScheme: "http", name: "management", port: null, containerPort: 15672))
                        .WithAnnotation(new ContainerImageAnnotation { Image = "rabbitmq", Tag = "3-management" })
                        .WithManifestPublishingCallback(WriteRabbitMQServerToManifest)
                        .WithEnvironment("RABBITMQ_DEFAULT_USER", "guest")

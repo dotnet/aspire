@@ -14,7 +14,7 @@ public class WithEnvironmentTests
         var testProgram = CreateTestProgram();
 
         // Create a binding and its metching annotation (simulating DCP behavior)
-        testProgram.ServiceABuilder.WithServiceBinding(1000, 2000, "https", "mybinding");
+        testProgram.ServiceABuilder.WithEndpoint(1000, 2000, "https", "mybinding");
         testProgram.ServiceABuilder.WithAnnotation(
             new AllocatedEndpointAnnotation("mybinding",
             ProtocolType.Tcp,

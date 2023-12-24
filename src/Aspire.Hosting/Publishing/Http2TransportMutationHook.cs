@@ -13,7 +13,7 @@ internal sealed class Http2TransportMutationHook : IDistributedApplicationLifecy
         foreach (var resource in appModel.Resources)
         {
             var isHttp2Service = resource.Annotations.OfType<Http2ServiceAnnotation>().Any();
-            var httpBindings = resource.Annotations.OfType<ServiceBindingAnnotation>().Where(sb => sb.UriScheme == "http" || sb.UriScheme == "https");
+            var httpBindings = resource.Annotations.OfType<EndpointAnnotation>().Where(sb => sb.UriScheme == "http" || sb.UriScheme == "https");
             foreach (var httpBinding in httpBindings)
             {
                 httpBinding.Transport = isHttp2Service ? "http2" : httpBinding.Transport;
