@@ -37,7 +37,11 @@
                         <ChildContent>
                             @foreach (var meterGroup in _instruments.GroupBy(i => i.Parent).OrderBy(g => g.Key.MeterName))
                             {
-                                <FluentTreeItem @key="meterGroup.Key" Text="@meterGroup.Key.MeterName" Data="@meterGroup.Key" title="@meterGroup.Key.MeterName" InitiallyExpanded="true" InitiallySelected="@(_selectedInstrument == null && meterGroup.Key.MeterName == _selectedMeter?.MeterName)">
+                                // Track whether a child instrument is selected for a meter.
+                                // This value is used in the meter item key to force the item to refresh when a child is selected.
+                                var childSelected = meterGroup.Key.MeterName == _selectedInstrument?.Parent.MeterName;
+
+                                <FluentTreeItem @key="(meterGroup.Key, childSelected)" Text="@meterGroup.Key.MeterName" Data="@meterGroup.Key" title="@meterGroup.Key.MeterName" InitiallyExpanded="true" InitiallySelected="@(_selectedInstrument == null && meterGroup.Key.MeterName == _selectedMeter?.MeterName)">
                                     @foreach (var instrument in meterGroup.OrderBy(i => i.Name))
                                     {
                                         <FluentTreeItem @key="instrument" Class="nested" Text="@instrument.Name" Data="@instrument" title="@instrument.Name" InitiallySelected="@(instrument.Name == _selectedInstrument?.Name && instrument.Parent.MeterName == _selectedMeter?.MeterName)" />
