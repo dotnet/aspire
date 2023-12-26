@@ -14,9 +14,14 @@ var basketService = builder.AddProject("basketservice", @"..\BasketService\Baske
                     .WithReference(basketCache)
                     .WithReference(messaging);
 
+var endpoint = catalogService.GetEndpoint("http");
+
 builder.AddProject<Projects.MyFrontend>("frontend")
        .WithReference(basketService)
-       .WithReference(catalogService.GetEndpoint("http"));
+       .WithReference(endpoint)
+       .WithEnvironment("ENV_DB", $"{catalogDb}")
+       .WithEnvironment("ENV_URI", $"{endpoint}")
+       .WithEnvironment("ENV_DBCONN", $"{catalogDb.Resource}");
 
 builder.AddProject<Projects.OrderProcessor>("orderprocessor")
        .WithReference(messaging)
