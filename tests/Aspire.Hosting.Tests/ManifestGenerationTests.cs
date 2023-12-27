@@ -168,6 +168,27 @@ public class ManifestGenerationTests
     }
 
     [Fact]
+    public void EnsureContainerWithCustomEntrypointEmitsEntrypoint()
+    {
+        var program = CreateTestProgramJsonDocumentManifestPublisher();
+
+        var container = program.AppBuilder.AddContainer("grafana", "grafana/grafana");
+        container.Resource.Entrypoint = "custom";
+
+        // Build AppHost so that publisher can be resolved.
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+
+        var grafana = resources.GetProperty("grafana");
+        var entrypoint = grafana.GetProperty("entrypoint");
+        Assert.Equal("custom", entrypoint.GetString());
+    }
+
+    [Fact]
     public void EnsureAllRedisManifestTypesHaveVersion0Suffix()
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher();

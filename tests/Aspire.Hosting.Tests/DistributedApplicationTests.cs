@@ -7,7 +7,6 @@ using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Tests.Helpers;
-using k8s.Models;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -284,31 +283,16 @@ public class DistributedApplicationTests
 
         await app.StartAsync();
 
-        async Task<T> GetResourceByNameAsync<T>(string resourceName, Func<T, bool> ready, CancellationToken cancellationToken) where T : CustomResource
-        {
-            await foreach (var (_, r) in kubernetes!.WatchAsync<T>(cancellationToken: cancellationToken))
-            {
-                var name = r.Name();
-
-                if ((name == resourceName || name.StartsWith(resourceName + "-", StringComparison.Ordinal)) && ready(r))
-                {
-                    return r;
-                }
-            }
-
-            throw new InvalidOperationException($"Resource {resourceName}, not ready");
-        }
-
         using var cts = new CancellationTokenSource(Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(10));
         var token = cts.Token;
 
-        var redisContainer = await GetResourceByNameAsync<Container>("redis0", r => r.Status?.EffectiveEnv is not null, token);
+        var redisContainer = await KubernetesHelper.GetResourceByNameAsync<Container>(kubernetes, "redis0", r => r.Status?.EffectiveEnv is not null, token);
         Assert.NotNull(redisContainer);
 
-        var serviceA = await GetResourceByNameAsync<Executable>("servicea", r => r.Status?.EffectiveEnv is not null, token);
+        var serviceA = await KubernetesHelper.GetResourceByNameAsync<Executable>(kubernetes, "servicea", r => r.Status?.EffectiveEnv is not null, token);
         Assert.NotNull(serviceA);
 
-        var nodeApp = await GetResourceByNameAsync<Executable>("nodeapp", r => r.Status?.EffectiveEnv is not null, token);
+        var nodeApp = await KubernetesHelper.GetResourceByNameAsync<Executable>(kubernetes, "nodeapp", r => r.Status?.EffectiveEnv is not null, token);
         Assert.NotNull(nodeApp);
 
         string? GetEnv(IEnumerable<EnvVar>? envVars, string name)
@@ -330,6 +314,33 @@ public class DistributedApplicationTests
         var nodeAppPortValue = GetEnv(nodeApp.Status!.EffectiveEnv, "PORT");
         Assert.False(string.IsNullOrEmpty(nodeAppPortValue));
         Assert.NotEqual(0, int.Parse(nodeAppPortValue, CultureInfo.InvariantCulture));
+
+        await app.StopAsync();
+    }
+
+    [LocalOnlyFact("docker")]
+    public async Task VerifyDockerWithEntrypointWorks()
+    {
+        var testProgram = CreateTestProgram();
+        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+
+        testProgram.AppBuilder.AddContainer("redis-cli", "redis")
+            .WithEntrypoint("bob");
+
+        await using var app = testProgram.Build();
+
+        await app.StartAsync();
+
+        var s = app.Services.GetRequiredService<KubernetesService>();
+
+        using var cts = new CancellationTokenSource(Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(10));
+        var token = cts.Token;
+
+        var redisContainer = await KubernetesHelper.GetResourceByNameAsync<Container>(s, "redis-cli", r => r.Status?.EffectiveEnv is not null, token);
+
+        Assert.NotNull(redisContainer);
+        Assert.Equal("redis:latest", redisContainer.Spec.Image);
+        Assert.Equal("bob", redisContainer.Spec.Command);
 
         await app.StopAsync();
     }
