@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Globalization;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -17,6 +18,15 @@ namespace ConfigurationSchemaGenerator;
 
 internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation compilation)
 {
+    private static readonly JsonSerializerOptions s_serializerOptions = new()
+    {
+        WriteIndented = true,
+        // ensure the properties are ordered correctly
+        Converters = { SchemaOrderJsonNodeConverter.Instance },
+        // prevent known escaped characters from being \uxxxx encoded
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    };
+
     private readonly TypeIndex _typeIndex = new TypeIndex(spec.AllTypes);
     private readonly Compilation _compilation = compilation;
     private readonly Stack<TypeSpec> _visitedTypes = new();
@@ -32,15 +42,7 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
         root["properties"] = GenerateGraph();
         root["type"] = "object";
 
-        var options = new JsonSerializerOptions()
-        {
-            WriteIndented = true,
-            // ensure the properties are ordered correctly
-            Converters = { SchemaOrderJsonNodeConverter.Instance },
-            // prevent known escaped characters from being \uxxxx encoded
-            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
-        };
-        return JsonSerializer.Serialize(root, options);
+        return JsonSerializer.Serialize(root, s_serializerOptions);
     }
 
     private void GenerateLogCategories(JsonObject parent)
@@ -292,8 +294,13 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
         });
     }
 
-    private static IEnumerable<XNode> StripXmlElements(XElement element)
+    internal static IEnumerable<XNode> StripXmlElements(XElement element)
     {
+        const string typePrefix = "T:";
+        const string methodPrefix = "M:";
+        const string propertyPrefix = "P:";
+        const string quotedFormat = "'{0}'";
+
         if (element.Nodes().Any())
         {
             return StripXmlElements((XContainer)element);
@@ -303,7 +310,19 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
             // just get the first attribute value
             // ex. <see cref="System.Diagnostics.Debug.Assert(bool)"/>
             // ex. <see langword="true"/>
-            return [new XText(element.FirstAttribute.Value)];
+            var attributeValue = element.FirstAttribute.Value;
+
+            // format the attribute value only if its a Type, Method or Property.
+            // i.e., is prefixed with 'T:', 'M:', or, 'P:' in the xml.
+            var formattedValue = attributeValue switch
+            {
+                var s when s.StartsWith(typePrefix, StringComparison.Ordinal) => string.Format(CultureInfo.InvariantCulture, quotedFormat, s[2..]),
+                var s when s.StartsWith(methodPrefix, StringComparison.Ordinal) => string.Format(CultureInfo.InvariantCulture, quotedFormat, s[2..]),
+                var s when s.StartsWith(propertyPrefix, StringComparison.Ordinal) => string.Format(CultureInfo.InvariantCulture, quotedFormat, s[2..]),
+                _ => attributeValue,
+            };
+
+            return [new XText(formattedValue)];
         }
 
         return Enumerable.Empty<XNode>();

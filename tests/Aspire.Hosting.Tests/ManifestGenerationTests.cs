@@ -32,7 +32,7 @@ public class ManifestGenerationTests
     public void EnsureExecutablesWithDockerfileProduceDockerfilev0Manifest()
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher(includeNodeApp: true);
-        program.NodeAppBuilder!.WithServiceBinding(containerPort: 3000, scheme: "https", env: "HTTPS_PORT")
+        program.NodeAppBuilder!.WithEndpoint(containerPort: 3000, scheme: "https", env: "HTTPS_PORT")
             .AsDockerfileInManifest();
 
         // Build AppHost so that publisher can be resolved.
@@ -62,12 +62,12 @@ public class ManifestGenerationTests
     }
 
     [Fact]
-    public void EnsureContainerWithServiceBindingsEmitsContainerPort()
+    public void EnsureContainerWithEndpointsEmitsContainerPort()
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher();
 
         program.AppBuilder.AddContainer("grafana", "grafana/grafana")
-                          .WithServiceBinding(3000, scheme: "http");
+                          .WithEndpoint(3000, scheme: "http");
 
         // Build AppHost so that publisher can be resolved.
         program.Build();
@@ -352,9 +352,9 @@ public class ManifestGenerationTests
         var program = CreateTestProgramJsonDocumentManifestPublisher();
 
         program.AppBuilder.AddNodeApp("nodeapp", "..\\foo\\app.js")
-            .WithServiceBinding(hostPort: 5031, scheme: "http", env: "PORT");
+            .WithEndpoint(hostPort: 5031, scheme: "http", env: "PORT");
         program.AppBuilder.AddNpmApp("npmapp", "..\\foo")
-            .WithServiceBinding(hostPort: 5032, scheme: "http", env: "PORT");
+            .WithEndpoint(hostPort: 5032, scheme: "http", env: "PORT");
 
         // Build AppHost so that publisher can be resolved.
         program.Build();

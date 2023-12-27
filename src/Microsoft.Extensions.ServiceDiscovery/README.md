@@ -205,7 +205,7 @@ With the configuration-based endpoint resolver, named endpoints can be specified
 var builder = DistributedApplication.CreateBuilder(args);
 
 var basket = builder.AddProject<Projects.BasketService>("basket")
-    .WithServiceBinding(hostPort: 9999, scheme: "http", name: "admin");
+    .WithEndpoint(hostPort: 9999, scheme: "http", name: "admin");
 
 var adminDashboard = builder.AddProject<Projects.MyDashboardAggregator>("admin-dashboard")
        .WithReference(basket.GetEndPoint("admin"));

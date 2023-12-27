@@ -64,6 +64,7 @@ else
                                                 <FluentCheckbox Label="All"
                                                                 ThreeState="true"
                                                                 ShowIndeterminate="false"
+                                                                ThreeStateOrderUncheckToIntermediate="true"
                                                                 @bind-CheckState="context.AreAllValuesSelected" />
                                                 @foreach (var tag in context.Values)
                                                 {

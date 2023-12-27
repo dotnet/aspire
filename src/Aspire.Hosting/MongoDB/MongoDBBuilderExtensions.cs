@@ -32,7 +32,7 @@ public static class MongoDBBuilderExtensions
         return builder
             .AddResource(mongoDBContainer)
             .WithManifestPublishingCallback(context => WriteMongoDBContainerToManifest(context, mongoDBContainer))
-            .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, port: port, containerPort: DefaultContainerPort)) // Internal port is always 27017.
+            .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: DefaultContainerPort)) // Internal port is always 27017.
             .WithAnnotation(new ContainerImageAnnotation { Image = "mongo", Tag = "latest" });
     }
 
@@ -52,7 +52,7 @@ public static class MongoDBBuilderExtensions
         return builder
             .AddResource(mongoDBContainer)
             .WithManifestPublishingCallback(WriteMongoDBServerToManifest)
-            .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, containerPort: DefaultContainerPort)) // Internal port is always 27017.
+            .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, containerPort: DefaultContainerPort)) // Internal port is always 27017.
             .WithAnnotation(new ContainerImageAnnotation { Image = "mongo", Tag = "latest" });
     }
 

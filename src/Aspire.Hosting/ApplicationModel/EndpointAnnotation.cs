@@ -7,15 +7,15 @@ using System.Net.Sockets;
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// Represents a service binding annotation that describes how a service should be bound to a network.
+/// Represents a endpoint annotation that describes how a service should be bound to a network.
 /// </summary>
 /// <remarks>
 /// This class is used to specify the network protocol, port, URI scheme, transport, and other details for a service.
 /// </remarks>
 [DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}")]
-public sealed class ServiceBindingAnnotation : IResourceAnnotation
+public sealed class EndpointAnnotation : IResourceAnnotation
 {
-    public ServiceBindingAnnotation(ProtocolType protocol, string? uriScheme = null, string? transport = null, string? name = null, int? port = null, int? containerPort = null, bool? isExternal = null, string? env = null)
+    public EndpointAnnotation(ProtocolType protocol, string? uriScheme = null, string? transport = null, string? name = null, int? port = null, int? containerPort = null, bool? isExternal = null, string? env = null)
     {
         // If the URI scheme is null, we'll adopt either udp:// or tcp:// based on the
         // protocol. If the name is null, we'll use the URI scheme as the default. This
@@ -66,12 +66,12 @@ public sealed class ServiceBindingAnnotation : IResourceAnnotation
     public string Transport { get; internal set; }
 
     /// <summary>
-    /// Indicates that this service binding should be exposed externally at publish time.
+    /// Indicates that this endpoint should be exposed externally at publish time.
     /// </summary>
     public bool IsExternal { get; internal set; }
 
     /// <summary>
-    /// The name of the environment variable that will be set to the port number of this service binding.
+    /// The name of the environment variable that will be set to the port number of this endpoint.
     /// </summary>
     public string? EnvironmentVariable { get; internal set; }
 }

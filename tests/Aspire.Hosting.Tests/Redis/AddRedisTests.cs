@@ -25,14 +25,14 @@ public class AddRedisTests
         var manifestAnnotation = Assert.Single(containerResource.Annotations.OfType<ManifestPublishingCallbackAnnotation>());
         Assert.NotNull(manifestAnnotation.Callback);
 
-        var serviceBinding = Assert.Single(containerResource.Annotations.OfType<ServiceBindingAnnotation>());
-        Assert.Equal(6379, serviceBinding.ContainerPort);
-        Assert.False(serviceBinding.IsExternal);
-        Assert.Equal("tcp", serviceBinding.Name);
-        Assert.Null(serviceBinding.Port);
-        Assert.Equal(ProtocolType.Tcp, serviceBinding.Protocol);
-        Assert.Equal("tcp", serviceBinding.Transport);
-        Assert.Equal("tcp", serviceBinding.UriScheme);
+        var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
+        Assert.Equal(6379, endpoint.ContainerPort);
+        Assert.False(endpoint.IsExternal);
+        Assert.Equal("tcp", endpoint.Name);
+        Assert.Null(endpoint.Port);
+        Assert.Equal(ProtocolType.Tcp, endpoint.Protocol);
+        Assert.Equal("tcp", endpoint.Transport);
+        Assert.Equal("tcp", endpoint.UriScheme);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
         Assert.Equal("latest", containerAnnotation.Tag);
@@ -56,14 +56,14 @@ public class AddRedisTests
         var manifestAnnotation = Assert.Single(containerResource.Annotations.OfType<ManifestPublishingCallbackAnnotation>());
         Assert.NotNull(manifestAnnotation.Callback);
 
-        var serviceBinding = Assert.Single(containerResource.Annotations.OfType<ServiceBindingAnnotation>());
-        Assert.Equal(6379, serviceBinding.ContainerPort);
-        Assert.False(serviceBinding.IsExternal);
-        Assert.Equal("tcp", serviceBinding.Name);
-        Assert.Equal(9813, serviceBinding.Port);
-        Assert.Equal(ProtocolType.Tcp, serviceBinding.Protocol);
-        Assert.Equal("tcp", serviceBinding.Transport);
-        Assert.Equal("tcp", serviceBinding.UriScheme);
+        var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
+        Assert.Equal(6379, endpoint.ContainerPort);
+        Assert.False(endpoint.IsExternal);
+        Assert.Equal("tcp", endpoint.Name);
+        Assert.Equal(9813, endpoint.Port);
+        Assert.Equal(ProtocolType.Tcp, endpoint.Protocol);
+        Assert.Equal("tcp", endpoint.Transport);
+        Assert.Equal("tcp", endpoint.UriScheme);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
         Assert.Equal("latest", containerAnnotation.Tag);
