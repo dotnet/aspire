@@ -28,6 +28,10 @@
       "UseRedisCache": {
         "longName": "use-redis-cache",
         "shortName": ""
+      },
+      "SkipSlnFile": {
+        "longName": "skip-sln-file",
+        "shortName": ""
       }
     },
     "usageExamples": [
