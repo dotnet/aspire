@@ -435,7 +435,8 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
         var launchProfile = launchSettings.Profiles[launchProfileName];
         if (!string.IsNullOrWhiteSpace(launchProfile.ApplicationUrl))
         {
-            if (executableResource.DcpResource is ExecutableReplicaSet)
+            // If the resource has multiple replicas, use generated port, else use the launch profile's applicationUrl.
+            if (executableResource.DcpResource is ExecutableReplicaSet ers && ers.Spec.Replicas > 1)
             {
                 var urls = executableResource.ServicesProduced.Select(sar =>
                 {
