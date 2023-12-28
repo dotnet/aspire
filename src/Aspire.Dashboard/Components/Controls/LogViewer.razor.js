@@ -36,7 +36,7 @@ export function addLogEntries(logEntries) {
             // logEntry.content should already be HTMLEncoded other than the <span>s produced
             // by the ANSI Control Sequence Parsing, so it should be safe to set innerHTML here
             content.innerHTML = logEntry.content;
-            
+
             if (logEntry.type === "Error") {
                 const stdErrorBadge = getStdErrorBadge();
                 // If there's a timestamp, we want to put the badge after it to keep timestamps
@@ -62,7 +62,7 @@ export function addLogEntries(logEntries) {
 }
 
 /**
- * 
+ *
  * @param {HTMLElement} container
  * @param {HTMLElement} row
  * @param {string} timestamp
@@ -124,11 +124,11 @@ function getStdErrorBadge() {
  * @returns {HTMLElement}
  */
 function createRowTemplate() {
-    
+
     const templateString = `
         <div class="line-row-container">
             <div class="line-row">
-                <span class="line-area">
+                <span class="line-area" role="log">
                     <span class="line-number"></span>
                     <span class="content"></span>
                 </span>

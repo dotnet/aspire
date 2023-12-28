@@ -157,5 +157,14 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("ConsoleLogsWatchingLogs", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Service log status.
+        /// </summary>
+        public static string LogStatusLabel {
+            get {
+                return ResourceManager.GetString("LogStatusLabel", resourceCulture);
+            }
+        }
     }
 }

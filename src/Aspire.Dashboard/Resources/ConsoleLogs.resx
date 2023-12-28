@@ -132,4 +132,7 @@
   <data name="ConsoleLogsUnknownState" xml:space="preserve">
     <value>Unknown state</value>
   </data>
+  <data name="LogStatusLabel" xml:space="preserve">
+    <value>Service log status</value>
+  </data>
 </root>
