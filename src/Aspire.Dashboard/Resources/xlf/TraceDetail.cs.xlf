@@ -27,6 +27,11 @@
         <target state="new">Resources</target>
         <note />
       </trans-unit>
+      <trans-unit id="TraceDetailShowSpanPropertiesButton">
+        <source>Back</source>
+        <target state="new">Back</target>
+        <note />
+      </trans-unit>
       <trans-unit id="TraceDetailTotalSpansHeader">
         <source>Total spans</source>
         <target state="new">Total spans</target>

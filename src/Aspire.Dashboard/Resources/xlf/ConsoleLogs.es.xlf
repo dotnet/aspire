@@ -57,6 +57,11 @@
         <target state="new">Watching logs...</target>
         <note />
       </trans-unit>
+      <trans-unit id="LogStatusLabel">
+        <source>Service log status</source>
+        <target state="new">Service log status</target>
+        <note />
+      </trans-unit>
     </body>
   </file>
 </xliff>
