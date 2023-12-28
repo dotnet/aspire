@@ -31,7 +31,7 @@
     <div class="page-content-area">
         @if (_instruments?.Count > 0)
         {
-            <FluentSplitter Style="height:100%" Panel1Size="2fr" Panel2Size="8fr">
+            <FluentSplitter Style="height:100%" Panel1Size="2fr" Panel2Size="8fr" BarSize="5">
                 <Panel1>
                     <FluentTreeView Class="metrics-tree" @bind-CurrentSelected="_selectedTreeItem" @bind-CurrentSelected:after="HandleSelectedTreeItemChanged">
                         <ChildContent>
