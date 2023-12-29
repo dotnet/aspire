@@ -14,7 +14,22 @@
     <!-- Make the body background dark if dark mode will be enabled to prevent a flash of white
          before fully rendered. This value is from --neutral-fill-layer-rest, but that custom
          property isn't available at this point. -->
-    <style>@@media (prefers-color-scheme: dark) { body { background-color: #272727; } }</style>
+    <style>
+        @@media (prefers-color-scheme: dark) {
+            body {
+                background-color: #272727;
+            }
+        }
+
+        #components-reconnect-modal :is(h5, p) {
+            color: var(--error-ui-foreground-color);
+        }
+
+        #components-reconnect-modal :is(a) {
+            color: var(--error-ui-accent-foreground-color);
+        }
+    </style>
+
 </head>
 
 <body class="before-upgrade">

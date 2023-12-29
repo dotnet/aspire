@@ -33,6 +33,8 @@ fluent-toolbar[orientation=horizontal] {
     --badge-color-error: var(--foreground-on-accent-rest);
     --foreground-subtext-rest: #5D5D5D;
     --foreground-subtext-hover: #6C6C6C;
+    --error-ui-foreground-color: var(--neutral-foreground-rest);
+    --error-ui-accent-foreground-color: var(--accent-foreground-rest);
 }
 
 [data-theme="dark"] {
@@ -42,6 +44,8 @@ fluent-toolbar[orientation=horizontal] {
     --error: #F8040A !important;
     --foreground-subtext-rest: #8D8D8D;
     --foreground-subtext-hover: #A1A1A1;
+    --error-ui-foreground-color: var(--foreground-on-accent-rest);
+    --error-ui-accent-foreground-color: var(--accent-base-color);
 }
 
 .datagrid-overflow-area,

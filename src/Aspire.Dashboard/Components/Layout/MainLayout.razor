@@ -31,7 +31,7 @@
     <FluentDialogProvider />
     <FluentTooltipProvider />
     <div id="blazor-error-ui">
-        @Loc[nameof(Layout.MainLayoutUnhandledErrorMessage)]
+        <span id="error-message">@Loc[nameof(Layout.MainLayoutUnhandledErrorMessage)]</span>
         <a href="" class="reload">@Loc[nameof(Layout.MainLayoutUnhandledErrorReload)]</a>
         <a class="dismiss">🗙</a>
     </div>
