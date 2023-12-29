@@ -75,8 +75,8 @@ public static class Extensions
         }
 
         // Uncomment the following lines to enable the Prometheus exporter (requires the OpenTelemetry.Exporter.Prometheus.AspNetCore package)
-        // builder.Services.AddOpenTelemetry()
-        //    .WithMetrics(metrics => metrics.AddPrometheusExporter());
+        builder.Services.AddOpenTelemetry()
+            .WithMetrics(metrics => metrics.AddPrometheusExporter());
 
         // Uncomment the following lines to enable the Azure Monitor exporter (requires the Azure.Monitor.OpenTelemetry.Exporter package)
         // builder.Services.AddOpenTelemetry()
@@ -97,7 +97,7 @@ public static class Extensions
     public static WebApplication MapDefaultEndpoints(this WebApplication app)
     {
         // Uncomment the following line to enable the Prometheus endpoint (requires the OpenTelemetry.Exporter.Prometheus.AspNetCore package)
-        // app.MapPrometheusScrapingEndpoint();
+        app.MapPrometheusScrapingEndpoint();
 
         // All health checks must pass for app to be considered ready to accept traffic after starting
         app.MapHealthChecks("/health");
