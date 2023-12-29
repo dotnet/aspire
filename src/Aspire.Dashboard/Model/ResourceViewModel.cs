@@ -60,6 +60,7 @@ public sealed record EndpointViewModel(string EndpointUrl, string ProxyUrl);
 
 public static class ResourceStates
 {
-    public const string FinishedState = "Finished";
-    public const string ExitedState = "Exited";
+    public const string Finished = "Finished";
+    public const string Exited = "Exited";
+    public const string FailedToStart = "FailedToStart";
 }

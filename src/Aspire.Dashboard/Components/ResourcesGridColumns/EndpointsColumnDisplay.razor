@@ -4,7 +4,7 @@
 
 <FluentStack Orientation="Orientation.Vertical">
     @* If we have no endpoints, and the app isn't running anymore or we're not expecting any, then just say None *@
-    @if (Resource.Endpoints.Length == 0 && (Resource.State == ResourceStates.FinishedState || Resource.ExpectedEndpointsCount == 0))
+    @if (Resource.Endpoints.Length == 0 && (Resource.State == ResourceStates.Finished || Resource.ExpectedEndpointsCount == 0))
     {
         <span class="long-inner-content">@Loc[nameof(Columns.EndpointsColumnDisplayNone)]</span>
     }
@@ -24,7 +24,7 @@
             }
         }
         @* If we're expecting more, say Starting..., unless the app isn't running anymore *@
-        if (Resource.State != ResourceStates.FinishedState
+        if (Resource.State != ResourceStates.Finished
         && (Resource.ExpectedEndpointsCount is null || Resource.ExpectedEndpointsCount > Resource.Endpoints.Length))
         {
             <span class="long-inner-content">@Loc[nameof(Columns.EndpointsColumnDisplayPlaceholder)]</span>
