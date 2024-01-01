@@ -49,7 +49,7 @@
                         },
                         "Identifier": {
                           "type": "string",
-                          "description": "A property used to set the T:Azure.Messaging.ServiceBus.ServiceBusClient ID to identify the client. This can be used to correlate logs\nand exceptions. If null or empty, a random unique value will be used."
+                          "description": "A property used to set the 'Azure.Messaging.ServiceBus.ServiceBusClient' ID to identify the client. This can be used to correlate logs\nand exceptions. If null or empty, a random unique value will be used."
                         },
                         "RetryOptions": {
                           "type": "object",
@@ -91,7 +91,7 @@
                           "description": "The type of protocol and transport that will be used for communicating with the Service Bus\nservice."
                         }
                       },
-                      "description": "The set of options that can be specified when creating an T:Azure.Messaging.ServiceBus.ServiceBusConnection to configure its behavior."
+                      "description": "The set of options that can be specified when creating an 'Azure.Messaging.ServiceBus.ServiceBusConnection' to configure its behavior."
                     },
                     "ConnectionString": {
                       "type": "string",
