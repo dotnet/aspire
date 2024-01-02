@@ -127,6 +127,11 @@
         <target state="new">Start time &lt;strong&gt;{0}&lt;/strong&gt;</target>
         <note>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
+      <trans-unit id="TimeOffsetColumnHeader">
+        <source>Time offset</source>
+        <target state="new">Time offset</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ViewAction">
         <source>View</source>
         <target state="new">View</target>
