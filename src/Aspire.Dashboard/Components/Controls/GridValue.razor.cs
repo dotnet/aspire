@@ -13,6 +13,12 @@ public partial class GridValue
     public string? Value { get; set; }
 
     /// <summary>
+    /// Replace value text with template
+    /// </summary>
+    [Parameter]
+    public RenderFragment<string?>? ValueTemplate { get; set; }
+
+    /// <summary>
     /// Content to include, if any, after the Value string
     /// </summary>
     [Parameter]

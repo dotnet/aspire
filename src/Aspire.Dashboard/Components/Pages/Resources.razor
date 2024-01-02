@@ -43,15 +43,15 @@
                         @bind-Value="_filter"
                         slot="end" />
     </FluentToolbar>
-    <SummaryDetailsView DetailsTitle="@string.Format(Loc[nameof(Dashboard.Resources.Resources.ResourcesEnvironmentVariablesHeader)], SelectedResource != null ? GetResourceName(SelectedResource) : null)"
-                        ShowDetails="@(SelectedEnvironmentVariables is not null)"
+    <SummaryDetailsView DetailsTitle="@(SelectedResource != null ? $"{SelectedResource.ResourceType}: {GetResourceName(SelectedResource)}" : null)"
+                        ShowDetails="@(SelectedResource is not null)"
                         OnDismiss="() => ClearSelectedResource()"
                         ViewKey="ResourcesList">
         <Summary>
-            <FluentDataGrid Items="@FilteredResources" ResizableColumns="true" GridTemplateColumns="1fr 2fr 1fr 2fr 2.5fr 2fr 1fr 1fr" RowClass="GetRowClass">
+            <FluentDataGrid Items="@FilteredResources" ResizableColumns="true" GridTemplateColumns="1fr 2fr 1fr 2fr 2.5fr 2fr 1fr" RowClass="GetRowClass">
                 <ChildContent>
                     <PropertyColumn Property="@(c => c.ResourceType)" Title="Type" Sortable="true" />
-                    <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesEnvironmentVariablesGridNameColumnHeader)]" Sortable="true" SortBy="@_nameSort">
+                    <TemplateColumn Title="Name" Sortable="true" SortBy="@_nameSort">
                         <ResourceNameDisplay Resource="context" FilterText="@_filter" FormatName="GetResourceName" />
                     </TemplateColumn>
                     <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesEnvironmentVariablesGridStateColumnHeader)]" Sortable="true" SortBy="@_stateSort">
@@ -64,14 +64,10 @@
                     <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesEnvironmentVariablesGridEndpointsColumnHeader)]">
                         <EndpointsColumnDisplay Resource="context" HasMultipleReplicas="HasMultipleReplicas(context)" />
                     </TemplateColumn>
-                    <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesEnvironmentVariablesGridEnvironmentColumnHeader)]" Sortable="false">
+                    <TemplateColumn Title="Details" Sortable="false">
                         <FluentButton Appearance="Appearance.Lightweight"
-                                      Disabled="@(!context.Environment.Any())"
-                                      Title="@(context.Environment.Any() ? ControlsStringsLoc[nameof(ControlsStrings.ViewAction)] : @Loc[nameof(Dashboard.Resources.Resources.ResourcesNoEnvironmentVariables)])"
-                                      OnClick="() => ShowEnvironmentVariables(context)">@ControlsStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentButton>
-                    </TemplateColumn>
-                    <TemplateColumn Title="Logs">
-                        <FluentAnchor Appearance="Appearance.Lightweight" Href="@($"/ConsoleLogs/{context.Name}")">@ControlsStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentAnchor>
+                                      Title="@ControlsStringsLoc[nameof(ControlsStrings.ViewAction)]"
+                                      OnClick="() => ShowResourceDetails(context)">@ControlsStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentButton>
                     </TemplateColumn>
                 </ChildContent>
                 <EmptyContent>
@@ -80,7 +76,7 @@
             </FluentDataGrid>
         </Summary>
         <Details>
-            <EnvironmentVariables Items="SelectedEnvironmentVariables" ShowSpecOnlyToggle="true" />
+            <ResourceDetails Resource="SelectedResource" UnviewedErrorCounts="_applicationUnviewedErrorCounts" ShowSpecOnlyToggle="true" />
         </Details>
     </SummaryDetailsView>
 </div>
