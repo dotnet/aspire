@@ -64,7 +64,20 @@
                               ValueColumnValue="(vm) => vm.Name"
                               ValueColumnTitle="@(Loc[nameof(ControlsStrings.EventColumnHeader)])"
                               IsNameSortable="false"
-                              IsValueSortable="false" />
+                              IsValueSortable="false">
+                    <ExtraValueContent>
+                        @if (context.Attributes.Length > 0)
+                        {
+                            <PropertyGrid TItem="SpanPropertyViewModel"
+                            Items="@Queryable.AsQueryable(context.Attributes.Select(a => new SpanPropertyViewModel() { Name = a.Key, Value = a.Value }))"
+                            GridTemplateColumns="1fr 2fr"
+                            NameColumnValue="(vm) => vm.Name"
+                            ValueColumnValue="(vm) => vm.Value"
+                            IsNameSortable="false"
+                            IsValueSortable="false" />
+                        }
+                    </ExtraValueContent>
+                </PropertyGrid>
             </FluentAccordionItem>
         </FluentAccordion>
     </div>
