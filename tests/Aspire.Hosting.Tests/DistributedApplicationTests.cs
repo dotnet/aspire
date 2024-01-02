@@ -336,7 +336,9 @@ public class DistributedApplicationTests
         using var cts = new CancellationTokenSource(Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(10));
         var token = cts.Token;
 
-        var redisContainer = await KubernetesHelper.GetResourceByNameAsync<Container>(s, "redis-cli", r => r.Status?.EffectiveEnv is not null, token);
+        var redisContainer = await KubernetesHelper.GetResourceByNameAsync<Container>(s, "redis-cli",
+            r => r.Status?.State == ContainerState.FailedToStart && (r.Status?.Message.Contains("bob") ?? false),
+            token);
 
         Assert.NotNull(redisContainer);
         Assert.Equal("redis:latest", redisContainer.Spec.Image);
