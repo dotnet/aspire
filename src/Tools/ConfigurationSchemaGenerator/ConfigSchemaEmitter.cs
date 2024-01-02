@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using System.Globalization;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -296,11 +295,6 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
 
     internal static IEnumerable<XNode> StripXmlElements(XElement element)
     {
-        const string typePrefix = "T:";
-        const string methodPrefix = "M:";
-        const string propertyPrefix = "P:";
-        const string quotedFormat = "'{0}'";
-
         if (element.Nodes().Any())
         {
             return StripXmlElements((XContainer)element);
@@ -312,13 +306,18 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
             // ex. <see langword="true"/>
             var attributeValue = element.FirstAttribute.Value;
 
-            // format the attribute value only if its a Type, Method or Property.
-            // i.e., is prefixed with 'T:', 'M:', or, 'P:' in the xml.
+            // format the attribute value if it is an "ID string" representing a type or member
+            // by stripping the prefix.
+            // See https://learn.microsoft.com/dotnet/csharp/language-reference/xmldoc/#id-strings
             var formattedValue = attributeValue switch
             {
-                var s when s.StartsWith(typePrefix, StringComparison.Ordinal) => string.Format(CultureInfo.InvariantCulture, quotedFormat, s[2..]),
-                var s when s.StartsWith(methodPrefix, StringComparison.Ordinal) => string.Format(CultureInfo.InvariantCulture, quotedFormat, s[2..]),
-                var s when s.StartsWith(propertyPrefix, StringComparison.Ordinal) => string.Format(CultureInfo.InvariantCulture, quotedFormat, s[2..]),
+                var s when
+                    s.StartsWith("T:", StringComparison.Ordinal) ||
+                    s.StartsWith("P:", StringComparison.Ordinal) ||
+                    s.StartsWith("M:", StringComparison.Ordinal) ||
+                    s.StartsWith("F:", StringComparison.Ordinal) ||
+                    s.StartsWith("N:", StringComparison.Ordinal) ||
+                    s.StartsWith("E:", StringComparison.Ordinal) => $"'{s.AsSpan(2)}'",
                 _ => attributeValue,
             };
 
