@@ -83,6 +83,11 @@ public static class ContainerResourceBuilderExtensions
         return builder.WithAnnotation(annotation);
     }
 
+    public static IResourceBuilder<T> WithVolumeMount<T>(this IResourceBuilder<T> builder, IResourceBuilder<VolumeResource> volume, string volumePath, string containerPath) where T: IResourceWithVolumeMounts
+    {
+        return builder;
+    }
+
     /// <summary>
     /// Adds the arguments to be passed to a container resource when the container is started.
     /// </summary>
