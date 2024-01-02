@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Utils;
+
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
@@ -25,7 +27,7 @@ public class OracleDatabaseContainerResource(string name, string password) : Con
 
         var allocatedEndpoint = allocatedEndpoints.Single(); // We should only have one endpoint for Oracle Database.
 
-        var connectionString = $"user id=system;password={Password};data source={allocatedEndpoint.Address}:{allocatedEndpoint.Port}";
+        var connectionString = $"user id=system;password={PasswordUtil.EscapePassword(Password)};data source={allocatedEndpoint.Address}:{allocatedEndpoint.Port}";
         return connectionString;
     }
 }

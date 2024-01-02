@@ -57,7 +57,7 @@ And then the connection string will be retrieved from the `ConnectionStrings` co
 }
 ```
 
-See the [ODP.NET documentation](https://docs.oracle.com/en/database/oracle/oracle-database/21/odpnt/#Oracle%C2%AE-Data-Provider-for-.NET) for more information on how to format this connection string.
+See the [ODP.NET documentation](https://www.oracle.com/database/technologies/appdev/dotnet/odp.html) for more information on how to format this connection string.
 
 ### Use configuration providers
 
@@ -91,7 +91,7 @@ Also you can pass the `Action<OracleEntityFrameworkCoreSettings> configureSettin
  In your AppHost project, register an Oracle container and consume the connection using the following methods: 
   
  ```csharp 
- var freepdb1 = builder.AddOracleDatabaseContainer("oracle").AddDatabase("freepdb1"); 
+ var freepdb1 = builder.AddOracleDatabase("oracle").AddDatabase("freepdb1");
   
  var myService = builder.AddProject<Projects.MyService>() 
                         .WithReference(freepdb1); 
