@@ -4,6 +4,8 @@
 @inject IStringLocalizer<Columns> Loc
 
 <div class="resource-state-container">
+    @Resource.State
+
     @if (Resource is { State: ResourceStates.ExitedState /* containers */ or ResourceStates.FinishedState /* executables */, ExitCode: not null and not 0 })
     {
         <!-- process completed unexpectedly, hence the non-zero code. this is almost certainly an error, so warn users -->
@@ -22,8 +24,6 @@
             Color="Color.Warning"
             Class="severity-icon"/>
     }
-
-    @Resource.State
     <UnreadLogErrorsBadge UnviewedCount="@GetUnviewedErrorCount(Resource)" Resource="@Resource"/>
 </div>
 
