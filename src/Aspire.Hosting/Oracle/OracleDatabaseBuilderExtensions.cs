@@ -28,7 +28,7 @@ public static class OracleDatabaseBuilderExtensions
         var oracleDatabaseContainer = new OracleDatabaseContainerResource(name, password);
         return builder.AddResource(oracleDatabaseContainer)
                       .WithManifestPublishingCallback(context => WriteOracleDatabaseContainerResourceToManifest(context, oracleDatabaseContainer))
-                      .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, port: port, containerPort: 1521))
+                      .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 1521))
                       .WithAnnotation(new ContainerImageAnnotation { Image = "database/free", Tag = "latest", Registry = "container-registry.oracle.com" })
                       .WithEnvironment(context =>
                       {
@@ -55,7 +55,7 @@ public static class OracleDatabaseBuilderExtensions
         var oracleDatabaseServer = new OracleDatabaseServerResource(name, password);
         return builder.AddResource(oracleDatabaseServer)
                       .WithManifestPublishingCallback(WriteOracleDatabaseContainerToManifest)
-                      .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, containerPort: 1521))
+                      .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, containerPort: 1521))
                       .WithAnnotation(new ContainerImageAnnotation { Image = "database/free", Tag = "latest", Registry = "container-registry.oracle.com" })
                       .WithEnvironment(PasswordEnvVarName, () => oracleDatabaseServer.Password);
     }
