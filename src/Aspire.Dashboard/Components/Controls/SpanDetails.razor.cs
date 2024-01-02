@@ -27,7 +27,7 @@ public partial class SpanDetails
         )?.AsQueryable();
 
     private IQueryable<OtlpSpanEvent> FilteredSpanEvents =>
-        ViewModel.Span.Events.Where(e => e.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase)).AsQueryable();
+        ViewModel.Span.Events.Where(e => e.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase)).OrderBy(e => e.Time).AsQueryable();
 
     private string _filter = "";
 
