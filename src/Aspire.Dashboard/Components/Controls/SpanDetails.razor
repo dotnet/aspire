@@ -47,24 +47,25 @@
                               HighlightText="@_filter" />
             </FluentAccordionItem>
             <FluentAccordionItem Heading="Events">
-                @if (ViewModel.Span.Events.Count > 0)
+                @if (FilteredSpanEvents.Count() > 0)
                 {
                     <div slot="end">
                         <FluentBadge Appearance="Appearance.Accent"
                                      Circular="true">
-                            @ViewModel.Span.Events.Count
+                            @FilteredSpanEvents.Count()
                         </FluentBadge>
                     </div>
                 }
                 <PropertyGrid TItem="OtlpSpanEvent"
-                              Items="@Queryable.AsQueryable(ViewModel.Span.Events)"
+                              Items="@FilteredSpanEvents"
                               GridTemplateColumns="1fr 2fr"
                               NameColumnValue="(vm) => DurationFormatter.FormatDuration(vm.TimeOffset(ViewModel.Span))"
                               NameColumnTitle="@(Loc[nameof(ControlsStrings.TimeOffsetColumnHeader)])"
                               ValueColumnValue="(vm) => vm.Name"
                               ValueColumnTitle="@(Loc[nameof(ControlsStrings.EventColumnHeader)])"
                               IsNameSortable="false"
-                              IsValueSortable="false">
+                              IsValueSortable="false"
+                              HighlightText="@_filter">
                     <ExtraValueContent>
                         @if (context.Attributes.Length > 0)
                         {
