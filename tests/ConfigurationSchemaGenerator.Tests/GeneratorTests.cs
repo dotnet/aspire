@@ -41,10 +41,13 @@ public class GeneratorTests
     }
 
     [Theory]
+    [InlineData("<see cref=\"N:System.Diagnostics\"/>", "'System.Diagnostics'")]
     [InlineData("<see cref=\"T:System.Uri\"/>", "'System.Uri'")]
     [InlineData("<see cref=\"T:Azure.Core.Extensions.IAzureClientBuilder`2\"/>", "'Azure.Core.Extensions.IAzureClientBuilder`2'")]
+    [InlineData("<see cref=\"F:Azure.Storage.Queues.QueueMessageEncoding.None\"/>", "'Azure.Storage.Queues.QueueMessageEncoding.None'")]
     [InlineData("<see cref=\"P:Aspire.Azure.Storage.Blobs.AzureStorageBlobsSettings.ConnectionString\"/>", "'Aspire.Azure.Storage.Blobs.AzureStorageBlobsSettings.ConnectionString'")]
     [InlineData("<see cref=\"M:System.Diagnostics.Debug.Assert(bool)\"/>", "'System.Diagnostics.Debug.Assert(bool)'")]
+    [InlineData("<see cref=\"E:System.Windows.Input.ICommand.CanExecuteChanged\"/>", "'System.Windows.Input.ICommand.CanExecuteChanged'")]
     [InlineData("<exception cref=\"T:System.InvalidOperationException\" />", "'System.InvalidOperationException'")]
     public void StripXmlElementsShouldFormatCrefAttributes(string input, string expected)
     {
