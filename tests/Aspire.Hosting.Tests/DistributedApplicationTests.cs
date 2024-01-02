@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using System.Globalization;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
@@ -168,7 +169,7 @@ public class DistributedApplicationTests
 
         foreach (var item in appModel.Resources)
         {
-            if ((item is ContainerResource || item is ProjectResource || item is ExecutableResource) && item.TryGetServiceBindings(out _))
+            if ((item is ContainerResource || item is ProjectResource || item is ExecutableResource) && item.TryGetEndpoints(out _))
             {
                 Assert.True(item.TryGetAllocatedEndPoints(out var endpoints));
                 Assert.NotEmpty(endpoints);
@@ -259,6 +260,87 @@ public class DistributedApplicationTests
                 Assert.Equal("redis:latest", item.Spec.Image);
                 Assert.Equal(["redis-cli", "-h", "host.docker.internal", "-p", "9999", "MONITOR"], item.Spec.Args);
             });
+
+        await app.StopAsync();
+    }
+
+    [LocalOnlyFact("docker")]
+    public async Task SpecifyingEnvPortInEndpointFlowsToEnv()
+    {
+        var testProgram = CreateTestProgram(includeNodeApp: true);
+
+        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+
+        testProgram.ServiceABuilder
+            .WithEndpoint(scheme: "http", name: "http0", env: "PORT0");
+
+        testProgram.AppBuilder.AddContainer("redis0", "redis")
+            .WithEndpoint(containerPort: 6379, name: "tcp", env: "REDIS_PORT");
+
+        await using var app = testProgram.Build();
+
+        var kubernetes = app.Services.GetRequiredService<KubernetesService>();
+
+        await app.StartAsync();
+
+        using var cts = new CancellationTokenSource(Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(10));
+        var token = cts.Token;
+
+        var redisContainer = await KubernetesHelper.GetResourceByNameAsync<Container>(kubernetes, "redis0", r => r.Status?.EffectiveEnv is not null, token);
+        Assert.NotNull(redisContainer);
+
+        var serviceA = await KubernetesHelper.GetResourceByNameAsync<Executable>(kubernetes, "servicea", r => r.Status?.EffectiveEnv is not null, token);
+        Assert.NotNull(serviceA);
+
+        var nodeApp = await KubernetesHelper.GetResourceByNameAsync<Executable>(kubernetes, "nodeapp", r => r.Status?.EffectiveEnv is not null, token);
+        Assert.NotNull(nodeApp);
+
+        string? GetEnv(IEnumerable<EnvVar>? envVars, string name)
+        {
+            Assert.NotNull(envVars);
+            return Assert.Single(envVars.Where(e => e.Name == name)).Value;
+        };
+
+        Assert.Equal("redis:latest", redisContainer.Spec.Image);
+        Assert.Equal("{{- portForServing \"redis0\" }}", GetEnv(redisContainer.Spec.Env, "REDIS_PORT"));
+        Assert.Equal("6379", GetEnv(redisContainer.Status!.EffectiveEnv, "REDIS_PORT"));
+
+        Assert.Equal("{{- portForServing \"servicea_http0\" }}", GetEnv(serviceA.Spec.Env, "PORT0"));
+        var serviceAPortValue = GetEnv(serviceA.Status!.EffectiveEnv, "PORT0");
+        Assert.False(string.IsNullOrEmpty(serviceAPortValue));
+        Assert.NotEqual(0, int.Parse(serviceAPortValue, CultureInfo.InvariantCulture));
+
+        Assert.Equal("{{- portForServing \"nodeapp\" }}", GetEnv(nodeApp.Spec.Env, "PORT"));
+        var nodeAppPortValue = GetEnv(nodeApp.Status!.EffectiveEnv, "PORT");
+        Assert.False(string.IsNullOrEmpty(nodeAppPortValue));
+        Assert.NotEqual(0, int.Parse(nodeAppPortValue, CultureInfo.InvariantCulture));
+
+        await app.StopAsync();
+    }
+
+    [LocalOnlyFact("docker")]
+    public async Task VerifyDockerWithEntrypointWorks()
+    {
+        var testProgram = CreateTestProgram();
+        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+
+        testProgram.AppBuilder.AddContainer("redis-cli", "redis")
+            .WithEntrypoint("bob");
+
+        await using var app = testProgram.Build();
+
+        await app.StartAsync();
+
+        var s = app.Services.GetRequiredService<KubernetesService>();
+
+        using var cts = new CancellationTokenSource(Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(10));
+        var token = cts.Token;
+
+        var redisContainer = await KubernetesHelper.GetResourceByNameAsync<Container>(s, "redis-cli", r => r.Status?.EffectiveEnv is not null, token);
+
+        Assert.NotNull(redisContainer);
+        Assert.Equal("redis:latest", redisContainer.Spec.Image);
+        Assert.Equal("bob", redisContainer.Spec.Command);
 
         await app.StopAsync();
     }

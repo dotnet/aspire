@@ -66,6 +66,7 @@ The payload is best explained using an example:
         "-v",
         "1"
     ],
+    "launch_profile": "<name of the launch profile to use for the program, optional>"
 }
 ```
 

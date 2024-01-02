@@ -32,7 +32,8 @@ public class ManifestGenerationTests
     public void EnsureExecutablesWithDockerfileProduceDockerfilev0Manifest()
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher(includeNodeApp: true);
-        program.NodeAppBuilder!.AsDockerfileInManifest();
+        program.NodeAppBuilder!.WithEndpoint(containerPort: 3000, scheme: "https", env: "HTTPS_PORT")
+            .AsDockerfileInManifest();
 
         // Build AppHost so that publisher can be resolved.
         program.Build();
@@ -52,17 +53,21 @@ public class ManifestGenerationTests
         Assert.Equal("dockerfile.v0", nodeapp.GetProperty("type").GetString());
         Assert.True(nodeapp.TryGetProperty("path", out _));
         Assert.True(nodeapp.TryGetProperty("context", out _));
-        Assert.True(nodeapp.TryGetProperty("env", out _));
-        Assert.True(nodeapp.TryGetProperty("bindings", out _));
+        Assert.True(nodeapp.TryGetProperty("env", out var env));
+        Assert.True(nodeapp.TryGetProperty("bindings", out var bindings));
+
+        Assert.Equal(3000, bindings.GetProperty("https").GetProperty("containerPort").GetInt32());
+        Assert.Equal("https", bindings.GetProperty("https").GetProperty("scheme").GetString());
+        Assert.Equal("{nodeapp.bindings.https.port}", env.GetProperty("HTTPS_PORT").GetString());
     }
 
     [Fact]
-    public void EnsureContainerWithServiceBindingsEmitsContainerPort()
+    public void EnsureContainerWithEndpointsEmitsContainerPort()
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher();
 
         program.AppBuilder.AddContainer("grafana", "grafana/grafana")
-                          .WithServiceBinding(3000, scheme: "http");
+                          .WithEndpoint(3000, scheme: "http");
 
         // Build AppHost so that publisher can be resolved.
         program.Build();
@@ -160,6 +165,27 @@ public class ManifestGenerationTests
         var resource = resources.GetProperty("program");
         var exists = resource.TryGetProperty("args", out _);
         Assert.False(exists);
+    }
+
+    [Fact]
+    public void EnsureContainerWithCustomEntrypointEmitsEntrypoint()
+    {
+        var program = CreateTestProgramJsonDocumentManifestPublisher();
+
+        var container = program.AppBuilder.AddContainer("grafana", "grafana/grafana");
+        container.Resource.Entrypoint = "custom";
+
+        // Build AppHost so that publisher can be resolved.
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+
+        var grafana = resources.GetProperty("grafana");
+        var entrypoint = grafana.GetProperty("entrypoint");
+        Assert.Equal("custom", entrypoint.GetString());
     }
 
     [Fact]
@@ -347,9 +373,9 @@ public class ManifestGenerationTests
         var program = CreateTestProgramJsonDocumentManifestPublisher();
 
         program.AppBuilder.AddNodeApp("nodeapp", "..\\foo\\app.js")
-            .WithServiceBinding(hostPort: 5031, scheme: "http", env: "PORT");
+            .WithEndpoint(hostPort: 5031, scheme: "http", env: "PORT");
         program.AppBuilder.AddNpmApp("npmapp", "..\\foo")
-            .WithServiceBinding(hostPort: 5032, scheme: "http", env: "PORT");
+            .WithEndpoint(hostPort: 5032, scheme: "http", env: "PORT");
 
         // Build AppHost so that publisher can be resolved.
         program.Build();

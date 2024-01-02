@@ -4,9 +4,9 @@
 
 <FluentStack Orientation="Orientation.Vertical">
     @* If we have no endpoints, and the app isn't running anymore or we're not expecting any, then just say None *@
-    @if (Resource.Endpoints.Length == 0 && (Resource.State == FinishedState || Resource.ExpectedEndpointsCount == 0))
+    @if (Resource.Endpoints.Length == 0 && (Resource.State == ResourceStates.FinishedState || Resource.ExpectedEndpointsCount == 0))
     {
-        <span class="long-inner-content">@Loc[Columns.EndpointsColumnDisplayNone]</span>
+        <span class="long-inner-content">@Loc[nameof(Columns.EndpointsColumnDisplayNone)]</span>
     }
     else
     {
@@ -24,20 +24,15 @@
             }
         }
         @* If we're expecting more, say Starting..., unless the app isn't running anymore *@
-        if (Resource.State != FinishedState
+        if (Resource.State != ResourceStates.FinishedState
         && (Resource.ExpectedEndpointsCount is null || Resource.ExpectedEndpointsCount > Resource.Endpoints.Length))
         {
-            <span class="long-inner-content">@Loc[Columns.EndpointsColumnDisplayPlaceholder]</span>
+            <span class="long-inner-content">@Loc[nameof(Columns.EndpointsColumnDisplayPlaceholder)]</span>
         }
     }
 </FluentStack>
 
 @code {
-
-    // Ideally we'd be pulling this from Aspire.Hosting.Dcp.Model.ExecutableStates,
-    // but unfortunately the reference goes the other way
-    private const string FinishedState = "Finished";
-
     [Parameter, EditorRequired]
     public required ResourceViewModel Resource { get; set; }
 

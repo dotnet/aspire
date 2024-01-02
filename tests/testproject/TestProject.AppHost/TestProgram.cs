@@ -24,10 +24,10 @@ public class TestProgram
             var scriptPath = Path.Combine(path, "app.js");
 
             NodeAppBuilder = AppBuilder.AddNodeApp("nodeapp", scriptPath)
-                .WithServiceBinding(hostPort: 5031, scheme: "http", env: "PORT");
+                .WithEndpoint(hostPort: 5031, scheme: "http", env: "PORT");
 
             NpmAppBuilder = AppBuilder.AddNpmApp("npmapp", path)
-                .WithServiceBinding(hostPort: 5032, scheme: "http", env: "PORT");
+                .WithEndpoint(hostPort: 5032, scheme: "http", env: "PORT");
         }
 
         if (includeIntegrationServices)

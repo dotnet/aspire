@@ -23,7 +23,7 @@ else
                 @if (_viewModel.DimensionFilters.Count > 0)
                 {
                     <div class="metrics-filters-section">
-                        <h5>@Loc[ControlsStrings.ChartContainerFiltersHeader]</h5>
+                        <h5>@Loc[nameof(ControlsStrings.ChartContainerFiltersHeader)]</h5>
                         <FluentDataGrid Items="@Queryable.AsQueryable(_viewModel.DimensionFilters)" GridTemplateColumns="200px 1fr auto" GenerateHeader="GenerateHeaderOption.None">
                             <ChildContent>
                                 <PropertyColumn Tooltip="true" TooltipText="@(c => c.Name)" Property="@(c => c.Name)" />
@@ -56,7 +56,7 @@ else
                                                   IconEnd="@(new Icons.Regular.Size20.Filter())"
                                                   Appearance="@(context.AreAllValuesSelected is true ? Appearance.Stealth : Appearance.Accent)"
                                                   @onclick="() => context.PopupVisible = !context.PopupVisible"
-                                                  aria-label="@(context.AreAllValuesSelected is true ? Loc[ControlsStrings.ChartContainerAllTags] : Loc[ControlsStrings.ChartContainerFilteredTags])" />
+                                                  aria-label="@(context.AreAllValuesSelected is true ? Loc[nameof(ControlsStrings.ChartContainerAllTags)] : Loc[nameof(ControlsStrings.ChartContainerFilteredTags)])" />
                                     <FluentPopover AnchorId="@($"typeFilterButton-{context.SanitizedHtmlId}")" @bind-Open="context.PopupVisible">
                                         <Header>@context.Name</Header>
                                         <Body>
@@ -64,6 +64,7 @@ else
                                                 <FluentCheckbox Label="All"
                                                                 ThreeState="true"
                                                                 ShowIndeterminate="false"
+                                                                ThreeStateOrderUncheckToIntermediate="true"
                                                                 @bind-CheckState="context.AreAllValuesSelected" />
                                                 @foreach (var tag in context.Values)
                                                 {
@@ -84,9 +85,9 @@ else
                 @if (_instrument.Type == OtlpInstrumentType.Histogram)
                 {
                     <div class="metrics-filters-section">
-                        <h5>@Loc[ControlsStrings.ChartContainerOptionsHeader]</h5>
+                        <h5>@Loc[nameof(ControlsStrings.ChartContainerOptionsHeader)]</h5>
                         <div>
-                            <FluentSwitch Label="@Loc[ControlsStrings.ChartContainerShowCountLabel]" @bind-Value="_showCount" @bind-Value:after="ShowCountChanged" />
+                            <FluentSwitch Label="@Loc[nameof(ControlsStrings.ChartContainerShowCountLabel)]" @bind-Value="_showCount" @bind-Value:after="ShowCountChanged" />
                         </div>
                     </div>
                 }

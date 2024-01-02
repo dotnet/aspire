@@ -141,7 +141,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Show Spec Only.
+        ///   Looks up a localized string similar to Show spec only.
         /// </summary>
         public static string EnvironmentVariablesFilterToggleShowSpecOnly {
             get {
@@ -276,7 +276,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Start Time &lt;strong&gt;{0}&lt;/strong&gt;.
+        ///   Looks up a localized string similar to Start time &lt;strong&gt;{0}&lt;/strong&gt;.
         /// </summary>
         public static string SpanDetailsStartTime {
             get {
