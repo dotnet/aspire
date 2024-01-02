@@ -1,7 +1,5 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
-var apiKey = builder.AddSecretStore("secretstore").AddSecret("apikey");
-
 var catalogDb = builder.AddPostgres("postgres").AddDatabase("catalogdb");
 
 var basketCache = builder.AddRedis("basketcache");
@@ -18,7 +16,6 @@ var basketService = builder.AddProject("basketservice", @"..\BasketService\Baske
 
 builder.AddProject<Projects.MyFrontend>("frontend")
        .WithReference(basketService)
-       .WithEnvironment("API_KEY", apiKey)
        .WithReference(catalogService.GetEndpoint("http"));
 
 builder.AddProject<Projects.OrderProcessor>("orderprocessor")
