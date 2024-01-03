@@ -25,22 +25,62 @@
                       slot="end" />
     </FluentToolbar>
     <div class="property-grid-container">
-        <PropertyGrid TItem="SpanPropertyViewModel"
-                      Items="@FilteredItems"
-                      GridTemplateColumns="1fr 2fr"
-                      NameColumnValue="(vm) => vm.Name"
-                      ValueColumnValue="(vm) => vm.Value"
-                      NameSort="_nameSort"
-                      ValueSort="_valueSort"
-                      HighlightText="@_filter" />
-        <h4>Application</h4>
-        <PropertyGrid TItem="SpanPropertyViewModel"
-                      Items="@FilteredApplicationItems"
-                      GridTemplateColumns="1fr 2fr"
-                      NameColumnValue="(vm) => vm.Name"
-                      ValueColumnValue="(vm) => vm.Value"
-                      NameSort="_nameSort"
-                      ValueSort="_valueSort"
-                      HighlightText="@_filter" />
+        <FluentAccordion>
+            <FluentAccordionItem Heading="Span" Expanded="true">
+                <PropertyGrid TItem="SpanPropertyViewModel"
+                              Items="@FilteredItems"
+                              GridTemplateColumns="1fr 2fr"
+                              NameColumnValue="(vm) => vm.Name"
+                              ValueColumnValue="(vm) => vm.Value"
+                              NameSort="_nameSort"
+                              ValueSort="_valueSort"
+                              HighlightText="@_filter" />
+            </FluentAccordionItem>
+            <FluentAccordionItem Heading="Application">
+                <PropertyGrid TItem="SpanPropertyViewModel"
+                              Items="@FilteredApplicationItems"
+                              GridTemplateColumns="1fr 2fr"
+                              NameColumnValue="(vm) => vm.Name"
+                              ValueColumnValue="(vm) => vm.Value"
+                              NameSort="_nameSort"
+                              ValueSort="_valueSort"
+                              HighlightText="@_filter" />
+            </FluentAccordionItem>
+            <FluentAccordionItem Heading="Events">
+                @if (FilteredSpanEvents.Count() > 0)
+                {
+                    <div slot="end">
+                        <FluentBadge Appearance="Appearance.Accent"
+                                     Circular="true">
+                            @FilteredSpanEvents.Count()
+                        </FluentBadge>
+                    </div>
+                }
+                <PropertyGrid TItem="OtlpSpanEvent"
+                              Items="@FilteredSpanEvents"
+                              GridTemplateColumns="1fr 2fr"
+                              NameColumnValue="(vm) => DurationFormatter.FormatDuration(vm.TimeOffset(ViewModel.Span))"
+                              NameColumnTitle="@(Loc[nameof(ControlsStrings.TimeOffsetColumnHeader)])"
+                              ValueColumnValue="(vm) => vm.Name"
+                              ValueColumnTitle="@(Loc[nameof(ControlsStrings.EventColumnHeader)])"
+                              IsNameSortable="false"
+                              IsValueSortable="false"
+                              HighlightText="@_filter">
+                    <ExtraValueContent>
+                        @if (context.Attributes.Length > 0)
+                        {
+                            <div class="event-attributes-header">Attributes</div>
+                            <PropertyGrid TItem="SpanPropertyViewModel"
+                                Items="@Queryable.AsQueryable(context.Attributes.Select(a => new SpanPropertyViewModel() { Name = a.Key, Value = a.Value }))"
+                                GridTemplateColumns="1fr 2fr"
+                                NameColumnValue="(vm) => vm.Name"
+                                ValueColumnValue="(vm) => vm.Value"
+                                IsNameSortable="false"
+                                IsValueSortable="false" />
+                        }
+                    </ExtraValueContent>
+                </PropertyGrid>
+            </FluentAccordionItem>
+        </FluentAccordion>
     </div>
 </div>
