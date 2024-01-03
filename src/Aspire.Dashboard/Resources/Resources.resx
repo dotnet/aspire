@@ -41,6 +41,9 @@
   <data name="ResourcesEnvironmentVariablesGridNameColumnHeader" xml:space="preserve">
     <value>Name (ID)</value>
   </data>
+  <data name="ResourcesEnvironmentVariablesGridErrorsColumnHeader" xml:space="preserve">
+    <value>Errors</value>
+  </data>
   <data name="ResourcesEnvironmentVariablesGridStateColumnHeader" xml:space="preserve">
     <value>State</value>
   </data>
@@ -55,6 +58,9 @@
   </data>
   <data name="ResourcesEnvironmentVariablesGridEnvironmentColumnHeader" xml:space="preserve">
     <value>Environment</value>
+  </data>
+  <data name="ResourcesEnvironmentVariablesGridLogsColumnHeader" xml:space="preserve">
+    <value>Logs</value>
   </data>
   <data name="ResourcesNoEnvironmentVariables" xml:space="preserve">
     <value>No environment variables</value>

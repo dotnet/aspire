@@ -12,6 +12,16 @@
         <target state="new">Environment</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourcesEnvironmentVariablesGridErrorsColumnHeader">
+        <source>Errors</source>
+        <target state="new">Errors</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesEnvironmentVariablesGridLogsColumnHeader">
+        <source>Logs</source>
+        <target state="new">Logs</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourcesEnvironmentVariablesGridNameColumnHeader">
         <source>Name (ID)</source>
         <target state="new">Name (ID)</target>

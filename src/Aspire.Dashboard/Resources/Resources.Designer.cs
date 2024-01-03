@@ -78,6 +78,24 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Errors.
+        /// </summary>
+        public static string ResourcesEnvironmentVariablesGridErrorsColumnHeader {
+            get {
+                return ResourceManager.GetString("ResourcesEnvironmentVariablesGridErrorsColumnHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Logs.
+        /// </summary>
+        public static string ResourcesEnvironmentVariablesGridLogsColumnHeader {
+            get {
+                return ResourceManager.GetString("ResourcesEnvironmentVariablesGridLogsColumnHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Name (ID).
         /// </summary>
         public static string ResourcesEnvironmentVariablesGridNameColumnHeader {

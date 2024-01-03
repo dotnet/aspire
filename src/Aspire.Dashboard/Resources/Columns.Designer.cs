@@ -195,6 +195,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to There are log errors for this resource.
+        /// </summary>
+        public static string StateColumnResourceHasLogErrors {
+            get {
+                return ResourceManager.GetString("StateColumnResourceHasLogErrors", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to {0} error log.
         /// </summary>
         public static string UnreadLogErrorsBadgeErrorLog {

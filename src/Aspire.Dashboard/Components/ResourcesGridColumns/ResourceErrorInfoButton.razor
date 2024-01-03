@@ -1,0 +1,34 @@
+﻿@using Aspire.Dashboard.Resources
+@using Aspire.Dashboard.Model
+@namespace Aspire.Dashboard.Components
+@inject IStringLocalizer<Columns> Loc
+
+@if (ResourceViewModel.DidResourceFinishUnexpectedly(Resource))
+{
+    <!-- process completed unexpectedly, hence the non-zero code. this is almost certainly an error, so warn users -->
+    <FluentButton Title="@string.Format(Loc[Columns.StateColumnResourceExitedUnexpectedly], Resource.ResourceType, Resource.ExitCode)" Appearance="Appearance.Neutral" OnClick="@(() => NavigateToResourceErrorStructuredLogs(Resource, isError: true))">
+        <FluentIcon Icon="Icons.Filled.Size24.ErrorCircle" Color="Color.Error" />
+    </FluentButton>
+}
+else if (ResourceViewModel.DidResourceComplete(Resource))
+{
+    <!-- process completed, which may not have been unexpected -->
+    <FluentButton Title="@string.Format(Loc[Columns.StateColumnResourceExited], Resource.ResourceType)" Appearance="Appearance.Neutral" OnClick="@(() => NavigateToResourceErrorStructuredLogs(Resource, isError: false))">
+        <FluentIcon Icon="Icons.Filled.Size24.Warning" Color="Color.Warning" />
+    </FluentButton>
+}
+else if (UnviewedCount > 0)
+{
+    <!-- there are log errors -->
+    <FluentButton Title="@Loc[Columns.StateColumnResourceHasLogErrors]" Appearance="Appearance.Neutral" OnClick="@(() => NavigateToResourceErrorStructuredLogs(Resource, isError: true))">
+        <FluentIcon Icon="Icons.Filled.Size24.AppGeneric" Color="Color.Custom" />
+    </FluentButton>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public required ResourceViewModel Resource { get; set; }
+
+    [Parameter]
+    public int UnviewedCount { get; set; }
+}

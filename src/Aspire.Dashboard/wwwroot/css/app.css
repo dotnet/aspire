@@ -176,3 +176,10 @@ fluent-data-grid-cell .long-inner-content {
     vertical-align: text-bottom;
     margin-left: 3px;
 }
+
+.counterbadge-container .counterbadge {
+    width: 7px;
+    height: 7px;
+    min-width: unset;
+    line-height: 0.6;
+}

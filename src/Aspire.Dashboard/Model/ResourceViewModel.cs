@@ -42,6 +42,16 @@ public abstract class ResourceViewModel
         return resource.DisplayName;
     }
 
+    public static bool DidResourceFinishUnexpectedly(ResourceViewModel resource)
+    {
+        return resource is { State: ResourceStates.ExitedState /* containers */ or ResourceStates.FinishedState /* executables */, ExitCode: not null and not 0 };
+    }
+
+    public static bool DidResourceComplete(ResourceViewModel resource)
+    {
+        return resource is { State: ResourceStates.ExitedState /* containers */ or ResourceStates.FinishedState /* containers */ };
+    }
+
     internal virtual bool MatchesFilter(string filter)
     {
         return Name.Contains(filter, StringComparisons.UserTextSearch);

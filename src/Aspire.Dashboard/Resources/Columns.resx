@@ -158,4 +158,7 @@
     <value>{0} is no longer running</value>
     <comment>{0} is a resource type</comment>
   </data>
+  <data name="StateColumnResourceHasLogErrors" xml:space="preserve">
+    <value>There are log errors for this resource</value>
+  </data>
 </root>

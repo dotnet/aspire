@@ -47,15 +47,19 @@
                         OnDismiss="() => ClearSelectedResource()"
                         ViewKey="ResourcesList">
         <Summary>
-            <FluentDataGrid Items="@FilteredResources" ResizableColumns="true" GridTemplateColumns="1fr 2fr 1fr 2fr 2.5fr 2fr 1fr 1fr" RowClass="GetRowClass">
+            <FluentDataGrid Items="@FilteredResources" ResizableColumns="true" GridTemplateColumns="1fr 2fr 1fr 1fr 2fr 2.5fr 2fr 1fr 1fr" RowClass="GetRowClass">
                 <ChildContent>
                     <PropertyColumn Property="@(c => c.ResourceType)" Title="Type" Sortable="true" />
                     <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesEnvironmentVariablesGridNameColumnHeader)]" Sortable="true" SortBy="@_nameSort">
                         <ResourceNameDisplay Resource="context" FilterText="@_filter" FormatName="GetResourceName" />
                     </TemplateColumn>
-                    <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesEnvironmentVariablesGridStateColumnHeader)]" Sortable="true" SortBy="@_stateSort">
-                        <StateColumnDisplay UnviewedErrorCounts="@_applicationUnviewedErrorCounts" Resource="@context" />
-                    </TemplateColumn>
+                    @if (ShouldShowErrorsColumn())
+                    {
+                        <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesEnvironmentVariablesGridErrorsColumnHeader)]" Sortable="true" SortBy="@_errorSort">
+                            <ResourceErrorColumnDisplay Resource="@context" UnviewedErrorCount="@GetUnviewedErrorCount(context)" />
+                        </TemplateColumn>
+                    }
+                    <PropertyColumn Property="@(c => c.State)" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesEnvironmentVariablesGridStateColumnHeader)]" Sortable="true" />
                     <PropertyColumn Property="@(c => c.CreationTimeStamp)" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesEnvironmentVariablesGridStartTimeColumnHeader)]" Sortable="true" Tooltip="true" />
                     <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesEnvironmentVariablesGridSourceColumnHeader)]">
                         <SourceColumnDisplay Resource="context" FilterText="@_filter" />
@@ -69,7 +73,7 @@
                                       Title="@(context.Environment.Any() ? ControlsStringsLoc[nameof(ControlsStrings.ViewAction)] : @Loc[nameof(Dashboard.Resources.Resources.ResourcesNoEnvironmentVariables)])"
                                       OnClick="() => ShowEnvironmentVariables(context)">@ControlsStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentButton>
                     </TemplateColumn>
-                    <TemplateColumn Title="Logs">
+                    <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesEnvironmentVariablesGridLogsColumnHeader)]">
                         <FluentAnchor Appearance="Appearance.Lightweight" Href="@($"/ConsoleLogs/{context.Name}")">@ControlsStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentAnchor>
                     </TemplateColumn>
                 </ChildContent>

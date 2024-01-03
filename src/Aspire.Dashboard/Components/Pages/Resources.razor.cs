@@ -22,8 +22,6 @@ public partial class Resources : ComponentBase, IDisposable
     public required IResourceService ResourceService { get; init; }
     [Inject]
     public required TelemetryRepository TelemetryRepository { get; init; }
-    [Inject]
-    public required NavigationManager NavigationManager { get; init; }
 
     private IEnumerable<EnvironmentVariableViewModel>? SelectedEnvironmentVariables { get; set; }
     private ResourceViewModel? SelectedResource { get; set; }
@@ -38,6 +36,7 @@ public partial class Resources : ComponentBase, IDisposable
 
     public Resources()
     {
+        _errorSort = GridSort<ResourceViewModel>.ByAscending(p => GetResourceErrorType(p));
         _visibleResourceTypes = new HashSet<string>(_allResourceTypes, StringComparers.ResourceType);
     }
 
@@ -81,7 +80,8 @@ public partial class Resources : ComponentBase, IDisposable
     private IQueryable<ResourceViewModel>? FilteredResources => _resourceByName.Values.Where(Filter).OrderBy(e => e.ResourceType).ThenBy(e => e.Name).AsQueryable();
 
     private readonly GridSort<ResourceViewModel> _nameSort = GridSort<ResourceViewModel>.ByAscending(p => p.Name);
-    private readonly GridSort<ResourceViewModel> _stateSort = GridSort<ResourceViewModel>.ByAscending(p => p.State);
+
+    private readonly GridSort<ResourceViewModel> _errorSort;
 
     protected override void OnInitialized()
     {
@@ -166,6 +166,23 @@ public partial class Resources : ComponentBase, IDisposable
         return false;
     }
 
+    private int GetUnviewedErrorCount(ResourceViewModel resource)
+    {
+        if (_applicationUnviewedErrorCounts is null)
+        {
+            return 0;
+        }
+
+        var application = TelemetryRepository.GetApplication(resource.Uid);
+        if (application is null)
+        {
+            return 0;
+        }
+
+        return _applicationUnviewedErrorCounts.GetValueOrDefault(application, 0);
+
+    }
+
     protected virtual void Dispose(bool disposing)
     {
         if (disposing)
@@ -180,6 +197,38 @@ public partial class Resources : ComponentBase, IDisposable
     {
         Dispose(true);
         GC.SuppressFinalize(this);
+    }
+
+    private ResourceErrorType? GetResourceErrorType(ResourceViewModel resource)
+    {
+        if (ResourceViewModel.DidResourceFinishUnexpectedly(resource))
+        {
+            return ResourceErrorType.UnexpectedExit;
+        }
+
+        if (ResourceViewModel.DidResourceComplete(resource))
+        {
+            return ResourceErrorType.Exit;
+        }
+
+        if (GetUnviewedErrorCount(resource) > 0)
+        {
+            return ResourceErrorType.HasErrorLogs;
+        }
+
+        return null;
+    }
+
+    enum ResourceErrorType
+    {
+        UnexpectedExit,
+        Exit,
+        HasErrorLogs
+    }
+
+    private bool ShouldShowErrorsColumn()
+    {
+        return FilteredResources is not null && FilteredResources.Any(resource => GetResourceErrorType(resource) != null);
     }
 
     private string? GetRowClass(ResourceViewModel resource)

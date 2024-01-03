@@ -1,0 +1,22 @@
+﻿@using Aspire.Dashboard.Model
+
+<FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
+    @if (UnviewedErrorCount > 0)
+    {
+        <FluentCounterBadge BottomPosition="55" HorizontalPosition="70" Max="99" Count="@UnviewedErrorCount" Appearance="Appearance.Lightweight" BackgroundColor="@Color.Error" Color="Color.Fill">
+            <ResourceErrorInfoButton UnviewedCount="@UnviewedErrorCount" Resource="@Resource"/>
+        </FluentCounterBadge>
+    }
+    else
+    {
+        <ResourceErrorInfoButton UnviewedCount="@UnviewedErrorCount" Resource="@Resource"/>
+    }
+</FluentStack>
+
+@code {
+    [Parameter, EditorRequired]
+    public required ResourceViewModel Resource { get; set; }
+
+    [Parameter, EditorRequired]
+    public required int UnviewedErrorCount { get; set; }
+}

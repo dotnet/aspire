@@ -77,6 +77,11 @@
         <target state="new">{0} exited unexpectedly with exit code {1}</target>
         <note>{0} is a resource type, {1} is a number</note>
       </trans-unit>
+      <trans-unit id="StateColumnResourceHasLogErrors">
+        <source>There are log errors for this resource</source>
+        <target state="new">There are log errors for this resource</target>
+        <note />
+      </trans-unit>
       <trans-unit id="UnreadLogErrorsBadgeErrorLog">
         <source>{0} error log</source>
         <target state="new">{0} error log</target>
