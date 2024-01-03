@@ -172,6 +172,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.MongoDB.Driver.Tests
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConfigurationSchemaGenerator.Tests", "tests\ConfigurationSchemaGenerator.Tests\ConfigurationSchemaGenerator.Tests.csproj", "{00FEA181-84C9-42A7-AC81-29A9F176A1A0}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Oracle.EntityFrameworkCore", "src\Components\Aspire.Oracle.EntityFrameworkCore\Aspire.Oracle.EntityFrameworkCore.csproj", "{A778F29A-6C40-4C53-A793-F23F20679ADE}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Oracle.EntityFrameworkCore.Tests", "tests\Aspire.Oracle.EntityFrameworkCore.Tests\Aspire.Oracle.EntityFrameworkCore.Tests.csproj", "{A331C123-35A5-4E81-9999-354159821374}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -458,6 +462,14 @@ Global
 		{00FEA181-84C9-42A7-AC81-29A9F176A1A0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{00FEA181-84C9-42A7-AC81-29A9F176A1A0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{00FEA181-84C9-42A7-AC81-29A9F176A1A0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A778F29A-6C40-4C53-A793-F23F20679ADE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A778F29A-6C40-4C53-A793-F23F20679ADE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A778F29A-6C40-4C53-A793-F23F20679ADE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A778F29A-6C40-4C53-A793-F23F20679ADE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A331C123-35A5-4E81-9999-354159821374}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A331C123-35A5-4E81-9999-354159821374}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A331C123-35A5-4E81-9999-354159821374}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A331C123-35A5-4E81-9999-354159821374}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -537,6 +549,8 @@ Global
 		{20A5A907-A135-4735-B4BF-E13514F360E3} = {27381127-6C45-4B4C-8F18-41FF48DFE4B2}
 		{E592E447-BA3C-44FA-86C1-EBEDC864A644} = {4981B3A5-4AFD-4191-BF7D-8692D9783D60}
 		{00FEA181-84C9-42A7-AC81-29A9F176A1A0} = {4981B3A5-4AFD-4191-BF7D-8692D9783D60}
+		{A778F29A-6C40-4C53-A793-F23F20679ADE} = {27381127-6C45-4B4C-8F18-41FF48DFE4B2}
+		{A331C123-35A5-4E81-9999-354159821374} = {4981B3A5-4AFD-4191-BF7D-8692D9783D60}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6DCEDFEC-988E-4CB3-B45B-191EB5086E0C}

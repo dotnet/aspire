@@ -1,0 +1,91 @@
+{
+  "definitions": {
+    "logLevel": {
+      "properties": {
+        "Microsoft.EntityFrameworkCore": {
+          "$ref": "#/definitions/logLevelThreshold"
+        },
+        "Microsoft.EntityFrameworkCore.ChangeTracking": {
+          "$ref": "#/definitions/logLevelThreshold"
+        },
+        "Microsoft.EntityFrameworkCore.Database": {
+          "$ref": "#/definitions/logLevelThreshold"
+        },
+        "Microsoft.EntityFrameworkCore.Database.Command": {
+          "$ref": "#/definitions/logLevelThreshold"
+        },
+        "Microsoft.EntityFrameworkCore.Database.Connection": {
+          "$ref": "#/definitions/logLevelThreshold"
+        },
+        "Microsoft.EntityFrameworkCore.Database.Transaction": {
+          "$ref": "#/definitions/logLevelThreshold"
+        },
+        "Microsoft.EntityFrameworkCore.Infrastructure": {
+          "$ref": "#/definitions/logLevelThreshold"
+        },
+        "Microsoft.EntityFrameworkCore.Migrations": {
+          "$ref": "#/definitions/logLevelThreshold"
+        },
+        "Microsoft.EntityFrameworkCore.Model": {
+          "$ref": "#/definitions/logLevelThreshold"
+        },
+        "Microsoft.EntityFrameworkCore.Model.Validation": {
+          "$ref": "#/definitions/logLevelThreshold"
+        },
+        "Microsoft.EntityFrameworkCore.Query": {
+          "$ref": "#/definitions/logLevelThreshold"
+        },
+        "Microsoft.EntityFrameworkCore.Update": {
+          "$ref": "#/definitions/logLevelThreshold"
+        }
+      }
+    }
+  },
+  "properties": {
+    "Aspire": {
+      "type": "object",
+      "properties": {
+        "Oracle": {
+          "type": "object",
+          "properties": {
+            "EntityFrameworkCore": {
+              "type": "object",
+              "properties": {
+                "ConnectionString": {
+                  "type": "string",
+                  "description": "The connection string of the Oracle database to connect to."
+                },
+                "DbContextPooling": {
+                  "type": "boolean",
+                  "description": "Gets or sets a boolean value that indicates whether the db context will be pooled or explicitly created every time it's requested."
+                },
+                "HealthChecks": {
+                  "type": "boolean",
+                  "description": "Gets or sets a boolean value that indicates whether the database health check is enabled or not. The default value is true."
+                },
+                "MaxRetryCount": {
+                  "type": "integer",
+                  "description": "Gets or sets the maximum number of retry attempts. The default is 6. Set it to 0 to disable the retry mechanism."
+                },
+                "Metrics": {
+                  "type": "boolean",
+                  "description": "Gets or sets a boolean value that indicates whether the Open Telemetry metrics are enabled or not. The default value is true."
+                },
+                "Timeout": {
+                  "type": "integer",
+                  "description": "The time in seconds to wait for the command to execute."
+                },
+                "Tracing": {
+                  "type": "boolean",
+                  "description": "Gets or sets a boolean value that indicates whether the Open Telemetry tracing is enabled or not. The default value is true."
+                }
+              },
+              "description": "Provides the client configuration settings for connecting to a Oracle database using EntityFrameworkCore."
+            }
+          }
+        }
+      }
+    }
+  },
+  "type": "object"
+}

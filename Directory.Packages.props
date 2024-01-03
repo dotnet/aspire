@@ -79,6 +79,7 @@
     <PackageVersion Include="MySqlConnector.DependencyInjection" Version="2.3.1" />
     <PackageVersion Include="Npgsql.DependencyInjection" Version="8.0.0" />
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.0" />
+    <PackageVersion Include="Oracle.EntityFrameworkCore" Version="8.21.121" />
     <PackageVersion Include="Polly" Version="8.2.0" />
     <PackageVersion Include="RabbitMQ.Client" Version="6.7.0" />
     <PackageVersion Include="StackExchange.Redis" Version="2.7.4" />
