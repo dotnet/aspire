@@ -99,7 +99,7 @@ public static class PostgresBuilderExtensions
         var pgAdminContainer = new PgAdminContainerResource(containerName);
         builder.ApplicationBuilder.AddResource(pgAdminContainer)
                                   .WithAnnotation(new ContainerImageAnnotation { Image = "dpage/pgadmin4", Tag = "latest" })
-                                  .WithServiceBinding(containerPort: 80, hostPort: hostPort, scheme: "http", name: containerName)
+                                  .WithEndpoint(containerPort: 80, hostPort: hostPort, scheme: "http", name: containerName)
                                   .WithEnvironment(SetPgAdminEnviromentVariables)
                                   .WithVolumeMount(WritePgAdminTempServersJson(builder), "/pgadmin4/servers.json")
                                   .ExcludeFromManifest();
@@ -124,7 +124,7 @@ public static class PostgresBuilderExtensions
 
         // At this point the container is not running yet, so we need to get the port from the service bindings.
         // If the port is not user defined we will ignore it.
-        if (builder.Resource.TryGetServiceBindings(out var serviceBindings))
+        if (builder.Resource.TryGetEndpoints(out var serviceBindings))
         {
             if (serviceBindings.First().Port is not null)
             {
