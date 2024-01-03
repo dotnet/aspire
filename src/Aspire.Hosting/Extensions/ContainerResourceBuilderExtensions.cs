@@ -83,6 +83,31 @@ public static class ContainerResourceBuilderExtensions
         return builder.WithAnnotation(annotation);
     }
 
+    public static IResourceBuilder<T> WithNamedVolume<T>(this IResourceBuilder<T> builder, string volumeName) where T : ContainerResource
+    {
+        ArgumentNullException.ThrowIfNullOrWhiteSpace(volumeName, nameof(volumeName));
+
+        // Mapping of parent resource types to their volume paths
+        var volumePaths = new Dictionary<Type, string>
+        {
+            { typeof(SqlServerContainerResource), "/var/opt/mssql" },
+            { typeof(MongoDBContainerResource), "/data/db" },
+            { typeof(RedisContainerResource), "/data" },
+            { typeof(PostgresContainerResource), "/var/lib/postgresql/data" },
+            { typeof(RabbitMQContainerResource), "/var/lib/rabbitmq" },
+            { typeof(MySqlContainerResource), "/var/lib/mysql" }
+        };
+
+        Type resourceType = typeof(T);
+
+        if (volumePaths.TryGetValue(resourceType, out var volumePath))
+        {
+            builder.WithVolumeMount(volumeName, volumePath, VolumeMountType.Named);
+        }
+
+        return builder;
+    }
+
     /// <summary>
     /// Adds the arguments to be passed to a container resource when the container is started.
     /// </summary>

@@ -1,14 +1,21 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
-var catalogDb = builder.AddPostgres("postgres").AddDatabase("catalogdb");
+var catalogDb = builder.AddPostgresContainer("postgres")
+                       .WithNamedVolume("VolumeMount.example.data");
 
-var basketCache = builder.AddRedis("basketcache");
+// Add another Postgres container with the same named volume to see if named volumes name validation works correctly
+builder.AddPostgresContainer("randomdb")
+       .WithNamedVolume("VolumeMount.example.data");
+
+var basketCache = builder.AddRedisContainer("basketcache")
+                         .WithNamedVolume("basketcachvolume");
 
 var catalogService = builder.AddProject<Projects.CatalogService>("catalogservice")
                      .WithReference(catalogDb)
                      .WithReplicas(2);
 
-var messaging = builder.AddRabbitMQ("messaging");
+var messaging = builder.AddRabbitMQContainer("messaging")
+                       .WithNamedVolume("messagingvolume");
 
 var basketService = builder.AddProject("basketservice", @"..\BasketService\BasketService.csproj")
                     .WithReference(basketCache)
