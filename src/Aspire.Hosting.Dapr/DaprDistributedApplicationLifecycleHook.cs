@@ -23,11 +23,6 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
 
     private string? _onDemandResourcesRootPath;
 
-    private static readonly string s_defaultDaprPath =
-        OperatingSystem.IsWindows()
-            ? Path.Combine(Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.Windows)) ?? "C:", "dapr", "dapr.exe")
-            : Path.Combine("/usr", "local", "bin", "dapr");
-
     public DaprDistributedApplicationLifecycleHook(IConfiguration configuration, IHostEnvironment environment, ILogger<DaprDistributedApplicationLifecycleHook> logger, IOptions<DaprOptions> options)
     {
         _configuration = configuration;
@@ -44,6 +39,10 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
 
         var sideCars = new List<ExecutableResource>();
 
+        var fileName = this._options.DaprPath
+            ?? GetDefaultDaprPath()
+            ?? throw new DistributedApplicationException("Unable to locate the Dapr CLI.");
+
         foreach (var resource in appModel.Resources)
         {
             if (!resource.TryGetLastAnnotation<DaprSidecarAnnotation>(out var daprAnnotation))
@@ -52,8 +51,6 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
             }
 
             var sidecarOptions = daprAnnotation.Options;
-
-            string fileName = this._options.DaprPath ?? s_defaultDaprPath;
 
             [return: NotNullIfNotNull(nameof(path))]
             string? NormalizePath(string? path)
@@ -241,6 +238,49 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
         }
 
         appModel.Resources.AddRange(sideCars);
+    }
+
+    /// <summary>
+    /// Return the first verified dapr path
+    /// </summary>
+    static string? GetDefaultDaprPath()
+    {
+        foreach (var path in GetAvailablePaths())
+        {
+            if (File.Exists(path))
+            {
+                return path;
+            }
+        }
+
+        return default;
+
+        // Return all the possible paths for dapr
+        static IEnumerable<string> GetAvailablePaths()
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                var pathRoot = Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.Windows)) ?? "C:";
+
+                // Installed windows paths:
+                yield return Path.Combine(pathRoot, "dapr", "dapr.exe");
+
+                yield break;
+            }
+
+            // Add $HOME/dapr path:
+            var homePath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            yield return Path.Combine(homePath, "dapr", "dapr");
+
+            // Linux & MacOS path:
+            yield return Path.Combine("/usr", "local", "bin", "dapr");
+
+            // MacOS Homebrew path:
+            if (OperatingSystem.IsMacOS() && Environment.GetEnvironmentVariable("HOMEBREW_PREFIX") is string homebrewPrefix)
+            {
+                yield return Path.Combine(homebrewPrefix, "bin", "dapr");
+            }
+        }
     }
 
     public void Dispose()
