@@ -69,13 +69,14 @@
                     <ExtraValueContent>
                         @if (context.Attributes.Length > 0)
                         {
+                            <div class="event-attributes-header">Attributes</div>
                             <PropertyGrid TItem="SpanPropertyViewModel"
-                            Items="@Queryable.AsQueryable(context.Attributes.Select(a => new SpanPropertyViewModel() { Name = a.Key, Value = a.Value }))"
-                            GridTemplateColumns="1fr 2fr"
-                            NameColumnValue="(vm) => vm.Name"
-                            ValueColumnValue="(vm) => vm.Value"
-                            IsNameSortable="false"
-                            IsValueSortable="false" />
+                                Items="@Queryable.AsQueryable(context.Attributes.Select(a => new SpanPropertyViewModel() { Name = a.Key, Value = a.Value }))"
+                                GridTemplateColumns="1fr 2fr"
+                                NameColumnValue="(vm) => vm.Name"
+                                ValueColumnValue="(vm) => vm.Value"
+                                IsNameSortable="false"
+                                IsValueSortable="false" />
                         }
                     </ExtraValueContent>
                 </PropertyGrid>

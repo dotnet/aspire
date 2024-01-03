@@ -40,3 +40,8 @@
     font-size: var(--type-ramp-plus-1-font-size);
 }
 
+::deep .event-attributes-header {
+    font-weight: bold;
+    margin: 5px 0;
+}
+
