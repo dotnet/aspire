@@ -49,7 +49,7 @@ fluent-toolbar[orientation=horizontal] {
 
     --error-ui-foreground-color: #000000;
     --error-ui-accent-foreground-color: #512bd4;
-    --reconnection-ui-bg: #D1D1D1;
+    --reconnection-ui-bg: #D6D6D6;
 }
 
  #components-reconnect-modal :is(h5, p) {
