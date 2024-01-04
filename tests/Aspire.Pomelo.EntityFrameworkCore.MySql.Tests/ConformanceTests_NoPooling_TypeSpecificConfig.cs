@@ -9,9 +9,8 @@ namespace Aspire.Pomelo.EntityFrameworkCore.MySql.Tests;
 public class ConformanceTests_NoPooling_TypeSpecificConfig : ConformanceTests_NoPooling
 {
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
-        => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[2]
+        => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[1]
         {
-            new($"Aspire:Pomelo:EntityFrameworkCore:MySql:{typeof(TestDbContext).Name}:ConnectionString", ConnectionString),
-            new($"Aspire:Pomelo:EntityFrameworkCore:MySql:{typeof(TestDbContext).Name}:ServerVersion", "8.2.0-mysql")
+            new($"Aspire:Pomelo:EntityFrameworkCore:MySql:{typeof(TestDbContext).Name}:ConnectionString", ConnectionString)
         });
 }
