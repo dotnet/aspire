@@ -411,7 +411,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
             metadata:
                 name: {component.Name}
             spec:
-                type: pubsub.in-memory
+                type: pubsub.mempubsub
                 version: v1
                 metadata: []
             """;

@@ -38,6 +38,19 @@ internal sealed class DaprPluggableComponents : IDisposable
                     });
             });
 
+        _app.RegisterService(
+            "mempubsub",
+            serviceBuilder =>
+            {
+                serviceBuilder.RegisterPubSub(
+                    context =>
+                    {
+                        _logger.LogInformation("Creating Aspire pub sub for instance '{InstanceId}' on socket '{SocketPath}'...", context.InstanceId, context.SocketPath);
+
+                        return new MemoryPubSub(context.ServiceProvider.GetRequiredService<ILogger<MemoryPubSub>>());
+                    });
+            });
+
         await _app.StartAsync().ConfigureAwait(false);
 
         _logger.LogInformation("Pluggable components started.");
