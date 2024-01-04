@@ -47,7 +47,7 @@ public sealed class AzureOpenAISettings : IConnectionStringSettings
     /// </value>
     public bool Tracing { get; set; } = true;
 
-    public void ParseConnectionString(string? connectionString)
+    void IConnectionStringSettings.ParseConnectionString(string? connectionString)
     {
         var connectionBuilder = new DbConnectionStringBuilder
         {
