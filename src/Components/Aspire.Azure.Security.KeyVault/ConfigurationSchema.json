@@ -35,7 +35,7 @@
                           "properties": {
                             "ApplicationId": {
                               "type": "string",
-                              "description": "Gets or sets the value sent as the first part of \"User-Agent\" headers for all requests issues by this client. Defaults to P:Azure.Core.DiagnosticsOptions.DefaultApplicationId."
+                              "description": "Gets or sets the value sent as the first part of \"User-Agent\" headers for all requests issues by this client. Defaults to 'Azure.Core.DiagnosticsOptions.DefaultApplicationId'."
                             },
                             "DefaultApplicationId": {
                               "type": "string",
@@ -43,7 +43,7 @@
                             },
                             "IsDistributedTracingEnabled": {
                               "type": "boolean",
-                              "description": "Gets or sets value indicating whether distributed tracing activities ( T:System.Diagnostics.Activity ) are going to be created for the clients methods calls and HTTP calls."
+                              "description": "Gets or sets value indicating whether distributed tracing activities ( 'System.Diagnostics.Activity' ) are going to be created for the clients methods calls and HTTP calls."
                             },
                             "IsLoggingContentEnabled": {
                               "type": "boolean",
@@ -55,7 +55,7 @@
                             },
                             "IsTelemetryEnabled": {
                               "type": "boolean",
-                              "description": "Gets or sets value indicating whether the \"User-Agent\" header containing P:Azure.Core.DiagnosticsOptions.ApplicationId , client library package name and version, P:System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription and P:System.Runtime.InteropServices.RuntimeInformation.OSDescription should be sent.\nThe default value can be controlled process wide by setting AZURE_TELEMETRY_DISABLED to true , false , 1 or 0."
+                              "description": "Gets or sets value indicating whether the \"User-Agent\" header containing 'Azure.Core.DiagnosticsOptions.ApplicationId' , client library package name and version, 'System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription' and 'System.Runtime.InteropServices.RuntimeInformation.OSDescription' should be sent.\nThe default value can be controlled process wide by setting AZURE_TELEMETRY_DISABLED to true , false , 1 or 0."
                             },
                             "LoggedContentSizeLimit": {
                               "type": "integer",
@@ -116,7 +116,7 @@
                     "VaultUri": {
                       "type": "string",
                       "format": "uri",
-                      "description": "A T:System.Uri to the vault on which the client operates. Appears as \"DNS Name\" in the Azure portal.\nIf you have a secret T:System.Uri , use T:Azure.Security.KeyVault.Secrets.KeyVaultSecretIdentifier to parse the P:Azure.Security.KeyVault.Secrets.KeyVaultSecretIdentifier.VaultUri and other information.\nYou should validate that this URI references a valid Key Vault resource. See https://aka.ms/azsdk/blog/vault-uri for details."
+                      "description": "A 'System.Uri' to the vault on which the client operates. Appears as \"DNS Name\" in the Azure portal.\nIf you have a secret 'System.Uri' , use 'Azure.Security.KeyVault.Secrets.KeyVaultSecretIdentifier' to parse the 'Azure.Security.KeyVault.Secrets.KeyVaultSecretIdentifier.VaultUri' and other information.\nYou should validate that this URI references a valid Key Vault resource. See https://aka.ms/azsdk/blog/vault-uri for details."
                     }
                   },
                   "description": "Provides the client configuration settings for connecting to Azure Key Vault."

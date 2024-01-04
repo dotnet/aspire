@@ -35,7 +35,7 @@
     <FluentButton Appearance="Appearance.Lightweight"
                   Id="@_anchorId"
                   Class="defaultHidden"
-                  @onclick="@(() => CopyTextToClipboardAsync(ValueToCopy ?? Value, _anchorId))"
+                  OnClick="@(() => CopyTextToClipboardAsync(ValueToCopy ?? Value, _anchorId))"
                   aria-label="@Loc[nameof(ControlsStrings.GridValueCopyToClipboard)]">
         <FluentIcon Class="copy-icon" Style="display:inline;" Icon="Icons.Regular.Size16.Copy" />
         <FluentIcon Class="checkmark-icon" Style="display:none;" Icon="Icons.Regular.Size16.Checkmark" />

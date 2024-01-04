@@ -4,6 +4,7 @@
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Google.Protobuf.Collections;
+using OpenTelemetry.Proto.Common.V1;
 using OpenTelemetry.Proto.Trace.V1;
 using Xunit;
 using static Aspire.Dashboard.Tests.TelemetryRepositoryTests.TestHelpers;
@@ -243,6 +244,82 @@ public class TraceTests
                     s => AssertId("1-3", s.SpanId),
                     s => AssertId("1-4", s.SpanId),
                     s => AssertId("1-5", s.SpanId));
+            });
+    }
+
+    [Fact]
+    public void AddTraces_SpanEvents_ReturnData()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        // Act
+        repository.AddTraces(new AddContext(), new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10), events: new List<Span.Types.Event>
+                            {
+                                new Span.Types.Event
+                                {
+                                    Name = "Event 2",
+                                    TimeUnixNano = 2,
+                                    Attributes =
+                                    {
+                                        new KeyValue { Key = "key2", Value = new AnyValue { StringValue = "Value!" } }
+                                    }
+                                },
+                                new Span.Types.Event
+                                {
+                                    Name = "Event 1",
+                                    TimeUnixNano = 1,
+                                    Attributes =
+                                    {
+                                        new KeyValue { Key = "key1", Value = new AnyValue { StringValue = "Value!" } }
+                                    }
+                                }
+                            })
+                        }
+                    }
+                }
+            }
+        });
+
+        var traces = repository.GetTraces(new GetTracesRequest
+        {
+            ApplicationServiceId = null,
+            FilterText = string.Empty,
+            StartIndex = 0,
+            Count = 10
+        });
+        Assert.Collection(traces.PagedResult.Items,
+            trace =>
+            {
+                AssertId("1", trace.TraceId);
+                AssertId("1-1", trace.FirstSpan.SpanId);
+                Assert.Collection(trace.FirstSpan.Events,
+                    e =>
+                    {
+                        Assert.Equal("Event 1", e.Name);
+                        Assert.Collection(e.Attributes,
+                            a =>
+                            {
+                                Assert.Equal("key1", a.Key);
+                                Assert.Equal("Value!", a.Value);
+                            });
+                    },
+                    e =>
+                    {
+                        Assert.Equal("Event 2", e.Name);
+                    });
             });
     }
 

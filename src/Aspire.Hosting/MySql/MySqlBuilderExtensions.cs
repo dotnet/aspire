@@ -28,7 +28,7 @@ public static class MySqlBuilderExtensions
         var mySqlContainer = new MySqlContainerResource(name, password);
         return builder.AddResource(mySqlContainer)
                       .WithManifestPublishingCallback(context => WriteMySqlContainerResourceToManifest(context, mySqlContainer))
-                      .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, port: port, containerPort: 3306)) // Internal port is always 3306.
+                      .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 3306)) // Internal port is always 3306.
                       .WithAnnotation(new ContainerImageAnnotation { Image = "mysql", Tag = "latest" })
                       .WithEnvironment(context =>
                       {
@@ -55,7 +55,7 @@ public static class MySqlBuilderExtensions
         var mySqlContainer = new MySqlServerResource(name, password);
         return builder.AddResource(mySqlContainer)
                       .WithManifestPublishingCallback(WriteMySqlContainerToManifest)
-                      .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, containerPort: 3306)) // Internal port is always 3306.
+                      .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, containerPort: 3306)) // Internal port is always 3306.
                       .WithAnnotation(new ContainerImageAnnotation { Image = "mysql", Tag = "latest" })
                       .WithEnvironment(PasswordEnvVarName, () => mySqlContainer.Password);
     }

@@ -26,7 +26,7 @@ internal class AppResource
 internal sealed class ServiceAppResource : AppResource
 {
     public Service Service => (Service)DcpResource;
-    public ServiceBindingAnnotation ServiceBindingAnnotation { get; private set; }
+    public EndpointAnnotation EndpointAnnotation { get; private set; }
     public ServiceProducerAnnotation DcpServiceProducerAnnotation { get; private set; }
 
     public override List<ServiceAppResource> ServicesProduced
@@ -38,9 +38,9 @@ internal sealed class ServiceAppResource : AppResource
         get { throw new InvalidOperationException("Service resources do not consume any services"); }
     }
 
-    public ServiceAppResource(IResource modelResource, Service service, ServiceBindingAnnotation sba) : base(modelResource, service)
+    public ServiceAppResource(IResource modelResource, Service service, EndpointAnnotation sba) : base(modelResource, service)
     {
-        ServiceBindingAnnotation = sba;
+        EndpointAnnotation = sba;
         DcpServiceProducerAnnotation = new(service.Metadata.Name);
     }
 }
@@ -174,11 +174,11 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
                 }
 
                 var a = new AllocatedEndpointAnnotation(
-                    sp.ServiceBindingAnnotation.Name,
+                    sp.EndpointAnnotation.Name,
                     PortProtocol.ToProtocolType(svc.Spec.Protocol),
                     svc.AllocatedAddress!,
                     (int)svc.AllocatedPort!,
-                    sp.ServiceBindingAnnotation.UriScheme
+                    sp.EndpointAnnotation.UriScheme
                     );
 
                 appResource.ModelResource.Annotations.Add(a);
@@ -189,14 +189,14 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
     private void PrepareServices()
     {
         var serviceProducers = _model.Resources
-            .Select(r => (ModelResource: r, SBAnnotations: r.Annotations.OfType<ServiceBindingAnnotation>()))
+            .Select(r => (ModelResource: r, SBAnnotations: r.Annotations.OfType<EndpointAnnotation>()))
             .Where(sp => sp.SBAnnotations.Any());
 
         // We need to ensure that Services have unique names (otherwise we cannot really distinguish between
         // services produced by different resources).
         List<string> serviceNames = new();
 
-        void addServiceAppResource(Service svc, IResource producingResource, ServiceBindingAnnotation sba)
+        void addServiceAppResource(Service svc, IResource producingResource, EndpointAnnotation sba)
         {
             svc.Spec.Protocol = PortProtocol.FromProtocolType(sba.Protocol);
             svc.Annotate(CustomResource.UriSchemeAnnotation, sba.UriScheme);
@@ -388,9 +388,9 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
                     {
                         if (er.ModelResource is ProjectResource)
                         {
-                            var urls = er.ServicesProduced.Where(s => s.ServiceBindingAnnotation.UriScheme is "http" or "https").Select(sar =>
+                            var urls = er.ServicesProduced.Where(s => s.EndpointAnnotation.UriScheme is "http" or "https").Select(sar =>
                             {
-                                var url = sar.ServiceBindingAnnotation.UriScheme + "://localhost:{{- portForServing \"" + sar.Service.Metadata.Name + "\" -}}";
+                                var url = sar.EndpointAnnotation.UriScheme + "://localhost:{{- portForServing \"" + sar.Service.Metadata.Name + "\" -}}";
                                 return url;
                             });
 
@@ -439,7 +439,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
             {
                 var urls = executableResource.ServicesProduced.Select(sar =>
                 {
-                    var url = sar.ServiceBindingAnnotation.UriScheme + "://localhost:{{- portForServing \"" + sar.Service.Metadata.Name + "\" -}}";
+                    var url = sar.EndpointAnnotation.UriScheme + "://localhost:{{- portForServing \"" + sar.Service.Metadata.Name + "\" -}}";
                     return url;
                 });
 
@@ -467,14 +467,14 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
         foreach (var serviceProduced in executableResource.ServicesProduced)
         {
             var name = serviceProduced.Service.Metadata.Name;
-            var envVar = serviceProduced.ServiceBindingAnnotation.EnvironmentVariable;
+            var envVar = serviceProduced.EndpointAnnotation.EnvironmentVariable;
 
             if (envVar is not null)
             {
                 config.Add(envVar, $"{{{{- portForServing \"{name}\" }}}}");
             }
 
-            if (httpsServiceAppResource is null && serviceProduced.ServiceBindingAnnotation.UriScheme == "https")
+            if (httpsServiceAppResource is null && serviceProduced.EndpointAnnotation.UriScheme == "https")
             {
                 httpsServiceAppResource = serviceProduced;
             }
@@ -564,7 +564,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
                             portSpec.HostIP = sp.DcpServiceProducerAnnotation.Address;
                         }
 
-                        switch (sp.ServiceBindingAnnotation.Protocol)
+                        switch (sp.EndpointAnnotation.Protocol)
                         {
                             case ProtocolType.Tcp:
                                 portSpec.Protocol = PortProtocol.TCP; break;
@@ -575,7 +575,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
                         dcpContainerResource.Spec.Ports.Add(portSpec);
 
                         var name = sp.Service.Metadata.Name;
-                        var envVar = sp.ServiceBindingAnnotation.EnvironmentVariable;
+                        var envVar = sp.EndpointAnnotation.EnvironmentVariable;
 
                         if (envVar is not null)
                         {
@@ -608,6 +608,11 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
                     }
                 }
 
+                if (modelContainerResource is ContainerResource containerResource)
+                {
+                    dcpContainerResource.Spec.Command = containerResource.Entrypoint;
+                }
+
                 await kubernetesService.CreateAsync(dcpContainerResource, cancellationToken).ConfigureAwait(false);
             }
         }
@@ -629,18 +634,18 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
         var servicesProduced = _appResources.OfType<ServiceAppResource>().Where(r => r.ModelResource == modelResource);
         foreach (var sp in servicesProduced)
         {
-            // Projects/Executables have their ports auto-allocated; the the port specified by the ServiceBindingAnnotation
+            // Projects/Executables have their ports auto-allocated; the the port specified by the EndpointAnnotation
             // is applied to the Service objects and used by clients.
-            // Containers use the port from the ServiceBindingAnnotation directly.
+            // Containers use the port from the EndpointAnnotation directly.
 
             if (modelResource.IsContainer())
             {
-                if (sp.ServiceBindingAnnotation.ContainerPort is null)
+                if (sp.EndpointAnnotation.ContainerPort is null)
                 {
-                    throw new InvalidOperationException($"The ServiceBindingAnnotation for container resource {modelResourceName} must specify the ContainerPort");
+                    throw new InvalidOperationException($"The endpoint for container resource {modelResourceName} must specify the ContainerPort");
                 }
 
-                sp.DcpServiceProducerAnnotation.Port = sp.ServiceBindingAnnotation.ContainerPort;
+                sp.DcpServiceProducerAnnotation.Port = sp.EndpointAnnotation.ContainerPort;
             }
 
             dcpResource.AnnotateAsObjectList(CustomResource.ServiceProducerAnnotation, sp.DcpServiceProducerAnnotation);
