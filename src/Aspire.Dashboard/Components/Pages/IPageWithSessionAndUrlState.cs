@@ -12,7 +12,7 @@ namespace Aspire.Dashboard.Components.Pages;
 /// Navigating back to the page will restore the previous page state
 /// </summary>
 /// <typeparam name="TViewModel">The view model containing live state</typeparam>
-/// <typeparam name="TSerializableViewModel">A serializable version of the view model that will be saved in session storage and restored from</typeparam>
+/// <typeparam name="TSerializableViewModel">A serializable version of <typeparamref name="TViewModel"/> that will be saved in session storage and restored from</typeparam>
 public interface IPageWithSessionAndUrlState<TViewModel, TSerializableViewModel>
     where TSerializableViewModel : class
 {
@@ -37,19 +37,21 @@ public interface IPageWithSessionAndUrlState<TViewModel, TSerializableViewModel>
     /// <summary>
     /// Computes the initial view model state based on query param values
     /// </summary>
-    public TViewModel GetViewModelFromQuery();
+    public void UpdateViewModelFromQuery(TViewModel viewModel);
 
     /// <summary>
     /// Translates the <param name="serializable">serializable form of the view model</param> to a relative URL associated
     /// with that state
     /// </summary>
-    public (string Path, Dictionary<string, string?>? QueryParameters) GetUrlFromSerializableViewModel(TSerializableViewModel serializable);
+    public UrlState GetUrlFromSerializableViewModel(TSerializableViewModel serializable);
 
     /// <summary>
-    /// Maps view model to serializable version, which should contain simple types.
+    /// Maps <typeparamref name="TViewModel"/> to <typeparamref name="TSerializableViewModel"/>, which should contain simple types.
     /// </summary>
     public TSerializableViewModel ConvertViewModelToSerializable();
 }
+
+public sealed record UrlState(string Path, Dictionary<string, string?>? QueryParameters);
 
 public static class PageExtensions
 {
@@ -66,29 +68,29 @@ public static class PageExtensions
         await page.SessionStorage.SetAsync(page.SessionStorageKey, serializableViewModel).ConfigureAwait(false);
     }
 
-    /// <summary>
-    /// Called to initialize the page's view model. If hasComponentRendered is true,
-    /// will try to restore from session storage. Otherwise, it will construct state from the url.
-    ///
-    /// Because session storage isn't accessible until after component render, this should be called twice:
-    /// once after component render, and once after parameters are set.
-    /// </summary>
-    public static async Task InitializeViewModelAsync<TViewModel, TSerializableViewModel>(this IPageWithSessionAndUrlState<TViewModel, TSerializableViewModel> page, bool hasComponentRendered) where TSerializableViewModel : class
+    public static async Task InitializeViewModelAsync<TViewModel, TSerializableViewModel>(this IPageWithSessionAndUrlState<TViewModel, TSerializableViewModel> page) where TSerializableViewModel : class
     {
-        if (hasComponentRendered && string.Equals(page.BasePath, page.NavigationManager.ToBaseRelativePath(page.NavigationManager.Uri)))
+        if (string.Equals(page.BasePath, page.NavigationManager.ToBaseRelativePath(page.NavigationManager.Uri)))
         {
             var result = await page.SessionStorage.GetAsync<TSerializableViewModel>(page.SessionStorageKey).ConfigureAwait(false);
             if (result is { Success: true, Value: not null })
             {
-                page.NavigationManager.NavigateTo(GetUrlFromPathAndParameterParts(page.GetUrlFromSerializableViewModel(result.Value)));
-                return;
+                var newUrl = GetUrlFromPathAndParameterParts(page.GetUrlFromSerializableViewModel(result.Value));
+
+                // Don't navigate if the URL redirects to itself.
+                if (newUrl != "/" + page.BasePath)
+                {
+                    page.NavigationManager.NavigateTo(newUrl);
+                    return;
+                }
             }
         }
 
-        page.ViewModel = page.GetViewModelFromQuery();
+        ArgumentNullException.ThrowIfNull(page.ViewModel, nameof(page.ViewModel));
+        page.UpdateViewModelFromQuery(page.ViewModel);
     }
 
-    private static string GetUrlFromPathAndParameterParts((string Path, Dictionary<string, string?>? QueryParameters) parts)
+    private static string GetUrlFromPathAndParameterParts(UrlState parts)
     {
         var (path, queryParameters) = parts;
 

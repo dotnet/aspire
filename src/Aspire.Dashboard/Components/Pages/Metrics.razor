@@ -29,13 +29,13 @@
                       AriaLabel="@Loc[nameof(Dashboard.Resources.Metrics.MetricsSelectADuration)]"/>
     </FluentToolbar>
     <div class="page-content-area">
-        @if (_instruments?.Count > 0)
+        @if (ViewModel.Instruments?.Count > 0)
         {
             <FluentSplitter Style="height:100%" Panel1Size="2fr" Panel2Size="8fr">
                 <Panel1>
                     <FluentTreeView Class="metrics-tree" @bind-CurrentSelected="ViewModel.SelectedTreeItem" @bind-CurrentSelected:after="HandleSelectedTreeItemChangedAsync">
                         <ChildContent>
-                            @foreach (var meterGroup in _instruments.GroupBy(i => i.Parent).OrderBy(g => g.Key.MeterName))
+                            @foreach (var meterGroup in ViewModel.Instruments.GroupBy(i => i.Parent).OrderBy(g => g.Key.MeterName))
                             {
                                 <FluentTreeItem @key="meterGroup.Key" Text="@meterGroup.Key.MeterName" Data="@meterGroup.Key" title="@meterGroup.Key.MeterName" InitiallyExpanded="true" InitiallySelected="@(ViewModel.SelectedInstrument == null && meterGroup.Key.MeterName == ViewModel.SelectedMeter?.MeterName)">
                                     @foreach (var instrument in meterGroup.OrderBy(i => i.Name))
@@ -56,7 +56,7 @@
                         else if (ViewModel.SelectedMeter != null)
                         {
                             <h3>@ViewModel.SelectedMeter.MeterName</h3>
-                            <FluentDataGrid Style="max-width:1100px;" Items="@Queryable.AsQueryable(_instruments.Where(i => i.Parent == ViewModel.SelectedMeter).OrderBy(i => i.Name))" GridTemplateColumns="3fr 5fr" TGridItem="OtlpInstrument">
+                            <FluentDataGrid Style="max-width:1100px;" Items="@ViewModel.Instruments.Where(i => i.Parent == ViewModel.SelectedMeter).OrderBy(i => i.Name).AsQueryable()" GridTemplateColumns="3fr 5fr" TGridItem="OtlpInstrument">
                                 <ChildContent>
                                     <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Metrics.MetricsInsturementNameGridNameColumnHeader)]">
                                         <FluentAnchor Href="@($"/Metrics/{ViewModel.SelectedApplication.Id}/Meter/{context.Parent.MeterName}/Instrument/{context.Name}")" Appearance="Appearance.Lightweight">
@@ -75,7 +75,7 @@
                 </Panel2>
             </FluentSplitter>
         }
-        else if (_instruments == null)
+        else if (ViewModel.Instruments == null)
         {
             <div class="empty-content">
                 <FluentIcon Icon="Icons.Regular.Size24.ChartMultiple" />&nbsp;@Loc[nameof(Dashboard.Resources.Metrics.MetricsSelectAResource)]

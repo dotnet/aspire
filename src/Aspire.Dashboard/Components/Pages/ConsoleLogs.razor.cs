@@ -50,6 +50,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     protected override void OnInitialized()
     {
         _noSelection = new() { Value = null, Text = ControlsStringsLoc[nameof(ControlsStrings.SelectAResource)] };
+        ViewModel = new ConsoleLogsViewModel { SelectedResource = null, Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLoadingResources)] };
 
         TrackResourceSnapshots();
 
@@ -90,7 +91,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
     protected override async Task OnParametersSetAsync()
     {
-        await this.InitializeViewModelAsync(hasComponentRendered: false);
+        await this.InitializeViewModelAsync();
 
         if (ViewModel.SelectedResource is not null)
         {
@@ -103,14 +104,12 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         }
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override void OnAfterRender(bool firstRender)
     {
         if (firstRender)
         {
             // Let anyone waiting know that the render is complete, so we have access to the underlying log viewer.
             _whenDomReady.SetResult();
-
-            await this.InitializeViewModelAsync(hasComponentRendered: true);
         }
     }
 
@@ -284,38 +283,32 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         public string? SelectedResource { get; set; }
     }
 
-    public ConsoleLogsViewModel GetViewModelFromQuery()
+    public void UpdateViewModelFromQuery(ConsoleLogsViewModel viewModel)
     {
         if (_resources is not null && ResourceName is not null)
         {
             var selectedOption = _resources.FirstOrDefault(c => string.Equals(ResourceName, c.Value, StringComparisons.ResourceName)) ?? _noSelection;
 
-            return new ConsoleLogsViewModel
-            {
-                SelectedOption = selectedOption,
-                SelectedResource = selectedOption?.Value is null ? null : _resourceByName[selectedOption.Value],
-                Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLogsNotYetAvailable)]
-            };
+            viewModel.SelectedOption = selectedOption;
+            viewModel.SelectedResource = selectedOption?.Value is null ? null : _resourceByName[selectedOption.Value];
+            viewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLogsNotYetAvailable)];
         }
         else
         {
-            return new ConsoleLogsViewModel
-            {
-                SelectedOption = _noSelection,
-                SelectedResource = null,
-                Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsNoResourceSelected)]
-            };
+            viewModel.SelectedOption = _noSelection;
+            viewModel.SelectedResource = null;
+            viewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsNoResourceSelected)];
         }
     }
 
-    public (string Path, Dictionary<string, string?>? QueryParameters) GetUrlFromSerializableViewModel(ConsoleLogsPageState serializable)
+    public UrlState GetUrlFromSerializableViewModel(ConsoleLogsPageState serializable)
     {
         if (serializable.SelectedResource is { } selectedOption)
         {
-            return ($"{BasePath}/{selectedOption}", null);
+            return new UrlState($"{BasePath}/{selectedOption}", null);
         }
 
-        return ($"/{BasePath}", null);
+        return new UrlState($"/{BasePath}", null);
     }
 
     public ConsoleLogsPageState ConvertViewModelToSerializable()
