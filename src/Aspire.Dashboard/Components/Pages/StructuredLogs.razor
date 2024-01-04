@@ -9,7 +9,7 @@
 @inject IResourceService resourceService
 @inject IJSRuntime JS
 @implements IDisposable
-@inject IStringLocalizer<Dialogs> Loc
+@inject IStringLocalizer<Dashboard.Resources.StructuredLogs> Loc
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
 
 <PageTitle>@string.Format(Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsPageTitle)], resourceService.ApplicationName)</PageTitle>
@@ -72,11 +72,11 @@
                             <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsLevelColumnHeader)]">
                                 @if (context.Severity is LogLevel.Error or LogLevel.Critical)
                                 {
-                                    <FluentIcon Icon="Icons.Filled.Size16.ErrorCircle" Color="Color.Error" Class="logs-severity-icon" />
+                                    <FluentIcon Icon="Icons.Filled.Size16.ErrorCircle" Color="Color.Error" Class="severity-icon" />
                                 }
                                 else if (context.Severity is LogLevel.Warning)
                                 {
-                                    <FluentIcon Icon="Icons.Filled.Size16.Warning" Color="Color.Warning" Class="logs-severity-icon" />
+                                    <FluentIcon Icon="Icons.Filled.Size16.Warning" Color="Color.Warning" Class="severity-icon" />
                                 }
                                 @context.Severity
                             </TemplateColumn>

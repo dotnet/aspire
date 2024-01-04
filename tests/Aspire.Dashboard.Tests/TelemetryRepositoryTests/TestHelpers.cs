@@ -100,9 +100,9 @@ internal static class TestHelpers
         return point;
     }
 
-    public static Span CreateSpan(string traceId, string spanId, DateTime startTime, DateTime endTime, string? parentSpanId = null)
+    public static Span CreateSpan(string traceId, string spanId, DateTime startTime, DateTime endTime, string? parentSpanId = null, List<Span.Types.Event>? events = null)
     {
-        return new Span
+        var span = new Span
         {
             TraceId = ByteString.CopyFrom(Encoding.UTF8.GetBytes(traceId)),
             SpanId = ByteString.CopyFrom(Encoding.UTF8.GetBytes(spanId)),
@@ -111,6 +111,12 @@ internal static class TestHelpers
             EndTimeUnixNano = DateTimeToUnixNanoseconds(endTime),
             Name = "Test span"
         };
+        if (events != null)
+        {
+            span.Events.AddRange(events);
+        }
+
+        return span;
     }
 
     public static LogRecord CreateLogRecord(DateTime? time = null, string? message = null, SeverityNumber? severity = null)

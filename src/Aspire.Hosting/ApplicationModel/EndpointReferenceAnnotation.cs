@@ -5,9 +5,9 @@ using System.Collections.ObjectModel;
 
 namespace Aspire.Hosting.ApplicationModel;
 
-internal sealed class ServiceReferenceAnnotation(IResource resource) : IResourceAnnotation
+internal sealed class EndpointReferenceAnnotation(IResource resource) : IResourceAnnotation
 {
     public IResource Resource { get; } = resource;
-    public bool UseAllBindings { get; set; }
-    public Collection<string> BindingNames { get; } = new();
+    public bool UseAllEndpoints { get; set; }
+    public Collection<string> EndpointNames { get; } = new();
 }

@@ -31,7 +31,7 @@ public class SlimTestProgramTests
     }
 
     [LocalOnlyFact]
-    public async Task TestPortOnServiceBindingAnnotationAndAllocatedEndpointAnnotationMatch()
+    public async Task TestPortOnEndpointAnnotationAndAllocatedEndpointAnnotationMatch()
     {
         var testProgram = _slimTestProgramFixture.TestProgram;
         var client = _slimTestProgramFixture.HttpClient;
@@ -45,15 +45,15 @@ public class SlimTestProgramTests
 
         foreach (var projectBuilders in testProgram.ServiceProjectBuilders)
         {
-            var serviceBinding = projectBuilders.Resource.Annotations.OfType<ServiceBindingAnnotation>().Single();
+            var endpoint = projectBuilders.Resource.Annotations.OfType<EndpointAnnotation>().Single();
             var allocatedEndpoint = projectBuilders.Resource.Annotations.OfType<AllocatedEndpointAnnotation>().Single();
 
-            Assert.Equal(serviceBinding.Port, allocatedEndpoint.Port);
+            Assert.Equal(endpoint.Port, allocatedEndpoint.Port);
         }
     }
 
     [LocalOnlyFact]
-    public async Task TestPortOnServiceBindingAnnotationAndAllocatedEndpointAnnotationMatchForReplicatedServices()
+    public async Task TestPortOnEndpointAnnotationAndAllocatedEndpointAnnotationMatchForReplicatedServices()
     {
         var testProgram = _slimTestProgramFixture.TestProgram;
         var client = _slimTestProgramFixture.HttpClient;
@@ -67,10 +67,10 @@ public class SlimTestProgramTests
 
         foreach (var projectBuilders in testProgram.ServiceProjectBuilders)
         {
-            var serviceBinding = projectBuilders.Resource.Annotations.OfType<ServiceBindingAnnotation>().Single();
+            var endpoint = projectBuilders.Resource.Annotations.OfType<EndpointAnnotation>().Single();
             var allocatedEndpoint = projectBuilders.Resource.Annotations.OfType<AllocatedEndpointAnnotation>().Single();
 
-            Assert.Equal(serviceBinding.Port, allocatedEndpoint.Port);
+            Assert.Equal(endpoint.Port, allocatedEndpoint.Port);
         }
     }
 }

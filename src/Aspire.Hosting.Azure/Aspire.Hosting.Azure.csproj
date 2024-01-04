@@ -3,6 +3,7 @@
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
+    <PackageTags>aspire hosting azure</PackageTags>
     <Description>Azure resource types for .NET Aspire.</Description>
   </PropertyGroup>
 
