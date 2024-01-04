@@ -3,10 +3,12 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dapr;
+using Aspire.Hosting.Dapr.PluggableComponents;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Aspire.Hosting;
 
@@ -27,6 +29,8 @@ public static class IDistributedApplicationBuilderExtensions
         {
             builder.Services.Configure(configure);
         }
+
+        builder.Services.TryAddSingleton<DaprPluggableComponents>();
         builder.Services.TryAddLifecycleHook<DaprDistributedApplicationLifecycleHook>();
 
         return builder;

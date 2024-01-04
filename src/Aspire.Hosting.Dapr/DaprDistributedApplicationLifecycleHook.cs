@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Dapr.PluggableComponents;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
@@ -20,19 +21,23 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
     private readonly IHostEnvironment _environment;
     private readonly ILogger<DaprDistributedApplicationLifecycleHook> _logger;
     private readonly DaprOptions _options;
+    private readonly DaprPluggableComponents _pluggableComponents;
 
     private string? _onDemandResourcesRootPath;
 
-    public DaprDistributedApplicationLifecycleHook(IConfiguration configuration, IHostEnvironment environment, ILogger<DaprDistributedApplicationLifecycleHook> logger, IOptions<DaprOptions> options)
+    public DaprDistributedApplicationLifecycleHook(IConfiguration configuration, IHostEnvironment environment, DaprPluggableComponents pluggableComponents, ILogger<DaprDistributedApplicationLifecycleHook> logger, IOptions<DaprOptions> options)
     {
         _configuration = configuration;
         _environment = environment;
         _logger = logger;
         _options = options.Value;
+        _pluggableComponents = pluggableComponents;
     }
 
     public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
+        await _pluggableComponents.StartAsync().ConfigureAwait(false);
+
         string appHostDirectory = _configuration["AppHost:Directory"] ?? throw new InvalidOperationException("Unable to obtain the application host directory.");
 
         var onDemandResourcesPaths = await StartOnDemandDaprComponentsAsync(appModel, cancellationToken).ConfigureAwait(false);
@@ -285,6 +290,8 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
 
     public void Dispose()
     {
+        _pluggableComponents.Dispose();
+
         if (_onDemandResourcesRootPath is not null)
         {
             _logger.LogInformation("Stopping Dapr-related resources...");
@@ -419,7 +426,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
             metadata:
                 name: {component.Name}
             spec:
-                type: state.in-memory
+                type: state.memstore
                 version: v1
                 metadata: []
             """;
