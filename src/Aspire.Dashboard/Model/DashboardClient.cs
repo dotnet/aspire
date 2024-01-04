@@ -4,7 +4,6 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Runtime.ExceptionServices;
 using System.Threading.Channels;
 using Aspire.Dashboard.Utils;
 using Aspire.V1;
@@ -32,6 +31,8 @@ internal sealed class DashboardClient : IDashboardClient
     private readonly CancellationTokenSource _cts = new();
     private readonly TaskCompletionSource _whenConnected = new();
     private readonly object _lock = new();
+
+    private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<DashboardClient> _logger;
 
     private ImmutableHashSet<Channel<ResourceViewModelChange>> _outgoingChannels = [];
@@ -41,13 +42,17 @@ internal sealed class DashboardClient : IDashboardClient
     private const int StateInitialized = 1;
     private const int StateDisposed = 2;
     private int _state;
+
     private readonly GrpcChannel _channel;
     private readonly DashboardService.DashboardServiceClient _client;
+
     private Task? _connection;
 
-    public DashboardClient(ILogger<DashboardClient> logger)
+    public DashboardClient(ILoggerFactory loggerFactory)
     {
-        _logger = logger;
+        _loggerFactory = loggerFactory;
+
+        _logger = loggerFactory.CreateLogger<DashboardClient>();
 
         var address = GetAddressUri(DashboardServiceUrlVariableName, DashboardServiceUrlDefaultValue);
 
@@ -99,12 +104,16 @@ internal sealed class DashboardClient : IDashboardClient
                 }
             };
 
+            // https://learn.microsoft.com/aspnet/core/grpc/diagnostics#grpc-client-logging
+
             return GrpcChannel.ForAddress(
                 address,
                 channelOptions: new()
                 {
                     HttpHandler = httpHandler,
-                    ServiceConfig = new() { MethodConfigs = { methodConfig } }
+                    ServiceConfig = new() { MethodConfigs = { methodConfig } },
+                    LoggerFactory = _loggerFactory,
+                    ThrowOperationCanceledOnCancellation = true
                 });
         }
     }
@@ -151,23 +160,14 @@ internal sealed class DashboardClient : IDashboardClient
                 }
                 catch (RpcException ex)
                 {
-                    // Cancellation is reported in an RpcException, so unwrap it to throw the original OperationCanceledException instead.
-                    if (ex.StatusCode == StatusCode.Cancelled && ex.InnerException is OperationCanceledException oce)
-                    {
-                        // Rethrow cancellation
-                        ExceptionDispatchInfo.Capture(oce).Throw();
-                    }
-
                     errorCount++;
 
-                    _logger.LogError("Error {errorCount} watching resources: {error}", errorCount, ex.Message);
+                    _logger.LogError(ex, "Error #{errorCount} watching resources.", errorCount);
                 }
             }
 
             async Task ConnectAsync()
             {
-                await _channel.ConnectAsync(cancellationToken).ConfigureAwait(false);
-
                 var response = await _client.GetApplicationInformationAsync(new(), cancellationToken: cancellationToken);
 
                 _applicationName = response.ApplicationName;
