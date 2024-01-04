@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using System.Globalization;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
@@ -18,7 +19,6 @@ public class DistributedApplicationTests
 {
     private readonly ITestOutputHelper _testOutputHelper;
 
-    // Primary constructors don't get ITestOutputHelper injected
     public DistributedApplicationTests(ITestOutputHelper testOutputHelper)
     {
         _testOutputHelper = testOutputHelper;
@@ -169,7 +169,7 @@ public class DistributedApplicationTests
 
         foreach (var item in appModel.Resources)
         {
-            if ((item is ContainerResource || item is ProjectResource || item is ExecutableResource) && item.TryGetServiceBindings(out _))
+            if ((item is ContainerResource || item is ProjectResource || item is ExecutableResource) && item.TryGetEndpoints(out _))
             {
                 Assert.True(item.TryGetAllocatedEndPoints(out var endpoints));
                 Assert.NotEmpty(endpoints);
@@ -184,109 +184,6 @@ public class DistributedApplicationTests
             tcs.TrySetResult(appModel);
 
             return Task.CompletedTask;
-        }
-    }
-
-    [LocalOnlyFact]
-    public async Task TestProjectStartsAndStopsCleanly()
-    {
-        var testProgram = CreateTestProgram();
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
-
-        testProgram.AppBuilder.Services
-            .AddHttpClient()
-            .ConfigureHttpClientDefaults(b =>
-            {
-                b.UseSocketsHttpHandler((handler, sp) => handler.PooledConnectionLifetime = TimeSpan.FromSeconds(5));
-            });
-
-        await using var app = testProgram.Build();
-
-        var client = app.Services.GetRequiredService<IHttpClientFactory>().CreateClient();
-
-        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
-
-        await app.StartAsync(cts.Token);
-
-        // Make sure each service is running
-        await testProgram.ServiceABuilder.HttpGetPidAsync(client, "http", cts.Token);
-        await testProgram.ServiceBBuilder.HttpGetPidAsync(client, "http", cts.Token);
-        await testProgram.ServiceCBuilder.HttpGetPidAsync(client, "http", cts.Token);
-    }
-
-    [LocalOnlyFact]
-    public async Task TestPortOnServiceBindingAnnotationAndAllocatedEndpointAnnotationMatch()
-    {
-        var testProgram = CreateTestProgram();
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
-
-        testProgram.AppBuilder.Services
-            .AddHttpClient()
-            .ConfigureHttpClientDefaults(b =>
-            {
-                b.UseSocketsHttpHandler((handler, sp) => handler.PooledConnectionLifetime = TimeSpan.FromSeconds(5));
-            });
-
-        await using var app = testProgram.Build();
-
-        var client = app.Services.GetRequiredService<IHttpClientFactory>().CreateClient();
-
-        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
-
-        await app.StartAsync(cts.Token);
-
-        // Make sure each service is running
-        await testProgram.ServiceABuilder.HttpGetPidAsync(client, "http", cts.Token);
-        await testProgram.ServiceBBuilder.HttpGetPidAsync(client, "http", cts.Token);
-        await testProgram.ServiceCBuilder.HttpGetPidAsync(client, "http", cts.Token);
-
-        foreach (var projectBuilders in testProgram.ServiceProjectBuilders)
-        {
-            var serviceBinding = projectBuilders.Resource.Annotations.OfType<ServiceBindingAnnotation>().Single();
-            var allocatedEndpoint = projectBuilders.Resource.Annotations.OfType<AllocatedEndpointAnnotation>().Single();
-
-            Assert.Equal(serviceBinding.Port, allocatedEndpoint.Port);
-        }
-    }
-
-    [LocalOnlyFact]
-    public async Task TestPortOnServiceBindingAnnotationAndAllocatedEndpointAnnotationMatchForReplicatedServices()
-    {
-        var testProgram = CreateTestProgram();
-
-        foreach (var serviceBuilder in testProgram.ServiceProjectBuilders)
-        {
-            serviceBuilder.WithReplicas(2);
-        }
-
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
-
-        testProgram.AppBuilder.Services
-            .AddHttpClient()
-            .ConfigureHttpClientDefaults(b =>
-            {
-                b.UseSocketsHttpHandler((handler, sp) => handler.PooledConnectionLifetime = TimeSpan.FromSeconds(5));
-            });
-
-        await using var app = testProgram.Build();
-
-        var client = app.Services.GetRequiredService<IHttpClientFactory>().CreateClient();
-
-        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
-
-        await app.StartAsync(cts.Token);
-
-        // Make sure each service is running
-        await testProgram.ServiceABuilder.HttpGetPidAsync(client, "http", cts.Token);
-        await testProgram.ServiceBBuilder.HttpGetPidAsync(client, "http", cts.Token);
-        await testProgram.ServiceCBuilder.HttpGetPidAsync(client, "http", cts.Token);
-
-        foreach (var projectBuilders in testProgram.ServiceProjectBuilders)
-        {
-            var serviceBinding = projectBuilders.Resource.Annotations.OfType<ServiceBindingAnnotation>().Single();
-            var allocatedEndpoint = projectBuilders.Resource.Annotations.OfType<AllocatedEndpointAnnotation>().Single();
-
-            Assert.Equal(serviceBinding.Port, allocatedEndpoint.Port);
         }
     }
 
@@ -315,6 +212,11 @@ public class DistributedApplicationTests
 
         await app.StartAsync(cts.Token);
 
+        // Give the server some time to be ready to handle requests to
+        // minimize the amount of retries the clients have to do (and log).
+
+        await Task.Delay(1000, cts.Token);
+
         // Make sure services A and C are running
         await testProgram.ServiceABuilder.HttpGetPidAsync(client, "http", cts.Token);
         await testProgram.ServiceCBuilder.HttpGetPidAsync(client, "http", cts.Token);
@@ -334,67 +236,6 @@ public class DistributedApplicationTests
             }
             await Task.Delay(100, cts.Token);
         }
-    }
-
-    [LocalOnlyFact]
-    public async Task VerifyHealthyOnIntegrationServiceA()
-    {
-        var testProgram = CreateTestProgram(includeIntegrationServices: true);
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
-
-        testProgram.AppBuilder.Services
-            .AddHttpClient()
-            .ConfigureHttpClientDefaults(b =>
-            {
-                b.UseSocketsHttpHandler((handler, sp) => handler.PooledConnectionLifetime = TimeSpan.FromSeconds(5));
-            });
-
-        await using var app = testProgram.Build();
-
-        var client = app.Services.GetRequiredService<IHttpClientFactory>().CreateClient();
-
-        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
-
-        await app.StartAsync(cts.Token);
-
-        // Make sure all services are running
-        await testProgram.ServiceABuilder.HttpGetPidAsync(client, "http", cts.Token);
-        await testProgram.ServiceBBuilder.HttpGetPidAsync(client, "http", cts.Token);
-        await testProgram.ServiceCBuilder.HttpGetPidAsync(client, "http", cts.Token);
-        await testProgram.IntegrationServiceABuilder!.HttpGetPidAsync(client, "http", cts.Token);
-
-        // We wait until timeout for the /health endpoint to return successfully. We assume
-        // that components wired up into this project have health checks enabled.
-        await testProgram.IntegrationServiceABuilder!.WaitForHealthyStatus(client, "http", cts.Token);
-    }
-
-    [LocalOnlyFact("node")]
-    public async Task VerifyNodeAppWorks()
-    {
-        var testProgram = CreateTestProgram(includeNodeApp: true);
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
-
-        testProgram.AppBuilder.Services
-            .AddHttpClient()
-            .ConfigureHttpClientDefaults(b =>
-            {
-                b.UseSocketsHttpHandler((handler, sp) => handler.PooledConnectionLifetime = TimeSpan.FromSeconds(5));
-                b.AddStandardResilienceHandler();
-            });
-
-        await using var app = testProgram.Build();
-
-        var client = app.Services.GetRequiredService<IHttpClientFactory>().CreateClient();
-
-        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
-
-        await app.StartAsync(cts.Token);
-
-        var response0 = await testProgram.NodeAppBuilder!.HttpGetWithRetryAsync(client, "http", "/", cts.Token);
-        var response1 = await testProgram.NpmAppBuilder!.HttpGetWithRetryAsync(client, "http", "/", cts.Token);
-
-        Assert.Equal("Hello from node!", response0);
-        Assert.Equal("Hello from node!", response1);
     }
 
     [LocalOnlyFact("docker")]
@@ -423,28 +264,85 @@ public class DistributedApplicationTests
         await app.StopAsync();
     }
 
-    [LocalOnlyFact]
-    public async Task NoUrlInLaunchSettings()
+    [LocalOnlyFact("docker")]
+    public async Task SpecifyingEnvPortInEndpointFlowsToEnv()
+    {
+        var testProgram = CreateTestProgram(includeNodeApp: true);
+
+        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+
+        testProgram.ServiceABuilder
+            .WithEndpoint(scheme: "http", name: "http0", env: "PORT0");
+
+        testProgram.AppBuilder.AddContainer("redis0", "redis")
+            .WithEndpoint(containerPort: 6379, name: "tcp", env: "REDIS_PORT");
+
+        await using var app = testProgram.Build();
+
+        var kubernetes = app.Services.GetRequiredService<KubernetesService>();
+
+        await app.StartAsync();
+
+        using var cts = new CancellationTokenSource(Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(10));
+        var token = cts.Token;
+
+        var redisContainer = await KubernetesHelper.GetResourceByNameAsync<Container>(kubernetes, "redis0", r => r.Status?.EffectiveEnv is not null, token);
+        Assert.NotNull(redisContainer);
+
+        var serviceA = await KubernetesHelper.GetResourceByNameAsync<Executable>(kubernetes, "servicea", r => r.Status?.EffectiveEnv is not null, token);
+        Assert.NotNull(serviceA);
+
+        var nodeApp = await KubernetesHelper.GetResourceByNameAsync<Executable>(kubernetes, "nodeapp", r => r.Status?.EffectiveEnv is not null, token);
+        Assert.NotNull(nodeApp);
+
+        string? GetEnv(IEnumerable<EnvVar>? envVars, string name)
+        {
+            Assert.NotNull(envVars);
+            return Assert.Single(envVars.Where(e => e.Name == name)).Value;
+        };
+
+        Assert.Equal("redis:latest", redisContainer.Spec.Image);
+        Assert.Equal("{{- portForServing \"redis0\" }}", GetEnv(redisContainer.Spec.Env, "REDIS_PORT"));
+        Assert.Equal("6379", GetEnv(redisContainer.Status!.EffectiveEnv, "REDIS_PORT"));
+
+        Assert.Equal("{{- portForServing \"servicea_http0\" }}", GetEnv(serviceA.Spec.Env, "PORT0"));
+        var serviceAPortValue = GetEnv(serviceA.Status!.EffectiveEnv, "PORT0");
+        Assert.False(string.IsNullOrEmpty(serviceAPortValue));
+        Assert.NotEqual(0, int.Parse(serviceAPortValue, CultureInfo.InvariantCulture));
+
+        Assert.Equal("{{- portForServing \"nodeapp\" }}", GetEnv(nodeApp.Spec.Env, "PORT"));
+        var nodeAppPortValue = GetEnv(nodeApp.Status!.EffectiveEnv, "PORT");
+        Assert.False(string.IsNullOrEmpty(nodeAppPortValue));
+        Assert.NotEqual(0, int.Parse(nodeAppPortValue, CultureInfo.InvariantCulture));
+
+        await app.StopAsync();
+    }
+
+    [LocalOnlyFact("docker")]
+    public async Task VerifyDockerWithEntrypointWorks()
     {
         var testProgram = CreateTestProgram();
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
-        testProgram.AppBuilder.AddProject("launch", new Projects.TestProject_LaunchSettings().ProjectPath);
+        testProgram.AppBuilder.AddContainer("redis-cli", "redis")
+            .WithEntrypoint("bob");
 
         await using var app = testProgram.Build();
 
         await app.StartAsync();
 
         var s = app.Services.GetRequiredService<KubernetesService>();
-        var list = await s.ListAsync<Executable>();
 
-        var proj = list.FirstOrDefault(x => x.Spec.WorkingDirectory?.Contains("LaunchSettings") == true);
+        using var cts = new CancellationTokenSource(Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(10));
+        var token = cts.Token;
 
-        Assert.NotNull(proj);
-        Assert.NotNull(proj.Spec.Env);
+        var redisContainer = await KubernetesHelper.GetResourceByNameAsync<Container>(s, "redis-cli",
+            r => r.Status?.State == ContainerState.FailedToStart && (r.Status?.Message.Contains("bob") ?? false),
+            token);
 
-        // URLs isn't set in launch settings, and shouldn't be inherited from dashboard
-        Assert.Null(proj.Spec.Env.First(x => x.Name == "ASPNETCORE_URLS").Value);
+        Assert.NotNull(redisContainer);
+        Assert.Equal("redis:latest", redisContainer.Spec.Image);
+        Assert.Equal("bob", redisContainer.Spec.Command);
 
         await app.StopAsync();
     }

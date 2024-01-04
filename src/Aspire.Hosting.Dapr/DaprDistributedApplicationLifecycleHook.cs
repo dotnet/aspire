@@ -9,7 +9,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 using System.Net.Sockets;
 using static Aspire.Hosting.Dapr.CommandLineArgs;
 
@@ -23,11 +22,6 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
     private readonly DaprOptions _options;
 
     private string? _onDemandResourcesRootPath;
-
-    private static readonly string s_defaultDaprPath =
-        OperatingSystem.IsWindows()
-            ? Path.Combine(Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.Windows)) ?? "C:", "dapr", "dapr.exe")
-            : Path.Combine("/usr", "local", "bin", "dapr");
 
     public DaprDistributedApplicationLifecycleHook(IConfiguration configuration, IHostEnvironment environment, ILogger<DaprDistributedApplicationLifecycleHook> logger, IOptions<DaprOptions> options)
     {
@@ -45,6 +39,10 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
 
         var sideCars = new List<ExecutableResource>();
 
+        var fileName = this._options.DaprPath
+            ?? GetDefaultDaprPath()
+            ?? throw new DistributedApplicationException("Unable to locate the Dapr CLI.");
+
         foreach (var resource in appModel.Resources)
         {
             if (!resource.TryGetLastAnnotation<DaprSidecarAnnotation>(out var daprAnnotation))
@@ -53,8 +51,6 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
             }
 
             var sidecarOptions = daprAnnotation.Options;
-
-            string fileName = this._options.DaprPath ?? s_defaultDaprPath;
 
             [return: NotNullIfNotNull(nameof(path))]
             string? NormalizePath(string? path)
@@ -105,10 +101,6 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         fileName,
                         Command("run"),
                         daprAppPortArg(sidecarOptions?.AppPort),
-                        daprGrpcPortArg(sidecarOptions?.DaprGrpcPort?.ToString(CultureInfo.InvariantCulture)),
-                        daprHttpPortArg(sidecarOptions?.DaprHttpPort?.ToString(CultureInfo.InvariantCulture)),
-                        daprMetricsPortArg(sidecarOptions?.MetricsPort?.ToString(CultureInfo.InvariantCulture)),
-                        daprProfilePortArg(sidecarOptions?.ProfilePort?.ToString(CultureInfo.InvariantCulture)),
                         ModelNamedArg("--app-channel-address", sidecarOptions?.AppChannelAddress),
                         ModelNamedArg("--app-health-check-path", sidecarOptions?.AppHealthCheckPath),
                         ModelNamedArg("--app-health-probe-interval", sidecarOptions?.AppHealthProbeInterval),
@@ -129,6 +121,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         ModelNamedArg("--placement-host-address", sidecarOptions?.PlacementHostAddress),
                         ModelNamedArg("--resources-path", aggregateResourcesPaths),
                         ModelNamedArg("--run-file", NormalizePath(sidecarOptions?.RunFile)),
+                        ModelNamedArg("--runtime-path", NormalizePath(sidecarOptions?.RuntimePath)),
                         ModelNamedArg("--unix-domain-socket", sidecarOptions?.UnixDomainSocket),
                         PostOptionsArgs(Args(sidecarOptions?.Command)));
 
@@ -142,8 +135,13 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
 
             resource.Annotations.Add(
                 new EnvironmentCallbackAnnotation(
-                    env =>
+                    context =>
                     {
+                        if (context.PublisherName == "manifest")
+                        {
+                            return;
+                        }
+
                         if (resource is ContainerResource)
                         {
                             // By default, the Dapr sidecar will listen on localhost, which is not accessible from the container.
@@ -151,20 +149,20 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                             var grpcEndpoint = $"http://localhost:{{{{- portFor \"{daprSideCarResourceName}_grpc\" -}}}}";
                             var httpEndpoint = $"http://localhost:{{{{- portFor \"{daprSideCarResourceName}_http\" -}}}}";
 
-                            env.TryAdd("DAPR_GRPC_ENDPOINT", HostNameResolver.ReplaceLocalhostWithContainerHost(grpcEndpoint, _configuration));
-                            env.TryAdd("DAPR_HTTP_ENDPOINT", HostNameResolver.ReplaceLocalhostWithContainerHost(httpEndpoint, _configuration));
+                            context.EnvironmentVariables.TryAdd("DAPR_GRPC_ENDPOINT", HostNameResolver.ReplaceLocalhostWithContainerHost(grpcEndpoint, _configuration));
+                            context.EnvironmentVariables.TryAdd("DAPR_HTTP_ENDPOINT", HostNameResolver.ReplaceLocalhostWithContainerHost(httpEndpoint, _configuration));
                         }
 
-                        env.TryAdd("DAPR_GRPC_PORT", $"{{{{- portFor \"{daprSideCarResourceName}_grpc\" -}}}}");
-                        env.TryAdd("DAPR_HTTP_PORT", $"{{{{- portFor \"{daprSideCarResourceName}_http\" -}}}}");
+                        context.EnvironmentVariables.TryAdd("DAPR_GRPC_PORT", $"{{{{- portFor \"{daprSideCarResourceName}_grpc\" -}}}}");
+                        context.EnvironmentVariables.TryAdd("DAPR_HTTP_PORT", $"{{{{- portFor \"{daprSideCarResourceName}_http\" -}}}}");
                     }));
 
-            daprSideCar.Annotations.Add(new ServiceBindingAnnotation(ProtocolType.Tcp, name: "grpc", port: sidecarOptions?.DaprGrpcPort));
-            daprSideCar.Annotations.Add(new ServiceBindingAnnotation(ProtocolType.Tcp, name: "http", port: sidecarOptions?.DaprHttpPort));
-            daprSideCar.Annotations.Add(new ServiceBindingAnnotation(ProtocolType.Tcp, name: "metrics", port: sidecarOptions?.MetricsPort));
+            daprSideCar.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, name: "grpc", port: sidecarOptions?.DaprGrpcPort));
+            daprSideCar.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, name: "http", port: sidecarOptions?.DaprHttpPort));
+            daprSideCar.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, name: "metrics", port: sidecarOptions?.MetricsPort));
             if (sidecarOptions?.EnableProfiling == true)
             {
-                daprSideCar.Annotations.Add(new ServiceBindingAnnotation(ProtocolType.Tcp, name: "profile", port: sidecarOptions?.ProfilePort));
+                daprSideCar.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, name: "profile", port: sidecarOptions?.ProfilePort));
             }
 
             // NOTE: Telemetry is enabled by default.
@@ -230,6 +228,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         context.Writer.TryWriteNumber("profilePort", sidecarOptions?.ProfilePort);
                         context.Writer.TryWriteStringArray("resourcesPath", sidecarOptions?.ResourcesPaths.Select(path => context.GetManifestRelativePath(path)));
                         context.Writer.TryWriteString("runFile", context.GetManifestRelativePath(sidecarOptions?.RunFile));
+                        context.Writer.TryWriteString("runtimePath", context.GetManifestRelativePath(sidecarOptions?.RuntimePath));
                         context.Writer.TryWriteString("unixDomainSocket", sidecarOptions?.UnixDomainSocket);
 
                         context.Writer.WriteEndObject();
@@ -239,6 +238,49 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
         }
 
         appModel.Resources.AddRange(sideCars);
+    }
+
+    /// <summary>
+    /// Return the first verified dapr path
+    /// </summary>
+    static string? GetDefaultDaprPath()
+    {
+        foreach (var path in GetAvailablePaths())
+        {
+            if (File.Exists(path))
+            {
+                return path;
+            }
+        }
+
+        return default;
+
+        // Return all the possible paths for dapr
+        static IEnumerable<string> GetAvailablePaths()
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                var pathRoot = Path.GetPathRoot(Environment.GetFolderPath(Environment.SpecialFolder.Windows)) ?? "C:";
+
+                // Installed windows paths:
+                yield return Path.Combine(pathRoot, "dapr", "dapr.exe");
+
+                yield break;
+            }
+
+            // Add $HOME/dapr path:
+            var homePath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            yield return Path.Combine(homePath, "dapr", "dapr");
+
+            // Linux & MacOS path:
+            yield return Path.Combine("/usr", "local", "bin", "dapr");
+
+            // MacOS Homebrew path:
+            if (OperatingSystem.IsMacOS() && Environment.GetEnvironmentVariable("HOMEBREW_PREFIX") is string homebrewPrefix)
+            {
+                yield return Path.Combine(homebrewPrefix, "bin", "dapr");
+            }
+        }
     }
 
     public void Dispose()

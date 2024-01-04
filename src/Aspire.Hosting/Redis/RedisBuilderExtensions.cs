@@ -23,34 +23,36 @@ public static class RedisBuilderExtensions
     {
         var redis = new RedisContainerResource(name);
         return builder.AddResource(redis)
-                      .WithManifestPublishingCallback(WriteRedisResourceToManifest)
-                      .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, port: port, containerPort: 6379))
+                      .WithManifestPublishingCallback(context => WriteRedisContainerResourceToManifest(context, redis))
+                      .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 6379))
                       .WithAnnotation(new ContainerImageAnnotation { Image = "redis", Tag = "latest" });
     }
 
     /// <summary>
-    /// Adds a Redis connection to the application model. Connection strings can also be read from the connection string section of the configuration using the name of the resource.
+    /// Adds a Redis container to the application model. The default image is "redis" and tag is "latest".
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <param name="connectionString">The connection string.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{RedisResource}"/>.</returns>
-    public static IResourceBuilder<RedisResource> AddRedis(this IDistributedApplicationBuilder builder, string name, string? connectionString = null)
+    /// <returns>A reference to the <see cref="IResourceBuilder{RedisContainerResource}"/>.</returns>
+    public static IResourceBuilder<RedisResource> AddRedis(this IDistributedApplicationBuilder builder, string name)
     {
-        var redis = new RedisResource(name, connectionString);
+        var redis = new RedisResource(name);
         return builder.AddResource(redis)
-                      .WithManifestPublishingCallback(context => WriteRedisResourceToManifest(context, redis.GetConnectionString()));
+                      .WithManifestPublishingCallback(WriteRedisResourceToManifest)
+                      .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, containerPort: 6379))
+                      .WithAnnotation(new ContainerImageAnnotation { Image = "redis", Tag = "latest" });
     }
 
-    private static void WriteRedisResourceToManifest(ManifestPublishingContext context) =>
-        WriteRedisResourceToManifest(context, null);
-
-    private static void WriteRedisResourceToManifest(ManifestPublishingContext context, string? connectionString)
+    private static void WriteRedisResourceToManifest(ManifestPublishingContext context)
     {
         context.Writer.WriteString("type", "redis.v0");
-        if (!string.IsNullOrEmpty(connectionString))
-        {
-            context.Writer.WriteString("connectionString", connectionString);
-        }
+    }
+
+    private static void WriteRedisContainerResourceToManifest(ManifestPublishingContext context, RedisContainerResource resource)
+    {
+        context.WriteContainer(resource);
+        context.Writer.WriteString(                     // "connectionString": "...",
+            "connectionString",
+            $"{{{resource.Name}.bindings.tcp.host}}:{{{resource.Name}.bindings.tcp.port}}");
     }
 }

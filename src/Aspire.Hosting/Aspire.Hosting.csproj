@@ -6,6 +6,7 @@
     <IsPackable>true</IsPackable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <NoWarn>$(NoWarn);CS8002</NoWarn>
+    <PackageTags>aspire hosting</PackageTags>
     <Description>Core API and abstractions for the .NET Aspire application model.</Description>
   </PropertyGroup>
 
@@ -14,6 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Grpc.AspNetCore" />
     <PackageReference Include="KubernetesClient" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
   </ItemGroup>
@@ -44,6 +46,10 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Aspire.Hosting.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Protobuf Include="Dashboard\proto\resource_service.proto" GrpcServices="Server" Access="Internal" />
   </ItemGroup>
 
 </Project>

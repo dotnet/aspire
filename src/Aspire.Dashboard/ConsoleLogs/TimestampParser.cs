@@ -74,5 +74,5 @@ public static partial class TimestampParser
     [GeneratedRegex("^(?:\\d{4})-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])T(?:[01][0-9]|2[0-3]):(?:[0-5][0-9]):(?:[0-5][0-9])(?:\\.\\d{1,9})?(?:Z|(?:[Z+-](?:[01][0-9]|2[0-3]):(?:[0-5][0-9])))?")]
     private static partial Regex GenerateRfc3339RegEx();
 
-    public readonly record struct TimestampParserResult(string? ModifiedText, string? Timestamp);
+    public readonly record struct TimestampParserResult(string ModifiedText, string Timestamp);
 }

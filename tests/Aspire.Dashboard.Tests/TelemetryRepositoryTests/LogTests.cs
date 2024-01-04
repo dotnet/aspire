@@ -357,7 +357,7 @@ public class LogTests
     }
 
     [Fact]
-    private void GetLogs_UnknownApplication()
+    public void GetLogs_UnknownApplication()
     {
         // Arrange
         var repository = CreateRepository();

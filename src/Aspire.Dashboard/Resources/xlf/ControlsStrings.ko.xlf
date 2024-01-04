@@ -1,0 +1,172 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="ko" original="../ControlsStrings.resx">
+    <body>
+      <trans-unit id="All">
+        <source>All</source>
+        <target state="new">All</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ChartContainerAllTags">
+        <source>All tags</source>
+        <target state="new">All tags</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ChartContainerFilteredTags">
+        <source>Filtered tags</source>
+        <target state="new">Filtered tags</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ChartContainerFiltersHeader">
+        <source>Filters</source>
+        <target state="new">Filters</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ChartContainerOptionsHeader">
+        <source>Options</source>
+        <target state="new">Options</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ChartContainerSelectFilters">
+        <source>Select filters</source>
+        <target state="new">Select filters</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ChartContainerShowCountLabel">
+        <source>Show count</source>
+        <target state="new">Show count</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ChartContainerUnableToDisplay">
+        <source>Unable to display chart</source>
+        <target state="new">Unable to display chart</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="EventColumnHeader">
+        <source>Event</source>
+        <target state="new">Event</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FilterPlaceholder">
+        <source>Filter...</source>
+        <target state="new">Filter...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="EnvironmentVariablesFilterToggleShowAll">
+        <source>Show all</source>
+        <target state="new">Show all</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="EnvironmentVariablesFilterToggleShowSpecOnly">
+        <source>Show spec only</source>
+        <target state="new">Show spec only</target>
+        <note>Spec means from the resource specification</note>
+      </trans-unit>
+      <trans-unit id="EnvironmentVariablesHideVariableValues">
+        <source>Hide values</source>
+        <target state="new">Hide values</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="EnvironmentVariablesShowVariableValues">
+        <source>Show values</source>
+        <target state="new">Show values</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GridValueCopyToClipboard">
+        <source>Copy to clipboard</source>
+        <target state="new">Copy to clipboard</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GridValueMaskHideValue">
+        <source>Hide value</source>
+        <target state="new">Hide value</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GridValueMaskShowValue">
+        <source>Show value</source>
+        <target state="new">Show value</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NameColumnHeader">
+        <source>Name</source>
+        <target state="new">Name</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PlotlyChartCount">
+        <source>Count</source>
+        <target state="new">Count</target>
+        <note>Count is the name of a plot y-axis label</note>
+      </trans-unit>
+      <trans-unit id="PlotlyChartLength">
+        <source>Length</source>
+        <target state="new">Length</target>
+        <note>Length is the name of a plot y-axis label</note>
+      </trans-unit>
+      <trans-unit id="PlotlyChartValue">
+        <source>Value</source>
+        <target state="new">Value</target>
+        <note>Value is the name of a plot y-axis label</note>
+      </trans-unit>
+      <trans-unit id="PropertyGridValueColumnHeader">
+        <source>Value</source>
+        <target state="new">Value</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SelectAnApplication">
+        <source>Select an application</source>
+        <target state="new">Select an application</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanDetailsDuration">
+        <source>Duration &lt;strong&gt;{0}&lt;/strong&gt;</source>
+        <target state="new">Duration &lt;strong&gt;{0}&lt;/strong&gt;</target>
+        <note>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+      </trans-unit>
+      <trans-unit id="SpanDetailsService">
+        <source>Service &lt;strong&gt;{0}&lt;/strong&gt;</source>
+        <target state="new">Service &lt;strong&gt;{0}&lt;/strong&gt;</target>
+        <note>{0} is the application name. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+      </trans-unit>
+      <trans-unit id="SpanDetailsStartTime">
+        <source>Start time &lt;strong&gt;{0}&lt;/strong&gt;</source>
+        <target state="new">Start time &lt;strong&gt;{0}&lt;/strong&gt;</target>
+        <note>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+      </trans-unit>
+      <trans-unit id="TimeOffsetColumnHeader">
+        <source>Time offset</source>
+        <target state="new">Time offset</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ViewAction">
+        <source>View</source>
+        <target state="new">View</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ViewLogsLink">
+        <source>View logs</source>
+        <target state="new">View logs</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SummaryDetailsViewCloseView">
+        <source>Close</source>
+        <target state="new">Close</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SummaryDetailsViewSplitHorizontal">
+        <source>Split horizontal</source>
+        <target state="new">Split horizontal</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SummaryDetailsViewSplitVertical">
+        <source>Split vertical</source>
+        <target state="new">Split vertical</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TotalItemsFooterText">
+        <source>Total: &lt;strong&gt;{0} results found&lt;/strong&gt;</source>
+        <target state="new">Total: &lt;strong&gt;{0} results found&lt;/strong&gt;</target>
+        <note>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

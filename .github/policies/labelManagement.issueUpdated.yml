@@ -1,0 +1,33 @@
+id: labelManagement.issueUpdated
+name: Issue Activity Responder
+description: Adds/Removes labels from issues based on activity
+owner:
+resource: repository
+disabled: false
+where:
+configuration:
+  resourceManagementConfiguration:
+    eventResponderTasks:
+      - description: Remove no-recent-activity label from issues after an update
+        if:
+          - or:
+            - payloadType: Issue_Comment
+            - payloadType: Issues
+          - not:
+              isAction:
+                action: Closed
+          - hasLabel:
+              label: no-recent-activity
+        then:
+          - removeLabel:
+              label: no-recent-activity
+      - description: Remove needs-author-action label from issues when an author replies
+        if:
+          - payloadType: Issue_Comment
+          - isActivitySender:
+              issueAuthor: true
+          - hasLabel:
+              label: needs-author-action
+        then:
+          - removeLabel:
+              label: needs-author-action

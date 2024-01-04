@@ -29,8 +29,9 @@ fluent-toolbar[orientation=horizontal] {
     --log-error: #F8ECEB;
     --log-warning: #FBF3DD;
     --badge-fill-error: var(--error);
+    --badge-fill-warning: var(--warning);
     --badge-color-error: var(--foreground-on-accent-rest);
-    --foreground-subtext-rest: #6F6F6F;
+    --foreground-subtext-rest: #5D5D5D;
     --foreground-subtext-hover: #6C6C6C;
 }
 
@@ -38,6 +39,7 @@ fluent-toolbar[orientation=horizontal] {
     --log-critical: #493634;
     --log-error: #493634;
     --log-warning: #3F3A2B;
+    --error: #F8040A !important;
     --foreground-subtext-rest: #8D8D8D;
     --foreground-subtext-hover: #A1A1A1;
 }
@@ -168,4 +170,9 @@ fluent-data-grid-cell .long-inner-content {
 .selected-row fluent-button[appearance=lightweight]:hover::part(control),
 .selected-row fluent-anchor[appearance=lightweight]:hover::part(control){
     background-color: var(--neutral-fill-stealth-rest); /* Essentially inverts the hover compared to an unselected row */
+}
+
+.severity-icon {
+    vertical-align: text-bottom;
+    margin-right: 3px;
 }

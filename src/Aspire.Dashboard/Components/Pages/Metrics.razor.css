@@ -18,37 +18,46 @@
 
 ::deep .metrics-chart {
     display: grid;
-    grid-template-columns: min-content auto;
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+        "header"
+        "chart";
+    width: 100%;
+    gap: calc(var(--design-unit) * 4px);
+    padding-left: 40px;
 }
 
 ::deep .metrics-chart-header {
-    margin-left: 40px;
+    grid-area: header;
 }
 
 ::deep .metrics-chart-container {
-    grid-column: 1;
-    margin-bottom: 60px;
+    grid-area: chart;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    row-gap: calc(var(--design-unit) * 4px);
+    column-gap: calc(var(--design-unit) * 4px);
 }
 
 ::deep .metrics-filters-container {
-    grid-column: 2;
+    width: 600px;
 }
 
-@media (max-width: 1700px) {
-    ::deep .metrics-filters-container {
-        grid-column: 1;
-        margin-left: 40px;
-    }
+::deep .metrics-filters-section {
+    margin-bottom: 15px;
 }
 
-::deep .metrics-filters-container td.dimension-name {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+::deep .dimension-popup {
+    max-width: 500px;
+    min-width: 100px;
 }
 
-::deep .metrics-filters-container td.dimension-values {
-    width: auto;
+::deep .fluent-popover-content {
+    overflow-wrap: normal;
+    word-break: normal;
+    max-height: 400px;
+    overflow-y: auto;
 }
 
 ::deep .metrics-tree {
@@ -88,4 +97,8 @@
     height: 100%;
     width: 100%;
     overflow: auto;
+}
+
+::deep #plotly-chart-container {
+    margin-left: -40px;
 }

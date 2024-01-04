@@ -8,7 +8,7 @@ The best place to get the dashboards is from the Grafana dashboard store. The st
 
 * [.NET team @ grafana.com](https://grafana.com/orgs/dotnetteam)
   * [ASP.NET Core](https://grafana.com/grafana/dashboards/19924) - Overview of the ASP.NET Core app
-  * [ASP.NET Core Endpoint](https://grafana.com/grafana/dashboards/19924) - Detail for a specific ASP.NET Core endpoint
+  * [ASP.NET Core Endpoint](https://grafana.com/grafana/dashboards/19925) - Detail for a specific ASP.NET Core endpoint
 
 See [Export metrics from .NET](#export-metrics-from-net) for information on configuring a .NET app to send data to the dashboards.
 

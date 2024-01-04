@@ -62,7 +62,7 @@ internal sealed partial class DcpHostService : IHostedLifecycleService, IAsyncDi
             {
                 serviceCollection.AddSingleton(_applicationModel);
                 serviceCollection.AddSingleton(kubernetesService);
-                serviceCollection.AddScoped<IDashboardViewModelService, DashboardViewModelService>();
+                serviceCollection.AddScoped<IResourceService, ResourceService>();
             });
         }
     }
@@ -498,7 +498,7 @@ internal sealed partial class DcpHostService : IHostedLifecycleService, IAsyncDi
 
                 LogLines(result.Buffer, out var position);
 
-                reader.AdvanceTo(position);
+                reader.AdvanceTo(position, result.Buffer.End);
             }
         }
         catch
