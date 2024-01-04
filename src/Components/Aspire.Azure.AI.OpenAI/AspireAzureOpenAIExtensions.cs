@@ -18,7 +18,7 @@ namespace Microsoft.Extensions.Hosting;
 /// <summary>
 /// Provides extension methods for registering <see cref="OpenAIClient"/> as a singleton in the services provided by the <see cref="IHostApplicationBuilder"/>.
 /// </summary>
-public static class AspireOpenAIExtensions
+public static class AspireAzureOpenAIExtensions
 {
     private const string DefaultConfigSectionName = "Aspire:Azure:AI:OpenAI";
     /// <summary>
