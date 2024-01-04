@@ -22,24 +22,7 @@ internal sealed class DaprPluggableComponents : IDisposable
         _logger.LogInformation("Starting pluggable components...");
 
         _app.RegisterService(
-            "memstore",
-            serviceBuilder =>
-            {
-                // Use this registration method to have a single state store instance for all components.
-                // serviceBuilder.RegisterStateStore<MemoryStateStore>();
-
-                // This registration method enables a state store instance per component instance.
-                serviceBuilder.RegisterStateStore(
-                    context =>
-                    {
-                        _logger.LogInformation("Creating Aspire state store for instance '{InstanceId}' on socket '{SocketPath}'...", context.InstanceId, context.SocketPath);
-
-                        return new MemoryStateStore(context.ServiceProvider.GetRequiredService<ILogger<MemoryStateStore>>());
-                    });
-            });
-
-        _app.RegisterService(
-            "mempubsub",
+            "aspire",
             serviceBuilder =>
             {
                 serviceBuilder.RegisterPubSub(
@@ -48,6 +31,14 @@ internal sealed class DaprPluggableComponents : IDisposable
                         _logger.LogInformation("Creating Aspire pub sub for instance '{InstanceId}' on socket '{SocketPath}'...", context.InstanceId, context.SocketPath);
 
                         return new MemoryPubSub(context.ServiceProvider.GetRequiredService<ILogger<MemoryPubSub>>());
+                    });
+
+                serviceBuilder.RegisterStateStore(
+                    context =>
+                    {
+                        _logger.LogInformation("Creating Aspire state store for instance '{InstanceId}' on socket '{SocketPath}'...", context.InstanceId, context.SocketPath);
+
+                        return new MemoryStateStore(context.ServiceProvider.GetRequiredService<ILogger<MemoryStateStore>>());
                     });
             });
 

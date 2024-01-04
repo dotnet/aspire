@@ -411,7 +411,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
             metadata:
                 name: {component.Name}
             spec:
-                type: pubsub.mempubsub
+                type: pubsub.aspire
                 version: v1
                 metadata: []
             """;
@@ -426,7 +426,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
             metadata:
                 name: {component.Name}
             spec:
-                type: state.memstore
+                type: state.aspire
                 version: v1
                 metadata: []
             """;

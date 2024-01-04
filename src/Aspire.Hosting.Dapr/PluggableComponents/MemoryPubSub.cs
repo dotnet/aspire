@@ -11,8 +11,8 @@ namespace Aspire.Hosting.Dapr.PluggableComponents;
 internal sealed class MemoryPubSub : IPubSub
 {
     private readonly ILogger<MemoryPubSub> _logger;
-    private readonly TimeSpan _pollInterval = TimeSpan.FromSeconds(5);
-    private readonly ConcurrentDictionary<string, ConcurrentBag<PubSubPublishRequest>> _queues = new ConcurrentDictionary<string, ConcurrentBag<PubSubPublishRequest>>();
+    private readonly TimeSpan _pollInterval = TimeSpan.FromSeconds(1);
+    private readonly ConcurrentDictionary<string, ConcurrentQueue<PubSubPublishRequest>> _queues = new ConcurrentDictionary<string, ConcurrentQueue<PubSubPublishRequest>>();
 
     public MemoryPubSub(ILogger<MemoryPubSub> logger)
     {
@@ -28,11 +28,11 @@ internal sealed class MemoryPubSub : IPubSub
 
     public Task PublishAsync(PubSubPublishRequest request, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Publish request");
+        _logger.LogInformation("Publishing request from '{PubSubName}' for topic '{Topic}'...", request.PubSubName, request.Topic);
 
-        var queue = _queues.AddOrUpdate(request.Topic, _ => new ConcurrentBag<PubSubPublishRequest>(), (_, __) => __);
+        var queue = _queues.AddOrUpdate(request.Topic, _ => new ConcurrentQueue<PubSubPublishRequest>(), (_, __) => __);
 
-        queue.Add(request);
+        queue.Enqueue(request);
 
         return Task.CompletedTask;
     }
@@ -43,7 +43,7 @@ internal sealed class MemoryPubSub : IPubSub
 
     public async Task PullMessagesAsync(PubSubPullMessagesTopic topic, MessageDeliveryHandler<string?, PubSubPullMessagesResponse> handler, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Pull messages request for topic \"{0}\"", topic.Name);
+        _logger.LogInformation("Pull messages request for topic '{Topic}'...", topic.Name);
 
         var handlerRecord = new PullMessagesHandler(handler, cancellationToken);
 
@@ -53,10 +53,12 @@ internal sealed class MemoryPubSub : IPubSub
         {
             if (_queues.TryGetValue(topic.Name, out var queue))
             {
-                while (!cancellationToken.IsCancellationRequested && queue.TryTake(out var request))
+                while (!cancellationToken.IsCancellationRequested && queue.TryDequeue(out var request))
                 {
                     try
                     {
+                        _logger.LogInformation("Handling request for topic '{Topic}'...", request.Topic);
+
                         await handler(
                             new PubSubPullMessagesResponse(request.Topic)
                             {
@@ -64,17 +66,25 @@ internal sealed class MemoryPubSub : IPubSub
                             },
                             error =>
                             {
-                                if (error is not null)
+                                if (error is null)
                                 {
-                                    queue.Add(request);
+                                    _logger.LogInformation("Request handled successfully.");
+                                }
+                                else
+                                {
+                                    _logger.LogError("Request handling failed: {Error}", error);
+
+                                    queue.Enqueue(request);
                                 }
                                 
                                 return Task.CompletedTask;
                             }).ConfigureAwait(false);
                     }
-                    catch
+                    catch (Exception e)
                     {
-                        queue.Add(request);
+                        _logger.LogError("Exception handling request: {Exception}", e);
+
+                        queue.Enqueue(request);
 
                         throw;
                     }
