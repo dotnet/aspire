@@ -33,7 +33,7 @@ public class AzureCosmosDBResource(string name, string? connectionString)
 
     private int GetEmulatorPort(string endpointName) =>
         Annotations
-            .OfType<ServiceBindingAnnotation>()
+            .OfType<EndpointAnnotation>()
             .FirstOrDefault(x => x.Name == endpointName)
             ?.Port
         ?? throw new DistributedApplicationException($"Azure Cosmos DB resource does not have endpoint annotation with name '{endpointName}'.");
