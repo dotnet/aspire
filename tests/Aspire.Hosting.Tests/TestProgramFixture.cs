@@ -111,8 +111,13 @@ public class IntegrationServicesFixture : TestProgramFixture
                     handler.ConnectTimeout = TimeSpan.FromSeconds(5);
                 });
 
-                // Ensure transient errors are retried.
-                b.AddStandardResilienceHandler();
+                // Ensure transient errors are retried for up to 1 minute
+                b.AddStandardResilienceHandler(options =>
+                {
+                    options.AttemptTimeout.Timeout = TimeSpan.FromMinutes(1);
+                    options.CircuitBreaker.SamplingDuration = TimeSpan.FromMinutes(2); // needs to be at least double the AttemptTimeout to pass options validation
+                    options.TotalRequestTimeout.Timeout = TimeSpan.FromMinutes(1);
+                });
             });
 
         return testProgram;
