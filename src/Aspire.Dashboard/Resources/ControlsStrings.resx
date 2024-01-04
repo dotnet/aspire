@@ -221,4 +221,10 @@
   <data name="SelectAResource" xml:space="preserve">
     <value>Select a resource</value>
   </data>
+  <data name="TimeOffsetColumnHeader" xml:space="preserve">
+    <value>Time offset</value>
+  </data>
+  <data name="EventColumnHeader" xml:space="preserve">
+    <value>Event</value>
+  </data>
 </root>

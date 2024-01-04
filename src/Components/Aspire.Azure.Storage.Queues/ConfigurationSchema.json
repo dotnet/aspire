@@ -35,7 +35,7 @@
                           "properties": {
                             "ApplicationId": {
                               "type": "string",
-                              "description": "Gets or sets the value sent as the first part of \"User-Agent\" headers for all requests issues by this client. Defaults to P:Azure.Core.DiagnosticsOptions.DefaultApplicationId."
+                              "description": "Gets or sets the value sent as the first part of \"User-Agent\" headers for all requests issues by this client. Defaults to 'Azure.Core.DiagnosticsOptions.DefaultApplicationId'."
                             },
                             "DefaultApplicationId": {
                               "type": "string",
@@ -43,7 +43,7 @@
                             },
                             "IsDistributedTracingEnabled": {
                               "type": "boolean",
-                              "description": "Gets or sets value indicating whether distributed tracing activities ( T:System.Diagnostics.Activity ) are going to be created for the clients methods calls and HTTP calls."
+                              "description": "Gets or sets value indicating whether distributed tracing activities ( 'System.Diagnostics.Activity' ) are going to be created for the clients methods calls and HTTP calls."
                             },
                             "IsLoggingContentEnabled": {
                               "type": "boolean",
@@ -55,7 +55,7 @@
                             },
                             "IsTelemetryEnabled": {
                               "type": "boolean",
-                              "description": "Gets or sets value indicating whether the \"User-Agent\" header containing P:Azure.Core.DiagnosticsOptions.ApplicationId , client library package name and version, P:System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription and P:System.Runtime.InteropServices.RuntimeInformation.OSDescription should be sent.\nThe default value can be controlled process wide by setting AZURE_TELEMETRY_DISABLED to true , false , 1 or 0."
+                              "description": "Gets or sets value indicating whether the \"User-Agent\" header containing 'Azure.Core.DiagnosticsOptions.ApplicationId' , client library package name and version, 'System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription' and 'System.Runtime.InteropServices.RuntimeInformation.OSDescription' should be sent.\nThe default value can be controlled process wide by setting AZURE_TELEMETRY_DISABLED to true , false , 1 or 0."
                             },
                             "LoggedContentSizeLimit": {
                               "type": "integer",
@@ -71,14 +71,14 @@
                         "GeoRedundantSecondaryUri": {
                           "type": "string",
                           "format": "uri",
-                          "description": "Gets or sets the secondary storage T:System.Uri that can be read from for the storage account if the\naccount is enabled for RA-GRS.\n\nIf this property is set, the secondary Uri will be used for GET or HEAD requests during retries.\nIf the status of the response from the secondary Uri is a 404, then subsequent retries for\nthe request will not use the secondary Uri again, as this indicates that the resource\nmay not have propagated there yet. Otherwise, subsequent retries will alternate back and forth\nbetween primary and secondary Uri."
+                          "description": "Gets or sets the secondary storage 'System.Uri' that can be read from for the storage account if the\naccount is enabled for RA-GRS.\n\nIf this property is set, the secondary Uri will be used for GET or HEAD requests during retries.\nIf the status of the response from the secondary Uri is a 404, then subsequent retries for\nthe request will not use the secondary Uri again, as this indicates that the resource\nmay not have propagated there yet. Otherwise, subsequent retries will alternate back and forth\nbetween primary and secondary Uri."
                         },
                         "MessageEncoding": {
                           "enum": [
                             "None",
                             "Base64"
                           ],
-                          "description": "Gets or sets a message encoding that determines how P:Azure.Storage.Queues.Models.QueueMessage.Body is represented in HTTP requests and responses.\nThe default is F:Azure.Storage.Queues.QueueMessageEncoding.None."
+                          "description": "Gets or sets a message encoding that determines how 'Azure.Storage.Queues.Models.QueueMessage.Body' is represented in HTTP requests and responses.\nThe default is 'Azure.Storage.Queues.QueueMessageEncoding.None'."
                         },
                         "Retry": {
                           "type": "object",
@@ -127,7 +127,7 @@
                     "ServiceUri": {
                       "type": "string",
                       "format": "uri",
-                      "description": "A T:System.Uri referencing the queue service.\nThis is likely to be similar to \"https://{account_name}.queue.core.windows.net\"."
+                      "description": "A 'System.Uri' referencing the queue service.\nThis is likely to be similar to \"https://{account_name}.queue.core.windows.net\"."
                     },
                     "Tracing": {
                       "type": "boolean",

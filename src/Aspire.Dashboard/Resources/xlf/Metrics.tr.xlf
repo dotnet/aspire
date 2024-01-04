@@ -7,6 +7,16 @@
         <target state="new">Metrics</target>
         <note />
       </trans-unit>
+      <trans-unit id="MetricsInsturementDescriptionGridNameColumnHeader">
+        <source>Description</source>
+        <target state="new">Description</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MetricsInsturementNameGridNameColumnHeader">
+        <source>Instrument</source>
+        <target state="new">Instrument</target>
+        <note />
+      </trans-unit>
       <trans-unit id="MetricsLastFifteenMinutes">
         <source>Last 15 minutes</source>
         <target state="new">Last 15 minutes</target>

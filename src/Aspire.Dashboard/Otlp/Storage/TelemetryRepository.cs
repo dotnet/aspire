@@ -701,7 +701,7 @@ public class TelemetryRepository
         }
 
         var events = new List<OtlpSpanEvent>();
-        foreach (var e in span.Events)
+        foreach (var e in span.Events.OrderBy(e => e.TimeUnixNano))
         {
             events.Add(new OtlpSpanEvent()
             {

@@ -23,6 +23,7 @@
                         Label="@ControlsStringsLoc[nameof(ControlsStrings.All)]"
                         ThreeState="true"
                         ShowIndeterminate="false"
+                        ThreeStateOrderUncheckToIntermediate="true"
                         @bind-CheckState="AreAllTypesVisible" />
                     @foreach (var resourceType in _allResourceTypes)
                     {
@@ -53,10 +54,7 @@
                         <ResourceNameDisplay Resource="context" FilterText="@_filter" FormatName="GetResourceName" />
                     </TemplateColumn>
                     <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesEnvironmentVariablesGridStateColumnHeader)]" Sortable="true" SortBy="@_stateSort">
-                        <div class="resource-state-container">
-                            @context.State
-                            <UnreadLogErrorsBadge UnviewedCount="@GetUnviewedErrorCount(context)" OnClick="@(() => ViewErrorStructuredLogs(context))" />
-                        </div>
+                        <StateColumnDisplay UnviewedErrorCounts="@_applicationUnviewedErrorCounts" Resource="@context" />
                     </TemplateColumn>
                     <PropertyColumn Property="@(c => c.CreationTimeStamp)" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesEnvironmentVariablesGridStartTimeColumnHeader)]" Sortable="true" Tooltip="true" />
                     <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesEnvironmentVariablesGridSourceColumnHeader)]">

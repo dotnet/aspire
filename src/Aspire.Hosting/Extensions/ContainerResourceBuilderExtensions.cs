@@ -49,14 +49,14 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="name">The name of the binding.</param>
     /// <param name="env">The name of the environment variable to inject.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<T> WithServiceBinding<T>(this IResourceBuilder<T> builder, int containerPort, int? hostPort = null, string? scheme = null, string? name = null, string? env = null) where T : IResource
+    public static IResourceBuilder<T> WithEndpoint<T>(this IResourceBuilder<T> builder, int containerPort, int? hostPort = null, string? scheme = null, string? name = null, string? env = null) where T : IResource
     {
-        if (builder.Resource.Annotations.OfType<ServiceBindingAnnotation>().Any(sb => sb.Name == name))
+        if (builder.Resource.Annotations.OfType<EndpointAnnotation>().Any(sb => sb.Name == name))
         {
-            throw new DistributedApplicationException($"Service binding with name '{name}' already exists");
+            throw new DistributedApplicationException($"Endpoint with name '{name}' already exists");
         }
 
-        var annotation = new ServiceBindingAnnotation(
+        var annotation = new EndpointAnnotation(
             protocol: ProtocolType.Tcp,
             uriScheme: scheme,
             name: name,
@@ -97,6 +97,19 @@ public static class ContainerResourceBuilderExtensions
             updatedArgs.AddRange(args);
         });
         return builder.WithAnnotation(annotation);
+    }
+
+    /// <summary>
+    /// Sets the Entrypoint for the container.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="entrypoint">The new entrypoint for the container.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithEntrypoint<T>(this IResourceBuilder<T> builder, string entrypoint) where T : ContainerResource
+    {
+        builder.Resource.Entrypoint = entrypoint;
+        return builder;
     }
 }
 

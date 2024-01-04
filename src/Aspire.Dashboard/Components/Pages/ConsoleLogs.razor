@@ -17,6 +17,8 @@
                       @bind-SelectedOption:after="HandleSelectedOptionChangedAsync"
                       AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAResource)]"/>
         <FluentLabel Typo="Typography.Body">@(ViewModel?.Status ?? Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLoadingResources)])</FluentLabel>
+                      AriaLabel="@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsSelectAResource)]"/>
+        <FluentLabel Typo="Typography.Body" aria-live="polite" aria-label="@Loc[nameof(Dashboard.Resources.ConsoleLogs.LogStatusLabel)]">@_status</FluentLabel>
     </FluentToolbar>
     <LogViewer @ref="_logViewer" />
 </div>

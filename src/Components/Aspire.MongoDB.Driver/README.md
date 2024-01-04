@@ -88,10 +88,10 @@ Also you can pass the `Action<MongoDBSettings> configureSettings` delegate to se
 
 ## AppHost extensions
 
-In your AppHost project, register a MongoDB container and consume the connection using the following methods:
+In your AppHost project, register a MongoDB database and consume the connection using the following methods:
 
 ```csharp
-var mongodb = builder.AddMongoDBContainer("mongodb").AddDatabase("mydatabase");
+var mongodb = builder.AddMongoDB("mongodb").AddDatabase("mydatabase");
 
 var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(mongodb);
