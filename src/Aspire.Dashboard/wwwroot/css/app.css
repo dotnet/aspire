@@ -33,6 +33,10 @@ fluent-toolbar[orientation=horizontal] {
     --badge-color-error: var(--foreground-on-accent-rest);
     --foreground-subtext-rest: #5D5D5D;
     --foreground-subtext-hover: #6C6C6C;
+
+    --error-ui-foreground-color: #131313;
+    --error-ui-accent-foreground-color: #1d00d0;
+    --reconnection-ui-bg: rgb(255, 255, 255);
 }
 
 [data-theme="dark"] {
@@ -42,7 +46,23 @@ fluent-toolbar[orientation=horizontal] {
     --error: #F8040A !important;
     --foreground-subtext-rest: #8D8D8D;
     --foreground-subtext-hover: #A1A1A1;
+
+    --error-ui-foreground-color: #000000;
+    --error-ui-accent-foreground-color: #512bd4;
+    --reconnection-ui-bg: #D6D6D6;
 }
+
+ #components-reconnect-modal :is(h5, p) {
+     color: var(--error-ui-foreground-color);
+ }
+
+ #components-reconnect-modal a {
+     color: var(--error-ui-accent-foreground-color);
+ }
+
+ #components-reconnect-modal {
+     background-color: var(--reconnection-ui-bg) !important;
+ }
 
 .datagrid-overflow-area,
 .parent-details-container {
