@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
@@ -25,11 +26,11 @@ internal sealed class DcpDataSource
     private readonly Func<ResourceSnapshot, ResourceSnapshotChangeType, ValueTask> _onResourceChanged;
     private readonly ILogger _logger;
 
-    private readonly Dictionary<string, Container> _containersMap = [];
-    private readonly Dictionary<string, Executable> _executablesMap = [];
-    private readonly Dictionary<string, Service> _servicesMap = [];
-    private readonly Dictionary<string, Endpoint> _endpointsMap = [];
-    private readonly Dictionary<(string, string), List<string>> _resourceAssociatedServicesMap = [];
+    private readonly ConcurrentDictionary<string, Container> _containersMap = [];
+    private readonly ConcurrentDictionary<string, Executable> _executablesMap = [];
+    private readonly ConcurrentDictionary<string, Service> _servicesMap = [];
+    private readonly ConcurrentDictionary<string, Endpoint> _endpointsMap = [];
+    private readonly ConcurrentDictionary<(string, string), List<string>> _resourceAssociatedServicesMap = [];
 
     public DcpDataSource(
         KubernetesService kubernetesService,
@@ -85,7 +86,7 @@ internal sealed class DcpDataSource
         }
     }
 
-    private async Task ProcessResourceChange<T>(WatchEventType watchEventType, T resource, Dictionary<string, T> resourceByName, string resourceKind, Func<T, ResourceSnapshot> snapshotFactory) where T : CustomResource
+    private async Task ProcessResourceChange<T>(WatchEventType watchEventType, T resource, ConcurrentDictionary<string, T> resourceByName, string resourceKind, Func<T, ResourceSnapshot> snapshotFactory) where T : CustomResource
     {
         if (ProcessResourceChange(resourceByName, watchEventType, resource))
         {
@@ -109,7 +110,7 @@ internal sealed class DcpDataSource
             // So whenever we get the service we can figure out if the service can generate endpoint for the resource
             if (watchEventType == WatchEventType.Deleted)
             {
-                _resourceAssociatedServicesMap.Remove((resourceKind, resource.Metadata.Name));
+                _resourceAssociatedServicesMap.Remove((resourceKind, resource.Metadata.Name), out _);
             }
             else if (resource.Metadata.Annotations?.TryGetValue(CustomResource.ServiceProducerAnnotation, out var servicesProducedAnnotationJson) == true)
             {
@@ -407,13 +408,13 @@ internal sealed class DcpDataSource
         return environment.ToImmutable();
     }
 
-    private static bool ProcessResourceChange<T>(Dictionary<string, T> map, WatchEventType watchEventType, T resource)
+    private static bool ProcessResourceChange<T>(ConcurrentDictionary<string, T> map, WatchEventType watchEventType, T resource)
             where T : CustomResource
     {
         switch (watchEventType)
         {
             case WatchEventType.Added:
-                map.Add(resource.Metadata.Name, resource);
+                map.TryAdd(resource.Metadata.Name, resource);
                 break;
 
             case WatchEventType.Modified:
@@ -421,7 +422,7 @@ internal sealed class DcpDataSource
                 break;
 
             case WatchEventType.Deleted:
-                map.Remove(resource.Metadata.Name);
+                map.Remove(resource.Metadata.Name, out _);
                 break;
 
             default:
