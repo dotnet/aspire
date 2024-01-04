@@ -94,7 +94,7 @@ Also you can pass the `Action<PomeloEntityFrameworkCoreMySqlSettings> configureS
 In your AppHost project, register a MySQL container and consume the connection using the following methods:
 
 ```csharp
-var mysqldb = builder.AddMySqlContainer("mysql").AddDatabase("mysqldb");
+var mysqldb = builder.AddMySql("mysql").AddDatabase("mysqldb");
 
 var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(mysqldb);
