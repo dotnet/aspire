@@ -25,7 +25,8 @@ public class SqlServerFunctionalTests
         using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
 
         var response = await testProgram.IntegrationServiceABuilder!.HttpGetAsync(client, "http", "/sqlserver/verify", cts.Token);
+        var responseContent = await response.Content.ReadAsStringAsync();
 
-        Assert.True(response.IsSuccessStatusCode);
+        Assert.True(response.IsSuccessStatusCode, responseContent);
     }
 }
