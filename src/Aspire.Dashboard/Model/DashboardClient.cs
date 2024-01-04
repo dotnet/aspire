@@ -10,6 +10,7 @@ using Aspire.Dashboard.Utils;
 using Aspire.V1;
 using Grpc.Core;
 using Grpc.Net.Client;
+using Grpc.Net.Client.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Dashboard.Model;
@@ -22,7 +23,7 @@ namespace Aspire.Dashboard.Model;
 /// expected to live longer than a single RPC request. In the case of streaming requests, the instance
 /// lives until the stream is closed.
 /// </remarks>
-internal sealed class DashboardClient(ILogger<DashboardClient> logger) : IDashboardClient
+internal sealed class DashboardClient : IDashboardClient
 {
     private const string DashboardServiceUrlVariableName = "DOTNET_DASHBOARD_GRPC_ENDPOINT_URL";
     private const string DashboardServiceUrlDefaultValue = "http://localhost:18999";
@@ -31,7 +32,7 @@ internal sealed class DashboardClient(ILogger<DashboardClient> logger) : IDashbo
     private readonly CancellationTokenSource _cts = new();
     private readonly TaskCompletionSource _whenConnected = new();
     private readonly object _lock = new();
-    private readonly ILogger<DashboardClient> _logger = logger;
+    private readonly ILogger<DashboardClient> _logger;
 
     private ImmutableHashSet<Channel<ResourceViewModelChange>> _outgoingChannels = [];
     private string? _applicationName;
@@ -40,9 +41,73 @@ internal sealed class DashboardClient(ILogger<DashboardClient> logger) : IDashbo
     private const int StateInitialized = 1;
     private const int StateDisposed = 2;
     private int _state;
-
-    private TaskCompletionSource<DashboardService.DashboardServiceClient> _client = new();
+    private readonly GrpcChannel _channel;
+    private readonly DashboardService.DashboardServiceClient _client;
     private Task? _connection;
+
+    public DashboardClient(ILogger<DashboardClient> logger)
+    {
+        _logger = logger;
+
+        var address = GetAddressUri(DashboardServiceUrlVariableName, DashboardServiceUrlDefaultValue);
+
+        _logger.LogInformation("Dashboard configured to connect to: {address}", address);
+
+        // Create the gRPC channel. This channel performs automatic reconnects.
+        // We will dispose it when we are disposed.
+        _channel = CreateChannel();
+
+        _client = new DashboardService.DashboardServiceClient(_channel);
+
+        static Uri GetAddressUri(string variableName, string defaultValue)
+        {
+            try
+            {
+                var uri = Environment.GetEnvironmentVariable(variableName) ?? defaultValue;
+
+                return new Uri(uri);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Error parsing URIs from environment variable '{variableName}'.", ex);
+            }
+        }
+
+        GrpcChannel CreateChannel()
+        {
+            var httpHandler = new SocketsHttpHandler
+            {
+                EnableMultipleHttp2Connections = true,
+                KeepAlivePingDelay = TimeSpan.FromSeconds(20),
+                KeepAlivePingTimeout = TimeSpan.FromSeconds(10),
+                KeepAlivePingPolicy = HttpKeepAlivePingPolicy.WithActiveRequests,
+                PooledConnectionIdleTimeout = TimeSpan.FromHours(2)
+            };
+
+            // https://learn.microsoft.com/aspnet/core/grpc/retries
+
+            var methodConfig = new MethodConfig
+            {
+                Names = { MethodName.Default },
+                RetryPolicy = new RetryPolicy
+                {
+                    MaxAttempts = 5,
+                    InitialBackoff = TimeSpan.FromSeconds(1),
+                    MaxBackoff = TimeSpan.FromSeconds(5),
+                    BackoffMultiplier = 1.5,
+                    RetryableStatusCodes = { StatusCode.Unavailable }
+                }
+            };
+
+            return GrpcChannel.ForAddress(
+                address,
+                channelOptions: new()
+                {
+                    HttpHandler = httpHandler,
+                    ServiceConfig = new() { MethodConfigs = { methodConfig } }
+                });
+        }
+    }
 
     private void EnsureInitialized()
     {
@@ -54,105 +119,60 @@ internal sealed class DashboardClient(ILogger<DashboardClient> logger) : IDashbo
             return;
         }
 
-        var address = GetAddressUri(DashboardServiceUrlVariableName, DashboardServiceUrlDefaultValue);
-
-        _connection = Task.Run(() => ConnectAndStayConnectedAsync(address, _cts.Token), _cts.Token);
+        _connection = Task.Run(() => ConnectAndStayConnectedAsync(_cts.Token), _cts.Token);
 
         return;
 
-        async Task ConnectAndStayConnectedAsync(Uri address, CancellationToken cancellationToken)
+        async Task ConnectAndStayConnectedAsync(CancellationToken cancellationToken)
         {
-            GrpcChannel? channel = null;
-            DashboardService.DashboardServiceClient? client = null;
-
+            // Track the number of errors we've seen since the last successfully received message.
+            // As this number climbs, we hold off on 
             var errorCount = 0;
 
-            try
+            await ConnectAsync().ConfigureAwait(false);
+
+            while (true)
             {
-                (channel, client) = await ConnectAsync().ConfigureAwait(false);
+                cancellationToken.ThrowIfCancellationRequested();
 
-                while (!cancellationToken.IsCancellationRequested)
+                if (errorCount > 0)
                 {
-                    if (channel.State == ConnectivityState.Shutdown)
+                    // The most recent attempt failed. There may be more than one failure.
+                    // We wait for a period of time determined by the number of errors,
+                    // where the time grows exponentially, until a threshold.
+                    var delay = ExponentialBackOff(errorCount, maxSeconds: 15);
+
+                    await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
+                }
+
+                try
+                {
+                    await ProcessData().ConfigureAwait(false);
+                }
+                catch (RpcException ex)
+                {
+                    // Cancellation is reported in an RpcException, so unwrap it to throw the original OperationCanceledException instead.
+                    if (ex.StatusCode == StatusCode.Cancelled && ex.InnerException is OperationCanceledException oce)
                     {
-                        // Recreate connection
-                        _logger.LogWarning("Lost connection to dashboard service. Reconnecting.");
-
-                        channel.Dispose();
-                        Debug.Assert(_client.Task.IsCompleted);
-                        _client = new();
-
-                        (channel, client) = await ConnectAsync().ConfigureAwait(false);
+                        // Rethrow cancellation
+                        ExceptionDispatchInfo.Capture(oce).Throw();
                     }
 
-                    if (errorCount > 0)
-                    {
-                        // The most recent attempt failed. There may be more than one failure.
-                        // We wait for a period of time determined by the number of errors,
-                        // where the time grows exponentially, until a threshold.
-                        var delay = ExponentialBackOff(errorCount, maxSeconds: 15);
+                    errorCount++;
 
-                        await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
-                    }
-
-                    try
-                    {
-                        await ProcessData().ConfigureAwait(false);
-
-                        errorCount = 0;
-                    }
-                    catch (RpcException ex)
-                    {
-                        // Cancellation is reported in an RpcException, so unwrap it to throw the original OperationCanceledException instead.
-                        if (ex.StatusCode == StatusCode.Cancelled && ex.InnerException is OperationCanceledException oce)
-                        {
-                            // Rethrow cancellation
-                            ExceptionDispatchInfo.Capture(oce).Throw();
-                        }
-
-                        errorCount++;
-
-                        _logger.LogError("Error {errorCount} watching resources: {error}", errorCount, ex.Message);
-                    }
+                    _logger.LogError("Error {errorCount} watching resources: {error}", errorCount, ex.Message);
                 }
             }
-            finally
+
+            async Task ConnectAsync()
             {
-                channel?.Dispose();
-            }
+                await _channel.ConnectAsync(cancellationToken).ConfigureAwait(false);
 
-            return;
-
-            async Task<(GrpcChannel, DashboardService.DashboardServiceClient)> ConnectAsync()
-            {
-                _logger.LogInformation("Connecting to dashboard service at: {address}", address);
-
-                var httpHandler = new SocketsHttpHandler
-                {
-                    EnableMultipleHttp2Connections = true,
-                    KeepAlivePingDelay = TimeSpan.FromSeconds(20),
-                    KeepAlivePingTimeout = TimeSpan.FromSeconds(10),
-                    KeepAlivePingPolicy = HttpKeepAlivePingPolicy.WithActiveRequests,
-                    PooledConnectionIdleTimeout = TimeSpan.FromHours(2)
-                };
-
-                var channel = GrpcChannel.ForAddress(
-                    address,
-                    channelOptions: new() { HttpHandler = httpHandler });
-
-                DashboardService.DashboardServiceClient client = new(channel);
-
-                await channel.ConnectAsync(cancellationToken).ConfigureAwait(false);
-
-                var response = await client.GetApplicationInformationAsync(new(), cancellationToken: cancellationToken);
+                var response = await _client.GetApplicationInformationAsync(new(), cancellationToken: cancellationToken);
 
                 _applicationName = response.ApplicationName;
 
-                _client.SetResult(client);
-
                 _whenConnected.TrySetResult();
-
-                return (channel, client);
             }
 
             static TimeSpan ExponentialBackOff(int errorCount, double maxSeconds)
@@ -162,7 +182,7 @@ internal sealed class DashboardClient(ILogger<DashboardClient> logger) : IDashbo
 
             async Task ProcessData()
             {
-                var call = client.WatchResources(new WatchResourcesRequest { IsReconnect = errorCount != 0 }, cancellationToken: cancellationToken);
+                var call = _client.WatchResources(new WatchResourcesRequest { IsReconnect = errorCount != 0 }, cancellationToken: cancellationToken);
 
                 await foreach (var response in call.ResponseStream.ReadAllAsync(cancellationToken: cancellationToken))
                 {
@@ -170,23 +190,24 @@ internal sealed class DashboardClient(ILogger<DashboardClient> logger) : IDashbo
 
                     lock (_lock)
                     {
-                        // The most reliable way to check that a streaming call succeeded is to successfully read a response.
-                        if (errorCount > 0)
-                        {
-                            _resourceByName.Clear();
-                            errorCount = 0;
-                        }
+                        // We received a message, which means we are connected. Clear the error count.
+                        errorCount = 0;
 
                         if (response.KindCase == WatchResourcesUpdate.KindOneofCase.InitialData)
                         {
-                            // Copy initial snapshot into model, and send to any subscribers that exist.
-                            // TODO we need to send a "clear" event via outgoing channels, in case they already have state
+                            // Populate our map using the initial data.
+                            _resourceByName.Clear();
+
+                            // TODO send a "clear" event via outgoing channels, in case consumers have extra items to be removed
+
                             foreach (var resource in response.InitialData.Resources)
                             {
-                                changes ??= [];
-
+                                // Add to map.
                                 var viewModel = resource.ToViewModel();
                                 _resourceByName[resource.Name] = viewModel;
+
+                                // Send this update to any subscribers too.
+                                changes ??= [];
                                 changes.Add(new(ResourceViewModelChangeType.Upsert, viewModel));
                             }
                         }
@@ -242,20 +263,6 @@ internal sealed class DashboardClient(ILogger<DashboardClient> logger) : IDashbo
                 }
             }
         }
-
-        static Uri GetAddressUri(string variableName, string defaultValue)
-        {
-            try
-            {
-                var uri = Environment.GetEnvironmentVariable(variableName) ?? defaultValue;
-
-                return new Uri(uri);
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidOperationException($"Error parsing URIs from environment variable '{variableName}'.", ex);
-            }
-        }
     }
 
     Task IDashboardClient.WhenConnected => _whenConnected.Task;
@@ -301,9 +308,7 @@ internal sealed class DashboardClient(ILogger<DashboardClient> logger) : IDashbo
     {
         EnsureInitialized();
 
-        var client = await _client.Task.ConfigureAwait(false);
-
-        var call = client.WatchResourceConsoleLogs(
+        var call = _client.WatchResourceConsoleLogs(
             new WatchResourceConsoleLogsRequest() { ResourceName = resourceName },
             cancellationToken: cancellationToken);
 
@@ -327,6 +332,8 @@ internal sealed class DashboardClient(ILogger<DashboardClient> logger) : IDashbo
             await _cts.CancelAsync().ConfigureAwait(false);
 
             _cts.Dispose();
+
+            _channel.Dispose();
 
             try
             {
