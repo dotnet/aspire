@@ -121,20 +121,29 @@ public static partial class AspireEFMySqlExtensions
                 MySqlConnectorLogManager.Provider = new MicrosoftExtensionsLoggingLoggerProvider(loggerFactory);
             }
 
-            if (settings.ServerVersion is null)
-            {
-                throw new InvalidOperationException($"ServerVersion is missing. It should be provided in the ServerVersion' key in '{DefaultConfigSectionName}' or '{typeSpecificSectionName}' configuration section, or set by the 'configureSettings' callback.");
-            }
-
             // We don't register logger factory, because there is no need to: https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbcontextoptionsbuilder.useloggerfactory?view=efcore-7.0#remarks
             var connectionString = settings.ConnectionString ?? string.Empty;
-            var serverVersion = ServerVersion.Parse(settings.ServerVersion);
+
+            ServerVersion serverVersion;
+            if (settings.ServerVersion is null)
+            {
+                if (string.IsNullOrEmpty(connectionString))
+                {
+                    ThrowForMissingConnectionString();
+                }
+                serverVersion = ServerVersion.AutoDetect(connectionString);
+            }
+            else
+            {
+                serverVersion = ServerVersion.Parse(settings.ServerVersion);
+            }
+
             var builder = dbContextOptionsBuilder.UseMySql(connectionString, serverVersion, builder =>
             {
                 // delay validating the ConnectionString until the DbContext is configured. This ensures an exception doesn't happen until a Logger is established.
                 if (string.IsNullOrEmpty(connectionString))
                 {
-                    throw new InvalidOperationException($"ConnectionString is missing. It should be provided in 'ConnectionStrings:{connectionName}' or under the 'ConnectionString' key in '{DefaultConfigSectionName}' or '{typeSpecificSectionName}' configuration section.");
+                    ThrowForMissingConnectionString();
                 }
 
                 // Resiliency:
@@ -146,6 +155,11 @@ public static partial class AspireEFMySqlExtensions
             });
 
             configureDbContextOptions?.Invoke(dbContextOptionsBuilder);
+
+            void ThrowForMissingConnectionString()
+            {
+                throw new InvalidOperationException($"ConnectionString is missing. It should be provided in 'ConnectionStrings:{connectionName}' or under the 'ConnectionString' key in '{DefaultConfigSectionName}' or '{typeSpecificSectionName}' configuration section.");
+            }
         }
     }
 }
