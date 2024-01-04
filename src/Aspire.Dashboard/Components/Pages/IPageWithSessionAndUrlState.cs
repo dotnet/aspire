@@ -12,7 +12,7 @@ namespace Aspire.Dashboard.Components.Pages;
 /// Navigating back to the page will restore the previous page state
 /// </summary>
 /// <typeparam name="TViewModel">The view model containing live state</typeparam>
-/// <typeparam name="TSerializableViewModel">A serializable version of <see cref="TViewModel"/> that will be saved in session storage and restored from</typeparam>
+/// <typeparam name="TSerializableViewModel">A serializable version of the view model that will be saved in session storage and restored from</typeparam>
 public interface IPageWithSessionAndUrlState<TViewModel, TSerializableViewModel>
     where TSerializableViewModel : class
 {
@@ -46,7 +46,7 @@ public interface IPageWithSessionAndUrlState<TViewModel, TSerializableViewModel>
     public (string Path, Dictionary<string, string?>? QueryParameters) GetUrlFromSerializableViewModel(TSerializableViewModel serializable);
 
     /// <summary>
-    /// Maps <see cref="TViewModel"/> to <see cref="TSerializableViewModel"/>, which should contain simple types.
+    /// Maps view model to serializable version, which should contain simple types.
     /// </summary>
     public TSerializableViewModel ConvertViewModelToSerializable();
 }
@@ -67,7 +67,7 @@ public static class PageExtensions
     }
 
     /// <summary>
-    /// Called to initialize the page's view model. If <see cref="hasComponentRendered"/> is true,
+    /// Called to initialize the page's view model. If hasComponentRendered is true,
     /// will try to restore from session storage. Otherwise, it will construct state from the url.
     ///
     /// Because session storage isn't accessible until after component render, this should be called twice:
