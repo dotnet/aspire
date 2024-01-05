@@ -94,8 +94,18 @@ internal sealed class DataPlane : IHostedService
 
         _app.UseAntiforgery();
 
-        _app.MapGet(
-                "/v1.0/statestore/keys",
+        var v1Group =
+            _app.MapGroup("/v1.0")
+                .WithName("v1.0");
+
+        var stateStoreGroup =
+            v1Group
+                .MapGroup("/statestore")
+                .WithName("StateStore");
+
+        stateStoreGroup
+            .MapGet(
+                "/keys",
                 () =>
                 {
                     return stateStore.GetKeysAsync();
@@ -103,8 +113,9 @@ internal sealed class DataPlane : IHostedService
             .WithName("GetStateStoreKeys")
             .WithOpenApi();
 
-        _app.MapGet(
-                "/v1.0/statestore/keys/{key}",
+        stateStoreGroup
+            .MapGet(
+                "/keys/{key}",
                 async (string key) =>
                 {
                     var value = await stateStore.GetKeyAsync(key).ConfigureAwait(false);
@@ -116,8 +127,9 @@ internal sealed class DataPlane : IHostedService
             .WithName("GetStateStoreKey")
             .WithOpenApi();
 
-        _app.MapDelete(
-                "/v1.0/statestore/keys/{key}",
+        stateStoreGroup
+            .MapDelete(
+                "/keys/{key}",
                 async (string key) =>
                 {
                     await stateStore.DeleteAsync(key).ConfigureAwait(false);
@@ -127,8 +139,9 @@ internal sealed class DataPlane : IHostedService
             .WithName("DeleteStateStoreKey")
             .WithOpenApi();
 
-        _app.MapPut(
-                "/v1.0/statestore/keys/{key}",
+        stateStoreGroup
+            .MapPut(
+                "/keys/{key}",
                 async (string key, [FromBody] string content) =>
                 {
                     await stateStore.SetAsync(key, content).ConfigureAwait(false);
