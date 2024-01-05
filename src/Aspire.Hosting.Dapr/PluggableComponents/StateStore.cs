@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Concurrent;
-using System.Text;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Dapr.PluggableComponents;
@@ -27,18 +26,13 @@ internal sealed class StateStore
         return Task.CompletedTask;
     }
 
-    public Task<byte[]?> GetKeyAsync(string key)
+    public Task<string?> GetKeyAsync(string key)
     {
         _logger.LogInformation("Get request for key {Key}", key);
 
-        byte[]? response = null;
+        _storage.TryGetValue(key, out var value);
 
-        if (_storage.TryGetValue(key, out var data))
-        {
-            response = Encoding.UTF8.GetBytes(data);
-        }
-
-        return Task.FromResult(response);
+        return Task.FromResult(value);
     }
 
     public Task<string[]> GetKeysAsync()
@@ -46,11 +40,11 @@ internal sealed class StateStore
         return Task.FromResult(_storage.Keys.ToArray());
     }
 
-    public Task SetAsync(string key, ReadOnlySpan<byte> value)
+    public Task SetAsync(string key, string value)
     {
         _logger.LogInformation("Set request for key {Key}", key);
 
-        _storage[key] = Encoding.UTF8.GetString(value);
+        _storage[key] = value;
 
         return Task.CompletedTask;
     }

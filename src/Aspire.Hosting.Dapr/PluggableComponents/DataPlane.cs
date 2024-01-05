@@ -2,11 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net;
-using System.Text;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpsPolicy;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -110,10 +110,32 @@ internal sealed class DataPlane : IHostedService
                     var value = await stateStore.GetKeyAsync(key).ConfigureAwait(false);
 
                     return value is not null
-                            ? Results.Content(Encoding.UTF8.GetString(value), "application/json")
+                            ? Results.Content(value, "application/json")
                             : Results.NotFound(key);
                 })
             .WithName("GetStateStoreKey")
+            .WithOpenApi();
+
+        _app.MapDelete(
+                "/v1.0/statestore/keys/{key}",
+                async (string key) =>
+                {
+                    await stateStore.DeleteAsync(key).ConfigureAwait(false);
+
+                    return Results.NoContent();
+                })
+            .WithName("DeleteStateStoreKey")
+            .WithOpenApi();
+
+        _app.MapPut(
+                "/v1.0/statestore/keys/{key}",
+                async (string key, [FromBody] string content) =>
+                {
+                    await stateStore.SetAsync(key, content).ConfigureAwait(false);
+
+                    return Results.Accepted();
+                })
+            .WithName("SetStateStoreKey")
             .WithOpenApi();
     }
 

@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text;
 using Dapr.PluggableComponents.Components;
 using Dapr.PluggableComponents.Components.StateStore;
 using Microsoft.Extensions.Logging;
@@ -40,7 +41,7 @@ internal sealed class MemoryStateStore : IStateStore
         {
             response = new StateStoreGetResponse
             {
-                Data = value
+                Data = Encoding.UTF8.GetBytes(value)
             };
         }
 
@@ -56,7 +57,7 @@ internal sealed class MemoryStateStore : IStateStore
     {
         _logger.LogInformation("Set request for key {key}", request.Key);
 
-        await _stateStore.SetAsync(request.Key, request.Value.Span).ConfigureAwait(false);
+        await _stateStore.SetAsync(request.Key, Encoding.UTF8.GetString(request.Value.Span)).ConfigureAwait(false);
     }
 
     #endregion
