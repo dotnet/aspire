@@ -85,8 +85,7 @@ internal sealed class DashboardClient : IDashboardClient
                 EnableMultipleHttp2Connections = true,
                 KeepAlivePingDelay = TimeSpan.FromSeconds(20),
                 KeepAlivePingTimeout = TimeSpan.FromSeconds(10),
-                KeepAlivePingPolicy = HttpKeepAlivePingPolicy.WithActiveRequests,
-                PooledConnectionIdleTimeout = TimeSpan.FromHours(2)
+                KeepAlivePingPolicy = HttpKeepAlivePingPolicy.WithActiveRequests
             };
 
             // https://learn.microsoft.com/aspnet/core/grpc/retries
@@ -128,43 +127,15 @@ internal sealed class DashboardClient : IDashboardClient
             return;
         }
 
-        _connection = Task.Run(() => ConnectAndStayConnectedAsync(_cts.Token), _cts.Token);
+        _connection = Task.Run(() => ConnectAndWatchResourcesAsync(_cts.Token), _cts.Token);
 
         return;
 
-        async Task ConnectAndStayConnectedAsync(CancellationToken cancellationToken)
+        async Task ConnectAndWatchResourcesAsync(CancellationToken cancellationToken)
         {
-            // Track the number of errors we've seen since the last successfully received message.
-            // As this number climbs, we hold off on 
-            var errorCount = 0;
-
             await ConnectAsync().ConfigureAwait(false);
 
-            while (true)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                if (errorCount > 0)
-                {
-                    // The most recent attempt failed. There may be more than one failure.
-                    // We wait for a period of time determined by the number of errors,
-                    // where the time grows exponentially, until a threshold.
-                    var delay = ExponentialBackOff(errorCount, maxSeconds: 15);
-
-                    await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
-                }
-
-                try
-                {
-                    await ProcessData().ConfigureAwait(false);
-                }
-                catch (RpcException ex)
-                {
-                    errorCount++;
-
-                    _logger.LogError(ex, "Error #{errorCount} watching resources.", errorCount);
-                }
-            }
+            await WatchResourcesWithRecoveryAsync().ConfigureAwait(false);
 
             async Task ConnectAsync()
             {
@@ -175,88 +146,123 @@ internal sealed class DashboardClient : IDashboardClient
                 _whenConnected.TrySetResult();
             }
 
-            static TimeSpan ExponentialBackOff(int errorCount, double maxSeconds)
+            async Task WatchResourcesWithRecoveryAsync()
             {
-                return TimeSpan.FromSeconds(Math.Min(Math.Pow(2, errorCount - 1), maxSeconds));
-            }
+                // Track the number of errors we've seen since the last successfully received message.
+                // As this number climbs, we extend the amount of time between reconnection attempts, in
+                // order to avoid flooding the server with requests. This value is reset to zero whenever
+                // a message is successfully received.
+                var errorCount = 0;
 
-            async Task ProcessData()
-            {
-                var call = _client.WatchResources(new WatchResourcesRequest { IsReconnect = errorCount != 0 }, cancellationToken: cancellationToken);
-
-                await foreach (var response in call.ResponseStream.ReadAllAsync(cancellationToken: cancellationToken))
+                while (true)
                 {
-                    List<ResourceViewModelChange>? changes = null;
+                    cancellationToken.ThrowIfCancellationRequested();
 
-                    lock (_lock)
+                    if (errorCount > 0)
                     {
-                        // We received a message, which means we are connected. Clear the error count.
-                        errorCount = 0;
+                        // The most recent attempt failed. There may be more than one failure.
+                        // We wait for a period of time determined by the number of errors,
+                        // where the time grows exponentially, until a threshold.
+                        var delay = ExponentialBackOff(errorCount, maxSeconds: 15);
 
-                        if (response.KindCase == WatchResourcesUpdate.KindOneofCase.InitialData)
+                        await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
+                    }
+
+                    try
+                    {
+                        await WatchResourcesAsync().ConfigureAwait(false);
+                    }
+                    catch (RpcException ex)
+                    {
+                        errorCount++;
+
+                        _logger.LogError(ex, "Error #{errorCount} watching resources.", errorCount);
+                    }
+                }
+
+                static TimeSpan ExponentialBackOff(int errorCount, double maxSeconds)
+                {
+                    return TimeSpan.FromSeconds(Math.Min(Math.Pow(2, errorCount - 1), maxSeconds));
+                }
+
+                async Task WatchResourcesAsync()
+                {
+                    var call = _client.WatchResources(new WatchResourcesRequest { IsReconnect = errorCount != 0 }, cancellationToken: cancellationToken);
+
+                    await foreach (var response in call.ResponseStream.ReadAllAsync(cancellationToken: cancellationToken))
+                    {
+                        List<ResourceViewModelChange>? changes = null;
+
+                        lock (_lock)
                         {
-                            // Populate our map using the initial data.
-                            _resourceByName.Clear();
+                            // We received a message, which means we are connected. Clear the error count.
+                            errorCount = 0;
 
-                            // TODO send a "clear" event via outgoing channels, in case consumers have extra items to be removed
-
-                            foreach (var resource in response.InitialData.Resources)
+                            if (response.KindCase == WatchResourcesUpdate.KindOneofCase.InitialData)
                             {
-                                // Add to map.
-                                var viewModel = resource.ToViewModel();
-                                _resourceByName[resource.Name] = viewModel;
+                                // Populate our map using the initial data.
+                                _resourceByName.Clear();
 
-                                // Send this update to any subscribers too.
-                                changes ??= [];
-                                changes.Add(new(ResourceViewModelChangeType.Upsert, viewModel));
-                            }
-                        }
-                        else if (response.KindCase == WatchResourcesUpdate.KindOneofCase.Changes)
-                        {
-                            // Apply changes to the model.
-                            foreach (var change in response.Changes.Value)
-                            {
-                                changes ??= [];
+                                // TODO send a "clear" event via outgoing channels, in case consumers have extra items to be removed
 
-                                if (change.KindCase == WatchResourcesChange.KindOneofCase.Upsert)
+                                foreach (var resource in response.InitialData.Resources)
                                 {
-                                    // Upsert (i.e. add or replace)
-                                    var viewModel = change.Upsert.ToViewModel();
-                                    _resourceByName[change.Upsert.Name] = viewModel;
+                                    // Add to map.
+                                    var viewModel = resource.ToViewModel();
+                                    _resourceByName[resource.Name] = viewModel;
+
+                                    // Send this update to any subscribers too.
+                                    changes ??= [];
                                     changes.Add(new(ResourceViewModelChangeType.Upsert, viewModel));
                                 }
-                                else if (change.KindCase == WatchResourcesChange.KindOneofCase.Delete)
+                            }
+                            else if (response.KindCase == WatchResourcesUpdate.KindOneofCase.Changes)
+                            {
+                                // Apply changes to the model.
+                                foreach (var change in response.Changes.Value)
                                 {
-                                    // Remove
-                                    if (_resourceByName.Remove(change.Delete.ResourceName, out var removed))
+                                    changes ??= [];
+
+                                    if (change.KindCase == WatchResourcesChange.KindOneofCase.Upsert)
                                     {
-                                        changes.Add(new(ResourceViewModelChangeType.Delete, removed));
+                                        // Upsert (i.e. add or replace)
+                                        var viewModel = change.Upsert.ToViewModel();
+                                        _resourceByName[change.Upsert.Name] = viewModel;
+                                        changes.Add(new(ResourceViewModelChangeType.Upsert, viewModel));
+                                    }
+                                    else if (change.KindCase == WatchResourcesChange.KindOneofCase.Delete)
+                                    {
+                                        // Remove
+                                        if (_resourceByName.Remove(change.Delete.ResourceName, out var removed))
+                                        {
+                                            changes.Add(new(ResourceViewModelChangeType.Delete, removed));
+                                        }
+                                        else
+                                        {
+                                            Debug.Fail("Attempt to remove an unknown resource view model.");
+                                        }
                                     }
                                     else
                                     {
-                                        Debug.Fail("Attempt to remove an unknown resource view model.");
+                                        throw new FormatException($"Unexpected {nameof(WatchResourcesChange)} kind: {change.KindCase}");
                                     }
                                 }
-                                else
-                                {
-                                    throw new FormatException($"Unexpected {nameof(WatchResourcesChange)} kind: {change.KindCase}");
-                                }
+                            }
+                            else
+                            {
+                                throw new FormatException($"Unexpected {nameof(WatchResourcesUpdate)} kind: {response.KindCase}");
                             }
                         }
-                        else
-                        {
-                            throw new FormatException($"Unexpected {nameof(WatchResourcesUpdate)} kind: {response.KindCase}");
-                        }
-                    }
 
-                    if (changes is not null)
-                    {
-                        foreach (var channel in _outgoingChannels)
+                        if (changes is not null)
                         {
-                            // TODO send batches over the channel instead of individual items? They are batched downstream however
-                            foreach (var change in changes)
+                            foreach (var channel in _outgoingChannels)
                             {
-                                await channel.Writer.WriteAsync(change, cancellationToken).ConfigureAwait(false);
+                                // TODO send batches over the channel instead of individual items? They are batched downstream however
+                                foreach (var change in changes)
+                                {
+                                    await channel.Writer.WriteAsync(change, cancellationToken).ConfigureAwait(false);
+                                }
                             }
                         }
                     }
