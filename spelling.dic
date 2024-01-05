@@ -1,6 +1,7 @@
 ansi
 apigateway
 apiserver
+blazor
 brightblack
 brightblue
 brightcyan
@@ -18,6 +19,8 @@ kubeconfig
 Kubelet
 kubernetes
 libc
+noreferrer
+noopener
 oninput
 otlp
 protoc
