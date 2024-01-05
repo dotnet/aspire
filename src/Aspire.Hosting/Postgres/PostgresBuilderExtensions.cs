@@ -3,8 +3,10 @@
 
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Postgres;
 using Aspire.Hosting.Publishing;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
 
@@ -85,12 +87,14 @@ public static class PostgresBuilderExtensions
     /// <param name="hostPort">The host port for the application ui.</param>
     /// <param name="containerName">The name of the container (Optional).</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{PostgresContainerResource}"/>.</returns>
-    public static IResourceBuilder<PostgresContainerResource> WithPgAdmin(this IResourceBuilder<PostgresContainerResource> builder, int? hostPort, string? containerName = null)
+    public static IResourceBuilder<T> WithPgAdmin<T>(this IResourceBuilder<T> builder, int? hostPort, string? containerName = null) where T: IPostgresParentResource
     {
         if (builder.ApplicationBuilder.Resources.OfType<PgAdminContainerResource>().Any())
         {
             return builder;
         }
+
+        builder.ApplicationBuilder.Services.AddSingleton<IDistributedApplicationLifecycleHook, PgAdminConfigWriterHook>();
 
         ArgumentNullException.ThrowIfNull(hostPort);
 
@@ -101,7 +105,7 @@ public static class PostgresBuilderExtensions
                                   .WithAnnotation(new ContainerImageAnnotation { Image = "dpage/pgadmin4", Tag = "latest" })
                                   .WithEndpoint(containerPort: 80, hostPort: hostPort, scheme: "http", name: containerName)
                                   .WithEnvironment(SetPgAdminEnviromentVariables)
-                                  .WithVolumeMount(WritePgAdminTempServersJson(builder), "/pgadmin4/servers.json")
+                                  .WithVolumeMount(Path.GetTempFileName(), "/pgadmin4/servers.json")
                                   .ExcludeFromManifest();
 
         return builder;
@@ -118,39 +122,6 @@ public static class PostgresBuilderExtensions
         context.EnvironmentVariables.Add("PGADMIN_DEFAULT_PASSWORD", "admin");
     }
 
-    private static string WritePgAdminTempServersJson(IResourceBuilder<PostgresContainerResource> builder)
-    {
-        var serversFile = Path.GetTempFileName();
-
-        // At this point the container is not running yet, so we need to get the port from the service bindings.
-        // If the port is not user defined we will ignore it.
-        if (builder.Resource.TryGetEndpoints(out var serviceBindings))
-        {
-            if (serviceBindings.First().Port is not null)
-            {
-                var json = $@"
-                {{
-                    ""Servers"": {{
-                        ""1"": {{
-                            ""Name"": ""{builder.Resource.Name}"",
-                            ""Group"": ""Aspire servers"",
-                            ""Host"": ""host.docker.internal"",
-                            ""Port"": {serviceBindings.First().Port},
-                            ""Username"": ""postgres"",
-                            ""SSLMode"": ""prefer"",
-                            ""MaintenanceDB"": ""postgres""
-                        }}
-                    }}
-                }}
-                ";
-
-                File.WriteAllText(serversFile, json);
-            }
-        }
-
-        return serversFile;
-    }
-  
     private static void WritePostgresContainerToManifest(ManifestPublishingContext context)
     {
         context.Writer.WriteString("type", "postgres.server.v0");

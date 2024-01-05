@@ -1,6 +1,6 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
-var catalogDb = builder.AddPostgresContainer("postgres")
+var catalogDb = builder.AddPostgres("postgres")
                     .WithPgAdmin(hostPort: 8081)
                     .AddDatabase("catalogdb");
 
