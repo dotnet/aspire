@@ -143,9 +143,12 @@ public class DashboardWebApplication : IHostedService
         _app.MapGrpcService<OtlpTraceService>();
         _app.MapGrpcService<OtlpLogsService>();
 
+        // Map extension (i.e. "data plane") routes
+        var apiGroup = _app.MapGroup("/api");
+
         foreach (var extension in _extensions)
         {
-            extension.ConfigureRoutes(_app);
+            extension.ConfigureRoutes(apiGroup);
         }
     }
 
