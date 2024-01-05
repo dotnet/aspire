@@ -16,12 +16,12 @@ internal static class ResourceViewModelExtensions
 
     public static bool IsProject(this ResourceViewModel resource)
     {
-        return StringComparers.ResourceType.Equals(resource.ResourceType, KnownResourceTypes.Container);
+        return StringComparers.ResourceType.Equals(resource.ResourceType, KnownResourceTypes.Project);
     }
 
     public static bool IsExecutable(this ResourceViewModel resource, bool allowSubtypes)
     {
-        if (StringComparers.ResourceType.Equals(resource.ResourceType, KnownResourceTypes.Container))
+        if (StringComparers.ResourceType.Equals(resource.ResourceType, KnownResourceTypes.Executable))
         {
             return true;
         }
