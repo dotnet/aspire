@@ -139,11 +139,18 @@ internal sealed class DashboardClient : IDashboardClient
 
             async Task ConnectAsync()
             {
-                var response = await _client.GetApplicationInformationAsync(new(), cancellationToken: cancellationToken);
+                try
+                {
+                    var response = await _client.GetApplicationInformationAsync(new(), cancellationToken: cancellationToken);
 
-                _applicationName = response.ApplicationName;
+                    _applicationName = response.ApplicationName;
 
-                _whenConnected.TrySetResult();
+                    _whenConnected.TrySetResult();
+                }
+                catch (Exception ex)
+                {
+                    _whenConnected.TrySetException(ex);
+                }
             }
 
             async Task WatchResourcesWithRecoveryAsync()
