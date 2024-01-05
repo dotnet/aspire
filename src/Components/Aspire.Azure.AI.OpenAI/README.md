@@ -40,11 +40,11 @@ See the [Azure OpenAI Service quickstarts](https://learn.microsoft.com/azure/ai-
 
 ## Configuration
 
-The .NET Aspire Azure Azure OpenAI library provides multiple options to configure the Azure OpenAI Service based on the requirements and conventions of your project. Note that either a `ServiceUri` or a `ConnectionString` is required to be supplied.
+The .NET Aspire Azure Azure OpenAI library provides multiple options to configure the Azure OpenAI Service based on the requirements and conventions of your project. Note that either an `Endpoint` or a `ConnectionString` is required to be supplied.
 
 ### Use a connection string
 
-A connection can be constructed from the __Keys and Endpoint__ tab with the format `AccountEndpoint={endpoint};AccountKey={key};`. You can provide the name of the connection string when calling `builder.AddAzureAIOpenAI()`:
+A connection can be constructed from the __Keys and Endpoint__ tab with the format `Endpoint={endpoint};Key={key};`. You can provide the name of the connection string when calling `builder.AddAzureAIOpenAI()`:
 
 ```csharp
 builder.AddAzureAIOpenAI("openaiConnectionName");
@@ -54,7 +54,7 @@ And then the connection string will be retrieved from the `ConnectionStrings` co
 
 #### Account Endpoint
 
-The recommended approach is to use an AccountEndpoint, which works with the `AzureOpenAISettings.Credential` property to establish a connection. If no credential is configured, the [DefaultAzureCredential](https://learn.microsoft.com/dotnet/api/azure.identity.defaultazurecredential) is used.
+The recommended approach is to use an Endpoint, which works with the `AzureOpenAISettings.Credential` property to establish a connection. If no credential is configured, the [DefaultAzureCredential](https://learn.microsoft.com/dotnet/api/azure.identity.defaultazurecredential) is used.
 
 ```json
 {
@@ -71,7 +71,7 @@ Alternatively, a custom connection string can be used.
 ```json
 {
   "ConnectionStrings": {
-    "openaiConnectionName": "AccountEndpoint=https://{account_name}.openai.azure.com/;AccountKey={account_key};"
+    "openaiConnectionName": "Endpoint=https://{account_name}.openai.azure.com/;Key={account_key};"
   }
 }
 ```

@@ -5,9 +5,6 @@
         "Azure": {
           "$ref": "#/definitions/logLevelThreshold"
         },
-        "Azure.AI.OpenAI": {
-          "$ref": "#/definitions/logLevelThreshold"
-        },
         "Azure.Core": {
           "$ref": "#/definitions/logLevelThreshold"
         },
@@ -102,14 +99,14 @@
                       },
                       "description": "Client options for OpenAIClient."
                     },
-                    "Key": {
-                      "type": "string",
-                      "description": "Gets or sets the key to use to authenticate to the Azure OpenAI endpoint."
-                    },
-                    "ServiceUri": {
+                    "Endpoint": {
                       "type": "string",
                       "format": "uri",
                       "description": "Gets or sets a 'System.Uri' referencing the Azure OpenAI endpoint.\nThis is likely to be similar to \"https://{account_name}.openai.azure.com\"."
+                    },
+                    "Key": {
+                      "type": "string",
+                      "description": "Gets or sets the key to use to authenticate to the Azure OpenAI endpoint."
                     },
                     "Tracing": {
                       "type": "boolean",

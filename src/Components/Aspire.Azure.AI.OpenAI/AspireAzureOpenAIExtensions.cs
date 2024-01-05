@@ -65,7 +65,7 @@ public static class AspireAzureOpenAIExtensions
         {
             return azureFactoryBuilder.RegisterClientFactory<OpenAIClient, OpenAIClientOptions>((options, cred) =>
             {
-                if (settings.ServiceUri is null)
+                if (settings.Endpoint is null)
                 {
                     // Connect to non-Azure OpenAI
 
@@ -74,7 +74,7 @@ public static class AspireAzureOpenAIExtensions
                         return new OpenAIClient(settings.Key, options);
                     }
 
-                    throw new InvalidOperationException($"An OpenAIClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a '{nameof(AzureOpenAISettings.ServiceUri)}' or '{nameof(AzureOpenAISettings.Key)}' in the '{configurationSectionName}' configuration section.");
+                    throw new InvalidOperationException($"An OpenAIClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a '{nameof(AzureOpenAISettings.Endpoint)}' or '{nameof(AzureOpenAISettings.Key)}' in the '{configurationSectionName}' configuration section.");
                 }
                 else
                 {
@@ -83,16 +83,16 @@ public static class AspireAzureOpenAIExtensions
                     if (!string.IsNullOrEmpty(settings.Key))
                     {
                         var credential = new AzureKeyCredential(settings.Key);
-                        return new OpenAIClient(settings.ServiceUri, credential, options);
+                        return new OpenAIClient(settings.Endpoint, credential, options);
                     }
                     else if (settings.Credential != null)
                     {
-                        return new OpenAIClient(settings.ServiceUri, settings.Credential, options);
+                        return new OpenAIClient(settings.Endpoint, settings.Credential, options);
                     }
                     else
                     {
                         var credential = new DefaultAzureCredential();
-                        return new OpenAIClient(settings.ServiceUri, credential, options);
+                        return new OpenAIClient(settings.Endpoint, credential, options);
                     }
                 }
             });

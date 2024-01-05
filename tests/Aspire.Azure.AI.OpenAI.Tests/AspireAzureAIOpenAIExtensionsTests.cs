@@ -11,7 +11,7 @@ namespace Aspire.Azure.AI.OpenAI.Tests;
 
 public class AspireAzureAIOpenAIExtensionsTests
 {
-    private const string ConnectionString = "AccountEndpoint=https://aspireopenaitests.openai.azure.com/;AccountKey=fake";
+    private const string ConnectionString = "Endpoint=https://aspireopenaitests.openai.azure.com/;Key=fake";
 
     [Theory]
     [InlineData(true)]
@@ -51,11 +51,11 @@ public class AspireAzureAIOpenAIExtensionsTests
 
         if (useKeyed)
         {
-            builder.AddKeyedAzureOpenAI("openai", settings => { settings.ServiceUri = uri; settings.Key = key; });
+            builder.AddKeyedAzureOpenAI("openai", settings => { settings.Endpoint = uri; settings.Key = key; });
         }
         else
         {
-            builder.AddAzureOpenAI("openai", settings => { settings.ServiceUri = uri; settings.Key = key; });
+            builder.AddAzureOpenAI("openai", settings => { settings.Endpoint = uri; settings.Key = key; });
         }
 
         var host = builder.Build();

@@ -13,8 +13,8 @@ namespace Aspire.Azure.AI.OpenAI;
 /// </summary>
 public sealed class AzureOpenAISettings : IConnectionStringSettings
 {
-    private const string AccountEndpoint = "AccountEndpoint";
-    private const string AccountKey = "AccountKey";
+    private const string ConnectionStringEndpoint = "Endpoint";
+    private const string ConnectionStringKey = "Key";
 
     /// <summary>
     /// Gets or sets a <see cref="Uri"/> referencing the Azure OpenAI endpoint.
@@ -24,7 +24,7 @@ public sealed class AzureOpenAISettings : IConnectionStringSettings
     /// Leave empty and provide a <see cref="Key"/> value to use a non-Azure OpenAI inference endpoint.
     /// Used along with <see cref="Credential"/> or <see cref="Key"/> to establish the connection.
     /// </remarks>
-    public Uri? ServiceUri { get; set; }
+    public Uri? Endpoint { get; set; }
 
     /// <summary>
     /// Gets or sets the credential used to authenticate to the Azure OpenAI resource.
@@ -54,18 +54,18 @@ public sealed class AzureOpenAISettings : IConnectionStringSettings
             ConnectionString = connectionString
         };
 
-        if (connectionBuilder.ContainsKey(AccountEndpoint) && Uri.TryCreate(connectionBuilder[AccountEndpoint].ToString(), UriKind.Absolute, out var serviceUri))
+        if (connectionBuilder.ContainsKey(ConnectionStringEndpoint) && Uri.TryCreate(connectionBuilder[ConnectionStringEndpoint].ToString(), UriKind.Absolute, out var serviceUri))
         {
-            ServiceUri = serviceUri;
+            Endpoint = serviceUri;
         }
         else if (Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))
         {
-            ServiceUri = uri;
+            Endpoint = uri;
         }
 
-        if (connectionBuilder.ContainsKey(AccountKey))
+        if (connectionBuilder.ContainsKey(ConnectionStringKey))
         {
-            Key = connectionBuilder[AccountKey].ToString();
+            Key = connectionBuilder[ConnectionStringKey].ToString();
         }
     }
 }

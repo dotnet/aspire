@@ -13,7 +13,7 @@ namespace Aspire.Azure.AI.OpenAI.Tests;
 public class ConformanceTests : ConformanceTests<OpenAIClient, AzureOpenAISettings>
 {
     // Fake connection string for cases when credentials are unavailable and need to switch to raw connection string
-    protected const string ServiceUri = "https://aspireopenaitests.openai.azure.com/";
+    protected const string Endpoint = "https://aspireopenaitests.openai.azure.com/";
     protected const string Key = "fake";
 
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
@@ -34,7 +34,7 @@ public class ConformanceTests : ConformanceTests<OpenAIClient, AzureOpenAISettin
             "Azure": {
               "AI": {
                 "OpenAI": {
-                  "ServiceUri": "http://YOUR_URI",
+                  "Endpoint": "http://YOUR_URI",
                   "Tracing": true,
                   "ClientOptions": {
                     "ConnectionIdleTimeout": "PT1S",
@@ -54,8 +54,8 @@ public class ConformanceTests : ConformanceTests<OpenAIClient, AzureOpenAISettin
 
     protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
         {
-            ("""{"Aspire": { "Azure": { "AI":{ "OpenAI": {"ServiceUri": "YOUR_URI"}}}}}""", "Value does not match format \"uri\""),
-            ("""{"Aspire": { "Azure": { "AI":{ "OpenAI": {"ServiceUri": "http://YOUR_URI", "Tracing": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
+            ("""{"Aspire": { "Azure": { "AI":{ "OpenAI": {"Endpoint": "YOUR_URI"}}}}}""", "Value does not match format \"uri\""),
+            ("""{"Aspire": { "Azure": { "AI":{ "OpenAI": {"Endpoint": "http://YOUR_URI", "Tracing": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
         };
 
     protected override string ActivitySourceName => throw new NotImplementedException();
@@ -63,13 +63,13 @@ public class ConformanceTests : ConformanceTests<OpenAIClient, AzureOpenAISettin
     // When credentials are not available, we switch to using raw connection string (otherwise we get CredentialUnavailableException)
     protected KeyValuePair<string, string?> GetMainConfigEntry(string? key)
         => CanConnectToServer
-                ? new(CreateConfigKey("Aspire:Azure:AI:OpenAI", key, nameof(AzureOpenAISettings.ServiceUri)), ServiceUri)
+                ? new(CreateConfigKey("Aspire:Azure:AI:OpenAI", key, nameof(AzureOpenAISettings.Endpoint)), Endpoint)
                 : new(CreateConfigKey("Aspire:Azure:AI:OpenAI", key, nameof(AzureOpenAISettings.Key)), Key);
 
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[]
         {
-            new(CreateConfigKey("Aspire:Azure:AI:OpenAI", key, "ServiceUri"), ServiceUri)
+            new(CreateConfigKey("Aspire:Azure:AI:OpenAI", key, "Endpoint"), Endpoint)
         });
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<AzureOpenAISettings>? configure = null, string? key = null)
