@@ -8,9 +8,9 @@
 @using Aspire.Dashboard.Resources
 @inject IStringLocalizer<Dashboard.Resources.TraceDetail> Loc
 @inject IStringLocalizer<ControlsStrings> ControlStringsLoc
-@inject IResourceService DashboardService
+@inject IDashboardClient DashboardClient
 
-<PageTitle>@string.Format(Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailPageTitle)], DashboardService.ApplicationName)</PageTitle>
+<PageTitle>@DashboardClient.FormatApplicationName(Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailPageTitle)], () => InvokeAsync(StateHasChanged))</PageTitle>
 
 @if (_trace != null)
 {

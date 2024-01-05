@@ -13,11 +13,11 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
 {
     private readonly ConcurrentDictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
     private readonly CancellationTokenSource _watchContainersTokenSource = new();
-    private readonly Task _watchTask;
     private readonly List<ModelSubscription> _subscriptions = [];
     private readonly object _lock = new();
+    private readonly Task _watchTask;
 
-    public ResourceOutgoingPeerResolver(IResourceService resourceService)
+    public ResourceOutgoingPeerResolver(IDashboardClient resourceService)
     {
         var (snapshot, subscription) = resourceService.SubscribeResources();
 
@@ -31,24 +31,19 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
         {
             await foreach (var (changeType, resource) in subscription.WithCancellation(_watchContainersTokenSource.Token))
             {
-                await OnResourceListChanged(changeType, resource).ConfigureAwait(false);
+                if (changeType == ResourceViewModelChangeType.Upsert)
+                {
+                    _resourceByName[resource.Name] = resource;
+                }
+                else if (changeType == ResourceViewModelChangeType.Delete)
+                {
+                    var removed = _resourceByName.TryRemove(resource.Name, out _);
+                    Debug.Assert(removed, "Cannot remove unknown resource.");
+                }
+
+                await RaisePeerChangesAsync().ConfigureAwait(false);
             }
         });
-    }
-
-    private async Task OnResourceListChanged(ResourceChangeType changeType, ResourceViewModel resourceViewModel)
-    {
-        if (changeType == ResourceChangeType.Upsert)
-        {
-            _resourceByName[resourceViewModel.Name] = resourceViewModel;
-        }
-        else if (changeType == ResourceChangeType.Delete)
-        {
-            var removed = _resourceByName.TryRemove(resourceViewModel.Name, out _);
-            Debug.Assert(removed, "Cannot remove unknown resource.");
-        }
-
-        await RaisePeerChangesAsync().ConfigureAwait(false);
     }
 
     public bool TryResolvePeerName(KeyValuePair<string, string>[] attributes, [NotNullWhen(true)] out string? name)

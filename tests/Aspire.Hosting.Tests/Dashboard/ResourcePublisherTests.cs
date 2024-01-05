@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Dashboard.Model;
 using Aspire.Hosting.Dashboard;
 using Xunit;
 
@@ -15,38 +14,38 @@ public class ResourcePublisherTests
         CancellationTokenSource cts = new();
         ResourcePublisher publisher = new(cts.Token);
 
-        var a = CreateResource("A");
-        var b = CreateResource("B");
-        var c = CreateResource("C");
+        var a = CreateResourceSnapshot("A");
+        var b = CreateResourceSnapshot("B");
+        var c = CreateResourceSnapshot("C");
 
-        await publisher.IntegrateAsync(a, ResourceChangeType.Upsert).ConfigureAwait(false);
-        await publisher.IntegrateAsync(b, ResourceChangeType.Upsert).ConfigureAwait(false);
+        await publisher.IntegrateAsync(a, ResourceSnapshotChangeType.Upsert).ConfigureAwait(false);
+        await publisher.IntegrateAsync(b, ResourceSnapshotChangeType.Upsert).ConfigureAwait(false);
 
         var (snapshot, subscription) = publisher.Subscribe();
 
-        Assert.Equal(2, snapshot.Count);
-        Assert.Contains(a, snapshot);
-        Assert.Contains(b, snapshot);
+        Assert.Equal(2, snapshot.Length);
+        Assert.Single(snapshot.Where(s => s.Name == "A"));
+        Assert.Single(snapshot.Where(s => s.Name == "B"));
 
         using AutoResetEvent sync = new(initialState: false);
-        List<ResourceChange> changes = [];
+        List<IReadOnlyList<ResourceSnapshotChange>> changeBatches = [];
 
         var task = Task.Run(async () =>
         {
             await foreach (var change in subscription)
             {
-                changes.Add(change);
+                changeBatches.Add(change);
                 sync.Set();
             }
         });
 
-        await publisher.IntegrateAsync(c, ResourceChangeType.Upsert).ConfigureAwait(false);
+        await publisher.IntegrateAsync(c, ResourceSnapshotChangeType.Upsert).ConfigureAwait(false);
 
         Assert.True(sync.WaitOne(TimeSpan.FromSeconds(1)));
 
-        var change = Assert.Single(changes);
-        Assert.Equal(ResourceChangeType.Upsert, change.ChangeType);
-        Assert.Same(c, change.Resource);
+        var change = Assert.Single(changeBatches.SelectMany(o => o));
+        Assert.Equal(ResourceSnapshotChangeType.Upsert, change.ChangeType);
+        Assert.Equal("C", change.Resource.Name);
 
         await cts.CancelAsync();
 
@@ -59,20 +58,20 @@ public class ResourcePublisherTests
         CancellationTokenSource cts = new();
         ResourcePublisher publisher = new(cts.Token);
 
-        var a = CreateResource("A");
-        var b = CreateResource("B");
-        var c = CreateResource("C");
+        var a = CreateResourceSnapshot("A");
+        var b = CreateResourceSnapshot("B");
+        var c = CreateResourceSnapshot("C");
 
-        await publisher.IntegrateAsync(a, ResourceChangeType.Upsert).ConfigureAwait(false);
-        await publisher.IntegrateAsync(b, ResourceChangeType.Upsert).ConfigureAwait(false);
+        await publisher.IntegrateAsync(a, ResourceSnapshotChangeType.Upsert).ConfigureAwait(false);
+        await publisher.IntegrateAsync(b, ResourceSnapshotChangeType.Upsert).ConfigureAwait(false);
 
         var (snapshot1, subscription1) = publisher.Subscribe();
         var (snapshot2, subscription2) = publisher.Subscribe();
 
-        Assert.Equal(2, snapshot1.Count);
-        Assert.Equal(2, snapshot2.Count);
+        Assert.Equal(2, snapshot1.Length);
+        Assert.Equal(2, snapshot2.Length);
 
-        await publisher.IntegrateAsync(c, ResourceChangeType.Upsert).ConfigureAwait(false);
+        await publisher.IntegrateAsync(c, ResourceSnapshotChangeType.Upsert).ConfigureAwait(false);
 
         var enumerator1 = subscription1.GetAsyncEnumerator(cts.Token);
         var enumerator2 = subscription2.GetAsyncEnumerator(cts.Token);
@@ -80,10 +79,13 @@ public class ResourcePublisherTests
         await enumerator1.MoveNextAsync();
         await enumerator2.MoveNextAsync();
 
-        Assert.Equal(ResourceChangeType.Upsert, enumerator1.Current.ChangeType);
-        Assert.Equal(ResourceChangeType.Upsert, enumerator2.Current.ChangeType);
-        Assert.Same(c, enumerator1.Current.Resource);
-        Assert.Same(c, enumerator2.Current.Resource);
+        var v1 = Assert.Single(enumerator1.Current);
+        var v2 = Assert.Single(enumerator2.Current);
+
+        Assert.Equal(ResourceSnapshotChangeType.Upsert, v1.ChangeType);
+        Assert.Equal(ResourceSnapshotChangeType.Upsert, v2.ChangeType);
+        Assert.Equal("C", v1.Resource.Name);
+        Assert.Equal("C", v2.Resource.Name);
 
         await cts.CancelAsync();
     }
@@ -94,17 +96,17 @@ public class ResourcePublisherTests
         CancellationTokenSource cts = new();
         ResourcePublisher publisher = new(cts.Token);
 
-        var a1 = CreateResource("A");
-        var a2 = CreateResource("A");
-        var a3 = CreateResource("A");
+        var a1 = CreateResourceSnapshot("A");
+        var a2 = CreateResourceSnapshot("A");
+        var a3 = CreateResourceSnapshot("A");
 
-        await publisher.IntegrateAsync(a1, ResourceChangeType.Upsert).ConfigureAwait(false);
-        await publisher.IntegrateAsync(a2, ResourceChangeType.Upsert).ConfigureAwait(false);
-        await publisher.IntegrateAsync(a3, ResourceChangeType.Upsert).ConfigureAwait(false);
+        await publisher.IntegrateAsync(a1, ResourceSnapshotChangeType.Upsert).ConfigureAwait(false);
+        await publisher.IntegrateAsync(a2, ResourceSnapshotChangeType.Upsert).ConfigureAwait(false);
+        await publisher.IntegrateAsync(a3, ResourceSnapshotChangeType.Upsert).ConfigureAwait(false);
 
         var (snapshot, _) = publisher.Subscribe();
 
-        Assert.Same(a3, Assert.Single(snapshot));
+        Assert.Equal("A", Assert.Single(snapshot).Name);
 
         await cts.CancelAsync();
     }
@@ -115,23 +117,23 @@ public class ResourcePublisherTests
         CancellationTokenSource cts = new();
         ResourcePublisher publisher = new(cts.Token);
 
-        var a = CreateResource("A");
-        var b = CreateResource("B");
+        var a = CreateResourceSnapshot("A");
+        var b = CreateResourceSnapshot("B");
 
-        await publisher.IntegrateAsync(a, ResourceChangeType.Upsert).ConfigureAwait(false);
-        await publisher.IntegrateAsync(b, ResourceChangeType.Upsert).ConfigureAwait(false);
-        await publisher.IntegrateAsync(a, ResourceChangeType.Delete).ConfigureAwait(false);
+        await publisher.IntegrateAsync(a, ResourceSnapshotChangeType.Upsert).ConfigureAwait(false);
+        await publisher.IntegrateAsync(b, ResourceSnapshotChangeType.Upsert).ConfigureAwait(false);
+        await publisher.IntegrateAsync(a, ResourceSnapshotChangeType.Delete).ConfigureAwait(false);
 
         var (snapshot, _) = publisher.Subscribe();
 
-        Assert.Same(b, Assert.Single(snapshot));
+        Assert.Equal("B", Assert.Single(snapshot).Name);
 
         await cts.CancelAsync();
     }
 
-    private static ContainerViewModel CreateResource(string name)
+    private static ContainerSnapshot CreateResourceSnapshot(string name)
     {
-        return new ContainerViewModel()
+        return new ContainerSnapshot()
         {
             Name = name,
             Uid = "",

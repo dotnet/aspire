@@ -29,9 +29,10 @@ public class DashboardWebApplication : IHostedService
     private readonly WebApplication _app;
     private readonly ILogger<DashboardWebApplication> _logger;
 
-    public DashboardWebApplication(ILogger<DashboardWebApplication> logger, Action<IServiceCollection> configureServices)
+    public DashboardWebApplication(ILogger<DashboardWebApplication> logger)
     {
         _logger = logger;
+
         var builder = WebApplication.CreateBuilder();
         builder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.None);
         builder.Logging.AddFilter("Microsoft.AspNetCore.Server.Kestrel", LogLevel.Error);
@@ -84,6 +85,9 @@ public class DashboardWebApplication : IHostedService
         // Add services to the container.
         builder.Services.AddRazorComponents().AddInteractiveServerComponents();
 
+        // Data from the server.
+        builder.Services.AddScoped<IDashboardClient, DashboardClient>();
+
         // OTLP services.
         builder.Services.AddGrpc();
         builder.Services.AddSingleton<TelemetryRepository>();
@@ -96,7 +100,6 @@ public class DashboardWebApplication : IHostedService
 
         builder.Services.AddSingleton<ThemeManager>();
 
-        configureServices(builder.Services);
         builder.Services.AddLocalization();
 
         _app = builder.Build();
@@ -158,29 +161,23 @@ public class DashboardWebApplication : IHostedService
         {
             if (uri.IsLoopback)
             {
-                kestrelOptions.ListenLocalhost(uri.Port, options =>
-                {
-                    ConfigureListenOptions(options, uri, httpProtocols);
-                });
+                kestrelOptions.ListenLocalhost(uri.Port, ConfigureListenOptions);
             }
             else
             {
-                kestrelOptions.Listen(IPAddress.Parse(uri.Host), uri.Port, options =>
-                {
-                    ConfigureListenOptions(options, uri, httpProtocols);
-                });
+                kestrelOptions.Listen(IPAddress.Parse(uri.Host), uri.Port, ConfigureListenOptions);
             }
-        }
 
-        static void ConfigureListenOptions(ListenOptions options, Uri uri, HttpProtocols? httpProtocols)
-        {
-            if (IsHttps(uri))
+            void ConfigureListenOptions(ListenOptions options)
             {
-                options.UseHttps();
-            }
-            if (httpProtocols is not null)
-            {
-                options.Protocols = httpProtocols.Value;
+                if (IsHttps(uri))
+                {
+                    options.UseHttps();
+                }
+                if (httpProtocols is not null)
+                {
+                    options.Protocols = httpProtocols.Value;
+                }
             }
         }
     }

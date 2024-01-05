@@ -15,22 +15,22 @@ message ApplicationInformationRequest {
 
 message ApplicationInformationResponse {
     string application_name = 1;
-    string application_version = 2;
 }
 
 ////////////////////////////////////////////
 
 message ResourceCommandRequest {
     string command_type = 1;
-    ResourceId resource_id = 2;
+    string name = 2;
+    string resource_type = 3;
     // When present, this message must be shown to the user and their confirmation obtained
     // before sending the request for this command to be executed.
     // The user will be presented with Ok/Cancel options.
-    optional string confirmation_message = 3;
+    optional string confirmation_message = 4;
     // Optional parameter that configures the command in some way.
     // Clients must return any value provided by the server when invoking
     // the command.
-    optional google.protobuf.Value parameter = 4;
+    optional google.protobuf.Value parameter = 5;
 }
 
 enum ResourceCommandResponseKind {
@@ -48,7 +48,7 @@ message ResourceCommandResponse {
 ////////////////////////////////////////////
 
 message ResourceType {
-    // Unique name for the resource type. Equivalent to ResourceId.resource_type
+    // Unique name for the resource type. Equivalent to Resource.resource_type
     // If "display_name" is omitted, this value will be used in UIs.
     string unique_name = 1;
 
@@ -71,7 +71,7 @@ message ResourceType {
 message EnvironmentVariable {
     string name = 1;
     optional string value = 2;
-    optional bool is_from_spec = 3;
+    bool is_from_spec = 3;
 }
 
 message Endpoint {
@@ -83,44 +83,39 @@ message Service {
     string name = 1;
     optional string allocated_address = 2;
     optional int32 allocated_port = 3;
-    optional string http_address = 4;
 }
 
-message AdditionalData {
-    // Name of the data item, e.g. "id", "image", "path", ...
+message ResourceProperty {
+    // Name of the data item, e.g. "container.id", "executable.pid", "project.path", ...
     string name = 1;
-    // Optional namespace, e.g. "container", "executable", "project", ...
-    optional string namespace = 2;
+    // TODO move display_name to reference data, sent once when the connection starts
     // Optional display name, may be localized
-    optional string display_name = 3;
+    optional string display_name = 2;
     // The data value. May be null, a number, a string, a boolean, a dictionary of values (Struct), or a list of values (ValueList).
-    google.protobuf.Value value = 4;
-}
-
-message ResourceId {
-    string uid = 1;
-    // TODO do we need resource_type to make unique names? if not, inline ResourceId type as string.
-    string resource_type = 2;
+    google.protobuf.Value value = 3;
 }
 
 // Models the full state of an resource (container, executable, project, etc) at a particular point in time.
 message Resource {
-    ResourceId resource_id = 1;
-    string display_name = 2;
-    optional string state = 3;
-    optional google.protobuf.Timestamp created_at = 4;
-    repeated EnvironmentVariable environment = 5;
-    optional int32 expected_endpoints_count = 6;
-    repeated Endpoint endpoints = 7;
-    repeated Service services = 8;
-    repeated ResourceCommandRequest commands = 9;
+    string name = 1;
+    string resource_type = 2;
+    string display_name = 3;
+    string uid = 4;
+    optional string state = 5;
+    optional google.protobuf.Timestamp created_at = 6;
+    repeated EnvironmentVariable environment = 7;
+    optional int32 expected_endpoints_count = 8;
+    repeated Endpoint endpoints = 9;
+    repeated Service services = 10;
+    repeated ResourceCommandRequest commands = 11;
 
-    // List of additional data, as name/value pairs.
+    // Properties holding data not modeled directly on the message.
+    //
     // For:
     // - Containers: image, container_id, ports
     // - Executables: process_id, executable_path, working_directory, arguments
     // - Projects: process_id, project_path
-    repeated AdditionalData additional_data = 10;
+    repeated ResourceProperty properties = 12;
 }
 
 ////////////////////////////////////////////
@@ -134,7 +129,8 @@ message InitialResourceData {
 ////////////////////////////////////////////
 
 message ResourceDeletion {
-    ResourceId resource_id = 1;
+    string resource_name = 1;
+    string resource_type = 2;
 }
 
 message WatchResourcesChange  {
@@ -178,7 +174,7 @@ message ConsoleLogLine {
 // Initiates a subscription for the logs of a resource.
 message WatchResourceConsoleLogsRequest {
     // Specifies the resource to watch logs from.
-    ResourceId resource_id = 1;
+    string resource_name = 1;
 }
 
 // A message received from the server when watching resource logs.

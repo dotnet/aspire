@@ -5,7 +5,7 @@
 @using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Resources
 @inject NavigationManager NavigationManager
-@inject IResourceService ResourceService
+@inject IDashboardClient DashboardClient
 @inject IJSRuntime JS
 @inject IStringLocalizer<Dashboard.Resources.Traces> Loc
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
@@ -13,8 +13,7 @@
 @inject IStringLocalizer<Dashboard.Resources.StructuredLogs> StructuredLogsLoc
 @implements IDisposable
 
-<PageTitle>@string.Format(Loc[nameof(Dashboard.Resources.Traces.TracesPageTitle)], ResourceService.ApplicationName)</PageTitle>
-
+<PageTitle>@DashboardClient.FormatApplicationName(Loc[nameof(Dashboard.Resources.Traces.TracesPageTitle)], () => InvokeAsync(StateHasChanged))</PageTitle>
 
 <div class="traces-layout">
     <h1 class="page-header">@Loc[nameof(Dashboard.Resources.Traces.TracesHeader)]</h1>
