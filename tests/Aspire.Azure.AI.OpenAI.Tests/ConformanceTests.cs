@@ -76,11 +76,11 @@ public class ConformanceTests : ConformanceTests<OpenAIClient, AzureOpenAISettin
     {
         if (key is null)
         {
-            builder.AddAzureAIOpenAI("openai", ConfigureCredentials);
+            builder.AddAzureOpenAI("openai", ConfigureCredentials);
         }
         else
         {
-            builder.AddKeyedAzureAIOpenAI(key, ConfigureCredentials);
+            builder.AddKeyedAzureOpenAI(key, ConfigureCredentials);
         }
 
         void ConfigureCredentials(AzureOpenAISettings settings)
