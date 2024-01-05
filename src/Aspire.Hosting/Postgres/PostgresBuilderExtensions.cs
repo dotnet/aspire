@@ -6,7 +6,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Postgres;
 using Aspire.Hosting.Publishing;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
 
@@ -87,16 +86,14 @@ public static class PostgresBuilderExtensions
     /// <param name="hostPort">The host port for the application ui.</param>
     /// <param name="containerName">The name of the container (Optional).</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{PostgresContainerResource}"/>.</returns>
-    public static IResourceBuilder<T> WithPgAdmin<T>(this IResourceBuilder<T> builder, int? hostPort, string? containerName = null) where T: IPostgresParentResource
+    public static IResourceBuilder<T> WithPgAdmin<T>(this IResourceBuilder<T> builder, int? hostPort = null, string? containerName = null) where T: IPostgresParentResource
     {
         if (builder.ApplicationBuilder.Resources.OfType<PgAdminContainerResource>().Any())
         {
             return builder;
         }
 
-        builder.ApplicationBuilder.Services.AddSingleton<IDistributedApplicationLifecycleHook, PgAdminConfigWriterHook>();
-
-        ArgumentNullException.ThrowIfNull(hostPort);
+        builder.ApplicationBuilder.Services.TryAddLifecycleHook<PgAdminConfigWriterHook>();
 
         containerName ??= $"{builder.Resource.Name}-pgadmin";
 
