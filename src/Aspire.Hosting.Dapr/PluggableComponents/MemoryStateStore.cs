@@ -34,7 +34,7 @@ internal sealed class MemoryStateStore : IStateStore
 
         StateStoreGetResponse? response = null;
 
-        var value = await _stateStore.GetAsync(request.Key).ConfigureAwait(false);
+        var value = await _stateStore.GetKeyAsync(request.Key).ConfigureAwait(false);
 
         if (value is not null)
         {

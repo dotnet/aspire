@@ -24,6 +24,7 @@ internal sealed class DaprPluggableComponents : IDisposable
         _logger.LogInformation("Starting pluggable components...");
 
         _app.Services.AddSingleton<StateStore>();
+        _app.Services.AddHostedService<DataPlane>();
 
         _app.RegisterService(
             new DaprPluggableComponentsServiceOptions(socketName)

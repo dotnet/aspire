@@ -15,25 +15,25 @@ internal sealed class StateStore
 
     public StateStore(ILogger<StateStore> logger)
     {
-        this._logger = logger;
+        _logger = logger;
     }
 
     public Task DeleteAsync(string key)
     {
-        this._logger.LogInformation("Delete request for key {Key}", key);
+        _logger.LogInformation("Delete request for key {Key}", key);
 
-        this._storage.Remove(key);
+        _storage.Remove(key);
 
         return Task.CompletedTask;
     }
 
-    public Task<byte[]?> GetAsync(string key)
+    public Task<byte[]?> GetKeyAsync(string key)
     {
-        this._logger.LogInformation("Get request for key {Key}", key);
+        _logger.LogInformation("Get request for key {Key}", key);
 
         byte[]? response = null;
 
-        if (this._storage.TryGetValue(key, out var data))
+        if (_storage.TryGetValue(key, out var data))
         {
             response = Encoding.UTF8.GetBytes(data);
         }
@@ -41,11 +41,16 @@ internal sealed class StateStore
         return Task.FromResult(response);
     }
 
+    public Task<string[]> GetKeysAsync()
+    {
+        return Task.FromResult(_storage.Keys.ToArray());
+    }
+
     public Task SetAsync(string key, ReadOnlySpan<byte> value)
     {
-        this._logger.LogInformation("Set request for key {Key}", key);
+        _logger.LogInformation("Set request for key {Key}", key);
 
-        this._storage[key] = Encoding.UTF8.GetString(value);
+        _storage[key] = Encoding.UTF8.GetString(value);
 
         return Task.CompletedTask;
     }
