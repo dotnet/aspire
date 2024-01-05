@@ -10,7 +10,6 @@ using Azure.AI.OpenAI;
 
 [assembly: LoggingCategories(
     "Azure",
-    "Azure.AI.OpenAI",
     "Azure.Core",
     "Azure.Identity"
 )]
