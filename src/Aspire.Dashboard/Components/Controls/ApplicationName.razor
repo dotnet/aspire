@@ -12,42 +12,12 @@
 
     private string? applicationName;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        SetApplicationName();
-    }
+        // We won't have an application name until the client has connected to the server.
+        await DashboardClient.WhenConnected;
 
-    protected override void OnParametersSet()
-    {
-        SetApplicationName();
-    }
-
-    private void SetApplicationName()
-    {
-        var task = DashboardClient.WhenConnected;
-
-        if (task.IsCompleted)
-        {
-            // The client is connected, so we can read the application name.
-            applicationName = string.Format(CultureInfo.InvariantCulture, Loc[ResourceName], DashboardClient.ApplicationName);
-        }
-        else
-        {
-            // We're not yet connected. Schedule refresh to be invoked
-            // when the connection is established.
-            task.ContinueWith(
-                _ =>
-                {
-                    SetApplicationName();
-                    InvokeAsync(StateHasChanged);
-                },
-                CancellationToken.None,
-                TaskContinuationOptions.OnlyOnRanToCompletion,
-                TaskScheduler.Current);
-
-            // Use an empty string for now.
-            applicationName = "";
-        }
+        applicationName = string.Format(CultureInfo.InvariantCulture, Loc[ResourceName], DashboardClient.ApplicationName);
     }
 }
 
