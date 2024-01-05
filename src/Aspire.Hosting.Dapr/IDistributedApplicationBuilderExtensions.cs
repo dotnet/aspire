@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dapr;
 using Aspire.Hosting.Dapr.PluggableComponents;
@@ -30,7 +31,9 @@ public static class IDistributedApplicationBuilderExtensions
             builder.Services.Configure(configure);
         }
 
+        builder.Services.TryAddSingleton<StateStore>();
         builder.Services.TryAddSingleton<DaprPluggableComponents>();
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IDashboardExtension, DaprDataPlane>());
         builder.Services.TryAddLifecycleHook<DaprDistributedApplicationLifecycleHook>();
 
         return builder;

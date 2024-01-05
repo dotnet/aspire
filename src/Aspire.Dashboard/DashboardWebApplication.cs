@@ -27,11 +27,16 @@ public class DashboardWebApplication : IHostedService
 
     private readonly bool _isAllHttps;
     private readonly WebApplication _app;
+    private readonly IEnumerable<IDashboardExtension> _extensions;
     private readonly ILogger<DashboardWebApplication> _logger;
 
-    public DashboardWebApplication(ILogger<DashboardWebApplication> logger, Action<IServiceCollection> configureServices)
+    public DashboardWebApplication(
+        ILogger<DashboardWebApplication> logger,
+        Action<IServiceCollection> configureServices,
+        IEnumerable<IDashboardExtension> extensions)
     {
         _logger = logger;
+        _extensions = extensions;
         var builder = WebApplication.CreateBuilder();
         builder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.None);
         builder.Logging.AddFilter("Microsoft.AspNetCore.Server.Kestrel", LogLevel.Error);
@@ -137,6 +142,11 @@ public class DashboardWebApplication : IHostedService
         _app.MapGrpcService<OtlpMetricsService>();
         _app.MapGrpcService<OtlpTraceService>();
         _app.MapGrpcService<OtlpLogsService>();
+
+        foreach (var extension in _extensions)
+        {
+            extension.ConfigureRoutes(_app);
+        }
     }
 
     private static Uri[] GetAddressUris(string variableName, string defaultValue)

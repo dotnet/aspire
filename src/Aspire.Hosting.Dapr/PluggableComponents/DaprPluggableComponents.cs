@@ -11,10 +11,12 @@ internal sealed class DaprPluggableComponents : IDisposable
 {
     private readonly DaprPluggableComponentsApplication _app = DaprPluggableComponentsApplication.Create();
     private readonly ILogger<DaprPluggableComponents> _logger;
+    private readonly StateStore _stateStore;
 
-    public DaprPluggableComponents(ILogger<DaprPluggableComponents> logger)
+    public DaprPluggableComponents(ILogger<DaprPluggableComponents> logger, StateStore stateStore)
     {
         _logger = logger;
+        _stateStore = stateStore;
     }
 
     public async Task StartAsync(
@@ -23,8 +25,7 @@ internal sealed class DaprPluggableComponents : IDisposable
     {
         _logger.LogInformation("Starting pluggable components...");
 
-        _app.Services.AddSingleton<StateStore>();
-        _app.Services.AddHostedService<DataPlane>();
+        _app.Services.AddSingleton(_stateStore);
 
         _app.RegisterService(
             new DaprPluggableComponentsServiceOptions(socketName)

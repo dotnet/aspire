@@ -44,7 +44,8 @@ internal sealed partial class DcpHostService : IHostedLifecycleService, IAsyncDi
                          IOptions<PublishingOptions> publishingOptions,
                          ApplicationExecutor appExecutor,
                          Locations locations,
-                         KubernetesService kubernetesService)
+                         KubernetesService kubernetesService,
+                         IEnumerable<IDashboardExtension> dashboardExtensions)
     {
         _applicationModel = applicationModel;
         _loggerFactory = loggerFactory;
@@ -63,7 +64,7 @@ internal sealed partial class DcpHostService : IHostedLifecycleService, IAsyncDi
                 serviceCollection.AddSingleton(_applicationModel);
                 serviceCollection.AddSingleton(kubernetesService);
                 serviceCollection.AddScoped<IResourceService, ResourceService>();
-            });
+            }, dashboardExtensions);
         }
     }
 
