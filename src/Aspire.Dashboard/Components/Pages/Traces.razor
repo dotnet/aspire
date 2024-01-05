@@ -13,7 +13,7 @@
 @inject IStringLocalizer<Dashboard.Resources.StructuredLogs> StructuredLogsLoc
 @implements IDisposable
 
-<PageTitle>@DashboardClient.FormatApplicationName(Loc[nameof(Dashboard.Resources.Traces.TracesPageTitle)], () => InvokeAsync(StateHasChanged))</PageTitle>
+<PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.Traces.TracesPageTitle)" Loc="@Loc" /></PageTitle>
 
 <div class="traces-layout">
     <h1 class="page-header">@Loc[nameof(Dashboard.Resources.Traces.TracesHeader)]</h1>

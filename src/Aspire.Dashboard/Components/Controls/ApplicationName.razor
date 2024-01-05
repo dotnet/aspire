@@ -1,0 +1,54 @@
+﻿@namespace Aspire.Dashboard.Components
+@using Aspire.Dashboard.Model
+@using System.Globalization
+@inject IDashboardClient DashboardClient
+
+@code {
+    [Parameter]
+    public required string ResourceName { get; init; }
+
+    [Parameter]
+    public required IStringLocalizer Loc { get; init; }
+
+    private string? applicationName;
+
+    protected override void OnInitialized()
+    {
+        SetApplicationName();
+    }
+
+    protected override void OnParametersSet()
+    {
+        SetApplicationName();
+    }
+
+    private void SetApplicationName()
+    {
+        var task = DashboardClient.WhenConnected;
+
+        if (task.IsCompleted)
+        {
+            // The client is connected, so we can read the application name.
+            applicationName = string.Format(CultureInfo.InvariantCulture, Loc[ResourceName], DashboardClient.ApplicationName);
+        }
+        else
+        {
+            // We're not yet connected. Schedule refresh to be invoked
+            // when the connection is established.
+            task.ContinueWith(
+                _ =>
+                {
+                    SetApplicationName();
+                    InvokeAsync(StateHasChanged);
+                },
+                CancellationToken.None,
+                TaskContinuationOptions.OnlyOnRanToCompletion,
+                TaskScheduler.Current);
+
+            // Use an empty string for now.
+            applicationName = "";
+        }
+    }
+}
+
+@applicationName
