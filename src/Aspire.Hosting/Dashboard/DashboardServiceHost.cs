@@ -11,6 +11,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Aspire.Hosting.Publishing;
 
 namespace Aspire.Hosting.Dashboard;
 
@@ -32,13 +33,17 @@ internal sealed class DashboardServiceHost : IHostedService
         DistributedApplicationOptions options,
         DistributedApplicationModel applicationModel,
         KubernetesService kubernetesService,
-        ILogger<DashboardServiceHost> logger,
+        IOptions<PublishingOptions> publishingOptions,
         ILoggerFactory loggerFactory,
         IConfigureOptions<LoggerFilterOptions> loggerOptions)
     {
         if (!options.DashboardEnabled)
         {
-            logger.LogInformation("Dashboard is disabled, so skipping construction.");
+            return;
+        }
+        else if (publishingOptions.Value.Publisher == "manifest")
+        {
+            // HACK: Manifest publisher check is temporary until DcpHostService is integrated with DcpPublisher.
             return;
         }
 
