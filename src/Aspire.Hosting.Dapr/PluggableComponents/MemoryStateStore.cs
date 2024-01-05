@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Collections.Concurrent;
-using System.Text;
 using Dapr.PluggableComponents.Components;
 using Dapr.PluggableComponents.Components.StateStore;
 using Microsoft.Extensions.Logging;
@@ -13,39 +11,40 @@ internal sealed class MemoryStateStore : IStateStore
 {
     private readonly ILogger<MemoryStateStore> _logger;
 
-    private readonly IDictionary<string, string> _storage = new ConcurrentDictionary<string, string>();
+    private readonly StateStore _stateStore;
 
-    public MemoryStateStore(ILogger<MemoryStateStore> logger)
+    public MemoryStateStore(ILogger<MemoryStateStore> logger, StateStore stateStore)
     {
-        this._logger = logger;
+        _logger = logger;
+        _stateStore = stateStore;
     }
 
     #region IStateStore Members
 
     public Task DeleteAsync(StateStoreDeleteRequest request, CancellationToken cancellationToken = default)
     {
-        this._logger.LogInformation("Delete request for key {key}", request.Key);
+        _logger.LogInformation("Delete request for key {key}", request.Key);
 
-        this._storage.Remove(request.Key);
-
-        return Task.CompletedTask;
+        return _stateStore.DeleteAsync(request.Key);
     }
 
-    public Task<StateStoreGetResponse?> GetAsync(StateStoreGetRequest request, CancellationToken cancellationToken = default)
+    public async Task<StateStoreGetResponse?> GetAsync(StateStoreGetRequest request, CancellationToken cancellationToken = default)
     {
-        this._logger.LogInformation("Get request for key {key}", request.Key);
+        _logger.LogInformation("Get request for key {key}", request.Key);
 
         StateStoreGetResponse? response = null;
 
-        if (this._storage.TryGetValue(request.Key, out var data))
+        var value = await _stateStore.GetAsync(request.Key).ConfigureAwait(false);
+
+        if (value is not null)
         {
             response = new StateStoreGetResponse
             {
-                Data = Encoding.UTF8.GetBytes(data)
+                Data = value
             };
         }
 
-        return Task.FromResult(response);
+        return response;
     }
 
     public Task InitAsync(MetadataRequest request, CancellationToken cancellationToken = default)
@@ -53,13 +52,11 @@ internal sealed class MemoryStateStore : IStateStore
         return Task.CompletedTask;
     }
 
-    public Task SetAsync(StateStoreSetRequest request, CancellationToken cancellationToken = default)
+    public async Task SetAsync(StateStoreSetRequest request, CancellationToken cancellationToken = default)
     {
-        this._logger.LogInformation("Set request for key {key}", request.Key);
+        _logger.LogInformation("Set request for key {key}", request.Key);
 
-        this._storage[request.Key] = Encoding.UTF8.GetString(request.Value.Span);
-
-        return Task.CompletedTask;
+        await _stateStore.SetAsync(request.Key, request.Value.Span).ConfigureAwait(false);
     }
 
     #endregion

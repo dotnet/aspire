@@ -17,12 +17,19 @@ internal sealed class DaprPluggableComponents : IDisposable
         _logger = logger;
     }
 
-    public async Task StartAsync()
+    public async Task StartAsync(
+        string socketFolder,
+        string socketName)
     {
         _logger.LogInformation("Starting pluggable components...");
 
+        _app.Services.AddSingleton<StateStore>();
+
         _app.RegisterService(
-            "aspire",
+            new DaprPluggableComponentsServiceOptions(socketName)
+            {
+                SocketFolder = socketFolder
+            },
             serviceBuilder =>
             {
                 serviceBuilder.RegisterPubSub(
@@ -38,7 +45,9 @@ internal sealed class DaprPluggableComponents : IDisposable
                     {
                         _logger.LogInformation("Creating Aspire state store for instance '{InstanceId}' on socket '{SocketPath}'...", context.InstanceId, context.SocketPath);
 
-                        return new MemoryStateStore(context.ServiceProvider.GetRequiredService<ILogger<MemoryStateStore>>());
+                        return new MemoryStateStore(
+                            context.ServiceProvider.GetRequiredService<ILogger<MemoryStateStore>>(),
+                            context.ServiceProvider.GetRequiredService<StateStore>());
                     });
             });
 

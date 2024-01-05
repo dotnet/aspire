@@ -17,6 +17,8 @@ namespace Aspire.Hosting.Dapr;
 
 internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedApplicationLifecycleHook, IDisposable
 {
+    private const string PluggableComponentsName = "aspire";
+
     private readonly IConfiguration _configuration;
     private readonly IHostEnvironment _environment;
     private readonly ILogger<DaprDistributedApplicationLifecycleHook> _logger;
@@ -24,6 +26,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
     private readonly DaprPluggableComponents _pluggableComponents;
 
     private string? _onDemandResourcesRootPath;
+    private string? _socketsFolderPath;
 
     public DaprDistributedApplicationLifecycleHook(IConfiguration configuration, IHostEnvironment environment, DaprPluggableComponents pluggableComponents, ILogger<DaprDistributedApplicationLifecycleHook> logger, IOptions<DaprOptions> options)
     {
@@ -36,7 +39,9 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
 
     public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
-        await _pluggableComponents.StartAsync().ConfigureAwait(false);
+        _socketsFolderPath = Directory.CreateTempSubdirectory("aspire-dapr-sockets").FullName;
+
+        await _pluggableComponents.StartAsync(_socketsFolderPath, PluggableComponentsName).ConfigureAwait(false);
 
         string appHostDirectory = _configuration["AppHost:Directory"] ?? throw new InvalidOperationException("Unable to obtain the application host directory.");
 
@@ -200,6 +205,18 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                     }));
 
             daprSideCar.Annotations.Add(
+                new EnvironmentCallbackAnnotation(
+                    context =>
+                    {
+                        if (context.PublisherName == "manifest")
+                        {
+                            return;
+                        }
+
+                        context.EnvironmentVariables.TryAdd("DAPR_COMPONENTS_SOCKETS_FOLDER", _socketsFolderPath);
+                    }));
+
+            daprSideCar.Annotations.Add(
                 new ManifestPublishingCallbackAnnotation(
                     context =>
                     {
@@ -303,6 +320,18 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Failed to delete temporary Dapr resources directory: {OnDemandResourcesRootPath}", _onDemandResourcesRootPath);
+            }
+        }
+
+        if (_socketsFolderPath is not null)
+        {
+            try
+            {
+                Directory.Delete(_socketsFolderPath, recursive: true);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to delete temporary Dapr sockets folder directory: {SocketsFolderPath}", _socketsFolderPath);
             }
         }
     }
@@ -411,7 +440,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
             metadata:
                 name: {component.Name}
             spec:
-                type: pubsub.aspire
+                type: pubsub.{PluggableComponentsName}
                 version: v1
                 metadata: []
             """;
@@ -426,7 +455,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
             metadata:
                 name: {component.Name}
             spec:
-                type: state.aspire
+                type: state.{PluggableComponentsName}
                 version: v1
                 metadata: []
             """;
