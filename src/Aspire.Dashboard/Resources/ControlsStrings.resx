@@ -224,4 +224,7 @@
   <data name="EventColumnHeader" xml:space="preserve">
     <value>Event</value>
   </data>
+  <data name="DetailsColumnHeader" xml:space="preserve">
+    <value>Details</value>
+  </data>
 </root>

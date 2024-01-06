@@ -133,6 +133,17 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Details.
+        /// </summary>
+        public static string DetailsColumnHeader
+        {
+            get
+            {
+                return ResourceManager.GetString("DetailsColumnHeader", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Show all.
         /// </summary>
         public static string EnvironmentVariablesFilterToggleShowAll {
