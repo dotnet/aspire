@@ -4,9 +4,11 @@
 using Aspire.Components.ConformanceTests;
 using Azure.AI.OpenAI;
 using Azure.Identity;
+using Microsoft.DotNet.RemoteExecutor;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Xunit;
 
 namespace Aspire.Azure.AI.OpenAI.Tests;
 
@@ -54,7 +56,7 @@ public class ConformanceTests : ConformanceTests<OpenAIClient, AzureOpenAISettin
             ("""{"Aspire": { "Azure": { "AI":{ "OpenAI": {"Endpoint": "http://YOUR_URI", "Tracing": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
         };
 
-    protected override string ActivitySourceName => throw new NotImplementedException();
+    protected override string ActivitySourceName => "Azure.AI.OpenAI.OpenAIClient";
 
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[]
@@ -83,6 +85,14 @@ public class ConformanceTests : ConformanceTests<OpenAIClient, AzureOpenAISettin
             configure?.Invoke(settings);
         }
     }
+
+    [Fact]
+    public void TracingEnablesTheRightActivitySource()
+        => RemoteExecutor.Invoke(() => ActivitySourceTest(key: null)).Dispose();
+
+    [Fact]
+    public void TracingEnablesTheRightActivitySource_Keyed()
+        => RemoteExecutor.Invoke(() => ActivitySourceTest(key: "key")).Dispose();
 
     protected override void SetHealthCheck(AzureOpenAISettings options, bool enabled)
         => throw new NotImplementedException();
