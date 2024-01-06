@@ -75,7 +75,6 @@ public class AspireAzureAIOpenAIExtensionsTests
 
         var key = useKeyed ? "openai" : null;
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>(ConformanceTests.CreateConfigKey("Aspire:Azure:AI.OpenAI", key, "ConnectionString"), "unused"),
             new KeyValuePair<string, string?>("ConnectionStrings:openai", ConnectionString)
         ]);
 
