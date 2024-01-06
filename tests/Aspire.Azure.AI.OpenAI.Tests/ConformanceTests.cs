@@ -12,16 +12,12 @@ namespace Aspire.Azure.AI.OpenAI.Tests;
 
 public class ConformanceTests : ConformanceTests<OpenAIClient, AzureOpenAISettings>
 {
-    // Fake connection string for cases when credentials are unavailable and need to switch to raw connection string
     protected const string Endpoint = "https://aspireopenaitests.openai.azure.com/";
-    protected const string Key = "fake";
 
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
     protected override string[] RequiredLogCategories => new string[] {
-        "Azure.Core",
-        // Not triggered because no connection is made
-        // "Azure.AI.OpenAI",
+        "Azure.Core"
     };
 
     protected override bool SupportsKeyedRegistrations => true;
@@ -59,12 +55,6 @@ public class ConformanceTests : ConformanceTests<OpenAIClient, AzureOpenAISettin
         };
 
     protected override string ActivitySourceName => throw new NotImplementedException();
-
-    // When credentials are not available, we switch to using raw connection string (otherwise we get CredentialUnavailableException)
-    protected KeyValuePair<string, string?> GetMainConfigEntry(string? key)
-        => CanConnectToServer
-                ? new(CreateConfigKey("Aspire:Azure:AI:OpenAI", key, nameof(AzureOpenAISettings.Endpoint)), Endpoint)
-                : new(CreateConfigKey("Aspire:Azure:AI:OpenAI", key, nameof(AzureOpenAISettings.Key)), Key);
 
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[]

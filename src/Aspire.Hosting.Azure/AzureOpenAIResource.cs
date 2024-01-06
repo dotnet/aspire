@@ -14,15 +14,10 @@ public class AzureOpenAIResource(string name) : Resource(name), IAzureResource, 
     private readonly Collection<AzureOpenDeploymentResource> _deployments = [];
 
     /// <summary>
-    /// Gets or sets the connection string for the Azure OpenAI resource.
-    /// </summary>
-    public string? ConnectionString { get; set; }
-
-    /// <summary>
     /// Gets the connection string for the Azure OpenAI resource.
     /// </summary>
     /// <returns>The connection string for the Azure OpenAI resource.</returns>
-    public string? GetConnectionString() => ConnectionString;
+    string? IResourceWithConnectionString.GetConnectionString() => null;
 
     /// <summary>
     /// Gets the list of deployments of the Azure OpenAI resource.
