@@ -370,6 +370,28 @@ public class ManifestGenerationTests
     }
 
     [Fact]
+    public void EnsureAllAzureDatabaseManifestTypesHaveVersion0Suffix()
+    {
+        var program = CreateTestProgramJsonDocumentManifestPublisher();
+
+        program.AppBuilder.AddAzureSqlServer("sqlserver").AddDatabase("database");
+
+        // Build AppHost so that publisher can be resolved.
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+
+        var sqlserver = resources.GetProperty("sqlserver");
+        Assert.Equal("azure.sql.v0", sqlserver.GetProperty("type").GetString());
+
+        var database = resources.GetProperty("database");
+        Assert.Equal("azure.sql.database.v0", database.GetProperty("type").GetString());
+    }
+
+    [Fact]
     public void EnsureAllAzureRedisManifestTypesHaveVersion0Suffix()
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher();
@@ -386,6 +408,44 @@ public class ManifestGenerationTests
 
         var redis = resources.GetProperty("redis");
         Assert.Equal("azure.redis.v0", redis.GetProperty("type").GetString());
+    }
+
+    [Fact]
+    public void EnsureAllAzureOpenAIManifestTypesHaveVersion0Suffix()
+    {
+        var program = CreateTestProgramJsonDocumentManifestPublisher();
+
+        program.AppBuilder.AddAzureOpenAI("openai");
+
+        // Build AppHost so that publisher can be resolved.
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+
+        var openai = resources.GetProperty("openai");
+        Assert.Equal("azure.openai.account.v0", openai.GetProperty("type").GetString());
+    }
+
+    [Fact]
+    public void EnsureAllOpenAIManifestTypesHaveVersion0Suffix()
+    {
+        var program = CreateTestProgramJsonDocumentManifestPublisher();
+
+        program.AppBuilder.AddOpenAI("openai");
+
+        // Build AppHost so that publisher can be resolved.
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+
+        var openai = resources.GetProperty("openai");
+        Assert.Equal("openai.v0", openai.GetProperty("type").GetString());
     }
 
     [Fact]
