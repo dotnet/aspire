@@ -344,14 +344,11 @@ internal sealed class DashboardClient : IDashboardClient
         if (Interlocked.Exchange(ref _state, StateDisposed) is not StateDisposed)
         {
             // Complete outstanding subscriptions.
-            lock (_lock)
-            {
-                foreach (var item in _outgoingChannels)
-                {
-                    item.Writer.Complete();
-                }
+            var channelsToComplete = Interlocked.Exchange(ref _outgoingChannels, ImmutableHashSet<Channel<ResourceViewModelChange>>.Empty);
 
-                _outgoingChannels = _outgoingChannels.Clear();
+            foreach (var channel in channelsToComplete)
+            {
+                channel.Writer.Complete();
             }
 
             await _cts.CancelAsync().ConfigureAwait(false);
