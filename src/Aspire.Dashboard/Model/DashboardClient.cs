@@ -35,7 +35,8 @@ internal sealed class DashboardClient : IDashboardClient
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<DashboardClient> _logger;
 
-    private ImmutableHashSet<Channel<ResourceViewModelChange>> _outgoingChannels = [];
+    // Internal for testing.
+    internal ImmutableHashSet<Channel<ResourceViewModelChange>> _outgoingChannels = [];
     private string? _applicationName;
 
     private const int StateNone = 0;
@@ -300,11 +301,11 @@ internal sealed class DashboardClient : IDashboardClient
                 InitialState: _resourceByName.Values.ToImmutableArray(),
                 Subscription: StreamUpdates());
 
-            async IAsyncEnumerable<ResourceViewModelChange> StreamUpdates()
+            async IAsyncEnumerable<ResourceViewModelChange> StreamUpdates([EnumeratorCancellation] CancellationToken cancellationToken = default)
             {
                 try
                 {
-                    await foreach (var batch in channel.Reader.ReadAllAsync(_cts.Token).ConfigureAwait(false))
+                    await foreach (var batch in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
                     {
                         yield return batch;
                     }
