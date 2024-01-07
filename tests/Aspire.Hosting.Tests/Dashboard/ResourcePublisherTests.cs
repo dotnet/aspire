@@ -129,7 +129,7 @@ public class ResourcePublisherTests
         });
 
         await cts.CancelAsync();
-        await Assert.ThrowsAsync<OperationCanceledException>(() => task);
+        await task;
 
         Assert.Empty(publisher._outgoingChannels);
     }
