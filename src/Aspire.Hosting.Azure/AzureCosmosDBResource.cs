@@ -39,7 +39,7 @@ public class AzureCosmosDBResource(string name, string? connectionString)
         ?? throw new DistributedApplicationException($"Azure Cosmos DB resource does not have endpoint annotation with name '{endpointName}'.");
 }
 
-static file class AzureCosmosDBEmulatorConnectionString
+file static class AzureCosmosDBEmulatorConnectionString
 {
     /// <summary>
     /// Gets the well-known and documented Azure Cosmos DB emulator account key.
