@@ -64,7 +64,7 @@ public class FileLogSourceTests
     }
 
     [Fact]
-    public async Task Read_NewFile_ReturnResult()
+    public async Task Read_NewFileWithLines_ReturnResults()
     {
         // Arrange
         var outPath = Path.GetTempFileName();
@@ -74,11 +74,17 @@ public class FileLogSourceTests
         var channel = Channel.CreateUnbounded<IReadOnlyList<(string Content, bool IsErrorMessage)>>();
         var readTask = Task.Run(async () =>
         {
-            await foreach (var item in s.WithCancellation(cts.Token))
+            try
             {
-                await channel.Writer.WriteAsync(item);
+                await foreach (var item in s.WithCancellation(cts.Token))
+                {
+                    await channel.Writer.WriteAsync(item);
+                }
             }
-            channel.Writer.Complete();
+            finally
+            {
+                channel.Writer.Complete();
+            }
         });
 
         try
@@ -90,17 +96,16 @@ public class FileLogSourceTests
             await outStream.WriteLineAsync("Out 1");
             await outStream.WriteLineAsync("Out 2");
             await outStream.FlushAsync();
-
             var outResults = await ReadResultsAsync(channel.Reader.ReadAllAsync(), readAtLeast: 2);
 
             await errorStream.WriteLineAsync("Error 1");
             await errorStream.WriteLineAsync("Error 2");
             await errorStream.FlushAsync();
-
             var errorResults = await ReadResultsAsync(channel.Reader.ReadAllAsync(), readAtLeast: 2);
 
             cts.Cancel();
             try { await readTask; } catch (OperationCanceledException) { }
+            var completeResults = await ReadResultsAsync(channel.Reader.ReadAllAsync());
 
             // Assert
             Assert.Collection(outResults,
@@ -125,6 +130,7 @@ public class FileLogSourceTests
                     Assert.Equal("Error 2", r.Content);
                     Assert.True(r.IsErrorMessage);
                 });
+            Assert.Empty(completeResults);
         }
         finally
         {
