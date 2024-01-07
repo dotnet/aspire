@@ -285,35 +285,34 @@ internal sealed class DashboardClient : IDashboardClient
 
     ResourceViewModelSubscription IDashboardClient.SubscribeResources()
     {
+        ObjectDisposedException.ThrowIf(_state == StateDisposed, this);
+
         EnsureInitialized();
 
-        lock (_lock)
+        // There are two types of channel in this class. This is not a gRPC channel.
+        // It's a producer-consumer queue channel, used to push updates to subscribers
+        // without blocking the producer here.
+        var channel = Channel.CreateUnbounded<ResourceViewModelChange>(
+            new UnboundedChannelOptions { AllowSynchronousContinuations = false, SingleReader = true, SingleWriter = true });
+
+        ImmutableInterlocked.Update(ref _outgoingChannels, static (set, channel) => set.Add(channel), channel);
+
+        return new ResourceViewModelSubscription(
+            InitialState: _resourceByName.Values.ToImmutableArray(),
+            Subscription: StreamUpdates());
+
+        async IAsyncEnumerable<ResourceViewModelChange> StreamUpdates([EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            // There are two types of channel in this class. This is not a gRPC channel.
-            // It's a producer-consumer queue channel, used to push updates to subscribers
-            // without blocking the producer here.
-            var channel = Channel.CreateUnbounded<ResourceViewModelChange>(
-                new UnboundedChannelOptions { AllowSynchronousContinuations = false, SingleReader = true, SingleWriter = true });
-
-            ImmutableInterlocked.Update(ref _outgoingChannels, static (set, channel) => set.Add(channel), channel);
-
-            return new ResourceViewModelSubscription(
-                InitialState: _resourceByName.Values.ToImmutableArray(),
-                Subscription: StreamUpdates());
-
-            async IAsyncEnumerable<ResourceViewModelChange> StreamUpdates([EnumeratorCancellation] CancellationToken cancellationToken = default)
+            try
             {
-                try
+                await foreach (var batch in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
                 {
-                    await foreach (var batch in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
-                    {
-                        yield return batch;
-                    }
+                    yield return batch;
                 }
-                finally
-                {
-                    ImmutableInterlocked.Update(ref _outgoingChannels, static (set, channel) => set.Remove(channel), channel);
-                }
+            }
+            finally
+            {
+                ImmutableInterlocked.Update(ref _outgoingChannels, static (set, channel) => set.Remove(channel), channel);
             }
         }
     }
