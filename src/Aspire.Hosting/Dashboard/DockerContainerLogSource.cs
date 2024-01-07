@@ -8,10 +8,28 @@ using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.Dashboard;
 
-internal sealed class DockerContainerLogSource(string containerId) : IAsyncEnumerable<IReadOnlyList<(string Content, bool IsErrorMessage)>>
+internal sealed class DockerContainerLogSource : IAsyncEnumerable<IReadOnlyList<(string Content, bool IsErrorMessage)>>
 {
-    public async IAsyncEnumerator<IReadOnlyList<(string Content, bool IsErrorMessage)>> GetAsyncEnumerator(CancellationToken cancellationToken = default)
+    private readonly string _containerId;
+    private readonly CancellationToken _cancellationToken;
+
+    public DockerContainerLogSource(string containerId, CancellationToken cancellationToken)
     {
+        _containerId = containerId;
+        _cancellationToken = cancellationToken;
+    }
+
+    public IAsyncEnumerator<IReadOnlyList<(string Content, bool IsErrorMessage)>> GetAsyncEnumerator(CancellationToken cancellationToken = default)
+    {
+        var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationToken, cancellationToken);
+
+        return GetAsyncEnumeratorCore(linkedCts);
+    }
+
+    public async IAsyncEnumerator<IReadOnlyList<(string Content, bool IsErrorMessage)>> GetAsyncEnumeratorCore(CancellationTokenSource cts)
+    {
+        var cancellationToken = cts.Token;
+
         Task<ProcessResult>? processResultTask = null;
         IAsyncDisposable? processDisposable = null;
 
@@ -22,7 +40,7 @@ internal sealed class DockerContainerLogSource(string containerId) : IAsyncEnume
         {
             var spec = new ProcessSpec(FileUtil.FindFullPathFromPath("docker"))
             {
-                Arguments = $"logs --follow -t {containerId}",
+                Arguments = $"logs --follow -t {_containerId}",
                 OnOutputData = OnOutputData,
                 OnErrorData = OnErrorData,
                 KillEntireProcessTree = false,
@@ -33,13 +51,8 @@ internal sealed class DockerContainerLogSource(string containerId) : IAsyncEnume
 
             (processResultTask, processDisposable) = ProcessUtil.Run(spec);
 
-            var tcs = new TaskCompletionSource();
-
-            // Make sure the process exits if the cancellation token is cancelled
-            var ctr = cancellationToken.Register(() => tcs.TrySetResult());
-
             // Don't forward cancellationToken here, because it's handled internally in WaitForExit
-            _ = Task.Run(() => WaitForExit(tcs, ctr), CancellationToken.None);
+            _ = Task.Run(WaitForProcessExitOrCancellationAsync, CancellationToken.None);
 
             await foreach (var batch in channel.GetBatchesAsync(cancellationToken))
             {
@@ -48,6 +61,7 @@ internal sealed class DockerContainerLogSource(string containerId) : IAsyncEnume
         }
         finally
         {
+            cts.Dispose();
             await DisposeProcess().ConfigureAwait(false);
         }
 
@@ -63,8 +77,13 @@ internal sealed class DockerContainerLogSource(string containerId) : IAsyncEnume
             channel.Writer.TryWrite((Content: line, IsErrorMessage: true));
         }
 
-        async Task WaitForExit(TaskCompletionSource tcs, CancellationTokenRegistration ctr)
+        async Task WaitForProcessExitOrCancellationAsync()
         {
+            var tcs = new TaskCompletionSource();
+
+            // Make sure the process exits if the cancellation token is cancelled
+            using var ctr = cancellationToken.Register(() => tcs.TrySetResult());
+
             if (processResultTask is not null)
             {
                 // Wait for cancellation (tcs.Task) or for the process itself to exit.
@@ -84,8 +103,6 @@ internal sealed class DockerContainerLogSource(string containerId) : IAsyncEnume
                 // we need to end the process
                 await DisposeProcess().ConfigureAwait(false);
             }
-
-            ctr.Unregister();
         }
 
         async ValueTask DisposeProcess()

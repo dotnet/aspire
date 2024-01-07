@@ -10,22 +10,48 @@ using Aspire.Hosting.Extensions;
 
 namespace Aspire.Hosting.Dashboard;
 
-internal sealed partial class FileLogSource(string stdOutPath, string stdErrPath) : IAsyncEnumerable<IReadOnlyList<(string Content, bool IsErrorMessage)>>
+internal sealed partial class FileLogSource : IAsyncEnumerable<IReadOnlyList<(string Content, bool IsErrorMessage)>>
 {
     private static readonly StreamPipeReaderOptions s_streamPipeReaderOptions = new(leaveOpen: true);
     private static readonly Regex s_lineSplitRegex = GenerateLineSplitRegex();
 
-    public async IAsyncEnumerator<IReadOnlyList<(string Content, bool IsErrorMessage)>> GetAsyncEnumerator(CancellationToken cancellationToken)
+    private readonly string _stdOutPath;
+    private readonly string _stdErrPath;
+    private readonly CancellationToken _cancellationToken;
+
+    public FileLogSource(string stdOutPath, string stdErrPath, CancellationToken cancellationToken)
     {
+        _stdOutPath = stdOutPath;
+        _stdErrPath = stdErrPath;
+        _cancellationToken = cancellationToken;
+    }
+
+    public IAsyncEnumerator<IReadOnlyList<(string Content, bool IsErrorMessage)>> GetAsyncEnumerator(CancellationToken cancellationToken = default)
+    {
+        var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationToken, cancellationToken);
+
+        return GetAsyncEnumeratorCore(linkedCts);
+    }
+
+    public async IAsyncEnumerator<IReadOnlyList<(string Content, bool IsErrorMessage)>> GetAsyncEnumeratorCore(CancellationTokenSource cts)
+    {
+        var cancellationToken = cts.Token;
         var channel = Channel.CreateUnbounded<(string Content, bool IsErrorMessage)>(
             new UnboundedChannelOptions { AllowSynchronousContinuations = false, SingleReader = true, SingleWriter = false });
 
-        var stdOut = Task.Run(() => WatchFileAsync(stdOutPath, isError: false), cancellationToken);
-        var stdErr = Task.Run(() => WatchFileAsync(stdErrPath, isError: true), cancellationToken);
+        var stdOut = Task.Run(() => WatchFileAsync(_stdOutPath, isError: false), cancellationToken);
+        var stdErr = Task.Run(() => WatchFileAsync(_stdErrPath, isError: true), cancellationToken);
 
-        await foreach (var batch in channel.GetBatchesAsync(cancellationToken))
+        try
         {
-            yield return batch;
+            await foreach (var batch in channel.GetBatchesAsync(cancellationToken))
+            {
+                yield return batch;
+            }
+        }
+        finally
+        {
+            cts.Dispose();
         }
 
         async Task WatchFileAsync(string filePath, bool isError)
