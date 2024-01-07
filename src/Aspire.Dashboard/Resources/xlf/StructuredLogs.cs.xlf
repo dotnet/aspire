@@ -12,11 +12,6 @@
         <target state="new">All</target>
         <note />
       </trans-unit>
-      <trans-unit id="StructuredLogsDetailsColumnHeader">
-        <source>Details</source>
-        <target state="new">Details</target>
-        <note />
-      </trans-unit>
       <trans-unit id="StructuredLogsEditFilter">
         <source>Edit filter</source>
         <target state="new">Edit filter</target>
