@@ -679,7 +679,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger, D
         }
     }
 
-    private async Task DeleteResourcesAsync<RT>(string resourceName, CancellationToken cancellationToken) where RT : CustomResource
+    private async Task DeleteResourcesAsync<RT>(string resourceType, CancellationToken cancellationToken) where RT : CustomResource
     {
         var resourcesToDelete = _appResources.Select(r => r.DcpResource).OfType<RT>();
         if (!resourcesToDelete.Any())
@@ -695,7 +695,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger, D
             }
             catch (Exception ex)
             {
-                _logger.LogInformation(ex, "Could not stop {resourceName} '{res.Metadata.Name}'.", resourceName, res.Metadata.Name);
+                _logger.LogInformation(ex, "Could not stop {resourceType} '{resourceName}'.", resourceType, res.Metadata.Name);
             }
         }
     }
