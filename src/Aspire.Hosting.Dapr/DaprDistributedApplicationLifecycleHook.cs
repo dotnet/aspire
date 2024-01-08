@@ -99,6 +99,8 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
             var daprMetricsPortArg = (string? port) => ModelNamedArg("--metrics-port", port);
             var daprProfilePortArg = (string? port) => ModelNamedArg("--profile-port", port);
 
+            var appId = sidecarOptions?.AppId ?? resource.Name;
+
             var daprCommandLine =
                 CommandLineBuilder
                     .Create(
@@ -110,7 +112,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         ModelNamedArg("--app-health-probe-interval", sidecarOptions?.AppHealthProbeInterval),
                         ModelNamedArg("--app-health-probe-timeout", sidecarOptions?.AppHealthProbeTimeout),
                         ModelNamedArg("--app-health-threshold", sidecarOptions?.AppHealthThreshold),
-                        ModelNamedArg("--app-id", sidecarOptions?.AppId),
+                        ModelNamedArg("--app-id", appId),
                         ModelNamedArg("--app-max-concurrency", sidecarOptions?.AppMaxConcurrency),
                         ModelNamedArg("--app-protocol", sidecarOptions?.AppProtocol),
                         ModelNamedArg("--config", NormalizePath(sidecarOptions?.Config)),
@@ -128,11 +130,6 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         ModelNamedArg("--runtime-path", NormalizePath(sidecarOptions?.RuntimePath)),
                         ModelNamedArg("--unix-domain-socket", sidecarOptions?.UnixDomainSocket),
                         PostOptionsArgs(Args(sidecarOptions?.Command)));
-
-            if (!(sidecarOptions?.AppId is { } appId))
-            {
-                throw new DistributedApplicationException("AppId is required for Dapr sidecar executable.");
-            }
 
             var daprSideCarResourceName = $"{sidecar.Name}-cli";
             var daprSideCar = new ExecutableResource(daprSideCarResourceName, fileName, appHostDirectory, daprCommandLine.Arguments.ToArray());
@@ -211,7 +208,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         context.Writer.TryWriteNumber("appHealthProbeInterval", sidecarOptions?.AppHealthProbeInterval);
                         context.Writer.TryWriteNumber("appHealthProbeTimeout", sidecarOptions?.AppHealthProbeTimeout);
                         context.Writer.TryWriteNumber("appHealthThreshold", sidecarOptions?.AppHealthThreshold);
-                        context.Writer.TryWriteString("appId", sidecarOptions?.AppId);
+                        context.Writer.TryWriteString("appId", appId);
                         context.Writer.TryWriteNumber("appMaxConcurrency", sidecarOptions?.AppMaxConcurrency);
                         context.Writer.TryWriteNumber("appPort", sidecarOptions?.AppPort);
                         context.Writer.TryWriteString("appProtocol", sidecarOptions?.AppProtocol);
