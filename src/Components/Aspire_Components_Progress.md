@@ -23,6 +23,7 @@ As part of the .NET Aspire November preview, we want to include a set of .NET As
 | RabbitMQ                                |                  ✅                  |             ✅             |                           ✅                            |              ✅              |                      |                      |         ❌           |              ✅                  |
 | MySqlConnector                          |                  ✅                  |                           |                           ✅                            |              ✅              |          ✅          |        ✅            |         ✅           |              ✅                  |
 | Oracle.EntityFrameworkCore              |                  ✅                  |             ✅             |                           ✅                            |              ✅              |          ✅          |        ✅            |         ✅           |              ✅                  |
+| Pomelo.EntityFrameworkCore.MySql        |                  ✅                  |                           |                           ✅                            |              ✅              |          ✅          |        ✅            |         ✅           |              ✅                  |
 
 Nomenclature used in the table above:
 
