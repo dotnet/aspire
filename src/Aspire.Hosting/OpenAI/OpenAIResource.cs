@@ -10,8 +10,13 @@ namespace Aspire.Hosting.ApplicationModel;
 public class OpenAIResource(string name) : Resource(name), IResourceWithConnectionString
 {
     /// <summary>
+    /// Gets or sets the connection string for the OpenAI resource.
+    /// </summary>
+    public string? ConnectionString { get; set; }
+
+    /// <summary>
     /// Gets the connection string for the OpenAI service.
     /// </summary>
     /// <returns>The connection string for the OpenAI service.</returns>
-    string? IResourceWithConnectionString.GetConnectionString() => null;
+    string? IResourceWithConnectionString.GetConnectionString() => ConnectionString;
 }

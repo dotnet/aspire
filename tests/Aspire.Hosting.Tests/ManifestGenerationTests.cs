@@ -415,7 +415,7 @@ public class ManifestGenerationTests
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher();
 
-        program.AppBuilder.AddAzureOpenAI("openai");
+        program.AppBuilder.AddAzureOpenAI("openai").AddDeployment("deployment");
 
         // Build AppHost so that publisher can be resolved.
         program.Build();
@@ -427,6 +427,9 @@ public class ManifestGenerationTests
 
         var openai = resources.GetProperty("openai");
         Assert.Equal("azure.openai.account.v0", openai.GetProperty("type").GetString());
+
+        var deployment = resources.GetProperty("deployment");
+        Assert.Equal("azure.openai.deployment.v0", deployment.GetProperty("type").GetString());
     }
 
     [Fact]

@@ -6,7 +6,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Represents an Azure OpenAI Deployment resource.
 /// </summary>
-public class AzureOpenDeploymentResource : Resource,
+public class AzureOpenAIDeploymentResource : Resource,
     IResourceWithParent<AzureOpenAIResource>
 {
     /// <summary>
@@ -14,21 +14,14 @@ public class AzureOpenDeploymentResource : Resource,
     /// </summary>
     /// <param name="name">The name of the resource.</param>
     /// <param name="openai">The <see cref="AzureOpenAIResource"/> that the resource is stored in.</param>
-    /// <param name="arguments">The arguments of the deployment.</param>
-    public AzureOpenDeploymentResource(string name, AzureOpenAIResource openai, IReadOnlyCollection<KeyValuePair<string, object?>> arguments) : base(name)
+    public AzureOpenAIDeploymentResource(string name, AzureOpenAIResource openai) : base(name)
     {
         Parent = openai;
-        Arguments = arguments;
         Parent.AddDeployment(this);
     }
 
     /// <summary>
-    /// Gets the parent <see cref="AzureOpenAIResource"/> of this <see cref="AzureOpenDeploymentResource"/>.
+    /// Gets the parent <see cref="AzureOpenAIResource"/> of this <see cref="AzureOpenAIDeploymentResource"/>.
     /// </summary>
     public AzureOpenAIResource Parent { get; }
-
-    /// <summary>
-    /// Gets the list of arguments of the deployment resource.
-    /// </summary>
-    public IReadOnlyCollection<KeyValuePair<string, object?>> Arguments { get; private set; }
 }

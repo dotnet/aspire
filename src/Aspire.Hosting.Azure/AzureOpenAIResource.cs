@@ -11,20 +11,25 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="name">The name of the resource.</param>
 public class AzureOpenAIResource(string name) : Resource(name), IAzureResource, IResourceWithConnectionString
 {
-    private readonly Collection<AzureOpenDeploymentResource> _deployments = [];
+    private readonly Collection<AzureOpenAIDeploymentResource> _deployments = [];
+
+    /// <summary>
+    /// Gets or sets the connection string for the Azure OpenAI resource.
+    /// </summary>
+    public string? ConnectionString { get; set; }
 
     /// <summary>
     /// Gets the connection string for the Azure OpenAI resource.
     /// </summary>
     /// <returns>The connection string for the Azure OpenAI resource.</returns>
-    string? IResourceWithConnectionString.GetConnectionString() => null;
+    string? IResourceWithConnectionString.GetConnectionString() => ConnectionString;
 
     /// <summary>
     /// Gets the list of deployments of the Azure OpenAI resource.
     /// </summary>
-    public IReadOnlyCollection<AzureOpenDeploymentResource> Deployments => _deployments;
+    public IReadOnlyCollection<AzureOpenAIDeploymentResource> Deployments => _deployments;
 
-    internal void AddDeployment(AzureOpenDeploymentResource deployment)
+    internal void AddDeployment(AzureOpenAIDeploymentResource deployment)
     {
         if (deployment.Parent != this)
         {

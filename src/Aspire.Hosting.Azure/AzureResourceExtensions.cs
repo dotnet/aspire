@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
-using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
 
@@ -263,45 +262,21 @@ public static class AzureResourceExtensions
     /// </summary>
     /// <param name="serverBuilder">The Azure SQL Server resource builder.</param>
     /// <param name="name">The name of the deployment.</param>
-    /// <param name="arguments">The arguments of the deployment.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{AzureSqlDatabaseResource}"/>.</returns>
-    public static IResourceBuilder<AzureOpenDeploymentResource> AddDeployment(this IResourceBuilder<AzureOpenAIResource> serverBuilder, string name, IReadOnlyCollection<KeyValuePair<string, object?>> arguments)
+    public static IResourceBuilder<AzureOpenAIDeploymentResource> AddDeployment(this IResourceBuilder<AzureOpenAIResource> serverBuilder, string name)
     {
-        var resource = new AzureOpenDeploymentResource(name, serverBuilder.Resource, arguments);
+        var resource = new AzureOpenAIDeploymentResource(name, serverBuilder.Resource);
         return serverBuilder.ApplicationBuilder.AddResource(resource)
                             .WithManifestPublishingCallback(context => WriteAzureOpenAIDeploymentToManifest(context, resource));
     }
 
-    private static void WriteAzureOpenAIDeploymentToManifest(ManifestPublishingContext context, AzureOpenDeploymentResource resource)
+    private static void WriteAzureOpenAIDeploymentToManifest(ManifestPublishingContext context, AzureOpenAIDeploymentResource resource)
     {
         // Example:
         // "type": "azure.openai.deployment.v0",
         // "parent": "azureOpenAi",
-        // "name": "myDeployment",
-        // "model": {
-        //     "format": "OpenAI",
-        //     "name": "chatGptModelName",
-        //     "version": "0613"
-        // }
 
         context.Writer.WriteString("type", "azure.openai.deployment.v0");
         context.Writer.WriteString("parent", resource.Parent.Name);
-
-        context.Writer.WriteString("name", resource.Name);
-        context.Writer.WriteStartObject("model");
-        foreach (var argument in resource.Arguments)
-        {
-            context.Writer.WritePropertyName(argument.Key);
-
-            if (argument.Value is null)
-            {
-                context.Writer.WriteNullValue();
-            }
-            else
-            {
-                JsonSerializer.Serialize(context.Writer, argument.Value);
-            }
-        }
-        context.Writer.WriteEndObject();
     }
 }
