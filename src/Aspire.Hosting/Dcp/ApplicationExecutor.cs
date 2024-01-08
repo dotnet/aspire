@@ -695,7 +695,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger, D
             }
             catch (Exception ex)
             {
-                _logger.LogInformation(ex, "Could not stop {resourceType} '{resourceName}'.", resourceType, res.Metadata.Name);
+                _logger.LogInformation(ex, "Could not stop {ResourceType} '{ResourceName}'.", resourceType, res.Metadata.Name);
             }
         }
     }

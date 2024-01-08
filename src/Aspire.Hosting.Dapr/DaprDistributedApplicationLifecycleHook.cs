@@ -355,7 +355,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
 
         if (File.Exists(daprDefaultStateStorePath))
         {
-            _logger.LogInformation($"Using default Dapr pub-sub for component '{component.Name}'.");
+            _logger.LogInformation("Using default Dapr pub-sub for component '{ComponentName}'.", component.Name);
 
             string defaultContent = await File.ReadAllTextAsync(daprDefaultStateStorePath, cancellationToken).ConfigureAwait(false);
             string newContent = defaultContent.Replace("name: pubsub", $"name: {component.Name}");
@@ -364,7 +364,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
         }
         else
         {
-            _logger.LogInformation($"Using in-memory Dapr pub-sub for component '{component.Name}'.");
+            _logger.LogInformation("Using in-memory Dapr pub-sub for component '{ComponentName}'.", component.Name);
 
             return await contentWriter(GetInMemoryPubSubContent(component)).ConfigureAwait(false);
         }
@@ -378,7 +378,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
 
         if (File.Exists(daprDefaultStateStorePath))
         {
-            _logger.LogInformation($"Using default Dapr state store for component '{component.Name}'.");
+            _logger.LogInformation("Using default Dapr state store for component '{ComponentName}'.", component.Name);
 
             string defaultContent = await File.ReadAllTextAsync(daprDefaultStateStorePath, cancellationToken).ConfigureAwait(false);
             string newContent = defaultContent.Replace("name: statestore", $"name: {component.Name}");
@@ -387,7 +387,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
         }
         else
         {
-            _logger.LogInformation($"Using in-memory Dapr state store for component '{component.Name}'.");
+            _logger.LogInformation("Using in-memory Dapr state store for component '{ComponentName}'.", component.Name);
 
             return await contentWriter(GetInMemoryStateStoreContent(component)).ConfigureAwait(false);
         }
