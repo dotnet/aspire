@@ -47,42 +47,54 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
         IServerStreamWriter<WatchResourcesUpdate> responseStream,
         ServerCallContext context)
     {
-        var (initialData, updates) = serviceData.SubscribeResources();
-
-        var data = new InitialResourceData();
-
-        foreach (var resource in initialData)
+        try
         {
-            data.Resources.Add(Resource.FromSnapshot(resource));
+            await WatchResourcesInternal().ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // Ignore cancellation and just return.
         }
 
-        await responseStream.WriteAsync(new() { InitialData = data }).ConfigureAwait(false);
-
-        await foreach (var batch in updates.WithCancellation(context.CancellationToken))
+        async Task WatchResourcesInternal()
         {
-            WatchResourcesChanges changes = new();
+            var (initialData, updates) = serviceData.SubscribeResources();
 
-            foreach (var update in batch)
+            var data = new InitialResourceData();
+
+            foreach (var resource in initialData)
             {
-                var change = new WatchResourcesChange();
-
-                if (update.ChangeType is ResourceSnapshotChangeType.Upsert)
-                {
-                    change.Upsert = Resource.FromSnapshot(update.Resource);
-                }
-                else if (update.ChangeType is ResourceSnapshotChangeType.Delete)
-                {
-                    change.Delete = new() { ResourceName = update.Resource.Name, ResourceType = update.Resource.ResourceType };
-                }
-                else
-                {
-                    throw new FormatException($"Unexpected {nameof(ResourceSnapshotChange)} type: {update.ChangeType}");
-                }
-
-                changes.Value.Add(change);
+                data.Resources.Add(Resource.FromSnapshot(resource));
             }
 
-            await responseStream.WriteAsync(new() { Changes = changes }, context.CancellationToken).ConfigureAwait(false);
+            await responseStream.WriteAsync(new() { InitialData = data }).ConfigureAwait(false);
+
+            await foreach (var batch in updates.WithCancellation(context.CancellationToken))
+            {
+                WatchResourcesChanges changes = new();
+
+                foreach (var update in batch)
+                {
+                    var change = new WatchResourcesChange();
+
+                    if (update.ChangeType is ResourceSnapshotChangeType.Upsert)
+                    {
+                        change.Upsert = Resource.FromSnapshot(update.Resource);
+                    }
+                    else if (update.ChangeType is ResourceSnapshotChangeType.Delete)
+                    {
+                        change.Delete = new() { ResourceName = update.Resource.Name, ResourceType = update.Resource.ResourceType };
+                    }
+                    else
+                    {
+                        throw new FormatException($"Unexpected {nameof(ResourceSnapshotChange)} type: {update.ChangeType}");
+                    }
+
+                    changes.Value.Add(change);
+                }
+
+                await responseStream.WriteAsync(new() { Changes = changes }, context.CancellationToken).ConfigureAwait(false);
+            }
         }
     }
 
@@ -91,23 +103,35 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
         IServerStreamWriter<WatchResourceConsoleLogsUpdate> responseStream,
         ServerCallContext context)
     {
-        var subscription = serviceData.SubscribeConsoleLogs(request.ResourceName);
-
-        if (subscription is null)
+        try
         {
-            return;
+            await WatchResourceConsoleLogsInternal().ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // Ignore cancellation and just return.
         }
 
-        await foreach (var group in subscription.WithCancellation(context.CancellationToken))
+        async Task WatchResourceConsoleLogsInternal()
         {
-            WatchResourceConsoleLogsUpdate update = new();
+            var subscription = serviceData.SubscribeConsoleLogs(request.ResourceName);
 
-            foreach (var (content, isErrorMessage) in group)
+            if (subscription is null)
             {
-                update.LogLines.Add(new ConsoleLogLine() { Text = content, IsStdErr = isErrorMessage });
+                return;
             }
 
-            await responseStream.WriteAsync(update, context.CancellationToken).ConfigureAwait(false);
+            await foreach (var group in subscription.WithCancellation(context.CancellationToken))
+            {
+                WatchResourceConsoleLogsUpdate update = new();
+
+                foreach (var (content, isErrorMessage) in group)
+                {
+                    update.LogLines.Add(new ConsoleLogLine() { Text = content, IsStdErr = isErrorMessage });
+                }
+
+                await responseStream.WriteAsync(update, context.CancellationToken).ConfigureAwait(false);
+            }
         }
     }
 }
