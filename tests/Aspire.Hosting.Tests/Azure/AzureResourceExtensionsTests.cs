@@ -11,7 +11,7 @@ public class AzureResourceExtensionsTests
     [InlineData(null)]
     [InlineData(8081)]
     [InlineData(9007)]
-    public void AddAzureCosmosDBWithEmulatorGetsExpectedConnectionString(int? port = null)
+    public void AddAzureCosmosDBWithEmulatorGetsExpectedPort(int? port = null)
     {
         var builder = DistributedApplication.CreateBuilder();
 
@@ -19,11 +19,29 @@ public class AzureResourceExtensionsTests
 
         cosmos.UseEmulator(port);
 
-        var connectionString = cosmos.Resource.GetConnectionString();
-        Assert.NotNull(connectionString);
+        var endpointAnnotation = cosmos.Resource.Annotations.OfType<EndpointAnnotation>().FirstOrDefault();
+        Assert.NotNull(endpointAnnotation);
 
-        var parts = connectionString.Split(';', StringSplitOptions.RemoveEmptyEntries);
-        Assert.Equal("AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==", parts[0]);
-        Assert.Equal($"AccountEndpoint=https://127.0.0.1:{port ?? 8081}", parts[1]);
+        var actualPort = endpointAnnotation.Port;
+        Assert.Equal(port, actualPort);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("2.3.97-preview")]
+    [InlineData("1.0.7")]
+    public void AddAzureCosmosDBWithEmulatorGetsExpectedImageTag(string? imageTag = null)
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var cosmos = builder.AddAzureCosmosDB("cosmos");
+
+        cosmos.UseEmulator(imageTag: imageTag);
+
+        var containerImageAnnotation = cosmos.Resource.Annotations.OfType<ContainerImageAnnotation>().FirstOrDefault();
+        Assert.NotNull(containerImageAnnotation);
+
+        var actualTag = containerImageAnnotation.Tag;
+        Assert.Equal(imageTag ?? "latest", actualTag);
     }
 }

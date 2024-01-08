@@ -158,13 +158,14 @@ public static class AzureResourceExtensions
     /// <param name="blobPort">The port used for the blob endpoint.</param>
     /// <param name="queuePort">The port used for the queue endpoint.</param>
     /// <param name="tablePort">The port used for the table endpoint.</param>
+    /// <param name="imageTag">The image tag for the <c>mcr.microsoft.com/azure-storage/azurite</c> image.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{AzureStorageResource}"/>.</returns>
-    public static IResourceBuilder<AzureStorageResource> UseEmulator(this IResourceBuilder<AzureStorageResource> builder, int? blobPort = null, int? queuePort = null, int? tablePort = null)
+    public static IResourceBuilder<AzureStorageResource> UseEmulator(this IResourceBuilder<AzureStorageResource> builder, int? blobPort = null, int? queuePort = null, int? tablePort = null, string? imageTag = null)
     {
         return builder.WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, name: "blob", port: blobPort, containerPort: 10000))
                       .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, name: "queue", port: queuePort, containerPort: 10001))
                       .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, name: "table", port: tablePort, containerPort: 10002))
-                      .WithAnnotation(new ContainerImageAnnotation { Image = "mcr.microsoft.com/azure-storage/azurite", Tag = "latest" });
+                      .WithAnnotation(new ContainerImageAnnotation { Image = "mcr.microsoft.com/azure-storage/azurite", Tag = imageTag ?? "latest" });
     }
 
     /// <summary>
@@ -173,15 +174,16 @@ public static class AzureResourceExtensions
     /// </summary>
     /// <param name="builder">The Azure Cosmos DB resource builder.</param>
     /// <param name="port">The port used for the client SDK to access the emulator. Defaults to <c>8081</c></param>
+    /// <param name="imageTag">The image tag for the <c>mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator</c> image.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{AzureCosmosDBResource}"/>.</returns>
     /// <remarks>
     /// When using the Azure Cosmos DB emulator, the container requires a TLS/SSL certificate.
     /// For more information, see <a href="https://learn.microsoft.com/azure/cosmos-db/how-to-develop-emulator?tabs=docker-linux#export-the-emulators-tlsssl-certificate"></a>
     /// </remarks>
-    public static IResourceBuilder<AzureCosmosDBResource> UseEmulator(this IResourceBuilder<AzureCosmosDBResource> builder, int? port = null)
+    public static IResourceBuilder<AzureCosmosDBResource> UseEmulator(this IResourceBuilder<AzureCosmosDBResource> builder, int? port = null, string? imageTag = null)
     {
         return builder.WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, name: "emulator", port: port, containerPort: 8081))
-                      .WithAnnotation(new ContainerImageAnnotation { Image = "mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator", Tag = "latest" });
+                      .WithAnnotation(new ContainerImageAnnotation { Image = "mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator", Tag = imageTag ?? "latest" });
     }
 
     /// <summary>
