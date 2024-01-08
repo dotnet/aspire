@@ -68,31 +68,49 @@ public partial class ResourceDetails
         yield return new SummaryValue { Name = "Name", Value = Resource.DisplayName };
         yield return new SummaryValue { Name = "State", Value = Resource.State, Type = SummaryValueType.State };
         yield return new SummaryValue { Name = "Start time", Value = Resource.CreationTimeStamp.ToString() };
-        if (Resource is ProjectViewModel project)
+        if (Resource.TryGetProjectPath(out var projectPath))
         {
-            yield return new SummaryValue { Name = "Project path", Value = project.ProjectPath };
-            yield return new SummaryValue { Name = "Process ID", Value = project.ProcessId?.ToString(CultureInfo.InvariantCulture) };
+            yield return new SummaryValue { Name = "Project path", Value = projectPath };
         }
-        else if (Resource is ExecutableViewModel executable)
+        // Don't display executable path/argument for projects. It is always dotnet.
+        if (Resource.IsExecutable(allowSubtypes: false))
         {
-            yield return new SummaryValue { Name = "Executable path", Value = executable.ExecutablePath };
-            yield return new SummaryValue { Name = "Executable arguments", Value = (executable.Arguments is { } args) ? string.Join(" ", args) : null };
-            yield return new SummaryValue { Name = "Working directory", Value = executable.WorkingDirectory };
-            yield return new SummaryValue { Name = "Process ID", Value = executable.ProcessId?.ToString(CultureInfo.InvariantCulture) };
+            if (Resource.TryGetExecutablePath(out var executablePath))
+            {
+                yield return new SummaryValue { Name = "Executable path", Value = executablePath };
+            }
+            if (Resource.TryGetExecutableArguments(out var executableArguments) && !executableArguments.IsDefaultOrEmpty)
+            {
+                yield return new SummaryValue { Name = "Executable arguments", Value = string.Join(" ", executableArguments) };
+            }
         }
-        else if (Resource is ContainerViewModel container)
+        if (Resource.TryGetWorkingDirectory(out var workingDirectory))
         {
-            yield return new SummaryValue { Name = "Image", Value = container.Image };
-            yield return new SummaryValue { Name = "Container ID", Value = container.ContainerId };
-            yield return new SummaryValue { Name = "Ports", Value = string.Join(", ", container.Ports) };
-            if (container.Command is { } command)
-            {
-                yield return new SummaryValue { Name = "Command", Value = command };
-            }
-            if (container.Args is { Length: > 0 } args)
-            {
-                yield return new SummaryValue { Name = "Arguments", Value = string.Join(" ", args) };
-            }
+            yield return new SummaryValue { Name = "Working directory", Value = workingDirectory };
+        }
+        if (Resource.TryGetProcessId(out var processId))
+        {
+            yield return new SummaryValue { Name = "Process ID", Value = processId.ToString(CultureInfo.InvariantCulture) };
+        }
+        if (Resource.TryGetContainerImage(out var containerImage))
+        {
+            yield return new SummaryValue { Name = "Image", Value = containerImage };
+        }
+        if (Resource.TryGetContainerId(out var containerId))
+        {
+            yield return new SummaryValue { Name = "Container ID", Value = containerId };
+        }
+        if (Resource.TryGetContainerPorts(out var containerPorts) && !containerPorts.IsDefaultOrEmpty)
+        {
+            yield return new SummaryValue { Name = "Container ports", Value = string.Join(", ", containerPorts) };
+        }
+        if (Resource.TryGetContainerCommand(out var containerCommand))
+        {
+            yield return new SummaryValue { Name = "Container command", Value = containerCommand };
+        }
+        if (Resource.TryGetContainerArgs(out var containerArguments) && !containerArguments.IsDefaultOrEmpty)
+        {
+            yield return new SummaryValue { Name = "Container arguments", Value = string.Join(" ", containerArguments) };
         }
     }
 
