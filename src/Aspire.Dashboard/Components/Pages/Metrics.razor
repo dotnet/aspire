@@ -10,7 +10,7 @@
 @inject IStringLocalizer<Dashboard.Resources.Metrics> Loc
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
 
-<PageTitle>@DashboardClient.FormatApplicationName(Loc[nameof(Dashboard.Resources.Metrics.MetricsPageTitle)], () => InvokeAsync(StateHasChanged))</PageTitle>
+<PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.Metrics.MetricsPageTitle)" Loc="@Loc" /></PageTitle>
 
 <div class="metrics-layout">
     <h1 class="page-header">@Loc[nameof(Dashboard.Resources.Metrics.MetricsHeader)]</h1>
