@@ -675,7 +675,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger, D
         {
             // We catch and suppress the OperationCancelledException because the user may CTRL-C
             // during start up of the resources.
-            _logger.LogInformation("Cancellation during creation of resources detected: {ex}", ex);
+            _logger.LogDebug(ex, "Cancellation during creation of resources.");
         }
     }
 
