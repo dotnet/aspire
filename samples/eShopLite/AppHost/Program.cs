@@ -1,7 +1,7 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
-var catalogDb = builder.AddPostgresContainer("postgres")
-                    .WithPgAdmin(hostPort: 8081)
+var catalogDb = builder.AddPostgres("postgres")
+                    .WithPgAdmin()
                     .AddDatabase("catalogdb");
 
 var basketCache = builder.AddRedis("basketcache");

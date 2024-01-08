@@ -16,8 +16,7 @@ namespace Aspire.Dashboard.Components.Pages;
 public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPageWithSessionAndUrlState<ConsoleLogs.ConsoleLogsViewModel, ConsoleLogs.ConsoleLogsPageState>
 {
     [Inject]
-    public required IResourceService ResourceService { get; init; }
-
+    public required IDashboardClient DashboardClient { get; init; }
     [Inject]
     public required IJSRuntime JS { get; init; }
 
@@ -56,7 +55,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
         void TrackResourceSnapshots()
         {
-            var (snapshot, subscription) = ResourceService.SubscribeResources();
+            var (snapshot, subscription) = DashboardClient.SubscribeResources();
 
             foreach (var resource in snapshot)
             {
@@ -166,13 +165,13 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         {
             var cancellationToken = await _logSubscriptionCancellationSeries.NextAsync();
 
-            var subscription = ResourceService.SubscribeConsoleLogs(ViewModel.SelectedResource.Name, cancellationToken);
+            var subscription = DashboardClient.SubscribeConsoleLogs(ViewModel.SelectedResource.Name, cancellationToken);
 
             if (subscription is not null)
             {
                 var task = _logViewer.SetLogSourceAsync(
                     subscription,
-                    convertTimestampsFromUtc: ViewModel.SelectedResource is ContainerViewModel);
+                    convertTimestampsFromUtc: ViewModel.SelectedResource.IsContainer());
 
                 ViewModel.InitialisedSuccessfully = true;
                 ViewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsWatchingLogs)];
@@ -187,7 +186,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             else
             {
                 ViewModel.InitialisedSuccessfully = false;
-                ViewModel.Status = Loc[ViewModel.SelectedResource is ContainerViewModel
+                ViewModel.Status = Loc[ViewModel.SelectedResource.IsContainer()
                     ? nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsFailedToInitialize)
                     : nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLogsNotYetAvailable)];
             }
@@ -203,9 +202,9 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         await this.AfterViewModelChangedAsync();
     }
 
-    private async Task OnResourceChanged(ResourceChangeType changeType, ResourceViewModel resource)
+    private async Task OnResourceChanged(ResourceViewModelChangeType changeType, ResourceViewModel resource)
     {
-        if (changeType == ResourceChangeType.Upsert)
+        if (changeType == ResourceViewModelChangeType.Upsert)
         {
             _resourceByName[resource.Name] = resource;
             UpdateResourcesList();
@@ -215,7 +214,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                 await SetSelectedConsoleResource(resource);
             }
         }
-        else if (changeType == ResourceChangeType.Delete)
+        else if (changeType == ResourceViewModelChangeType.Delete)
         {
             var removed = _resourceByName.TryRemove(resource.Name, out _);
             Debug.Assert(removed, "Cannot remove unknown resource.");

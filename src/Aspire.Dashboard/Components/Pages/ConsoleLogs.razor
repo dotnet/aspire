@@ -1,10 +1,12 @@
 ﻿@page "/ConsoleLogs/{resourceName?}"
 @using Aspire.Dashboard.Resources
 @namespace Aspire.Dashboard.Components.Pages
+@using Aspire.Dashboard.Components.Controls
+@using Aspire.Dashboard.Model
 @inject IStringLocalizer<Dashboard.Resources.ConsoleLogs> Loc
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
 
-<PageTitle>@string.Format(Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsPageTitle)], ResourceService.ApplicationName)</PageTitle>
+<PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsPageTitle)" Loc="@Loc" /></PageTitle>
 
 <div class="resource-logs-layout">
     <h1 class="page-header">@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsHeader)]</h1>

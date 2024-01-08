@@ -3,13 +3,14 @@
 @page "/Metrics/{applicationInstanceId}/Meter/{meterName}"
 @page "/Metrics/{applicationInstanceId}/Meter/{meterName}/Instrument/{instrumentName}"
 
+@using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Model.Otlp
 @using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Otlp.Model
 @inject IStringLocalizer<Dashboard.Resources.Metrics> Loc
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
 
-<PageTitle>@string.Format(Loc[nameof(Dashboard.Resources.Metrics.MetricsPageTitle)], ResourceService.ApplicationName)</PageTitle>
+<PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.Metrics.MetricsPageTitle)" Loc="@Loc" /></PageTitle>
 
 <div class="metrics-layout">
     <h1 class="page-header">@Loc[nameof(Dashboard.Resources.Metrics.MetricsHeader)]</h1>

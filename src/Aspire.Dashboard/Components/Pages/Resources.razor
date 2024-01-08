@@ -1,10 +1,11 @@
 ﻿@page "/"
 @using Aspire.Dashboard.Components.ResourcesGridColumns
+@using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Resources
 @inject IStringLocalizer<Dashboard.Resources.Resources> Loc
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
 
-<PageTitle>@string.Format(Loc[nameof(Dashboard.Resources.Resources.ResourcesPageTitle)], ResourceService.ApplicationName)</PageTitle>
+<PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.Resources.ResourcesPageTitle)" Loc="@Loc" /></PageTitle>
 
 <div class="content-layout-with-toolbar">
     <FluentToolbar Orientation="Orientation.Horizontal">

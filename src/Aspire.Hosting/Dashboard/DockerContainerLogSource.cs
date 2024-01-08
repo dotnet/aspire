@@ -16,7 +16,7 @@ internal sealed class DockerContainerLogSource(string containerId) : IAsyncEnume
         IAsyncDisposable? processDisposable = null;
 
         var channel = Channel.CreateUnbounded<(string Content, bool IsErrorMessage)>(
-            new UnboundedChannelOptions { AllowSynchronousContinuations = true, SingleReader = true, SingleWriter = false });
+            new UnboundedChannelOptions { AllowSynchronousContinuations = false, SingleReader = true, SingleWriter = false });
 
         try
         {

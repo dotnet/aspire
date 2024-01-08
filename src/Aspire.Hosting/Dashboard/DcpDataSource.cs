@@ -1,9 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Text.Json;
-using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
@@ -15,31 +15,35 @@ namespace Aspire.Hosting.Dashboard;
 /// <summary>
 /// Pulls data about resources from DCP's kubernetes API. Streams updates to consumers.
 /// </summary>
+/// <remarks>
+/// DCP data is obtained from <see cref="KubernetesService"/>. <see cref="DistributedApplicationModel"/>
+/// is also used for mapping some project data.
+/// </remarks>
 internal sealed class DcpDataSource
 {
     private readonly KubernetesService _kubernetesService;
     private readonly DistributedApplicationModel _applicationModel;
-    private readonly Func<ResourceViewModel, ResourceChangeType, ValueTask> _onResourceChanged;
+    private readonly Func<ResourceSnapshot, ResourceSnapshotChangeType, ValueTask> _onResourceChanged;
     private readonly ILogger _logger;
 
-    private readonly Dictionary<string, Container> _containersMap = [];
-    private readonly Dictionary<string, Executable> _executablesMap = [];
-    private readonly Dictionary<string, Service> _servicesMap = [];
-    private readonly Dictionary<string, Endpoint> _endpointsMap = [];
-    private readonly Dictionary<(string, string), List<string>> _resourceAssociatedServicesMap = [];
+    private readonly ConcurrentDictionary<string, Container> _containersMap = [];
+    private readonly ConcurrentDictionary<string, Executable> _executablesMap = [];
+    private readonly ConcurrentDictionary<string, Service> _servicesMap = [];
+    private readonly ConcurrentDictionary<string, Endpoint> _endpointsMap = [];
+    private readonly ConcurrentDictionary<(string, string), List<string>> _resourceAssociatedServicesMap = [];
 
     public DcpDataSource(
         KubernetesService kubernetesService,
         DistributedApplicationModel applicationModel,
         ILoggerFactory loggerFactory,
-        Func<ResourceViewModel, ResourceChangeType, ValueTask> onResourceChanged,
+        Func<ResourceSnapshot, ResourceSnapshotChangeType, ValueTask> onResourceChanged,
         CancellationToken cancellationToken)
     {
         _kubernetesService = kubernetesService;
         _applicationModel = applicationModel;
         _onResourceChanged = onResourceChanged;
 
-        _logger = loggerFactory.CreateLogger<ResourceService>();
+        _logger = loggerFactory.CreateLogger<DcpDataSource>();
 
         var semaphore = new SemaphoreSlim(1);
 
@@ -77,21 +81,46 @@ internal sealed class DcpDataSource
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                _logger.LogError(ex, "Watch task over kubernetes resource of type: {resourceType} terminated", typeof(T).Name);
+                _logger.LogError(ex, "Watch task over kubernetes {ResourceType} resources terminated", typeof(T).Name);
             }
         }
     }
 
-    private async Task ProcessResourceChange<T>(WatchEventType watchEventType, T resource, Dictionary<string, T> resourceByName, string resourceKind, Func<T, ResourceViewModel> snapshotFactory) where T : CustomResource
+    private async Task ProcessResourceChange<T>(WatchEventType watchEventType, T resource, ConcurrentDictionary<string, T> resourceByName, string resourceKind, Func<T, ResourceSnapshot> snapshotFactory) where T : CustomResource
     {
         if (ProcessResourceChange(resourceByName, watchEventType, resource))
         {
-            UpdateAssociatedServicesMap(resourceKind, watchEventType, resource);
+            UpdateAssociatedServicesMap();
 
-            var changeType = ToChangeType(watchEventType);
+            var changeType = watchEventType switch
+            {
+                WatchEventType.Added or WatchEventType.Modified => ResourceSnapshotChangeType.Upsert,
+                WatchEventType.Deleted => ResourceSnapshotChangeType.Delete,
+                _ => throw new System.ComponentModel.InvalidEnumArgumentException($"Cannot convert {nameof(WatchEventType)} with value {watchEventType} into enum of type {nameof(ResourceSnapshotChangeType)}.")
+            };
+
             var snapshot = snapshotFactory(resource);
 
             await _onResourceChanged(snapshot, changeType).ConfigureAwait(false);
+        }
+
+        void UpdateAssociatedServicesMap()
+        {
+            // We keep track of associated services for the resource
+            // So whenever we get the service we can figure out if the service can generate endpoint for the resource
+            if (watchEventType == WatchEventType.Deleted)
+            {
+                _resourceAssociatedServicesMap.Remove((resourceKind, resource.Metadata.Name), out _);
+            }
+            else if (resource.Metadata.Annotations?.TryGetValue(CustomResource.ServiceProducerAnnotation, out var servicesProducedAnnotationJson) == true)
+            {
+                var serviceProducerAnnotations = JsonSerializer.Deserialize<ServiceProducerAnnotation[]>(servicesProducedAnnotationJson);
+                if (serviceProducerAnnotations is not null)
+                {
+                    _resourceAssociatedServicesMap[(resourceKind, resource.Metadata.Name)]
+                        = serviceProducerAnnotations.Select(e => e.ServiceName).ToList();
+                }
+            }
         }
     }
 
@@ -128,7 +157,7 @@ internal sealed class DcpDataSource
 
     private async ValueTask TryRefreshResource(string resourceKind, string resourceName)
     {
-        ResourceViewModel? snapshot = resourceKind switch
+        ResourceSnapshot? snapshot = resourceKind switch
         {
             "Container" => _containersMap.TryGetValue(resourceName, out var container) ? ToSnapshot(container) : null,
             "Executable" => _executablesMap.TryGetValue(resourceName, out var executable) ? ToSnapshot(executable) : null,
@@ -137,18 +166,18 @@ internal sealed class DcpDataSource
 
         if (snapshot is not null)
         {
-            await _onResourceChanged(snapshot, ResourceChangeType.Upsert).ConfigureAwait(false);
+            await _onResourceChanged(snapshot, ResourceSnapshotChangeType.Upsert).ConfigureAwait(false);
         }
     }
 
-    private ContainerViewModel ToSnapshot(Container container)
+    private ContainerSnapshot ToSnapshot(Container container)
     {
         var containerId = container.Status?.ContainerId;
         var (endpoints, services) = GetEndpointsAndServices(container, "Container");
 
         var environment = GetEnvironmentVariables(container.Status?.EffectiveEnv ?? container.Spec.Env, container.Spec.Env);
 
-        return new ContainerViewModel
+        return new ContainerSnapshot
         {
             Name = container.Metadata.Name,
             DisplayName = container.Metadata.Name,
@@ -186,7 +215,7 @@ internal sealed class DcpDataSource
         }
     }
 
-    private ExecutableViewModel ToSnapshot(Executable executable)
+    private ExecutableSnapshot ToSnapshot(Executable executable)
     {
         string? projectPath = null;
         executable.Metadata.Annotations?.TryGetValue(Executable.CSharpProjectPathAnnotation, out projectPath);
@@ -198,10 +227,10 @@ internal sealed class DcpDataSource
             // This executable represents a C# project, so we create a slightly different type here
             // that captures the project's path, making it more convenient for consumers to work with
             // the project.
-            return new ProjectViewModel
+            return new ProjectSnapshot
             {
                 Name = executable.Metadata.Name,
-                DisplayName = ComputeExecutableDisplayName(executable),
+                DisplayName = GetDisplayName(executable),
                 Uid = executable.Metadata.Uid,
                 CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToLocalTime(),
                 ExecutablePath = executable.Spec.ExecutablePath,
@@ -220,10 +249,10 @@ internal sealed class DcpDataSource
             };
         }
 
-        return new ExecutableViewModel
+        return new ExecutableSnapshot
         {
             Name = executable.Metadata.Name,
-            DisplayName = ComputeExecutableDisplayName(executable),
+            DisplayName = GetDisplayName(executable),
             Uid = executable.Metadata.Uid,
             CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToLocalTime(),
             ExecutablePath = executable.Spec.ExecutablePath,
@@ -239,14 +268,32 @@ internal sealed class DcpDataSource
             Endpoints = endpoints,
             Services = services
         };
+
+        static string GetDisplayName(Executable executable)
+        {
+            var displayName = executable.Metadata.Name;
+            var replicaSetOwner = executable.Metadata.OwnerReferences?.FirstOrDefault(
+                or => or.Kind == Dcp.Model.Dcp.ExecutableReplicaSetKind
+            );
+            if (replicaSetOwner is not null && displayName.Length > 3)
+            {
+                var lastHyphenIndex = displayName.LastIndexOf('-');
+                if (lastHyphenIndex > 0 && lastHyphenIndex < displayName.Length - 1)
+                {
+                    // Strip the replica ID from the name.
+                    displayName = displayName[..lastHyphenIndex];
+                }
+            }
+            return displayName;
+        }
     }
 
-    private (ImmutableArray<EndpointViewModel> Endpoints, ImmutableArray<ResourceServiceSnapshot> Services) GetEndpointsAndServices(
+    private (ImmutableArray<EndpointSnapshot> Endpoints, ImmutableArray<ResourceServiceSnapshot> Services) GetEndpointsAndServices(
         CustomResource resource,
         string resourceKind,
         string? projectPath = null)
     {
-        var endpoints = ImmutableArray.CreateBuilder<EndpointViewModel>();
+        var endpoints = ImmutableArray.CreateBuilder<EndpointSnapshot>();
         var services = ImmutableArray.CreateBuilder<ResourceServiceSnapshot>();
         var name = resource.Metadata.Name;
 
@@ -337,25 +384,22 @@ internal sealed class DcpDataSource
         return expectedCount;
     }
 
-    private static ImmutableArray<EnvironmentVariableViewModel> GetEnvironmentVariables(List<EnvVar>? effectiveSource, List<EnvVar>? specSource)
+    private static ImmutableArray<EnvironmentVariableSnapshot> GetEnvironmentVariables(List<EnvVar>? effectiveSource, List<EnvVar>? specSource)
     {
         if (effectiveSource is null or { Count: 0 })
         {
             return [];
         }
 
-        var environment = ImmutableArray.CreateBuilder<EnvironmentVariableViewModel>(effectiveSource.Count);
+        var environment = ImmutableArray.CreateBuilder<EnvironmentVariableSnapshot>(effectiveSource.Count);
 
         foreach (var env in effectiveSource)
         {
             if (env.Name is not null)
             {
-                environment.Add(new()
-                {
-                    Name = env.Name,
-                    Value = env.Value,
-                    FromSpec = specSource?.Any(e => string.Equals(e.Name, env.Name, StringComparison.Ordinal)) is true or null
-                });
+                var isFromSpec = specSource?.Any(e => string.Equals(e.Name, env.Name, StringComparison.Ordinal)) is true or null;
+
+                environment.Add(new(env.Name, env.Value, isFromSpec));
             }
         }
 
@@ -364,32 +408,13 @@ internal sealed class DcpDataSource
         return environment.ToImmutable();
     }
 
-    private void UpdateAssociatedServicesMap(string resourceKind, WatchEventType watchEventType, CustomResource resource)
-    {
-        // We keep track of associated services for the resource
-        // So whenever we get the service we can figure out if the service can generate endpoint for the resource
-        if (watchEventType == WatchEventType.Deleted)
-        {
-            _resourceAssociatedServicesMap.Remove((resourceKind, resource.Metadata.Name));
-        }
-        else if (resource.Metadata.Annotations?.TryGetValue(CustomResource.ServiceProducerAnnotation, out var servicesProducedAnnotationJson) == true)
-        {
-            var serviceProducerAnnotations = JsonSerializer.Deserialize<ServiceProducerAnnotation[]>(servicesProducedAnnotationJson);
-            if (serviceProducerAnnotations is not null)
-            {
-                _resourceAssociatedServicesMap[(resourceKind, resource.Metadata.Name)]
-                    = serviceProducerAnnotations.Select(e => e.ServiceName).ToList();
-            }
-        }
-    }
-
-    private static bool ProcessResourceChange<T>(Dictionary<string, T> map, WatchEventType watchEventType, T resource)
+    private static bool ProcessResourceChange<T>(ConcurrentDictionary<string, T> map, WatchEventType watchEventType, T resource)
             where T : CustomResource
     {
         switch (watchEventType)
         {
             case WatchEventType.Added:
-                map.Add(resource.Metadata.Name, resource);
+                map.TryAdd(resource.Metadata.Name, resource);
                 break;
 
             case WatchEventType.Modified:
@@ -397,7 +422,7 @@ internal sealed class DcpDataSource
                 break;
 
             case WatchEventType.Deleted:
-                map.Remove(resource.Metadata.Name);
+                map.Remove(resource.Metadata.Name, out _);
                 break;
 
             default:
@@ -405,33 +430,5 @@ internal sealed class DcpDataSource
         }
 
         return true;
-    }
-
-    private static ResourceChangeType ToChangeType(WatchEventType watchEventType)
-    {
-        return watchEventType switch
-        {
-            WatchEventType.Added or WatchEventType.Modified => ResourceChangeType.Upsert,
-            WatchEventType.Deleted => ResourceChangeType.Delete,
-            _ => ResourceChangeType.Other
-        };
-    }
-
-    private static string ComputeExecutableDisplayName(Executable executable)
-    {
-        var displayName = executable.Metadata.Name;
-        var replicaSetOwner = executable.Metadata.OwnerReferences?.FirstOrDefault(
-            or => or.Kind == Dcp.Model.Dcp.ExecutableReplicaSetKind
-        );
-        if (replicaSetOwner is not null && displayName.Length > 3)
-        {
-            var lastHyphenIndex = displayName.LastIndexOf('-');
-            if (lastHyphenIndex > 0 && lastHyphenIndex < displayName.Length - 1)
-            {
-                // Strip the replica ID from the name.
-                displayName = displayName[..lastHyphenIndex];
-            }
-        }
-        return displayName;
     }
 }
