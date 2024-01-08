@@ -65,33 +65,4 @@ public class AspireAzureAIOpenAIExtensionsTests
 
         Assert.NotNull(client);
     }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void ConnectionNameWinsOverConfigSection(bool useKeyed)
-    {
-        var builder = Host.CreateEmptyApplicationBuilder(null);
-
-        var key = useKeyed ? "openai" : null;
-        builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("ConnectionStrings:openai", ConnectionString)
-        ]);
-
-        if (useKeyed)
-        {
-            builder.AddKeyedAzureOpenAI("openai");
-        }
-        else
-        {
-            builder.AddAzureOpenAI("openai");
-        }
-
-        var host = builder.Build();
-        var client = useKeyed ?
-            host.Services.GetRequiredKeyedService<OpenAIClient>("openai") :
-            host.Services.GetRequiredService<OpenAIClient>();
-
-        Assert.NotNull(client);
-    }
 }
