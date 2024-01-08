@@ -8,6 +8,6 @@ namespace Aspire.Hosting.Dapr;
 /// <summary>
 /// Indicates that a Dapr sidecar should be started for the associated resource.
 /// </summary>
-public sealed record DaprSidecarAnnotation(IDaprSidecarResource Sidecar) : IResourceAnnotation
+public sealed record DaprSidecarOptionsAnnotation(DaprSidecarOptions? Options) : IResourceAnnotation
 {
 }

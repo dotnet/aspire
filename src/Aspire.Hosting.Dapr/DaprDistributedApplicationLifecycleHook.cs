@@ -50,7 +50,11 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                 continue;
             }
 
-            var sidecarOptions = daprAnnotation.Options;
+            var sidecar = daprAnnotation.Sidecar;
+
+            var sidecarOptionsAnnotation = sidecar.Annotations.OfType<DaprSidecarOptionsAnnotation>().LastOrDefault();
+
+            var sidecarOptions = sidecarOptionsAnnotation?.Options;
 
             [return: NotNullIfNotNull(nameof(path))]
             string? NormalizePath(string? path)
@@ -130,7 +134,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                 throw new DistributedApplicationException("AppId is required for Dapr sidecar executable.");
             }
 
-            var daprSideCarResourceName = $"{resource.Name}-dapr";
+            var daprSideCarResourceName = $"{sidecar.Name}-cli";
             var daprSideCar = new ExecutableResource(daprSideCarResourceName, fileName, appHostDirectory, daprCommandLine.Arguments.ToArray());
 
             resource.Annotations.Add(

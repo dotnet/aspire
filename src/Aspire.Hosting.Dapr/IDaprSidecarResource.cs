@@ -6,8 +6,12 @@ using Aspire.Hosting.ApplicationModel;
 namespace Aspire.Hosting.Dapr;
 
 /// <summary>
-/// Indicates that a Dapr sidecar should be started for the associated resource.
+/// Represents a Dapr component resource.
 /// </summary>
-public sealed record DaprSidecarAnnotation(IDaprSidecarResource Sidecar) : IResourceAnnotation
+public interface IDaprSidecarResource : IResource
 {
+    /// <summary>
+    /// Gets options used to configure the sidecar, if any.
+    /// </summary>
+    DaprSidecarOptions? Options { get; }
 }
