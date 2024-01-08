@@ -8,7 +8,7 @@ namespace Aspire.Hosting.Dapr;
 /// <summary>
 /// Represents a Dapr component resource.
 /// </summary>
-public sealed class DaprSidecarResource : Resource, IDaprSidecarResource
+internal sealed class DaprSidecarResource : Resource, IDaprSidecarResource
 {
     /// <summary>
     /// Initializes a new instance of <see cref="DaprComponentResource"/>.
@@ -17,7 +17,4 @@ public sealed class DaprSidecarResource : Resource, IDaprSidecarResource
     public DaprSidecarResource(string name) : base(name)
     {
     }
-
-    /// <inheritdoc/>
-    public DaprSidecarOptions? Options { get; init; }
 }

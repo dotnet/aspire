@@ -10,8 +10,4 @@ namespace Aspire.Hosting.Dapr;
 /// </summary>
 public interface IDaprSidecarResource : IResource
 {
-    /// <summary>
-    /// Gets options used to configure the sidecar, if any.
-    /// </summary>
-    DaprSidecarOptions? Options { get; }
 }

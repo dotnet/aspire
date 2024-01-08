@@ -195,6 +195,10 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         }
                     }));
 
+            // Apply environment variables to the CLI...
+            daprSideCar.Annotations.AddRange(sidecar.Annotations.OfType<EnvironmentCallbackAnnotation>());
+
+            // The CLI is an artifact of a local run, so it should not be published...
             daprSideCar.Annotations.Add(ManifestPublishingCallbackAnnotation.Ignore);
 
             sidecar.Annotations.Add(
