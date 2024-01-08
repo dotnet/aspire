@@ -18,7 +18,7 @@ internal static class FileUtil
 
         foreach (var directory in (Environment.GetEnvironmentVariable("PATH") ?? string.Empty).Split(Path.PathSeparator))
         {
-            var fullPath = Path.Combine(directory, command + FileNameSuffixes.CurrentPlatform.Exe);
+            var fullPath = Path.Combine(directory, command);
             if (File.Exists(fullPath))
             {
                 return fullPath;
