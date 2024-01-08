@@ -7,8 +7,13 @@ namespace Aspire.Hosting.ApplicationModel;
 /// A resource that represents a Redis container.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
-public class RedisContainerResource(string name) : ContainerResource(name), IResourceWithConnectionString
+public class RedisContainerResource(string name) : ContainerResource(name), IResourceWithConnectionString, IResourceWithDataDirectory
 {
+    /// <inheritdoc/>
+    public static string DataDirectory => "/data";
+    /// <inheritdoc/>
+    public static string InitDirectory => "/docker-entrypoint-initdb.d";
+
     /// <summary>
     /// Gets the connection string for the Redis server.
     /// </summary>

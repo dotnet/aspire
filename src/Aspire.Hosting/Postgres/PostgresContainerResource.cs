@@ -10,8 +10,13 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 /// <param name="password">The PostgreSQL server password.</param>
-public class PostgresContainerResource(string name, string password) : ContainerResource(name), IPostgresParentResource
+public class PostgresContainerResource(string name, string password) : ContainerResource(name), IPostgresParentResource, IResourceWithDataDirectory, IResourceWithInitDirectory
 {
+    /// <inheritdoc/>
+    public static string DataDirectory => "/var/lib/postgresql/data";
+    /// <inheritdoc/>
+    public static string InitDirectory => "/docker-entrypoint-initdb.d";
+
     public string Password { get; } = password;
 
     /// <summary>

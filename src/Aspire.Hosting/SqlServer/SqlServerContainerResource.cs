@@ -10,8 +10,13 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 /// <param name="password">The SQL Sever password.</param>
-public class SqlServerContainerResource(string name, string password) : ContainerResource(name), ISqlServerParentResource
+public class SqlServerContainerResource(string name, string password) : ContainerResource(name), ISqlServerParentResource, IResourceWithDataDirectory, IResourceWithLogDirectory
 {
+    /// <inheritdoc/>
+    public static string DataDirectory => "/var/opt/mssql/data";
+    /// <inheritdoc/>
+    public static string LogDirectory => "/var/opt/mssql/log";
+
     /// <summary>
     /// Gets the password for the SQL Server container resource.
     /// </summary>
