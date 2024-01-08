@@ -11,8 +11,19 @@ public class RedisCommanderConfigWriterHook : IDistributedApplicationLifecycleHo
 {
     public Task AfterEndpointsAllocatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
     {
-        var commanderResource = appModel.Resources.OfType<RedisCommanderResource>().Single();
+        if (appModel.Resources.OfType<RedisCommanderResource>().SingleOrDefault() is not { } commanderResource)
+        {
+            // No-op if there is no commander resource (removed after hook added).
+            return Task.CompletedTask;
+        }
+
         var redisInstances = appModel.Resources.OfType<IRedisResource>();
+
+        if (!redisInstances.Any())
+        {
+            // No-op if there are no Redis resources present.
+            return Task.CompletedTask;
+        }
 
         var hostsVariableBuilder = new StringBuilder();
 
