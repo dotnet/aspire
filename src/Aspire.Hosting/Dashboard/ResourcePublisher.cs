@@ -3,6 +3,7 @@
 
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using Aspire.Hosting.Extensions;
 
@@ -13,11 +14,13 @@ namespace Aspire.Hosting.Dashboard;
 /// and allowing multiple subscribers to receive the current resource collection
 /// snapshot and future updates.
 /// </summary>
-internal sealed class ResourcePublisher(CancellationToken cancellationToken)
+internal sealed class ResourcePublisher : IDisposable
 {
     private readonly object _syncLock = new();
+    private bool _disposed;
     private readonly Dictionary<string, ResourceSnapshot> _snapshot = [];
-    private ImmutableHashSet<Channel<ResourceSnapshotChange>> _outgoingChannels = [];
+    // Internal for testing
+    internal ImmutableHashSet<Channel<ResourceSnapshotChange>> _outgoingChannels = [];
 
     internal bool TryGetResource(string resourceName, [NotNullWhen(returnValue: true)] out ResourceSnapshot? resource)
     {
@@ -29,30 +32,29 @@ internal sealed class ResourcePublisher(CancellationToken cancellationToken)
 
     public ResourceSnapshotSubscription Subscribe()
     {
-        lock (_syncLock)
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        var channel = Channel.CreateUnbounded<ResourceSnapshotChange>(
+            new UnboundedChannelOptions { AllowSynchronousContinuations = false, SingleReader = true, SingleWriter = true });
+
+        ImmutableInterlocked.Update(ref _outgoingChannels, static (set, channel) => set.Add(channel), channel);
+
+        return new ResourceSnapshotSubscription(
+            InitialState: _snapshot.Values.ToImmutableArray(),
+            Subscription: StreamUpdates());
+
+        async IAsyncEnumerable<IReadOnlyList<ResourceSnapshotChange>> StreamUpdates([EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            var channel = Channel.CreateUnbounded<ResourceSnapshotChange>(
-                new UnboundedChannelOptions { AllowSynchronousContinuations = false, SingleReader = true, SingleWriter = true });
-
-            ImmutableInterlocked.Update(ref _outgoingChannels, static (set, channel) => set.Add(channel), channel);
-
-            return new ResourceSnapshotSubscription(
-                InitialState: _snapshot.Values.ToImmutableArray(),
-                Subscription: StreamUpdates());
-
-            async IAsyncEnumerable<IReadOnlyList<ResourceSnapshotChange>> StreamUpdates()
+            try
             {
-                try
+                await foreach (var batch in channel.GetBatchesAsync(cancellationToken).ConfigureAwait(false))
                 {
-                    await foreach (var batch in channel.GetBatches(cancellationToken).ConfigureAwait(false))
-                    {
-                        yield return batch;
-                    }
+                    yield return batch;
                 }
-                finally
-                {
-                    ImmutableInterlocked.Update(ref _outgoingChannels, static (set, channel) => set.Remove(channel), channel);
-                }
+            }
+            finally
+            {
+                ImmutableInterlocked.Update(ref _outgoingChannels, static (set, channel) => set.Remove(channel), channel);
             }
         }
     }
@@ -65,6 +67,8 @@ internal sealed class ResourcePublisher(CancellationToken cancellationToken)
     /// <returns>A task that completes when the cache has been updated and all subscribers notified.</returns>
     internal async ValueTask IntegrateAsync(ResourceSnapshot resource, ResourceSnapshotChangeType changeType)
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
         lock (_syncLock)
         {
             switch (changeType)
@@ -79,10 +83,23 @@ internal sealed class ResourcePublisher(CancellationToken cancellationToken)
             }
         }
 
+        // The publisher could be disposed while writing. WriteAsync will throw ChannelClosedException.
         foreach (var channel in _outgoingChannels)
         {
-            await channel.Writer.WriteAsync(new(changeType, resource), cancellationToken).ConfigureAwait(false);
+            await channel.Writer.WriteAsync(new(changeType, resource)).ConfigureAwait(false);
         }
+    }
+
+    public void Dispose()
+    {
+        _disposed = true;
+
+        foreach (var item in _outgoingChannels)
+        {
+            item.Writer.Complete();
+        }
+
+        _outgoingChannels = _outgoingChannels.Clear();
     }
 }
 

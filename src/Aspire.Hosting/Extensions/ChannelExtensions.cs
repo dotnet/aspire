@@ -21,7 +21,7 @@ internal static class ChannelExtensions
     /// <param name="channel">The channel to read values from.</param>
     /// <param name="cancellationToken">A token that signals a loss of interest in the operation.</param>
     /// <returns></returns>
-    public static async IAsyncEnumerable<IReadOnlyList<T>> GetBatches<T>(
+    public static async IAsyncEnumerable<IReadOnlyList<T>> GetBatchesAsync<T>(
         this Channel<T> channel,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
