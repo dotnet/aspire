@@ -85,14 +85,9 @@ public static class AspireAzureOpenAIExtensions
                         var credential = new AzureKeyCredential(settings.Key);
                         return new OpenAIClient(settings.Endpoint, credential, options);
                     }
-                    else if (settings.Credential != null)
-                    {
-                        return new OpenAIClient(settings.Endpoint, settings.Credential, options);
-                    }
                     else
                     {
-                        var credential = new DefaultAzureCredential();
-                        return new OpenAIClient(settings.Endpoint, credential, options);
+                        return new OpenAIClient(settings.Endpoint, settings.Credential ?? new DefaultAzureCredential(), options);
                     }
                 }
             });
