@@ -227,4 +227,10 @@
   <data name="EventColumnHeader" xml:space="preserve">
     <value>Event</value>
   </data>
+  <data name="DurationColumnHeader" xml:space="preserve">
+    <value>Duration</value>
+  </data>
+  <data name="TimestampColumnHeader" xml:space="preserve">
+    <value>Timestamp</value>
+  </data>
 </root>
