@@ -29,6 +29,19 @@ public static class AzureCosmosDBCloudApplicationBuilderExtensions
                       .WithManifestPublishingCallback(context => WriteCosmosDBToManifest(context, connection));
     }
 
+    public static IResourceBuilder<AzureCosmosDBDatabaseResource> AddDatabase(this IResourceBuilder<AzureCosmosDBResource> builder, string name)
+    {
+        var database = new AzureCosmosDBDatabaseResource(name, builder.Resource);
+        return builder.ApplicationBuilder.AddResource(database)
+            .WithManifestPublishingCallback(context => WriteCosmosDBDatabaseToManifest(context, database));
+    }
+
+    private static void WriteCosmosDBDatabaseToManifest(ManifestPublishingContext context, AzureCosmosDBDatabaseResource database)
+    {
+        context.Writer.WriteString("type", "azure.cosmosdb.database.v0");
+        context.Writer.WriteString("parent", database.Parent.Name);
+    }
+
     private static void WriteCosmosDBToManifest(ManifestPublishingContext context, AzureCosmosDBResource cosmosDb)
     {
         var connectionString = cosmosDb.GetConnectionString();
