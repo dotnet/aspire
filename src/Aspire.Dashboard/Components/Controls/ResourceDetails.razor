@@ -78,7 +78,7 @@
                 </FluentDataGrid>
             </FluentAccordionItem>
             <FluentAccordionItem Heading="Environment variables">
-                @if (FilteredItems.Count() > 0)
+                @if (FilteredItems.Any())
                 {
                     <div slot="end">
                         <FluentBadge Appearance="Appearance.Accent"
