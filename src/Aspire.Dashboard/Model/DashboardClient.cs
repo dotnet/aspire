@@ -295,11 +295,14 @@ internal sealed class DashboardClient : IDashboardClient
         var channel = Channel.CreateUnbounded<ResourceViewModelChange>(
             new UnboundedChannelOptions { AllowSynchronousContinuations = false, SingleReader = true, SingleWriter = true });
 
-        ImmutableInterlocked.Update(ref _outgoingChannels, static (set, channel) => set.Add(channel), channel);
+        lock (_lock)
+        {
+            ImmutableInterlocked.Update(ref _outgoingChannels, static (set, channel) => set.Add(channel), channel);
 
-        return new ResourceViewModelSubscription(
-            InitialState: _resourceByName.Values.ToImmutableArray(),
-            Subscription: StreamUpdates());
+            return new ResourceViewModelSubscription(
+                InitialState: _resourceByName.Values.ToImmutableArray(),
+                Subscription: StreamUpdates());
+        }
 
         async IAsyncEnumerable<ResourceViewModelChange> StreamUpdates([EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
