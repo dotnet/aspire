@@ -76,7 +76,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                     // so if there is no selected resource when we
                     // receive an added resource, and that added resource name == ResourceName,
                     // we should mark it as selected
-                    if (ResourceName is not null && ViewModel.SelectedResource is null && changeType == ResourceChangeType.Upsert && string.Equals(ResourceName, resource.Name))
+                    if (ResourceName is not null && ViewModel.SelectedResource is null && changeType == ResourceViewModelChangeType.Upsert && string.Equals(ResourceName, resource.Name))
                     {
                         ViewModel.SelectedResource = resource;
                         Debug.Assert(_resources is not null);
