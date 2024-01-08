@@ -51,9 +51,9 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
         {
             await WatchResourcesInternal().ConfigureAwait(false);
         }
-        catch (OperationCanceledException)
+        catch (Exception ex) when (ex is OperationCanceledException or IOException && context.CancellationToken.IsCancellationRequested)
         {
-            // Ignore cancellation and just return.
+            // Ignore cancellation and just return. Note that cancelled writes throw IOException.
         }
 
         async Task WatchResourcesInternal()
@@ -107,9 +107,9 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
         {
             await WatchResourceConsoleLogsInternal().ConfigureAwait(false);
         }
-        catch (OperationCanceledException)
+        catch (Exception ex) when (ex is OperationCanceledException or IOException && context.CancellationToken.IsCancellationRequested)
         {
-            // Ignore cancellation and just return.
+            // Ignore cancellation and just return. Note that cancelled writes throw IOException.
         }
 
         async Task WatchResourceConsoleLogsInternal()
