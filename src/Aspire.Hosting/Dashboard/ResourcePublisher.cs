@@ -3,6 +3,7 @@
 
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using Aspire.Hosting.Extensions;
 
@@ -40,11 +41,13 @@ internal sealed class ResourcePublisher(CancellationToken cancellationToken)
                 InitialState: _snapshot.Values.ToImmutableArray(),
                 Subscription: StreamUpdates());
 
-            async IAsyncEnumerable<IReadOnlyList<ResourceSnapshotChange>> StreamUpdates()
+            async IAsyncEnumerable<IReadOnlyList<ResourceSnapshotChange>> StreamUpdates([EnumeratorCancellation] CancellationToken enumeratorCancellationToken = default)
             {
+                using var linked = CancellationTokenSource.CreateLinkedTokenSource(enumeratorCancellationToken, cancellationToken);
+
                 try
                 {
-                    await foreach (var batch in channel.GetBatches(cancellationToken).ConfigureAwait(false))
+                    await foreach (var batch in channel.GetBatches(linked.Token).ConfigureAwait(false))
                     {
                         yield return batch;
                     }

@@ -131,6 +131,35 @@ public class ResourcePublisherTests
         await cts.CancelAsync();
     }
 
+    [Fact]
+    public async Task CancelledSubscriptionIsCleanedUp()
+    {
+        ResourcePublisher publisher = new(CancellationToken.None);
+        CancellationTokenSource cts = new();
+        var called = false;
+
+        var (_, subscription) = publisher.Subscribe();
+
+        var task = Task.Run(async () =>
+        {
+            await foreach (var item in subscription.WithCancellation(cts.Token).ConfigureAwait(false))
+            {
+                // We should only loop one time.
+                Assert.False(called);
+                called = true;
+
+                // Now we've received something, cancel.
+                await cts.CancelAsync();
+            }
+        });
+
+        // Push through an update.
+        await publisher.IntegrateAsync(CreateResourceSnapshot("A"), ResourceSnapshotChangeType.Upsert).ConfigureAwait(false);
+
+        // Let the subscriber exit.
+        await task;
+    }
+
     private static ContainerSnapshot CreateResourceSnapshot(string name)
     {
         return new ContainerSnapshot()

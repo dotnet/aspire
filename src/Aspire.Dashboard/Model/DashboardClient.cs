@@ -300,11 +300,13 @@ internal sealed class DashboardClient : IDashboardClient
                 InitialState: _resourceByName.Values.ToImmutableArray(),
                 Subscription: StreamUpdates());
 
-            async IAsyncEnumerable<ResourceViewModelChange> StreamUpdates()
+            async IAsyncEnumerable<ResourceViewModelChange> StreamUpdates([EnumeratorCancellation] CancellationToken cancellationToken = default)
             {
                 try
                 {
-                    await foreach (var batch in channel.Reader.ReadAllAsync(_cts.Token).ConfigureAwait(false))
+                    using var combinedTokens = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, cancellationToken);
+
+                    await foreach (var batch in channel.Reader.ReadAllAsync(combinedTokens.Token).ConfigureAwait(false))
                     {
                         yield return batch;
                     }
@@ -321,11 +323,13 @@ internal sealed class DashboardClient : IDashboardClient
     {
         EnsureInitialized();
 
+        using var combinedTokens = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, cancellationToken);
+
         var call = _client.WatchResourceConsoleLogs(
             new WatchResourceConsoleLogsRequest() { ResourceName = resourceName },
-            cancellationToken: cancellationToken);
+            cancellationToken: combinedTokens.Token);
 
-        await foreach (var response in call.ResponseStream.ReadAllAsync(cancellationToken: cancellationToken))
+        await foreach (var response in call.ResponseStream.ReadAllAsync(cancellationToken: combinedTokens.Token))
         {
             var logLines = new (string Content, bool IsErrorMessage)[response.LogLines.Count];
 
