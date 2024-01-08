@@ -285,8 +285,6 @@ internal sealed class DashboardClient : IDashboardClient
 
     ResourceViewModelSubscription IDashboardClient.SubscribeResources()
     {
-        ObjectDisposedException.ThrowIf(_state == StateDisposed, this);
-
         EnsureInitialized();
 
         // There are two types of channel in this class. This is not a gRPC channel.

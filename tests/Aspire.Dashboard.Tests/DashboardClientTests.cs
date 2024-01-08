@@ -64,4 +64,17 @@ public class DashboardClientTests
         await readTask.ConfigureAwait(false);
         Assert.Empty(instance._outgoingChannels);
     }
+
+    [Fact]
+    public async Task SubscribeResources_AfterDispose_DisposedException()
+    {
+        // Arrange
+        var instance = new DashboardClient(NullLoggerFactory.Instance);
+        IDashboardClient client = instance;
+
+        await instance.DisposeAsync();
+
+        // Act & Assert
+        Assert.Throws<ObjectDisposedException>(client.SubscribeResources);
+    }
 }
