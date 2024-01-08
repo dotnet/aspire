@@ -195,7 +195,9 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         }
                     }));
 
-            daprSideCar.Annotations.Add(
+            daprSideCar.Annotations.Add(ManifestPublishingCallbackAnnotation.Ignore);
+
+            sidecar.Annotations.Add(
                 new ManifestPublishingCallbackAnnotation(
                     context =>
                     {
