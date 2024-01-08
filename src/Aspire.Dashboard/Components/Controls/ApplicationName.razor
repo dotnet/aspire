@@ -10,15 +10,15 @@
     [Parameter]
     public required IStringLocalizer Loc { get; init; }
 
-    private string? applicationName;
+    private string? _applicationName;
 
     protected override async Task OnInitializedAsync()
     {
         // We won't have an application name until the client has connected to the server.
         await DashboardClient.WhenConnected;
 
-        applicationName = string.Format(CultureInfo.InvariantCulture, Loc[ResourceName], DashboardClient.ApplicationName);
+        _applicationName = string.Format(CultureInfo.InvariantCulture, Loc[ResourceName], DashboardClient.ApplicationName);
     }
 }
 
-@applicationName
+@_applicationName
