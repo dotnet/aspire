@@ -1,24 +1,3 @@
 ﻿@namespace Aspire.Dashboard.Components
-@using Aspire.Dashboard.Model
-@using System.Globalization
-@inject IDashboardClient DashboardClient
-
-@code {
-    [Parameter]
-    public required string ResourceName { get; init; }
-
-    [Parameter]
-    public required IStringLocalizer Loc { get; init; }
-
-    private string? _applicationName;
-
-    protected override async Task OnInitializedAsync()
-    {
-        // We won't have an application name until the client has connected to the server.
-        await DashboardClient.WhenConnected;
-
-        _applicationName = string.Format(CultureInfo.InvariantCulture, Loc[ResourceName], DashboardClient.ApplicationName);
-    }
-}
 
 @_applicationName
