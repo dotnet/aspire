@@ -65,7 +65,7 @@ This will generate all the packages in the folder `./artifacts/packages/Debug/Sh
 Or edit the `NuGet.config` file and add this line to the `<packageSources>` list:
 
 ```xml
-<add key="Aspire" value="my_aspire_folder/artifacts/packages/Debug/Shipping" />
+<add key="aspire-dev" value="my_aspire_folder/artifacts/packages/Debug/Shipping" />
 ```
 
 ## Tips and known issues
