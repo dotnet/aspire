@@ -24,7 +24,7 @@ public record RecordWithPrimitives
     public short Prop8 { get; set; }
     public long Prop9 { get; set; }
     /// <summary>
-    /// Prop0 is a float.
+    /// Prop10 is a float.
     /// </summary>
     public float Prop10 { get; set; }
     public ushort Prop13 { get; set; }

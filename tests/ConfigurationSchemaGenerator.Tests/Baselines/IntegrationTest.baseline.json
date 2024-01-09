@@ -15,7 +15,7 @@
             "number",
             "string"
           ],
-          "description": "Prop0 is a float."
+          "description": "Prop10 is a float."
         },
         "Prop11": {
           "type": [
