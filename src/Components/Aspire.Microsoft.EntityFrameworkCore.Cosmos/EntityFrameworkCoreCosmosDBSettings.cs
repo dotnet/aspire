@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Azure.Core;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Microsoft.EntityFrameworkCore.Cosmos;
 
@@ -55,4 +56,9 @@ public sealed class EntityFrameworkCoreCosmosDBSettings
     /// Gets or sets a string value that indicates what Azure region this client will run in.
     /// </summary>
     public string? Region { get; set; }
+
+    /// <summary>
+    /// Gets or sets the lifetime with which to register the DbContext service in the container. Setting the lifetime has no effect when <see cref="DbContextPooling"/> is enabled.
+    /// </summary>
+    public ServiceLifetime ServiceLifetime { get; set; } = ServiceLifetime.Scoped;
 }

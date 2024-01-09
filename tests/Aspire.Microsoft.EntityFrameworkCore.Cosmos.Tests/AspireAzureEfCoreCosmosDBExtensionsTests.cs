@@ -48,4 +48,20 @@ public class AspireAzureEfCoreCosmosDBExtensionsTests
 
 #pragma warning restore EF1001 // Internal EF Core API usage.
     }
+
+    [Fact]
+    public void CanConfigureServiceLifetime()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        builder.AddCosmosDbContext<TestDbContext>("cosmosConnection", "databaseName",
+            settingsBuilder =>
+            {
+                settingsBuilder.ServiceLifetime = ServiceLifetime.Transient;
+                settingsBuilder.DbContextPooling = false;
+            });
+
+        var dbContextServiceDescriptor = builder.Services.Single(s => s.ServiceType == typeof(TestDbContext));
+        Assert.Equal(ServiceLifetime.Transient, dbContextServiceDescriptor.Lifetime);
+    }
 }
