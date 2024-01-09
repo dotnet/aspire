@@ -5,18 +5,26 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Azure.Data.Cosmos;
 
-/// <summary>
-/// Represents a Azure Cosmos DB database.
-/// </summary>
-/// <param name="name">The resource name.</param>
-/// <param name="parent">Parent Azure Cosmos DB account</param>
-public class AzureCosmosDBDatabaseResource(string name, AzureCosmosDBResource parent) : Resource(name), IResourceWithConnectionString, IAzureResource, IResourceWithParent<AzureCosmosDBResource>
+public class AzureCosmosDBDatabaseResource : Resource, IResourceWithConnectionString, IResourceWithParent<AzureCosmosDBResource>
 {
-    public AzureCosmosDBResource Parent { get; } = parent;
+    /// <summary>
+    /// Constructor for AzureCosmosDBDatabaseResource. 
+    /// </summary>
+    /// <param name="name">The resource name.</param>
+    /// <param name="parent">Parent Azure Cosmos DB account</param>
+    public AzureCosmosDBDatabaseResource(string name, AzureCosmosDBResource parent) : base(name)
+    {
+        Parent = parent;
+        parent.AddDatabase(this);
+    }
+
+    public string? ConnectionString { get; set; }
+
+    public AzureCosmosDBResource Parent { get; }
 
     /// <summary>
     /// Gets the connection string to use for this database.
     /// </summary>
     /// <returns>The connection string to use for this database.</returns>
-    public string? GetConnectionString() => Parent.GetConnectionString();
+    public string? GetConnectionString() => ConnectionString;
 }
