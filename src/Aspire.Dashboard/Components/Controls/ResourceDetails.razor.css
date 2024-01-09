@@ -18,6 +18,10 @@
     height: 100%;
 }
 
+::deep fluent-accordion {
+    gap: calc(var(--design-unit) * 2px);
+}
+
 ::deep fluent-accordion-item {
     border-color: transparent; /* A zero width border adds a horizontal scroll bar for some reason */
     background: unset;
