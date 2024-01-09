@@ -35,10 +35,20 @@ public static class IDistributedApplicationResourceBuilderExtensions
         return builder.WithDaprSidecar(
             sidecarBuilder =>
             {
-                sidecarBuilder.WithOptions(options);
+                if (options is not null)
+                {
+                    sidecarBuilder.WithOptions(options);
+                }
             });
     }
 
+    /// <summary>
+    /// Ensures that a Dapr sidecar is started for the resource.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder instance.</param>
+    /// <param name="configureSidecar">A callback that can be use to configure the Dapr sidecar.</param>
+    /// <returns>The resource builder instance.</returns>
     public static IResourceBuilder<T> WithDaprSidecar<T>(this IResourceBuilder<T> builder, Action<IResourceBuilder<IDaprSidecarResource>> configureSidecar) where T : IResource
     {
         // Add Dapr is idempoent, so we can call it multiple times.
@@ -51,7 +61,13 @@ public static class IDistributedApplicationResourceBuilderExtensions
         return builder.WithAnnotation(new DaprSidecarAnnotation(sidecarBuilder.Resource));
     }
 
-    public static IResourceBuilder<IDaprSidecarResource> WithOptions(this IResourceBuilder<IDaprSidecarResource> builder, DaprSidecarOptions? options)
+    /// <summary>
+    /// Configures a Dapr sidecar with the specified options.
+    /// </summary>
+    /// <param name="builder">The Dapr sidecar resource builder instance.</param>
+    /// <param name="options">Options for configuring the Dapr sidecar.</param>
+    /// <returns>The Dapr sidecar resource builder instance.</returns>
+    public static IResourceBuilder<IDaprSidecarResource> WithOptions(this IResourceBuilder<IDaprSidecarResource> builder, DaprSidecarOptions options)
     {
         return builder.WithAnnotation(new DaprSidecarOptionsAnnotation(options));
     }

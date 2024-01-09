@@ -6,12 +6,12 @@ using Aspire.Hosting.ApplicationModel;
 namespace Aspire.Hosting.Dapr;
 
 /// <summary>
-/// Represents a Dapr component resource.
+/// Represents a Dapr sidecar resource.
 /// </summary>
 internal sealed class DaprSidecarResource : Resource, IDaprSidecarResource
 {
     /// <summary>
-    /// Initializes a new instance of <see cref="DaprComponentResource"/>.
+    /// Initializes a new instance of <see cref="DaprSidecarResource"/>.
     /// </summary>
     /// <param name="name">The resource name.</param>
     public DaprSidecarResource(string name) : base(name)

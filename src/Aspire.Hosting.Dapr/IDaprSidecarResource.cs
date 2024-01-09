@@ -6,7 +6,7 @@ using Aspire.Hosting.ApplicationModel;
 namespace Aspire.Hosting.Dapr;
 
 /// <summary>
-/// Represents a Dapr component resource.
+/// Represents a Dapr sidecar resource.
 /// </summary>
 public interface IDaprSidecarResource : IResource
 {
