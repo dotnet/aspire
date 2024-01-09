@@ -4,6 +4,7 @@
 using System.Globalization;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
+using Google.Protobuf.WellKnownTypes;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 
@@ -20,7 +21,7 @@ public partial class ResourceDetails
     [Parameter]
     public bool ShowSpecOnlyToggle { get; set; }
 
-    private bool IsSpecOnlyToggleDisabled => Resource.Environment.Any(i => i.FromSpec == false) is false;
+    private bool IsSpecOnlyToggleDisabled => !Resource.Environment.All(i => !i.FromSpec) && !GetResourceValues().Any(v => v.KnownProperty == null);
 
     private bool _showAll;
 
@@ -35,8 +36,9 @@ public partial class ResourceDetails
         .Where(v => v.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) || v.Address?.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) == true)
         .AsQueryable();
 
-    private IQueryable<SummaryValue> FilteredSummaryValues => GetSummaryValues()
-        .Where(v => v.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) || v.Value?.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) == true)
+    private IQueryable<SummaryValue> FilteredResourceValues => GetResourceValues()
+        .Where(v => _showAll || v.KnownProperty != null)
+        .Where(v => v.Key.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) || v.Tooltip.Contains(_filter, StringComparison.CurrentCultureIgnoreCase))
         .AsQueryable();
 
     private string _filter = "";
@@ -63,55 +65,94 @@ public partial class ResourceDetails
         }
     }
 
-    private IEnumerable<SummaryValue> GetSummaryValues()
+    internal record KnownProperty(string Key, string DisplayName);
+
+    private static readonly List<KnownProperty> s_resourceProperties =
+    [
+        new KnownProperty(KnownProperties.Resource.DisplayName, "Display name"),
+        new KnownProperty(KnownProperties.Resource.State, "State"),
+        new KnownProperty(KnownProperties.Resource.CreateTime, "Start time")
+    ];
+    private static readonly List<KnownProperty> s_projectProperties =
+    [
+        new KnownProperty(KnownProperties.Project.Path, "Project path"),
+        new KnownProperty(KnownProperties.Executable.Pid, "Process ID"),
+    ];
+    private static readonly List<KnownProperty> s_executableProperties =
+    [
+        new KnownProperty(KnownProperties.Executable.Path, "Executable path"),
+        new KnownProperty(KnownProperties.Executable.WorkDir, "Working directory"),
+        new KnownProperty(KnownProperties.Executable.Args, "Executable arguments"),
+        new KnownProperty(KnownProperties.Executable.Pid, "Process ID"),
+    ];
+    private static readonly List<KnownProperty> s_containerProperties =
+    [
+        new KnownProperty(KnownProperties.Container.Image, "Container image"),
+        new KnownProperty(KnownProperties.Container.Id, "Container ID"),
+        new KnownProperty(KnownProperties.Container.Command, "Container command"),
+        new KnownProperty(KnownProperties.Container.Args, "Container arguments"),
+        new KnownProperty(KnownProperties.Container.Ports, "Container ports"),
+    ];
+
+    private IEnumerable<SummaryValue> GetResourceValues()
     {
-        yield return new SummaryValue { Name = "Name", Value = Resource.DisplayName };
-        yield return new SummaryValue { Name = "State", Value = Resource.State, Type = SummaryValueType.State };
-        yield return new SummaryValue { Name = "Start time", Value = Resource.CreationTimeStamp.ToString() };
-        if (Resource.TryGetProjectPath(out var projectPath))
+        var resolvedKnownProperties = Resource.ResourceType switch
         {
-            yield return new SummaryValue { Name = "Project path", Value = projectPath };
+            KnownResourceTypes.Project => s_resourceProperties.Union(s_projectProperties).ToList(),
+            KnownResourceTypes.Executable => s_resourceProperties.Union(s_executableProperties).ToList(),
+            KnownResourceTypes.Container => s_resourceProperties.Union(s_containerProperties).ToList(),
+            _ => s_resourceProperties
+        };
+
+        var values = Resource.Properties
+            .Where(p => !p.Value.HasNullValue && !(p.Value.KindCase == Value.KindOneofCase.ListValue && p.Value.ListValue.Values.Count == 0))
+            .GroupJoin(
+                resolvedKnownProperties,
+                p => p.Key,
+                k => k.Key,
+                (p, k) => new SummaryValue { Key = p.Key, Value = p.Value, KnownProperty = k.SingleOrDefault(), Tooltip = GetTooltip(p.Value) })
+            .OrderBy(v => v.KnownProperty != null ? resolvedKnownProperties.IndexOf(v.KnownProperty) : int.MaxValue);
+
+        return values;
+    }
+
+    private static string GetTooltip(Value value)
+    {
+        if (value.HasStringValue)
+        {
+            return value.StringValue;
         }
-        // Don't display executable path/argument for projects. It is always dotnet.
-        if (Resource.IsExecutable(allowSubtypes: false))
+        else
         {
-            if (Resource.TryGetExecutablePath(out var executablePath))
+            return value.ToString();
+        }
+    }
+
+    private static string GetDisplayedValue(SummaryValue summaryValue)
+    {
+        string value;
+        if (summaryValue.Value.HasStringValue)
+        {
+            value = summaryValue.Value.StringValue;
+        }
+        else
+        {
+            value = summaryValue.Value.ToString();
+        }
+        if (summaryValue.Key == KnownProperties.Container.Id)
+        {
+            // Container images have a short ID of 12 characters
+            value = value.Substring(0, Math.Min(value.Length, 12));
+        }
+        else
+        {
+            if (DateTime.TryParseExact(value, "o", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
             {
-                yield return new SummaryValue { Name = "Executable path", Value = executablePath };
-            }
-            if (Resource.TryGetExecutableArguments(out var executableArguments) && !executableArguments.IsDefaultOrEmpty)
-            {
-                yield return new SummaryValue { Name = "Executable arguments", Value = string.Join(" ", executableArguments) };
+                value = date.ToString(CultureInfo.CurrentCulture);
             }
         }
-        if (Resource.TryGetWorkingDirectory(out var workingDirectory))
-        {
-            yield return new SummaryValue { Name = "Working directory", Value = workingDirectory };
-        }
-        if (Resource.TryGetProcessId(out var processId))
-        {
-            yield return new SummaryValue { Name = "Process ID", Value = processId.ToString(CultureInfo.InvariantCulture) };
-        }
-        if (Resource.TryGetContainerImage(out var containerImage))
-        {
-            yield return new SummaryValue { Name = "Image", Value = containerImage };
-        }
-        if (Resource.TryGetContainerId(out var containerId))
-        {
-            yield return new SummaryValue { Name = "Container ID", Value = containerId };
-        }
-        if (Resource.TryGetContainerPorts(out var containerPorts) && !containerPorts.IsDefaultOrEmpty)
-        {
-            yield return new SummaryValue { Name = "Container ports", Value = string.Join(", ", containerPorts) };
-        }
-        if (Resource.TryGetContainerCommand(out var containerCommand))
-        {
-            yield return new SummaryValue { Name = "Container command", Value = containerCommand };
-        }
-        if (Resource.TryGetContainerArgs(out var containerArguments) && !containerArguments.IsDefaultOrEmpty)
-        {
-            yield return new SummaryValue { Name = "Container arguments", Value = string.Join(" ", containerArguments) };
-        }
+
+        return value;
     }
 
     private void ToggleMaskState()
@@ -158,14 +199,9 @@ public partial class ResourceDetails
 
     private sealed class SummaryValue
     {
-        public required string Name { get; init; }
-        public string? Value { get; init; }
-        public SummaryValueType Type { get; set; }
-    }
-
-    private enum SummaryValueType
-    {
-        Default,
-        State
+        public required string Key { get; init; }
+        public required Value Value { get; init; }
+        public required string Tooltip { get; init; }
+        public KnownProperty? KnownProperty { get; set; }
     }
 }
