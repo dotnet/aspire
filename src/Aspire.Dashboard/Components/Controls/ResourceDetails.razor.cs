@@ -12,6 +12,36 @@ namespace Aspire.Dashboard.Components.Controls;
 
 public partial class ResourceDetails
 {
+    private static readonly List<KnownProperty> s_resourceProperties =
+    [
+        new KnownProperty(KnownProperties.Resource.DisplayName, "Display name"),
+        new KnownProperty(KnownProperties.Resource.State, "State"),
+        new KnownProperty(KnownProperties.Resource.CreateTime, "Start time")
+    ];
+    private static readonly List<KnownProperty> s_projectProperties =
+    [
+        .. s_resourceProperties,
+        new KnownProperty(KnownProperties.Project.Path, "Project path"),
+        new KnownProperty(KnownProperties.Executable.Pid, "Process ID"),
+    ];
+    private static readonly List<KnownProperty> s_executableProperties =
+    [
+        .. s_resourceProperties,
+        new KnownProperty(KnownProperties.Executable.Path, "Executable path"),
+        new KnownProperty(KnownProperties.Executable.WorkDir, "Working directory"),
+        new KnownProperty(KnownProperties.Executable.Args, "Executable arguments"),
+        new KnownProperty(KnownProperties.Executable.Pid, "Process ID"),
+    ];
+    private static readonly List<KnownProperty> s_containerProperties =
+    [
+        .. s_resourceProperties,
+        new KnownProperty(KnownProperties.Container.Image, "Container image"),
+        new KnownProperty(KnownProperties.Container.Id, "Container ID"),
+        new KnownProperty(KnownProperties.Container.Command, "Container command"),
+        new KnownProperty(KnownProperties.Container.Args, "Container arguments"),
+        new KnownProperty(KnownProperties.Container.Ports, "Container ports"),
+    ];
+
     [Parameter, EditorRequired]
     public required ResourceViewModel Resource { get; set; }
 
@@ -65,55 +95,13 @@ public partial class ResourceDetails
         }
     }
 
-    static ResourceDetails()
-    {
-        List<KnownProperty> resourceProperties =
-        [
-            new KnownProperty(KnownProperties.Resource.DisplayName, "Display name"),
-            new KnownProperty(KnownProperties.Resource.State, "State"),
-            new KnownProperty(KnownProperties.Resource.CreateTime, "Start time")
-        ];
-        List<KnownProperty> projectProperties =
-        [
-            new KnownProperty(KnownProperties.Project.Path, "Project path"),
-            new KnownProperty(KnownProperties.Executable.Pid, "Process ID"),
-        ];
-        List<KnownProperty> executableProperties =
-        [
-            new KnownProperty(KnownProperties.Executable.Path, "Executable path"),
-            new KnownProperty(KnownProperties.Executable.WorkDir, "Working directory"),
-            new KnownProperty(KnownProperties.Executable.Args, "Executable arguments"),
-            new KnownProperty(KnownProperties.Executable.Pid, "Process ID"),
-        ];
-        List<KnownProperty> containerProperties =
-        [
-            new KnownProperty(KnownProperties.Container.Image, "Container image"),
-            new KnownProperty(KnownProperties.Container.Id, "Container ID"),
-            new KnownProperty(KnownProperties.Container.Command, "Container command"),
-            new KnownProperty(KnownProperties.Container.Args, "Container arguments"),
-            new KnownProperty(KnownProperties.Container.Ports, "Container ports"),
-        ];
-
-        s_resourceProperties = resourceProperties;
-        s_projectProperties = [.. resourceProperties, .. projectProperties];
-        s_executableProperties = [.. resourceProperties, .. executableProperties];
-        s_containerProperties = [.. resourceProperties, .. containerProperties];
-    }
-
-    private static readonly List<KnownProperty> s_resourceProperties;
-    private static readonly List<KnownProperty> s_projectProperties;
-    private static readonly List<KnownProperty> s_executableProperties;
-    private static readonly List<KnownProperty> s_containerProperties;
-
-    private record KnownProperty(string Key, string DisplayName);
-
     private IEnumerable<SummaryValue> GetResourceValues()
     {
         var resolvedKnownProperties = Resource.ResourceType switch
         {
-            KnownResourceTypes.Project => s_resourceProperties.Union(s_projectProperties).ToList(),
-            KnownResourceTypes.Executable => s_resourceProperties.Union(s_executableProperties).ToList(),
-            KnownResourceTypes.Container => s_resourceProperties.Union(s_containerProperties).ToList(),
+            KnownResourceTypes.Project => s_projectProperties,
+            KnownResourceTypes.Executable => s_executableProperties,
+            KnownResourceTypes.Container => s_containerProperties,
             _ => s_resourceProperties
         };
 
@@ -224,4 +212,6 @@ public partial class ResourceDetails
         public required string Tooltip { get; init; }
         public KnownProperty? KnownProperty { get; set; }
     }
+
+    private sealed record KnownProperty(string Key, string DisplayName);
 }
