@@ -65,34 +65,47 @@ public partial class ResourceDetails
         }
     }
 
-    internal record KnownProperty(string Key, string DisplayName);
+    static ResourceDetails()
+    {
+        List<KnownProperty> resourceProperties =
+        [
+            new KnownProperty(KnownProperties.Resource.DisplayName, "Display name"),
+            new KnownProperty(KnownProperties.Resource.State, "State"),
+            new KnownProperty(KnownProperties.Resource.CreateTime, "Start time")
+        ];
+        List<KnownProperty> projectProperties =
+        [
+            new KnownProperty(KnownProperties.Project.Path, "Project path"),
+            new KnownProperty(KnownProperties.Executable.Pid, "Process ID"),
+        ];
+        List<KnownProperty> executableProperties =
+        [
+            new KnownProperty(KnownProperties.Executable.Path, "Executable path"),
+            new KnownProperty(KnownProperties.Executable.WorkDir, "Working directory"),
+            new KnownProperty(KnownProperties.Executable.Args, "Executable arguments"),
+            new KnownProperty(KnownProperties.Executable.Pid, "Process ID"),
+        ];
+        List<KnownProperty> containerProperties =
+        [
+            new KnownProperty(KnownProperties.Container.Image, "Container image"),
+            new KnownProperty(KnownProperties.Container.Id, "Container ID"),
+            new KnownProperty(KnownProperties.Container.Command, "Container command"),
+            new KnownProperty(KnownProperties.Container.Args, "Container arguments"),
+            new KnownProperty(KnownProperties.Container.Ports, "Container ports"),
+        ];
 
-    private static readonly List<KnownProperty> s_resourceProperties =
-    [
-        new KnownProperty(KnownProperties.Resource.DisplayName, "Display name"),
-        new KnownProperty(KnownProperties.Resource.State, "State"),
-        new KnownProperty(KnownProperties.Resource.CreateTime, "Start time")
-    ];
-    private static readonly List<KnownProperty> s_projectProperties =
-    [
-        new KnownProperty(KnownProperties.Project.Path, "Project path"),
-        new KnownProperty(KnownProperties.Executable.Pid, "Process ID"),
-    ];
-    private static readonly List<KnownProperty> s_executableProperties =
-    [
-        new KnownProperty(KnownProperties.Executable.Path, "Executable path"),
-        new KnownProperty(KnownProperties.Executable.WorkDir, "Working directory"),
-        new KnownProperty(KnownProperties.Executable.Args, "Executable arguments"),
-        new KnownProperty(KnownProperties.Executable.Pid, "Process ID"),
-    ];
-    private static readonly List<KnownProperty> s_containerProperties =
-    [
-        new KnownProperty(KnownProperties.Container.Image, "Container image"),
-        new KnownProperty(KnownProperties.Container.Id, "Container ID"),
-        new KnownProperty(KnownProperties.Container.Command, "Container command"),
-        new KnownProperty(KnownProperties.Container.Args, "Container arguments"),
-        new KnownProperty(KnownProperties.Container.Ports, "Container ports"),
-    ];
+        s_resourceProperties = resourceProperties;
+        s_projectProperties = [.. resourceProperties, .. projectProperties];
+        s_executableProperties = [.. resourceProperties, .. executableProperties];
+        s_containerProperties = [.. resourceProperties, .. containerProperties];
+    }
+
+    private static readonly List<KnownProperty> s_resourceProperties;
+    private static readonly List<KnownProperty> s_projectProperties;
+    private static readonly List<KnownProperty> s_executableProperties;
+    private static readonly List<KnownProperty> s_containerProperties;
+
+    private record KnownProperty(string Key, string DisplayName);
 
     private IEnumerable<SummaryValue> GetResourceValues()
     {
@@ -104,6 +117,9 @@ public partial class ResourceDetails
             _ => s_resourceProperties
         };
 
+        // This is a left outer join for the SQL fans.
+        // Return the resource properties, with an optional known property.
+        // Order properties by the known property order. Unmatched properties are last.
         var values = Resource.Properties
             .Where(p => !p.Value.HasNullValue && !(p.Value.KindCase == Value.KindOneofCase.ListValue && p.Value.ListValue.Values.Count == 0))
             .GroupJoin(
@@ -137,6 +153,8 @@ public partial class ResourceDetails
         }
         else
         {
+            // Complex values such as arrays and objects will be output as JSON.
+            // Consider how complex values are rendered in the future.
             value = summaryValue.Value.ToString();
         }
         if (summaryValue.Key == KnownProperties.Container.Id)
@@ -146,6 +164,8 @@ public partial class ResourceDetails
         }
         else
         {
+            // Dates are returned as ISO 8601 text.
+            // Use try parse to check if a value matches ISO 8601 format. If there is a match then convert to a friendly format.
             if (DateTime.TryParseExact(value, "o", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
             {
                 value = date.ToString(CultureInfo.CurrentCulture);
