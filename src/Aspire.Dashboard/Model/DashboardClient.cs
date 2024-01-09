@@ -56,7 +56,7 @@ internal sealed class DashboardClient : IDashboardClient
 
         var address = GetAddressUri(DashboardServiceUrlVariableName, DashboardServiceUrlDefaultValue);
 
-        _logger.LogInformation("Dashboard configured to connect to: {address}", address);
+        _logger.LogInformation("Dashboard configured to connect to: {Address}", address);
 
         // Create the gRPC channel. This channel performs automatic reconnects.
         // We will dispose it when we are disposed.
@@ -183,7 +183,7 @@ internal sealed class DashboardClient : IDashboardClient
                     {
                         errorCount++;
 
-                        _logger.LogError(ex, "Error #{errorCount} watching resources.", errorCount);
+                        _logger.LogError(ex, "Error #{ErrorCount} watching resources.", errorCount);
                     }
                 }
 

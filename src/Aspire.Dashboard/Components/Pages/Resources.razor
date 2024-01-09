@@ -5,7 +5,7 @@
 @inject IStringLocalizer<Dashboard.Resources.Resources> Loc
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
 
-<PageTitle>@DashboardClient.FormatApplicationName(Loc[nameof(Dashboard.Resources.Resources.ResourcesPageTitle)], () => InvokeAsync(StateHasChanged))</PageTitle>
+<PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.Resources.ResourcesPageTitle)" Loc="@Loc" /></PageTitle>
 
 <div class="content-layout-with-toolbar">
     <FluentToolbar Orientation="Orientation.Horizontal">

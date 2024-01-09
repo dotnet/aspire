@@ -9,7 +9,7 @@
     <FluentHeader>
         <div class="header-title">
             <FluentAnchor IconStart="@(new AspireIcons.Size32.Logo())" Appearance="Appearance.Stealth" Href="/" Class="logo">
-                @DashboardClient.FormatApplicationName(Loc[nameof(Layout.MainLayoutDashboardName)], () => InvokeAsync(StateHasChanged))
+                <ApplicationName ResourceName="@nameof(Layout.MainLayoutDashboardName)" Loc="@Loc" />
             </FluentAnchor>
         </div>
         <div class="header-right">
