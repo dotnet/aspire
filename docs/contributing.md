@@ -50,6 +50,24 @@ until `OnInitialized`.
 
 Please check the [.NET Aspire components contribution guidelines](../src/Components/README.md) if you intend to make contributions to a new or existing .NET Aspire component.
 
+## Generating local NuGet packages
+
+If you want to try local changes on a separate Aspire based project or solution it can be useful to generate the NuGet packages
+in a local folder and use it as a package source.
+
+To do so simply execute:
+`.\build.cmd -pack` (Windows) or `.\build.sh -pack` (macOS and Linux)
+
+This will generate all the packages in the folder `./artifacts/packages/Debug/Shipping`. At this point from your solution folder run:
+
+`dotnet nuget add source my_aspire_folder/artifacts/packages/Debug/Shipping`
+
+Or edit the `NuGet.config` file and add this line to the `<packageSources>` list:
+
+```xml
+<add key="Aspire" value="my_aspire_folder/artifacts/packages/Debug/Shipping" />
+```
+
 ## Tips and known issues
 
 Make sure you have started Docker before trying to run an Aspire app.
