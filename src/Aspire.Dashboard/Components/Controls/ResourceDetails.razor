@@ -32,27 +32,32 @@
     <div class="property-grid-container">
         <FluentAccordion>
             <FluentAccordionItem Heading="Resource" Expanded="true">
-                <FluentDataGrid Items="@FilteredSummaryValues"
+                <div slot="end">
+                    <FluentBadge Appearance="Appearance.Neutral"
+                                 Circular="true">
+                        @FilteredResourceValues.Count()
+                    </FluentBadge>
+                </div>
+                <FluentDataGrid Items="@FilteredResourceValues"
                                 ResizableColumns="true"
                                 Style="width:100%"
                                 GenerateHeader="GenerateHeaderOption.Sticky"
                                 GridTemplateColumns="1fr 1.5fr">
                     <TemplateColumn Title="@Loc[nameof(ControlsStrings.NameColumnHeader)]" Class="nameColumn">
-                        <GridValue Value="@context.Name" />
+                        <GridValue Value="@(context.KnownProperty?.DisplayName ?? context.Key)" ToolTip="@context.Key" />
                     </TemplateColumn>
                     <TemplateColumn Title="@Loc[nameof(ControlsStrings.PropertyGridValueColumnHeader)]" Class="valueColumn">
-                        <GridValue Value="@context.Value">
-                            <ContentAfterValue>
-                                @if (context.Type == SummaryValueType.State)
-                                {
-                                    <UnreadLogErrorsBadge UnviewedErrorCounts="UnviewedErrorCounts" Resource="@Resource" />
-                                }
-                            </ContentAfterValue>
-                        </GridValue>
+                        <GridValue Value="@GetDisplayedValue(context)" ToolTip="@context.Tooltip" />
                     </TemplateColumn>
                 </FluentDataGrid>
             </FluentAccordionItem>
             <FluentAccordionItem Heading="Endpoints" Expanded="true">
+                <div slot="end">
+                    <FluentBadge Appearance="Appearance.Neutral"
+                                 Circular="true">
+                        @FilteredEndpoints.Count()
+                    </FluentBadge>
+                </div>
                 <FluentDataGrid Items="@FilteredEndpoints"
                                 ResizableColumns="true"
                                 Style="width:100%"
@@ -78,15 +83,12 @@
                 </FluentDataGrid>
             </FluentAccordionItem>
             <FluentAccordionItem Heading="Environment variables">
-                @if (FilteredItems.Any())
-                {
-                    <div slot="end">
-                        <FluentBadge Appearance="Appearance.Accent"
-                                     Circular="true">
-                            @FilteredItems.Count()
-                        </FluentBadge>
-                    </div>
-                }
+                <div slot="end">
+                    <FluentBadge Appearance="Appearance.Neutral"
+                                 Circular="true">
+                        @FilteredItems.Count()
+                    </FluentBadge>
+                </div>
                 <PropertyGrid TItem="EnvironmentVariableViewModel"
                               Items="@FilteredItems"
                               NameColumnValue="(vm) => vm.Name"
