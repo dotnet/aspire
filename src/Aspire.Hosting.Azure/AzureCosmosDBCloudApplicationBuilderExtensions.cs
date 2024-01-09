@@ -29,6 +29,12 @@ public static class AzureCosmosDBCloudApplicationBuilderExtensions
                       .WithManifestPublishingCallback(context => WriteCosmosDBToManifest(context, connection));
     }
 
+    /// <summary>
+    /// Adds a resource which represents a database in the associated Cosmos DB account resource.
+    /// </summary>
+    /// <param name="builder">AzureCosmosDB resource builder.</param>
+    /// <param name="name">Name of database.</param>
+    /// <returns></returns>
     public static IResourceBuilder<AzureCosmosDBDatabaseResource> AddDatabase(this IResourceBuilder<AzureCosmosDBResource> builder, string name)
     {
         var database = new AzureCosmosDBDatabaseResource(name, builder.Resource);
