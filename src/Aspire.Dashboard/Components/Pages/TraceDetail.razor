@@ -56,21 +56,29 @@
                 <FluentDataGrid Class="trace-view-grid" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="SpanWaterfallViewModel" RowClass="@GetRowClass" GridTemplateColumns="2fr 6fr">
                     <TemplateColumn Title="Name">
                         <div class="col-long-content" title="@context.GetTooltip()" @onclick="() => OnShowProperties(context)">
-                            <span class="span-name-container" style="@($"margin-left: {(context.Depth - 1) * 15}px; border-left-color: {ColorGenerator.Instance.GetColorHexByKey(GetResourceName(context.Span.Source))};")">
-                                @if (context.IsError)
-                                {
-                                    <FluentIcon Icon="Icons.Filled.Size12.ErrorCircle" Color="Color.Error" Class="trace-tag-icon" />
-                                }
-                                @GetResourceName(context.Span.Source)
-                                @if (context.HasUninstrumentedPeer)
-                                {
-                                    <span class="uninstrumented-peer">
-                                        <FluentIcon Style="@($"fill: {ColorGenerator.Instance.GetColorHexByKey(context.UninstrumentedPeer)};")" Icon="Icons.Filled.Size16.ArrowCircleRight" Class="uninstrumented-peer-icon" />
-                                        @context.UninstrumentedPeer
-                                    </span>
-                                }
-                                <span class="span-row-name">@context.GetDisplaySummary()</span>
-                            </span>
+                            <div style="@($"margin-left: {(context.Depth - 1) * 15}px;")">
+                                <span class="span-collapse-symbol" @onclick="() => OnToggleCollapse(context)" @onclick:stopPropagation="true">
+                                    @if (context.Children.Count > 0)
+                                    {
+                                        @(context.IsCollapsed ? '+' : '-')
+                                    }
+                                </span>
+                                <span class="span-name-container" style="@($"border-left-color: {ColorGenerator.Instance.GetColorHexByKey(GetResourceName(context.Span.Source))};")">
+                                    @if (context.IsError)
+                                    {
+                                        <FluentIcon Icon="Icons.Filled.Size12.ErrorCircle" Color="Color.Error" Class="trace-tag-icon" />
+                                    }
+                                    @GetResourceName(context.Span.Source)
+                                    @if (context.HasUninstrumentedPeer)
+                                    {
+                                        <span class="uninstrumented-peer">
+                                            <FluentIcon Style="@($"fill: {ColorGenerator.Instance.GetColorHexByKey(context.UninstrumentedPeer)};")" Icon="Icons.Filled.Size16.ArrowCircleRight" Class="uninstrumented-peer-icon" />
+                                            @context.UninstrumentedPeer
+                                        </span>
+                                    }
+                                    <span class="span-row-name">@context.GetDisplaySummary()</span>
+                                </span>
+                            </div>
                         </div>
                     </TemplateColumn>
                     <TemplateColumn>

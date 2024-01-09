@@ -86,9 +86,19 @@
     grid-row: 1;
 }
 
+::deep .span-collapse-symbol {
+    display: inline-block;
+    width: 20px;
+    text-align: center;
+    padding: 0px 5px;
+    line-height: 28px;
+    user-select: none;
+}
+
 ::deep .span-name-container {
     border-left-width: 5px;
     border-left-style: solid;
+    margin-left: -3px;
     padding-left: 5px;
     line-height: 28px;
 }
