@@ -238,6 +238,22 @@
         }
       }
     },
+    "kafkacontainer": {
+      "type": "container.v0",
+      "image": "confluentinc/confluent-local",
+      "env": {
+        "KAFKA_ADVERTISED_LISTENERS": "PLAINTEXT://localhost:29092,PLAINTEXT_HOST://localhost:{kafkacontainer.bindings.tcp.port}"
+      },
+      "bindings": {
+        "tcp": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp",
+          "containerPort": 9092
+        }
+      },
+      "connectionString": "{kafkacontainer.bindings.tcp.host}:{kafkacontainer.bindings.tcp.port}"
+    },
     "mongodbcontainer": {
       "type": "container.v0",
       "image": "mongo:latest",
@@ -381,6 +397,22 @@
           }
         }
       }
+    },
+    "kafkaabstract": {
+      "type": "container.v0",
+      "image": "confluentinc/confluent-local",
+      "env": {
+        "KAFKA_ADVERTISED_LISTENERS": "PLAINTEXT://localhost:29092,PLAINTEXT_HOST://localhost:{kafkaabstract.bindings.tcp.port}"
+      },
+      "bindings": {
+        "tcp": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp",
+          "containerPort": 9092
+        }
+      },
+      "connectionString": "{kafkaabstract.bindings.tcp.host}:{kafkaabstract.bindings.tcp.port}"
     },
     "mongodbabstract": {
       "type": "mongodb.server.v0"

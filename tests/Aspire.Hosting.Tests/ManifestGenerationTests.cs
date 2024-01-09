@@ -309,7 +309,7 @@ public class ManifestGenerationTests
     }
 
     [Fact]
-    public void EnsureAllRabitMQManifestTypesHaveVersion0Suffix()
+    public void EnsureAllRabbitMQManifestTypesHaveVersion0Suffix()
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher();
 
@@ -328,6 +328,29 @@ public class ManifestGenerationTests
         Assert.Equal("rabbitmq.server.v0", connection.GetProperty("type").GetString());
 
         var server = resources.GetProperty("rabbitcontainer");
+        Assert.Equal("container.v0", server.GetProperty("type").GetString());
+    }
+
+    [Fact]
+    public void EnsureAllKafkaManifestTypesHaveVersion0Suffix()
+    {
+        var program = CreateTestProgramJsonDocumentManifestPublisher();
+
+        program.AppBuilder.AddKafka("kafkaabstract");
+        program.AppBuilder.AddKafkaContainer("kafkacontainer");
+
+        // Build AppHost so that publisher can be resolved.
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+
+        var connection = resources.GetProperty("kafkaabstract");
+        Assert.Equal("kafka.server.v0", connection.GetProperty("type").GetString());
+
+        var server = resources.GetProperty("kafkacontainer");
         Assert.Equal("container.v0", server.GetProperty("type").GetString());
     }
 
