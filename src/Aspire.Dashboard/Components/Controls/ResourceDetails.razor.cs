@@ -3,7 +3,6 @@
 
 using System.Globalization;
 using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Otlp.Model;
 using Google.Protobuf.WellKnownTypes;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
@@ -13,16 +12,8 @@ namespace Aspire.Dashboard.Components.Controls;
 
 public partial class ResourceDetails
 {
-    private List<KnownProperty> _resourceProperties = default!;
-    private List<KnownProperty> _projectProperties = default!;
-    private List<KnownProperty> _executableProperties = default!;
-    private List<KnownProperty> _containerProperties = default!;
-
     [Parameter, EditorRequired]
     public required ResourceViewModel Resource { get; set; }
-
-    [Parameter, EditorRequired]
-    public Dictionary<OtlpApplication, int>? UnviewedErrorCounts { get; set; }
 
     [Parameter]
     public bool ShowSpecOnlyToggle { get; set; }
@@ -61,8 +52,14 @@ public partial class ResourceDetails
     private readonly GridSort<EnvironmentVariableViewModel> _nameSort = GridSort<EnvironmentVariableViewModel>.ByAscending(vm => vm.Name);
     private readonly GridSort<EnvironmentVariableViewModel> _valueSort = GridSort<EnvironmentVariableViewModel>.ByAscending(vm => vm.Value);
 
+    private List<KnownProperty> _resourceProperties = default!;
+    private List<KnownProperty> _projectProperties = default!;
+    private List<KnownProperty> _executableProperties = default!;
+    private List<KnownProperty> _containerProperties = default!;
+
     protected override void OnInitialized()
     {
+        // Known properties can't be static because they need the localizer for translations.
         _resourceProperties =
         [
             new KnownProperty(KnownProperties.Resource.DisplayName, Loc[Resources.Resources.ResourcesDetailsDisplayNameProperty]),
