@@ -6,41 +6,17 @@ using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Google.Protobuf.WellKnownTypes;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Components.Controls;
 
 public partial class ResourceDetails
 {
-    private static readonly List<KnownProperty> s_resourceProperties =
-    [
-        new KnownProperty(KnownProperties.Resource.DisplayName, "Display name"),
-        new KnownProperty(KnownProperties.Resource.State, "State"),
-        new KnownProperty(KnownProperties.Resource.CreateTime, "Start time")
-    ];
-    private static readonly List<KnownProperty> s_projectProperties =
-    [
-        .. s_resourceProperties,
-        new KnownProperty(KnownProperties.Project.Path, "Project path"),
-        new KnownProperty(KnownProperties.Executable.Pid, "Process ID"),
-    ];
-    private static readonly List<KnownProperty> s_executableProperties =
-    [
-        .. s_resourceProperties,
-        new KnownProperty(KnownProperties.Executable.Path, "Executable path"),
-        new KnownProperty(KnownProperties.Executable.WorkDir, "Working directory"),
-        new KnownProperty(KnownProperties.Executable.Args, "Executable arguments"),
-        new KnownProperty(KnownProperties.Executable.Pid, "Process ID"),
-    ];
-    private static readonly List<KnownProperty> s_containerProperties =
-    [
-        .. s_resourceProperties,
-        new KnownProperty(KnownProperties.Container.Image, "Container image"),
-        new KnownProperty(KnownProperties.Container.Id, "Container ID"),
-        new KnownProperty(KnownProperties.Container.Command, "Container command"),
-        new KnownProperty(KnownProperties.Container.Args, "Container arguments"),
-        new KnownProperty(KnownProperties.Container.Ports, "Container ports"),
-    ];
+    private List<KnownProperty> _resourceProperties = default!;
+    private List<KnownProperty> _projectProperties = default!;
+    private List<KnownProperty> _executableProperties = default!;
+    private List<KnownProperty> _containerProperties = default!;
 
     [Parameter, EditorRequired]
     public required ResourceViewModel Resource { get; set; }
@@ -50,6 +26,9 @@ public partial class ResourceDetails
 
     [Parameter]
     public bool ShowSpecOnlyToggle { get; set; }
+
+    [Inject]
+    public required IStringLocalizer<Resources.Resources> Loc { get; set; }
 
     private bool IsSpecOnlyToggleDisabled => !Resource.Environment.All(i => !i.FromSpec) && !GetResourceValues().Any(v => v.KnownProperty == null);
 
@@ -82,12 +61,45 @@ public partial class ResourceDetails
     private readonly GridSort<EnvironmentVariableViewModel> _nameSort = GridSort<EnvironmentVariableViewModel>.ByAscending(vm => vm.Name);
     private readonly GridSort<EnvironmentVariableViewModel> _valueSort = GridSort<EnvironmentVariableViewModel>.ByAscending(vm => vm.Value);
 
+    protected override void OnInitialized()
+    {
+        _resourceProperties =
+        [
+            new KnownProperty(KnownProperties.Resource.DisplayName, Loc[Resources.Resources.ResourcesDetailsDisplayNameProperty]),
+            new KnownProperty(KnownProperties.Resource.State, Loc[Resources.Resources.ResourcesDetailsStateProperty]),
+            new KnownProperty(KnownProperties.Resource.CreateTime, Loc[Resources.Resources.ResourcesDetailsStartTimeProperty])
+        ];
+        _projectProperties =
+        [
+            .. _resourceProperties,
+            new KnownProperty(KnownProperties.Project.Path, Loc[Resources.Resources.ResourcesDetailsProjectPathProperty]),
+            new KnownProperty(KnownProperties.Executable.Pid, Loc[Resources.Resources.ResourcesDetailsExecutableProcessIdProperty]),
+        ];
+        _executableProperties =
+        [
+            .. _resourceProperties,
+            new KnownProperty(KnownProperties.Executable.Path, Loc[Resources.Resources.ResourcesDetailsExecutablePathProperty]),
+            new KnownProperty(KnownProperties.Executable.WorkDir, Loc[Resources.Resources.ResourcesDetailsExecutableWorkingDirectoryProperty]),
+            new KnownProperty(KnownProperties.Executable.Args, Loc[Resources.Resources.ResourcesDetailsExecutableArgumentsProperty]),
+            new KnownProperty(KnownProperties.Executable.Pid, Loc[Resources.Resources.ResourcesDetailsExecutableProcessIdProperty]),
+        ];
+        _containerProperties =
+        [
+            .. _resourceProperties,
+            new KnownProperty(KnownProperties.Container.Image, Loc[Resources.Resources.ResourcesDetailsContainerImageProperty]),
+            new KnownProperty(KnownProperties.Container.Id, Loc[Resources.Resources.ResourcesDetailsContainerIdProperty]),
+            new KnownProperty(KnownProperties.Container.Command, Loc[Resources.Resources.ResourcesDetailsContainerCommandProperty]),
+            new KnownProperty(KnownProperties.Container.Args, Loc[Resources.Resources.ResourcesDetailsContainerArgumentsProperty]),
+            new KnownProperty(KnownProperties.Container.Ports, Loc[Resources.Resources.ResourcesDetailsContainerPortsProperty]),
+        ];
+    }
+
     private IEnumerable<Endpoint> GetEndpoints()
     {
         foreach (var endpoint in Resource.Endpoints)
         {
-            yield return new Endpoint { Name = "Endpoint Url", IsHttp = true, Address = endpoint.EndpointUrl };
-            yield return new Endpoint { Name = "Proxy Url", IsHttp = true, Address = endpoint.ProxyUrl };
+            yield return new Endpoint { Name = Loc[Resources.Resources.ResourceDetailsEndpointUrl], IsHttp = true, Address = endpoint.EndpointUrl };
+            yield return new Endpoint { Name = Loc[Resources.Resources.ResourceDetailsProxyUrl], IsHttp = true, Address = endpoint.ProxyUrl };
         }
         foreach (var service in Resource.Services)
         {
@@ -99,10 +111,10 @@ public partial class ResourceDetails
     {
         var resolvedKnownProperties = Resource.ResourceType switch
         {
-            KnownResourceTypes.Project => s_projectProperties,
-            KnownResourceTypes.Executable => s_executableProperties,
-            KnownResourceTypes.Container => s_containerProperties,
-            _ => s_resourceProperties
+            KnownResourceTypes.Project => _projectProperties,
+            KnownResourceTypes.Executable => _executableProperties,
+            KnownResourceTypes.Container => _containerProperties,
+            _ => _resourceProperties
         };
 
         // This is a left outer join for the SQL fans.
