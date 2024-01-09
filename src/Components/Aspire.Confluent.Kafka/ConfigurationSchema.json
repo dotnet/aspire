@@ -12,154 +12,24 @@
                 "Consumer": {
                   "type": "object",
                   "properties": {
-                    "ConnectionString": {
-                      "type": "string",
-                      "description": "Gets or sets the connection string of the SQL Server database to connect to."
-                    },
-                    "HealthChecks": {
-                      "type": "boolean",
-                      "description": "Gets or sets a boolean value that indicates whether the database health check is enabled or not.",
-                      "default": true
-                    },
-                    "Metrics": {
-                      "type": "boolean",
-                      "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not.",
-                      "default": true
-                    },
                     "Config": {
                       "type": "object",
                       "properties": {
-                        "SaslMechanism": {
-                          "enum": [ "Gssapi", "Plain", "ScramSha256" ],
-                          "description": "Gets or sets the SASL mechanism."
-                        },
                         "Acks": {
-                          "enum": [ "All", "Leader", "None" ],
+                          "enum": [
+                            "None",
+                            "Leader",
+                            "All"
+                          ],
                           "description": "Gets or sets the acks."
                         },
-                        "ClientId": {
-                          "type": "string",
-                          "description": "Gets or sets the client id."
-                        },
-                        "BootstrapServer": {
-                          "type": "string",
-                          "description": "Gets or sets the bootstrap server."
-                        },
-                        "MessageMaxBytes": {
-                          "type": "integer",
-                          "description": "Gets or sets the message max bytes."
-                        },
-                        "MessageCopyMaxBytes": {
-                          "type": "integer",
-                          "description": "Gets or sets the message copy max bytes."
-                        },
-                        "ReceiveMessageMaxBytes": {
-                          "type": "integer",
-                          "description": "Gets or sets the receive message max bytes."
-                        },
-                        "MaxInFlight": {
-                          "type": "integer",
-                          "description": "Gets or sets the max in flight."
-                        },
-                        "TopicMetadataRefreshIntervalMs": {
-                          "type": "integer",
-                          "description": "Gets or sets the topic metadata refresh interval ms."
-                        },
-                        "MetadataMaxAgeMs": {
-                          "type": "integer",
-                          "description": "Gets or sets the metadata max age ms."
-                        },
-                        "TopicMetadataRefreshFastIntervalMs": {
-                          "type": "integer",
-                          "description": "Gets or sets the topic metadata refresh fast interval ms."
-                        },
-                        "TopicMetadataRefreshSparse": {
+                        "AllowAutoCreateTopics": {
                           "type": "boolean",
-                          "description": "Gets or sets a boolean value that indicates whether the topic metadata refresh sparse is enabled or not."
+                          "description": "Gets or sets a boolean value that indicates whether the allow auto create topics is enabled or not."
                         },
-                        "TopicMetadataPropagationMaxMs": {
+                        "ApiVersionFallbackMs": {
                           "type": "integer",
-                          "description": "Gets or sets the topic metadata propagation max ms."
-                        },
-                        "TopicBlacklist": {
-                          "type": "string",
-                          "description": "Gets or sets the topic blacklist."
-                        },
-                        "Debug": {
-                          "type": "string",
-                          "description": "Gets or sets the debug."
-                        },
-                        "SocketTimeoutMs": {
-                          "type": "integer",
-                          "description": "Gets or sets the socket timeout ms."
-                        },
-                        "SocketSendBufferBytes": {
-                          "type": "integer",
-                          "description": "Gets or sets the socket send buffer bytes."
-                        },
-                        "SocketReceiveBufferBytes": {
-                          "type": "integer",
-                          "description": "Gets or sets the socket receive buffer bytes."
-                        },
-                        "SocketKeepaliveEnable": {
-                          "type": "boolean",
-                          "description": "Gets or sets a boolean value that indicates whether the socket keepalive enable is enabled or not."
-                        },
-                        "SocketNagleDisable": {
-                          "type": "boolean",
-                          "description": "Gets or sets a boolean value that indicates whether the socket nagle disable is enabled or not."
-                        },
-                        "SocketMaxFails": {
-                          "type": "integer",
-                          "description": "Gets or sets the socket max fails."
-                        },
-                        "BrokerAddressTtl": {
-                          "type": "integer",
-                          "description": "Gets or sets the broker address ttl."
-                        },
-                        "BrokerAddressFamily": {
-                          "enum": [ "Any", "V4", "V6" ],
-                          "description": "Gets or sets the broker address family."
-                        },
-                        "SocketConnectionSetupTimeoutMs": {
-                          "type": "integer",
-                          "description": "Gets or sets the socket connection setup timeout ms."
-                        },
-                        "ConnectionsMaxIdleMs": {
-                          "type": "integer",
-                          "description": "Gets or sets the connections max idle ms."
-                        },
-                        "ReconnectBackoffMs": {
-                          "type": "integer",
-                          "description": "Gets or sets the reconnect backoff ms."
-                        },
-                        "ReconnectBackoffMaxMs": {
-                          "type": "integer",
-                          "description": "Gets or sets the reconnect backoff max ms."
-                        },
-                        "StatisticsIntervalMs": {
-                          "type": "integer",
-                          "description": "Gets or sets the statistics interval ms."
-                        },
-                        "LogQueue": {
-                          "type": "boolean",
-                          "description": "Gets or sets a boolean value that indicates whether the log queue is enabled or not."
-                        },
-                        "LogThreadName": {
-                          "type": "boolean",
-                          "description": "Gets or sets a boolean value that indicates whether the log thread name is enabled or not."
-                        },
-                        "EnableRandomSeed": {
-                          "type": "boolean",
-                          "description": "Gets or sets a boolean value that indicates whether the enable random seed is enabled or not."
-                        },
-                        "LogConnectionClose": {
-                          "type": "boolean",
-                          "description": "Gets or sets a boolean value that indicates whether the log connection close is enabled or not."
-                        },
-                        "InternalTerminationSignal": {
-                          "type": "integer",
-                          "description": "Gets or sets the internal termination signal."
+                          "description": "Gets or sets the api version fallback ms."
                         },
                         "ApiVersionRequest": {
                           "type": "boolean",
@@ -169,237 +39,100 @@
                           "type": "integer",
                           "description": "Gets or sets the api version request timeout ms."
                         },
-                        "ApiVersionFallbackMs": {
+                        "AutoCommitIntervalMs": {
                           "type": "integer",
-                          "description": "Gets or sets the api version fallback ms."
+                          "description": "Gets or sets the auto commit interval ms."
+                        },
+                        "AutoOffsetReset": {
+                          "enum": [
+                            "Latest",
+                            "Earliest",
+                            "Error"
+                          ],
+                          "description": "Gets or sets the auto offset reset."
+                        },
+                        "BootstrapServer": {
+                          "type": "string",
+                          "description": "Gets or sets the bootstrap server."
+                        },
+                        "BrokerAddressFamily": {
+                          "enum": [
+                            "Any",
+                            "V4",
+                            "V6"
+                          ],
+                          "description": "Gets or sets the broker address family."
+                        },
+                        "BrokerAddressTtl": {
+                          "type": "integer",
+                          "description": "Gets or sets the broker address ttl."
                         },
                         "BrokerVersionFallback": {
                           "type": "string",
                           "description": "Gets or sets the broker version fallback."
                         },
-                        "AllowAutoCreateTopics": {
+                        "CheckCrcs": {
                           "type": "boolean",
-                          "description": "Gets or sets a boolean value that indicates whether the allow auto create topics is enabled or not."
+                          "description": "Gets or sets a boolean value that indicates whether the check crcs is enabled or not."
                         },
-                        "SecurityProtocol": {
-                          "enum": [ "Plaintext", "Ssl", "SaslPlaintext", "SaslSsl" ],
-                          "description": "Gets or sets the security protocol."
+                        "ClientDnsLookup": {
+                          "enum": [
+                            "UseAllDnsIps",
+                            "ResolveCanonicalBootstrapServersOnly"
+                          ],
+                          "description": "Gets or sets the client dns lookup."
                         },
-                        "SslCipherSuites": {
+                        "ClientId": {
                           "type": "string",
-                          "description": "Gets or sets the ssl cipher suites."
-                        },
-                        "SslSigalgsList": {
-                          "type": "string",
-                          "description": "Gets or sets the ssl sigalgs list."
-                        },
-                        "SslKeyLocation": {
-                          "type": "string",
-                          "description": "Gets or sets the ssl key location."
-                        },
-                        "SslKeyPassword": {
-                          "type": "string",
-                          "description": "Gets or sets the ssl key password."
-                        },
-                        "SslKeyPem": {
-                          "type": "string",
-                          "description": "Gets or sets the ssl key pem."
-                        },
-                        "SslCertificateLocation": {
-                          "type": "string",
-                          "description": "Gets or sets the ssl certificate location."
-                        },
-                        "SslCertificatePem": {
-                          "type": "string",
-                          "description": "Gets or sets the ssl certificate pem."
-                        },
-                        "SslCaLocation": {
-                          "type": "string",
-                          "description": "Gets or sets the ssl ca location."
-                        },
-                        "SslCaPem": {
-                          "type": "string",
-                          "description": "Gets or sets the ssl ca pem."
-                        },
-                        "SslCaCertificateStores": {
-                          "type": "string",
-                          "description": "Gets or sets the ssl ca certificate stores."
-                        },
-                        "SslCrlLocation": {
-                          "type": "string",
-                          "description": "Gets or sets the ssl crl location."
-                        },
-                        "SslKeystoreLocation": {
-                          "type": "string",
-                          "description": "Gets or sets the ssl keystore location."
-                        },
-                        "SslKeystorePassword": {
-                          "type": "string",
-                          "description": "Gets or sets the ssl keystore password."
-                        },
-                        "SslProviders": {
-                          "type": "string",
-                          "description": "Gets or sets the ssl providers."
-                        },
-                        "SslEngineLocation": {
-                          "type": "string",
-                          "description": "Gets or sets the ssl engine location."
-                        },
-                        "SslEngineId": {
-                          "type": "string",
-                          "description": "Gets or sets the ssl engine id."
-                        },
-                        "EnableSslCertificateVerification": {
-                          "type": "boolean",
-                          "description": "Gets or sets a boolean value that indicates whether the enable ssl certificate verification is enabled or not."
-                        },
-                        "SslEndpointIdentificationAlgorithm": {
-                          "enum": [ "None", "Https" ],
-                          "description": "Gets or sets the ssl endpoint identification algorithm."
-                        },
-                        "SaslKerberosServiceName": {
-                          "type": "string",
-                          "description": "Gets or sets the sasl kerberos service name."
-                        },
-                        "SaslKerberosPrincipal": {
-                          "type": "string",
-                          "description": "Gets or sets the sasl kerberos principal."
-                        },
-                        "SaslKerberosKinitCmd": {
-                          "type": "string",
-                          "description": "Gets or sets the sasl kerberos kinit cmd."
-                        },
-                        "SaslKerberosKeytab": {
-                          "type": "string",
-                          "description": "Gets or sets the sasl kerberos keytab."
-                        },
-                        "SaslKerberosMinTimeBeforeRelogin": {
-                          "type": "integer",
-                          "description": "Gets or sets the sasl kerberos min time before relogin."
-                        },
-                        "SaslUsername": {
-                          "type": "string",
-                          "description": "Gets or sets the sasl username."
-                        },
-                        "SaslPassword": {
-                          "type": "string",
-                          "description": "Gets or sets the sasl password."
-                        },
-                        "SaslOauthbearerConfig": {
-                          "type": "string",
-                          "description": "Gets or sets the sasl oauthbearer config."
-                        },
-                        "EnableSaslOauthbearerUnsecureJwt": {
-                          "type": "boolean",
-                          "description": "Gets or sets a boolean value that indicates whether the enable sasl oauthbearer unsecure jwt is enabled or not."
-                        },
-                        "SaslOauthbearerMethod": {
-                          "enum": [ "Default", "Oidc" ],
-                          "description": "Gets or sets the sasl oauthbearer method."
-                        },
-                        "SaslOauthbearerClientId": {
-                          "type": "string",
-                          "description": "Gets or sets the sasl oauthbearer client id."
-                        },
-                        "SaslOauthbearerClientSecret": {
-                          "type": "string",
-                          "description": "Gets or sets the sasl oauthbearer client secret."
-                        },
-                        "SaslOauthbearerScope": {
-                          "type": "string",
-                          "description": "Gets or sets the sasl oauthbearer scope."
-                        },
-                        "SaslOauthbearerExtensions": {
-                          "type": "string",
-                          "description": "Gets or sets the sasl oauthbearer extensions."
-                        },
-                        "SaslOauthbearerTokenEndpointUrl": {
-                          "type": "string",
-                          "description": "Gets or sets the sasl oauthbearer token endpoint url."
-                        },
-                        "PluginLibraryPaths": {
-                          "type": "string",
-                          "description": "Gets or sets the plugin library paths."
+                          "description": "Gets or sets the client id."
                         },
                         "ClientRack": {
                           "type": "string",
                           "description": "Gets or sets the client rack."
                         },
-                        "ClientDnsLookup": {
-                          "enum": [ "UseAllDnsIps", "ResolveCanonicalBootstrapServersOnly" ],
-                          "description": "Gets or sets the client dns lookup."
+                        "ConnectionsMaxIdleMs": {
+                          "type": "integer",
+                          "description": "Gets or sets the connections max idle ms."
                         },
                         "ConsumeResultFields": {
                           "type": "string",
                           "description": "Gets or sets the consume result fields."
                         },
-                        "AutoOffsetReset": {
-                          "enum": [ "Latest", "Earliest", "Error" ],
-                          "description": "Gets or sets the auto offset reset."
-                        },
-                        "GroupId": {
-                          "type": "string",
-                          "description": "Gets or sets the group id."
-                        },
-                        "GroupInstanceId": {
-                          "type": "string",
-                          "description": "Gets or sets the group instance id."
-                        },
-                        "PartitionAssignmentStrategy": {
-                          "enum": [ "Range", "RoundRobin", "CooperativeSticky" ],
-                          "description": "Gets or sets the partition assignment strategy."
-                        },
-                        "SessionTimeoutMs": {
-                          "type": "integer",
-                          "description": "Gets or sets the session timeout ms."
-                        },
-                        "HeartbeatIntervalMs": {
-                          "type": "integer",
-                          "description": "Gets or sets the heartbeat interval ms."
-                        },
-                        "GroupProtocolType": {
-                          "type": "string",
-                          "description": "Gets or sets the group protocol type."
-                        },
                         "CoordinatorQueryIntervalMs": {
                           "type": "integer",
                           "description": "Gets or sets the coordinator query interval ms."
                         },
-                        "MaxPollIntervalMs": {
-                          "type": "integer",
-                          "description": "Gets or sets the max poll interval ms."
+                        "Debug": {
+                          "type": "string",
+                          "description": "Gets or sets the debug."
                         },
                         "EnableAutoCommit": {
                           "type": "boolean",
                           "description": "Gets or sets a boolean value that indicates whether the enable auto commit is enabled or not."
                         },
-                        "AutoCommitIntervalMs": {
-                          "type": "integer",
-                          "description": "Gets or sets the auto commit interval ms."
-                        },
                         "EnableAutoOffsetStore": {
                           "type": "boolean",
                           "description": "Gets or sets a boolean value that indicates whether the enable auto offset store is enabled or not."
                         },
-                        "QueuedMinMessages": {
-                          "type": "integer",
-                          "description": "Gets or sets the queued min messages."
+                        "EnablePartitionEof": {
+                          "type": "boolean",
+                          "description": "Gets or sets a boolean value that indicates whether the enable partition eof is enabled or not."
                         },
-                        "QueuedMaxMessagesKbytes": {
-                          "type": "integer",
-                          "description": "Gets or sets the queued max messages kbytes."
+                        "EnableRandomSeed": {
+                          "type": "boolean",
+                          "description": "Gets or sets a boolean value that indicates whether the enable random seed is enabled or not."
                         },
-                        "FetchWaitMaxMs": {
-                          "type": "integer",
-                          "description": "Gets or sets the fetch wait max ms."
+                        "EnableSaslOauthbearerUnsecureJwt": {
+                          "type": "boolean",
+                          "description": "Gets or sets a boolean value that indicates whether the enable sasl oauthbearer unsecure jwt is enabled or not."
                         },
-                        "FetchQueueBackoffMs": {
-                          "type": "integer",
-                          "description": "Gets or sets the fetch queue backoff ms."
+                        "EnableSslCertificateVerification": {
+                          "type": "boolean",
+                          "description": "Gets or sets a boolean value that indicates whether the enable ssl certificate verification is enabled or not."
                         },
-                        "MaxPartitionFetchBytes": {
+                        "FetchErrorBackoffMs": {
                           "type": "integer",
-                          "description": "Gets or sets the max partition fetch bytes."
+                          "description": "Gets or sets the fetch error backoff ms."
                         },
                         "FetchMaxBytes": {
                           "type": "integer",
@@ -409,157 +142,44 @@
                           "type": "integer",
                           "description": "Gets or sets the fetch min bytes."
                         },
-                        "FetchErrorBackoffMs": {
+                        "FetchQueueBackoffMs": {
                           "type": "integer",
-                          "description": "Gets or sets the fetch error backoff ms."
+                          "description": "Gets or sets the fetch queue backoff ms."
+                        },
+                        "FetchWaitMaxMs": {
+                          "type": "integer",
+                          "description": "Gets or sets the fetch wait max ms."
+                        },
+                        "GroupId": {
+                          "type": "string",
+                          "description": "Gets or sets the group id."
+                        },
+                        "GroupInstanceId": {
+                          "type": "string",
+                          "description": "Gets or sets the group instance id."
+                        },
+                        "GroupProtocolType": {
+                          "type": "string",
+                          "description": "Gets or sets the group protocol type."
+                        },
+                        "HeartbeatIntervalMs": {
+                          "type": "integer",
+                          "description": "Gets or sets the heartbeat interval ms."
+                        },
+                        "InternalTerminationSignal": {
+                          "type": "integer",
+                          "description": "Gets or sets the internal termination signal."
                         },
                         "IsolationLevel": {
-                          "enum": [ "ReadUncommitted", "ReadCommitted" ],
+                          "enum": [
+                            "ReadUncommitted",
+                            "ReadCommitted"
+                          ],
                           "description": "Gets or sets the isolation level."
                         },
-                        "EnablePartitionEof": {
+                        "LogConnectionClose": {
                           "type": "boolean",
-                          "description": "Gets or sets a boolean value that indicates whether the enable partition eof is enabled or not."
-                        },
-                        "CheckCrcs": {
-                          "type": "boolean",
-                          "description": "Gets or sets a boolean value that indicates whether the check crcs is enabled or not."
-                        }
-                      }
-                    }
-                  }
-                },
-                "Producer": {
-                  "type": "object",
-                  "properties": {
-                    "ConnectionString": {
-                      "type": "string",
-                      "description": "Gets or sets the connection string of the SQL Server database to connect to."
-                    },
-                    "HealthChecks": {
-                      "type": "boolean",
-                      "description": "Gets or sets a boolean value that indicates whether the database health check is enabled or not.",
-                      "default": true
-                    },
-                    "Metrics": {
-                      "type": "boolean",
-                      "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not.",
-                      "default": true
-                    },
-                    "Config": {
-                      "type": "object",
-                      "properties": {
-                        "SaslMechanism": {
-                          "enum": [ "Gssapi", "Plain", "ScramSha256" ],
-                          "description": "Gets or sets the SASL mechanism."
-                        },
-                        "Acks": {
-                          "enum": [ "All", "Leader", "None" ],
-                          "description": "Gets or sets the acks."
-                        },
-                        "ClientId": {
-                          "type": "string",
-                          "description": "Gets or sets the client id."
-                        },
-                        "BootstrapServer": {
-                          "type": "string",
-                          "description": "Gets or sets the bootstrap server."
-                        },
-                        "MessageMaxBytes": {
-                          "type": "integer",
-                          "description": "Gets or sets the message max bytes."
-                        },
-                        "MessageCopyMaxBytes": {
-                          "type": "integer",
-                          "description": "Gets or sets the message copy max bytes."
-                        },
-                        "ReceiveMessageMaxBytes": {
-                          "type": "integer",
-                          "description": "Gets or sets the receive message max bytes."
-                        },
-                        "MaxInFlight": {
-                          "type": "integer",
-                          "description": "Gets or sets the max in flight."
-                        },
-                        "TopicMetadataRefreshIntervalMs": {
-                          "type": "integer",
-                          "description": "Gets or sets the topic metadata refresh interval ms."
-                        },
-                        "MetadataMaxAgeMs": {
-                          "type": "integer",
-                          "description": "Gets or sets the metadata max age ms."
-                        },
-                        "TopicMetadataRefreshFastIntervalMs": {
-                          "type": "integer",
-                          "description": "Gets or sets the topic metadata refresh fast interval ms."
-                        },
-                        "TopicMetadataRefreshSparse": {
-                          "type": "boolean",
-                          "description": "Gets or sets a boolean value that indicates whether the topic metadata refresh sparse is enabled or not."
-                        },
-                        "TopicMetadataPropagationMaxMs": {
-                          "type": "integer",
-                          "description": "Gets or sets the topic metadata propagation max ms."
-                        },
-                        "TopicBlacklist": {
-                          "type": "string",
-                          "description": "Gets or sets the topic blacklist."
-                        },
-                        "Debug": {
-                          "type": "string",
-                          "description": "Gets or sets the debug."
-                        },
-                        "SocketTimeoutMs": {
-                          "type": "integer",
-                          "description": "Gets or sets the socket timeout ms."
-                        },
-                        "SocketSendBufferBytes": {
-                          "type": "integer",
-                          "description": "Gets or sets the socket send buffer bytes."
-                        },
-                        "SocketReceiveBufferBytes": {
-                          "type": "integer",
-                          "description": "Gets or sets the socket receive buffer bytes."
-                        },
-                        "SocketKeepaliveEnable": {
-                          "type": "boolean",
-                          "description": "Gets or sets a boolean value that indicates whether the socket keepalive enable is enabled or not."
-                        },
-                        "SocketNagleDisable": {
-                          "type": "boolean",
-                          "description": "Gets or sets a boolean value that indicates whether the socket nagle disable is enabled or not."
-                        },
-                        "SocketMaxFails": {
-                          "type": "integer",
-                          "description": "Gets or sets the socket max fails."
-                        },
-                        "BrokerAddressTtl": {
-                          "type": "integer",
-                          "description": "Gets or sets the broker address ttl."
-                        },
-                        "BrokerAddressFamily": {
-                          "enum": [ "Any", "V4", "V6" ],
-                          "description": "Gets or sets the broker address family."
-                        },
-                        "SocketConnectionSetupTimeoutMs": {
-                          "type": "integer",
-                          "description": "Gets or sets the socket connection setup timeout ms."
-                        },
-                        "ConnectionsMaxIdleMs": {
-                          "type": "integer",
-                          "description": "Gets or sets the connections max idle ms."
-                        },
-                        "ReconnectBackoffMs": {
-                          "type": "integer",
-                          "description": "Gets or sets the reconnect backoff ms."
-                        },
-                        "ReconnectBackoffMaxMs": {
-                          "type": "integer",
-                          "description": "Gets or sets the reconnect backoff max ms."
-                        },
-                        "StatisticsIntervalMs": {
-                          "type": "integer",
-                          "description": "Gets or sets the statistics interval ms."
+                          "description": "Gets or sets a boolean value that indicates whether the log connection close is enabled or not."
                         },
                         "LogQueue": {
                           "type": "boolean",
@@ -569,49 +189,212 @@
                           "type": "boolean",
                           "description": "Gets or sets a boolean value that indicates whether the log thread name is enabled or not."
                         },
-                        "EnableRandomSeed": {
-                          "type": "boolean",
-                          "description": "Gets or sets a boolean value that indicates whether the enable random seed is enabled or not."
-                        },
-                        "LogConnectionClose": {
-                          "type": "boolean",
-                          "description": "Gets or sets a boolean value that indicates whether the log connection close is enabled or not."
-                        },
-                        "InternalTerminationSignal": {
+                        "MaxInFlight": {
                           "type": "integer",
-                          "description": "Gets or sets the internal termination signal."
+                          "description": "Gets or sets the max in flight."
                         },
-                        "ApiVersionRequest": {
-                          "type": "boolean",
-                          "description": "Gets or sets a boolean value that indicates whether the api version request is enabled or not."
-                        },
-                        "ApiVersionRequestTimeoutMs": {
+                        "MaxPartitionFetchBytes": {
                           "type": "integer",
-                          "description": "Gets or sets the api version request timeout ms."
+                          "description": "Gets or sets the max partition fetch bytes."
                         },
-                        "ApiVersionFallbackMs": {
+                        "MaxPollIntervalMs": {
                           "type": "integer",
-                          "description": "Gets or sets the api version fallback ms."
+                          "description": "Gets or sets the max poll interval ms."
                         },
-                        "BrokerVersionFallback": {
+                        "MessageCopyMaxBytes": {
+                          "type": "integer",
+                          "description": "Gets or sets the message copy max bytes."
+                        },
+                        "MessageMaxBytes": {
+                          "type": "integer",
+                          "description": "Gets or sets the message max bytes."
+                        },
+                        "MetadataMaxAgeMs": {
+                          "type": "integer",
+                          "description": "Gets or sets the metadata max age ms."
+                        },
+                        "PartitionAssignmentStrategy": {
+                          "enum": [
+                            "Range",
+                            "RoundRobin",
+                            "CooperativeSticky"
+                          ],
+                          "description": "Gets or sets the partition assignment strategy."
+                        },
+                        "PluginLibraryPaths": {
                           "type": "string",
-                          "description": "Gets or sets the broker version fallback."
+                          "description": "Gets or sets the plugin library paths."
                         },
-                        "AllowAutoCreateTopics": {
-                          "type": "boolean",
-                          "description": "Gets or sets a boolean value that indicates whether the allow auto create topics is enabled or not."
+                        "QueuedMaxMessagesKbytes": {
+                          "type": "integer",
+                          "description": "Gets or sets the queued max messages kbytes."
+                        },
+                        "QueuedMinMessages": {
+                          "type": "integer",
+                          "description": "Gets or sets the queued min messages."
+                        },
+                        "ReceiveMessageMaxBytes": {
+                          "type": "integer",
+                          "description": "Gets or sets the receive message max bytes."
+                        },
+                        "ReconnectBackoffMaxMs": {
+                          "type": "integer",
+                          "description": "Gets or sets the reconnect backoff max ms."
+                        },
+                        "ReconnectBackoffMs": {
+                          "type": "integer",
+                          "description": "Gets or sets the reconnect backoff ms."
+                        },
+                        "SaslKerberosKeytab": {
+                          "type": "string",
+                          "description": "Gets or sets the sasl kerberos keytab."
+                        },
+                        "SaslKerberosKinitCmd": {
+                          "type": "string",
+                          "description": "Gets or sets the sasl kerberos kinit cmd."
+                        },
+                        "SaslKerberosMinTimeBeforeRelogin": {
+                          "type": "integer",
+                          "description": "Gets or sets the sasl kerberos min time before relogin."
+                        },
+                        "SaslKerberosPrincipal": {
+                          "type": "string",
+                          "description": "Gets or sets the sasl kerberos principal."
+                        },
+                        "SaslKerberosServiceName": {
+                          "type": "string",
+                          "description": "Gets or sets the sasl kerberos service name."
+                        },
+                        "SaslMechanism": {
+                          "enum": [
+                            "Gssapi",
+                            "Plain",
+                            "ScramSha256"
+                          ],
+                          "description": "Gets or sets the SASL mechanism."
+                        },
+                        "SaslOauthbearerClientId": {
+                          "type": "string",
+                          "description": "Gets or sets the sasl oauthbearer client id."
+                        },
+                        "SaslOauthbearerClientSecret": {
+                          "type": "string",
+                          "description": "Gets or sets the sasl oauthbearer client secret."
+                        },
+                        "SaslOauthbearerConfig": {
+                          "type": "string",
+                          "description": "Gets or sets the sasl oauthbearer config."
+                        },
+                        "SaslOauthbearerExtensions": {
+                          "type": "string",
+                          "description": "Gets or sets the sasl oauthbearer extensions."
+                        },
+                        "SaslOauthbearerMethod": {
+                          "enum": [
+                            "Default",
+                            "Oidc"
+                          ],
+                          "description": "Gets or sets the sasl oauthbearer method."
+                        },
+                        "SaslOauthbearerScope": {
+                          "type": "string",
+                          "description": "Gets or sets the sasl oauthbearer scope."
+                        },
+                        "SaslOauthbearerTokenEndpointUrl": {
+                          "type": "string",
+                          "description": "Gets or sets the sasl oauthbearer token endpoint url."
+                        },
+                        "SaslPassword": {
+                          "type": "string",
+                          "description": "Gets or sets the sasl password."
+                        },
+                        "SaslUsername": {
+                          "type": "string",
+                          "description": "Gets or sets the sasl username."
                         },
                         "SecurityProtocol": {
-                          "enum": [ "Plaintext", "Ssl", "SaslPlaintext", "SaslSsl" ],
+                          "enum": [
+                            "Plaintext",
+                            "Ssl",
+                            "SaslPlaintext",
+                            "SaslSsl"
+                          ],
                           "description": "Gets or sets the security protocol."
+                        },
+                        "SessionTimeoutMs": {
+                          "type": "integer",
+                          "description": "Gets or sets the session timeout ms."
+                        },
+                        "SocketConnectionSetupTimeoutMs": {
+                          "type": "integer",
+                          "description": "Gets or sets the socket connection setup timeout ms."
+                        },
+                        "SocketKeepaliveEnable": {
+                          "type": "boolean",
+                          "description": "Gets or sets a boolean value that indicates whether the socket keepalive enable is enabled or not."
+                        },
+                        "SocketMaxFails": {
+                          "type": "integer",
+                          "description": "Gets or sets the socket max fails."
+                        },
+                        "SocketNagleDisable": {
+                          "type": "boolean",
+                          "description": "Gets or sets a boolean value that indicates whether the socket nagle disable is enabled or not."
+                        },
+                        "SocketReceiveBufferBytes": {
+                          "type": "integer",
+                          "description": "Gets or sets the socket receive buffer bytes."
+                        },
+                        "SocketSendBufferBytes": {
+                          "type": "integer",
+                          "description": "Gets or sets the socket send buffer bytes."
+                        },
+                        "SocketTimeoutMs": {
+                          "type": "integer",
+                          "description": "Gets or sets the socket timeout ms."
+                        },
+                        "SslCaCertificateStores": {
+                          "type": "string",
+                          "description": "Gets or sets the ssl ca certificate stores."
+                        },
+                        "SslCaLocation": {
+                          "type": "string",
+                          "description": "Gets or sets the ssl ca location."
+                        },
+                        "SslCaPem": {
+                          "type": "string",
+                          "description": "Gets or sets the ssl ca pem."
+                        },
+                        "SslCertificateLocation": {
+                          "type": "string",
+                          "description": "Gets or sets the ssl certificate location."
+                        },
+                        "SslCertificatePem": {
+                          "type": "string",
+                          "description": "Gets or sets the ssl certificate pem."
                         },
                         "SslCipherSuites": {
                           "type": "string",
                           "description": "Gets or sets the ssl cipher suites."
                         },
-                        "SslSigalgsList": {
+                        "SslCrlLocation": {
                           "type": "string",
-                          "description": "Gets or sets the ssl sigalgs list."
+                          "description": "Gets or sets the ssl crl location."
+                        },
+                        "SslEndpointIdentificationAlgorithm": {
+                          "enum": [
+                            "None",
+                            "Https"
+                          ],
+                          "description": "Gets or sets the ssl endpoint identification algorithm."
+                        },
+                        "SslEngineId": {
+                          "type": "string",
+                          "description": "Gets or sets the ssl engine id."
+                        },
+                        "SslEngineLocation": {
+                          "type": "string",
+                          "description": "Gets or sets the ssl engine location."
                         },
                         "SslKeyLocation": {
                           "type": "string",
@@ -625,13 +408,392 @@
                           "type": "string",
                           "description": "Gets or sets the ssl key pem."
                         },
-                        "SslCertificateLocation": {
+                        "SslKeystoreLocation": {
                           "type": "string",
-                          "description": "Gets or sets the ssl certificate location."
+                          "description": "Gets or sets the ssl keystore location."
                         },
-                        "SslCertificatePem": {
+                        "SslKeystorePassword": {
                           "type": "string",
-                          "description": "Gets or sets the ssl certificate pem."
+                          "description": "Gets or sets the ssl keystore password."
+                        },
+                        "SslProviders": {
+                          "type": "string",
+                          "description": "Gets or sets the ssl providers."
+                        },
+                        "SslSigalgsList": {
+                          "type": "string",
+                          "description": "Gets or sets the ssl sigalgs list."
+                        },
+                        "StatisticsIntervalMs": {
+                          "type": "integer",
+                          "description": "Gets or sets the statistics interval ms."
+                        },
+                        "TopicBlacklist": {
+                          "type": "string",
+                          "description": "Gets or sets the topic blacklist."
+                        },
+                        "TopicMetadataPropagationMaxMs": {
+                          "type": "integer",
+                          "description": "Gets or sets the topic metadata propagation max ms."
+                        },
+                        "TopicMetadataRefreshFastIntervalMs": {
+                          "type": "integer",
+                          "description": "Gets or sets the topic metadata refresh fast interval ms."
+                        },
+                        "TopicMetadataRefreshIntervalMs": {
+                          "type": "integer",
+                          "description": "Gets or sets the topic metadata refresh interval ms."
+                        },
+                        "TopicMetadataRefreshSparse": {
+                          "type": "boolean",
+                          "description": "Gets or sets a boolean value that indicates whether the topic metadata refresh sparse is enabled or not."
+                        }
+                      }
+                    },
+                    "ConnectionString": {
+                      "type": "string",
+                      "description": "Gets or sets the connection string of the SQL Server database to connect to."
+                    },
+                    "HealthChecks": {
+                      "type": "boolean",
+                      "description": "Gets or sets a boolean value that indicates whether the database health check is enabled or not.",
+                      "default": true
+                    },
+                    "Metrics": {
+                      "type": "boolean",
+                      "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not.",
+                      "default": true
+                    }
+                  }
+                },
+                "Producer": {
+                  "type": "object",
+                  "properties": {
+                    "Config": {
+                      "type": "object",
+                      "properties": {
+                        "Acks": {
+                          "enum": [
+                            "All",
+                            "Leader",
+                            "None"
+                          ],
+                          "description": "Gets or sets the acks."
+                        },
+                        "AllowAutoCreateTopics": {
+                          "type": "boolean",
+                          "description": "Gets or sets a boolean value that indicates whether the allow auto create topics is enabled or not."
+                        },
+                        "ApiVersionFallbackMs": {
+                          "type": "integer",
+                          "description": "Gets or sets the api version fallback ms."
+                        },
+                        "ApiVersionRequest": {
+                          "type": "boolean",
+                          "description": "Gets or sets a boolean value that indicates whether the api version request is enabled or not."
+                        },
+                        "ApiVersionRequestTimeoutMs": {
+                          "type": "integer",
+                          "description": "Gets or sets the api version request timeout ms."
+                        },
+                        "BatchNumMessages": {
+                          "type": "integer",
+                          "description": "Gets or sets the batch num messages."
+                        },
+                        "BatchSize": {
+                          "type": "integer",
+                          "description": "Gets or sets the batch size."
+                        },
+                        "BootstrapServer": {
+                          "type": "string",
+                          "description": "Gets or sets the bootstrap server."
+                        },
+                        "BrokerAddressFamily": {
+                          "enum": [
+                            "Any",
+                            "V4",
+                            "V6"
+                          ],
+                          "description": "Gets or sets the broker address family."
+                        },
+                        "BrokerAddressTtl": {
+                          "type": "integer",
+                          "description": "Gets or sets the broker address ttl."
+                        },
+                        "BrokerVersionFallback": {
+                          "type": "string",
+                          "description": "Gets or sets the broker version fallback."
+                        },
+                        "ClientDnsLookup": {
+                          "enum": [
+                            "UseAllDnsIps",
+                            "ResolveCanonicalBootstrapServersOnly"
+                          ],
+                          "description": "Gets or sets the client dns lookup."
+                        },
+                        "ClientId": {
+                          "type": "string",
+                          "description": "Gets or sets the client id."
+                        },
+                        "ClientRack": {
+                          "type": "string",
+                          "description": "Gets or sets the client rack."
+                        },
+                        "CompressionLevel": {
+                          "type": "integer",
+                          "description": "Gets or sets the compression level."
+                        },
+                        "CompressionType": {
+                          "enum": [
+                            "None",
+                            "Gzip",
+                            "Snappy",
+                            "Lz4",
+                            "Zstd"
+                          ],
+                          "description": "Gets or sets the compression type."
+                        },
+                        "ConnectionsMaxIdleMs": {
+                          "type": "integer",
+                          "description": "Gets or sets the connections max idle ms."
+                        },
+                        "Debug": {
+                          "type": "string",
+                          "description": "Gets or sets the debug."
+                        },
+                        "DeliveryReportFields": {
+                          "type": "string",
+                          "description": "Gets or sets the delivery report fields."
+                        },
+                        "EnableBackgroundPoll": {
+                          "type": "boolean",
+                          "description": "Gets or sets a boolean value that indicates whether the enable background poll is enabled or not."
+                        },
+                        "EnableDeliveryReports": {
+                          "type": "boolean",
+                          "description": "Gets or sets a boolean value that indicates whether the enable delivery reports is enabled or not."
+                        },
+                        "EnableGaplessGuarantee": {
+                          "type": "boolean",
+                          "description": "Gets or sets a boolean value that indicates whether the enable gapless guarantee is enabled or not."
+                        },
+                        "EnableIdempotence": {
+                          "type": "boolean",
+                          "description": "Gets or sets a boolean value that indicates whether the enable idempotence is enabled or not."
+                        },
+                        "EnableRandomSeed": {
+                          "type": "boolean",
+                          "description": "Gets or sets a boolean value that indicates whether the enable random seed is enabled or not."
+                        },
+                        "EnableSaslOauthbearerUnsecureJwt": {
+                          "type": "boolean",
+                          "description": "Gets or sets a boolean value that indicates whether the enable sasl oauthbearer unsecure jwt is enabled or not."
+                        },
+                        "EnableSslCertificateVerification": {
+                          "type": "boolean",
+                          "description": "Gets or sets a boolean value that indicates whether the enable ssl certificate verification is enabled or not."
+                        },
+                        "InternalTerminationSignal": {
+                          "type": "integer",
+                          "description": "Gets or sets the internal termination signal."
+                        },
+                        "LingerMs": {
+                          "type": "integer",
+                          "description": "Gets or sets the linger ms."
+                        },
+                        "LogConnectionClose": {
+                          "type": "boolean",
+                          "description": "Gets or sets a boolean value that indicates whether the log connection close is enabled or not."
+                        },
+                        "LogQueue": {
+                          "type": "boolean",
+                          "description": "Gets or sets a boolean value that indicates whether the log queue is enabled or not."
+                        },
+                        "LogThreadName": {
+                          "type": "boolean",
+                          "description": "Gets or sets a boolean value that indicates whether the log thread name is enabled or not."
+                        },
+                        "MaxInFlight": {
+                          "type": "integer",
+                          "description": "Gets or sets the max in flight."
+                        },
+                        "MessageCopyMaxBytes": {
+                          "type": "integer",
+                          "description": "Gets or sets the message copy max bytes."
+                        },
+                        "MessageMaxBytes": {
+                          "type": "integer",
+                          "description": "Gets or sets the message max bytes."
+                        },
+                        "MessageSendMaxRetries": {
+                          "type": "integer",
+                          "description": "Gets or sets the message send max retries."
+                        },
+                        "MessageTimeoutMs": {
+                          "type": "integer",
+                          "description": "Gets or sets the message timeout ms."
+                        },
+                        "MetadataMaxAgeMs": {
+                          "type": "integer",
+                          "description": "Gets or sets the metadata max age ms."
+                        },
+                        "Partitioner": {
+                          "enum": [
+                            "Random",
+                            "Consistent",
+                            "ConsistentRandom",
+                            "Murmur2",
+                            "Murmur2Random"
+                          ],
+                          "description": "Gets or sets the partitioner."
+                        },
+                        "PluginLibraryPaths": {
+                          "type": "string",
+                          "description": "Gets or sets the plugin library paths."
+                        },
+                        "QueueBufferingBackpressureThreshold": {
+                          "type": "integer",
+                          "description": "Gets or sets the queue buffering backpressure threshold."
+                        },
+                        "QueueBufferingMaxKbytes": {
+                          "type": "integer",
+                          "description": "Gets or sets the queue buffering max kbytes."
+                        },
+                        "QueueBufferingMaxMessages": {
+                          "type": "integer",
+                          "description": "Gets or sets the queue buffering max messages."
+                        },
+                        "ReceiveMessageMaxBytes": {
+                          "type": "integer",
+                          "description": "Gets or sets the receive message max bytes."
+                        },
+                        "ReconnectBackoffMaxMs": {
+                          "type": "integer",
+                          "description": "Gets or sets the reconnect backoff max ms."
+                        },
+                        "ReconnectBackoffMs": {
+                          "type": "integer",
+                          "description": "Gets or sets the reconnect backoff ms."
+                        },
+                        "RequestTimeoutMs": {
+                          "type": "integer",
+                          "description": "Gets or sets the request timeout ms."
+                        },
+                        "RetryBackoffMaxMs": {
+                          "type": "integer",
+                          "description": "Gets or sets the retry backoff max ms."
+                        },
+                        "RetryBackoffMs": {
+                          "type": "integer",
+                          "description": "Gets or sets the retry backoff ms."
+                        },
+                        "SaslKerberosKeytab": {
+                          "type": "string",
+                          "description": "Gets or sets the sasl kerberos keytab."
+                        },
+                        "SaslKerberosKinitCmd": {
+                          "type": "string",
+                          "description": "Gets or sets the sasl kerberos kinit cmd."
+                        },
+                        "SaslKerberosMinTimeBeforeRelogin": {
+                          "type": "integer",
+                          "description": "Gets or sets the sasl kerberos min time before relogin."
+                        },
+                        "SaslKerberosPrincipal": {
+                          "type": "string",
+                          "description": "Gets or sets the sasl kerberos principal."
+                        },
+                        "SaslKerberosServiceName": {
+                          "type": "string",
+                          "description": "Gets or sets the sasl kerberos service name."
+                        },
+                        "SaslMechanism": {
+                          "enum": [
+                            "Gssapi",
+                            "Plain",
+                            "ScramSha256"
+                          ],
+                          "description": "Gets or sets the SASL mechanism."
+                        },
+                        "SaslOauthbearerClientId": {
+                          "type": "string",
+                          "description": "Gets or sets the sasl oauthbearer client id."
+                        },
+                        "SaslOauthbearerClientSecret": {
+                          "type": "string",
+                          "description": "Gets or sets the sasl oauthbearer client secret."
+                        },
+                        "SaslOauthbearerConfig": {
+                          "type": "string",
+                          "description": "Gets or sets the sasl oauthbearer config."
+                        },
+                        "SaslOauthbearerExtensions": {
+                          "type": "string",
+                          "description": "Gets or sets the sasl oauthbearer extensions."
+                        },
+                        "SaslOauthbearerMethod": {
+                          "enum": [
+                            "Default",
+                            "Oidc"
+                          ],
+                          "description": "Gets or sets the sasl oauthbearer method."
+                        },
+                        "SaslOauthbearerScope": {
+                          "type": "string",
+                          "description": "Gets or sets the sasl oauthbearer scope."
+                        },
+                        "SaslOauthbearerTokenEndpointUrl": {
+                          "type": "string",
+                          "description": "Gets or sets the sasl oauthbearer token endpoint url."
+                        },
+                        "SaslPassword": {
+                          "type": "string",
+                          "description": "Gets or sets the sasl password."
+                        },
+                        "SaslUsername": {
+                          "type": "string",
+                          "description": "Gets or sets the sasl username."
+                        },
+                        "SecurityProtocol": {
+                          "enum": [
+                            "Plaintext",
+                            "Ssl",
+                            "SaslPlaintext",
+                            "SaslSsl"
+                          ],
+                          "description": "Gets or sets the security protocol."
+                        },
+                        "SocketConnectionSetupTimeoutMs": {
+                          "type": "integer",
+                          "description": "Gets or sets the socket connection setup timeout ms."
+                        },
+                        "SocketKeepaliveEnable": {
+                          "type": "boolean",
+                          "description": "Gets or sets a boolean value that indicates whether the socket keepalive enable is enabled or not."
+                        },
+                        "SocketMaxFails": {
+                          "type": "integer",
+                          "description": "Gets or sets the socket max fails."
+                        },
+                        "SocketNagleDisable": {
+                          "type": "boolean",
+                          "description": "Gets or sets a boolean value that indicates whether the socket nagle disable is enabled or not."
+                        },
+                        "SocketReceiveBufferBytes": {
+                          "type": "integer",
+                          "description": "Gets or sets the socket receive buffer bytes."
+                        },
+                        "SocketSendBufferBytes": {
+                          "type": "integer",
+                          "description": "Gets or sets the socket send buffer bytes."
+                        },
+                        "SocketTimeoutMs": {
+                          "type": "integer",
+                          "description": "Gets or sets the socket timeout ms."
+                        },
+                        "SslCaCertificateStores": {
+                          "type": "string",
+                          "description": "Gets or sets the ssl ca certificate stores."
                         },
                         "SslCaLocation": {
                           "type": "string",
@@ -641,13 +803,48 @@
                           "type": "string",
                           "description": "Gets or sets the ssl ca pem."
                         },
-                        "SslCaCertificateStores": {
+                        "SslCertificateLocation": {
                           "type": "string",
-                          "description": "Gets or sets the ssl ca certificate stores."
+                          "description": "Gets or sets the ssl certificate location."
+                        },
+                        "SslCertificatePem": {
+                          "type": "string",
+                          "description": "Gets or sets the ssl certificate pem."
+                        },
+                        "SslCipherSuites": {
+                          "type": "string",
+                          "description": "Gets or sets the ssl cipher suites."
                         },
                         "SslCrlLocation": {
                           "type": "string",
                           "description": "Gets or sets the ssl crl location."
+                        },
+                        "SslEndpointIdentificationAlgorithm": {
+                          "enum": [
+                            "None",
+                            "Https"
+                          ],
+                          "description": "Gets or sets the ssl endpoint identification algorithm."
+                        },
+                        "SslEngineId": {
+                          "type": "string",
+                          "description": "Gets or sets the ssl engine id."
+                        },
+                        "SslEngineLocation": {
+                          "type": "string",
+                          "description": "Gets or sets the ssl engine location."
+                        },
+                        "SslKeyLocation": {
+                          "type": "string",
+                          "description": "Gets or sets the ssl key location."
+                        },
+                        "SslKeyPassword": {
+                          "type": "string",
+                          "description": "Gets or sets the ssl key password."
+                        },
+                        "SslKeyPem": {
+                          "type": "string",
+                          "description": "Gets or sets the ssl key pem."
                         },
                         "SslKeystoreLocation": {
                           "type": "string",
@@ -661,183 +858,61 @@
                           "type": "string",
                           "description": "Gets or sets the ssl providers."
                         },
-                        "SslEngineLocation": {
+                        "SslSigalgsList": {
                           "type": "string",
-                          "description": "Gets or sets the ssl engine location."
+                          "description": "Gets or sets the ssl sigalgs list."
                         },
-                        "SslEngineId": {
-                          "type": "string",
-                          "description": "Gets or sets the ssl engine id."
-                        },
-                        "EnableSslCertificateVerification": {
-                          "type": "boolean",
-                          "description": "Gets or sets a boolean value that indicates whether the enable ssl certificate verification is enabled or not."
-                        },
-                        "SslEndpointIdentificationAlgorithm": {
-                          "enum": [ "None", "Https" ],
-                          "description": "Gets or sets the ssl endpoint identification algorithm."
-                        },
-                        "SaslKerberosServiceName": {
-                          "type": "string",
-                          "description": "Gets or sets the sasl kerberos service name."
-                        },
-                        "SaslKerberosPrincipal": {
-                          "type": "string",
-                          "description": "Gets or sets the sasl kerberos principal."
-                        },
-                        "SaslKerberosKinitCmd": {
-                          "type": "string",
-                          "description": "Gets or sets the sasl kerberos kinit cmd."
-                        },
-                        "SaslKerberosKeytab": {
-                          "type": "string",
-                          "description": "Gets or sets the sasl kerberos keytab."
-                        },
-                        "SaslKerberosMinTimeBeforeRelogin": {
+                        "StatisticsIntervalMs": {
                           "type": "integer",
-                          "description": "Gets or sets the sasl kerberos min time before relogin."
+                          "description": "Gets or sets the statistics interval ms."
                         },
-                        "SaslUsername": {
-                          "type": "string",
-                          "description": "Gets or sets the sasl username."
-                        },
-                        "SaslPassword": {
-                          "type": "string",
-                          "description": "Gets or sets the sasl password."
-                        },
-                        "SaslOauthbearerConfig": {
-                          "type": "string",
-                          "description": "Gets or sets the sasl oauthbearer config."
-                        },
-                        "EnableSaslOauthbearerUnsecureJwt": {
-                          "type": "boolean",
-                          "description": "Gets or sets a boolean value that indicates whether the enable sasl oauthbearer unsecure jwt is enabled or not."
-                        },
-                        "SaslOauthbearerMethod": {
-                          "enum": [ "Default", "Oidc" ],
-                          "description": "Gets or sets the sasl oauthbearer method."
-                        },
-                        "SaslOauthbearerClientId": {
-                          "type": "string",
-                          "description": "Gets or sets the sasl oauthbearer client id."
-                        },
-                        "SaslOauthbearerClientSecret": {
-                          "type": "string",
-                          "description": "Gets or sets the sasl oauthbearer client secret."
-                        },
-                        "SaslOauthbearerScope": {
-                          "type": "string",
-                          "description": "Gets or sets the sasl oauthbearer scope."
-                        },
-                        "SaslOauthbearerExtensions": {
-                          "type": "string",
-                          "description": "Gets or sets the sasl oauthbearer extensions."
-                        },
-                        "SaslOauthbearerTokenEndpointUrl": {
-                          "type": "string",
-                          "description": "Gets or sets the sasl oauthbearer token endpoint url."
-                        },
-                        "PluginLibraryPaths": {
-                          "type": "string",
-                          "description": "Gets or sets the plugin library paths."
-                        },
-                        "ClientRack": {
-                          "type": "string",
-                          "description": "Gets or sets the client rack."
-                        },
-                        "ClientDnsLookup": {
-                          "enum": [ "UseAllDnsIps", "ResolveCanonicalBootstrapServersOnly" ],
-                          "description": "Gets or sets the client dns lookup."
-                        },
-                        "EnableBackgroundPoll": {
-                          "type": "boolean",
-                          "description": "Gets or sets a boolean value that indicates whether the enable background poll is enabled or not."
-                        },
-                        "EnableDeliveryReports": {
-                          "type": "boolean",
-                          "description": "Gets or sets a boolean value that indicates whether the enable delivery reports is enabled or not."
-                        },
-                        "DeliveryReportFields": {
-                          "type": "string",
-                          "description": "Gets or sets the delivery report fields."
-                        },
-                        "RequestTimeoutMs": {
+                        "StickyPartitioningLingerMs": {
                           "type": "integer",
-                          "description": "Gets or sets the request timeout ms."
+                          "description": "Gets or sets the sticky partitioning linger ms."
                         },
-                        "MessageTimeoutMs": {
-                          "type": "integer",
-                          "description": "Gets or sets the message timeout ms."
-                        },
-                        "Partitioner": {
-                          "enum": [ "Random", "Consistent", "ConsistentRandom", "Murmur2", "Murmur2Random" ],
-                          "description": "Gets or sets the partitioner."
-                        },
-                        "CompressionLevel": {
-                          "type": "integer",
-                          "description": "Gets or sets the compression level."
-                        },
-                        "TransactionalId": {
+                        "TopicBlacklist": {
                           "type": "string",
-                          "description": "Gets or sets the transactional id."
+                          "description": "Gets or sets the topic blacklist."
+                        },
+                        "TopicMetadataPropagationMaxMs": {
+                          "type": "integer",
+                          "description": "Gets or sets the topic metadata propagation max ms."
+                        },
+                        "TopicMetadataRefreshFastIntervalMs": {
+                          "type": "integer",
+                          "description": "Gets or sets the topic metadata refresh fast interval ms."
+                        },
+                        "TopicMetadataRefreshIntervalMs": {
+                          "type": "integer",
+                          "description": "Gets or sets the topic metadata refresh interval ms."
+                        },
+                        "TopicMetadataRefreshSparse": {
+                          "type": "boolean",
+                          "description": "Gets or sets a boolean value that indicates whether the topic metadata refresh sparse is enabled or not."
                         },
                         "TransactionTimeoutMs": {
                           "type": "integer",
                           "description": "Gets or sets the transaction timeout ms."
                         },
-                        "EnableIdempotence": {
-                          "type": "boolean",
-                          "description": "Gets or sets a boolean value that indicates whether the enable idempotence is enabled or not."
-                        },
-                        "EnableGaplessGuarantee": {
-                          "type": "boolean",
-                          "description": "Gets or sets a boolean value that indicates whether the enable gapless guarantee is enabled or not."
-                        },
-                        "QueueBufferingMaxMessages": {
-                          "type": "integer",
-                          "description": "Gets or sets the queue buffering max messages."
-                        },
-                        "QueueBufferingMaxKbytes": {
-                          "type": "integer",
-                          "description": "Gets or sets the queue buffering max kbytes."
-                        },
-                        "LingerMs": {
-                          "type": "integer",
-                          "description": "Gets or sets the linger ms."
-                        },
-                        "MessageSendMaxRetries": {
-                          "type": "integer",
-                          "description": "Gets or sets the message send max retries."
-                        },
-                        "RetryBackoffMs": {
-                          "type": "integer",
-                          "description": "Gets or sets the retry backoff ms."
-                        },
-                        "RetryBackoffMaxMs": {
-                          "type": "integer",
-                          "description": "Gets or sets the retry backoff max ms."
-                        },
-                        "QueueBufferingBackpressureThreshold": {
-                          "type": "integer",
-                          "description": "Gets or sets the queue buffering backpressure threshold."
-                        },
-                        "CompressionType": {
-                          "enum": [ "None", "Gzip", "Snappy", "Lz4", "Zstd" ],
-                          "description": "Gets or sets the compression type."
-                        },
-                        "BatchNumMessages": {
-                          "type": "integer",
-                          "description": "Gets or sets the batch num messages."
-                        },
-                        "BatchSize": {
-                          "type": "integer",
-                          "description": "Gets or sets the batch size."
-                        },
-                        "StickyPartitioningLingerMs": {
-                          "type": "integer",
-                          "description": "Gets or sets the sticky partitioning linger ms."
+                        "TransactionalId": {
+                          "type": "string",
+                          "description": "Gets or sets the transactional id."
                         }
                       }
+                    },
+                    "ConnectionString": {
+                      "type": "string",
+                      "description": "Gets or sets the connection string of the SQL Server database to connect to."
+                    },
+                    "HealthChecks": {
+                      "type": "boolean",
+                      "description": "Gets or sets a boolean value that indicates whether the database health check is enabled or not.",
+                      "default": true
+                    },
+                    "Metrics": {
+                      "type": "boolean",
+                      "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not.",
+                      "default": true
                     }
                   }
                 }
