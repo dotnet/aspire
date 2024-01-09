@@ -8,13 +8,4 @@ namespace Aspire.Hosting.Dapr;
 /// <summary>
 /// Represents a Dapr sidecar resource.
 /// </summary>
-internal sealed class DaprSidecarResource : Resource, IDaprSidecarResource
-{
-    /// <summary>
-    /// Initializes a new instance of <see cref="DaprSidecarResource"/>.
-    /// </summary>
-    /// <param name="name">The resource name.</param>
-    public DaprSidecarResource(string name) : base(name)
-    {
-    }
-}
+internal sealed class DaprSidecarResource(string name) : Resource(name), IDaprSidecarResource { }
