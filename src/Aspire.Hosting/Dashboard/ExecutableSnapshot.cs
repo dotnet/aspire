@@ -13,12 +13,15 @@ namespace Aspire.Hosting.Dashboard;
 /// </summary>
 internal class ExecutableSnapshot : ResourceSnapshot
 {
+    // IMPORTANT! Be sure to reflect any property changes here in the Equals and GetProperties methods below
+
     public override string ResourceType => KnownResourceTypes.Executable;
 
     public required int? ProcessId { get; init; }
     public required string? ExecutablePath { get; init; }
     public required string? WorkingDirectory { get; init; }
     public required ImmutableArray<string>? Arguments { get; init; }
+
     public required string? StdOutFile { get; init; }
     public required string? StdErrFile { get; init; }
 
@@ -28,6 +31,20 @@ internal class ExecutableSnapshot : ResourceSnapshot
         yield return (KnownProperties.Executable.WorkDir, Value.ForString(WorkingDirectory));
         yield return (KnownProperties.Executable.Args, Arguments is null ? Value.ForNull() : Value.ForList(Arguments.Value.Select(arg => Value.ForString(arg)).ToArray()));
         yield return (KnownProperties.Executable.Pid, ProcessId is null ? Value.ForNull() : Value.ForString(ProcessId.Value.ToString("D", CultureInfo.InvariantCulture)));
-        // TODO decide whether to send StdOut/StdErr file paths or not, and what we could use them for in the client.
+
+        // NOTE we don't send StdOutFile or StdErrFile to clients
+    }
+
+    public override bool Equals(ResourceSnapshot? other)
+    {
+        // NOTE we don't send StdOutFile or StdErrFile to clients, so exclude them here.
+
+        return other is ExecutableSnapshot executable
+            && ProcessId == executable.ProcessId
+            && StringComparer.Ordinal.Equals(ExecutablePath, executable.ExecutablePath)
+            && StringComparer.Ordinal.Equals(WorkingDirectory, executable.WorkingDirectory)
+            && Arguments is null == executable.Arguments is null
+            && (Arguments is null || Arguments.Value.SequenceEqual(executable.Arguments!.Value))
+            && base.Equals(other);
     }
 }

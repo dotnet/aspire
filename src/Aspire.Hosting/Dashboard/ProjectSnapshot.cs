@@ -11,6 +11,8 @@ namespace Aspire.Hosting.Dashboard;
 /// </summary>
 internal class ProjectSnapshot : ExecutableSnapshot
 {
+    // IMPORTANT! Be sure to reflect any property changes here in the Equals and GetProperties methods below
+
     public override string ResourceType => KnownResourceTypes.Project;
 
     public required string ProjectPath { get; init; }
@@ -23,5 +25,12 @@ internal class ProjectSnapshot : ExecutableSnapshot
         {
             yield return pair;
         }
+    }
+
+    public override bool Equals(ResourceSnapshot? other)
+    {
+        return other is ProjectSnapshot project
+            && StringComparer.Ordinal.Equals(ProjectPath, project.ProjectPath)
+            && base.Equals(other);
     }
 }
