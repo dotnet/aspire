@@ -50,9 +50,9 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                 continue;
             }
 
-            var sidecar = daprAnnotation.Sidecar;
+            var daprSidecar = daprAnnotation.Sidecar;
 
-            var sidecarOptionsAnnotation = sidecar.Annotations.OfType<DaprSidecarOptionsAnnotation>().LastOrDefault();
+            var sidecarOptionsAnnotation = daprSidecar.Annotations.OfType<DaprSidecarOptionsAnnotation>().LastOrDefault();
 
             var sidecarOptions = sidecarOptionsAnnotation?.Options;
 
@@ -131,8 +131,8 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         ModelNamedArg("--unix-domain-socket", sidecarOptions?.UnixDomainSocket),
                         PostOptionsArgs(Args(sidecarOptions?.Command)));
 
-            var daprSideCarResourceName = $"{sidecar.Name}-cli";
-            var daprSideCar = new ExecutableResource(daprSideCarResourceName, fileName, appHostDirectory, daprCommandLine.Arguments.ToArray());
+            var daprCliResourceName = $"{daprSidecar.Name}-cli";
+            var daprCli = new ExecutableResource(daprCliResourceName, fileName, appHostDirectory, daprCommandLine.Arguments.ToArray());
 
             resource.Annotations.Add(
                 new EnvironmentCallbackAnnotation(
@@ -147,32 +147,32 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         {
                             // By default, the Dapr sidecar will listen on localhost, which is not accessible from the container.
 
-                            var grpcEndpoint = $"http://localhost:{{{{- portFor \"{daprSideCarResourceName}_grpc\" -}}}}";
-                            var httpEndpoint = $"http://localhost:{{{{- portFor \"{daprSideCarResourceName}_http\" -}}}}";
+                            var grpcEndpoint = $"http://localhost:{{{{- portFor \"{daprCliResourceName}_grpc\" -}}}}";
+                            var httpEndpoint = $"http://localhost:{{{{- portFor \"{daprCliResourceName}_http\" -}}}}";
 
                             context.EnvironmentVariables.TryAdd("DAPR_GRPC_ENDPOINT", HostNameResolver.ReplaceLocalhostWithContainerHost(grpcEndpoint, _configuration));
                             context.EnvironmentVariables.TryAdd("DAPR_HTTP_ENDPOINT", HostNameResolver.ReplaceLocalhostWithContainerHost(httpEndpoint, _configuration));
                         }
 
-                        context.EnvironmentVariables.TryAdd("DAPR_GRPC_PORT", $"{{{{- portFor \"{daprSideCarResourceName}_grpc\" -}}}}");
-                        context.EnvironmentVariables.TryAdd("DAPR_HTTP_PORT", $"{{{{- portFor \"{daprSideCarResourceName}_http\" -}}}}");
+                        context.EnvironmentVariables.TryAdd("DAPR_GRPC_PORT", $"{{{{- portFor \"{daprCliResourceName}_grpc\" -}}}}");
+                        context.EnvironmentVariables.TryAdd("DAPR_HTTP_PORT", $"{{{{- portFor \"{daprCliResourceName}_http\" -}}}}");
                     }));
 
-            daprSideCar.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, name: "grpc", port: sidecarOptions?.DaprGrpcPort));
-            daprSideCar.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, name: "http", port: sidecarOptions?.DaprHttpPort));
-            daprSideCar.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, name: "metrics", port: sidecarOptions?.MetricsPort));
+            daprCli.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, name: "grpc", port: sidecarOptions?.DaprGrpcPort));
+            daprCli.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, name: "http", port: sidecarOptions?.DaprHttpPort));
+            daprCli.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, name: "metrics", port: sidecarOptions?.MetricsPort));
             if (sidecarOptions?.EnableProfiling == true)
             {
-                daprSideCar.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, name: "profile", port: sidecarOptions?.ProfilePort));
+                daprCli.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, name: "profile", port: sidecarOptions?.ProfilePort));
             }
 
             // NOTE: Telemetry is enabled by default.
             if (this._options.EnableTelemetry != false)
             {
-                OtlpConfigurationExtensions.AddOtlpEnvironment(daprSideCar, _configuration, _environment);
+                OtlpConfigurationExtensions.AddOtlpEnvironment(daprCli, _configuration, _environment);
             }
 
-            daprSideCar.Annotations.Add(
+            daprCli.Annotations.Add(
                 new ExecutableArgsCallbackAnnotation(
                     updatedArgs =>
                     {
@@ -186,22 +186,22 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                             }
                         }
 
-                        updatedArgs.AddRange(daprGrpcPortArg($"{{{{- portForServing \"{daprSideCarResourceName}_grpc\" -}}}}")());
-                        updatedArgs.AddRange(daprHttpPortArg($"{{{{- portForServing \"{daprSideCarResourceName}_http\" -}}}}")());
-                        updatedArgs.AddRange(daprMetricsPortArg($"{{{{- portForServing \"{daprSideCarResourceName}_metrics\" -}}}}")());
+                        updatedArgs.AddRange(daprGrpcPortArg($"{{{{- portForServing \"{daprCliResourceName}_grpc\" -}}}}")());
+                        updatedArgs.AddRange(daprHttpPortArg($"{{{{- portForServing \"{daprCliResourceName}_http\" -}}}}")());
+                        updatedArgs.AddRange(daprMetricsPortArg($"{{{{- portForServing \"{daprCliResourceName}_metrics\" -}}}}")());
                         if (sidecarOptions?.EnableProfiling == true)
                         {
-                            updatedArgs.AddRange(daprProfilePortArg($"{{{{- portForServing \"{daprSideCarResourceName}_profile\" -}}}}")());
+                            updatedArgs.AddRange(daprProfilePortArg($"{{{{- portForServing \"{daprCliResourceName}_profile\" -}}}}")());
                         }
                     }));
 
             // Apply environment variables to the CLI...
-            daprSideCar.Annotations.AddRange(sidecar.Annotations.OfType<EnvironmentCallbackAnnotation>());
+            daprCli.Annotations.AddRange(daprSidecar.Annotations.OfType<EnvironmentCallbackAnnotation>());
 
             // The CLI is an artifact of a local run, so it should not be published...
-            daprSideCar.Annotations.Add(ManifestPublishingCallbackAnnotation.Ignore);
+            daprCli.Annotations.Add(ManifestPublishingCallbackAnnotation.Ignore);
 
-            sidecar.Annotations.Add(
+            daprSidecar.Annotations.Add(
                 new ManifestPublishingCallbackAnnotation(
                     context =>
                     {
@@ -241,7 +241,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         context.Writer.WriteEndObject();
                     }));
 
-            sideCars.Add(daprSideCar);
+            sideCars.Add(daprCli);
         }
 
         appModel.Resources.AddRange(sideCars);
