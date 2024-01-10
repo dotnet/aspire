@@ -1,0 +1,119 @@
+{
+  "properties": {
+    "RecordWithPrimitives": {
+      "type": "object",
+      "properties": {
+        "Prop0": {
+          "type": "boolean",
+          "description": "Prop0 is a bool."
+        },
+        "Prop1": {
+          "type": "integer"
+        },
+        "Prop10": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Prop10 is a float."
+        },
+        "Prop11": {
+          "type": [
+            "number",
+            "string"
+          ]
+        },
+        "Prop12": {
+          "type": "integer"
+        },
+        "Prop13": {
+          "type": "integer"
+        },
+        "Prop14": {
+          "type": "integer"
+        },
+        "Prop15": {
+          "type": "integer"
+        },
+        "Prop16": {
+          "type": "string"
+        },
+        "Prop17": {
+          "type": "string"
+        },
+        "Prop18": {
+          "type": "string"
+        },
+        "Prop19": {
+          "type": "string"
+        },
+        "Prop2": {
+          "type": "integer"
+        },
+        "Prop20": {
+          "type": "string"
+        },
+        "Prop21": {
+          "type": [
+            "number",
+            "string"
+          ]
+        },
+        "Prop22": {
+          "type": "string"
+        },
+        "Prop23": {
+          "type": "string",
+          "format": "duration"
+        },
+        "Prop24": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "Prop25": {
+          "type": "string",
+          "format": "uri"
+        },
+        "Prop26": {
+          "type": "string"
+        },
+        "Prop27": {
+          "enum": [
+            "Sunday",
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday"
+          ]
+        },
+        "Prop3": {
+          "type": "integer"
+        },
+        "Prop4": {
+          "type": [
+            "number",
+            "string"
+          ]
+        },
+        "Prop5": {
+          "type": "string"
+        },
+        "Prop6": {
+          "type": "integer"
+        },
+        "Prop7": {
+          "type": "integer"
+        },
+        "Prop8": {
+          "type": "integer"
+        },
+        "Prop9": {
+          "type": "integer"
+        }
+      }
+    }
+  },
+  "type": "object"
+}

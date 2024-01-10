@@ -93,4 +93,22 @@ public class GeneratorTests
         var first = stripedNodes.First();
         Assert.Equal(expected, first.ToString().Trim());
     }
+
+    [Fact]
+    public void IntegrationTest()
+    {
+        // the 'refs' folder is populated by PreserveCompilationContext in the .csproj
+        var referenceAssemblies = Directory.GetFiles(Path.Combine(Directory.GetCurrentDirectory(), "refs"), "*.dll", SearchOption.AllDirectories)
+            .ToArray();
+
+        var outputPath = Path.Combine(Directory.GetCurrentDirectory(), "IntegrationTest.json");
+        ConfigSchemaGenerator.GenerateSchema(
+            typeof(GeneratorTests).Assembly.Location,
+            referenceAssemblies,
+            outputPath);
+
+        var actual = File.ReadAllText(outputPath);
+        var baseline = File.ReadAllText(Path.Combine("Baselines", "IntegrationTest.baseline.json"));
+        Assert.Equal(baseline, actual);
+    }
 }
