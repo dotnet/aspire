@@ -20,6 +20,9 @@ internal sealed class ResourcePublisher(CancellationToken cancellationToken)
     private readonly Dictionary<string, ResourceSnapshot> _snapshot = [];
     private ImmutableHashSet<Channel<ResourceSnapshotChange>> _outgoingChannels = [];
 
+    // For testing purposes
+    internal int OutgoingSubscriberCount => _outgoingChannels.Count;
+
     internal bool TryGetResource(string resourceName, [NotNullWhen(returnValue: true)] out ResourceSnapshot? resource)
     {
         lock (_syncLock)
@@ -68,6 +71,8 @@ internal sealed class ResourcePublisher(CancellationToken cancellationToken)
     /// <returns>A task that completes when the cache has been updated and all subscribers notified.</returns>
     internal async ValueTask IntegrateAsync(ResourceSnapshot resource, ResourceSnapshotChangeType changeType)
     {
+        ImmutableHashSet<Channel<ResourceSnapshotChange>> channels;
+
         lock (_syncLock)
         {
             switch (changeType)
@@ -80,9 +85,11 @@ internal sealed class ResourcePublisher(CancellationToken cancellationToken)
                     _snapshot.Remove(resource.Name);
                     break;
             }
+
+            channels = _outgoingChannels;
         }
 
-        foreach (var channel in _outgoingChannels)
+        foreach (var channel in channels)
         {
             await channel.Writer.WriteAsync(new(changeType, resource), cancellationToken).ConfigureAwait(false);
         }
