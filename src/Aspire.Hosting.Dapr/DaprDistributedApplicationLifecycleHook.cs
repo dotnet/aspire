@@ -150,8 +150,8 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         {
                             // By default, the Dapr sidecar will listen on localhost, which is not accessible from the container.
 
-                            var grpcEndpoint = $"http://localhost:{{{{- portFor \"{daprCliResourceName}_grpc\" -}}}}";
-                            var httpEndpoint = $"http://localhost:{{{{- portFor \"{daprCliResourceName}_http\" -}}}}";
+                            grpcEndpoint = $"http://localhost:{{{{- portFor \"{daprCliResourceName}_grpc\" -}}}}";
+                            httpEndpoint = $"http://localhost:{{{{- portFor \"{daprCliResourceName}_http\" -}}}}";
 
                             context.EnvironmentVariables.TryAdd("DAPR_GRPC_ENDPOINT", HostNameResolver.ReplaceLocalhostWithContainerHost(grpcEndpoint, _configuration));
                             context.EnvironmentVariables.TryAdd("DAPR_HTTP_ENDPOINT", HostNameResolver.ReplaceLocalhostWithContainerHost(httpEndpoint, _configuration));
@@ -183,9 +183,10 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                 new ExecutableArgsCallbackAnnotation(
                     updatedArgs =>
                     {
+                        AllocatedEndpointAnnotation? httpEndPoint = null;
                         if (resource.TryGetAllocatedEndPoints(out var projectEndPoints))
                         {
-                            var httpEndPoint = projectEndPoints.FirstOrDefault(endPoint => endPoint.Name == "http");
+                            httpEndPoint = projectEndPoints.FirstOrDefault(endPoint => endPoint.Name == "http");
 
                             if (httpEndPoint is not null && sidecarOptions?.AppPort is null)
                             {
@@ -200,9 +201,9 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         {
                             updatedArgs.AddRange(daprProfilePortArg($"{{{{- portForServing \"{daprCliResourceName}_profile\" -}}}}")());
                         }
-                        if (sidecarOptions?.AppChannelAddress is null)
+                        if (sidecarOptions?.AppChannelAddress is null && httpEndPoint is not null)
                         {
-                            updatedArgs.AddRange(daprAppChannelAddressArg($"{{{{- addressForServing \"{daprCliResourceName}_grpc\" -}}}}")());
+                            updatedArgs.AddRange(daprAppChannelAddressArg(httpEndPoint.Address)());
                         }
                     }));
 
