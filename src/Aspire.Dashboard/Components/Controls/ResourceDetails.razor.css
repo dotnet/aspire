@@ -1,4 +1,4 @@
-::deep.span-details-layout {
+::deep.environment-variables-layout {
     display: grid;
     grid-template-rows: auto 1fr;
     grid-template-areas:
@@ -7,7 +7,7 @@
     overflow: auto;
 }
 
-::deep.span-details-layout > fluent-toolbar {
+::deep.environment-variables-layout > fluent-toolbar {
     grid-area: toolbar;
 }
 
@@ -16,12 +16,6 @@
     overflow: auto;
     width: 100%;
     height: 100%;
-}
-
-::deep .property-grid-container h4 {
-    padding: calc(var(--design-unit) * 3px);
-    margin-top: calc(var(--design-unit) * 1px);
-    margin-bottom: 0;
 }
 
 ::deep fluent-accordion {
@@ -43,9 +37,3 @@
     font-weight: bold;
     font-size: var(--type-ramp-plus-1-font-size);
 }
-
-::deep .event-attributes-header {
-    font-weight: bold;
-    margin: 5px 0;
-}
-
