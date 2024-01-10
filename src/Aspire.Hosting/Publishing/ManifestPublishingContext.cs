@@ -168,4 +168,22 @@ public sealed class ManifestPublishingContext(string manifestPath, Utf8JsonWrite
             }
         }
     }
+
+    internal void WriteManifestMetadata(IResource resource)
+    {
+        if (!resource.TryGetAnnotationsOfType<ManifestMetadataAnnotation>(out var metadataAnnotations))
+        {
+            return;
+        }
+
+        Writer.WriteStartObject("metadata");
+
+        foreach (var metadataAnnotation in metadataAnnotations)
+        {
+            Writer.WritePropertyName(metadataAnnotation.Name);
+            JsonSerializer.Serialize(Writer, metadataAnnotation.Value);
+        }
+
+        Writer.WriteEndObject();
+    }
 }

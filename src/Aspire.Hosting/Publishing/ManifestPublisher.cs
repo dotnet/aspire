@@ -97,6 +97,7 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger,
         {
             context.Writer.WriteStartObject(resource.Name);
             action();
+            context.WriteManifestMetadata(resource);
             context.Writer.WriteEndObject();
         }
     }
