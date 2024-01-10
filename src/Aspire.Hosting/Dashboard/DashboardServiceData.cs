@@ -32,8 +32,9 @@ internal sealed class DashboardServiceData : IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         await _cts.CancelAsync().ConfigureAwait(false);
-
         _cts.Dispose();
+
+        _consoleLogPublisher.Dispose();
     }
 
     internal ResourceSnapshotSubscription SubscribeResources()

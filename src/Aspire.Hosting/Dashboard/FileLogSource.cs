@@ -10,20 +10,34 @@ using Aspire.Hosting.Extensions;
 
 namespace Aspire.Hosting.Dashboard;
 
-internal sealed partial class FileLogSource(string stdOutPath, string stdErrPath) : IAsyncEnumerable<IReadOnlyList<(string Content, bool IsErrorMessage)>>
+internal sealed partial class FileLogSource : IAsyncEnumerable<IReadOnlyList<(string Content, bool IsErrorMessage)>>
 {
     private static readonly StreamPipeReaderOptions s_streamPipeReaderOptions = new(leaveOpen: true);
     private static readonly Regex s_lineSplitRegex = GenerateLineSplitRegex();
 
-    public async IAsyncEnumerator<IReadOnlyList<(string Content, bool IsErrorMessage)>> GetAsyncEnumerator(CancellationToken cancellationToken)
+    private readonly string _stdOutPath;
+    private readonly string _stdErrPath;
+    private readonly CancellationToken _cancellationToken;
+
+    public FileLogSource(string stdOutPath, string stdErrPath, CancellationToken cancellationToken)
     {
+        _stdOutPath = stdOutPath;
+        _stdErrPath = stdErrPath;
+        _cancellationToken = cancellationToken;
+    }
+
+    public async IAsyncEnumerator<IReadOnlyList<(string Content, bool IsErrorMessage)>> GetAsyncEnumerator(CancellationToken cancellationToken = default)
+    {
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_cancellationToken, cancellationToken);
+        var linkedToken = linkedCts.Token;
+
         var channel = Channel.CreateUnbounded<(string Content, bool IsErrorMessage)>(
             new UnboundedChannelOptions { AllowSynchronousContinuations = false, SingleReader = true, SingleWriter = false });
 
-        var stdOut = Task.Run(() => WatchFileAsync(stdOutPath, isError: false), cancellationToken);
-        var stdErr = Task.Run(() => WatchFileAsync(stdErrPath, isError: true), cancellationToken);
+        var stdOut = Task.Run(() => WatchFileAsync(_stdOutPath, isError: false), linkedToken);
+        var stdErr = Task.Run(() => WatchFileAsync(_stdErrPath, isError: true), linkedToken);
 
-        await foreach (var batch in channel.GetBatches(cancellationToken))
+        await foreach (var batch in channel.GetBatches(linkedToken))
         {
             yield return batch;
         }
@@ -41,13 +55,13 @@ internal sealed partial class FileLogSource(string stdOutPath, string stdErrPath
             // The FileStream will stay open and continue growing as data is written to it
             // but the PipeReader will close as soon as it reaches the end of the FileStream.
             // So we need to keep re-creating it. It will read from the last position 
-            while (!cancellationToken.IsCancellationRequested)
+            while (!linkedToken.IsCancellationRequested)
             {
                 var reader = PipeReader.Create(fileStream, s_streamPipeReaderOptions);
 
-                while (!cancellationToken.IsCancellationRequested)
+                while (!linkedToken.IsCancellationRequested)
                 {
-                    var result = await reader.ReadAsync(cancellationToken).ConfigureAwait(false);
+                    var result = await reader.ReadAsync(linkedToken).ConfigureAwait(false);
 
                     if (result.IsCompleted)
                     {
@@ -59,7 +73,7 @@ internal sealed partial class FileLogSource(string stdOutPath, string stdErrPath
                         //
                         // Longer term we hope to have a log streaming API from DCP for this.
                         // https://github.com/dotnet/aspire/issues/760
-                        await Task.Delay(100, cancellationToken).ConfigureAwait(false);
+                        await Task.Delay(100, linkedToken).ConfigureAwait(false);
 
                         // We're done here. Loop around and wait for a signal that the file has changed.
                         break;
