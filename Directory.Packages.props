@@ -4,6 +4,7 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Azure SDK for .NET dependencies -->
+    <PackageVersion Include="Azure.AI.OpenAI" Version="1.0.0-beta.12" />
     <PackageVersion Include="Azure.Data.Tables" Version="12.8.2" />
     <PackageVersion Include="Azure.Extensions.AspNetCore.Configuration.Secrets" Version="1.3.0" />
     <PackageVersion Include="Azure.Identity" Version="1.10.4" />

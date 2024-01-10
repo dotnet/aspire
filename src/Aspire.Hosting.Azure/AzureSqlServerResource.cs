@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Collections.ObjectModel;
-
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
@@ -11,7 +9,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="name">The name of the resource.</param>
 public class AzureSqlServerResource(string name) : Resource(name), IAzureResource
 {
-    private readonly Collection<AzureSqlDatabaseResource> _databases = new();
+    private readonly List<AzureSqlDatabaseResource> _databases = new();
 
     /// <summary>
     /// Gets or sets the hostname of the Azure SQL Server resource.
@@ -21,7 +19,7 @@ public class AzureSqlServerResource(string name) : Resource(name), IAzureResourc
     /// <summary>
     /// Gets the list of databases of the Azure SQL Server resource.
     /// </summary>
-    public IReadOnlyCollection<AzureSqlDatabaseResource> Databases => _databases;
+    public IReadOnlyList<AzureSqlDatabaseResource> Databases => _databases;
 
     internal void AddDatabase(AzureSqlDatabaseResource database)
     {

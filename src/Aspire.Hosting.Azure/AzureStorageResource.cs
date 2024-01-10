@@ -16,12 +16,12 @@ public class AzureStorageResource(string name) : Resource(name), IAzureResource
     /// Gets or sets the URI of the Azure Table Storage resource.
     /// </summary>
     public Uri? TableUri { get; set; }
-    
+
     /// <summary>
     /// Gets or sets the URI of the Azure Storage queue.
     /// </summary>
     public Uri? QueueUri { get; set; }
-    
+
     /// <summary>
     /// Gets or sets the URI of the blob.
     /// </summary>

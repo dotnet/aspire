@@ -101,7 +101,7 @@ internal abstract class AzureComponent<TSettings, TClient, TClientOptions>
 
         if (GetHealthCheckEnabled(settings))
         {
-            string namePrefix = $"Azure_{typeof(TClient).Name}";
+            var namePrefix = $"Azure_{typeof(TClient).Name}";
 
             builder.TryAddHealthCheck(new HealthCheckRegistration(
                 serviceKey is null ? namePrefix : $"{namePrefix}_{serviceKey}",
@@ -110,7 +110,7 @@ internal abstract class AzureComponent<TSettings, TClient, TClientOptions>
                     // From https://devblogs.microsoft.com/azure-sdk/lifetime-management-and-thread-safety-guarantees-of-azure-sdk-net-clients/:
                     // "The main rule of Azure SDK client lifetime management is: treat clients as singletons".
                     // So it's fine to root the client via the health check.
-                    TClient client = serviceKey is null
+                    var client = serviceKey is null
                         ? serviceProvider.GetRequiredService<TClient>()
                         : serviceProvider.GetRequiredKeyedService<TClient>(serviceKey);
 
