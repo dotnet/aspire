@@ -32,6 +32,17 @@
         }
       }
     },
+    "servicea-dapr": {
+      "type": "dapr.v0",
+      "dapr": {
+        "application": "servicea",
+        "appId": "servicea",
+        "components": [
+          "statestore",
+          "pubsub"
+        ]
+      }
+    },
     "serviceb": {
       "type": "project.v0",
       "path": "../ServiceB/DaprServiceB.csproj",
@@ -50,17 +61,6 @@
           "protocol": "tcp",
           "transport": "http"
         }
-      }
-    },
-    "servicea-dapr": {
-      "type": "dapr.v0",
-      "dapr": {
-        "application": "servicea",
-        "appId": "servicea",
-        "components": [
-          "statestore",
-          "pubsub"
-        ]
       }
     },
     "serviceb-dapr": {

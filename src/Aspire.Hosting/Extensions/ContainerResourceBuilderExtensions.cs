@@ -98,6 +98,19 @@ public static class ContainerResourceBuilderExtensions
         });
         return builder.WithAnnotation(annotation);
     }
+
+    /// <summary>
+    /// Sets the Entrypoint for the container.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="entrypoint">The new entrypoint for the container.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithEntrypoint<T>(this IResourceBuilder<T> builder, string entrypoint) where T : ContainerResource
+    {
+        builder.Resource.Entrypoint = entrypoint;
+        return builder;
+    }
 }
 
 internal static class IListExtensions

@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Publishing;
@@ -60,6 +61,10 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddLifecycleHook<DcpDistributedApplicationLifecycleHook>();
         _innerBuilder.Services.AddSingleton<ApplicationExecutor>();
         _innerBuilder.Services.AddHostedService<DcpHostService>();
+
+        // Dashboard
+        _innerBuilder.Services.AddHostedService<DashboardServiceHost>();
+        _innerBuilder.Services.AddHostedService<DashboardWebApplicationHost>();
 
         // We need a unique path per application instance
         _innerBuilder.Services.AddSingleton(new Locations());

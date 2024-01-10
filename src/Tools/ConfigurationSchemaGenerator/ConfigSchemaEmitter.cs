@@ -17,6 +17,15 @@ namespace ConfigurationSchemaGenerator;
 
 internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Compilation compilation)
 {
+    private static readonly JsonSerializerOptions s_serializerOptions = new()
+    {
+        WriteIndented = true,
+        // ensure the properties are ordered correctly
+        Converters = { SchemaOrderJsonNodeConverter.Instance },
+        // prevent known escaped characters from being \uxxxx encoded
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    };
+
     private readonly TypeIndex _typeIndex = new TypeIndex(spec.AllTypes);
     private readonly Compilation _compilation = compilation;
     private readonly Stack<TypeSpec> _visitedTypes = new();
@@ -32,15 +41,7 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
         root["properties"] = GenerateGraph();
         root["type"] = "object";
 
-        var options = new JsonSerializerOptions()
-        {
-            WriteIndented = true,
-            // ensure the properties are ordered correctly
-            Converters = { SchemaOrderJsonNodeConverter.Instance },
-            // prevent known escaped characters from being \uxxxx encoded
-            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
-        };
-        return JsonSerializer.Serialize(root, options);
+        return JsonSerializer.Serialize(root, s_serializerOptions);
     }
 
     private void GenerateLogCategories(JsonObject parent)
@@ -292,7 +293,7 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
         });
     }
 
-    private static IEnumerable<XNode> StripXmlElements(XElement element)
+    internal static IEnumerable<XNode> StripXmlElements(XElement element)
     {
         if (element.Nodes().Any())
         {
@@ -303,7 +304,24 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
             // just get the first attribute value
             // ex. <see cref="System.Diagnostics.Debug.Assert(bool)"/>
             // ex. <see langword="true"/>
-            return [new XText(element.FirstAttribute.Value)];
+            var attributeValue = element.FirstAttribute.Value;
+
+            // format the attribute value if it is an "ID string" representing a type or member
+            // by stripping the prefix.
+            // See https://learn.microsoft.com/dotnet/csharp/language-reference/xmldoc/#id-strings
+            var formattedValue = attributeValue switch
+            {
+                var s when
+                    s.StartsWith("T:", StringComparison.Ordinal) ||
+                    s.StartsWith("P:", StringComparison.Ordinal) ||
+                    s.StartsWith("M:", StringComparison.Ordinal) ||
+                    s.StartsWith("F:", StringComparison.Ordinal) ||
+                    s.StartsWith("N:", StringComparison.Ordinal) ||
+                    s.StartsWith("E:", StringComparison.Ordinal) => $"'{s.AsSpan(2)}'",
+                _ => attributeValue,
+            };
+
+            return [new XText(formattedValue)];
         }
 
         return Enumerable.Empty<XNode>();

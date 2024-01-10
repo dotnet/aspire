@@ -67,7 +67,7 @@ public class AllocatedEndpointAnnotation : IResourceAnnotation
     /// <summary>
     /// URI in string representation specially formatted to be processed by service discovery without ambiguity.
     /// </summary>
-    public string BindingNameQualifiedUriString => $"{UriScheme}://_{Name}.{EndPointString}";
+    public string BindingNameQualifiedUriString => $"{Name}://{EndPointString}";
 
     /// <summary>
     /// URI in string representation.

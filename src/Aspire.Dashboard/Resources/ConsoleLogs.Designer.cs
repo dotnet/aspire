@@ -132,15 +132,6 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Select a resource.
-        /// </summary>
-        public static string ConsoleLogsSelectAResource {
-            get {
-                return ResourceManager.GetString("ConsoleLogsSelectAResource", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Unknown state.
         /// </summary>
         public static string ConsoleLogsUnknownState {
@@ -155,6 +146,15 @@ namespace Aspire.Dashboard.Resources {
         public static string ConsoleLogsWatchingLogs {
             get {
                 return ResourceManager.GetString("ConsoleLogsWatchingLogs", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Service log status.
+        /// </summary>
+        public static string LogStatusLabel {
+            get {
+                return ResourceManager.GetString("LogStatusLabel", resourceCulture);
             }
         }
     }

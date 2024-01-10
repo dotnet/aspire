@@ -42,11 +42,6 @@
         <target state="new">{0} console logs</target>
         <note>{0} is an application name</note>
       </trans-unit>
-      <trans-unit id="ConsoleLogsSelectAResource">
-        <source>Select a resource</source>
-        <target state="new">Select a resource</target>
-        <note />
-      </trans-unit>
       <trans-unit id="ConsoleLogsUnknownState">
         <source>Unknown state</source>
         <target state="new">Unknown state</target>
@@ -55,6 +50,11 @@
       <trans-unit id="ConsoleLogsWatchingLogs">
         <source>Watching logs...</source>
         <target state="new">Watching logs...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LogStatusLabel">
+        <source>Service log status</source>
+        <target state="new">Service log status</target>
         <note />
       </trans-unit>
     </body>

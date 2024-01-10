@@ -42,6 +42,16 @@
         <target state="new">Unable to display chart</target>
         <note />
       </trans-unit>
+      <trans-unit id="DurationColumnHeader">
+        <source>Duration</source>
+        <target state="new">Duration</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="EventColumnHeader">
+        <source>Event</source>
+        <target state="new">Event</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FilterPlaceholder">
         <source>Filter...</source>
         <target state="new">Filter...</target>
@@ -107,6 +117,11 @@
         <target state="new">Value</target>
         <note />
       </trans-unit>
+      <trans-unit id="SelectAResource">
+        <source>Select a resource</source>
+        <target state="new">Select a resource</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SelectAnApplication">
         <source>Select an application</source>
         <target state="new">Select an application</target>
@@ -126,6 +141,16 @@
         <source>Start time &lt;strong&gt;{0}&lt;/strong&gt;</source>
         <target state="new">Start time &lt;strong&gt;{0}&lt;/strong&gt;</target>
         <note>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+      </trans-unit>
+      <trans-unit id="TimeOffsetColumnHeader">
+        <source>Time offset</source>
+        <target state="new">Time offset</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TimestampColumnHeader">
+        <source>Timestamp</source>
+        <target state="new">Timestamp</target>
+        <note />
       </trans-unit>
       <trans-unit id="ViewAction">
         <source>View</source>

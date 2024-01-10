@@ -6,11 +6,16 @@
     <IsPackable>true</IsPackable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <NoWarn>$(NoWarn);CS8002</NoWarn>
+    <PackageTags>aspire hosting</PackageTags>
     <Description>Core API and abstractions for the .NET Aspire application model.</Description>
   </PropertyGroup>
 
   <ItemGroup>
     <None Include="**/*.props;**/*.targets" Pack="true" PackagePath="%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Aspire.Dashboard\Utils\StringComparers.cs" Link="Utils\StringComparers.cs" />
   </ItemGroup>
 
   <ItemGroup>

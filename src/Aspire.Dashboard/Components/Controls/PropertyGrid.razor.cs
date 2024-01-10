@@ -8,6 +8,7 @@ namespace Aspire.Dashboard.Components.Controls;
 
 public partial class PropertyGrid<TItem>
 {
+    private static readonly RenderFragment<TItem> s_emptyChildContent = _ => builder => { };
 
     [Parameter, EditorRequired]
     public IQueryable<TItem>? Items { get; set; }
@@ -53,6 +54,9 @@ public partial class PropertyGrid<TItem>
 
     [Parameter]
     public EventCallback<TItem> IsMaskedChanged { get; set; }
+
+    [Parameter]
+    public RenderFragment<TItem> ExtraValueContent { get; set; } = s_emptyChildContent;
 
     public readonly record struct PropertyGridIsMaskedChangedArgs(TItem Item, bool NewValue);
 

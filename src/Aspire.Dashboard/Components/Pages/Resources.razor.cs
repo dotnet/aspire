@@ -19,19 +19,18 @@ public partial class Resources : ComponentBase, IDisposable
     private Dictionary<OtlpApplication, int>? _applicationUnviewedErrorCounts;
 
     [Inject]
-    public required IResourceService ResourceService { get; init; }
+    public required IDashboardClient DashboardClient { get; init; }
     [Inject]
     public required TelemetryRepository TelemetryRepository { get; init; }
     [Inject]
     public required NavigationManager NavigationManager { get; init; }
 
-    private IEnumerable<EnvironmentVariableViewModel>? SelectedEnvironmentVariables { get; set; }
     private ResourceViewModel? SelectedResource { get; set; }
 
     private readonly CancellationTokenSource _watchTaskCancellationTokenSource = new();
     private readonly ConcurrentDictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
     // TODO populate resource types from server data
-    private readonly ImmutableArray<string> _allResourceTypes = ["Project", "Executable", "Container"];
+    private readonly ImmutableArray<string> _allResourceTypes = [KnownResourceTypes.Project, KnownResourceTypes.Executable, KnownResourceTypes.Container];
     private readonly HashSet<string> _visibleResourceTypes;
     private string _filter = "";
     private bool _isTypeFilterVisible;
@@ -87,7 +86,7 @@ public partial class Resources : ComponentBase, IDisposable
     {
         _applicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
 
-        var (snapshot, subscription) = ResourceService.SubscribeResources();
+        var (snapshot, subscription) = DashboardClient.SubscribeResources();
 
         foreach (var resource in snapshot)
         {
@@ -99,7 +98,17 @@ public partial class Resources : ComponentBase, IDisposable
         {
             await foreach (var (changeType, resource) in subscription.WithCancellation(_watchTaskCancellationTokenSource.Token))
             {
-                await OnResourceListChanged(changeType, resource);
+                if (changeType == ResourceViewModelChangeType.Upsert)
+                {
+                    _resourceByName[resource.Name] = resource;
+                }
+                else if (changeType == ResourceViewModelChangeType.Delete)
+                {
+                    var removed = _resourceByName.TryRemove(resource.Name, out _);
+                    Debug.Assert(removed, "Cannot remove unknown resource.");
+                }
+
+                await InvokeAsync(StateHasChanged);
             }
         });
 
@@ -110,7 +119,7 @@ public partial class Resources : ComponentBase, IDisposable
         });
     }
 
-    private void ShowEnvironmentVariables(ResourceViewModel resource)
+    private void ShowResourceDetails(ResourceViewModel resource)
     {
         if (SelectedResource == resource)
         {
@@ -118,32 +127,13 @@ public partial class Resources : ComponentBase, IDisposable
         }
         else
         {
-            SelectedEnvironmentVariables = resource.Environment;
             SelectedResource = resource;
         }
     }
 
     private void ClearSelectedResource()
     {
-        SelectedEnvironmentVariables = null;
         SelectedResource = null;
-    }
-
-    private async Task OnResourceListChanged(ResourceChangeType changeType, ResourceViewModel resource)
-    {
-        switch (changeType)
-        {
-            case ResourceChangeType.Upsert:
-                _resourceByName[resource.Name] = resource;
-                break;
-
-            case ResourceChangeType.Delete:
-                var removed = _resourceByName.TryRemove(resource.Name, out _);
-                Debug.Assert(removed, "Cannot remove unknown resource.");
-                break;
-        }
-
-        await InvokeAsync(StateHasChanged);
     }
 
     private string GetResourceName(ResourceViewModel resource) => ResourceViewModel.GetResourceName(resource, _resourceByName.Values);

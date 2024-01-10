@@ -105,9 +105,6 @@
     <value>{0} console logs</value>
     <comment>{0} is an application name</comment>
   </data>
-  <data name="ConsoleLogsSelectAResource" xml:space="preserve">
-    <value>Select a resource</value>
-  </data>
   <data name="ConsoleLogsInitializingLogViewer" xml:space="preserve">
     <value>Initializing log viewer...</value>
   </data>
@@ -131,5 +128,8 @@
   </data>
   <data name="ConsoleLogsUnknownState" xml:space="preserve">
     <value>Unknown state</value>
+  </data>
+  <data name="LogStatusLabel" xml:space="preserve">
+    <value>Service log status</value>
   </data>
 </root>

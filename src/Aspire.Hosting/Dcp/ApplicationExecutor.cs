@@ -6,6 +6,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Lifecycle;
 using k8s;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Dcp;
 
@@ -45,12 +46,13 @@ internal sealed class ServiceAppResource : AppResource
     }
 }
 
-internal sealed class ApplicationExecutor(DistributedApplicationModel model,
+internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger, DistributedApplicationModel model,
                                           KubernetesService kubernetesService,
                                           IEnumerable<IDistributedApplicationLifecycleHook> lifecycleHooks)
 {
     private const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
 
+    private readonly ILogger<ApplicationExecutor> _logger = logger;
     private readonly IDistributedApplicationLifecycleHook[] _lifecycleHooks = lifecycleHooks.ToArray();
 
     // These environment variables should never be inherited from app host;
@@ -608,6 +610,11 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
                     }
                 }
 
+                if (modelContainerResource is ContainerResource containerResource)
+                {
+                    dcpContainerResource.Spec.Command = containerResource.Entrypoint;
+                }
+
                 await kubernetesService.CreateAsync(dcpContainerResource, cancellationToken).ConfigureAwait(false);
             }
         }
@@ -650,20 +657,29 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
 
     private async Task CreateResourcesAsync<RT>(CancellationToken cancellationToken) where RT : CustomResource
     {
-        var resourcesToCreate = _appResources.Select(r => r.DcpResource).OfType<RT>();
-        if (!resourcesToCreate.Any())
+        try
         {
-            return;
-        }
+            var resourcesToCreate = _appResources.Select(r => r.DcpResource).OfType<RT>();
+            if (!resourcesToCreate.Any())
+            {
+                return;
+            }
 
-        // CONSIDER batched creation
-        foreach (var res in resourcesToCreate)
+            // CONSIDER batched creation
+            foreach (var res in resourcesToCreate)
+            {
+                await kubernetesService.CreateAsync(res, cancellationToken).ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException ex)
         {
-            await kubernetesService.CreateAsync(res, cancellationToken).ConfigureAwait(false);
+            // We catch and suppress the OperationCancelledException because the user may CTRL-C
+            // during start up of the resources.
+            _logger.LogDebug(ex, "Cancellation during creation of resources.");
         }
     }
 
-    private async Task DeleteResourcesAsync<RT>(string resourceName, CancellationToken cancellationToken) where RT : CustomResource
+    private async Task DeleteResourcesAsync<RT>(string resourceType, CancellationToken cancellationToken) where RT : CustomResource
     {
         var resourcesToDelete = _appResources.Select(r => r.DcpResource).OfType<RT>();
         if (!resourcesToDelete.Any())
@@ -679,7 +695,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Could not stop {resourceName} '{res.Metadata.Name}': {ex}");
+                _logger.LogInformation(ex, "Could not stop {ResourceType} '{ResourceName}'.", resourceType, res.Metadata.Name);
             }
         }
     }

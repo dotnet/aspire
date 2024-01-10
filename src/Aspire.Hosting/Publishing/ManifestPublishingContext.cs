@@ -39,6 +39,11 @@ public sealed class ManifestPublishingContext(string manifestPath, Utf8JsonWrite
 
         Writer.WriteString("image", image);
 
+        if (container.Entrypoint is not null)
+        {
+            Writer.WriteString("entrypoint", container.Entrypoint);
+        }
+
         if (container.TryGetAnnotationsOfType<ExecutableArgsCallbackAnnotation>(out var argsCallback))
         {
             var args = new List<string>();

@@ -218,4 +218,19 @@
   <data name="ChartContainerShowCountLabel" xml:space="preserve">
     <value>Show count</value>
   </data>
+  <data name="SelectAResource" xml:space="preserve">
+    <value>Select a resource</value>
+  </data>
+  <data name="TimeOffsetColumnHeader" xml:space="preserve">
+    <value>Time offset</value>
+  </data>
+  <data name="EventColumnHeader" xml:space="preserve">
+    <value>Event</value>
+  </data>
+  <data name="DurationColumnHeader" xml:space="preserve">
+    <value>Duration</value>
+  </data>
+  <data name="TimestampColumnHeader" xml:space="preserve">
+    <value>Timestamp</value>
+  </data>
 </root>
