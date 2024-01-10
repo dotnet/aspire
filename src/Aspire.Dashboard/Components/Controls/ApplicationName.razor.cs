@@ -8,9 +8,9 @@ using Microsoft.Extensions.Localization;
 
 namespace Aspire.Dashboard.Components;
 
-public sealed partial class ApplicationName() : ComponentBase, IAsyncDisposable
+public sealed partial class ApplicationName : ComponentBase, IDisposable
 {
-    private readonly CancellationTokenSource _disposalCts = new();
+    private CancellationTokenSource? _disposalCts;
 
     [Parameter]
     public required string ResourceName { get; init; }
@@ -26,14 +26,18 @@ public sealed partial class ApplicationName() : ComponentBase, IAsyncDisposable
     protected override async Task OnInitializedAsync()
     {
         // We won't have an application name until the client has connected to the server.
-        await DashboardClient.WhenConnected.WaitAsync(_disposalCts.Token);
+        if (!DashboardClient.WhenConnected.IsCompletedSuccessfully)
+        {
+            _disposalCts = new CancellationTokenSource();
+            await DashboardClient.WhenConnected.WaitAsync(_disposalCts.Token);
+        }
 
         _applicationName = string.Format(CultureInfo.InvariantCulture, Loc[ResourceName], DashboardClient.ApplicationName);
     }
 
-    public async ValueTask DisposeAsync()
+    public void Dispose()
     {
-        await _disposalCts.CancelAsync();
-        _disposalCts.Dispose();
+        _disposalCts?.Cancel();
+        _disposalCts?.Dispose();
     }
 }
