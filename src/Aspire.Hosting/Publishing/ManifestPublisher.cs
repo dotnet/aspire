@@ -30,7 +30,7 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger,
         if (_options.Value.OutputPath == null)
         {
             throw new DistributedApplicationException(
-                "The '--output-path [path]' option was not specified even though '--publish manifest' argument was used."
+                "The '--output-path [path]' option was not specified even though '--publisher manifest' argument was used."
                 );
         }
 
