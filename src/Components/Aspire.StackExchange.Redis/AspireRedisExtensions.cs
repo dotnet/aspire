@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-global using System.Net.Security; // needed to work around https://github.com/dotnet/runtime/issues/94065
-
 using System.Text;
 using Aspire;
 using Aspire.StackExchange.Redis;

@@ -3,12 +3,10 @@
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <!-- AOT-compat blocked by https://github.com/dotnet/runtime/issues/93498, extern alias doesn't work because Pdb2Pdb extern error -->
-    <EnableConfigurationBindingGenerator>false</EnableConfigurationBindingGenerator>
-    <IsAotCompatible>false</IsAotCompatible>
     <PackageTags>$(ComponentAzurePackageTags) tables table</PackageTags>
     <Description>A client for Azure Table Storage that integrates with Aspire, including health checks, logging, and telemetry.</Description>
     <PackageIconFullPath>$(SharedDir)AzureTable_256x.png</PackageIconFullPath>
+    <NoWarn>$(NoWarn);SYSLIB1100;SYSLIB1101</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
