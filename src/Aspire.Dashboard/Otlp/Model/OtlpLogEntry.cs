@@ -19,8 +19,9 @@ public class OtlpLogEntry
     public string TraceId { get; }
     public string? OriginalFormat { get; }
     public OtlpApplication Application { get; }
+    public OtlpScope Scope { get; }
 
-    public OtlpLogEntry(LogRecord record, OtlpApplication logApp)
+    public OtlpLogEntry(LogRecord record, OtlpApplication logApp, OtlpScope scope)
     {
         var properties = new List<KeyValuePair<string, string>>();
         foreach (var kv in record.Attributes)
@@ -35,7 +36,7 @@ public class OtlpLogEntry
                     // Explicitly ignore these
                     break;
                 default:
-                    properties.Add(new KeyValuePair<string, string>(kv.Key, kv.Value.GetString()));
+                    properties.Add(KeyValuePair.Create(kv.Key, kv.Value.GetString()));
                     break;
             }
         }
@@ -49,6 +50,7 @@ public class OtlpLogEntry
         SpanId = record.SpanId.ToHexString();
         TraceId = record.TraceId.ToHexString();
         Application = logApp;
+        Scope = scope;
     }
 
     private static LogLevel MapSeverity(SeverityNumber severityNumber) => severityNumber switch
@@ -82,13 +84,12 @@ public class OtlpLogEntry
 
     public Dictionary<string, string> AllProperties()
     {
-        var props = new Dictionary<string, string>
-        {
-            { "Application", Application.ApplicationName },
-            { "Level", Severity.ToString() },
-            { "Message", Message }
-        };
+        var props = new Dictionary<string, string>();
 
+        AddOptionalValue("Application", Application.ApplicationName, props);
+        AddOptionalValue("Category", Scope.ScopeName, props);
+        AddOptionalValue("Level", Severity.ToString(), props);
+        AddOptionalValue("Message", Message, props);
         AddOptionalValue("TraceId", TraceId, props);
         AddOptionalValue("SpanId", SpanId, props);
         AddOptionalValue("OriginalFormat", OriginalFormat, props);

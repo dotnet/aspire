@@ -30,12 +30,10 @@
         "main"
         "foot";
     gap: calc(var(--design-unit) * 2px);
-    padding: calc(var(--design-unit) * 2px);
 }
 
 ::deep.traces-layout > h1 {
     grid-area: head;
-    padding: calc(var(--design-unit) * 1px);
 }
 
 ::deep.traces-layout > fluent-toolbar {
@@ -48,4 +46,28 @@
 
 ::deep.traces-layout > .total-items-footer {
     grid-area: foot;
+    padding-bottom: calc(var(--design-unit) * 2px);
+}
+
+::deep fluent-progress-ring::part(background) {
+    stroke: var(--neutral-fill-input-alt-active);
+}
+
+::deep fluent-progress-ring::part(determinate) {
+    transition: unset;
+    stroke-linecap: unset;
+}
+
+::deep .duration-container {
+    display: flex;
+    align-items: center;
+}
+
+::deep .duration-ring {
+    width: 20px;
+    height: 20px;
+}
+
+::deep .trace-duration {
+    padding-left: 10px;
 }

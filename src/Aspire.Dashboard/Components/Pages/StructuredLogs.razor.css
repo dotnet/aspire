@@ -8,12 +8,10 @@
         "toolbar"
         "main";
     gap: calc(var(--design-unit) * 2px);
-    padding: calc(var(--design-unit) * 2px);
 }
 
 ::deep.logs-layout > h1 {
     grid-area: head;
-    padding: calc(var(--design-unit) * 1px);
 }
 
 ::deep.logs-layout > fluent-toolbar {
@@ -36,11 +34,6 @@
     background-color: var(--log-warning);
 }
 
-::deep .logs-severity-icon {
-    vertical-align: text-bottom;
-    margin-right: 3px;
-}
-
 ::deep .logs-summary-layout {
     display: grid;
     grid-template-rows: 1fr auto;
@@ -59,4 +52,5 @@
 
 ::deep .logs-summary-layout > .total-items-footer {
     grid-area: foot;
+    padding-bottom: calc(var(--design-unit) * 2px);
 }

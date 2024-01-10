@@ -3,6 +3,7 @@
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
+    <PackageTags>aspire hosting azure provisioning</PackageTags>
     <Description>Provisions Azure resources for development in .NET Aspire projects.</Description>
   </PropertyGroup>
 
@@ -16,6 +17,7 @@
     <PackageReference Include="Azure.ResourceManager.ServiceBus" />
     <PackageReference Include="Azure.ResourceManager.Storage" />
     <PackageReference Include="Azure.ResourceManager.Sql" />
+    <Compile Include="$(SharedDir)ValueStopwatch\*.cs" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using Aspire.Dashboard.Otlp.Model;
 using Xunit;
 
@@ -32,14 +33,14 @@ public class DurationFormatterTests
     public void DisplaysMillisecondsInDecimals()
     {
         var input = 2 * TimeSpan.TicksPerMillisecond + 357 * TimeSpan.TicksPerMicrosecond;
-        Assert.Equal("2.36ms", DurationFormatter.FormatDuration(TimeSpan.FromTicks(input)));
+        Assert.Equal(2.36m.ToString("0.##ms", CultureInfo.CurrentCulture), DurationFormatter.FormatDuration(TimeSpan.FromTicks(input)));
     }
 
     [Fact]
     public void DisplaysSecondsInDecimals()
     {
         var input = 2 * TimeSpan.TicksPerSecond + 357 * TimeSpan.TicksPerMillisecond;
-        Assert.Equal("2.36s", DurationFormatter.FormatDuration(TimeSpan.FromTicks(input)));
+        Assert.Equal(2.36m.ToString("0.##s", CultureInfo.CurrentCulture), DurationFormatter.FormatDuration(TimeSpan.FromTicks(input)));
     }
 
     [Fact]
@@ -60,7 +61,7 @@ public class DurationFormatterTests
     public void DisplaysTimesLessThanMicroseconds()
     {
         var input = (double)TimeSpan.TicksPerMicrosecond / 10;
-        Assert.Equal("0.1μs", DurationFormatter.FormatDuration(TimeSpan.FromTicks((long)input)));
+        Assert.Equal(0.1m.ToString("0.##μs", CultureInfo.CurrentCulture), DurationFormatter.FormatDuration(TimeSpan.FromTicks((long)input)));
     }
 
     [Fact]

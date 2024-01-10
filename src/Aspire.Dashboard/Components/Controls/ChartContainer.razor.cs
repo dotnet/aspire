@@ -17,9 +17,11 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
     private OtlpInstrument? _instrument;
     private PeriodicTimer? _tickTimer;
     private Task? _tickTask;
+    private IDisposable? _themeChangedSubscription;
     private int _renderedDimensionsCount;
     private string? _previousMeterName;
     private string? _previousInstrumentName;
+    private bool _showCount;
     private readonly InstrumentViewModel _instrumentViewModel = new InstrumentViewModel();
 
     [Parameter, EditorRequired]
@@ -40,15 +42,24 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
     [Inject]
     public required ILogger<ChartContainer> Logger { get; set; }
 
+    [Inject]
+    public required ThemeManager ThemeManager { get; set; }
+
     protected override void OnInitialized()
     {
         // Update the graph every 200ms. This displays the latest data and moves time forward.
         _tickTimer = new PeriodicTimer(TimeSpan.FromSeconds(0.2));
         _tickTask = Task.Run(UpdateDataAsync);
+        _themeChangedSubscription = ThemeManager.OnThemeChanged(async () =>
+        {
+            _instrumentViewModel.Theme = ThemeManager.Theme;
+            await InvokeAsync(StateHasChanged);
+        });
     }
 
     public async ValueTask DisposeAsync()
     {
+        _themeChangedSubscription?.Dispose();
         _tickTimer?.Dispose();
 
         // Wait for UpdateData to complete.
@@ -118,7 +129,7 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
         // No filter selected.
         if (!filter.SelectedValues.Any())
         {
-            return true;
+            return false;
         }
 
         var value = OtlpHelpers.GetValue(attributes, filter.Name);
@@ -208,10 +219,15 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
 
             foreach (var item in filters)
             {
+                item.SelectedValues.Clear();
+
                 if (hasInstrumentChanged)
                 {
                     // Select all by default.
-                    item.SelectedValues = item.Values.ToList();
+                    foreach (var v in item.Values)
+                    {
+                        item.SelectedValues.Add(v);
+                    }
                 }
                 else
                 {
@@ -219,17 +235,33 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
                     if (existing != null)
                     {
                         // Select previously selected.
-                        item.SelectedValues = item.Values.Where(newValue => existing.Values.Any(existingValue => existingValue.Name == newValue.Name)).ToList();
+                        // Automatically select new incoming values if existing values are all selected.
+                        var newSelectedValues = (existing.AreAllValuesSelected ?? false)
+                            ? item.Values
+                            : item.Values.Where(newValue => existing.Values.Any(existingValue => existingValue.Name == newValue.Name));
+
+                        foreach (var v in newSelectedValues)
+                        {
+                            item.SelectedValues.Add(v);
+                        }
                     }
                     else
                     {
-                        // No filter. Select none.
-                        item.SelectedValues = new List<DimensionValueViewModel>();
+                        // New filter. Select all by default.
+                        foreach (var v in item.Values)
+                        {
+                            item.SelectedValues.Add(v);
+                        }
                     }
                 }
             }
         }
 
         return filters;
+    }
+
+    private void ShowCountChanged()
+    {
+        _instrumentViewModel.ShowCount = _showCount;
     }
 }

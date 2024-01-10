@@ -262,4 +262,22 @@ internal sealed class AspireEventSource : EventSource
             WriteEvent(28);
         }
     }
+
+    [Event(29, Level = EventLevel.Informational, Message = "DCP version check is starting...")]
+    public void DcpVersionCheckStart()
+    {
+        if (IsEnabled())
+        {
+            WriteEvent(29);
+        }
+    }
+
+    [Event(30, Level = EventLevel.Informational, Message = "DCP version check completed")]
+    public void DcpVersionCheckStop()
+    {
+        if (IsEnabled())
+        {
+            WriteEvent(30);
+        }
+    }
 }

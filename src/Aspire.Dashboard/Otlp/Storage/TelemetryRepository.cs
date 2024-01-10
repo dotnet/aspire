@@ -31,12 +31,13 @@ public class TelemetryRepository
     private readonly ConcurrentDictionary<string, OtlpApplication> _applications = new();
 
     private readonly ReaderWriterLockSlim _logsLock = new();
+    private readonly Dictionary<string, OtlpScope> _logScopes = new();
     private readonly CircularBuffer<OtlpLogEntry> _logs;
     private readonly HashSet<(OtlpApplication Application, string PropertyKey)> _logPropertyKeys = new();
     private readonly Dictionary<OtlpApplication, int> _applicationUnviewedErrorLogs = new();
 
     private readonly ReaderWriterLockSlim _tracesLock = new();
-    private readonly Dictionary<string, OtlpTraceScope> _traceScopes = new();
+    private readonly Dictionary<string, OtlpScope> _traceScopes = new();
     private readonly CircularBuffer<OtlpTrace> _traces;
 
     public TelemetryRepository(IConfiguration config, ILoggerFactory loggerFactory)
@@ -266,14 +267,31 @@ public class TelemetryRepository
         {
             foreach (var sl in scopeLogs)
             {
-                // Instrumentation Scope isn't commonly used for logs.
-                // Skip it for now until there is feedback that it has useful information.
+                OtlpScope? scope;
+                try
+                {
+                    // The instrumentation scope information for the spans in this message.
+                    // Semantically when InstrumentationScope isn't set, it is equivalent with
+                    // an empty instrumentation scope name (unknown).
+                    var name = sl.Scope?.Name ?? string.Empty;
+                    if (!_logScopes.TryGetValue(name, out scope))
+                    {
+                        scope = (sl.Scope != null) ? new OtlpScope(sl.Scope) : OtlpScope.Empty;
+                        _logScopes.Add(name, scope);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    context.FailureCount += sl.LogRecords.Count;
+                    _logger.LogInformation(ex, "Error adding scope.");
+                    continue;
+                }
 
                 foreach (var record in sl.LogRecords)
                 {
                     try
                     {
-                        var logEntry = new OtlpLogEntry(record, application);
+                        var logEntry = new OtlpLogEntry(record, application, scope);
 
                         // Insert log entry in the correct position based on timestamp.
                         // Logs can be added out of order by different services.
@@ -525,13 +543,17 @@ public class TelemetryRepository
         {
             foreach (var scopeSpan in scopeSpans)
             {
-                OtlpTraceScope? traceScope;
+                OtlpScope? scope;
                 try
                 {
-                    if (!_traceScopes.TryGetValue(scopeSpan.Scope.Name, out traceScope))
+                    // The instrumentation scope information for the spans in this message.
+                    // Semantically when InstrumentationScope isn't set, it is equivalent with
+                    // an empty instrumentation scope name (unknown).
+                    var name = scopeSpan.Scope?.Name ?? string.Empty;
+                    if (!_traceScopes.TryGetValue(name, out scope))
                     {
-                        traceScope = new OtlpTraceScope(scopeSpan.Scope);
-                        _traceScopes.Add(scopeSpan.Scope.Name, traceScope);
+                        scope = (scopeSpan.Scope != null) ? new OtlpScope(scopeSpan.Scope) : OtlpScope.Empty;
+                        _traceScopes.Add(name, scope);
                     }
                 }
                 catch (Exception ex)
@@ -557,7 +579,7 @@ public class TelemetryRepository
                         }
                         else if (!TryGetTraceById(_traces, span.TraceId.Memory, out trace))
                         {
-                            trace = new OtlpTrace(span.TraceId.Memory, traceScope);
+                            trace = new OtlpTrace(span.TraceId.Memory, scope);
                             newTrace = true;
                         }
 
@@ -679,7 +701,7 @@ public class TelemetryRepository
         }
 
         var events = new List<OtlpSpanEvent>();
-        foreach (var e in span.Events)
+        foreach (var e in span.Events.OrderBy(e => e.TimeUnixNano))
         {
             events.Add(new OtlpSpanEvent()
             {

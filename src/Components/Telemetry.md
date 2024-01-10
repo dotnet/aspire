@@ -78,6 +78,19 @@ Aspire.Microsoft.Data.SqlClient:
     - "number-of-stasis-connections"
     - "number-of-reclaimed-connections"
 
+Aspire.MongoDB.Driver:
+- Log categories:
+  - "MongoDB"
+  - "MongoDB.Command"
+  - "MongoDB.SDAM"
+  - "MongoDB.ServerSelection"
+  - "MongoDB.Connection"
+  - "MongoDB.Internal"
+- Activity source names:
+  - "MongoDB.Driver.Core.Extensions.DiagnosticSources"
+- Metric names:
+  - none
+
 Aspire.Microsoft.EntityFrameworkCore.Cosmos:
 - Log categories:
   - "Azure-Cosmos-Operation-Request-Diagnostics"
@@ -127,6 +140,27 @@ Aspire.Microsoft.EntityFrameworkCore.SqlServer:
     - "ec_Microsoft_E_execution_strategy_operation_failures_per_second"
     - "ec_Microsoft_EntityFramew_total_optimistic_concurrency_failures"
     - "ec_Microsoft_EntityF_optimistic_concurrency_failures_per_second"
+
+Aspire.MySqlConnector:
+- Log categories:
+  - "MySqlConnector.ConnectionPool"
+  - "MySqlConnector.MySqlBulkCopy"
+  - "MySqlConnector.MySqlCommand"
+  - "MySqlConnector.MySqlConnection"
+  - "MySqlConnector.MySqlDataSource"
+- Activity source names:
+  - "MySqlConnector"
+- Metric names:
+  - "MySqlConnector":
+    - "db.client.connections.create_time"
+    - "db.client.connections.use_time"
+    - "db.client.connections.wait_time"
+    - "db.client.connections.idle.max"
+    - "db.client.connections.idle.min"
+    - "db.client.connections.max"
+    - "db.client.connections.pending_requests"
+    - "db.client.connections.timeouts"
+    - "db.client.connections.usage"
 
 Aspire.Npgsql:
 - Log categories:
@@ -188,6 +222,33 @@ Aspire.Npgsql.EntityFrameworkCore.PostgreSQL:
     - "db.client.connections.pending_requests"
     - "db.client.connections.timeouts"
     - "db.client.connections.usage"
+
+Aspire.Oracle.EntityFrameworkCore:
+- Log categories:
+  - "Microsoft.EntityFrameworkCore.ChangeTracking"
+  - "Microsoft.EntityFrameworkCore.Database.Command"
+  - "Microsoft.EntityFrameworkCore.Database.Connection"
+  - "Microsoft.EntityFrameworkCore.Database.Transaction"
+  - "Microsoft.EntityFrameworkCore.Infrastructure"
+  - "Microsoft.EntityFrameworkCore.Migrations"
+  - "Microsoft.EntityFrameworkCore.Model"
+  - "Microsoft.EntityFrameworkCore.Model.Validation"
+  - "Microsoft.EntityFrameworkCore.Query"
+  - "Microsoft.EntityFrameworkCore.Update"
+- Activity source names:
+  - "OpenTelemetry.Instrumentation.EntityFrameworkCore"
+- Metric names:
+  - "Microsoft.EntityFrameworkCore":
+    - "ec_Microsoft_EntityFrameworkCore_active_db_contexts"
+    - "ec_Microsoft_EntityFrameworkCore_total_queries"
+    - "ec_Microsoft_EntityFrameworkCore_queries_per_second"
+    - "ec_Microsoft_EntityFrameworkCore_total_save_changes"
+    - "ec_Microsoft_EntityFrameworkCore_save_changes_per_second"
+    - "ec_Microsoft_EntityFrameworkCore_compiled_query_cache_hit_rate"
+    - "ec_Microsoft_Entity_total_execution_strategy_operation_failures"
+    - "ec_Microsoft_E_execution_strategy_operation_failures_per_second"
+    - "ec_Microsoft_EntityFramew_total_optimistic_concurrency_failures"
+    - "ec_Microsoft_EntityF_optimistic_concurrency_failures_per_second"
 
 Aspire.RabbitMQ.Client:
 - Log categories:

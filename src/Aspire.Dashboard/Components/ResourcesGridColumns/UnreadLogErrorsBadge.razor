@@ -1,0 +1,27 @@
+﻿@using Aspire.Dashboard.Resources
+@using Aspire.Dashboard.Model
+@namespace Aspire.Dashboard.Components
+@inject IStringLocalizer<Columns> Loc
+
+@if (UnviewedCount > 0)
+{
+    <FluentAnchor aria-label="@string.Format(Loc[UnviewedCount == 1 ? nameof(Columns.UnreadLogErrorsBadgeErrorLog) : nameof(Columns.UnreadLogErrorsBadgeErrorLogs)], UnviewedCount)"
+                  Href="@GetResourceErrorStructuredLogsUrl(Resource)"
+                  Appearance="Appearance.Stealth"
+                  Class="unread-logs-errors-link">
+        <FluentBadge
+            Appearance="Appearance.Accent"
+            Circular="true"
+            Fill="error">
+            @(UnviewedCount > 9 ? "9+" : UnviewedCount.ToString())
+        </FluentBadge>
+    </FluentAnchor>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public required ResourceViewModel Resource { get; set; }
+
+    [Parameter]
+    public int UnviewedCount { get; set; }
+}

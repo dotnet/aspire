@@ -1,0 +1,20 @@
+::deep .resource-state-container {
+    display: flex;
+    align-items: center;
+}
+
+::deep .resource-state-badge {
+    padding: 0 3px;
+    cursor: pointer;
+}
+
+::deep fluent-toolbar > h1 {
+    padding-left: calc(var(--design-unit) * 1px);
+}
+
+::deep .unread-logs-errors-link::part(control) {
+    padding-left: 0;
+    padding-right: 0;
+    margin-left: 3px;
+}
+

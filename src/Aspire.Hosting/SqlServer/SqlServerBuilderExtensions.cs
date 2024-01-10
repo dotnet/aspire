@@ -2,8 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
-using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Publishing;
 
 namespace Aspire.Hosting;
 
@@ -22,47 +22,75 @@ public static class SqlServerBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{SqlServerContainerResource}"/>.</returns>
     public static IResourceBuilder<SqlServerContainerResource> AddSqlServerContainer(this IDistributedApplicationBuilder builder, string name, string? password = null, int? port = null)
     {
-        password = password ?? Guid.NewGuid().ToString("N");
+        password = password ?? Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N").ToUpper();
         var sqlServer = new SqlServerContainerResource(name, password);
 
         return builder.AddResource(sqlServer)
-                      .WithAnnotation(new ManifestPublishingCallbackAnnotation(WriteSqlServerContainerToManifest))
-                      .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, port: port, containerPort: 1433))
+                      .WithManifestPublishingCallback(context => WriteSqlServerContainerToManifest(context, sqlServer))
+                      .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 1433))
+                      .WithAnnotation(new ContainerImageAnnotation { Registry = "mcr.microsoft.com", Image = "mssql/server", Tag = "2022-latest" })
+                      .WithEnvironment("ACCEPT_EULA", "Y")
+                      .WithEnvironment(context =>
+                      {
+                          if (context.PublisherName == "manifest")
+                          {
+                              context.EnvironmentVariables.Add("MSSQL_SA_PASSWORD", $"{{{sqlServer.Name}.inputs.password}}");
+                          }
+                          else
+                          {
+                              context.EnvironmentVariables.Add("MSSQL_SA_PASSWORD", sqlServer.Password);
+                          }
+                      });
+
+    }
+
+    /// <summary>
+    /// Adds a SQL Server resource to the application model. A container is used for local development.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{SqlServerContainerResource}"/>.</returns>
+    public static IResourceBuilder<SqlServerServerResource> AddSqlServer(this IDistributedApplicationBuilder builder, string name)
+    {
+        var password = Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N").ToUpper();
+        var sqlServer = new SqlServerServerResource(name, password);
+
+        return builder.AddResource(sqlServer)
+                      .WithManifestPublishingCallback(WriteSqlServerToManifest)
+                      .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, containerPort: 1433))
                       .WithAnnotation(new ContainerImageAnnotation { Registry = "mcr.microsoft.com", Image = "mssql/server", Tag = "2022-latest" })
                       .WithEnvironment("ACCEPT_EULA", "Y")
                       .WithEnvironment("MSSQL_SA_PASSWORD", sqlServer.Password);
     }
 
-    /// <summary>
-    /// Adds a SQL Server connection to the application model. Connection strings can also be read from the connection string section of the configuration using the name of the resource.
-    /// </summary>
-    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
-    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <param name="connectionString">The connection string.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{SqlServerConnectionResource}"/>.</returns>
-    public static IResourceBuilder<SqlServerConnectionResource> AddSqlServerConnection(this IDistributedApplicationBuilder builder, string name, string? connectionString = null)
+    private static void WriteSqlServerToManifest(ManifestPublishingContext context)
     {
-        var sqlServerConnection = new SqlServerConnectionResource(name, connectionString);
-
-        return builder.AddResource(sqlServerConnection)
-                      .WithAnnotation(new ManifestPublishingCallbackAnnotation(jsonWriter => WriteSqlServerConnectionToManifest(jsonWriter, sqlServerConnection)));
+        context.Writer.WriteString("type", "sqlserver.server.v1");
     }
 
-    private static void WriteSqlServerConnectionToManifest(Utf8JsonWriter jsonWriter, SqlServerConnectionResource sqlServerConnection)
+    private static void WriteSqlServerContainerToManifest(ManifestPublishingContext context, SqlServerContainerResource resource)
     {
-        jsonWriter.WriteString("type", "sqlserver.connection.v1");
-        jsonWriter.WriteString("connectionString", sqlServerConnection.GetConnectionString());
+        context.WriteContainer(resource);
+        context.Writer.WriteString(                     // "connectionString": "...",
+            "connectionString",
+            $"Server={{{resource.Name}.bindings.tcp.host}},{{{resource.Name}.bindings.tcp.port}};User ID=sa;Password={{{resource.Name}.inputs.password}};TrustServerCertificate=true;");
+        context.Writer.WriteStartObject("inputs");      // "inputs": {
+        context.Writer.WriteStartObject("password");    //   "password": {
+        context.Writer.WriteString("type", "string");   //     "type": "string",
+        context.Writer.WriteBoolean("secret", true);    //     "secret": true,
+        context.Writer.WriteStartObject("default");     //     "default": {
+        context.Writer.WriteStartObject("generate");    //       "generate": {
+        context.Writer.WriteNumber("minLength", 10);    //         "minLength": 10,
+        context.Writer.WriteEndObject();                //       }
+        context.Writer.WriteEndObject();                //     }
+        context.Writer.WriteEndObject();                //   }
+        context.Writer.WriteEndObject();                // }
     }
 
-    private static void WriteSqlServerContainerToManifest(Utf8JsonWriter jsonWriter)
+    private static void WriteSqlServerDatabaseToManifest(ManifestPublishingContext context, SqlServerDatabaseResource sqlServerDatabase)
     {
-        jsonWriter.WriteString("type", "sqlserver.server.v1");
-    }
-
-    private static void WriteSqlServerDatabaseToManifest(Utf8JsonWriter json, SqlServerDatabaseResource sqlServerDatabase)
-    {
-        json.WriteString("type", "sqlserver.database.v1");
-        json.WriteString("parent", sqlServerDatabase.Parent.Name);
+        context.Writer.WriteString("type", "sqlserver.database.v1");
+        context.Writer.WriteString("parent", sqlServerDatabase.Parent.Name);
     }
 
     /// <summary>
@@ -71,11 +99,10 @@ public static class SqlServerBuilderExtensions
     /// <param name="builder">The SQL Server resource builders.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{SqlServerDatabaseResource}"/>.</returns>
-    public static IResourceBuilder<SqlServerDatabaseResource> AddDatabase(this IResourceBuilder<SqlServerContainerResource> builder, string name)
+    public static IResourceBuilder<SqlServerDatabaseResource> AddDatabase(this IResourceBuilder<ISqlServerParentResource> builder, string name)
     {
         var sqlServerDatabase = new SqlServerDatabaseResource(name, builder.Resource);
         return builder.ApplicationBuilder.AddResource(sqlServerDatabase)
-                                         .WithAnnotation(new ManifestPublishingCallbackAnnotation(
-                                             (json) => WriteSqlServerDatabaseToManifest(json, sqlServerDatabase)));
+                                         .WithManifestPublishingCallback(context => WriteSqlServerDatabaseToManifest(context, sqlServerDatabase));
     }
 }

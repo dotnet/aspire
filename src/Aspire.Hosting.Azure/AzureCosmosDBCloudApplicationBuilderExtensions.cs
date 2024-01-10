@@ -3,7 +3,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Data.Cosmos;
-using System.Text.Json;
+using Aspire.Hosting.Publishing;
 
 namespace Aspire.Hosting;
 
@@ -26,20 +26,20 @@ public static class AzureCosmosDBCloudApplicationBuilderExtensions
     {
         var connection = new AzureCosmosDBResource(name, connectionString);
         return builder.AddResource(connection)
-                      .WithAnnotation(new ManifestPublishingCallbackAnnotation(jsonWriter => WriteCosmosDBToManifest(jsonWriter, connection)));
+                      .WithManifestPublishingCallback(context => WriteCosmosDBToManifest(context, connection));
     }
 
-    private static void WriteCosmosDBToManifest(Utf8JsonWriter jsonWriter, AzureCosmosDBResource cosmosDb)
+    private static void WriteCosmosDBToManifest(ManifestPublishingContext context, AzureCosmosDBResource cosmosDb)
     {
         var connectionString = cosmosDb.GetConnectionString();
         if (connectionString is null)
         {
-            jsonWriter.WriteString("type", "azure.cosmosdb.account.v0");
+            context.Writer.WriteString("type", "azure.cosmosdb.account.v0");
         }
         else
         {
-            jsonWriter.WriteString("type", "azure.cosmosdb.connection.v0");
-            jsonWriter.WriteString("connectionString", cosmosDb.GetConnectionString());
+            context.Writer.WriteString("type", "azure.cosmosdb.connection.v0");
+            context.Writer.WriteString("connectionString", cosmosDb.GetConnectionString());
         }
 
     }

@@ -25,17 +25,11 @@ internal sealed class DcpDistributedApplicationLifecycleHook(IOptions<Publishing
         return Task.CompletedTask;
     }
 
-    private void PrepareServices(DistributedApplicationModel model)
+    private static void PrepareServices(DistributedApplicationModel model)
     {
-        // Automatically add ServiceBindingAnnotations to project resources based on ApplicationUrl set in the launch profile.
+        // Automatically add EndpointAnnotation to project resources based on ApplicationUrl set in the launch profile.
         foreach (var projectResource in model.Resources.OfType<ProjectResource>())
         {
-            var selectedLaunchProfileName = projectResource.SelectLaunchProfileName();
-            if (selectedLaunchProfileName is null)
-            {
-                continue;
-            }
-
             var launchProfile = projectResource.GetEffectiveLaunchProfile();
             if (launchProfile is null)
             {
@@ -47,20 +41,20 @@ internal sealed class DcpDistributedApplicationLifecycleHook(IOptions<Publishing
             {
                 var uri = new Uri(url);
 
-                if (projectResource.Annotations.OfType<ServiceBindingAnnotation>().Any(sb => sb.Name == uri.Scheme))
+                if (projectResource.Annotations.OfType<EndpointAnnotation>().Any(sb => sb.Name == uri.Scheme))
                 {
-                    // If someone uses WithServiceBinding in the dev host to register a service binding with the name
+                    // If someone uses WithEndpoint in the dev host to register a endpoint with the name
                     // http or https this exception will be thrown.
-                    throw new DistributedApplicationException($"Service binding annotation with name '{uri.Scheme}' already exists.");
+                    throw new DistributedApplicationException($"Endpoint with name '{uri.Scheme}' already exists.");
                 }
 
-                var generatedServiceBindingAnnotation = new ServiceBindingAnnotation(
+                var generatedEndpointAnnotation = new EndpointAnnotation(
                     ProtocolType.Tcp,
                     uriScheme: uri.Scheme,
                     port: uri.Port
                     );
 
-                projectResource.Annotations.Add(generatedServiceBindingAnnotation);
+                projectResource.Annotations.Add(generatedEndpointAnnotation);
             }
         }
     }

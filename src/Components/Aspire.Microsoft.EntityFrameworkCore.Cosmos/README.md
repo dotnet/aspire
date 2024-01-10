@@ -88,7 +88,13 @@ Also you can pass the `Action<EntityFrameworkCoreCosmosDBSettings> configureSett
 
 ## AppHost extensions
 
-In your AppHost project, add a Cosmos DB connection and consume the connection using the following methods::
+In your AppHost project, install the Aspire Azure Hosting library with [NuGet](https://www.nuget.org):
+
+```dotnetcli
+dotnet add package Aspire.Hosting.Azure
+```
+
+Then, in the _Program.cs_ file of `AppHost`, add a Cosmos DB connection and consume the connection using the following methods::
 
 ```csharp
 var cosmosdb = builder.AddAzureCosmosDB("cdb").AddDatabase("cosmosdb");
@@ -97,7 +103,7 @@ var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(cosmosdb);
 ```
 
-The `WithReference` method configures a connection in the `MyService` project named `cosmosdb`. In the _Program.cs_ file of `MyService`, the database connection can be consumed using:
+The `AddAzureCosmosDB` method will read connection information from the AppHost's configuration (for example, from "user secrets") under the `ConnectionStrings:cosmosdb` config key. The `WithReference` method passes that connection information into a connection string named `cosmosdb` in the `MyService` project. In the _Program.cs_ file of `MyService`, the connection can be consumed using:
 
 ```csharp
 builder.AddCosmosDbContext<MyDbContext>("cosmosdb");

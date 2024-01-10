@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -28,9 +29,10 @@ public class DashboardWebApplication : IHostedService
     private readonly WebApplication _app;
     private readonly ILogger<DashboardWebApplication> _logger;
 
-    public DashboardWebApplication(ILogger<DashboardWebApplication> logger, Action<IServiceCollection> configureServices)
+    public DashboardWebApplication(ILogger<DashboardWebApplication> logger)
     {
         _logger = logger;
+
         var builder = WebApplication.CreateBuilder();
         builder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.None);
         builder.Logging.AddFilter("Microsoft.AspNetCore.Server.Kestrel", LogLevel.Error);
@@ -40,7 +42,7 @@ public class DashboardWebApplication : IHostedService
         if (dashboardUris.FirstOrDefault() is { } reportedDashboardUri)
         {
             // dotnet watch needs the trailing slash removed. See https://github.com/dotnet/sdk/issues/36709
-            _logger.LogInformation("Now listening on: {dashboardUri}", reportedDashboardUri.AbsoluteUri.TrimEnd('/'));
+            _logger.LogInformation("Now listening on: {DashboardUri}", reportedDashboardUri.AbsoluteUri.TrimEnd('/'));
         }
 
         var dashboardHttpsPort = dashboardUris.FirstOrDefault(IsHttps)?.Port;
@@ -54,7 +56,7 @@ public class DashboardWebApplication : IHostedService
         if (otlpUris.FirstOrDefault() is { } reportedOtlpUri)
         {
             // dotnet watch needs the trailing slash removed. See https://github.com/dotnet/sdk/issues/36709. Conform to dashboard URL format above
-            _logger.LogInformation("OTLP server running at: {dashboardUri}", reportedOtlpUri.AbsoluteUri.TrimEnd('/'));
+            _logger.LogInformation("OTLP server running at: {DashboardUri}", reportedOtlpUri.AbsoluteUri.TrimEnd('/'));
         }
 
         _isAllHttps = dashboardHttpsPort is not null && IsHttps(otlpUris[0]);
@@ -83,15 +85,22 @@ public class DashboardWebApplication : IHostedService
         // Add services to the container.
         builder.Services.AddRazorComponents().AddInteractiveServerComponents();
 
+        // Data from the server.
+        builder.Services.AddScoped<IDashboardClient, DashboardClient>();
+
         // OTLP services.
         builder.Services.AddGrpc();
         builder.Services.AddSingleton<TelemetryRepository>();
         builder.Services.AddTransient<StructuredLogsViewModel>();
         builder.Services.AddTransient<TracesViewModel>();
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Scoped<IOutgoingPeerResolver, ResourceOutgoingPeerResolver>());
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Scoped<IOutgoingPeerResolver, BrowserLinkOutgoingPeerResolver>());
 
         builder.Services.AddFluentUIComponents();
 
-        configureServices(builder.Services);
+        builder.Services.AddSingleton<ThemeManager>();
+
+        builder.Services.AddLocalization();
 
         _app = builder.Build();
 
@@ -110,7 +119,7 @@ public class DashboardWebApplication : IHostedService
         {
             OnPrepareResponse = (context) =>
             {
-                // If Cache-Control isn't already set to something, set it to 'no-cache' so that the 
+                // If Cache-Control isn't already set to something, set it to 'no-cache' so that the
                 // ETag and Last-Modified headers will be respected by the browser.
                 // This may be able to be removed if https://github.com/dotnet/aspnetcore/issues/44153
                 // is fixed to make this the default
@@ -152,29 +161,23 @@ public class DashboardWebApplication : IHostedService
         {
             if (uri.IsLoopback)
             {
-                kestrelOptions.ListenLocalhost(uri.Port, options =>
-                {
-                    ConfigureListenOptions(options, uri, httpProtocols);
-                });
+                kestrelOptions.ListenLocalhost(uri.Port, ConfigureListenOptions);
             }
             else
             {
-                kestrelOptions.Listen(IPAddress.Parse(uri.Host), uri.Port, options =>
-                {
-                    ConfigureListenOptions(options, uri, httpProtocols);
-                });
+                kestrelOptions.Listen(IPAddress.Parse(uri.Host), uri.Port, ConfigureListenOptions);
             }
-        }
 
-        static void ConfigureListenOptions(ListenOptions options, Uri uri, HttpProtocols? httpProtocols)
-        {
-            if (IsHttps(uri))
+            void ConfigureListenOptions(ListenOptions options)
             {
-                options.UseHttps();
-            }
-            if (httpProtocols is not null)
-            {
-                options.Protocols = httpProtocols.Value;
+                if (IsHttps(uri))
+                {
+                    options.UseHttps();
+                }
+                if (httpProtocols is not null)
+                {
+                    options.Protocols = httpProtocols.Value;
+                }
             }
         }
     }

@@ -9,9 +9,6 @@
   <PropertyGroup>
     <ConfigurationSchemaPath>$(MSBuildProjectDirectory)\ConfigurationSchema.json</ConfigurationSchemaPath>
     <ConfigurationSchemaExists Condition="Exists('$(ConfigurationSchemaPath)')">true</ConfigurationSchemaExists>
-    <Features Condition="'$(EnableConfigurationBindingGenerator)' == 'true'">$(Features);InterceptorsPreview</Features>
-    <!-- AspNetCore.HealthChecks packages are unsigned, we ignore that warning on purpose  -->
-    <NoWarn>$(NoWarn);CS8002</NoWarn>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(ConfigurationSchemaExists)' == 'true'">
@@ -30,4 +27,94 @@
                               PackagePath="buildTransitive\$(TargetFramework)\$(PackageId).targets" />
     </ItemGroup>
   </Target>
+
+  <!--
+  Logic for generating and comparing the ConfigurationSchema.json file
+  -->
+  <PropertyGroup>
+    <TargetsTriggeredByCompilation Condition="'$(DesignTimeBuild)' != 'true'">$(TargetsTriggeredByCompilation);GenerateConfigurationSchema</TargetsTriggeredByCompilation>
+
+    <ConfigurationSchemaGeneratorProjectPath>$(RepoRoot)src\Tools\ConfigurationSchemaGenerator\ConfigurationSchemaGenerator.csproj</ConfigurationSchemaGeneratorProjectPath>
+    <ConfigurationSchemaGeneratorRspPath>$(IntermediateOutputPath)$(AsemblyName).configschema.rsp</ConfigurationSchemaGeneratorRspPath>
+    <GeneratedConfigurationSchemaOutputPath>$(IntermediateOutputPath)ConfigurationSchema.json</GeneratedConfigurationSchemaOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- ensure the config generator is built -->
+    <ProjectReference Include="$(ConfigurationSchemaGeneratorProjectPath)"
+                      Private="false"
+                      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <Target Name="GenerateConfigurationSchema"
+          DependsOnTargets="CoreGenerateConfigurationSchema;
+                            CopyNewConfigurationSchema;
+                            CompareConfigurationSchema" />
+
+  <Target Name="WriteConfigurationSchemaGeneratorRspFile">
+    <PropertyGroup>
+      <ConfigSchemaInput>"@(IntermediateAssembly)"</ConfigSchemaInput>
+      <ConfigSchemaReferences>"@(ReferencePathWithRefAssemblies, '" "')"</ConfigSchemaReferences>
+      <ConfigSchemaOutput>"$(GeneratedConfigurationSchemaOutputPath)"</ConfigSchemaOutput>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ConfigSchemaGenArg Include="--input $(ConfigSchemaInput)" />
+      <ConfigSchemaGenArg Include="--reference $(ConfigSchemaReferences)" />
+      <ConfigSchemaGenArg Include="--output $(ConfigSchemaOutput)" />
+    </ItemGroup>
+
+    <WriteLinesToFile File="$(ConfigurationSchemaGeneratorRspPath)"
+                      Lines="@(ConfigSchemaGenArg)"
+                      Overwrite="true"
+                      WriteOnlyWhenDifferent="true" />
+  </Target>
+
+  <Target Name="CalculateConfigurationSchemaGeneratorPath">
+    <MSBuild Projects="$(ConfigurationSchemaGeneratorProjectPath)"
+             Targets="GetTargetPath">
+      <Output TaskParameter="TargetOutputs" PropertyName="ConfigurationSchemaGeneratorPath" />
+    </MSBuild>
+  </Target>
+
+  <Target Name="CoreGenerateConfigurationSchema"
+          DependsOnTargets="WriteConfigurationSchemaGeneratorRspFile;
+                            CalculateConfigurationSchemaGeneratorPath"
+          Inputs="$(ConfigurationSchemaGeneratorPath);
+                  @(IntermediateAssembly);
+                  @(ReferencePathWithRefAssemblies)"
+          Outputs="$(GeneratedConfigurationSchemaOutputPath)">
+    <PropertyGroup>
+
+      <GeneratorCommandLine>"$(DotNetTool)" exec $(ConfigurationSchemaGeneratorPath)</GeneratorCommandLine>
+      <GeneratorCommandLine>$(GeneratorCommandLine) @$(ConfigurationSchemaGeneratorRspPath)</GeneratorCommandLine>
+    </PropertyGroup>
+
+    <Exec Command="$(GeneratorCommandLine)" />
+
+    <ItemGroup>
+      <FileWrites Include="$(GeneratedConfigurationSchemaOutputPath)" Condition="Exists('$(GeneratedConfigurationSchemaOutputPath)')"/>
+    </ItemGroup>
+  </Target>
+
+  <Target Name="CopyNewConfigurationSchema"
+          Condition="'$(ConfigurationSchemaExists)' != 'true' OR '$(UpdateConfigurationSchema)' == 'true'">
+
+    <Copy SourceFiles="$(GeneratedConfigurationSchemaOutputPath)"
+          DestinationFiles="$(ConfigurationSchemaPath)" />
+
+  </Target>
+
+  <Target Name="CompareConfigurationSchema"
+          Condition="Exists('$(ConfigurationSchemaPath)') AND Exists('$(GeneratedConfigurationSchemaOutputPath)')">
+
+    <PropertyGroup>
+      <CurrentConfigurationSchemaFileContent>$([System.IO.File]::ReadAllText('$(ConfigurationSchemaPath)'))</CurrentConfigurationSchemaFileContent>
+      <GeneratedConfigurationSchemaFileContent>$([System.IO.File]::ReadAllText('$(GeneratedConfigurationSchemaOutputPath)'))</GeneratedConfigurationSchemaFileContent>
+    </PropertyGroup>
+
+    <Error Condition="'$(CurrentConfigurationSchemaFileContent)' != '$(GeneratedConfigurationSchemaFileContent)'"
+           Text="ConfigurationSchema.json is out of date. Run 'dotnet build --no-incremental /p:UpdateConfigurationSchema=true' to update it." />
+  </Target>
+
 </Project>

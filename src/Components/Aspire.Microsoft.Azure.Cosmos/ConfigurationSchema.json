@@ -21,20 +21,22 @@
                 "Cosmos": {
                   "type": "object",
                   "properties": {
-                    "ConnectionString": {
-                      "type": "string",
-                      "description": "Gets or sets the connection string of the Azure Cosmos DB to connect to. If both are provided, 'ConnectionString' takes precedence over 'AccountEndpoint'."
-                    },
                     "AccountEndpoint": {
                       "type": "string",
                       "format": "uri",
-                      "description": "Gets or sets the account endpoint of the Azure Cosmos DB to connect to. If both are provided, 'ConnectionString' takes precedence over 'AccountEndpoint'."
+                      "description": "A 'System.Uri' referencing the Azure Cosmos DB Endpoint.\nThis is likely to be similar to \"https://{account_name}.queue.core.windows.net\"."
+                    },
+                    "ConnectionString": {
+                      "type": "string",
+                      "description": "Gets or sets the connection string of the Azure Cosmos database to connect to."
                     },
                     "Tracing": {
                       "type": "boolean",
-                      "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not."
+                      "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.",
+                      "default": true
                     }
-                  }
+                  },
+                  "description": "The settings relevant to accessing Azure Cosmos DB."
                 }
               }
             }
@@ -42,5 +44,6 @@
         }
       }
     }
-  }
+  },
+  "type": "object"
 }

@@ -3,27 +3,24 @@
 
 using System.Buffers;
 using System.Collections;
-using System.Diagnostics;
 using System.Globalization;
 using System.IO.Pipelines;
 using System.Net.Sockets;
 using System.Text;
-using Aspire.Dashboard;
-using Aspire.Dashboard.Model;
+using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp.Process;
 using Aspire.Hosting.Properties;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Dcp;
 
-internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
+internal sealed partial class DcpHostService : IHostedLifecycleService, IAsyncDisposable
 {
     private const int LoggingSocketConnectionBacklog = 3;
     private readonly ApplicationExecutor _appExecutor;
@@ -31,19 +28,17 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
     private IAsyncDisposable? _dcpRunDisposable;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger _logger;
-    private readonly DashboardWebApplication? _dashboard;
     private readonly DcpOptions _dcpOptions;
     private readonly PublishingOptions _publishingOptions;
     private readonly Locations _locations;
 
-    public DcpHostService(DistributedApplicationModel applicationModel,
-                         DistributedApplicationOptions options,
-                         ILoggerFactory loggerFactory,
-                         IOptions<DcpOptions> dcpOptions,
-                         IOptions<PublishingOptions> publishingOptions,
-                         ApplicationExecutor appExecutor,
-                         Locations locations,
-                         KubernetesService kubernetesService)
+    public DcpHostService(
+        DistributedApplicationModel applicationModel,
+        ILoggerFactory loggerFactory,
+        IOptions<DcpOptions> dcpOptions,
+        IOptions<PublishingOptions> publishingOptions,
+        ApplicationExecutor appExecutor,
+        Locations locations)
     {
         _applicationModel = applicationModel;
         _loggerFactory = loggerFactory;
@@ -52,18 +47,6 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
         _publishingOptions = publishingOptions.Value;
         _appExecutor = appExecutor;
         _locations = locations;
-
-        // HACK: Manifest publisher check is temporary util DcpHostService is integrated with DcpPublisher.
-        if (options.DashboardEnabled && publishingOptions.Value.Publisher != "manifest")
-        {
-            var dashboardLogger = _loggerFactory.CreateLogger<DashboardWebApplication>();
-            _dashboard = new DashboardWebApplication(dashboardLogger, serviceCollection =>
-            {
-                serviceCollection.AddSingleton(_applicationModel);
-                serviceCollection.AddSingleton(kubernetesService);
-                serviceCollection.AddScoped<IDashboardViewModelService, DashboardViewModelService>();
-            });
-        }
     }
 
     public async Task StartAsync(CancellationToken cancellationToken = default)
@@ -73,14 +56,13 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
             return;
         }
 
-        EnsureDockerIfNecessary();
+        var dockerHealthCheckTask = EnsureDockerIfNecessaryAsync(cancellationToken);
+        var dcpVersionCheckTask = EnsureDcpVersionAsync(cancellationToken);
+
+        await Task.WhenAll(dockerHealthCheckTask, dcpVersionCheckTask).ConfigureAwait(false);
+
         EnsureDcpHostRunning();
         await _appExecutor.RunApplicationAsync(cancellationToken).ConfigureAwait(false);
-
-        if (_dashboard is not null)
-        {
-            await _dashboard.StartAsync(cancellationToken).ConfigureAwait(false);
-        }
     }
 
     public async Task StopAsync(CancellationToken cancellationToken = default)
@@ -91,12 +73,6 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
         }
 
         await _appExecutor.StopApplicationAsync(cancellationToken).ConfigureAwait(false);
-
-        // Stop the dashboard after the application has stopped
-        if (_dashboard is not null)
-        {
-            await _dashboard.StopAsync(cancellationToken).ConfigureAwait(false);
-        }
     }
 
     public async ValueTask DisposeAsync()
@@ -196,9 +172,9 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
     // While in this mode, the commands we use for the docker check take quite some time
     private const int WaitTimeForDockerTestCommandInSeconds = 25;
 
-    private void EnsureDockerIfNecessary()
+    private async Task EnsureDockerIfNecessaryAsync(CancellationToken cancellationToken)
     {
-        // If we don't have any respirces that need a container  then we
+        // If we don't have any resources that need a container then we
         // don't need to check for Docker.
         if (!_applicationModel.Resources.Any(c => c.Annotations.OfType<ContainerImageAnnotation>().Any()))
         {
@@ -206,27 +182,34 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
         }
 
         AspireEventSource.Instance.DockerHealthCheckStart();
+        IAsyncDisposable? processDisposable = null;
 
         try
         {
+            Task<ProcessResult> task;
+
             var dockerCommandArgs = "ps --latest --quiet";
-            var dockerStartInfo = new ProcessStartInfo()
+
+            var processSpec = new ProcessSpec(FileUtil.FindFullPathFromPath("docker"))
             {
-                FileName = FileUtil.FindFullPathFromPath("docker"),
                 Arguments = dockerCommandArgs,
-                UseShellExecute = true,
-                WindowStyle = ProcessWindowStyle.Hidden
+                ThrowOnNonZeroReturnCode = false,
             };
-            var process = System.Diagnostics.Process.Start(dockerStartInfo);
-            if (process is { } && process.WaitForExit(TimeSpan.FromSeconds(WaitTimeForDockerTestCommandInSeconds)))
+
+            (task, processDisposable) = ProcessUtil.Run(processSpec);
+
+            var taskResult = task.WaitAsync(TimeSpan.FromSeconds(WaitTimeForDockerTestCommandInSeconds), cancellationToken);
+            var processResult = await taskResult.ConfigureAwait(false);
+
+            if (taskResult.IsCompletedSuccessfully)
             {
-                if (process.ExitCode != 0)
+                if (processResult.ExitCode != 0)
                 {
                     Console.Error.WriteLine(string.Format(
                         CultureInfo.InvariantCulture,
                         Resources.DockerUnhealthyExceptionMessage,
                         $"docker {dockerCommandArgs}",
-                        process.ExitCode
+                        processResult.ExitCode
                     ));
                     Environment.Exit((int)DockerHealthCheckFailures.Unhealthy);
                 }
@@ -257,6 +240,108 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
         finally
         {
             AspireEventSource.Instance?.DockerHealthCheckStop();
+
+            if (processDisposable != null)
+            {
+                await processDisposable.DisposeAsync().ConfigureAwait(false);
+            }
+        }
+    }
+
+    [GeneratedRegex("[^\\d\\.].*$")]
+    private static partial Regex VersionRegex();
+
+    private const int WaitTimeForDcpVersionCommandInSeconds = 10;
+
+    private async Task EnsureDcpVersionAsync(CancellationToken cancellationToken)
+    {
+        AspireEventSource.Instance.DcpVersionCheckStart();
+        IAsyncDisposable? processDisposable = null;
+
+        try
+        {
+            // Init
+            Task<ProcessResult> task;
+            var outputStringBuilder = new StringBuilder();
+
+            string? dcpExePath = _dcpOptions.CliPath;
+            if (!File.Exists(dcpExePath))
+            {
+                throw new FileNotFoundException($"The Aspire application host is not installed at \"{dcpExePath}\". The application cannot be run without it.", dcpExePath);
+            }
+
+            // Run `dcp version`
+            var processSpec = new ProcessSpec(dcpExePath)
+            {
+                Arguments = $"version",
+                OnOutputData = s => outputStringBuilder.Append(s),
+            };
+
+            (task, processDisposable) = ProcessUtil.Run(processSpec);
+
+            await task.WaitAsync(TimeSpan.FromSeconds(WaitTimeForDcpVersionCommandInSeconds), cancellationToken).ConfigureAwait(false);
+
+            // Parse the output as JSON
+            var output = outputStringBuilder.ToString();
+            if (output == string.Empty)
+            {
+                return; // Best effort
+            }
+
+            var dcpVersionString = JsonNode.Parse(outputStringBuilder.ToString())?.AsObject()["version"]?.GetValue<string>();
+
+            if (dcpVersionString == null
+                || dcpVersionString == string.Empty
+                || dcpVersionString == "dev")
+            {
+                // If empty, null, or a dev version, pass
+                return;
+            }
+
+            // Early DCP versions (e.g. preview 1) have a +x at the end of their version string, e.g. 0.1.42+5,
+            // which does not parse. Strip off anything like that.
+            dcpVersionString = VersionRegex().Replace(dcpVersionString, string.Empty);
+
+            Version? dcpVersion;
+            if (Version.TryParse(dcpVersionString, out dcpVersion))
+            {
+                if (dcpVersion < DcpVersion.MinimumVersionInclusive)
+                {
+                    Console.Error.WriteLine(string.Format(
+                        CultureInfo.InvariantCulture,
+                        Resources.DcpVersionCheckTooLowMessage
+                    ));
+                    Environment.Exit((int)DcpVersionCheckFailures.DcpVersionIncompatible);
+                }
+                else if (dcpVersion >= DcpVersion.MaximumVersionExclusive)
+                {
+                    Console.Error.WriteLine(string.Format(
+                        CultureInfo.InvariantCulture,
+                        Resources.DcpVersionCheckTooHighMessage,
+                        DcpVersion.MinimumVersionInclusive.ToString()
+                    ));
+                    Environment.Exit((int)DcpVersionCheckFailures.DcpVersionIncompatible);
+                }
+            }
+        }
+        catch (Exception ex) when (ex is not DistributedApplicationException)
+        {
+            Console.Error.WriteLine(string.Format(
+                CultureInfo.InvariantCulture,
+                Resources.DcpVersionCheckFailedMessage,
+                ex.ToString()
+            ));
+
+            // Do not exit, this is a best-effort check
+        }
+        finally
+        {
+            AspireEventSource.Instance?.DcpVersionCheckStop();
+
+            if (processDisposable != null)
+            {
+                await processDisposable.DisposeAsync().ConfigureAwait(false);
+            }
         }
     }
 
@@ -384,7 +469,7 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
 
                 LogLines(result.Buffer, out var position);
 
-                reader.AdvanceTo(position);
+                reader.AdvanceTo(position, result.Buffer.End);
             }
         }
         catch

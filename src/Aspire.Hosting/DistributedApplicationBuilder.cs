@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Publishing;
@@ -29,6 +30,9 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     public IServiceCollection Services => _innerBuilder.Services;
 
     /// <inheritdoc />
+    public string AppHostDirectory { get; }
+
+    /// <inheritdoc />
     public IResourceCollection Resources { get; } = new ResourceCollection();
 
     /// <summary>
@@ -40,6 +44,14 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _args = options.Args ?? [];
         _innerBuilder = new HostApplicationBuilder();
 
+        AppHostDirectory = options.ProjectDirectory ?? _innerBuilder.Environment.ContentRootPath;
+
+        // Make the app host directory available to the application via configuration
+        _innerBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["AppHost:Directory"] = AppHostDirectory
+        });
+
         // Core things
         _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Resources));
         _innerBuilder.Services.AddHostedService<DistributedApplicationRunner>();
@@ -50,9 +62,12 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddSingleton<ApplicationExecutor>();
         _innerBuilder.Services.AddHostedService<DcpHostService>();
 
+        // Dashboard
+        _innerBuilder.Services.AddHostedService<DashboardServiceHost>();
+        _innerBuilder.Services.AddHostedService<DashboardWebApplicationHost>();
+
         // We need a unique path per application instance
-        var path = Directory.CreateTempSubdirectory("aspire.").FullName;
-        _innerBuilder.Services.AddSingleton(new Locations(path));
+        _innerBuilder.Services.AddSingleton(new Locations());
         _innerBuilder.Services.AddSingleton<KubernetesService>();
 
         // Publishing support

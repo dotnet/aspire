@@ -14,20 +14,26 @@ public sealed class NpgsqlSettings
     public string? ConnectionString { get; set; }
 
     /// <summary>
-    /// <para>Gets or sets a boolean value that indicates whether the database health check is enabled or not.</para>
-    /// <para>Enabled by default.</para>
+    /// Gets or sets a boolean value that indicates whether the database health check is enabled or not.
     /// </summary>
+    /// <value>
+    /// The default value is <see langword="true"/>.
+    /// </value>
     public bool HealthChecks { get; set; } = true;
 
     /// <summary>
-    /// <para>Gets or sets a boolean value that indicates whether the Open Telemetry tracing is enabled or not.</para>
-    /// <para>Enabled by default.</para>
+    /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.
     /// </summary>
+    /// <value>
+    /// The default value is <see langword="true"/>.
+    /// </value>
     public bool Tracing { get; set; } = true;
 
     /// <summary>
-    /// <para>Gets or sets a boolean value that indicates whether the Open Telemetry metrics are enabled or not.</para>
-    /// <para>Enabled by default.</para>
+    /// Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not.
     /// </summary>
+    /// <value>
+    /// The default value is <see langword="true"/>.
+    /// </value>
     public bool Metrics { get; set; } = true;
 }

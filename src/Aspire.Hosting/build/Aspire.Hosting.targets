@@ -19,8 +19,8 @@
           Outputs="@(ReferencePathWithRefAssemblies)">
     <ItemGroup>
       <ServiceMetadataSource Include="%(ReferencePathWithRefAssemblies.Identity)" Condition="%(ReferencePathWithRefAssemblies.ReferenceSourceTarget) == 'ProjectReference'">
-        <ClassName Condition="%(ReferencePathWithRefAssemblies.ReferenceSourceTarget) == 'ProjectReference' And %(ReferencePathWithRefAssemblies.ServiceNameOverride) == ''">$([System.IO.Path]::GetFileNameWithoutExtension(%(ReferencePathWithRefAssemblies.Identity)).Replace(".", "_").Replace("-","_"))</ClassName>
-        <ClassName Condition="%(ReferencePathWithRefAssemblies.ReferenceSourceTarget) == 'ProjectReference' And %(ReferencePathWithRefAssemblies.ServiceNameOverride) != ''">$([System.String]::Copy(%(ReferencePathWithRefAssemblies.ServiceNameOverride)).Replace(".", "_").Replace("-","_"))</ClassName>
+        <ClassName Condition="%(ReferencePathWithRefAssemblies.ReferenceSourceTarget) == 'ProjectReference' And %(ReferencePathWithRefAssemblies.ServiceNameOverride) == ''">$([System.IO.Path]::GetFileNameWithoutExtension(%(ReferencePathWithRefAssemblies.Identity)).Replace(".", "_").Replace("-","_").Replace(" ","_"))</ClassName>
+        <ClassName Condition="%(ReferencePathWithRefAssemblies.ReferenceSourceTarget) == 'ProjectReference' And %(ReferencePathWithRefAssemblies.ServiceNameOverride) != ''">$([System.String]::Copy(%(ReferencePathWithRefAssemblies.ServiceNameOverride)).Replace(".", "_").Replace("-","_").Replace(" ","_"))</ClassName>
         <AssemblyName>$([System.IO.Path]::GetFileNameWithoutExtension(%(ReferencePathWithRefAssemblies.Identity)))</AssemblyName>
         <ProjectPath>$([System.IO.Path]::GetFullPath(%(ReferencePathWithRefAssemblies.ProjectReferenceOriginalItemSpec)))</ProjectPath>
         <Namespace>Projects</Namespace>
@@ -38,8 +38,6 @@ namespace ]]>%(Namespace)<![CDATA[%3B
 
 public class ]]>%(ClassName)<![CDATA[ : IServiceMetadata
 {
-  public string AssemblyName => """]]>%(AssemblyName)<![CDATA["""%3B
-  public string AssemblyPath => """]]>%(Identity)<![CDATA["""%3B
   public string ProjectPath => """]]>%(ProjectPath)<![CDATA["""%3B
 }]]>
         </Source>
@@ -63,13 +61,51 @@ public class ]]>%(ClassName)<![CDATA[ : IServiceMetadata
     </ItemGroup>
   </Target>
 
+  <Target Name="CreateProjectMetadata">
+    <ItemGroup>
+      <ProjectMetadataSource Include="$(MSBuildProjectDirectory)">
+        <ClassName>$([System.IO.Path]::GetFileNameWithoutExtension($(MSBuildProjectFile)).Replace(".", "_").Replace("-","_").Replace(" ","_"))</ClassName>
+        <ProjectPath>$(MSBuildProjectDirectory)</ProjectPath>
+      </ProjectMetadataSource>
+    </ItemGroup>
+  </Target>
+
+  <Target Name="_CSharpAppHostProjectMetadataSources" DependsOnTargets="CreateProjectMetadata" Condition="'$(Language)' == 'C#'">
+    <ItemGroup>
+      <ProjectMetadataSource Update="@(ProjectMetadataSource)">
+        <Source>
+          <![CDATA[using System%3B
+
+namespace ]]>Projects<![CDATA[%3B
+
+internal static class ]]>%(ClassName)<![CDATA[
+{
+  public static string ProjectPath => """]]>%(ProjectPath)<![CDATA["""%3B
+}]]>
+        </Source>
+      </ProjectMetadataSource>
+    </ItemGroup>
+    
+    <WriteLinesToFile
+      File="$(_AspireIntermediatePath)references\_AppHost.ProjectMetadata.g.cs"
+      Overwrite="true"
+      Lines="%(ProjectMetadataSource.Source)"
+      Encoding="Unicode"
+      WriteOnlyWhenDifferent="true"
+      />
+    <ItemGroup>
+      <FileWrites Include="$(_AspireIntermediatePath)references\_AppHost.ProjectMetadata.g.cs" />
+      <Compile Include="$(_AspireIntermediatePath)references\_AppHost.ProjectMetadata.g.cs" />
+    </ItemGroup>
+  </Target>
+
   <Target Name="_WarnOnUnsupportedLanguage" Condition="'$(Language)' != 'C#'">
     <Warning Code="ASPIRE001" Text="The '$(Language)' language isn't fully supported by Aspire - some code generation targets will not run, so will require manual authoring." />
   </Target>
 
   <PropertyGroup>
     <!-- Easy extension point for adding new languages' write support. -->
-    <_WriteServiceMetadataSourcesDependsOn>_CSharpWriteServiceMetadataSources;_WarnOnUnsupportedLanguage</_WriteServiceMetadataSourcesDependsOn>
+    <_WriteServiceMetadataSourcesDependsOn>_CSharpWriteServiceMetadataSources;_CSharpAppHostProjectMetadataSources;_WarnOnUnsupportedLanguage</_WriteServiceMetadataSourcesDependsOn>
   </PropertyGroup>
 
   <!-- The purpose of this target is to take all of the generated service meta data and write them to the intermediate build directory
@@ -98,6 +134,10 @@ public class ]]>%(ClassName)<![CDATA[ : IServiceMetadata
       <AssemblyAttribute Include="System.Reflection.AssemblyMetadata">
         <_Parameter1>dcpbinpath</_Parameter1>
         <_Parameter2>$(DcpBinPath)</_Parameter2>
+      </AssemblyAttribute>
+      <AssemblyAttribute Include="System.Reflection.AssemblyMetadata">
+        <_Parameter1>apphostprojectpath</_Parameter1>
+        <_Parameter2>$(MSBuildProjectDirectory)</_Parameter2>
       </AssemblyAttribute>
     </ItemGroup>
   </Target>

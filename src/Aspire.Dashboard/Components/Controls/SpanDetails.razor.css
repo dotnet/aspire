@@ -18,3 +18,30 @@
     height: 100%;
 }
 
+::deep .property-grid-container h4 {
+    padding: calc(var(--design-unit) * 3px);
+    margin-top: calc(var(--design-unit) * 1px);
+    margin-bottom: 0;
+}
+
+::deep fluent-accordion-item {
+    border-color: transparent; /* A zero width border adds a horizontal scroll bar for some reason */
+    background: unset;
+}
+
+::deep fluent-accordion-item::part(region) {
+    border-color: transparent; /* A zero width border adds a horizontal scroll bar for some reason */
+    background: unset;
+    padding: 0;
+}
+
+::deep fluent-accordion-item::part(heading-content) {
+    font-weight: bold;
+    font-size: var(--type-ramp-plus-1-font-size);
+}
+
+::deep .event-attributes-header {
+    font-weight: bold;
+    margin: 5px 0;
+}
+

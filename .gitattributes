@@ -1,6 +1,9 @@
 # Set default behavior to automatically normalize line endings.
 * text=auto
 
+# Collapse these files in PRs by default
+*.xlf linguist-generated=true
+*.lcl linguist-generated=true
 
 *.jpg  	binary
 *.png 	binary

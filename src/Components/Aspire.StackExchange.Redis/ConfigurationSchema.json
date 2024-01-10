@@ -20,7 +20,6 @@
               "properties": {
                 "ConfigurationOptions": {
                   "type": "object",
-                  "description": "The options relevant to a set of redis connections.",
                   "properties": {
                     "AbortOnConnectFail": {
                       "type": "boolean",
@@ -34,6 +33,16 @@
                       "type": "integer",
                       "description": "Specifies the time in milliseconds that the system should allow for asynchronous operations (defaults to SyncTimeout)."
                     },
+                    "ChannelPrefix": {
+                      "type": "object",
+                      "properties": {
+                        "UseImplicitAutoPattern": {
+                          "type": "boolean",
+                          "description": "Indicates whether channels should use 'StackExchange.Redis.RedisChannel.PatternMode.Auto' when no 'StackExchange.Redis.RedisChannel.PatternMode' is specified; this is enabled by default, but can be disabled to avoid unexpected wildcard scenarios."
+                        }
+                      },
+                      "description": "Automatically encodes and decodes channels."
+                    },
                     "CheckCertificateRevocation": {
                       "type": "boolean",
                       "description": "A Boolean value that specifies whether the certificate revocation list is checked during authentication."
@@ -42,9 +51,9 @@
                       "type": "string",
                       "description": "The client name to use for all connections."
                     },
-                    "ConnectTimeout": {
+                    "ConfigCheckSeconds": {
                       "type": "integer",
-                      "description": "Specifies the time in milliseconds that should be allowed for connection (defaults to 5 seconds unless SyncTimeout is higher)."
+                      "description": "Check configuration every n seconds (every minute by default)."
                     },
                     "ConfigurationChannel": {
                       "type": "string",
@@ -54,13 +63,13 @@
                       "type": "integer",
                       "description": "The number of times to repeat the initial connect cycle if no servers respond promptly."
                     },
-                    "ConfigCheckSeconds": {
+                    "ConnectTimeout": {
                       "type": "integer",
-                      "description": "Check configuration every n seconds (every minute by default)."
+                      "description": "Specifies the time in milliseconds that should be allowed for connection (defaults to 5 seconds unless SyncTimeout is higher)."
                     },
                     "DefaultDatabase": {
                       "type": "integer",
-                      "description": "Specifies the default database to be used when calling <see cref=\"ConnectionMultiplexer.GetDatabase(int, object)\"/> without any parameters."
+                      "description": "Specifies the default database to be used when calling 'StackExchange.Redis.ConnectionMultiplexer.GetDatabase(System.Int32,System.Object)' without any parameters."
                     },
                     "DefaultVersion": {
                       "type": "string",
@@ -69,7 +78,7 @@
                     "HeartbeatInterval": {
                       "type": "string",
                       "format": "duration",
-                      "description": "Controls how often the connection heartbeats. A heartbeat includes: evaluating if any messages have timed out, evaluating connection status (checking for failures), sending a server message to keep the connection alive if needed."
+                      "description": "Controls how often the connection heartbeats. A heartbeat includes:\n- Evaluating if any messages have timed out\n- Evaluating connection status (checking for failures)\n- Sending a server message to keep the connection alive if needed"
                     },
                     "IncludeDetailInExceptions": {
                       "type": "boolean",
@@ -81,23 +90,34 @@
                     },
                     "KeepAlive": {
                       "type": "integer",
-                      "description": "Specifies the time in seconds at which connections should be pinged to ensure validity. -1 Defaults to 60 Seconds."
+                      "description": "Specifies the time in seconds at which connections should be pinged to ensure validity.\n-1 Defaults to 60 Seconds"
                     },
-                    "User": {
+                    "LibraryName": {
                       "type": "string",
-                      "description": "The username to use to authenticate with the server."
+                      "description": "Gets or sets the library name to use for CLIENT SETINFO lib-name calls to Redis during handshake.\nDefaults to \"SE.Redis\"."
                     },
                     "Password": {
                       "type": "string",
                       "description": "The password to use to authenticate with the server."
                     },
+                    "Protocol": {
+                      "enum": [
+                        "Resp2",
+                        "Resp3"
+                      ],
+                      "description": "Specify the redis protocol type"
+                    },
                     "Proxy": {
-                      "enum": [ "None", "Twemproxy", "Envoyproxy" ],
-                      "descripion": "Type of proxy to use (if any)."
+                      "enum": [
+                        "None",
+                        "Twemproxy",
+                        "Envoyproxy"
+                      ],
+                      "description": "Type of proxy to use (if any); for example 'StackExchange.Redis.Proxy.Twemproxy'."
                     },
                     "ResolveDns": {
                       "type": "boolean",
-                      "descripion": "Indicates whether endpoints should be resolved via DNS before connecting. If enabled the ConnectionMultiplexer will not re-resolve DNS when attempting to re-connect after a connection failure."
+                      "description": "Indicates whether endpoints should be resolved via DNS before connecting.\nIf enabled the ConnectionMultiplexer will not re-resolve DNS when attempting to re-connect after a connection failure."
                     },
                     "ServiceName": {
                       "type": "string",
@@ -109,15 +129,24 @@
                     },
                     "Ssl": {
                       "type": "boolean",
-                      "descripion": "Indicates whether the connection should be encrypted."
+                      "description": "Indicates whether the connection should be encrypted."
                     },
                     "SslHost": {
                       "type": "string",
                       "description": "The target-host to use when validating SSL certificate; setting a value here enables SSL mode."
                     },
                     "SslProtocols": {
-                      "enum": [ "None", "Ssl2", "Ssl3", "Tls", "Default", "Tls11", "Tls12", "Tls13" ],
-                      "description": "Configures which SSL/TLS protocols should be allowed. If not set, defaults are chosen by the .NET framework."
+                      "enum": [
+                        "None",
+                        "Ssl2",
+                        "Ssl3",
+                        "Tls",
+                        "Default",
+                        "Tls11",
+                        "Tls12",
+                        "Tls13"
+                      ],
+                      "description": "Configures which SSL/TLS protocols should be allowed.  If not set, defaults are chosen by the .NET framework."
                     },
                     "SyncTimeout": {
                       "type": "integer",
@@ -126,8 +155,13 @@
                     "TieBreaker": {
                       "type": "string",
                       "description": "Tie-breaker used to choose between primaries (must match the endpoint exactly)."
+                    },
+                    "User": {
+                      "type": "string",
+                      "description": "The username to use to authenticate with the server."
                     }
-                  }
+                  },
+                  "description": "The options relevant to a set of redis connections."
                 },
                 "ConnectionString": {
                   "type": "string",
@@ -143,7 +177,8 @@
                   "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.",
                   "default": true
                 }
-              }
+              },
+              "description": "Provides the client configuration settings for connecting to a Redis server."
             }
           }
         }

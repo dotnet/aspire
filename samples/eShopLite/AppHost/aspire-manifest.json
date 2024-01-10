@@ -12,7 +12,7 @@
     },
     "catalogservice": {
       "type": "project.v0",
-      "path": "..\\CatalogService\\CatalogService.csproj",
+      "path": "../CatalogService/CatalogService.csproj",
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
@@ -36,7 +36,7 @@
     },
     "basketservice": {
       "type": "project.v0",
-      "path": "..\\BasketService\\BasketService.csproj",
+      "path": "../BasketService/BasketService.csproj",
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
@@ -58,7 +58,7 @@
     },
     "frontend": {
       "type": "project.v0",
-      "path": "..\\MyFrontend\\MyFrontend.csproj",
+      "path": "../MyFrontend/MyFrontend.csproj",
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
@@ -81,28 +81,16 @@
     },
     "orderprocessor": {
       "type": "project.v0",
-      "path": "..\\OrderProcessor\\OrderProcessor.csproj",
+      "path": "../OrderProcessor/OrderProcessor.csproj",
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
         "ConnectionStrings__messaging": "{messaging.connectionString}"
-      },
-      "bindings": {
-        "http": {
-          "scheme": "http",
-          "protocol": "tcp",
-          "transport": "http"
-        },
-        "https": {
-          "scheme": "https",
-          "protocol": "tcp",
-          "transport": "http"
-        }
       }
     },
     "apigateway": {
       "type": "project.v0",
-      "path": "..\\ApiGateway\\ApiGateway.csproj",
+      "path": "../ApiGateway/ApiGateway.csproj",
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
@@ -126,7 +114,7 @@
     },
     "catalogdbapp": {
       "type": "project.v0",
-      "path": "..\\CatalogDb\\CatalogDb.csproj",
+      "path": "../CatalogDb/CatalogDb.csproj",
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",

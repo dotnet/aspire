@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Utils;
+
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
@@ -8,7 +10,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 /// <param name="password">The SQL Sever password.</param>
-public class SqlServerContainerResource(string name, string password) : ContainerResource(name), ISqlServerResource
+public class SqlServerContainerResource(string name, string password) : ContainerResource(name), ISqlServerParentResource
 {
     /// <summary>
     /// Gets the password for the SQL Server container resource.
@@ -30,6 +32,6 @@ public class SqlServerContainerResource(string name, string password) : Containe
 
         // HACK: Use the 127.0.0.1 address because localhost is resolving to [::1] following
         //       up with DCP on this issue.
-        return $"Server=127.0.0.1,{endpoint.Port};User ID=sa;Password={Password};TrustServerCertificate=true;";
+        return $"Server=127.0.0.1,{endpoint.Port};User ID=sa;Password={PasswordUtil.EscapePassword(Password)};TrustServerCertificate=true;";
     }
 }

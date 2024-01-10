@@ -116,10 +116,6 @@
     height: min-content;
 }
 
-::deep fluent-data-grid-row[row-type="default"]:hover .span-container .span-bar-label {
-    color: var(--foreground-subtext-hover);
-}
-
 ::deep .span-container .span-bar-label-detail {
     display: none;
 }
@@ -149,8 +145,13 @@
     font-size: 12px;
 }
 
-::deep fluent-data-grid-row[row-type="default"]:hover .span-row-name {
-    color: var(--foreground-subtext-hover);
+::deep .selected-row .span-row-name,
+::deep .selected-row fluent-data-grid-row[row-type="default"]:hover .span-row-name,
+::deep fluent-data-grid-row[row-type="default"]:hover .span-row-name,
+::deep .selected-row .span-container .span-bar-label,
+::deep .selected-row fluent-data-grid-row[row-type="default"]:hover .span-container .span-bar-label,
+::deep fluent-data-grid-row[row-type="default"]:hover .span-container .span-bar-label {
+    color: var(--neutral-foreground-rest);
 }
 
 ::deep.trace-detail-layout {
@@ -163,12 +164,10 @@
         "toolbar"
         "main";
     gap: calc(var(--design-unit) * 2px);
-    padding: calc(var(--design-unit) * 2px);
 }
 
 ::deep.trace-detail-layout > .trace-detail-header {
     grid-area: head;
-    padding: calc(var(--design-unit) * 1px);
 }
 
 ::deep.trace-detail-layout > fluent-toolbar {
@@ -177,4 +176,10 @@
 
 ::deep.trace-detail-layout > .summary-details-container {
     grid-area: main;
+}
+
+::deep .span-details-title {
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
 }

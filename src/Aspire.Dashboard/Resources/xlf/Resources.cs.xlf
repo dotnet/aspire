@@ -1,0 +1,77 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="cs" original="../Resources.resx">
+    <body>
+      <trans-unit id="ResourcesEnvironmentVariablesGridEndpointsColumnHeader">
+        <source>Endpoints</source>
+        <target state="new">Endpoints</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesEnvironmentVariablesGridEnvironmentColumnHeader">
+        <source>Environment</source>
+        <target state="new">Environment</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesEnvironmentVariablesGridNameColumnHeader">
+        <source>Name (ID)</source>
+        <target state="new">Name (ID)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesEnvironmentVariablesGridSourceColumnHeader">
+        <source>Source</source>
+        <target state="new">Source</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesEnvironmentVariablesGridStartTimeColumnHeader">
+        <source>Start time</source>
+        <target state="new">Start time</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesEnvironmentVariablesGridStateColumnHeader">
+        <source>State</source>
+        <target state="new">State</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesEnvironmentVariablesHeader">
+        <source>Environment variables for {0}</source>
+        <target state="new">Environment variables for {0}</target>
+        <note>{0} is a resource</note>
+      </trans-unit>
+      <trans-unit id="ResourcesHeader">
+        <source>Resources</source>
+        <target state="new">Resources</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesNoEnvironmentVariables">
+        <source>No environment variables</source>
+        <target state="new">No environment variables</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesNoResources">
+        <source>No resources found</source>
+        <target state="new">No resources found</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesPageTitle">
+        <source>{0} resources</source>
+        <target state="new">{0} resources</target>
+        <note>{0} is an application name</note>
+      </trans-unit>
+      <trans-unit id="ResourcesResourceTypesHeader">
+        <source>Resource types</source>
+        <target state="new">Resource types</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesTypeFilterAllVisible">
+        <source>Type filter: All types visible</source>
+        <target state="new">Type filter: All types visible</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesTypeFiltered">
+        <source>Type filter: Filtered</source>
+        <target state="new">Type filter: Filtered</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

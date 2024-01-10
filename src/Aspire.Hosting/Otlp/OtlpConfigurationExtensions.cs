@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 
@@ -34,11 +35,14 @@ public static class OtlpConfigurationExtensions
                 return;
             }
 
-            context.EnvironmentVariables["OTEL_EXPORTER_OTLP_ENDPOINT"] = configuration[DashboardOtlpUrlVariableName] ?? DashboardOtlpUrlDefaultValue;
+            var url = configuration[DashboardOtlpUrlVariableName] ?? DashboardOtlpUrlDefaultValue;
+            context.EnvironmentVariables["OTEL_EXPORTER_OTLP_ENDPOINT"] = resource is ContainerResource
+                ? HostNameResolver.ReplaceLocalhostWithContainerHost(url, configuration)
+                : url;
 
             // Set the service name and instance id to the resource name and UID. Values are injected by DCP.
             context.EnvironmentVariables["OTEL_RESOURCE_ATTRIBUTES"] = "service.instance.id={{- .UID -}}";
-            context.EnvironmentVariables["OTEL_SERVICE_NAME"] = "{{- .Name -}}";
+            context.EnvironmentVariables["OTEL_SERVICE_NAME"] = "{{- index .Annotations \"otel-service-name\" -}}";
 
             // Set a small batch schedule delay in development.
             // This reduces the delay that OTLP exporter waits to sends telemetry and makes the dashboard telemetry pages responsive.

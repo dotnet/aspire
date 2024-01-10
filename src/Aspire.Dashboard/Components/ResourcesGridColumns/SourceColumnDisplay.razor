@@ -1,0 +1,78 @@
+﻿@using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Extensions
+@using Aspire.Dashboard.Resources
+@inject IStringLocalizer<Columns> Loc
+
+@if (Resource.IsProject() && Resource.TryGetProjectPath(out var projectPath))
+{
+    // NOTE projects are also executables, so we have to check for projects first
+    <GridValue Value="@Path.GetFileName(projectPath)"
+               ValueToCopy="@projectPath"
+               EnableHighlighting="true"
+               HighlightText="@FilterText"
+               PreCopyToolTip="@Loc[nameof(Columns.SourceColumnSourceCopyFullPathToClipboard)]"
+               ToolTip="@projectPath" />
+}
+else if (Resource.TryGetExecutablePath(out var executablePath) && Resource.TryGetWorkingDirectory(out var workingDirectory))
+{
+    Resource.TryGetExecutableArguments(out var arguments);
+    var argumentsString = arguments.IsDefaultOrEmpty ? "" : string.Join(" ", arguments);
+    var fullCommandLine = $"{executablePath} {argumentsString}";
+
+    <GridValue Value="@Path.GetFileName(executablePath)"
+               ValueToCopy="@fullCommandLine"
+               EnableHighlighting="true"
+               HighlightText="@FilterText"
+               PreCopyToolTip="@Loc[nameof(Columns.SourceColumnSourceCopyFullPathToClipboard)]"
+               ToolTip="@executablePath">
+        <ContentAfterValue>
+            <span class="subtext">@argumentsString</span>
+        </ContentAfterValue>
+    </GridValue>
+
+    <div class="ellipsis-overflow" title="@workingDirectory" aria-label="@workingDirectory">@string.Format(Loc[nameof(Columns.SourceColumnDisplayWorkingDirectory)], workingDirectory?.TrimMiddle(35))</div>
+}
+else if (Resource.TryGetContainerImage(out var containerImage) && Resource.TryGetContainerPorts(out var ports))
+{
+    var portsString = string.Join("; ", ports);
+    <GridValue Value="@containerImage"
+               EnableHighlighting="true"
+               HighlightText="@FilterText"
+               PreCopyToolTip="@Loc[nameof(Columns.SourceColumnSourceCopyContainerToClipboard)]"
+               ToolTip="@containerImage">
+        <ContentAfterValue>
+           @if (ports.Length > 0)
+           {
+               var title = string.Format(
+                   Loc[ports.Length == 1
+                       ? nameof(Columns.SourceColumnDisplayPort)
+                       : nameof(Columns.SourceColumnDisplayPorts)],
+                   string.Join(",", ports));
+                   <span class="subtext" aria-label="@title">@title</span>
+           }
+        </ContentAfterValue>
+    </GridValue>
+    <FluentStack Orientation="Orientation.Horizontal">
+        @if (Resource.TryGetContainerCommand(out var command))
+        {
+            <div class="ellipsis-overflow" title="@Loc[nameof(Columns.SourceColumnDisplayContainerCommandTitle)]">@Loc[nameof(Columns.SourceColumnDisplayContainerCommand), command]</div>
+        }
+        @if (Resource.TryGetContainerArgs(out var args))
+        {
+            var argsString = string.Join(" ", args);
+            <div class="ellipsis-overflow" title="@Loc[nameof(Columns.SourceColumnDisplayContainerArgsTitle)]">@argsString</div>
+        }
+    </FluentStack>
+}
+else
+{
+    // TODO we need to add support for arbitrary resource types. Until then, they'll just show an empty source column.
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public required ResourceViewModel Resource { get; set; }
+
+    [Parameter, EditorRequired]
+    public required string FilterText { get; set; }
+}

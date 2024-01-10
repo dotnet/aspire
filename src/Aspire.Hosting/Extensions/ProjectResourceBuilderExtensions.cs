@@ -5,6 +5,7 @@ using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Properties;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
 
@@ -24,16 +25,38 @@ public static class ProjectResourceBuilderExtensions
     public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, string name) where TProject : IServiceMetadata, new()
     {
         var project = new ProjectResource(name);
-        var projectBuilder = builder.AddResource(project);
+        return builder.AddResource(project)
+                      .WithProjectDefaults()
+                      .WithAnnotation(new TProject());
+    }
+
+    /// <summary>
+    /// Adds a .NET project to the application model. 
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource. This name will be used for service discovery when referenced in a dependency.</param>
+    /// <param name="projectPath">The path to the project file.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{ProjectResource}"/>.</returns>
+    public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, string name, string projectPath)
+    {
+        var project = new ProjectResource(name);
+
+        projectPath = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, projectPath));
+
+        return builder.AddResource(project)
+                      .WithProjectDefaults()
+                      .WithAnnotation(new ServiceMetadata(projectPath));
+    }
+
+    private static IResourceBuilder<ProjectResource> WithProjectDefaults(this IResourceBuilder<ProjectResource> builder)
+    {
         // We only want to turn these on for .NET projects, ConfigureOtlpEnvironment works for any resource type that
         // implements IDistributedApplicationResourceWithEnvironment.
-        projectBuilder.WithEnvironment("OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES", "true");
-        projectBuilder.WithEnvironment("OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES", "true");
-        projectBuilder.WithOtlpExporter();
-        projectBuilder.ConfigureConsoleLogs();
-        var serviceMetadata = new TProject();
-        projectBuilder.WithAnnotation(serviceMetadata);
-        return projectBuilder;
+        builder.WithEnvironment("OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES", "true");
+        builder.WithEnvironment("OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES", "true");
+        builder.WithOtlpExporter();
+        builder.ConfigureConsoleLogs();
+        return builder;
     }
 
     /// <summary>

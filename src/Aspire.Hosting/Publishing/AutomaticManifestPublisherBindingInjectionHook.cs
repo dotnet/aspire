@@ -28,6 +28,12 @@ internal sealed class AutomaticManifestPublisherBindingInjectionHook(IOptions<Pu
         return protocol == "Http2";
     }
 
+    private static bool IsWebProject(ProjectResource projectResource)
+    {
+        var launchProfile = projectResource.GetEffectiveLaunchProfile();
+        return launchProfile?.ApplicationUrl != null;
+    }
+
     public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
         if (_publishingOptions.Value.Publisher != "manifest")
@@ -41,9 +47,15 @@ internal sealed class AutomaticManifestPublisherBindingInjectionHook(IOptions<Pu
         {
             var isHttp2ConfiguredInAppSettings = IsKestrelHttp2ConfigurationPresent(projectResource);
 
-            if (!projectResource.Annotations.OfType<ServiceBindingAnnotation>().Any(sb => sb.UriScheme == "http" || sb.Name == "http"))
+            // If we aren't a web project we don't automatically add bindings.
+            if (!IsWebProject(projectResource))
             {
-                var httpBinding = new ServiceBindingAnnotation(
+                continue;
+            }
+
+            if (!projectResource.Annotations.OfType<EndpointAnnotation>().Any(sb => sb.UriScheme == "http" || sb.Name == "http"))
+            {
+                var httpBinding = new EndpointAnnotation(
                     System.Net.Sockets.ProtocolType.Tcp,
                     uriScheme: "http"
                     );
@@ -51,9 +63,9 @@ internal sealed class AutomaticManifestPublisherBindingInjectionHook(IOptions<Pu
                 httpBinding.Transport = isHttp2ConfiguredInAppSettings ? "http2" : httpBinding.Transport;
             }
 
-            if (!projectResource.Annotations.OfType<ServiceBindingAnnotation>().Any(sb => sb.UriScheme == "https" || sb.Name == "https"))
+            if (!projectResource.Annotations.OfType<EndpointAnnotation>().Any(sb => sb.UriScheme == "https" || sb.Name == "https"))
             {
-                var httpsBinding = new ServiceBindingAnnotation(
+                var httpsBinding = new EndpointAnnotation(
                     System.Net.Sockets.ProtocolType.Tcp,
                     uriScheme: "https"
                     );

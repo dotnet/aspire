@@ -1,20 +1,21 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
-builder.AddAzureProvisioning();
+var catalogDb = builder.AddPostgres("postgres")
+                       .WithPgAdmin()
+                       .AddDatabase("catalogdb");
 
-var catalogDb = builder.AddPostgresContainer("postgres").AddDatabase("catalogdb");
-
-var basketCache = builder.AddRedisContainer("basketcache");
+var basketCache = builder.AddRedis("basketcache")
+                         .WithRedisCommander();
 
 var catalogService = builder.AddProject<Projects.CatalogService>("catalogservice")
-                     .WithReference(catalogDb)
-                     .WithReplicas(2);
+                            .WithReference(catalogDb)
+                            .WithReplicas(2);
 
-var messaging = builder.AddRabbitMQContainer("messaging");
+var messaging = builder.AddRabbitMQ("messaging");
 
-var basketService = builder.AddProject<Projects.BasketService>("basketservice")
-                    .WithReference(basketCache)
-                    .WithReference(messaging);
+var basketService = builder.AddProject("basketservice", @"..\BasketService\BasketService.csproj")
+                           .WithReference(basketCache)
+                           .WithReference(messaging);
 
 builder.AddProject<Projects.MyFrontend>("frontend")
        .WithReference(basketService)
