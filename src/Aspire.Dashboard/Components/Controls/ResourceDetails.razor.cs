@@ -19,7 +19,7 @@ public partial class ResourceDetails
     public bool ShowSpecOnlyToggle { get; set; }
 
     [Inject]
-    public required IStringLocalizer<Resources.Resources> Loc { get; set; }
+    public required IStringLocalizer<Resources.Resources> Loc { get; init; }
 
     private bool IsSpecOnlyToggleDisabled => !Resource.Environment.All(i => !i.FromSpec) && !GetResourceValues().Any(v => v.KnownProperty == null);
 

@@ -32,7 +32,7 @@ else if (Resource.TryGetExecutablePath(out var executablePath) && Resource.TryGe
 
     <div class="ellipsis-overflow" title="@workingDirectory" aria-label="@workingDirectory">@string.Format(Loc[nameof(Columns.SourceColumnDisplayWorkingDirectory)], workingDirectory?.TrimMiddle(35))</div>
 }
-else if (Resource.TryGetContainerImage(out var containerImage) && Resource.TryGetContainerPorts(out var ports))
+else if (Resource.TryGetContainerImage(out var containerImage))
 {
     <GridValue Value="@containerImage"
                EnableHighlighting="true"
