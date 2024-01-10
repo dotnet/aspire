@@ -27,6 +27,22 @@ public sealed class VolumeMountAnnotation : IResourceAnnotation
     }
 
     /// <summary>
+    /// Instantiates a volume mount annotation which is associated with a volume resource.
+    /// </summary>
+    /// <param name="volume">Instance of <see cref="VolumeResource"/> that annotation is associated with.</param>
+    /// <param name="volumePath">Path within volume mount to reference.</param>
+    /// <param name="targetPath">Path within container which is the target for the reference.</param>
+    public VolumeMountAnnotation(VolumeResource volume, string volumePath, string targetPath)
+    {
+        Volume = volume;
+        Source = volumePath;
+        Target = targetPath;
+        Type = VolumeMountType.Named;
+    }
+
+    public VolumeResource? Volume { get; set; }
+
+    /// <summary>
     /// Gets or sets the source of the volume mount.
     /// </summary>
     public string Source { get; set; }
