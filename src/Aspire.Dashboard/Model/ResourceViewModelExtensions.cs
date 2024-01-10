@@ -54,16 +54,6 @@ internal static class ResourceViewModelExtensions
         return resource.TryGetCustomDataIntArray(KnownProperties.Container.Ports, out containerImage);
     }
 
-    public static bool TryGetContainerCommand(this ResourceViewModel resource, [NotNullWhen(returnValue: true)] out string? command)
-    {
-        return resource.TryGetCustomDataString(KnownProperties.Container.Command, out command);
-    }
-
-    public static bool TryGetContainerArgs(this ResourceViewModel resource, out ImmutableArray<string> args)
-    {
-        return resource.TryGetCustomDataStringArray(KnownProperties.Container.Args, out args);
-    }
-
     public static bool TryGetProcessId(this ResourceViewModel resource, out int processId)
     {
         return resource.TryGetCustomDataInt(KnownProperties.Executable.Pid, out processId);

@@ -56,7 +56,7 @@ internal sealed class DashboardClient : IDashboardClient
 
         var address = GetAddressUri(DashboardServiceUrlVariableName, DashboardServiceUrlDefaultValue);
 
-        _logger.LogInformation("Dashboard configured to connect to: {address}", address);
+        _logger.LogInformation("Dashboard configured to connect to: {Address}", address);
 
         // Create the gRPC channel. This channel performs automatic reconnects.
         // We will dispose it when we are disposed.
@@ -116,6 +116,9 @@ internal sealed class DashboardClient : IDashboardClient
                 });
         }
     }
+
+    // For testing purposes
+    internal int OutgoingResourceSubscriberCount => _outgoingChannels.Count;
 
     private void EnsureInitialized()
     {
@@ -183,7 +186,7 @@ internal sealed class DashboardClient : IDashboardClient
                     {
                         errorCount++;
 
-                        _logger.LogError(ex, "Error #{errorCount} watching resources.", errorCount);
+                        _logger.LogError(ex, "Error #{ErrorCount} watching resources.", errorCount);
                     }
                 }
 
@@ -286,6 +289,8 @@ internal sealed class DashboardClient : IDashboardClient
     {
         EnsureInitialized();
 
+        var clientCancellationToken = _cts.Token;
+
         lock (_lock)
         {
             // There are two types of channel in this class. This is not a gRPC channel.
@@ -300,11 +305,13 @@ internal sealed class DashboardClient : IDashboardClient
                 InitialState: _resourceByName.Values.ToImmutableArray(),
                 Subscription: StreamUpdates());
 
-            async IAsyncEnumerable<ResourceViewModelChange> StreamUpdates()
+            async IAsyncEnumerable<ResourceViewModelChange> StreamUpdates([EnumeratorCancellation] CancellationToken enumeratorCancellationToken = default)
             {
                 try
                 {
-                    await foreach (var batch in channel.Reader.ReadAllAsync(_cts.Token).ConfigureAwait(false))
+                    using var cts = CancellationTokenSource.CreateLinkedTokenSource(clientCancellationToken, enumeratorCancellationToken);
+
+                    await foreach (var batch in channel.Reader.ReadAllAsync(cts.Token).ConfigureAwait(false))
                     {
                         yield return batch;
                     }
@@ -321,11 +328,13 @@ internal sealed class DashboardClient : IDashboardClient
     {
         EnsureInitialized();
 
+        using var combinedTokens = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, cancellationToken);
+
         var call = _client.WatchResourceConsoleLogs(
             new WatchResourceConsoleLogsRequest() { ResourceName = resourceName },
-            cancellationToken: cancellationToken);
+            cancellationToken: combinedTokens.Token);
 
-        await foreach (var response in call.ResponseStream.ReadAllAsync(cancellationToken: cancellationToken))
+        await foreach (var response in call.ResponseStream.ReadAllAsync(cancellationToken: combinedTokens.Token))
         {
             var logLines = new (string Content, bool IsErrorMessage)[response.LogLines.Count];
 
@@ -342,6 +351,8 @@ internal sealed class DashboardClient : IDashboardClient
     {
         if (Interlocked.Exchange(ref _state, StateDisposed) is not StateDisposed)
         {
+            _outgoingChannels = [];
+
             await _cts.CancelAsync().ConfigureAwait(false);
 
             _cts.Dispose();

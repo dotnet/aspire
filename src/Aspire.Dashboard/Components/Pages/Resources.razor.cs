@@ -25,7 +25,6 @@ public partial class Resources : ComponentBase, IDisposable
     [Inject]
     public required NavigationManager NavigationManager { get; init; }
 
-    private IEnumerable<EnvironmentVariableViewModel>? SelectedEnvironmentVariables { get; set; }
     private ResourceViewModel? SelectedResource { get; set; }
 
     private readonly CancellationTokenSource _watchTaskCancellationTokenSource = new();
@@ -120,7 +119,7 @@ public partial class Resources : ComponentBase, IDisposable
         });
     }
 
-    private void ShowEnvironmentVariables(ResourceViewModel resource)
+    private void ShowResourceDetails(ResourceViewModel resource)
     {
         if (SelectedResource == resource)
         {
@@ -128,14 +127,12 @@ public partial class Resources : ComponentBase, IDisposable
         }
         else
         {
-            SelectedEnvironmentVariables = resource.Environment;
             SelectedResource = resource;
         }
     }
 
     private void ClearSelectedResource()
     {
-        SelectedEnvironmentVariables = null;
         SelectedResource = null;
     }
 
