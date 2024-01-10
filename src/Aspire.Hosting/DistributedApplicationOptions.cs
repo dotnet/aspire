@@ -58,7 +58,7 @@ public sealed class DistributedApplicationOptions
                 appHostAssembly = Assembly.Load(AssemblyName);
                 if (appHostAssembly == null)
                 {
-                    throw new FileNotFoundException("No assembly with name '{appOptions.AssemblyName}' exists in the current AppDomain.");
+                    throw new FileNotFoundException($"No assembly with name '{AssemblyName}' exists in the current AppDomain.");
                 }
             }
             catch (Exception ex)
