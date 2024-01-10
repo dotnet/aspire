@@ -25,13 +25,5 @@
     }
 
     @Resource.State
-    <UnreadLogErrorsBadge UnviewedCount="@GetUnviewedErrorCount(Resource)" Resource="@Resource"/>
+    <UnreadLogErrorsBadge UnviewedErrorCounts="UnviewedErrorCounts" Resource="@Resource" />
 </div>
-
-@code {
-    [Parameter, EditorRequired]
-    public Dictionary<OtlpApplication, int>? UnviewedErrorCounts { get; set; }
-
-    [Parameter, EditorRequired]
-    public required ResourceViewModel Resource { get; set; }
-}
