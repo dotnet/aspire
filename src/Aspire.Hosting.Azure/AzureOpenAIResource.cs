@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Collections.ObjectModel;
-
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
@@ -11,7 +9,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="name">The name of the resource.</param>
 public class AzureOpenAIResource(string name) : Resource(name), IAzureResource, IResourceWithConnectionString
 {
-    private readonly Collection<AzureOpenAIDeploymentResource> _deployments = [];
+    private readonly List<AzureOpenAIDeploymentResource> _deployments = [];
 
     /// <summary>
     /// Gets or sets the connection string for the Azure OpenAI resource.
@@ -27,7 +25,7 @@ public class AzureOpenAIResource(string name) : Resource(name), IAzureResource, 
     /// <summary>
     /// Gets the list of deployments of the Azure OpenAI resource.
     /// </summary>
-    public IReadOnlyCollection<AzureOpenAIDeploymentResource> Deployments => _deployments;
+    public IReadOnlyList<AzureOpenAIDeploymentResource> Deployments => _deployments;
 
     internal void AddDeployment(AzureOpenAIDeploymentResource deployment)
     {
