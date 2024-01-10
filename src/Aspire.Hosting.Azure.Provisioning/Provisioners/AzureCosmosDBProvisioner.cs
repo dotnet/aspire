@@ -17,7 +17,24 @@ internal sealed class AzureCosmosDBProvisioner(ILogger<AzureCosmosDBProvisioner>
     {
         if (configuration.GetConnectionString(resource.Name) is string connectionString)
         {
-            resource.ConnectionString = connectionString;
+            if (resource.Databases.Count == 0)
+            {
+                resource.ConnectionString = connectionString;
+                return true;
+            }
+
+            foreach (var database in resource.Databases)
+            {
+                if (configuration.GetConnectionString(database.Name) is string databaseConnectionString)
+                {
+                    database.ConnectionString = databaseConnectionString;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+
             return true;
         }
 
@@ -76,5 +93,36 @@ internal sealed class AzureCosmosDBProvisioner(ILogger<AzureCosmosDBProvisioner>
 
         var connectionStrings = context.UserSecrets.Prop("ConnectionStrings");
         connectionStrings[resource.Name] = resource.ConnectionString;
+
+        foreach (var database in resource.Databases)
+        {
+            await CreateDatabaseIfNotExists(cosmosResource, database, cancellationToken).ConfigureAwait(false);
+            connectionStrings[database.Name] = resource.ConnectionString; // Same as parent resource.
+        }
+    }
+
+    private async Task CreateDatabaseIfNotExists(
+        CosmosDBAccountResource cosmosResource,
+        AzureCosmosDBDatabaseResource database,
+        CancellationToken cancellationToken)
+    {
+
+        var exists = await cosmosResource.GetCosmosDBSqlDatabases().ExistsAsync(database.Name, cancellationToken).ConfigureAwait(false);
+
+        if (!exists)
+        {
+            logger.LogInformation("Creating Cosmos DB SQL database {CosmosAccountName}/{CosmosDatabaseName} in {Location}", cosmosResource.Data.Name, database.Name, cosmosResource.Data.Location);
+
+            var cosmosDatabaseContent = new CosmosDBSqlDatabaseCreateOrUpdateContent(cosmosResource.Data.Location, new CosmosDBSqlDatabaseResourceInfo(database.Name));
+            cosmosDatabaseContent.Tags.Add(AzureProvisioner.AspireResourceNameTag, database.Name);
+
+            var sw = ValueStopwatch.StartNew();
+            var operation = await cosmosResource.GetCosmosDBSqlDatabases()
+                                                .CreateOrUpdateAsync(WaitUntil.Completed, database.Name, cosmosDatabaseContent, cancellationToken)
+                                                .ConfigureAwait(false);
+            var cosmosDatabaseResource = operation.Value;
+
+            logger.LogInformation("Cosmos DB SQL database {CosmosAccountName}/{CosmosDatabaseName} created in {Elapsed}", cosmosResource.Data.Name, cosmosDatabaseResource.Data.Name, sw.GetElapsedTime());
+        }
     }
 }
