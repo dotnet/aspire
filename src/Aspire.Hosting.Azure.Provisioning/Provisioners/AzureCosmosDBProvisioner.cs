@@ -94,6 +94,17 @@ internal sealed class AzureCosmosDBProvisioner(ILogger<AzureCosmosDBProvisioner>
         var connectionStrings = context.UserSecrets.Prop("ConnectionStrings");
         connectionStrings[resource.Name] = resource.ConnectionString;
 
+        var existingDatabases = cosmosResource.GetCosmosDBSqlDatabases().GetAllAsync(cancellationToken);
+
+        await foreach (var existingDatabase in existingDatabases)
+        {
+            if (!resource.Databases.Any(d => d.Name == existingDatabase.Data.Name))
+            {
+                logger.LogInformation("Deleting database {DatabaseName}", existingDatabase.Data.Name);
+                await existingDatabase.DeleteAsync(WaitUntil.Completed, cancellationToken).ConfigureAwait(false);
+            }
+        }
+
         foreach (var database in resource.Databases)
         {
             await CreateDatabaseIfNotExists(cosmosResource, database, cancellationToken).ConfigureAwait(false);
