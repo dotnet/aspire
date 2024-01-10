@@ -3,6 +3,7 @@
 
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using Aspire.Hosting.Extensions;
 
@@ -18,6 +19,9 @@ internal sealed class ResourcePublisher(CancellationToken cancellationToken)
     private readonly object _syncLock = new();
     private readonly Dictionary<string, ResourceSnapshot> _snapshot = [];
     private ImmutableHashSet<Channel<ResourceSnapshotChange>> _outgoingChannels = [];
+
+    // For testing purposes
+    internal int OutgoingSubscriberCount => _outgoingChannels.Count;
 
     internal bool TryGetResource(string resourceName, [NotNullWhen(returnValue: true)] out ResourceSnapshot? resource)
     {
@@ -40,11 +44,13 @@ internal sealed class ResourcePublisher(CancellationToken cancellationToken)
                 InitialState: _snapshot.Values.ToImmutableArray(),
                 Subscription: StreamUpdates());
 
-            async IAsyncEnumerable<IReadOnlyList<ResourceSnapshotChange>> StreamUpdates()
+            async IAsyncEnumerable<IReadOnlyList<ResourceSnapshotChange>> StreamUpdates([EnumeratorCancellation] CancellationToken enumeratorCancellationToken = default)
             {
+                using var linked = CancellationTokenSource.CreateLinkedTokenSource(enumeratorCancellationToken, cancellationToken);
+
                 try
                 {
-                    await foreach (var batch in channel.GetBatches(cancellationToken).ConfigureAwait(false))
+                    await foreach (var batch in channel.GetBatches(linked.Token).ConfigureAwait(false))
                     {
                         yield return batch;
                     }
@@ -65,6 +71,8 @@ internal sealed class ResourcePublisher(CancellationToken cancellationToken)
     /// <returns>A task that completes when the cache has been updated and all subscribers notified.</returns>
     internal async ValueTask IntegrateAsync(ResourceSnapshot resource, ResourceSnapshotChangeType changeType)
     {
+        ImmutableHashSet<Channel<ResourceSnapshotChange>> channels;
+
         lock (_syncLock)
         {
             switch (changeType)
@@ -77,9 +85,11 @@ internal sealed class ResourcePublisher(CancellationToken cancellationToken)
                     _snapshot.Remove(resource.Name);
                     break;
             }
+
+            channels = _outgoingChannels;
         }
 
-        foreach (var channel in _outgoingChannels)
+        foreach (var channel in channels)
         {
             await channel.Writer.WriteAsync(new(changeType, resource), cancellationToken).ConfigureAwait(false);
         }
