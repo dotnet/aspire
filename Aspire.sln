@@ -184,7 +184,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OrleansAppHost", "samples\o
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OrleansServer", "samples\orleans\OrleansServer\OrleansServer.csproj", "{20758E81-7316-49AC-8E1B-A5461397530A}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ServiceDefaults", "samples\orleans\ServiceDefaults\ServiceDefaults.csproj", "{F7D9FA54-1F64-4A36-961A-0087F8E88D07}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OrleansServiceDefaults", "samples\orleans\OrleansServiceDefaults\OrleansServiceDefaults.csproj", "{F7D9FA54-1F64-4A36-961A-0087F8E88D07}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
