@@ -76,12 +76,12 @@
     <PackageVersion Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.2.0" />
     <PackageVersion Include="MongoDB.Driver" Version="2.22.0" />
     <PackageVersion Include="MongoDB.Driver.Core.Extensions.DiagnosticSources" Version="1.3.0" />
-    <PackageVersion Include="Microsoft.Orleans.Client" Version="7.2.3" />
-    <PackageVersion Include="Microsoft.Orleans.Clustering.AzureStorage" Version="7.2.3" />
-    <PackageVersion Include="Microsoft.Orleans.Persistence.AzureStorage" Version="7.2.3" />
-    <PackageVersion Include="Microsoft.Orleans.Sdk" Version="7.2.3" />
-    <PackageVersion Include="Microsoft.Orleans.Server" Version="7.2.3" />
-    <PackageVersion Include="Microsoft.Orleans.Reminders.AzureStorage" Version="7.2.3" />
+    <PackageVersion Include="Microsoft.Orleans.Client" Version="8.1.0-nightly.20240111.1" />
+    <PackageVersion Include="Microsoft.Orleans.Clustering.AzureStorage" Version="8.1.0-nightly.20240111.1" />
+    <PackageVersion Include="Microsoft.Orleans.Persistence.AzureStorage" Version="8.1.0-nightly.20240111.1" />
+    <PackageVersion Include="Microsoft.Orleans.Sdk" Version="8.1.0-nightly.20240111.1" />
+    <PackageVersion Include="Microsoft.Orleans.Server" Version="8.1.0-nightly.20240111.1" />
+    <PackageVersion Include="Microsoft.Orleans.Reminders.AzureStorage" Version="8.1.0-nightly.20240111.1" />
     <PackageVersion Include="MySqlConnector.DependencyInjection" Version="2.3.1" />
     <PackageVersion Include="Npgsql.DependencyInjection" Version="8.0.0" />
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.0" />
