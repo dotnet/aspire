@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
+using System.Text.Json;
+using Aspire.Hosting.Postgres;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -232,5 +234,74 @@ public class AddPostgresTests
                 Assert.Equal("POSTGRES_PASSWORD", env.Key);
                 Assert.Equal("pass", env.Value);
             });
+    }
+
+    [Fact]
+    public void WithPgAdminAddsContainer()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        builder.AddPostgres("mypostgres").WithPgAdmin(8081);
+
+        var container = builder.Resources.Single(r => r.Name == "mypostgres-pgadmin");
+        var volume = container.Annotations.OfType<VolumeMountAnnotation>().Single();
+
+        Assert.True(File.Exists(volume.Source)); // File should exist, but will be empty.
+        Assert.Equal("/pgadmin4/servers.json", volume.Target);
+    }
+
+    [Fact]
+    public void WithPostgresTwiceEndsUpWithOneContainer()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        builder.AddPostgres("mypostgres1").WithPgAdmin(8081);
+        builder.AddPostgres("mypostgres2").WithPgAdmin(8081);
+
+        builder.Resources.Single(r => r.Name.EndsWith("-pgadmin"));
+    }
+
+    [Fact]
+    public void WithPostgresProducesValidServersJsonFile()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var pg1 = builder.AddPostgres("mypostgres1").WithPgAdmin(8081);
+        var pg2 = builder.AddPostgres("mypostgres2").WithPgAdmin(8081);
+
+        // Add fake allocated endpoints.
+        pg1.WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "host.docker.internal", 5001, "tcp"));
+        pg2.WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "host.docker.internal", 5002, "tcp"));
+
+        var pgadmin = builder.Resources.Single(r => r.Name.EndsWith("-pgadmin"));
+        var volume = pgadmin.Annotations.OfType<VolumeMountAnnotation>().Single();
+
+        var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var hook = new PgAdminConfigWriterHook();
+        hook.AfterEndpointsAllocatedAsync(appModel, CancellationToken.None);
+
+        using var stream = File.OpenRead(volume.Source);
+        var document = JsonDocument.Parse(stream);
+
+        var servers = document.RootElement.GetProperty("Servers");
+
+        // Make sure the first server is correct.
+        Assert.Equal(pg1.Resource.Name, servers.GetProperty("1").GetProperty("Name").GetString());
+        Assert.Equal("Aspire instances", servers.GetProperty("1").GetProperty("Group").GetString());
+        Assert.Equal("host.docker.internal", servers.GetProperty("1").GetProperty("Host").GetString());
+        Assert.Equal(5001, servers.GetProperty("1").GetProperty("Port").GetInt32());
+        Assert.Equal("postgres", servers.GetProperty("1").GetProperty("Username").GetString());
+        Assert.Equal("prefer", servers.GetProperty("1").GetProperty("SSLMode").GetString());
+        Assert.Equal("postgres", servers.GetProperty("1").GetProperty("MaintenanceDB").GetString());
+        Assert.Equal($"echo '{pg1.Resource.Password}'", servers.GetProperty("1").GetProperty("PasswordExecCommand").GetString());
+
+        // Make sure the second server is correct.
+        Assert.Equal(pg2.Resource.Name, servers.GetProperty("2").GetProperty("Name").GetString());
+        Assert.Equal("Aspire instances", servers.GetProperty("2").GetProperty("Group").GetString());
+        Assert.Equal("host.docker.internal", servers.GetProperty("2").GetProperty("Host").GetString());
+        Assert.Equal(5002, servers.GetProperty("2").GetProperty("Port").GetInt32());
+        Assert.Equal("postgres", servers.GetProperty("2").GetProperty("Username").GetString());
+        Assert.Equal("prefer", servers.GetProperty("2").GetProperty("SSLMode").GetString());
+        Assert.Equal("postgres", servers.GetProperty("2").GetProperty("MaintenanceDB").GetString());
+        Assert.Equal($"echo '{pg2.Resource.Password}'", servers.GetProperty("2").GetProperty("PasswordExecCommand").GetString());
     }
 }

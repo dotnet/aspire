@@ -32,7 +32,7 @@ internal sealed class DcpOptions
     public string? ExtensionsPath { get; set; }
 
     /// <summary>
-    /// Optional path to a folder containing additional DCP binaries (traefik, etc.)
+    /// Optional path to a folder containing additional DCP binaries
     /// </summary>
     /// <example>
     /// C:\Program Files\dotnet\packs\Aspire.Hosting.Orchestration.win-x64\8.0.0-preview.1.23518.6\tools\ext\bin\

@@ -3,65 +3,46 @@
 @using Aspire.Dashboard.Resources
 @inject IStringLocalizer<Columns> Loc
 
-@if (Resource is ProjectViewModel projectViewModel)
+@if (Resource.IsProject() && Resource.TryGetProjectPath(out var projectPath))
 {
     // NOTE projects are also executables, so we have to check for projects first
-    <GridValue Value="@Path.GetFileName(projectViewModel.ProjectPath)"
-               ValueToCopy="@projectViewModel.ProjectPath"
+    <GridValue Value="@Path.GetFileName(projectPath)"
+               ValueToCopy="@projectPath"
                EnableHighlighting="true"
                HighlightText="@FilterText"
                PreCopyToolTip="@Loc[nameof(Columns.SourceColumnSourceCopyFullPathToClipboard)]"
-               ToolTip="@projectViewModel.ProjectPath" />
+               ToolTip="@projectPath" />
 }
-else if (Resource is ExecutableViewModel executableViewModel)
+else if (Resource.TryGetExecutablePath(out var executablePath) && Resource.TryGetWorkingDirectory(out var workingDirectory))
 {
-    var arguments = string.Join(" ", executableViewModel.Arguments ?? []);
-    var fullCommandLine = $"{executableViewModel.ExecutablePath} {arguments}";
+    Resource.TryGetExecutableArguments(out var arguments);
+    var argumentsString = arguments.IsDefaultOrEmpty ? "" : string.Join(" ", arguments);
+    var fullCommandLine = $"{executablePath} {argumentsString}";
 
-    <GridValue Value="@Path.GetFileName(executableViewModel.ExecutablePath)"
+    <GridValue Value="@Path.GetFileName(executablePath)"
                ValueToCopy="@fullCommandLine"
                EnableHighlighting="true"
                HighlightText="@FilterText"
                PreCopyToolTip="@Loc[nameof(Columns.SourceColumnSourceCopyFullPathToClipboard)]"
-               ToolTip="@executableViewModel.ExecutablePath">
+               ToolTip="@executablePath">
         <ContentAfterValue>
-            <span class="subtext">@arguments</span>
+            <span class="subtext">@argumentsString</span>
         </ContentAfterValue>
     </GridValue>
 
-    <div class="ellipsis-overflow" title="@executableViewModel.WorkingDirectory" aria-label="@executableViewModel.WorkingDirectory">@string.Format(Loc[nameof(Columns.SourceColumnDisplayWorkingDirectory)], executableViewModel.WorkingDirectory?.TrimMiddle(35))</div>
+    <div class="ellipsis-overflow" title="@workingDirectory" aria-label="@workingDirectory">@string.Format(Loc[nameof(Columns.SourceColumnDisplayWorkingDirectory)], workingDirectory?.TrimMiddle(35))</div>
 }
-else if (Resource is ContainerViewModel containerViewModel)
+else if (Resource.TryGetContainerImage(out var containerImage))
 {
-    var ports = string.Join("; ", containerViewModel.Ports);
-    <GridValue Value="@containerViewModel.Image"
+    <GridValue Value="@containerImage"
                EnableHighlighting="true"
                HighlightText="@FilterText"
                PreCopyToolTip="@Loc[nameof(Columns.SourceColumnSourceCopyContainerToClipboard)]"
-               ToolTip="@containerViewModel.Image">
-        <ContentAfterValue>
-           @if (containerViewModel.Ports.Length > 0)
-           {
-               var title = string.Format(
-                   Loc[containerViewModel.Ports.Length == 1
-                       ? nameof(Columns.SourceColumnDisplayPort)
-                       : nameof(Columns.SourceColumnDisplayPorts)],
-                   ports);
-                   <span class="subtext" aria-label="@title">@title</span>
-           }
-        </ContentAfterValue>
-   </GridValue>
-    <FluentStack Orientation="Orientation.Horizontal">
-        @if (containerViewModel.Command is not null)
-        {
-            <div class="ellipsis-overflow" title="@Loc[nameof(Columns.SourceColumnDisplayContainerCommandTitle)]">@Loc[nameof(Columns.SourceColumnDisplayContainerCommand), containerViewModel.Command]</div>
-        }
-        @if (containerViewModel.Args is not null)
-        {
-            var args = string.Join(" ", containerViewModel.Args);
-            <div class="ellipsis-overflow" title="@Loc[nameof(Columns.SourceColumnDisplayContainerArgsTitle)]">@args</div>
-        }
-    </FluentStack>
+               ToolTip="@containerImage" />
+}
+else
+{
+    // TODO we need to add support for arbitrary resource types. Until then, they'll just show an empty source column.
 }
 
 @code {

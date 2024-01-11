@@ -29,7 +29,7 @@ public static class AspireTablesExtensions
     /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureDataTablesSettings"/>. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{TableServiceClient, TableClientOptions}"/>.</param>
-    /// <remarks>Reads the configuration from "Aspire.Azure.Data.Tables" section.</remarks>
+    /// <remarks>Reads the configuration from "Aspire:Azure:Data:Tables" section.</remarks>
     /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureDataTablesSettings.ConnectionString"/> nor <see cref="AzureDataTablesSettings.ServiceUri"/> is provided.</exception>
     public static void AddAzureTableService(
         this IHostApplicationBuilder builder,
@@ -48,7 +48,7 @@ public static class AspireTablesExtensions
     /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureDataTablesSettings"/>. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{TableServiceClient, TableClientOptions}"/>.</param>
-    /// <remarks>Reads the configuration from "Aspire.Azure.Data.Tables:{name}" section.</remarks>
+    /// <remarks>Reads the configuration from "Aspire:Azure:Data:Tables:{name}" section.</remarks>
     /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureDataTablesSettings.ConnectionString"/> nor <see cref="AzureDataTablesSettings.ServiceUri"/> is provided.</exception>
     public static void AddKeyedAzureTableService(
         this IHostApplicationBuilder builder,

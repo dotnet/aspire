@@ -9,7 +9,6 @@
   <PropertyGroup>
     <ConfigurationSchemaPath>$(MSBuildProjectDirectory)\ConfigurationSchema.json</ConfigurationSchemaPath>
     <ConfigurationSchemaExists Condition="Exists('$(ConfigurationSchemaPath)')">true</ConfigurationSchemaExists>
-    <Features Condition="'$(EnableConfigurationBindingGenerator)' == 'true'">$(Features);InterceptorsPreview</Features>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(ConfigurationSchemaExists)' == 'true'">
