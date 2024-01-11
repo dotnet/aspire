@@ -1,5 +1,14 @@
 # Log categories, activity source names and metric names
 
+Aspire.Azure.AI.OpenAI:
+- Log categories:
+  - "Azure.Core"
+  - "Azure.Identity"
+- Activity source names:
+  - "Azure.AI.OpenAI.*"
+- Metric names:
+  - none (currently not supported by the Azure SDK)
+
 Aspire.Azure.Data.Tables:
 - Log categories:
   - "Azure.Core"
