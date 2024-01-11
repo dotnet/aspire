@@ -9,18 +9,6 @@
     <UserSecretsId>88427062-d086-46c2-b35e-171d742a6fe0</UserSecretsId>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <NoWarn>$(NoWarn),1573,1591,1712,CS8002</NoWarn>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <NoWarn>$(NoWarn),1573,1591,1712,CS8002</NoWarn>
-  </PropertyGroup>
-
-  <ItemGroup>
-    <None Remove="appsettings.json" />
-  </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\Aspire.Hosting\Aspire.Hosting.csproj" />
     <ProjectReference Include="..\..\..\src\Aspire.Hosting.Azure.Provisioning\Aspire.Hosting.Azure.Provisioning.csproj" />
