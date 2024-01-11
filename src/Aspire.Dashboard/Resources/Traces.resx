@@ -144,4 +144,7 @@
     <value>Errored: {0}</value>
     <comment>{0} is a number</comment>
   </data>
+  <data name="TracesDetailsColumnHeader" xml:space="preserve">
+    <value>Details</value>
+  </data>
 </root>
