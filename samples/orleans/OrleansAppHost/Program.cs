@@ -28,7 +28,7 @@ var orleans = builder.AddOrleans("my-app")
 //                     .WithInMemoryGrainStorage("Default");
 
 builder.AddProject<Projects.OrleansServer>("silo")
-       .AddResource(orleans);
+       .WithReference(orleans);
 
 using var app = builder.Build();
 

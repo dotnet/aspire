@@ -305,7 +305,7 @@ public static class OrleansServiceExtensions
     /// <param name="orleansService">The Orleans service, containing clustering, etc.</param>
     /// <returns>The resource builder.</returns>
     /// <exception cref="InvalidOperationException">Clustering has not been configured.</exception>
-    public static IResourceBuilder<T> AddResource<T>(
+    public static IResourceBuilder<T> WithReference<T>(
         this IResourceBuilder<T> builder,
         OrleansService orleansService)
         where T : IResourceWithEnvironment
