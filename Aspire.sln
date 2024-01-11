@@ -162,8 +162,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.MySqlConnector.Tests
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestProject.IntegrationServiceA", "tests\testproject\TestProject.IntegrationServiceA\TestProject.IntegrationServiceA.csproj", "{DCF2D47A-921A-4900-B5B2-CF97B3531CE8}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestProject.LaunchSettings", "tests\testproject\TestProject.LaunchSettings\TestProject.LaunchSettings.csproj", "{A734177E-213B-4D68-98A4-6F5C00234053}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{2136E31D-2CBB-41BB-8618-716FF8E46E9E}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConfigurationSchemaGenerator", "src\Tools\ConfigurationSchemaGenerator\ConfigurationSchemaGenerator.csproj", "{39FA2A64-012F-4EB9-A14F-E8AC54C975F6}"
