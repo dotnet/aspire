@@ -21,7 +21,11 @@ public class ResourcePublisherTests
         await publisher.IntegrateAsync(a, ResourceSnapshotChangeType.Upsert).ConfigureAwait(false);
         await publisher.IntegrateAsync(b, ResourceSnapshotChangeType.Upsert).ConfigureAwait(false);
 
+        Assert.Equal(0, publisher.OutgoingSubscriberCount);
+
         var (snapshot, subscription) = publisher.Subscribe();
+
+        Assert.Equal(1, publisher.OutgoingSubscriberCount);
 
         Assert.Equal(2, snapshot.Length);
         Assert.Single(snapshot.Where(s => s.Name == "A"));
@@ -50,6 +54,8 @@ public class ResourcePublisherTests
         await cts.CancelAsync();
 
         await Assert.ThrowsAsync<OperationCanceledException>(() => task);
+
+        Assert.Equal(0, publisher.OutgoingSubscriberCount);
     }
 
     [Fact]
@@ -65,8 +71,12 @@ public class ResourcePublisherTests
         await publisher.IntegrateAsync(a, ResourceSnapshotChangeType.Upsert).ConfigureAwait(false);
         await publisher.IntegrateAsync(b, ResourceSnapshotChangeType.Upsert).ConfigureAwait(false);
 
+        Assert.Equal(0, publisher.OutgoingSubscriberCount);
+
         var (snapshot1, subscription1) = publisher.Subscribe();
         var (snapshot2, subscription2) = publisher.Subscribe();
+
+        Assert.Equal(2, publisher.OutgoingSubscriberCount);
 
         Assert.Equal(2, snapshot1.Length);
         Assert.Equal(2, snapshot2.Length);
@@ -88,6 +98,11 @@ public class ResourcePublisherTests
         Assert.Equal("C", v2.Resource.Name);
 
         await cts.CancelAsync();
+
+        Assert.False(await enumerator1.MoveNextAsync());
+        Assert.False(await enumerator2.MoveNextAsync());
+
+        Assert.Equal(0, publisher.OutgoingSubscriberCount);
     }
 
     [Fact]
@@ -129,6 +144,35 @@ public class ResourcePublisherTests
         Assert.Equal("B", Assert.Single(snapshot).Name);
 
         await cts.CancelAsync();
+    }
+
+    [Fact]
+    public async Task CancelledSubscriptionIsCleanedUp()
+    {
+        ResourcePublisher publisher = new(CancellationToken.None);
+        CancellationTokenSource cts = new();
+        var called = false;
+
+        var (_, subscription) = publisher.Subscribe();
+
+        var task = Task.Run(async () =>
+        {
+            await foreach (var item in subscription.WithCancellation(cts.Token).ConfigureAwait(false))
+            {
+                // We should only loop one time.
+                Assert.False(called);
+                called = true;
+
+                // Now we've received something, cancel.
+                await cts.CancelAsync();
+            }
+        });
+
+        // Push through an update.
+        await publisher.IntegrateAsync(CreateResourceSnapshot("A"), ResourceSnapshotChangeType.Upsert).ConfigureAwait(false);
+
+        // Let the subscriber exit.
+        await task;
     }
 
     private static ContainerSnapshot CreateResourceSnapshot(string name)

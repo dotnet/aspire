@@ -35,7 +35,7 @@ public static class ResourceBuilderExtensions
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <param name="name">The name of the environment variable.</param>
-    /// <param name="callback">A callback that allows for deferred execution of a specific enviroment variable. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connetion strings, ports.</param>
+    /// <param name="callback">A callback that allows for deferred execution of a specific environment variable. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connetion strings, ports.</param>
     /// <returns>A resource configured with the specified environment variable.</returns>
     public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, Func<string> callback) where T : IResourceWithEnvironment
     {
@@ -47,7 +47,7 @@ public static class ResourceBuilderExtensions
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="callback">A callback that allows for deferred execution for computing many enviroment variables. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connetion strings, ports.</param>
+    /// <param name="callback">A callback that allows for deferred execution for computing many environment variables. This runs after resources have been allocated by the orchestrator and allows access to other resources to resolve computed data, e.g. connetion strings, ports.</param>
     /// <returns>A resource configured with the environment variable callback.</returns>
     public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, Action<EnvironmentCallbackContext> callback) where T : IResourceWithEnvironment
     {
