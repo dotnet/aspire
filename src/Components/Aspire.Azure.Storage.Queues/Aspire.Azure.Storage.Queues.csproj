@@ -3,12 +3,10 @@
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <!-- AOT-compat blocked by https://github.com/dotnet/runtime/issues/94071 -->
-    <EnableConfigurationBindingGenerator>false</EnableConfigurationBindingGenerator>
-    <IsAotCompatible>false</IsAotCompatible>
     <PackageTags>$(ComponentAzurePackageTags) storage queue queues</PackageTags>
     <Description>A client for Azure Queue Storage that integrates with Aspire, including health checks, logging and telemetry.</Description>
     <PackageIconFullPath>$(SharedDir)AzureStorageQueue_256x.png</PackageIconFullPath>
+    <NoWarn>$(NoWarn);SYSLIB1100;SYSLIB1101</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

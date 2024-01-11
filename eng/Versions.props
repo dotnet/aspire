@@ -26,13 +26,13 @@
     <MicrosoftDotNetBuildTasksWorkloadsPackageVersion>8.0.0-beta.24059.4</MicrosoftDotNetBuildTasksWorkloadsPackageVersion>
     <MicrosoftExtensionsHttpResiliencePackageVersion>8.0.0</MicrosoftExtensionsHttpResiliencePackageVersion>
     <MicrosoftExtensionsConfigurationAbstractionsPackageVersion>8.0.0</MicrosoftExtensionsConfigurationAbstractionsPackageVersion>
-    <MicrosoftExtensionsConfigurationBinderPackageVersion>8.0.0</MicrosoftExtensionsConfigurationBinderPackageVersion>
+    <MicrosoftExtensionsConfigurationBinderPackageVersion>8.0.1</MicrosoftExtensionsConfigurationBinderPackageVersion>
     <MicrosoftExtensionsDependencyInjectionAbstractionsPackageVersion>8.0.0</MicrosoftExtensionsDependencyInjectionAbstractionsPackageVersion>
     <MicrosoftExtensionsHostingAbstractionsPackageVersion>8.0.0</MicrosoftExtensionsHostingAbstractionsPackageVersion>
     <MicrosoftExtensionsHostingPackageVersion>8.0.0</MicrosoftExtensionsHostingPackageVersion>
     <MicrosoftExtensionsHttpPackageVersion>8.0.0</MicrosoftExtensionsHttpPackageVersion>
     <MicrosoftExtensionsLoggingAbstractionsPackageVersion>8.0.0</MicrosoftExtensionsLoggingAbstractionsPackageVersion>
-    <MicrosoftExtensionsOptionsPackageVersion>8.0.0</MicrosoftExtensionsOptionsPackageVersion>
+    <MicrosoftExtensionsOptionsPackageVersion>8.0.1</MicrosoftExtensionsOptionsPackageVersion>
     <MicrosoftExtensionsPrimitivesPackageVersion>8.0.0</MicrosoftExtensionsPrimitivesPackageVersion>
     <MicrosoftAspNetCoreOpenApiPackageVersion>8.0.0</MicrosoftAspNetCoreOpenApiPackageVersion>
     <MicrosoftAspNetCoreOutputCachingStackExchangeRedisPackageVersion>8.0.0</MicrosoftAspNetCoreOutputCachingStackExchangeRedisPackageVersion>
