@@ -3,15 +3,15 @@
 
 namespace Aspire.Hosting.Dashboard;
 
-internal sealed class ConsoleLogPublisher : IDisposable
+internal sealed class ConsoleLogPublisher
 {
     private readonly ResourcePublisher _resourcePublisher;
-    private readonly CancellationTokenSource _cts;
+    private readonly CancellationToken _cancellationToken;
 
-    public ConsoleLogPublisher(ResourcePublisher resourcePublisher)
+    public ConsoleLogPublisher(ResourcePublisher resourcePublisher, CancellationToken cancellationToken)
     {
         _resourcePublisher = resourcePublisher;
-        _cts = new();
+        _cancellationToken = cancellationToken;
     }
 
     internal IAsyncEnumerable<IReadOnlyList<(string Content, bool IsErrorMessage)>>? Subscribe(string resourceName)
@@ -26,8 +26,8 @@ internal sealed class ConsoleLogPublisher : IDisposable
         // Note, we would like to obtain these logs via DCP directly, rather than sourcing them in the dashboard.
         return resource switch
         {
-            ExecutableSnapshot executable => SubscribeExecutable(executable, _cts.Token),
-            ContainerSnapshot container => SubscribeContainer(container, _cts.Token),
+            ExecutableSnapshot executable => SubscribeExecutable(executable, _cancellationToken),
+            ContainerSnapshot container => SubscribeContainer(container, _cancellationToken),
             _ => throw new NotSupportedException($"Unsupported resource type {resource.GetType()}.")
         };
 
@@ -50,11 +50,5 @@ internal sealed class ConsoleLogPublisher : IDisposable
 
             return new DockerContainerLogSource(container.ContainerId, cancellationToken);
         }
-    }
-
-    public void Dispose()
-    {
-        _cts.Cancel();
-        _cts.Dispose();
     }
 }

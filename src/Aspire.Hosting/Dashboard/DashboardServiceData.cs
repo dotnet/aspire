@@ -24,7 +24,7 @@ internal sealed class DashboardServiceData : IAsyncDisposable
         ILoggerFactory loggerFactory)
     {
         _resourcePublisher = new ResourcePublisher(_cts.Token);
-        _consoleLogPublisher = new ConsoleLogPublisher(_resourcePublisher);
+        _consoleLogPublisher = new ConsoleLogPublisher(_resourcePublisher, _cts.Token);
 
         _ = new DcpDataSource(kubernetesService, applicationModel, loggerFactory, _resourcePublisher.IntegrateAsync, _cts.Token);
     }
@@ -33,8 +33,6 @@ internal sealed class DashboardServiceData : IAsyncDisposable
     {
         await _cts.CancelAsync().ConfigureAwait(false);
         _cts.Dispose();
-
-        _consoleLogPublisher.Dispose();
     }
 
     internal ResourceSnapshotSubscription SubscribeResources()
