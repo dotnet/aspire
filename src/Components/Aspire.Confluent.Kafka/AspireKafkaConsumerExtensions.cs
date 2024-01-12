@@ -158,9 +158,8 @@ public static class AspireKafkaConsumerExtensions
         KafkaConsumerSettings settings = new();
         configSection.Bind(settings);
 
-        ConsumerConfig config = new();
-        configSection.GetSection(nameof(KafkaConsumerSettings.Config)).Bind(config);
-        settings.Config = config;
+        // Manually bind the ConsumerConfig until https://github.com/dotnet/runtime/issues/96652 is fixed
+        configSection.GetSection(nameof(KafkaConsumerSettings.Config)).Bind(settings.Config);
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {

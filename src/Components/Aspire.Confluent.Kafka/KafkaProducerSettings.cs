@@ -19,7 +19,7 @@ public sealed class KafkaProducerSettings
     /// <summary>
     /// Gets the configuration settings for the Kafka producer.
     /// </summary>
-    public ProducerConfig Config { get; internal set; } = default!; // always set before the settings is handed out
+    public ProducerConfig Config { get; } = new ProducerConfig();
 
     /// <summary>
     /// Gets or sets a boolean value that indicates whether collecting metrics is enabled or not.

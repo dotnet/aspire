@@ -19,7 +19,7 @@ public sealed class KafkaConsumerSettings
     /// <summary>
     /// Gets the configuration settings for the Kafka consumer.
     /// </summary>
-    public ConsumerConfig Config { get; internal set; } = default!; // always set before the settings is handed out
+    public ConsumerConfig Config { get; } = new ConsumerConfig();
 
     /// <summary>
     /// Gets or sets a boolean value that indicates whether collecting metrics is enabled or not.
