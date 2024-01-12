@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Runtime.CompilerServices;
+using Aspire.Components.Common.Tests;
 using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.StackExchangeRedis;
@@ -10,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using OpenTelemetry.Instrumentation.StackExchangeRedis;
 using OpenTelemetry.Trace;
 using StackExchange.Redis;
 using StackExchange.Redis.Profiling;
@@ -249,5 +251,40 @@ public class AspireRedisExtensionsTests
         var profiler = GetProfiler(connectionMultiplexer as ConnectionMultiplexer);
 
         Assert.NotNull(profiler);
+    }
+
+    [ConditionalFact]
+    public async Task KeyedServiceRedisInstrumentationEndToEnd()
+    {
+        AspireRedisHelpers.SkipIfCanNotConnectToServer();
+
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:redis", AspireRedisHelpers.TestingEndpoint)
+            ]);
+
+        var notifier = new ActivityNotifier();
+        builder.Services.AddOpenTelemetry().WithTracing(builder => builder.AddProcessor(notifier));
+        // set the FlushInterval to to zero so the Activity gets created immediately
+        builder.Services.Configure<StackExchangeRedisInstrumentationOptions>(options => options.FlushInterval = TimeSpan.Zero);
+
+        builder.AddKeyedRedis("redis");
+        var host = builder.Build();
+
+        // We start the host to make it build TracerProvider.
+        // If we don't, nothing gets reported!
+        host.Start();
+
+        var connectionMultiplexer = host.Services.GetRequiredKeyedService<IConnectionMultiplexer>("redis");
+        var database = connectionMultiplexer.GetDatabase();
+        database.StringGet("key");
+
+        await notifier.ActivityReceived.WaitAsync(TimeSpan.FromSeconds(10));
+
+        Assert.Single(notifier.ExportedActivities);
+
+        var activity = notifier.ExportedActivities[0];
+        Assert.Equal("GET", activity.OperationName);
+        Assert.Contains(activity.Tags, kvp => kvp.Key == "db.system" && kvp.Value == "redis");
     }
 }
