@@ -1,0 +1,48 @@
+id: labelManagement.prUpdated
+name: PR Activity Responder
+description: Adds/Removes labels from PRs based on activity
+owner:
+resource: repository
+disabled: false
+where:
+configuration:
+  resourceManagementConfiguration:
+    eventResponderTasks:
+      - description: Add needs-author-action label when changes are requested
+        if:
+          - payloadType: Pull_Request_Review
+          - isAction:
+              action: Submitted
+          - isReviewState:
+              reviewState: Changes_requested
+        then:
+          - addLabel:
+              label: needs-author-action
+      - description: Remove needs-author-action label from PRs when an author updates the PR
+        if:
+          - or:
+            - payloadType: Pull_Request_Review
+            - payloadType: Pull_Request_Review_Comment
+          - not:
+              isAction:
+                action: Closed
+          - isActivitySender:
+              issueAuthor: true
+          - hasLabel:
+              label: needs-author-action
+        then:
+          - removeLabel:
+              label: needs-author-action
+      - description: Remove no-recent-activity label from PRs after an update
+        if:
+          - or:
+            - payloadType: Pull_Request_Review
+            - payloadType: Pull_Request_Review_Comment
+          - not:
+              isAction:
+                action: Closed
+          - hasLabel:
+              label: no-recent-activity
+        then:
+          - removeLabel:
+              label: no-recent-activity

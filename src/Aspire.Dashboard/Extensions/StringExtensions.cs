@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text;
+
 namespace Aspire.Dashboard.Extensions;
 
 internal static class StringExtensions
@@ -21,5 +23,30 @@ internal static class StringExtensions
         var lastPart = firstPart + ((maxLength - 1) % 2);
 
         return $"{text[..firstPart]}…{text[^lastPart..]}";
+    }
+
+    public static string SanitizeHtmlId(this string input)
+    {
+        var sanitizedBuilder = new StringBuilder(capacity: input.Length);
+
+        foreach (var c in input)
+        {
+            if (IsValidHtmlIdCharacter(c))
+            {
+                sanitizedBuilder.Append(c);
+            }
+            else
+            {
+                sanitizedBuilder.Append('_');
+            }
+        }
+
+        return sanitizedBuilder.ToString();
+
+        static bool IsValidHtmlIdCharacter(char c)
+        {
+            // Check if the character is a letter, digit, underscore, or hyphen
+            return char.IsLetterOrDigit(c) || c == '_' || c == '-';
+        }
     }
 }

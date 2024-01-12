@@ -66,7 +66,7 @@ The .NET Aspire MySQL component supports [Microsoft.Extensions.Configuration](ht
 ```json
 {
   "Aspire": {
-    "MySql": {
+    "MySqlConnector": {
       "HealthChecks": false,
       "Tracing": false
     }
@@ -84,10 +84,10 @@ Also you can pass the `Action<MySqlConnectorSettings> configureSettings` delegat
 
 ## AppHost extensions
 
-In your AppHost project, register a MySQL container and consume the connection using the following methods:
+In your AppHost project, register a MySQL database and consume the connection using the following methods:
 
 ```csharp
-var mysqldb = builder.AddMySqlContainer("mysql").AddDatabase("mysqldb");
+var mysqldb = builder.AddMySql("mysql").AddDatabase("mysqldb");
 
 var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(mysqldb);

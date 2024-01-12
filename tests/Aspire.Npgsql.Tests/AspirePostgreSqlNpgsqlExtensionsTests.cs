@@ -101,4 +101,34 @@ public class AspirePostgreSqlNpgsqlExtensionsTests
         // the connection string from config should not be used since it was found in ConnectionStrings
         Assert.DoesNotContain("unused", dataSource.ConnectionString);
     }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CustomDataSourceBuilderIsExecuted(bool useKeyed)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:npgsql", ConnectionString)
+        ]);
+
+        var wasCalled = false;
+        void configureDataSourceBuilder(NpgsqlDataSourceBuilder b) => wasCalled = true;
+
+        if (useKeyed)
+        {
+            builder.AddKeyedNpgsqlDataSource("npgsql", configureDataSourceBuilder: configureDataSourceBuilder);
+        }
+        else
+        {
+            builder.AddNpgsqlDataSource("npgsql", configureDataSourceBuilder: configureDataSourceBuilder);
+        }
+
+        var host = builder.Build();
+        var dataSource = useKeyed ?
+            host.Services.GetRequiredKeyedService<NpgsqlDataSource>("npgsql") :
+            host.Services.GetRequiredService<NpgsqlDataSource>();
+
+        Assert.True(wasCalled);
+    }
 }

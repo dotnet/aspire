@@ -1,226 +1,99 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Runtime.CompilerServices;
 using System.Threading.Channels;
-using Aspire.Dashboard.Model;
 using Aspire.Hosting.Dcp.Process;
+using Aspire.Hosting.Extensions;
 using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.Dashboard;
 
-internal sealed class DockerContainerLogSource(string containerId) : ILogSource
+internal sealed class DockerContainerLogSource(string containerId) : IAsyncEnumerable<IReadOnlyList<(string Content, bool IsErrorMessage)>>
 {
-    private readonly string _containerId = containerId;
-    private DockerContainerLogWatcher? _containerLogWatcher;
-
-    public async ValueTask<bool> StartAsync(CancellationToken cancellationToken)
+    public async IAsyncEnumerator<IReadOnlyList<(string Content, bool IsErrorMessage)>> GetAsyncEnumerator(CancellationToken cancellationToken = default)
     {
-        if (_containerLogWatcher is not null)
-        {
-            return true;
-        }
+        Task<ProcessResult>? processResultTask = null;
+        IAsyncDisposable? processDisposable = null;
 
-        _containerLogWatcher = new DockerContainerLogWatcher(_containerId);
-        var watcherInitialized = await _containerLogWatcher.InitWatchAsync(cancellationToken).ConfigureAwait(false);
-        if (!watcherInitialized)
-        {
-            await _containerLogWatcher.DisposeAsync().ConfigureAwait(false);
-        }
-        return watcherInitialized;
-    }
+        var channel = Channel.CreateUnbounded<(string Content, bool IsErrorMessage)>(
+            new UnboundedChannelOptions { AllowSynchronousContinuations = false, SingleReader = true, SingleWriter = false });
 
-    public async IAsyncEnumerable<string[]> WatchOutputLogAsync([EnumeratorCancellation] CancellationToken cancellationToken)
-    {
-        if (_containerLogWatcher is not null)
+        try
         {
-            await foreach (var logs in _containerLogWatcher!.WatchOutputLogsAsync(cancellationToken).ConfigureAwait(false))
+            var spec = new ProcessSpec(FileUtil.FindFullPathFromPath("docker"))
             {
-                yield return logs;
+                Arguments = $"logs --follow -t {containerId}",
+                OnOutputData = OnOutputData,
+                OnErrorData = OnErrorData,
+                KillEntireProcessTree = false,
+                // We don't want this to throw an exception because it is common for
+                // us to cancel the task and kill the process, which returns -1.
+                ThrowOnNonZeroReturnCode = false
+            };
+
+            (processResultTask, processDisposable) = ProcessUtil.Run(spec);
+
+            var tcs = new TaskCompletionSource();
+
+            // Make sure the process exits if the cancellation token is cancelled
+            var ctr = cancellationToken.Register(() => tcs.TrySetResult());
+
+            // Don't forward cancellationToken here, because it's handled internally in WaitForExit
+            _ = Task.Run(() => WaitForExit(tcs, ctr), CancellationToken.None);
+
+            await foreach (var batch in channel.GetBatches(cancellationToken))
+            {
+                yield return batch;
             }
         }
-    }
-
-    public async IAsyncEnumerable<string[]> WatchErrorLogAsync([EnumeratorCancellation] CancellationToken cancellationToken)
-    {
-        if (_containerLogWatcher is not null)
+        finally
         {
-            await foreach (var logs in _containerLogWatcher!.WatchErrorLogsAsync(cancellationToken).ConfigureAwait(false))
-            {
-                yield return logs;
-            }
+            await DisposeProcess().ConfigureAwait(false);
         }
-    }
 
-    public async ValueTask StopAsync(CancellationToken cancellationToken = default)
-    {
-        if (_containerLogWatcher is not null)
+        yield break;
+
+        void OnOutputData(string line)
         {
-            await _containerLogWatcher.DisposeAsync().ConfigureAwait(false);
-            _containerLogWatcher = null;
+            channel.Writer.TryWrite((Content: line, IsErrorMessage: false));
         }
-    }
 
-    private sealed class DockerContainerLogWatcher(string? containerId) : IAsyncDisposable
-    {
-        private const string Executable = "docker";
-
-        private readonly Channel<string> _outputChannel = Channel.CreateUnbounded<string>(new UnboundedChannelOptions() { SingleReader = true });
-        private readonly Channel<string> _errorChannel = Channel.CreateUnbounded<string>(new UnboundedChannelOptions() { SingleReader = true });
-
-        private IAsyncDisposable? _processDisposable;
-
-        public async Task<bool> InitWatchAsync(CancellationToken cancellationToken)
+        void OnErrorData(string line)
         {
-            if (string.IsNullOrWhiteSpace(containerId))
+            channel.Writer.TryWrite((Content: line, IsErrorMessage: true));
+        }
+
+        async Task WaitForExit(TaskCompletionSource tcs, CancellationTokenRegistration ctr)
+        {
+            if (processResultTask is not null)
             {
-                return false;
-            }
+                // Wait for cancellation (tcs.Task) or for the process itself to exit.
+                await Task.WhenAny(tcs.Task, processResultTask).ConfigureAwait(false);
 
-            Task<ProcessResult>? processResultTask = null;
-
-            try
-            {
-                var args = $"logs --follow -t {containerId}";
-
-                var spec = new ProcessSpec(FileUtil.FindFullPathFromPath(Executable))
+                if (processResultTask.IsCompleted)
                 {
-                    Arguments = args,
-                    OnOutputData = WriteToOutputChannel,
-                    OnErrorData = WriteToErrorChannel,
-                    KillEntireProcessTree = false,
-                    ThrowOnNonZeroReturnCode = false // We don't want this to throw an exception because it is common
-                                                     // for us to cancel the task and kill the process, which returns -1
-                };
+                    // If it was the process that exited, write that out to the logs.
+                    // If it was cancelled, there's no need to because the user has left the page
+                    var processResult = processResultTask.Result;
+                    await channel.Writer.WriteAsync(($"Process exited with code {processResult.ExitCode}", false), cancellationToken).ConfigureAwait(false);
+                }
 
-                (processResultTask, _processDisposable) = ProcessUtil.Run(spec);
+                channel.Writer.Complete();
 
-                var tcs = new TaskCompletionSource();
-
-                // Make sure the process exits if the cancellation token is cancelled
-                var ctr = cancellationToken.Register(() => tcs.TrySetResult());
-
-                // Don't forward cancellationToken here, because its handled internally in WaitForExit
-                _ = Task.Run(() => WaitForExit(tcs, ctr), CancellationToken.None);
-
-                return true;
-            }
-            catch
-            {
+                // If the process has already exited, this will be a no-op. But if it was cancelled
+                // we need to end the process
                 await DisposeProcess().ConfigureAwait(false);
-
-                return false;
             }
 
-            async ValueTask DisposeProcess()
-            {
-                if (_processDisposable is not null)
-                {
-                    await _processDisposable.DisposeAsync().ConfigureAwait(false);
-                    _processDisposable = null;
-                }
-            }
-
-            void WriteToOutputChannel(string s)
-            {
-                _outputChannel.Writer.TryWrite(s);
-            }
-
-            void WriteToErrorChannel(string s)
-            {
-                _errorChannel.Writer.TryWrite(s);
-            }
-
-            async Task WaitForExit(TaskCompletionSource tcs, CancellationTokenRegistration ctr)
-            {
-                if (processResultTask is not null)
-                {
-                    // Wait for cancellation (tcs.Task) or for the process itself to exit.
-                    await Task.WhenAny(tcs.Task, processResultTask).ConfigureAwait(false);
-
-                    if (processResultTask.IsCompleted)
-                    {
-                        // If it was the process that exited, write that out to the logs. If it was cancelled,
-                        // there's no need to because the user has left the page
-                        var processResult = processResultTask.Result;
-                        await _outputChannel.Writer.WriteAsync($"Process exited with code {processResult.ExitCode}", cancellationToken).ConfigureAwait(false);
-                    }
-
-                    _outputChannel.Writer.Complete();
-                    _errorChannel.Writer.Complete();
-
-                    // If the process has already exited, this will be a no-op. But if it was cancelled
-                    // we need to end the process
-                    await DisposeProcess().ConfigureAwait(false);
-                }
-
-                ctr.Unregister();
-            }
+            ctr.Unregister();
         }
 
-        public async IAsyncEnumerable<string[]> WatchOutputLogsAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+        async ValueTask DisposeProcess()
         {
-            while (!cancellationToken.IsCancellationRequested)
+            if (processDisposable is not null)
             {
-                List<string> currentLogs = [];
-
-                // Wait until there's something to read
-                if (await _outputChannel.Reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false))
-                {
-                    // And then read everything that there is to read
-                    while (!cancellationToken.IsCancellationRequested && _outputChannel.Reader.TryRead(out var log))
-                    {
-                        currentLogs.Add(log);
-                    }
-
-                    if (!cancellationToken.IsCancellationRequested && currentLogs.Count > 0)
-                    {
-                        yield return currentLogs.ToArray();
-                    }
-                }
-                else
-                {
-                    // WaitToReadAsync will return false when the Channel is marked Complete
-                    // down in WaitForExist, so we'll break out of the loop here
-                    break;
-                }
-            }
-        }
-
-        public async IAsyncEnumerable<string[]> WatchErrorLogsAsync([EnumeratorCancellation] CancellationToken cancellationToken)
-        {
-            while (!cancellationToken.IsCancellationRequested)
-            {
-                List<string> currentLogs = [];
-
-                // Wait until there's something to read
-                if (await _errorChannel.Reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false))
-                {
-                    // And then read everything that there is to read
-                    while (!cancellationToken.IsCancellationRequested && _errorChannel.Reader.TryRead(out var log))
-                    {
-                        currentLogs.Add(log);
-                    }
-
-                    if (!cancellationToken.IsCancellationRequested && currentLogs.Count > 0)
-                    {
-                        yield return currentLogs.ToArray();
-                    }
-                }
-                else
-                {
-                    // WaitToReadAsync will return false when the Channel is marked Complete
-                    // down in WaitForExist, so we'll break out of the loop here
-                    break;
-                }
-            }
-        }
-
-        public async ValueTask DisposeAsync()
-        {
-            if (_processDisposable is not null)
-            {
-                await _processDisposable.DisposeAsync().ConfigureAwait(false);
+                await processDisposable.DisposeAsync().ConfigureAwait(false);
+                processDisposable = null;
             }
         }
     }

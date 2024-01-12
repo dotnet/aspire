@@ -11,6 +11,8 @@ namespace Aspire.Azure.Messaging.ServiceBus;
 /// </summary>
 public sealed class AzureMessagingServiceBusSettings : IConnectionStringSettings
 {
+    private bool? _tracing;
+
     /// <summary>
     /// Gets or sets the connection string used to connect to the Service Bus namespace. 
     /// </summary>
@@ -43,15 +45,36 @@ public sealed class AzureMessagingServiceBusSettings : IConnectionStringSettings
     public string? HealthCheckTopicName { get; set; }
 
     /// <summary>
-    /// <para>Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.</para>
-    /// <para>Disabled by default.</para>
+    /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.
     /// </summary>
     /// <remarks>
-    /// ActivitySource support in Azure SDK is experimental, the shape of Activities may change in the future without notice.
+    /// ServiceBus ActivitySource support in Azure SDK is experimental, the shape of Activities may change in the future without notice.
     /// It can be enabled by setting "Azure.Experimental.EnableActivitySource" <see cref="AppContext"/> switch to true.
     /// Or by setting "AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE" environment variable to "true".
     /// </remarks>
-    public bool Tracing { get; set; }
+    public bool Tracing
+    {
+        get { return _tracing ??= GetTracingDefaultValue(); }
+        set { _tracing = value; }
+    }
+
+    // default Tracing to true if the experimental switch is set
+    // TODO: remove this when ActivitySource support is no longer experimental
+    private static bool GetTracingDefaultValue()
+    {
+        if (AppContext.TryGetSwitch("Azure.Experimental.EnableActivitySource", out var enabled))
+        {
+            return enabled;
+        }
+
+        var envVar = Environment.GetEnvironmentVariable("AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE");
+        if (envVar is not null && (envVar.Equals("true", StringComparison.OrdinalIgnoreCase) || envVar.Equals("1")))
+        {
+            return true;
+        }
+
+        return false;
+    }
 
     void IConnectionStringSettings.ParseConnectionString(string? connectionString)
     {

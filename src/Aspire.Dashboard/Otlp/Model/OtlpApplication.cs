@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using Aspire.Dashboard.Model;
 using Google.Protobuf.Collections;
 using Microsoft.Extensions.Logging;
 using OpenTelemetry.Proto.Common.V1;
@@ -176,5 +177,23 @@ public class OtlpApplication
         {
             _metricsLock.ExitReadLock();
         }
+    }
+
+    public static string GetResourceName(OtlpApplication app, List<OtlpApplication> allApplications)
+    {
+        var count = 0;
+        foreach (var item in allApplications)
+        {
+            if (item.ApplicationName == app.ApplicationName)
+            {
+                count++;
+                if (count >= 2)
+                {
+                    return ResourceFormatter.GetName(app.ApplicationName, app.InstanceId);
+                }
+            }
+        }
+
+        return app.ApplicationName;
     }
 }

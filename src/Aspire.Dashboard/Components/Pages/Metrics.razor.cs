@@ -1,42 +1,31 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Resources;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Components.Pages;
 
-public partial class Metrics : IDisposable
+public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.MetricsViewModel, Metrics.MetricsPageState>
 {
-    private static readonly SelectViewModel<string> s_selectApplication = new SelectViewModel<string> { Id = null, Name = "(Select a resource)" };
-    private static readonly List<SelectViewModel<TimeSpan>> s_durations = new List<SelectViewModel<TimeSpan>>
-    {
-        new SelectViewModel<TimeSpan> { Name = "Last 1 minute", Id = TimeSpan.FromMinutes(1) },
-        new SelectViewModel<TimeSpan> { Name = "Last 5 minutes", Id = TimeSpan.FromMinutes(5) },
-        new SelectViewModel<TimeSpan> { Name = "Last 15 minutes", Id = TimeSpan.FromMinutes(15) },
-        new SelectViewModel<TimeSpan> { Name = "Last 30 minutes", Id = TimeSpan.FromMinutes(30) },
-        new SelectViewModel<TimeSpan> { Name = "Last 1 hour", Id = TimeSpan.FromHours(1) },
-        new SelectViewModel<TimeSpan> { Name = "Last 3 hours", Id = TimeSpan.FromHours(3) },
-        new SelectViewModel<TimeSpan> { Name = "Last 6 hours", Id = TimeSpan.FromHours(6) },
-        new SelectViewModel<TimeSpan> { Name = "Last 12 hours", Id = TimeSpan.FromHours(12) },
-        new SelectViewModel<TimeSpan> { Name = "Last 24 hours", Id = TimeSpan.FromHours(24) },
-    };
+    private SelectViewModel<string> _selectApplication = null!;
+    private List<SelectViewModel<TimeSpan>> _durations = null!;
     private static readonly TimeSpan s_defaultDuration = TimeSpan.FromMinutes(5);
 
     private List<SelectViewModel<string>> _applications = default!;
-    private SelectViewModel<string> _selectedApplication = s_selectApplication;
-    private SelectViewModel<TimeSpan> _selectedDuration = s_durations.Single(d => d.Id == s_defaultDuration);
     private Subscription? _applicationsSubscription;
     private Subscription? _metricsSubscription;
-    private List<OtlpInstrument>? _instruments;
-    private FluentTreeItem? _selectedTreeItem;
-    private OtlpMeter? _selectedMeter;
-    private OtlpInstrument? _selectedInstrument;
+
+    public string BasePath => "Metrics";
+    public string SessionStorageKey => "Metrics_PageState";
+    public MetricsViewModel ViewModel { get; set; } = null!;
 
     [Parameter]
     public string? ApplicationInstanceId { get; set; }
@@ -55,19 +44,35 @@ public partial class Metrics : IDisposable
     public required NavigationManager NavigationManager { get; set; }
 
     [Inject]
-    public required IDashboardViewModelService DashboardViewModelService { get; set; }
+    public required IDashboardClient DashboardClient { get; set; }
 
     [Inject]
-    public required ProtectedSessionStorage ProtectedSessionStore { get; set; }
+    public required ProtectedSessionStorage SessionStorage { get; set; }
 
     [Inject]
     public required TelemetryRepository TelemetryRepository { get; set; }
 
     [Inject]
-    public required TracesViewModel ViewModel { get; set; }
+    public required TracesViewModel TracesViewModel { get; set; }
 
     protected override Task OnInitializedAsync()
     {
+        _durations = new List<SelectViewModel<TimeSpan>>
+        {
+            new() { Name = Loc[nameof(Dashboard.Resources.Metrics.MetricsLastOneMinute)], Id = TimeSpan.FromMinutes(1) },
+            new() { Name = Loc[nameof(Dashboard.Resources.Metrics.MetricsLastFiveMinutes)], Id = TimeSpan.FromMinutes(5) },
+            new() { Name = Loc[nameof(Dashboard.Resources.Metrics.MetricsLastFifteenMinutes)], Id = TimeSpan.FromMinutes(15) },
+            new() { Name = Loc[nameof(Dashboard.Resources.Metrics.MetricsLastThirtyMinutes)], Id = TimeSpan.FromMinutes(30) },
+            new() { Name = Loc[nameof(Dashboard.Resources.Metrics.MetricsLastHour)], Id = TimeSpan.FromHours(1) },
+            new() { Name = Loc[nameof(Dashboard.Resources.Metrics.MetricsLastThreeHours)], Id = TimeSpan.FromHours(3) },
+            new() { Name = Loc[nameof(Dashboard.Resources.Metrics.MetricsLastSixHours)], Id = TimeSpan.FromHours(6) },
+            new() { Name = Loc[nameof(Dashboard.Resources.Metrics.MetricsLastTwelveHours)], Id = TimeSpan.FromHours(12) },
+            new() { Name = Loc[nameof(Dashboard.Resources.Metrics.MetricsLastTwentyFourHours)], Id = TimeSpan.FromHours(24) },
+        };
+
+        _selectApplication = new SelectViewModel<string> { Id = null, Name = ControlsStringsLoc[ControlsStrings.SelectAResource] };
+        ViewModel = new MetricsViewModel { SelectedApplication = _selectApplication, SelectedDuration = _durations.Single(d => d.Id == s_defaultDuration) };
+
         UpdateApplications();
         _applicationsSubscription = TelemetryRepository.OnNewApplications(() => InvokeAsync(() =>
         {
@@ -77,21 +82,38 @@ public partial class Metrics : IDisposable
         return Task.CompletedTask;
     }
 
-    protected override void OnParametersSet()
+    protected override async Task OnParametersSetAsync()
     {
-        _selectedDuration = s_durations.SingleOrDefault(d => (int)d.Id.TotalMinutes == DurationMinutes) ?? s_durations.Single(d => d.Id == s_defaultDuration);
-        _selectedApplication = _applications.SingleOrDefault(e => e.Id == ApplicationInstanceId) ?? s_selectApplication;
-        ViewModel.ApplicationServiceId = _selectedApplication.Id;
-        _instruments = !string.IsNullOrEmpty(_selectedApplication.Id) ? TelemetryRepository.GetInstrumentsSummary(_selectedApplication.Id) : null;
+        await this.InitializeViewModelAsync();
+        TracesViewModel.ApplicationServiceId = ViewModel.SelectedApplication.Id;
+        UpdateSubscription();
+    }
 
-        _selectedMeter = null;
-        _selectedInstrument = null;
-        if (_instruments != null && !string.IsNullOrEmpty(MeterName))
+    public MetricsPageState ConvertViewModelToSerializable()
+    {
+        return new MetricsPageState
         {
-            _selectedMeter = _instruments.FirstOrDefault(i => i.Parent.MeterName == MeterName)?.Parent;
-            if (_selectedMeter != null && !string.IsNullOrEmpty(InstrumentName))
+            ApplicationId = ViewModel.SelectedApplication.Id,
+            MeterName = ViewModel.SelectedMeter?.MeterName,
+            InstrumentName = ViewModel.SelectedInstrument?.Name,
+            DurationMinutes = (int)ViewModel.SelectedDuration.Id.TotalMinutes
+        };
+    }
+
+    public void UpdateViewModelFromQuery(MetricsViewModel viewModel)
+    {
+        viewModel.SelectedDuration = _durations.SingleOrDefault(d => (int)d.Id.TotalMinutes == DurationMinutes) ?? _durations.Single(d => d.Id == s_defaultDuration);
+        viewModel.SelectedApplication = _applications.SingleOrDefault(e => e.Id == ApplicationInstanceId) ?? _selectApplication;
+        viewModel.Instruments = !string.IsNullOrEmpty(viewModel.SelectedApplication.Id) ? TelemetryRepository.GetInstrumentsSummary(viewModel.SelectedApplication.Id) : null;
+
+        viewModel.SelectedMeter = null;
+        viewModel.SelectedInstrument = null;
+        if (viewModel.Instruments != null && !string.IsNullOrEmpty(MeterName))
+        {
+            viewModel.SelectedMeter = viewModel.Instruments.FirstOrDefault(i => i.Parent.MeterName == MeterName)?.Parent;
+            if (viewModel.SelectedMeter != null && !string.IsNullOrEmpty(InstrumentName))
             {
-                _selectedInstrument = TelemetryRepository.GetInstrument(new GetInstrumentRequest
+                viewModel.SelectedInstrument = TelemetryRepository.GetInstrument(new GetInstrumentRequest
                 {
                     ApplicationServiceId = ApplicationInstanceId!,
                     MeterName = MeterName,
@@ -99,127 +121,115 @@ public partial class Metrics : IDisposable
                 });
             }
         }
-
-        UpdateSubscription();
     }
 
     private void UpdateApplications()
     {
-        _applications = TelemetryRepository.GetApplications().Select(a => new SelectViewModel<string> { Id = a.InstanceId, Name = a.ApplicationName }).ToList();
-        _applications.Insert(0, s_selectApplication);
+        _applications = SelectViewModelFactory.CreateApplicationsSelectViewModel(TelemetryRepository.GetApplications());
+        _applications.Insert(0, _selectApplication);
         UpdateSubscription();
     }
 
-    private async Task HandleSelectedApplicationChangedAsync()
+    private Task HandleSelectedApplicationChangedAsync()
     {
-        var state = new MetricsSelectedState { ApplicationId = _selectedApplication.Id, DurationMinutes = (int)_selectedDuration.Id.TotalMinutes };
-
-        NavigateTo(state);
-        await ProtectedSessionStore.SetAsync(MetricsSelectedState.Key, state);
+        ViewModel.SelectedMeter = null;
+        ViewModel.SelectedInstrument = null;
+        return this.AfterViewModelChangedAsync();
     }
 
-    private async Task HandleSelectedDurationChangedAsync()
+    private Task HandleSelectedDurationChangedAsync()
     {
-        var state = new MetricsSelectedState { ApplicationId = _selectedApplication.Id, DurationMinutes = (int)_selectedDuration.Id.TotalMinutes, InstrumentName = InstrumentName, MeterName = MeterName };
-
-        NavigateTo(state);
-        await ProtectedSessionStore.SetAsync(MetricsSelectedState.Key, state);
+        return this.AfterViewModelChangedAsync();
     }
 
-    private sealed class MetricsSelectedState
+    public sealed class MetricsViewModel
     {
-        public const string Key = "Metrics_SelectState";
+        public FluentTreeItem? SelectedTreeItem { get; set; }
+        public OtlpMeter? SelectedMeter { get; set; }
+        public OtlpInstrument? SelectedInstrument { get; set; }
+        public required SelectViewModel<string> SelectedApplication { get; set; }
+        public SelectViewModel<TimeSpan> SelectedDuration { get; set; } = null!;
+        public List<OtlpInstrument>? Instruments { get; set; }
+    }
+
+    public class MetricsPageState
+    {
         public string? ApplicationId { get; set; }
         public string? MeterName { get; set; }
         public string? InstrumentName { get; set; }
         public int DurationMinutes { get; set; }
     }
 
-    private async Task HandleSelectedTreeItemChanged()
+    private Task HandleSelectedTreeItemChangedAsync()
     {
-        MetricsSelectedState state;
-
-        if (_selectedTreeItem?.Data is OtlpMeter meter)
+        if (ViewModel.SelectedTreeItem?.Data is OtlpMeter meter)
         {
-            state = new MetricsSelectedState { ApplicationId = _selectedApplication.Id, DurationMinutes = (int)_selectedDuration.Id.TotalMinutes, MeterName = meter.MeterName };
+            ViewModel.SelectedMeter = meter;
+            ViewModel.SelectedInstrument = null;
         }
-        else if (_selectedTreeItem?.Data is OtlpInstrument instrument)
+        else if (ViewModel.SelectedTreeItem?.Data is OtlpInstrument instrument)
         {
-            state = new MetricsSelectedState { ApplicationId = _selectedApplication.Id, DurationMinutes = (int)_selectedDuration.Id.TotalMinutes, MeterName = instrument.Parent.MeterName, InstrumentName = instrument.Name };
+            ViewModel.SelectedMeter = instrument.Parent;
+            ViewModel.SelectedInstrument = instrument;
         }
         else
         {
-            state = new MetricsSelectedState { ApplicationId = _selectedApplication.Id, DurationMinutes = (int)_selectedDuration.Id.TotalMinutes };
+            ViewModel.SelectedMeter = null;
+            ViewModel.SelectedInstrument = null;
         }
 
-        NavigateTo(state);
-        await ProtectedSessionStore.SetAsync(MetricsSelectedState.Key, state);
+        return this.AfterViewModelChangedAsync();
     }
 
-    private void NavigateTo(MetricsSelectedState state)
+    public UrlState GetUrlFromSerializableViewModel(MetricsPageState serializable)
     {
-        string url;
-        if (state.MeterName != null)
+        string path;
+        if (serializable.ApplicationId is not null && serializable.MeterName is not null)
         {
-            if (state.InstrumentName != null)
-            {
-                url = $"/Metrics/{state.ApplicationId}/Meter/{state.MeterName}/Instrument/{state.InstrumentName}";
-            }
-            else
-            {
-                url = $"/Metrics/{state.ApplicationId}/Meter/{state.MeterName}";
-            }
+            path = serializable.InstrumentName != null
+                ? $"/{BasePath}/{serializable.ApplicationId}/Meter/{serializable.MeterName}/Instrument/{serializable.InstrumentName}"
+                : $"/{BasePath}/{serializable.ApplicationId}/Meter/{serializable.MeterName}";
         }
-        else if (state.ApplicationId != null)
+        else if (serializable.ApplicationId != null)
         {
-            url = $"/Metrics/{state.ApplicationId}";
+            path = $"/{BasePath}/{serializable.ApplicationId}";
         }
         else
         {
-            url = $"/Metrics";
+            path = $"/{BasePath}";
         }
 
-        if (state.DurationMinutes != (int)s_defaultDuration.TotalMinutes)
+        var queryParameters = new Dictionary<string, string?>();
+
+        if (ViewModel.SelectedDuration.Id != s_defaultDuration)
         {
-            url += $"?duration={state.DurationMinutes}";
+            queryParameters.Add("duration", serializable.DurationMinutes.ToString(CultureInfo.InvariantCulture));
         }
 
-        NavigationManager.NavigateTo(url);
+        return new UrlState(path, queryParameters);
     }
 
     private void UpdateSubscription()
     {
+        var selectedApplication = (ViewModel.SelectedApplication ?? _selectApplication).Id;
         // Subscribe to updates.
-        if (_metricsSubscription is null || _metricsSubscription.ApplicationId != _selectedApplication.Id)
+        if (_metricsSubscription is null || _metricsSubscription.ApplicationId != selectedApplication)
         {
             _metricsSubscription?.Dispose();
-            _metricsSubscription = TelemetryRepository.OnNewMetrics(_selectedApplication.Id, SubscriptionType.Read, async () =>
+            _metricsSubscription = TelemetryRepository.OnNewMetrics(selectedApplication, SubscriptionType.Read, async () =>
             {
-                var selectedApplicationId = _selectedApplication.Id;
-                if (!string.IsNullOrEmpty(selectedApplicationId))
+                if (!string.IsNullOrEmpty(selectedApplication))
                 {
                     // If there are more instruments than before then update the UI.
-                    var instruments = TelemetryRepository.GetInstrumentsSummary(selectedApplicationId);
+                    var instruments = TelemetryRepository.GetInstrumentsSummary(selectedApplication);
 
-                    if (_instruments is null || instruments.Count > _instruments.Count)
+                    if (ViewModel.Instruments is null || instruments.Count > ViewModel.Instruments.Count)
                     {
-                        _instruments = instruments;
+                        ViewModel.Instruments = instruments;
                         await InvokeAsync(StateHasChanged);
                     }
                 }
             });
-        }
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            var result = await ProtectedSessionStore.GetAsync<MetricsSelectedState>(MetricsSelectedState.Key);
-            if (result.Success && result.Value is not null)
-            {
-                NavigateTo(result.Value);
-            }
         }
     }
 

@@ -1,5 +1,12 @@
-﻿<div class="summary-details-container">
-    <FluentSplitter Orientation="@Orientation" Collapsed="@(!ShowDetails)" OnResized="HandleSplitterResize" Panel1Size="@_panel1Size" Panel2Size="@_panel2Size">
+﻿@using Aspire.Dashboard.Resources
+@inject IStringLocalizer<ControlsStrings> Loc
+
+<div class="summary-details-container">
+    <FluentSplitter Orientation="@Orientation" Collapsed="@(!ShowDetails)"
+                    OnResized="HandleSplitterResize"
+                    Panel1Size="@_panel1Size" Panel2Size="@_panel2Size"
+                    Panel1MinSize="150px" Panel2MinSize="150px"
+                    BarSize="5">
         <Panel1>
             <div class="summary-container">
                 @Summary
@@ -20,10 +27,10 @@
                         <FluentButton Appearance="Appearance.Stealth"
                                       IconEnd="@(Orientation == Orientation.Horizontal ? _splitHorizontalIcon : _splitVerticalIcon)"
                                       OnClick="HandleToggleOrientation"
-                                      Title="@(Orientation == Orientation.Horizontal ? "Split Horizontal" : "Split Vertical")"
-                                      aria-label="@(Orientation == Orientation.Horizontal ? "Split Horizontal" : "Split Vertical")" />
+                                      Title="@(Orientation == Orientation.Horizontal ? Loc[nameof(ControlsStrings.SummaryDetailsViewSplitHorizontal)] : Loc[nameof(ControlsStrings.SummaryDetailsViewSplitVertical)])"
+                                      aria-label="@(Orientation == Orientation.Horizontal ? Loc[nameof(ControlsStrings.SummaryDetailsViewSplitHorizontal)] : Loc[nameof(ControlsStrings.SummaryDetailsViewSplitVertical)])" />
                         <FluentButton Appearance="Appearance.Stealth" IconEnd="@(new Icons.Regular.Size16.Dismiss())"
-                                      OnClick="HandleDismissAsync" Title="Close" aria-label="Close" />
+                                      OnClick="HandleDismissAsync" Title="@Loc[nameof(ControlsStrings.SummaryDetailsViewCloseView)]" aria-label="@Loc[nameof(ControlsStrings.SummaryDetailsViewCloseView)]" />
                     </div>
                 </header>
                 @Details

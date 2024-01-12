@@ -36,7 +36,7 @@ app.MapGet("/weatherforecast", async (DaprClient client) =>
         return cachedForecasts.Forecasts;
     }
 
-    var forecasts = await client.InvokeMethodAsync<WeatherForecast[]>(HttpMethod.Get, "service-b", "weatherforecast");
+    var forecasts = await client.InvokeMethodAsync<WeatherForecast[]>(HttpMethod.Get, "serviceb", "weatherforecast");
 
     await client.SaveStateAsync("statestore", "cache", new CachedWeatherForecast(forecasts, DateTimeOffset.UtcNow));
 

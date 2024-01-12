@@ -1,12 +1,15 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Concurrent;
+using System.Collections.Immutable;
+using System.Diagnostics;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
-using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Pages;
 
@@ -16,73 +19,65 @@ public partial class Resources : ComponentBase, IDisposable
     private Dictionary<OtlpApplication, int>? _applicationUnviewedErrorCounts;
 
     [Inject]
-    public required IDashboardViewModelService DashboardViewModelService { get; init; }
+    public required IDashboardClient DashboardClient { get; init; }
     [Inject]
     public required TelemetryRepository TelemetryRepository { get; init; }
     [Inject]
-    public required NavigationManager NavigationManager { get; set; }
-    [Inject]
-    public required IJSRuntime JS { get; set; }
+    public required NavigationManager NavigationManager { get; init; }
 
-    private IEnumerable<EnvironmentVariableViewModel>? SelectedEnvironmentVariables { get; set; }
-    private string? SelectedResourceName { get; set; }
+    private ResourceViewModel? SelectedResource { get; set; }
 
-    private static ViewModelMonitor<ResourceViewModel> GetViewModelMonitor(IDashboardViewModelService dashboardViewModelService)
-        => dashboardViewModelService.GetResources();
-
-    private bool Filter(ResourceViewModel resource)
-        => ((resource.ResourceType == "Project" && _areProjectsVisible) ||
-            (resource.ResourceType == "Container" && _areContainersVisible) ||
-            (resource.ResourceType == "Executable" && _areExecutablesVisible)) &&
-           (resource.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) ||
-            (resource is ContainerViewModel containerViewModel &&
-             containerViewModel.Image.Contains(_filter, StringComparison.CurrentCultureIgnoreCase)));
-
-    private readonly Dictionary<string, ResourceViewModel> _resourcesMap = new();
     private readonly CancellationTokenSource _watchTaskCancellationTokenSource = new();
+    private readonly ConcurrentDictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
+    // TODO populate resource types from server data
+    private readonly ImmutableArray<string> _allResourceTypes = [KnownResourceTypes.Project, KnownResourceTypes.Executable, KnownResourceTypes.Container];
+    private readonly HashSet<string> _visibleResourceTypes;
     private string _filter = "";
     private bool _isTypeFilterVisible;
-    private bool _allTypesVisibleCheckboxValue = true;
-    private bool _areProjectsVisible = true;
-    private bool _areContainersVisible = true;
-    private bool _areExecutablesVisible = true;
-    private FluentCheckbox? _allTypesVisibleCheckbox;
 
-    private bool AreAllTypesVisible => _areProjectsVisible && _areContainersVisible && _areExecutablesVisible;
-
-    private void HandleTypeFilterShowAllChanged(bool newValue)
+    public Resources()
     {
-        _allTypesVisibleCheckboxValue = _areProjectsVisible = _areContainersVisible = _areExecutablesVisible = newValue;
+        _visibleResourceTypes = new HashSet<string>(_allResourceTypes, StringComparers.ResourceType);
     }
 
-    private async Task HandleTypeFilterTypeChanged()
+    private bool Filter(ResourceViewModel resource) => _visibleResourceTypes.Contains(resource.ResourceType) && (_filter.Length == 0 || resource.MatchesFilter(_filter));
+
+    protected void OnResourceTypeVisibilityChanged(string resourceType, bool isVisible)
     {
-        if (_areProjectsVisible && _areContainersVisible && _areExecutablesVisible)
+        if (isVisible)
         {
-            _allTypesVisibleCheckboxValue = true;
-            await SetIndeterminateState(false);
-        }
-        else if (!_areProjectsVisible && !_areContainersVisible && !_areExecutablesVisible)
-        {
-            _allTypesVisibleCheckboxValue = false;
-            await SetIndeterminateState(false);
+            _visibleResourceTypes.Add(resourceType);
         }
         else
         {
-            _allTypesVisibleCheckboxValue = true; // Set this to true so the styling is consistent while indeterminate
-            await SetIndeterminateState(true);
+            _visibleResourceTypes.Remove(resourceType);
         }
     }
 
-    private async Task SetIndeterminateState(bool indeterminate)
+    private bool? AreAllTypesVisible
     {
-        if (_allTypesVisibleCheckbox is not null)
+        get
         {
-            await JS.InvokeVoidAsync("setIndeterminate", _allTypesVisibleCheckbox.Element, indeterminate);
+            return _visibleResourceTypes.SetEquals(_allResourceTypes)
+                ? true
+                : _visibleResourceTypes.Count == 0
+                    ? false
+                    : null;
+        }
+        set
+        {
+            if (value is true)
+            {
+                _visibleResourceTypes.UnionWith(_allResourceTypes);
+            }
+            else if (value is false)
+            {
+                _visibleResourceTypes.Clear();
+            }
         }
     }
 
-    private IQueryable<ResourceViewModel>? FilteredResources => _resourcesMap.Values.Where(Filter).OrderBy(e => e.ResourceType).ThenBy(e => e.Name).AsQueryable();
+    private IQueryable<ResourceViewModel>? FilteredResources => _resourceByName.Values.Where(Filter).OrderBy(e => e.ResourceType).ThenBy(e => e.Name).AsQueryable();
 
     private readonly GridSort<ResourceViewModel> _nameSort = GridSort<ResourceViewModel>.ByAscending(p => p.Name);
     private readonly GridSort<ResourceViewModel> _stateSort = GridSort<ResourceViewModel>.ByAscending(p => p.State);
@@ -90,19 +85,30 @@ public partial class Resources : ComponentBase, IDisposable
     protected override void OnInitialized()
     {
         _applicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
-        var viewModelMonitor = GetViewModelMonitor(DashboardViewModelService);
-        var resources = viewModelMonitor.Snapshot;
-        var watch = viewModelMonitor.Watch;
-        foreach (var resource in resources)
+
+        var (snapshot, subscription) = DashboardClient.SubscribeResources();
+
+        foreach (var resource in snapshot)
         {
-            _resourcesMap.Add(resource.Name, resource);
+            var added = _resourceByName.TryAdd(resource.Name, resource);
+            Debug.Assert(added, "Should not receive duplicate resources in initial snapshot data.");
         }
 
         _ = Task.Run(async () =>
         {
-            await foreach (var resourceChanged in watch.WithCancellation(_watchTaskCancellationTokenSource.Token))
+            await foreach (var (changeType, resource) in subscription.WithCancellation(_watchTaskCancellationTokenSource.Token))
             {
-                await OnResourceListChanged(resourceChanged.ObjectChangeType, resourceChanged.Resource);
+                if (changeType == ResourceViewModelChangeType.Upsert)
+                {
+                    _resourceByName[resource.Name] = resource;
+                }
+                else if (changeType == ResourceViewModelChangeType.Delete)
+                {
+                    var removed = _resourceByName.TryRemove(resource.Name, out _);
+                    Debug.Assert(removed, "Cannot remove unknown resource.");
+                }
+
+                await InvokeAsync(StateHasChanged);
             }
         });
 
@@ -113,64 +119,41 @@ public partial class Resources : ComponentBase, IDisposable
         });
     }
 
-    private int GetUnviewedErrorCount(ResourceViewModel resource)
+    private void ShowResourceDetails(ResourceViewModel resource)
     {
-        if (_applicationUnviewedErrorCounts is null)
-        {
-            return 0;
-        }
-
-        var application = TelemetryRepository.GetApplication(resource.Uid);
-        if (application is null)
-        {
-            return 0;
-        }
-
-        if (!_applicationUnviewedErrorCounts.TryGetValue(application, out var count))
-        {
-            return 0;
-        }
-
-        return count;
-    }
-
-    private void ShowEnvironmentVariables(ResourceViewModel resource)
-    {
-        if (SelectedEnvironmentVariables == resource.Environment)
+        if (SelectedResource == resource)
         {
             ClearSelectedResource();
         }
         else
         {
-            SelectedEnvironmentVariables = resource.Environment;
-            SelectedResourceName = resource.Name;
+            SelectedResource = resource;
         }
     }
 
     private void ClearSelectedResource()
     {
-        SelectedEnvironmentVariables = null;
-        SelectedResourceName = null;
+        SelectedResource = null;
     }
 
-    private async Task OnResourceListChanged(ObjectChangeType objectChangeType, ResourceViewModel resource)
+    private string GetResourceName(ResourceViewModel resource) => ResourceViewModel.GetResourceName(resource, _resourceByName.Values);
+
+    private bool HasMultipleReplicas(ResourceViewModel resource)
     {
-        switch (objectChangeType)
+        var count = 0;
+        foreach (var item in _resourceByName.Values)
         {
-            case ObjectChangeType.Added:
-                _resourcesMap.Add(resource.Name, resource);
-                break;
-
-            case ObjectChangeType.Modified:
-                _resourcesMap[resource.Name] = resource;
-                break;
-
-            case ObjectChangeType.Deleted:
-                _resourcesMap.Remove(resource.Name);
-                break;
+            if (item.DisplayName == resource.DisplayName)
+            {
+                count++;
+                if (count >= 2)
+                {
+                    return true;
+                }
+            }
         }
 
-        await InvokeAsync(StateHasChanged);
+        return false;
     }
 
     protected virtual void Dispose(bool disposing)
@@ -189,21 +172,6 @@ public partial class Resources : ComponentBase, IDisposable
         GC.SuppressFinalize(this);
     }
 
-    private void HandleFilter(ChangeEventArgs args)
-    {
-        if (args.Value is string newFilter)
-        {
-            _filter = newFilter;
-        }
-    }
-
-    private void HandleClear()
-    {
-        _filter = string.Empty;
-    }
-
-    private void ViewErrorStructuredLogs(ResourceViewModel resource)
-    {
-        NavigationManager.NavigateTo($"/StructuredLogs/{resource.Uid}?level=error");
-    }
+    private string? GetRowClass(ResourceViewModel resource)
+        => resource == SelectedResource ? "selected-row" : null;
 }

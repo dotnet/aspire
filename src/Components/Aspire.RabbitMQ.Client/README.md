@@ -91,10 +91,10 @@ builder.AddRabbitMQ("messaging", configureConnectionFactory: factory => factory.
 
 ## AppHost extensions
 
-In your AppHost project, register a RabbitMQ container and consume the connection using the following methods:
+In your AppHost project, register a RabbitMQ server and consume the connection using the following methods:
 
 ```csharp
-var messaging = builder.AddRabbitMQContainer("messaging");
+var messaging = builder.AddRabbitMQ("messaging");
 
 var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(messaging);
