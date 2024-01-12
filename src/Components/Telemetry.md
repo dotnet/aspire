@@ -56,6 +56,25 @@ Aspire.Azure.Storage.Queues:
 - Metric names:
   - none (currently not supported by the Azure SDK)
 
+Aspire.Confluent.Kafka:
+- Log categories:
+  - "Aspire.Confluent.Kafka"
+- Activity source names:
+  - N/A
+- Metric names:
+  - "Aspire.Confluent.Kafka"
+    - "messaging.kafka.consumer.queue.message_count"
+    - "messaging.kafka.producer.queue.message_count"
+    - "messaging.kafka.producer.queue.size"
+    - "messaging.kafka.network.tx"    
+    - "messaging.kafka.network.transmitted"
+    - "messaging.kafka.network.rx"
+    - "messaging.kafka.network.received"
+    - "messaging.kafka.message.tx"
+    - "messaging.kafka.message.transmitted"
+    - "messaging.kafka.message.rx"
+    - "messaging.kafka.message.received"
+
 Aspire.Microsoft.Azure.Cosmos:
 - Log categories:
   - "Azure-Cosmos-Operation-Request-Diagnostics"
