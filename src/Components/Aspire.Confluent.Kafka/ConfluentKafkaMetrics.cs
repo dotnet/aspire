@@ -8,7 +8,6 @@ namespace Aspire.Confluent.Kafka;
 
 internal sealed class ConfluentKafkaMetrics
 {
-    private readonly IMeterFactory _meterFactory;
     private readonly Meter _meter;
 
     public Counter<long> Tx { get; }
@@ -26,8 +25,7 @@ internal sealed class ConfluentKafkaMetrics
 
     public ConfluentKafkaMetrics(IMeterFactory meterFactory)
     {
-        _meterFactory = meterFactory;
-        _meter = _meterFactory.Create(ConfluentKafkaCommon.MeterName);
+        _meter = meterFactory.Create(ConfluentKafkaCommon.MeterName);
 
         _meter.CreateObservableGauge(Gauges.ReplyQueue, GetReplyQMeasurements, Descriptions.ReplyQueue);
         _meter.CreateObservableGauge(Gauges.MessageCount, GetMessageCountMeasurements, Descriptions.MessageCount);

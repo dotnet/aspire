@@ -103,7 +103,7 @@ public static class AspireKafkaConsumerExtensions
     }
 
     private static ConsumerConnectionFactory<TKey, TValue> CreateConsumerConnectionFactory<TKey, TValue>(IServiceProvider serviceProvider, Action<ConsumerBuilder<TKey, TValue>>? configureBuilder, KafkaConsumerSettings settings)
-        => new(CreateConsumerBuilder(serviceProvider, configureBuilder, settings), settings.Config!);
+        => new(CreateConsumerBuilder(serviceProvider, configureBuilder, settings), settings.Config);
 
     private static ConsumerBuilder<TKey, TValue> CreateConsumerBuilder<TKey, TValue>(IServiceProvider serviceProvider, Action<ConsumerBuilder<TKey, TValue>>? configureBuilder, KafkaConsumerSettings settings)
     {

@@ -103,7 +103,7 @@ public static class AspireKafkaProducerExtensions
     }
 
     private static ProducerConnectionFactory<TKey, TValue> CreateProducerConnectionFactory<TKey, TValue>(IServiceProvider serviceProvider, Action<ProducerBuilder<TKey, TValue>>? configureBuilder, KafkaProducerSettings settings)
-        => new(CreateProducerBuilder(serviceProvider, configureBuilder, settings), settings.Config!);
+        => new(CreateProducerBuilder(serviceProvider, configureBuilder, settings), settings.Config);
 
     private static ProducerBuilder<TKey, TValue> CreateProducerBuilder<TKey, TValue>(IServiceProvider serviceProvider, Action<ProducerBuilder<TKey, TValue>>? configureBuilder, KafkaProducerSettings settings)
     {

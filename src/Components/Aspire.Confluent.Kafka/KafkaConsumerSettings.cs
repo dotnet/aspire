@@ -17,9 +17,9 @@ public sealed class KafkaConsumerSettings
     public string? ConnectionString { get; set; }
 
     /// <summary>
-    /// Gets or sets the configuration settings for the Kafka consumer.
+    /// Gets the configuration settings for the Kafka consumer.
     /// </summary>
-    public ConsumerConfig? Config { get; set; }
+    public ConsumerConfig Config { get; internal set; } = default!; // always set before the settings is handed out
 
     /// <summary>
     /// Gets or sets a boolean value that indicates whether collecting metrics is enabled or not.
@@ -48,7 +48,7 @@ public sealed class KafkaConsumerSettings
 
     internal void Validate()
     {
-        if (Config!.BootstrapServers is null)
+        if (Config.BootstrapServers is null)
         {
             throw new InvalidOperationException("No bootstrap servers configured.");
         }

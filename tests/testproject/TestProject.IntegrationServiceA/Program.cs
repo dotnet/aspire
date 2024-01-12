@@ -12,7 +12,7 @@ builder.AddOracleDatabaseDbContext<MyDbContext>("freepdb1");
 builder.AddKafkaProducer<string, string>("kafkacontainer");
 builder.AddKafkaConsumer<string, string>("kafkacontainer", consumerBuilder =>
 {
-    consumerBuilder.Config!.GroupId = "aspire-consumer-group";
+    consumerBuilder.Config.GroupId = "aspire-consumer-group";
     consumerBuilder.Config.AutoOffsetReset = AutoOffsetReset.Earliest;
 });
 
@@ -25,7 +25,7 @@ builder.AddKeyedMongoDBClient("mongodbabstract");
 builder.AddKeyedKafkaProducer<string, string>("kafkaabstract");
 builder.AddKeyedKafkaConsumer<string, string>("kafkaabstract", consumerBuilder =>
 {
-    consumerBuilder.Config!.GroupId = "aspire-abstract-consumer-group";
+    consumerBuilder.Config.GroupId = "aspire-abstract-consumer-group";
     consumerBuilder.Config.AutoOffsetReset = AutoOffsetReset.Earliest;
 });
 

@@ -17,9 +17,9 @@ public sealed class KafkaProducerSettings
     public string? ConnectionString { get; set; }
 
     /// <summary>
-    /// Gets or sets the configuration settings for the Kafka producer.
+    /// Gets the configuration settings for the Kafka producer.
     /// </summary>
-    public ProducerConfig? Config { get; internal set; }
+    public ProducerConfig Config { get; internal set; } = default!; // always set before the settings is handed out
 
     /// <summary>
     /// Gets or sets a boolean value that indicates whether collecting metrics is enabled or not.
@@ -54,7 +54,7 @@ public sealed class KafkaProducerSettings
 
     internal void Validate()
     {
-        if (string.IsNullOrEmpty(Config!.BootstrapServers))
+        if (string.IsNullOrEmpty(Config.BootstrapServers))
         {
             throw new InvalidOperationException("No bootstrap servers configured.");
         }

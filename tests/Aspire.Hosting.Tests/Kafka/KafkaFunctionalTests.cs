@@ -21,9 +21,11 @@ public class KafkaFunctionalTests(IntegrationServicesFixture integrationServices
         string topic = $"topic-{Guid.NewGuid()}";
 
         var response = await testProgram.IntegrationServiceABuilder!.HttpGetAsync(client, "http", $"/kafka/produce/{topic}", cts.Token);
-        Assert.True(response.IsSuccessStatusCode);
+        var responseContent = await response.Content.ReadAsStringAsync();
+        Assert.True(response.IsSuccessStatusCode, responseContent);
 
         response = await testProgram.IntegrationServiceABuilder!.HttpGetAsync(client, "http", $"/kafka/consume/{topic}", cts.Token);
-        Assert.True(response.IsSuccessStatusCode);
+        responseContent = await response.Content.ReadAsStringAsync();
+        Assert.True(response.IsSuccessStatusCode, responseContent);
     }
 }
