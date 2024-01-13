@@ -1,0 +1,180 @@
+{
+  "$schema": "https://json.schemastore.org/template",
+  "author": "Microsoft",
+  "classifications": [
+    "Common",
+    ".NET Aspire",
+    "Cloud"
+  ],
+  "name": ".NET Aspire App Host",
+  "defaultName": "AppHost",
+  "description": "A project template for creating a .NET Aspire app host (orchestrator) project.",
+  "shortName": "aspire-apphost",
+  "sourceName": "Aspire.AppHost1",
+  "preferNameDirectory": true,
+  "tags": {
+    "language": "C#",
+    "type": "project"
+  },
+  "precedence": "8000",
+  "identity": "Aspire.AppHost.CSharp.8.0",
+  "thirdPartyNotices": "https://aka.ms/aspire/1.0-third-party-notices",
+  "groupIdentity": "Aspire.AppHost",
+  "constraints": {
+    "aspire": {
+      "type": "workload",
+      "args": [ "aspire" ]
+    }
+  },
+  "symbols": {
+    "Framework": {
+      "type": "parameter",
+      "description": "The target framework for the project.",
+      "datatype": "choice",
+      "choices": [
+        {
+          "choice": "net8.0",
+          "description": "Target net8.0"
+        }
+      ],
+      "replaces": "net8.0",
+      "defaultValue": "net8.0"
+    },
+    "hostIdentifier": {
+      "type": "bind",
+      "binding": "HostIdentifier"
+    },
+    "appHttpPort": {
+      "type": "parameter",
+      "datatype": "integer",
+      "description": "Port number to use for the HTTP endpoint in launchSettings.json of the App project."
+    },
+    "appHttpPortGenerated": {
+      "type": "generated",
+      "generator": "port",
+      "parameters": {
+        "low": 15000,
+        "high": 15300
+      }
+    },
+    "appHttpPortReplacer": {
+      "type": "generated",
+      "generator": "coalesce",
+      "parameters": {
+        "sourceVariableName": "appHttpPort",
+        "fallbackVariableName": "appHttpPortGenerated"
+      },
+      "replaces": "15000"
+    },
+    "appOtlpHttpPort": {
+      "type": "parameter",
+      "datatype": "integer",
+      "description": "Port number to use for the OTLP HTTP endpoint in launchSettings.json of the App project."
+    },
+    "appOtlpHttpPortGenerated": {
+      "type": "generated",
+      "generator": "port",
+      "parameters": {
+        "low": 16000,
+        "high": 16300
+      }
+    },
+    "appOtlpHttpPortReplacer": {
+      "type": "generated",
+      "generator": "coalesce",
+      "parameters": {
+        "sourceVariableName": "appOtlpHttpPort",
+        "fallbackVariableName": "appOtlpHttpPortGenerated"
+      },
+      "replaces": "16000"
+    },
+    "appHttpsPort": {
+      "type": "parameter",
+      "datatype": "integer",
+      "description": "Port number to use for the HTTPS endpoint in launchSettings.json of the App project. This option is only applicable when the parameter no-https is not used."
+    },
+    "appHttpsPortGenerated": {
+      "type": "generated",
+      "generator": "port",
+      "parameters": {
+        "low": 17000,
+        "high": 17300
+      }
+    },
+    "appHttpsPortReplacer": {
+      "type": "generated",
+      "generator": "coalesce",
+      "parameters": {
+        "sourceVariableName": "appHttpsPort",
+        "fallbackVariableName": "appHttpsPortGenerated"
+      },
+      "replaces": "17000"
+    },
+    "appOtlpHttpsPort": {
+      "type": "parameter",
+      "datatype": "integer",
+      "description": "Port number to use for the OTLP HTTPS endpoint in launchSettings.json of the App project."
+    },
+    "appOtlpHttpsPortGenerated": {
+      "type": "generated",
+      "generator": "port",
+      "parameters": {
+        "low": 18000,
+        "high": 18300
+      }
+    },
+    "appOtlpHttpsPortReplacer": {
+      "type": "generated",
+      "generator": "coalesce",
+      "parameters": {
+        "sourceVariableName": "appOtlpHttpsPort",
+        "fallbackVariableName": "appOtlpHttpsPortGenerated"
+      },
+      "replaces": "18000"
+    },
+    "skipRestore": {
+      "type": "parameter",
+      "datatype": "bool",
+      "description": "If specified, skips the automatic restore of the project on create.",
+      "defaultValue": "false"
+    },
+    "HasHttpsProfile": {
+      "type": "computed",
+      "value": "(!NoHttps)"
+    },
+    "NoHttps": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "true",
+      "description": "Whether to turn off HTTPS."
+    }
+  },
+  "primaryOutputs": [
+    {
+      "path": "Aspire.AppHost1.csproj"
+    }
+  ],
+  "postActions": [
+    {
+      "id": "set-startup-project",
+      "description": "Sets the startup project in the solution",
+      "actionId": "5BECCC32-4D5A-4476-A0F9-BD2E81AF0689",
+      "condition": "(hostIdentifier == \"vs\")",
+      "args": {
+        "projects": "0"
+      }
+    },
+    {
+      "id": "restore",
+      "condition": "(!skipRestore)",
+      "description": "Restore NuGet packages required by this project.",
+      "manualInstructions": [
+        {
+          "text": "Run 'dotnet restore'"
+        }
+      ],
+      "actionId": "210D431B-A78B-4D2F-B762-4ED3E3EA9025",
+      "continueOnError": true
+    }
+  ]
+}

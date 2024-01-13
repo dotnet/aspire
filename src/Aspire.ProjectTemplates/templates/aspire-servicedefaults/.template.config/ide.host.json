@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json.schemastore.org/ide.host",
+  "icon": "ide/AspireServiceDefaults.ico",
+  "displayOverviewPage": "0",
+  "unsupportedHosts": [
+    {
+      "id": "vs",
+      "version": "(,17.9)"
+    }
+  ]
+}
