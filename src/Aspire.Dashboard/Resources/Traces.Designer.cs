@@ -61,6 +61,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Details.
+        /// </summary>
+        public static string TracesDetailsColumnHeader {
+            get {
+                return ResourceManager.GetString("TracesDetailsColumnHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Traces.
         /// </summary>
         public static string TracesHeader {
@@ -88,7 +97,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to {0} Traces.
+        ///   Looks up a localized string similar to {0} traces.
         /// </summary>
         public static string TracesPageTitle {
             get {

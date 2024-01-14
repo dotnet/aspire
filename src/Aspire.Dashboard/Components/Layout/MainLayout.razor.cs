@@ -25,7 +25,7 @@ public partial class MainLayout : IDisposable
     public required IStringLocalizer<Resources.Layout> Loc { get; set; }
 
     [Inject]
-    public required IResourceService ResourceService { get; set; }
+    public required IDashboardClient DashboardClient { get; set; }
 
     [Inject]
     public required IDialogService DialogService { get; set; }
@@ -91,7 +91,7 @@ public partial class MainLayout : IDisposable
     {
         DialogParameters parameters = new()
         {
-            Title = Loc[Resources.Layout.MainLayoutSettingsDialogTitle],
+            Title = Loc[nameof(Resources.Layout.MainLayoutSettingsDialogTitle)],
             PrimaryAction = Resources.Layout.MainLayoutSettingsDialogClose,
             PrimaryActionEnabled = true,
             SecondaryAction = null,

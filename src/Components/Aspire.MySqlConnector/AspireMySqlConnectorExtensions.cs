@@ -73,12 +73,10 @@ public static class AspireMySqlConnectorExtensions
         {
             builder.TryAddHealthCheck(new HealthCheckRegistration(
                 serviceKey is null ? "MySql" : $"MySql_{connectionName}",
-                sp => new MySqlHealthCheck(new MySqlHealthCheckOptions()
-                {
-                    ConnectionString = serviceKey is null
-                        ? sp.GetRequiredService<MySqlDataSource>().ConnectionString
-                        : sp.GetRequiredKeyedService<MySqlDataSource>(serviceKey).ConnectionString
-                }),
+                sp => new MySqlHealthCheck(
+                    new MySqlHealthCheckOptions(serviceKey is null
+                        ? sp.GetRequiredService<MySqlDataSource>()
+                        : sp.GetRequiredKeyedService<MySqlDataSource>(serviceKey))),
                 failureStatus: default,
                 tags: default,
                 timeout: default));

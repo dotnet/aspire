@@ -32,7 +32,8 @@ public class ManifestGenerationTests
     public void EnsureExecutablesWithDockerfileProduceDockerfilev0Manifest()
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher(includeNodeApp: true);
-        program.NodeAppBuilder!.AsDockerfileInManifest();
+        program.NodeAppBuilder!.WithEndpoint(containerPort: 3000, scheme: "https", env: "HTTPS_PORT")
+            .AsDockerfileInManifest();
 
         // Build AppHost so that publisher can be resolved.
         program.Build();
@@ -52,17 +53,61 @@ public class ManifestGenerationTests
         Assert.Equal("dockerfile.v0", nodeapp.GetProperty("type").GetString());
         Assert.True(nodeapp.TryGetProperty("path", out _));
         Assert.True(nodeapp.TryGetProperty("context", out _));
-        Assert.True(nodeapp.TryGetProperty("env", out _));
-        Assert.True(nodeapp.TryGetProperty("bindings", out _));
+        Assert.True(nodeapp.TryGetProperty("env", out var env));
+        Assert.True(nodeapp.TryGetProperty("bindings", out var bindings));
+
+        Assert.Equal(3000, bindings.GetProperty("https").GetProperty("containerPort").GetInt32());
+        Assert.Equal("https", bindings.GetProperty("https").GetProperty("scheme").GetString());
+        Assert.Equal("{nodeapp.bindings.https.port}", env.GetProperty("HTTPS_PORT").GetString());
     }
 
     [Fact]
-    public void EnsureContainerWithServiceBindingsEmitsContainerPort()
+    public void SecretStoreAndSecretsEmitToManifest()
+    {
+        var program = CreateTestProgramJsonDocumentManifestPublisher();
+        program.AppBuilder.AddSecretStore("secretstore").AddSecret("secret");
+
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+
+        var secretStoreField = resources.GetProperty("secretstore");
+        Assert.Equal("secrets.store.v0", secretStoreField.GetProperty("type").GetString());
+
+        var secretField = resources.GetProperty("secret");
+        Assert.Equal("secrets.secret.v0", secretField.GetProperty("type").GetString());
+        Assert.Equal("{secret.inputs.value}", secretField.GetProperty("value").GetString());
+        Assert.Equal("string", secretField.GetProperty("inputs").GetProperty("value").GetProperty("type").GetString());
+        Assert.True(secretField.GetProperty("inputs").GetProperty("value").GetProperty("secret").GetBoolean());
+    }
+
+    [Fact]
+    public void EnvironmentReferenceSecretOutputsExpression()
+    {
+        var program = CreateTestProgramJsonDocumentManifestPublisher();
+        var secret = program.AppBuilder.AddSecretStore("secretstore").AddSecret("secret");
+        program.ServiceABuilder.WithEnvironment("API_KEY", secret);
+
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+
+        Assert.Equal("{secret.value}", resources.GetProperty("servicea").GetProperty("env").GetProperty("API_KEY").GetString());
+    }
+
+    [Fact]
+    public void EnsureContainerWithEndpointsEmitsContainerPort()
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher();
 
         program.AppBuilder.AddContainer("grafana", "grafana/grafana")
-                          .WithServiceBinding(3000, scheme: "http");
+                          .WithEndpoint(3000, scheme: "http");
 
         // Build AppHost so that publisher can be resolved.
         program.Build();
@@ -163,6 +208,27 @@ public class ManifestGenerationTests
     }
 
     [Fact]
+    public void EnsureContainerWithCustomEntrypointEmitsEntrypoint()
+    {
+        var program = CreateTestProgramJsonDocumentManifestPublisher();
+
+        var container = program.AppBuilder.AddContainer("grafana", "grafana/grafana");
+        container.Resource.Entrypoint = "custom";
+
+        // Build AppHost so that publisher can be resolved.
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+
+        var grafana = resources.GetProperty("grafana");
+        var entrypoint = grafana.GetProperty("entrypoint");
+        Assert.Equal("custom", entrypoint.GetString());
+    }
+
+    [Fact]
     public void EnsureAllRedisManifestTypesHaveVersion0Suffix()
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher();
@@ -243,7 +309,7 @@ public class ManifestGenerationTests
     }
 
     [Fact]
-    public void EnsureAllRabitMQManifestTypesHaveVersion0Suffix()
+    public void EnsureAllRabbitMQManifestTypesHaveVersion0Suffix()
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher();
 
@@ -262,6 +328,29 @@ public class ManifestGenerationTests
         Assert.Equal("rabbitmq.server.v0", connection.GetProperty("type").GetString());
 
         var server = resources.GetProperty("rabbitcontainer");
+        Assert.Equal("container.v0", server.GetProperty("type").GetString());
+    }
+
+    [Fact]
+    public void EnsureAllKafkaManifestTypesHaveVersion0Suffix()
+    {
+        var program = CreateTestProgramJsonDocumentManifestPublisher();
+
+        program.AppBuilder.AddKafka("kafkaabstract");
+        program.AppBuilder.AddKafkaContainer("kafkacontainer");
+
+        // Build AppHost so that publisher can be resolved.
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+
+        var connection = resources.GetProperty("kafkaabstract");
+        Assert.Equal("kafka.server.v0", connection.GetProperty("type").GetString());
+
+        var server = resources.GetProperty("kafkacontainer");
         Assert.Equal("container.v0", server.GetProperty("type").GetString());
     }
 
@@ -304,6 +393,28 @@ public class ManifestGenerationTests
     }
 
     [Fact]
+    public void EnsureAllAzureDatabaseManifestTypesHaveVersion0Suffix()
+    {
+        var program = CreateTestProgramJsonDocumentManifestPublisher();
+
+        program.AppBuilder.AddAzureSqlServer("sqlserver").AddDatabase("database");
+
+        // Build AppHost so that publisher can be resolved.
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+
+        var sqlserver = resources.GetProperty("sqlserver");
+        Assert.Equal("azure.sql.v0", sqlserver.GetProperty("type").GetString());
+
+        var database = resources.GetProperty("database");
+        Assert.Equal("azure.sql.database.v0", database.GetProperty("type").GetString());
+    }
+
+    [Fact]
     public void EnsureAllAzureRedisManifestTypesHaveVersion0Suffix()
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher();
@@ -320,6 +431,47 @@ public class ManifestGenerationTests
 
         var redis = resources.GetProperty("redis");
         Assert.Equal("azure.redis.v0", redis.GetProperty("type").GetString());
+    }
+
+    [Fact]
+    public void EnsureAllAzureOpenAIManifestTypesHaveVersion0Suffix()
+    {
+        var program = CreateTestProgramJsonDocumentManifestPublisher();
+
+        program.AppBuilder.AddAzureOpenAI("openai").AddDeployment("deployment");
+
+        // Build AppHost so that publisher can be resolved.
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+
+        var openai = resources.GetProperty("openai");
+        Assert.Equal("azure.openai.account.v0", openai.GetProperty("type").GetString());
+
+        var deployment = resources.GetProperty("deployment");
+        Assert.Equal("azure.openai.deployment.v0", deployment.GetProperty("type").GetString());
+    }
+
+    [Fact]
+    public void EnsureAllOpenAIManifestTypesHaveVersion0Suffix()
+    {
+        var program = CreateTestProgramJsonDocumentManifestPublisher();
+
+        program.AppBuilder.AddOpenAI("openai");
+
+        // Build AppHost so that publisher can be resolved.
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+
+        var openai = resources.GetProperty("openai");
+        Assert.Equal("openai.v0", openai.GetProperty("type").GetString());
     }
 
     [Fact]
@@ -342,14 +494,45 @@ public class ManifestGenerationTests
     }
 
     [Fact]
+    public void EnsureAllAzureCosmosDBManifestTypesHaveVersion0Suffix()
+    {
+        var program = CreateTestProgramJsonDocumentManifestPublisher();
+
+        program.AppBuilder.AddAzureCosmosDB("cosmosconnection", "a connection string").AddDatabase("mydb1");
+        program.AppBuilder.AddAzureCosmosDB("cosmosaccount").AddDatabase("mydb2");
+
+        // Build AppHost so that publisher can be resolved.
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+
+        var connection = resources.GetProperty("cosmosconnection");
+        Assert.Equal("azure.cosmosdb.connection.v0", connection.GetProperty("type").GetString());
+
+        var account = resources.GetProperty("cosmosaccount");
+        Assert.Equal("azure.cosmosdb.account.v0", account.GetProperty("type").GetString());
+
+        var db1 = resources.GetProperty("mydb1");
+        Assert.Equal("azure.cosmosdb.database.v0", db1.GetProperty("type").GetString());
+        Assert.Equal("cosmosconnection", db1.GetProperty("parent").GetString());
+
+        var db2 = resources.GetProperty("mydb2");
+        Assert.Equal("azure.cosmosdb.database.v0", db2.GetProperty("type").GetString());
+        Assert.Equal("cosmosaccount", db2.GetProperty("parent").GetString());
+    }
+
+    [Fact]
     public void NodeAppIsExecutableResource()
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher();
 
         program.AppBuilder.AddNodeApp("nodeapp", "..\\foo\\app.js")
-            .WithServiceBinding(hostPort: 5031, scheme: "http", env: "PORT");
+            .WithEndpoint(hostPort: 5031, scheme: "http", env: "PORT");
         program.AppBuilder.AddNpmApp("npmapp", "..\\foo")
-            .WithServiceBinding(hostPort: 5032, scheme: "http", env: "PORT");
+            .WithEndpoint(hostPort: 5032, scheme: "http", env: "PORT");
 
         // Build AppHost so that publisher can be resolved.
         program.Build();

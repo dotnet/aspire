@@ -4,12 +4,10 @@
 
 <div class="structured-log-details-layout">
     <FluentToolbar Orientation="Orientation.Horizontal">
-        <FluentSearch Placeholder="@Loc[ControlsStrings.FilterPlaceholder]"
+        <FluentSearch Placeholder="@Loc[nameof(ControlsStrings.FilterPlaceholder)]"
                       Immediate="true"
                       Autofocus="true"
                       @bind-Value="_filter"
-                      @oninput="HandleFilter"
-                      @bind-Value:after="HandleClear"
                       slot="end" />
     </FluentToolbar>
     <div class="property-grid-container">

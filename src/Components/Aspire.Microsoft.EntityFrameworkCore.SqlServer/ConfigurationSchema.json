@@ -14,10 +14,10 @@
         "Microsoft.EntityFrameworkCore.Database.Command": {
           "$ref": "#/definitions/logLevelThreshold"
         },
-        "Microsoft.EntityFrameworkCore.Database.Transaction": {
+        "Microsoft.EntityFrameworkCore.Database.Connection": {
           "$ref": "#/definitions/logLevelThreshold"
         },
-        "Microsoft.EntityFrameworkCore.Database.Connection": {
+        "Microsoft.EntityFrameworkCore.Database.Transaction": {
           "$ref": "#/definitions/logLevelThreshold"
         },
         "Microsoft.EntityFrameworkCore.Infrastructure": {
@@ -56,26 +56,20 @@
                   "properties": {
                     "ConnectionString": {
                       "type": "string",
-                      "description": "Gets or sets the connection string of the SQL Server database to connect to."
+                      "description": "The connection string of the SQL server database to connect to."
                     },
                     "DbContextPooling": {
                       "type": "boolean",
                       "description": "Gets or sets a boolean value that indicates whether the DbContext will be pooled or explicitly created every time it's requested."
                     },
-                    "MaxRetryCount": {
-                      "type": "integer",
-                      "description": "Gets or sets the maximum number of retry attempts. Set it to 0 to disable the retry mechanism.",
-                      "default": 6
-                    },
                     "HealthChecks": {
                       "type": "boolean",
-                      "description": "Gets or sets a boolean value that indicates whether the DbContext health check is enabled or not.",
+                      "description": "Gets or sets a boolean value that indicates whether the database health check is enabled or not.",
                       "default": true
                     },
-                    "Tracing": {
-                      "type": "boolean",
-                      "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.",
-                      "default": true
+                    "MaxRetryCount": {
+                      "type": "integer",
+                      "description": "Gets or sets the maximum number of retry attempts."
                     },
                     "Metrics": {
                       "type": "boolean",
@@ -84,10 +78,15 @@
                     },
                     "Timeout": {
                       "type": "integer",
-                      "description": "Gets or sets the time in seconds to wait for the command to execute.",
-                      "default": null
+                      "description": "The time in seconds to wait for the command to execute."
+                    },
+                    "Tracing": {
+                      "type": "boolean",
+                      "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.",
+                      "default": true
                     }
-                  }
+                  },
+                  "description": "Provides the client configuration settings for connecting to a SQL Server database using EntityFrameworkCore."
                 }
               }
             }

@@ -3,7 +3,9 @@
 
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Redis;
 
 namespace Aspire.Hosting;
 
@@ -24,7 +26,7 @@ public static class RedisBuilderExtensions
         var redis = new RedisContainerResource(name);
         return builder.AddResource(redis)
                       .WithManifestPublishingCallback(context => WriteRedisContainerResourceToManifest(context, redis))
-                      .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, port: port, containerPort: 6379))
+                      .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 6379))
                       .WithAnnotation(new ContainerImageAnnotation { Image = "redis", Tag = "latest" });
     }
 
@@ -39,8 +41,28 @@ public static class RedisBuilderExtensions
         var redis = new RedisResource(name);
         return builder.AddResource(redis)
                       .WithManifestPublishingCallback(WriteRedisResourceToManifest)
-                      .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, containerPort: 6379))
+                      .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, containerPort: 6379))
                       .WithAnnotation(new ContainerImageAnnotation { Image = "redis", Tag = "latest" });
+    }
+
+    public static IResourceBuilder<T> WithRedisCommander<T>(this IResourceBuilder<T> builder, string? containerName = null, int? hostPort = null) where T: IRedisResource
+    {
+        if (builder.ApplicationBuilder.Resources.OfType<RedisCommanderResource>().Any())
+        {
+            return builder;
+        }
+
+        builder.ApplicationBuilder.Services.TryAddLifecycleHook<RedisCommanderConfigWriterHook>();
+
+        containerName ??= $"{builder.Resource.Name}-commander";
+
+        var resource = new RedisCommanderResource(containerName);
+        builder.ApplicationBuilder.AddResource(resource)
+                                  .WithAnnotation(new ContainerImageAnnotation { Image = "rediscommander/redis-commander", Tag = "latest" })
+                                  .WithEndpoint(containerPort: 8081, hostPort: hostPort, scheme: "http", name: containerName)
+                                  .ExcludeFromManifest();
+
+        return builder;
     }
 
     private static void WriteRedisResourceToManifest(ManifestPublishingContext context)

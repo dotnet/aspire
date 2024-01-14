@@ -2,8 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Threading.Channels;
-using Aspire.Dashboard.Model;
+using Aspire.Hosting.Extensions;
 
 namespace Aspire.Hosting.Dashboard;
 
@@ -15,28 +17,42 @@ namespace Aspire.Hosting.Dashboard;
 internal sealed class ResourcePublisher(CancellationToken cancellationToken)
 {
     private readonly object _syncLock = new();
-    private readonly Dictionary<string, ResourceViewModel> _snapshot = [];
-    private ImmutableHashSet<Channel<ResourceChange>> _outgoingChannels = [];
+    private readonly Dictionary<string, ResourceSnapshot> _snapshot = [];
+    private ImmutableHashSet<Channel<ResourceSnapshotChange>> _outgoingChannels = [];
 
-    public ResourceSubscription Subscribe()
+    // For testing purposes
+    internal int OutgoingSubscriberCount => _outgoingChannels.Count;
+
+    internal bool TryGetResource(string resourceName, [NotNullWhen(returnValue: true)] out ResourceSnapshot? resource)
     {
         lock (_syncLock)
         {
-            var channel = Channel.CreateUnbounded<ResourceChange>();
+            return _snapshot.TryGetValue(resourceName, out resource);
+        }
+    }
+
+    public ResourceSnapshotSubscription Subscribe()
+    {
+        lock (_syncLock)
+        {
+            var channel = Channel.CreateUnbounded<ResourceSnapshotChange>(
+                new UnboundedChannelOptions { AllowSynchronousContinuations = false, SingleReader = true, SingleWriter = true });
 
             ImmutableInterlocked.Update(ref _outgoingChannels, static (set, channel) => set.Add(channel), channel);
 
-            return new ResourceSubscription(
-                Snapshot: _snapshot.Values.ToList(),
+            return new ResourceSnapshotSubscription(
+                InitialState: _snapshot.Values.ToImmutableArray(),
                 Subscription: StreamUpdates());
 
-            async IAsyncEnumerable<ResourceChange> StreamUpdates()
+            async IAsyncEnumerable<IReadOnlyList<ResourceSnapshotChange>> StreamUpdates([EnumeratorCancellation] CancellationToken enumeratorCancellationToken = default)
             {
+                using var linked = CancellationTokenSource.CreateLinkedTokenSource(enumeratorCancellationToken, cancellationToken);
+
                 try
                 {
-                    while (!cancellationToken.IsCancellationRequested)
+                    await foreach (var batch in channel.GetBatches(linked.Token).ConfigureAwait(false))
                     {
-                        yield return await channel.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
+                        yield return batch;
                     }
                 }
                 finally
@@ -53,25 +69,50 @@ internal sealed class ResourcePublisher(CancellationToken cancellationToken)
     /// <param name="resource">The resource that was modified.</param>
     /// <param name="changeType">The change type (Added, Modified, Deleted).</param>
     /// <returns>A task that completes when the cache has been updated and all subscribers notified.</returns>
-    public async ValueTask IntegrateAsync(ResourceViewModel resource, ResourceChangeType changeType)
+    internal async ValueTask IntegrateAsync(ResourceSnapshot resource, ResourceSnapshotChangeType changeType)
     {
+        ImmutableHashSet<Channel<ResourceSnapshotChange>> channels;
+
         lock (_syncLock)
         {
             switch (changeType)
             {
-                case ResourceChangeType.Upsert:
+                case ResourceSnapshotChangeType.Upsert:
                     _snapshot[resource.Name] = resource;
                     break;
 
-                case ResourceChangeType.Delete:
+                case ResourceSnapshotChangeType.Delete:
                     _snapshot.Remove(resource.Name);
                     break;
             }
+
+            channels = _outgoingChannels;
         }
 
-        foreach (var channel in _outgoingChannels)
+        foreach (var channel in channels)
         {
             await channel.Writer.WriteAsync(new(changeType, resource), cancellationToken).ConfigureAwait(false);
         }
     }
+}
+
+internal sealed record ResourceSnapshotSubscription(
+    ImmutableArray<ResourceSnapshot> InitialState,
+    IAsyncEnumerable<IReadOnlyList<ResourceSnapshotChange>> Subscription);
+
+internal sealed record ResourceSnapshotChange(
+    ResourceSnapshotChangeType ChangeType,
+    ResourceSnapshot Resource);
+
+internal enum ResourceSnapshotChangeType
+{
+    /// <summary>
+    /// The object was added if new, or updated if not.
+    /// </summary>
+    Upsert,
+
+    /// <summary>
+    /// The object was deleted.
+    /// </summary>
+    Delete
 }

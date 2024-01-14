@@ -61,6 +61,141 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Endpoint URL.
+        /// </summary>
+        public static string ResourceDetailsEndpointUrl {
+            get {
+                return ResourceManager.GetString("ResourceDetailsEndpointUrl", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Proxy URL.
+        /// </summary>
+        public static string ResourceDetailsProxyUrl {
+            get {
+                return ResourceManager.GetString("ResourceDetailsProxyUrl", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Container arguments.
+        /// </summary>
+        public static string ResourcesDetailsContainerArgumentsProperty {
+            get {
+                return ResourceManager.GetString("ResourcesDetailsContainerArgumentsProperty", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Container command.
+        /// </summary>
+        public static string ResourcesDetailsContainerCommandProperty {
+            get {
+                return ResourceManager.GetString("ResourcesDetailsContainerCommandProperty", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Container ID.
+        /// </summary>
+        public static string ResourcesDetailsContainerIdProperty {
+            get {
+                return ResourceManager.GetString("ResourcesDetailsContainerIdProperty", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Container image.
+        /// </summary>
+        public static string ResourcesDetailsContainerImageProperty {
+            get {
+                return ResourceManager.GetString("ResourcesDetailsContainerImageProperty", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Container ports.
+        /// </summary>
+        public static string ResourcesDetailsContainerPortsProperty {
+            get {
+                return ResourceManager.GetString("ResourcesDetailsContainerPortsProperty", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Display name.
+        /// </summary>
+        public static string ResourcesDetailsDisplayNameProperty {
+            get {
+                return ResourceManager.GetString("ResourcesDetailsDisplayNameProperty", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Executable arguments.
+        /// </summary>
+        public static string ResourcesDetailsExecutableArgumentsProperty {
+            get {
+                return ResourceManager.GetString("ResourcesDetailsExecutableArgumentsProperty", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Executable path.
+        /// </summary>
+        public static string ResourcesDetailsExecutablePathProperty {
+            get {
+                return ResourceManager.GetString("ResourcesDetailsExecutablePathProperty", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Process ID.
+        /// </summary>
+        public static string ResourcesDetailsExecutableProcessIdProperty {
+            get {
+                return ResourceManager.GetString("ResourcesDetailsExecutableProcessIdProperty", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Working directory.
+        /// </summary>
+        public static string ResourcesDetailsExecutableWorkingDirectoryProperty {
+            get {
+                return ResourceManager.GetString("ResourcesDetailsExecutableWorkingDirectoryProperty", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Project path.
+        /// </summary>
+        public static string ResourcesDetailsProjectPathProperty {
+            get {
+                return ResourceManager.GetString("ResourcesDetailsProjectPathProperty", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Start time.
+        /// </summary>
+        public static string ResourcesDetailsStartTimeProperty {
+            get {
+                return ResourceManager.GetString("ResourcesDetailsStartTimeProperty", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to State.
+        /// </summary>
+        public static string ResourcesDetailsStateProperty {
+            get {
+                return ResourceManager.GetString("ResourcesDetailsStateProperty", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Endpoints.
         /// </summary>
         public static string ResourcesEnvironmentVariablesGridEndpointsColumnHeader {
@@ -97,7 +232,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Start Time.
+        ///   Looks up a localized string similar to Start time.
         /// </summary>
         public static string ResourcesEnvironmentVariablesGridStartTimeColumnHeader {
             get {
@@ -115,7 +250,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Environment Variables for {0}.
+        ///   Looks up a localized string similar to Environment variables for {0}.
         /// </summary>
         public static string ResourcesEnvironmentVariablesHeader {
             get {
@@ -133,7 +268,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to No Environment Variables.
+        ///   Looks up a localized string similar to No environment variables.
         /// </summary>
         public static string ResourcesNoEnvironmentVariables {
             get {
@@ -151,7 +286,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to {0} Resources.
+        ///   Looks up a localized string similar to {0} resources.
         /// </summary>
         public static string ResourcesPageTitle {
             get {
@@ -160,7 +295,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Resource Types.
+        ///   Looks up a localized string similar to Resource types.
         /// </summary>
         public static string ResourcesResourceTypesHeader {
             get {
@@ -169,7 +304,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Type Filter: All Types Visible.
+        ///   Looks up a localized string similar to Type filter: All types visible.
         /// </summary>
         public static string ResourcesTypeFilterAllVisible {
             get {
@@ -178,7 +313,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Type Filter: Filtered.
+        ///   Looks up a localized string similar to Type filter: Filtered.
         /// </summary>
         public static string ResourcesTypeFiltered {
             get {
