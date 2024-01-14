@@ -15,7 +15,7 @@ public static class NatsBuilderExtensions
         var nats = new NatsContainerResource(name);
         var resourceBuilder = builder.AddResource(nats)
             .WithManifestPublishingCallback(WriteNatsResourceToManifest)
-            .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, uriScheme: "nats", port: port, containerPort: 4222))
+            .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, uriScheme: "nats", port: port, containerPort: 4222))
             .WithAnnotation(new ContainerImageAnnotation { Image = "nats", Tag = "latest" });
 
         if (enableJetStream)
