@@ -6,6 +6,7 @@ using Aspire.Dashboard.Components;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Grpc;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
@@ -37,7 +38,7 @@ public class DashboardWebApplication : IHostedService
         builder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.None);
         builder.Logging.AddFilter("Microsoft.AspNetCore.Server.Kestrel", LogLevel.Error);
 
-        var dashboardUris = GetAddressUris(DashboardUrlVariableName, DashboardUrlDefaultValue);
+        var dashboardUris = EnvironmentUtil.GetAddressUris(DashboardUrlVariableName, DashboardUrlDefaultValue);
 
         if (dashboardUris.FirstOrDefault() is { } reportedDashboardUri)
         {
@@ -46,7 +47,7 @@ public class DashboardWebApplication : IHostedService
         }
 
         var dashboardHttpsPort = dashboardUris.FirstOrDefault(IsHttps)?.Port;
-        var otlpUris = GetAddressUris(DashboardOtlpUrlVariableName, DashboardOtlpUrlDefaultValue);
+        var otlpUris = EnvironmentUtil.GetAddressUris(DashboardOtlpUrlVariableName, DashboardOtlpUrlDefaultValue);
 
         if (otlpUris.Length > 1)
         {
@@ -140,19 +141,6 @@ public class DashboardWebApplication : IHostedService
         _app.MapGrpcService<OtlpMetricsService>();
         _app.MapGrpcService<OtlpTraceService>();
         _app.MapGrpcService<OtlpLogsService>();
-    }
-
-    private static Uri[] GetAddressUris(string variableName, string defaultValue)
-    {
-        var urls = Environment.GetEnvironmentVariable(variableName) ?? defaultValue;
-        try
-        {
-            return urls.Split(';').Select(url => new Uri(url)).ToArray();
-        }
-        catch (Exception ex)
-        {
-            throw new InvalidOperationException($"Error parsing URIs from environment variable '{variableName}'.", ex);
-        }
     }
 
     private static void ConfigureListenAddresses(KestrelServerOptions kestrelOptions, Uri[] uris, HttpProtocols? httpProtocols = null)
