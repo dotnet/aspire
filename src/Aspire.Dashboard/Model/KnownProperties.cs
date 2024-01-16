@@ -12,7 +12,7 @@ namespace Aspire.Dashboard.Model;
 /// Used as keys in the "properties" dictionary on resource snapshots and view models.
 /// Should be compared using <see cref="StringComparers.ResourcePropertyName"/>.
 /// </remarks>
-public static class KnownProperties
+internal static class KnownProperties
 {
     public static class Resource
     {

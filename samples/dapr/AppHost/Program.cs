@@ -12,6 +12,8 @@ builder.AddProject<Projects.DaprServiceB>("serviceb")
        .WithDaprSidecar()
        .WithReference(pubSub);
 
+builder.AddProject<Projects.Aspire_Dashboard>("dashboard");
+
 using var app = builder.Build();
 
 await app.RunAsync();
