@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Data.Common;
+using Aspire.Hosting.Azure.Cosmos;
 using Aspire.Microsoft.Azure.Cosmos;
 using Azure.Identity;
 using Microsoft.Azure.Cosmos;
@@ -54,6 +56,19 @@ public static class AspireAzureCosmosDBExtensions
         AddAzureCosmosDB(builder, $"{DefaultConfigSectionName}:{name}", configureSettings, configureClientOptions, connectionName: name, serviceKey: name);
     }
 
+    private static bool IsEmulatorConnectionString(string? connectionString)
+    {
+        if (connectionString == null)
+        {
+            return false;
+        }
+
+        var builder = new DbConnectionStringBuilder();
+        builder.ConnectionString = connectionString;
+        var accountKeyFromConnectionString = builder["AccountKey"].ToString();
+        return accountKeyFromConnectionString == CosmosConstants.EmulatorAccountKey;
+    }
+
     private static void AddAzureCosmosDB(
         this IHostApplicationBuilder builder,
         string configurationSectionName,
@@ -90,6 +105,19 @@ public static class AspireAzureCosmosDBExtensions
             {
                 tracerProviderBuilder.AddSource("Azure.Cosmos.Operation");
             });
+        }
+
+        // If the user opts into ignoring the emualtor certificate and the emulator is detected
+        // via the use of the hard coded account key, then disable certificate checking for the
+        // Cosmos DB client.
+        if (settings.IgnoreEmulatorCertificate && IsEmulatorConnectionString(settings.ConnectionString))
+        {
+            clientOptions.HttpClientFactory = () => new HttpClient(new HttpClientHandler()
+            {
+                ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+            });
+            clientOptions.ConnectionMode = ConnectionMode.Gateway;
+            clientOptions.LimitToEndpoint = true;
         }
 
         configureClientOptions?.Invoke(clientOptions);

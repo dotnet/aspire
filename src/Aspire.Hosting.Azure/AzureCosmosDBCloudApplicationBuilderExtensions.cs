@@ -50,15 +50,16 @@ public static class AzureCosmosDBCloudApplicationBuilderExtensions
 
     private static void WriteCosmosDBToManifest(ManifestPublishingContext context, AzureCosmosDBResource cosmosDb)
     {
-        var connectionString = cosmosDb.GetConnectionString();
-        if (connectionString is null)
+        // If we are using an emulator then we assume that a connection string was not
+        // provided for the purpose of manifest generation.
+        if (cosmosDb.IsEmulator || cosmosDb.GetConnectionString() is not { } connectionString)
         {
             context.Writer.WriteString("type", "azure.cosmosdb.account.v0");
         }
         else
         {
             context.Writer.WriteString("type", "azure.cosmosdb.connection.v0");
-            context.Writer.WriteString("connectionString", cosmosDb.GetConnectionString());
+            context.Writer.WriteString("connectionString", connectionString);
         }
 
     }
