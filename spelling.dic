@@ -20,6 +20,7 @@ dockerfile
 dylib
 entrypoint
 equatable
+grainstate
 grpc
 kubeconfig
 Kubelet
@@ -33,6 +34,7 @@ noreferrer
 noopener
 oninput
 openai
+orleans
 otel
 otlp
 pgadmin
