@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.Dashboard;
 
@@ -69,7 +70,7 @@ internal sealed class DashboardServiceHost : IHostedService
 
         static void ConfigureKestrel(KestrelServerOptions kestrelOptions)
         {
-            var uris = GetAddressUris(DashboardServiceUrlVariableName, DashboardServiceUrlDefaultValue);
+            var uris = EnvironmentUtil.GetAddressUris(DashboardServiceUrlVariableName, DashboardServiceUrlDefaultValue);
 
             foreach (var uri in uris)
             {
@@ -92,28 +93,6 @@ internal sealed class DashboardServiceHost : IHostedService
                     {
                         options.UseHttps();
                     }
-                }
-            }
-
-            static Uri[] GetAddressUris(string variableName, string defaultValue)
-            {
-                try
-                {
-                    var urls = Environment.GetEnvironmentVariable(variableName);
-
-                    if (string.IsNullOrWhiteSpace(urls))
-                    {
-                        urls = defaultValue;
-                    }
-
-                    return urls
-                        .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                        .Select(url => new Uri(url))
-                        .ToArray();
-                }
-                catch (Exception ex)
-                {
-                    throw new InvalidOperationException($"Error parsing URIs from environment variable '{variableName}'.", ex);
                 }
             }
         }
