@@ -99,9 +99,17 @@ internal sealed class DashboardServiceHost : IHostedService
             {
                 try
                 {
-                    var urls = Environment.GetEnvironmentVariable(variableName) ?? defaultValue;
+                    var urls = Environment.GetEnvironmentVariable(variableName);
 
-                    return urls.Split(';').Select(url => new Uri(url)).ToArray();
+                    if (string.IsNullOrWhiteSpace(urls))
+                    {
+                        urls = defaultValue;
+                    }
+
+                    return urls
+                        .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                        .Select(url => new Uri(url))
+                        .ToArray();
                 }
                 catch (Exception ex)
                 {

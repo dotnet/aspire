@@ -144,10 +144,19 @@ public class DashboardWebApplication : IHostedService
 
     private static Uri[] GetAddressUris(string variableName, string defaultValue)
     {
-        var urls = Environment.GetEnvironmentVariable(variableName) ?? defaultValue;
+        var urls = Environment.GetEnvironmentVariable(variableName);
+
+        if (string.IsNullOrWhiteSpace(urls))
+        {
+            urls = defaultValue;
+        }
+
         try
         {
-            return urls.Split(';').Select(url => new Uri(url)).ToArray();
+            return urls
+                .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(url => new Uri(url))
+                .ToArray();
         }
         catch (Exception ex)
         {
