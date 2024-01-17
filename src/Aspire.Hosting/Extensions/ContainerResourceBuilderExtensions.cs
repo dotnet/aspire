@@ -17,7 +17,7 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource.</param>
     /// <param name="image">The container image name. The tag is assumed to be "latest".</param>
-    /// <returns>The <see cref="IResourceBuilder{ContainerResource}"/> for chaining.</returns>
+    /// <returns>The <see cref="IResourceBuilder{T}"/> for chaining.</returns>
     public static IResourceBuilder<ContainerResource> AddContainer(this IDistributedApplicationBuilder builder, string name, string image)
     {
         return builder.AddContainer(name, image, "latest");
@@ -30,7 +30,7 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="name">The name of the resource.</param>
     /// <param name="image">The container image name.</param>
     /// <param name="tag">The container image tag.</param>
-    /// <returns>The <see cref="IResourceBuilder{ContainerResource}"/> for chaining.</returns>
+    /// <returns>The <see cref="IResourceBuilder{T}"/> for chaining.</returns>
     public static IResourceBuilder<ContainerResource> AddContainer(this IDistributedApplicationBuilder builder, string name, string image, string tag)
     {
         var container = new ContainerResource(name);
