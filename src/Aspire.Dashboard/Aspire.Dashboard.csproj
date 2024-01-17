@@ -4,11 +4,26 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <Nullable>enable</Nullable>
-    <IsPackable>true</IsPackable>
     <ImplicitUsings>enable</ImplicitUsings>
     <NoWarn>$(NoWarn);CS8002</NoWarn>
-    <Description>Dashboard browser interface for .NET Aspire.</Description>
   </PropertyGroup>
+
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>aspire-dashboard</ToolCommandName>
+    <Description>Dashboard browser interface for .NET Aspire.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <Title>.NET Aspire Dashboard</Title>
+    <PackageProjectUrl>https://github.com/dotnet/aspire</PackageProjectUrl>
+    <PackageIcon>Aspire_icon_256.png</PackageIcon>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/dotnet/aspire</RepositoryUrl>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\Shared\Aspire_icon_256.png" Pack="True" PackagePath="\" />
+  </ItemGroup>
 
   <ItemGroup>
     <Protobuf Include="**/*.proto" GrpcServices="Server">
