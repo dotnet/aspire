@@ -52,6 +52,7 @@ public class TestProgram
                 .AddDatabase(mongoDbName);
             var oracleDatabaseContainer = AppBuilder.AddOracleDatabaseContainer("oracledatabasecontainer")
                 .AddDatabase(oracleDbName);
+            var kafkaContainer = AppBuilder.AddKafkaContainer("kafkacontainer");
 
             var sqlserverAbstract = AppBuilder.AddSqlServer("sqlserverabstract");
             var mysqlAbstract = AppBuilder.AddMySql("mysqlabstract");
@@ -60,6 +61,7 @@ public class TestProgram
             var rabbitmqAbstract = AppBuilder.AddRabbitMQ("rabbitmqabstract");
             var mongodbAbstract = AppBuilder.AddMongoDB("mongodbabstract");
             var oracleDatabaseAbstract = AppBuilder.AddOracleDatabaseContainer("oracledatabaseabstract");
+            var kafkaAbstract = AppBuilder.AddKafka("kafkaabstract");
 
             IntegrationServiceABuilder = AppBuilder.AddProject<Projects.IntegrationServiceA>("integrationservicea")
                 .WithReference(sqlserverContainer)
@@ -69,13 +71,15 @@ public class TestProgram
                 .WithReference(rabbitmqContainer)
                 .WithReference(mongodbContainer)
                 .WithReference(oracleDatabaseContainer)
+                .WithReference(kafkaContainer)
                 .WithReference(sqlserverAbstract)
                 .WithReference(mysqlAbstract)
                 .WithReference(redisAbstract)
                 .WithReference(postgresAbstract)
                 .WithReference(rabbitmqAbstract)
                 .WithReference(mongodbAbstract)
-                .WithReference(oracleDatabaseAbstract);
+                .WithReference(oracleDatabaseAbstract)
+                .WithReference(kafkaAbstract);
         }
     }
 
