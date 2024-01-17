@@ -29,6 +29,11 @@ builder.AddKeyedKafkaConsumer<string, string>("kafkaabstract", consumerBuilder =
     consumerBuilder.Config.AutoOffsetReset = AutoOffsetReset.Earliest;
 });
 
+builder.AddAzureCosmosDB("cosmos", settings =>
+{
+    settings.IgnoreEmulatorCertificate = true;
+});
+
 var app = builder.Build();
 
 app.MapHealthChecks("/health");
@@ -52,5 +57,7 @@ app.MapRabbitMQApi();
 app.MapOracleDatabaseApi();
 
 app.MapKafkaApi();
+
+app.MapCosmosApi();
 
 app.Run();
