@@ -8,9 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\Shared\Cosmos\CosmosConstants.cs">
-      <Link>Shared\CosmosConstants.cs</Link>
-    </Compile>
+    <Compile Include="..\Shared\Cosmos\CosmosConstants.cs" Link="Shared\CosmosConstants.cs" />
   </ItemGroup>
 
   <ItemGroup>

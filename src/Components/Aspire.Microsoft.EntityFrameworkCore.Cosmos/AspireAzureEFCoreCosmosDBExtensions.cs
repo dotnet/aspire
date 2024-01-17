@@ -2,8 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
+using Aspire.Hosting.Azure.Cosmos;
 using Aspire.Microsoft.EntityFrameworkCore.Cosmos;
 using Azure.Identity;
+using Microsoft.Azure.Cosmos;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Configuration;
@@ -126,6 +128,16 @@ public static class AspireAzureEFCoreCosmosDBExtensions
             if (settings.Region is not null)
             {
                 builder.Region(settings.Region);
+            }
+
+            if (settings.IgnoreEmulatorCertificate && CosmosUtils.IsEmulatorConnectionString(settings.ConnectionString))
+            {
+                builder.HttpClientFactory(() => new HttpClient(new HttpClientHandler()
+                {
+                    ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+                }));
+                builder.ConnectionMode(ConnectionMode.Gateway);
+                builder.LimitToEndpoint(true);
             }
         }
     }

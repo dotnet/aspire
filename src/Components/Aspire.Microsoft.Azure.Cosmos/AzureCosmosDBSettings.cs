@@ -42,6 +42,5 @@ public sealed class AzureCosmosDBSettings
     /// Controls whether the Cosmos DB emulator certificate is ignored when its use is detected.
     /// </summary>
     public bool IgnoreEmulatorCertificate { get; set; }
-
 }
 
