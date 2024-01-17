@@ -139,7 +139,6 @@
 
 ::deep .uninstrumented-peer-icon {
     vertical-align: text-bottom;
-    transform: scaleX(-1);
 }
 
 ::deep .span-row-name {
