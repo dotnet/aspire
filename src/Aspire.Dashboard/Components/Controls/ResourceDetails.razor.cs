@@ -86,20 +86,13 @@ public partial class ResourceDetails
         ];
     }
 
-    protected override async Task OnParametersSetAsync()
+    protected override void OnParametersSet()
     {
         if (Resource.Environment is var environment)
         {
-            var anyChanged = false;
             foreach (var vm in environment.Where(vm => vm.IsValueMasked != _areEnvironmentVariablesMasked))
             {
-                anyChanged = true;
                 vm.IsValueMasked = _areEnvironmentVariablesMasked;
-            }
-
-            if (anyChanged)
-            {
-                await InvokeAsync(StateHasChanged);
             }
         }
     }
