@@ -3,7 +3,6 @@
 
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Dcp.Model;
 
 namespace Aspire.Hosting;
 
@@ -52,10 +51,10 @@ public static class ContainerResourceBuilderExtensions
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <param name="containerPort">The container port.</param>
-    /// <param name="hostPort">The host machine port.</param>
-    /// <param name="scheme">The scheme e.g http/https/amqp</param>
-    /// <param name="name">The name of the endpoint.</param>
-    /// <param name="env">The name of the environment variable to inject.</param>
+    /// <param name="hostPort">An optional host port.</param>
+    /// <param name="scheme">An optional scheme e.g. (http/https). Defaults to "tcp" if not specified.</param>
+    /// <param name="name">An optional name of the endpoint. Defaults to the scheme name if not specified.</param>
+    /// <param name="env">An optional name of the environment variable to inject.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithEndpoint<T>(this IResourceBuilder<T> builder, int containerPort, int? hostPort = null, string? scheme = null, string? name = null, string? env = null) where T : IResource
     {
@@ -82,9 +81,9 @@ public static class ContainerResourceBuilderExtensions
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <param name="containerPort">The container port.</param>
-    /// <param name="hostPort">The host machine port.</param>
-    /// <param name="name">The name of the endpoint.</param>
-    /// <param name="env">The name of the environment variable to inject.</param>
+    /// <param name="hostPort">An optional host port.</param>
+    /// <param name="name">An optional name of the endpoint. Defaults to "http" if not specified.</param>
+    /// <param name="env">An optional name of the environment variable to inject.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithHttpEndpoint<T>(this IResourceBuilder<T> builder, int containerPort, int? hostPort = null, string? name = null, string? env = null) where T : IResource
     {
@@ -98,9 +97,9 @@ public static class ContainerResourceBuilderExtensions
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <param name="containerPort">The container port.</param>
-    /// <param name="hostPort">The host machine port.</param>
-    /// <param name="name">The name of the endpoint.</param>
-    /// <param name="env">The name of the environment variable to inject.</param>
+    /// <param name="hostPort">An optional host port.</param>
+    /// <param name="name">An optional name of the endpoint. Defaults to "https" if not specified.</param>
+    /// <param name="env">An optional name of the environment variable to inject.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithHttpsEndpoint<T>(this IResourceBuilder<T> builder, int containerPort, int? hostPort = null, string? name = null, string? env = null) where T : IResource
     {

@@ -317,10 +317,10 @@ public static class ResourceBuilderExtensions
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="hostPort">The host port.</param>
-    /// <param name="scheme">The scheme e.g. (http/https)</param>
-    /// <param name="name">The name of the endpoint.</param>
-    /// <param name="env">The name of the environment variable to inject.</param>
+    /// <param name="hostPort">An optional host port.</param>
+    /// <param name="scheme">An optional scheme e.g. (http/https). Defaults to "tcp" if not specified.</param>
+    /// <param name="name">An optional name of the endpoint. Defaults to the scheme name if not specified.</param>
+    /// <param name="env">An optional name of the environment variable to inject.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <exception cref="DistributedApplicationException">Throws an exception if the a binding with the same name already exists on the specified resource.</exception>
     public static IResourceBuilder<T> WithEndpoint<T>(this IResourceBuilder<T> builder, int? hostPort = null, string? scheme = null, string? name = null, string? env = null) where T : IResource
@@ -340,9 +340,9 @@ public static class ResourceBuilderExtensions
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="hostPort">The host port.</param>
-    /// <param name="name">The name of the endpoint.</param>
-    /// <param name="env">The name of the environment variable to inject.</param>
+    /// <param name="hostPort">An optional host port.</param>
+    /// <param name="name">An optional name of the endpoint. Defaults to "http" if not specified.</param>
+    /// <param name="env">An optional name of the environment variable to inject.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <exception cref="DistributedApplicationException">Throws an exception if the a binding with the same name already exists on the specified resource.</exception>
     public static IResourceBuilder<T> WithHttpEndpoint<T>(this IResourceBuilder<T> builder, int? hostPort = null, string? name = null, string? env = null) where T : IResource
@@ -356,9 +356,9 @@ public static class ResourceBuilderExtensions
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="hostPort">The host port.</param>
-    /// <param name="name">The name of the endpoint.</param>
-    /// <param name="env">The name of the environment variable to inject.</param>
+    /// <param name="hostPort">An optional host port.</param>
+    /// <param name="name">An optional name of the endpoint. Defaults to "https" if not specified.</param>
+    /// <param name="env">An optional name of the environment variable to inject.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <exception cref="DistributedApplicationException">Throws an exception if the a binding with the same name already exists on the specified resource.</exception>
     public static IResourceBuilder<T> WithHttpsEndpoint<T>(this IResourceBuilder<T> builder, int? hostPort = null, string? name = null, string? env = null) where T : IResource
