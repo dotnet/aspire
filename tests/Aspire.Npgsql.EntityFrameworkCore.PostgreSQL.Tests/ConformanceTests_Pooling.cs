@@ -6,7 +6,6 @@ using Aspire.Components.ConformanceTests;
 using Microsoft.DotNet.RemoteExecutor;
 using Microsoft.DotNet.XUnitExtensions;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -89,7 +88,17 @@ public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, NpgsqlEn
         });
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<NpgsqlEntityFrameworkCorePostgreSQLSettings>? configure = null, string? key = null)
-        => builder.AddNpgsqlDbContext<TestDbContext>("postgres", configure);
+    {
+        // Configure Npgsql.EntityFrameworkCore.PostgreSQL services
+        if (builder.Configuration.GetConnectionString("postgres") is string { } connectionString)
+        {
+            builder.Services.AddNpgsqlDataSource(connectionString);
+        }
+
+        builder.Services.AddDbContextPool<TestDbContext>(dbContextOptionsBuilder => dbContextOptionsBuilder.UseNpgsql());
+
+        builder.AddNpgsqlDbContext<TestDbContext>("postgres");
+    }
 
     protected override void SetHealthCheck(NpgsqlEntityFrameworkCorePostgreSQLSettings options, bool enabled)
         => options.HealthChecks = enabled;
@@ -111,31 +120,6 @@ public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, NpgsqlEn
     protected override void SetupConnectionInformationIsDelayValidated()
     {
         throw new SkipTestException("Need to skip this test until https://github.com/npgsql/efcore.pg/issues/2891 is fixed.");
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "EF1001:Internal EF Core API usage.", Justification = "Required to verify pooling without touching DB")]
-    public void DbContextPoolingRegistersIDbContextPool(bool enabled)
-    {
-        using IHost host = CreateHostWithComponent(options => options.DbContextPooling = enabled);
-
-        IDbContextPool<TestDbContext>? pool = host.Services.GetService<IDbContextPool<TestDbContext>>();
-
-        Assert.Equal(enabled, pool is not null);
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void DbContextCanBeAlwaysResolved(bool enabled)
-    {
-        using IHost host = CreateHostWithComponent(options => options.DbContextPooling = enabled);
-
-        TestDbContext? dbContext = host.Services.GetService<TestDbContext>();
-
-        Assert.NotNull(dbContext);
     }
 
     [ConditionalFact]

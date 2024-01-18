@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Components.Common.Tests;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -13,11 +15,14 @@ public class ConformanceTests_NoPooling : ConformanceTests_Pooling
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<NpgsqlEntityFrameworkCorePostgreSQLSettings>? configure = null, string? key = null)
     {
-        builder.AddNpgsqlDbContext<TestDbContext>("postgres", settings =>
+        // Configure Npgsql.EntityFrameworkCore.PostgreSQL services
+        if (builder.Configuration.GetConnectionString("postgres") is string { } connectionString)
         {
-            settings.DbContextPooling = false;
+            builder.Services.AddNpgsqlDataSource(connectionString);
+        }
 
-            configure?.Invoke(settings);
-        });
+        builder.Services.AddDbContext<TestDbContext>(dbContextOptionsBuilder => dbContextOptionsBuilder.UseNpgsql());
+
+        builder.AddNpgsqlDbContext<TestDbContext>("postgres");
     }
 }

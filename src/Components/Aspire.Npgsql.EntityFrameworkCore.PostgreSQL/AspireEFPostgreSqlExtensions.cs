@@ -28,7 +28,6 @@ public static partial class AspireEFPostgreSqlExtensions
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="configureSettings">An optional delegate that can be used for customizing options. It's invoked after the settings are read from the configuration.</param>
-    /// <param name="configureDbContextOptions">An optional delegate to configure the <see cref="DbContextOptions"/> for the context.</param>
     /// <remarks>
     /// <para>
     /// Reads the configuration from "Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:{typeof(TContext).Name}" config section, or "Aspire:Npgsql:EntityFrameworkCore:PostgreSQL" if former does not exist.
@@ -38,12 +37,10 @@ public static partial class AspireEFPostgreSqlExtensions
     /// </para>
     /// </remarks>
     /// <exception cref="ArgumentNullException">Thrown if mandatory <paramref name="builder"/> is null.</exception>
-    /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="NpgsqlEntityFrameworkCorePostgreSQLSettings.ConnectionString"/> is not provided.</exception>
     public static void AddNpgsqlDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
         this IHostApplicationBuilder builder,
         string connectionName,
-        Action<NpgsqlEntityFrameworkCorePostgreSQLSettings>? configureSettings = null,
-        Action<DbContextOptionsBuilder>? configureDbContextOptions = null) where TContext : DbContext
+        Action<NpgsqlEntityFrameworkCorePostgreSQLSettings>? configureSettings = null) where TContext : DbContext
     {
         ArgumentNullException.ThrowIfNull(builder);
 
@@ -59,32 +56,7 @@ public static partial class AspireEFPostgreSqlExtensions
             builder.Configuration.GetSection(DefaultConfigSectionName).Bind(settings);
         }
 
-        if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
-        {
-            settings.ConnectionString = connectionString;
-        }
-
         configureSettings?.Invoke(settings);
-
-        builder.Services.AddNpgsqlDataSource(settings.ConnectionString ?? string.Empty, builder =>
-        {
-            // delay validating the ConnectionString until the DataSource is requested. This ensures an exception doesn't happen until a Logger is established.
-            if (string.IsNullOrEmpty(settings.ConnectionString))
-            {
-                throw new InvalidOperationException($"ConnectionString is missing. It should be provided in 'ConnectionStrings:{connectionName}' or under the 'ConnectionString' key in '{DefaultConfigSectionName}' or '{typeSpecificSectionName}' configuration section.");
-            }
-
-            builder.UseLoggerFactory(null); // a workaround for https://github.com/npgsql/efcore.pg/issues/2821
-        });
-
-        if (settings.DbContextPooling)
-        {
-            builder.Services.AddDbContextPool<TContext>(ConfigureDbContext);
-        }
-        else
-        {
-            builder.Services.AddDbContext<TContext>(ConfigureDbContext);
-        }
 
         if (settings.HealthChecks)
         {
@@ -123,30 +95,6 @@ public static partial class AspireEFPostgreSqlExtensions
 
                     NpgsqlCommon.AddNpgsqlMetrics(meterProviderBuilder);
                 });
-        }
-
-        void ConfigureDbContext(DbContextOptionsBuilder dbContextOptionsBuilder)
-        {
-            // We don't provide the connection string, it's going to use the pre-registered DataSource.
-            // We don't register logger factory, because there is no need to: https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbcontextoptionsbuilder.useloggerfactory?view=efcore-7.0#remarks
-            dbContextOptionsBuilder.UseNpgsql(builder =>
-            {
-                // Resiliency:
-                // 1. Connection resiliency automatically retries failed database commands: https://www.npgsql.org/efcore/misc/other.html#execution-strategy
-                if (settings.MaxRetryCount > 0)
-                {
-                    builder.EnableRetryOnFailure(settings.MaxRetryCount);
-                }
-                // 2. "Scale proportionally: You want to ensure that you don't scale out a resource to a point where it will exhaust other associated resources."
-                // The pooling is enabled by default, the min pool size is 0 by default: https://www.npgsql.org/doc/connection-string-parameters.html#pooling
-                // There is nothing for us to set here.
-                // 3. "Timeout: Places limit on the duration for which a caller can wait for a response."
-                // The timeouts have default values, except of Internal Command Timeout, which we should ignore:
-                // https://www.npgsql.org/doc/connection-string-parameters.html#timeouts-and-keepalive
-                // There is nothing for us to set here.
-            });
-
-            configureDbContextOptions?.Invoke(dbContextOptionsBuilder);
         }
     }
 }

@@ -1,8 +1,23 @@
 using CatalogDb;
+using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
+
+// Configure Npgsql.EntityFrameworkCore.PostgreSQL services
+if (builder.Configuration.GetConnectionString("catalogdb") is string { } connectionString)
+{
+    // a workaround for https://github.com/npgsql/efcore.pg/issues/2821
+    var configureNpgsqlLogging = (NpgsqlDataSourceBuilder builder) => { builder.UseLoggerFactory(null); };
+
+    builder.Services.AddNpgsqlDataSource(connectionString, configureNpgsqlLogging);
+}
+
+builder.Services.AddDbContextPool<CatalogDbContext>(dbContextOptionsBuilder => dbContextOptionsBuilder.UseNpgsql());
+
+// Add the Aspire components for Npgsql.EntityFrameworkCore.PostgreSQL (health-check, tracing, metrics)
 builder.AddNpgsqlDbContext<CatalogDbContext>("catalogdb");
 
 builder.Services.AddOpenTelemetry()
