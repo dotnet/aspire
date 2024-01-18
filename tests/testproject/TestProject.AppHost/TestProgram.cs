@@ -63,6 +63,8 @@ public class TestProgram
             var oracleDatabaseAbstract = AppBuilder.AddOracleDatabaseContainer("oracledatabaseabstract");
             var kafkaAbstract = AppBuilder.AddKafka("kafkaabstract");
 
+            var cosmos = AppBuilder.AddAzureCosmosDB("cosmos").UseEmulator();
+
             IntegrationServiceABuilder = AppBuilder.AddProject<Projects.IntegrationServiceA>("integrationservicea")
                 .WithReference(sqlserverContainer)
                 .WithReference(mysqlContainer)
@@ -79,7 +81,8 @@ public class TestProgram
                 .WithReference(rabbitmqAbstract)
                 .WithReference(mongodbAbstract)
                 .WithReference(oracleDatabaseAbstract)
-                .WithReference(kafkaAbstract);
+                .WithReference(kafkaAbstract)
+                .WithReference(cosmos);
         }
     }
 
