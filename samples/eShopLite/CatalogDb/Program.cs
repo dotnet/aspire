@@ -12,10 +12,10 @@ if (builder.Configuration.GetConnectionString("catalogdb") is string { } connect
     // a workaround for https://github.com/npgsql/efcore.pg/issues/2821
     var configureNpgsqlLogging = (NpgsqlDataSourceBuilder builder) => { builder.UseLoggerFactory(null); };
 
-    builder.Services.AddNpgsqlDataSource(connectionString, configureNpgsqlLogging);
+    builder.Services
+        .AddNpgsqlDataSource(connectionString, configureNpgsqlLogging)
+        .AddDbContextPool<CatalogDbContext>(dbContextOptionsBuilder => dbContextOptionsBuilder.UseNpgsql());
 }
-
-builder.Services.AddDbContextPool<CatalogDbContext>(dbContextOptionsBuilder => dbContextOptionsBuilder.UseNpgsql());
 
 // Add the Aspire components for Npgsql.EntityFrameworkCore.PostgreSQL (health-check, tracing, metrics)
 builder.AddNpgsqlDbContext<CatalogDbContext>("catalogdb");
