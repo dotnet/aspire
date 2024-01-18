@@ -18,10 +18,8 @@ public class ConformanceTests_NoPooling : ConformanceTests_Pooling
         // Configure Npgsql.EntityFrameworkCore.PostgreSQL services
         if (builder.Configuration.GetConnectionString("postgres") is string { } connectionString)
         {
-            builder.Services.AddNpgsqlDataSource(connectionString);
+            builder.Services.AddDbContextPool<TestDbContext>(dbContextOptionsBuilder => dbContextOptionsBuilder.UseNpgsql(connectionString));
         }
-
-        builder.Services.AddDbContext<TestDbContext>(dbContextOptionsBuilder => dbContextOptionsBuilder.UseNpgsql());
 
         builder.AddNpgsqlDbContext<TestDbContext>("postgres", configure);
     }
