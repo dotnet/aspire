@@ -335,6 +335,38 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Exposes an HTTP endpoint on a resource. This binding reference can be retrieved using <see cref="GetEndpoint{T}(IResourceBuilder{T}, string)"/>.
+    /// The binding name will be "http" if not specified.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="hostPort">The host port.</param>
+    /// <param name="name">The name of the binding.</param>
+    /// <param name="env">The name of the environment variable to inject.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <exception cref="DistributedApplicationException">Throws an exception if the a binding with the same name already exists on the specified resource.</exception>
+    public static IResourceBuilder<T> WithHttpEndpoint<T>(this IResourceBuilder<T> builder, int? hostPort = null, string? name = null, string? env = null) where T : IResource
+    {
+        return builder.WithEndpoint(hostPort, "http", name, env);
+    }
+
+    /// <summary>
+    /// Exposes an HTTPS endpoint on a resource. This binding reference can be retrieved using <see cref="GetEndpoint{T}(IResourceBuilder{T}, string)"/>.
+    /// The binding name will be "https" if not specified.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="hostPort">The host port.</param>
+    /// <param name="name">The name of the binding.</param>
+    /// <param name="env">The name of the environment variable to inject.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <exception cref="DistributedApplicationException">Throws an exception if the a binding with the same name already exists on the specified resource.</exception>
+    public static IResourceBuilder<T> WithHttpsEndpoint<T>(this IResourceBuilder<T> builder, int? hostPort = null, string? name = null, string? env = null) where T : IResource
+    {
+        return builder.WithEndpoint(hostPort, "https", name, env);
+    }
+
+    /// <summary>
     /// Gets an <see cref="EndpointReference"/> by name from the resource. These endpoints are declared either using <see cref="WithEndpoint{T}(IResourceBuilder{T}, int?, string?, string?, string?)"/> or by launch settings (for project resources).
     /// The <see cref="EndpointReference"/> can be used to resolve the address of the endpoint in <see cref="WithEnvironment{T}(IResourceBuilder{T}, Action{EnvironmentCallbackContext})"/>.
     /// </summary>

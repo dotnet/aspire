@@ -45,7 +45,8 @@ public static class ContainerResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a binding to expose an endpoint on a resource.
+    /// Exposes an endpoint on a resource. This binding reference can be retrieved using <see cref="ResourceBuilderExtensions.GetEndpoint{T}(IResourceBuilder{T}, string)"/>.
+    /// The binding name will be the scheme name if not specified.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
@@ -71,6 +72,38 @@ public static class ContainerResourceBuilderExtensions
             env: env);
 
         return builder.WithAnnotation(annotation);
+    }
+
+    /// <summary>
+    /// Exposes an HTTP endpoint on a resource. This binding reference can be retrieved using <see cref="ResourceBuilderExtensions.GetEndpoint{T}(IResourceBuilder{T}, string)"/>.
+    /// The binding name will be "http" if not specified.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="containerPort">The container port.</param>
+    /// <param name="hostPort">The host machine port.</param>
+    /// <param name="name">The name of the binding.</param>
+    /// <param name="env">The name of the environment variable to inject.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithHttpEndpoint<T>(this IResourceBuilder<T> builder, int containerPort, int? hostPort = null, string? name = null, string? env = null) where T : IResource
+    {
+        return WithEndpoint(builder, containerPort, hostPort, "http", name, env);
+    }
+
+    /// <summary>
+    /// Exposes an HTTPS endpoint on a resource. This binding reference can be retrieved using <see cref="ResourceBuilderExtensions.GetEndpoint{T}(IResourceBuilder{T}, string)"/>.
+    /// The binding name will be "https" if not specified.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="containerPort">The container port.</param>
+    /// <param name="hostPort">The host machine port.</param>
+    /// <param name="name">The name of the binding.</param>
+    /// <param name="env">The name of the environment variable to inject.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithHttpsEndpoint<T>(this IResourceBuilder<T> builder, int containerPort, int? hostPort = null, string? name = null, string? env = null) where T : IResource
+    {
+        return WithEndpoint(builder, containerPort, hostPort, "https", name, env);
     }
 
     /// <summary>
