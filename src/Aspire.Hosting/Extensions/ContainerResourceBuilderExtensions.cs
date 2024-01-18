@@ -3,6 +3,7 @@
 
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Dcp.Model;
 
 namespace Aspire.Hosting;
 
@@ -53,7 +54,7 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="containerPort">The container port.</param>
     /// <param name="hostPort">The host machine port.</param>
     /// <param name="scheme">The scheme e.g http/https/amqp</param>
-    /// <param name="name">The name of the binding.</param>
+    /// <param name="name">The name of the endpoint.</param>
     /// <param name="env">The name of the environment variable to inject.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithEndpoint<T>(this IResourceBuilder<T> builder, int containerPort, int? hostPort = null, string? scheme = null, string? name = null, string? env = null) where T : IResource
@@ -87,7 +88,7 @@ public static class ContainerResourceBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithHttpEndpoint<T>(this IResourceBuilder<T> builder, int containerPort, int? hostPort = null, string? name = null, string? env = null) where T : IResource
     {
-        return WithEndpoint(builder, containerPort, hostPort, "http", name, env);
+        return builder.WithEndpoint(containerPort: containerPort, hostPort: hostPort, scheme: "http", name: name, env: env);
     }
 
     /// <summary>
@@ -103,7 +104,7 @@ public static class ContainerResourceBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithHttpsEndpoint<T>(this IResourceBuilder<T> builder, int containerPort, int? hostPort = null, string? name = null, string? env = null) where T : IResource
     {
-        return WithEndpoint(builder, containerPort, hostPort, "https", name, env);
+        return builder.WithEndpoint(containerPort: containerPort, hostPort: hostPort, scheme: "https", name: name, env: env);
     }
 
     /// <summary>

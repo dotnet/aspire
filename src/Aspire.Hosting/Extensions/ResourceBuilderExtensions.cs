@@ -319,7 +319,7 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="hostPort">The host port.</param>
     /// <param name="scheme">The scheme e.g. (http/https)</param>
-    /// <param name="name">The name of the binding.</param>
+    /// <param name="name">The name of the endpoint.</param>
     /// <param name="env">The name of the environment variable to inject.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <exception cref="DistributedApplicationException">Throws an exception if the a binding with the same name already exists on the specified resource.</exception>
@@ -347,7 +347,7 @@ public static class ResourceBuilderExtensions
     /// <exception cref="DistributedApplicationException">Throws an exception if the a binding with the same name already exists on the specified resource.</exception>
     public static IResourceBuilder<T> WithHttpEndpoint<T>(this IResourceBuilder<T> builder, int? hostPort = null, string? name = null, string? env = null) where T : IResource
     {
-        return builder.WithEndpoint(hostPort, "http", name, env);
+        return builder.WithEndpoint(hostPort: hostPort, scheme: "http", name: name, env: env);
     }
 
     /// <summary>
@@ -363,7 +363,7 @@ public static class ResourceBuilderExtensions
     /// <exception cref="DistributedApplicationException">Throws an exception if the a binding with the same name already exists on the specified resource.</exception>
     public static IResourceBuilder<T> WithHttpsEndpoint<T>(this IResourceBuilder<T> builder, int? hostPort = null, string? name = null, string? env = null) where T : IResource
     {
-        return builder.WithEndpoint(hostPort, "https", name, env);
+        return builder.WithEndpoint(hostPort: hostPort, scheme: "https", name: name, env: env);
     }
 
     /// <summary>
