@@ -23,6 +23,6 @@ public class ConformanceTests_NoPooling : ConformanceTests_Pooling
 
         builder.Services.AddDbContext<TestDbContext>(dbContextOptionsBuilder => dbContextOptionsBuilder.UseNpgsql());
 
-        builder.AddNpgsqlDbContext<TestDbContext>("postgres");
+        builder.AddNpgsqlDbContext<TestDbContext>("postgres", configure);
     }
 }
