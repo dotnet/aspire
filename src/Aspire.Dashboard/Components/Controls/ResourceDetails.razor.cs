@@ -42,12 +42,7 @@ public partial class ResourceDetails
         .AsQueryable();
 
     private string _filter = "";
-    private bool _defaultMasked = true;
-
-    private readonly Icon _maskIcon = new Icons.Regular.Size16.EyeOff();
-    private readonly Icon _unmaskIcon = new Icons.Regular.Size16.Eye();
-    private readonly Icon _showSpecOnlyIcon = new Icons.Regular.Size16.DocumentHeader();
-    private readonly Icon _showAllIcon = new Icons.Regular.Size16.DocumentOnePage();
+    private bool _areEnvironmentVariablesMasked = true;
 
     private readonly GridSort<EnvironmentVariableViewModel> _nameSort = GridSort<EnvironmentVariableViewModel>.ByAscending(vm => vm.Name);
     private readonly GridSort<EnvironmentVariableViewModel> _valueSort = GridSort<EnvironmentVariableViewModel>.ByAscending(vm => vm.Value);
@@ -89,6 +84,24 @@ public partial class ResourceDetails
             new KnownProperty(KnownProperties.Container.Args, Loc[Resources.Resources.ResourcesDetailsContainerArgumentsProperty]),
             new KnownProperty(KnownProperties.Container.Ports, Loc[Resources.Resources.ResourcesDetailsContainerPortsProperty]),
         ];
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Resource.Environment is var environment)
+        {
+            var anyChanged = false;
+            foreach (var vm in environment.Where(vm => vm.IsValueMasked != _areEnvironmentVariablesMasked))
+            {
+                anyChanged = true;
+                vm.IsValueMasked = _areEnvironmentVariablesMasked;
+            }
+
+            if (anyChanged)
+            {
+                await InvokeAsync(StateHasChanged);
+            }
+        }
     }
 
     private IEnumerable<Endpoint> GetEndpoints()
@@ -174,12 +187,11 @@ public partial class ResourceDetails
 
     private void ToggleMaskState()
     {
-        _defaultMasked = !_defaultMasked;
-        if (Resource.Environment is { } environment)
+        if (Resource.Environment is var environment)
         {
             foreach (var vm in environment)
             {
-                vm.IsValueMasked = _defaultMasked;
+                vm.IsValueMasked = _areEnvironmentVariablesMasked;
             }
         }
     }
@@ -198,11 +210,11 @@ public partial class ResourceDetails
 
             if (!foundMasked && foundUnmasked)
             {
-                _defaultMasked = false;
+                _areEnvironmentVariablesMasked = false;
             }
             else if (foundMasked && !foundUnmasked)
             {
-                _defaultMasked = true;
+                _areEnvironmentVariablesMasked = true;
             }
         }
     }
