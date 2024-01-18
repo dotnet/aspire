@@ -35,6 +35,7 @@ public abstract class Resource : IResource
     /// - Must contain only ASCII letters, digits, and hyphens.
     /// - Must not end with a hyphen.
     /// - Must not contain consecutive hyphens.
+    /// - Must be between 1 and 64 characters long.
     /// </summary>
     internal static void ValidateName(string name)
     {
