@@ -4,7 +4,7 @@
               aria-label="@(Value is true ? CheckedTitle : UncheckedTitle)"
               OnClick="@(() => OnToggleInternalAsync())"
               IconEnd="@(Value is true ? CheckedIcon : UncheckedIcon)"
-              slot="end" />
+              @attributes="AdditionalAttributes" />
 
 @code {
     [Parameter, EditorRequired]
@@ -33,4 +33,7 @@
 
     [Parameter]
     public EventCallback OnToggle { get; set; }
+
+    [Parameter(CaptureUnmatchedValues = true)]
+    public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
 }

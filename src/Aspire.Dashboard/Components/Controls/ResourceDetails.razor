@@ -15,7 +15,8 @@
                               UncheckedTitle="@ControlStringsLoc[nameof(ControlsStrings.EnvironmentVariablesFilterToggleShowAll)]"
                               OnToggle="@(() => _showAll = !_showAll)"
                               CheckedIcon="@(new Icons.Regular.Size16.DocumentHeader())"
-                              UncheckedIcon="@(new Icons.Regular.Size16.DocumentOnePage())" />
+                              UncheckedIcon="@(new Icons.Regular.Size16.DocumentOnePage())"
+                              slot="end"/>
         }
 
         <FluentIconSwitch @bind-Value="@_areEnvironmentVariablesMasked"
@@ -24,7 +25,8 @@
                           UncheckedTitle="@ControlStringsLoc[nameof(ControlsStrings.EnvironmentVariablesHideVariableValues)]"
                           OnToggle="@ToggleMaskState"
                           CheckedIcon="@(new Icons.Regular.Size16.Eye())"
-                          UncheckedIcon="@(new Icons.Regular.Size16.EyeOff())" />
+                          UncheckedIcon="@(new Icons.Regular.Size16.EyeOff())"
+                          slot="end" />
 
         <FluentSearch Placeholder="@ControlStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"
                       Immediate="true"
