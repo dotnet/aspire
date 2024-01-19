@@ -13,7 +13,7 @@ if (builder.Configuration.GetConnectionString("postgres") is string { } connecti
 }
 
 // Add the Aspire components for Npgsql.EntityFrameworkCore.PostgreSQL (health-check, tracing, metrics)
-builder.AddNpgsqlDbContext<CatalogDbContext>("catalogdb");
+builder.AddNpgsqlEntityFrameworkCore<CatalogDbContext>("catalogdb");
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddProblemDetails();

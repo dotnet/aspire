@@ -21,6 +21,6 @@ public class ConformanceTests_NoPooling : ConformanceTests_Pooling
             builder.Services.AddDbContextPool<TestDbContext>(dbContextOptionsBuilder => dbContextOptionsBuilder.UseNpgsql(connectionString));
         }
 
-        builder.AddNpgsqlDbContext<TestDbContext>("postgres", configure);
+        builder.AddNpgsqlEntityFrameworkCore<TestDbContext>("postgres", configure);
     }
 }

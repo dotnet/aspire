@@ -18,7 +18,7 @@ if (builder.Configuration.GetConnectionString("catalogdb") is string { } connect
 }
 
 // Add the Aspire components for Npgsql.EntityFrameworkCore.PostgreSQL (health-check, tracing, metrics)
-builder.AddNpgsqlDbContext<CatalogDbContext>("catalogdb");
+builder.AddNpgsqlEntityFrameworkCore<CatalogDbContext>("catalogdb");
 
 builder.Services.AddOpenTelemetry()
     .WithTracing(tracing => tracing.AddSource(CatalogDbInitializer.ActivitySourceName));

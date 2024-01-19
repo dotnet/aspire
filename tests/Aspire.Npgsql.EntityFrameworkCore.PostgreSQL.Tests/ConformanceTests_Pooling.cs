@@ -95,7 +95,7 @@ public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, NpgsqlEn
             builder.Services.AddDbContextPool<TestDbContext>(dbContextOptionsBuilder => dbContextOptionsBuilder.UseNpgsql(connectionString));
         }
 
-        builder.AddNpgsqlDbContext<TestDbContext>("postgres", configure);
+        builder.AddNpgsqlEntityFrameworkCore<TestDbContext>("postgres", configure);
     }
 
     protected override void SetHealthCheck(NpgsqlEntityFrameworkCorePostgreSQLSettings options, bool enabled)
