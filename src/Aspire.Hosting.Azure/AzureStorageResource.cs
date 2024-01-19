@@ -10,7 +10,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// Represents an Azure Storage resource.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
-public class AzureStorageResource(string name) : Resource(name), IAzureResource
+public class AzureStorageResource(string name) : Resource(name), IAzureResource, IResourceWithConnectionString
 {
     /// <summary>
     /// Gets or sets the URI of the Azure Table Storage resource.
@@ -31,6 +31,14 @@ public class AzureStorageResource(string name) : Resource(name), IAzureResource
     /// Gets a value indicating whether the Azure Storage resource is running in the local emulator.
     /// </summary>
     public bool IsEmulator => this.IsContainer();
+
+    public string? GetConnectionString() => IsEmulator
+        ? AzureStorageEmulatorConnectionString.Create(
+            tablePort: GetEmulatorPort("table"),
+            queuePort: GetEmulatorPort("queue"),
+            blobPort: GetEmulatorPort("blob"))
+        // TODO: I'm not entirely sure what the behavior should be for when *not* emulated; the existing behavior component-specific URIs wouldn't be valid connection strings either.
+        : throw new DistributedApplicationException($"Azure storage resource does not generate non-emulated connection strings.");
 
     internal string? GetTableConnectionString() => IsEmulator
         ? AzureStorageEmulatorConnectionString.Create(tablePort: GetEmulatorPort("table"))
