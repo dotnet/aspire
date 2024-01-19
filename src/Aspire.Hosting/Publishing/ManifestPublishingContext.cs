@@ -3,7 +3,6 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
-using Aspire.Dashboard.Utils;
 using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Publishing;
