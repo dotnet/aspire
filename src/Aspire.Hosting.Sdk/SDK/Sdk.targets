@@ -49,6 +49,6 @@
   also contains Aspire.Hosting.Orchestration and vice versa. Once Aspire/DCP are public
   we can move it to WorkloadManifest.targets to ensure future correctness.
   -->
-  <Import Project="Sdk.targets" Sdk="Aspire.Hosting.Orchestration" />
+  <Import Project="Sdk.targets" Sdk="Aspire.Hosting.Orchestration" Condition="'$(_SuppressImportAspireHostingOrchestrationTargets)' != 'true'" />
 
 </Project>
