@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
+using Aspire.Dashboard.Utils;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
@@ -319,9 +320,9 @@ public static class ResourceBuilderExtensions
     /// <exception cref="DistributedApplicationException">Throws an exception if the a binding with the same name already exists on the specified resource.</exception>
     public static IResourceBuilder<T> WithEndpoint<T>(this IResourceBuilder<T> builder, int? hostPort = null, string? scheme = null, string? name = null, string? env = null) where T : IResource
     {
-        if (builder.Resource.Annotations.OfType<EndpointAnnotation>().Any(sb => sb.Name == name))
+        if (builder.Resource.Annotations.OfType<EndpointAnnotation>().Any(sb => string.Equals(sb.Name, name, StringComparisons.EndpointAnnotationName)))
         {
-            throw new DistributedApplicationException($"Endpoint '{name}' already exists");
+            throw new DistributedApplicationException($"Endpoint '{name}' already exists. Endpoint names are case-insensitive.");
         }
 
         var annotation = new EndpointAnnotation(ProtocolType.Tcp, uriScheme: scheme, name: name, port: hostPort, env: env);

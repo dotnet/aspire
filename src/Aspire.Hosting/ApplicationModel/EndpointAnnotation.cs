@@ -22,10 +22,15 @@ public sealed class EndpointAnnotation : IResourceAnnotation
         // is because we eventually always need these values to be populated so lets do
         // it up front.
 
+        uriScheme ??= protocol.ToString().ToLowerInvariant();
+        name ??= uriScheme;
+
+        ModelName.ValidateName(nameof(EndpointAnnotation), name);
+
         Protocol = protocol;
-        UriScheme = uriScheme ?? protocol.ToString().ToLowerInvariant();
+        UriScheme = uriScheme;
         Transport = transport ?? (UriScheme == "http" || UriScheme == "https" ? "http" : Protocol.ToString().ToLowerInvariant());
-        Name = name ?? UriScheme;
+        Name = name;
         Port = port;
         ContainerPort = containerPort ?? port;
         IsExternal = isExternal ?? false;

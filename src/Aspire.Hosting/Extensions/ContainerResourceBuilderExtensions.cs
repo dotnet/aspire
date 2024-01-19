@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
+using Aspire.Dashboard.Utils;
 using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting;
@@ -51,7 +52,7 @@ public static class ContainerResourceBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithEndpoint<T>(this IResourceBuilder<T> builder, int containerPort, int? hostPort = null, string? scheme = null, string? name = null, string? env = null) where T : IResource
     {
-        if (builder.Resource.Annotations.OfType<EndpointAnnotation>().Any(sb => sb.Name == name))
+        if (builder.Resource.Annotations.OfType<EndpointAnnotation>().Any(sb => string.Equals(sb.Name, name, StringComparisons.EndpointAnnotationName)))
         {
             throw new DistributedApplicationException($"Endpoint with name '{name}' already exists");
         }

@@ -1,12 +1,14 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Utils;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Publishing;
+
 internal sealed class AutomaticManifestPublisherBindingInjectionHook(IOptions<PublishingOptions> publishingOptions) : IDistributedApplicationLifecycleHook
 {
     private readonly IOptions<PublishingOptions> _publishingOptions = publishingOptions;
@@ -53,7 +55,7 @@ internal sealed class AutomaticManifestPublisherBindingInjectionHook(IOptions<Pu
                 continue;
             }
 
-            if (!projectResource.Annotations.OfType<EndpointAnnotation>().Any(sb => sb.UriScheme == "http" || sb.Name == "http"))
+            if (!projectResource.Annotations.OfType<EndpointAnnotation>().Any(sb => sb.UriScheme == "http" || string.Equals(sb.Name, "http", StringComparisons.EndpointAnnotationName)))
             {
                 var httpBinding = new EndpointAnnotation(
                     System.Net.Sockets.ProtocolType.Tcp,
@@ -63,7 +65,7 @@ internal sealed class AutomaticManifestPublisherBindingInjectionHook(IOptions<Pu
                 httpBinding.Transport = isHttp2ConfiguredInAppSettings ? "http2" : httpBinding.Transport;
             }
 
-            if (!projectResource.Annotations.OfType<EndpointAnnotation>().Any(sb => sb.UriScheme == "https" || sb.Name == "https"))
+            if (!projectResource.Annotations.OfType<EndpointAnnotation>().Any(sb => sb.UriScheme == "https" || string.Equals(sb.Name, "https", StringComparisons.EndpointAnnotationName)))
             {
                 var httpsBinding = new EndpointAnnotation(
                     System.Net.Sockets.ProtocolType.Tcp,
