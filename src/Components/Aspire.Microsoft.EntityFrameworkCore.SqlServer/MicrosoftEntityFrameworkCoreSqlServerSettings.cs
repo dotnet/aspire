@@ -9,25 +9,6 @@ namespace Aspire.Microsoft.EntityFrameworkCore.SqlServer;
 public sealed class MicrosoftEntityFrameworkCoreSqlServerSettings
 {
     /// <summary>
-    /// The connection string of the SQL server database to connect to.
-    /// </summary>
-    public string? ConnectionString { get; set; }
-
-    /// <summary>
-    /// Gets or sets a boolean value that indicates whether the DbContext will be pooled or explicitly created every time it's requested.
-    /// </summary>
-    public bool DbContextPooling { get; set; } = true;
-
-    /// <summary>
-    /// Gets or sets the maximum number of retry attempts.
-    /// </summary>
-    /// <value>
-    /// The default is 6.
-    /// Set it to 0 to disable the retry mechanism.
-    /// </value>
-    public int MaxRetryCount { get; set; } = 6;
-
-    /// <summary>
     /// Gets or sets a boolean value that indicates whether the database health check is enabled or not.
     /// </summary>
     /// <value>
@@ -50,9 +31,4 @@ public sealed class MicrosoftEntityFrameworkCoreSqlServerSettings
     /// The default value is <see langword="true"/>.
     /// </value>
     public bool Metrics { get; set; } = true;
-
-    /// <summary>
-    /// The time in seconds to wait for the command to execute.
-    /// </summary>
-    public int? Timeout { get; set; }
 }

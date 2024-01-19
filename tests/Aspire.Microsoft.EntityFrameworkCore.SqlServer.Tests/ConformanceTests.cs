@@ -4,7 +4,7 @@
 using Aspire.Components.Common.Tests;
 using Aspire.Components.ConformanceTests;
 using Microsoft.DotNet.RemoteExecutor;
-using Microsoft.EntityFrameworkCore.Internal;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -12,7 +12,7 @@ using Xunit;
 
 namespace Aspire.Microsoft.EntityFrameworkCore.SqlServer.Tests;
 
-public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, MicrosoftEntityFrameworkCoreSqlServerSettings>
+public class ConformanceTests : ConformanceTests<TestDbContext, MicrosoftEntityFrameworkCoreSqlServerSettings>
 {
     protected const string ConnectionString = "Host=fake;Database=catalog";
 
@@ -58,9 +58,7 @@ public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, Microsof
 
     protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
         {
-            ("""{"Aspire": { "Microsoft": { "EntityFrameworkCore":{ "SqlServer": { "MaxRetryCount": "5"}}}}}""", "Value is \"string\" but should be \"integer\""),
-            ("""{"Aspire": { "Microsoft": { "EntityFrameworkCore":{ "SqlServer": { "HealthChecks": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
-            ("""{"Aspire": { "Microsoft": { "EntityFrameworkCore":{ "SqlServer": { "ConnectionString": "", "DbContextPooling": "Yes"}}}}}""", "Value is \"string\" but should be \"boolean\"")
+            ("""{"Aspire": { "Microsoft": { "EntityFrameworkCore":{ "SqlServer": { "HealthChecks": "false"}}}}}""", "Value is \"string\" but should be \"boolean\"")
         };
 
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
@@ -70,7 +68,11 @@ public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, Microsof
         });
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<MicrosoftEntityFrameworkCoreSqlServerSettings>? configure = null, string? key = null)
-        => builder.AddSqlServerDbContext<TestDbContext>("sqlconnection", configure);
+    {
+        var connectionString = builder.Configuration.GetValue<string>("Aspire:Microsoft:EntityFrameworkCore:SqlServer:ConnectionString");
+        builder.Services.AddDbContextPool<TestDbContext>(dbContextOptionsBuilder => dbContextOptionsBuilder.UseSqlServer(connectionString));
+        builder.AddSqlServerEntityFrameworkCore<TestDbContext>(configure);
+    }
 
     protected override void SetHealthCheck(MicrosoftEntityFrameworkCoreSqlServerSettings options, bool enabled)
         => options.HealthChecks = enabled;
@@ -87,31 +89,6 @@ public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, Microsof
         {
             service.Database.EnsureCreated();
         }
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "EF1001:Internal EF Core API usage.", Justification = "Required to verify pooling without touching DB")]
-    public void DbContextPoolingRegistersIDbContextPool(bool enabled)
-    {
-        using IHost host = CreateHostWithComponent(options => options.DbContextPooling = enabled);
-
-        IDbContextPool<TestDbContext>? pool = host.Services.GetService<IDbContextPool<TestDbContext>>();
-
-        Assert.Equal(enabled, pool is not null);
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void DbContextCanBeAlwaysResolved(bool enabled)
-    {
-        using IHost host = CreateHostWithComponent(options => options.DbContextPooling = enabled);
-
-        TestDbContext? dbContext = host.Services.GetService<TestDbContext>();
-
-        Assert.NotNull(dbContext);
     }
 
     [ConditionalFact]

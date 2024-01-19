@@ -355,30 +355,6 @@ public abstract class ConformanceTests<TService, TOptions>
         }
     }
 
-    /// <summary>
-    /// Ensures that when the connection information is missing, an exception isn't thrown before the host
-    /// is built, so any exception can be logged with ILogger.
-    /// </summary>
-    [ConditionalTheory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void ConnectionInformationIsDelayValidated(bool useKey)
-    {
-        SetupConnectionInformationIsDelayValidated();
-
-        var builder = Host.CreateEmptyApplicationBuilder(null);
-
-        string? key = useKey ? "key" : null;
-        RegisterComponent(builder, key: key);
-
-        using var host = builder.Build();
-
-        Assert.Throws<InvalidOperationException>(() =>
-            key is null
-                ? host.Services.GetRequiredService<TService>()
-                : host.Services.GetRequiredKeyedService<TService>(key));
-    }
-
     private static string GetRepoRoot()
     {
         string directory = AppContext.BaseDirectory;
