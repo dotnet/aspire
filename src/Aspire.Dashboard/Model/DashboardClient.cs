@@ -198,7 +198,7 @@ internal sealed class DashboardClient : IDashboardClient
                 {
                     var call = _client.WatchResources(new WatchResourcesRequest { IsReconnect = errorCount != 0 }, cancellationToken: cancellationToken);
 
-                    await foreach (var response in call.ResponseStream.ReadAllAsync(cancellationToken: cancellationToken))
+                    await foreach (var response in call.ResponseStream.ReadAllAsync(cancellationToken: cancellationToken).ConfigureAwait(true)) // Setting ConfigureAwait to silence analyzer. Consider calling ConfigureAwait(false)
                     {
                         List<ResourceViewModelChange>? changes = null;
 
@@ -333,7 +333,7 @@ internal sealed class DashboardClient : IDashboardClient
             new WatchResourceConsoleLogsRequest() { ResourceName = resourceName },
             cancellationToken: combinedTokens.Token);
 
-        await foreach (var response in call.ResponseStream.ReadAllAsync(cancellationToken: combinedTokens.Token))
+        await foreach (var response in call.ResponseStream.ReadAllAsync(cancellationToken: combinedTokens.Token).ConfigureAwait(true)) // Setting ConfigureAwait to silence analyzer. Consider calling ConfigureAwait(false)
         {
             var logLines = new (string Content, bool IsErrorMessage)[response.LogLines.Count];
 

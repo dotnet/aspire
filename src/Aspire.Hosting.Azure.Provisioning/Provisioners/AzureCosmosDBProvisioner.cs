@@ -96,7 +96,7 @@ internal sealed class AzureCosmosDBProvisioner(ILogger<AzureCosmosDBProvisioner>
 
         var existingDatabases = cosmosResource.GetCosmosDBSqlDatabases().GetAllAsync(cancellationToken);
 
-        await foreach (var existingDatabase in existingDatabases)
+        await foreach (var existingDatabase in existingDatabases.ConfigureAwait(true))// Setting ConfigureAwait to silence analyzer. Consider calling ConfigureAwait(false)
         {
             if (!resource.Databases.Any(d => d.Name == existingDatabase.Data.Name))
             {

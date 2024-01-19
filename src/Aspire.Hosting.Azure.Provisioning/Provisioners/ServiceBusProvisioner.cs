@@ -93,7 +93,7 @@ internal sealed class ServiceBusProvisioner(ILogger<ServiceBusProvisioner> logge
         var topicsToCreate = new HashSet<string>(resource.TopicNames);
 
         // Delete unused queues
-        await foreach (var sbQueue in queues.GetAllAsync(cancellationToken: cancellationToken))
+        await foreach (var sbQueue in queues.GetAllAsync(cancellationToken: cancellationToken).ConfigureAwait(true))// Setting ConfigureAwait to silence analyzer. Consider calling ConfigureAwait(false)
         {
             if (!resource.QueueNames.Contains(sbQueue.Data.Name))
             {
@@ -106,7 +106,7 @@ internal sealed class ServiceBusProvisioner(ILogger<ServiceBusProvisioner> logge
             queuesToCreate.Remove(sbQueue.Data.Name);
         }
 
-        await foreach (var sbTopic in topics.GetAllAsync(cancellationToken: cancellationToken))
+        await foreach (var sbTopic in topics.GetAllAsync(cancellationToken: cancellationToken).ConfigureAwait(true))// Setting ConfigureAwait to silence analyzer. Consider calling ConfigureAwait(false)
         {
             if (!resource.TopicNames.Contains(sbTopic.Data.Name))
             {
