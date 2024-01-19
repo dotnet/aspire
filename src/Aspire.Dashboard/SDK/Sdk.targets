@@ -1,0 +1,16 @@
+<Project>
+
+  <!-- *** BEGIN *** -->
+
+  <PropertyGroup>
+    <AspireDashboardDir Condition=" '$(AspireDashboardDir)' == '' ">$([MSBuild]::NormalizePath($(MSBuildThisFileDirectory), '..', 'tools'))</AspireDashboardDir>
+    <AspireDashboardPath Condition=" '$(AspireDashboardPath)' == '' ">$([MSBuild]::NormalizePath($(AspireDashboardDir), 'Aspire.Dashboard.dll'))</AspireDashboardPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectCapability Include="AspireDashboard" />
+  </ItemGroup>
+
+  <!-- *** END ***  -->
+
+</Project>

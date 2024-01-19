@@ -85,7 +85,7 @@ internal static class ]]>%(ClassName)<![CDATA[
         </Source>
       </ProjectMetadataSource>
     </ItemGroup>
-    
+
     <WriteLinesToFile
       File="$(_AspireIntermediatePath)references\_AppHost.ProjectMetadata.g.cs"
       Overwrite="true"
@@ -138,6 +138,15 @@ internal static class ]]>%(ClassName)<![CDATA[
       <AssemblyAttribute Include="System.Reflection.AssemblyMetadata">
         <_Parameter1>apphostprojectpath</_Parameter1>
         <_Parameter2>$(MSBuildProjectDirectory)</_Parameter2>
+      </AssemblyAttribute>
+    </ItemGroup>
+  </Target>
+
+  <Target Name="SetDashboardDiscoveryAttributes" BeforeTargets="GetAssemblyAttributes" Condition=" '$(AspireDashboardPath)' != '' ">
+    <ItemGroup>
+      <AssemblyAttribute Include="System.Reflection.AssemblyMetadata">
+        <_Parameter1>aspiredashboardpath</_Parameter1>
+        <_Parameter2>$(AspireDashboardPath)</_Parameter2>
       </AssemblyAttribute>
     </ItemGroup>
   </Target>
