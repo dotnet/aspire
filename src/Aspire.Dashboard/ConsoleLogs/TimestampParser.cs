@@ -5,9 +5,11 @@ using System.Globalization;
 using System.Text.RegularExpressions;
 
 namespace Aspire.Dashboard.ConsoleLogs;
+
 public static partial class TimestampParser
 {
-    public const string DisplayFormat = "yyyy-MM-ddTHH:mm:ss.fffffff";
+    // NOTE: Must match Aspire.Hosting.Dashboard.ConsoleLogsConfigurationExtensions.DisplayFormat
+    private const string DisplayFormat = "yyyy-MM-ddTHH:mm:ss.fffffff";
 
     private static readonly Regex s_rfc3339RegEx = GenerateRfc3339RegEx();
 
