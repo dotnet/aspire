@@ -32,6 +32,6 @@ builder.AddProject<Projects.ApiGateway>("apigateway")
 builder.AddProject<Projects.CatalogDb>("catalogdbapp")
        .WithReference(catalogDb);
 
-builder.AddProject<Projects.Aspire_Dashboard>("dashboard");
+builder.AddProject<Projects.Aspire_Dashboard>("aspire-dashboard");
 
 builder.Build().Run();

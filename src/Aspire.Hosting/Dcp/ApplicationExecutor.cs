@@ -3,6 +3,7 @@
 
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Lifecycle;
 using k8s;
@@ -73,6 +74,11 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger, D
         AspireEventSource.Instance.DcpModelCreationStart();
         try
         {
+            if (!_model.Resources.Any(r => r.Name == "aspire-dashboard"))
+            {
+                await StartDashboardAsync(cancellationToken).ConfigureAwait(false);
+            }
+
             PrepareServices();
             PrepareContainers();
             PrepareExecutables();
@@ -85,7 +91,36 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger, D
         {
             AspireEventSource.Instance.DcpModelCreationStop();
         }
+    }
 
+    private async Task StartDashboardAsync(CancellationToken cancellationToken = default)
+    {
+        var dashboardExecutableSpec = new ExecutableSpec();
+        dashboardExecutableSpec.ExecutionType = ExecutionType.Process;
+   
+        // HACK: Just doing this in this branch until the workload mechanism is in place
+        //       and I can emulate it.
+        dashboardExecutableSpec.ExecutablePath = "C:\\Code\\dotnet\\aspire\\artifacts\\bin\\Aspire.Dashboard\\Debug\\net8.0\\Aspire.Dashboard.exe";
+        dashboardExecutableSpec.WorkingDirectory = "C:\\Code\\dotnet\\aspire\\src\\Aspire.Dashboard";
+
+        var environment = new List<EnvVar>();
+        environment.Add(new EnvVar()
+        {
+            Name = "DOTNET_DASHBOARD_GRPC_ENDPOINT_URL",
+            Value = "http://localhost:18999"
+        });
+        environment.Add(new EnvVar()
+        {
+            Name = "ASPNETCORE_ENVIRONMENT",
+            Value = "Development"
+        });
+
+        dashboardExecutableSpec.Env = environment;
+
+        var dashboardExecutable = new Executable(dashboardExecutableSpec);
+        dashboardExecutable.Metadata.Name = "aspire-dashboard";
+
+        await kubernetesService.CreateAsync(dashboardExecutable, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task StopApplicationAsync(CancellationToken cancellationToken = default)
