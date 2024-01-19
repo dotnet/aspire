@@ -15,9 +15,10 @@ internal static class ModelName
     /// </summary>
     internal static void ValidateName(string target, string name)
     {
-        ArgumentException.ThrowIfNullOrEmpty(name, nameof(name));
+        ArgumentNullException.ThrowIfNull(target);
+        ArgumentNullException.ThrowIfNull(name);
 
-        if (name.Length > 64)
+        if (name.Length < 1 || name.Length > 64)
         {
             throw new ArgumentException($"{target} name '{name}' is invalid. Name must be between 1 and 64 characters long.", nameof(name));
         }
