@@ -10,7 +10,6 @@ using Aspire.V1;
 using Grpc.Core;
 using Grpc.Net.Client;
 using Grpc.Net.Client.Configuration;
-using Microsoft.Extensions.Logging;
 
 namespace Aspire.Dashboard.Model;
 

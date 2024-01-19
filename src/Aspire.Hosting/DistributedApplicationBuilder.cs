@@ -64,7 +64,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         // Dashboard
         _innerBuilder.Services.AddHostedService<DashboardServiceHost>();
-        _innerBuilder.Services.AddHostedService<DashboardWebApplicationHost>();
 
         // We need a unique path per application instance
         _innerBuilder.Services.AddSingleton(new Locations());

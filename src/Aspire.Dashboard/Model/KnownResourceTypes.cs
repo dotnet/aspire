@@ -3,7 +3,7 @@
 
 namespace Aspire.Dashboard.Model;
 
-public static class KnownResourceTypes
+internal static class KnownResourceTypes
 {
     public const string Executable = "Executable";
     public const string Project = "Project";

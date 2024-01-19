@@ -30,6 +30,8 @@ var orleans = builder.AddOrleans("my-app")
 builder.AddProject<Projects.OrleansServer>("silo")
        .WithReference(orleans);
 
+builder.AddProject<Projects.Aspire_Dashboard>("dashboard");
+
 using var app = builder.Build();
 
 await app.RunAsync();
