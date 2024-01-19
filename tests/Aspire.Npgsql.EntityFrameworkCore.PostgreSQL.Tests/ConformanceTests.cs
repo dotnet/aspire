@@ -14,7 +14,7 @@ using Xunit;
 
 namespace Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.Tests;
 
-public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, NpgsqlEntityFrameworkCorePostgreSQLSettings>
+public class ConformanceTests : ConformanceTests<TestDbContext, NpgsqlEntityFrameworkCorePostgreSQLSettings>
 {
     // in the future it can become a static property that reads the value from Env Var
     protected const string ConnectionString = "Host=localhost;Database=test;Username=postgres;Password=postgres";
@@ -76,9 +76,7 @@ public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, NpgsqlEn
 
     protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
         {
-            ("""{"Aspire": { "Npgsql": { "EntityFrameworkCore":{ "PostgreSQL": { "MaxRetryCount": "5"}}}}}""", "Value is \"string\" but should be \"integer\""),
             ("""{"Aspire": { "Npgsql": { "EntityFrameworkCore":{ "PostgreSQL": { "HealthChecks": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
-            ("""{"Aspire": { "Npgsql": { "EntityFrameworkCore":{ "PostgreSQL": { "ConnectionString": "", "DbContextPooling": "Yes"}}}}}""", "Value is \"string\" but should be \"boolean\"")
         };
 
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
@@ -89,13 +87,9 @@ public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, NpgsqlEn
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<NpgsqlEntityFrameworkCorePostgreSQLSettings>? configure = null, string? key = null)
     {
-        // Configure Npgsql.EntityFrameworkCore.PostgreSQL services
-        if (builder.Configuration.GetConnectionString("postgres") is string connectionString)
-        {
-            builder.Services.AddDbContextPool<TestDbContext>(dbContextOptionsBuilder => dbContextOptionsBuilder.UseNpgsql(connectionString));
-        }
-
-        builder.AddNpgsqlEntityFrameworkCore<TestDbContext>("postgres", configure);
+        var connectionString = builder.Configuration.GetValue<string>("Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:ConnectionString");
+        builder.Services.AddDbContextPool<TestDbContext>(dbContextOptionsBuilder => dbContextOptionsBuilder.UseNpgsql(connectionString));
+        builder.AddNpgsqlEntityFrameworkCore<TestDbContext>(configure);
     }
 
     protected override void SetHealthCheck(NpgsqlEntityFrameworkCorePostgreSQLSettings options, bool enabled)
