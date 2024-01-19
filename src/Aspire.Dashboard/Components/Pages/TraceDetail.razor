@@ -71,7 +71,7 @@
                                         Class="server-request-icon"
                                         Color="Color.Custom"
                                         CustomColor="@ColorGenerator.Instance.GetColorHexByKey(GetResourceName(context.Span.Source))"
-                                        Icon="Icons.Filled.Size16.ArrowCircleRight"/>
+                                        Icon="Icons.Filled.Size16.Server"/>
                                 }
 
                                 @if (context.IsError)
@@ -82,7 +82,7 @@
                                 @if (context.HasUninstrumentedPeer)
                                 {
                                     <span class="uninstrumented-peer">
-                                        <FluentIcon Style="@($"fill: {ColorGenerator.Instance.GetColorHexByKey(context.UninstrumentedPeer)};")" Icon="Icons.Filled.Size16.ArrowExportLtr" Class="uninstrumented-peer-icon"/>
+                                        <FluentIcon Style="@($"fill: {ColorGenerator.Instance.GetColorHexByKey(context.UninstrumentedPeer)};")" Icon="Icons.Filled.Size16.ArrowCircleRight" Class="uninstrumented-peer-icon"/>
                                         @context.UninstrumentedPeer
                                     </span>
                                 }
