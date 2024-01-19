@@ -5,7 +5,6 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
-using Aspire.Dashboard.Utils;
 using Aspire.V1;
 using Grpc.Core;
 using Grpc.Net.Client;
