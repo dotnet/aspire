@@ -88,12 +88,9 @@ public partial class ResourceDetails
 
     protected override void OnParametersSet()
     {
-        if (Resource.Environment is var environment)
+        foreach (var vm in Resource.Environment.Where(vm => vm.IsValueMasked != _areEnvironmentVariablesMasked))
         {
-            foreach (var vm in environment.Where(vm => vm.IsValueMasked != _areEnvironmentVariablesMasked))
-            {
-                vm.IsValueMasked = _areEnvironmentVariablesMasked;
-            }
+            vm.IsValueMasked = _areEnvironmentVariablesMasked;
         }
     }
 
@@ -191,25 +188,21 @@ public partial class ResourceDetails
 
     private void CheckAllMaskStates()
     {
-        if (Resource.Environment is { } environment)
-        {
-            var foundMasked = false;
-            var foundUnmasked = false;
-            foreach (var vm in environment)
-            {
-                foundMasked |= vm.IsValueMasked;
-                foundUnmasked |= !vm.IsValueMasked;
-            }
+        var foundMasked = false;
+        var foundUnmasked = false;
 
-            if (!foundMasked && foundUnmasked)
-            {
-                _areEnvironmentVariablesMasked = false;
-            }
-            else if (foundMasked && !foundUnmasked)
-            {
-                _areEnvironmentVariablesMasked = true;
-            }
+        foreach (var vm in Resource.Environment)
+        {
+            foundMasked |= vm.IsValueMasked;
+            foundUnmasked |= !vm.IsValueMasked;
         }
+
+        _areEnvironmentVariablesMasked = foundMasked switch
+        {
+            false when foundUnmasked => false,
+            true when !foundUnmasked => true,
+            _ => _areEnvironmentVariablesMasked
+        };
     }
 
     private sealed class Endpoint
