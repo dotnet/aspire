@@ -18,7 +18,7 @@ public static class AzureCosmosDBCloudApplicationBuilderExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="connectionString">The connection string.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{AzureCosmosDatabaseResource}"/>.</returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureCosmosDBResource> AddAzureCosmosDB(
        this IDistributedApplicationBuilder builder,
        string name,
@@ -34,7 +34,7 @@ public static class AzureCosmosDBCloudApplicationBuilderExtensions
     /// </summary>
     /// <param name="builder">AzureCosmosDB resource builder.</param>
     /// <param name="name">Name of database.</param>
-    /// <returns></returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureCosmosDBDatabaseResource> AddDatabase(this IResourceBuilder<AzureCosmosDBResource> builder, string name)
     {
         var database = new AzureCosmosDBDatabaseResource(name, builder.Resource);
@@ -50,15 +50,16 @@ public static class AzureCosmosDBCloudApplicationBuilderExtensions
 
     private static void WriteCosmosDBToManifest(ManifestPublishingContext context, AzureCosmosDBResource cosmosDb)
     {
-        var connectionString = cosmosDb.GetConnectionString();
-        if (connectionString is null)
+        // If we are using an emulator then we assume that a connection string was not
+        // provided for the purpose of manifest generation.
+        if (cosmosDb.IsEmulator || cosmosDb.GetConnectionString() is not { } connectionString)
         {
             context.Writer.WriteString("type", "azure.cosmosdb.account.v0");
         }
         else
         {
             context.Writer.WriteString("type", "azure.cosmosdb.connection.v0");
-            context.Writer.WriteString("connectionString", cosmosDb.GetConnectionString());
+            context.Writer.WriteString("connectionString", connectionString);
         }
 
     }

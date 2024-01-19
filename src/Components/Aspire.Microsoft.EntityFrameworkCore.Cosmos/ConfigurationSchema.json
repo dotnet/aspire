@@ -52,6 +52,10 @@
                       "type": "boolean",
                       "description": "Gets or sets a boolean value that indicates whether the DbContext will be pooled or explicitly created every time it's requested."
                     },
+                    "IgnoreEmulatorCertificate": {
+                      "type": "boolean",
+                      "description": "Controls whether the Cosmos DB emulator certificate is ignored when its use is detected."
+                    },
                     "Metrics": {
                       "type": "boolean",
                       "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not.",

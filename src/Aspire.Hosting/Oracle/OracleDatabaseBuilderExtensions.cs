@@ -21,7 +21,7 @@ public static class OracleDatabaseBuilderExtensions
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="port">The host port for Oracle Database.</param>
     /// <param name="password">The password for the Oracle Database container. Defaults to a random password.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{OracleDatabaseContainerResource}"/>.</returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<OracleDatabaseContainerResource> AddOracleDatabaseContainer(this IDistributedApplicationBuilder builder, string name, int? port = null, string? password = null)
     {
         password = password ?? Guid.NewGuid().ToString("N").Substring(0, 30);
@@ -48,7 +48,7 @@ public static class OracleDatabaseBuilderExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{OracleDatabaseServerResource}"/>.</returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<OracleDatabaseServerResource> AddOracleDatabase(this IDistributedApplicationBuilder builder, string name)
     {
         var password = Guid.NewGuid().ToString("N").Substring(0, 30);
@@ -65,7 +65,7 @@ public static class OracleDatabaseBuilderExtensions
     /// </summary>
     /// <param name="builder">The Oracle Database server resource builder.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{OracleDatabaseResource}"/>.</returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<OracleDatabaseResource> AddDatabase(this IResourceBuilder<IOracleDatabaseParentResource> builder, string name)
     {
         var oracleDatabase = new OracleDatabaseResource(name, builder.Resource);

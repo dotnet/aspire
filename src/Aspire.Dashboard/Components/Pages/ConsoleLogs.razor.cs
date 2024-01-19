@@ -92,6 +92,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     {
         await this.InitializeViewModelAsync();
 
+        await ClearLogsAsync();
+
         if (ViewModel.SelectedResource is not null)
         {
             await LoadLogsAsync();
@@ -99,7 +101,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         else
         {
             await StopWatchingLogsAsync();
-            await ClearLogsAsync();
         }
     }
 

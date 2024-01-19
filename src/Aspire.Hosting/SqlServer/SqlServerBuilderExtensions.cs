@@ -19,7 +19,7 @@ public static class SqlServerBuilderExtensions
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="password">The password of the SQL Server. By default, this will be randomly generated.</param>
     /// <param name="port">The host port for the SQL Server.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{SqlServerContainerResource}"/>.</returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<SqlServerContainerResource> AddSqlServerContainer(this IDistributedApplicationBuilder builder, string name, string? password = null, int? port = null)
     {
         password = password ?? Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N").ToUpper();
@@ -49,7 +49,7 @@ public static class SqlServerBuilderExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{SqlServerContainerResource}"/>.</returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<SqlServerServerResource> AddSqlServer(this IDistributedApplicationBuilder builder, string name)
     {
         var password = Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N").ToUpper();
@@ -98,7 +98,7 @@ public static class SqlServerBuilderExtensions
     /// </summary>
     /// <param name="builder">The SQL Server resource builders.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{SqlServerDatabaseResource}"/>.</returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<SqlServerDatabaseResource> AddDatabase(this IResourceBuilder<ISqlServerParentResource> builder, string name)
     {
         var sqlServerDatabase = new SqlServerDatabaseResource(name, builder.Resource);
