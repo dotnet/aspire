@@ -1,7 +1,5 @@
 <Project>
 
-  <!-- *** BEGIN *** -->
-
   <!--
   A property-based workload cannot import props files (except AutoImport.props, which has very tight limitations.
   Instead, we copy everything from Aspire.Hosting.props into these targets.
@@ -20,7 +18,21 @@
     <IsPackable Condition="'$(IsPackable)' == ''">false</IsPackable>
   </PropertyGroup>
 
-  <!-- *** END ***  -->
+  <!--
+  Default AppHost ProjectReference items to not be referenced in the AppHost, unless it is AppHostLibrary=true.
+  This defaulting needs to happen in the SDK targets so this metadata affects NuGet Restore.
+  -->
+  <ItemGroup Condition="'$(IsAspireHost)' == 'true'">
+    
+    <ProjectReference Update="@(ProjectReference)">
+      <_IsServiceApp Condition="'%(_IsServiceApp)' == '' and '%(AppHostLibrary)' != 'true'">true</_IsServiceApp>
+
+      <ReferenceOutputAssembly Condition="'%(ReferenceOutputAssembly)' == '' and '%(_IsServiceApp)' == 'true'">false</ReferenceOutputAssembly>
+      <SkipGetTargetFrameworkProperties Condition="'%(SkipGetTargetFrameworkProperties)' == '' and '%(_IsServiceApp)' == 'true'">true</SkipGetTargetFrameworkProperties>
+      <ExcludeAssets Condition="'%(ExcludeAssets)' == '' and '%(_IsServiceApp)' == 'true'">all</ExcludeAssets>
+    </ProjectReference>
+    
+  </ItemGroup>
 
   <Target Name="__WarnOnAspireCapabilityMissing" BeforeTargets="PrepareForBuild" Condition="!@(ProjectCapability->AnyHaveMetadataValue('Identity', 'Aspire'))">
     <Warning Code="ASPIRE002" Text="$(MSBuildProjectName) is an Aspire AppHost project but necessary dependencies aren't present. Are you missing an Aspire.Hosting PackageReference?" />

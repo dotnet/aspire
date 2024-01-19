@@ -12,28 +12,15 @@
     <ProjectCapability Include="Aspire" Condition=" '$(IsAspireHost)' == 'true' " />
   </ItemGroup>
 
-  <!-- Default ProjectReference items to not be referenced in the AppHost, unless it is AppHostLibrary=true. -->
-  <ItemGroup Condition="'$(IsAspireHost)' == 'true'">
-    
-    <ProjectReference Update="@(ProjectReference)">
-      <IsServiceApp Condition="'%(IsServiceApp)' == '' and '%(AppHostLibrary)' != 'true'">true</IsServiceApp>
-
-      <ReferenceOutputAssembly Condition="'%(ReferenceOutputAssembly)' == '' and '%(IsServiceApp)' == 'true'">false</ReferenceOutputAssembly>
-      <SkipGetTargetFrameworkProperties Condition="'%(SkipGetTargetFrameworkProperties)' == '' and '%(IsServiceApp)' == 'true'">true</SkipGetTargetFrameworkProperties>
-      <ExcludeAssets Condition="'%(ExcludeAssets)' == '' and '%(IsServiceApp)' == 'true'">all</ExcludeAssets>
-    </ProjectReference>
-
-    <_ServiceAppProject Include="@(ProjectReference->WithMetadataValue('IsServiceApp', 'true'))" />
-  </ItemGroup>
-
   <!-- Generate the data structures for doing the codegen for service references -->
   <Target Name="CreateServiceMetadataSources">
     <ItemGroup>
+      <_ServiceAppProject Include="@(ProjectReference->WithMetadataValue('_IsServiceApp', 'true'))" />
+
       <ServiceMetadataSource Include="@(_ServiceAppProject)" Condition="'@(_ServiceAppProject)' != ''">
         <ClassName Condition="%(_ServiceAppProject.ServiceNameOverride) == ''">$([System.IO.Path]::GetFileNameWithoutExtension(%(_ServiceAppProject.Identity)).Replace(".", "_").Replace("-","_").Replace(" ","_"))</ClassName>
         <ClassName Condition="%(_ServiceAppProject.ServiceNameOverride) != ''">$([System.String]::Copy(%(_ServiceAppProject.ServiceNameOverride)).Replace(".", "_").Replace("-","_").Replace(" ","_"))</ClassName>
         <ProjectPath>$([System.IO.Path]::GetFullPath(%(_ServiceAppProject.Identity)))</ProjectPath>
-        <Namespace>Projects</Namespace>
       </ServiceMetadataSource>
 		</ItemGroup>
   </Target>
@@ -42,7 +29,7 @@
     <ItemGroup>
       <ServiceMetadataSource Update="@(ServiceMetadataSource)">
         <Source>
-        <![CDATA[namespace ]]>%(Namespace)<![CDATA[%3B
+        <![CDATA[namespace Projects%3B
 
 [global::System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, ProjectPath = {ProjectPath}")]
 public class ]]>%(ClassName)<![CDATA[ : global::Aspire.Hosting.IServiceMetadata
