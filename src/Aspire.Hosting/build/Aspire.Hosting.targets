@@ -12,17 +12,27 @@
     <ProjectCapability Include="Aspire" Condition=" '$(IsAspireHost)' == 'true' " />
   </ItemGroup>
 
+  <!-- Default ProjectReference items to not be referenced in the AppHost, unless it is AppHostLibrary=true. -->
+  <ItemGroup Condition="'$(IsAspireHost)' == 'true'">
+    
+    <ProjectReference Update="@(ProjectReference)">
+      <IsServiceApp Condition="'%(IsServiceApp)' == '' and '%(AppHostLibrary)' != 'true'">true</IsServiceApp>
+
+      <ReferenceOutputAssembly Condition="'%(ReferenceOutputAssembly)' == '' and '%(IsServiceApp)' == 'true'">false</ReferenceOutputAssembly>
+      <SkipGetTargetFrameworkProperties Condition="'%(SkipGetTargetFrameworkProperties)' == '' and '%(IsServiceApp)' == 'true'">true</SkipGetTargetFrameworkProperties>
+      <ExcludeAssets Condition="'%(ExcludeAssets)' == '' and '%(IsServiceApp)' == 'true'">all</ExcludeAssets>
+    </ProjectReference>
+
+    <_ServiceAppProject Include="@(ProjectReference->WithMetadataValue('IsServiceApp', 'true'))" />
+  </ItemGroup>
+
   <!-- Generate the data structures for doing the codegen for service references -->
-  <Target Name="CreateServiceMetadataSources"
-          DependsOnTargets="FindReferenceAssembliesForReferences"
-          Inputs="@(ReferencePathWithRefAssemblies)"
-          Outputs="@(ReferencePathWithRefAssemblies)">
+  <Target Name="CreateServiceMetadataSources">
     <ItemGroup>
-      <ServiceMetadataSource Include="%(ReferencePathWithRefAssemblies.Identity)" Condition="%(ReferencePathWithRefAssemblies.ReferenceSourceTarget) == 'ProjectReference'">
-        <ClassName Condition="%(ReferencePathWithRefAssemblies.ReferenceSourceTarget) == 'ProjectReference' And %(ReferencePathWithRefAssemblies.ServiceNameOverride) == ''">$([System.IO.Path]::GetFileNameWithoutExtension(%(ReferencePathWithRefAssemblies.Identity)).Replace(".", "_").Replace("-","_").Replace(" ","_"))</ClassName>
-        <ClassName Condition="%(ReferencePathWithRefAssemblies.ReferenceSourceTarget) == 'ProjectReference' And %(ReferencePathWithRefAssemblies.ServiceNameOverride) != ''">$([System.String]::Copy(%(ReferencePathWithRefAssemblies.ServiceNameOverride)).Replace(".", "_").Replace("-","_").Replace(" ","_"))</ClassName>
-        <AssemblyName>$([System.IO.Path]::GetFileNameWithoutExtension(%(ReferencePathWithRefAssemblies.Identity)))</AssemblyName>
-        <ProjectPath>$([System.IO.Path]::GetFullPath(%(ReferencePathWithRefAssemblies.ProjectReferenceOriginalItemSpec)))</ProjectPath>
+      <ServiceMetadataSource Include="@(_ServiceAppProject)" Condition="'@(_ServiceAppProject)' != ''">
+        <ClassName Condition="%(_ServiceAppProject.ServiceNameOverride) == ''">$([System.IO.Path]::GetFileNameWithoutExtension(%(_ServiceAppProject.Identity)).Replace(".", "_").Replace("-","_").Replace(" ","_"))</ClassName>
+        <ClassName Condition="%(_ServiceAppProject.ServiceNameOverride) != ''">$([System.String]::Copy(%(_ServiceAppProject.ServiceNameOverride)).Replace(".", "_").Replace("-","_").Replace(" ","_"))</ClassName>
+        <ProjectPath>$([System.IO.Path]::GetFullPath(%(_ServiceAppProject.Identity)))</ProjectPath>
         <Namespace>Projects</Namespace>
       </ServiceMetadataSource>
 		</ItemGroup>
@@ -32,12 +42,10 @@
     <ItemGroup>
       <ServiceMetadataSource Update="@(ServiceMetadataSource)">
         <Source>
-        <![CDATA[using System%3B
+        <![CDATA[namespace ]]>%(Namespace)<![CDATA[%3B
 
-namespace ]]>%(Namespace)<![CDATA[%3B
-
-[System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, ProjectPath = {ProjectPath}")]
-public class ]]>%(ClassName)<![CDATA[ : IServiceMetadata
+[global::System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, ProjectPath = {ProjectPath}")]
+public class ]]>%(ClassName)<![CDATA[ : global::Aspire.Hosting.IServiceMetadata
 {
   public string ProjectPath => """]]>%(ProjectPath)<![CDATA["""%3B
 }]]>
@@ -45,20 +53,16 @@ public class ]]>%(ClassName)<![CDATA[ : IServiceMetadata
       </ServiceMetadataSource>
     </ItemGroup>
 
-    <WriteLinesToFile
-      File="$(_AspireIntermediatePath)references\%(ServiceMetadataSource.AssemblyName).ServiceMetadata.g.cs"
-      Overwrite="true"
-      Lines="%(ServiceMetadataSource.Source)"
-      Encoding="Unicode"
-      Condition="%(ServiceMetadataSource.AssemblyName) != ''"
-      WriteOnlyWhenDifferent="true"
-      />
+    <WriteLinesToFile File="$(_AspireIntermediatePath)references\%(ServiceMetadataSource.ClassName).ServiceMetadata.g.cs"
+                      Overwrite="true"
+                      Lines="%(ServiceMetadataSource.Source)"
+                      Encoding="Unicode"
+                      Condition="%(ServiceMetadataSource.ClassName) != ''"
+                      WriteOnlyWhenDifferent="true" />
     <ItemGroup>
-      <FileWrites Include="$(_AspireIntermediatePath)references\%(ServiceMetadataSource.AssemblyName).ServiceMetadata.g.cs" />
-      <Compile
-        Include="$(_AspireIntermediatePath)references\%(ServiceMetadataSource.AssemblyName).ServiceMetadata.g.cs"
-        Condition="%(ServiceMetadataSource.AssemblyName) != ''"
-        />
+      <FileWrites Include="$(_AspireIntermediatePath)references\%(ServiceMetadataSource.ClassName).ServiceMetadata.g.cs" />
+      <Compile Include="$(_AspireIntermediatePath)references\%(ServiceMetadataSource.ClassName).ServiceMetadata.g.cs"
+               Condition="%(ServiceMetadataSource.ClassName) != ''" />
     </ItemGroup>
   </Target>
 
@@ -75,9 +79,7 @@ public class ]]>%(ClassName)<![CDATA[ : IServiceMetadata
     <ItemGroup>
       <ProjectMetadataSource Update="@(ProjectMetadataSource)">
         <Source>
-          <![CDATA[using System%3B
-
-namespace ]]>Projects<![CDATA[%3B
+          <![CDATA[namespace Projects%3B
 
 internal static class ]]>%(ClassName)<![CDATA[
 {
@@ -87,13 +89,11 @@ internal static class ]]>%(ClassName)<![CDATA[
       </ProjectMetadataSource>
     </ItemGroup>
     
-    <WriteLinesToFile
-      File="$(_AspireIntermediatePath)references\_AppHost.ProjectMetadata.g.cs"
-      Overwrite="true"
-      Lines="%(ProjectMetadataSource.Source)"
-      Encoding="Unicode"
-      WriteOnlyWhenDifferent="true"
-      />
+    <WriteLinesToFile File="$(_AspireIntermediatePath)references\_AppHost.ProjectMetadata.g.cs"
+                      Overwrite="true"
+                      Lines="%(ProjectMetadataSource.Source)"
+                      Encoding="Unicode"
+                      WriteOnlyWhenDifferent="true" />
     <ItemGroup>
       <FileWrites Include="$(_AspireIntermediatePath)references\_AppHost.ProjectMetadata.g.cs" />
       <Compile Include="$(_AspireIntermediatePath)references\_AppHost.ProjectMetadata.g.cs" />
@@ -106,12 +106,12 @@ internal static class ]]>%(ClassName)<![CDATA[
 
   <PropertyGroup>
     <!-- Easy extension point for adding new languages' write support. -->
-    <_WriteServiceMetadataSourcesDependsOn>_CSharpWriteServiceMetadataSources;_CSharpAppHostProjectMetadataSources;_WarnOnUnsupportedLanguage</_WriteServiceMetadataSourcesDependsOn>
+    <WriteServiceMetadataSourcesDependsOn>_CSharpWriteServiceMetadataSources;_CSharpAppHostProjectMetadataSources;_WarnOnUnsupportedLanguage</WriteServiceMetadataSourcesDependsOn>
   </PropertyGroup>
 
-  <!-- The purpose of this target is to take all of the generated service meta data and write them to the intermediate build directory
-     and reference them for compilation. There will be a AssemblyName.ServiceMetadata.g.cs file for each referenced project. -->
-  <Target Name="WriteServiceMetadataSources" DependsOnTargets="$(_WriteServiceMetadataSourcesDependsOn)" BeforeTargets="CoreCompile" />
+  <!-- The purpose of this target is to take all of the generated service metadata and write them to the intermediate build directory
+     and reference them for compilation. There will be a ClassName.ServiceMetadata.g.cs file for each referenced project. -->
+  <Target Name="WriteServiceMetadataSources" DependsOnTargets="$(WriteServiceMetadataSourcesDependsOn)" BeforeTargets="CoreCompile" />
 
   <!-- This target registers the location of the Aspire orchestration dependencies -->
   <Target Name="SetOrchestrationDiscoveryAttributes" BeforeTargets="GetAssemblyAttributes">
@@ -157,11 +157,10 @@ internal static class ]]>%(ClassName)<![CDATA[
     </ItemGroup>
 
     <Exec Command="@(_AspireManifestPublishArg, ' ')"
-      ConsoleToMsBuild="true"
-      IgnoreStandardErrorWarningFormat="true"
-      EchoOff="true"
-      StandardOutputImportance="low"
-      StandardErrorImportance="low"
-      />
+          ConsoleToMsBuild="true"
+          IgnoreStandardErrorWarningFormat="true"
+          EchoOff="true"
+          StandardOutputImportance="low"
+          StandardErrorImportance="low" />
   </Target>
 </Project>
