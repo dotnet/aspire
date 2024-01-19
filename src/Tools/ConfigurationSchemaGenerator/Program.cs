@@ -10,5 +10,7 @@ if (!System.Diagnostics.Debugger.IsAttached)
 }
 #endif
 
+Console.WriteLine("Hello World");
+
 var rootCommand = RootGenerateCommand.GetCommand();
 return await rootCommand.Parse(args).InvokeAsync(CancellationToken.None).ConfigureAwait(false);
