@@ -7,7 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 
 // Configure Npgsql.EntityFrameworkCore.PostgreSQL services
-if (builder.Configuration.GetConnectionString("postgres") is string { } connectionString)
+if (builder.Configuration.GetConnectionString("postgres") is string connectionString)
 {
     builder.Services.AddDbContextPool<CatalogDbContext>(dbContextOptionsBuilder => dbContextOptionsBuilder.UseNpgsql(connectionString));
 }

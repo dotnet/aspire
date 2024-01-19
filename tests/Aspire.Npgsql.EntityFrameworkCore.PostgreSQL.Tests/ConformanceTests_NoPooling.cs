@@ -16,7 +16,7 @@ public class ConformanceTests_NoPooling : ConformanceTests_Pooling
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<NpgsqlEntityFrameworkCorePostgreSQLSettings>? configure = null, string? key = null)
     {
         // Configure Npgsql.EntityFrameworkCore.PostgreSQL services
-        if (builder.Configuration.GetConnectionString("postgres") is string { } connectionString)
+        if (builder.Configuration.GetConnectionString("postgres") is string connectionString)
         {
             builder.Services.AddDbContextPool<TestDbContext>(dbContextOptionsBuilder => dbContextOptionsBuilder.UseNpgsql(connectionString));
         }
