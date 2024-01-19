@@ -103,6 +103,15 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         AspireEventSource.Instance.DistributedApplicationBuildStart();
         try
         {
+            // AddResource(resource) validates that a name is unique but it's possible to add resources directly to the resource collection.
+            // Validate names for duplicates while building the application.
+            foreach (var duplicateResourceName in Resources.GroupBy(r => r.Name, StringComparers.ResourceName)
+                .Where(g => g.Count() > 1)
+                .Select(g => g.Key))
+            {
+                throw new DistributedApplicationException($"Multiple resources with the name '{duplicateResourceName}'. Resource names are case-insensitive.");
+            }
+
             var application = new DistributedApplication(_innerBuilder.Build(), _args);
             return application;
         }
@@ -115,9 +124,9 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     /// <inheritdoc />
     public IResourceBuilder<T> AddResource<T>(T resource) where T : IResource
     {
-        if (Resources.FirstOrDefault(r => r.Name == resource.Name) is { } existingResource)
+        if (Resources.FirstOrDefault(r => string.Equals(r.Name, resource.Name, StringComparisons.ResourceName)) is { } existingResource)
         {
-            throw new DistributedApplicationException($"Cannot add resource of type '{resource.GetType()}' with name '{resource.Name}' because resource of type '{existingResource.GetType()}' with that name already exists.");
+            throw new DistributedApplicationException($"Cannot add resource of type '{resource.GetType()}' with name '{resource.Name}' because resource of type '{existingResource.GetType()}' with that name already exists. Resource names are case-insensitive.");
         }
 
         Resources.Add(resource);
