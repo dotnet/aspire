@@ -109,7 +109,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                 .Where(g => g.Count() > 1)
                 .Select(g => g.Key))
             {
-                throw new DistributedApplicationException($"Multiple resources with the name '{duplicateResourceName}'. Resource names are case insensitive.");
+                throw new DistributedApplicationException($"Multiple resources with the name '{duplicateResourceName}'. Resource names are case-insensitive.");
             }
 
             var application = new DistributedApplication(_innerBuilder.Build(), _args);
@@ -126,7 +126,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     {
         if (Resources.FirstOrDefault(r => string.Equals(r.Name, resource.Name, StringComparison.OrdinalIgnoreCase)) is { } existingResource)
         {
-            throw new DistributedApplicationException($"Cannot add resource of type '{resource.GetType()}' with name '{resource.Name}' because resource of type '{existingResource.GetType()}' with that name already exists. Resource names are case insensitive.");
+            throw new DistributedApplicationException($"Cannot add resource of type '{resource.GetType()}' with name '{resource.Name}' because resource of type '{existingResource.GetType()}' with that name already exists. Resource names are case-insensitive.");
         }
 
         Resources.Add(resource);

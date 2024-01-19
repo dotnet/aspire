@@ -90,7 +90,7 @@ public class DistributedApplicationBuilderTests
         appBuilder.AddResource(new ContainerResource("Test"));
 
         var ex = Assert.Throws<DistributedApplicationException>(() => appBuilder.AddResource(new ContainerResource("Test")));
-        Assert.Equal("Cannot add resource of type 'Aspire.Hosting.ApplicationModel.ContainerResource' with name 'Test' because resource of type 'Aspire.Hosting.ApplicationModel.ContainerResource' with that name already exists. Resource names are case insensitive.", ex.Message);
+        Assert.Equal("Cannot add resource of type 'Aspire.Hosting.ApplicationModel.ContainerResource' with name 'Test' because resource of type 'Aspire.Hosting.ApplicationModel.ContainerResource' with that name already exists. Resource names are case-insensitive.", ex.Message);
     }
 
     [Fact]
@@ -101,7 +101,7 @@ public class DistributedApplicationBuilderTests
         appBuilder.AddResource(new ContainerResource("Test"));
 
         var ex = Assert.Throws<DistributedApplicationException>(() => appBuilder.AddResource(new ContainerResource("TEST")));
-        Assert.Equal("Cannot add resource of type 'Aspire.Hosting.ApplicationModel.ContainerResource' with name 'TEST' because resource of type 'Aspire.Hosting.ApplicationModel.ContainerResource' with that name already exists. Resource names are case insensitive.", ex.Message);
+        Assert.Equal("Cannot add resource of type 'Aspire.Hosting.ApplicationModel.ContainerResource' with name 'TEST' because resource of type 'Aspire.Hosting.ApplicationModel.ContainerResource' with that name already exists. Resource names are case-insensitive.", ex.Message);
     }
 
     [Fact]
@@ -113,7 +113,7 @@ public class DistributedApplicationBuilderTests
         appBuilder.Resources.Add(new ContainerResource("Test"));
 
         var ex = Assert.Throws<DistributedApplicationException>(appBuilder.Build);
-        Assert.Equal("Multiple resources with the name 'Test'. Resource names are case insensitive.", ex.Message);
+        Assert.Equal("Multiple resources with the name 'Test'. Resource names are case-insensitive.", ex.Message);
     }
 
     [Fact]
@@ -125,7 +125,7 @@ public class DistributedApplicationBuilderTests
         appBuilder.Resources.Add(new ContainerResource("TEST"));
 
         var ex = Assert.Throws<DistributedApplicationException>(appBuilder.Build);
-        Assert.Equal("Multiple resources with the name 'Test'. Resource names are case insensitive.", ex.Message);
+        Assert.Equal("Multiple resources with the name 'Test'. Resource names are case-insensitive.", ex.Message);
     }
 
     private sealed class TestResource : IResource
