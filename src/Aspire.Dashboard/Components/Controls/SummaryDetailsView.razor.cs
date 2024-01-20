@@ -57,26 +57,36 @@ public partial class SummaryDetailsView
 
     private string _panel1Size { get; set; } = "1fr";
     private string _panel2Size { get; set; } = "1fr";
+    private bool _internalShowDetails;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnParametersSetAsync()
     {
-        if (RememberOrientation)
+        // If show details is changing from false to true, read saved state.
+        if (ShowDetails && !_internalShowDetails)
         {
-            var orientationResult = await ProtectedLocalStore.SafeGetAsync<Orientation>(GetOrientationStorageKey());
-            if (orientationResult.Success)
+            if (RememberOrientation)
             {
-                Orientation = orientationResult.Value;
+            var orientationResult = await ProtectedLocalStore.SafeGetAsync<Orientation>(GetOrientationStorageKey());
+                if (orientationResult.Success)
+                {
+                    Orientation = orientationResult.Value;
+                }
+            }
+
+            if (RememberSize)
+            {
+                var panel1FractionResult = await ProtectedLocalStore.SafeGetAsync<float>(GetSizeStorageKey());
+                if (panel1FractionResult.Success)
+                {
+                    SetPanelSizes(panel1FractionResult.Value);
+                }
             }
         }
 
-        if (RememberSize)
-        {
-            var panel1FractionResult = await ProtectedLocalStore.SafeGetAsync<float>(GetSizeStorageKey());
-            if (panel1FractionResult.Success)
-            {
-                SetPanelSizes(panel1FractionResult.Value);
-            }
-        }
+        // Bind visibility to internal bool that is set after reading from local store.
+        // This is required because we only want to show details after resolving size and orientation
+        // to avoid a flash of content in the wrong location.
+        _internalShowDetails = ShowDetails;
     }
 
     private async Task HandleDismissAsync()
