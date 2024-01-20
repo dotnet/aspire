@@ -8,7 +8,6 @@ builder.AddRedis("rediscontainer");
 builder.AddNpgsqlDataSource("postgresdb");
 builder.AddRabbitMQ("rabbitmqcontainer");
 builder.AddMongoDBClient("mymongodb");
-builder.AddOracleDatabaseDbContext<MyDbContext>("freepdb1");
 builder.AddKafkaProducer<string, string>("kafkacontainer");
 builder.AddKafkaConsumer<string, string>("kafkacontainer", consumerBuilder =>
 {

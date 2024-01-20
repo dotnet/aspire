@@ -4,7 +4,7 @@
 using Aspire.Components.Common.Tests;
 using Aspire.Components.ConformanceTests;
 using Microsoft.DotNet.RemoteExecutor;
-using Microsoft.EntityFrameworkCore.Internal;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -12,7 +12,7 @@ using Xunit;
 
 namespace Aspire.Oracle.EntityFrameworkCore.Tests;
 
-public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, OracleEntityFrameworkCoreSettings>
+public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFrameworkCoreSettings>
 {
     protected const string ConnectionString = "Data Source=fake;";
 
@@ -43,9 +43,7 @@ public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, OracleEn
           "Aspire": {
             "Oracle": {
               "EntityFrameworkCore": {
-                "ConnectionString": "YOUR_CONNECTION_STRING",
                 "HealthChecks": false,
-                "DbContextPooling": true,
                 "Tracing": true,
                 "Metrics": true
               }
@@ -56,9 +54,9 @@ public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, OracleEn
 
     protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
         {
-            ("""{"Aspire": { "Oracle": { "EntityFrameworkCore":{ "MaxRetryCount": "5"}}}}""", "Value is \"string\" but should be \"integer\""),
             ("""{"Aspire": { "Oracle": { "EntityFrameworkCore":{ "HealthChecks": "false"}}}}""", "Value is \"string\" but should be \"boolean\""),
-            ("""{"Aspire": { "Oracle": { "EntityFrameworkCore":{ "ConnectionString": "", "DbContextPooling": "Yes"}}}}""", "Value is \"string\" but should be \"boolean\"")
+            ("""{"Aspire": { "Oracle": { "EntityFrameworkCore":{ "Tracing": "false"}}}}""", "Value is \"string\" but should be \"boolean\""),
+            ("""{"Aspire": { "Oracle": { "EntityFrameworkCore":{ "Metrics": "false"}}}}""", "Value is \"string\" but should be \"boolean\""),
         };
 
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
@@ -68,7 +66,11 @@ public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, OracleEn
         });
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<OracleEntityFrameworkCoreSettings>? configure = null, string? key = null)
-        => builder.AddOracleDatabaseDbContext<TestDbContext>("orclconnection", configure);
+    {
+        var connectionString = builder.Configuration.GetValue<string>("Aspire:Oracle:EntityFrameworkCore:ConnectionString");
+        builder.Services.AddDbContextPool<TestDbContext>(dbContextOptionsBuilder => dbContextOptionsBuilder.UseOracle(connectionString));
+        builder.AddOracleEntityFrameworkCore<TestDbContext>(configure);
+    }
 
     protected override void SetHealthCheck(OracleEntityFrameworkCoreSettings options, bool enabled)
         => options.HealthChecks = enabled;
@@ -85,32 +87,6 @@ public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, OracleEn
         {
             service.Database.EnsureCreated();
         }
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void DbContextPoolingRegistersIDbContextPool(bool enabled)
-    {
-        using IHost host = CreateHostWithComponent(options => options.DbContextPooling = enabled);
-
-#pragma warning disable EF1001 // Internal EF Core API usage.
-        IDbContextPool<TestDbContext>? pool = host.Services.GetService<IDbContextPool<TestDbContext>>();
-#pragma warning restore EF1001
-
-        Assert.Equal(enabled, pool is not null);
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void DbContextCanBeAlwaysResolved(bool enabled)
-    {
-        using IHost host = CreateHostWithComponent(options => options.DbContextPooling = enabled);
-
-        TestDbContext? dbContext = host.Services.GetService<TestDbContext>();
-
-        Assert.NotNull(dbContext);
     }
 
     [ConditionalFact]
