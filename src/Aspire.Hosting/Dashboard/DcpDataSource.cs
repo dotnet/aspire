@@ -65,7 +65,7 @@ internal sealed class DcpDataSource
         {
             try
             {
-                await foreach (var (eventType, resource) in _kubernetesService.WatchAsync<T>(cancellationToken: cancellationToken))
+                await foreach (var (eventType, resource) in _kubernetesService.WatchAsync<T>(cancellationToken: cancellationToken).ConfigureAwait(true)) // Setting ConfigureAwait to silence analyzer. Consider calling ConfigureAwait(false)
                 {
                     await semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
 

@@ -32,7 +32,7 @@ public sealed class DashboardClientTests
 
         await cts.CancelAsync();
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => readTask).ConfigureAwait(false);
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => readTask).ConfigureAwait(true);
 
         Assert.Equal(0, instance.OutgoingResourceSubscriberCount);
     }
@@ -60,7 +60,7 @@ public sealed class DashboardClientTests
 
         Assert.Equal(0, instance.OutgoingResourceSubscriberCount);
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => readTask).ConfigureAwait(false);
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => readTask).ConfigureAwait(true);
     }
 
     [Fact]

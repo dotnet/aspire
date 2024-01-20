@@ -112,7 +112,7 @@ public class ServiceEndPointResolverTests
         await using ((resolver = resolverFactory.CreateResolver("http://basket")).ConfigureAwait(false))
         {
             Assert.NotNull(resolver);
-            var initialEndPoints = await resolver.GetEndPointsAsync(CancellationToken.None).ConfigureAwait(false);
+            var initialEndPoints = await resolver.GetEndPointsAsync(CancellationToken.None).ConfigureAwait(true);
             Assert.NotNull(initialEndPoints);
             var sep = Assert.Single(initialEndPoints);
             var ip = Assert.IsType<IPEndPoint>(sep.EndPoint);
@@ -124,7 +124,7 @@ public class ServiceEndPointResolverTests
             Assert.False(tcs.Task.IsCompleted);
 
             cts[0].Cancel();
-            var resolverResult = await tcs.Task.ConfigureAwait(false);
+            var resolverResult = await tcs.Task.ConfigureAwait(true);
             Assert.NotNull(resolverResult);
             Assert.Equal(ResolutionStatus.Success, resolverResult.Status);
             Assert.True(resolverResult.ResolvedSuccessfully);
@@ -162,14 +162,14 @@ public class ServiceEndPointResolverTests
         var resolver = services.GetRequiredService<ServiceEndPointResolverRegistry>();
 
         Assert.NotNull(resolver);
-        var initialEndPoints = await resolver.GetEndPointsAsync("http://basket", CancellationToken.None).ConfigureAwait(false);
+        var initialEndPoints = await resolver.GetEndPointsAsync("http://basket", CancellationToken.None).ConfigureAwait(true);
         Assert.NotNull(initialEndPoints);
         var sep = Assert.Single(initialEndPoints);
         var ip = Assert.IsType<IPEndPoint>(sep.EndPoint);
         Assert.Equal(IPAddress.Parse("127.1.1.1"), ip.Address);
         Assert.Equal(8080, ip.Port);
 
-        await services.DisposeAsync().ConfigureAwait(false);
+        await services.DisposeAsync().ConfigureAwait(true);
     }
 
     [Fact]
@@ -201,13 +201,13 @@ public class ServiceEndPointResolverTests
 
         Assert.NotNull(resolver);
         var httpRequest = new HttpRequestMessage(HttpMethod.Get, "http://basket");
-        var endPoint = await resolver.GetEndpointAsync(httpRequest, CancellationToken.None).ConfigureAwait(false);
+        var endPoint = await resolver.GetEndpointAsync(httpRequest, CancellationToken.None).ConfigureAwait(true);
         Assert.NotNull(endPoint);
         var ip = Assert.IsType<IPEndPoint>(endPoint.EndPoint);
         Assert.Equal(IPAddress.Parse("127.1.1.1"), ip.Address);
         Assert.Equal(8080, ip.Port);
 
-        await services.DisposeAsync().ConfigureAwait(false);
+        await services.DisposeAsync().ConfigureAwait(true);
     }
 
     [Fact]
@@ -248,7 +248,7 @@ public class ServiceEndPointResolverTests
         await using ((resolver = resolverFactory.CreateResolver("http://basket")).ConfigureAwait(false))
         {
             Assert.NotNull(resolver);
-            var initialEndPointsTask = resolver.GetEndPointsAsync(CancellationToken.None).ConfigureAwait(false);
+            var initialEndPointsTask = resolver.GetEndPointsAsync(CancellationToken.None).ConfigureAwait(true);
             sem.Release(1);
             var initialEndPoints = await initialEndPointsTask;
             Assert.NotNull(initialEndPoints);
@@ -263,7 +263,7 @@ public class ServiceEndPointResolverTests
                 var resolveTask = resolver.GetEndPointsAsync(CancellationToken.None);
                 sem.Release(1);
                 await resolveTask.ConfigureAwait(false);
-            }).ConfigureAwait(false);
+            }).ConfigureAwait(true);
 
             Assert.Equal("throwing", exception.Message);
 
@@ -275,8 +275,8 @@ public class ServiceEndPointResolverTests
                 cts[0].Cancel();
                 sem.Release(1);
                 var resolveTask = resolver.GetEndPointsAsync(CancellationToken.None);
-                await resolveTask.ConfigureAwait(false);
-                var next = await channel.Reader.ReadAsync(CancellationToken.None).ConfigureAwait(false);
+                await resolveTask.ConfigureAwait(true);
+                var next = await channel.Reader.ReadAsync(CancellationToken.None).ConfigureAwait(true);
                 if (next.ResolvedSuccessfully)
                 {
                     break;
@@ -285,7 +285,7 @@ public class ServiceEndPointResolverTests
 
             var task = resolver.GetEndPointsAsync(CancellationToken.None);
             sem.Release(1);
-            var endPoints = await task.ConfigureAwait(false);
+            var endPoints = await task.ConfigureAwait(true);
             Assert.NotSame(initialEndPoints, endPoints);
             var sep = Assert.Single(endPoints);
             var ip = Assert.IsType<IPEndPoint>(sep.EndPoint);

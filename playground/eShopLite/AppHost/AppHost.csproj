@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
     <UserSecretsId>1bf0740a-0dfc-45aa-9002-def9b2b17da0</UserSecretsId>
     <ImplicitUsings>enable</ImplicitUsings>
     <IsAspireHost>true</IsAspireHost>

@@ -158,16 +158,11 @@ function InitializeDotNetCli([bool]$install, [bool]$createSdkLocationFile) {
   $env:DOTNET_MULTILEVEL_LOOKUP=0
 
   # Disable first run since we do not need all ASP.NET packages restored.
-  $env:DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1
+  $env:DOTNET_NOLOGO=1
 
   # Disable telemetry on CI.
   if ($ci) {
     $env:DOTNET_CLI_TELEMETRY_OPTOUT=1
-  }
-
-  # Source Build uses DotNetCoreSdkDir variable
-  if ($env:DotNetCoreSdkDir -ne $null) {
-    $env:DOTNET_INSTALL_DIR = $env:DotNetCoreSdkDir
   }
 
   # Find the first path on %PATH% that contains the dotnet.exe
@@ -228,7 +223,7 @@ function InitializeDotNetCli([bool]$install, [bool]$createSdkLocationFile) {
   Write-PipelinePrependPath -Path $dotnetRoot
 
   Write-PipelineSetVariable -Name 'DOTNET_MULTILEVEL_LOOKUP' -Value '0'
-  Write-PipelineSetVariable -Name 'DOTNET_SKIP_FIRST_TIME_EXPERIENCE' -Value '1'
+  Write-PipelineSetVariable -Name 'DOTNET_NOLOGO' -Value '1'
 
   return $global:_DotNetInstallDir = $dotnetRoot
 }
@@ -604,11 +599,11 @@ function InitializeBuildTool() {
 
     # Use override if it exists - commonly set by source-build
     if ($null -eq $env:_OverrideArcadeInitializeBuildToolFramework) {
-      $initializeBuildToolFramework="net8.0"
+      $initializeBuildToolFramework="net9.0"
     } else {
       $initializeBuildToolFramework=$env:_OverrideArcadeInitializeBuildToolFramework
     }
-
+    
     $buildTool = @{ Path = $dotnetPath; Command = 'msbuild'; Tool = 'dotnet'; Framework = $initializeBuildToolFramework }
   } elseif ($msbuildEngine -eq "vs") {
     try {
@@ -684,8 +679,14 @@ function Read-ArcadeSdkVersion() {
 }
 
 function InitializeToolset() {
-  if (Test-Path variable:global:_ToolsetBuildProj) {
-    return $global:_ToolsetBuildProj
+  # For Unified Build/Source-build support, check whether the environment variable is
+  # set. If it is, then use this as the toolset build project.
+  if ($env:_InitializeToolset -ne $null) {
+    return $global:_InitializeToolset = $env:_InitializeToolset
+  }
+
+  if (Test-Path variable:global:_InitializeToolset) {
+    return $global:_InitializeToolset
   }
 
   $nugetCache = GetNuGetPackageCachePath
@@ -696,7 +697,7 @@ function InitializeToolset() {
   if (Test-Path $toolsetLocationFile) {
     $path = Get-Content $toolsetLocationFile -TotalCount 1
     if (Test-Path $path) {
-      return $global:_ToolsetBuildProj = $path
+      return $global:_InitializeToolset = $path
     }
   }
 
@@ -719,7 +720,7 @@ function InitializeToolset() {
     throw "Invalid toolset path: $path"
   }
 
-  return $global:_ToolsetBuildProj = $path
+  return $global:_InitializeToolset = $path
 }
 
 function ExitWithExitCode([int] $exitCode) {
@@ -771,12 +772,10 @@ function MSBuild() {
       # new scripts need to work with old packages, so we need to look for the old names/versions
       (Join-Path $basePath (Join-Path $buildTool.Framework 'Microsoft.DotNet.ArcadeLogging.dll')),
       (Join-Path $basePath (Join-Path $buildTool.Framework 'Microsoft.DotNet.Arcade.Sdk.dll')),
-      (Join-Path $basePath (Join-Path netcoreapp2.1 'Microsoft.DotNet.ArcadeLogging.dll')),
-      (Join-Path $basePath (Join-Path netcoreapp2.1 'Microsoft.DotNet.Arcade.Sdk.dll'))
-      (Join-Path $basePath (Join-Path netcoreapp3.1 'Microsoft.DotNet.ArcadeLogging.dll')),
-      (Join-Path $basePath (Join-Path netcoreapp3.1 'Microsoft.DotNet.Arcade.Sdk.dll'))
       (Join-Path $basePath (Join-Path net7.0 'Microsoft.DotNet.ArcadeLogging.dll')),
-      (Join-Path $basePath (Join-Path net7.0 'Microsoft.DotNet.Arcade.Sdk.dll'))
+      (Join-Path $basePath (Join-Path net7.0 'Microsoft.DotNet.Arcade.Sdk.dll')),
+      (Join-Path $basePath (Join-Path net8.0 'Microsoft.DotNet.ArcadeLogging.dll')),
+      (Join-Path $basePath (Join-Path net8.0 'Microsoft.DotNet.Arcade.Sdk.dll'))
     )
     $selectedPath = $null
     foreach ($path in $possiblePaths) {
@@ -835,7 +834,8 @@ function MSBuild-Core() {
     }
   }
 
-  $env:ARCADE_BUILD_TOOL_COMMAND = "$($buildTool.Path) $cmdArgs"
+  # Be sure quote the path in case there are spaces in the dotnet installation location.
+  $env:ARCADE_BUILD_TOOL_COMMAND = "`"$($buildTool.Path)`" $cmdArgs"
 
   $exitCode = Exec-Process $buildTool.Path $cmdArgs
 

@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Worker">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
     <UserSecretsId>dotnet-OrderProcessor-174b1029-6096-4b07-86b8-1b2d821d0830</UserSecretsId>
   </PropertyGroup>
 

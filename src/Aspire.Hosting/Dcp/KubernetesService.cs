@@ -156,7 +156,7 @@ internal sealed class KubernetesService(Locations locations) : IDisposable
             },
             cancellationToken).ConfigureAwait(false);
 
-        await foreach (var item in result)
+        await foreach (var item in result.ConfigureAwait(true)) // Setting ConfigureAwait to silence analyzer. Consider calling ConfigureAwait(false)
         {
             yield return item;
         }
