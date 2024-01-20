@@ -62,9 +62,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, NpgsqlEntityFram
             "Npgsql": {
               "EntityFrameworkCore": {
                 "PostgreSQL": {
-                  "ConnectionString": "YOUR_CONNECTION_STRING",
                   "HealthChecks": false,
-                  "DbContextPooling": true,
                   "Tracing": true,
                   "Metrics": true
                 }
@@ -77,6 +75,8 @@ public class ConformanceTests : ConformanceTests<TestDbContext, NpgsqlEntityFram
     protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
         {
             ("""{"Aspire": { "Npgsql": { "EntityFrameworkCore":{ "PostgreSQL": { "HealthChecks": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
+            ("""{"Aspire": { "Npgsql": { "EntityFrameworkCore":{ "PostgreSQL": { "Tracing": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
+            ("""{"Aspire": { "Npgsql": { "EntityFrameworkCore":{ "PostgreSQL": { "Metrics": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
         };
 
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)

@@ -44,9 +44,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, MicrosoftEntityF
             "Microsoft": {
               "EntityFrameworkCore": {
                 "SqlServer": {
-                  "ConnectionString": "YOUR_CONNECTION_STRING",
                   "HealthChecks": false,
-                  "DbContextPooling": true,
                   "Tracing": true,
                   "Metrics": true
                 }
@@ -58,7 +56,10 @@ public class ConformanceTests : ConformanceTests<TestDbContext, MicrosoftEntityF
 
     protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
         {
-            ("""{"Aspire": { "Microsoft": { "EntityFrameworkCore":{ "SqlServer": { "HealthChecks": "false"}}}}}""", "Value is \"string\" but should be \"boolean\"")
+
+            ("""{"Aspire": { "Microsoft": { "EntityFrameworkCore":{ "SqlServer": { "HealthChecks": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
+            ("""{"Aspire": { "Microsoft": { "EntityFrameworkCore":{ "SqlServer": { "Tracing": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
+            ("""{"Aspire": { "Microsoft": { "EntityFrameworkCore":{ "SqlServer": { "Metrics": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
         };
 
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)

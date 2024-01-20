@@ -21,7 +21,6 @@ public static partial class AspireEFPostgreSqlExtensions
     private const DynamicallyAccessedMemberTypes RequiredByEF = DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties;
 
     /// <summary>
-    /// Registers the given <see cref="DbContext" /> as a service in the services provided by the <paramref name="builder"/>.
     /// Enables db context pooling, corresponding health check, logging and telemetry.
     /// </summary>
     /// <typeparam name="TContext">The <see cref="DbContext" /> that needs to be registered.</typeparam>
