@@ -3,7 +3,6 @@
 
 using System.Collections.Frozen;
 using System.Collections.Immutable;
-using Aspire.Dashboard.Utils;
 using Google.Protobuf.WellKnownTypes;
 
 namespace Aspire.Dashboard.Model;

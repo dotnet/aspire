@@ -53,6 +53,9 @@ public static class Extensions
                     tracing.SetSampler(new AlwaysOnSampler());
                 }
 
+                tracing.AddSource("Microsoft.Orleans.Runtime");
+                tracing.AddSource("Microsoft.Orleans.Application");
+
                 tracing.AddAspNetCoreInstrumentation()
                        .AddGrpcClientInstrumentation()
                        .AddHttpClientInstrumentation();
@@ -78,7 +81,7 @@ public static class Extensions
         // builder.Services.AddOpenTelemetry()
         //    .WithMetrics(metrics => metrics.AddPrometheusExporter());
 
-        // Uncomment the following lines to enable the Azure Monitor exporter (requires the Azure.Monitor.OpenTelemetry.Exporter package)
+        // Uncomment the following lines to enable the Azure Monitor exporter (requires the Azure.Monitor.OpenTelemetry.AspNetCore package)
         // builder.Services.AddOpenTelemetry()
         //    .UseAzureMonitor();
 
@@ -115,5 +118,6 @@ public static class Extensions
         meterProviderBuilder.AddMeter(
             "Microsoft.AspNetCore.Hosting",
             "Microsoft.AspNetCore.Server.Kestrel",
-            "System.Net.Http");
+            "System.Net.Http",
+            "Microsoft.Orleans");
 }
