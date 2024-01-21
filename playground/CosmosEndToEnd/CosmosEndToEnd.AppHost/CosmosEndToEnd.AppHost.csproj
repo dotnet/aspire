@@ -9,8 +9,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />
-    <ProjectReference Include="..\..\..\Aspire.Hosting\Aspire.Hosting.csproj" />
+    <ProjectReference Include="..\..\..\src\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />
+    <ProjectReference Include="..\..\..\src\Aspire.Hosting\Aspire.Hosting.csproj" />
     <ProjectReference Include="..\CosmosEndToEnd.ApiService\CosmosEndToEnd.ApiService.csproj" />
   </ItemGroup>
 
