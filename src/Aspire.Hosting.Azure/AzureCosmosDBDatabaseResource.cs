@@ -26,5 +26,5 @@ public class AzureCosmosDBDatabaseResource : Resource, IResourceWithConnectionSt
     /// Gets the connection string to use for this database.
     /// </summary>
     /// <returns>The connection string to use for this database.</returns>
-    public string? GetConnectionString() => ConnectionString ?? Parent.GetConnectionString();
+    public string? GetConnectionString() => ConnectionString ?? Parent.GetConnectionString(); // HACK: Will go away when we get rid of Azure Provisioner package.
 }
