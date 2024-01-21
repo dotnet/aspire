@@ -4,8 +4,6 @@
 using Microsoft.Azure.Cosmos;
 using Newtonsoft.Json;
 
-var sessionId = Guid.NewGuid().ToString();
-
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
@@ -19,11 +17,11 @@ var app = builder.Build();
 app.MapGet("/", async (CosmosClient cosmosClient) =>
 {
     var db = (await cosmosClient.CreateDatabaseIfNotExistsAsync("db")).Database;
-    var container = (await db.CreateContainerIfNotExistsAsync("entries", "/sessionId")).Container;
+    var container = (await db.CreateContainerIfNotExistsAsync("entries", "/Id")).Container;
 
     // Add an entry to the database on each request.
-    var newEntry = new Entry() { Id = Guid.NewGuid().ToString(), SessionId = Guid.NewGuid().ToString() };
-    await container.CreateItemAsync(newEntry).ConfigureAwait(false);
+    var newEntry = new Entry() { Id = Guid.NewGuid().ToString() };
+    await container.CreateItemAsync(newEntry);
 
     var entries = new List<Entry>();
     var iterator = container.GetItemQueryIterator<Entry>(requestOptions: new QueryRequestOptions() { MaxItemCount = 5 });
@@ -32,7 +30,7 @@ app.MapGet("/", async (CosmosClient cosmosClient) =>
     while (iterator.HasMoreResults)
     {
         batchCount++;
-        var batch = await iterator.ReadNextAsync().ConfigureAwait(false);
+        var batch = await iterator.ReadNextAsync();
         foreach (var entry in batch)
         {
             entries.Add(entry);
@@ -53,7 +51,4 @@ public class Entry
 {
     [JsonProperty("id")]
     public string? Id { get; set; }
-
-    [JsonProperty("sessionId")]
-    public string? SessionId { get; set; }
 }
