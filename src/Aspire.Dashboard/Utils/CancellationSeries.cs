@@ -32,9 +32,14 @@ internal sealed class CancellationSeries
     {
         var nextCts = new CancellationTokenSource();
 
+        // Obtain the token before exchange, as otherwise the CTS may be cancelled before
+        // we request the Token, which will result in an ObjectDisposedException.
+        // This way we would return a cancelled token, which is reasonable.
+        var nextToken = nextCts.Token;
+
         await Next(nextCts).ConfigureAwait(false);
 
-        return nextCts.Token;
+        return nextToken;
     }
 
     /// <summary>

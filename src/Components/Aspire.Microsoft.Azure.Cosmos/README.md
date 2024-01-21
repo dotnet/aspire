@@ -131,6 +131,25 @@ The `AddAzureCosmosDB` method will read connection information from the AppHost'
 builder.AddAzureCosmosDB("cosmosdb");
 ```
 
+### Emulator usage
+
+Aspire supports the usage of the Azure Cosmos DB emulator to use the emulator, add the following to your AppHost project:
+
+```csharp
+// AppHost
+var cosmosdb = builder.AddAzureCosmosDB("cosmos").UseEmulator();
+```
+
+When the AppHost starts up a local container running the Azure CosmosDB will also be started. Inside the project that uses CosmosDB you can specify that you want to ignore the server certificate, so you don't need to manually download and install it:
+
+```csharp
+// Service code
+builder.AddCosmosDB("cosmos", (settings) =>
+{
+    settings.IgnoreEmulatorCertificate = true;
+});
+```
+
 ## Additional documentation
 
 * https://learn.microsoft.com/azure/cosmos-db/nosql/sdk-dotnet-v3

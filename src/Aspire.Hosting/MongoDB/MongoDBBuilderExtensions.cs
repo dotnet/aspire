@@ -17,11 +17,10 @@ public static class MongoDBBuilderExtensions
     /// <summary>
     /// Adds a MongoDB container to the application model. The default image is "mongo" and the tag is "latest".
     /// </summary>
-    /// <returns></returns>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="port">The host port for MongoDB.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{MongoDBContainerResource}"/>.</returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<MongoDBContainerResource> AddMongoDBContainer(
         this IDistributedApplicationBuilder builder,
         string name,
@@ -39,10 +38,9 @@ public static class MongoDBBuilderExtensions
     /// <summary>
     /// Adds a MongoDB resource to the application model. A container is used for local development.
     /// </summary>
-    /// <returns></returns>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{MongoDBContainerResource}"/>.</returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<MongoDBServerResource> AddMongoDB(
         this IDistributedApplicationBuilder builder,
         string name)
@@ -61,7 +59,7 @@ public static class MongoDBBuilderExtensions
     /// </summary>
     /// <param name="builder">The MongoDB server resource builder.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{MongoDBDatabaseResource}"/>.</returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<MongoDBDatabaseResource> AddDatabase(this IResourceBuilder<MongoDBContainerResource> builder, string name)
     {
         var mongoDBDatabase = new MongoDBDatabaseResource(name, builder.Resource);
