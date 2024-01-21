@@ -22,17 +22,13 @@ builder.AddAzureCosmosDB("db",
                              clientOptions.Serializer = new StjSerializer(new System.Text.Json.JsonSerializerOptions());
                          });
 
-builder.Services.AddKeyedSingleton<Container>("entries", (sp, _) =>
-{
-    var db = sp.GetRequiredService<Database>();
-    var container = db.CreateContainerIfNotExistsAsync("entries", "/sessionId").Result.Container;
-    return container;
-});
-
 var app = builder.Build();
 
-app.MapGet("/", async ([FromKeyedServices("entries")]Container container) =>
+app.MapGet("/", async (CosmosClient cosmosClient) =>
 {
+    var db = (await cosmosClient.CreateDatabaseIfNotExistsAsync("db").ConfigureAwait(false)).Database;
+    var container = (await db.CreateContainerIfNotExistsAsync("entries", "/sessionId").ConfigureAwait(false)).Container;
+
     // Add an entry to the database on each request.
     await container.CreateItemAsync(new Entry(Guid.NewGuid().ToString(), sessionId)).ConfigureAwait(false);
 
