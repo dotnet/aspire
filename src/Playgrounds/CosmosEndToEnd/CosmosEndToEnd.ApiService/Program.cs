@@ -18,8 +18,8 @@ var app = builder.Build();
 
 app.MapGet("/", async (CosmosClient cosmosClient) =>
 {
-    var db = (await cosmosClient.CreateDatabaseIfNotExistsAsync("db").ConfigureAwait(false)).Database;
-    var container = (await db.CreateContainerIfNotExistsAsync("entries", "/sessionId").ConfigureAwait(false)).Container;
+    var db = (await cosmosClient.CreateDatabaseIfNotExistsAsync("db")).Database;
+    var container = (await db.CreateContainerIfNotExistsAsync("entries", "/sessionId")).Container;
 
     // Add an entry to the database on each request.
     var newEntry = new Entry() { Id = Guid.NewGuid().ToString(), SessionId = Guid.NewGuid().ToString() };
