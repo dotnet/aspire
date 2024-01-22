@@ -37,6 +37,6 @@ builder.AddProject<Projects.CatalogDb>("catalogdbapp")
 // to test end developer dashboard launch experience. Refer to WorkloadAttributes.cs
 // for the path to the dashboard binary (defaults to a relative path to the artifacts
 // directory).
-//builder.AddProject<Projects.Aspire_Dashboard>("aspire-dashboard");
+builder.AddProject<Projects.Aspire_Dashboard>("aspire-dashboard").ExcludeFromManifest();
 
 builder.Build().Run();
