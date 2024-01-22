@@ -17,7 +17,7 @@
             </TemplateColumn>
             <PropertyColumn Property="@(c => c.Value.End)" Title="@Loc[nameof(ControlsStrings.MetricTableEndColumnHeader)]" Sortable="true"/>
 
-            @if (!ShouldShowHistogram())
+            @if (ShouldShowHistogram())
             {
                 var unit = PlotlyChart.GetDisplayedUnit(InstrumentViewModel, Loc);
                 // these colors line up with P50/P90/P99 colors for the plotly graph

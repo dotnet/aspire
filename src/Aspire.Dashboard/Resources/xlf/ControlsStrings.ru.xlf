@@ -32,6 +32,11 @@
         <target state="new">Graph</target>
         <note />
       </trans-unit>
+      <trans-unit id="ChartContainerNoneSelected">
+        <source>(None)</source>
+        <target state="new">(None)</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ChartContainerOptionsHeader">
         <source>Options</source>
         <target state="new">Options</target>
@@ -105,6 +110,46 @@
       <trans-unit id="GridValueMaskShowValue">
         <source>Show value</source>
         <target state="new">Show value</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MetricTableCountColumnHeader">
+        <source>Count</source>
+        <target state="new">Count</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MetricTableEndColumnHeader">
+        <source>End</source>
+        <target state="new">End</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MetricTableShowAllValues">
+        <source>Show all values</source>
+        <target state="new">Show all values</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MetricTableShowLatestValues">
+        <source>Show the latest 10 values</source>
+        <target state="new">Show the latest 10 values</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MetricTableShowNonValueChanges">
+        <source>Don't only show value changes</source>
+        <target state="new">Don't only show value changes</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MetricTableShowOnlyValueChanges">
+        <source>Only show value changes</source>
+        <target state="new">Only show value changes</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MetricTableStartColumnHeader">
+        <source>Start</source>
+        <target state="new">Start</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MetricTableValueColumnHeader">
+        <source>Value</source>
+        <target state="new">Value</target>
         <note />
       </trans-unit>
       <trans-unit id="NameColumnHeader">
