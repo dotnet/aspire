@@ -1,13 +1,18 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
+
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
 /// Represents an annotation that provides a callback to modify the environment variables of an application.
 /// </summary>
+[DebuggerDisplay("{DebuggerToString(),nq}")]
 public class EnvironmentCallbackAnnotation : IResourceAnnotation
 {
+    private readonly string? _name;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="EnvironmentCallbackAnnotation"/> class with the specified name and callback function.
     /// </summary>
@@ -15,6 +20,7 @@ public class EnvironmentCallbackAnnotation : IResourceAnnotation
     /// <param name="callback">The callback function that returns the value to set the environment variable to.</param>
     public EnvironmentCallbackAnnotation(string name, Func<string> callback)
     {
+        _name = name;
         Callback = (c) => c.EnvironmentVariables[name] = callback();
     }
 
@@ -40,4 +46,14 @@ public class EnvironmentCallbackAnnotation : IResourceAnnotation
     /// Gets or sets the callback action to be executed when the environment is being built.
     /// </summary>
     public Action<EnvironmentCallbackContext> Callback { get; private set; }
+
+    private string DebuggerToString()
+    {
+        var text = $@"Type = {GetType().Name}";
+        if (_name != null)
+        {
+            text += $@", Name = ""{_name}""";
+        }
+        return text;
+    }
 }
