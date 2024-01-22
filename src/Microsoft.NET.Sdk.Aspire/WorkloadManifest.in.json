@@ -8,7 +8,7 @@
         "Aspire.ProjectTemplates",
         "Aspire.Hosting.Orchestration",
         "Aspire.Hosting",
-        "Aspire.Dashboard"
+        "Aspire.Dashboard.Sdk"
       ],
       // DCP only support these hosts
       "platforms": [
@@ -47,7 +47,7 @@
       "kind": "library",
       "version": "@VERSION@"
     },
-    "Aspire.Dashboard": {
+    "Aspire.Dashboard.Sdk": {
       "kind": "sdk",
       "version": "@VERSION@"
     }
