@@ -1,11 +1,14 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
+
 namespace Aspire.Hosting.Utils;
 
 internal static class EnvironmentUtil
 {
-    public static Uri[] GetAddressUris(string variableName, string defaultValue)
+    [return: NotNullIfNotNull(nameof(defaultValue))]
+    public static Uri[]? GetAddressUris(string variableName, Uri? defaultValue)
     {
         try
         {
@@ -13,13 +16,19 @@ internal static class EnvironmentUtil
 
             if (string.IsNullOrWhiteSpace(urls))
             {
-                urls = defaultValue;
+                return defaultValue switch
+                {
+                    not null => [defaultValue],
+                    null => null
+                };
             }
-
-            return urls
-                .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                .Select(url => new Uri(url))
-                .ToArray();
+            else
+            {
+                return urls
+                    .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .Select(url => new Uri(url))
+                    .ToArray();
+            }
         }
         catch (Exception ex)
         {
