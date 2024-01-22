@@ -28,19 +28,30 @@
                         @if (context is HistogramMetric histogramMetric)
                         {
                             <span style="@($"text-decoration: underline; text-decoration-color: {underlineColor}; margin-right: 2px;")">@CalculatePercentile(percentile, (HistogramValue)context.Value) @unit</span>
-                            <FluentIcon Style="vertical-align: text-bottom" Value="@GetIconForDirection(histogramMetric.Percentiles[percentile].Direction)"/>
+                            <FluentIcon Style="vertical-align: text-bottom" Value="@GetIconForDirection(histogramMetric.Percentiles[percentile].Change)"/>
                         }
                     </TemplateColumn>
                 }
             }
             else
             {
-                <PropertyColumn Property="@(c => c.Value)" Title="@Loc[nameof(ControlsStrings.MetricTableValueColumnHeader)]" />
+                <TemplateColumn Title="@Loc[nameof(ControlsStrings.MetricTableValueColumnHeader)]" Sortable="true">
+                    @if (context.ValueChange is null)
+                    {
+                        @context.Value
+                    }
+                    else
+                    {
+                        <span style="margin-right: 2px;">@context.Value</span>
+                        <FluentIcon Style="vertical-align: text-bottom" Value="@GetIconForDirection(context.ValueChange)"/>
+                    }
+                </TemplateColumn>
+
+                <TemplateColumn Title="@Loc[nameof(ControlsStrings.MetricTableCountColumnHeader)]" Sortable="true">
+                    <span style="margin-right: 2px;">@context.Value.Count</span>
+                    <FluentIcon Style="vertical-align: text-bottom" Value="@GetIconForDirection(context.CountChange)"/>
+                </TemplateColumn>
             }
-            <TemplateColumn Title="@Loc[nameof(ControlsStrings.MetricTableCountColumnHeader)]" Sortable="true">
-                <span style="margin-right: 2px;">@context.Value.Count</span>
-                <FluentIcon Style="vertical-align: text-bottom" Value="@GetIconForDirection(context.CountDirectionChange)"/>
-            </TemplateColumn>
         </ChildContent>
         <EmptyContent>
             There are no metric values yet.

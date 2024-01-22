@@ -13,13 +13,13 @@ namespace Aspire.Dashboard.Components;
 
 public partial class MetricTable : ComponentBase
 {
-    private readonly SortedList<Metric, Metric> _metrics = new(new MetricTimeComparer());
+    private readonly List<Metric> _metrics = [];
     private static readonly List<int> s_shownPercentiles = [50, 90, 99];
 
     private bool _showLatestMetrics = true;
     private bool _onlyShowValueChanges;
 
-    private IEnumerable<Metric> FilteredMetrics => _showLatestMetrics ? _metrics.Values.TakeLast(10) : _metrics.Values;
+    private IEnumerable<Metric> FilteredMetrics => _showLatestMetrics ? _metrics.TakeLast(10) : _metrics;
     private bool _anyDimensionsShown;
 
     private IJSObjectReference? _jsModule;
@@ -49,70 +49,64 @@ public partial class MetricTable : ComponentBase
         if (InstrumentViewModel.MatchedDimensions is not null)
         {
             var metrics = new List<Metric>();
-            foreach (var dimension in InstrumentViewModel.MatchedDimensions)
+            _anyDimensionsShown = InstrumentViewModel.MatchedDimensions.Any(dimension => !dimension.Name.Equals(DimensionScope.NoDimensions));
+            var valuesWithDimensions = InstrumentViewModel.MatchedDimensions
+                .SelectMany(dimension => dimension.Values.Select(value => (value, dimension))).ToList();
+
+            valuesWithDimensions.Sort((a, b) =>
             {
-                if (!dimension.Name.Equals(DimensionScope.NoDimensions))
+                var result = a.value.Start.CompareTo(b.value.Start);
+                return result is not 0 ? result : a.value.End.CompareTo(b.value.End);
+
+            });
+
+            for (var i = 0; i < valuesWithDimensions.Count; i++)
+            {
+                var (metricValue, dimension) = valuesWithDimensions[i];
+
+                ValueDirectionChange? countChange = ValueDirectionChange.Constant;
+                ValueDirectionChange? valueChange = ValueDirectionChange.Constant;
+                if (i > 0)
                 {
-                    _anyDimensionsShown = true;
+                    var (previousValue, _) = valuesWithDimensions[i - 1];
+
+                    countChange = GetDirectionChange(metricValue.Count, previousValue.Count);
+                    valueChange = metricValue.TryCompare(previousValue, out var comparisonResult) ? GetDirectionChange(comparisonResult) : null;
                 }
 
-                for (var i = 0; i < dimension.Values.Count; i++)
+                if (metricValue is HistogramValue histogramValue)
                 {
-                    var metricValue = dimension.Values[i];
-
-                    ValueDirectionChange? countDirectionChange = ValueDirectionChange.Constant;
-                    if (i > 0)
+                    var percentiles = new SortedDictionary<int, (double? Value, ValueDirectionChange Direction)>();
+                    foreach (var percentile in s_shownPercentiles)
                     {
-                        var previousValue = dimension.Values[i - 1];
-
-                        if (metricValue.Count > previousValue.Count)
-                        {
-                            countDirectionChange = ValueDirectionChange.Up;
-                        }
-                        else if (metricValue.Count < previousValue.Count)
-                        {
-                            countDirectionChange = ValueDirectionChange.Down;
-                        }
+                        var percentileValue = CalculatePercentile(percentile, histogramValue);
+                        var directionChange = metrics.LastOrDefault() is HistogramMetric last ? GetDirectionChange(percentileValue, last.Percentiles[percentile].Value) : ValueDirectionChange.Constant;
+                        percentiles.Add(percentile, (percentileValue, directionChange));
                     }
 
-                    if (metricValue is HistogramValue histogramValue)
-                    {
-                        var percentiles = new SortedDictionary<int, (double? Value, ValueDirectionChange Direction)>();
-                        foreach (var percentile in s_shownPercentiles)
+                    metrics.Add(
+                        new HistogramMetric
                         {
-                            var percentileValue = CalculatePercentile(percentile, histogramValue);
-                            var directionChange = metrics.LastOrDefault() is HistogramMetric last ? GetDirectionChange(percentileValue, last.Percentiles[percentile].Value) : ValueDirectionChange.Constant;
-                            percentiles.Add(percentile, (percentileValue, directionChange));
-                        }
+                            DimensionName = dimension.Name,
+                            DimensionAttributes = dimension.Attributes,
+                            Value = metricValue,
+                            CountChange = countChange,
+                            ValueChange = valueChange,
+                            Percentiles = percentiles
+                        });
 
-                        metrics.Add(
-                            new HistogramMetric
-                            {
-                                DimensionName = dimension.Name,
-                                DimensionAttributes = dimension.Attributes,
-                                Value = metricValue,
-                                CountDirectionChange = countDirectionChange,
-                                Percentiles = percentiles
-                            });
-
-                        static ValueDirectionChange GetDirectionChange(double? current, double? previous)
+                }
+                else
+                {
+                    metrics.Add(
+                        new Metric
                         {
-                            if (current > previous)
-                            {
-                                return ValueDirectionChange.Up;
-                            }
-
-                            return current < previous ? ValueDirectionChange.Down : ValueDirectionChange.Constant;
-                        }
-                    }
-                    else
-                    {
-                        metrics.Add(
-                            new Metric
-                            {
-                                DimensionName = dimension.Name, DimensionAttributes = dimension.Attributes, Value = metricValue, CountDirectionChange = countDirectionChange
-                            });
-                    }
+                            DimensionName = dimension.Name,
+                            DimensionAttributes = dimension.Attributes,
+                            Value = metricValue,
+                            CountChange = countChange,
+                            ValueChange = valueChange
+                        });
                 }
             }
 
@@ -130,11 +124,11 @@ public partial class MetricTable : ComponentBase
             {
                 if (i >= _metrics.Count)
                 {
-                    _metrics.TryAdd(metrics[i], metrics[i]);
+                    _metrics.Add(metrics[i]);
                 }
-                else if (!_metrics.GetValueAtIndex(i).Equals(metrics[i]))
+                else if (!_metrics[i].Equals(metrics[i]))
                 {
-                    _metrics.SetValueAtIndex(i, metrics[i]);
+                    _metrics[i] = metrics[i];
                 }
             }
         }
@@ -151,7 +145,7 @@ public partial class MetricTable : ComponentBase
 
             var indices = new List<int>();
 
-            if (!newFilteredMetrics[oldFilteredMetrics.Count - 1].Equals(oldFilteredMetrics.Last()))
+            if (oldFilteredMetrics.Count > 0 && !newFilteredMetrics[oldFilteredMetrics.Count - 1].Equals(oldFilteredMetrics.Last()))
             {
                 indices.Add(oldFilteredMetrics.Count - 1);
             }
@@ -173,18 +167,18 @@ public partial class MetricTable : ComponentBase
         {
             if (!ShouldShowHistogram())
             {
-                var current = metrics[0].Value.Count;
+                var start = metrics[0].Value;
                 for (var i = 1; i < metrics.Count; i++)
                 {
-                    var count = metrics[i].Value.Count;
-                    if (current == count)
+                    var current = metrics[i].Value;
+                    if (current.TryCompare(start, out var comparisonResult) && comparisonResult == 0)
                     {
                         metrics.RemoveAt(i);
                         i--;
                     }
                     else
                     {
-                        current = count;
+                        start = current;
                     }
                 }
             }
@@ -224,7 +218,8 @@ public partial class MetricTable : ComponentBase
         public required string DimensionName { get; init; }
         public required KeyValuePair<string, string>[] DimensionAttributes { get; init; }
         public required MetricValueBase Value { get; init; }
-        public required ValueDirectionChange? CountDirectionChange { get; init; }
+        public required ValueDirectionChange? CountChange { get; init; }
+        public required ValueDirectionChange? ValueChange { get; init; }
 
         public override bool Equals(object? obj)
         {
@@ -232,27 +227,18 @@ public partial class MetricTable : ComponentBase
                 && DimensionName == other.DimensionName
                 && DimensionAttributes.Equals(other.DimensionAttributes)
                 && Value.Equals(other.Value)
-                && CountDirectionChange == other.CountDirectionChange;
+                && CountChange == other.CountChange;
         }
 
         public override int GetHashCode()
         {
-            return HashCode.Combine(DimensionName, DimensionAttributes, Value, CountDirectionChange);
+            return HashCode.Combine(DimensionName, DimensionAttributes, Value, CountChange);
         }
     }
 
     public class HistogramMetric : Metric
     {
-        public required SortedDictionary<int, (double? Value, ValueDirectionChange Direction)> Percentiles { get; init; }
-    }
-
-    public class MetricTimeComparer : IComparer<Metric>
-    {
-        public int Compare(Metric? x, Metric? y)
-        {
-            var result = x!.Value.Start.CompareTo(y!.Value.Start);
-            return result is not 0 ? result : x.Value.End.CompareTo(y.Value.End);
-        }
+        public required SortedDictionary<int, (double? Value, ValueDirectionChange Change)> Percentiles { get; init; }
     }
 
     public enum ValueDirectionChange
@@ -281,5 +267,33 @@ public partial class MetricTable : ComponentBase
     private bool ShouldShowHistogram()
     {
         return InstrumentViewModel.Instrument?.Type == OtlpInstrumentType.Histogram && !InstrumentViewModel.ShowCount;
+    }
+
+    private static ValueDirectionChange GetDirectionChange(IComparable? current, IComparable? previous)
+    {
+        if (current is null && previous is null)
+        {
+            return ValueDirectionChange.Constant;
+        }
+        else if (previous is null)
+        {
+            return ValueDirectionChange.Up;
+        }
+        else if (current is null)
+        {
+            return ValueDirectionChange.Down;
+        }
+
+        return GetDirectionChange(current.CompareTo(previous));
+    }
+
+    private static ValueDirectionChange GetDirectionChange(int comparisonResult)
+    {
+        if (comparisonResult > 0)
+        {
+            return ValueDirectionChange.Up;
+        }
+
+        return comparisonResult < 0 ? ValueDirectionChange.Down : ValueDirectionChange.Constant;
     }
 }

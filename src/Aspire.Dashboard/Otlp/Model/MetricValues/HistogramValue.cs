@@ -38,6 +38,12 @@ public class HistogramValue : MetricValueBase
         return sb.ToString();
     }
 
+    internal override bool TryCompare(MetricValueBase other, out int comparisonResult)
+    {
+        comparisonResult = default;
+        return false;
+    }
+
     protected override MetricValueBase Clone()
     {
         return new HistogramValue(Values, Sum, Count, Start, End, ExplicitBounds);

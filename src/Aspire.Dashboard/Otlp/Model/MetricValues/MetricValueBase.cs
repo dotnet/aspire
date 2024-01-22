@@ -23,5 +23,8 @@ public abstract class MetricValueBase
         return item.Clone();
     }
 
+    internal abstract bool TryCompare(MetricValueBase other, out int comparisonResult);
+
     protected abstract MetricValueBase Clone();
+
 }
