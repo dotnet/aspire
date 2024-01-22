@@ -120,6 +120,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger, D
         var grpcEndpointUrl = _dashboardServiceHost.DashboardServiceUri?.ToString();
         var otlpEndpointUrl = Environment.GetEnvironmentVariable("DOTNET_DASHBOARD_OTLP_ENDPOINT_URL");
         var dashboardUrl = Environment.GetEnvironmentVariable("ASPNETCORE_URLS");
+        var aspnetcoreEnvironment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
 
         var environment = new List<EnvVar>();
         environment.Add(new EnvVar()
@@ -140,7 +141,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger, D
         environment.Add(new EnvVar()
         {
             Name = "ASPNETCORE_ENVIRONMENT",
-            Value = "Development"
+            Value = aspnetcoreEnvironment
         });
 
         dashboardExecutableSpec.Env = environment;
