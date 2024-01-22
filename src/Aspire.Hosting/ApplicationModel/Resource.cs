@@ -34,6 +34,6 @@ public abstract class Resource : IResource
 
     private string DebuggerToString()
     {
-        return $@"Type = {GetType().Name}, Name = ""{Name}""";
+        return $@"Type = {GetType().Name}, Name = ""{Name}"", Annotations = {Annotations.Count}";
     }
 }
