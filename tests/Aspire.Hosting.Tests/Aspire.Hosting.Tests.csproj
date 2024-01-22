@@ -8,15 +8,15 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Aspire.Hosting\Aspire.Hosting.csproj" AppHostLibrary="true" />
-    <ProjectReference Include="..\..\src\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" AppHostLibrary="true" />
-    <ProjectReference Include="..\testproject\TestProject.AppHost\TestProject.AppHost.csproj" AppHostLibrary="true" />
+    <ProjectReference Include="..\..\src\Aspire.Hosting\Aspire.Hosting.csproj" AspireHostLibrary="true" />
+    <ProjectReference Include="..\..\src\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" AspireHostLibrary="true" />
+    <ProjectReference Include="..\testproject\TestProject.AppHost\TestProject.AppHost.csproj" AspireHostLibrary="true" />
 
-    <ProjectReference Include="..\..\src\Components\Aspire.Microsoft.Data.SqlClient\Aspire.Microsoft.Data.SqlClient.csproj" AppHostLibrary="true" />
-    <ProjectReference Include="..\..\src\Components\Aspire.MongoDB.Driver\Aspire.MongoDB.Driver.csproj" AppHostLibrary="true" />
-    <ProjectReference Include="..\..\src\Components\Aspire.MySqlConnector\Aspire.MySqlConnector.csproj" AppHostLibrary="true" />
-    <ProjectReference Include="..\..\src\Components\Aspire.Npgsql\Aspire.Npgsql.csproj" AppHostLibrary="true" />
-    <ProjectReference Include="..\..\src\Components\Aspire.Oracle.EntityFrameworkCore\Aspire.Oracle.EntityFrameworkCore.csproj" AppHostLibrary="true" />
+    <ProjectReference Include="..\..\src\Components\Aspire.Microsoft.Data.SqlClient\Aspire.Microsoft.Data.SqlClient.csproj" AspireHostLibrary="true" />
+    <ProjectReference Include="..\..\src\Components\Aspire.MongoDB.Driver\Aspire.MongoDB.Driver.csproj" AspireHostLibrary="true" />
+    <ProjectReference Include="..\..\src\Components\Aspire.MySqlConnector\Aspire.MySqlConnector.csproj" AspireHostLibrary="true" />
+    <ProjectReference Include="..\..\src\Components\Aspire.Npgsql\Aspire.Npgsql.csproj" AspireHostLibrary="true" />
+    <ProjectReference Include="..\..\src\Components\Aspire.Oracle.EntityFrameworkCore\Aspire.Oracle.EntityFrameworkCore.csproj" AspireHostLibrary="true" />
 
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
     <PackageReference Include="Polly" />
