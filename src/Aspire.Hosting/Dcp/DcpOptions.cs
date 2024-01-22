@@ -12,6 +12,7 @@ internal sealed class DcpOptions
     private const string DcpCliPathMetadataKey = "DcpCliPath";
     private const string DcpExtensionsPathMetadataKey = "DcpExtensionsPath";
     private const string DcpBinPathMetadataKey = "DcpBinPath";
+    private const string DashboardPathMetadataKey = "aspiredashboardpath";
 
     public static string DcpPublisher = nameof(DcpPublisher);
 
@@ -30,6 +31,8 @@ internal sealed class DcpOptions
     /// C:\Program Files\dotnet\packs\Aspire.Hosting.Orchestration.win-x64\8.0.0-preview.1.23518.6\tools\ext\
     /// </example>
     public string? ExtensionsPath { get; set; }
+
+    public string? DashboardPath { get; set; }
 
     /// <summary>
     /// Optional path to a folder containing additional DCP binaries
@@ -59,6 +62,7 @@ internal sealed class DcpOptions
             CliPath = GetMetadataValue(assemblyMetadata, DcpCliPathMetadataKey);
             ExtensionsPath = GetMetadataValue(assemblyMetadata, DcpExtensionsPathMetadataKey);
             BinPath = GetMetadataValue(assemblyMetadata, DcpBinPathMetadataKey);
+            DashboardPath = GetMetadataValue(assemblyMetadata, DashboardPathMetadataKey);
         }
 
         if (string.IsNullOrEmpty(CliPath))
