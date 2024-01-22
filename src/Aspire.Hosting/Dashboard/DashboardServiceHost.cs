@@ -23,7 +23,7 @@ namespace Aspire.Hosting.Dashboard;
 internal sealed class DashboardServiceHost : IHostedService
 {
     private const string DashboardServiceUrlVariableName = "DOTNET_DASHBOARD_GRPC_ENDPOINT_URL";
-    private const string DashboardServiceUrlDefaultValue = "https://localhost:18999";
+    private const string DashboardServiceUrlDefaultValue = "http://localhost:18999";
 
     /// <summary>
     /// <see langword="null"/> if <see cref="DistributedApplicationOptions.DashboardEnabled"/> is <see langword="false"/>.

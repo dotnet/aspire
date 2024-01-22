@@ -79,7 +79,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger, D
         AspireEventSource.Instance.DcpModelCreationStart();
         try
         {
-            if (!_model.Resources.Any(r => r.Name == "aspire-dashboard"))
+            if (!_model.Resources.Any(r => r.Name == DashboardReservedResourceName))
             {
                 await StartDashboardAsync(cancellationToken).ConfigureAwait(false);
             }
@@ -97,6 +97,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger, D
             AspireEventSource.Instance.DcpModelCreationStop();
         }
     }
+
+    private const string DashboardReservedResourceName = "aspire-dashboard";
 
     private async Task StartDashboardAsync(CancellationToken cancellationToken = default)
     {
@@ -144,7 +146,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger, D
         dashboardExecutableSpec.Env = environment;
 
         var dashboardExecutable = new Executable(dashboardExecutableSpec);
-        dashboardExecutable.Metadata.Name = "aspire-dashboard";
+        dashboardExecutable.Metadata.Name = DashboardReservedResourceName;
 
         await kubernetesService.CreateAsync(dashboardExecutable, cancellationToken).ConfigureAwait(false);
     }
