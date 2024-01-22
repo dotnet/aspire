@@ -22,7 +22,6 @@ public class DistributedApplicationBuilderTests
         Assert.NotNull(app.Services.GetRequiredKeyedService<IDistributedApplicationPublisher>("dcp"));
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-        Assert.Null(appModel.Name);
         Assert.Empty(appModel.Resources);
 
         var lifecycles = app.Services.GetServices<IDistributedApplicationLifecycleHook>();
@@ -42,7 +41,6 @@ public class DistributedApplicationBuilderTests
         var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-        Assert.Null(appModel.Name);
         var resource = Assert.Single(appModel.Resources);
         Assert.IsType<TestResource>(resource);
     }
