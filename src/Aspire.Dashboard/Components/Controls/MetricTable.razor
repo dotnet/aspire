@@ -6,7 +6,7 @@
 @inject IStringLocalizer<ControlsStrings> Loc
 
 <div id="metric-table-container" style="max-height: 60vh; overflow-y: scroll; margin-bottom: 10px;">
-    <FluentDataGrid Items="@FilteredMetrics.AsQueryable()" ItemSize="35" ResizableColumns="true" Virtualize="true">
+    <FluentDataGrid Items="@FilteredMetrics.AsQueryable()" ItemSize="35" ResizableColumns="true" Virtualize="false">
         <ChildContent>
             <TemplateColumn Class="metric-grid-cell" Title="@Loc[nameof(ControlsStrings.MetricTableStartColumnHeader)]" Sortable="true" Tooltip="true" TooltipText="@(metric => metric.DimensionName)">
                 <span aria-live="polite">@context.Value.Start</span>
