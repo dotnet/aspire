@@ -21,61 +21,15 @@ public abstract class Resource : IResource
     /// </summary>
     public ResourceMetadataCollection Annotations { get; } = new();
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Resource"/> class.
+    /// </summary>
     /// <param name="name">The name of the resource.</param>
-    public Resource(string name)
+    protected Resource(string name)
     {
-        ValidateName(name);
+        ModelName.ValidateName(nameof(Resource), name);
 
         Name = name;
-    }
-
-    /// <summary>
-    /// Validate that a resource name is valid.
-    /// - Must start with an ASCII letter.
-    /// - Must contain only ASCII letters, digits, and hyphens.
-    /// - Must not end with a hyphen.
-    /// - Must not contain consecutive hyphens.
-    /// - Must be between 1 and 64 characters long.
-    /// </summary>
-    internal static void ValidateName(string name)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(name, nameof(name));
-
-        if (name.Length > 64)
-        {
-            throw new ArgumentException($"Resource name '{name}' is invalid. Name must be between 1 and 64 characters long.", nameof(name));
-        }
-
-        var lastCharacterHyphen = false;
-        for (var i = 0; i < name.Length; i++)
-        {
-            if (name[i] == '-')
-            {
-                if (lastCharacterHyphen)
-                {
-                    throw new ArgumentException($"Resource name '{name}' is invalid. Name cannot contain consecutive hyphens.", nameof(name));
-                }
-                lastCharacterHyphen = true;
-            }
-            else if (!char.IsAsciiLetterOrDigit(name[i]))
-            {
-                throw new ArgumentException($"Resource name '{name}' is invalid. Name must contain only ASCII letters, digits, and hyphens.", nameof(name));
-            }
-            else
-            {
-                lastCharacterHyphen = false;
-            }
-        }
-
-        if (!char.IsAsciiLetter(name[0]))
-        {
-            throw new ArgumentException($"Resource name '{name}' is invalid. Name must start with an ASCII letter.", nameof(name));
-        }
-
-        if (name[^1] == '-')
-        {
-            throw new ArgumentException($"Resource name '{name}' is invalid. Name cannot end with a hyphen.", nameof(name));
-        }
     }
 
     private string DebuggerToString()
