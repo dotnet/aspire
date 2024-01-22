@@ -9,9 +9,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <IsPackable>true</IsPackable>
-    <PackAsTool>true</PackAsTool>
-    <ToolCommandName>aspire-dashboard</ToolCommandName>
+    <PackageId>Aspire.Dashboard.Sdk</PackageId>
     <Description>Dashboard browser interface for .NET Aspire.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Title>.NET Aspire Dashboard</Title>
