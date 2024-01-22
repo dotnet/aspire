@@ -102,3 +102,8 @@
 ::deep #plotly-chart-container {
     margin-left: -40px;
 }
+
+::deep .metric-info-icon {
+    vertical-align: text-bottom;
+    margin-left: 3px;
+}

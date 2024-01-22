@@ -3,6 +3,7 @@
 
 using System.Globalization;
 using System.Text;
+using Aspire.Dashboard.Extensions;
 
 namespace Aspire.Dashboard.Otlp.Model.MetricValues;
 
@@ -40,5 +41,20 @@ public class HistogramValue : MetricValueBase
     protected override MetricValueBase Clone()
     {
         return new HistogramValue(Values, Sum, Count, Start, End, ExplicitBounds);
+    }
+
+    public override bool Equals(object? obj)
+    {
+        return obj is HistogramValue other
+            && Values.Equivalent(other.Values)
+            && Sum.Equals(other.Sum)
+            && Count.Equals(other.Count)
+            && Start.Equals(other.Start)
+            && ExplicitBounds.Equivalent(other.ExplicitBounds);
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(Start, Count, Values, Sum, ExplicitBounds);
     }
 }

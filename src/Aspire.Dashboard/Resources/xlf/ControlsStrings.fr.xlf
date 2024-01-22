@@ -22,6 +22,16 @@
         <target state="new">Filters</target>
         <note />
       </trans-unit>
+      <trans-unit id="ChartContainerGraphAccessibleLabel">
+        <source>Graph. For an accessible view please navigate to the Table tab</source>
+        <target state="new">Graph. For an accessible view please navigate to the Table tab</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ChartContainerGraphTab">
+        <source>Graph</source>
+        <target state="new">Graph</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ChartContainerOptionsHeader">
         <source>Options</source>
         <target state="new">Options</target>
@@ -35,6 +45,11 @@
       <trans-unit id="ChartContainerShowCountLabel">
         <source>Show count</source>
         <target state="new">Show count</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ChartContainerTableTab">
+        <source>Table</source>
+        <target state="new">Table</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerUnableToDisplay">

@@ -9,6 +9,7 @@ using Aspire.Dashboard.Otlp.Model.MetricValues;
 using Aspire.Dashboard.Resources;
 using Humanizer;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Localization;
 using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components;
@@ -37,7 +38,7 @@ public partial class PlotlyChart : ComponentBase
     protected override void OnInitialized()
     {
         _currentDataStartTime = GetCurrentDataTime();
-        InstrumentViewModel.OnDataUpdate = OnInstrumentDataUpdate;
+        InstrumentViewModel.DataUpdateSubscriptions.Add(OnInstrumentDataUpdate);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -83,11 +84,6 @@ public partial class PlotlyChart : ComponentBase
     private Task OnInstrumentDataUpdate()
     {
         return InvokeAsync(StateHasChanged);
-    }
-
-    private static DateTime GetCurrentDataTime()
-    {
-        return DateTime.UtcNow.Subtract(TimeSpan.FromSeconds(1)); // Compensate for delay in receiving metrics from sevices.;
     }
 
     private sealed class Trace
@@ -141,8 +137,6 @@ public partial class PlotlyChart : ComponentBase
             xValues.Add(inProgressDataTime.ToLocalTime());
         }
 
-        var diffValues = new List<double>();
-        var tooltips = new List<string?>();
         Trace? previousValues = null;
         foreach (var trace in traces.OrderBy(kvp => kvp.Key))
         {
@@ -263,7 +257,7 @@ public partial class PlotlyChart : ComponentBase
         return value;
     }
 
-    private static double? CalculatePercentile(int percentile, ulong[] counts, double[] explicitBounds)
+    internal static double? CalculatePercentile(int percentile, ulong[] counts, double[] explicitBounds)
     {
         if (percentile < 0 || percentile > 100)
         {
@@ -398,20 +392,12 @@ public partial class PlotlyChart : ComponentBase
 
     private async Task UpdateChart(bool tickUpdate, DateTime inProgressDataTime)
     {
-        Debug.Assert(InstrumentViewModel.Instrument != null);
         Debug.Assert(InstrumentViewModel.MatchedDimensions != null);
-
-        // Unit comes from the instrument and they're not localized.
-        // The hardcoded "Count" label isn't localized for consistency.
-        const string CountUnit = "Count";
-
-        var unit = !InstrumentViewModel.ShowCount
-            ? GetDisplayedUnit(InstrumentViewModel.Instrument)
-            : CountUnit;
+        var unit = GetDisplayedUnit(InstrumentViewModel, Loc);
 
         List<Trace> traces;
         List<DateTime> xValues;
-        if (InstrumentViewModel.Instrument.Type != OtlpInstrumentType.Histogram || InstrumentViewModel.ShowCount)
+        if (InstrumentViewModel.Instrument?.Type != OtlpInstrumentType.Histogram || InstrumentViewModel.ShowCount)
         {
             (traces, xValues) = CalculateChartValues(InstrumentViewModel.MatchedDimensions, GraphPointCount, tickUpdate, inProgressDataTime, unit);
         }
@@ -447,8 +433,18 @@ public partial class PlotlyChart : ComponentBase
         }
     }
 
-    private string GetDisplayedUnit(OtlpInstrument instrument)
+    internal static string GetDisplayedUnit(InstrumentViewModel instrumentViewModel, IStringLocalizer<ControlsStrings> loc)
     {
+        var instrument = instrumentViewModel.Instrument;
+        Debug.Assert(instrument is not null);
+
+        if (instrumentViewModel.ShowCount)
+        {
+            // Unit comes from the instrument and they're not localized.
+            // The hardcoded "Count" label isn't localized for consistency.
+            return "Count";
+        }
+
         if (!string.IsNullOrEmpty(instrument.Unit))
         {
             var unit = OtlpUnits.GetUnit(instrument.Unit.TrimStart('{').TrimEnd('}'));
@@ -459,15 +455,20 @@ public partial class PlotlyChart : ComponentBase
         // but have a descriptive name that lets us infer the unit.
         if (instrument.Name.EndsWith(".count"))
         {
-            return Loc[nameof(ControlsStrings.PlotlyChartCount)];
+            return loc[nameof(ControlsStrings.PlotlyChartCount)];
         }
         else if (instrument.Name.EndsWith(".length"))
         {
-            return Loc[nameof(ControlsStrings.PlotlyChartLength)];
+            return loc[nameof(ControlsStrings.PlotlyChartLength)];
         }
         else
         {
-            return Loc[nameof(ControlsStrings.PlotlyChartValue)];
+            return loc[nameof(ControlsStrings.PlotlyChartValue)];
         }
+    }
+
+    private static DateTime GetCurrentDataTime()
+    {
+        return DateTime.UtcNow.Subtract(TimeSpan.FromSeconds(1)); // Compensate for delay in receiving metrics from sevices.;
     }
 }

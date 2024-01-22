@@ -9,6 +9,7 @@ namespace Aspire.Dashboard.Otlp.Model.MetricValues;
 [DebuggerDisplay("Name = {Name}, Values = {Values.Count}")]
 public class DimensionScope
 {
+    public const string NoDimensions = "no-dimensions";
     public string Name { get; init; }
     public KeyValuePair<string, string>[] Attributes { get; init; }
     public readonly List<MetricValueBase> Values = new();
@@ -20,7 +21,7 @@ public class DimensionScope
     {
         Attributes = attributes;
         var name = Attributes.ConcatProperties();
-        Name = name != null && name.Length > 0 ? name : "no-dimensions";
+        Name = name != null && name.Length > 0 ? name : NoDimensions;
     }
 
     /// <summary>

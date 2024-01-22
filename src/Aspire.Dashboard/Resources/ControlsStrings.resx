@@ -126,6 +126,15 @@
   <data name="ChartContainerSelectFilters" xml:space="preserve">
     <value>Select filters</value>
   </data>
+  <data name="ChartContainerGraphTab" xml:space="preserve">
+    <value>Graph</value>
+  </data>
+  <data name="ChartContainerTableTab" xml:space="preserve">
+    <value>Table</value>
+  </data>
+  <data name="ChartContainerGraphAccessibleLabel" xml:space="preserve">
+    <value>Graph. For an accessible view please navigate to the Table tab</value>
+  </data>
   <data name="EnvironmentVariablesFilterToggleShowSpecOnly" xml:space="preserve">
     <value>Show spec only</value>
     <comment>Spec means from the resource specification</comment>
@@ -217,6 +226,33 @@
   </data>
   <data name="ChartContainerShowCountLabel" xml:space="preserve">
     <value>Show count</value>
+  </data>
+  <data name="ChartContainerNoneSelected" xml:space="preserve">
+    <value>(None)</value>
+  </data>
+  <data name="MetricTableStartColumnHeader" xml:space="preserve">
+    <value>Start</value>
+  </data>
+  <data name="MetricTableEndColumnHeader" xml:space="preserve">
+    <value>End</value>
+  </data>
+  <data name="MetricTableValueColumnHeader" xml:space="preserve">
+    <value>Value</value>
+  </data>
+  <data name="MetricTableCountColumnHeader" xml:space="preserve">
+    <value>Count</value>
+  </data>
+  <data name="MetricTableShowAllValues" xml:space="preserve">
+    <value>Show all values</value>
+  </data>
+  <data name="MetricTableShowLatestValues" xml:space="preserve">
+    <value>Show the latest 10 values</value>
+  </data>
+  <data name="MetricTableShowNonValueChanges" xml:space="preserve">
+    <value>Don't only show value changes</value>
+  </data>
+  <data name="MetricTableShowOnlyValueChanges" xml:space="preserve">
+    <value>Only show value changes</value>
   </data>
   <data name="SelectAResource" xml:space="preserve">
     <value>Select a resource</value>

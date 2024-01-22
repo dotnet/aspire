@@ -197,6 +197,15 @@ fluent-data-grid-cell .long-inner-content {
     margin-right: 3px;
 }
 
+ .visually-hidden {
+     top: 0;
+     left: -2px;
+     width: 1px;
+     height: 1px;
+     position: absolute;
+     overflow: hidden;
+ }
+
 split-panels::part(handle) {
     display: none;
 }

@@ -88,7 +88,6 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
             }
             else
             {
-                // Only update data in plotly
                 await UpdateInstrumentDataAsync(_instrument);
             }
         }

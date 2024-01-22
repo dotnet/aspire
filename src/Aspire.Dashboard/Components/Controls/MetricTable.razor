@@ -1,0 +1,70 @@
+﻿@using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Otlp.Model
+@using Aspire.Dashboard.Otlp.Model.MetricValues
+@using Aspire.Dashboard.Resources
+@namespace Aspire.Dashboard.Components
+@inject IStringLocalizer<ControlsStrings> Loc
+
+<div id="metric-table-container" style="max-height: 60vh; overflow-y: scroll; margin-bottom: 10px;">
+    <FluentDataGrid Items="@FilteredMetrics.AsQueryable()" ItemSize="35" ResizableColumns="true" Virtualize="true">
+        <ChildContent>
+            <TemplateColumn Class="metric-grid-cell" Title="@Loc[nameof(ControlsStrings.MetricTableStartColumnHeader)]" Sortable="true" Tooltip="true" TooltipText="@(metric => metric.DimensionName)">
+                <span aria-live="polite">@context.Value.Start</span>
+                @if (_anyDimensionsShown)
+                {
+                    <FluentIcon Icon="Icons.Filled.Size16.DataBarVertical" Color="Color.Info" Style="margin-left: 3px; vertical-align: text-bottom"/>
+                }
+            </TemplateColumn>
+            <PropertyColumn Property="@(c => c.Value.End)" Title="@Loc[nameof(ControlsStrings.MetricTableEndColumnHeader)]" Sortable="true"/>
+
+            @if (!ShouldShowHistogram())
+            {
+                var unit = PlotlyChart.GetDisplayedUnit(InstrumentViewModel, Loc);
+                // these colors line up with P50/P90/P99 colors for the plotly graph
+                var percentileColumns = new List<(int Percentile, string UnderlineColor)> { (50, "#89B5D3"), (90, "#F9B980"), (99, "#8FC98F") };
+                foreach (var (percentile, underlineColor) in percentileColumns)
+                {
+                    <TemplateColumn Title="@($"P{percentile}")" Sortable="true">
+                        @if (context is HistogramMetric histogramMetric)
+                        {
+                            <span style="@($"text-decoration: underline; text-decoration-color: {underlineColor}; margin-right: 2px;")">@CalculatePercentile(percentile, (HistogramValue)context.Value) @unit</span>
+                            <FluentIcon Style="vertical-align: text-bottom" Value="@GetIconForDirection(histogramMetric.Percentiles[percentile].Direction)"/>
+                        }
+                    </TemplateColumn>
+                }
+            }
+            else
+            {
+                <PropertyColumn Property="@(c => c.Value)" Title="@Loc[nameof(ControlsStrings.MetricTableValueColumnHeader)]" />
+            }
+            <TemplateColumn Title="@Loc[nameof(ControlsStrings.MetricTableCountColumnHeader)]" Sortable="true">
+                <span style="margin-right: 2px;">@context.Value.Count</span>
+                <FluentIcon Style="vertical-align: text-bottom" Value="@GetIconForDirection(context.CountDirectionChange)"/>
+            </TemplateColumn>
+        </ChildContent>
+        <EmptyContent>
+            There are no metric values yet.
+        </EmptyContent>
+    </FluentDataGrid>
+</div>
+
+<FluentStack Orientation="Orientation.Vertical">
+    <FluentSwitch @bind-Value="@_showLatestMetrics"
+                  @bind-Value:after="SettingsChangedAsync"
+                  Disabled="@(_metrics.Count < 10)"
+                  UncheckedMessage="@Loc[nameof(ControlsStrings.MetricTableShowAllValues)]"
+                  CheckedMessage="@Loc[nameof(ControlsStrings.MetricTableShowLatestValues)]" />
+
+    <FluentSwitch @bind-Value="@_onlyShowValueChanges"
+                  @bind-Value:after="SettingsChangedAsync"
+                  UncheckedMessage="@Loc[nameof(ControlsStrings.MetricTableShowNonValueChanges)]"
+                  CheckedMessage="@Loc[nameof(ControlsStrings.MetricTableShowOnlyValueChanges)]" />
+</FluentStack>
+
+@code {
+    [Parameter, EditorRequired]
+    public required InstrumentViewModel InstrumentViewModel { get; set; }
+
+    [Parameter, EditorRequired]
+    public required TimeSpan Duration { get; set; }
+}
