@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Net;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
 using Microsoft.AspNetCore.Builder;
@@ -77,15 +76,7 @@ internal sealed class DashboardServiceHost : IHostedService
 
         void ConfigureKestrel(KestrelServerOptions kestrelOptions)
         {
-
-            if (DashboardServiceUri.IsLoopback)
-            {
-                kestrelOptions.ListenLocalhost(dashboardServiceUri.Port, ConfigureListen);
-            }
-            else
-            {
-                kestrelOptions.Listen(IPAddress.Parse(DashboardServiceUri.Host), DashboardServiceUri.Port, ConfigureListen);
-            }
+            kestrelOptions.ListenLocalhost(dashboardServiceUri.Port, ConfigureListen);
 
             void ConfigureListen(ListenOptions options)
             {
@@ -112,12 +103,6 @@ internal sealed class DashboardServiceHost : IHostedService
         }
 
         if (!Uri.TryCreate(value, UriKind.Absolute, out var candidateUri))
-        {
-            uri = null;
-            return false;
-        }
-
-        if (!StringComparer.InvariantCultureIgnoreCase.Equals(candidateUri.Scheme, "https"))
         {
             uri = null;
             return false;
