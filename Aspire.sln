@@ -1,23 +1,22 @@
-﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting", "src\Aspire.Hosting\Aspire.Hosting.csproj", "{B52DCF1A-465D-4E92-A68A-0EE1A9ED49DF}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MyFrontend", "samples\eShopLite\MyFrontend\MyFrontend.csproj", "{E958BE04-81C2-434C-9E6C-CA145A2B8218}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MyFrontend", "playground\eShopLite\MyFrontend\MyFrontend.csproj", "{E958BE04-81C2-434C-9E6C-CA145A2B8218}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AppHost", "samples\eShopLite\AppHost\AppHost.csproj", "{C1D595AD-FFFD-4E52-AAF6-8DD8C4BD67F1}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AppHost", "playground\eShopLite\AppHost\AppHost.csproj", "{C1D595AD-FFFD-4E52-AAF6-8DD8C4BD67F1}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{D173887B-AF42-4576-B9C1-96B9E9B3D9C0}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "playground", "playground", "{D173887B-AF42-4576-B9C1-96B9E9B3D9C0}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ServiceDefaults", "samples\eShopLite\ServiceDefaults\ServiceDefaults.csproj", "{C7B2309C-073A-4552-A508-A69768B64C6F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ServiceDefaults", "playground\eShopLite\ServiceDefaults\ServiceDefaults.csproj", "{C7B2309C-073A-4552-A508-A69768B64C6F}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CatalogService", "samples\eShopLite\CatalogService\CatalogService.csproj", "{6D04BB34-1CC6-4FF3-A02A-1FFAC2A7A4F3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CatalogService", "playground\eShopLite\CatalogService\CatalogService.csproj", "{6D04BB34-1CC6-4FF3-A02A-1FFAC2A7A4F3}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BasketService", "samples\eShopLite\BasketService\BasketService.csproj", "{3FC74EA6-D554-4A87-AED5-A08FE407BBF4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BasketService", "playground\eShopLite\BasketService\BasketService.csproj", "{3FC74EA6-D554-4A87-AED5-A08FE407BBF4}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ApiGateway", "samples\eShopLite\ApiGateway\ApiGateway.csproj", "{934625C7-243F-4659-9421-515301CF0263}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ApiGateway", "playground\eShopLite\ApiGateway\ApiGateway.csproj", "{934625C7-243F-4659-9421-515301CF0263}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.StackExchange.Redis", "src\Components\Aspire.StackExchange.Redis\Aspire.StackExchange.Redis.csproj", "{7D4A7A84-B297-4777-9E2A-D8B1C427CAC7}"
 EndProject
@@ -41,7 +40,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Npgsql.EntityFramewo
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Azure.Messaging.ServiceBus", "src\Components\Aspire.Azure.Messaging.ServiceBus\Aspire.Azure.Messaging.ServiceBus.csproj", "{CC9CD371-9909-4101-83F1-22C7C2617DE4}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OrderProcessor", "samples\eShopLite\OrderProcessor\OrderProcessor.csproj", "{955EDC6D-11A3-4408-9C00-7BFE140AD597}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OrderProcessor", "playground\eShopLite\OrderProcessor\OrderProcessor.csproj", "{955EDC6D-11A3-4408-9C00-7BFE140AD597}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Npgsql.EntityFrameworkCore.PostgreSQL", "src\Components\Aspire.Npgsql.EntityFrameworkCore.PostgreSQL\Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.csproj", "{0F505BE9-42FE-49EC-93CC-57584C4C9671}"
 EndProject
@@ -121,11 +120,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Microsoft.EntityFram
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "dapr", "dapr", "{57A42144-739E-49A7-BADB-BB8F5F20FA17}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DaprServiceA", "samples\dapr\ServiceA\DaprServiceA.csproj", "{185BCD98-BD26-4535-BE6E-44AAA4F7C145}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DaprServiceA", "playground\dapr\ServiceA\DaprServiceA.csproj", "{185BCD98-BD26-4535-BE6E-44AAA4F7C145}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DaprServiceB", "samples\dapr\ServiceB\DaprServiceB.csproj", "{B1D88C56-46EB-4171-A997-56E67875CF80}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DaprServiceB", "playground\dapr\ServiceB\DaprServiceB.csproj", "{B1D88C56-46EB-4171-A997-56E67875CF80}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DaprAppHost", "samples\dapr\AppHost\DaprAppHost.csproj", "{8EB719EE-38E4-4FAD-B3E5-F71FA7F7A3EB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DaprAppHost", "playground\dapr\AppHost\DaprAppHost.csproj", "{8EB719EE-38E4-4FAD-B3E5-F71FA7F7A3EB}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Dapr", "src\Aspire.Hosting.Dapr\Aspire.Hosting.Dapr.csproj", "{E2EC79D0-80F7-4471-9613-D7C8C3D52F95}"
 EndProject
@@ -141,7 +140,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Microsoft.Azure.Cosm
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Microsoft.EntityFrameworkCore.Cosmos.Tests", "tests\Aspire.Microsoft.EntityFrameworkCore.Cosmos.Tests\Aspire.Microsoft.EntityFrameworkCore.Cosmos.Tests.csproj", "{FDA02617-9C49-4DA8-A43A-A34DBA9B8596}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CatalogDb", "samples\eShopLite\CatalogDb\CatalogDb.csproj", "{A84C4EE3-2601-4804-BCDC-E9948E164A22}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CatalogDb", "playground\eShopLite\CatalogDb\CatalogDb.csproj", "{A84C4EE3-2601-4804-BCDC-E9948E164A22}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{991DB378-6CB5-4441-BFC3-657400690FC3}"
 	ProjectSection(SolutionItems) = preProject
@@ -184,15 +183,25 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Orleans", "s
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "orleans", "orleans", "{8BAF2119-8370-4E9E-A887-D92506F8C727}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OrleansAppHost", "samples\orleans\OrleansAppHost\OrleansAppHost.csproj", "{04B03D1C-45C5-44D4-AEE5-BC315F3D9D26}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OrleansAppHost", "playground\orleans\OrleansAppHost\OrleansAppHost.csproj", "{04B03D1C-45C5-44D4-AEE5-BC315F3D9D26}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OrleansServer", "samples\orleans\OrleansServer\OrleansServer.csproj", "{20758E81-7316-49AC-8E1B-A5461397530A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OrleansServer", "playground\orleans\OrleansServer\OrleansServer.csproj", "{20758E81-7316-49AC-8E1B-A5461397530A}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OrleansServiceDefaults", "samples\orleans\OrleansServiceDefaults\OrleansServiceDefaults.csproj", "{F7D9FA54-1F64-4A36-961A-0087F8E88D07}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OrleansServiceDefaults", "playground\orleans\OrleansServiceDefaults\OrleansServiceDefaults.csproj", "{F7D9FA54-1F64-4A36-961A-0087F8E88D07}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Confluent.Kafka", "src\Components\Aspire.Confluent.Kafka\Aspire.Confluent.Kafka.csproj", "{174E0507-3BB0-4CDC-829E-9CA75DA66473}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Confluent.Kafka.Tests", "tests\Aspire.Confluent.Kafka.Tests\Aspire.Confluent.Kafka.Tests.csproj", "{A8CB331A-1247-41D9-8118-538E5A2CC9DF}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Playgrounds", "Playgrounds", "{DF8ADBC2-5B15-422F-A703-C60711D5552D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CosmosEndToEnd", "CosmosEndToEnd", "{DBEDDF76-1C33-4943-8CCB-337A7D48AFF5}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CosmosEndToEnd.AppHost", "playground\CosmosEndToEnd\CosmosEndToEnd.AppHost\CosmosEndToEnd.AppHost.csproj", "{51DDD6BC-1D6C-466A-B509-FC49E3BD72E4}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CosmosEndToEnd.ApiService", "playground\CosmosEndToEnd\CosmosEndToEnd.ApiService\CosmosEndToEnd.ApiService.csproj", "{EABB20A8-CDA2-4AFE-A5B1-FB631200CD64}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Playground.ServiceDefaults", "playground\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj", "{25208C6F-0A9D-4D60-9EDD-256C9891B1CD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -520,6 +529,18 @@ Global
 		{A8CB331A-1247-41D9-8118-538E5A2CC9DF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A8CB331A-1247-41D9-8118-538E5A2CC9DF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A8CB331A-1247-41D9-8118-538E5A2CC9DF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{51DDD6BC-1D6C-466A-B509-FC49E3BD72E4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{51DDD6BC-1D6C-466A-B509-FC49E3BD72E4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{51DDD6BC-1D6C-466A-B509-FC49E3BD72E4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{51DDD6BC-1D6C-466A-B509-FC49E3BD72E4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EABB20A8-CDA2-4AFE-A5B1-FB631200CD64}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EABB20A8-CDA2-4AFE-A5B1-FB631200CD64}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EABB20A8-CDA2-4AFE-A5B1-FB631200CD64}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EABB20A8-CDA2-4AFE-A5B1-FB631200CD64}.Release|Any CPU.Build.0 = Release|Any CPU
+		{25208C6F-0A9D-4D60-9EDD-256C9891B1CD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{25208C6F-0A9D-4D60-9EDD-256C9891B1CD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{25208C6F-0A9D-4D60-9EDD-256C9891B1CD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{25208C6F-0A9D-4D60-9EDD-256C9891B1CD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -610,6 +631,10 @@ Global
 		{F7D9FA54-1F64-4A36-961A-0087F8E88D07} = {8BAF2119-8370-4E9E-A887-D92506F8C727}
 		{174E0507-3BB0-4CDC-829E-9CA75DA66473} = {27381127-6C45-4B4C-8F18-41FF48DFE4B2}
 		{A8CB331A-1247-41D9-8118-538E5A2CC9DF} = {4981B3A5-4AFD-4191-BF7D-8692D9783D60}
+		{DBEDDF76-1C33-4943-8CCB-337A7D48AFF5} = {D173887B-AF42-4576-B9C1-96B9E9B3D9C0}
+		{51DDD6BC-1D6C-466A-B509-FC49E3BD72E4} = {DBEDDF76-1C33-4943-8CCB-337A7D48AFF5}
+		{EABB20A8-CDA2-4AFE-A5B1-FB631200CD64} = {DBEDDF76-1C33-4943-8CCB-337A7D48AFF5}
+		{25208C6F-0A9D-4D60-9EDD-256C9891B1CD} = {D173887B-AF42-4576-B9C1-96B9E9B3D9C0}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6DCEDFEC-988E-4CB3-B45B-191EB5086E0C}

@@ -36,6 +36,7 @@
 
 namespace ]]>%(Namespace)<![CDATA[%3B
 
+[System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, ProjectPath = {ProjectPath}")]
 public class ]]>%(ClassName)<![CDATA[ : IServiceMetadata
 {
   public string ProjectPath => """]]>%(ProjectPath)<![CDATA["""%3B

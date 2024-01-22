@@ -41,7 +41,7 @@ internal sealed class DcpDistributedApplicationLifecycleHook(IOptions<Publishing
             {
                 var uri = new Uri(url);
 
-                if (projectResource.Annotations.OfType<EndpointAnnotation>().Any(sb => sb.Name == uri.Scheme))
+                if (projectResource.Annotations.OfType<EndpointAnnotation>().Any(sb => string.Equals(sb.Name, uri.Scheme, StringComparisons.EndpointAnnotationName)))
                 {
                     // If someone uses WithEndpoint in the dev host to register a endpoint with the name
                     // http or https this exception will be thrown.
