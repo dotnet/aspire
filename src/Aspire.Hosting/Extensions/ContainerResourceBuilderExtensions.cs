@@ -38,6 +38,12 @@ public static class ContainerResourceBuilderExtensions
                       .WithAnnotation(new ContainerImageAnnotation { Image = image, Tag = tag });
     }
 
+    [Obsolete("WithServiceBinding has been renamed to WithEndpoint. Use WithEndpoint instead.")]
+    public static IResourceBuilder<T> WithServiceBinding<T>(this IResourceBuilder<T> builder, int containerPort, int? hostPort = null, string? scheme = null, string? name = null, string? env = null) where T : IResource
+    {
+        return builder.WithEndpoint(containerPort: containerPort, hostPort: hostPort, scheme: scheme, name: name, env: env);
+    }
+
     /// <summary>
     /// Adds a binding to expose an endpoint on a resource.
     /// </summary>
@@ -51,7 +57,7 @@ public static class ContainerResourceBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithEndpoint<T>(this IResourceBuilder<T> builder, int containerPort, int? hostPort = null, string? scheme = null, string? name = null, string? env = null) where T : IResource
     {
-        if (builder.Resource.Annotations.OfType<EndpointAnnotation>().Any(sb => sb.Name == name))
+        if (builder.Resource.Annotations.OfType<EndpointAnnotation>().Any(sb => string.Equals(sb.Name, name, StringComparisons.EndpointAnnotationName)))
         {
             throw new DistributedApplicationException($"Endpoint with name '{name}' already exists");
         }

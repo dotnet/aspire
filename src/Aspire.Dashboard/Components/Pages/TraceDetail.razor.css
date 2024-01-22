@@ -87,9 +87,6 @@
 }
 
 ::deep .span-name-container {
-    border-left-width: 5px;
-    border-left-style: solid;
-    padding-left: 5px;
     line-height: 28px;
 }
 
@@ -132,7 +129,12 @@
 }
 
 ::deep .uninstrumented-peer {
-    padding-left: 0.5rem;
+    padding-left: 0.25rem;
+}
+
+::deep .server-request-icon {
+    margin-right: 3px;
+    vertical-align: text-bottom;
 }
 
 ::deep .uninstrumented-peer-icon {
