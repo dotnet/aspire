@@ -136,7 +136,7 @@ public sealed class ManifestPublishingContext(string manifestPath, Utf8JsonWrite
 
                 var endpointAnnotationsGroupedByScheme = endpointReferenceAnnotation.Resource.Annotations
                     .OfType<EndpointAnnotation>()
-                    .Where(sba => endpointNames.Contains(sba.Name))
+                    .Where(sba => endpointNames.Contains(sba.Name, StringComparers.EndpointAnnotationName))
                     .GroupBy(sba => sba.UriScheme);
 
                 var i = 0;
