@@ -4,21 +4,21 @@
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// Represents an endpoint reference for a resource with bindings.
+/// Represents an endpoint reference for a resource with endpoints.
 /// </summary>
-/// <param name="owner">The resource with bindings that owns the endpoint reference.</param>
-/// <param name="bindingName">The name of the binding.</param>
-public sealed class EndpointReference(IResourceWithBindings owner, string bindingName)
+/// <param name="owner">The resource with endpoints that owns the endpoint reference.</param>
+/// <param name="endpointName">The name of the endpoint.</param>
+public sealed class EndpointReference(IResourceWithEndpoints owner, string endpointName)
 {
     /// <summary>
     /// Gets the owner of the endpoint reference.
     /// </summary>
-    public IResourceWithBindings Owner { get; } = owner;
+    public IResourceWithEndpoints Owner { get; } = owner;
 
     /// <summary>
-    /// Gets the name of the binding associated with the endpoint reference.
+    /// Gets the name of the endpoint associated with the endpoint reference.
     /// </summary>
-    public string BindingName { get; } = bindingName;
+    public string EndpointName { get; } = endpointName;
 
     /// <summary>
     /// Gets the URI string for the endpoint reference.
@@ -27,8 +27,8 @@ public sealed class EndpointReference(IResourceWithBindings owner, string bindin
     {
         get
         {
-            var allocatedEndpoint = Owner.Annotations.OfType<AllocatedEndpointAnnotation>().SingleOrDefault(a => a.Name == BindingName);
-            return allocatedEndpoint?.UriString ?? $"{{{Owner.Name}.bindings.{BindingName}.url}}";
+            var allocatedEndpoint = Owner.Annotations.OfType<AllocatedEndpointAnnotation>().SingleOrDefault(a => a.Name == EndpointName);
+            return allocatedEndpoint?.UriString ?? $"{{{Owner.Name}.bindings.{EndpointName}.url}}";
         }
     }
 }
