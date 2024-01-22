@@ -24,7 +24,7 @@ namespace Aspire.Dashboard.Model;
 internal sealed class DashboardClient : IDashboardClient
 {
     private const string DashboardServiceUrlVariableName = "DOTNET_DASHBOARD_GRPC_ENDPOINT_URL";
-    private const string DashboardServiceUrlDefaultValue = "http://localhost:18999";
+    private const string DashboardServiceUrlDefaultValue = "https://localhost:18999";
 
     private readonly Dictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
     private readonly CancellationTokenSource _cts = new();
