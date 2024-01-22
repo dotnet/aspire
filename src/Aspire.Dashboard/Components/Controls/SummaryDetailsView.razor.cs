@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -61,7 +62,7 @@ public partial class SummaryDetailsView
     {
         if (RememberOrientation)
         {
-            var orientationResult = await ProtectedLocalStore.GetAsync<Orientation>(GetOrientationStorageKey());
+            var orientationResult = await ProtectedLocalStore.SafeGetAsync<Orientation>(GetOrientationStorageKey());
             if (orientationResult.Success)
             {
                 Orientation = orientationResult.Value;
@@ -70,7 +71,7 @@ public partial class SummaryDetailsView
 
         if (RememberSize)
         {
-            var panel1FractionResult = await ProtectedLocalStore.GetAsync<float>(GetSizeStorageKey());
+            var panel1FractionResult = await ProtectedLocalStore.SafeGetAsync<float>(GetSizeStorageKey());
             if (panel1FractionResult.Success)
             {
                 SetPanelSizes(panel1FractionResult.Value);
