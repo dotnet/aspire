@@ -50,9 +50,6 @@ internal sealed partial class ConfigurationServiceEndPointResolver : IServiceEnd
     }
 
     /// <inheritdoc/>
-    public string DisplayName => "Configuration";
-
-    /// <inheritdoc/>
     public ValueTask DisposeAsync() => default;
 
     /// <inheritdoc/>
