@@ -123,7 +123,7 @@ internal sealed class DashboardServiceHost : IHostedService
             return false;
         }
 
-        if (candidateUri.Host.ToLowerInvariant() != "localhost")
+        if (!StringComparer.InvariantCultureIgnoreCase.Equals(candidateUri.Host, "localhost"))
         {
             uri = null;
             return false;
