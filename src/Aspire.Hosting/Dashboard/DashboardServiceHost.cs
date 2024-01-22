@@ -117,7 +117,7 @@ internal sealed class DashboardServiceHost : IHostedService
             return false;
         }
 
-        if (candidateUri.Scheme.ToLowerInvariant() != "https")
+        if (!StringComparer.InvariantCultureIgnoreCase.Equals(candidateUri.Scheme, "https"))
         {
             uri = null;
             return false;
