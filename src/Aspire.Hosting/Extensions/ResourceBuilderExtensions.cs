@@ -305,6 +305,12 @@ public static class ResourceBuilderExtensions
         }
     }
 
+    [Obsolete("WithServiceBinding has been renamed to WithEndpoint. Use WithEndpoint instead.")]
+    public static IResourceBuilder<T> WithServiceBinding<T>(this IResourceBuilder<T> builder, int? hostPort = null, string? scheme = null, string? name = null, string? env = null) where T : IResource
+    {
+        return builder.WithEndpoint(hostPort: hostPort, scheme: scheme, name: name, env: env);
+    }
+
     /// <summary>
     /// Exposes an endpoint on a resource. This binding reference can be retrieved using <see cref="GetEndpoint{T}(IResourceBuilder{T}, string)"/>.
     /// The binding name will be the scheme name if not specified.
