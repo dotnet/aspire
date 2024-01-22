@@ -133,13 +133,13 @@
         <note />
       </trans-unit>
       <trans-unit id="MetricTableShowNonValueChanges">
-        <source>Don't only show value changes</source>
-        <target state="new">Don't only show value changes</target>
+        <source>Don't only show value updates</source>
+        <target state="new">Don't only show value updates</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricTableShowOnlyValueChanges">
-        <source>Only show value changes</source>
-        <target state="new">Only show value changes</target>
+        <source>Only show value updates</source>
+        <target state="new">Only show value updates</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricTableStartColumnHeader">

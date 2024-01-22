@@ -249,10 +249,10 @@
     <value>Show the latest 10 values</value>
   </data>
   <data name="MetricTableShowNonValueChanges" xml:space="preserve">
-    <value>Don't only show value changes</value>
+    <value>Don't only show value updates</value>
   </data>
   <data name="MetricTableShowOnlyValueChanges" xml:space="preserve">
-    <value>Only show value changes</value>
+    <value>Only show value updates</value>
   </data>
   <data name="SelectAResource" xml:space="preserve">
     <value>Select a resource</value>

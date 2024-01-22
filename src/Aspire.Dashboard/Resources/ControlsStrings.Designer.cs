@@ -294,7 +294,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Don&apos;t only show value changes.
+        ///   Looks up a localized string similar to Don&apos;t only show value updates.
         /// </summary>
         public static string MetricTableShowNonValueChanges {
             get {
@@ -303,7 +303,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Only show value changes.
+        ///   Looks up a localized string similar to Only show value updates.
         /// </summary>
         public static string MetricTableShowOnlyValueChanges {
             get {
