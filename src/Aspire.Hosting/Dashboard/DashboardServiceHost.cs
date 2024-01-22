@@ -12,7 +12,7 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Aspire.Hosting.Publishing;
-using Aspire.Hosting.Utils;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Aspire.Hosting.Dashboard;
 
@@ -23,7 +23,7 @@ namespace Aspire.Hosting.Dashboard;
 internal sealed class DashboardServiceHost : IHostedService
 {
     private const string DashboardServiceUrlVariableName = "DOTNET_DASHBOARD_GRPC_ENDPOINT_URL";
-    private const string DashboardServiceUrlDefaultValue = "http://localhost:18999";
+    private const string DashboardServiceUrlDefaultValue = "https://localhost:18999";
 
     /// <summary>
     /// <see langword="null"/> if <see cref="DistributedApplicationOptions.DashboardEnabled"/> is <see langword="false"/>.
@@ -38,6 +38,13 @@ internal sealed class DashboardServiceHost : IHostedService
         ILoggerFactory loggerFactory,
         IConfigureOptions<LoggerFilterOptions> loggerOptions)
     {
+        if (!TryGetDashboardServiceUriFromEnviroment(out var dashboardServiceUri))
+        {
+            dashboardServiceUri = new Uri(DashboardServiceUrlDefaultValue);
+        }
+
+        DashboardServiceUri = dashboardServiceUri;
+
         if (!options.DashboardEnabled)
         {
             return;
@@ -68,34 +75,62 @@ internal sealed class DashboardServiceHost : IHostedService
 
         return;
 
-        static void ConfigureKestrel(KestrelServerOptions kestrelOptions)
+        void ConfigureKestrel(KestrelServerOptions kestrelOptions)
         {
-            var uris = EnvironmentUtil.GetAddressUris(DashboardServiceUrlVariableName, DashboardServiceUrlDefaultValue);
 
-            foreach (var uri in uris)
+            if (DashboardServiceUri.IsLoopback)
             {
-                if (uri.IsLoopback)
-                {
-                    kestrelOptions.ListenLocalhost(uri.Port, ConfigureListen);
-                }
-                else
-                {
-                    kestrelOptions.Listen(IPAddress.Parse(uri.Host), uri.Port, ConfigureListen);
-                }
+                kestrelOptions.ListenLocalhost(dashboardServiceUri.Port, ConfigureListen);
+            }
+            else
+            {
+                kestrelOptions.Listen(IPAddress.Parse(DashboardServiceUri.Host), DashboardServiceUri.Port, ConfigureListen);
+            }
 
-                void ConfigureListen(ListenOptions options)
-                {
-                    // Force HTTP/2 for gRPC, so that it works over non-TLS connections
-                    // which cannot negotiate between HTTP/1.1 and HTTP/2.
-                    options.Protocols = HttpProtocols.Http2;
+            void ConfigureListen(ListenOptions options)
+            {
+                // Force HTTP/2 for gRPC, so that it works over non-TLS connections
+                // which cannot negotiate between HTTP/1.1 and HTTP/2.
+                options.Protocols = HttpProtocols.Http2;
 
-                    if (string.Equals(uri.Scheme, "https", StringComparison.Ordinal))
-                    {
-                        options.UseHttps();
-                    }
+                if (string.Equals(DashboardServiceUri.Scheme, "https", StringComparison.Ordinal))
+                {
+                    options.UseHttps();
                 }
             }
         }
+    }
+
+    public Uri? DashboardServiceUri { get; init; }
+
+    private static bool TryGetDashboardServiceUriFromEnviroment([NotNullWhen(true)]out Uri? uri)
+    {
+        if (Environment.GetEnvironmentVariable(DashboardServiceUrlVariableName) is not { } value)
+        {
+            uri = null;
+            return false;
+        }
+
+        if (!Uri.TryCreate(value, UriKind.Absolute, out var candidateUri))
+        {
+            uri = null;
+            return false;
+        }
+
+        if (candidateUri.Scheme.ToLowerInvariant() != "https")
+        {
+            uri = null;
+            return false;
+        }
+
+        if (candidateUri.Host.ToLowerInvariant() != "localhost")
+        {
+            uri = null;
+            return false;
+        }
+
+        uri = candidateUri;
+        return true;
     }
 
     async Task IHostedService.StartAsync(CancellationToken cancellationToken)

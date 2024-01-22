@@ -32,6 +32,10 @@ builder.AddProject<Projects.ApiGateway>("apigateway")
 builder.AddProject<Projects.CatalogDb>("catalogdbapp")
        .WithReference(catalogDb);
 
-builder.AddProject<Projects.Aspire_Dashboard>("aspire-dashboard");
+// This is added to the sample project to allow for debugging of the dashboard code,
+// not required under normal circumstances.
+builder.AddProject<Projects.Aspire_Dashboard>("aspire-dashboard")
+    .WithEnvironment("DOTNET_DASHBOARD_OTLP_ENDPOINT_URL", "http://localhost:16031")
+    .WithEnvironment("DOTNET_DASHBOARD_GRPC_ENDPOINT_URL", "https://localhost:18999");
 
 builder.Build().Run();

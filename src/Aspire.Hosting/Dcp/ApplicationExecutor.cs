@@ -1,7 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using System.Net.Sockets;
+using System.Reflection;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp.Model;
@@ -49,12 +51,14 @@ internal sealed class ServiceAppResource : AppResource
 
 internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger, DistributedApplicationModel model,
                                           KubernetesService kubernetesService,
-                                          IEnumerable<IDistributedApplicationLifecycleHook> lifecycleHooks)
+                                          IEnumerable<IDistributedApplicationLifecycleHook> lifecycleHooks,
+                                          DashboardServiceHost dashboardHost)
 {
     private const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
 
     private readonly ILogger<ApplicationExecutor> _logger = logger;
     private readonly IDistributedApplicationLifecycleHook[] _lifecycleHooks = lifecycleHooks.ToArray();
+    private readonly DashboardServiceHost _dashboardServiceHost = dashboardHost;
 
     // These environment variables should never be inherited from app host;
     // they only make sense if they come from a launch profile of a service project.
@@ -93,21 +97,75 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger, D
         }
     }
 
+    private bool TryGetMetadataPath(string key, [NotNullWhen(true)]out string? path)
+    {
+        var entryAssembly = Assembly.GetEntryAssembly()!; // Null suppression because it can't return null in this context.
+        var metadataAttributes = entryAssembly.GetCustomAttributes<AssemblyMetadataAttribute>();
+
+        if (metadataAttributes.SingleOrDefault(a => a.Key == key) is not { } pathAttribute)
+        {
+            _logger.LogWarning("Metadata attribute with key '{Key}' is not found in assembly '{EntryAssembly}'", key, entryAssembly.FullName);
+            path = null;
+            return false;
+        }
+
+        if (string.IsNullOrEmpty(pathAttribute.Value))
+        {
+            _logger.LogWarning("Metadata attribute with key '{Key}' is empty in assembly '{EntryAssembly}'", key, entryAssembly.FullName);
+            path = null;
+            return false;
+        }
+
+        var fullyQualifiedPath = Path.GetFullPath(pathAttribute.Value);
+
+        if (!File.Exists(fullyQualifiedPath))
+        {
+            path = null;
+            return false;
+        }
+
+        path = fullyQualifiedPath;
+        return true;
+    }
+
+    private const string DashboardPathMetadataKey = "aspiredashboardpath";
+
     private async Task StartDashboardAsync(CancellationToken cancellationToken = default)
     {
+        if (!TryGetMetadataPath(DashboardPathMetadataKey, out var dashboardPath))
+        {
+            _logger.LogWarning("Dashboard is not being started because path was not present or invalid.");
+            return;
+        }
+
+        var dashboardWorkingDirectory = Path.GetDirectoryName(dashboardPath);
+
         var dashboardExecutableSpec = new ExecutableSpec();
         dashboardExecutableSpec.ExecutionType = ExecutionType.Process;
    
-        // HACK: Just doing this in this branch until the workload mechanism is in place
-        //       and I can emulate it.
-        dashboardExecutableSpec.ExecutablePath = "C:\\Code\\dotnet\\aspire\\artifacts\\bin\\Aspire.Dashboard\\Debug\\net8.0\\Aspire.Dashboard.exe";
-        dashboardExecutableSpec.WorkingDirectory = "C:\\Code\\dotnet\\aspire\\src\\Aspire.Dashboard";
+        dashboardExecutableSpec.ExecutablePath = "dotnet";
+        dashboardExecutableSpec.Args = [dashboardPath];
+        dashboardExecutableSpec.WorkingDirectory = dashboardWorkingDirectory;
+
+        var grpcEndpointUrl = _dashboardServiceHost.DashboardServiceUri?.ToString();
+        var otlpEndpointUrl = Environment.GetEnvironmentVariable("DOTNET_DASHBOARD_OTLP_ENDPOINT_URL");
+        var dashboardUrl = Environment.GetEnvironmentVariable("ASPNETCORE_URLS");
 
         var environment = new List<EnvVar>();
         environment.Add(new EnvVar()
         {
             Name = "DOTNET_DASHBOARD_GRPC_ENDPOINT_URL",
-            Value = "http://localhost:18999"
+            Value = grpcEndpointUrl
+        });
+        environment.Add(new EnvVar()
+        {
+            Name = "ASPNETCORE_URLS",
+            Value = dashboardUrl
+        });
+        environment.Add(new EnvVar()
+        {
+            Name = "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL",
+            Value = otlpEndpointUrl
         });
         environment.Add(new EnvVar()
         {
