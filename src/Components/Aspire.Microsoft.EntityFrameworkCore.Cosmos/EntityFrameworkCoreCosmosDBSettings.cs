@@ -31,24 +31,33 @@ public sealed class EntityFrameworkCoreCosmosDBSettings
     public TokenCredential? Credential { get; set; }
 
     /// <summary>
-    /// Gets or sets a boolean value that indicates whether the db context will be pooled or explicitly created every time it's requested.
+    /// Gets or sets a boolean value that indicates whether the DbContext will be pooled or explicitly created every time it's requested.
     /// </summary>
     public bool DbContextPooling { get; set; } = true;
 
     /// <summary>
-    /// <para>Gets or sets a boolean value that indicates whether the Open Telemetry tracing is enabled or not.</para>
-    /// <para>Enabled by default.</para>
+    /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.
     /// </summary>
+    /// <value>
+    /// The default value is <see langword="true"/>.
+    /// </value>
     public bool Tracing { get; set; } = true;
 
     /// <summary>
-    /// <para>Gets or sets a boolean value that indicates whether the Open Telemetry metrics are enabled or not.</para>
-    /// <para>Enabled by default.</para>
+    /// Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not.
     /// </summary>
+    /// <value>
+    /// The default value is <see langword="true"/>.
+    /// </value>
     public bool Metrics { get; set; } = true;
 
     /// <summary>
     /// Gets or sets a string value that indicates what Azure region this client will run in.
     /// </summary>
     public string? Region { get; set; }
+
+    /// <summary>
+    /// Controls whether the Cosmos DB emulator certificate is ignored when its use is detected.
+    /// </summary>
+    public bool IgnoreEmulatorCertificate { get; set; }
 }

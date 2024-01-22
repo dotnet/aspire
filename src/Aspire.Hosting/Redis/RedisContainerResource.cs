@@ -1,13 +1,15 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Redis;
+
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
 /// A resource that represents a Redis container.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
-public class RedisContainerResource(string name) : ContainerResource(name), IRedisResource
+public class RedisContainerResource(string name) : ContainerResource(name), IResourceWithConnectionString, IRedisResource
 {
     /// <summary>
     /// Gets the connection string for the Redis server.

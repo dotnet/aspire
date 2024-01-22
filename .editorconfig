@@ -18,6 +18,7 @@ indent_style = space
 charset = utf-8
 trim_trailing_whitespace = true
 insert_final_newline = true
+spelling_exclusion_path = spelling.dic
 
 [*.cs]
 indent_size = 4
@@ -304,7 +305,7 @@ dotnet_diagnostic.IDE0031.severity = warning
 dotnet_diagnostic.IDE0035.severity = warning
 
 # IDE0036: Order modifiers
-csharp_preferred_modifier_order = public,private,protected,internal,static,extern,new,virtual,abstract,sealed,override,readonly,unsafe,volatile,async:suggestion
+csharp_preferred_modifier_order = public,private,protected,internal,file,static,extern,new,virtual,abstract,sealed,override,readonly,unsafe,volatile,async:suggestion
 dotnet_diagnostic.IDE0036.severity = warning
 
 # IDE0038: Use pattern matching to avoid is check followed by a cast (without variable)
@@ -474,4 +475,7 @@ dotnet_diagnostic.IDE0005.severity = silent
 
 [{*.razor.cs,src/Aspire.Dashboard/Components/**.cs}]
 # CA2007: Consider calling ConfigureAwait on the awaited task
+dotnet_diagnostic.CA2007.severity = silent
+
+[{src/Playgrounds/**.cs}]
 dotnet_diagnostic.CA2007.severity = silent

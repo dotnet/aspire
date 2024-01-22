@@ -9,7 +9,7 @@ namespace Aspire.RabbitMQ.Client;
 public sealed class RabbitMQClientSettings
 {
     /// <summary>
-    /// The connection string of the RabbitMQ server to connect to.
+    /// Gets or sets the connection string of the RabbitMQ server to connect to.
     /// </summary>
     public string? ConnectionString { get; set; }
 
@@ -20,14 +20,18 @@ public sealed class RabbitMQClientSettings
     public int MaxConnectRetryCount { get; set; } = 5;
 
     /// <summary>
-    /// <para>Gets or sets a boolean value that indicates whether the RabbitMQ health check is enabled or not.</para>
-    /// <para>Enabled by default.</para>
+    /// Gets or sets a boolean value that indicates whether the RabbitMQ health check is enabled or not.
     /// </summary>
+    /// <value>
+    /// The default value is <see langword="true"/>.
+    /// </value>
     public bool HealthChecks { get; set; } = true;
 
     /// <summary>
-    /// <para>Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.</para>
-    /// <para>Enabled by default.</para>
+    /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.
     /// </summary>
+    /// <value>
+    /// The default value is <see langword="true"/>.
+    /// </value>
     public bool Tracing { get; set; } = true;
 }

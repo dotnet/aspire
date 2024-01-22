@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <!-- MongoDB.Driver package is unsigned, we ignore that warning on purpose  -->
+    <NoWarn>$(NoWarn);CS8002</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Components\Aspire.MongoDB.Driver\Aspire.MongoDB.Driver.csproj" />
+    <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />
+  </ItemGroup>
+
+</Project>

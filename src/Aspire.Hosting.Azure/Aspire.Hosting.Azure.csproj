@@ -3,8 +3,13 @@
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
+    <PackageTags>aspire hosting azure</PackageTags>
     <Description>Azure resource types for .NET Aspire.</Description>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Shared\Cosmos\CosmosConstants.cs" Link="Shared\CosmosConstants.cs" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />

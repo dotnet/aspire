@@ -1,0 +1,82 @@
+﻿@page "/"
+@using Aspire.Dashboard.Components.ResourcesGridColumns
+@using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Resources
+@inject IStringLocalizer<Dashboard.Resources.Resources> Loc
+@inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
+
+<PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.Resources.ResourcesPageTitle)" Loc="@Loc" /></PageTitle>
+
+<div class="content-layout-with-toolbar">
+    <FluentToolbar Orientation="Orientation.Horizontal">
+        <h1 slot="label">@Loc[nameof(Dashboard.Resources.Resources.ResourcesHeader)]</h1>
+        <FluentButton id="typeFilterButton" slot="end"
+                      Appearance="@(AreAllTypesVisible is true ? Appearance.Stealth : Appearance.Accent)"
+                      IconEnd="@(new Icons.Regular.Size24.Filter())"
+                      @onclick="() => _isTypeFilterVisible = !_isTypeFilterVisible"
+                      Title="@(AreAllTypesVisible is true ? Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFilterAllVisible)] : Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFiltered)])"
+                      aria-label="@(AreAllTypesVisible is true ? Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFilterAllVisible)] : Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeFiltered)])" />
+        <FluentPopover AnchorId="typeFilterButton" @bind-Open="_isTypeFilterVisible">
+            <Header>@Loc[nameof(Dashboard.Resources.Resources.ResourcesResourceTypesHeader)]</Header>
+            <Body>
+                <FluentStack Orientation="Orientation.Vertical">
+                    <FluentCheckbox
+                        Label="@ControlsStringsLoc[nameof(ControlsStrings.All)]"
+                        ThreeState="true"
+                        ShowIndeterminate="false"
+                        ThreeStateOrderUncheckToIntermediate="true"
+                        @bind-CheckState="AreAllTypesVisible" />
+                    @foreach (var resourceType in _allResourceTypes)
+                    {
+                        var isChecked = _visibleResourceTypes.Contains(resourceType);
+                        <FluentCheckbox
+                            Label="@resourceType"
+                            @bind-Value:get="isChecked"
+                            @bind-Value:set="c => OnResourceTypeVisibilityChanged(resourceType, c)"
+                            />
+                    }
+                </FluentStack>
+            </Body>
+        </FluentPopover>
+        <FluentSearch Placeholder="@ControlsStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"
+                        Immediate="true"
+                        @bind-Value="_filter"
+                        slot="end" />
+    </FluentToolbar>
+    <SummaryDetailsView DetailsTitle="@(SelectedResource != null ? $"{SelectedResource.ResourceType}: {GetResourceName(SelectedResource)}" : null)"
+                        ShowDetails="@(SelectedResource is not null)"
+                        OnDismiss="() => ClearSelectedResource()"
+                        ViewKey="ResourcesList">
+        <Summary>
+            <FluentDataGrid Items="@FilteredResources" ResizableColumns="true" GridTemplateColumns="1fr 2fr 1fr 2fr 2.5fr 2fr 1fr" RowClass="GetRowClass">
+                <ChildContent>
+                    <PropertyColumn Property="@(c => c.ResourceType)" Title="Type" Sortable="true" />
+                    <TemplateColumn Title="Name" Sortable="true" SortBy="@_nameSort">
+                        <ResourceNameDisplay Resource="context" FilterText="@_filter" FormatName="GetResourceName" />
+                    </TemplateColumn>
+                    <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesEnvironmentVariablesGridStateColumnHeader)]" Sortable="true" SortBy="@_stateSort">
+                        <StateColumnDisplay UnviewedErrorCounts="@_applicationUnviewedErrorCounts" Resource="@context" />
+                    </TemplateColumn>
+                    <PropertyColumn Property="@(c => c.CreationTimeStamp)" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesEnvironmentVariablesGridStartTimeColumnHeader)]" Sortable="true" Tooltip="true" />
+                    <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesEnvironmentVariablesGridSourceColumnHeader)]">
+                        <SourceColumnDisplay Resource="context" FilterText="@_filter" />
+                    </TemplateColumn>
+                    <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesEnvironmentVariablesGridEndpointsColumnHeader)]">
+                        <EndpointsColumnDisplay Resource="context" HasMultipleReplicas="HasMultipleReplicas(context)" />
+                    </TemplateColumn>
+                    <TemplateColumn Title="Details" Sortable="false">
+                        <FluentButton Appearance="Appearance.Lightweight"
+                                      Title="@ControlsStringsLoc[nameof(ControlsStrings.ViewAction)]"
+                                      OnClick="() => ShowResourceDetails(context)">@ControlsStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentButton>
+                    </TemplateColumn>
+                </ChildContent>
+                <EmptyContent>
+                    <FluentIcon Icon="Icons.Regular.Size24.AppGeneric" />&nbsp;@Loc[nameof(Dashboard.Resources.Resources.ResourcesNoResources)]
+                </EmptyContent>
+            </FluentDataGrid>
+        </Summary>
+        <Details>
+            <ResourceDetails Resource="SelectedResource" ShowSpecOnlyToggle="true" />
+        </Details>
+    </SummaryDetailsView>
+</div>

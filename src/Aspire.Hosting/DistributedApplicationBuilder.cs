@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Publishing;
@@ -29,6 +30,9 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     public IServiceCollection Services => _innerBuilder.Services;
 
     /// <inheritdoc />
+    public string AppHostDirectory { get; }
+
+    /// <inheritdoc />
     public IResourceCollection Resources { get; } = new ResourceCollection();
 
     /// <summary>
@@ -40,6 +44,14 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _args = options.Args ?? [];
         _innerBuilder = new HostApplicationBuilder();
 
+        AppHostDirectory = options.ProjectDirectory ?? _innerBuilder.Environment.ContentRootPath;
+
+        // Make the app host directory available to the application via configuration
+        _innerBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["AppHost:Directory"] = AppHostDirectory
+        });
+
         // Core things
         _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Resources));
         _innerBuilder.Services.AddHostedService<DistributedApplicationRunner>();
@@ -50,9 +62,12 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddSingleton<ApplicationExecutor>();
         _innerBuilder.Services.AddHostedService<DcpHostService>();
 
+        // Dashboard
+        _innerBuilder.Services.AddHostedService<DashboardServiceHost>();
+        _innerBuilder.Services.AddHostedService<DashboardWebApplicationHost>();
+
         // We need a unique path per application instance
-        var path = Directory.CreateTempSubdirectory("aspire.").FullName;
-        _innerBuilder.Services.AddSingleton(new Locations(path));
+        _innerBuilder.Services.AddSingleton(new Locations());
         _innerBuilder.Services.AddSingleton<KubernetesService>();
 
         // Publishing support
@@ -88,6 +103,15 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         AspireEventSource.Instance.DistributedApplicationBuildStart();
         try
         {
+            // AddResource(resource) validates that a name is unique but it's possible to add resources directly to the resource collection.
+            // Validate names for duplicates while building the application.
+            foreach (var duplicateResourceName in Resources.GroupBy(r => r.Name, StringComparers.ResourceName)
+                .Where(g => g.Count() > 1)
+                .Select(g => g.Key))
+            {
+                throw new DistributedApplicationException($"Multiple resources with the name '{duplicateResourceName}'. Resource names are case-insensitive.");
+            }
+
             var application = new DistributedApplication(_innerBuilder.Build(), _args);
             return application;
         }
@@ -100,9 +124,9 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     /// <inheritdoc />
     public IResourceBuilder<T> AddResource<T>(T resource) where T : IResource
     {
-        if (Resources.FirstOrDefault(r => r.Name == resource.Name) is { } existingResource)
+        if (Resources.FirstOrDefault(r => string.Equals(r.Name, resource.Name, StringComparisons.ResourceName)) is { } existingResource)
         {
-            throw new DistributedApplicationException($"Cannot add resource of type '{resource.GetType()}' with name '{resource.Name}' because resource of type '{existingResource.GetType()}' with that name already exists.");
+            throw new DistributedApplicationException($"Cannot add resource of type '{resource.GetType()}' with name '{resource.Name}' because resource of type '{existingResource.GetType()}' with that name already exists. Resource names are case-insensitive.");
         }
 
         Resources.Add(resource);

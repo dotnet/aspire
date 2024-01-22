@@ -12,7 +12,6 @@
 
 ::deep.logs-layout > h1 {
     grid-area: head;
-    padding: calc(var(--design-unit) * 1px);
 }
 
 ::deep.logs-layout > fluent-toolbar {
@@ -33,11 +32,6 @@
 
 ::deep .log-row-warning {
     background-color: var(--log-warning);
-}
-
-::deep .logs-severity-icon {
-    vertical-align: text-bottom;
-    margin-right: 3px;
 }
 
 ::deep .logs-summary-layout {

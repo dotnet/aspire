@@ -28,6 +28,11 @@
     grid-row-start: 1;
     background-color: var(--neutral-layer-4);
     color: var(--neutral-foreground-rest);
+    padding: calc(var(--design-unit) * 2px) calc(var(--design-unit) * 3px);
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas: "title actions";
+    align-items: center;
 }
 
 ::deep .details-container > header fluent-button[appearance=stealth]:not(:hover)::part(control) {
@@ -38,6 +43,16 @@
     grid-row-start: 2;
 }
 
-::deep .header-right {
-    margin-left: auto;
+::deep .details-container > header > .details-header-title {
+    grid-area: title;
+    font-size: var(--type-ramp-plus-1-font-size);
+    font-weight: bold;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+::deep .details-container > header > .header-actions {
+    white-space: nowrap;
+    grid-area: actions;
 }

@@ -1,0 +1,18 @@
+﻿@using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Resources
+@inject IStringLocalizer<Columns> Loc
+
+<FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
+    <span><FluentHighlighter HighlightedText="@FilterText" Text="@FormatName(Resource)" /></span>
+</FluentStack>
+
+@code {
+    [Parameter, EditorRequired]
+    public required ResourceViewModel Resource { get; set; }
+
+    [Parameter, EditorRequired]
+    public required Func<ResourceViewModel, string> FormatName { get; set; }
+
+    [Parameter, EditorRequired]
+    public required string FilterText { get; set; }
+}

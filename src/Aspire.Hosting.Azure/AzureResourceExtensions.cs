@@ -2,8 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
-using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure.Data.Cosmos;
+using Aspire.Hosting.Publishing;
 
 namespace Aspire.Hosting;
 
@@ -17,17 +18,17 @@ public static class AzureResourceExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{AzureKeyVaultResource}"/>.</returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureKeyVaultResource> AddAzureKeyVault(this IDistributedApplicationBuilder builder, string name)
     {
         var keyVault = new AzureKeyVaultResource(name);
         return builder.AddResource(keyVault)
-                      .WithAnnotation(new ManifestPublishingCallbackAnnotation(WriteAzureKeyVaultToManifest));
+                      .WithManifestPublishingCallback(WriteAzureKeyVaultToManifest);
     }
 
-    private static void WriteAzureKeyVaultToManifest(Utf8JsonWriter jsonWriter)
+    private static void WriteAzureKeyVaultToManifest(ManifestPublishingContext context)
     {
-        jsonWriter.WriteString("type", "azure.keyvault.v0");
+        context.Writer.WriteString("type", "azure.keyvault.v0");
     }
 
     /// <summary>
@@ -37,7 +38,7 @@ public static class AzureResourceExtensions
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="queueNames">A list of queue names associated with this service bus resource.</param>
     /// <param name="topicNames">A list of topic names associated with this service bus resource.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{AzureServiceBusResource}"/>.</returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureServiceBusResource> AddAzureServiceBus(this IDistributedApplicationBuilder builder, string name, string[]? queueNames = null, string[]? topicNames = null)
     {
         var resource = new AzureServiceBusResource(name)
@@ -47,31 +48,31 @@ public static class AzureResourceExtensions
         };
 
         return builder.AddResource(resource)
-                      .WithAnnotation(new ManifestPublishingCallbackAnnotation(jsonWriter => WriteAzureServiceBusToManifest(resource, jsonWriter)));
+                      .WithManifestPublishingCallback(context => WriteAzureServiceBusToManifest(resource, context));
     }
 
-    private static void WriteAzureServiceBusToManifest(AzureServiceBusResource resource, Utf8JsonWriter jsonWriter)
+    private static void WriteAzureServiceBusToManifest(AzureServiceBusResource resource, ManifestPublishingContext context)
     {
-        jsonWriter.WriteString("type", "azure.servicebus.v0");
+        context.Writer.WriteString("type", "azure.servicebus.v0");
 
         if (resource.QueueNames.Length > 0)
         {
-            jsonWriter.WriteStartArray("queues");
+            context.Writer.WriteStartArray("queues");
             foreach (var queueName in resource.QueueNames)
             {
-                jsonWriter.WriteStringValue(queueName);
+                context.Writer.WriteStringValue(queueName);
             }
-            jsonWriter.WriteEndArray();
+            context.Writer.WriteEndArray();
         }
 
         if (resource.TopicNames.Length > 0)
         {
-            jsonWriter.WriteStartArray("topics");
+            context.Writer.WriteStartArray("topics");
             foreach (var topicName in resource.TopicNames)
             {
-                jsonWriter.WriteStringValue(topicName);
+                context.Writer.WriteStringValue(topicName);
             }
-            jsonWriter.WriteEndArray();
+            context.Writer.WriteEndArray();
         }
     }
 
@@ -80,17 +81,17 @@ public static class AzureResourceExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{AzureStorageResource}"/>.</returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureStorageResource> AddAzureStorage(this IDistributedApplicationBuilder builder, string name)
     {
         var resource = new AzureStorageResource(name);
         return builder.AddResource(resource)
-                      .WithAnnotation(new ManifestPublishingCallbackAnnotation(WriteAzureStorageToManifest));
+                      .WithManifestPublishingCallback(WriteAzureStorageToManifest);
     }
 
-    private static void WriteAzureStorageToManifest(Utf8JsonWriter jsonWriter)
+    private static void WriteAzureStorageToManifest(ManifestPublishingContext context)
     {
-        jsonWriter.WriteString("type", "azure.storage.v0");
+        context.Writer.WriteString("type", "azure.storage.v0");
     }
 
     /// <summary>
@@ -98,18 +99,18 @@ public static class AzureResourceExtensions
     /// </summary>
     /// <param name="storageBuilder">The Azure storage resource builder.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{AzureBlobStorageResource}"/>.</returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureBlobStorageResource> AddBlobs(this IResourceBuilder<AzureStorageResource> storageBuilder, string name)
     {
         var resource = new AzureBlobStorageResource(name, storageBuilder.Resource);
         return storageBuilder.ApplicationBuilder.AddResource(resource)
-                             .WithAnnotation(new ManifestPublishingCallbackAnnotation(json => WriteBlobStorageToManifest(json, resource)));
+                             .WithManifestPublishingCallback(context => WriteBlobStorageToManifest(context, resource));
     }
 
-    private static void WriteBlobStorageToManifest(Utf8JsonWriter json, AzureBlobStorageResource resource)
+    private static void WriteBlobStorageToManifest(ManifestPublishingContext context, AzureBlobStorageResource resource)
     {
-        json.WriteString("type", "azure.storage.blob.v0");
-        json.WriteString("parent", resource.Parent.Name);
+        context.Writer.WriteString("type", "azure.storage.blob.v0");
+        context.Writer.WriteString("parent", resource.Parent.Name);
     }
 
     /// <summary>
@@ -117,18 +118,18 @@ public static class AzureResourceExtensions
     /// </summary>
     /// <param name="storageBuilder">The Azure storage resource builder.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{AzureTableStorageResource}"/>.</returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureTableStorageResource> AddTables(this IResourceBuilder<AzureStorageResource> storageBuilder, string name)
     {
         var resource = new AzureTableStorageResource(name, storageBuilder.Resource);
         return storageBuilder.ApplicationBuilder.AddResource(resource)
-                             .WithAnnotation(new ManifestPublishingCallbackAnnotation(json => WriteTableStorageToManifest(json, resource)));
+                             .WithManifestPublishingCallback(context => WriteTableStorageToManifest(context, resource));
     }
 
-    private static void WriteTableStorageToManifest(Utf8JsonWriter json, AzureTableStorageResource resource)
+    private static void WriteTableStorageToManifest(ManifestPublishingContext context, AzureTableStorageResource resource)
     {
-        json.WriteString("type", "azure.storage.table.v0");
-        json.WriteString("parent", resource.Parent.Name);
+        context.Writer.WriteString("type", "azure.storage.table.v0");
+        context.Writer.WriteString("parent", resource.Parent.Name);
     }
 
     /// <summary>
@@ -136,18 +137,18 @@ public static class AzureResourceExtensions
     /// </summary>
     /// <param name="builder">The Azure storage resource builder.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{AzureQueueStorageResource}"/>.</returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureQueueStorageResource> AddQueues(this IResourceBuilder<AzureStorageResource> builder, string name)
     {
         var resource = new AzureQueueStorageResource(name, builder.Resource);
         return builder.ApplicationBuilder.AddResource(resource)
-                             .WithAnnotation(new ManifestPublishingCallbackAnnotation(json => WriteQueueStorageToManifest(json, resource)));
+                             .WithManifestPublishingCallback(context => WriteQueueStorageToManifest(context, resource));
     }
 
-    private static void WriteQueueStorageToManifest(Utf8JsonWriter json, AzureQueueStorageResource resource)
+    private static void WriteQueueStorageToManifest(ManifestPublishingContext context, AzureQueueStorageResource resource)
     {
-        json.WriteString("type", "azure.storage.queue.v0");
-        json.WriteString("parent", resource.Parent.Name);
+        context.Writer.WriteString("type", "azure.storage.queue.v0");
+        context.Writer.WriteString("parent", resource.Parent.Name);
     }
 
     /// <summary>
@@ -157,13 +158,42 @@ public static class AzureResourceExtensions
     /// <param name="blobPort">The port used for the blob endpoint.</param>
     /// <param name="queuePort">The port used for the queue endpoint.</param>
     /// <param name="tablePort">The port used for the table endpoint.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{AzureQueueStorageResource}"/>.</returns>
-    public static IResourceBuilder<AzureStorageResource> UseEmulator(this IResourceBuilder<AzureStorageResource> builder, int? blobPort = null, int? queuePort = null, int? tablePort = null)
+    /// <param name="imageTag">The image tag for the <c>mcr.microsoft.com/azure-storage/azurite</c> image.</param>
+    /// <param name="storagePath">The path on the host to persist the storage volume to.</param>
+    /// <remarks>If no <paramref name="storagePath"/> is provided, data will not be persisted when the container is deleted.</remarks>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<AzureStorageResource> UseEmulator(this IResourceBuilder<AzureStorageResource> builder, int? blobPort = null, int? queuePort = null, int? tablePort = null, string? imageTag = null, string? storagePath = null)
     {
-        return builder.WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, name: "blob", port: blobPort, containerPort: 10000))
-                             .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, name: "queue", port: queuePort, containerPort: 10001))
-                             .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, name: "table", port: tablePort, containerPort: 10002))
-                             .WithAnnotation(new ContainerImageAnnotation { Image = "mcr.microsoft.com/azure-storage/azurite", Tag = "latest" });
+        builder.WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, name: "blob", port: blobPort, containerPort: 10000))
+               .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, name: "queue", port: queuePort, containerPort: 10001))
+               .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, name: "table", port: tablePort, containerPort: 10002))
+               .WithAnnotation(new ContainerImageAnnotation { Image = "mcr.microsoft.com/azure-storage/azurite", Tag = imageTag ?? "latest" });
+
+        if (storagePath is not null)
+        {
+            var volumeAnnotation = new VolumeMountAnnotation(storagePath, "/data", VolumeMountType.Bind, false);
+            return builder.WithAnnotation(volumeAnnotation);
+        }
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures an Azure Cosmos DB resource to be emulated using the Azure Cosmos DB emulator with the NoSQL API. This resource requires an <see cref="AzureCosmosDBResource"/> to be added to the application model.
+    /// For more information on the Azure Cosmos DB emulator, see <a href="https://learn.microsoft.com/azure/cosmos-db/emulator#authentication"></a>
+    /// </summary>
+    /// <param name="builder">The Azure Cosmos DB resource builder.</param>
+    /// <param name="port">The port used for the client SDK to access the emulator. Defaults to <c>8081</c></param>
+    /// <param name="imageTag">The image tag for the <c>mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator</c> image.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// When using the Azure Cosmos DB emulator, the container requires a TLS/SSL certificate.
+    /// For more information, see <a href="https://learn.microsoft.com/azure/cosmos-db/how-to-develop-emulator?tabs=docker-linux#export-the-emulators-tlsssl-certificate"></a>
+    /// </remarks>
+    public static IResourceBuilder<AzureCosmosDBResource> UseEmulator(this IResourceBuilder<AzureCosmosDBResource> builder, int? port = null, string? imageTag = null)
+    {
+        return builder.WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, name: "emulator", port: port, containerPort: 8081))
+                      .WithAnnotation(new ContainerImageAnnotation { Image = "mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator", Tag = imageTag ?? "latest" });
     }
 
     /// <summary>
@@ -171,17 +201,17 @@ public static class AzureResourceExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{AzureRedisResource}"/>.</returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureRedisResource> AddAzureRedis(this IDistributedApplicationBuilder builder, string name)
     {
         var resource = new AzureRedisResource(name);
         return builder.AddResource(resource)
-            .WithAnnotation(new ManifestPublishingCallbackAnnotation(WriteAzureRedisToManifest));
+            .WithManifestPublishingCallback(WriteAzureRedisToManifest);
     }
 
-    private static void WriteAzureRedisToManifest(Utf8JsonWriter writer)
+    private static void WriteAzureRedisToManifest(ManifestPublishingContext context)
     {
-        writer.WriteString("type", "azure.redis.v0");
+        context.Writer.WriteString("type", "azure.redis.v0");
     }
 
     /// <summary>
@@ -189,17 +219,17 @@ public static class AzureResourceExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{AzureAppConfigurationResource}"/>.</returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureAppConfigurationResource> AddAzureAppConfiguration(this IDistributedApplicationBuilder builder, string name)
     {
         var resource = new AzureAppConfigurationResource(name);
         return builder.AddResource(resource)
-            .WithAnnotation(new ManifestPublishingCallbackAnnotation(WriteAzureAppConfigurationToManifest));
+            .WithManifestPublishingCallback(WriteAzureAppConfigurationToManifest);
     }
 
-    private static void WriteAzureAppConfigurationToManifest(Utf8JsonWriter writer)
+    private static void WriteAzureAppConfigurationToManifest(ManifestPublishingContext context)
     {
-        writer.WriteString("type", "azure.appconfiguration.v0");
+        context.Writer.WriteString("type", "azure.appconfiguration.v0");
     }
 
     /// <summary>
@@ -207,17 +237,17 @@ public static class AzureResourceExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{AzureSqlServerResource}"/>.</returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureSqlServerResource> AddAzureSqlServer(this IDistributedApplicationBuilder builder, string name)
     {
         var resource = new AzureSqlServerResource(name);
         return builder.AddResource(resource)
-                      .WithAnnotation(new ManifestPublishingCallbackAnnotation(WriteSqlServerToManifest));
+                      .WithManifestPublishingCallback(WriteSqlServerToManifest);
     }
 
-    private static void WriteSqlServerToManifest(Utf8JsonWriter jsonWriter)
+    private static void WriteSqlServerToManifest(ManifestPublishingContext context)
     {
-        jsonWriter.WriteString("type", "azure.sql.v0");
+        context.Writer.WriteString("type", "azure.sql.v0");
     }
 
     /// <summary>
@@ -225,17 +255,58 @@ public static class AzureResourceExtensions
     /// </summary>
     /// <param name="serverBuilder">The Azure SQL Server resource builder.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{AzureSqlDatabaseResource}"/>.</returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureSqlDatabaseResource> AddDatabase(this IResourceBuilder<AzureSqlServerResource> serverBuilder, string name)
     {
         var resource = new AzureSqlDatabaseResource(name, serverBuilder.Resource);
         return serverBuilder.ApplicationBuilder.AddResource(resource)
-                            .WithAnnotation(new ManifestPublishingCallbackAnnotation(json => WriteSqlDatabaseToManifest(json, resource)));
+                            .WithManifestPublishingCallback(context => WriteSqlDatabaseToManifest(context, resource));
     }
 
-    private static void WriteSqlDatabaseToManifest(Utf8JsonWriter json, AzureSqlDatabaseResource resource)
+    private static void WriteSqlDatabaseToManifest(ManifestPublishingContext context, AzureSqlDatabaseResource resource)
     {
-        json.WriteString("type", "azure.sql.database.v0");
-        json.WriteString("parent", resource.Parent.Name);
+        context.Writer.WriteString("type", "azure.sql.database.v0");
+        context.Writer.WriteString("parent", resource.Parent.Name);
+    }
+
+    /// <summary>
+    /// Adds an Azure OpenAI resource to the application model.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{AzureOpenAIResource}"/>.</returns>
+    public static IResourceBuilder<AzureOpenAIResource> AddAzureOpenAI(this IDistributedApplicationBuilder builder, string name)
+    {
+        var resource = new AzureOpenAIResource(name);
+        return builder.AddResource(resource)
+            .WithManifestPublishingCallback(WriteAzureOpenAIToManifest);
+    }
+
+    private static void WriteAzureOpenAIToManifest(ManifestPublishingContext context)
+    {
+        context.Writer.WriteString("type", "azure.openai.account.v0");
+    }
+
+    /// <summary>
+    /// Adds an Azure OpenAI Deployment resource to the application model. This resource requires an <see cref="AzureOpenAIResource"/> to be added to the application model.
+    /// </summary>
+    /// <param name="serverBuilder">The Azure SQL Server resource builder.</param>
+    /// <param name="name">The name of the deployment.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{AzureSqlDatabaseResource}"/>.</returns>
+    public static IResourceBuilder<AzureOpenAIDeploymentResource> AddDeployment(this IResourceBuilder<AzureOpenAIResource> serverBuilder, string name)
+    {
+        var resource = new AzureOpenAIDeploymentResource(name, serverBuilder.Resource);
+        return serverBuilder.ApplicationBuilder.AddResource(resource)
+                            .WithManifestPublishingCallback(context => WriteAzureOpenAIDeploymentToManifest(context, resource));
+    }
+
+    private static void WriteAzureOpenAIDeploymentToManifest(ManifestPublishingContext context, AzureOpenAIDeploymentResource resource)
+    {
+        // Example:
+        // "type": "azure.openai.deployment.v0",
+        // "parent": "azureOpenAi",
+
+        context.Writer.WriteString("type", "azure.openai.deployment.v0");
+        context.Writer.WriteString("parent", resource.Parent.Name);
     }
 }

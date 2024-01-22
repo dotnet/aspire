@@ -88,7 +88,13 @@ Also you can pass the `Action<EntityFrameworkCoreCosmosDBSettings> configureSett
 
 ## AppHost extensions
 
-In your AppHost project, add a Cosmos DB connection and consume the connection using the following methods::
+In your AppHost project, install the Aspire Azure Hosting library with [NuGet](https://www.nuget.org):
+
+```dotnetcli
+dotnet add package Aspire.Hosting.Azure
+```
+
+Then, in the _Program.cs_ file of `AppHost`, add a Cosmos DB connection and consume the connection using the following methods::
 
 ```csharp
 var cosmosdb = builder.AddAzureCosmosDB("cdb").AddDatabase("cosmosdb");
@@ -97,10 +103,30 @@ var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(cosmosdb);
 ```
 
-The `WithReference` method configures a connection in the `MyService` project named `cosmosdb`. In the _Program.cs_ file of `MyService`, the database connection can be consumed using:
+The `AddAzureCosmosDB` method will read connection information from the AppHost's configuration (for example, from "user secrets") under the `ConnectionStrings:cosmosdb` config key. The `WithReference` method passes that connection information into a connection string named `cosmosdb` in the `MyService` project. In the _Program.cs_ file of `MyService`, the connection can be consumed using:
 
 ```csharp
 builder.AddCosmosDbContext<MyDbContext>("cosmosdb");
+```
+
+### Emulator usage
+
+Aspire supports the usage of the Azure Cosmos DB emulator to use the emulator, add the following to your AppHost project:
+
+```csharp
+// AppHost
+var cosmosdb = builder.AddAzureCosmosDB("cosmos").UseEmulator();
+```
+
+When the AppHost starts up a local container running the Azure CosmosDB will also be started. Inside the project that uses CosmosDB you also need to specify that you want to ignore the server certificate (so you don't need to manually download and install it):
+
+```csharp
+// Service code
+builder.AddCosmosDbContext<MyDbContext>("cosmos", "mydb", (settings) =>
+{
+    settings.IgnoreEmulatorCertificate = true;
+});
+
 ```
 
 ## Additional documentation

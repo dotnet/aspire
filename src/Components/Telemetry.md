@@ -1,5 +1,14 @@
 # Log categories, activity source names and metric names
 
+Aspire.Azure.AI.OpenAI:
+- Log categories:
+  - "Azure.Core"
+  - "Azure.Identity"
+- Activity source names:
+  - "Azure.AI.OpenAI.*"
+- Metric names:
+  - none (currently not supported by the Azure SDK)
+
 Aspire.Azure.Data.Tables:
 - Log categories:
   - "Azure.Core"
@@ -47,6 +56,25 @@ Aspire.Azure.Storage.Queues:
 - Metric names:
   - none (currently not supported by the Azure SDK)
 
+Aspire.Confluent.Kafka:
+- Log categories:
+  - "Aspire.Confluent.Kafka"
+- Activity source names:
+  - N/A
+- Metric names:
+  - "Aspire.Confluent.Kafka"
+    - "messaging.kafka.consumer.queue.message_count"
+    - "messaging.kafka.producer.queue.message_count"
+    - "messaging.kafka.producer.queue.size"
+    - "messaging.kafka.network.tx"    
+    - "messaging.kafka.network.transmitted"
+    - "messaging.kafka.network.rx"
+    - "messaging.kafka.network.received"
+    - "messaging.kafka.message.tx"
+    - "messaging.kafka.message.transmitted"
+    - "messaging.kafka.message.rx"
+    - "messaging.kafka.message.received"
+
 Aspire.Microsoft.Azure.Cosmos:
 - Log categories:
   - "Azure-Cosmos-Operation-Request-Diagnostics"
@@ -77,6 +105,19 @@ Aspire.Microsoft.Data.SqlClient:
     - "number-of-free-connections"
     - "number-of-stasis-connections"
     - "number-of-reclaimed-connections"
+
+Aspire.MongoDB.Driver:
+- Log categories:
+  - "MongoDB"
+  - "MongoDB.Command"
+  - "MongoDB.SDAM"
+  - "MongoDB.ServerSelection"
+  - "MongoDB.Connection"
+  - "MongoDB.Internal"
+- Activity source names:
+  - "MongoDB.Driver.Core.Extensions.DiagnosticSources"
+- Metric names:
+  - none
 
 Aspire.Microsoft.EntityFrameworkCore.Cosmos:
 - Log categories:
@@ -210,6 +251,33 @@ Aspire.Npgsql.EntityFrameworkCore.PostgreSQL:
     - "db.client.connections.timeouts"
     - "db.client.connections.usage"
 
+Aspire.Oracle.EntityFrameworkCore:
+- Log categories:
+  - "Microsoft.EntityFrameworkCore.ChangeTracking"
+  - "Microsoft.EntityFrameworkCore.Database.Command"
+  - "Microsoft.EntityFrameworkCore.Database.Connection"
+  - "Microsoft.EntityFrameworkCore.Database.Transaction"
+  - "Microsoft.EntityFrameworkCore.Infrastructure"
+  - "Microsoft.EntityFrameworkCore.Migrations"
+  - "Microsoft.EntityFrameworkCore.Model"
+  - "Microsoft.EntityFrameworkCore.Model.Validation"
+  - "Microsoft.EntityFrameworkCore.Query"
+  - "Microsoft.EntityFrameworkCore.Update"
+- Activity source names:
+  - "OpenTelemetry.Instrumentation.EntityFrameworkCore"
+- Metric names:
+  - "Microsoft.EntityFrameworkCore":
+    - "ec_Microsoft_EntityFrameworkCore_active_db_contexts"
+    - "ec_Microsoft_EntityFrameworkCore_total_queries"
+    - "ec_Microsoft_EntityFrameworkCore_queries_per_second"
+    - "ec_Microsoft_EntityFrameworkCore_total_save_changes"
+    - "ec_Microsoft_EntityFrameworkCore_save_changes_per_second"
+    - "ec_Microsoft_EntityFrameworkCore_compiled_query_cache_hit_rate"
+    - "ec_Microsoft_Entity_total_execution_strategy_operation_failures"
+    - "ec_Microsoft_E_execution_strategy_operation_failures_per_second"
+    - "ec_Microsoft_EntityFramew_total_optimistic_concurrency_failures"
+    - "ec_Microsoft_EntityF_optimistic_concurrency_failures_per_second"
+
 Aspire.RabbitMQ.Client:
 - Log categories:
   - "RabbitMQ.Client"
@@ -220,7 +288,7 @@ Aspire.RabbitMQ.Client:
 
 Aspire.StackExchange.Redis:
 - Log categories:
-  - "Aspire.StackExchange.Redis" (this name is defined by our component, we can change it)
+  - "StackExchange.Redis"
 - Activity source names:
   - "OpenTelemetry.Instrumentation.StackExchangeRedis"
 - Metric names:

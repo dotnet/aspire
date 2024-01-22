@@ -2,18 +2,46 @@
 
 Aspire components are classic .NET NuGet packages which are designed as highly usable libraries. .NET Aspire components feature rich production-ready telemetry, health checks, configurability, testability, and documentation. For the current state of the components included in this repo and tracked for .NET Aspire's first preview, please check out the [.NET Aspire Components Progress](./Aspire_Components_Progress.md) page.
 
+## Contribution guidelines
+
+We aim to have a diverse set of high quality Aspire components, making it easy to pick from many different technologies when building Aspire apps. We expect to continue to add more components, and we welcome contributions of others, but we explicitly don't want to include every possible component. The set will be gently curated: in order to make sure that components are useful and dependable, we have some broad criteria below for components contributed to dotnet/aspire. These will likely evolve over time based on feedback, but we expect some requirements (such as actively supported) to remain firm:
+
+1. We expect to welcome any components that would have value to Aspire users and align with what Aspire is intended to do, subject to the below.
+2. We don't expect to choose preferred techs. For example, if there are two commonly used providers for database XYZ, we are comfortable with having one component for each. We would like component naming and granularity to be clear enough that customers can make informed decisions. Aspire is agnostic to your choice of cloud provider, too.
+3. We will require that the tech represented by the component is being actively supported. In most cases we expect that it is widely used, although we expect that part will be a judgement call.
+4. Components contributed to dotnet/aspire must meet the same quality and completeness bar of other contributions. ie., we won't have a lower quality bar for experimental or niche components.
+5. Where there's a component that meets the above criteria, but that isn't something we expect to be a high priority for the Aspire committers to maintain, we'll ask for a plan to sustain it (eg., motivated contributors ready to fix bugs in it)
+
+Note: only components that are built from dotnet/aspire will be able to use the Aspire package name prefix. There is no technical barrier to using components built elsewhere, without the Aspire prefix, but currently our idea is that all broadly available Aspire components will live here in dotnet/aspire and have the Aspire package prefix. We welcome feedback on this and all the other principles listed here, though.
+
+In summary we encourage and are excited to accept contributions of components, but it's probably a good idea to first open an issue to discuss any new potential component before offering a PR, to make sure we're all in agreement that it's a good fit with these principles.
+
+## Versioning and Releases
+
+Each component is in its own NuGet package, and can version independently, including declaring itself in a preview state using the standard SemVer and NuGet mechanisms. However we expect the major and minor version of components to follow the core Aspire packages to make it easier to reason about dependencies. We expect to typically push updates to all components at the same time we update the core Aspire packages, but we have the ability to push an updated component at any other time if necessary, for example where changes to the underlying client library makes it necessary.
+
+## Icon
+
+Where the component represents some client technology that has a widely recognized logo, we would like to use that for the package icon if we can. Take a look at the MySql component for an example. We can only do this if the owner of the logo allows it - often you can find posted guidelines describing acceptable usage. Otherwise we can add reach out for explicit permission and do a follow up commit to add the icon if and when the use is approved.
+
 ## Naming
 
-- Each component's name should contain just an `Aspire.` prefix.
-- When component is built around `ABC` client library, it should contain the client library name in its name. Example: `Aspire.ABC`.
-- When given client library is just one of many libraries that allows to consume given service, the names that refer to component need to be specific, not generic. Example: Npgsql is not the only db driver for PostgreSQL database, so the extension method should be called `AddNpgsql` rather than `AddPostgreSQL`.
+- Each component's name must have the prefix `Aspire.`.
+- When component is built around `ABC` client library, it should contain the client library name in its name. Example: `Aspire.ABC`. Where the technology has a particular casing we have preferred that: for example `Aspire.RabbitMQ` rather than `Aspire.RabbitMq`.
+- When the client library is just one of many libraries that allows to consume given service, the names that refer to component need to be specific, not generic. Example: Npgsql is not the only db driver for PostgreSQL database, so the extension method should be called `AddNpgsql` rather than `AddPostgreSQL`. The goal here is to help app authors make an informed decision about which to choose.
+
+## Public API
+
+- Each component should have an `AddXXX` extension method extending `IHostApplicationBuilder`
+    - Consider adding support for [keyed DI](https://learn.microsoft.com/dotnet/core/whats-new/dotnet-8#keyed-di-services), if applicable.
+    - A component can have more APIs, if necessary, but it is an explicit goal of Aspire Components to **not** wrap the underlying client library's APIs in new, convenient, higher-level APIs.
+- Each component should provide it's own public and `sealed` `Settings` type.
+  > [!NOTE]
+  > This type does not use the name `Options` because it is not an [IOptions](https://learn.microsoft.com/dotnet/core/extensions/options). `IOptions` objects can be configured through dependency injection. These settings need to be read before the DI container is built, so they can't be `IOptions`.
+- The settings type name should be unique (no generic names like `ConfigurationOptions`), not contain an `Aspire` prefix and follow the client-lib name. Example: when a component wraps an `ABC` client library, the package is called `Aspire.ABC` and the settings type is named `ABCSettings` and is either in the `Aspire.ABC` namespace or a sub namespace.
 
 ## Configuration
 
-- Each component should provide it's own public and `sealed` `Settings` type.
-  > [!NOTE]
-  > This type does not use the name `Options` because it is not an `IOptions`. `IOptions` objects can be configured through dependency injection. These settings needs to be read before the DI container is built, so they can't be `IOptions`.
-- The settings type name should be unique (no generic names like `ConfigurationOptions`), don't contain an `Aspire` prefix and follow the client-lib name. Example: when a component wraps an `ABC` client library, the component is called `Aspire.ABC` and the settings type is called `ABCSettings`.
 - When a new instance of the settings type is created, its properties should return the recommended/default values (so when they are bound to an empty config they still return the right values).
 - Settings should be bound to a section of `IConfiguration` exposed by `IHostApplicationBuilder.Configuration`.
 - Each component should determine a constant configuration section name for its settings under the `Aspire` config section.
@@ -75,17 +103,17 @@ Aspire components leverage configurable resilience patterns such as retries, tim
 - Each component must ensure that by default reasonable timeouts are enabled. It should be possible to configure the timeouts.
 - If the client library provides connection pooling, it should be enabled by default (to scale proportionally). It should be possible to disable it via configuration.
 - If given client library provides built in mechanism for retries, it should be enabled by default and configurable.
-- It's not always possible to implement retries. Example: raw db driver does not know, whether currently executed command is part of a transaction or not. If it is, re-trying a failed command won't help as the whole transaction has already failed.
+- It's not always possible to implement retries. Example: A raw db driver does not know whether the currently executed command is part of a transaction or not. If it is, re-trying a failed command won't help as the whole transaction has already failed.
 
 ## Telemetry
 
 Aspire components offer integrated logging, metrics, and tracing using modern .NET abstractions (ILogger, Meter, Activity). Telemetry is schematized and part of a component’s contract, ensuring backward compatibility across versions of the component.
 
-- The Component's telemetry names should conform to [OpenTelemetry's Semantic Conventions](https://github.com/open-telemetry/semantic-conventions) when available.
+- The component's telemetry names should conform to [OpenTelemetry's Semantic Conventions](https://github.com/open-telemetry/semantic-conventions) when available.
 - Components are allowed to use OpenTelemetry [Instrumentation Libraries](https://opentelemetry.io/docs/specs/otel/glossary/#instrumentation-library), if available. (example: [OpenTelemetry.Instrumentation.StackExchangeRedis](https://www.nuget.org/packages/OpenTelemetry.Instrumentation.StackExchangeRedis)).
-- The Component should use `ILoggerFactory`/`ILogger` objects that come from DI.
+- The component should use `ILoggerFactory`/`ILogger` objects that come from DI.
 - If possible, no information should be logged twice (example: raw db driver and Entity Framework can both log SQL queries, when they are used together only one should be logging).
-- Defining [telemetry exporters](https://opentelemetry.io/docs/instrumentation/net/exporters/) is outside of the scope of a Component.
+- Defining [telemetry exporters](https://opentelemetry.io/docs/instrumentation/net/exporters/) is outside of the scope of a component.
 
 ## Performance
 
@@ -163,3 +191,23 @@ builder.AddAzureServiceBus(settings =>
 ```
 
 - If both secret and passwordless mechanisms are configured, the secret credential overrides the passwordless identity setting.
+
+## Checklist for new components
+
+New components MUST have:
+
+* README.md
+* ConfigurationSchema.json file
+* Public APIs
+* Tests
+    * [ConformanceTests](../../tests/Aspire.Components.Common.Tests/ConformanceTests.cs)
+    * Other unit tests as needed
+* Tracing support
+
+New components SHOULD* have:
+
+* Logging support
+* Metrics support
+* Health checks
+
+`*` Components need to have justification for why these are not supported.

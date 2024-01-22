@@ -1,0 +1,24 @@
+﻿@page "/ConsoleLogs/{resourceName?}"
+@using Aspire.Dashboard.Resources
+@namespace Aspire.Dashboard.Components.Pages
+@using Aspire.Dashboard.Components.Controls
+@using Aspire.Dashboard.Model
+@inject IStringLocalizer<Dashboard.Resources.ConsoleLogs> Loc
+@inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
+
+<PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsPageTitle)" Loc="@Loc" /></PageTitle>
+
+<div class="resource-logs-layout">
+    <h1 class="page-header">@Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsHeader)]</h1>
+    <FluentToolbar Orientation="Orientation.Horizontal">
+        <FluentSelect @ref="_resourceSelectComponent" TOption="Option<string>"
+                      Items="@_resources"
+                      OptionText="(o) => o.Text"
+                      OptionValue="(o) => o.Value"
+                      @bind-SelectedOption="ViewModel.SelectedOption"
+                      @bind-SelectedOption:after="HandleSelectedOptionChangedAsync"
+                      AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAResource)]"/>
+        <FluentLabel Typo="Typography.Body" aria-live="polite" aria-label="@Loc[nameof(Dashboard.Resources.ConsoleLogs.LogStatusLabel)]">@ViewModel.Status</FluentLabel>
+    </FluentToolbar>
+    <LogViewer @ref="_logViewer" />
+</div>

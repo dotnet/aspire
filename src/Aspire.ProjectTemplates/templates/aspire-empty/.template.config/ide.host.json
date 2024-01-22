@@ -7,12 +7,5 @@
       "id": "vs",
       "version": "(,17.9)"
     }
-  ],
-  "requiredComponents": [
-    {
-      "hostId": "vs",
-      "componentType": "setupComponent",
-      "id": "aspire"
-    }
   ]
 }

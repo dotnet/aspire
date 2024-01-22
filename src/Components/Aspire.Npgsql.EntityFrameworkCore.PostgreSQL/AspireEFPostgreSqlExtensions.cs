@@ -34,14 +34,7 @@ public static partial class AspireEFPostgreSqlExtensions
     /// Reads the configuration from "Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:{typeof(TContext).Name}" config section, or "Aspire:Npgsql:EntityFrameworkCore:PostgreSQL" if former does not exist.
     /// </para>
     /// <para>
-    /// This method does not add any telemetry exporters.
-    /// </para>
-    /// <para>
     /// The <see cref="DbContext.OnConfiguring" /> method can then be overridden to configure <see cref="DbContext" /> options.
-    /// </para>
-    /// <para>
-    /// The database developer page exception filter is registered only in the Development environment.
-    /// It also requires an extra call to UseDeveloperExceptionPage to work.
     /// </para>
     /// </remarks>
     /// <exception cref="ArgumentNullException">Thrown if mandatory <paramref name="builder"/> is null.</exception>

@@ -28,7 +28,153 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="Aspire.Dashboard.Tests"/>
+    <InternalsVisibleTo Include="Aspire.Dashboard.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Resources\ControlsStrings.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ControlsStrings.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Resources\ConsoleLogs.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ConsoleLogs.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Resources\Dialogs.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Dialogs.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Resources\Layout.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Layout.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Resources\Columns.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Columns.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Resources\Metrics.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Metrics.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Resources\Resources.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Resources\StructuredLogs.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>StructuredLogs.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Resources\TraceDetail.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>TraceDetail.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Resources\Traces.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Traces.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Resources\Routes.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Routes.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Resources\ControlsStrings.resx">
+      <XlfSourceFormat>Resx</XlfSourceFormat>
+      <XlfOutputItem>EmbeddedResource</XlfOutputItem>
+      <SubType>Designer</SubType>
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>ControlsStrings.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Resources\ConsoleLogs.resx">
+      <XlfSourceFormat>Resx</XlfSourceFormat>
+      <XlfOutputItem>EmbeddedResource</XlfOutputItem>
+      <SubType>Designer</SubType>
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>ConsoleLogs.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Resources\Dialogs.resx">
+      <XlfSourceFormat>Resx</XlfSourceFormat>
+      <XlfOutputItem>EmbeddedResource</XlfOutputItem>
+      <SubType>Designer</SubType>
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>Dialogs.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Resources\Layout.resx">
+      <XlfSourceFormat>Resx</XlfSourceFormat>
+      <XlfOutputItem>EmbeddedResource</XlfOutputItem>
+      <SubType>Designer</SubType>
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>Layout.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Resources\Columns.resx">
+      <XlfSourceFormat>Resx</XlfSourceFormat>
+      <XlfOutputItem>EmbeddedResource</XlfOutputItem>
+      <SubType>Designer</SubType>
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>Columns.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Resources\Metrics.resx">
+      <XlfSourceFormat>Resx</XlfSourceFormat>
+      <XlfOutputItem>EmbeddedResource</XlfOutputItem>
+      <SubType>Designer</SubType>
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>Metrics.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Resources\Resources.resx">
+      <XlfSourceFormat>Resx</XlfSourceFormat>
+      <XlfOutputItem>EmbeddedResource</XlfOutputItem>
+      <SubType>Designer</SubType>
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Resources\StructuredLogs.resx">
+      <XlfSourceFormat>Resx</XlfSourceFormat>
+      <XlfOutputItem>EmbeddedResource</XlfOutputItem>
+      <SubType>Designer</SubType>
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>StructuredLogs.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Resources\TraceDetail.resx">
+      <XlfSourceFormat>Resx</XlfSourceFormat>
+      <XlfOutputItem>EmbeddedResource</XlfOutputItem>
+      <SubType>Designer</SubType>
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>TraceDetail.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Resources\Traces.resx">
+      <XlfSourceFormat>Resx</XlfSourceFormat>
+      <XlfOutputItem>EmbeddedResource</XlfOutputItem>
+      <SubType>Designer</SubType>
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>Traces.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Resources\Routes.resx">
+      <XlfSourceFormat>Resx</XlfSourceFormat>
+      <XlfOutputItem>EmbeddedResource</XlfOutputItem>
+      <SubType>Designer</SubType>
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>Routes.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Protobuf Include="..\Aspire.Hosting\Dashboard\proto\resource_service.proto" GrpcServices="Client" Access="Internal">
+      <Link>Protos\resource_service.proto</Link>
+    </Protobuf>
+    <Compile Include="..\Aspire.Hosting\Extensions\ChannelExtensions.cs" Link="Extensions\ChannelExtensions.cs" />
+    <Compile Include="..\Aspire.Hosting\Utils\EnvironmentUtil.cs" Link="Utils\EnvironmentUtil.cs" />
   </ItemGroup>
 
 </Project>

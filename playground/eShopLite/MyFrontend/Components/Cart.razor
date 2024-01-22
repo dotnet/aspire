@@ -1,0 +1,44 @@
+﻿@inject BasketServiceClient BasketClient
+@inject NavigationManager Navigation
+
+<div class="justify-content-end">
+    @if (basketIsAvailable)
+    {
+        <EditForm Model="this" FormName="checkout" OnSubmit="HandleCheckout" data-enhance>
+            <button type="submit" class="align-content-end cart-button">
+                <span class="fa-stack fa-lg cart-stack pa-4">
+                    <i class="fa fa-shopping-cart fa-stack-4x"></i>
+                    <i class="fa fa-stack-1x badge">
+                        @(customerBasket?.TotalItemCount ?? 0)
+                    </i>
+                </span>
+            </button>
+        </EditForm>
+    }
+</div>
+
+@code {
+    CustomerBasket? customerBasket;
+    bool basketIsAvailable;
+
+    [Parameter]
+    public EventCallback<bool> BasketAvailabilityChanged { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        (customerBasket, basketIsAvailable) = await BasketClient.GetBasketAsync("user");
+
+        await BasketAvailabilityChanged.InvokeAsync(basketIsAvailable);
+    }
+
+    private async Task HandleCheckout()
+    {
+        if (customerBasket is not null)
+        {
+            await BasketClient.CheckoutBasketAsync("user");
+        }
+
+        // Preserve query string
+        Navigation.NavigateTo($"/{new Uri(Navigation.Uri).Query}");
+    }
+}

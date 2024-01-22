@@ -32,24 +32,25 @@
           "properties": {
             "ConnectionString": {
               "type": "string",
-              "description": "Gets or sets the connection string of the MySQL database to connect to."
+              "description": "The connection string of the MySQL database to connect to."
             },
             "HealthChecks": {
               "type": "boolean",
               "description": "Gets or sets a boolean value that indicates whether the database health check is enabled or not.",
               "default": true
             },
-            "Tracing": {
-              "type": "boolean",
-              "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.",
-              "default": true
-            },
             "Metrics": {
               "type": "boolean",
               "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not.",
               "default": true
+            },
+            "Tracing": {
+              "type": "boolean",
+              "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.",
+              "default": true
             }
-          }
+          },
+          "description": "Provides the client configuration settings for connecting to a MySQL database using MySqlConnector."
         }
       }
     }

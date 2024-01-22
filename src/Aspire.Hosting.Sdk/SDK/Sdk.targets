@@ -11,6 +11,7 @@
   <ItemGroup>
     <ProjectCapability Include="DynamicFileNesting" />
     <ProjectCapability Include="DynamicFileNestingEnabled" />
+    <ProjectCapability Include="AspireOrchestration" />
   </ItemGroup>
 
   <PropertyGroup>
@@ -23,6 +24,10 @@
 
   <Target Name="__WarnOnAspireCapabilityMissing" BeforeTargets="PrepareForBuild" Condition="!@(ProjectCapability->AnyHaveMetadataValue('Identity', 'Aspire'))">
     <Warning Code="ASPIRE002" Text="$(MSBuildProjectName) is an Aspire AppHost project but necessary dependencies aren't present. Are you missing an Aspire.Hosting PackageReference?" />
+  </Target>
+
+  <Target Name="__WarnOnMininumVsVersionMissing" BeforeTargets="PrepareForBuild" Condition="'$(BuildingInsideVisualStudio)' == 'true' and $([MSBuild]::VersionLessThan('$(MSBuildVersion)', '17.9.0'))">
+    <Warning Code="ASPIRE003" Text="$(MSBuildProjectName) is a .NET Aspire AppHost project that requires Visual Studio version 17.9 or above to work correctly. You are using version $(MSBuildVersion)." />
   </Target>
 
   <!--

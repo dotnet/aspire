@@ -1,0 +1,39 @@
+::deep.environment-variables-layout {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+        "toolbar"
+        "main";
+    overflow: auto;
+}
+
+::deep.environment-variables-layout > fluent-toolbar {
+    grid-area: toolbar;
+}
+
+::deep .property-grid-container {
+    grid-area: main;
+    overflow: auto;
+    width: 100%;
+    height: 100%;
+}
+
+::deep fluent-accordion {
+    gap: calc(var(--design-unit) * 2px);
+}
+
+::deep fluent-accordion-item {
+    border-color: transparent; /* A zero width border adds a horizontal scroll bar for some reason */
+    background: unset;
+}
+
+::deep fluent-accordion-item::part(region) {
+    border-color: transparent; /* A zero width border adds a horizontal scroll bar for some reason */
+    background: unset;
+    padding: 0;
+}
+
+::deep fluent-accordion-item::part(heading-content) {
+    font-weight: bold;
+    font-size: var(--type-ramp-plus-1-font-size);
+}

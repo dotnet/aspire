@@ -9,6 +9,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="..\Common\ConfigurationSchemaAttributes.cs" Link="ConfigurationSchemaAttributes.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Aspire.StackExchange.Redis\Aspire.StackExchange.Redis.csproj" />
     <PackageReference Include="Microsoft.AspNetCore.OutputCaching.StackExchangeRedis" />
   </ItemGroup>

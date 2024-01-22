@@ -14,32 +14,41 @@ public sealed class MicrosoftEntityFrameworkCoreSqlServerSettings
     public string? ConnectionString { get; set; }
 
     /// <summary>
-    /// Gets or sets a boolean value that indicates whether the db context will be pooled or explicitly created every time it's requested.
+    /// Gets or sets a boolean value that indicates whether the DbContext will be pooled or explicitly created every time it's requested.
     /// </summary>
     public bool DbContextPooling { get; set; } = true;
 
     /// <summary>
-    /// <para>Gets or sets the maximum number of retry attempts.</para>
-    /// <para>Default value is 6, set it to 0 to disable the retry mechanism.</para>
+    /// Gets or sets the maximum number of retry attempts.
     /// </summary>
+    /// <value>
+    /// The default is 6.
+    /// Set it to 0 to disable the retry mechanism.
+    /// </value>
     public int MaxRetryCount { get; set; } = 6;
 
     /// <summary>
-    /// <para>Gets or sets a boolean value that indicates whether the database health check is enabled or not.</para>
-    /// <para>Enabled by default.</para>
+    /// Gets or sets a boolean value that indicates whether the database health check is enabled or not.
     /// </summary>
+    /// <value>
+    /// The default value is <see langword="true"/>.
+    /// </value>
     public bool HealthChecks { get; set; } = true;
 
     /// <summary>
-    /// <para>Gets or sets a boolean value that indicates whether the Open Telemetry tracing is enabled or not.</para>
-    /// <para>Enabled by default.</para>
+    /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.
     /// </summary>
+    /// <value>
+    /// The default value is <see langword="true"/>.
+    /// </value>
     public bool Tracing { get; set; } = true;
 
     /// <summary>
-    /// <para>Gets or sets a boolean value that indicates whether the Open Telemetry metrics are enabled or not.</para>
-    /// <para>Enabled by default.</para>
+    /// Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not.
     /// </summary>
+    /// <value>
+    /// The default value is <see langword="true"/>.
+    /// </value>
     public bool Metrics { get; set; } = true;
 
     /// <summary>

@@ -4,7 +4,11 @@
   "classifications": [
     "Common",
     ".NET Aspire",
-    "Cloud"
+    "Cloud",
+    "Web",
+    "Web API",
+    "API",
+    "Service"
   ],
   "name": ".NET Aspire Application",
   "defaultName": "AspireApp",
@@ -38,6 +42,12 @@
       ]
     }
   ],
+  "constraints": {
+    "aspire": {
+      "type": "workload",
+      "args": [ "aspire" ]
+    }
+  },
   "symbols": {
     "Framework": {
       "type": "parameter",

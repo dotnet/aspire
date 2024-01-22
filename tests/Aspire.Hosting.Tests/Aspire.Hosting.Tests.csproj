@@ -3,12 +3,16 @@
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsAspireHost>true</IsAspireHost>
+    <!-- MongoDB.Driver package is unsigned, we ignore that warning on purpose  -->
+    <NoWarn>$(NoWarn),CS8002</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Aspire.Hosting\Aspire.Hosting.csproj" />
     <ProjectReference Include="..\..\src\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />
     <ProjectReference Include="..\testproject\TestProject.AppHost\TestProject.AppHost.csproj" />
+    
+    <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
   </ItemGroup>
 
 </Project>

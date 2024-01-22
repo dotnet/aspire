@@ -29,18 +29,40 @@ fluent-toolbar[orientation=horizontal] {
     --log-error: #F8ECEB;
     --log-warning: #FBF3DD;
     --badge-fill-error: var(--error);
+    --badge-fill-warning: var(--warning);
     --badge-color-error: var(--foreground-on-accent-rest);
-    --foreground-subtext-rest: #6F6F6F;
+    --foreground-subtext-rest: #5D5D5D;
     --foreground-subtext-hover: #6C6C6C;
+
+    --error-ui-foreground-color: #131313;
+    --error-ui-accent-foreground-color: #1d00d0;
+    --reconnection-ui-bg: rgb(255, 255, 255);
 }
 
 [data-theme="dark"] {
     --log-critical: #493634;
     --log-error: #493634;
     --log-warning: #3F3A2B;
+    --error: #F8040A !important;
     --foreground-subtext-rest: #8D8D8D;
     --foreground-subtext-hover: #A1A1A1;
+
+    --error-ui-foreground-color: #000000;
+    --error-ui-accent-foreground-color: #512bd4;
+    --reconnection-ui-bg: #D6D6D6;
 }
+
+ #components-reconnect-modal :is(h5, p) {
+     color: var(--error-ui-foreground-color);
+ }
+
+ #components-reconnect-modal a {
+     color: var(--error-ui-accent-foreground-color);
+ }
+
+ #components-reconnect-modal {
+     background-color: var(--reconnection-ui-bg) !important;
+ }
 
 .datagrid-overflow-area,
 .parent-details-container {
@@ -121,17 +143,6 @@ fluent-data-grid-cell .long-inner-content {
     text-overflow: ellipsis;
 }
 
-.resource-state-container {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.resource-error-badge {
-    padding: 0 3px;
-    cursor: pointer;
-}
-
 .parent-details-container {
     display: grid;
     grid-template-rows: 1fr;
@@ -141,4 +152,51 @@ fluent-data-grid-cell .long-inner-content {
 .version {
     text-align: end;
     font-size: small;
+}
+
+.ellipsis-overflow {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fluent-popover-header,
+.fluent-popover-body {
+    color: var(--neutral-foreground-rest);
+}
+
+.subtext {
+    color: var(--foreground-subtext-rest);
+}
+
+.selected-row .subtext {
+    color: var(--neutral-foreground-rest);
+}
+
+.validation-message {
+    color: var(--error);
+}
+
+.page-header {
+    padding: calc(var(--design-unit) * 1px) calc(var(--design-unit) * 2px);
+}
+
+.selected-row,
+.selected-row fluent-button[appearance=lightweight]:not(:hover)::part(control),
+.selected-row fluent-anchor[appearance=lightweight]:not(:hover)::part(control) {
+    background-color: var(--neutral-fill-secondary-rest); /* Same color as the menu hover */
+}
+
+.selected-row fluent-button[appearance=lightweight]:hover::part(control),
+.selected-row fluent-anchor[appearance=lightweight]:hover::part(control){
+    background-color: var(--neutral-fill-stealth-rest); /* Essentially inverts the hover compared to an unselected row */
+}
+
+.severity-icon {
+    vertical-align: text-bottom;
+    margin-right: 3px;
+}
+
+split-panels::part(handle) {
+    display: none;
 }

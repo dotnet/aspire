@@ -16,9 +16,11 @@ public sealed class AzureCosmosDBSettings
     public string? ConnectionString { get; set; }
 
     /// <summary>
-    /// <para>Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.</para>
-    /// <para>Enabled by default.</para>
+    /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.
     /// </summary>
+    /// <value>
+    /// The default value is <see langword="true"/>.
+    /// </value>
     public bool Tracing { get; set; } = true;
 
     /// <summary>
@@ -35,5 +37,10 @@ public sealed class AzureCosmosDBSettings
     /// Gets or sets the credential used to authenticate to the Azure Cosmos DB endpoint.
     /// </summary>
     public TokenCredential? Credential { get; set; }
+
+    /// <summary>
+    /// Controls whether the Cosmos DB emulator certificate is ignored when its use is detected.
+    /// </summary>
+    public bool IgnoreEmulatorCertificate { get; set; }
 }
 

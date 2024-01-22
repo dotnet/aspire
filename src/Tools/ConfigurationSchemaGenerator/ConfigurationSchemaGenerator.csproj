@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>annotations</Nullable>
+    <!-- CS1570 - XML comment has badly formed XML. ignored because of runtime shared code -->
+    <NoWarn>$(NoWarn);CS1570</NoWarn>
+    <!--<DefineConstants>$(DefineConstants);LAUNCH_DEBUGGER</DefineConstants>-->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" />
+    <PackageReference Include="System.CommandLine" />
+
+    <InternalsVisibleTo Include="$(AssemblyName).Tests" />
+  </ItemGroup>
+  
+</Project>

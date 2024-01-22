@@ -1,0 +1,41 @@
+﻿@using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Resources
+@inject IStringLocalizer<Columns> Loc
+
+<FluentStack Orientation="Orientation.Vertical">
+    @* If we have no endpoints, and the app isn't running anymore or we're not expecting any, then just say None *@
+    @if (Resource.Endpoints.Length == 0 && (Resource.State == ResourceStates.FinishedState || Resource.ExpectedEndpointsCount == 0))
+    {
+        <span class="long-inner-content">@Loc[nameof(Columns.EndpointsColumnDisplayNone)]</span>
+    }
+    else
+    {
+        @* If we have any, regardless of the state, go ahead and display them *@
+        foreach (var endpoint in Resource.Endpoints.OrderBy(e => e.ProxyUrl))
+        {
+            if (HasMultipleReplicas)
+            {
+                <a href="@endpoint.ProxyUrl" target="_blank" class="long-inner-content">@endpoint.ProxyUrl</a>
+                <span class="long-inner-content">(<a href="@endpoint.EndpointUrl" target="_blank">@endpoint.EndpointUrl</a>)</span>
+            }
+            else
+            {
+                <a href="@endpoint.ProxyUrl" target="_blank" class="long-inner-content">@endpoint.ProxyUrl</a>
+            }
+        }
+        @* If we're expecting more, say Starting..., unless the app isn't running anymore *@
+        if (Resource.State != ResourceStates.FinishedState
+        && (Resource.ExpectedEndpointsCount is null || Resource.ExpectedEndpointsCount > Resource.Endpoints.Length))
+        {
+            <span class="long-inner-content">@Loc[nameof(Columns.EndpointsColumnDisplayPlaceholder)]</span>
+        }
+    }
+</FluentStack>
+
+@code {
+    [Parameter, EditorRequired]
+    public required ResourceViewModel Resource { get; set; }
+
+    [Parameter, EditorRequired]
+    public required bool HasMultipleReplicas { get; set; }
+}

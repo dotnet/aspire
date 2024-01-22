@@ -45,6 +45,12 @@
       ]
     }
   ],
+  "constraints": {
+    "aspire": {
+      "type": "workload",
+      "args": [ "aspire" ]
+    }
+  },
   "symbols": {
     "Framework": {
       "type": "parameter",
@@ -202,12 +208,12 @@
       },
       "replaces": "7000"
     },
-    "apiSerivceHttpPort": {
+    "apiServiceHttpPort": {
       "type": "parameter",
       "datatype": "integer",
       "description": "Port number to use for the HTTP endpoint in launchSettings.json of the ApiService project."
     },
-    "apiSerivceHttpPortGenerated": {
+    "apiServiceHttpPortGenerated": {
       "type": "generated",
       "generator": "port",
       "parameters": {
@@ -215,21 +221,21 @@
         "high": 5600
       }
     },
-    "apiSerivceHttpPortReplacer": {
+    "apiServiceHttpPortReplacer": {
       "type": "generated",
       "generator": "coalesce",
       "parameters": {
-        "sourceVariableName": "apiSerivceHttpPort",
-        "fallbackVariableName": "apiSerivceHttpPortGenerated"
+        "sourceVariableName": "apiServiceHttpPort",
+        "fallbackVariableName": "apiServiceHttpPortGenerated"
       },
       "replaces": "5301"
     },
-    "apiSerivceHttpsPort": {
+    "apiServiceHttpsPort": {
       "type": "parameter",
       "datatype": "integer",
       "description": "Port number to use for the HTTPS endpoint in launchSettings.json of the ApiService project. This option is only applicable when the parameter no-https is not used."
     },
-    "apiSerivceHttpsPortGenerated": {
+    "apiServiceHttpsPortGenerated": {
       "type": "generated",
       "generator": "port",
       "parameters": {
@@ -237,12 +243,12 @@
         "high": 7600
       }
     },
-    "apiSerivceHttpsPortReplacer": {
+    "apiServiceHttpsPortReplacer": {
       "type": "generated",
       "generator": "coalesce",
       "parameters": {
-        "sourceVariableName": "apiSerivceHttpsPort",
-        "fallbackVariableName": "apiSerivceHttpsPortGenerated"
+        "sourceVariableName": "apiServiceHttpsPort",
+        "fallbackVariableName": "apiServiceHttpsPortGenerated"
       },
       "replaces": "7301"
     },
