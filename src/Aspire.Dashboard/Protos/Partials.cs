@@ -4,7 +4,6 @@
 using System.Collections.Frozen;
 using System.Collections.Immutable;
 using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Utils;
 
 namespace Aspire.V1;
 
