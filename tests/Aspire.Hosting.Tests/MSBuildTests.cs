@@ -70,14 +70,16 @@ builder.Build().Run();
 
             File.WriteAllText(Path.Combine(appHostDirectory, "Directory.Build.props"), $"""
 <Project>
+  <PropertyGroup>
+    <SkipAspireWorkloadManifest>true</SkipAspireWorkloadManifest>
+    <_SuppressImportAspireHostingOrchestrationTargets>true</_SuppressImportAspireHostingOrchestrationTargets>
+  </PropertyGroup>
+
   <Import Project="{repoRoot}\src\Aspire.Hosting\build\Aspire.Hosting.props" />
 </Project>
 """);
             File.WriteAllText(Path.Combine(appHostDirectory, "Directory.Build.targets"), $"""
 <Project>
-  <PropertyGroup>
-    <_SuppressImportAspireHostingOrchestrationTargets>true</_SuppressImportAspireHostingOrchestrationTargets>
-  </PropertyGroup>
   <Import Project="{repoRoot}\src\Aspire.Hosting\build\Aspire.Hosting.targets" />
   <Import Project="{repoRoot}\src\Aspire.Hosting.Sdk\SDK\Sdk.targets" />
 </Project>
