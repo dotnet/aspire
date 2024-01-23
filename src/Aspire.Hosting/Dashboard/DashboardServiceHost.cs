@@ -6,7 +6,6 @@ using System.Net;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Publishing;
-using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server;
@@ -50,6 +49,7 @@ internal sealed class DashboardServiceHost : IHostedService
         DistributedApplicationOptions options,
         DistributedApplicationModel applicationModel,
         KubernetesService kubernetesService,
+        IEnvironmentVariables environmentVariables,
         IOptions<PublishingOptions> publishingOptions,
         ILoggerFactory loggerFactory,
         ILogger<DashboardServiceHost> logger,
@@ -67,6 +67,9 @@ internal sealed class DashboardServiceHost : IHostedService
         try
         {
             var builder = WebApplication.CreateBuilder();
+
+            // Environment
+            builder.Services.AddSingleton<IEnvironmentVariables, EnvironmentVariables>();
 
             // Logging
             builder.Services.AddSingleton(loggerFactory);
@@ -92,10 +95,10 @@ internal sealed class DashboardServiceHost : IHostedService
 
         return;
 
-        static void ConfigureKestrel(KestrelServerOptions kestrelOptions)
+        void ConfigureKestrel(KestrelServerOptions kestrelOptions)
         {
             // Inspect environment for the address to listen on.
-            var uri = EnvironmentUtil.GetAddressUri(DashboardServiceUrlVariableName);
+            var uri = environmentVariables.GetUri(DashboardServiceUrlVariableName);
 
             string? scheme;
 

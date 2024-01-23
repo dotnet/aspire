@@ -10,6 +10,7 @@ internal static class StringComparers
     public static StringComparer ResourceType => StringComparer.Ordinal;
     public static StringComparer ResourcePropertyName => StringComparer.Ordinal;
     public static StringComparer UserTextSearch => StringComparer.CurrentCultureIgnoreCase;
+    public static StringComparer EnvironmentVariableName => StringComparer.InvariantCultureIgnoreCase;
 }
 
 internal static class StringComparisons
@@ -19,4 +20,5 @@ internal static class StringComparisons
     public static StringComparison ResourceType => StringComparison.Ordinal;
     public static StringComparison ResourcePropertyName => StringComparison.Ordinal;
     public static StringComparison UserTextSearch => StringComparison.CurrentCultureIgnoreCase;
+    public static StringComparison EnvironmentVariableName => StringComparison.InvariantCultureIgnoreCase;
 }

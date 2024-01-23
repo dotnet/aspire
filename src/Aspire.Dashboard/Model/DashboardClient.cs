@@ -5,7 +5,6 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
-using Aspire.Hosting.Utils;
 using Aspire.V1;
 using Grpc.Core;
 using Grpc.Net.Client;
@@ -47,13 +46,13 @@ internal sealed class DashboardClient : IDashboardClient
 
     private Task? _connection;
 
-    public DashboardClient(ILoggerFactory loggerFactory)
+    public DashboardClient(ILoggerFactory loggerFactory, IEnvironmentVariables environmentVariables)
     {
         _loggerFactory = loggerFactory;
 
         _logger = loggerFactory.CreateLogger<DashboardClient>();
 
-        var address = EnvironmentUtil.GetAddressUri(DashboardServiceUrlVariableName);
+        var address = environmentVariables.GetUri(DashboardServiceUrlVariableName);
 
         if (address is null)
         {

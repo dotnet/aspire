@@ -6,7 +6,6 @@ using Aspire.Dashboard.Components;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Grpc;
 using Aspire.Dashboard.Otlp.Storage;
-using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -30,9 +29,13 @@ public class DashboardWebApplication
         builder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.None);
         builder.Logging.AddFilter("Microsoft.AspNetCore.Server.Kestrel", LogLevel.Error);
 
-        var dashboardUris = EnvironmentUtil.GetAddressUris(DashboardUrlVariableName, new(DashboardUrlDefaultValue));
+        var environmentVariables = new EnvironmentVariables();
 
-        var otlpUris = EnvironmentUtil.GetAddressUris(DashboardOtlpUrlVariableName, new(DashboardOtlpUrlDefaultValue));
+        builder.Services.AddSingleton<IEnvironmentVariables>(environmentVariables);
+
+        var dashboardUris = environmentVariables.GetUris(DashboardUrlVariableName, new(DashboardUrlDefaultValue));
+
+        var otlpUris = environmentVariables.GetUris(DashboardOtlpUrlVariableName, new(DashboardOtlpUrlDefaultValue));
 
         if (otlpUris.Length > 1)
         {

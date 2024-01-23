@@ -53,6 +53,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                                           DistributedApplicationOptions distributedApplicationOptions,
                                           KubernetesService kubernetesService,
                                           IEnumerable<IDistributedApplicationLifecycleHook> lifecycleHooks,
+                                          IEnvironmentVariables environmentVariables,
                                           IOptions<DcpOptions> options,
                                           DashboardServiceHost dashboardHost)
 {
@@ -134,9 +135,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         };
 
         var grpcEndpointUrl = await _dashboardServiceHost.GetResourceServiceUriAsync(cancellationToken).ConfigureAwait(false);
-        var otlpEndpointUrl = Environment.GetEnvironmentVariable("DOTNET_DASHBOARD_OTLP_ENDPOINT_URL");
-        var dashboardUrl = Environment.GetEnvironmentVariable("ASPNETCORE_URLS") ?? throw new DistributedApplicationException("ASPNETCORE_URLS environment variable not set.");
-        var aspnetcoreEnvironment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+        var otlpEndpointUrl = environmentVariables.GetString("DOTNET_DASHBOARD_OTLP_ENDPOINT_URL");
+        var dashboardUrl = environmentVariables.GetString("ASPNETCORE_URLS") ?? throw new DistributedApplicationException("ASPNETCORE_URLS environment variable not set.");
+        var aspnetcoreEnvironment = environmentVariables.GetString("ASPNETCORE_ENVIRONMENT");
 
         dashboardExecutableSpec.Env =
         [
@@ -389,7 +390,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             annotationHolder.Annotate(Executable.CSharpProjectPathAnnotation, projectMetadata.ProjectPath);
             annotationHolder.Annotate(Executable.OtelServiceNameAnnotation, ers.Metadata.Name);
 
-            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable(DebugSessionPortVar)))
+            if (!string.IsNullOrEmpty(environmentVariables.GetString(DebugSessionPortVar)))
             {
                 exeSpec.ExecutionType = ExecutionType.IDE;
                 if (project.TryGetLastAnnotation<LaunchProfileAnnotation>(out var lpa))
@@ -400,7 +401,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             else
             {
                 exeSpec.ExecutionType = ExecutionType.Process;
-                if (Environment.GetEnvironmentVariable("DOTNET_WATCH") != "1")
+                if (environmentVariables.GetString("DOTNET_WATCH") != "1")
                 {
                     exeSpec.Args = [
                         "run",
