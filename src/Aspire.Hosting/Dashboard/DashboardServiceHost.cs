@@ -44,6 +44,7 @@ internal sealed class DashboardServiceHost : IHostedService
     /// <see langword="null"/> if <see cref="DistributedApplicationOptions.DashboardEnabled"/> is <see langword="false"/>.
     /// </summary>
     private readonly WebApplication? _app;
+    private readonly ILogger<DashboardServiceHost> _logger;
 
     public DashboardServiceHost(
         DistributedApplicationOptions options,
@@ -51,8 +52,11 @@ internal sealed class DashboardServiceHost : IHostedService
         KubernetesService kubernetesService,
         IOptions<PublishingOptions> publishingOptions,
         ILoggerFactory loggerFactory,
+        ILogger<DashboardServiceHost> logger,
         IConfigureOptions<LoggerFilterOptions> loggerOptions)
     {
+        _logger = logger;
+
         if (!options.DashboardEnabled ||
             publishingOptions.Value.Publisher == "manifest") // HACK: Manifest publisher check is temporary until DcpHostService is integrated with DcpPublisher.
         {
@@ -151,7 +155,7 @@ internal sealed class DashboardServiceHost : IHostedService
 
         if (stopwatch.Elapsed > TimeSpan.FromSeconds(2))
         {
-            Trace.WriteLine($"Unexpectedly long wait for resource service URI ({stopwatch.Elapsed}).");
+            _logger.LogWarning("Unexpectedly long wait for resource service URI ({elapsed}).", stopwatch.Elapsed);
         }
 
         return uri;
