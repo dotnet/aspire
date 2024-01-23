@@ -11,10 +11,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="..\Shared\Aspire_icon_256.png" Pack="True" PackagePath="\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Protobuf Include="**/*.proto" GrpcServices="Server">
       <ProtoRoot>Otlp</ProtoRoot>
     </Protobuf>
