@@ -533,6 +533,21 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 }
 
                 await createResource().ConfigureAwait(false);
+
+                // NOTE: This check is only necessary for the inner loop in the dotnet/aspire repo. When
+                //       running in the dotnet/aspire repo we will normally launch the dashboard via
+                //       AddProject<T>. When doing this we make sure that the dashboard is running.
+                if (er.ModelResource.Name.Equals(KnownResourceNames.AspireDashboard, StringComparisons.ResourceName))
+                {
+                    if (er.ModelResource.TryGetAllocatedEndPoints(out var allocatedEndpoints))
+                    {
+                        // We just check the HTTP endpoint because this will prove that the dashboard
+                        // is listening and is ready to process requests.
+                        var httpEndpoint = allocatedEndpoints.Single(ae => ae.Name.Equals("http", StringComparisons.EndpointAnnotationName));
+                        await WaitForHttpSuccessOrThrow(httpEndpoint.UriString, TimeSpan.FromSeconds(DashboardWaitTimeInSeconds), cancellationToken).ConfigureAwait(false);
+                    }
+                }
+
             }
 
         }
