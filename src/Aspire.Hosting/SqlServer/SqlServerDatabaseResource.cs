@@ -4,7 +4,7 @@
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// Represents a SQL Server database resource that is a child of a SQL Server container resource.
+/// A resource that represents a SQL Server database that is a child of a SQL Server container resource.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 /// <param name="sqlServerContainer">The parent SQL Server container resource.</param>

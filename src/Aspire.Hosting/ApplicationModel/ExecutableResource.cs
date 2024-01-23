@@ -4,7 +4,7 @@
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// Represents a resource that can be executed as a standalone process.
+/// A resource that represents a specified executable process.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 /// <param name="command">The command to execute.</param>

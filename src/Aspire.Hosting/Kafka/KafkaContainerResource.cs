@@ -8,7 +8,7 @@ namespace Aspire.Hosting;
 /// <summary>
 /// A resource that represents a Kafka broker container.
 /// </summary>
-/// <param name="name"></param>
+/// <param name="name">The name of the resource.</param>
 public class KafkaContainerResource(string name) : ContainerResource(name), IResourceWithConnectionString, IResourceWithEnvironment
 {
     /// <summary>
