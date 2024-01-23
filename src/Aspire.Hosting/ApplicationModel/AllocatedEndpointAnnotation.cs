@@ -9,7 +9,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Represents an endpoint allocated for a service instance.
 /// </summary>
-[DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, UriString = {UriString}, BindingNameQualifiedUriString = {BindingNameQualifiedUriString}")]
+[DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}, UriString = {UriString}, EndpointNameQualifiedUriString = {EndpointNameQualifiedUriString}")]
 public class AllocatedEndpointAnnotation : IResourceAnnotation
 {
     /// <summary>
@@ -67,7 +67,7 @@ public class AllocatedEndpointAnnotation : IResourceAnnotation
     /// <summary>
     /// URI in string representation specially formatted to be processed by service discovery without ambiguity.
     /// </summary>
-    public string BindingNameQualifiedUriString => $"{Name}://{EndPointString}";
+    public string EndpointNameQualifiedUriString => $"{Name}://{EndPointString}";
 
     /// <summary>
     /// URI in string representation.
