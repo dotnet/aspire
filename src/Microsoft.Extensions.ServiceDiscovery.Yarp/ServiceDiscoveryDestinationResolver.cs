@@ -14,7 +14,7 @@ namespace Microsoft.Extensions.ServiceDiscovery.Yarp;
 /// Initializes a new <see cref="ServiceDiscoveryDestinationResolver"/> instance.
 /// </remarks>
 /// <param name="resolver">The endpoint resolver registry.</param>
-internal sealed class ServiceDiscoveryDestinationResolver(ServiceEndPointResolverRegistry resolver) : IDestinationResolver
+internal sealed class ServiceDiscoveryDestinationResolver(ServiceEndPointResolver resolver) : IDestinationResolver
 {
     /// <inheritdoc/>
     public async ValueTask<ResolvedDestinationCollection> ResolveDestinationsAsync(IReadOnlyDictionary<string, DestinationConfig> destinations, CancellationToken cancellationToken)

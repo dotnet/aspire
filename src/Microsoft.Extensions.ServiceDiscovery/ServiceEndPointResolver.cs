@@ -10,9 +10,9 @@ namespace Microsoft.Extensions.ServiceDiscovery;
 /// <summary>
 /// Resolves service names to collections of endpoints.
 /// </summary>
-public sealed class ServiceEndPointResolverRegistry : IAsyncDisposable
+public sealed class ServiceEndPointResolver : IAsyncDisposable
 {
-    private static readonly TimerCallback s_cleanupCallback = s => ((ServiceEndPointResolverRegistry)s!).CleanupResolvers();
+    private static readonly TimerCallback s_cleanupCallback = s => ((ServiceEndPointResolver)s!).CleanupResolvers();
     private static readonly TimeSpan s_cleanupPeriod = TimeSpan.FromSeconds(10);
 
     private readonly object _lock = new();
@@ -24,11 +24,11 @@ public sealed class ServiceEndPointResolverRegistry : IAsyncDisposable
     private bool _disposed;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="ServiceEndPointResolverRegistry"/> class.
+    /// Initializes a new instance of the <see cref="ServiceEndPointResolver"/> class.
     /// </summary>
     /// <param name="resolverProvider">The resolver factory.</param>
     /// <param name="timeProvider">The time provider.</param>
-    internal ServiceEndPointResolverRegistry(ServiceEndPointResolverFactory resolverProvider, TimeProvider timeProvider)
+    internal ServiceEndPointResolver(ServiceEndPointResolverFactory resolverProvider, TimeProvider timeProvider)
     {
         _resolverProvider = resolverProvider;
         _timeProvider = timeProvider;

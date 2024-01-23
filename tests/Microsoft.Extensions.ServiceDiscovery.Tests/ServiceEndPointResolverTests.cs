@@ -157,7 +157,7 @@ public class ServiceEndPointResolverTests
             .AddSingleton<IServiceEndPointResolverProvider>(resolverProvider)
             .AddServiceDiscoveryCore()
             .BuildServiceProvider();
-        var resolver = services.GetRequiredService<ServiceEndPointResolverRegistry>();
+        var resolver = services.GetRequiredService<ServiceEndPointResolver>();
 
         Assert.NotNull(resolver);
         var initialEndPoints = await resolver.GetEndPointsAsync("http://basket", CancellationToken.None).ConfigureAwait(false);
