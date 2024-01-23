@@ -196,6 +196,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             {
                 _logger.LogDebug(ex, "Dashboard not ready yet.");
             }
+
+            await Task.Delay(TimeSpan.FromMilliseconds(50), cancellationToken).ConfigureAwait(false);
         }
 
         throw new DistributedApplicationException("Timed out waiting for dashboard to be responsive.");
