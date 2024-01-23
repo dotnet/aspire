@@ -31,6 +31,8 @@ steps:
     - template: /eng/pipelines/templates/send-to-helix.yml
       parameters:
         HelixTargetQueues: Ubuntu.2204.Amd64.Open
+        Creator: dotnet-bot
+        # access token
 
     #- script: ${{ parameters.dotnetScript }} dotnet-coverage collect
               #--settings $(Build.SourcesDirectory)/eng/CodeCoverage.config
