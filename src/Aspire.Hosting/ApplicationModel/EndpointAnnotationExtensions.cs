@@ -11,23 +11,23 @@ public static class EndpointAnnotationExtensions
     /// <summary>
     /// Sets the transport to HTTP/2 and the URI scheme to HTTPS for the specified <see cref="EndpointAnnotation"/> object.
     /// </summary>
-    /// <param name="binding">The <see cref="EndpointAnnotation"/> object to modify.</param>
+    /// <param name="endpoint">The <see cref="EndpointAnnotation"/> object to modify.</param>
     /// <returns>The modified <see cref="EndpointAnnotation"/> object.</returns>
-    public static EndpointAnnotation AsHttp2(this EndpointAnnotation binding)
+    public static EndpointAnnotation AsHttp2(this EndpointAnnotation endpoint)
     {
-        binding.Transport = "http2";
-        binding.UriScheme = "https";
-        return binding;
+        endpoint.Transport = "http2";
+        endpoint.UriScheme = "https";
+        return endpoint;
     }
 
     /// <summary>
     /// Sets the <see cref="EndpointAnnotation.IsExternal"/> property to true for the specified <see cref="EndpointAnnotation"/> object.
     /// </summary>
-    /// <param name="binding">The <see cref="EndpointAnnotation"/> object to modify.</param>
+    /// <param name="endpoint">The <see cref="EndpointAnnotation"/> object to modify.</param>
     /// <returns>The modified <see cref="EndpointAnnotation"/> object.</returns>
-    public static EndpointAnnotation AsExternal(this EndpointAnnotation binding)
+    public static EndpointAnnotation AsExternal(this EndpointAnnotation endpoint)
     {
-        binding.IsExternal = true;
-        return binding;
+        endpoint.IsExternal = true;
+        return endpoint;
     }
 }
