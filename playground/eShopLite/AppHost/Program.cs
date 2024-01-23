@@ -37,6 +37,8 @@ builder.AddProject<Projects.CatalogDb>("catalogdbapp")
 // to test end developer dashboard launch experience. Refer to WorkloadAttributes.cs
 // for the path to the dashboard binary (defaults to a relative path to the artifacts
 // directory).
-builder.AddProject<Projects.Aspire_Dashboard>("aspire-dashboard").ExcludeFromManifest();
+builder.AddProject<Projects.Aspire_Dashboard>("aspire-dashboard")
+    .WithEnvironment("DOTNET_DASHBOARD_GRPC_ENDPOINT_URL", "http://localhost:5555")
+    .ExcludeFromManifest();
 
 builder.Build().Run();

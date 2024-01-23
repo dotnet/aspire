@@ -117,7 +117,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger, D
         dashboardExecutableSpec.Args = [fullyQualifiedDashboardPath];
         dashboardExecutableSpec.WorkingDirectory = dashboardWorkingDirectory;
 
-        var grpcEndpointUrl = _dashboardServiceHost.DashboardServiceUri?.ToString();
+        var grpcEndpointUrl = await _dashboardServiceHost.GetUrisAsync(cancellationToken).ConfigureAwait(false);
         var otlpEndpointUrl = Environment.GetEnvironmentVariable("DOTNET_DASHBOARD_OTLP_ENDPOINT_URL");
         var dashboardUrl = Environment.GetEnvironmentVariable("ASPNETCORE_URLS");
         var aspnetcoreEnvironment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
