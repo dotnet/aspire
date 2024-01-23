@@ -21,7 +21,6 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
     private int _renderedDimensionsCount;
     private string? _previousMeterName;
     private string? _previousInstrumentName;
-    private bool _showCount;
     private readonly InstrumentViewModel _instrumentViewModel = new InstrumentViewModel();
 
     [Parameter, EditorRequired]
@@ -257,10 +256,5 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
         }
 
         return filters;
-    }
-
-    private void ShowCountChanged()
-    {
-        _instrumentViewModel.ShowCount = _showCount;
     }
 }
