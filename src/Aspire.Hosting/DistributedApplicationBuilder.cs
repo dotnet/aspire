@@ -56,6 +56,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Resources));
         _innerBuilder.Services.AddHostedService<DistributedApplicationRunner>();
         _innerBuilder.Services.AddSingleton(options);
+        _innerBuilder.Services.AddSingleton<IEnvironmentVariables, EnvironmentVariables>();
 
         // Dashboard
         _innerBuilder.Services.AddSingleton<DashboardServiceHost>();

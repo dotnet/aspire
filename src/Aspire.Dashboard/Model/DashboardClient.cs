@@ -23,7 +23,6 @@ namespace Aspire.Dashboard.Model;
 internal sealed class DashboardClient : IDashboardClient
 {
     private const string ResourceServiceUrlVariableName = "DOTNET_RESOURCE_SERVICE_ENDPOINT_URL";
-    private const string ResourceServiceUrlDefaultValue = "http://localhost:18999";
 
     private readonly Dictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
     private readonly CancellationTokenSource _cts = new();
@@ -36,23 +35,35 @@ internal sealed class DashboardClient : IDashboardClient
     private ImmutableHashSet<Channel<ResourceViewModelChange>> _outgoingChannels = [];
     private string? _applicationName;
 
+    private const int StateDisabled = -1; // In this state from construction. No dashboard client functions available.
     private const int StateNone = 0;
     private const int StateInitialized = 1;
     private const int StateDisposed = 2;
-    private int _state;
+    private int _state = StateNone;
 
     private readonly GrpcChannel _channel;
     private readonly DashboardService.DashboardServiceClient _client;
 
     private Task? _connection;
 
-    public DashboardClient(ILoggerFactory loggerFactory)
+    public DashboardClient(ILoggerFactory loggerFactory, IEnvironmentVariables environmentVariables)
     {
         _loggerFactory = loggerFactory;
 
         _logger = loggerFactory.CreateLogger<DashboardClient>();
 
-        var address = GetAddressUri(ResourceServiceUrlVariableName, ResourceServiceUrlDefaultValue);
+        var address = environmentVariables.GetUri(ResourceServiceUrlVariableName);
+
+        if (address is null)
+        {
+            _state = StateDisabled;
+            _logger.LogInformation("DOTNET_DASHBOARD_GRPC_ENDPOINT_URL is not specified. Dashboard client services are unavailable.");
+            _cts.Cancel();
+            _whenConnected.TrySetCanceled();
+            _channel = null!;
+            _client = null!;
+            return;
+        }
 
         _logger.LogInformation("Dashboard configured to connect to: {Address}", address);
 
@@ -61,20 +72,6 @@ internal sealed class DashboardClient : IDashboardClient
         _channel = CreateChannel();
 
         _client = new DashboardService.DashboardServiceClient(_channel);
-
-        static Uri GetAddressUri(string variableName, string defaultValue)
-        {
-            try
-            {
-                var uri = Environment.GetEnvironmentVariable(variableName) ?? defaultValue;
-
-                return new Uri(uri);
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidOperationException($"Error parsing URIs from environment variable '{variableName}'.", ex);
-            }
-        }
 
         GrpcChannel CreateChannel()
         {
@@ -118,9 +115,16 @@ internal sealed class DashboardClient : IDashboardClient
     // For testing purposes
     internal int OutgoingResourceSubscriberCount => _outgoingChannels.Count;
 
+    public bool IsEnabled => _state is not StateDisabled;
+
     private void EnsureInitialized()
     {
-        var priorState = Interlocked.CompareExchange(ref _state, StateInitialized, comparand: StateNone);
+        var priorState = Interlocked.CompareExchange(ref _state, value: StateInitialized, comparand: StateNone);
+
+        if (priorState is StateDisabled)
+        {
+            throw new InvalidOperationException($"{nameof(DashboardClient)} is disabled. Check the {nameof(IsEnabled)} property before calling this.");
+        }
 
         if (priorState is not StateNone)
         {

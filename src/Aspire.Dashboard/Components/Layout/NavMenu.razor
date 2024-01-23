@@ -1,11 +1,17 @@
+﻿@using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Resources
 @inject IStringLocalizer<Layout> Loc
+@inject IDashboardClient DashboardClient
 
 <div class="nav-menu-container">
     <FluentNavMenu @bind-Expanded="@Expanded" Width="250" Collapsible="true">
+        @if (DashboardClient.IsEnabled) {
         <FluentNavLink Icon="@(new Icons.Regular.Size24.AppFolder())" Href="/" Match="NavLinkMatch.All" Tooltip="@Loc[nameof(Layout.NavMenuResourcesTab)]">@Loc[nameof(Layout.NavMenuResourcesTab)]</FluentNavLink>
+        }
         <FluentNavGroup Title="@Loc[nameof(Layout.NavMenuMonitoringTab)]" Icon="@(new Icons.Regular.Size24.SlideText())" Expanded="true" Gap="10px 0;" Tooltip="@Loc[nameof(Layout.NavMenuMonitoringTab)]">
+            @if (DashboardClient.IsEnabled) {
             <FluentNavLink Icon="@(new Icons.Regular.Size24.SlideText())" Href="/ConsoleLogs" Tooltip="@Loc[nameof(Layout.NavMenuConsoleLogsTab)]">@Loc[nameof(Layout.NavMenuConsoleLogsTab)]</FluentNavLink>
+            }
             <FluentNavLink Icon="@(new Icons.Regular.Size24.SlideTextSparkle())" Href="/StructuredLogs" Tooltip="@Loc[nameof(Layout.NavMenuStructuredLogsTab)]">@Loc[nameof(Layout.NavMenuStructuredLogsTab)]</FluentNavLink>
             <FluentNavLink Icon="@(new Icons.Regular.Size24.GanttChart())" Href="/Traces" Tooltip="@Loc[nameof(Layout.NavMenuTracesTab)]">@Loc[nameof(Layout.NavMenuTracesTab)]</FluentNavLink>
             <FluentNavLink Icon="@(new Icons.Regular.Size24.ChartMultiple())" Href="/Metrics" Tooltip="@Loc[nameof(Layout.NavMenuMetricsTab)]">@Loc[nameof(Layout.NavMenuMetricsTab)]</FluentNavLink>
