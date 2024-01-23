@@ -36,7 +36,7 @@
     <PackageReference Include="Microsoft.DotNet.Build.Tasks.Installers" GeneratePathProperty="true" />
   </ItemGroup>
 
-  <!-- The list of supported runtimes -->
+  <!-- The list of supported runtimes, which matches those of DCP -->
   <ItemGroup>
     <!-- Update Aspire.Dashboard.csproj RuntimeIdentifiers if this list changes -->
     <_PackRuntimes Include="win-x86" />
