@@ -24,7 +24,7 @@
     <MicrosoftDotNetXUnitExtensionsPackageVersion>8.0.0-beta.24060.4</MicrosoftDotNetXUnitExtensionsPackageVersion>
     <MicrosoftDotNetBuildTasksInstallersPackageVersion>8.0.0-beta.24060.4</MicrosoftDotNetBuildTasksInstallersPackageVersion>
     <MicrosoftDotNetBuildTasksWorkloadsPackageVersion>8.0.0-beta.24060.4</MicrosoftDotNetBuildTasksWorkloadsPackageVersion>
-    <MicrosoftExtensionsHttpResiliencePackageVersion>8.0.0</MicrosoftExtensionsHttpResiliencePackageVersion>
+    <MicrosoftExtensionsHttpResiliencePackageVersion>8.1.0</MicrosoftExtensionsHttpResiliencePackageVersion>
     <MicrosoftExtensionsConfigurationAbstractionsPackageVersion>8.0.0</MicrosoftExtensionsConfigurationAbstractionsPackageVersion>
     <MicrosoftExtensionsConfigurationBinderPackageVersion>8.0.1</MicrosoftExtensionsConfigurationBinderPackageVersion>
     <MicrosoftExtensionsDependencyInjectionAbstractionsPackageVersion>8.0.0</MicrosoftExtensionsDependencyInjectionAbstractionsPackageVersion>
