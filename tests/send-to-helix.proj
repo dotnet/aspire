@@ -4,7 +4,6 @@
     <Language>msbuild</Language>
 
     <_workItemTimeout>00:20:00</_workItemTimeout>
-    <TestArchiveTestsDir>$([MSBuild]::NormalizeDirectory($(ArtifactsBinDir), 'helix', 'tests'))</TestArchiveTestsDir>
     <WorkItemArchiveWildCard>$(TestArchiveTestsDir)**/*.zip</WorkItemArchiveWildCard>
 
     <IncludeDotNetCli>true</IncludeDotNetCli>
