@@ -21,8 +21,6 @@ public class ConformanceTests : ConformanceTests<SqlConnection, MicrosoftDataSql
 
     protected override bool SupportsKeyedRegistrations => true;
 
-    protected override string JsonSchemaPath => "src/Components/Aspire.Microsoft.Data.SqlClient/ConfigurationSchema.json";
-
     protected override string ValidJsonConfig => """
         {
           "Aspire": {

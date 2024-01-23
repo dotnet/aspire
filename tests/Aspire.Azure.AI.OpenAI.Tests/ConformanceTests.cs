@@ -24,8 +24,6 @@ public class ConformanceTests : ConformanceTests<OpenAIClient, AzureOpenAISettin
 
     protected override bool SupportsKeyedRegistrations => true;
 
-    protected override string JsonSchemaPath => "src/Components/Aspire.Azure.AI.OpenAI/ConfigurationSchema.json";
-
     protected override string ValidJsonConfig => """
         {
           "Aspire": {
