@@ -1,0 +1,34 @@
+<Project>
+  <Import Sdk="Microsoft.NET.Sdk" Project="Sdk.props" />
+
+  <Import Project="$(SharedDir)Workload.targets" />
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <IsPackable>true</IsPackable>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <PackageOutputPath Condition=" '$(PackageOutputPath)' == '' ">$(ArtifactsShippingPackagesDir)</PackageOutputPath>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PackageId>Aspire.Dashboard.Sdk</PackageId>
+    <Description>Dashboard browser interface for .NET Aspire.</Description>
+  </PropertyGroup>
+
+  <Import Sdk="Microsoft.NET.Sdk" Project="Sdk.targets" />
+
+<Target Name="Build" />
+
+  <Target Name="BeforeBuild" BeforeTargets="Build">
+    <MSBuild Projects="../../src/Aspire.Dashboard/Aspire.Dashboard.csproj" Targets="publish" Properties="Configuration=$(Configuration);Platform=$(Platform);TargetFramework=$(TargetFramework)" />
+  </Target>
+
+  <ItemGroup>
+    <None Include="Sdk.props" Pack="true" PackagePath="Sdk/" />
+    <None Include="Sdk.targets" Pack="true" PackagePath="Sdk/" />
+    <None Include="$(DotNetOutputPath)Aspire.Dashboard/$(Configuration)/$(TargetFramework)/**/*" Pack="true" PackagePath="tools/" />
+  </ItemGroup>
+
+</Project>
