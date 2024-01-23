@@ -350,12 +350,12 @@ public static class OrleansServiceExtensions
 
         if (!string.IsNullOrWhiteSpace(res.ClusterId))
         {
-            builder.WithEnvironment("Orleans:ClusterId", res.ClusterId);
+            builder.WithEnvironment("Orleans__ClusterId", res.ClusterId);
         }
 
         if (!string.IsNullOrWhiteSpace(res.ServiceId))
         {
-            builder.WithEnvironment("Orleans:ServiceId", res.ServiceId);
+            builder.WithEnvironment("Orleans__ServiceId", res.ServiceId);
         }
 
         return builder;
