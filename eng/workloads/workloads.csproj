@@ -38,6 +38,7 @@
 
   <!-- The list of supported runtimes -->
   <ItemGroup>
+    <!-- Update Aspire.Dashboard.csproj RuntimeIdentifiers if this list changes -->
     <_PackRuntimes Include="win-x86" />
     <_PackRuntimes Include="win-x64" />
     <_PackRuntimes Include="win-arm64" />
@@ -48,13 +49,6 @@
   </ItemGroup>
 
   <Import Sdk="Microsoft.NET.Sdk" Project="Sdk.targets" />
-
-  <!--<Target Name="PublishDashboard" BeforeTargets="Build">
-    <PropertyGroup>
-      <_PublishRuntimes>@(_PackRuntimes)</_PublishRuntimes>
-    </PropertyGroup>
-    <MSBuild Projects="../../src/Aspire.Dashboard/Aspire.Dashboard.csproj" Targets="restore;publish" Properties="RuntimeIdentifiers=$(_PublishRuntimes)" />
-  </Target>-->
 
   <Target Name="Build" DependsOnTargets="GetAssemblyVersion;_GetVersionProps;_GenerateMsiVersionString">
     <ItemGroup>
