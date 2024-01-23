@@ -75,7 +75,7 @@
       </ShortNames>
     </ItemGroup>
 
-    <MSBuild Projects="../dashboardpack/dashboardpack.csproj" Targets="restore;build" Properties="DashboardRuntime=%(_PackRuntimes.Identity);PackageOutputPath=$(PackageSource)" BuildInParallel="false" />
+    <MSBuild Projects="../dashboardpack/dashboardpack.csproj" Targets="restore;build" Properties="DashboardRuntime=%(_PackRuntimes.Identity);PackageOutputPath=$(PackageSource)" />
     <MSBuild Projects="../dcppack/dcppack.csproj" Targets="restore;build" Properties="DcpRuntime=%(_PackRuntimes.Identity);PackageOutputPath=$(PackageSource)" />
 
     <ItemGroup>
