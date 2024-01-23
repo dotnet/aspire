@@ -94,12 +94,12 @@ internal sealed class DashboardServiceHost : IHostedService
 
         static void ConfigureKestrel(KestrelServerOptions kestrelOptions)
         {
-            // Check env var for URLs to listen on.
-            var uris = EnvironmentUtil.GetAddressUris(DashboardServiceUrlVariableName, defaultValue: null);
+            // Inspect environment for the address to listen on.
+            var uri = EnvironmentUtil.GetAddressUri(DashboardServiceUrlVariableName);
 
             string? scheme;
 
-            if (uris is null or [])
+            if (uri is null)
             {
                 // No URI available from the environment.
                 scheme = null;
@@ -107,21 +107,16 @@ internal sealed class DashboardServiceHost : IHostedService
                 // Listen on a random port.
                 kestrelOptions.Listen(IPAddress.Loopback, port: 0, ConfigureListen);
             }
-            else if (uris is [Uri uri])
+            else if (uri.IsLoopback)
             {
-                if (!uri.IsLoopback)
-                {
-                    throw new ArgumentException($"{DashboardServiceUrlVariableName} must contain a local loopback address.");
-                }
-
                 scheme = uri.Scheme;
 
+                // Listen on the requested localhost port.
                 kestrelOptions.ListenLocalhost(uri.Port, ConfigureListen);
-
             }
             else
             {
-                throw new ArgumentException($"Multiple URIs are not supported in the {DashboardServiceUrlVariableName} environment variable.");
+                throw new ArgumentException($"{DashboardServiceUrlVariableName} must contain a local loopback address.");
             }
 
             void ConfigureListen(ListenOptions options)
