@@ -8,7 +8,6 @@
 @using Aspire.Dashboard.Resources
 @inject IStringLocalizer<Dashboard.Resources.TraceDetail> Loc
 @inject IStringLocalizer<ControlsStrings> ControlStringsLoc
-@inject IDashboardClient DashboardClient
 
 <PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.TraceDetail.TraceDetailPageTitle)" Loc="@Loc" /></PageTitle>
 
@@ -125,6 +124,9 @@
                                 <div class="tick" style="grid-column: 5;"></div>
                             </div>
                         </ChildContent>
+                    </TemplateColumn>
+                    <TemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.DetailsColumnHeader)]">
+                        <FluentButton Appearance="Appearance.Lightweight" OnClick="() => OnShowProperties(context)">@ControlStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentButton>
                     </TemplateColumn>
                 </FluentDataGrid>
             </Summary>
