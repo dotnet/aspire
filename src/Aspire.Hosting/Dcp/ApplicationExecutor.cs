@@ -185,7 +185,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         {
             try
             {
-                var response = await client.SendAsync(new HttpRequestMessage(HttpMethod.Head, url), cancellationToken).ConfigureAwait(false);
+                var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
 
                 if (response.IsSuccessStatusCode)
                 {
