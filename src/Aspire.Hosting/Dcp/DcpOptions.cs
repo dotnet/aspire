@@ -25,17 +25,23 @@ internal sealed class DcpOptions
     public string? CliPath { get; set; }
 
     /// <summary>
-    /// Optional path to a folder container the DCP extension assemblies (dcpd, dcpctrl, etc.)
+    /// Optional path to a folder containing the DCP extension assemblies (dcpd, dcpctrl, etc.).
     /// </summary>
     /// <example>
     /// C:\Program Files\dotnet\packs\Aspire.Hosting.Orchestration.win-x64\8.0.0-preview.1.23518.6\tools\ext\
     /// </example>
     public string? ExtensionsPath { get; set; }
 
+    /// <summary>
+    /// Optional path to a folder containing the Aspire Dashboard binaries.
+    /// </summary>
+    /// <example>
+    /// When running the playground applications in this repo: <c>..\..\..\artifacts\bin\Aspire.Dashboard\Debug\net8.0\Aspire.Dashboard.dll</c>
+    /// </example>
     public string? DashboardPath { get; set; }
 
     /// <summary>
-    /// Optional path to a folder containing additional DCP binaries
+    /// Optional path to a folder containing additional DCP binaries.
     /// </summary>
     /// <example>
     /// C:\Program Files\dotnet\packs\Aspire.Hosting.Orchestration.win-x64\8.0.0-preview.1.23518.6\tools\ext\bin\
