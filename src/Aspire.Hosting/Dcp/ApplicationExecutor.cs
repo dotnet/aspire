@@ -80,7 +80,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         AspireEventSource.Instance.DcpModelCreationStart();
         try
         {
-            var (dashboardIndex, dashboardResource) = _model.Resources.IndexOf(static r => !StringComparers.ResourceName.Equals(r.Name, KnownResourceNames.AspireDashboard));
+            var (dashboardIndex, dashboardResource) = _model.Resources.IndexOf(static r => StringComparers.ResourceName.Equals(r.Name, KnownResourceNames.AspireDashboard));
 
             if (dashboardIndex is -1)
             {
@@ -135,7 +135,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
         var grpcEndpointUrl = await _dashboardServiceHost.GetResourceServiceUriAsync(cancellationToken).ConfigureAwait(false);
         var otlpEndpointUrl = Environment.GetEnvironmentVariable("DOTNET_DASHBOARD_OTLP_ENDPOINT_URL");
-        var dashboardUrl = Environment.GetEnvironmentVariable("ASPNETCORE_URLS");
+        var dashboardUrl = Environment.GetEnvironmentVariable("ASPNETCORE_URLS") ?? throw new DistributedApplicationException("ASPNETCORE_URLS environment variable not set.");
         var aspnetcoreEnvironment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
 
         dashboardExecutableSpec.Env =
@@ -168,6 +168,39 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         };
 
         await kubernetesService.CreateAsync(dashboardExecutable, cancellationToken).ConfigureAwait(false);
+
+        await WaitForHttpSuccessOrThrow(dashboardUrl, TimeSpan.FromSeconds(DashboardWaitTimeInSeconds), cancellationToken).ConfigureAwait(false);
+    }
+
+    private const int DashboardWaitTimeInSeconds = 10;
+
+    private async Task WaitForHttpSuccessOrThrow(string url, TimeSpan timeout, CancellationToken cancellationToken = default)
+    {
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        cts.CancelAfter(timeout);
+
+        var client = new HttpClient();
+
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            try
+            {
+                var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Dashboard not ready yet.");
+            }
+
+            await Task.Delay(TimeSpan.FromMilliseconds(50), cancellationToken).ConfigureAwait(false);
+        }
+
+        throw new DistributedApplicationException("Timed out waiting for dashboard to be responsive.");
     }
 
     public async Task StopApplicationAsync(CancellationToken cancellationToken = default)
@@ -502,6 +535,21 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 }
 
                 await createResource().ConfigureAwait(false);
+
+                // NOTE: This check is only necessary for the inner loop in the dotnet/aspire repo. When
+                //       running in the dotnet/aspire repo we will normally launch the dashboard via
+                //       AddProject<T>. When doing this we make sure that the dashboard is running.
+                if (er.ModelResource.Name.Equals(KnownResourceNames.AspireDashboard, StringComparisons.ResourceName))
+                {
+                    if (er.ModelResource.TryGetAllocatedEndPoints(out var allocatedEndpoints))
+                    {
+                        // We just check the HTTP endpoint because this will prove that the dashboard
+                        // is listening and is ready to process requests.
+                        var httpEndpoint = allocatedEndpoints.Single(ae => ae.Name.Equals("http", StringComparisons.EndpointAnnotationName));
+                        await WaitForHttpSuccessOrThrow(httpEndpoint.UriString, TimeSpan.FromSeconds(DashboardWaitTimeInSeconds), cancellationToken).ConfigureAwait(false);
+                    }
+                }
+
             }
 
         }
