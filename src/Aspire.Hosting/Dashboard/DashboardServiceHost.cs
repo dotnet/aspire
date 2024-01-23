@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Collections.Immutable;
 using System.Net;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
@@ -11,9 +10,9 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -35,7 +34,10 @@ internal sealed class DashboardServiceHost : IHostedService
     /// </remarks>
     private const string DashboardServiceUrlVariableName = "DOTNET_DASHBOARD_GRPC_ENDPOINT_URL";
 
-    private readonly TaskCompletionSource<ImmutableArray<string>> _uris = new();
+    /// <summary>
+    /// Provides access to the URI at which the resource service endpoint is hosted.
+    /// </summary>
+    private readonly TaskCompletionSource<string> _resourceServiceUri = new();
 
     /// <summary>
     /// <see langword="null"/> if <see cref="DistributedApplicationOptions.DashboardEnabled"/> is <see langword="false"/>.
@@ -53,27 +55,35 @@ internal sealed class DashboardServiceHost : IHostedService
         if (!options.DashboardEnabled ||
             publishingOptions.Value.Publisher == "manifest") // HACK: Manifest publisher check is temporary until DcpHostService is integrated with DcpPublisher.
         {
-            _uris.SetCanceled();
+            _resourceServiceUri.SetCanceled();
             return;
         }
 
-        var builder = WebApplication.CreateBuilder();
+        try
+        {
+            var builder = WebApplication.CreateBuilder();
 
-        // Logging
-        builder.Services.AddSingleton(loggerFactory);
-        builder.Services.AddSingleton(loggerOptions);
-        builder.Services.Add(ServiceDescriptor.Singleton(typeof(ILogger<>), typeof(Logger<>)));
+            // Logging
+            builder.Services.AddSingleton(loggerFactory);
+            builder.Services.AddSingleton(loggerOptions);
+            builder.Services.Add(ServiceDescriptor.Singleton(typeof(ILogger<>), typeof(Logger<>)));
 
-        builder.Services.AddGrpc();
-        builder.Services.AddSingleton(applicationModel);
-        builder.Services.AddSingleton(kubernetesService);
-        builder.Services.AddSingleton<DashboardServiceData>();
+            builder.Services.AddGrpc();
+            builder.Services.AddSingleton(applicationModel);
+            builder.Services.AddSingleton(kubernetesService);
+            builder.Services.AddSingleton<DashboardServiceData>();
 
-        builder.WebHost.ConfigureKestrel(ConfigureKestrel);
+            builder.WebHost.ConfigureKestrel(ConfigureKestrel);
 
-        _app = builder.Build();
+            _app = builder.Build();
 
-        _app.MapGrpcService<DashboardService>();
+            _app.MapGrpcService<DashboardService>();
+        }
+        catch (Exception ex)
+        {
+            _resourceServiceUri.TrySetException(ex);
+            throw;
+        }
 
         return;
 
@@ -84,7 +94,7 @@ internal sealed class DashboardServiceHost : IHostedService
 
             string? scheme;
 
-            if (uris is null or { Length: 0 })
+            if (uris is null or [])
             {
                 // No URI available from the environment.
                 scheme = null;
@@ -92,22 +102,21 @@ internal sealed class DashboardServiceHost : IHostedService
                 // Listen on a random port.
                 kestrelOptions.Listen(IPAddress.Loopback, port: 0, ConfigureListen);
             }
+            else if (uris is [Uri uri])
+            {
+                if (!uri.IsLoopback)
+                {
+                    throw new ArgumentException($"{DashboardServiceUrlVariableName} must contain a local loopback address.");
+                }
+
+                scheme = uri.Scheme;
+
+                kestrelOptions.ListenLocalhost(uri.Port, ConfigureListen);
+
+            }
             else
             {
-                // We have one or more configured URLs to listen on.
-                foreach (var uri in uris)
-                {
-                    scheme = uri.Scheme;
-
-                    if (uri.IsLoopback)
-                    {
-                        kestrelOptions.ListenLocalhost(uri.Port, ConfigureListen);
-                    }
-                    else
-                    {
-                        kestrelOptions.Listen(IPAddress.Parse(uri.Host), uri.Port, ConfigureListen);
-                    }
-                }
+                throw new ArgumentException($"Multiple URIs are not supported in the {DashboardServiceUrlVariableName} environment variable.");
             }
 
             void ConfigureListen(ListenOptions options)
@@ -125,15 +134,15 @@ internal sealed class DashboardServiceHost : IHostedService
     }
 
     /// <summary>
-    /// Gets the URIs upon which the resource service is listening.
+    /// Gets the URI upon which the resource service is listening.
     /// </summary>
     /// <remarks>
-    /// Intended to be used by the app model when launching the dashboard process, populating the
-    /// <c>DOTNET_DASHBOARD_GRPC_ENDPOINT_URL</c> environment variable (semicolon delimited).
+    /// Intended to be used by the app model when launching the dashboard process, populating its
+    /// <c>DOTNET_DASHBOARD_GRPC_ENDPOINT_URL</c> environment variable with a single URI.
     /// </remarks>
-    public Task<ImmutableArray<string>> GetUrisAsync(CancellationToken cancellationToken = default)
+    public Task<string> GetUrisAsync(CancellationToken cancellationToken = default)
     {
-        return _uris.Task.WaitAsync(cancellationToken);
+        return _resourceServiceUri.Task.WaitAsync(cancellationToken);
     }
 
     async Task IHostedService.StartAsync(CancellationToken cancellationToken)
@@ -146,17 +155,17 @@ internal sealed class DashboardServiceHost : IHostedService
 
             if (addressFeature is null)
             {
-                _uris.SetException(new InvalidOperationException("Could not obtain IServerAddressesFeature. Dashboard URIs are not available."));
+                _resourceServiceUri.SetException(new InvalidOperationException("Could not obtain IServerAddressesFeature. Dashboard URIs are not available."));
                 return;
             }
 
-            _uris.SetResult(addressFeature.Addresses.ToImmutableArray());
+            _resourceServiceUri.SetResult(addressFeature.Addresses.Single());
         }
     }
 
     async Task IHostedService.StopAsync(CancellationToken cancellationToken)
     {
-        _uris.TrySetCanceled(cancellationToken);
+        _resourceServiceUri.TrySetCanceled(cancellationToken);
 
         if (_app is not null)
         {
