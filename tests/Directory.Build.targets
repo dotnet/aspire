@@ -1,7 +1,7 @@
 <Project>
   <Import Project="..\Directory.Build.targets" />
 
-  <Target Name="ZipTestArchive" AfterTargets="PrepareForRun" Condition="'$(ArchiveTests)' == 'true'">
+  <Target Name="ZipTestArchive" AfterTargets="PrepareForRun" Condition="'$(ArchiveTests)' == 'true' and '$(IsTestSupportProject)' != 'true'">
     <Error Condition="'$(TestArchiveTestsDir)' == ''" Text="TestArchiveTestsDir property to archive the test folder must be set." />
 
     <MakeDir Directories="$(TestArchiveTestsDir)" />
