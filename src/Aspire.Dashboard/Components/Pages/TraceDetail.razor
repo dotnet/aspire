@@ -1,7 +1,6 @@
 ﻿@page "/Trace/{traceId}"
 @page "/Trace/{traceId}/Span/{spanId}"
 
-@using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Model.Otlp
 @using Aspire.Dashboard.Otlp.Model
 @using System.Globalization
@@ -52,7 +51,7 @@
                 </div>
             </DetailsTitleTemplate>
             <Summary>
-                <FluentDataGrid Class="trace-view-grid" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="SpanWaterfallViewModel" RowClass="@GetRowClass" GridTemplateColumns="2fr 6fr">
+                <FluentDataGrid Class="trace-view-grid" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="SpanWaterfallViewModel" RowClass="@GetRowClass" GridTemplateColumns="4fr 12fr 1.25fr">
                     <TemplateColumn Title="Name">
                         <div class="col-long-content" title="@context.GetTooltip()" @onclick="() => OnShowProperties(context)">
                             @{
@@ -126,7 +125,10 @@
                         </ChildContent>
                     </TemplateColumn>
                     <TemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.DetailsColumnHeader)]">
-                        <FluentButton Appearance="Appearance.Lightweight" OnClick="() => OnShowProperties(context)">@ControlStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentButton>
+                        <FluentButton
+                            Style="margin-left: 7px;"
+                            Title="@ControlStringsLoc[nameof(ControlsStrings.ViewAction)]"
+                            Appearance="Appearance.Lightweight" OnClick="() => OnShowProperties(context)">@ControlStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentButton>
                     </TemplateColumn>
                 </FluentDataGrid>
             </Summary>

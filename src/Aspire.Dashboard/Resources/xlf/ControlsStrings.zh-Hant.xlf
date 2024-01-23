@@ -42,6 +42,11 @@
         <target state="new">Unable to display chart</target>
         <note />
       </trans-unit>
+      <trans-unit id="DetailsColumnHeader">
+        <source>Details</source>
+        <target state="new">Details</target>
+        <note />
+      </trans-unit>
       <trans-unit id="DurationColumnHeader">
         <source>Duration</source>
         <target state="new">Duration</target>
