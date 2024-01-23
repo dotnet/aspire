@@ -1,8 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
+  <Import Project="$(SharedDir)Workload.targets" />
+
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <NoWarn>$(NoWarn);CS8002</NoWarn>
@@ -21,6 +22,7 @@
 
   <ItemGroup>
     <None Include="..\Shared\Aspire_icon_256.png" Pack="True" PackagePath="\" />
+    <None Include="Sdk\*.props;Sdk\*.targets" Pack="true" PackagePath="Sdk\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

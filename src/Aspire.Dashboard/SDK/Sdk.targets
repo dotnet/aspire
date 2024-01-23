@@ -3,7 +3,7 @@
   <!-- *** BEGIN *** -->
 
   <PropertyGroup>
-    <AspireDashboardDir Condition=" '$(AspireDashboardDir)' == '' ">$([MSBuild]::NormalizeDirectory($(MSBuildThisFileDirectory), '..', 'tools'))</AspireDashboardDir>
+    <AspireDashboardDir Condition=" '$(AspireDashboardDir)' == '' ">$([MSBuild]::NormalizeDirectory($(MSBuildThisFileDirectory), '..', 'lib', 'net8.0'))</AspireDashboardDir>
     <AspireDashboardDir>$([MSBuild]::EnsureTrailingSlash('$(AspireDashboardDir)'))</AspireDashboardDir>
     <AspireDashboardPath Condition=" '$(AspireDashboardPath)' == '' ">$([MSBuild]::NormalizePath($(AspireDashboardDir), 'Aspire.Dashboard.dll'))</AspireDashboardPath>
   </PropertyGroup>
