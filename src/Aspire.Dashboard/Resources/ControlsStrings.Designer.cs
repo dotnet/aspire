@@ -276,29 +276,11 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Show all values.
-        /// </summary>
-        public static string MetricTableShowAllValues {
-            get {
-                return ResourceManager.GetString("MetricTableShowAllValues", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Show the latest 10 values.
+        ///   Looks up a localized string similar to Show latest 10 values.
         /// </summary>
         public static string MetricTableShowLatestValues {
             get {
                 return ResourceManager.GetString("MetricTableShowLatestValues", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Don&apos;t only show value updates.
-        /// </summary>
-        public static string MetricTableShowNonValueChanges {
-            get {
-                return ResourceManager.GetString("MetricTableShowNonValueChanges", resourceCulture);
             }
         }
         

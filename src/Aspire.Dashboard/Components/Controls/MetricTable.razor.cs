@@ -9,17 +9,17 @@ using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 using CollectionExtensions = Aspire.Dashboard.Extensions.CollectionExtensions;
 
-namespace Aspire.Dashboard.Components;
+namespace Aspire.Dashboard.Components.Controls;
 
 public partial class MetricTable : ComponentBase
 {
     private readonly List<Metric> _metrics = [];
     private static readonly List<int> s_shownPercentiles = [50, 90, 99];
 
-    private bool _showLatestMetrics = true;
+    private bool _showAllMetrics = true;
     private bool _onlyShowValueChanges;
 
-    private IEnumerable<Metric> FilteredMetrics => _showLatestMetrics ? _metrics.TakeLast(10) : _metrics;
+    private IEnumerable<Metric> FilteredMetrics => !_showAllMetrics ? _metrics.TakeLast(10) : _metrics;
     private bool _anyDimensionsShown;
 
     private IJSObjectReference? _jsModule;
@@ -266,7 +266,12 @@ public partial class MetricTable : ComponentBase
 
     private bool ShouldShowHistogram()
     {
-        return InstrumentViewModel.Instrument?.Type == OtlpInstrumentType.Histogram && !InstrumentViewModel.ShowCount;
+        return IsHistogramInstrument() && !InstrumentViewModel.ShowCount;
+    }
+
+    private bool IsHistogramInstrument()
+    {
+        return InstrumentViewModel.Instrument?.Type == OtlpInstrumentType.Histogram;
     }
 
     private static ValueDirectionChange GetDirectionChange(IComparable? current, IComparable? previous)

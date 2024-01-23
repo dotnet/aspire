@@ -122,19 +122,9 @@
         <target state="new">End</target>
         <note />
       </trans-unit>
-      <trans-unit id="MetricTableShowAllValues">
-        <source>Show all values</source>
-        <target state="new">Show all values</target>
-        <note />
-      </trans-unit>
       <trans-unit id="MetricTableShowLatestValues">
-        <source>Show the latest 10 values</source>
-        <target state="new">Show the latest 10 values</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="MetricTableShowNonValueChanges">
-        <source>Don't only show value updates</source>
-        <target state="new">Don't only show value updates</target>
+        <source>Show latest 10 values</source>
+        <target state="new">Show latest 10 values</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricTableShowOnlyValueChanges">
