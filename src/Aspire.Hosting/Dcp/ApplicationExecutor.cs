@@ -3,10 +3,12 @@
 
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Lifecycle;
 using k8s;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Dcp;
 
@@ -46,14 +48,20 @@ internal sealed class ServiceAppResource : AppResource
     }
 }
 
-internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger, DistributedApplicationModel model,
+internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
+                                          DistributedApplicationModel model,
+                                          DistributedApplicationOptions distributedApplicationOptions,
                                           KubernetesService kubernetesService,
-                                          IEnumerable<IDistributedApplicationLifecycleHook> lifecycleHooks)
+                                          IEnumerable<IDistributedApplicationLifecycleHook> lifecycleHooks,
+                                          IOptions<DcpOptions> options,
+                                          DashboardServiceHost dashboardHost)
 {
     private const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
 
     private readonly ILogger<ApplicationExecutor> _logger = logger;
     private readonly IDistributedApplicationLifecycleHook[] _lifecycleHooks = lifecycleHooks.ToArray();
+    private readonly IOptions<DcpOptions> _options = options;
+    private readonly DashboardServiceHost _dashboardServiceHost = dashboardHost;
 
     // These environment variables should never be inherited from app host;
     // they only make sense if they come from a launch profile of a service project.
@@ -73,6 +81,11 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger, D
         AspireEventSource.Instance.DcpModelCreationStart();
         try
         {
+            if (!_model.Resources.Any(r => r.Name == DashboardReservedResourceName))
+            {
+                await StartDashboardAsync(cancellationToken).ConfigureAwait(false);
+            }
+
             PrepareServices();
             PrepareContainers();
             PrepareExecutables();
@@ -85,7 +98,66 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger, D
         {
             AspireEventSource.Instance.DcpModelCreationStop();
         }
+    }
 
+    private const string DashboardReservedResourceName = "aspire-dashboard";
+
+    private async Task StartDashboardAsync(CancellationToken cancellationToken = default)
+    {
+        if (!distributedApplicationOptions.DashboardEnabled)
+        {
+            // The dashboard is disabled. Do nothing.
+            return;
+        }
+
+        if (_options.Value.DashboardPath is not { } dashboardPath)
+        {
+            throw new DistributedApplicationException("Dashboard path empty or file does not exist.");
+        }
+
+        var fullyQualifiedDashboardPath = Path.GetFullPath(dashboardPath);
+        var dashboardWorkingDirectory = Path.GetDirectoryName(fullyQualifiedDashboardPath);
+
+        var dashboardExecutableSpec = new ExecutableSpec();
+        dashboardExecutableSpec.ExecutionType = ExecutionType.Process;
+   
+        dashboardExecutableSpec.ExecutablePath = "dotnet";
+        dashboardExecutableSpec.Args = [fullyQualifiedDashboardPath];
+        dashboardExecutableSpec.WorkingDirectory = dashboardWorkingDirectory;
+
+        var grpcEndpointUrl = await _dashboardServiceHost.GetUrisAsync(cancellationToken).ConfigureAwait(false);
+        var otlpEndpointUrl = Environment.GetEnvironmentVariable("DOTNET_DASHBOARD_OTLP_ENDPOINT_URL");
+        var dashboardUrl = Environment.GetEnvironmentVariable("ASPNETCORE_URLS");
+        var aspnetcoreEnvironment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+
+        var environment = new List<EnvVar>();
+        environment.Add(new EnvVar()
+        {
+            Name = "DOTNET_DASHBOARD_GRPC_ENDPOINT_URL",
+            Value = grpcEndpointUrl
+        });
+        environment.Add(new EnvVar()
+        {
+            Name = "ASPNETCORE_URLS",
+            Value = dashboardUrl
+        });
+        environment.Add(new EnvVar()
+        {
+            Name = "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL",
+            Value = otlpEndpointUrl
+        });
+        environment.Add(new EnvVar()
+        {
+            Name = "ASPNETCORE_ENVIRONMENT",
+            Value = aspnetcoreEnvironment
+        });
+
+        dashboardExecutableSpec.Env = environment;
+
+        var dashboardExecutable = new Executable(dashboardExecutableSpec);
+        dashboardExecutable.Metadata.Name = DashboardReservedResourceName;
+
+        await kubernetesService.CreateAsync(dashboardExecutable, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task StopApplicationAsync(CancellationToken cancellationToken = default)
