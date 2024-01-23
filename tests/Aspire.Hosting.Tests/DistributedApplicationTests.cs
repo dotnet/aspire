@@ -273,7 +273,7 @@ public class DistributedApplicationTests
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
         testProgram.ServiceABuilder
-            .WithEndpoint(scheme: "http", name: "http0", env: "PORT0");
+            .WithHttpEndpoint(name: "http0", env: "PORT0");
 
         testProgram.AppBuilder.AddContainer("redis0", "redis")
             .WithEndpoint(containerPort: 6379, name: "tcp", env: "REDIS_PORT");
