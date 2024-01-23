@@ -13,7 +13,7 @@
     <ProjectReference Include="..\..\..\src\Aspire.Hosting\Aspire.Hosting.csproj" AspireHostLibrary="true" />
     <ProjectReference Include="..\..\..\src\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" AspireHostLibrary="true" />
     <ProjectReference Include="..\..\..\src\Aspire.Hosting.Azure.Provisioning\Aspire.Hosting.Azure.Provisioning.csproj" AspireHostLibrary="true" />
-    
+
     <ProjectReference Include="..\ApiGateway\ApiGateway.csproj" />
     <ProjectReference Include="..\BasketService\BasketService.csproj" />
     <ProjectReference Include="..\CatalogDb\CatalogDb.csproj" />

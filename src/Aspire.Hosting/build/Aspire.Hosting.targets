@@ -12,11 +12,18 @@
     <ProjectCapability Include="Aspire" Condition=" '$(IsAspireHost)' == 'true' " />
   </ItemGroup>
 
-  <!-- Generate the data structures for doing the codegen for service references -->
-  <Target Name="CreateServiceMetadataSources">
+  <Target Name="_CreateServiceAppProjects">
+
     <ItemGroup>
       <_ServiceAppProject Include="@(ProjectReference->WithMetadataValue('_IsServiceApp', 'true'))" />
+    </ItemGroup>
 
+  </Target>
+  
+  <!-- Generate the data structures for doing the codegen for service references -->
+  <Target Name="CreateServiceMetadataSources"
+          DependsOnTargets="_CreateServiceAppProjects">
+    <ItemGroup>
       <ServiceMetadataSource Include="@(_ServiceAppProject)" Condition="'@(_ServiceAppProject)' != ''">
         <ClassName Condition="%(_ServiceAppProject.ServiceNameOverride) == ''">$([System.IO.Path]::GetFileNameWithoutExtension(%(_ServiceAppProject.Identity)).Replace(".", "_").Replace("-","_").Replace(" ","_"))</ClassName>
         <ClassName Condition="%(_ServiceAppProject.ServiceNameOverride) != ''">$([System.String]::Copy(%(_ServiceAppProject.ServiceNameOverride)).Replace(".", "_").Replace("-","_").Replace(" ","_"))</ClassName>
@@ -91,9 +98,78 @@ internal static class ]]>%(ClassName)<![CDATA[
     <Warning Code="ASPIRE001" Text="The '$(Language)' language isn't fully supported by Aspire - some code generation targets will not run, so will require manual authoring." />
   </Target>
 
+  <!--
+  Gets the references in 'AppProjectTargetFramework' that aren't executable projects.
+  -->
+  <UsingTask TaskName="GetNonExecutableReferences"
+             TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <AppProjectTargetFramework ParameterType="Microsoft.Build.Framework.ITaskItem[]" Required="true" />
+      <NonExecutableReferences ParameterType="Microsoft.Build.Framework.ITaskItem[]" Output="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System.Xml.Linq" />
+      <Code Type="Fragment" Language="cs">
+        <![CDATA[
+          HashSet<ITaskItem> nonExecutableReferences = new HashSet<ITaskItem>();
+          
+          foreach (var appProject in AppProjectTargetFramework)
+          {
+            var additionalProperties = appProject.GetMetadata("AdditionalPropertiesFromProject");
+            if (string.IsNullOrEmpty(additionalProperties))
+            {
+              // Skip any projects that don't contain the right metadata
+              continue;
+            }
+                
+            var additionalPropertiesXml = XElement.Parse(additionalProperties);
+            foreach (var targetFrameworkElement in additionalPropertiesXml.Elements())
+            {
+              var isExe = targetFrameworkElement.Element("_IsExecutable");
+              if (isExe != null && !string.Equals(isExe.Value, "true", StringComparison.OrdinalIgnoreCase))
+              {
+                nonExecutableReferences.Add(appProject);
+              }
+            }
+          }
+
+          NonExecutableReferences = nonExecutableReferences.ToArray();
+        ]]>
+      </Code>
+    </Task>
+  </UsingTask>
+
+  <!--
+  Validates that all the ProjectReferences of an Aspire AppHost project are executables and
+  informs the developer to set 'AspireHostLibrary=true' if they really intended on ProjectReferencing a library.
+  -->
+  <Target Name="_ValidateAspireHostServiceReferences"
+          DependsOnTargets="_CreateServiceAppProjects"
+          Condition="'$(IsAspireHost)' == 'true' and '$(SkipValidateAspireHostServiceReferences)' != 'true'">
+
+    <MSBuild Projects="@(_ServiceAppProject)"
+             Targets="GetTargetFrameworks"
+             BuildInParallel="$(BuildInParallel)"
+             Properties="%(_ServiceAppProject.SetConfiguration); %(_ServiceAppProject.SetPlatform)"
+             ContinueOnError="!$(BuildingProject)"
+             RemoveProperties="%(_ServiceAppProject.GlobalPropertiesToRemove);TargetFramework;RuntimeIdentifier;SelfContained;$(_GlobalPropertiesToRemoveFromProjectReferences)"
+             SkipNonexistentTargets="true">
+      <Output TaskParameter="TargetOutputs" ItemName="_ServiceAppProjectTargetFramework" />
+    </MSBuild>
+
+    <GetNonExecutableReferences AppProjectTargetFramework="@(_ServiceAppProjectTargetFramework)">
+      <Output TaskParameter="NonExecutableReferences" ItemName="_NonExecutableServiceApps" />
+    </GetNonExecutableReferences>
+
+    <Warning Code="ASPIRE004"
+             Condition="'@(_NonExecutableServiceApps)' != ''"
+             Text="'%(_NonExecutableServiceApps.OriginalItemSpec)' is referenced by an Aspire AppHost project, but it is not an executable. Did you mean to set AspireHostLibrary=&quot;true&quot;?" />
+  </Target>
+
   <PropertyGroup>
     <!-- Easy extension point for adding new languages' write support. -->
-    <WriteServiceMetadataSourcesDependsOn>_CSharpWriteServiceMetadataSources;_CSharpAppHostProjectMetadataSources;_WarnOnUnsupportedLanguage</WriteServiceMetadataSourcesDependsOn>
+    <WriteServiceMetadataSourcesDependsOn>_CSharpWriteServiceMetadataSources;_CSharpAppHostProjectMetadataSources;_WarnOnUnsupportedLanguage;_ValidateAspireHostServiceReferences</WriteServiceMetadataSourcesDependsOn>
   </PropertyGroup>
 
   <!-- The purpose of this target is to take all of the generated service metadata and write them to the intermediate build directory
