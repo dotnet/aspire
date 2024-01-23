@@ -48,7 +48,9 @@ internal sealed class ServiceAppResource : AppResource
     }
 }
 
-internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger, DistributedApplicationModel model,
+internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
+                                          DistributedApplicationModel model,
+                                          DistributedApplicationOptions distributedApplicationOptions,
                                           KubernetesService kubernetesService,
                                           IEnumerable<IDistributedApplicationLifecycleHook> lifecycleHooks,
                                           IOptions<DcpOptions> options,
@@ -102,6 +104,12 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger, D
 
     private async Task StartDashboardAsync(CancellationToken cancellationToken = default)
     {
+        if (!distributedApplicationOptions.DashboardEnabled)
+        {
+            // The dashboard is disabled. Do nothing.
+            return;
+        }
+
         if (_options.Value.DashboardPath is not { } dashboardPath)
         {
             throw new DistributedApplicationException("Dashboard path empty or file does not exist.");
