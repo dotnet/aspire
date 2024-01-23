@@ -13,3 +13,6 @@
     margin-left: 3px;
 }
 
+::deep .resource-row > fluent-data-grid-cell {
+    overflow: visible;
+}

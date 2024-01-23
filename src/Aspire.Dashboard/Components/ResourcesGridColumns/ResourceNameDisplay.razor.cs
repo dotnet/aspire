@@ -1,13 +1,13 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Microsoft.AspNetCore.Components;
 
-namespace Aspire.Dashboard.Components.ResourcesGridColumns;
+namespace Aspire.Dashboard.Components;
 
-public partial class StateColumnDisplay
+public partial class ResourceNameDisplay
 {
     [Inject]
     public required TelemetryRepository TelemetryRepository { get; init; }
@@ -31,5 +31,10 @@ public partial class StateColumnDisplay
         }
 
         return count;
+    }
+
+    private static string GetResourceErrorStructuredLogsUrl(ResourceViewModel resource)
+    {
+        return $"/StructuredLogs/{resource.Uid}?level=error";
     }
 }
