@@ -49,7 +49,16 @@
     },
     "Aspire.Dashboard.Sdk": {
       "kind": "sdk",
-      "version": "@VERSION@"
+      "version": "@VERSION@",
+      "alias-to": {
+        "win-x86": "Aspire.Dashboard.Sdk.win-x86",
+        "win-x64": "Aspire.Dashboard.Sdk.win-x64",
+        "win-arm64": "Aspire.Dashboard.Sdk.win-arm64",
+        "linux-x64": "Aspire.Dashboard.Sdk.linux-x64",
+        "linux-arm64": "Aspire.Dashboard.Sdk.linux-arm64",
+        "osx-x64": "Aspire.Dashboard.Sdk.osx-x64",
+        "osx-arm64": "Aspire.Dashboard.Sdk.osx-arm64"
+      }
     }
   }
 }

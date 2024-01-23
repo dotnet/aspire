@@ -1,27 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <IsPackable>true</IsPackable>
+    <!-- This list of runtimes needs to match the set of runtimes specified in eng/workloads/workloads.csproj -->
+    <RuntimeIdentifiers>win-x86;win-x64;win-arm64;linux-x64;linux-arm64;osx-x64;osx-arm64</RuntimeIdentifiers>
     <OutputType>Exe</OutputType>
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <NoWarn>$(NoWarn);CS8002</NoWarn>
   </PropertyGroup>
-
-  <PropertyGroup>
-    <Description>Dashboard browser interface for .NET Aspire.</Description>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <Title>.NET Aspire Dashboard</Title>
-    <PackageProjectUrl>https://github.com/dotnet/aspire</PackageProjectUrl>
-    <PackageIcon>Aspire_icon_256.png</PackageIcon>
-    <RepositoryType>git</RepositoryType>
-    <RepositoryUrl>https://github.com/dotnet/aspire</RepositoryUrl>
-  </PropertyGroup>
-
-  <ItemGroup>
-    <None Include="..\Shared\Aspire_icon_256.png" Pack="True" PackagePath="\" />
-  </ItemGroup>
 
   <ItemGroup>
     <Protobuf Include="**/*.proto" GrpcServices="Server">
