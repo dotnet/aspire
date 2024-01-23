@@ -127,7 +127,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
         var grpcEndpointUrl = await _dashboardServiceHost.GetUrisAsync(cancellationToken).ConfigureAwait(false);
         var otlpEndpointUrl = Environment.GetEnvironmentVariable("DOTNET_DASHBOARD_OTLP_ENDPOINT_URL");
-        var dashboardUrl = Environment.GetEnvironmentVariable("ASPNETCORE_URLS");
+        var dashboardUrl = Environment.GetEnvironmentVariable("ASPNETCORE_URLS") ?? throw new DistributedApplicationException("ASPNETCORE_URLS environment variable not set.");
         var aspnetcoreEnvironment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
 
         var environment = new List<EnvVar>();
@@ -158,6 +158,27 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         dashboardExecutable.Metadata.Name = DashboardReservedResourceName;
 
         await kubernetesService.CreateAsync(dashboardExecutable, cancellationToken).ConfigureAwait(false);
+
+        var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        cts.CancelAfter(TimeSpan.FromSeconds(DashboardWaitTimeInSeconds));
+        await WaitForHttpSuccess(dashboardUrl, cts.Token).ConfigureAwait(false);
+    }
+
+    private const int DashboardWaitTimeInSeconds = 10;
+
+    private static async Task WaitForHttpSuccess(string url, CancellationToken cancellationToken = default)
+    {
+        var client = new HttpClient();
+
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            var response = await client.GetAsync(url, cancellationToken).ConfigureAwait(false);
+
+            if (response.IsSuccessStatusCode)
+            {
+                return;
+            }
+        }
     }
 
     public async Task StopApplicationAsync(CancellationToken cancellationToken = default)
