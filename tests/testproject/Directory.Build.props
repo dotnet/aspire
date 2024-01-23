@@ -2,4 +2,6 @@
   <PropertyGroup>
     <IsTestSupportProject>true</IsTestSupportProject>
   </PropertyGroup>
+
+  <Import Project="..\Directory.Build.props" />
 </Project>
