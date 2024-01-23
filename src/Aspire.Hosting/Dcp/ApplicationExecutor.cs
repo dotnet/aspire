@@ -80,7 +80,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         AspireEventSource.Instance.DcpModelCreationStart();
         try
         {
-            var (dashboardIndex, dashboardResource) = _model.Resources.IndexOf(static r => !StringComparers.ResourceName.Equals(r.Name, KnownResourceNames.AspireDashboard));
+            var (dashboardIndex, dashboardResource) = _model.Resources.IndexOf(static r => StringComparers.ResourceName.Equals(r.Name, KnownResourceNames.AspireDashboard));
 
             if (dashboardIndex is -1)
             {

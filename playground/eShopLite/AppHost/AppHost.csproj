@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <Compile Include="..\..\..\src\Aspire.Hosting\Utils\KnownResourceNames.cs" Link="KnownResourceNames.cs" />
+    <Compile Include="..\..\Shared\WorkloadAttributes.cs" Link="WorkloadAttributes.cs" />
   </ItemGroup>
 
   <ItemGroup>
