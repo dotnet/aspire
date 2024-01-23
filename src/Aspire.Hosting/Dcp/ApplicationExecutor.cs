@@ -159,26 +159,36 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
         await kubernetesService.CreateAsync(dashboardExecutable, cancellationToken).ConfigureAwait(false);
 
-        var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        cts.CancelAfter(TimeSpan.FromSeconds(DashboardWaitTimeInSeconds));
-        await WaitForHttpSuccess(dashboardUrl, cts.Token).ConfigureAwait(false);
+        await WaitForHttpSuccessOrThrow(dashboardUrl, TimeSpan.FromSeconds(DashboardWaitTimeInSeconds), cancellationToken).ConfigureAwait(false);
     }
 
     private const int DashboardWaitTimeInSeconds = 10;
 
-    private static async Task WaitForHttpSuccess(string url, CancellationToken cancellationToken = default)
+    private async Task WaitForHttpSuccessOrThrow(string url, TimeSpan timeout, CancellationToken cancellationToken = default)
     {
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        cts.CancelAfter(timeout);
+
         var client = new HttpClient();
 
         while (!cancellationToken.IsCancellationRequested)
         {
-            var response = await client.GetAsync(url, cancellationToken).ConfigureAwait(false);
-
-            if (response.IsSuccessStatusCode)
+            try
             {
-                return;
+                var response = await client.GetAsync(url, cancellationToken).ConfigureAwait(false);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Dashboard not ready yet.");
             }
         }
+
+        throw new DistributedApplicationException("Timed out waiting for dashboard to be responsive.");
     }
 
     public async Task StopApplicationAsync(CancellationToken cancellationToken = default)
