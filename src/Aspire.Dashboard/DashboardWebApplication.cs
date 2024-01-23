@@ -30,16 +30,16 @@ public class DashboardWebApplication
         builder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.None);
         builder.Logging.AddFilter("Microsoft.AspNetCore.Server.Kestrel", LogLevel.Error);
 
-        var dashboardUris = EnvironmentUtil.GetAddressUris(DashboardUrlVariableName, DashboardUrlDefaultValue);
+        var dashboardUris = EnvironmentUtil.GetAddressUris(DashboardUrlVariableName, new(DashboardUrlDefaultValue));
 
-        var dashboardHttpsPort = dashboardUris.FirstOrDefault(IsHttps)?.Port;
-        var otlpUris = EnvironmentUtil.GetAddressUris(DashboardOtlpUrlVariableName, DashboardOtlpUrlDefaultValue);
+        var otlpUris = EnvironmentUtil.GetAddressUris(DashboardOtlpUrlVariableName, new(DashboardOtlpUrlDefaultValue));
 
         if (otlpUris.Length > 1)
         {
             throw new InvalidOperationException("Only one URL for Aspire dashboard OTLP endpoint is supported.");
         }
 
+        var dashboardHttpsPort = dashboardUris.FirstOrDefault(IsHttps)?.Port;
         var isAllHttps = dashboardHttpsPort is not null && IsHttps(otlpUris[0]);
 
         builder.WebHost.ConfigureKestrel(kestrelOptions =>
