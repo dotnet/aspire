@@ -74,6 +74,7 @@
       </ShortNames>
     </ItemGroup>
 
+    <MSBuild Projects="../dashboardpack/dashboardpack.csproj" Targets="restore;build" Properties="PackageOutputPath=$(PackageSource)" />
     <MSBuild Projects="../dcppack/dcppack.csproj" Targets="restore;build" Properties="DcpRuntime=%(_DcpRuntimes.Identity);PackageOutputPath=$(PackageSource)" />
 
     <ItemGroup>
