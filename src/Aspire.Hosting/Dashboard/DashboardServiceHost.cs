@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using System.Net;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
@@ -43,6 +44,7 @@ internal sealed class DashboardServiceHost : IHostedService
     /// <see langword="null"/> if <see cref="DistributedApplicationOptions.DashboardEnabled"/> is <see langword="false"/>.
     /// </summary>
     private readonly WebApplication? _app;
+    private readonly ILogger<DashboardServiceHost> _logger;
 
     public DashboardServiceHost(
         DistributedApplicationOptions options,
@@ -50,8 +52,11 @@ internal sealed class DashboardServiceHost : IHostedService
         KubernetesService kubernetesService,
         IOptions<PublishingOptions> publishingOptions,
         ILoggerFactory loggerFactory,
+        ILogger<DashboardServiceHost> logger,
         IConfigureOptions<LoggerFilterOptions> loggerOptions)
     {
+        _logger = logger;
+
         if (!options.DashboardEnabled ||
             publishingOptions.Value.Publisher == "manifest") // HACK: Manifest publisher check is temporary until DcpHostService is integrated with DcpPublisher.
         {
@@ -140,9 +145,20 @@ internal sealed class DashboardServiceHost : IHostedService
     /// Intended to be used by the app model when launching the dashboard process, populating its
     /// <c>DOTNET_DASHBOARD_GRPC_ENDPOINT_URL</c> environment variable with a single URI.
     /// </remarks>
-    public Task<string> GetUrisAsync(CancellationToken cancellationToken = default)
+    public async Task<string> GetResourceServiceUriAsync(CancellationToken cancellationToken = default)
     {
-        return _resourceServiceUri.Task.WaitAsync(cancellationToken);
+        var stopwatch = Stopwatch.StartNew();
+
+        var uri = await _resourceServiceUri.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+        stopwatch.Stop();
+
+        if (stopwatch.Elapsed > TimeSpan.FromSeconds(2))
+        {
+            _logger.LogWarning("Unexpectedly long wait for resource service URI ({elapsed}).", stopwatch.Elapsed);
+        }
+
+        return uri;
     }
 
     async Task IHostedService.StartAsync(CancellationToken cancellationToken)

@@ -91,7 +91,7 @@ internal sealed class DcpDataSource
         }
     }
 
-    private static bool IsFilteredResource<T>(T resource) where T: CustomResource
+    private static bool IsFilteredResource<T>(T resource) where T : CustomResource
     {
         // We filter out any resources that start with aspire-dashboard (there are services as well as executables).
         if (resource.Metadata.Name.StartsWith("aspire-dashboard", StringComparisons.ResourceName))

@@ -14,23 +14,23 @@ namespace Aspire.Hosting.Dcp;
 
 internal class AppResource
 {
-    public IResource ModelResource { get; private set; }
-    public CustomResource DcpResource { get; private set; }
-    public virtual List<ServiceAppResource> ServicesProduced { get; private set; } = new();
-    public virtual List<ServiceAppResource> ServicesConsumed { get; private set; } = new();
+    public IResource ModelResource { get; }
+    public CustomResource DcpResource { get; }
+    public virtual List<ServiceAppResource> ServicesProduced { get; } = [];
+    public virtual List<ServiceAppResource> ServicesConsumed { get; } = [];
 
     public AppResource(IResource modelResource, CustomResource dcpResource)
     {
-        this.ModelResource = modelResource;
-        this.DcpResource = dcpResource;
+        ModelResource = modelResource;
+        DcpResource = dcpResource;
     }
 }
 
 internal sealed class ServiceAppResource : AppResource
 {
     public Service Service => (Service)DcpResource;
-    public EndpointAnnotation EndpointAnnotation { get; private set; }
-    public ServiceProducerAnnotation DcpServiceProducerAnnotation { get; private set; }
+    public EndpointAnnotation EndpointAnnotation { get; }
+    public ServiceProducerAnnotation DcpServiceProducerAnnotation { get; }
 
     public override List<ServiceAppResource> ServicesProduced
     {
@@ -59,9 +59,11 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
     private const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
 
     private readonly ILogger<ApplicationExecutor> _logger = logger;
+    private readonly DistributedApplicationModel _model = model;
     private readonly IDistributedApplicationLifecycleHook[] _lifecycleHooks = lifecycleHooks.ToArray();
     private readonly IOptions<DcpOptions> _options = options;
     private readonly DashboardServiceHost _dashboardServiceHost = dashboardHost;
+    private readonly List<AppResource> _appResources = [];
 
     // These environment variables should never be inherited from app host;
     // they only make sense if they come from a launch profile of a service project.
@@ -72,9 +74,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         "ASPNETCORE_ENVIRONMENT",
         "DOTNET_ENVIRONMENT"
     };
-
-    private readonly DistributedApplicationModel _model = model;
-    private readonly List<AppResource> _appResources = new();
 
     public async Task RunApplicationAsync(CancellationToken cancellationToken = default)
     {
@@ -118,41 +117,42 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         var fullyQualifiedDashboardPath = Path.GetFullPath(dashboardPath);
         var dashboardWorkingDirectory = Path.GetDirectoryName(fullyQualifiedDashboardPath);
 
-        var dashboardExecutableSpec = new ExecutableSpec();
-        dashboardExecutableSpec.ExecutionType = ExecutionType.Process;
-   
-        dashboardExecutableSpec.ExecutablePath = "dotnet";
-        dashboardExecutableSpec.Args = [fullyQualifiedDashboardPath];
-        dashboardExecutableSpec.WorkingDirectory = dashboardWorkingDirectory;
+        var dashboardExecutableSpec = new ExecutableSpec
+        {
+            ExecutionType = ExecutionType.Process,
+            ExecutablePath = "dotnet",
+            Args = [fullyQualifiedDashboardPath],
+            WorkingDirectory = dashboardWorkingDirectory
+        };
 
-        var grpcEndpointUrl = await _dashboardServiceHost.GetUrisAsync(cancellationToken).ConfigureAwait(false);
+        var grpcEndpointUrl = await _dashboardServiceHost.GetResourceServiceUriAsync(cancellationToken).ConfigureAwait(false);
         var otlpEndpointUrl = Environment.GetEnvironmentVariable("DOTNET_DASHBOARD_OTLP_ENDPOINT_URL");
         var dashboardUrl = Environment.GetEnvironmentVariable("ASPNETCORE_URLS");
         var aspnetcoreEnvironment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
 
-        var environment = new List<EnvVar>();
-        environment.Add(new EnvVar()
-        {
-            Name = "DOTNET_DASHBOARD_GRPC_ENDPOINT_URL",
-            Value = grpcEndpointUrl
-        });
-        environment.Add(new EnvVar()
-        {
-            Name = "ASPNETCORE_URLS",
-            Value = dashboardUrl
-        });
-        environment.Add(new EnvVar()
-        {
-            Name = "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL",
-            Value = otlpEndpointUrl
-        });
-        environment.Add(new EnvVar()
-        {
-            Name = "ASPNETCORE_ENVIRONMENT",
-            Value = aspnetcoreEnvironment
-        });
-
-        dashboardExecutableSpec.Env = environment;
+        dashboardExecutableSpec.Env =
+        [
+            new()
+            {
+                Name = "DOTNET_DASHBOARD_GRPC_ENDPOINT_URL",
+                Value = grpcEndpointUrl
+            },
+            new()
+            {
+                Name = "ASPNETCORE_URLS",
+                Value = dashboardUrl
+            },
+            new()
+            {
+                Name = "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL",
+                Value = otlpEndpointUrl
+            },
+            new()
+            {
+                Name = "ASPNETCORE_ENVIRONMENT",
+                Value = aspnetcoreEnvironment
+            }
+        ];
 
         var dashboardExecutable = new Executable(dashboardExecutableSpec);
         dashboardExecutable.Metadata.Name = DashboardReservedResourceName;
