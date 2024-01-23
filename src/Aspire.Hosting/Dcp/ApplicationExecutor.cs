@@ -80,9 +80,19 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         AspireEventSource.Instance.DcpModelCreationStart();
         try
         {
-            if (!_model.Resources.Any(r => r.Name == DashboardReservedResourceName))
+            var (dashboardIndex, dashboardResource) = _model.Resources.IndexOf(static r => !StringComparers.ResourceName.Equals(r.Name, KnownResourceNames.AspireDashboard));
+
+            if (dashboardIndex is -1)
             {
+                // No dashboard is specified, so start one.
+                // TODO validate that the dashboard has not been suppressed
                 await StartDashboardAsync(cancellationToken).ConfigureAwait(false);
+            }
+            else if (dashboardIndex is not 0)
+            {
+                // A dashboard exists in the set. Move it to the front so it starts first.
+                _model.Resources.RemoveAt(dashboardIndex);
+                _model.Resources.Insert(0, dashboardResource);
             }
 
             PrepareServices();
@@ -98,8 +108,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             AspireEventSource.Instance.DcpModelCreationStop();
         }
     }
-
-    private const string DashboardReservedResourceName = "aspire-dashboard";
 
     private async Task StartDashboardAsync(CancellationToken cancellationToken = default)
     {
@@ -154,8 +162,10 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             }
         ];
 
-        var dashboardExecutable = new Executable(dashboardExecutableSpec);
-        dashboardExecutable.Metadata.Name = DashboardReservedResourceName;
+        var dashboardExecutable = new Executable(dashboardExecutableSpec)
+        {
+            Metadata = { Name = KnownResourceNames.AspireDashboard }
+        };
 
         await kubernetesService.CreateAsync(dashboardExecutable, cancellationToken).ConfigureAwait(false);
     }
