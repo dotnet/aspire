@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Net;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
 using Microsoft.AspNetCore.Builder;
@@ -11,7 +12,7 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Aspire.Hosting.Publishing;
-using System.Diagnostics.CodeAnalysis;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.Dashboard;
 
@@ -37,13 +38,6 @@ internal sealed class DashboardServiceHost : IHostedService
         ILoggerFactory loggerFactory,
         IConfigureOptions<LoggerFilterOptions> loggerOptions)
     {
-        if (!TryGetDashboardServiceUriFromEnviroment(out var dashboardServiceUri))
-        {
-            dashboardServiceUri = new Uri(DashboardServiceUrlDefaultValue);
-        }
-
-        DashboardServiceUri = dashboardServiceUri;
-
         if (!options.DashboardEnabled)
         {
             return;
@@ -74,48 +68,34 @@ internal sealed class DashboardServiceHost : IHostedService
 
         return;
 
-        void ConfigureKestrel(KestrelServerOptions kestrelOptions)
+        static void ConfigureKestrel(KestrelServerOptions kestrelOptions)
         {
-            kestrelOptions.ListenLocalhost(dashboardServiceUri.Port, ConfigureListen);
+            var uris = EnvironmentUtil.GetAddressUris(DashboardServiceUrlVariableName, DashboardServiceUrlDefaultValue);
 
-            void ConfigureListen(ListenOptions options)
+            foreach (var uri in uris)
             {
-                // Force HTTP/2 for gRPC, so that it works over non-TLS connections
-                // which cannot negotiate between HTTP/1.1 and HTTP/2.
-                options.Protocols = HttpProtocols.Http2;
-
-                if (string.Equals(DashboardServiceUri.Scheme, "https", StringComparison.Ordinal))
+                if (uri.IsLoopback)
                 {
-                    options.UseHttps();
+                    kestrelOptions.ListenLocalhost(uri.Port, ConfigureListen);
+                }
+                else
+                {
+                    kestrelOptions.Listen(IPAddress.Parse(uri.Host), uri.Port, ConfigureListen);
+                }
+
+                void ConfigureListen(ListenOptions options)
+                {
+                    // Force HTTP/2 for gRPC, so that it works over non-TLS connections
+                    // which cannot negotiate between HTTP/1.1 and HTTP/2.
+                    options.Protocols = HttpProtocols.Http2;
+
+                    if (string.Equals(uri.Scheme, "https", StringComparison.Ordinal))
+                    {
+                        options.UseHttps();
+                    }
                 }
             }
         }
-    }
-
-    public Uri? DashboardServiceUri { get; init; }
-
-    private static bool TryGetDashboardServiceUriFromEnviroment([NotNullWhen(true)]out Uri? uri)
-    {
-        if (Environment.GetEnvironmentVariable(DashboardServiceUrlVariableName) is not { } value)
-        {
-            uri = null;
-            return false;
-        }
-
-        if (!Uri.TryCreate(value, UriKind.Absolute, out var candidateUri))
-        {
-            uri = null;
-            return false;
-        }
-
-        if (!StringComparer.InvariantCultureIgnoreCase.Equals(candidateUri.Host, "localhost"))
-        {
-            uri = null;
-            return false;
-        }
-
-        uri = candidateUri;
-        return true;
     }
 
     async Task IHostedService.StartAsync(CancellationToken cancellationToken)
