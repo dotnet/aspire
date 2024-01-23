@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using System.Net;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
@@ -140,9 +141,20 @@ internal sealed class DashboardServiceHost : IHostedService
     /// Intended to be used by the app model when launching the dashboard process, populating its
     /// <c>DOTNET_DASHBOARD_GRPC_ENDPOINT_URL</c> environment variable with a single URI.
     /// </remarks>
-    public Task<string> GetUrisAsync(CancellationToken cancellationToken = default)
+    public async Task<string> GetResourceServiceUriAsync(CancellationToken cancellationToken = default)
     {
-        return _resourceServiceUri.Task.WaitAsync(cancellationToken);
+        var stopwatch = Stopwatch.StartNew();
+
+        var uri = await _resourceServiceUri.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+        stopwatch.Stop();
+
+        if (stopwatch.Elapsed > TimeSpan.FromSeconds(2))
+        {
+            Trace.WriteLine($"Unexpectedly long wait for resource service URI ({stopwatch.Elapsed}).");
+        }
+
+        return uri;
     }
 
     async Task IHostedService.StartAsync(CancellationToken cancellationToken)
