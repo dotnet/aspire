@@ -13,21 +13,21 @@ namespace Microsoft.Extensions.ServiceDiscovery;
 /// </summary>
 public partial class ServiceEndPointResolverFactory(
     IEnumerable<IServiceEndPointResolverProvider> resolvers,
-    ILogger<ServiceEndPointResolver> resolverLogger,
+    ILogger<ServiceEndPointWatcher> resolverLogger,
     IOptions<ServiceEndPointResolverOptions> options,
     TimeProvider timeProvider)
 {
     private readonly IServiceEndPointResolverProvider[] _resolverProviders = resolvers
         .Where(r => r is not PassThroughServiceEndPointResolverProvider)
         .Concat(resolvers.Where(static r => r is PassThroughServiceEndPointResolverProvider)).ToArray();
-    private readonly ILogger<ServiceEndPointResolver> _logger = resolverLogger;
+    private readonly ILogger<ServiceEndPointWatcher> _logger = resolverLogger;
     private readonly TimeProvider _timeProvider = timeProvider;
     private readonly IOptions<ServiceEndPointResolverOptions> _options = options;
 
     /// <summary>
     /// Creates a service endpoint resolver for the provided service name.
     /// </summary>
-    public ServiceEndPointResolver CreateResolver(string serviceName)
+    public ServiceEndPointWatcher CreateResolver(string serviceName)
     {
         ArgumentNullException.ThrowIfNull(serviceName);
 
@@ -47,7 +47,7 @@ public partial class ServiceEndPointResolverFactory(
         }
 
         Log.CreatingResolver(_logger, serviceName, resolvers);
-        return new ServiceEndPointResolver(
+        return new ServiceEndPointWatcher(
             resolvers: [.. resolvers],
             logger: _logger,
             serviceName: serviceName,

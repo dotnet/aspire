@@ -157,7 +157,7 @@ public class HttpServiceEndPointResolver(ServiceEndPointResolverFactory resolver
 
     private sealed class ResolverEntry : IAsyncDisposable
     {
-        private readonly ServiceEndPointResolver _resolver;
+        private readonly ServiceEndPointWatcher _resolver;
         private readonly IServiceEndPointSelector _selector;
         private const ulong CountMask = ~(RecentUseFlag | DisposingFlag);
         private const ulong RecentUseFlag = 1UL << 62;
@@ -165,7 +165,7 @@ public class HttpServiceEndPointResolver(ServiceEndPointResolverFactory resolver
         private ulong _status;
         private TaskCompletionSource? _onDisposed;
 
-        public ResolverEntry(ServiceEndPointResolver resolver, IServiceEndPointSelector selector)
+        public ResolverEntry(ServiceEndPointWatcher resolver, IServiceEndPointSelector selector)
         {
             _resolver = resolver;
             _selector = selector;

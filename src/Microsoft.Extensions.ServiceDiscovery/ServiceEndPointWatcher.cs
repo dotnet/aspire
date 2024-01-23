@@ -13,16 +13,16 @@ using Microsoft.Extensions.ServiceDiscovery.Abstractions;
 namespace Microsoft.Extensions.ServiceDiscovery;
 
 /// <summary>
-/// Resolves endpoints for a specified service, delegating to one or more endpoint resolver implementations.
+/// Watches for updates to the collection of resolved endpoints for a specified service.
 /// </summary>
-public sealed partial class ServiceEndPointResolver(
+public sealed partial class ServiceEndPointWatcher(
     IServiceEndPointResolver[] resolvers,
     ILogger logger,
     string serviceName,
     TimeProvider timeProvider,
     IOptions<ServiceEndPointResolverOptions> options) : IAsyncDisposable
 {
-    private static readonly TimerCallback s_pollingAction = static state => _ = ((ServiceEndPointResolver)state!).RefreshAsync(force: true);
+    private static readonly TimerCallback s_pollingAction = static state => _ = ((ServiceEndPointWatcher)state!).RefreshAsync(force: true);
 
     private readonly object _lock = new();
     private readonly ILogger _logger = logger;
@@ -173,7 +173,7 @@ public sealed partial class ServiceEndPointResolver(
                     if (endPoints.ChangeToken.ActiveChangeCallbacks)
                     {
                         // Initiate a background refresh, if necessary.
-                        endPoints.ChangeToken.RegisterChangeCallback(static state => _ = ((ServiceEndPointResolver)state!).RefreshAsync(force: false), this);
+                        endPoints.ChangeToken.RegisterChangeCallback(static state => _ = ((ServiceEndPointWatcher)state!).RefreshAsync(force: false), this);
                         if (_pollingTimer is { } timer)
                         {
                             _pollingTimer = null;

@@ -162,9 +162,9 @@ public sealed class ServiceEndPointResolverRegistry : IAsyncDisposable
         return new ResolverEntry(resolver);
     }
 
-    private sealed class ResolverEntry(ServiceEndPointResolver resolver) : IAsyncDisposable
+    private sealed class ResolverEntry(ServiceEndPointWatcher resolver) : IAsyncDisposable
     {
-        private readonly ServiceEndPointResolver _resolver = resolver;
+        private readonly ServiceEndPointWatcher _resolver = resolver;
         private const ulong CountMask = ~(RecentUseFlag | DisposingFlag);
         private const ulong RecentUseFlag = 1UL << 62;
         private const ulong DisposingFlag = 1UL << 63;

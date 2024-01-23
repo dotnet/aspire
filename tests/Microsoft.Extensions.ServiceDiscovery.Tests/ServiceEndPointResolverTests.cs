@@ -15,7 +15,7 @@ using Xunit;
 namespace Microsoft.Extensions.ServiceDiscovery.Tests;
 
 /// <summary>
-/// Tests for <see cref="ServiceEndPointResolverFactory"/> and <see cref="ServiceEndPointResolver"/>.
+/// Tests for <see cref="ServiceEndPointResolverFactory"/> and <see cref="ServiceEndPointWatcher"/>.
 /// </summary>
 public class ServiceEndPointResolverTests
 {
@@ -36,7 +36,7 @@ public class ServiceEndPointResolverTests
         var services = new ServiceCollection()
             .AddServiceDiscoveryCore()
             .BuildServiceProvider();
-        var resolverFactory = new ServiceEndPointResolver([], NullLogger.Instance, "foo", TimeProvider.System, Options.Options.Create(new ServiceEndPointResolverOptions()));
+        var resolverFactory = new ServiceEndPointWatcher([], NullLogger.Instance, "foo", TimeProvider.System, Options.Options.Create(new ServiceEndPointResolverOptions()));
         var exception = Assert.Throws<InvalidOperationException>(resolverFactory.Start);
         Assert.Equal("No service endpoint resolvers are configured.", exception.Message);
         exception = await Assert.ThrowsAsync<InvalidOperationException>(async () => await resolverFactory.GetEndPointsAsync());
@@ -106,7 +106,7 @@ public class ServiceEndPointResolverTests
             .BuildServiceProvider();
         var resolverFactory = services.GetRequiredService<ServiceEndPointResolverFactory>();
 
-        ServiceEndPointResolver resolver;
+        ServiceEndPointWatcher resolver;
         await using ((resolver = resolverFactory.CreateResolver("http://basket")).ConfigureAwait(false))
         {
             Assert.NotNull(resolver);
@@ -242,7 +242,7 @@ public class ServiceEndPointResolverTests
             .BuildServiceProvider();
         var resolverFactory = services.GetRequiredService<ServiceEndPointResolverFactory>();
 
-        ServiceEndPointResolver resolver;
+        ServiceEndPointWatcher resolver;
         await using ((resolver = resolverFactory.CreateResolver("http://basket")).ConfigureAwait(false))
         {
             Assert.NotNull(resolver);
