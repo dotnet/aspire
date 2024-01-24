@@ -28,12 +28,16 @@
 
   <Target Name="BeforeBuild" BeforeTargets="Build">
     <MSBuild Projects="../../src/Aspire.Dashboard/Aspire.Dashboard.csproj" Targets="publish" Properties="Configuration=$(Configuration);Platform=$(Platform);TargetFramework=$(TargetFramework);RuntimeIdentifier=$(DashboardRuntime)" />
+
+    <!-- After publishing the project, we ensure that the published assets get packed in the nuspec. -->
+    <ItemGroup>
+      <None Include="$(DotNetOutputPath)Aspire.Dashboard/$(Configuration)/$(TargetFramework)/$(DashboardRuntime)/publish/**/*" Pack="true" PackagePath="tools/" />
+    </ItemGroup>
   </Target>
 
   <ItemGroup>
     <None Include="Sdk.props" Pack="true" PackagePath="Sdk/" />
     <None Include="Sdk.targets" Pack="true" PackagePath="Sdk/" />
-    <None Include="$(DotNetOutputPath)Aspire.Dashboard/$(Configuration)/$(TargetFramework)/$(DashboardRuntime)/publish/**/*" Pack="true" PackagePath="tools/" />
     <None Include="UnixFilePermissions.xml" Pack="true" PackagePath="data/" Condition=" '$(DashboardPlatformType)' == 'Unix' " />
   </ItemGroup>
 
