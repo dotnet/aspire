@@ -36,6 +36,7 @@ steps:
           HelixTargetQueues: Ubuntu.2204.Amd64.Open
 
         Creator: dotnet-bot
+        HelixAccessToken: $(HelixApiAccessToken)
         # access token
 
     #- script: ${{ parameters.dotnetScript }} dotnet-coverage collect
