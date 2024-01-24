@@ -21,7 +21,7 @@ public sealed partial class LogViewer
     {
         if (firstRender)
         {
-            _jsModule ??= await JS.InvokeAsync<IJSObjectReference>("import", "/_content/Aspire.Dashboard/Components/Controls/LogViewer.razor.js");
+            _jsModule ??= await JS.InvokeAsync<IJSObjectReference>("import", "/Components/Controls/LogViewer.razor.js");
 
             _whenDomReady.TrySetResult();
         }

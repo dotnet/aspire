@@ -25,7 +25,7 @@ internal class ExecutableSnapshot : ResourceSnapshot
     protected override IEnumerable<(string Key, Value Value)> GetProperties()
     {
         yield return (KnownProperties.Executable.Path, Value.ForString(ExecutablePath));
-        yield return (KnownProperties.Executable.WorkDir, Value.ForString(WorkingDirectory));
+        yield return (KnownProperties.Executable.WorkDir, WorkingDirectory is null ? Value.ForNull() :Value.ForString(WorkingDirectory));
         yield return (KnownProperties.Executable.Args, Arguments is null ? Value.ForNull() : Value.ForList(Arguments.Value.Select(arg => Value.ForString(arg)).ToArray()));
         yield return (KnownProperties.Executable.Pid, ProcessId is null ? Value.ForNull() : Value.ForString(ProcessId.Value.ToString("D", CultureInfo.InvariantCulture)));
         // TODO decide whether to send StdOut/StdErr file paths or not, and what we could use them for in the client.

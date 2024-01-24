@@ -4,7 +4,6 @@
 using System.Diagnostics;
 using System.Globalization;
 using Aspire.Dashboard.Otlp.Model;
-using Microsoft.Extensions.Logging;
 
 namespace Aspire.Dashboard.Model.Otlp;
 
