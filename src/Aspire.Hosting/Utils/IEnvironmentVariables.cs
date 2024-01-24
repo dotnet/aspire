@@ -31,6 +31,9 @@ internal sealed class EnvironmentVariables : IEnvironmentVariables
     [return: NotNullIfNotNull(nameof(defaultValue))]
     public string? GetString(string variableName, string? defaultValue = null)
     {
+        // Environment.GetEnvironmentVariable queries the variable each time,
+        // but our variables don't change during the lifetime of the process.
+        // So we cache them for faster repeat lookup.
         var value = ImmutableInterlocked.GetOrAdd(ref _valueByName, key: variableName, valueFactory: Environment.GetEnvironmentVariable);
 
         return value ?? defaultValue;
