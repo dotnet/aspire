@@ -199,7 +199,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
                 try
                 {
-                    var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cts.Token).ConfigureAwait(false);
 
                     if (response.IsSuccessStatusCode)
                     {
@@ -211,7 +211,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     _logger.LogDebug(ex, "Dashboard not ready yet.");
                 }
 
-                await Task.Delay(TimeSpan.FromMilliseconds(50), cancellationToken).ConfigureAwait(false);
+                await Task.Delay(TimeSpan.FromMilliseconds(50), cts.Token).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
