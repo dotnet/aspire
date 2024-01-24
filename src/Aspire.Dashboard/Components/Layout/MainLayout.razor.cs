@@ -25,9 +25,6 @@ public partial class MainLayout : IDisposable
     public required IStringLocalizer<Resources.Layout> Loc { get; init; }
 
     [Inject]
-    public required IDashboardClient DashboardClient { get; init; }
-
-    [Inject]
     public required IDialogService DialogService { get; init; }
 
     protected override void OnInitialized()
