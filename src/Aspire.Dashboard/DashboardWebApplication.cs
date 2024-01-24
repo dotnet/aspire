@@ -75,6 +75,8 @@ public class DashboardWebApplication
 
         builder.Services.AddLocalization();
 
+        builder.ConfigureOpenTelemetry();
+
         _app = builder.Build();
 
         var logger = _app.Logger;
