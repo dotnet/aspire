@@ -80,19 +80,11 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         AspireEventSource.Instance.DcpModelCreationStart();
         try
         {
-            var (dashboardIndex, dashboardResource) = _model.Resources.IndexOf(static r => StringComparers.ResourceName.Equals(r.Name, KnownResourceNames.AspireDashboard));
-
-            if (dashboardIndex is -1)
+            if (!_model.Resources.Any(r => StringComparers.ResourceName.Equals(r.Name, KnownResourceNames.AspireDashboard)))
             {
                 // No dashboard is specified, so start one.
                 // TODO validate that the dashboard has not been suppressed
                 await StartDashboardAsync(cancellationToken).ConfigureAwait(false);
-            }
-            else if (dashboardIndex is not 0)
-            {
-                // A dashboard exists in the set. Move it to the front so it starts first.
-                _model.Resources.RemoveAt(dashboardIndex);
-                _model.Resources.Insert(0, dashboardResource);
             }
 
             PrepareServices();
@@ -456,7 +448,18 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         {
             AspireEventSource.Instance.DcpExecutablesCreateStart();
 
-            foreach (var er in executableResources)
+            // Hoisting the aspire-dashboard resource if it exists to the top of
+            // the list so we start it first.
+            var sortedExecutableResources = executableResources.ToList();
+            var (dashboardIndex, dashboardAppResource) = sortedExecutableResources.IndexOf(static r => StringComparers.ResourceName.Equals(r.ModelResource.Name, KnownResourceNames.AspireDashboard));
+
+            if (dashboardIndex > 0)
+            {
+                sortedExecutableResources.RemoveAt(dashboardIndex);
+                sortedExecutableResources.Insert(0, dashboardAppResource);
+            }
+
+            foreach (var er in sortedExecutableResources)
             {
                 ExecutableSpec spec;
                 Func<Task<CustomResource>> createResource;
