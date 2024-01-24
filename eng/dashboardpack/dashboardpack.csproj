@@ -31,8 +31,12 @@
 
     <!-- After publishing the project, we ensure that the published assets get packed in the nuspec. -->
     <ItemGroup>
-      <None Include="$(DotNetOutputPath)Aspire.Dashboard/$(Configuration)/$(TargetFramework)/$(DashboardRuntime)/publish/**/*" Pack="true" PackagePath="tools/" />
+      <_PublishItems Include="$(DotNetOutputPath)Aspire.Dashboard/$(Configuration)/$(TargetFramework)/$(DashboardRuntime)/publish/**/*" />
+      <None Include="@(_PublishItems)" Pack="true" PackagePath="tools/" />
     </ItemGroup>
+
+    <!-- Throw an error if _PublishItems is empty. -->
+    <Error Condition="'@(_PublishItems)' == ''" Text="No files were found to pack. Ensure that the project being packed has a publish target defined." />
   </Target>
 
   <ItemGroup>
