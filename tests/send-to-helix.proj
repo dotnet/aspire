@@ -25,8 +25,8 @@
   <ItemGroup>
     <HelixCorrelationPayload Include="testproject" Destination="testassets/testproject" />
 
-    <_DefaultWorkItems Condition="'$(ContinuousIntegrationBuild)' == 'true'" Include="$(WorkItemArchiveWildCard)" />
-    <_DefaultWorkItems Condition="'$(ContinuousIntegrationBuild)' != 'true'" Include="$(RepoRoot)artifacts/helix/tests/Aspire.Hosting.Tests.zip" />
+    <_DefaultWorkItems Include="$(WorkItemArchiveWildCard)" />
+    <!--<_DefaultWorkItems Condition="'$(ContinuousIntegrationBuild)' != 'true'" Include="$(RepoRoot)artifacts/helix/tests/Aspire.Hosting.Tests.zip" />-->
 
     <HelixWorkItem Include="@(_DefaultWorkItems -> '%(FileName)')">
       <PayloadArchive>$(TestArchiveTestsDir)%(Identity).zip</PayloadArchive>
