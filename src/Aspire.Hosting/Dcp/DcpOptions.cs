@@ -12,6 +12,7 @@ internal sealed class DcpOptions
     private const string DcpCliPathMetadataKey = "DcpCliPath";
     private const string DcpExtensionsPathMetadataKey = "DcpExtensionsPath";
     private const string DcpBinPathMetadataKey = "DcpBinPath";
+    private const string DashboardPathMetadataKey = "aspiredashboardpath";
 
     public static string DcpPublisher = nameof(DcpPublisher);
 
@@ -24,7 +25,7 @@ internal sealed class DcpOptions
     public string? CliPath { get; set; }
 
     /// <summary>
-    /// Optional path to a folder container the DCP extension assemblies (dcpd, dcpctrl, etc.)
+    /// Optional path to a folder containing the DCP extension assemblies (dcpd, dcpctrl, etc.).
     /// </summary>
     /// <example>
     /// C:\Program Files\dotnet\packs\Aspire.Hosting.Orchestration.win-x64\8.0.0-preview.1.23518.6\tools\ext\
@@ -32,7 +33,15 @@ internal sealed class DcpOptions
     public string? ExtensionsPath { get; set; }
 
     /// <summary>
-    /// Optional path to a folder containing additional DCP binaries
+    /// Optional path to a folder containing the Aspire Dashboard binaries.
+    /// </summary>
+    /// <example>
+    /// When running the playground applications in this repo: <c>..\..\..\artifacts\bin\Aspire.Dashboard\Debug\net8.0\Aspire.Dashboard.dll</c>
+    /// </example>
+    public string? DashboardPath { get; set; }
+
+    /// <summary>
+    /// Optional path to a folder containing additional DCP binaries.
     /// </summary>
     /// <example>
     /// C:\Program Files\dotnet\packs\Aspire.Hosting.Orchestration.win-x64\8.0.0-preview.1.23518.6\tools\ext\bin\
@@ -59,6 +68,7 @@ internal sealed class DcpOptions
             CliPath = GetMetadataValue(assemblyMetadata, DcpCliPathMetadataKey);
             ExtensionsPath = GetMetadataValue(assemblyMetadata, DcpExtensionsPathMetadataKey);
             BinPath = GetMetadataValue(assemblyMetadata, DcpBinPathMetadataKey);
+            DashboardPath = GetMetadataValue(assemblyMetadata, DashboardPathMetadataKey);
         }
 
         if (string.IsNullOrEmpty(CliPath))

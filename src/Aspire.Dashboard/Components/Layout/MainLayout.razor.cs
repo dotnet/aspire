@@ -83,7 +83,7 @@ public partial class MainLayout : IDisposable
     {
         if (firstRender)
         {
-            _jsModule = await JS.InvokeAsync<IJSObjectReference>("import", "/_content/Aspire.Dashboard/js/theme.js");
+            _jsModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/theme.js");
         }
     }
 
