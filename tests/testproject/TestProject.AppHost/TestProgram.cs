@@ -91,8 +91,8 @@ public class TestProgram
         }
     }
 
-    public static TestProgram Create<T>(string[]? args = null, bool includeIntegrationServices = false, bool includeNodeApp = false, bool disableDashboard = true, string? testProjectBasePathOverride = null) =>
-        new TestProgram(args ?? [], typeof(T).Assembly, includeIntegrationServices, disableDashboard, includeNodeApp: includeNodeApp, testProjectBasePathOverride: testProjectBasePathOverride);
+    public static TestProgram Create<T>(string[]? args = null, bool includeIntegrationServices = false, bool includeNodeApp = false, bool disableDashboard = true) =>
+        new TestProgram(args ?? [], typeof(T).Assembly, includeIntegrationServices, disableDashboard, includeNodeApp: includeNodeApp, testProjectBasePathOverride: Environment.GetEnvironmentVariable("ASPIRE_HOSTING_TEST_PROJECT_BASE_PATH"));
 
     public IDistributedApplicationBuilder AppBuilder { get; private set; }
     public IResourceBuilder<ProjectResource> ServiceABuilder { get; private set; }
