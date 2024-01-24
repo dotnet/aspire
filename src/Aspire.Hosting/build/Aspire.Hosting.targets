@@ -177,11 +177,13 @@ internal static class ]]>%(ClassName)<![CDATA[
   <Target Name="WriteAspireProjectMetadataSources" DependsOnTargets="$(WriteAspireProjectMetadataSourcesDependsOn)" BeforeTargets="CoreCompile" />
 
   <!-- This target registers the location of the Aspire orchestration dependencies -->
-  <Target Name="SetOrchestrationDiscoveryAttributes" BeforeTargets="GetAssemblyAttributes">
+  <Target Name="SetOrchestrationDiscoveryAttributes" BeforeTargets="GetAssemblyAttributes" Condition=" '$(DcpDir)' != '' ">
     <PropertyGroup>
-      <DcpDir Condition=" '$(DcpDir)' == '' ">$([MSBuild]::NormalizePath($([System.Environment]::GetFolderPath(SpecialFolder.UserProfile)), '.dcp'))</DcpDir>
-      <DcpExtensionsPath Condition=" '$(DcpExtensionsPath)' == '' ">$([MSBuild]::NormalizePath($(DcpDir), 'ext'))</DcpExtensionsPath>
-      <DcpBinPath Condition=" '$(DcpBinPath)' == '' ">$([MSBuild]::NormalizePath($(DcpExtensionsPath), 'bin'))</DcpBinPath>
+      <DcpDir>$([MSBuild]::EnsureTrailingSlash('$(DcpDir)'))</DcpDir>
+      <DcpExtensionsDir Condition=" '$(DcpExtensionsDir)' == '' ">$([MSBuild]::NormalizePath($(DcpDir), 'ext'))</DcpExtensionsDir>
+      <DcpExtensionsDir>$([MSBuild]::EnsureTrailingSlash('$(DcpExtensionsDir)'))</DcpExtensionsDir>
+      <DcpBinDir Condition=" '$(DcpBinDir)' == '' ">$([MSBuild]::NormalizePath($(DcpExtensionsDir), 'bin'))</DcpBinDir>
+      <DcpBinDir>$([MSBuild]::EnsureTrailingSlash('$(DcpBinDir)'))</DcpBinDir>
       <DcpCliPath Condition=" '$(DcpCliPath)'  == '' ">$([MSBuild]::NormalizePath($(DcpDir), 'dcp'))</DcpCliPath>
       <DcpCliPath Condition=" '$(OS)' == 'Windows_NT' and !$(DcpCliPath.EndsWith('.exe')) ">$(DcpCliPath).exe</DcpCliPath>
     </PropertyGroup>
@@ -193,11 +195,11 @@ internal static class ]]>%(ClassName)<![CDATA[
       </AssemblyAttribute>
       <AssemblyAttribute Include="System.Reflection.AssemblyMetadata">
         <_Parameter1>dcpextensionpaths</_Parameter1>
-        <_Parameter2>$(DcpExtensionsPath)</_Parameter2>
+        <_Parameter2>$(DcpExtensionsDir)</_Parameter2>
       </AssemblyAttribute>
       <AssemblyAttribute Include="System.Reflection.AssemblyMetadata">
         <_Parameter1>dcpbinpath</_Parameter1>
-        <_Parameter2>$(DcpBinPath)</_Parameter2>
+        <_Parameter2>$(DcpBinDir)</_Parameter2>
       </AssemblyAttribute>
       <AssemblyAttribute Include="System.Reflection.AssemblyMetadata">
         <_Parameter1>apphostprojectpath</_Parameter1>
