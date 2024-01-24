@@ -38,7 +38,8 @@
       <PayloadArchive>$(TestArchiveTestsDir)%(Identity).zip</PayloadArchive>
       <PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=%(Identity)&quot;</PreCommands>
       <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=%(Identity)&quot;</PreCommands>
-      <Command>$(_TestCoverageCommand) &quot;$(_TestRunCommandArguments)&quot;</Command>
+      <Command Condition="'$(RunWithCodeCoverage)' == 'true'">$(_TestCoverageCommand) &quot;$(_TestRunCommandArguments)&quot;</Command>
+      <Command Condition="'$(RunWithCodeCoverage)' != 'true'">$(_TestRunCommandArguments)</Command>
       <Timeout>$(_workItemTimeout)</Timeout>
     </HelixWorkItem>
   </ItemGroup>
