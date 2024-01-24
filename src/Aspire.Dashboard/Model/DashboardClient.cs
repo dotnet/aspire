@@ -66,7 +66,7 @@ internal sealed class DashboardClient : IDashboardClient
         if (address is null)
         {
             _state = StateDisabled;
-            _logger.LogInformation("DOTNET_DASHBOARD_GRPC_ENDPOINT_URL is not specified. Dashboard client services are unavailable.");
+            _logger.LogInformation($"{ResourceServiceUrlVariableName} is not specified. Dashboard client services are unavailable.");
             _cts.Cancel();
             _whenConnected.TrySetCanceled();
             return;

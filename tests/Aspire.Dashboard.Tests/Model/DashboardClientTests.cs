@@ -9,7 +9,7 @@ namespace Aspire.Dashboard.Tests.Model;
 
 public sealed class DashboardClientTests
 {
-    private readonly IEnvironmentVariables _environmentVariables = new MockEnvironmentVariables() { { "DOTNET_DASHBOARD_GRPC_ENDPOINT_URL", "http://localhost:12345" } };
+    private readonly IEnvironmentVariables _environmentVariables = new MockEnvironmentVariables() { { "DOTNET_RESOURCE_SERVICE_ENDPOINT_URL", "http://localhost:12345" } };
 
     [Fact]
     public async Task SubscribeResources_OnCancel_ChannelRemoved()
