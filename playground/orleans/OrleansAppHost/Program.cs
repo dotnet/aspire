@@ -36,7 +36,7 @@ builder.AddProject<Projects.OrleansServer>("silo")
 // for the path to the dashboard binary (defaults to the Aspire.Dashboard bin output
 // in the artifacts dir).
 builder.AddProject<Projects.Aspire_Dashboard>(KnownResourceNames.AspireDashboard)
-    .WithEnvironment("DOTNET_DASHBOARD_GRPC_ENDPOINT_URL", "http://localhost:5555")
+    .WithEnvironment("DOTNET_RESOURCE_SERVICE_ENDPOINT_URL", "http://localhost:5555")
     .ExcludeFromManifest();
 
 using var app = builder.Build();

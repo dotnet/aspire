@@ -22,8 +22,8 @@ namespace Aspire.Dashboard.Model;
 /// </remarks>
 internal sealed class DashboardClient : IDashboardClient
 {
-    private const string DashboardServiceUrlVariableName = "DOTNET_DASHBOARD_GRPC_ENDPOINT_URL";
-    private const string DashboardServiceUrlDefaultValue = "http://localhost:18999";
+    private const string ResourceServiceUrlVariableName = "DOTNET_RESOURCE_SERVICE_ENDPOINT_URL";
+    private const string ResourceServiceUrlDefaultValue = "http://localhost:18999";
 
     private readonly Dictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
     private readonly CancellationTokenSource _cts = new();
@@ -52,7 +52,7 @@ internal sealed class DashboardClient : IDashboardClient
 
         _logger = loggerFactory.CreateLogger<DashboardClient>();
 
-        var address = GetAddressUri(DashboardServiceUrlVariableName, DashboardServiceUrlDefaultValue);
+        var address = GetAddressUri(ResourceServiceUrlVariableName, ResourceServiceUrlDefaultValue);
 
         _logger.LogInformation("Dashboard configured to connect to: {Address}", address);
 

@@ -33,7 +33,7 @@ internal sealed class DashboardServiceHost : IHostedService
     /// This is primarily intended for cases outside of the local developer environment.
     /// If no value exists for this variable, a port is assigned dynamically.
     /// </remarks>
-    private const string DashboardServiceUrlVariableName = "DOTNET_DASHBOARD_GRPC_ENDPOINT_URL";
+    private const string ResourceServiceUrlVariableName = "DOTNET_RESOURCE_SERVICE_ENDPOINT_URL";
 
     /// <summary>
     /// Provides access to the URI at which the resource service endpoint is hosted.
@@ -94,7 +94,7 @@ internal sealed class DashboardServiceHost : IHostedService
         static void ConfigureKestrel(KestrelServerOptions kestrelOptions)
         {
             // Check env var for URLs to listen on.
-            var uris = EnvironmentUtil.GetAddressUris(DashboardServiceUrlVariableName, defaultValue: null);
+            var uris = EnvironmentUtil.GetAddressUris(ResourceServiceUrlVariableName, defaultValue: null);
 
             string? scheme;
 
@@ -110,7 +110,7 @@ internal sealed class DashboardServiceHost : IHostedService
             {
                 if (!uri.IsLoopback)
                 {
-                    throw new ArgumentException($"{DashboardServiceUrlVariableName} must contain a local loopback address.");
+                    throw new ArgumentException($"{ResourceServiceUrlVariableName} must contain a local loopback address.");
                 }
 
                 scheme = uri.Scheme;
@@ -120,7 +120,7 @@ internal sealed class DashboardServiceHost : IHostedService
             }
             else
             {
-                throw new ArgumentException($"Multiple URIs are not supported in the {DashboardServiceUrlVariableName} environment variable.");
+                throw new ArgumentException($"Multiple URIs are not supported in the {ResourceServiceUrlVariableName} environment variable.");
             }
 
             void ConfigureListen(ListenOptions options)
@@ -142,7 +142,7 @@ internal sealed class DashboardServiceHost : IHostedService
     /// </summary>
     /// <remarks>
     /// Intended to be used by the app model when launching the dashboard process, populating its
-    /// <c>DOTNET_DASHBOARD_GRPC_ENDPOINT_URL</c> environment variable with a single URI.
+    /// <c>DOTNET_RESOURCE_SERVICE_ENDPOINT_URL</c> environment variable with a single URI.
     /// </remarks>
     public async Task<string> GetResourceServiceUriAsync(CancellationToken cancellationToken = default)
     {

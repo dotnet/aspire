@@ -152,7 +152,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         [
             new()
             {
-                Name = "DOTNET_DASHBOARD_GRPC_ENDPOINT_URL",
+                Name = "DOTNET_RESOURCE_SERVICE_ENDPOINT_URL",
                 Value = grpcEndpointUrl
             },
             new()
