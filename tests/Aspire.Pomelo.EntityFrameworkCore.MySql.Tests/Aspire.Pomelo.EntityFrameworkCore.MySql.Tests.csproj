@@ -5,6 +5,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Include="$(RepoRoot)src\Components\Aspire.Pomelo.EntityFrameworkCore.MySql\ConfigurationSchema.json" CopyToOutputDirectory="PreserveNewest" />
+
     <!-- this file is included as a link, as both components rely on different versions of EF (for now) -->
     <Compile Include="..\Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.Tests\TestDbContext.cs" Link="TestDbContext.cs" />
   </ItemGroup>
