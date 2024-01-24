@@ -123,7 +123,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             WorkingDirectory = dashboardWorkingDirectory
         };
 
-        if (StringComparer.OrdinalIgnoreCase.Equals(".dll", Path.GetExtension(fullyQualifiedDashboardPath)))
+        if (string.Equals(".dll", Path.GetExtension(fullyQualifiedDashboardPath), StringComparison.OrdinalIgnoreCase))
         {
             // The dashboard path is a DLL, so run it with `dotnet <dll>`
             dashboardExecutableSpec.ExecutablePath = "dotnet";
@@ -135,7 +135,15 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             dashboardExecutableSpec.ExecutablePath = fullyQualifiedDashboardPath;
         }
 
-        var grpcEndpointUrl = await _dashboardServiceHost.GetResourceServiceUriAsync(cancellationToken).ConfigureAwait(false);
+        string grpcEndpointUrl;
+        try
+        {
+            grpcEndpointUrl = await _dashboardServiceHost.GetResourceServiceUriAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            throw new DistributedApplicationException("Error getting the resource service URL.", ex);
+        }
         var otlpEndpointUrl = Environment.GetEnvironmentVariable("DOTNET_DASHBOARD_OTLP_ENDPOINT_URL");
         var dashboardUrl = Environment.GetEnvironmentVariable("ASPNETCORE_URLS") ?? throw new DistributedApplicationException("ASPNETCORE_URLS environment variable not set.");
         var aspnetcoreEnvironment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
@@ -178,31 +186,39 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private async Task WaitForHttpSuccessOrThrow(string url, TimeSpan timeout, CancellationToken cancellationToken = default)
     {
-        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        cts.CancelAfter(timeout);
+        using var timeoutCts = new CancellationTokenSource(timeout);
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
 
         var client = new HttpClient();
 
-        while (!cancellationToken.IsCancellationRequested)
+        try
         {
-            try
+            while (true)
             {
-                var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                cancellationToken.ThrowIfCancellationRequested();
 
-                if (response.IsSuccessStatusCode)
+                try
                 {
-                    return;
+                    var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, linkedCts.Token).ConfigureAwait(false);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        return;
+                    }
                 }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogDebug(ex, "Dashboard not ready yet.");
-            }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "Dashboard not ready yet.");
+                }
 
-            await Task.Delay(TimeSpan.FromMilliseconds(50), cancellationToken).ConfigureAwait(false);
+                await Task.Delay(TimeSpan.FromMilliseconds(50), linkedCts.Token).ConfigureAwait(false);
+            }
         }
-
-        throw new DistributedApplicationException("Timed out waiting for dashboard to be responsive.");
+        catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+        {
+            // Only display this error if the timeout CTS was the one that was cancelled.
+            throw new DistributedApplicationException($"Timed out after {timeout} while waiting for the dashboard to be responsive.");
+        }
     }
 
     public async Task StopApplicationAsync(CancellationToken cancellationToken = default)

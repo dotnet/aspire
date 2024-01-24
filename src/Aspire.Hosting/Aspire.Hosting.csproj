@@ -18,6 +18,8 @@
     <Compile Include="..\Aspire.Dashboard\Model\KnownProperties.cs" Link="Dashboard\KnownProperties.cs" />
     <Compile Include="..\Aspire.Dashboard\Model\KnownResourceTypes.cs" Link="Dashboard\KnownResourceTypes.cs" />
     <Compile Include="..\Aspire.Dashboard\Utils\StringComparers.cs" Link="Utils\StringComparers.cs" />
+    <Compile Include="$(SharedDir)KnownFormats.cs" Link="Utils\KnownFormats.cs" />
+    <Compile Include="$(SharedDir)ValueStopwatch\*.cs" LinkBase="Utils" />
   </ItemGroup>
 
   <ItemGroup>

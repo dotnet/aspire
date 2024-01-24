@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics;
 using System.Net;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
@@ -14,6 +13,7 @@ using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -52,10 +52,9 @@ internal sealed class DashboardServiceHost : IHostedService
         KubernetesService kubernetesService,
         IOptions<PublishingOptions> publishingOptions,
         ILoggerFactory loggerFactory,
-        ILogger<DashboardServiceHost> logger,
         IConfigureOptions<LoggerFilterOptions> loggerOptions)
     {
-        _logger = logger;
+        _logger = loggerFactory.CreateLogger<DashboardServiceHost>();
 
         if (!options.DashboardEnabled ||
             publishingOptions.Value.Publisher == "manifest") // HACK: Manifest publisher check is temporary until DcpHostService is integrated with DcpPublisher.
@@ -147,15 +146,15 @@ internal sealed class DashboardServiceHost : IHostedService
     /// </remarks>
     public async Task<string> GetResourceServiceUriAsync(CancellationToken cancellationToken = default)
     {
-        var stopwatch = Stopwatch.StartNew();
+        var stopwatch = ValueStopwatch.StartNew();
 
         var uri = await _resourceServiceUri.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
 
-        stopwatch.Stop();
+        var elapsed = stopwatch.GetElapsedTime();
 
-        if (stopwatch.Elapsed > TimeSpan.FromSeconds(2))
+        if (elapsed > TimeSpan.FromSeconds(2))
         {
-            _logger.LogWarning("Unexpectedly long wait for resource service URI ({elapsed}).", stopwatch.Elapsed);
+            _logger.LogWarning("Unexpectedly long wait for resource service URI ({Elapsed}).", elapsed);
         }
 
         return uri;
