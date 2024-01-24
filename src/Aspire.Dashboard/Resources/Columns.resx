@@ -142,12 +142,8 @@
   <data name="SourceColumnSourceCopyContainerToClipboard" xml:space="preserve">
     <value>Copy image name and tag to clipboard</value>
   </data>
-  <data name="UnreadLogErrorsBadgeErrorLog" xml:space="preserve">
-    <value>{0} error log</value>
-    <comment>{0} is 1</comment>
-  </data>
-  <data name="UnreadLogErrorsBadgeErrorLogs" xml:space="preserve">
-    <value>{0} error logs</value>
+  <data name="UnreadLogErrors" xml:space="preserve">
+    <value>{0} errors</value>
     <comment>{0} is a number</comment>
   </data>
   <data name="StateColumnResourceExitedUnexpectedly" xml:space="preserve">
