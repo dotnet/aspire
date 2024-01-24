@@ -7,6 +7,7 @@ public class TestProgram
 {
     private TestProgram(string[] args, Assembly assembly, bool includeIntegrationServices = false, bool disableDashboard = true, bool includeNodeApp = false, string? testProjectBasePathOverride = null)
     {
+        Console.WriteLine ($"-- override: {testProjectBasePathOverride}");
         string testProjectBasePath = string.IsNullOrEmpty(testProjectBasePathOverride) ? Path.Combine(Projects.TestProject_AppHost.ProjectPath, "..") : testProjectBasePathOverride;
         if (string.IsNullOrEmpty(testProjectBasePath) || !Directory.Exists(testProjectBasePath))
         {
@@ -91,8 +92,11 @@ public class TestProgram
         }
     }
 
-    public static TestProgram Create<T>(string[]? args = null, bool includeIntegrationServices = false, bool includeNodeApp = false, bool disableDashboard = true) =>
-        new TestProgram(args ?? [], typeof(T).Assembly, includeIntegrationServices, disableDashboard, includeNodeApp: includeNodeApp, testProjectBasePathOverride: Environment.GetEnvironmentVariable("ASPIRE_HOSTING_TEST_PROJECT_BASE_PATH"));
+    public static TestProgram Create<T>(string[]? args = null, bool includeIntegrationServices = false, bool includeNodeApp = false, bool disableDashboard = true)
+    {
+        Console.WriteLine ($"--- TestProgram.Create envvar: {Environment.GetEnvironmentVariable("ASPIRE_HOSTING_TEST_PROJECT_BASE_PATH")}");
+        return new TestProgram(args ?? [], typeof(T).Assembly, includeIntegrationServices, disableDashboard, includeNodeApp: includeNodeApp, testProjectBasePathOverride: Environment.GetEnvironmentVariable("ASPIRE_HOSTING_TEST_PROJECT_BASE_PATH"));
+    }
 
     public IDistributedApplicationBuilder AppBuilder { get; private set; }
     public IResourceBuilder<ProjectResource> ServiceABuilder { get; private set; }
