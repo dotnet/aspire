@@ -3,7 +3,7 @@
 
 namespace Aspire;
 
-public static class KnownFormats
+internal static class KnownFormats
 {
     /// <summary>
     /// Format is passed to apps as an env var to override logging's timestamp format.
