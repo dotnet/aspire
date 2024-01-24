@@ -22,12 +22,12 @@
     <_TestCoverageCommand>$(_TestCoverageCommand) --output $(_HelixLogPath)/Test.cobertura.xml.</_TestCoverageCommand>
 
     <_TestRunCommandArguments>dotnet test</_TestRunCommandArguments>
-    <_TestRunCommandArguments Condition="'$(OS)' != 'Windows_NT'">$(_TestRunCommandArguments) $(TEST_NAME).dll</_TestRunCommandArguments>
+    <_TestRunCommandArguments Condition="'$(OS)' != 'Windows_NT'">$(_TestRunCommandArguments) $TEST_NAME.dll</_TestRunCommandArguments>
     <_TestRunCommandArguments Condition="'$(OS)' == 'Windows_NT'">$(_TestRunCommandArguments) %TEST_NAME%.dll</_TestRunCommandArguments>
 
     <_TestRunCommandArguments>$(_TestRunCommandArguments) --ResultsDirectory:$(_HelixLogPath)</_TestRunCommandArguments>
-    <_TestRunCommandArguments>$(_TestRunCommandArguments) --logger:"console%3Bverbosity=normal"</_TestRunCommandArguments>
-    <_TestRunCommandArguments>$(_TestRunCommandArguments) --logger:"trx%3BLogFileName=TestResults.trx"</_TestRunCommandArguments>
+    <_TestRunCommandArguments>$(_TestRunCommandArguments) '--logger:console%3Bverbosity=normal'</_TestRunCommandArguments>
+    <_TestRunCommandArguments>$(_TestRunCommandArguments) '--logger:trx%3BLogFileName=TestResults.trx'</_TestRunCommandArguments>
   </PropertyGroup>
 
   <ItemGroup>

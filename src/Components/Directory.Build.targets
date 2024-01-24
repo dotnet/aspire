@@ -14,8 +14,7 @@
   <ItemGroup Condition="'$(ConfigurationSchemaExists)' == 'true'">
     <None Include="$(ConfigurationSchemaPath)"
           Pack="True"
-          PackagePath="ConfigurationSchema.json"
-          CopyToOutputDirectory="PreserveNewest" />
+          PackagePath="ConfigurationSchema.json" />
   </ItemGroup>
 
   <PropertyGroup Condition="'$(ConfigurationSchemaExists)' == 'true'">

@@ -28,7 +28,6 @@ steps:
     displayName: Build
 
   - ${{ if ne(parameters.skipTests, 'true') }}:
-    # FIXME: add path for cov settings, and output xml .. or just cov args
     - template: /eng/pipelines/templates/send-to-helix.yml
       parameters:
         HelixProjectArguments: '$(Build.SourcesDirectory)/tests/send-to-helix.proj'
