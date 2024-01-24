@@ -36,8 +36,6 @@ public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, Microsof
         "Microsoft.EntityFrameworkCore.Migrations"
     };
 
-    protected override string JsonSchemaPath => "src/Components/Aspire.Microsoft.EntityFrameworkCore.SqlServer/ConfigurationSchema.json";
-
     protected override string ValidJsonConfig => """
         {
           "Aspire": {
