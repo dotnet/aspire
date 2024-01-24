@@ -24,8 +24,6 @@ public class ConformanceTests : ConformanceTests<TableServiceClient, AzureDataTa
 
     protected override string ActivitySourceName => "Azure.Data.Tables.TableServiceClient";
 
-    protected override string JsonSchemaPath => "src/Components/Aspire.Azure.Data.Tables/ConfigurationSchema.json";
-
     protected override string ValidJsonConfig => """
         {
           "Aspire": {
