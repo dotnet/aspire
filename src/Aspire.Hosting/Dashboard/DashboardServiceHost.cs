@@ -170,7 +170,7 @@ internal sealed class DashboardServiceHost : IHostedService
 
             if (addressFeature is null)
             {
-                _resourceServiceUri.SetException(new InvalidOperationException("Could not obtain IServerAddressesFeature. Dashboard URIs are not available."));
+                _resourceServiceUri.SetException(new InvalidOperationException("Could not obtain IServerAddressesFeature. Resource service URI is not available."));
                 return;
             }
 
