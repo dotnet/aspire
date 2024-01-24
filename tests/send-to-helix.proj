@@ -14,8 +14,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="set ASPIRE_HOSTING_TEST_PROJECT_BASE_PATH=%HELIX_CORRELATION_PAYLOAD%\testassets\testproject" />
-    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="export ASPIRE_HOSTING_TEST_PROJECT_BASE_PATH=$HELIX_CORRELATION_PAYLOAD/testassets/testproject" />
+    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="export ASPIRE_HOSTING_TEST_PROJECT_BASE_PATH=$HELIX_CORRELATION_PAYLOAD/testassets/testproject" />
+    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="set ASPIRE_HOSTING_TEST_PROJECT_BASE_PATH=%HELIX_CORRELATION_PAYLOAD%\testassets\testproject" />
   </ItemGroup>
 
   <PropertyGroup>

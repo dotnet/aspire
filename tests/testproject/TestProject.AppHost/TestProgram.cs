@@ -5,9 +5,13 @@ using System.Reflection;
 
 public class TestProgram
 {
-    private TestProgram(string[] args, Assembly assembly, bool includeIntegrationServices = false, bool disableDashboard = true, bool includeNodeApp = false, string? testProjectBasePath = null)
+    private TestProgram(string[] args, Assembly assembly, bool includeIntegrationServices = false, bool disableDashboard = true, bool includeNodeApp = false, string? testProjectBasePathOverride = null)
     {
-        testProjectBasePath ??= Path.Combine(Projects.TestProject_AppHost.ProjectPath, "..");
+        string testProjectBasePath = string.IsNullOrEmpty(testProjectBasePathOverride) ? Path.Combine(Projects.TestProject_AppHost.ProjectPath, "..") : testProjectBasePathOverride;
+        if (string.IsNullOrEmpty(testProjectBasePath) || !Directory.Exists(testProjectBasePath))
+        {
+            throw new ArgumentException($"Could not find test project path. Override was: {testProjectBasePathOverride}, and AppHost.ProjectPath: {Projects.TestProject_AppHost.ProjectPath}");
+        }
         AppBuilder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions { Args = args, DisableDashboard = disableDashboard, AssemblyName = assembly.FullName });
 
         var serviceAPath = Path.Combine(testProjectBasePath, @"TestProject.ServiceA\TestProject.ServiceA.csproj");
@@ -87,8 +91,8 @@ public class TestProgram
         }
     }
 
-    public static TestProgram Create<T>(string[]? args = null, bool includeIntegrationServices = false, bool includeNodeApp = false, bool disableDashboard = true, string? testProjectBasePath = null) =>
-        new TestProgram(args ?? [], typeof(T).Assembly, includeIntegrationServices, disableDashboard, includeNodeApp: includeNodeApp, testProjectBasePath: testProjectBasePath);
+    public static TestProgram Create<T>(string[]? args = null, bool includeIntegrationServices = false, bool includeNodeApp = false, bool disableDashboard = true, string? testProjectBasePathOverride = null) =>
+        new TestProgram(args ?? [], typeof(T).Assembly, includeIntegrationServices, disableDashboard, includeNodeApp: includeNodeApp, testProjectBasePathOverride: testProjectBasePathOverride);
 
     public IDistributedApplicationBuilder AppBuilder { get; private set; }
     public IResourceBuilder<ProjectResource> ServiceABuilder { get; private set; }
