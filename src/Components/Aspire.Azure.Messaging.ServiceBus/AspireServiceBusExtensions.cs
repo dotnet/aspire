@@ -64,9 +64,6 @@ public static class AspireServiceBusExtensions
 
     private sealed class MessageBusComponent : AzureComponent<AzureMessagingServiceBusSettings, ServiceBusClient, ServiceBusClientOptions>
     {
-        // TODO: Remove "Azure.Messaging.ServiceBus" source when https://github.com/Azure/azure-sdk-for-net/issues/39166 is fixed
-        protected override string[] ActivitySourceNames => ["Azure.Messaging.ServiceBus.*", "Azure.Messaging.ServiceBus"];
-
         protected override IAzureClientBuilder<ServiceBusClient, ServiceBusClientOptions> AddClient<TBuilder>(TBuilder azureFactoryBuilder, AzureMessagingServiceBusSettings settings, string connectionName, string configurationSectionName)
         {
             return azureFactoryBuilder.RegisterClientFactory<ServiceBusClient, ServiceBusClientOptions>((options, cred) =>

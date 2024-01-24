@@ -330,22 +330,22 @@ public static class OrleansServiceExtensions
 
         foreach (var (name, provider) in res.GrainStorage)
         {
-            provider.ConfigureResource(builder, $"GrainStorage:{name}");
+            provider.ConfigureResource(builder, $"GrainStorage__{name}");
         }
 
         foreach (var (name, provider) in res.GrainDirectory)
         {
-            provider.ConfigureResource(builder, $"GrainDirectory:{name}");
+            provider.ConfigureResource(builder, $"GrainDirectory__{name}");
         }
 
         foreach (var (name, provider) in res.Streaming)
         {
-            provider.ConfigureResource(builder, $"Streaming:{name}");
+            provider.ConfigureResource(builder, $"Streaming__{name}");
         }
 
         foreach (var (name, provider) in res.BroadcastChannel)
         {
-            provider.ConfigureResource(builder, $"BroadcastChannel:{name}");
+            provider.ConfigureResource(builder, $"BroadcastChannel__{name}");
         }
 
         if (!string.IsNullOrWhiteSpace(res.ClusterId))
