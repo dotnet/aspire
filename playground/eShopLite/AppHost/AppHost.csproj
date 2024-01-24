@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Aspire.Dashboard\Aspire.Dashboard.csproj" IsAspireHostLibrary="true" />
+    <ProjectReference Include="..\..\..\src\Aspire.Dashboard\Aspire.Dashboard.csproj" />
     <ProjectReference Include="..\..\..\src\Aspire.Hosting\Aspire.Hosting.csproj" IsAspireHostLibrary="true" />
     <ProjectReference Include="..\..\..\src\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" IsAspireHostLibrary="true" />
     <ProjectReference Include="..\..\..\src\Aspire.Hosting.Azure.Provisioning\Aspire.Hosting.Azure.Provisioning.csproj" IsAspireHostLibrary="true" />
