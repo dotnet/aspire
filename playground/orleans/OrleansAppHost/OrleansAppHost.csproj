@@ -10,9 +10,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Aspire.Hosting\Aspire.Hosting.csproj" AspireHostLibrary="true" />
-    <ProjectReference Include="..\..\..\src\Aspire.Hosting.Azure.Provisioning\Aspire.Hosting.Azure.Provisioning.csproj" AspireHostLibrary="true" />
-    <ProjectReference Include="..\..\..\src\Aspire.Hosting.Orleans\Aspire.Hosting.Orleans.csproj" AspireHostLibrary="true" />
+    <ProjectReference Include="..\..\..\src\Aspire.Hosting\Aspire.Hosting.csproj" IsAspireHostLibrary="true" />
+    <ProjectReference Include="..\..\..\src\Aspire.Hosting.Azure.Provisioning\Aspire.Hosting.Azure.Provisioning.csproj" IsAspireHostLibrary="true" />
+    <ProjectReference Include="..\..\..\src\Aspire.Hosting.Orleans\Aspire.Hosting.Orleans.csproj" IsAspireHostLibrary="true" />
     
     <ProjectReference Include="..\OrleansServer\OrleansServer.csproj" />
   </ItemGroup>

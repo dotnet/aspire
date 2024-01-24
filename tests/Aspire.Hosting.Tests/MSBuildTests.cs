@@ -56,7 +56,7 @@ public class Class1
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="{repoRoot}\src\Aspire.Hosting\Aspire.Hosting.csproj" AspireHostLibrary="true" />
+    <ProjectReference Include="{repoRoot}\src\Aspire.Hosting\Aspire.Hosting.csproj" IsAspireHostLibrary="true" />
 
     <ProjectReference Include="..\Library\Library.csproj" />
   </ItemGroup>
@@ -87,7 +87,7 @@ builder.Build().Run();
 
             var output = new StringBuilder();
             var outputDone = new ManualResetEvent(false);
-            var process = new Process();
+            using var process = new Process();
             // set '-nodereuse:false -p:UseSharedCompilation=false' so the MSBuild and Roslyn server processes don't hang around, which may hang the test in CI
             process.StartInfo = new ProcessStartInfo("dotnet", $"build -nodereuse:false -p:UseSharedCompilation=false")
             {

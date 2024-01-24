@@ -19,13 +19,13 @@
   </PropertyGroup>
 
   <!--
-  Default AppHost ProjectReference items to not be referenced in the AppHost, unless it is AspireHostLibrary=true.
+  Default AppHost ProjectReference items to not be referenced in the AppHost, unless it is IsAspireHostLibrary=true.
   This defaulting needs to happen in the SDK targets so this metadata affects NuGet Restore.
   -->
   <ItemGroup Condition="'$(IsAspireHost)' == 'true'">
     
     <ProjectReference Update="@(ProjectReference)">
-      <_IsServiceApp Condition="'%(_IsServiceApp)' == '' and '%(AspireHostLibrary)' != 'true'">true</_IsServiceApp>
+      <_IsServiceApp Condition="'%(_IsServiceApp)' == '' and '%(IsAspireHostLibrary)' != 'true'">true</_IsServiceApp>
 
       <ReferenceOutputAssembly Condition="'%(ReferenceOutputAssembly)' == '' and '%(_IsServiceApp)' == 'true'">false</ReferenceOutputAssembly>
       <SkipGetTargetFrameworkProperties Condition="'%(SkipGetTargetFrameworkProperties)' == '' and '%(_IsServiceApp)' == 'true'">true</SkipGetTargetFrameworkProperties>

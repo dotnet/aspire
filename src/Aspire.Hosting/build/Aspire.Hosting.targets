@@ -142,7 +142,7 @@ internal static class ]]>%(ClassName)<![CDATA[
 
   <!--
   Validates that all the ProjectReferences of an Aspire AppHost project are executables and
-  informs the developer to set 'AspireHostLibrary=true' if they really intended on ProjectReferencing a library.
+  informs the developer to set 'IsAspireHostLibrary=true' if they really intended on ProjectReferencing a library.
   -->
   <Target Name="_ValidateAspireHostServiceReferences"
           DependsOnTargets="_CreateServiceAppProjects"
@@ -164,7 +164,7 @@ internal static class ]]>%(ClassName)<![CDATA[
 
     <Warning Code="ASPIRE004"
              Condition="'@(_NonExecutableServiceApps)' != ''"
-             Text="'%(_NonExecutableServiceApps.OriginalItemSpec)' is referenced by an Aspire AppHost project, but it is not an executable. Did you mean to set AspireHostLibrary=&quot;true&quot;?" />
+             Text="'%(_NonExecutableServiceApps.OriginalItemSpec)' is referenced by an Aspire AppHost project, but it is not an executable. Did you mean to set IsAspireHostLibrary=&quot;true&quot;?" />
   </Target>
 
   <PropertyGroup>
