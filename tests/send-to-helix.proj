@@ -20,6 +20,11 @@
 
   <PropertyGroup>
     <HelixPreCommands>$(HelixPreCommands);@(HelixPreCommand)</HelixPreCommands>
+
+    <_TestRunCommandArguments Condition="'$(OS)' == 'Windows_NT'">&quot;--ResultsDirectory:$HELIX_WORKITEM_UPLOAD_ROOT/log&quot;</_TestRunCommandArguments>
+    <_TestRunCommandArguments Condition="'$(OS)' != 'Windows_NT'">&quot;--ResultsDirectory:%HELIX_WORKITEM_UPLOAD_ROOT%/log&quot;</_TestRunCommandArguments>
+    <_TestRunCommandArguments>$(_TestRunCommandArguments) &quot;--Framework:.NETCoreApp,Version=v8.0&quot;</_TestRunCommandArguments>
+    <_TestRunCommandArguments>$(_TestRunCommandArguments) --logger:console</_TestRunCommandArguments>
   </PropertyGroup>
 
   <ItemGroup>
@@ -30,7 +35,7 @@
 
     <HelixWorkItem Include="@(_DefaultWorkItems -> '%(FileName)')">
       <PayloadArchive>$(TestArchiveTestsDir)%(Identity).zip</PayloadArchive>
-      <Command>dotnet test %(Identity).dll --ResultsDirectory:. &quot;--Framework:.NETCoreApp,Version=v8.0&quot; --logger:console</Command>
+      <Command>dotnet test %(Identity).dll $(_TestRunCommandArguments)</Command>
       <Timeout>$(_workItemTimeout)</Timeout>
     </HelixWorkItem>
   </ItemGroup>
