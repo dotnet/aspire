@@ -205,5 +205,5 @@ split-panels::part(handle) {
 
 div.error-counter-badge {
     padding: 3px 3px;
-    color: var(--error-counter-badge-foreground) !important; /* color is applied directly to div style, so !important to override since we can't use a more specific selector */
+    color: var(--error-counter-badge-foreground-color) !important; /* color is applied directly to div style, so !important to override since we can't use a more specific selector */
 }
