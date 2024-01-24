@@ -5,6 +5,9 @@ namespace Aspire;
 
 public static class KnownFormats
 {
-    // NOTE: Must match Aspire.Dashboard.ConsoleLogs.TimestampParser.DisplayFormat
-    public const string ConsoleLogsTimeDisplayFormat = "yyyy-MM-ddTHH:mm:ss.fffffff";
+    /// <summary>
+    /// Format is passed to apps as an env var to override logging's timestamp format.
+    /// It is also used to parse logs when they're displayed in the dashboard's console logs UI.
+    /// </summary>
+    public const string ConsoleLogsTimestampFormat = "yyyy-MM-ddTHH:mm:ss.fffffff";
 }

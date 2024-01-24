@@ -36,7 +36,7 @@ public static partial class TimestampParser
         if (DateTimeOffset.TryParse(timestamp, out var dateTimeUtc))
         {
             var dateTimeLocal = dateTimeUtc.ToLocalTime();
-            return dateTimeLocal.ToString(KnownFormats.ConsoleLogsTimeDisplayFormat, CultureInfo.CurrentCulture);
+            return dateTimeLocal.ToString(KnownFormats.ConsoleLogsTimestampFormat, CultureInfo.CurrentCulture);
         }
 
         return timestamp.ToString();
