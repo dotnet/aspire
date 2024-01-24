@@ -62,13 +62,13 @@
     </FluentDataGrid>
 </div>
 
-<FluentStack Orientation="Orientation.Vertical" Style="margin-bottom: 10px;">
-    <FluentSwitch Class="switch-150px-width"
+<FluentStack Orientation="Orientation.Vertical" Style="margin-bottom: 20px;">
+    <FluentSwitch Class="table-switch"
                   @bind-Value="@_showAllMetrics"
                   @bind-Value:after="SettingsChangedAsync"
                   Label="@Loc[nameof(ControlsStrings.MetricTableShowLatestValues)]" />
 
-    <FluentSwitch Class="switch-150px-width"
+    <FluentSwitch Class="table-switch"
                   @bind-Value="@_onlyShowValueChanges"
                   @bind-Value:after="SettingsChangedAsync"
                   Label="@Loc[nameof(ControlsStrings.MetricTableShowOnlyValueChanges)]" />

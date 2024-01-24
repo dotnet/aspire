@@ -22,7 +22,7 @@ else
                        aria-label="@Loc[nameof(ControlsStrings.ChartContainerGraphAccessibleLabel)]"
                        Label="@Loc[nameof(ControlsStrings.ChartContainerGraphTab)]"
                        Icon="@(new Icons.Regular.Size24.DataArea())">
-                <div class="metrics-chart-container">
+                <div class="metrics-chart-container metric-tab">
                     <PlotlyChart InstrumentViewModel="_instrumentViewModel" Duration="Duration"/>
                     <ChartFilters InstrumentViewModel="_instrumentViewModel" Instrument="_instrument" ViewModel="_viewModel"/>
                 </div>
@@ -30,7 +30,7 @@ else
             <FluentTab LabelClass="tab-label"
                        Label="@Loc[nameof(ControlsStrings.ChartContainerTableTab)]"
                        Icon="@(new Icons.Regular.Size24.Table())">
-                <div style="margin-top: 5px;">
+                <div class="metric-tab">
                     <MetricTable InstrumentViewModel="_instrumentViewModel" Duration="Duration"/>
                     <ChartFilters InstrumentViewModel="_instrumentViewModel" Instrument="_instrument" ViewModel="_viewModel"/>
                 </div>

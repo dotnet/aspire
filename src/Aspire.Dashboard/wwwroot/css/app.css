@@ -215,6 +215,6 @@ split-panels::part(handle) {
     display: none;
 }
 
-.label {
-    background-color: red;
+fluent-switch.table-switch::part(label) {
+     width: 160px;
 }
