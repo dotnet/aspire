@@ -19,7 +19,7 @@
 
     <_TestCoverageCommand>dotnet dotnet-coverage collect</_TestCoverageCommand>
     <_TestCoverageCommand>$(_TestCoverageCommand) --settings $(RepoRoot)eng/CodeCoverage.config</_TestCoverageCommand>
-    <_TestCoverageCommand>$(_TestCoverageCommand) --output $(_HelixLogPath)/Test.cobertura.xml.</_TestCoverageCommand>
+    <_TestCoverageCommand>$(_TestCoverageCommand) --output $(_HelixLogPath)/Test.cobertura.xml</_TestCoverageCommand>
 
     <_TestRunCommandArguments>dotnet test</_TestRunCommandArguments>
     <_TestRunCommandArguments Condition="'$(OS)' != 'Windows_NT'">$(_TestRunCommandArguments) $TEST_NAME.dll</_TestRunCommandArguments>
