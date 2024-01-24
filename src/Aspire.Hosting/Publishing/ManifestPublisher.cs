@@ -30,7 +30,7 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger,
         if (_options.Value.OutputPath == null)
         {
             throw new DistributedApplicationException(
-                "The '--output-path [path]' option was not specified even though '--publish manifest' argument was used."
+                "The '--output-path [path]' option was not specified even though '--publisher manifest' argument was used."
                 );
         }
 
@@ -40,12 +40,12 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger,
         await WriteManifestAsync(model, jsonWriter, cancellationToken).ConfigureAwait(false);
 
         var fullyQualifiedPath = Path.GetFullPath(_options.Value.OutputPath);
-        _logger.LogInformation("Published manifest to: {manifestPath}", fullyQualifiedPath);
+        _logger.LogInformation("Published manifest to: {ManifestPath}", fullyQualifiedPath);
     }
 
     protected async Task WriteManifestAsync(DistributedApplicationModel model, Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
     {
-        var manifestPath = _options.Value.OutputPath ?? throw new DistributedApplicationException("The '--output-path [path]' option was not specified even though '--publish manifest' argument was used.");
+        var manifestPath = _options.Value.OutputPath ?? throw new DistributedApplicationException("The '--output-path [path]' option was not specified even though '--publisher manifest' argument was used.");
         var context = new ManifestPublishingContext(manifestPath, jsonWriter);
 
         jsonWriter.WriteStartObject();

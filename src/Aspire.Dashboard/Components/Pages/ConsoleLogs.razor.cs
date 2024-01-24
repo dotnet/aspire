@@ -4,21 +4,27 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Pages;
 
-public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable
+public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPageWithSessionAndUrlState<ConsoleLogs.ConsoleLogsViewModel, ConsoleLogs.ConsoleLogsPageState>
 {
     [Inject]
-    public required IResourceService ResourceService { get; init; }
+    public required IDashboardClient DashboardClient { get; init; }
     [Inject]
     public required IJSRuntime JS { get; init; }
+
     [Inject]
-    public required NavigationManager NavigationManager { get; init; }
+    public required ProtectedSessionStorage SessionStorage { get; set; }
+
+    [Inject]
+    public required NavigationManager NavigationManager { get; set; }
 
     [Parameter]
     public string? ResourceName { get; set; }
@@ -27,6 +33,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable
     private readonly CancellationTokenSource _resourceSubscriptionCancellation = new();
     private readonly CancellationSeries _logSubscriptionCancellationSeries = new();
     private readonly ConcurrentDictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
+    private List<Option<string>>? _resources;
 
     // UI
     private FluentSelect<Option<string>>? _resourceSelectComponent;
@@ -34,23 +41,21 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable
     private LogViewer _logViewer = null!;
 
     // State
-    private string _status = null!;
-    private Option<string>? _selectedOption;
-    private ResourceViewModel? _selectedResource;
-    private bool? _initialisedSuccessfully;
+    public ConsoleLogsViewModel ViewModel { get; set; } = null!;
 
-    private List<Option<string>>? _resources;
+    public string BasePath => "ConsoleLogs";
+    public string SessionStorageKey => "ConsoleLogs_PageState";
 
     protected override void OnInitialized()
     {
-        _noSelection = new() { Value = null, Text = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsSelectAResource)] };
-        _status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLoadingResources)];
+        _noSelection = new() { Value = null, Text = ControlsStringsLoc[nameof(ControlsStrings.SelectAResource)] };
+        ViewModel = new ConsoleLogsViewModel { SelectedResource = null, Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLoadingResources)] };
 
-        TrackResources();
+        TrackResourceSnapshots();
 
-        void TrackResources()
+        void TrackResourceSnapshots()
         {
-            var (snapshot, subscription) = ResourceService.SubscribeResources();
+            var (snapshot, subscription) = DashboardClient.SubscribeResources();
 
             foreach (var resource in snapshot)
             {
@@ -65,8 +70,37 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable
                 await foreach (var (changeType, resource) in subscription.WithCancellation(_resourceSubscriptionCancellation.Token))
                 {
                     await OnResourceChanged(changeType, resource);
+
+                    // the initial snapshot we obtain is [almost] never correct (it's always empty)
+                    // we still want to select the user's initial queried resource on page load,
+                    // so if there is no selected resource when we
+                    // receive an added resource, and that added resource name == ResourceName,
+                    // we should mark it as selected
+                    if (ResourceName is not null && ViewModel.SelectedResource is null && changeType == ResourceViewModelChangeType.Upsert && string.Equals(ResourceName, resource.Name))
+                    {
+                        ViewModel.SelectedResource = resource;
+                        Debug.Assert(_resources is not null);
+                        ViewModel.SelectedOption = _resources.Single(option => string.Equals(ResourceName, option.Value, StringComparison.Ordinal));
+                        await SetSelectedConsoleResource(resource);
+                    }
                 }
             });
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await this.InitializeViewModelAsync();
+
+        await ClearLogsAsync();
+
+        if (ViewModel.SelectedResource is not null)
+        {
+            await LoadLogsAsync();
+        }
+        else
+        {
+            await StopWatchingLogsAsync();
         }
     }
 
@@ -76,24 +110,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable
         {
             // Let anyone waiting know that the render is complete, so we have access to the underlying log viewer.
             _whenDomReady.SetResult();
-        }
-    }
-
-    protected override async Task OnParametersSetAsync()
-    {
-        if (_resources is not null && ResourceName is not null)
-        {
-            _selectedOption = _resources.FirstOrDefault(c => string.Equals(ResourceName, c.Value, StringComparisons.ResourceName)) ?? _noSelection;
-            _selectedResource = _selectedOption.Value is null ? null : _resourceByName[_selectedOption.Value];
-            await LoadLogsAsync();
-        }
-        else
-        {
-            await StopWatchingLogsAsync();
-            await ClearLogsAsync();
-            _selectedOption = _noSelection;
-            _selectedResource = null;
-            _status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsNoResourceSelected)];
         }
     }
 
@@ -138,40 +154,40 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable
         // Wait for the first render to complete so that the log viewer is available
         await _whenDomReady.Task;
 
-        if (_selectedResource is null)
+        if (ViewModel.SelectedResource is null)
         {
-            _status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsNoResourceSelected)];
+            ViewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsNoResourceSelected)];
         }
         else if (_logViewer is null)
         {
-            _status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsInitializingLogViewer)];
+            ViewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsInitializingLogViewer)];
         }
         else
         {
             var cancellationToken = await _logSubscriptionCancellationSeries.NextAsync();
 
-            var subscription = ResourceService.SubscribeConsoleLogs(_selectedResource.Name, cancellationToken);
+            var subscription = DashboardClient.SubscribeConsoleLogs(ViewModel.SelectedResource.Name, cancellationToken);
 
             if (subscription is not null)
             {
                 var task = _logViewer.SetLogSourceAsync(
                     subscription,
-                    convertTimestampsFromUtc: _selectedResource is ContainerViewModel);
+                    convertTimestampsFromUtc: ViewModel.SelectedResource.IsContainer());
 
-                _initialisedSuccessfully = true;
-                _status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsWatchingLogs)];
+                ViewModel.InitialisedSuccessfully = true;
+                ViewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsWatchingLogs)];
 
                 // Indicate when logs finish (other than by cancellation).
                 _ = task.ContinueWith(
-                    _ => _status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsFinishedWatchingLogs)],
+                    _ => ViewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsFinishedWatchingLogs)],
                     CancellationToken.None,
                     TaskContinuationOptions.NotOnCanceled,
                     TaskScheduler.Current);
             }
             else
             {
-                _initialisedSuccessfully = false;
-                _status = Loc[_selectedResource is ContainerViewModel
+                ViewModel.InitialisedSuccessfully = false;
+                ViewModel.Status = Loc[ViewModel.SelectedResource.IsContainer()
                     ? nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsFailedToInitialize)
                     : nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLogsNotYetAvailable)];
             }
@@ -182,44 +198,37 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable
     {
         await StopWatchingLogsAsync();
         await ClearLogsAsync();
-        NavigationManager.NavigateTo($"/ConsoleLogs/{_selectedOption?.Value}");
+
+        ViewModel.SelectedResource = ViewModel.SelectedOption?.Value is null ? null : _resourceByName[ViewModel.SelectedOption.Value];
+        await this.AfterViewModelChangedAsync();
     }
 
-    private async Task OnResourceChanged(ResourceChangeType changeType, ResourceViewModel resource)
+    private async Task OnResourceChanged(ResourceViewModelChangeType changeType, ResourceViewModel resource)
     {
-        if (changeType == ResourceChangeType.Upsert)
+        if (changeType == ResourceViewModelChangeType.Upsert)
         {
             _resourceByName[resource.Name] = resource;
+            UpdateResourcesList();
 
-            if (string.Equals(_selectedResource?.Name, resource.Name, StringComparison.Ordinal))
+            if (string.Equals(ViewModel.SelectedResource?.Name, resource.Name, StringComparison.Ordinal))
             {
-                // The selected resource was updated
-                _selectedResource = resource;
-
-                if (_initialisedSuccessfully is false)
-                {
-                    await LoadLogsAsync();
-                }
-                else if (!string.Equals(_selectedResource.State, "Running", StringComparison.Ordinal))
-                {
-                    _status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsFinishedWatchingLogs)];
-                }
+                await SetSelectedConsoleResource(resource);
             }
         }
-        else if (changeType == ResourceChangeType.Delete)
+        else if (changeType == ResourceViewModelChangeType.Delete)
         {
             var removed = _resourceByName.TryRemove(resource.Name, out _);
             Debug.Assert(removed, "Cannot remove unknown resource.");
 
-            if (string.Equals(_selectedResource?.Name, resource.Name, StringComparison.Ordinal))
+            if (string.Equals(ViewModel.SelectedResource?.Name, resource.Name, StringComparison.Ordinal))
             {
                 // The selected resource was deleted
-                _selectedOption = _noSelection;
+                ViewModel.SelectedOption = _noSelection;
                 await HandleSelectedOptionChangedAsync();
             }
-        }
 
-        UpdateResourcesList();
+            UpdateResourcesList();
+        }
 
         await InvokeAsync(StateHasChanged);
 
@@ -228,6 +237,21 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable
         if (_resourceSelectComponent is not null && JS is not null)
         {
             await JS.InvokeVoidAsync("updateFluentSelectDisplayValue", _resourceSelectComponent.Element);
+        }
+    }
+
+    private async Task SetSelectedConsoleResource(ResourceViewModel resource)
+    {
+        // The selected resource was updated
+        ViewModel.SelectedResource = resource;
+
+        if (ViewModel.InitialisedSuccessfully is not true)
+        {
+            await LoadLogsAsync();
+        }
+        else if (!string.Equals(ViewModel.SelectedResource.State, "Running", StringComparison.Ordinal))
+        {
+            ViewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsFinishedWatchingLogs)];
         }
     }
 
@@ -244,8 +268,54 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable
         }
     }
 
-    private async Task StopWatchingLogsAsync()
+    private Task StopWatchingLogsAsync() => _logSubscriptionCancellationSeries.ClearAsync();
+
+    public class ConsoleLogsViewModel
     {
-        await _logSubscriptionCancellationSeries.ClearAsync();
+        public required string Status { get; set; }
+        public Option<string>? SelectedOption { get; set; }
+        public required ResourceViewModel? SelectedResource { get; set; }
+        public bool? InitialisedSuccessfully { get; set; }
+    }
+
+    public class ConsoleLogsPageState
+    {
+        public string? SelectedResource { get; set; }
+    }
+
+    public void UpdateViewModelFromQuery(ConsoleLogsViewModel viewModel)
+    {
+        if (_resources is not null && ResourceName is not null)
+        {
+            var selectedOption = _resources.FirstOrDefault(c => string.Equals(ResourceName, c.Value, StringComparisons.ResourceName)) ?? _noSelection;
+
+            viewModel.SelectedOption = selectedOption;
+            viewModel.SelectedResource = selectedOption?.Value is null ? null : _resourceByName[selectedOption.Value];
+            viewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLogsNotYetAvailable)];
+        }
+        else
+        {
+            viewModel.SelectedOption = _noSelection;
+            viewModel.SelectedResource = null;
+            viewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsNoResourceSelected)];
+        }
+    }
+
+    public UrlState GetUrlFromSerializableViewModel(ConsoleLogsPageState serializable)
+    {
+        if (serializable.SelectedResource is { } selectedOption)
+        {
+            return new UrlState($"{BasePath}/{selectedOption}", null);
+        }
+
+        return new UrlState($"/{BasePath}", null);
+    }
+
+    public ConsoleLogsPageState ConvertViewModelToSerializable()
+    {
+        return new ConsoleLogsPageState
+        {
+            SelectedResource = ViewModel.SelectedResource?.Name
+        };
     }
 }

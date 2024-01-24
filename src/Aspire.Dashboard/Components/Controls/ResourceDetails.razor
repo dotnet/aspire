@@ -1,0 +1,112 @@
+﻿@using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Resources
+@inject IStringLocalizer<ControlsStrings> ControlStringsLoc
+
+<div class="environment-variables-layout">
+
+    <FluentToolbar Orientation="Orientation.Horizontal">
+        <FluentAnchor Appearance="Appearance.Lightweight" Href="@($"/ConsoleLogs/{Resource?.Name}")" slot="end">View logs</FluentAnchor>
+
+        @if (ShowSpecOnlyToggle)
+        {
+            <FluentIconSwitch Appearance="Appearance.Lightweight"
+                              Disabled="IsSpecOnlyToggleDisabled"
+                              CheckedTitle="@ControlStringsLoc[nameof(ControlsStrings.EnvironmentVariablesFilterToggleShowSpecOnly)]"
+                              UncheckedTitle="@ControlStringsLoc[nameof(ControlsStrings.EnvironmentVariablesFilterToggleShowAll)]"
+                              OnToggle="@(() => _showAll = !_showAll)"
+                              CheckedIcon="@(new Icons.Regular.Size16.DocumentHeader())"
+                              UncheckedIcon="@(new Icons.Regular.Size16.DocumentOnePage())"
+                              slot="end"/>
+        }
+
+        <FluentIconSwitch @bind-Value="@_areEnvironmentVariablesMasked"
+                          Appearance="Appearance.Lightweight"
+                          CheckedTitle="@ControlStringsLoc[nameof(ControlsStrings.EnvironmentVariablesShowVariableValues)]"
+                          UncheckedTitle="@ControlStringsLoc[nameof(ControlsStrings.EnvironmentVariablesHideVariableValues)]"
+                          OnToggle="@ToggleMaskState"
+                          CheckedIcon="@(new Icons.Regular.Size16.Eye())"
+                          UncheckedIcon="@(new Icons.Regular.Size16.EyeOff())"
+                          slot="end" />
+
+        <FluentSearch Placeholder="@ControlStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"
+                      Immediate="true"
+                      Autofocus="true"
+                      @bind-Value="_filter"
+                      slot="end" />
+    </FluentToolbar>
+    <div class="property-grid-container">
+        <FluentAccordion>
+            <FluentAccordionItem Heading="Resource" Expanded="true">
+                <div slot="end">
+                    <FluentBadge Appearance="Appearance.Neutral"
+                                 Circular="true">
+                        @FilteredResourceValues.Count()
+                    </FluentBadge>
+                </div>
+                <FluentDataGrid Items="@FilteredResourceValues"
+                                ResizableColumns="true"
+                                Style="width:100%"
+                                GenerateHeader="GenerateHeaderOption.Sticky"
+                                GridTemplateColumns="1fr 1.5fr">
+                    <TemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Class="nameColumn">
+                        <GridValue Value="@(context.KnownProperty?.DisplayName ?? context.Key)" ToolTip="@context.Key" />
+                    </TemplateColumn>
+                    <TemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.PropertyGridValueColumnHeader)]" Class="valueColumn">
+                        <GridValue Value="@GetDisplayedValue(context)" ToolTip="@context.Tooltip" />
+                    </TemplateColumn>
+                </FluentDataGrid>
+            </FluentAccordionItem>
+            <FluentAccordionItem Heading="Endpoints" Expanded="true">
+                <div slot="end">
+                    <FluentBadge Appearance="Appearance.Neutral"
+                                 Circular="true">
+                        @FilteredEndpoints.Count()
+                    </FluentBadge>
+                </div>
+                <FluentDataGrid Items="@FilteredEndpoints"
+                                ResizableColumns="true"
+                                Style="width:100%"
+                                GenerateHeader="GenerateHeaderOption.Sticky"
+                                GridTemplateColumns="1fr 1.5fr">
+                    <TemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Class="nameColumn">
+                        <GridValue Value="@context.Name" />
+                    </TemplateColumn>
+                    <TemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.PropertyGridValueColumnHeader)]" Class="valueColumn">
+                        <GridValue Value="@context.Address" MaxDisplayLength="0">
+                            <ContentAfterValue>
+                                @if (context.IsHttp)
+                                {
+                                    <a href="@context.Address" target="_blank">@context.Address</a>
+                                }
+                                else
+                                {
+                                    @context.Address
+                                }
+                            </ContentAfterValue>
+                        </GridValue>
+                    </TemplateColumn>
+                </FluentDataGrid>
+            </FluentAccordionItem>
+            <FluentAccordionItem Heading="Environment variables">
+                <div slot="end">
+                    <FluentBadge Appearance="Appearance.Neutral"
+                                 Circular="true">
+                        @FilteredItems.Count()
+                    </FluentBadge>
+                </div>
+                <PropertyGrid TItem="EnvironmentVariableViewModel"
+                              Items="@FilteredItems"
+                              NameColumnValue="(vm) => vm.Name"
+                              ValueColumnValue="(vm) => vm.Value"
+                              NameSort="_nameSort"
+                              ValueSort="_valueSort"
+                              EnableValueMasking="true"
+                              GetIsItemMasked="(vm) => vm.IsValueMasked"
+                              SetIsItemMasked="(vm, newValue) => vm.IsValueMasked = newValue"
+                              IsMaskedChanged="@CheckAllMaskStates"
+                              HighlightText="@_filter"
+                              GridTemplateColumns="1fr 1.5fr" />
+            </FluentAccordionItem>
+        </FluentAccordion>
+    </div>
+</div>

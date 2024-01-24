@@ -305,7 +305,7 @@ dotnet_diagnostic.IDE0031.severity = warning
 dotnet_diagnostic.IDE0035.severity = warning
 
 # IDE0036: Order modifiers
-csharp_preferred_modifier_order = public,private,protected,internal,static,extern,new,virtual,abstract,sealed,override,readonly,unsafe,volatile,async:suggestion
+csharp_preferred_modifier_order = public,private,protected,internal,file,static,extern,new,virtual,abstract,sealed,override,readonly,unsafe,volatile,async:suggestion
 dotnet_diagnostic.IDE0036.severity = warning
 
 # IDE0038: Use pattern matching to avoid is check followed by a cast (without variable)

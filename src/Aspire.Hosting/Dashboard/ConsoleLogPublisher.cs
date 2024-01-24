@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Dashboard.Model;
-
 namespace Aspire.Hosting.Dashboard;
 
 internal sealed class ConsoleLogPublisher(ResourcePublisher resourcePublisher)
@@ -19,12 +17,12 @@ internal sealed class ConsoleLogPublisher(ResourcePublisher resourcePublisher)
         // Note, we would like to obtain these logs via DCP directly, rather than sourcing them in the dashboard.
         return resource switch
         {
-            ExecutableViewModel executable => SubscribeExecutable(executable),
-            ContainerViewModel container => SubscribeContainer(container),
+            ExecutableSnapshot executable => SubscribeExecutable(executable),
+            ContainerSnapshot container => SubscribeContainer(container),
             _ => throw new NotSupportedException($"Unsupported resource type {resource.GetType()}.")
         };
 
-        static FileLogSource? SubscribeExecutable(ExecutableViewModel executable)
+        static FileLogSource? SubscribeExecutable(ExecutableSnapshot executable)
         {
             if (executable.StdOutFile is null || executable.StdErrFile is null)
             {
@@ -34,7 +32,7 @@ internal sealed class ConsoleLogPublisher(ResourcePublisher resourcePublisher)
             return new FileLogSource(executable.StdOutFile, executable.StdErrFile);
         }
 
-        static DockerContainerLogSource? SubscribeContainer(ContainerViewModel container)
+        static DockerContainerLogSource? SubscribeContainer(ContainerSnapshot container)
         {
             if (container.ContainerId is null)
             {

@@ -18,8 +18,8 @@ public static class RabbitMQBuilderExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="port">The host port of RabbitMQ.</param>
-    /// <param name="password">The password for RabbitMQ. The default is "guest".</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{RabbitMQContainerResource}"/>.</returns>
+    /// <param name="password">The password for RabbitMQ.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<RabbitMQContainerResource> AddRabbitMQContainer(this IDistributedApplicationBuilder builder, string name, int? port = null, string? password = null)
     {
         password ??= Guid.NewGuid().ToString("N");
@@ -49,7 +49,7 @@ public static class RabbitMQBuilderExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{RabbitMQContainerResource}"/>.</returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<RabbitMQServerResource> AddRabbitMQ(this IDistributedApplicationBuilder builder, string name)
     {
         var password = Guid.NewGuid().ToString("N");

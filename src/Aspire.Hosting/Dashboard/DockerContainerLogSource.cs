@@ -10,13 +10,18 @@ namespace Aspire.Hosting.Dashboard;
 
 internal sealed class DockerContainerLogSource(string containerId) : IAsyncEnumerable<IReadOnlyList<(string Content, bool IsErrorMessage)>>
 {
-    public async IAsyncEnumerator<IReadOnlyList<(string Content, bool IsErrorMessage)>> GetAsyncEnumerator(CancellationToken cancellationToken = default)
+    public async IAsyncEnumerator<IReadOnlyList<(string Content, bool IsErrorMessage)>> GetAsyncEnumerator(CancellationToken cancellationToken)
     {
+        if (!cancellationToken.CanBeCanceled)
+        {
+            throw new ArgumentException("Cancellation token must be cancellable in order to prevent leaking resources.", nameof(cancellationToken));
+        }
+
         Task<ProcessResult>? processResultTask = null;
         IAsyncDisposable? processDisposable = null;
 
         var channel = Channel.CreateUnbounded<(string Content, bool IsErrorMessage)>(
-            new UnboundedChannelOptions { AllowSynchronousContinuations = true, SingleReader = true, SingleWriter = false });
+            new UnboundedChannelOptions { AllowSynchronousContinuations = false, SingleReader = true, SingleWriter = false });
 
         try
         {

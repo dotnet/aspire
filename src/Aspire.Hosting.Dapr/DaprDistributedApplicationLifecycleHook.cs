@@ -50,7 +50,11 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                 continue;
             }
 
-            var sidecarOptions = daprAnnotation.Options;
+            var daprSidecar = daprAnnotation.Sidecar;
+
+            var sidecarOptionsAnnotation = daprSidecar.Annotations.OfType<DaprSidecarOptionsAnnotation>().LastOrDefault();
+
+            var sidecarOptions = sidecarOptionsAnnotation?.Options;
 
             [return: NotNullIfNotNull(nameof(path))]
             string? NormalizePath(string? path)
@@ -94,6 +98,9 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
             var daprHttpPortArg = (string? port) => ModelNamedArg("--dapr-http-port", port);
             var daprMetricsPortArg = (string? port) => ModelNamedArg("--metrics-port", port);
             var daprProfilePortArg = (string? port) => ModelNamedArg("--profile-port", port);
+            var daprAppChannelAddressArg = (string? address) => ModelNamedArg("--app-channel-address", address);
+
+            var appId = sidecarOptions?.AppId ?? resource.Name;
 
             var daprCommandLine =
                 CommandLineBuilder
@@ -106,7 +113,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         ModelNamedArg("--app-health-probe-interval", sidecarOptions?.AppHealthProbeInterval),
                         ModelNamedArg("--app-health-probe-timeout", sidecarOptions?.AppHealthProbeTimeout),
                         ModelNamedArg("--app-health-threshold", sidecarOptions?.AppHealthThreshold),
-                        ModelNamedArg("--app-id", sidecarOptions?.AppId),
+                        ModelNamedArg("--app-id", appId),
                         ModelNamedArg("--app-max-concurrency", sidecarOptions?.AppMaxConcurrency),
                         ModelNamedArg("--app-protocol", sidecarOptions?.AppProtocol),
                         ModelNamedArg("--config", NormalizePath(sidecarOptions?.Config)),
@@ -114,9 +121,9 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         ModelNamedArg("--dapr-http-read-buffer-size", sidecarOptions?.DaprHttpReadBufferSize),
                         ModelNamedArg("--dapr-internal-grpc-port", sidecarOptions?.DaprInternalGrpcPort),
                         ModelNamedArg("--dapr-listen-addresses", sidecarOptions?.DaprListenAddresses),
-                        ModelNamedArg("--enable-api-logging", sidecarOptions?.EnableApiLogging),
-                        ModelNamedArg("--enable-app-health-check", sidecarOptions?.EnableAppHealthCheck),
-                        ModelNamedArg("--enable-profiling", sidecarOptions?.EnableProfiling),
+                        Flag("--enable-api-logging", sidecarOptions?.EnableApiLogging),
+                        Flag("--enable-app-health-check", sidecarOptions?.EnableAppHealthCheck),
+                        Flag("--enable-profiling", sidecarOptions?.EnableProfiling),
                         ModelNamedArg("--log-level", sidecarOptions?.LogLevel),
                         ModelNamedArg("--placement-host-address", sidecarOptions?.PlacementHostAddress),
                         ModelNamedArg("--resources-path", aggregateResourcesPaths),
@@ -125,13 +132,8 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         ModelNamedArg("--unix-domain-socket", sidecarOptions?.UnixDomainSocket),
                         PostOptionsArgs(Args(sidecarOptions?.Command)));
 
-            if (!(sidecarOptions?.AppId is { } appId))
-            {
-                throw new DistributedApplicationException("AppId is required for Dapr sidecar executable.");
-            }
-
-            var daprSideCarResourceName = $"{resource.Name}-dapr";
-            var daprSideCar = new ExecutableResource(daprSideCarResourceName, fileName, appHostDirectory, daprCommandLine.Arguments.ToArray());
+            var daprCliResourceName = $"{daprSidecar.Name}-cli";
+            var daprCli = new ExecutableResource(daprCliResourceName, fileName, appHostDirectory, daprCommandLine.Arguments.ToArray());
 
             resource.Annotations.Add(
                 new EnvironmentCallbackAnnotation(
@@ -142,42 +144,49 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                             return;
                         }
 
+                        string? grpcEndpoint, httpEndpoint;
+
                         if (resource is ContainerResource)
                         {
                             // By default, the Dapr sidecar will listen on localhost, which is not accessible from the container.
 
-                            var grpcEndpoint = $"http://localhost:{{{{- portFor \"{daprSideCarResourceName}_grpc\" -}}}}";
-                            var httpEndpoint = $"http://localhost:{{{{- portFor \"{daprSideCarResourceName}_http\" -}}}}";
+                            grpcEndpoint = $"http://localhost:{{{{- portFor \"{daprCliResourceName}_grpc\" -}}}}";
+                            httpEndpoint = $"http://localhost:{{{{- portFor \"{daprCliResourceName}_http\" -}}}}";
 
                             context.EnvironmentVariables.TryAdd("DAPR_GRPC_ENDPOINT", HostNameResolver.ReplaceLocalhostWithContainerHost(grpcEndpoint, _configuration));
                             context.EnvironmentVariables.TryAdd("DAPR_HTTP_ENDPOINT", HostNameResolver.ReplaceLocalhostWithContainerHost(httpEndpoint, _configuration));
                         }
-
-                        context.EnvironmentVariables.TryAdd("DAPR_GRPC_PORT", $"{{{{- portFor \"{daprSideCarResourceName}_grpc\" -}}}}");
-                        context.EnvironmentVariables.TryAdd("DAPR_HTTP_PORT", $"{{{{- portFor \"{daprSideCarResourceName}_http\" -}}}}");
+                        else
+                        {
+                            grpcEndpoint = $"http://{{{{- addressFor \"{daprCliResourceName}_grpc\" -}}}}:{{{{- portFor \"{daprCliResourceName}_grpc\" -}}}}";
+                            httpEndpoint = $"http://{{{{- addressFor \"{daprCliResourceName}_http\" -}}}}:{{{{- portFor \"{daprCliResourceName}_http\" -}}}}";
+                            context.EnvironmentVariables.TryAdd("DAPR_GRPC_ENDPOINT", grpcEndpoint);
+                            context.EnvironmentVariables.TryAdd("DAPR_HTTP_ENDPOINT", httpEndpoint);
+                        }
                     }));
 
-            daprSideCar.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, name: "grpc", port: sidecarOptions?.DaprGrpcPort));
-            daprSideCar.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, name: "http", port: sidecarOptions?.DaprHttpPort));
-            daprSideCar.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, name: "metrics", port: sidecarOptions?.MetricsPort));
+            daprCli.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, name: "grpc", port: sidecarOptions?.DaprGrpcPort));
+            daprCli.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, name: "http", port: sidecarOptions?.DaprHttpPort));
+            daprCli.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, name: "metrics", port: sidecarOptions?.MetricsPort));
             if (sidecarOptions?.EnableProfiling == true)
             {
-                daprSideCar.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, name: "profile", port: sidecarOptions?.ProfilePort));
+                daprCli.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, name: "profile", port: sidecarOptions?.ProfilePort));
             }
 
             // NOTE: Telemetry is enabled by default.
             if (this._options.EnableTelemetry != false)
             {
-                OtlpConfigurationExtensions.AddOtlpEnvironment(daprSideCar, _configuration, _environment);
+                OtlpConfigurationExtensions.AddOtlpEnvironment(daprCli, _configuration, _environment);
             }
 
-            daprSideCar.Annotations.Add(
+            daprCli.Annotations.Add(
                 new ExecutableArgsCallbackAnnotation(
                     updatedArgs =>
                     {
+                        AllocatedEndpointAnnotation? httpEndPoint = null;
                         if (resource.TryGetAllocatedEndPoints(out var projectEndPoints))
                         {
-                            var httpEndPoint = projectEndPoints.FirstOrDefault(endPoint => endPoint.Name == "http");
+                            httpEndPoint = projectEndPoints.FirstOrDefault(endPoint => endPoint.Name == "http");
 
                             if (httpEndPoint is not null && sidecarOptions?.AppPort is null)
                             {
@@ -185,16 +194,26 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                             }
                         }
 
-                        updatedArgs.AddRange(daprGrpcPortArg($"{{{{- portForServing \"{daprSideCarResourceName}_grpc\" -}}}}")());
-                        updatedArgs.AddRange(daprHttpPortArg($"{{{{- portForServing \"{daprSideCarResourceName}_http\" -}}}}")());
-                        updatedArgs.AddRange(daprMetricsPortArg($"{{{{- portForServing \"{daprSideCarResourceName}_metrics\" -}}}}")());
+                        updatedArgs.AddRange(daprGrpcPortArg($"{{{{- portForServing \"{daprCliResourceName}_grpc\" -}}}}")());
+                        updatedArgs.AddRange(daprHttpPortArg($"{{{{- portForServing \"{daprCliResourceName}_http\" -}}}}")());
+                        updatedArgs.AddRange(daprMetricsPortArg($"{{{{- portForServing \"{daprCliResourceName}_metrics\" -}}}}")());
                         if (sidecarOptions?.EnableProfiling == true)
                         {
-                            updatedArgs.AddRange(daprProfilePortArg($"{{{{- portForServing \"{daprSideCarResourceName}_profile\" -}}}}")());
+                            updatedArgs.AddRange(daprProfilePortArg($"{{{{- portForServing \"{daprCliResourceName}_profile\" -}}}}")());
+                        }
+                        if (sidecarOptions?.AppChannelAddress is null && httpEndPoint is not null)
+                        {
+                            updatedArgs.AddRange(daprAppChannelAddressArg(httpEndPoint.Address)());
                         }
                     }));
 
-            daprSideCar.Annotations.Add(
+            // Apply environment variables to the CLI...
+            daprCli.Annotations.AddRange(daprSidecar.Annotations.OfType<EnvironmentCallbackAnnotation>());
+
+            // The CLI is an artifact of a local run, so it should not be published...
+            daprCli.Annotations.Add(ManifestPublishingCallbackAnnotation.Ignore);
+
+            daprSidecar.Annotations.Add(
                 new ManifestPublishingCallbackAnnotation(
                     context =>
                     {
@@ -207,7 +226,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         context.Writer.TryWriteNumber("appHealthProbeInterval", sidecarOptions?.AppHealthProbeInterval);
                         context.Writer.TryWriteNumber("appHealthProbeTimeout", sidecarOptions?.AppHealthProbeTimeout);
                         context.Writer.TryWriteNumber("appHealthThreshold", sidecarOptions?.AppHealthThreshold);
-                        context.Writer.TryWriteString("appId", sidecarOptions?.AppId);
+                        context.Writer.TryWriteString("appId", appId);
                         context.Writer.TryWriteNumber("appMaxConcurrency", sidecarOptions?.AppMaxConcurrency);
                         context.Writer.TryWriteNumber("appPort", sidecarOptions?.AppPort);
                         context.Writer.TryWriteString("appProtocol", sidecarOptions?.AppProtocol);
@@ -234,7 +253,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                         context.Writer.WriteEndObject();
                     }));
 
-            sideCars.Add(daprSideCar);
+            sideCars.Add(daprCli);
         }
 
         appModel.Resources.AddRange(sideCars);
@@ -355,7 +374,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
 
         if (File.Exists(daprDefaultStateStorePath))
         {
-            _logger.LogInformation($"Using default Dapr pub-sub for component '{component.Name}'.");
+            _logger.LogInformation("Using default Dapr pub-sub for component '{ComponentName}'.", component.Name);
 
             string defaultContent = await File.ReadAllTextAsync(daprDefaultStateStorePath, cancellationToken).ConfigureAwait(false);
             string newContent = defaultContent.Replace("name: pubsub", $"name: {component.Name}");
@@ -364,7 +383,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
         }
         else
         {
-            _logger.LogInformation($"Using in-memory Dapr pub-sub for component '{component.Name}'.");
+            _logger.LogInformation("Using in-memory Dapr pub-sub for component '{ComponentName}'.", component.Name);
 
             return await contentWriter(GetInMemoryPubSubContent(component)).ConfigureAwait(false);
         }
@@ -378,7 +397,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
 
         if (File.Exists(daprDefaultStateStorePath))
         {
-            _logger.LogInformation($"Using default Dapr state store for component '{component.Name}'.");
+            _logger.LogInformation("Using default Dapr state store for component '{ComponentName}'.", component.Name);
 
             string defaultContent = await File.ReadAllTextAsync(daprDefaultStateStorePath, cancellationToken).ConfigureAwait(false);
             string newContent = defaultContent.Replace("name: statestore", $"name: {component.Name}");
@@ -387,7 +406,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
         }
         else
         {
-            _logger.LogInformation($"Using in-memory Dapr state store for component '{component.Name}'.");
+            _logger.LogInformation("Using in-memory Dapr state store for component '{ComponentName}'.", component.Name);
 
             return await contentWriter(GetInMemoryStateStoreContent(component)).ConfigureAwait(false);
         }

@@ -25,7 +25,7 @@ public partial class MainLayout : IDisposable
     public required IStringLocalizer<Resources.Layout> Loc { get; set; }
 
     [Inject]
-    public required IResourceService ResourceService { get; set; }
+    public required IDashboardClient DashboardClient { get; set; }
 
     [Inject]
     public required IDialogService DialogService { get; set; }
@@ -83,7 +83,7 @@ public partial class MainLayout : IDisposable
     {
         if (firstRender)
         {
-            _jsModule = await JS.InvokeAsync<IJSObjectReference>("import", "/_content/Aspire.Dashboard/js/theme.js");
+            _jsModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/theme.js");
         }
     }
 

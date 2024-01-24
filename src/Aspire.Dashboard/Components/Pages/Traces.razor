@@ -5,16 +5,13 @@
 @using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Resources
 @inject NavigationManager NavigationManager
-@inject IResourceService ResourceService
+@inject IDashboardClient DashboardClient
 @inject IJSRuntime JS
 @inject IStringLocalizer<Dashboard.Resources.Traces> Loc
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
-@inject IStringLocalizer<TraceDetail> TraceDetailLoc
-@inject IStringLocalizer<Dashboard.Resources.StructuredLogs> StructuredLogsLoc
 @implements IDisposable
 
-<PageTitle>@string.Format(Loc[nameof(Dashboard.Resources.Traces.TracesPageTitle)], ResourceService.ApplicationName)</PageTitle>
-
+<PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.Traces.TracesPageTitle)" Loc="@Loc" /></PageTitle>
 
 <div class="traces-layout">
     <h1 class="page-header">@Loc[nameof(Dashboard.Resources.Traces.TracesHeader)]</h1>
@@ -36,9 +33,9 @@
     <div class="datagrid-overflow-area continuous-scroll-overflow" tabindex="-1">
         <FluentDataGrid Virtualize="true" GenerateHeader="GenerateHeaderOption.Sticky" ItemSize="46" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="OtlpTrace" GridTemplateColumns="0.8fr 2fr 3fr 0.8fr 0.5fr">
             <ChildContent>
-                <PropertyColumn Title="@StructuredLogsLoc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsTimestampColumnHeader)]" Property="@(context => OtlpHelpers.FormatTimeStamp(context.FirstSpan.StartTime))" />
+                <PropertyColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.TimestampColumnHeader)]" Property="@(context => OtlpHelpers.FormatTimeStamp(context.FirstSpan.StartTime))" />
                 <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Tooltip="true" TooltipText="@((t) => $"{t.FullName}: {OtlpHelpers.ToShortenedId(t.TraceId)}")">
-                    <span><FluentHighlighter HighlightedText="@(ViewModel.FilterText)" Text="@(context.FullName)" /></span>
+                    <span><FluentHighlighter HighlightedText="@(TracesViewModel.FilterText)" Text="@(context.FullName)" /></span>
                     <span class="trace-id">@OtlpHelpers.ToShortenedId(context.TraceId)</span>
                 </TemplateColumn>
                 <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Traces.TracesSpansColumnHeader)]">
@@ -64,20 +61,20 @@
                         </MoreButtonTemplate>
                     </FluentOverflow>
                 </TemplateColumn>
-                <TemplateColumn Title="@TraceDetailLoc[nameof(Dashboard.Resources.TraceDetail.TraceDetailDurationHeader)]">
+                <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.DurationColumnHeader)]">
                     <div class="duration-container">
                         <FluentProgressRing Class="duration-ring"
                                             Min="0"
-                                            Max="@Convert.ToInt32(ViewModel.MaxDuration.TotalMilliseconds)"
+                                            Max="@Convert.ToInt32(TracesViewModel.MaxDuration.TotalMilliseconds)"
                                             Value="@Convert.ToInt32(context.Duration.TotalMilliseconds)"
-                                            aria-label="@TraceDetailLoc[nameof(Dashboard.Resources.TraceDetail.TraceDetailDurationHeader)]" />
+                                            aria-label="@ControlsStringsLoc[nameof(ControlsStrings.DurationColumnHeader)]" />
                         <span class="trace-duration">
                             @DurationFormatter.FormatDuration(context.Duration)
                         </span>
                     </div>
                 </TemplateColumn>
 
-                <TemplateColumn>
+                <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Traces.TracesDetailsColumnHeader)]">
                     <FluentAnchor Appearance="Appearance.Lightweight" Href="@($"/Trace/{context.TraceId}")">@ControlsStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentAnchor>
                 </TemplateColumn>
             </ChildContent>

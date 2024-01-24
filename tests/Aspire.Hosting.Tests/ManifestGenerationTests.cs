@@ -32,7 +32,7 @@ public class ManifestGenerationTests
     public void EnsureExecutablesWithDockerfileProduceDockerfilev0Manifest()
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher(includeNodeApp: true);
-        program.NodeAppBuilder!.WithEndpoint(containerPort: 3000, scheme: "https", env: "HTTPS_PORT")
+        program.NodeAppBuilder!.WithHttpsEndpoint(containerPort: 3000, env: "HTTPS_PORT")
             .AsDockerfileInManifest();
 
         // Build AppHost so that publisher can be resolved.
@@ -107,7 +107,7 @@ public class ManifestGenerationTests
         var program = CreateTestProgramJsonDocumentManifestPublisher();
 
         program.AppBuilder.AddContainer("grafana", "grafana/grafana")
-                          .WithEndpoint(3000, scheme: "http");
+                          .WithHttpEndpoint(3000);
 
         // Build AppHost so that publisher can be resolved.
         program.Build();
@@ -309,7 +309,7 @@ public class ManifestGenerationTests
     }
 
     [Fact]
-    public void EnsureAllRabitMQManifestTypesHaveVersion0Suffix()
+    public void EnsureAllRabbitMQManifestTypesHaveVersion0Suffix()
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher();
 
@@ -328,6 +328,29 @@ public class ManifestGenerationTests
         Assert.Equal("rabbitmq.server.v0", connection.GetProperty("type").GetString());
 
         var server = resources.GetProperty("rabbitcontainer");
+        Assert.Equal("container.v0", server.GetProperty("type").GetString());
+    }
+
+    [Fact]
+    public void EnsureAllKafkaManifestTypesHaveVersion0Suffix()
+    {
+        var program = CreateTestProgramJsonDocumentManifestPublisher();
+
+        program.AppBuilder.AddKafka("kafkaabstract");
+        program.AppBuilder.AddKafkaContainer("kafkacontainer");
+
+        // Build AppHost so that publisher can be resolved.
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+
+        var connection = resources.GetProperty("kafkaabstract");
+        Assert.Equal("kafka.server.v0", connection.GetProperty("type").GetString());
+
+        var server = resources.GetProperty("kafkacontainer");
         Assert.Equal("container.v0", server.GetProperty("type").GetString());
     }
 
@@ -370,6 +393,28 @@ public class ManifestGenerationTests
     }
 
     [Fact]
+    public void EnsureAllAzureDatabaseManifestTypesHaveVersion0Suffix()
+    {
+        var program = CreateTestProgramJsonDocumentManifestPublisher();
+
+        program.AppBuilder.AddAzureSqlServer("sqlserver").AddDatabase("database");
+
+        // Build AppHost so that publisher can be resolved.
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+
+        var sqlserver = resources.GetProperty("sqlserver");
+        Assert.Equal("azure.sql.v0", sqlserver.GetProperty("type").GetString());
+
+        var database = resources.GetProperty("database");
+        Assert.Equal("azure.sql.database.v0", database.GetProperty("type").GetString());
+    }
+
+    [Fact]
     public void EnsureAllAzureRedisManifestTypesHaveVersion0Suffix()
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher();
@@ -386,6 +431,47 @@ public class ManifestGenerationTests
 
         var redis = resources.GetProperty("redis");
         Assert.Equal("azure.redis.v0", redis.GetProperty("type").GetString());
+    }
+
+    [Fact]
+    public void EnsureAllAzureOpenAIManifestTypesHaveVersion0Suffix()
+    {
+        var program = CreateTestProgramJsonDocumentManifestPublisher();
+
+        program.AppBuilder.AddAzureOpenAI("openai").AddDeployment("deployment");
+
+        // Build AppHost so that publisher can be resolved.
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+
+        var openai = resources.GetProperty("openai");
+        Assert.Equal("azure.openai.account.v0", openai.GetProperty("type").GetString());
+
+        var deployment = resources.GetProperty("deployment");
+        Assert.Equal("azure.openai.deployment.v0", deployment.GetProperty("type").GetString());
+    }
+
+    [Fact]
+    public void EnsureAllOpenAIManifestTypesHaveVersion0Suffix()
+    {
+        var program = CreateTestProgramJsonDocumentManifestPublisher();
+
+        program.AppBuilder.AddOpenAI("openai");
+
+        // Build AppHost so that publisher can be resolved.
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+
+        var openai = resources.GetProperty("openai");
+        Assert.Equal("openai.v0", openai.GetProperty("type").GetString());
     }
 
     [Fact]
@@ -408,14 +494,45 @@ public class ManifestGenerationTests
     }
 
     [Fact]
+    public void EnsureAllAzureCosmosDBManifestTypesHaveVersion0Suffix()
+    {
+        var program = CreateTestProgramJsonDocumentManifestPublisher();
+
+        program.AppBuilder.AddAzureCosmosDB("cosmosconnection", "a connection string").AddDatabase("mydb1");
+        program.AppBuilder.AddAzureCosmosDB("cosmosaccount").AddDatabase("mydb2");
+
+        // Build AppHost so that publisher can be resolved.
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+
+        var connection = resources.GetProperty("cosmosconnection");
+        Assert.Equal("azure.cosmosdb.connection.v0", connection.GetProperty("type").GetString());
+
+        var account = resources.GetProperty("cosmosaccount");
+        Assert.Equal("azure.cosmosdb.account.v0", account.GetProperty("type").GetString());
+
+        var db1 = resources.GetProperty("mydb1");
+        Assert.Equal("azure.cosmosdb.database.v0", db1.GetProperty("type").GetString());
+        Assert.Equal("cosmosconnection", db1.GetProperty("parent").GetString());
+
+        var db2 = resources.GetProperty("mydb2");
+        Assert.Equal("azure.cosmosdb.database.v0", db2.GetProperty("type").GetString());
+        Assert.Equal("cosmosaccount", db2.GetProperty("parent").GetString());
+    }
+
+    [Fact]
     public void NodeAppIsExecutableResource()
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher();
 
         program.AppBuilder.AddNodeApp("nodeapp", "..\\foo\\app.js")
-            .WithEndpoint(hostPort: 5031, scheme: "http", env: "PORT");
+            .WithHttpEndpoint(hostPort: 5031, env: "PORT");
         program.AppBuilder.AddNpmApp("npmapp", "..\\foo")
-            .WithEndpoint(hostPort: 5032, scheme: "http", env: "PORT");
+            .WithHttpEndpoint(hostPort: 5032, env: "PORT");
 
         // Build AppHost so that publisher can be resolved.
         program.Build();

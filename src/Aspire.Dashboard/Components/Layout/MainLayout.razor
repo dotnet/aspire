@@ -9,7 +9,7 @@
     <FluentHeader>
         <div class="header-title">
             <FluentAnchor IconStart="@(new AspireIcons.Size32.Logo())" Appearance="Appearance.Stealth" Href="/" Class="logo">
-                @string.Format(Loc[nameof(Layout.MainLayoutDashboardName)], ResourceService.ApplicationName)
+                <ApplicationName ResourceName="@nameof(Layout.MainLayoutDashboardName)" Loc="@Loc" />
             </FluentAnchor>
         </div>
         <div class="header-right">
