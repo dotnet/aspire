@@ -121,7 +121,6 @@ public static partial class AspireEFMySqlExtensions
                 MySqlConnectorLogManager.Provider = new MicrosoftExtensionsLoggingLoggerProvider(loggerFactory);
             }
 
-            // We don't register logger factory, because there is no need to: https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbcontextoptionsbuilder.useloggerfactory?view=efcore-7.0#remarks
             var connectionString = settings.ConnectionString ?? string.Empty;
 
             ServerVersion serverVersion;
