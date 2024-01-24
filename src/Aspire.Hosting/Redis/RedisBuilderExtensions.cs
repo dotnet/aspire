@@ -59,7 +59,7 @@ public static class RedisBuilderExtensions
         var resource = new RedisCommanderResource(containerName);
         builder.ApplicationBuilder.AddResource(resource)
                                   .WithAnnotation(new ContainerImageAnnotation { Image = "rediscommander/redis-commander", Tag = "latest" })
-                                  .WithEndpoint(containerPort: 8081, hostPort: hostPort, scheme: "http", name: containerName)
+                                  .WithHttpEndpoint(containerPort: 8081, hostPort: hostPort, name: containerName)
                                   .ExcludeFromManifest();
 
         return builder;

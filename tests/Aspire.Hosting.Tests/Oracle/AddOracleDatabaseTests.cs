@@ -30,14 +30,14 @@ public class AddOracleDatabaseTests
         Assert.Equal("database/free", containerAnnotation.Image);
         Assert.Equal("container-registry.oracle.com", containerAnnotation.Registry);
 
-        var serviceBinding = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
-        Assert.Equal(1521, serviceBinding.ContainerPort);
-        Assert.False(serviceBinding.IsExternal);
-        Assert.Equal("tcp", serviceBinding.Name);
-        Assert.Null(serviceBinding.Port);
-        Assert.Equal(ProtocolType.Tcp, serviceBinding.Protocol);
-        Assert.Equal("tcp", serviceBinding.Transport);
-        Assert.Equal("tcp", serviceBinding.UriScheme);
+        var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
+        Assert.Equal(1521, endpoint.ContainerPort);
+        Assert.False(endpoint.IsExternal);
+        Assert.Equal("tcp", endpoint.Name);
+        Assert.Null(endpoint.Port);
+        Assert.Equal(ProtocolType.Tcp, endpoint.Protocol);
+        Assert.Equal("tcp", endpoint.Transport);
+        Assert.Equal("tcp", endpoint.UriScheme);
 
         var envAnnotations = containerResource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
@@ -78,14 +78,14 @@ public class AddOracleDatabaseTests
         Assert.Equal("database/free", containerAnnotation.Image);
         Assert.Equal("container-registry.oracle.com", containerAnnotation.Registry);
 
-        var serviceBinding = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
-        Assert.Equal(1521, serviceBinding.ContainerPort);
-        Assert.False(serviceBinding.IsExternal);
-        Assert.Equal("tcp", serviceBinding.Name);
-        Assert.Equal(1234, serviceBinding.Port);
-        Assert.Equal(ProtocolType.Tcp, serviceBinding.Protocol);
-        Assert.Equal("tcp", serviceBinding.Transport);
-        Assert.Equal("tcp", serviceBinding.UriScheme);
+        var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
+        Assert.Equal(1521, endpoint.ContainerPort);
+        Assert.False(endpoint.IsExternal);
+        Assert.Equal("tcp", endpoint.Name);
+        Assert.Equal(1234, endpoint.Port);
+        Assert.Equal(ProtocolType.Tcp, endpoint.Protocol);
+        Assert.Equal("tcp", endpoint.Transport);
+        Assert.Equal("tcp", endpoint.UriScheme);
 
         var envAnnotations = containerResource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
@@ -177,14 +177,14 @@ public class AddOracleDatabaseTests
         Assert.Equal("database/free", containerAnnotation.Image);
         Assert.Equal("container-registry.oracle.com", containerAnnotation.Registry);
 
-        var serviceBinding = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
-        Assert.Equal(1521, serviceBinding.ContainerPort);
-        Assert.False(serviceBinding.IsExternal);
-        Assert.Equal("tcp", serviceBinding.Name);
-        Assert.Equal(1234, serviceBinding.Port);
-        Assert.Equal(ProtocolType.Tcp, serviceBinding.Protocol);
-        Assert.Equal("tcp", serviceBinding.Transport);
-        Assert.Equal("tcp", serviceBinding.UriScheme);
+        var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
+        Assert.Equal(1521, endpoint.ContainerPort);
+        Assert.False(endpoint.IsExternal);
+        Assert.Equal("tcp", endpoint.Name);
+        Assert.Equal(1234, endpoint.Port);
+        Assert.Equal(ProtocolType.Tcp, endpoint.Protocol);
+        Assert.Equal("tcp", endpoint.Transport);
+        Assert.Equal("tcp", endpoint.UriScheme);
 
         var envAnnotations = containerResource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 

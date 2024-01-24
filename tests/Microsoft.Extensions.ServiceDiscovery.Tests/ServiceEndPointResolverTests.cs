@@ -77,8 +77,6 @@ public class ServiceEndPointResolverTests
 
     private sealed class FakeEndPointResolver(Func<ServiceEndPointCollectionSource, CancellationToken, ValueTask<ResolutionStatus>> resolveAsync, Func<ValueTask> disposeAsync) : IServiceEndPointResolver
     {
-        public string DisplayName => "Fake";
-
         public ValueTask<ResolutionStatus> ResolveAsync(ServiceEndPointCollectionSource endPoints, CancellationToken cancellationToken) => resolveAsync(endPoints, cancellationToken);
         public ValueTask DisposeAsync() => disposeAsync();
     }

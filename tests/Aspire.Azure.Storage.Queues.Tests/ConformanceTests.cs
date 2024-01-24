@@ -34,8 +34,6 @@ public class ConformanceTests : ConformanceTests<QueueServiceClient, AzureStorag
 
     protected override bool CanConnectToServer => s_canConnectToServer.Value;
 
-    protected override string JsonSchemaPath => "src/Components/Aspire.Azure.Storage.Queues/ConfigurationSchema.json";
-
     protected override string ValidJsonConfig => """
         {
           "Aspire": {

@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting;
@@ -36,41 +35,6 @@ public static class ContainerResourceBuilderExtensions
         var container = new ContainerResource(name);
         return builder.AddResource(container)
                       .WithAnnotation(new ContainerImageAnnotation { Image = image, Tag = tag });
-    }
-
-    [Obsolete("WithServiceBinding has been renamed to WithEndpoint. Use WithEndpoint instead.")]
-    public static IResourceBuilder<T> WithServiceBinding<T>(this IResourceBuilder<T> builder, int containerPort, int? hostPort = null, string? scheme = null, string? name = null, string? env = null) where T : IResource
-    {
-        return builder.WithEndpoint(containerPort: containerPort, hostPort: hostPort, scheme: scheme, name: name, env: env);
-    }
-
-    /// <summary>
-    /// Adds a binding to expose an endpoint on a resource.
-    /// </summary>
-    /// <typeparam name="T">The resource type.</typeparam>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="containerPort">The container port.</param>
-    /// <param name="hostPort">The host machine port.</param>
-    /// <param name="scheme">The scheme e.g http/https/amqp</param>
-    /// <param name="name">The name of the binding.</param>
-    /// <param name="env">The name of the environment variable to inject.</param>
-    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<T> WithEndpoint<T>(this IResourceBuilder<T> builder, int containerPort, int? hostPort = null, string? scheme = null, string? name = null, string? env = null) where T : IResource
-    {
-        if (builder.Resource.Annotations.OfType<EndpointAnnotation>().Any(sb => string.Equals(sb.Name, name, StringComparisons.EndpointAnnotationName)))
-        {
-            throw new DistributedApplicationException($"Endpoint with name '{name}' already exists");
-        }
-
-        var annotation = new EndpointAnnotation(
-            protocol: ProtocolType.Tcp,
-            uriScheme: scheme,
-            name: name,
-            port: hostPort,
-            containerPort: containerPort,
-            env: env);
-
-        return builder.WithAnnotation(annotation);
     }
 
     /// <summary>

@@ -13,6 +13,7 @@ pr:
     - main
     - vNext
     - release/*
+    - feature/*
     - internal/release/*
 
 variables:

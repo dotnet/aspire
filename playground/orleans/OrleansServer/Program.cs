@@ -5,7 +5,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 builder.AddKeyedAzureTableService("clustering");
 builder.AddKeyedAzureBlobService("grainstate");
-builder.UseOrleans();
+builder.UseOrleans(siloBuilder => siloBuilder.AddActivityPropagation());
 
 var app = builder.Build();
 

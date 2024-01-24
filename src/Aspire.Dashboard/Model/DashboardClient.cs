@@ -9,7 +9,6 @@ using Aspire.V1;
 using Grpc.Core;
 using Grpc.Net.Client;
 using Grpc.Net.Client.Configuration;
-using Microsoft.Extensions.Logging;
 
 namespace Aspire.Dashboard.Model;
 
@@ -23,8 +22,8 @@ namespace Aspire.Dashboard.Model;
 /// </remarks>
 internal sealed class DashboardClient : IDashboardClient
 {
-    private const string DashboardServiceUrlVariableName = "DOTNET_DASHBOARD_GRPC_ENDPOINT_URL";
-    private const string DashboardServiceUrlDefaultValue = "http://localhost:18999";
+    private const string ResourceServiceUrlVariableName = "DOTNET_RESOURCE_SERVICE_ENDPOINT_URL";
+    private const string ResourceServiceUrlDefaultValue = "http://localhost:18999";
 
     private readonly Dictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
     private readonly CancellationTokenSource _cts = new();
@@ -53,7 +52,7 @@ internal sealed class DashboardClient : IDashboardClient
 
         _logger = loggerFactory.CreateLogger<DashboardClient>();
 
-        var address = GetAddressUri(DashboardServiceUrlVariableName, DashboardServiceUrlDefaultValue);
+        var address = GetAddressUri(ResourceServiceUrlVariableName, ResourceServiceUrlDefaultValue);
 
         _logger.LogInformation("Dashboard configured to connect to: {Address}", address);
 
@@ -280,7 +279,17 @@ internal sealed class DashboardClient : IDashboardClient
         }
     }
 
-    Task IDashboardClient.WhenConnected => _whenConnected.Task;
+    Task IDashboardClient.WhenConnected
+    {
+        get
+        {
+            // All pages wait for this task (it is used to display the title) but some don't subscribe to resources.
+            // If someone is waiting for the connection, we need to ensure connection is starting.
+            EnsureInitialized();
+
+            return _whenConnected.Task;
+        }
+    }
 
     string IDashboardClient.ApplicationName => _applicationName ?? "";
 
