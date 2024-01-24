@@ -42,9 +42,9 @@
         <target state="new">Launch settings file does not contain '{0}' profile.</target>
         <note />
       </trans-unit>
-      <trans-unit id="ProjectDoesNotContainServiceMetadataExceptionMessage">
-        <source>Project does not contain service metadata.</source>
-        <target state="new">Project does not contain service metadata.</target>
+      <trans-unit id="ProjectDoesNotContainMetadataExceptionMessage">
+        <source>Project does not contain project metadata.</source>
+        <target state="new">Project does not contain project metadata.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectFileNotFoundExceptionMessage">
