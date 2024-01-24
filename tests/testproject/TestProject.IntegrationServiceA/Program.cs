@@ -4,6 +4,7 @@
 var builder = WebApplication.CreateBuilder(args);
 builder.AddSqlServerClient("tempdb");
 builder.AddMySqlDataSource("mysqldb");
+builder.AddMySqlDbContext<PomeloDbContext>("mysqldb");
 builder.AddRedis("rediscontainer");
 builder.AddNpgsqlDataSource("postgresdb");
 builder.AddRabbitMQ("rabbitmqcontainer");
@@ -47,6 +48,8 @@ app.MapRedisApi();
 app.MapMongoDBApi();
 
 app.MapMySqlApi();
+
+app.MapPomeloEFCoreMySqlApi();
 
 app.MapPostgresApi();
 
