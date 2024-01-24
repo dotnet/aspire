@@ -14,7 +14,19 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <_DefaultWorkItems Include="$(WorkItemArchiveWildCard)" />
+    <HelixPreCommand Condition="'$(OS)' != 'Windows_NT'" Include="set ASPIRE_HOSTING_TEST_PROJECT_BASE_PATH=%HELIX_CORRELATION_PAYLOAD%\testassets\testproject" />
+    <HelixPreCommand Condition="'$(OS)' == 'Windows_NT'" Include="export ASPIRE_HOSTING_TEST_PROJECT_BASE_PATH=$HELIX_CORRELATION_PAYLOAD/testassets/testproject" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <HelixPreCommands>$(HelixPreCommands);@(HelixPreCommand)</HelixPreCommands>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <HelixCorrelationPayload Include="testproject" Destination="testassets/testproject" />
+
+    <_DefaultWorkItems Condition="'$(ContinuousIntegrationBuild)' == 'true'" Include="$(WorkItemArchiveWildCard)" />
+    <_DefaultWorkItems Condition="'$(ContinuousIntegrationBuild)' != 'true'" Include="$(RepoRoot)artifacts/helix/tests/Aspire.Hosting.Tests.zip" />
 
     <HelixWorkItem Include="@(_DefaultWorkItems -> '%(FileName)')">
       <PayloadArchive>$(TestArchiveTestsDir)%(Identity).zip</PayloadArchive>

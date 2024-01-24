@@ -30,15 +30,17 @@ steps:
   - ${{ if ne(parameters.skipTests, 'true') }}:
     - template: /eng/pipelines/templates/send-to-helix.yml
       parameters:
+        HelixProjectArguments: $env:BUILD_SOURCESDIRECTORY\tests\send-to-helix.proj
         ${{ if eq(parameters.isWindows, 'true') }}:
           HelixTargetQueues: Windows.11.Amd64.Client.Open
         ${{ if ne(parameters.isWindows, 'true') }}:
           HelixTargetQueues: Ubuntu.2204.Amd64.Open
 
-        Creator: dotnet-bot
+        Creator: $(Build.DefinitionName)
+        HelixBuild: $(Build.BuildNumber)
         HelixAccessToken: $(HelixApiAccessToken)
-        # access token
 
+    # FIXME: add path for cov settings, and output xml .. or just cov args
     #- script: ${{ parameters.dotnetScript }} dotnet-coverage collect
               #--settings $(Build.SourcesDirectory)/eng/CodeCoverage.config
               #--output ${{ parameters.repoTestResultsPath }}/$(Agent.Os)_$(Agent.JobName).cobertura.xml
