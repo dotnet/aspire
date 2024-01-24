@@ -143,7 +143,13 @@ internal static class ]]>%(ClassName)<![CDATA[
     </ItemGroup>
   </Target>
 
-  <Target Name="SetDashboardDiscoveryAttributes" BeforeTargets="GetAssemblyAttributes" Condition=" '$(AspireDashboardPath)' != '' ">
+  <Target Name="SetDashboardDiscoveryAttributes" BeforeTargets="GetAssemblyAttributes" Condition=" '$(AspireDashboardDir)' != '' ">
+    <PropertyGroup>
+      <AspireDashboardDir>$([MSBuild]::EnsureTrailingSlash('$(AspireDashboardDir)'))</AspireDashboardDir>
+      <AspireDashboardPath Condition=" '$(AspireDashboardPath)' == '' ">$([MSBuild]::NormalizePath($(AspireDashboardDir), 'Aspire.Dashboard'))</AspireDashboardPath>
+      <AspireDashboardPath Condition=" '$(OS)' == 'Windows_NT' and !$(AspireDashboardPath.EndsWith('.exe')) ">$(AspireDashboardPath).exe</AspireDashboardPath>
+    </PropertyGroup>
+
     <ItemGroup>
       <AssemblyAttribute Include="System.Reflection.AssemblyMetadata">
         <_Parameter1>aspiredashboardpath</_Parameter1>

@@ -11,9 +11,8 @@
 
   <ItemGroup>
     <Compile Include="..\..\..\src\Aspire.Hosting\Utils\KnownResourceNames.cs" Link="KnownResourceNames.cs" />
-    <Compile Include="..\..\Shared\WorkloadAttributes.cs" Link="WorkloadAttributes.cs" />
   </ItemGroup>
-  
+
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\Aspire.Dashboard\Aspire.Dashboard.csproj" />
     <ProjectReference Include="..\..\..\src\Aspire.Hosting\Aspire.Hosting.csproj" />
@@ -21,5 +20,5 @@
     <ProjectReference Include="..\..\..\src\Aspire.Hosting.Orleans\Aspire.Hosting.Orleans.csproj" />
     <ProjectReference Include="..\OrleansServer\OrleansServer.csproj" />
   </ItemGroup>
-  
+
 </Project>
