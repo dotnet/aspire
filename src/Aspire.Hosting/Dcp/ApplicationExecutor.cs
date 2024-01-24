@@ -131,7 +131,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             WorkingDirectory = dashboardWorkingDirectory
         };
 
-        if (StringComparer.OrdinalIgnoreCase.Equals(".dll", Path.GetExtension(fullyQualifiedDashboardPath))
+        if (StringComparer.OrdinalIgnoreCase.Equals(".dll", Path.GetExtension(fullyQualifiedDashboardPath)))
         {
             // The dashboard path is a DLL, so run it with `dotnet <dll>`
             dashboardExecutableSpec.ExecutablePath = "dotnet";
