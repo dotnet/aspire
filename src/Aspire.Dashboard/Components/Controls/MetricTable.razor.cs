@@ -56,8 +56,7 @@ public partial class MetricTable : ComponentBase
             valuesWithDimensions.Sort((a, b) =>
             {
                 var result = a.value.Start.CompareTo(b.value.Start);
-                return result is not 0 ? result : a.value.End.CompareTo(b.value.End);
-
+                return result is not 0 ? -result : -a.value.End.CompareTo(b.value.End);
             });
 
             for (var i = 0; i < valuesWithDimensions.Count; i++)

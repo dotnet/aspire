@@ -28,6 +28,11 @@ fluent-toolbar[orientation=horizontal] {
     --log-critical: #F8ECEB;
     --log-error: #F8ECEB;
     --log-warning: #FBF3DD;
+
+    --info: #717171 !important;
+    --warning: #E85E36 !important;
+    --success: #108310 !important;
+
     --badge-fill-error: var(--error);
     --badge-fill-warning: var(--warning);
     --badge-color-error: var(--foreground-on-accent-rest);
@@ -208,4 +213,8 @@ fluent-data-grid-cell .long-inner-content {
 
 split-panels::part(handle) {
     display: none;
+}
+
+.label {
+    background-color: red;
 }

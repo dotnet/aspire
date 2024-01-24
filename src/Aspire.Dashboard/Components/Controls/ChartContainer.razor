@@ -18,17 +18,22 @@ else
             <p>@_instrument.Description</p>
         </div>
         <FluentTabs>
-            <FluentTab aria-label="@Loc[nameof(ControlsStrings.ChartContainerGraphAccessibleLabel)]"
+            <FluentTab LabelClass="tab-label"
+                       aria-label="@Loc[nameof(ControlsStrings.ChartContainerGraphAccessibleLabel)]"
                        Label="@Loc[nameof(ControlsStrings.ChartContainerGraphTab)]"
                        Icon="@(new Icons.Regular.Size24.DataArea())">
                 <div class="metrics-chart-container">
                     <PlotlyChart InstrumentViewModel="_instrumentViewModel" Duration="Duration"/>
-                    <ChartFilters InstrumentViewModel="_instrumentViewModel" Instrument="_instrument" ViewModel="_viewModel" />
+                    <ChartFilters InstrumentViewModel="_instrumentViewModel" Instrument="_instrument" ViewModel="_viewModel"/>
                 </div>
             </FluentTab>
-            <FluentTab Label="@Loc[nameof(ControlsStrings.ChartContainerTableTab)]" Icon="@(new Icons.Regular.Size24.Table())">
-                <MetricTable InstrumentViewModel="_instrumentViewModel" Duration="Duration" />
-                <ChartFilters InstrumentViewModel="_instrumentViewModel" Instrument="_instrument" ViewModel="_viewModel" />
+            <FluentTab LabelClass="tab-label"
+                       Label="@Loc[nameof(ControlsStrings.ChartContainerTableTab)]"
+                       Icon="@(new Icons.Regular.Size24.Table())">
+                <div style="margin-top: 5px;">
+                    <MetricTable InstrumentViewModel="_instrumentViewModel" Duration="Duration"/>
+                    <ChartFilters InstrumentViewModel="_instrumentViewModel" Instrument="_instrument" ViewModel="_viewModel"/>
+                </div>
             </FluentTab>
         </FluentTabs>
     </div>

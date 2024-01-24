@@ -5,8 +5,8 @@
 @namespace Aspire.Dashboard.Components.Controls
 @inject IStringLocalizer<ControlsStrings> Loc
 
-<div id="metric-table-container" style="max-height: 60vh; overflow-y: scroll; margin-bottom: 10px;">
-    <FluentDataGrid Items="@FilteredMetrics.AsQueryable()" ItemSize="35" Virtualize="false">
+<div id="metric-table-container" style="height: 40vh; overflow-y: scroll; margin-bottom: 20px;">
+    <FluentDataGrid Items="@FilteredMetrics.AsQueryable()" ItemSize="35" Virtualize="true">
         <ChildContent>
             <TemplateColumn Class="metric-grid-cell" Title="@Loc[nameof(ControlsStrings.MetricTableStartColumnHeader)]" Tooltip="true" TooltipText="@(metric => metric.DimensionName)">
                 <span aria-live="polite">@context.Value.Start</span>
@@ -62,13 +62,14 @@
     </FluentDataGrid>
 </div>
 
-<FluentStack Orientation="Orientation.Vertical">
-    <FluentSwitch @bind-Value="@_showAllMetrics"
+<FluentStack Orientation="Orientation.Vertical" Style="margin-bottom: 10px;">
+    <FluentSwitch Class="switch-150px-width"
+                  @bind-Value="@_showAllMetrics"
                   @bind-Value:after="SettingsChangedAsync"
-                  Disabled="@(_metrics.Count < 10)"
                   Label="@Loc[nameof(ControlsStrings.MetricTableShowLatestValues)]" />
 
-    <FluentSwitch @bind-Value="@_onlyShowValueChanges"
+    <FluentSwitch Class="switch-150px-width"
+                  @bind-Value="@_onlyShowValueChanges"
                   @bind-Value:after="SettingsChangedAsync"
                   Label="@Loc[nameof(ControlsStrings.MetricTableShowOnlyValueChanges)]" />
 </FluentStack>

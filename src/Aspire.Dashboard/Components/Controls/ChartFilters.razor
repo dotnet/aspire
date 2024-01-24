@@ -73,7 +73,10 @@
         <div class="metrics-filters-section">
             <h5>@Loc[nameof(ControlsStrings.ChartContainerOptionsHeader)]</h5>
             <div>
-                <FluentSwitch Label="@Loc[nameof(ControlsStrings.ChartContainerShowCountLabel)]" @bind-Value="_showCount" @bind-Value:after="ShowCountChanged"/>
+                <FluentSwitch Class="switch-150px-width"
+                              Label="@Loc[nameof(ControlsStrings.ChartContainerShowCountLabel)]"
+                              @bind-Value="_showCount"
+                              @bind-Value:after="ShowCountChanged"/>
             </div>
         </div>
     }
