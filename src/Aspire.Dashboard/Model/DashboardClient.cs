@@ -50,8 +50,8 @@ internal sealed class DashboardClient : IDashboardClient
     private const int StateDisposed = 2;
     private int _state = StateNone;
 
-    private readonly GrpcChannel _channel;
-    private readonly DashboardService.DashboardServiceClient _client;
+    private readonly GrpcChannel? _channel;
+    private readonly DashboardService.DashboardServiceClient? _client;
 
     private Task? _connection;
 
@@ -69,8 +69,6 @@ internal sealed class DashboardClient : IDashboardClient
             _logger.LogInformation("DOTNET_DASHBOARD_GRPC_ENDPOINT_URL is not specified. Dashboard client services are unavailable.");
             _cts.Cancel();
             _whenConnected.TrySetCanceled();
-            _channel = null!;
-            _client = null!;
             return;
         }
 
@@ -155,7 +153,7 @@ internal sealed class DashboardClient : IDashboardClient
             {
                 try
                 {
-                    var response = await _client.GetApplicationInformationAsync(new(), cancellationToken: cancellationToken);
+                    var response = await _client!.GetApplicationInformationAsync(new(), cancellationToken: cancellationToken);
 
                     _applicationName = response.ApplicationName;
 
@@ -208,7 +206,7 @@ internal sealed class DashboardClient : IDashboardClient
 
                 async Task WatchResourcesAsync()
                 {
-                    var call = _client.WatchResources(new WatchResourcesRequest { IsReconnect = errorCount != 0 }, cancellationToken: cancellationToken);
+                    var call = _client!.WatchResources(new WatchResourcesRequest { IsReconnect = errorCount != 0 }, cancellationToken: cancellationToken);
 
                     await foreach (var response in call.ResponseStream.ReadAllAsync(cancellationToken: cancellationToken))
                     {
@@ -341,7 +339,7 @@ internal sealed class DashboardClient : IDashboardClient
 
         using var combinedTokens = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, cancellationToken);
 
-        var call = _client.WatchResourceConsoleLogs(
+        var call = _client!.WatchResourceConsoleLogs(
             new WatchResourceConsoleLogsRequest() { ResourceName = resourceName },
             cancellationToken: combinedTokens.Token);
 
@@ -368,7 +366,7 @@ internal sealed class DashboardClient : IDashboardClient
 
             _cts.Dispose();
 
-            _channel.Dispose();
+            _channel?.Dispose();
 
             try
             {
