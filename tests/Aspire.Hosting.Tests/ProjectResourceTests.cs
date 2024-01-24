@@ -147,7 +147,7 @@ public class ProjectResourceTests
         var projectResource = appBuilder.AddResource(project);
 
         var ex = Assert.Throws<DistributedApplicationException>(() => projectResource.WithLaunchProfile("not-exist"));
-        Assert.Equal("Project does not contain service metadata.", ex.Message);
+        Assert.Equal("Project does not contain project metadata.", ex.Message);
     }
 
     private static IDistributedApplicationBuilder CreateBuilder()
