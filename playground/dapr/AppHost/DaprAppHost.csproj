@@ -14,8 +14,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\Aspire.Dashboard\Aspire.Dashboard.csproj" />
-    <ProjectReference Include="..\..\..\src\Aspire.Hosting\Aspire.Hosting.csproj" IsAspireHostLibrary="true" />
-    <ProjectReference Include="..\..\..\src\Aspire.Hosting.Dapr\Aspire.Hosting.Dapr.csproj" IsAspireHostLibrary="true" />
+    <ProjectReference Include="..\..\..\src\Aspire.Hosting\Aspire.Hosting.csproj" IsAspireProjectResource="false" />
+    <ProjectReference Include="..\..\..\src\Aspire.Hosting.Dapr\Aspire.Hosting.Dapr.csproj" IsAspireProjectResource="false" />
 
     <ProjectReference Include="..\ServiceA\DaprServiceA.csproj" />
     <ProjectReference Include="..\ServiceB\DaprServiceB.csproj" />

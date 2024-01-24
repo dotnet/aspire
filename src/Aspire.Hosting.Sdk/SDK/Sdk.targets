@@ -19,17 +19,17 @@
   </PropertyGroup>
 
   <!--
-  Default AppHost ProjectReference items to not be referenced in the AppHost, unless it is IsAspireHostLibrary=true.
+  Default AppHost ProjectReference items to not be referenced in the AppHost, unless it is IsAspireProjectResource=false.
   This defaulting needs to happen in the SDK targets so this metadata affects NuGet Restore.
   -->
   <ItemGroup Condition="'$(IsAspireHost)' == 'true'">
     
     <ProjectReference Update="@(ProjectReference)">
-      <_IsServiceApp Condition="'%(_IsServiceApp)' == '' and '%(IsAspireHostLibrary)' != 'true'">true</_IsServiceApp>
+      <IsAspireProjectResource Condition="'%(IsAspireProjectResource)' != 'false'">true</IsAspireProjectResource>
 
-      <ReferenceOutputAssembly Condition="'%(ReferenceOutputAssembly)' == '' and '%(_IsServiceApp)' == 'true'">false</ReferenceOutputAssembly>
-      <SkipGetTargetFrameworkProperties Condition="'%(SkipGetTargetFrameworkProperties)' == '' and '%(_IsServiceApp)' == 'true'">true</SkipGetTargetFrameworkProperties>
-      <ExcludeAssets Condition="'%(ExcludeAssets)' == '' and '%(_IsServiceApp)' == 'true'">all</ExcludeAssets>
+      <ReferenceOutputAssembly Condition="'%(ReferenceOutputAssembly)' == '' and '%(IsAspireProjectResource)' == 'true'">false</ReferenceOutputAssembly>
+      <SkipGetTargetFrameworkProperties Condition="'%(SkipGetTargetFrameworkProperties)' == '' and '%(IsAspireProjectResource)' == 'true'">true</SkipGetTargetFrameworkProperties>
+      <ExcludeAssets Condition="'%(ExcludeAssets)' == '' and '%(IsAspireProjectResource)' == 'true'">all</ExcludeAssets>
     </ProjectReference>
     
   </ItemGroup>

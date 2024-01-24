@@ -56,7 +56,7 @@ public class Class1
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="{repoRoot}\src\Aspire.Hosting\Aspire.Hosting.csproj" IsAspireHostLibrary="true" />
+    <ProjectReference Include="{repoRoot}\src\Aspire.Hosting\Aspire.Hosting.csproj" IsAspireProjectResource="false" />
 
     <ProjectReference Include="..\Library\Library.csproj" />
   </ItemGroup>
@@ -72,7 +72,6 @@ builder.Build().Run();
 <Project>
   <PropertyGroup>
     <SkipAspireWorkloadManifest>true</SkipAspireWorkloadManifest>
-    <_SuppressImportAspireHostingOrchestrationTargets>true</_SuppressImportAspireHostingOrchestrationTargets>
   </PropertyGroup>
 
   <Import Project="{repoRoot}\src\Aspire.Hosting\build\Aspire.Hosting.props" />

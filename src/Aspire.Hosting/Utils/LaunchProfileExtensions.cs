@@ -14,12 +14,12 @@ internal static class LaunchProfileExtensions
 {
     internal static LaunchSettings? GetLaunchSettings(this ProjectResource projectResource)
     {
-        if (!projectResource.TryGetLastAnnotation<IServiceMetadata>(out var serviceMetadata))
+        if (!projectResource.TryGetLastAnnotation<IProjectMetadata>(out var projectMetadata))
         {
-            throw new DistributedApplicationException(Resources.ProjectDoesNotContainServiceMetadataExceptionMessage);
+            throw new DistributedApplicationException(Resources.ProjectDoesNotContainMetadataExceptionMessage);
         }
 
-        return serviceMetadata.GetLaunchSettings();
+        return projectMetadata.GetLaunchSettings();
     }
 
     internal static LaunchProfile? GetEffectiveLaunchProfile(this ProjectResource projectResource)
@@ -40,15 +40,15 @@ internal static class LaunchProfileExtensions
         return found == true ? launchProfile : null;
     }
 
-    internal static LaunchSettings? GetLaunchSettings(this IServiceMetadata serviceMetadata)
+    internal static LaunchSettings? GetLaunchSettings(this IProjectMetadata projectMetadata)
     {
-        if (!File.Exists(serviceMetadata.ProjectPath))
+        if (!File.Exists(projectMetadata.ProjectPath))
         {
-            var message = string.Format(CultureInfo.InvariantCulture, Resources.ProjectFileNotFoundExceptionMessage, serviceMetadata.ProjectPath);
+            var message = string.Format(CultureInfo.InvariantCulture, Resources.ProjectFileNotFoundExceptionMessage, projectMetadata.ProjectPath);
             throw new DistributedApplicationException(message);
         }
 
-        var projectFileInfo = new FileInfo(serviceMetadata.ProjectPath);
+        var projectFileInfo = new FileInfo(projectMetadata.ProjectPath);
         var launchSettingsFilePath = projectFileInfo.DirectoryName switch
         {
             null => Path.Combine("Properties", "launchSettings.json"),
