@@ -5,17 +5,11 @@ using System.Reflection;
 
 public class TestProgram
 {
-    private TestProgram(string[] args, Assembly assembly, bool includeIntegrationServices = false, bool disableDashboard = true, bool includeNodeApp = false, string? testProjectBasePathOverride = null)
+    private TestProgram(string[] args, Assembly assembly, bool includeIntegrationServices = false, bool disableDashboard = true, bool includeNodeApp = false)
     {
-        Console.WriteLine ($"-- override: {testProjectBasePathOverride}");
-        string testProjectBasePath = string.IsNullOrEmpty(testProjectBasePathOverride) ? Path.Combine(Projects.TestProject_AppHost.ProjectPath, "..") : testProjectBasePathOverride;
-        if (string.IsNullOrEmpty(testProjectBasePath) || !Directory.Exists(testProjectBasePath))
-        {
-            throw new ArgumentException($"Could not find test project path. Override was: {testProjectBasePathOverride}, and AppHost.ProjectPath: {Projects.TestProject_AppHost.ProjectPath}");
-        }
         AppBuilder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions { Args = args, DisableDashboard = disableDashboard, AssemblyName = assembly.FullName });
 
-        var serviceAPath = Path.Combine(testProjectBasePath, @"TestProject.ServiceA\TestProject.ServiceA.csproj");
+        var serviceAPath = Path.Combine(Projects.TestProject_AppHost.ProjectPath, @"..\TestProject.ServiceA\TestProject.ServiceA.csproj");
 
         ServiceABuilder = AppBuilder.AddProject("servicea", serviceAPath);
         ServiceBBuilder = AppBuilder.AddProject<Projects.ServiceB>("serviceb");
@@ -26,7 +20,7 @@ public class TestProgram
         {
             // Relative to this project so that it doesn't changed based on
             // where this code is referenced from.
-            var path = Path.Combine(testProjectBasePath, "nodeapp");
+            var path = Path.Combine(Projects.TestProject_AppHost.ProjectPath, @"..\nodeapp");
             var scriptPath = Path.Combine(path, "app.js");
 
             NodeAppBuilder = AppBuilder.AddNodeApp("nodeapp", scriptPath)
@@ -92,11 +86,8 @@ public class TestProgram
         }
     }
 
-    public static TestProgram Create<T>(string[]? args = null, bool includeIntegrationServices = false, bool includeNodeApp = false, bool disableDashboard = true)
-    {
-        Console.WriteLine ($"--- TestProgram.Create envvar: {Environment.GetEnvironmentVariable("ASPIRE_HOSTING_TEST_PROJECT_BASE_PATH")}");
-        return new TestProgram(args ?? [], typeof(T).Assembly, includeIntegrationServices, disableDashboard, includeNodeApp: includeNodeApp, testProjectBasePathOverride: Environment.GetEnvironmentVariable("ASPIRE_HOSTING_TEST_PROJECT_BASE_PATH"));
-    }
+    public static TestProgram Create<T>(string[]? args = null, bool includeIntegrationServices = false, bool includeNodeApp = false, bool disableDashboard = true) =>
+        new TestProgram(args ?? [], typeof(T).Assembly, includeIntegrationServices, disableDashboard, includeNodeApp: includeNodeApp);
 
     public IDistributedApplicationBuilder AppBuilder { get; private set; }
     public IResourceBuilder<ProjectResource> ServiceABuilder { get; private set; }
