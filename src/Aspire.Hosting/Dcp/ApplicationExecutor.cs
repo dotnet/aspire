@@ -128,10 +128,20 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         var dashboardExecutableSpec = new ExecutableSpec
         {
             ExecutionType = ExecutionType.Process,
-            ExecutablePath = "dotnet",
-            Args = [fullyQualifiedDashboardPath],
             WorkingDirectory = dashboardWorkingDirectory
         };
+
+        if (StringComparer.OrdinalIgnoreCase.Equals(".dll", Path.GetExtension(fullyQualifiedDashboardPath))
+        {
+            // The dashboard path is a DLL, so run it with `dotnet <dll>`
+            dashboardExecutableSpec.ExecutablePath = "dotnet";
+            dashboardExecutableSpec.Args = [fullyQualifiedDashboardPath];
+        }
+        else
+        {
+            // Assume the dashboard path is directly executable
+            dashboardExecutableSpec.ExecutablePath = fullyQualifiedDashboardPath;
+        }
 
         var grpcEndpointUrl = await _dashboardServiceHost.GetResourceServiceUriAsync(cancellationToken).ConfigureAwait(false);
         var otlpEndpointUrl = Environment.GetEnvironmentVariable("DOTNET_DASHBOARD_OTLP_ENDPOINT_URL");
