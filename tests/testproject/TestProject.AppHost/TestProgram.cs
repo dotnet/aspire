@@ -5,11 +5,12 @@ using System.Reflection;
 
 public class TestProgram
 {
-    private TestProgram(string[] args, Assembly assembly, bool includeIntegrationServices = false, bool disableDashboard = true, bool includeNodeApp = false)
+    private TestProgram(string[] args, Assembly assembly, bool includeIntegrationServices = false, bool disableDashboard = true, bool includeNodeApp = false, string? testProjectBasePath = null)
     {
+        testProjectBasePath ??= Path.Combine(Projects.TestProject_AppHost.ProjectPath, "..");
         AppBuilder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions { Args = args, DisableDashboard = disableDashboard, AssemblyName = assembly.FullName });
 
-        var serviceAPath = Path.Combine(Projects.TestProject_AppHost.ProjectPath, @"..\TestProject.ServiceA\TestProject.ServiceA.csproj");
+        var serviceAPath = Path.Combine(testProjectBasePath, @"TestProject.ServiceA\TestProject.ServiceA.csproj");
 
         ServiceABuilder = AppBuilder.AddProject("servicea", serviceAPath);
         ServiceBBuilder = AppBuilder.AddProject<Projects.ServiceB>("serviceb");
@@ -20,7 +21,7 @@ public class TestProgram
         {
             // Relative to this project so that it doesn't changed based on
             // where this code is referenced from.
-            var path = Path.Combine(Projects.TestProject_AppHost.ProjectPath, @"..\nodeapp");
+            var path = Path.Combine(testProjectBasePath, "nodeapp");
             var scriptPath = Path.Combine(path, "app.js");
 
             NodeAppBuilder = AppBuilder.AddNodeApp("nodeapp", scriptPath)
@@ -86,8 +87,8 @@ public class TestProgram
         }
     }
 
-    public static TestProgram Create<T>(string[]? args = null, bool includeIntegrationServices = false, bool includeNodeApp = false, bool disableDashboard = true) =>
-        new TestProgram(args ?? [], typeof(T).Assembly, includeIntegrationServices, disableDashboard, includeNodeApp: includeNodeApp);
+    public static TestProgram Create<T>(string[]? args = null, bool includeIntegrationServices = false, bool includeNodeApp = false, bool disableDashboard = true, string? testProjectBasePath = null) =>
+        new TestProgram(args ?? [], typeof(T).Assembly, includeIntegrationServices, disableDashboard, includeNodeApp: includeNodeApp, testProjectBasePath: testProjectBasePath);
 
     public IDistributedApplicationBuilder AppBuilder { get; private set; }
     public IResourceBuilder<ProjectResource> ServiceABuilder { get; private set; }
