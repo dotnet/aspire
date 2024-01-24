@@ -23,8 +23,9 @@
 
     <_TestRunCommandArguments Condition="'$(OS)' != 'Windows_NT'">&quot;--ResultsDirectory:$HELIX_WORKITEM_UPLOAD_ROOT/log&quot;</_TestRunCommandArguments>
     <_TestRunCommandArguments Condition="'$(OS)' == 'Windows_NT'">&quot;--ResultsDirectory:%HELIX_WORKITEM_UPLOAD_ROOT%/log&quot;</_TestRunCommandArguments>
+    <_TestRunCommandArguments>$(_TestRunCommandArguments) --logger:"console%3Bverbosity=normal"</_TestRunCommandArguments>
+    <_TestRunCommandArguments>$(_TestRunCommandArguments) --logger:"trx%3BLogFileName=TestResults.trx"</_TestRunCommandArguments>
     <_TestRunCommandArguments>$(_TestRunCommandArguments) &quot;--Framework:.NETCoreApp,Version=v8.0&quot;</_TestRunCommandArguments>
-    <_TestRunCommandArguments>$(_TestRunCommandArguments) --logger:console</_TestRunCommandArguments>
   </PropertyGroup>
 
   <ItemGroup>

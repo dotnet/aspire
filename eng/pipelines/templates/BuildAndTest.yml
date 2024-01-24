@@ -28,6 +28,7 @@ steps:
     displayName: Build
 
   - ${{ if ne(parameters.skipTests, 'true') }}:
+    # FIXME: add path for cov settings, and output xml .. or just cov args
     - template: /eng/pipelines/templates/send-to-helix.yml
       parameters:
         HelixProjectArguments: '$(Build.SourcesDirectory)/tests/send-to-helix.proj'
@@ -39,20 +40,13 @@ steps:
         Creator: $(Build.DefinitionName)
         HelixBuild: $(Build.BuildNumber)
         HelixAccessToken: $(HelixApiAccessToken)
+          #FIXME: separate step for skipHelixReadyTests=true
 
-    # FIXME: add path for cov settings, and output xml .. or just cov args
-    #- script: ${{ parameters.dotnetScript }} dotnet-coverage collect
-              #--settings $(Build.SourcesDirectory)/eng/CodeCoverage.config
-              #--output ${{ parameters.repoTestResultsPath }}/$(Agent.Os)_$(Agent.JobName).cobertura.xml
-              #"${{ parameters.buildScript }} -test -configuration ${{ parameters.buildConfig }} /bl:${{ parameters.repoLogPath }}/tests.binlog $(_OfficialBuildIdArgs)"
-    #- script: >- ${{ parameters.dotnetScript }}
-              #build
-              #/restore
-              #/p:Configuration=${{ parameters.buildConfig }}
-              #/p:ContinuousIntegrationBuild=true
-              #/bl:${{ parameters.repoLogPath }}/SendToHelix.binlog
-              #tests/send-to-helix.proj
-      #displayName: Send tests to helix
+    - script: ${{ parameters.dotnetScript }} dotnet-coverage collect
+              --settings $(Build.SourcesDirectory)/eng/CodeCoverage.config
+              --output ${{ parameters.repoTestResultsPath }}/$(Agent.Os)_$(Agent.JobName).cobertura.xml
+              "${{ parameters.buildScript }} -test -configuration ${{ parameters.buildConfig }} /bl:${{ parameters.repoLogPath }}/tests.binlog /p:SkipHelixReadyTests=true $(_OfficialBuildIdArgs)"
+      displayName: Run non-helix tests
 
     - task: PublishBuildArtifacts@1
       inputs:

@@ -1,4 +1,7 @@
 <Project>
+  <PropertyGroup>
+    <IsHelixReadyTestProject>false</IsHelixReadyTestProject>
+  </PropertyGroup>
 
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
 
