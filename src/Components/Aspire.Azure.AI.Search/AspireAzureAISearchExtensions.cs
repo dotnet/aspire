@@ -27,7 +27,7 @@ public static class AspireAzureAISearchExtensions
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureAISearchSettings"/>. It's invoked after the settings are read from the configuration.</param>
-    /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{OpenAIClient, OpenAIClientOptions}"/>.</param>
+    /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{SearchClient, SearchClientOptions}"/>.</param>
     /// <remarks>Reads the configuration from "Aspire.Azure.AI.Search" section.</remarks>
     public static void AddAzureAISearch(
         this IHostApplicationBuilder builder,
@@ -44,9 +44,9 @@ public static class AspireAzureAISearchExtensions
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureAISearchSettings"/>. It's invoked after the settings are read from the configuration.</param>
-    /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{OpenAIClient, OpenAIClientOptions}"/>.</param>
+    /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{SearchClient, SearchClientOptions}"/>.</param>
     /// <remarks>Reads the configuration from "Aspire.Azure.AI.Search:{name}" section.</remarks>
-    public static void AddKeyedAzureOpenAI(
+    public static void AddKeyedAzureAISearch(
         this IHostApplicationBuilder builder,
         string name,
         Action<AzureAISearchSettings>? configureSettings = null,
