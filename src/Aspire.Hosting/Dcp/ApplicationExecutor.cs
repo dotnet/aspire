@@ -186,8 +186,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private async Task WaitForHttpSuccessOrThrow(string url, TimeSpan timeout, CancellationToken cancellationToken = default)
     {
-        using var timeoutCts = new CancellationTokenSource();
-        timeoutCts.CancelAfter(timeout);
+        using var timeoutCts = new CancellationTokenSource(timeout);
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
 
         var client = new HttpClient();
