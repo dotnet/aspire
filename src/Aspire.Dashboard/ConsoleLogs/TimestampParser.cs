@@ -8,9 +8,6 @@ namespace Aspire.Dashboard.ConsoleLogs;
 
 public static partial class TimestampParser
 {
-    // NOTE: Must match Aspire.Hosting.Dashboard.ConsoleLogsConfigurationExtensions.DisplayFormat
-    private const string DisplayFormat = "yyyy-MM-ddTHH:mm:ss.fffffff";
-
     private static readonly Regex s_rfc3339RegEx = GenerateRfc3339RegEx();
 
     public static bool TryColorizeTimestamp(string text, bool convertTimestampsFromUtc, out TimestampParserResult result)
@@ -39,7 +36,7 @@ public static partial class TimestampParser
         if (DateTimeOffset.TryParse(timestamp, out var dateTimeUtc))
         {
             var dateTimeLocal = dateTimeUtc.ToLocalTime();
-            return dateTimeLocal.ToString(DisplayFormat, CultureInfo.CurrentCulture);
+            return dateTimeLocal.ToString(KnownFormats.ConsoleLogsTimeDisplayFormat, CultureInfo.CurrentCulture);
         }
 
         return timestamp.ToString();

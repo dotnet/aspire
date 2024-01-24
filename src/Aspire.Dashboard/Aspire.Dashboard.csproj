@@ -172,6 +172,7 @@
     <Compile Include="..\Aspire.Hosting\Extensions\ChannelExtensions.cs" Link="Extensions\ChannelExtensions.cs" />
     <Compile Include="..\Aspire.Hosting\Utils\EnvironmentUtil.cs" Link="Utils\EnvironmentUtil.cs" />
     <Compile Include="..\Aspire.Hosting\Utils\KnownResourceNames.cs" Link="Utils\KnownResourceNames.cs" />
+    <Compile Include="$(SharedDir)KnownFormats.cs" Link="Utils\KnownFormats.cs" />
   </ItemGroup>
 
 </Project>
