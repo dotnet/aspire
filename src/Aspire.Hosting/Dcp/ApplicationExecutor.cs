@@ -420,7 +420,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             else
             {
                 exeSpec.ExecutionType = ExecutionType.Process;
-                if (environmentVariables.GetString("DOTNET_WATCH") != "1")
+                if (environmentVariables.GetBool("DOTNET_WATCH") is true)
                 {
                     exeSpec.Args = [
                         "run",
