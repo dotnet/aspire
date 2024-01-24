@@ -186,8 +186,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private async Task WaitForHttpSuccessOrThrow(string url, TimeSpan timeout, CancellationToken cancellationToken = default)
     {
-        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        cts.CancelAfter(timeout);
+        using var timeoutCts = new CancellationTokenSource();
+        timeoutCts.CancelAfter(timeout);
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
 
         var client = new HttpClient();
 
@@ -199,7 +200,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
                 try
                 {
-                    var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cts.Token).ConfigureAwait(false);
+                    var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, linkedCts.Token).ConfigureAwait(false);
 
                     if (response.IsSuccessStatusCode)
                     {
@@ -211,11 +212,12 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     _logger.LogDebug(ex, "Dashboard not ready yet.");
                 }
 
-                await Task.Delay(TimeSpan.FromMilliseconds(50), cts.Token).ConfigureAwait(false);
+                await Task.Delay(TimeSpan.FromMilliseconds(50), linkedCts.Token).ConfigureAwait(false);
             }
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
         {
+            // Only display this error if the timeout CTS was the one that was cancelled.
             throw new DistributedApplicationException($"Timed out after {timeout} while waiting for the dashboard to be responsive.");
         }
     }
