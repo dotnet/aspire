@@ -16,9 +16,18 @@ namespace Aspire.Dashboard.Model;
 /// Implements gRPC client that communicates with a resource server, populating data for the dashboard.
 /// </summary>
 /// <remarks>
+/// <para>
 /// An instance of this type is created per service call, so this class should not hold onto any state
 /// expected to live longer than a single RPC request. In the case of streaming requests, the instance
 /// lives until the stream is closed.
+/// </para>
+/// <para>
+/// If the <c>DOTNET_RESOURCE_SERVICE_ENDPOINT_URL</c> environment variable is not specified, then there's
+/// no known endpoint to connect to, and this dashboard client will be disabled. Calls to
+/// <see cref="IDashboardClient.SubscribeResources"/> and <see cref="IDashboardClient.SubscribeConsoleLogs"/>
+/// will throw if <see cref="IDashboardClient.IsEnabled"/> is <see langword="false"/>. Callers should
+/// check this property first, before calling these methods.
+/// </para>
 /// </remarks>
 internal sealed class DashboardClient : IDashboardClient
 {
@@ -35,7 +44,7 @@ internal sealed class DashboardClient : IDashboardClient
     private ImmutableHashSet<Channel<ResourceViewModelChange>> _outgoingChannels = [];
     private string? _applicationName;
 
-    private const int StateDisabled = -1; // In this state from construction. No dashboard client functions available.
+    private const int StateDisabled = -1;
     private const int StateNone = 0;
     private const int StateInitialized = 1;
     private const int StateDisposed = 2;
