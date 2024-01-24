@@ -30,7 +30,7 @@ steps:
   - ${{ if ne(parameters.skipTests, 'true') }}:
     - template: /eng/pipelines/templates/send-to-helix.yml
       parameters:
-        HelixProjectArguments: $env:BUILD_SOURCESDIRECTORY/tests/send-to-helix.proj
+        HelixProjectArguments: '$(Build.SourcesDirectory)/tests/send-to-helix.proj'
         ${{ if eq(parameters.isWindows, 'true') }}:
           HelixTargetQueues: Windows.11.Amd64.Client.Open
         ${{ if ne(parameters.isWindows, 'true') }}:
