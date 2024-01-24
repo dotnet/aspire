@@ -11,6 +11,7 @@ pr:
     include:
     - main
     - release/*
+    - feature/*
     - internal/release/*
 
 variables:

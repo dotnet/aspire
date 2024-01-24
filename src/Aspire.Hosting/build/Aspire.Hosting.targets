@@ -82,7 +82,7 @@ internal static class ]]>%(ClassName)<![CDATA[
         </Source>
       </ProjectMetadataSource>
     </ItemGroup>
-    
+
     <WriteLinesToFile File="$(_AspireIntermediatePath)references\_AppHost.ProjectMetadata.g.cs"
                       Overwrite="true"
                       Lines="%(ProjectMetadataSource.Source)"
@@ -202,6 +202,21 @@ internal static class ]]>%(ClassName)<![CDATA[
       <AssemblyAttribute Include="System.Reflection.AssemblyMetadata">
         <_Parameter1>apphostprojectpath</_Parameter1>
         <_Parameter2>$(MSBuildProjectDirectory)</_Parameter2>
+      </AssemblyAttribute>
+    </ItemGroup>
+  </Target>
+
+  <Target Name="SetDashboardDiscoveryAttributes" BeforeTargets="GetAssemblyAttributes" Condition=" '$(AspireDashboardDir)' != '' ">
+    <PropertyGroup>
+      <AspireDashboardDir>$([MSBuild]::EnsureTrailingSlash('$(AspireDashboardDir)'))</AspireDashboardDir>
+      <AspireDashboardPath Condition=" '$(AspireDashboardPath)' == '' ">$([MSBuild]::NormalizePath($(AspireDashboardDir), 'Aspire.Dashboard'))</AspireDashboardPath>
+      <AspireDashboardPath Condition=" '$(OS)' == 'Windows_NT' and !$(AspireDashboardPath.EndsWith('.exe')) ">$(AspireDashboardPath).exe</AspireDashboardPath>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <AssemblyAttribute Include="System.Reflection.AssemblyMetadata">
+        <_Parameter1>aspiredashboardpath</_Parameter1>
+        <_Parameter2>$(AspireDashboardPath)</_Parameter2>
       </AssemblyAttribute>
     </ItemGroup>
   </Target>
