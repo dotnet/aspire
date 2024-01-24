@@ -15,8 +15,6 @@ public class ProducerConformanceTests : ConformanceTests<IProducer<string, strin
 
     protected override string ActivitySourceName => throw new NotImplementedException();
 
-    protected override string JsonSchemaPath => "src/Components/Aspire.Confluent.Kafka/ConfigurationSchema.json";
-
     protected override string[] RequiredLogCategories => [
         "Aspire.Confluent.Kafka"
         ];

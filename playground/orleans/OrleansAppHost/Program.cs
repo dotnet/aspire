@@ -4,7 +4,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 var storage = builder.AddAzureStorage("storage");
 
-if (builder.Environment.IsDevelopment())
+if (!args.Contains("--publisher")) // AZD UP passes in --publisher manifest
 {
     storage.UseEmulator();
 }

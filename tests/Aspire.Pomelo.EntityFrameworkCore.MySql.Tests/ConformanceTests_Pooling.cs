@@ -47,8 +47,6 @@ public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, PomeloEn
 
     protected override bool CanConnectToServer => s_canConnectToServer.Value;
 
-    protected override string JsonSchemaPath => "src/Components/Aspire.Pomelo.EntityFrameworkCore.MySql/ConfigurationSchema.json";
-
     protected override string ValidJsonConfig => """
         {
           "Aspire": {
