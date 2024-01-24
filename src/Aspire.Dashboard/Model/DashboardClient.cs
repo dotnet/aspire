@@ -279,7 +279,17 @@ internal sealed class DashboardClient : IDashboardClient
         }
     }
 
-    Task IDashboardClient.WhenConnected => _whenConnected.Task;
+    Task IDashboardClient.WhenConnected
+    {
+        get
+        {
+            // All pages wait for this task (it is used to display the title) but some don't subscribe to resources.
+            // If someone is waiting for the connection, we need to ensure connection is starting.
+            EnsureInitialized();
+
+            return _whenConnected.Task;
+        }
+    }
 
     string IDashboardClient.ApplicationName => _applicationName ?? "";
 
