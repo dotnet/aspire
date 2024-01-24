@@ -36,6 +36,7 @@
     <BuildArch Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' == 'Arm64' ">arm64</BuildArch>
     <BuildArch Condition=" '$(BuildArch)' == '' ">amd64</BuildArch>
     <DcpDir>$(NuGetPackageRoot)microsoft.developercontrolplane.$(BuildOs)-$(BuildArch)/$(MicrosoftDeveloperControlPlanedarwinamd64PackageVersion)/tools/</DcpDir>
+    <AspireDashboardDir>$(DotNetOutputPath)Aspire.Dashboard/$(Configuration)/$(TargetFramework)/</AspireDashboardDir>
   </PropertyGroup>
 
 </Project>
