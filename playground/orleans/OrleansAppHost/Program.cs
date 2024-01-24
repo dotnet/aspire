@@ -24,8 +24,8 @@ var orleans = builder.AddOrleans("my-app")
 // one can use the in memory provider from Orleans:
 //
 //var orleans = builder.AddOrleans("my-app")
-//                     .WithLocalhostClustering()
-//                     .WithInMemoryGrainStorage("Default");
+//                     .WithDevelopmentClustering()
+//                     .WithMemoryGrainStorage("Default");
 
 builder.AddProject<Projects.OrleansServer>("silo")
        .WithReference(orleans);

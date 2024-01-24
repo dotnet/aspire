@@ -20,11 +20,14 @@ internal sealed partial class DnsSrvServiceEndPointResolver(
     TimeProvider timeProvider) : DnsServiceEndPointResolverBase(serviceName, logger, timeProvider), IHostNameFeature
 {
     protected override double RetryBackOffFactor => options.CurrentValue.RetryBackOffFactor;
+
     protected override TimeSpan MinRetryPeriod => options.CurrentValue.MinRetryPeriod;
+
     protected override TimeSpan MaxRetryPeriod => options.CurrentValue.MaxRetryPeriod;
+
     protected override TimeSpan DefaultRefreshPeriod => options.CurrentValue.DefaultRefreshPeriod;
 
-    public override string DisplayName => "DNS SRV";
+    public override string ToString() => "DNS SRV";
 
     string IHostNameFeature.HostName => hostName;
 

@@ -44,16 +44,18 @@ internal abstract partial class DnsServiceEndPointResolverBase : IServiceEndPoin
         _lastChangeToken = new CancellationChangeToken(cancellation.Token);
     }
 
-    public abstract string DisplayName { get; }
-
     private TimeSpan ElapsedSinceRefresh => _timeProvider.GetElapsedTime(_lastRefreshTimeStamp);
 
     protected string ServiceName { get; }
 
     protected abstract double RetryBackOffFactor { get; }
+
     protected abstract TimeSpan MinRetryPeriod { get; }
+
     protected abstract TimeSpan MaxRetryPeriod { get; }
+
     protected abstract TimeSpan DefaultRefreshPeriod { get; }
+
     protected CancellationToken ShutdownToken => _disposeCancellation.Token;
 
     /// <inheritdoc/>
@@ -116,7 +118,9 @@ internal abstract partial class DnsServiceEndPointResolverBase : IServiceEndPoin
     }
 
     protected void SetException(Exception exception) => SetResult(endPoints: null, exception, validityPeriod: TimeSpan.Zero);
+
     protected void SetResult(List<ServiceEndPoint> endPoints, TimeSpan validityPeriod) => SetResult(endPoints, exception: null, validityPeriod);
+
     private void SetResult(List<ServiceEndPoint>? endPoints, Exception? exception, TimeSpan validityPeriod)
     {
         lock (_lock)
