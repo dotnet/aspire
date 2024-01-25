@@ -100,7 +100,7 @@ public static class ProjectResourceBuilderExtensions
             throw new DistributedApplicationException(Resources.LaunchProfileIsSpecifiedButLaunchSettingsFileIsNotPresentExceptionMessage);
         }
 
-        if (!launchSettings.Profiles.TryGetValue(launchProfileName, out var _))
+        if (!launchSettings.Profiles.TryGetValue(launchProfileName, out _))
         {
             var message = string.Format(CultureInfo.InvariantCulture, Resources.LaunchSettingsFileDoesNotContainProfileExceptionMessage, launchProfileName);
             throw new DistributedApplicationException(message);
