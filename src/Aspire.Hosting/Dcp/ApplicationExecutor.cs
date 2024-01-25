@@ -182,7 +182,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         await WaitForHttpSuccessOrThrow(dashboardUrl, TimeSpan.FromSeconds(DashboardWaitTimeInSeconds), cancellationToken).ConfigureAwait(false);
     }
 
-    // Allow extra time when building locally. Dashboard can take longer to start up because of dev binaries, debugger, etc
+    // Dashboard should always launch successfully within this time.
+    // Also, gives necessary time when developing the dashboard. Dashboard can take longer to start up because of dev binaries, debugger, break points, etc
     private const int DashboardWaitTimeInSeconds = 30;
 
     private async Task WaitForHttpSuccessOrThrow(string url, TimeSpan timeout, CancellationToken cancellationToken = default)
