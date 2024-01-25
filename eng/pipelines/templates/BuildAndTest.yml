@@ -20,11 +20,10 @@ parameters:
 
 steps:
   - pwsh: >-
-            dotnet coverage
-            merge
-            $((Get-ChildItem -Path ${{ parameters.repoTestResultsPath }}\* -Recurse -Filter *.cobertura.xml -File  | % { $_.FullName }) -join ' ')
-            -f cobertura
-            -o '${{ parameters.repoTestResultsPath }}/$(Agent.Os)_$(Agent.JobName).cobertura.xml'
+        dotnet coverage merge
+        $((Get-ChildItem -Path ${{ parameters.repoTestResultsPath }}* -Recurse -Filter *.cobertura.xml -File  | % { $_.FullName }) -join ' ')
+        -f cobertura
+        -o '${{ parameters.repoTestResultsPath }}/$(Agent.Os)_$(Agent.JobName).cobertura.xml'
     displayName: Merge code coverage results
 
   - script: ${{ parameters.buildScript }}
