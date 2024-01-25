@@ -1,26 +1,31 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Globalization;
-using System.Text;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Dashboard.Otlp.Model;
 
 namespace Aspire.Dashboard.Components;
 
 public partial class LogLevelColumnDisplay
 {
-    private string? GetErrorInformation()
+    private bool TryGetErrorInformation([MaybeNullWhen(false)] out string type, [MaybeNullWhen(false)] out string message, [MaybeNullWhen(false)] out string stackTrace)
     {
-        if (LogEntry.Properties.GetValue("exception.type") is { } exceptionType)
+        if (LogEntry.Properties.GetValue("ex.Type") is { } exceptionType)
         {
-            var tooltip = new StringBuilder(LogEntry.Message);
-            tooltip
-                .Append(Environment.NewLine)
-                .Append(CultureInfo.CurrentCulture, $"{exceptionType}: {LogEntry.Properties.GetValue("exception.message")}")
-                .Append(Environment.NewLine)
-                .Append(LogEntry.Properties.GetValue("exception.stacktrace"));
+            type = exceptionType;
+            message = LogEntry.Properties.GetValue("ex.Message");
+            stackTrace = LogEntry.Properties.GetValue("ex.StackTrace");
+
+            Debug.Assert(message is not null);
+            Debug.Assert(stackTrace is not null);
+
+            return true;
         }
 
-        return null;
+        type = null;
+        message = null;
+        stackTrace = null;
+        return false;
     }
 }
