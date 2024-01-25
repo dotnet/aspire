@@ -21,6 +21,8 @@ public partial class MetricTable : ComponentBase
     private bool _anyDimensionsShown;
     private IJSObjectReference? _jsModule;
 
+    private IEnumerable<Metric> _metricsView => _metrics.AsEnumerable().Reverse();
+
     [Inject]
     public required IJSRuntime JS { get; set; }
 
@@ -39,7 +41,7 @@ public partial class MetricTable : ComponentBase
 
     private async Task OnInstrumentDataUpdate()
     {
-        var oldFilteredMetrics = _metrics;
+        var oldMetrics = _metrics.ToList();
 
         _anyDimensionsShown = false;
 
@@ -53,7 +55,7 @@ public partial class MetricTable : ComponentBase
             valuesWithDimensions.Sort((a, b) =>
             {
                 var result = a.value.Start.CompareTo(b.value.Start);
-                return result is not 0 ? -result : -a.value.End.CompareTo(b.value.End);
+                return result is not 0 ? result : a.value.End.CompareTo(b.value.End);
             });
 
             for (var i = 0; i < valuesWithDimensions.Count; i++)
@@ -133,26 +135,26 @@ public partial class MetricTable : ComponentBase
 
         if (_jsModule is not null)
         {
-            var newFilteredMetrics = _metrics;
-            if (newFilteredMetrics.Count < oldFilteredMetrics.Count)
+            if (_metrics.Count < oldMetrics.Count)
             {
                 return;
             }
 
             var indices = new List<int>();
 
-            if (oldFilteredMetrics.Count > 0 && !newFilteredMetrics[oldFilteredMetrics.Count - 1].Equals(oldFilteredMetrics.Last()))
+            if (oldMetrics.Count > 0 && !_metrics[oldMetrics.Count - 1].Equals(oldMetrics.Last()))
             {
-                indices.Add(oldFilteredMetrics.Count - 1);
+                indices.Add(_metrics.Count - (oldMetrics.Count - 1) - 1);
             }
 
-            for (var i = oldFilteredMetrics.Count; i < newFilteredMetrics.Count; i++)
+            for (var i = oldMetrics.Count; i < _metrics.Count; i++)
             {
-                indices.Add(i);
+                indices.Add(_metrics.Count - i - 1);
             }
 
-            if (indices.Count > 0)
+            if (indices.Count > 0 && oldMetrics.Count > 0)
             {
+                await Task.Delay(500);
                 await _jsModule.InvokeVoidAsync("announceDataGridRows", "metric-table-container", indices);
             }
         }
@@ -190,9 +192,9 @@ public partial class MetricTable : ComponentBase
                     var percentiles = CalculatePercentiles(histogramValue);
                     if (CollectionExtensions.Equivalent(startPercentiles, percentiles))
                     {
-                        var metricValueWithUpdatedStart = MetricValueBase.Clone(startMetric.Value);
-                        metricValueWithUpdatedStart.Start = currentMetric.Value.Start;
-                        startMetric.Value = metricValueWithUpdatedStart;
+                        var metricValueWithUpdatedEnd = MetricValueBase.Clone(startMetric.Value);
+                        metricValueWithUpdatedEnd.End = currentMetric.Value.End;
+                        startMetric.Value = metricValueWithUpdatedEnd;
 
                         metrics.RemoveAt(i);
                         i--;
