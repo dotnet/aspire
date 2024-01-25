@@ -10,6 +10,15 @@ namespace Aspire.Dashboard.Model;
 /// </summary>
 public interface IDashboardClient : IAsyncDisposable
 {
+    /// <summary>
+    /// Gets whether this client object is enabled for use.
+    /// </summary>
+    /// <remarks>
+    /// Users of this client should check <see cref="IsEnabled"/> before calling
+    /// any other members of this interface, to avoid exceptions.
+    /// </remarks>
+    bool IsEnabled { get; }
+
     Task WhenConnected { get; }
 
     /// <summary>
