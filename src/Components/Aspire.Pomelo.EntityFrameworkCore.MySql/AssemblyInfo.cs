@@ -5,3 +5,17 @@ using Aspire;
 using Aspire.Pomelo.EntityFrameworkCore.MySql;
 
 [assembly: ConfigurationSchema("Aspire:Pomelo:EntityFrameworkCore:MySql", typeof(PomeloEntityFrameworkCoreMySqlSettings))]
+
+[assembly: LoggingCategories(
+    "Microsoft.EntityFrameworkCore",
+    "Microsoft.EntityFrameworkCore.ChangeTracking",
+    "Microsoft.EntityFrameworkCore.Database",
+    "Microsoft.EntityFrameworkCore.Database.Command",
+    "Microsoft.EntityFrameworkCore.Database.Connection",
+    "Microsoft.EntityFrameworkCore.Database.Transaction",
+    "Microsoft.EntityFrameworkCore.Infrastructure",
+    "Microsoft.EntityFrameworkCore.Migrations",
+    "Microsoft.EntityFrameworkCore.Model",
+    "Microsoft.EntityFrameworkCore.Model.Validation",
+    "Microsoft.EntityFrameworkCore.Query",
+    "Microsoft.EntityFrameworkCore.Update")]
