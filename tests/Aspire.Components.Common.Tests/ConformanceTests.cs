@@ -26,7 +26,7 @@ public abstract class ConformanceTests<TService, TOptions>
 
     protected abstract string ActivitySourceName { get; }
 
-    protected abstract string JsonSchemaPath { get; }
+    protected string JsonSchemaPath => Path.Combine(AppContext.BaseDirectory, "ConfigurationSchema.json");
 
     protected virtual string ValidJsonConfig { get; } = string.Empty;
 
@@ -316,12 +316,10 @@ public abstract class ConformanceTests<TService, TOptions>
         Assert.Contains(healthReport.Entries, entry => entry.Value.Status == expected);
     }
 
-    [ConditionalFact]
+    [Fact]
     public void ConfigurationSchemaValidJsonConfigTest()
     {
-        SkipIfJsonSchemaPathNotSet();
-
-        var schema = JsonSchema.FromFile(Path.Combine(GetRepoRoot(), JsonSchemaPath));
+        var schema = JsonSchema.FromFile(JsonSchemaPath);
         var config = JsonNode.Parse(ValidJsonConfig);
 
         var results = schema.Evaluate(config);
@@ -329,12 +327,10 @@ public abstract class ConformanceTests<TService, TOptions>
         Assert.True(results.IsValid);
     }
 
-    [ConditionalFact]
+    [Fact]
     public void ConfigurationSchemaInvalidJsonConfigTest()
     {
-        SkipIfJsonSchemaPathNotSet();
-
-        var schema = JsonSchema.FromFile(Path.Combine(GetRepoRoot(), JsonSchemaPath));
+        var schema = JsonSchema.FromFile(JsonSchemaPath);
 
         foreach ((string json, string error) in InvalidJsonToErrorMessage)
         {
@@ -347,25 +343,29 @@ public abstract class ConformanceTests<TService, TOptions>
         }
     }
 
-    private void SkipIfJsonSchemaPathNotSet()
+    /// <summary>
+    /// Ensures that when the connection information is missing, an exception isn't thrown before the host
+    /// is built, so any exception can be logged with ILogger.
+    /// </summary>
+    [ConditionalTheory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ConnectionInformationIsDelayValidated(bool useKey)
     {
-        if (string.IsNullOrEmpty(JsonSchemaPath))
-        {
-            throw new SkipTestException("ConfigurationSchema.json path not set.");
-        }
-    }
+        SetupConnectionInformationIsDelayValidated();
 
-    private static string GetRepoRoot()
-    {
-        string directory = AppContext.BaseDirectory;
+        var builder = Host.CreateEmptyApplicationBuilder(null);
 
-        while (directory != null && !Directory.Exists(Path.Combine(directory, ".git")))
-        {
-            directory = Directory.GetParent(directory)!.FullName;
-        }
+        string? key = useKey ? "key" : null;
+        RegisterComponent(builder, key: key);
 
-        return directory!;
-    }
+        using var host = builder.Build();
+
+        Assert.Throws<InvalidOperationException>(() =>
+            key is null
+                ? host.Services.GetRequiredService<TService>()
+                : host.Services.GetRequiredKeyedService<TService>(key));
+	}
 
     protected virtual void SetupConnectionInformationIsDelayValidated() { }
 

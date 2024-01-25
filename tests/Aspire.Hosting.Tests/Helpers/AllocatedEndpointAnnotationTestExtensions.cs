@@ -16,7 +16,7 @@ public static class AllocatedEndpointAnnotationTestExtensions
     /// <param name="cancellationToken">The cancellation token to cancel the operation.</param>
     /// <returns>The string representing the response body.</returns>
     public static async Task<string> HttpGetStringAsync<T>(this IResourceBuilder<T> builder, HttpClient client, string bindingName, string path, CancellationToken cancellationToken)
-        where T : IResourceWithBindings
+        where T : IResourceWithEndpoints
     {
         var allocatedEndpoint = builder.Resource.Annotations.OfType<AllocatedEndpointAnnotation>().Single(a => a.Name == bindingName);
         var url = $"{allocatedEndpoint.UriString}{path}";
@@ -36,7 +36,7 @@ public static class AllocatedEndpointAnnotationTestExtensions
     /// <param name="cancellationToken">The cancellation token to cancel the operation.</param>
     /// <returns>The response message.</returns>
     public static async Task<HttpResponseMessage> HttpGetAsync<T>(this IResourceBuilder<T> builder, HttpClient client, string bindingName, string path, CancellationToken cancellationToken)
-        where T : IResourceWithBindings
+        where T : IResourceWithEndpoints
     {
         var allocatedEndpoint = builder.Resource.Annotations.OfType<AllocatedEndpointAnnotation>().Single(a => a.Name == bindingName);
         var url = $"{allocatedEndpoint.UriString}{path}";
@@ -57,7 +57,7 @@ public static class AllocatedEndpointAnnotationTestExtensions
     /// <param name="cancellationToken">The cancellation token to cancel the operation.</param>
     /// <returns>The response message.</returns>
     public static async Task<HttpResponseMessage> HttpPostAsync<T>(this IResourceBuilder<T> builder, HttpClient client, string bindingName, string path, HttpContent? content, CancellationToken cancellationToken)
-        where T : IResourceWithBindings
+        where T : IResourceWithEndpoints
     {
         var allocatedEndpoint = builder.Resource.Annotations.OfType<AllocatedEndpointAnnotation>().Single(a => a.Name == bindingName);
         var url = $"{allocatedEndpoint.UriString}{path}";
@@ -72,13 +72,13 @@ public static class AllocatedEndpointAnnotationTestExtensions
     }
 
     public static Task<string> HttpGetPidAsync<T>(this IResourceBuilder<T> builder, HttpClient client, string bindingName, CancellationToken cancellationToken)
-        where T : IResourceWithBindings
+        where T : IResourceWithEndpoints
     {
         return HttpGetStringWithRetryAsync(builder, client, bindingName, "/pid", cancellationToken);
     }
 
     public static async Task<string> HttpGetStringWithRetryAsync<T>(this IResourceBuilder<T> builder, HttpClient client, string bindingName, string request, CancellationToken cancellationToken)
-        where T : IResourceWithBindings
+        where T : IResourceWithEndpoints
     {
         while (true)
         {

@@ -36,8 +36,6 @@ public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFram
         "Microsoft.EntityFrameworkCore.Migrations"
     };
 
-    protected override string JsonSchemaPath => "src/Components/Aspire.Oracle.EntityFrameworkCore/ConfigurationSchema.json";
-
     protected override string ValidJsonConfig => """
         {
           "Aspire": {

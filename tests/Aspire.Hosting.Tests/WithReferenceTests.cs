@@ -14,7 +14,7 @@ public class WithReferenceTests
         var testProgram = CreateTestProgram();
 
         // Create a binding and its metching annotation (simulating DCP behavior)
-        testProgram.ServiceABuilder.WithEndpoint(1000, 2000, "https", "mybinding");
+        testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 2000, "mybinding");
         testProgram.ServiceABuilder.WithAnnotation(
             new AllocatedEndpointAnnotation("mybinding",
             ProtocolType.Tcp,
@@ -50,7 +50,7 @@ public class WithReferenceTests
         var testProgram = CreateTestProgram();
 
         // Create a binding and its matching annotation (simulating DCP behavior)
-        testProgram.ServiceABuilder.WithEndpoint(1000, 2000, "https", "mybinding");
+        testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 2000, "mybinding");
         testProgram.ServiceABuilder.WithAnnotation(
             new AllocatedEndpointAnnotation("mybinding",
             ProtocolType.Tcp,
@@ -61,7 +61,7 @@ public class WithReferenceTests
 
         // Create a binding and its matching annotation (simulating DCP behavior) - HOWEVER
         // this binding conflicts with the earlier because they have the same scheme.
-        testProgram.ServiceABuilder.WithEndpoint(1000, 3000, "https", "myconflictingbinding");
+        testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 3000, "myconflictingbinding");
         testProgram.ServiceABuilder.WithAnnotation(
             new AllocatedEndpointAnnotation("myconflictingbinding",
             ProtocolType.Tcp,
@@ -99,7 +99,7 @@ public class WithReferenceTests
         var testProgram = CreateTestProgram();
 
         // Create a binding and its matching annotation (simulating DCP behavior)
-        testProgram.ServiceABuilder.WithEndpoint(1000, 2000, "https", "mybinding");
+        testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 2000, "mybinding");
         testProgram.ServiceABuilder.WithAnnotation(
             new AllocatedEndpointAnnotation("mybinding",
             ProtocolType.Tcp,
@@ -110,7 +110,7 @@ public class WithReferenceTests
 
         // Create a binding and its matching annotation (simulating DCP behavior) - not
         // conflicting because the scheme is different to the first binding.
-        testProgram.ServiceABuilder.WithEndpoint(1000, 3000, "http", "mynonconflictingbinding");
+        testProgram.ServiceABuilder.WithHttpEndpoint(1000, 3000, "mynonconflictingbinding");
         testProgram.ServiceABuilder.WithAnnotation(
             new AllocatedEndpointAnnotation("mynonconflictingbinding",
             ProtocolType.Tcp,
@@ -150,7 +150,7 @@ public class WithReferenceTests
         var testProgram = CreateTestProgram();
 
         // Create a binding and its metching annotation (simulating DCP behavior)
-        testProgram.ServiceABuilder.WithEndpoint(1000, 2000, "https", "mybinding");
+        testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 2000, "mybinding");
         testProgram.ServiceABuilder.WithAnnotation(
             new AllocatedEndpointAnnotation("mybinding",
             ProtocolType.Tcp,
@@ -159,7 +159,7 @@ public class WithReferenceTests
             "https"
             ));
 
-        testProgram.ServiceABuilder.WithEndpoint(1000, 3000, "https", "mybinding2");
+        testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 3000, "mybinding2");
         testProgram.ServiceABuilder.WithAnnotation(
             new AllocatedEndpointAnnotation("mybinding2",
             ProtocolType.Tcp,
@@ -195,7 +195,7 @@ public class WithReferenceTests
         var testProgram = CreateTestProgram();
 
         // Create a binding and its metching annotation (simulating DCP behavior)
-        testProgram.ServiceABuilder.WithEndpoint(1000, 2000, "https", "mybinding");
+        testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 2000, "mybinding");
         testProgram.ServiceABuilder.WithAnnotation(
             new AllocatedEndpointAnnotation("mybinding",
             ProtocolType.Tcp,
@@ -204,7 +204,7 @@ public class WithReferenceTests
             "https"
             ));
 
-        testProgram.ServiceABuilder.WithEndpoint(1000, 3000, "http", "mybinding2");
+        testProgram.ServiceABuilder.WithHttpEndpoint(1000, 3000, "mybinding2");
         testProgram.ServiceABuilder.WithAnnotation(
             new AllocatedEndpointAnnotation("mybinding2",
             ProtocolType.Tcp,

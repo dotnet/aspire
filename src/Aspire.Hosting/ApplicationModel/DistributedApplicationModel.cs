@@ -9,16 +9,11 @@ namespace Aspire.Hosting.ApplicationModel;
 /// Represents a distributed application.
 /// </summary>
 /// <param name="resources">The resource collection used to initiate the model.</param>
-[DebuggerDisplay("Name = {Name}, Resources = {Resources.Count}")]
+[DebuggerDisplay("Resources = {Resources.Count}")]
 public class DistributedApplicationModel(IResourceCollection resources)
 {
     /// <summary>
     /// Gets the collection of resources associated with the distributed application.
     /// </summary>
     public IResourceCollection Resources { get; } = resources;
-
-    /// <summary>
-    /// Gets or sets the name of the distributed application.
-    /// </summary>
-    public string? Name { get; set; }
 }

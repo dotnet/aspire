@@ -37,6 +37,7 @@ fluent-toolbar[orientation=horizontal] {
     --error-ui-foreground-color: #131313;
     --error-ui-accent-foreground-color: #1d00d0;
     --reconnection-ui-bg: rgb(255, 255, 255);
+    --error-counter-badge-foreground-color: var(--neutral-fill-rest);
 }
 
 [data-theme="dark"] {
@@ -50,6 +51,7 @@ fluent-toolbar[orientation=horizontal] {
     --error-ui-foreground-color: #000000;
     --error-ui-accent-foreground-color: #512bd4;
     --reconnection-ui-bg: #D6D6D6;
+    --error-counter-badge-foreground-color: #ffffff;
 }
 
  #components-reconnect-modal :is(h5, p) {
@@ -199,4 +201,9 @@ fluent-data-grid-cell .long-inner-content {
 
 split-panels::part(handle) {
     display: none;
+}
+
+div.error-counter-badge {
+    padding: 3px 3px;
+    color: var(--error-counter-badge-foreground-color) !important; /* color is applied directly to div style, so !important to override since we can't use a more specific selector */
 }

@@ -7,15 +7,16 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Publishing;
+
 internal sealed class AutomaticManifestPublisherBindingInjectionHook(IOptions<PublishingOptions> publishingOptions) : IDistributedApplicationLifecycleHook
 {
     private readonly IOptions<PublishingOptions> _publishingOptions = publishingOptions;
 
     private static bool IsKestrelHttp2ConfigurationPresent(ProjectResource projectResource)
     {
-        var serviceMetadata = projectResource.GetServiceMetadata();
+        var projectMetadata = projectResource.GetProjectMetadata();
 
-        var projectDirectoryPath = Path.GetDirectoryName(serviceMetadata.ProjectPath)!;
+        var projectDirectoryPath = Path.GetDirectoryName(projectMetadata.ProjectPath)!;
         var appSettingsPath = Path.Combine(projectDirectoryPath, "appsettings.json");
         var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT");
         var appSettingsEnvironmentPath = Path.Combine(projectDirectoryPath, $"appsettings.{env}.json");
@@ -53,7 +54,7 @@ internal sealed class AutomaticManifestPublisherBindingInjectionHook(IOptions<Pu
                 continue;
             }
 
-            if (!projectResource.Annotations.OfType<EndpointAnnotation>().Any(sb => sb.UriScheme == "http" || sb.Name == "http"))
+            if (!projectResource.Annotations.OfType<EndpointAnnotation>().Any(sb => sb.UriScheme == "http" || string.Equals(sb.Name, "http", StringComparisons.EndpointAnnotationName)))
             {
                 var httpBinding = new EndpointAnnotation(
                     System.Net.Sockets.ProtocolType.Tcp,
@@ -63,7 +64,7 @@ internal sealed class AutomaticManifestPublisherBindingInjectionHook(IOptions<Pu
                 httpBinding.Transport = isHttp2ConfiguredInAppSettings ? "http2" : httpBinding.Transport;
             }
 
-            if (!projectResource.Annotations.OfType<EndpointAnnotation>().Any(sb => sb.UriScheme == "https" || sb.Name == "https"))
+            if (!projectResource.Annotations.OfType<EndpointAnnotation>().Any(sb => sb.UriScheme == "https" || string.Equals(sb.Name, "https", StringComparisons.EndpointAnnotationName)))
             {
                 var httpsBinding = new EndpointAnnotation(
                     System.Net.Sockets.ProtocolType.Tcp,

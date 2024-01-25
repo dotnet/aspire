@@ -44,9 +44,6 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     public required NavigationManager NavigationManager { get; set; }
 
     [Inject]
-    public required IDashboardClient DashboardClient { get; set; }
-
-    [Inject]
     public required ProtectedSessionStorage SessionStorage { get; set; }
 
     [Inject]

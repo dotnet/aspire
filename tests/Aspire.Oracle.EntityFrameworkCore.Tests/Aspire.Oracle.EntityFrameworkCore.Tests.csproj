@@ -7,6 +7,8 @@
   <ItemGroup>
     <!-- this file is included as a link, as both components rely on different versions of EF (for now) -->
     <Compile Include="..\Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.Tests\TestDbContext.cs" Link="TestDbContext.cs" />
+
+    <None Include="$(RepoRoot)src\Components\Aspire.Oracle.EntityFrameworkCore\ConfigurationSchema.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
