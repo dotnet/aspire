@@ -52,7 +52,7 @@
 
     <ItemGroup>
       <HelixCorrelationPayload Include="$(_DotNetCoverageToolPath)" Destination="dotnet-coverage" />
-      <HelixCorrelationPayload Include="$(RepoRoot)eng/CodeCoverage.config" />
+      <HelixCorrelationPayload Include="$(RepoRoot)eng/CodeCoverage.config" Destination="support-data" />
 
       <_DefaultWorkItems Include="$(WorkItemArchiveWildCard)" />
       <!--<_DefaultWorkItems Condition="'$(ContinuousIntegrationBuild)' != 'true'" Include="$(RepoRoot)artifacts/helix/tests/Aspire.Hosting.Tests.zip" />-->
