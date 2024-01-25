@@ -3,6 +3,7 @@
 @using Aspire.Dashboard.Otlp.Model.MetricValues
 @using Aspire.Dashboard.Resources
 @namespace Aspire.Dashboard.Components.Controls
+@implements IAsyncDisposable
 @inject IStringLocalizer<ControlsStrings> Loc
 
 <div id="metric-table-container" style="height: 40vh; overflow-y: auto; margin-bottom: 20px;">
