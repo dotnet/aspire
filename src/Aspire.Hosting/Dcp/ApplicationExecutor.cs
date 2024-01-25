@@ -185,6 +185,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 #if !DEBUG
     private const int DashboardWaitTimeInSeconds = 10;
 #else
+    // Allow extra time when building locally. Dashboard can take longer to start up because of dev binaries, debugger, etc.
     private const int DashboardWaitTimeInSeconds = 30;
 #endif
 
