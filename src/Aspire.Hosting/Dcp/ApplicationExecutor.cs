@@ -180,10 +180,10 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         };
 
         await kubernetesService.CreateAsync(dashboardExecutable, cancellationToken).ConfigureAwait(false);
-        await WaitForHttpSuccessOrThrow(dashboardUrl, GetDashboardWaitTimeInSeconds(), cancellationToken).ConfigureAwait(false);
+        await WaitForHttpSuccessOrThrow(dashboardUrl, GetDashboardWaitTime(), cancellationToken).ConfigureAwait(false);
     }
 
-    private static TimeSpan GetDashboardWaitTimeInSeconds()
+    private static TimeSpan GetDashboardWaitTime()
     {
         if (Environment.GetEnvironmentVariable("DOTNET_ASPIRE_DASHBOARD_TIMEOUT") is { } timeoutString && int.TryParse(timeoutString, out var timeoutInSeconds))
         {
@@ -592,7 +592,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                         throw new DistributedApplicationException("Cannot check dashboard availability since ASPNETCORE_URLS environment variable not set.");
                     }
 
-                    await WaitForHttpSuccessOrThrow(dashboardUrl, GetDashboardWaitTimeInSeconds(), cancellationToken).ConfigureAwait(false);
+                    await WaitForHttpSuccessOrThrow(dashboardUrl, GetDashboardWaitTime(), cancellationToken).ConfigureAwait(false);
                 }
 
             }
