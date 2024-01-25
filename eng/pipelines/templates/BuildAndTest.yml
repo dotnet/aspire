@@ -20,7 +20,8 @@ parameters:
 
 steps:
   - ${{ if eq(parameters.isWindows, 'true') }}:
-    - pwsh: >- dotnet coverage
+    - pwsh: >-
+              dotnet coverage
               merge
               $((Get-ChildItem -Path ${{ parameters.repoTestResultsPath }}\* -Recurse -Filter *.cobertura.xml -File  | % { $_.FullName }) -join ' ')
               -f cobertura
