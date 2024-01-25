@@ -10,13 +10,24 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <PublishDependsOnTargets>$(PublishDependsOnTargets);_PublishInstallers</PublishDependsOnTargets>
+    <PublishDependsOnTargets>$(PublishDependsOnTargets);_PublishInstallers;_PublishDashboardAssets</PublishDependsOnTargets>
   </PropertyGroup>
 
   <ItemGroup>
     <_InstallersToPublish Include="$(ArtifactsDir)**\*.wixpack.zip" Condition="'$(PostBuildSign)' == 'true'" />
     <_InstallerManifestFilesToPublish Include="$(ArtifactsDir)VSSetup\$(Configuration)\Insertion\**\*.zip" />
+    <_DashboardFilesToPublish Include="$(DashboardPublishedArtifactsOutputPath)\**\*.zip" />
   </ItemGroup>
+
+  <Target Name="_PublishDashboardAssets">
+    <ItemGroup>
+      <ItemsToPushToBlobFeed Include="@(_DashboardFilesToPublish)">
+        <IsShipping>true</IsShipping>
+        <PublishFlatContainer>true</PublishFlatContainer>
+        <RelativeBlobPath>$(_UploadPathRoot)/dashboard-assets/%(Filename)%(Extension)</RelativeBlobPath>
+      </ItemsToPushToBlobFeed>
+    </ItemGroup>
+  </Target>
 
   <Target Name="_PublishInstallers">
     <MSBuild Projects="$(RepoRoot)src\Microsoft.NET.Sdk.Aspire\Microsoft.NET.Sdk.Aspire.csproj"
