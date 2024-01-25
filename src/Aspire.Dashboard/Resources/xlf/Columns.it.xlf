@@ -82,14 +82,9 @@
         <target state="new">{0} exited unexpectedly with exit code {1}</target>
         <note>{0} is a resource type, {1} is a number</note>
       </trans-unit>
-      <trans-unit id="UnreadLogErrorsBadgeErrorLog">
-        <source>{0} error log</source>
-        <target state="new">{0} error log</target>
-        <note>{0} is 1</note>
-      </trans-unit>
-      <trans-unit id="UnreadLogErrorsBadgeErrorLogs">
-        <source>{0} error logs</source>
-        <target state="new">{0} error logs</target>
+      <trans-unit id="UnreadLogErrors">
+        <source>{0} errors</source>
+        <target state="new">{0} errors</target>
         <note>{0} is a number</note>
       </trans-unit>
     </body>

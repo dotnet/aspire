@@ -182,5 +182,5 @@ public partial class Resources : ComponentBase, IDisposable
     }
 
     private string? GetRowClass(ResourceViewModel resource)
-        => resource == SelectedResource ? "selected-row" : null;
+        => resource == SelectedResource ? "selected-row resource-row" : "resource-row";
 }

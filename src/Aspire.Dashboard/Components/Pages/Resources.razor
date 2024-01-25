@@ -52,10 +52,10 @@
                 <ChildContent>
                     <PropertyColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeColumnHeader)]" Property="@(c => c.ResourceType)" Sortable="true" />
                     <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Sortable="true" SortBy="@_nameSort">
-                        <ResourceNameDisplay Resource="context" FilterText="@_filter" FormatName="GetResourceName" />
+                        <ResourceNameDisplay Resource="context" FilterText="@_filter" FormatName="GetResourceName" UnviewedErrorCounts="@_applicationUnviewedErrorCounts" />
                     </TemplateColumn>
                     <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesStateColumnHeader)]" Sortable="true" SortBy="@_stateSort">
-                        <StateColumnDisplay UnviewedErrorCounts="@_applicationUnviewedErrorCounts" Resource="@context" />
+                        <StateColumnDisplay Resource="@context"/>
                     </TemplateColumn>
                     <PropertyColumn Property="@(c => c.CreationTimeStamp)" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesStartTimeColumnHeader)]" Sortable="true" Tooltip="true" />
                     <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesSourceColumnHeader)]">

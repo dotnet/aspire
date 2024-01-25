@@ -74,7 +74,7 @@
                     </div>
                 </TemplateColumn>
 
-                <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Traces.TracesDetailsColumnHeader)]">
+                <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.DetailsColumnHeader)]">
                     <FluentAnchor Appearance="Appearance.Lightweight" Href="@($"/Trace/{context.TraceId}")">@ControlsStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentAnchor>
                 </TemplateColumn>
             </ChildContent>
