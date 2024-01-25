@@ -30,10 +30,7 @@ steps:
   - pwsh: |
         $env:filelist=$((Get-ChildItem -Path ${{ parameters.repoTestResultsPath }}/../../../ -Recurse -Filter *.cobertura.xml -File | % { $_.FullName }) -join ' ')
         echo "fl is $env:filelist"
-        ${{ parameters.dotnetScript }} dotnet-coverage merge
-        $env:filelist
-        -f cobertura
-        -o '${{ parameters.repoTestResultsPath }}/$(Agent.Os)_$(Agent.JobName).cobertura.xml'
+        ${{ parameters.dotnetScript }} dotnet-coverage merge $env:filelist -f cobertura -o '${{ parameters.repoTestResultsPath }}/$(Agent.Os)_$(Agent.JobName).cobertura.xml'
     displayName: Merge code coverage results
 
   - ${{ if ne(parameters.skipTests, 'true') }}:
