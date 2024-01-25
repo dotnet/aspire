@@ -182,7 +182,11 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         await WaitForHttpSuccessOrThrow(dashboardUrl, TimeSpan.FromSeconds(DashboardWaitTimeInSeconds), cancellationToken).ConfigureAwait(false);
     }
 
+#if !DEBUG
     private const int DashboardWaitTimeInSeconds = 10;
+#else
+    private const int DashboardWaitTimeInSeconds = 30;
+#endif
 
     private async Task WaitForHttpSuccessOrThrow(string url, TimeSpan timeout, CancellationToken cancellationToken = default)
     {
