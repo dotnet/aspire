@@ -16,20 +16,20 @@
   </PropertyGroup>
 
   <PropertyGroup>
+    <_SupportDataStagingDir>$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'helix', 'support-data'))</_SupportDataStagingDir>
     <_HelixLogPath Condition="'$(OS)' != 'Windows_NT'">$HELIX_WORKITEM_UPLOAD_ROOT/log</_HelixLogPath>
     <_HelixLogPath Condition="'$(OS)' == 'Windows_NT'">%HELIX_WORKITEM_UPLOAD_ROOT%/log</_HelixLogPath>
 
     <_HelixCorrelationPayloadEnvVar Condition="'$(OS)' != 'Windows_NT'">$HELIX_CORRELATION_PAYLOAD</_HelixCorrelationPayloadEnvVar>
     <_HelixCorrelationPayloadEnvVar Condition="'$(OS)' == 'Windows_NT'">%HELIX_CORRELATION_PAYLOAD%</_HelixCorrelationPayloadEnvVar>
-
-    <_TestCoverageCommand>$(_HelixCorrelationPayloadEnvVar)/dotnet-coverage/dotnet-coverage collect</_TestCoverageCommand>
-    <_TestCoverageCommand>$(_TestCoverageCommand) --settings $(_HelixCorrelationPayloadEnvVar)/CodeCoverage.config</_TestCoverageCommand>
-    <_TestCoverageCommand>$(_TestCoverageCommand) --output $(_HelixLogPath)/Test.cobertura.xml</_TestCoverageCommand>
   </PropertyGroup>
 
   <ItemGroup>
-    <_TestRunCommandArguments Include="dotnet test" />
+    <_TestCoverageCommand Include="$(_HelixCorrelationPayloadEnvVar)/dotnet-coverage/dotnet-coverage collect" />
+    <_TestCoverageCommand Include="--settings $(_HelixCorrelationPayloadEnvVar)/support-data/CodeCoverage.config" />
+    <_TestCoverageCommand Include="--output $(_HelixLogPath)/Test.cobertura.xml" />
 
+    <_TestRunCommandArguments Include="dotnet test" />
     <_TestRunCommandArguments Condition="'$(OS)' != 'Windows_NT'" Include="$TEST_NAME.dll" />
     <_TestRunCommandArguments Condition="'$(OS)' == 'Windows_NT'" Include="%TEST_NAME%.dll" />
 
@@ -43,7 +43,7 @@
 
   <Target Name="BuildHelixWorkItems" DependsOnTargets="_StageDependenciesForHelix">
     <PropertyGroup>
-      <_TestRunCommand Condition="'$(RunWithCodeCoverage)' == 'true'">$(_TestCoverageCommand) &quot;@(_TestRunCommandArguments, ' ')&quot;</_TestRunCommand>
+      <_TestRunCommand Condition="'$(RunWithCodeCoverage)' == 'true'">@(_TestCoverageCommand, ' ') &quot;@(_TestRunCommandArguments, ' ')&quot;</_TestRunCommand>
       <_TestRunCommand Condition="'$(RunWithCodeCoverage)' != 'true'">@(_TestRunCommandArguments, ' ')</_TestRunCommand>
     </PropertyGroup>
 
@@ -51,11 +51,7 @@
            Text="Could not find dotnet-coverage tool. %24(_DotNetCoverageToolPath)=$(_DotNetCoverageToolPath)" />
 
     <ItemGroup>
-      <HelixCorrelationPayload Include="$(_DotNetCoverageToolPath)" Destination="dotnet-coverage" />
-      <HelixCorrelationPayload Include="$(RepoRoot)eng/CodeCoverage.config" Destination="support-data" />
-
       <_DefaultWorkItems Include="$(WorkItemArchiveWildCard)" />
-      <!--<_DefaultWorkItems Condition="'$(ContinuousIntegrationBuild)' != 'true'" Include="$(RepoRoot)artifacts/helix/tests/Aspire.Hosting.Tests.zip" />-->
 
       <HelixWorkItem Include="@(_DefaultWorkItems -> '%(FileName)')">
         <PayloadArchive>%(Identity)</PayloadArchive>
@@ -81,5 +77,13 @@
                        NoCache="$(XHarnessNoCache)">
       <Output TaskParameter="ToolPath" PropertyName="_DotNetCoverageToolPath" />
     </InstallDotNetTool>
+
+    <MakeDir Directories="$(_SupportDataStagingDir)" />
+    <Copy SourceFiles="$(RepoRoot)eng/CodeCoverage.config" DestinationFolder="$(_SupportDataStagingDir)" />
+
+    <ItemGroup>
+      <HelixCorrelationPayload Include="$(_DotNetCoverageToolPath)" Destination="dotnet-coverage" />
+      <HelixCorrelationPayload Include="$(_SupportDataStagingDir)" Destination="support-data" />
+    </ItemGroup>
   </Target>
 </Project>
