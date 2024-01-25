@@ -312,6 +312,33 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Value decreased.
+        /// </summary>
+        public static string MetricTableValueDecreased {
+            get {
+                return ResourceManager.GetString("MetricTableValueDecreased", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Value increased.
+        /// </summary>
+        public static string MetricTableValueIncreased {
+            get {
+                return ResourceManager.GetString("MetricTableValueIncreased", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Value did not change.
+        /// </summary>
+        public static string MetricTableValueNoChange {
+            get {
+                return ResourceManager.GetString("MetricTableValueNoChange", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Name.
         /// </summary>
         public static string NameColumnHeader {

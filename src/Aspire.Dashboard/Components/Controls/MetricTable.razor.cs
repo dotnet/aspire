@@ -4,6 +4,7 @@
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Model.MetricValues;
+using Aspire.Dashboard.Resources;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
@@ -13,15 +14,11 @@ namespace Aspire.Dashboard.Components.Controls;
 
 public partial class MetricTable : ComponentBase
 {
-    private readonly List<Metric> _metrics = [];
     private static readonly List<int> s_shownPercentiles = [50, 90, 99];
 
-    private bool _showAllMetrics = true;
+    private readonly List<Metric> _metrics = [];
     private bool _onlyShowValueChanges;
-
-    private IEnumerable<Metric> FilteredMetrics => !_showAllMetrics ? _metrics.TakeLast(10) : _metrics;
     private bool _anyDimensionsShown;
-
     private IJSObjectReference? _jsModule;
 
     [Inject]
@@ -42,7 +39,7 @@ public partial class MetricTable : ComponentBase
 
     private async Task OnInstrumentDataUpdate()
     {
-        var oldFilteredMetrics = FilteredMetrics.ToList();
+        var oldFilteredMetrics = _metrics;
 
         _anyDimensionsShown = false;
 
@@ -136,7 +133,7 @@ public partial class MetricTable : ComponentBase
 
         if (_jsModule is not null)
         {
-            var newFilteredMetrics = FilteredMetrics.ToList();
+            var newFilteredMetrics = _metrics;
             if (newFilteredMetrics.Count < oldFilteredMetrics.Count)
             {
                 return;
@@ -183,19 +180,27 @@ public partial class MetricTable : ComponentBase
             }
             else
             {
-                var currentPercentiles = CalculatePercentiles((HistogramValue)metrics[0].Value);
+                var startPercentiles = CalculatePercentiles((HistogramValue)metrics[0].Value);
+                var startMetric = metrics[0];
                 for (var i = 1; i < metrics.Count; i++)
                 {
-                    var histogramValue = (HistogramValue)metrics[i].Value;
+                    var currentMetric = metrics[i];
+
+                    var histogramValue = (HistogramValue)currentMetric.Value;
                     var percentiles = CalculatePercentiles(histogramValue);
-                    if (CollectionExtensions.Equivalent(currentPercentiles, percentiles))
+                    if (CollectionExtensions.Equivalent(startPercentiles, percentiles))
                     {
+                        var metricValueWithUpdatedStart = MetricValueBase.Clone(startMetric.Value);
+                        metricValueWithUpdatedStart.Start = currentMetric.Value.Start;
+                        startMetric.Value = metricValueWithUpdatedStart;
+
                         metrics.RemoveAt(i);
                         i--;
                     }
                     else
                     {
-                        currentPercentiles = percentiles;
+                        startPercentiles = percentiles;
+                        startMetric = currentMetric;
                     }
                 }
 
@@ -216,7 +221,7 @@ public partial class MetricTable : ComponentBase
     {
         public required string DimensionName { get; init; }
         public required KeyValuePair<string, string>[] DimensionAttributes { get; init; }
-        public required MetricValueBase Value { get; init; }
+        public required MetricValueBase Value { get; set; }
         public required ValueDirectionChange? CountChange { get; init; }
         public required ValueDirectionChange? ValueChange { get; init; }
 
@@ -247,13 +252,13 @@ public partial class MetricTable : ComponentBase
         Constant
     }
 
-    private static Icon? GetIconForDirection(ValueDirectionChange? directionChange)
+    private (Icon Icon, string Title)? GetIconAndTitleForDirection(ValueDirectionChange? directionChange)
     {
         return directionChange switch
         {
-            ValueDirectionChange.Up => new Icons.Regular.Size16.ArrowCircleUp().WithColor(Color.Success),
-            ValueDirectionChange.Down => new Icons.Regular.Size16.ArrowCircleDown().WithColor(Color.Warning),
-            ValueDirectionChange.Constant => new Icons.Regular.Size16.ArrowCircleRight().WithColor(Color.Info),
+            ValueDirectionChange.Up => (new Icons.Filled.Size16.ArrowCircleUp().WithColor(Color.Success), Loc[nameof(ControlsStrings.MetricTableValueIncreased)]),
+            ValueDirectionChange.Down => (new Icons.Filled.Size16.ArrowCircleDown().WithColor(Color.Warning), Loc[nameof(ControlsStrings.MetricTableValueDecreased)]),
+            ValueDirectionChange.Constant => (new Icons.Filled.Size16.ArrowCircleRight().WithColor(Color.Info), Loc[nameof(ControlsStrings.MetricTableValueNoChange)]),
             _ => null
         };
     }

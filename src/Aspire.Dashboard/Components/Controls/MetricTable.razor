@@ -5,8 +5,8 @@
 @namespace Aspire.Dashboard.Components.Controls
 @inject IStringLocalizer<ControlsStrings> Loc
 
-<div id="metric-table-container" style="height: 40vh; overflow-y: scroll; margin-bottom: 20px;">
-    <FluentDataGrid Items="@FilteredMetrics.AsQueryable()" ItemSize="35" Virtualize="true">
+<div id="metric-table-container" style="height: 40vh; overflow-y: auto; margin-bottom: 20px;">
+    <FluentDataGrid Items="@_metrics.AsQueryable()" ItemSize="35" Virtualize="true">
         <ChildContent>
             <TemplateColumn Class="metric-grid-cell" Title="@Loc[nameof(ControlsStrings.MetricTableStartColumnHeader)]" Tooltip="true" TooltipText="@(metric => metric.DimensionName)">
                 <span aria-live="polite">@context.Value.Start</span>
@@ -27,8 +27,12 @@
                     <TemplateColumn Title="@($"P{percentile}")">
                         @if (context is HistogramMetric histogramMetric)
                         {
-                            <span style="@($"text-decoration: underline; text-decoration-color: {underlineColor}; margin-right: 2px;")">@CalculatePercentile(percentile, (HistogramValue)context.Value) @unit</span>
-                            <FluentIcon Style="vertical-align: text-bottom" Value="@GetIconForDirection(histogramMetric.Percentiles[percentile].Change)"/>
+                            <span style="@($"text-decoration-thickness: 2px; text-decoration-line: underline; text-decoration-color: {underlineColor}; margin-right: 4px;")">@CalculatePercentile(percentile, (HistogramValue)context.Value) @unit</span>
+
+                            if (GetIconAndTitleForDirection(histogramMetric.Percentiles[percentile].Change) is var (icon, title))
+                            {
+                                <FluentIcon Style="vertical-align: text-bottom" Value="@icon" Title="@title"/>
+                            }
                         }
                     </TemplateColumn>
                 }
@@ -44,15 +48,22 @@
                         }
                         else
                         {
-                            <span style="margin-right: 2px;">@context.Value</span>
-                            <FluentIcon Style="vertical-align: text-bottom" Value="@GetIconForDirection(context.ValueChange)"/>
+                            <span style="margin-right: 4px;">@context.Value</span>
+                            if (GetIconAndTitleForDirection(context.ValueChange) is var (icon, title))
+                            {
+                                <FluentIcon Style="vertical-align: text-bottom" Value="@icon" Title="@title"/>
+                            }
                         }
                     </TemplateColumn>
                 }
 
                 <TemplateColumn Title="@Loc[nameof(ControlsStrings.MetricTableCountColumnHeader)]">
                     <span style="margin-right: 2px;">@context.Value.Count</span>
-                    <FluentIcon Style="vertical-align: text-bottom" Value="@GetIconForDirection(context.CountChange)"/>
+
+                    @if (GetIconAndTitleForDirection(context.CountChange) is var (icon, title))
+                    {
+                        <FluentIcon Style="vertical-align: text-bottom" Value="@icon" Title="@title"/>
+                    }
                 </TemplateColumn>
             }
         </ChildContent>
@@ -64,14 +75,9 @@
 
 <FluentStack Orientation="Orientation.Vertical" Style="margin-bottom: 20px;">
     <FluentSwitch Class="table-switch"
-                  @bind-Value="@_showAllMetrics"
-                  @bind-Value:after="SettingsChangedAsync"
-                  Label="@Loc[nameof(ControlsStrings.MetricTableShowLatestValues)]" />
-
-    <FluentSwitch Class="table-switch"
                   @bind-Value="@_onlyShowValueChanges"
                   @bind-Value:after="SettingsChangedAsync"
-                  Label="@Loc[nameof(ControlsStrings.MetricTableShowOnlyValueChanges)]" />
+                  Label="@Loc[nameof(ControlsStrings.MetricTableShowOnlyValueChanges)]"/>
 </FluentStack>
 
 @code {

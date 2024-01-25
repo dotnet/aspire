@@ -8,7 +8,7 @@ namespace Aspire.Dashboard.Otlp.Model.MetricValues;
 [DebuggerDisplay("Start = {Start}, End = {End}")]
 public abstract class MetricValueBase
 {
-    public readonly DateTime Start;
+    public DateTime Start { get; set; }
     public DateTime End { get; set; }
     public ulong Count = 1;
 
