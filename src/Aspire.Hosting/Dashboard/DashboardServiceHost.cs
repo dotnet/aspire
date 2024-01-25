@@ -59,7 +59,7 @@ internal sealed class DashboardServiceHost : IHostedService
         if (!options.DashboardEnabled ||
             publishingOptions.Value.Publisher == "manifest") // HACK: Manifest publisher check is temporary until DcpHostService is integrated with DcpPublisher.
         {
-            _logger.LogInformation("Dashboard is not enabled so skipping hosting the resource service.");
+            _logger.LogDebug("Dashboard is not enabled so skipping hosting the resource service.");
             _resourceServiceUri.SetCanceled();
             return;
         }
