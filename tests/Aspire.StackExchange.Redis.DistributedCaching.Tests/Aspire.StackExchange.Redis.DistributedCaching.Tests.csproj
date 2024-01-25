@@ -5,6 +5,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Include="$(RepoRoot)src\Components\Aspire.StackExchange.Redis.DistributedCaching\ConfigurationSchema.json" CopyToOutputDirectory="PreserveNewest" />
+
     <ProjectReference Include="..\..\src\Components\Aspire.StackExchange.Redis.DistributedCaching\Aspire.StackExchange.Redis.DistributedCaching.csproj" />
 
     <ProjectReference Include="..\Aspire.Components.Common.Tests\Aspire.Components.Common.Tests.csproj" />

@@ -34,19 +34,19 @@ public static class ProjectResourceExtensions
             // HACK: Until we use the DistributedApplicationModel as the source of truth, we will use
             // the name of the project resource as the DCP resource name. If this is a replica, it'll be projectname-{id}.
             .Where(p => p.Name == name || name.StartsWith(p.Name + "-"))
-            .SingleOrDefault(p => p.Annotations.OfType<IServiceMetadata>().FirstOrDefault()?.ProjectPath == path);
+            .SingleOrDefault(p => p.Annotations.OfType<IProjectMetadata>().FirstOrDefault()?.ProjectPath == path);
 
         return projectResource is not null;
     }
 
     /// <summary>
-    /// Gets the service metadata for the specified project resource.
+    /// Gets the project metadata for the specified project resource.
     /// </summary>
     /// <param name="projectResource">The project resource.</param>
-    /// <returns>The service metadata.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when the project resource doesn't have service metadata.</exception>
-    public static IServiceMetadata GetServiceMetadata(this ProjectResource projectResource)
+    /// <returns>The project metadata.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when the project resource doesn't have project metadata.</exception>
+    public static IProjectMetadata GetProjectMetadata(this ProjectResource projectResource)
     {
-        return projectResource.Annotations.OfType<IServiceMetadata>().Single();
+        return projectResource.Annotations.OfType<IProjectMetadata>().Single();
     }
 }

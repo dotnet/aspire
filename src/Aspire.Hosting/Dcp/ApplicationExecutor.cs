@@ -3,32 +3,34 @@
 
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Lifecycle;
 using k8s;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Dcp;
 
 internal class AppResource
 {
-    public IResource ModelResource { get; private set; }
-    public CustomResource DcpResource { get; private set; }
-    public virtual List<ServiceAppResource> ServicesProduced { get; private set; } = new();
-    public virtual List<ServiceAppResource> ServicesConsumed { get; private set; } = new();
+    public IResource ModelResource { get; }
+    public CustomResource DcpResource { get; }
+    public virtual List<ServiceAppResource> ServicesProduced { get; } = [];
+    public virtual List<ServiceAppResource> ServicesConsumed { get; } = [];
 
     public AppResource(IResource modelResource, CustomResource dcpResource)
     {
-        this.ModelResource = modelResource;
-        this.DcpResource = dcpResource;
+        ModelResource = modelResource;
+        DcpResource = dcpResource;
     }
 }
 
 internal sealed class ServiceAppResource : AppResource
 {
     public Service Service => (Service)DcpResource;
-    public EndpointAnnotation EndpointAnnotation { get; private set; }
-    public ServiceProducerAnnotation DcpServiceProducerAnnotation { get; private set; }
+    public EndpointAnnotation EndpointAnnotation { get; }
+    public ServiceProducerAnnotation DcpServiceProducerAnnotation { get; }
 
     public override List<ServiceAppResource> ServicesProduced
     {
@@ -46,14 +48,23 @@ internal sealed class ServiceAppResource : AppResource
     }
 }
 
-internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger, DistributedApplicationModel model,
+internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
+                                          DistributedApplicationModel model,
+                                          DistributedApplicationOptions distributedApplicationOptions,
                                           KubernetesService kubernetesService,
-                                          IEnumerable<IDistributedApplicationLifecycleHook> lifecycleHooks)
+                                          IEnumerable<IDistributedApplicationLifecycleHook> lifecycleHooks,
+                                          IEnvironmentVariables environmentVariables,
+                                          IOptions<DcpOptions> options,
+                                          DashboardServiceHost dashboardHost)
 {
     private const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
 
     private readonly ILogger<ApplicationExecutor> _logger = logger;
+    private readonly DistributedApplicationModel _model = model;
     private readonly IDistributedApplicationLifecycleHook[] _lifecycleHooks = lifecycleHooks.ToArray();
+    private readonly IOptions<DcpOptions> _options = options;
+    private readonly DashboardServiceHost _dashboardServiceHost = dashboardHost;
+    private readonly List<AppResource> _appResources = [];
 
     // These environment variables should never be inherited from app host;
     // they only make sense if they come from a launch profile of a service project.
@@ -65,14 +76,25 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger, D
         "DOTNET_ENVIRONMENT"
     };
 
-    private readonly DistributedApplicationModel _model = model;
-    private readonly List<AppResource> _appResources = new();
-
     public async Task RunApplicationAsync(CancellationToken cancellationToken = default)
     {
         AspireEventSource.Instance.DcpModelCreationStart();
         try
         {
+            if (!distributedApplicationOptions.DisableDashboard)
+            {
+                if (_model.Resources.SingleOrDefault(r => StringComparers.ResourceName.Equals(r.Name, KnownResourceNames.AspireDashboard)) is not { } dashboardResource)
+                {
+                    // No dashboard is specified, so start one.
+                    // TODO validate that the dashboard has not been suppressed
+                    await StartDashboardAsDcpExecutableAsync(cancellationToken).ConfigureAwait(false);
+                }
+                else
+                {
+                    await ConfigureAspireDashboardResource(dashboardResource, cancellationToken).ConfigureAwait(false);
+                }
+            }
+
             PrepareServices();
             PrepareContainers();
             PrepareExecutables();
@@ -85,7 +107,185 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger, D
         {
             AspireEventSource.Instance.DcpModelCreationStop();
         }
+    }
 
+    private async Task ConfigureAspireDashboardResource(IResource dashboardResource, CancellationToken cancellationToken)
+    {
+        // Don't publish the resource to the manifest.
+        dashboardResource.Annotations.Add(ManifestPublishingCallbackAnnotation.Ignore);
+
+        // Remove endpoint annotations because we are directly configuring
+        // the dashboard app (it doesn't go through the proxy!).
+        var endpointAnnotations = dashboardResource.Annotations.OfType<EndpointAnnotation>().ToList();
+        foreach (var endpointAnnotation in endpointAnnotations)
+        {
+            dashboardResource.Annotations.Remove(endpointAnnotation);
+        }
+
+        // Get resource endpoint URL.
+        string grpcEndpointUrl;
+        try
+        {
+            grpcEndpointUrl = await _dashboardServiceHost.GetResourceServiceUriAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            throw new DistributedApplicationException("Error getting the resource service URL.", ex);
+        }
+
+        dashboardResource.Annotations.Add(new EnvironmentCallbackAnnotation(context =>
+        {
+            if (Environment.GetEnvironmentVariable("ASPNETCORE_URLS") is not { } appHostApplicationUrl)
+            {
+                throw new DistributedApplicationException("Dashboard inner loop hook failed to configure resource because ASPNETCORE_URLS environment variable was not set.");
+            }
+
+            if (Environment.GetEnvironmentVariable("DOTNET_DASHBOARD_OTLP_ENDPOINT_URL") is not { } otlpEndpointUrl)
+            {
+                throw new DistributedApplicationException("Dashboard inner loop hook failed to configure resource because DOTNET_DASHBOARD_OTLP_ENDPOINT_URL environment variable was not set.");
+            }
+
+            // Grab the resource service URL. We need to inject this into the resource.
+
+            context.EnvironmentVariables["ASPNETCORE_URLS"] = appHostApplicationUrl;
+            context.EnvironmentVariables["DOTNET_RESOURCE_SERVICE_ENDPOINT_URL"] = grpcEndpointUrl;
+            context.EnvironmentVariables["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] = otlpEndpointUrl;
+        }));
+    }
+
+    private async Task StartDashboardAsDcpExecutableAsync(CancellationToken cancellationToken = default)
+    {
+        if (!distributedApplicationOptions.DashboardEnabled)
+        {
+            // The dashboard is disabled. Do nothing.
+            return;
+        }
+
+        if (_options.Value.DashboardPath is not { } dashboardPath)
+        {
+            throw new DistributedApplicationException("Dashboard path empty or file does not exist.");
+        }
+
+        var fullyQualifiedDashboardPath = Path.GetFullPath(dashboardPath);
+        var dashboardWorkingDirectory = Path.GetDirectoryName(fullyQualifiedDashboardPath);
+
+        var dashboardExecutableSpec = new ExecutableSpec
+        {
+            ExecutionType = ExecutionType.Process,
+            WorkingDirectory = dashboardWorkingDirectory
+        };
+
+        if (string.Equals(".dll", Path.GetExtension(fullyQualifiedDashboardPath), StringComparison.OrdinalIgnoreCase))
+        {
+            // The dashboard path is a DLL, so run it with `dotnet <dll>`
+            dashboardExecutableSpec.ExecutablePath = "dotnet";
+            dashboardExecutableSpec.Args = [fullyQualifiedDashboardPath];
+        }
+        else
+        {
+            // Assume the dashboard path is directly executable
+            dashboardExecutableSpec.ExecutablePath = fullyQualifiedDashboardPath;
+        }
+
+        string grpcEndpointUrl;
+        try
+        {
+            grpcEndpointUrl = await _dashboardServiceHost.GetResourceServiceUriAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            throw new DistributedApplicationException("Error getting the resource service URL.", ex);
+        }
+
+        var otlpEndpointUrl = environmentVariables.GetString("DOTNET_DASHBOARD_OTLP_ENDPOINT_URL");
+        var dashboardUrl = environmentVariables.GetString("ASPNETCORE_URLS") ?? throw new DistributedApplicationException("ASPNETCORE_URLS environment variable not set.");
+        var aspnetcoreEnvironment = environmentVariables.GetString("ASPNETCORE_ENVIRONMENT");
+
+        dashboardExecutableSpec.Env =
+        [
+            new()
+            {
+                Name = "DOTNET_RESOURCE_SERVICE_ENDPOINT_URL",
+                Value = grpcEndpointUrl
+            },
+            new()
+            {
+                Name = "ASPNETCORE_URLS",
+                Value = dashboardUrl
+            },
+            new()
+            {
+                Name = "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL",
+                Value = otlpEndpointUrl
+            },
+            new()
+            {
+                Name = "ASPNETCORE_ENVIRONMENT",
+                Value = aspnetcoreEnvironment
+            }
+        ];
+
+        var dashboardExecutable = new Executable(dashboardExecutableSpec)
+        {
+            Metadata = { Name = KnownResourceNames.AspireDashboard }
+        };
+
+        await kubernetesService.CreateAsync(dashboardExecutable, cancellationToken).ConfigureAwait(false);
+        await WaitForHttpSuccessOrThrow(dashboardUrl, DashboardAvailabilityTimeoutDuration, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static TimeSpan DashboardAvailabilityTimeoutDuration
+    {
+        get
+        {
+            if (Environment.GetEnvironmentVariable("DOTNET_ASPIRE_DASHBOARD_TIMEOUT_SECONDS") is { } timeoutString && int.TryParse(timeoutString, out var timeoutInSeconds))
+            {
+                return TimeSpan.FromSeconds(timeoutInSeconds);
+            }
+            else
+            {
+                return TimeSpan.FromSeconds(DefaultDashboardAvailabilityTimeoutDurationInSeconds);
+            }
+        }
+    }
+
+    private const int DefaultDashboardAvailabilityTimeoutDurationInSeconds = 60;
+
+    private async Task WaitForHttpSuccessOrThrow(string url, TimeSpan timeout, CancellationToken cancellationToken = default)
+    {
+        using var timeoutCts = new CancellationTokenSource(timeout);
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+
+        var client = new HttpClient();
+
+        try
+        {
+            while (true)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                try
+                {
+                    var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, linkedCts.Token).ConfigureAwait(false);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        return;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "Dashboard not ready yet.");
+                }
+
+                await Task.Delay(TimeSpan.FromMilliseconds(50), linkedCts.Token).ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+        {
+            // Only display this error if the timeout CTS was the one that was cancelled.
+            throw new DistributedApplicationException($"Timed out after {timeout} while waiting for the dashboard to be responsive.");
+        }
     }
 
     public async Task StopApplicationAsync(CancellationToken cancellationToken = default)
@@ -258,7 +458,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger, D
 
         foreach (var project in modelProjectResources)
         {
-            if (!project.TryGetLastAnnotation<IServiceMetadata>(out var projectMetadata))
+            if (!project.TryGetLastAnnotation<IProjectMetadata>(out var projectMetadata))
             {
                 throw new InvalidOperationException("A project resource is missing required metadata"); // Should never happen.
             }
@@ -274,7 +474,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger, D
             annotationHolder.Annotate(Executable.CSharpProjectPathAnnotation, projectMetadata.ProjectPath);
             annotationHolder.Annotate(Executable.OtelServiceNameAnnotation, ers.Metadata.Name);
 
-            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable(DebugSessionPortVar)))
+            if (!string.IsNullOrEmpty(environmentVariables.GetString(DebugSessionPortVar)))
             {
                 exeSpec.ExecutionType = ExecutionType.IDE;
                 if (project.TryGetLastAnnotation<LaunchProfileAnnotation>(out var lpa))
@@ -285,7 +485,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger, D
             else
             {
                 exeSpec.ExecutionType = ExecutionType.Process;
-                if (Environment.GetEnvironmentVariable("DOTNET_WATCH") != "1")
+                if (environmentVariables.GetBool("DOTNET_WATCH") is true)
                 {
                     exeSpec.Args = [
                         "run",
@@ -341,7 +541,18 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger, D
         {
             AspireEventSource.Instance.DcpExecutablesCreateStart();
 
-            foreach (var er in executableResources)
+            // Hoisting the aspire-dashboard resource if it exists to the top of
+            // the list so we start it first.
+            var sortedExecutableResources = executableResources.ToList();
+            var (dashboardIndex, dashboardAppResource) = sortedExecutableResources.IndexOf(static r => StringComparers.ResourceName.Equals(r.ModelResource.Name, KnownResourceNames.AspireDashboard));
+
+            if (dashboardIndex > 0)
+            {
+                sortedExecutableResources.RemoveAt(dashboardIndex);
+                sortedExecutableResources.Insert(0, dashboardAppResource);
+            }
+
+            foreach (var er in sortedExecutableResources)
             {
                 ExecutableSpec spec;
                 Func<Task<CustomResource>> createResource;
@@ -420,6 +631,22 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger, D
                 }
 
                 await createResource().ConfigureAwait(false);
+
+                // NOTE: This check is only necessary for the inner loop in the dotnet/aspire repo. When
+                //       running in the dotnet/aspire repo we will normally launch the dashboard via
+                //       AddProject<T>. When doing this we make sure that the dashboard is running.
+                if (!distributedApplicationOptions.DisableDashboard && er.ModelResource.Name.Equals(KnownResourceNames.AspireDashboard, StringComparisons.ResourceName))
+                {
+                    // We just check the HTTP endpoint because this will prove that the
+                    // dashboard is listening and is ready to process requests.
+                    if (Environment.GetEnvironmentVariable("ASPNETCORE_URLS") is not { } dashboardUrl)
+                    {
+                        throw new DistributedApplicationException("Cannot check dashboard availability since ASPNETCORE_URLS environment variable not set.");
+                    }
+
+                    await WaitForHttpSuccessOrThrow(dashboardUrl, DashboardAvailabilityTimeoutDuration, cancellationToken).ConfigureAwait(false);
+                }
+
             }
 
         }

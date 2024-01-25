@@ -85,37 +85,47 @@ public partial class Resources : ComponentBase, IDisposable
     {
         _applicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
 
-        var (snapshot, subscription) = DashboardClient.SubscribeResources();
-
-        foreach (var resource in snapshot)
+        if (DashboardClient.IsEnabled)
         {
-            var added = _resourceByName.TryAdd(resource.Name, resource);
-            Debug.Assert(added, "Should not receive duplicate resources in initial snapshot data.");
+            SubscribeResources();
         }
-
-        _ = Task.Run(async () =>
-        {
-            await foreach (var (changeType, resource) in subscription.WithCancellation(_watchTaskCancellationTokenSource.Token))
-            {
-                if (changeType == ResourceViewModelChangeType.Upsert)
-                {
-                    _resourceByName[resource.Name] = resource;
-                }
-                else if (changeType == ResourceViewModelChangeType.Delete)
-                {
-                    var removed = _resourceByName.TryRemove(resource.Name, out _);
-                    Debug.Assert(removed, "Cannot remove unknown resource.");
-                }
-
-                await InvokeAsync(StateHasChanged);
-            }
-        });
 
         _logsSubscription = TelemetryRepository.OnNewLogs(null, SubscriptionType.Other, async () =>
         {
             _applicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
             await InvokeAsync(StateHasChanged);
         });
+
+        void SubscribeResources()
+        {
+            var (snapshot, subscription) = DashboardClient.SubscribeResources();
+
+            // Apply snapshot.
+            foreach (var resource in snapshot)
+            {
+                var added = _resourceByName.TryAdd(resource.Name, resource);
+                Debug.Assert(added, "Should not receive duplicate resources in initial snapshot data.");
+            }
+
+            // Listen for updates and apply.
+            _ = Task.Run(async () =>
+            {
+                await foreach (var (changeType, resource) in subscription.WithCancellation(_watchTaskCancellationTokenSource.Token))
+                {
+                    if (changeType == ResourceViewModelChangeType.Upsert)
+                    {
+                        _resourceByName[resource.Name] = resource;
+                    }
+                    else if (changeType == ResourceViewModelChangeType.Delete)
+                    {
+                        var removed = _resourceByName.TryRemove(resource.Name, out _);
+                        Debug.Assert(removed, "Cannot remove unknown resource.");
+                    }
+
+                    await InvokeAsync(StateHasChanged);
+                }
+            });
+        }
     }
 
     private void ShowResourceDetails(ResourceViewModel resource)

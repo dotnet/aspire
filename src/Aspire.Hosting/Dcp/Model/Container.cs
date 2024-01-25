@@ -9,6 +9,10 @@ namespace Aspire.Hosting.Dcp.Model;
 
 internal sealed class ContainerSpec
 {
+    // Container name displayed in Docker. If not specified, the metadata name + random suffix is used.
+    [JsonPropertyName("containerName")]
+    public string? ContainerName { get; set; }
+
     // Image to be used to create the container
     [JsonPropertyName("image")]
     public string? Image { get; set; }
@@ -153,6 +157,10 @@ internal sealed class ContainerPortSpec
 
 internal sealed class ContainerStatus : V1Status
 {
+    // Container name displayed in Docker
+    [JsonPropertyName("containerName")]
+    public string? ContainerName { get; set; }
+
     // Current state of the Container.
     [JsonPropertyName("state")]
     public string? State { get; set; }
