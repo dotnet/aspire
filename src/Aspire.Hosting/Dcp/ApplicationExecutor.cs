@@ -81,15 +81,18 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         AspireEventSource.Instance.DcpModelCreationStart();
         try
         {
-            if (_model.Resources.SingleOrDefault(r => StringComparers.ResourceName.Equals(r.Name, KnownResourceNames.AspireDashboard)) is not { } dashboardResource)
+            if (!distributedApplicationOptions.DisableDashboard)
             {
-                // No dashboard is specified, so start one.
-                // TODO validate that the dashboard has not been suppressed
-                await StartDashboardAsDcpExecutableAsync(cancellationToken).ConfigureAwait(false);
-            }
-            else
-            {
-                await ConfigureAspireDashboardResource(dashboardResource, cancellationToken).ConfigureAwait(false);
+                if (_model.Resources.SingleOrDefault(r => StringComparers.ResourceName.Equals(r.Name, KnownResourceNames.AspireDashboard)) is not { } dashboardResource)
+                {
+                    // No dashboard is specified, so start one.
+                    // TODO validate that the dashboard has not been suppressed
+                    await StartDashboardAsDcpExecutableAsync(cancellationToken).ConfigureAwait(false);
+                }
+                else
+                {
+                    await ConfigureAspireDashboardResource(dashboardResource, cancellationToken).ConfigureAwait(false);
+                }
             }
 
             PrepareServices();
@@ -632,7 +635,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 // NOTE: This check is only necessary for the inner loop in the dotnet/aspire repo. When
                 //       running in the dotnet/aspire repo we will normally launch the dashboard via
                 //       AddProject<T>. When doing this we make sure that the dashboard is running.
-                if (er.ModelResource.Name.Equals(KnownResourceNames.AspireDashboard, StringComparisons.ResourceName))
+                if (!distributedApplicationOptions.DisableDashboard && er.ModelResource.Name.Equals(KnownResourceNames.AspireDashboard, StringComparisons.ResourceName))
                 {
                     // We just check the HTTP endpoint because this will prove that the
                     // dashboard is listening and is ready to process requests.
