@@ -55,6 +55,11 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
         void TrackResourceSnapshots()
         {
+            if (!DashboardClient.IsEnabled)
+            {
+                return;
+            }
+
             var (snapshot, subscription) = DashboardClient.SubscribeResources();
 
             foreach (var resource in snapshot)

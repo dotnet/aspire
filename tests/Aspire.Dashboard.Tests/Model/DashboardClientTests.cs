@@ -9,10 +9,12 @@ namespace Aspire.Dashboard.Tests.Model;
 
 public sealed class DashboardClientTests
 {
+    private readonly IEnvironmentVariables _environmentVariables = new MockEnvironmentVariables() { { "DOTNET_RESOURCE_SERVICE_ENDPOINT_URL", "http://localhost:12345" } };
+
     [Fact]
     public async Task SubscribeResources_OnCancel_ChannelRemoved()
     {
-        var instance = new DashboardClient(NullLoggerFactory.Instance);
+        var instance = new DashboardClient(NullLoggerFactory.Instance, _environmentVariables);
         IDashboardClient client = instance;
 
         var cts = new CancellationTokenSource();
@@ -40,7 +42,7 @@ public sealed class DashboardClientTests
     [Fact]
     public async Task SubscribeResources_OnDispose_ChannelRemoved()
     {
-        var instance = new DashboardClient(NullLoggerFactory.Instance);
+        var instance = new DashboardClient(NullLoggerFactory.Instance, _environmentVariables);
         IDashboardClient client = instance;
 
         Assert.Equal(0, instance.OutgoingResourceSubscriberCount);
@@ -66,7 +68,7 @@ public sealed class DashboardClientTests
     [Fact]
     public async Task SubscribeResources_ThrowsIfDisposed()
     {
-        IDashboardClient client = new DashboardClient(NullLoggerFactory.Instance);
+        IDashboardClient client = new DashboardClient(NullLoggerFactory.Instance, _environmentVariables);
 
         await client.DisposeAsync();
 
@@ -76,7 +78,7 @@ public sealed class DashboardClientTests
     [Fact]
     public async Task SubscribeResources_IncreasesSubscriberCount()
     {
-        var instance = new DashboardClient(NullLoggerFactory.Instance);
+        var instance = new DashboardClient(NullLoggerFactory.Instance, _environmentVariables);
         IDashboardClient client = instance;
 
         Assert.Equal(0, instance.OutgoingResourceSubscriberCount);

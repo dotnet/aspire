@@ -14,10 +14,15 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
     private readonly CancellationTokenSource _watchContainersTokenSource = new();
     private readonly List<ModelSubscription> _subscriptions = [];
     private readonly object _lock = new();
-    private readonly Task _watchTask;
+    private readonly Task? _watchTask;
 
     public ResourceOutgoingPeerResolver(IDashboardClient resourceService)
     {
+        if (!resourceService.IsEnabled)
+        {
+            return;
+        }
+
         var (snapshot, subscription) = resourceService.SubscribeResources();
 
         foreach (var resource in snapshot)
@@ -109,12 +114,15 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
         _watchContainersTokenSource.Cancel();
         _watchContainersTokenSource.Dispose();
 
-        try
+        if (_watchTask is not null)
         {
-            await _watchTask.ConfigureAwait(false);
-        }
-        catch (OperationCanceledException)
-        {
+            try
+            {
+                await _watchTask.ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+            }
         }
     }
 }
