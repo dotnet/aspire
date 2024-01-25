@@ -17,30 +17,33 @@
 
   <PropertyGroup>
     <_SupportDataStagingDir>$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'helix', 'support-data'))</_SupportDataStagingDir>
-    <_HelixLogPath Condition="'$(OS)' != 'Windows_NT'">$HELIX_WORKITEM_UPLOAD_ROOT/log</_HelixLogPath>
-    <_HelixLogPath Condition="'$(OS)' == 'Windows_NT'">%HELIX_WORKITEM_UPLOAD_ROOT%/log</_HelixLogPath>
+    <_HelixLogsPath Condition="'$(OS)' != 'Windows_NT'">$HELIX_WORKITEM_UPLOAD_ROOT/logs</_HelixLogsPath>
+    <_HelixLogsPath Condition="'$(OS)' == 'Windows_NT'">%HELIX_WORKITEM_UPLOAD_ROOT%/logs</_HelixLogsPath>
 
     <_HelixCorrelationPayloadEnvVar Condition="'$(OS)' != 'Windows_NT'">$HELIX_CORRELATION_PAYLOAD</_HelixCorrelationPayloadEnvVar>
     <_HelixCorrelationPayloadEnvVar Condition="'$(OS)' == 'Windows_NT'">%HELIX_CORRELATION_PAYLOAD%</_HelixCorrelationPayloadEnvVar>
+
+    <_TestNameEnvVar Condition="'$(OS)' != 'Windows_NT'">$TEST_NAME</_TestNameEnvVar>
+    <_TestNameEnvVar Condition="'$(OS)' != 'Windows_NT'">%TEST_NAME%</_TestNameEnvVar>
   </PropertyGroup>
 
   <ItemGroup>
     <_TestCoverageCommand Include="$(_HelixCorrelationPayloadEnvVar)/dotnet-coverage/dotnet-coverage collect" />
     <_TestCoverageCommand Include="--settings $(_HelixCorrelationPayloadEnvVar)/support-data/CodeCoverage.config" />
-    <_TestCoverageCommand Include="--output $(_HelixLogPath)/Test.cobertura.xml" />
+    <_TestCoverageCommand Include="--output $(_HelixLogsPath)/$(_TestNameEnvVar).cobertura.xml" />
 
     <_TestRunCommandArguments Include="dotnet test" />
     <_TestRunCommandArguments Include="-s .runsettings" />
-
-    <_TestRunCommandArguments Condition="'$(OS)' != 'Windows_NT'" Include="$TEST_NAME.dll" />
-    <_TestRunCommandArguments Condition="'$(OS)' == 'Windows_NT'" Include="%TEST_NAME%.dll" />
-
-    <_TestRunCommandArguments Include="--ResultsDirectory:$(_HelixLogPath)" />
-
+    <_TestRunCommandArguments Include="$(_TestNameEnvVar).dll" />
+    <_TestRunCommandArguments Include="--ResultsDirectory:$(_HelixLogsPath)" />
   </ItemGroup>
 
   <Target Name="BuildHelixWorkItems" DependsOnTargets="_StageDependenciesForHelix">
+    <Error Condition="'$(RepoTestResultsPath)' == ''" Text="%24(RepoTestResultsPath) is unset" />
+
     <PropertyGroup>
+      <HelixResultsDestinationDir>$(RepoTestResultsPath)</HelixResultsDestinationDir>
+
       <_TestRunCommand Condition="'$(RunWithCodeCoverage)' == 'true'">@(_TestCoverageCommand, ' ') &quot;@(_TestRunCommandArguments, ' ')&quot;</_TestRunCommand>
       <_TestRunCommand Condition="'$(RunWithCodeCoverage)' != 'true'">@(_TestRunCommandArguments, ' ')</_TestRunCommand>
     </PropertyGroup>
@@ -57,6 +60,9 @@
         <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
         <Command>$(_TestRunCommand)</Command>
         <Timeout>$(_workItemTimeout)</Timeout>
+
+        <!-- Download results file so coverage files can be extracted -->
+        <DownloadFilesFromResults>true</DownloadFilesFromResults>
       </HelixWorkItem>
     </ItemGroup>
 

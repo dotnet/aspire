@@ -31,7 +31,7 @@ steps:
     - template: /eng/pipelines/templates/send-to-helix.yml
       parameters:
         HelixProjectPath: '$(Build.SourcesDirectory)/tests/send-to-helix.proj'
-        HelixProjectArguments: /p:RunWithCodeCoverage=true
+        HelixProjectArguments: /p:RunWithCodeCoverage=true /p:RepoTestResultsPath=${{ parameters.repoTestResultsPath }}
 
         ${{ if eq(parameters.isWindows, 'true') }}:
           HelixTargetQueues: Windows.11.Amd64.Client.Open
