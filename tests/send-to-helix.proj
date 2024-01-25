@@ -20,15 +20,21 @@
     <_TestCoverageCommand>dotnet dotnet-coverage collect</_TestCoverageCommand>
     <_TestCoverageCommand>$(_TestCoverageCommand) --settings $(RepoRoot)eng/CodeCoverage.config</_TestCoverageCommand>
     <_TestCoverageCommand>$(_TestCoverageCommand) --output $(_HelixLogPath)/Test.cobertura.xml</_TestCoverageCommand>
-
-    <_TestRunCommandArguments>dotnet test</_TestRunCommandArguments>
-    <_TestRunCommandArguments Condition="'$(OS)' != 'Windows_NT'">$(_TestRunCommandArguments) $TEST_NAME.dll</_TestRunCommandArguments>
-    <_TestRunCommandArguments Condition="'$(OS)' == 'Windows_NT'">$(_TestRunCommandArguments) %TEST_NAME%.dll</_TestRunCommandArguments>
-
-    <_TestRunCommandArguments>$(_TestRunCommandArguments) --ResultsDirectory:$(_HelixLogPath)</_TestRunCommandArguments>
-    <_TestRunCommandArguments>$(_TestRunCommandArguments) '--logger:console%3Bverbosity=normal'</_TestRunCommandArguments>
-    <_TestRunCommandArguments>$(_TestRunCommandArguments) '--logger:trx%3BLogFileName=TestResults.trx'</_TestRunCommandArguments>
   </PropertyGroup>
+
+  <ItemGroup>
+    <_TestRunCommandArguments Include="dotnet test" />
+
+    <_TestRunCommandArguments Condition="'$(OS)' != 'Windows_NT'" Include="$TEST_NAME.dll" />
+    <_TestRunCommandArguments Condition="'$(OS)' == 'Windows_NT'" Include="%TEST_NAME%.dll" />
+
+    <_TestRunCommandArguments Include="--ResultsDirectory:$(_HelixLogPath)" />
+
+    <_TestRunCommandArguments Condition="'$(OS)' != 'Windows_NT'" Include="'--logger:console%3Bverbosity=normal'" />
+    <_TestRunCommandArguments Condition="'$(OS)' == 'Windows_NT'" Include="--logger:console%3Bverbosity=normal" />
+    <_TestRunCommandArguments Condition="'$(OS)' != 'Windows_NT'" Include="'--logger:trx%3BLogFileName=TestResults.trx'" />
+    <_TestRunCommandArguments Condition="'$(OS)' == 'Windows_NT'" Include="--logger:trx%3BLogFileName=TestResults.trx" />
+  </ItemGroup>
 
   <ItemGroup>
     <_DefaultWorkItems Include="$(WorkItemArchiveWildCard)" />
@@ -38,8 +44,8 @@
       <PayloadArchive>$(TestArchiveTestsDir)%(Identity).zip</PayloadArchive>
       <PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=%(Identity)&quot;</PreCommands>
       <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=%(Identity)&quot;</PreCommands>
-      <Command Condition="'$(RunWithCodeCoverage)' == 'true'">$(_TestCoverageCommand) &quot;$(_TestRunCommandArguments)&quot;</Command>
-      <Command Condition="'$(RunWithCodeCoverage)' != 'true'">$(_TestRunCommandArguments)</Command>
+      <Command Condition="'$(RunWithCodeCoverage)' == 'true'">$(_TestCoverageCommand) &quot;@(_TestRunCommandArguments, ' ')&quot;</Command>
+      <Command Condition="'$(RunWithCodeCoverage)' != 'true'">@(_TestRunCommandArguments, ' ')</Command>
       <Timeout>$(_workItemTimeout)</Timeout>
     </HelixWorkItem>
   </ItemGroup>
