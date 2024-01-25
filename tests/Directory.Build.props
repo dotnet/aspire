@@ -11,10 +11,17 @@
     -->
     <NoWarn>$(NoWarn);1573;1591;1712</NoWarn>
 
-    <IsHelixReadyTestProject Condition="'$(IsHelixReadyTestProject)' == ''">true</IsHelixReadyTestProject>
+    <IsHelixOnlyTestProject Condition="'$(IsHelixOnlyTestProject)' == ''">false</IsHelixOnlyTestProject>
+    <IsNonHelixOnlyTestProject Condition="'$(IsNonHelixOnlyTestProject)' == ''">false</IsNonHelixOnlyTestProject>
     <DeployRunSettingsFile Condition="'$(DeployRunSettingsFile)' == ''">true</DeployRunSettingsFile>
 
-    <SkipTests Condition="'$(SkipTests)' == '' and '$(IsHelixReadyTestProject)' == 'true' and '$(SkipHelixReadyTests)' == 'true'">true</SkipTests>
+    <!-- FIXME: add back CI condition -->
+    <RunTestOnHelix Condition="'$(IsTestSupportProject)' != 'true' and
+                                  ('$(IsHelixOnlyTestProject)' == 'true' or
+                                    ('$(IsNonHelixOnlyTestProject)' != 'true' and '$(DefaultToRunningTestsOnHelix)' == 'true'))">true</RunTestOnHelix>
+    <!-- skip for local run -->
+    <!-- FIXME: check for testsupportproject too? -->
+    <SkipTests Condition="'$(SkipTests)' == '' and '$(RunTestOnHelix)' == 'true'">true</SkipTests>
   </PropertyGroup>
 
 </Project>

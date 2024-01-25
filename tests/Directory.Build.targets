@@ -5,7 +5,7 @@
     <None Include="$(RepositoryEngineeringDir)testing\.runsettings" CopyToOutputDirectory="PreserveNewest" Condition="'$(DeployRunSettingsFile)' == 'true'" />
   </ItemGroup>
 
-  <Target Name="ZipTestArchive" AfterTargets="PrepareForRun" Condition="'$(ArchiveTests)' == 'true' and '$(IsTestSupportProject)' != 'true' and '$(IsHelixReadyTestProject)' == 'true'">
+  <Target Name="ZipTestArchive" AfterTargets="Build" Condition="'$(ArchiveTests)' == 'true' and '$(RunTestOnHelix)' == 'true'">
     <Error Condition="'$(TestArchiveTestsDir)' == ''" Text="TestArchiveTestsDir property to archive the test folder must be set." />
 
     <MakeDir Directories="$(TestArchiveTestsDir)" />

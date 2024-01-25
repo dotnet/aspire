@@ -17,7 +17,7 @@ parameters:
   - name: skipTests
     type: boolean
     default: false
-  - name: runTestsOnHelix
+  - name: defaultToRunningTestsOnHelix
     type: boolean
     default: true
 
@@ -26,30 +26,30 @@ steps:
             -restore -build
             -configuration ${{ parameters.buildConfig }}
             /p:ArchiveTests=true
+            /p:DefaultToRunningTestsOnHelix=${{ parameters.defaultToRunningTestsOnHelix }}
             /bl:${{ parameters.repoLogPath }}/build.binlog
             $(_OfficialBuildIdArgs)
     displayName: Build
 
   - ${{ if ne(parameters.skipTests, 'true') }}:
-    - ${{ if eq(parameters.runTestsOnHelix, 'true') }}:
-      - template: /eng/pipelines/templates/send-to-helix.yml
-        parameters:
-          HelixProjectPath: '$(Build.SourcesDirectory)/tests/send-to-helix.proj'
-          HelixProjectArguments: /p:RunWithCodeCoverage=true /p:RepoTestResultsPath=${{ parameters.repoTestResultsPath }}
+    - template: /eng/pipelines/templates/send-to-helix.yml
+      parameters:
+        HelixProjectPath: '$(Build.SourcesDirectory)/tests/send-to-helix.proj'
+        HelixProjectArguments: /p:RunWithCodeCoverage=true /p:RepoTestResultsPath=${{ parameters.repoTestResultsPath }}
 
-          ${{ if eq(parameters.isWindows, 'true') }}:
-            HelixTargetQueues: Windows.11.Amd64.Client.Open
-          ${{ if ne(parameters.isWindows, 'true') }}:
-            HelixTargetQueues: Ubuntu.2204.Amd64.Open
+        ${{ if eq(parameters.isWindows, 'true') }}:
+          HelixTargetQueues: Windows.11.Amd64.Client.Open
+        ${{ if ne(parameters.isWindows, 'true') }}:
+          HelixTargetQueues: Ubuntu.2204.Amd64.Open
 
-          Creator: $(Build.DefinitionName)
-          HelixBuild: $(Build.BuildNumber)
-          HelixAccessToken: $(HelixApiAccessToken)
+        Creator: $(Build.DefinitionName)
+        HelixBuild: $(Build.BuildNumber)
+        HelixAccessToken: $(HelixApiAccessToken)
 
     - script: ${{ parameters.dotnetScript }} dotnet-coverage collect
               --settings $(Build.SourcesDirectory)/eng/CodeCoverage.config
               --output ${{ parameters.repoTestResultsPath }}/NonHelixTests.cobertura.xml
-              "${{ parameters.buildScript }} -testnobuild -test -configuration ${{ parameters.buildConfig }} /bl:${{ parameters.repoLogPath }}/tests.binlog /p:SkipHelixReadyTests=${{ parameters.runTestsOnHelix }} $(_OfficialBuildIdArgs)"
+      "${{ parameters.buildScript }} -testnobuild -test -configuration ${{ parameters.buildConfig }} /bl:${{ parameters.repoLogPath }}/tests.binlog /p:DefaultToRunningTestsOnHelix=${{ parameters.defaultToRunningTestsOnHelix }} $(_OfficialBuildIdArgs)"
       displayName: Run non-helix tests
 
     - ${{ if eq(parameters.isWindows, 'true') }}:
