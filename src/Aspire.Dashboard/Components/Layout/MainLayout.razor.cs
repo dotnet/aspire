@@ -19,16 +19,13 @@ public partial class MainLayout : IDisposable
     public required ThemeManager ThemeManager { get; init; }
 
     [Inject]
-    public required IJSRuntime JS { get; set; }
+    public required IJSRuntime JS { get; init; }
 
     [Inject]
-    public required IStringLocalizer<Resources.Layout> Loc { get; set; }
+    public required IStringLocalizer<Resources.Layout> Loc { get; init; }
 
     [Inject]
-    public required IDashboardClient DashboardClient { get; set; }
-
-    [Inject]
-    public required IDialogService DialogService { get; set; }
+    public required IDialogService DialogService { get; init; }
 
     protected override void OnInitialized()
     {
