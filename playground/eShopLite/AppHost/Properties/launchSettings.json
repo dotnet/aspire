@@ -9,7 +9,6 @@
         "ASPNETCORE_ENVIRONMENT": "Development",
         "DOTNET_ENVIRONMENT": "Development",
         "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL": "http://localhost:16031",
-        "DOTNET_RESOURCE_SERVICE_ENDPOINT_URL": "http://localhost:5555",
         "DOTNET_ASPIRE_SHOW_DASHBOARD_RESOURCES": "true" // Display dashboard resource in console for local development
       }
     },

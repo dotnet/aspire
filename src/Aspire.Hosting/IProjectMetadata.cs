@@ -7,18 +7,18 @@ using Aspire.Hosting.ApplicationModel;
 namespace Aspire.Hosting;
 
 /// <summary>
-/// Represents metadata about a service.
+/// Represents metadata about a project resource.
 /// </summary>
-public interface IServiceMetadata : IResourceAnnotation
+public interface IProjectMetadata : IResourceAnnotation
 {
     /// <summary>
-    /// Gets the fully-qualified path to the project containing the service.
+    /// Gets the fully-qualified path to the project.
     /// </summary>
     public string ProjectPath { get; }
 }
 
 [DebuggerDisplay("Type = {GetType().Name,nq}, ProjectPath = {ProjectPath}")]
-internal class ServiceMetadata(string projectPath) : IServiceMetadata
+internal class ProjectMetadata(string projectPath) : IProjectMetadata
 {
     public string ProjectPath { get; } = projectPath;
 }

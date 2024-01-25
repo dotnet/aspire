@@ -35,6 +35,7 @@ internal sealed class DcpDataSource
     public DcpDataSource(
         KubernetesService kubernetesService,
         DistributedApplicationModel applicationModel,
+        IEnvironmentVariables environmentVariables,
         ILoggerFactory loggerFactory,
         Func<ResourceSnapshot, ResourceSnapshotChangeType, ValueTask> onResourceChanged,
         CancellationToken cancellationToken)
@@ -89,24 +90,17 @@ internal sealed class DcpDataSource
                 _logger.LogError(ex, "Watch task over kubernetes {ResourceType} resources terminated", typeof(T).Name);
             }
         }
-    }
 
-    private static bool IsFilteredResource<T>(T resource) where T : CustomResource
-    {
-        // We filter out any resources that start with aspire-dashboard (there are services as well as executables).
-        if (resource.Metadata.Name.StartsWith(KnownResourceNames.AspireDashboard, StringComparisons.ResourceName))
+        bool IsFilteredResource<T>(T resource) where T : CustomResource
         {
-            if (Environment.GetEnvironmentVariable("DOTNET_ASPIRE_SHOW_DASHBOARD_RESOURCES") is { } showDashboardResourcesValue)
+            // We filter out any resources that start with aspire-dashboard (there are services as well as executables).
+            if (resource.Metadata.Name.StartsWith(KnownResourceNames.AspireDashboard, StringComparisons.ResourceName))
             {
-                return bool.TryParse(showDashboardResourcesValue, out var parsedShowDashboardResourcesValue) && !parsedShowDashboardResourcesValue;
+                return environmentVariables.GetBool("DOTNET_ASPIRE_SHOW_DASHBOARD_RESOURCES") is not true;
             }
-            else
-            {
-                return true;
-            }
-        }
 
-        return false;
+            return false;
+        }
     }
 
     private async Task ProcessResourceChange<T>(WatchEventType watchEventType, T resource, ConcurrentDictionary<string, T> resourceByName, string resourceKind, Func<T, ResourceSnapshot> snapshotFactory) where T : CustomResource
