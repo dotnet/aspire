@@ -39,24 +39,9 @@ internal static class ResourceViewModelExtensions
         return resource.TryGetCustomDataInt(KnownProperties.Resource.ExitCode, out exitCode);
     }
 
-    public static bool TryGetContainerId(this ResourceViewModel resource, [NotNullWhen(returnValue: true)] out string? containerId)
-    {
-        return resource.TryGetCustomDataString(KnownProperties.Container.Id, out containerId);
-    }
-
     public static bool TryGetContainerImage(this ResourceViewModel resource, [NotNullWhen(returnValue: true)] out string? containerImage)
     {
         return resource.TryGetCustomDataString(KnownProperties.Container.Image, out containerImage);
-    }
-
-    public static bool TryGetContainerPorts(this ResourceViewModel resource, out ImmutableArray<int> containerImage)
-    {
-        return resource.TryGetCustomDataIntArray(KnownProperties.Container.Ports, out containerImage);
-    }
-
-    public static bool TryGetProcessId(this ResourceViewModel resource, out int processId)
-    {
-        return resource.TryGetCustomDataInt(KnownProperties.Executable.Pid, out processId);
     }
 
     public static bool TryGetProjectPath(this ResourceViewModel resource, [NotNullWhen(returnValue: true)] out string? projectPath)
@@ -72,11 +57,6 @@ internal static class ResourceViewModelExtensions
     public static bool TryGetExecutableArguments(this ResourceViewModel resource, out ImmutableArray<string> arguments)
     {
         return resource.TryGetCustomDataStringArray(KnownProperties.Executable.Args, out arguments);
-    }
-
-    public static bool TryGetWorkingDirectory(this ResourceViewModel resource, [NotNullWhen(returnValue: true)] out string? workingDirectory)
-    {
-        return resource.TryGetCustomDataString(KnownProperties.Executable.WorkDir, out workingDirectory);
     }
 
     private static bool TryGetCustomDataString(this ResourceViewModel resource, string key, [NotNullWhen(returnValue: true)] out string? s)
@@ -124,30 +104,6 @@ internal static class ResourceViewModelExtensions
         }
 
         i = 0;
-        return false;
-    }
-
-    private static bool TryGetCustomDataIntArray(this ResourceViewModel resource, string key, out ImmutableArray<int> ints)
-    {
-        if (resource.Properties.TryGetValue(key, out var value) && value.ListValue is not null)
-        {
-            var builder = ImmutableArray.CreateBuilder<int>(value.ListValue.Values.Count);
-
-            foreach (var element in value.ListValue.Values)
-            {
-                if (!element.TryConvertToInt(out var i))
-                {
-                    ints = default;
-                    return false;
-                }
-                builder.Add(i);
-            }
-
-            ints = builder.MoveToImmutable();
-            return true;
-        }
-
-        ints = default;
         return false;
     }
 }

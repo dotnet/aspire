@@ -1,14 +1,12 @@
 ﻿@page "/Trace/{traceId}"
 @page "/Trace/{traceId}/Span/{spanId}"
 
-@using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Model.Otlp
 @using Aspire.Dashboard.Otlp.Model
 @using System.Globalization
 @using Aspire.Dashboard.Resources
 @inject IStringLocalizer<Dashboard.Resources.TraceDetail> Loc
 @inject IStringLocalizer<ControlsStrings> ControlStringsLoc
-@inject IDashboardClient DashboardClient
 
 <PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.TraceDetail.TraceDetailPageTitle)" Loc="@Loc" /></PageTitle>
 
@@ -53,7 +51,7 @@
                 </div>
             </DetailsTitleTemplate>
             <Summary>
-                <FluentDataGrid Class="trace-view-grid" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="SpanWaterfallViewModel" RowClass="@GetRowClass" GridTemplateColumns="2fr 6fr">
+                <FluentDataGrid Class="trace-view-grid" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="SpanWaterfallViewModel" RowClass="@GetRowClass" GridTemplateColumns="4fr 12fr 85px">
                     <TemplateColumn Title="Name">
                         <div class="col-long-content" title="@context.GetTooltip()" @onclick="() => OnShowProperties(context)">
                             @{
@@ -125,6 +123,12 @@
                                 <div class="tick" style="grid-column: 5;"></div>
                             </div>
                         </ChildContent>
+                    </TemplateColumn>
+                    <TemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.DetailsColumnHeader)]">
+                        <FluentButton
+                            Style="margin-left: 7px;"
+                            Title="@ControlStringsLoc[nameof(ControlsStrings.ViewAction)]"
+                            Appearance="Appearance.Lightweight" OnClick="() => OnShowProperties(context)">@ControlStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentButton>
                     </TemplateColumn>
                 </FluentDataGrid>
             </Summary>

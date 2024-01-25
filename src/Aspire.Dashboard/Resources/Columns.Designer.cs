@@ -205,20 +205,11 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to {0} error log.
+        ///   Looks up a localized string similar to {0} errors.
         /// </summary>
-        public static string UnreadLogErrorsBadgeErrorLog {
+        public static string UnreadLogErrors {
             get {
-                return ResourceManager.GetString("UnreadLogErrorsBadgeErrorLog", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to {0} error logs.
-        /// </summary>
-        public static string UnreadLogErrorsBadgeErrorLogs {
-            get {
-                return ResourceManager.GetString("UnreadLogErrorsBadgeErrorLogs", resourceCulture);
+                return ResourceManager.GetString("UnreadLogErrors", resourceCulture);
             }
         }
     }
