@@ -51,13 +51,13 @@ steps:
               "${{ parameters.buildScript }} -testnobuild -test -configuration ${{ parameters.buildConfig }} /bl:${{ parameters.repoLogPath }}/tests.binlog /p:SkipHelixReadyTests=true $(_OfficialBuildIdArgs)"
       displayName: Run non-helix tests
 
-    - script: find ${{ parameters.repoTestResultsPath }}
+    - script: find ${{ parameters.repoTestResultsPath }} -type f
       displayName: ls test results path
 
     - script: ${{ parameters.dotnetScript }} dotnet-coverage
               merge
               ${{ parameters.repoTestResultsPath}}/*cobertura.xml
-              ${{ parameters.repoTestResultsPath}}/logs/*cobertura.xml
+              ${{ parameters.repoTestResultsPath}}/**/*cobertura.xml
               -f cobertura
               -o '${{ parameters.repoTestResultsPath }}/$(Agent.Os)_$(Agent.JobName).cobertura.xml'
       displayName: Merge code coverage results
