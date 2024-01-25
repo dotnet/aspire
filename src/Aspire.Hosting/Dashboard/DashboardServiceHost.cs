@@ -5,7 +5,6 @@ using System.Net;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Publishing;
-using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server;
@@ -50,6 +49,7 @@ internal sealed class DashboardServiceHost : IHostedService
         DistributedApplicationOptions options,
         DistributedApplicationModel applicationModel,
         KubernetesService kubernetesService,
+        IEnvironmentVariables environmentVariables,
         IOptions<PublishingOptions> publishingOptions,
         ILoggerFactory loggerFactory,
         IConfigureOptions<LoggerFilterOptions> loggerOptions)
@@ -59,7 +59,7 @@ internal sealed class DashboardServiceHost : IHostedService
         if (!options.DashboardEnabled ||
             publishingOptions.Value.Publisher == "manifest") // HACK: Manifest publisher check is temporary until DcpHostService is integrated with DcpPublisher.
         {
-            _logger.LogInformation("Dashboard is not enabled so skipping hosting the resource service.");
+            _logger.LogDebug("Dashboard is not enabled so skipping hosting the resource service.");
             _resourceServiceUri.SetCanceled();
             return;
         }
@@ -67,6 +67,9 @@ internal sealed class DashboardServiceHost : IHostedService
         try
         {
             var builder = WebApplication.CreateBuilder();
+
+            // Environment
+            builder.Services.AddSingleton<IEnvironmentVariables, EnvironmentVariables>();
 
             // Logging
             builder.Services.AddSingleton(loggerFactory);
@@ -92,14 +95,14 @@ internal sealed class DashboardServiceHost : IHostedService
 
         return;
 
-        static void ConfigureKestrel(KestrelServerOptions kestrelOptions)
+        void ConfigureKestrel(KestrelServerOptions kestrelOptions)
         {
-            // Check env var for URLs to listen on.
-            var uris = EnvironmentUtil.GetAddressUris(ResourceServiceUrlVariableName, defaultValue: null);
+            // Inspect environment for the address to listen on.
+            var uri = environmentVariables.GetUri(ResourceServiceUrlVariableName);
 
             string? scheme;
 
-            if (uris is null or [])
+            if (uri is null)
             {
                 // No URI available from the environment.
                 scheme = null;
@@ -107,21 +110,16 @@ internal sealed class DashboardServiceHost : IHostedService
                 // Listen on a random port.
                 kestrelOptions.Listen(IPAddress.Loopback, port: 0, ConfigureListen);
             }
-            else if (uris is [Uri uri])
+            else if (uri.IsLoopback)
             {
-                if (!uri.IsLoopback)
-                {
-                    throw new ArgumentException($"{ResourceServiceUrlVariableName} must contain a local loopback address.");
-                }
-
                 scheme = uri.Scheme;
 
+                // Listen on the requested localhost port.
                 kestrelOptions.ListenLocalhost(uri.Port, ConfigureListen);
-
             }
             else
             {
-                throw new ArgumentException($"Multiple URIs are not supported in the {ResourceServiceUrlVariableName} environment variable.");
+                throw new ArgumentException($"{ResourceServiceUrlVariableName} must contain a local loopback address.");
             }
 
             void ConfigureListen(ListenOptions options)

@@ -1,5 +1,3 @@
-using Microsoft.Extensions.Hosting;
-
 var builder = DistributedApplication.CreateBuilder(args);
 
 var storage = builder.AddAzureStorage("storage");
@@ -35,9 +33,7 @@ builder.AddProject<Projects.OrleansServer>("silo")
 // to test end developer dashboard launch experience. Refer to Directory.Build.props
 // for the path to the dashboard binary (defaults to the Aspire.Dashboard bin output
 // in the artifacts dir).
-builder.AddProject<Projects.Aspire_Dashboard>(KnownResourceNames.AspireDashboard)
-    .WithEnvironment("DOTNET_RESOURCE_SERVICE_ENDPOINT_URL", "http://localhost:5555")
-    .ExcludeFromManifest();
+builder.AddProject<Projects.Aspire_Dashboard>(KnownResourceNames.AspireDashboard);
 
 using var app = builder.Build();
 

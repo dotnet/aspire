@@ -9,13 +9,14 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />
-    <ProjectReference Include="..\..\..\src\Aspire.Hosting\Aspire.Hosting.csproj" />
-    <ProjectReference Include="..\TestProject.IntegrationServiceA\TestProject.IntegrationServiceA.csproj" ServiceNameOverride="IntegrationServiceA" />
-    <ProjectReference Include="..\TestProject.ServiceA\TestProject.ServiceA.csproj" ServiceNameOverride="ServiceA" />
-    <ProjectReference Include="..\TestProject.ServiceB\TestProject.ServiceB.csproj" ServiceNameOverride="ServiceB" />
-    <ProjectReference Include="..\TestProject.ServiceC\TestProject.ServiceC.csproj" ServiceNameOverride="ServiceC" />
-    <ProjectReference Include="..\TestProject.WorkerA\TestProject.WorkerA.csproj" ServiceNameOverride="WorkerA" />
+    <ProjectReference Include="..\..\..\src\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" IsAspireProjectResource="false" />
+    <ProjectReference Include="..\..\..\src\Aspire.Hosting\Aspire.Hosting.csproj" IsAspireProjectResource="false" />
+    
+    <ProjectReference Include="..\TestProject.IntegrationServiceA\TestProject.IntegrationServiceA.csproj" AspireProjectMetadataTypeName="IntegrationServiceA" />
+    <ProjectReference Include="..\TestProject.ServiceA\TestProject.ServiceA.csproj" AspireProjectMetadataTypeName="ServiceA" />
+    <ProjectReference Include="..\TestProject.ServiceB\TestProject.ServiceB.csproj" AspireProjectMetadataTypeName="ServiceB" />
+    <ProjectReference Include="..\TestProject.ServiceC\TestProject.ServiceC.csproj" AspireProjectMetadataTypeName="ServiceC" />
+    <ProjectReference Include="..\TestProject.WorkerA\TestProject.WorkerA.csproj" AspireProjectMetadataTypeName="WorkerA" />
   </ItemGroup>
 
 </Project>
