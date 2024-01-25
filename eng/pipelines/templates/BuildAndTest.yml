@@ -48,12 +48,21 @@ steps:
               "${{ parameters.buildScript }} -testnobuild -test -configuration ${{ parameters.buildConfig }} /bl:${{ parameters.repoLogPath }}/tests.binlog /p:SkipHelixReadyTests=true $(_OfficialBuildIdArgs)"
       displayName: Run non-helix tests
 
-    - pwsh: |
-          echo "(Get-ChildItem -Path ${{ parameters.repoTestResultsPath }}/../../../ -Recurse -Filter *.cobertura.xml -File | % { $_.FullName }) -join ' '"
-          $_filelist=$((Get-ChildItem -Path ${{ parameters.repoTestResultsPath }}/../../../ -Recurse -Filter *.cs -File | % { $_.FullName }) -join ' ')
-          echo "fl is $_filelist"
-          ${{ parameters.dotnetScript }} dotnet-coverage merge $_filelist -f cobertura -o '${{ parameters.repoTestResultsPath }}/$(Agent.Os)_$(Agent.JobName).cobertura.xml'
-      displayName: Merge code coverage results
+    - ${{ if eq(parameters.isWindows, 'true') }}:
+      - pwsh: |
+            echo "(Get-ChildItem -Path ${{ parameters.repoTestResultsPath }}/../../../ -Recurse -Filter *.cobertura.xml -File | % { $_.FullName }) -join ' '"
+            $_filelist=$((Get-ChildItem -Path ${{ parameters.repoTestResultsPath }}/../../../ -Recurse -Filter *.cs -File | % { $_.FullName }) -join ' ')
+            echo "fl is $_filelist"
+            cmd /c ${{ parameters.dotnetScript }} dotnet-coverage merge $_filelist -f cobertura -o '${{ parameters.repoTestResultsPath }}/$(Agent.Os)_$(Agent.JobName).cobertura.xml'
+        displayName: Merge code coverage results
+
+    - ${{ if ne(parameters.isWindows, 'true') }}:
+      - script: ${{ parameters.dotnetScript }} dotnet-coverage
+                merge
+                `find ${{ parameters.repoTestResultsPath }} -name '*.cobertura.xml' -print0 | xargs -0`
+                -f cobertura
+                -o '${{ parameters.repoTestResultsPath }}/$(Agent.Os)_$(Agent.JobName).cobertura.xml'
+        displayName: Merge code coverage results
 
     - task: PublishBuildArtifacts@1
       inputs:
