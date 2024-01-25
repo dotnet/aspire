@@ -19,13 +19,6 @@ parameters:
     default: false
 
 steps:
-  - pwsh: >-
-        dotnet coverage merge
-        $((Get-ChildItem -Path ${{ parameters.repoTestResultsPath }}/../../../ -Recurse -Filter *.cobertura.xml -File | % { $_.FullName }) -join ' ')
-        -f cobertura
-        -o '${{ parameters.repoTestResultsPath }}/$(Agent.Os)_$(Agent.JobName).cobertura.xml'
-    displayName: Merge code coverage results
-
   - script: ${{ parameters.buildScript }}
             -restore -build
             -configuration ${{ parameters.buildConfig }}
@@ -33,6 +26,13 @@ steps:
             /bl:${{ parameters.repoLogPath }}/build.binlog
             $(_OfficialBuildIdArgs)
     displayName: Build
+
+  - pwsh: >-
+        ${{ parameters.dotnetScript }} dotnet-coverage merge
+        $((Get-ChildItem -Path ${{ parameters.repoTestResultsPath }}/../../../ -Recurse -Filter *.cobertura.xml -File | % { $_.FullName }) -join ' ')
+        -f cobertura
+        -o '${{ parameters.repoTestResultsPath }}/$(Agent.Os)_$(Agent.JobName).cobertura.xml'
+    displayName: Merge code coverage results
 
   - ${{ if ne(parameters.skipTests, 'true') }}:
     - template: /eng/pipelines/templates/send-to-helix.yml
