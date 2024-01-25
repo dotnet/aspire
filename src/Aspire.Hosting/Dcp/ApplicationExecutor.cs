@@ -178,11 +178,22 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         };
 
         await kubernetesService.CreateAsync(dashboardExecutable, cancellationToken).ConfigureAwait(false);
-
-        await WaitForHttpSuccessOrThrow(dashboardUrl, TimeSpan.FromSeconds(DashboardWaitTimeInSeconds), cancellationToken).ConfigureAwait(false);
+        await WaitForHttpSuccessOrThrow(dashboardUrl, GetDashboardWaitTimeInSeconds(), cancellationToken).ConfigureAwait(false);
     }
 
-    private const int DashboardWaitTimeInSeconds = 10;
+    private static TimeSpan GetDashboardWaitTimeInSeconds()
+    {
+        if (Environment.GetEnvironmentVariable("DOTNET_ASPIRE_DASHBOARD_TIMEOUT") is { } timeoutString && int.TryParse(timeoutString, out var timeoutInSeconds))
+        {
+            return TimeSpan.FromSeconds(timeoutInSeconds);
+        }
+        else
+        {
+            return TimeSpan.FromSeconds(DefaultDashboardWaitTimeInSeconds);
+        }
+    }
+
+    private const int DefaultDashboardWaitTimeInSeconds = 60;
 
     private async Task WaitForHttpSuccessOrThrow(string url, TimeSpan timeout, CancellationToken cancellationToken = default)
     {
@@ -570,13 +581,16 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 //       AddProject<T>. When doing this we make sure that the dashboard is running.
                 if (er.ModelResource.Name.Equals(KnownResourceNames.AspireDashboard, StringComparisons.ResourceName))
                 {
-                    if (er.ModelResource.TryGetAllocatedEndPoints(out var allocatedEndpoints))
+                    // We just check the HTTP endpoint because this will prove that the
+                    // dashboard is listening and is ready to process requests. The dashboard
+                    //
+
+                    if (Environment.GetEnvironmentVariable("ASPNETCORE_URLS") is not { } dashboardUrl)
                     {
-                        // We just check the HTTP endpoint because this will prove that the dashboard
-                        // is listening and is ready to process requests.
-                        var httpEndpoint = allocatedEndpoints.Single(ae => ae.Name.Equals("http", StringComparisons.EndpointAnnotationName));
-                        await WaitForHttpSuccessOrThrow(httpEndpoint.UriString, TimeSpan.FromSeconds(DashboardWaitTimeInSeconds), cancellationToken).ConfigureAwait(false);
+                        throw new DistributedApplicationException("Cannot check dashboard availability since ASPNETCORE_URLS environment variable not set.");
                     }
+
+                    await WaitForHttpSuccessOrThrow(dashboardUrl, GetDashboardWaitTimeInSeconds(), cancellationToken).ConfigureAwait(false);
                 }
 
             }

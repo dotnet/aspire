@@ -60,6 +60,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         // Dashboard
         _innerBuilder.Services.AddSingleton<DashboardServiceHost>();
         _innerBuilder.Services.AddHostedService<DashboardServiceHost>(sp => sp.GetRequiredService<DashboardServiceHost>());
+        _innerBuilder.Services.AddLifecycleHook<DashboardInnerLoopHook>();
 
         // DCP stuff
         _innerBuilder.Services.AddLifecycleHook<DcpDistributedApplicationLifecycleHook>();

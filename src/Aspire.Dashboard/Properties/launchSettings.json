@@ -7,6 +7,20 @@
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
       "applicationUrl": "https://localhost:63824;http://localhost:15888"
+    },
+
+    // This profile is used by the Aspire app host when
+    // running the dashboard as a resource in the app model.
+    // By using a profile with no application URL we suppress
+    // AppExecutors default behavior around adding endpoints
+    // to the resource, and providing the ability to try
+    // out new things by injecting environment variables.
+    "innerloop": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
     }
   }
 }
