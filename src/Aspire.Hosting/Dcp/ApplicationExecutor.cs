@@ -391,7 +391,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
         foreach (var project in modelProjectResources)
         {
-            if (!project.TryGetLastAnnotation<IServiceMetadata>(out var projectMetadata))
+            if (!project.TryGetLastAnnotation<IProjectMetadata>(out var projectMetadata))
             {
                 throw new InvalidOperationException("A project resource is missing required metadata"); // Should never happen.
             }
