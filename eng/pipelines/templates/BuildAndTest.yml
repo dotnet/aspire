@@ -29,8 +29,9 @@ steps:
 
   - pwsh: |
         echo "(Get-ChildItem -Path ${{ parameters.repoTestResultsPath }}/../../../ -Recurse -Filter *.cobertura.xml -File | % { $_.FullName }) -join ' '"
-        $_filelist=$((Get-ChildItem -Path ${{ parameters.repoTestResultsPath }}/../../../ -Recurse -Filter *.cobertura.xml -File | % { $_.FullName }) -join ' ')
+        $_filelist=$((Get-ChildItem -Path ${{ parameters.repoTestResultsPath }}/../../../ -Recurse -Filter *.cs -File | % { $_.FullName }) -join ' ')
         echo "fl is $_filelist"
+        echo ${{ parameters.dotnetScript }} dotnet-coverage merge $_filelist -f cobertura -o '${{ parameters.repoTestResultsPath }}/$(Agent.Os)_$(Agent.JobName).cobertura.xml'
         ${{ parameters.dotnetScript }} dotnet-coverage merge $_filelist -f cobertura -o '${{ parameters.repoTestResultsPath }}/$(Agent.Os)_$(Agent.JobName).cobertura.xml'
     displayName: Merge code coverage results
 
