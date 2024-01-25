@@ -28,7 +28,11 @@ export function announceDataGridRows(dataGridContainerId, indices) {
 }
 
 function getRowText(dataGridContainerId, index) {
-    const dataGrid = document.getElementById(dataGridContainerId).children[0];
+    const container = document.getElementById(dataGridContainerId);
+    if (!container || container.children.length === 0) {
+        return null;
+    }
+    const dataGrid = container.children[0];
     const row = dataGrid.getElementsByTagName("fluent-data-grid-row")[index + 1];
 
     if (!row) {
