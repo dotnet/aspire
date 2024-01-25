@@ -126,7 +126,7 @@ stages:
               buildConfig: $(_BuildConfig)
               repoLogPath: $(Build.Arcade.LogsPath)
               repoTestResultsPath: $(Build.Arcade.TestResultsPath)
-              runTestsOnHelix: false
+              defaultToRunningTestsOnHelix: false
               isWindows: true
 
 
