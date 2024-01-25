@@ -81,11 +81,15 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         AspireEventSource.Instance.DcpModelCreationStart();
         try
         {
-            if (!_model.Resources.Any(r => StringComparers.ResourceName.Equals(r.Name, KnownResourceNames.AspireDashboard)))
+            if (_model.Resources.SingleOrDefault(r => StringComparers.ResourceName.Equals(r.Name, KnownResourceNames.AspireDashboard)) is not { } dashboardResource)
             {
                 // No dashboard is specified, so start one.
                 // TODO validate that the dashboard has not been suppressed
-                await StartDashboardAsync(cancellationToken).ConfigureAwait(false);
+                await StartDashboardAsDcpExecutableAsync(cancellationToken).ConfigureAwait(false);
+            }
+            else
+            {
+                await ConfigureAspireDashboardResource(dashboardResource, cancellationToken).ConfigureAwait(false);
             }
 
             PrepareServices();
@@ -102,7 +106,51 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
     }
 
-    private async Task StartDashboardAsync(CancellationToken cancellationToken = default)
+    private async Task ConfigureAspireDashboardResource(IResource dashboardResource, CancellationToken cancellationToken)
+    {
+        // Don't publish the resource to the manifest.
+        dashboardResource.Annotations.Add(ManifestPublishingCallbackAnnotation.Ignore);
+
+        // Remove endpoint annotations because we are directly configuring
+        // the dashboard app (it doesn't go through the proxy!).
+        var endpointAnnotations = dashboardResource.Annotations.OfType<EndpointAnnotation>().ToList();
+        foreach (var endpointAnnotation in endpointAnnotations)
+        {
+            dashboardResource.Annotations.Remove(endpointAnnotation);
+        }
+
+        // Get resource endpoint URL.
+        string grpcEndpointUrl;
+        try
+        {
+            grpcEndpointUrl = await _dashboardServiceHost.GetResourceServiceUriAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            throw new DistributedApplicationException("Error getting the resource service URL.", ex);
+        }
+
+        dashboardResource.Annotations.Add(new EnvironmentCallbackAnnotation(context =>
+        {
+            if (Environment.GetEnvironmentVariable("ASPNETCORE_URLS") is not { } appHostApplicationUrl)
+            {
+                throw new DistributedApplicationException("Dashboard inner loop hook failed to configure resource because ASPNETCORE_URLS environment variable was not set.");
+            }
+
+            if (Environment.GetEnvironmentVariable("DOTNET_DASHBOARD_OTLP_ENDPOINT_URL") is not { } otlpEndpointUrl)
+            {
+                throw new DistributedApplicationException("Dashboard inner loop hook failed to configure resource because DOTNET_DASHBOARD_OTLP_ENDPOINT_URL environment variable was not set.");
+            }
+
+            // Grab the resource service URL. We need to inject this into the resource.
+
+            context.EnvironmentVariables["ASPNETCORE_URLS"] = appHostApplicationUrl;
+            context.EnvironmentVariables["DOTNET_RESOURCE_SERVICE_ENDPOINT_URL"] = grpcEndpointUrl;
+            context.EnvironmentVariables["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] = otlpEndpointUrl;
+        }));
+    }
+
+    private async Task StartDashboardAsDcpExecutableAsync(CancellationToken cancellationToken = default)
     {
         if (!distributedApplicationOptions.DashboardEnabled)
         {
@@ -180,22 +228,25 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         };
 
         await kubernetesService.CreateAsync(dashboardExecutable, cancellationToken).ConfigureAwait(false);
-        await WaitForHttpSuccessOrThrow(dashboardUrl, GetDashboardWaitTime(), cancellationToken).ConfigureAwait(false);
+        await WaitForHttpSuccessOrThrow(dashboardUrl, DashboardAvailabilityTimeoutDuration, cancellationToken).ConfigureAwait(false);
     }
 
-    private static TimeSpan GetDashboardWaitTime()
+    private static TimeSpan DashboardAvailabilityTimeoutDuration
     {
-        if (Environment.GetEnvironmentVariable("DOTNET_ASPIRE_DASHBOARD_TIMEOUT") is { } timeoutString && int.TryParse(timeoutString, out var timeoutInSeconds))
+        get
         {
-            return TimeSpan.FromSeconds(timeoutInSeconds);
-        }
-        else
-        {
-            return TimeSpan.FromSeconds(DefaultDashboardWaitTimeInSeconds);
+            if (Environment.GetEnvironmentVariable("DOTNET_ASPIRE_DASHBOARD_TIMEOUT") is { } timeoutString && int.TryParse(timeoutString, out var timeoutInSeconds))
+            {
+                return TimeSpan.FromSeconds(timeoutInSeconds);
+            }
+            else
+            {
+                return TimeSpan.FromSeconds(DefaultDashboardAvailabilityTimeoutDuration);
+            }
         }
     }
 
-    private const int DefaultDashboardWaitTimeInSeconds = 60;
+    private const int DefaultDashboardAvailabilityTimeoutDuration = 60;
 
     private async Task WaitForHttpSuccessOrThrow(string url, TimeSpan timeout, CancellationToken cancellationToken = default)
     {
@@ -584,15 +635,13 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 if (er.ModelResource.Name.Equals(KnownResourceNames.AspireDashboard, StringComparisons.ResourceName))
                 {
                     // We just check the HTTP endpoint because this will prove that the
-                    // dashboard is listening and is ready to process requests. The dashboard
-                    //
-
+                    // dashboard is listening and is ready to process requests.
                     if (Environment.GetEnvironmentVariable("ASPNETCORE_URLS") is not { } dashboardUrl)
                     {
                         throw new DistributedApplicationException("Cannot check dashboard availability since ASPNETCORE_URLS environment variable not set.");
                     }
 
-                    await WaitForHttpSuccessOrThrow(dashboardUrl, GetDashboardWaitTime(), cancellationToken).ConfigureAwait(false);
+                    await WaitForHttpSuccessOrThrow(dashboardUrl, DashboardAvailabilityTimeoutDuration, cancellationToken).ConfigureAwait(false);
                 }
 
             }
