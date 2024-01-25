@@ -21,7 +21,7 @@ parameters:
 steps:
   - pwsh: >-
         echo dotnet coverage merge
-        $((Get-ChildItem -Path ${{ parameters.repoTestResultsPath }}/../../ -Recurse -Filter *.cobertura.xml -File | % { $_.FullName }) -join ' ')
+        $((Get-ChildItem -Path ${{ parameters.repoTestResultsPath }}/../../../ -Recurse -Filter *.cobertura.xml -File | % { $_.FullName }) -join ' ')
         -f cobertura
         -o '${{ parameters.repoTestResultsPath }}/$(Agent.Os)_$(Agent.JobName).cobertura.xml'
     displayName: Merge code coverage results
