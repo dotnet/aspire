@@ -42,18 +42,22 @@ steps:
         HelixBuild: $(Build.BuildNumber)
         HelixAccessToken: $(HelixApiAccessToken)
 
-    - script: ls -l ${{ parameters.repoTestResultsPath }}
+    - script: find ${{ parameters.repoTestResultsPath }}
       displayName: ls test results path
 
     - script: ${{ parameters.dotnetScript }} dotnet-coverage collect
               --settings $(Build.SourcesDirectory)/eng/CodeCoverage.config
-              --output ${{ parameters.repoTestResultsPath }}/$(Agent.Os)_$(Agent.JobName).cobertura.xml
+              --output ${{ parameters.repoTestResultsPath }}/NonHelixTests.cobertura.xml
               "${{ parameters.buildScript }} -testnobuild -test -configuration ${{ parameters.buildConfig }} /bl:${{ parameters.repoLogPath }}/tests.binlog /p:SkipHelixReadyTests=true $(_OfficialBuildIdArgs)"
       displayName: Run non-helix tests
+
+    - script: find ${{ parameters.repoTestResultsPath }}
+      displayName: ls test results path
 
     - script: ${{ parameters.dotnetScript }} dotnet-coverage
               merge
               ${{ parameters.repoTestResultsPath}}/*cobertura.xml
+              ${{ parameters.repoTestResultsPath}}/logs/*cobertura.xml
               -f cobertura
               -o '${{ parameters.repoTestResultsPath }}/$(Agent.Os)_$(Agent.JobName).cobertura.xml'
       displayName: Merge code coverage results
