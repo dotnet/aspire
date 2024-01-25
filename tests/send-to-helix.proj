@@ -19,10 +19,12 @@
     <_HelixLogPath Condition="'$(OS)' != 'Windows_NT'">$HELIX_WORKITEM_UPLOAD_ROOT/log</_HelixLogPath>
     <_HelixLogPath Condition="'$(OS)' == 'Windows_NT'">%HELIX_WORKITEM_UPLOAD_ROOT%/log</_HelixLogPath>
 
-    <_TestCoverageCommand Condition="'$(OS)' != 'Windows_NT'">$HELIX_CORRELATION_PAYLOAD/dotnet-coverage/dotnet-coverage collect</_TestCoverageCommand>
-    <_TestCoverageCommand Condition="'$(OS)' == 'Windows_NT'">%HELIX_CORRELATION_PAYLOAD%dotnet-coverage/dotnet-coverage collect</_TestCoverageCommand>
-    <!-- FIXME: config file as payload too -->
-    <_TestCoverageCommand>$(_TestCoverageCommand) --settings $(RepoRoot)eng/CodeCoverage.config</_TestCoverageCommand>
+    <_HelixCorrelationPayloadEnvVar Condition="'$(OS)' != 'Windows_NT'">$HELIX_CORRELATION_PAYLOAD</_HelixCorrelationPayloadEnvVar>
+    <_HelixCorrelationPayloadEnvVar Condition="'$(OS)' == 'Windows_NT'">%HELIX_CORRELATION_PAYLOAD%</_HelixCorrelationPayloadEnvVar>
+
+    <_TestCoverageCommand>$(_HelixCorrelationPayloadEnvVar)/dotnet-coverage/dotnet-coverage collect</_TestCoverageCommand>
+
+    <_TestCoverageCommand>$(_TestCoverageCommand) --settings $(_HelixCorrelationPayloadEnvVar)/CodeCoverage.config</_TestCoverageCommand>
     <_TestCoverageCommand>$(_TestCoverageCommand) --output $(_HelixLogPath)/Test.cobertura.xml</_TestCoverageCommand>
   </PropertyGroup>
 
@@ -43,6 +45,7 @@
   <Target Name="BuildHelixWorkItems">
     <ItemGroup>
       <HelixCorrelationPayload Include="$(_DotNetCoverageToolPath)" Destination="dotnet-coverage" />
+      <HelixCorrelationPayload Include="$(RepoRoot)eng/CodeCoverage.config" />
 
       <_DefaultWorkItems Include="$(WorkItemArchiveWildCard)" />
       <!--<_DefaultWorkItems Condition="'$(ContinuousIntegrationBuild)' != 'true'" Include="$(RepoRoot)artifacts/helix/tests/Aspire.Hosting.Tests.zip" />-->
