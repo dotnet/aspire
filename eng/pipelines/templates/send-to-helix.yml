@@ -31,7 +31,7 @@ parameters:
   continueOnError: false                 # optional -- determines whether to continue the build if the step errors; defaults to false
 
 steps:
-  - ${{ if and(parameters.condition, eq(variables['Agent.Os'], 'Windows_NT')) }:
+  - ${{ if and(parameters.condition, eq(variables['Agent.Os'], 'Windows_NT')) }}:
     - powershell: 'powershell "$env:BUILD_SOURCESDIRECTORY\eng\common\msbuild.ps1 ${{ parameters.HelixProjectPath }} ${{ parameters.HelixProjectArguments }} /restore /p:TreatWarningsAsErrors=false /t:Test /bl:$env:BUILD_SOURCESDIRECTORY\artifacts\log\$env:BuildConfig\SendToHelix.binlog"'
       displayName: ${{ parameters.DisplayNamePrefix }} (Windows)
       env:
@@ -61,7 +61,7 @@ steps:
         Creator: ${{ parameters.Creator }}
         SYSTEM_ACCESSTOKEN: $(System.AccessToken)
       continueOnError: ${{ parameters.continueOnError }}
-  - ${{ if and(parameters.condition, ne(variables['Agent.Os'], 'Windows_NT')) }:
+  - ${{ if and(parameters.condition, ne(variables['Agent.Os'], 'Windows_NT')) }}:
     - script: $BUILD_SOURCESDIRECTORY/eng/common/msbuild.sh ${{ parameters.HelixProjectPath }} ${{ parameters.HelixProjectArguments }} /restore /p:TreatWarningsAsErrors=false /t:Test /bl:$BUILD_SOURCESDIRECTORY/artifacts/log/$BuildConfig/SendToHelix.binlog
       displayName: ${{ parameters.DisplayNamePrefix }} (Unix)
       env:
