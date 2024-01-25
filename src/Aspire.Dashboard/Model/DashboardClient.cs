@@ -39,6 +39,7 @@ internal sealed class DashboardClient : IDashboardClient
     private readonly object _lock = new();
 
     private readonly ILoggerFactory _loggerFactory;
+    private readonly IEnvironmentVariables _environmentVariables;
     private readonly ILogger<DashboardClient> _logger;
 
     private ImmutableHashSet<Channel<ResourceViewModelChange>> _outgoingChannels = [];
@@ -58,6 +59,7 @@ internal sealed class DashboardClient : IDashboardClient
     public DashboardClient(ILoggerFactory loggerFactory, IEnvironmentVariables environmentVariables)
     {
         _loggerFactory = loggerFactory;
+        _environmentVariables = environmentVariables;
 
         _logger = loggerFactory.CreateLogger<DashboardClient>();
 
@@ -292,7 +294,12 @@ internal sealed class DashboardClient : IDashboardClient
 
     Task IDashboardClient.WhenConnected => _whenConnected.Task;
 
-    string IDashboardClient.ApplicationName => _applicationName ?? "";
+    string IDashboardClient.ApplicationName
+    {
+        get => _applicationName
+            ?? _environmentVariables.GetString("DOTNET_DASHBOARD_APPLICATION_NAME")
+            ?? "Aspire";
+    }
 
     ResourceViewModelSubscription IDashboardClient.SubscribeResources()
     {
