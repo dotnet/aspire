@@ -19,13 +19,6 @@ parameters:
     default: false
 
 steps:
-  - pwsh: >-
-        dotnet coverage merge
-        $((Get-ChildItem -Path ${{ parameters.repoTestResultsPath }}* -Recurse -Filter *.cobertura.xml -File  | % { $_.FullName }) -join ' ')
-        -f cobertura
-        -o '${{ parameters.repoTestResultsPath }}/$(Agent.Os)_$(Agent.JobName).cobertura.xml'
-    displayName: Merge code coverage results
-
   - script: ${{ parameters.buildScript }}
             -restore -build
             -configuration ${{ parameters.buildConfig }}
@@ -55,13 +48,12 @@ steps:
               "${{ parameters.buildScript }} -testnobuild -test -configuration ${{ parameters.buildConfig }} /bl:${{ parameters.repoLogPath }}/tests.binlog /p:SkipHelixReadyTests=true $(_OfficialBuildIdArgs)"
       displayName: Run non-helix tests
 
-    - ${{ if ne(parameters.isWindows, 'true') }}:
-      - script: ${{ parameters.dotnetScript }} dotnet-coverage
-                merge
-                `find ${{ parameters.repoTestResultsPath }} -name '*.cobertura.xml' -print0 | xargs -0`
-                -f cobertura
-                -o '${{ parameters.repoTestResultsPath }}/$(Agent.Os)_$(Agent.JobName).cobertura.xml'
-        displayName: Merge code coverage results
+    - pwsh: >-
+          dotnet coverage merge
+          $((Get-ChildItem -Path ${{ parameters.repoTestResultsPath }}* -Recurse -Filter *.cobertura.xml -File  | % { $_.FullName }) -join ' ')
+          -f cobertura
+          -o '${{ parameters.repoTestResultsPath }}/$(Agent.Os)_$(Agent.JobName).cobertura.xml'
+      displayName: Merge code coverage results
 
     - task: PublishBuildArtifacts@1
       inputs:
