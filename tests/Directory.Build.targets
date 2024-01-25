@@ -1,7 +1,10 @@
 <Project>
   <Import Project="..\Directory.Build.targets" />
 
-  <!-- FIXME: rename to archivetestsforhelix -->
+  <ItemGroup>
+    <None Include="$(RepositoryEngineeringDir)testing\.runsettings" CopyToOutputDirectory="PreserveNewest" Condition="'$(DeployRunSettingsFile)' == 'true'" />
+  </ItemGroup>
+
   <Target Name="ZipTestArchive" AfterTargets="PrepareForRun" Condition="'$(ArchiveTests)' == 'true' and '$(IsTestSupportProject)' != 'true' and '$(IsHelixReadyTestProject)' == 'true'">
     <Error Condition="'$(TestArchiveTestsDir)' == ''" Text="TestArchiveTestsDir property to archive the test folder must be set." />
 

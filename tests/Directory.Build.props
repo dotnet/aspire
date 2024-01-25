@@ -12,6 +12,7 @@
     <NoWarn>$(NoWarn);1573;1591;1712</NoWarn>
 
     <IsHelixReadyTestProject Condition="'$(IsHelixReadyTestProject)' == ''">true</IsHelixReadyTestProject>
+    <DeployRunSettingsFile Condition="'$(DeployRunSettingsFile)' == ''">true</DeployRunSettingsFile>
 
     <SkipTests Condition="'$(SkipTests)' == '' and '$(IsHelixReadyTestProject)' == 'true' and '$(SkipHelixReadyTests)' == 'true'">true</SkipTests>
   </PropertyGroup>

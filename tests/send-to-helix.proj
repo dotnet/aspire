@@ -30,15 +30,13 @@
     <_TestCoverageCommand Include="--output $(_HelixLogPath)/Test.cobertura.xml" />
 
     <_TestRunCommandArguments Include="dotnet test" />
+    <_TestRunCommandArguments Include="-s .runsettings" />
+
     <_TestRunCommandArguments Condition="'$(OS)' != 'Windows_NT'" Include="$TEST_NAME.dll" />
     <_TestRunCommandArguments Condition="'$(OS)' == 'Windows_NT'" Include="%TEST_NAME%.dll" />
 
     <_TestRunCommandArguments Include="--ResultsDirectory:$(_HelixLogPath)" />
 
-    <_TestRunCommandArguments Condition="'$(OS)' != 'Windows_NT'" Include="'--logger:console%3Bverbosity=normal'" />
-    <_TestRunCommandArguments Condition="'$(OS)' == 'Windows_NT'" Include="--logger:console%3Bverbosity=normal" />
-    <_TestRunCommandArguments Condition="'$(OS)' != 'Windows_NT'" Include="'--logger:trx%3BLogFileName=TestResults.trx'" />
-    <_TestRunCommandArguments Condition="'$(OS)' == 'Windows_NT'" Include="--logger:trx%3BLogFileName=TestResults.trx" />
   </ItemGroup>
 
   <Target Name="BuildHelixWorkItems" DependsOnTargets="_StageDependenciesForHelix">
