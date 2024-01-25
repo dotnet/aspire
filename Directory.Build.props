@@ -36,6 +36,10 @@
     <BuildArch Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' == 'Arm64' ">arm64</BuildArch>
     <BuildArch Condition=" '$(BuildArch)' == '' ">amd64</BuildArch>
     <DcpDir>$(NuGetPackageRoot)microsoft.developercontrolplane.$(BuildOs)-$(BuildArch)/$(MicrosoftDeveloperControlPlanedarwinamd64PackageVersion)/tools/</DcpDir>
+
+    <!-- TODO: Need to figure out we can automatically detect target framework here. This property
+               is specified to support dashboard path metadata generation on the inner loop. -->
+    <AspireDashboardDir>$(MSBuildThisFileDirectory)/artifacts/bin/Aspire.Dashboard/$(Configuration)/net9.0/</AspireDashboardDir>
   </PropertyGroup>
 
 </Project>

@@ -45,9 +45,6 @@ public class ConformanceTests : ConformanceTests<CosmosClient, AzureCosmosDBSett
     protected override void SetMetrics(AzureCosmosDBSettings options, bool enabled)
         => throw new NotImplementedException();
 
-    protected override string JsonSchemaPath
-        => "src/Components/Aspire.Microsoft.Azure.Cosmos/ConfigurationSchema.json";
-
     protected override string ValidJsonConfig => """
         {
           "Aspire": {

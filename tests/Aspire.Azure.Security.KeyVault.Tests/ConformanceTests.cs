@@ -29,8 +29,6 @@ public class ConformanceTests : ConformanceTests<SecretClient, AzureSecurityKeyV
 
     protected override bool CanConnectToServer => s_canConnectToServer.Value;
 
-    protected override string JsonSchemaPath => "src/Components/Aspire.Azure.Security.KeyVault/ConfigurationSchema.json";
-
     protected override string ValidJsonConfig => """
         {
           "Aspire": {

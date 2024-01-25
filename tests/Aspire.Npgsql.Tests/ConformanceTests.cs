@@ -37,8 +37,6 @@ public class ConformanceTests : ConformanceTests<NpgsqlDataSource, NpgsqlSetting
 
     protected override bool CanConnectToServer => s_canConnectToServer.Value;
 
-    protected override string JsonSchemaPath => "src/Components/Aspire.Npgsql/ConfigurationSchema.json";
-
     protected override string ValidJsonConfig => """
         {
           "Aspire": {

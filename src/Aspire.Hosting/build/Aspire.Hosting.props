@@ -17,6 +17,4 @@
     </ProjectReference>
   </ItemDefinitionGroup>
 
-  <Import Sdk="Microsoft.NET.Sdk.StaticWebAssets" Project="Sdk.props" />
-
 </Project>
