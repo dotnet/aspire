@@ -28,9 +28,10 @@ steps:
     displayName: Build
 
   - pwsh: |
-        $env:filelist=$((Get-ChildItem -Path ${{ parameters.repoTestResultsPath }}/../../../ -Recurse -Filter *.cobertura.xml -File | % { $_.FullName }) -join ' ')
-        echo "fl is $env:filelist"
-        ${{ parameters.dotnetScript }} dotnet-coverage merge $env:filelist -f cobertura -o '${{ parameters.repoTestResultsPath }}/$(Agent.Os)_$(Agent.JobName).cobertura.xml'
+        echo "(Get-ChildItem -Path ${{ parameters.repoTestResultsPath }}/../../../ -Recurse -Filter *.cobertura.xml -File | % { $_.FullName }) -join ' '"
+        $_filelist=$((Get-ChildItem -Path ${{ parameters.repoTestResultsPath }}/../../../ -Recurse -Filter *.cobertura.xml -File | % { $_.FullName }) -join ' ')
+        echo "fl is $_filelist"
+        ${{ parameters.dotnetScript }} dotnet-coverage merge $_filelist -f cobertura -o '${{ parameters.repoTestResultsPath }}/$(Agent.Os)_$(Agent.JobName).cobertura.xml'
     displayName: Merge code coverage results
 
   - ${{ if ne(parameters.skipTests, 'true') }}:
