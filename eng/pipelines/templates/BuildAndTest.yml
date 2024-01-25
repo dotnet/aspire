@@ -42,9 +42,6 @@ steps:
         HelixBuild: $(Build.BuildNumber)
         HelixAccessToken: $(HelixApiAccessToken)
 
-    - script: find ${{ parameters.repoTestResultsPath }}
-      displayName: ls test results path
-
     - script: ${{ parameters.dotnetScript }} dotnet-coverage collect
               --settings $(Build.SourcesDirectory)/eng/CodeCoverage.config
               --output ${{ parameters.repoTestResultsPath }}/NonHelixTests.cobertura.xml
