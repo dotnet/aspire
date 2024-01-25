@@ -24,7 +24,7 @@
     <_HelixCorrelationPayloadEnvVar Condition="'$(OS)' == 'Windows_NT'">%HELIX_CORRELATION_PAYLOAD%</_HelixCorrelationPayloadEnvVar>
 
     <_TestNameEnvVar Condition="'$(OS)' != 'Windows_NT'">$TEST_NAME</_TestNameEnvVar>
-    <_TestNameEnvVar Condition="'$(OS)' != 'Windows_NT'">%TEST_NAME%</_TestNameEnvVar>
+    <_TestNameEnvVar Condition="'$(OS)' == 'Windows_NT'">%TEST_NAME%</_TestNameEnvVar>
   </PropertyGroup>
 
   <ItemGroup>
