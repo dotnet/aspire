@@ -23,7 +23,6 @@
     <_HelixCorrelationPayloadEnvVar Condition="'$(OS)' == 'Windows_NT'">%HELIX_CORRELATION_PAYLOAD%</_HelixCorrelationPayloadEnvVar>
 
     <_TestCoverageCommand>$(_HelixCorrelationPayloadEnvVar)/dotnet-coverage/dotnet-coverage collect</_TestCoverageCommand>
-
     <_TestCoverageCommand>$(_TestCoverageCommand) --settings $(_HelixCorrelationPayloadEnvVar)/CodeCoverage.config</_TestCoverageCommand>
     <_TestCoverageCommand>$(_TestCoverageCommand) --output $(_HelixLogPath)/Test.cobertura.xml</_TestCoverageCommand>
   </PropertyGroup>
@@ -43,6 +42,11 @@
   </ItemGroup>
 
   <Target Name="BuildHelixWorkItems">
+    <PropertyGroup>
+      <_TestRunCommand Condition="'$(RunWithCodeCoverage)' == 'true'">$(_TestCoverageCommand) &quot;@(_TestRunCommandArguments, ' ')&quot;</_TestRunCommand>
+      <_TestRunCommand Condition="'$(RunWithCodeCoverage)' != 'true'">@(_TestRunCommandArguments, ' ')</_TestRunCommand>
+    </PropertyGroup>
+
     <ItemGroup>
       <HelixCorrelationPayload Include="$(_DotNetCoverageToolPath)" Destination="dotnet-coverage" />
       <HelixCorrelationPayload Include="$(RepoRoot)eng/CodeCoverage.config" />
@@ -54,8 +58,7 @@
         <PayloadArchive>%(Identity)</PayloadArchive>
         <PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
         <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
-        <Command Condition="'$(RunWithCodeCoverage)' == 'true'">$(_TestCoverageCommand) &quot;@(_TestRunCommandArguments, ' ')&quot;</Command>
-        <Command Condition="'$(RunWithCodeCoverage)' != 'true'">@(_TestRunCommandArguments, ' ')</Command>
+        <Command>$(_TestRunCommand)</Command>
         <Timeout>$(_workItemTimeout)</Timeout>
       </HelixWorkItem>
     </ItemGroup>
