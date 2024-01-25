@@ -244,12 +244,12 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             }
             else
             {
-                return TimeSpan.FromSeconds(DefaultDashboardAvailabilityTimeoutDuration);
+                return TimeSpan.FromSeconds(DefaultDashboardAvailabilityTimeoutDurationInSeconds);
             }
         }
     }
 
-    private const int DefaultDashboardAvailabilityTimeoutDuration = 60;
+    private const int DefaultDashboardAvailabilityTimeoutDurationInSeconds = 60;
 
     private async Task WaitForHttpSuccessOrThrow(string url, TimeSpan timeout, CancellationToken cancellationToken = default)
     {
