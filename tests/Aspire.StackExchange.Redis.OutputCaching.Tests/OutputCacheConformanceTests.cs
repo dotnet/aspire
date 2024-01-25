@@ -14,6 +14,10 @@ namespace Aspire.StackExchange.Redis.OutputCaching.Tests;
 
 public class OutputCacheConformanceTests : ConformanceTests
 {
+    // Schema only references Aspire.StackExchange.Redis' schema so nothing
+    // specific to check here
+    protected override (string json, string error)[] InvalidJsonToErrorMessage => Array.Empty<(string json, string error)>();
+
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<StackExchangeRedisSettings>? configure = null, string? key = null)
     {
         if (key is null)

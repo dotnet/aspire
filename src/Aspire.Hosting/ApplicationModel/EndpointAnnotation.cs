@@ -53,7 +53,7 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     public int? Port { get; internal set; }
 
     /// <summary>
-    /// If the binding is used for the container, this is the port the container process is listening on.
+    /// If the endpoint is used for the container, this is the port the container process is listening on.
     /// </summary>
     /// <remarks>
     /// Defaults to <see cref="Port"/>.

@@ -22,7 +22,7 @@ public static class ProjectResourceBuilderExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used for service discovery when referenced in a dependency.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, string name) where TProject : IServiceMetadata, new()
+    public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, string name) where TProject : IProjectMetadata, new()
     {
         var project = new ProjectResource(name);
         return builder.AddResource(project)
@@ -45,7 +45,7 @@ public static class ProjectResourceBuilderExtensions
 
         return builder.AddResource(project)
                       .WithProjectDefaults()
-                      .WithAnnotation(new ServiceMetadata(projectPath));
+                      .WithAnnotation(new ProjectMetadata(projectPath));
     }
 
     private static IResourceBuilder<ProjectResource> WithProjectDefaults(this IResourceBuilder<ProjectResource> builder)
@@ -100,13 +100,13 @@ public static class ProjectResourceBuilderExtensions
             throw new DistributedApplicationException(Resources.LaunchProfileIsSpecifiedButLaunchSettingsFileIsNotPresentExceptionMessage);
         }
 
-        if (!launchSettings.Profiles.TryGetValue(launchProfileName, out var launchProfile))
+        if (!launchSettings.Profiles.TryGetValue(launchProfileName, out _))
         {
             var message = string.Format(CultureInfo.InvariantCulture, Resources.LaunchSettingsFileDoesNotContainProfileExceptionMessage, launchProfileName);
             throw new DistributedApplicationException(message);
         }
 
-        var launchProfileAnnotation = new LaunchProfileAnnotation(launchProfileName, launchProfile);
+        var launchProfileAnnotation = new LaunchProfileAnnotation(launchProfileName);
         return builder.WithAnnotation(launchProfileAnnotation);
     }
 }

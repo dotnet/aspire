@@ -1,7 +1,5 @@
 <Project>
 
-  <!-- *** BEGIN *** -->
-
   <!--
   A property-based workload cannot import props files (except AutoImport.props, which has very tight limitations.
   Instead, we copy everything from Aspire.Hosting.props into these targets.
@@ -20,7 +18,21 @@
     <IsPackable Condition="'$(IsPackable)' == ''">false</IsPackable>
   </PropertyGroup>
 
-  <!-- *** END ***  -->
+  <!--
+  Default AppHost ProjectReference items to not be referenced in the AppHost, unless it is IsAspireProjectResource=false.
+  This defaulting needs to happen in the SDK targets so this metadata affects NuGet Restore.
+  -->
+  <ItemGroup Condition="'$(IsAspireHost)' == 'true'">
+    
+    <ProjectReference Update="@(ProjectReference)">
+      <IsAspireProjectResource Condition="'%(IsAspireProjectResource)' != 'false'">true</IsAspireProjectResource>
+
+      <ReferenceOutputAssembly Condition="'%(ReferenceOutputAssembly)' == '' and '%(IsAspireProjectResource)' == 'true'">false</ReferenceOutputAssembly>
+      <SkipGetTargetFrameworkProperties Condition="'%(SkipGetTargetFrameworkProperties)' == '' and '%(IsAspireProjectResource)' == 'true'">true</SkipGetTargetFrameworkProperties>
+      <ExcludeAssets Condition="'%(ExcludeAssets)' == '' and '%(IsAspireProjectResource)' == 'true'">all</ExcludeAssets>
+    </ProjectReference>
+    
+  </ItemGroup>
 
   <Target Name="__WarnOnAspireCapabilityMissing" BeforeTargets="PrepareForBuild" Condition="!@(ProjectCapability->AnyHaveMetadataValue('Identity', 'Aspire'))">
     <Warning Code="ASPIRE002" Text="$(MSBuildProjectName) is an Aspire AppHost project but necessary dependencies aren't present. Are you missing an Aspire.Hosting PackageReference?" />
@@ -29,14 +41,5 @@
   <Target Name="__WarnOnMininumVsVersionMissing" BeforeTargets="PrepareForBuild" Condition="'$(BuildingInsideVisualStudio)' == 'true' and $([MSBuild]::VersionLessThan('$(MSBuildVersion)', '17.9.0'))">
     <Warning Code="ASPIRE003" Text="$(MSBuildProjectName) is a .NET Aspire AppHost project that requires Visual Studio version 17.9 or above to work correctly. You are using version $(MSBuildVersion)." />
   </Target>
-
-  <!--
-  This SDK comes from a workload pack, so normally should only be referenced from
-  the WorkloadManifest.targets so as not to cause workload restore to require multiple
-  phases, but it's okay here because every workload that contains Aspire.Hosting.Sdk
-  also contains Aspire.Hosting.Orchestration and vice versa. Once Aspire/DCP are public
-  we can move it to WorkloadManifest.targets to ensure future correctness.
-  -->
-  <Import Project="Sdk.targets" Sdk="Aspire.Hosting.Orchestration" />
 
 </Project>

@@ -9,7 +9,8 @@
 
   <ItemGroup>
     <None Include="WorkloadManifest.in.json" Pack="true" PerformTextReplacement="True" />
-    <None Include="WorkloadManifest.in.targets" Pack="true" PerformTextReplacement="True" />
+    <None Include="WorkloadManifest.targets" Pack="true" PackagePath="data" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="WorkloadManifest.Aspire.targets" Pack="true" PackagePath="data" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Rollback.in.json" PerformTextReplacement="True" />
     <None Include="SdkInstaller.in.json" PerformTextReplacement="True" />
     <None Update="@(None->HasMetadata('PerformTextReplacement'))" CopyToOutputDirectory="PreserveNewest" PackagePath="data" />

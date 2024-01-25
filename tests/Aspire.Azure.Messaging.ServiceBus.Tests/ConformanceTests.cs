@@ -25,8 +25,6 @@ public abstract class ConformanceTests : ConformanceTests<ServiceBusClient, Azur
 
     protected override bool SupportsKeyedRegistrations => true;
 
-    protected override string JsonSchemaPath => "src/Components/Aspire.Azure.Messaging.ServiceBus/ConfigurationSchema.json";
-
     protected override string ValidJsonConfig => """
         {
           "Aspire": {

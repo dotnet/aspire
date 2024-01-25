@@ -20,8 +20,6 @@ public class ConformanceTests : ConformanceTests<IMongoClient, MongoDBSettings>
 
     protected override string ActivitySourceName => "MongoDB.Driver.Core.Extensions.DiagnosticSources";
 
-    protected override string JsonSchemaPath => "src/Components/Aspire.MongoDB.Driver/ConfigurationSchema.json";
-
     protected override bool SupportsKeyedRegistrations => true;
 
     protected override bool CanConnectToServer => s_canConnectToServer.Value;

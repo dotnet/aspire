@@ -4,7 +4,6 @@
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Grpc.Core;
-using Microsoft.Extensions.Logging;
 using OpenTelemetry.Proto.Collector.Metrics.V1;
 
 namespace Aspire.Dashboard.Otlp.Grpc;

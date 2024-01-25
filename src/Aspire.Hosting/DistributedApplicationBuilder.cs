@@ -56,15 +56,16 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Resources));
         _innerBuilder.Services.AddHostedService<DistributedApplicationRunner>();
         _innerBuilder.Services.AddSingleton(options);
+        _innerBuilder.Services.AddSingleton<IEnvironmentVariables, EnvironmentVariables>();
+
+        // Dashboard
+        _innerBuilder.Services.AddSingleton<DashboardServiceHost>();
+        _innerBuilder.Services.AddHostedService<DashboardServiceHost>(sp => sp.GetRequiredService<DashboardServiceHost>());
 
         // DCP stuff
         _innerBuilder.Services.AddLifecycleHook<DcpDistributedApplicationLifecycleHook>();
         _innerBuilder.Services.AddSingleton<ApplicationExecutor>();
         _innerBuilder.Services.AddHostedService<DcpHostService>();
-
-        // Dashboard
-        _innerBuilder.Services.AddHostedService<DashboardServiceHost>();
-        _innerBuilder.Services.AddHostedService<DashboardWebApplicationHost>();
 
         // We need a unique path per application instance
         _innerBuilder.Services.AddSingleton(new Locations());

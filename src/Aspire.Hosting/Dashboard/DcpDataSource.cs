@@ -35,6 +35,7 @@ internal sealed class DcpDataSource
     public DcpDataSource(
         KubernetesService kubernetesService,
         DistributedApplicationModel applicationModel,
+        IEnvironmentVariables environmentVariables,
         ILoggerFactory loggerFactory,
         Func<ResourceSnapshot, ResourceSnapshotChangeType, ValueTask> onResourceChanged,
         CancellationToken cancellationToken)
@@ -71,6 +72,11 @@ internal sealed class DcpDataSource
 
                     try
                     {
+                        if (IsFilteredResource(resource))
+                        {
+                            continue;
+                        }
+
                         await handler(eventType, resource).ConfigureAwait(false);
                     }
                     finally
@@ -83,6 +89,17 @@ internal sealed class DcpDataSource
             {
                 _logger.LogError(ex, "Watch task over kubernetes {ResourceType} resources terminated", typeof(T).Name);
             }
+        }
+
+        bool IsFilteredResource<T>(T resource) where T : CustomResource
+        {
+            // We filter out any resources that start with aspire-dashboard (there are services as well as executables).
+            if (resource.Metadata.Name.StartsWith(KnownResourceNames.AspireDashboard, StringComparisons.ResourceName))
+            {
+                return environmentVariables.GetBool("DOTNET_ASPIRE_SHOW_DASHBOARD_RESOURCES") is not true;
+            }
+
+            return false;
         }
     }
 

@@ -1,9 +1,12 @@
 <Project>
 
   <PropertyGroup>
-    <DcpDir Condition=" '$(DcpDir)' == '' ">$([MSBuild]::NormalizePath($(MSBuildThisFileDirectory), '..', 'tools'))</DcpDir>
-    <DcpExtensionsPath Condition=" '$(DcpExtensionsPath)' == '' ">$([MSBuild]::NormalizePath($(DcpDir), 'ext'))</DcpExtensionsPath>
-    <DcpBinPath Condition=" '$(DcpBinPath)' == '' ">$([MSBuild]::NormalizePath($(DcpExtensionsPath), 'bin'))</DcpBinPath>
+    <DcpDir Condition=" '$(DcpDir)' == '' ">$([MSBuild]::NormalizeDirectory($(MSBuildThisFileDirectory), '..', 'tools'))</DcpDir>
+    <DcpDir>$([MSBuild]::EnsureTrailingSlash('$(DcpDir)'))</DcpDir>
+    <DcpExtensionsDir Condition=" '$(DcpExtensionsDir)' == '' ">$([MSBuild]::NormalizeDirectory($(DcpDir), 'ext'))</DcpExtensionsDir>
+    <DcpExtensionsDir>$([MSBuild]::EnsureTrailingSlash('$(DcpExtensionsDir)'))</DcpExtensionsDir>
+    <DcpBinDir Condition=" '$(DcpBinDir)' == '' ">$([MSBuild]::NormalizeDirectory($(DcpExtensionsDir), 'bin'))</DcpBinDir>
+    <DcpBinDir>$([MSBuild]::EnsureTrailingSlash('$(DcpBinDir)'))</DcpBinDir>
     <DcpCliPath Condition=" '$(DcpCliPath)'  == '' ">$([MSBuild]::NormalizePath($(DcpDir), 'dcp'))</DcpCliPath>
     <DcpCliPath Condition=" '$(OS)' == 'Windows_NT' and !$(DcpCliPath.EndsWith('.exe')) ">$(DcpCliPath).exe</DcpCliPath>
   </PropertyGroup>

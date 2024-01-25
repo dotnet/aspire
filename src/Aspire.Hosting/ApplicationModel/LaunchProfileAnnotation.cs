@@ -8,13 +8,10 @@ namespace Aspire.Hosting.ApplicationModel;
 [DebuggerDisplay("Type = {GetType().Name,nq}, LaunchProfileName = {LaunchProfileName}")]
 internal sealed class LaunchProfileAnnotation : IResourceAnnotation
 {
-    public LaunchProfileAnnotation(string launchProfileName, LaunchProfile launchProfile)
+    public LaunchProfileAnnotation(string launchProfileName)
     {
         LaunchProfileName = launchProfileName;
-        LaunchProfile = launchProfile;
     }
 
     public string LaunchProfileName { get; }
-
-    public LaunchProfile LaunchProfile { get; }
 }

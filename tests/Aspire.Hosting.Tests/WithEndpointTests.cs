@@ -14,8 +14,8 @@ public class WithEndpointTests
         var ex = Assert.Throws<DistributedApplicationException>(() =>
         {
             var testProgram = CreateTestProgram();
-            testProgram.ServiceABuilder.WithEndpoint(3000, 1000, scheme: "https", name: "mybinding");
-            testProgram.ServiceABuilder.WithEndpoint(3000, 2000, scheme: "https", name: "mybinding");
+            testProgram.ServiceABuilder.WithHttpsEndpoint(3000, 1000, name: "mybinding");
+            testProgram.ServiceABuilder.WithHttpsEndpoint(3000, 2000, name: "mybinding");
         });
 
         Assert.Equal("Endpoint with name 'mybinding' already exists", ex.Message);
@@ -27,8 +27,8 @@ public class WithEndpointTests
         var ex = Assert.Throws<DistributedApplicationException>(() =>
         {
             var testProgram = CreateTestProgram();
-            testProgram.ServiceABuilder.WithEndpoint(1000, scheme: "https", name: "mybinding");
-            testProgram.ServiceABuilder.WithEndpoint(2000, scheme: "https", name: "mybinding");
+            testProgram.ServiceABuilder.WithHttpsEndpoint(1000, name: "mybinding");
+            testProgram.ServiceABuilder.WithHttpsEndpoint(2000, name: "mybinding");
         });
 
         Assert.Equal("Endpoint with name 'mybinding' already exists", ex.Message);
@@ -39,7 +39,7 @@ public class WithEndpointTests
     {
         var testProgram = CreateTestProgram();
         testProgram.AppBuilder.AddExecutable("foo", "foo", ".")
-                              .WithEndpoint(containerPort: 3001, scheme: "http", name: "mybinding", env: "PORT");
+                              .WithHttpEndpoint(containerPort: 3001, name: "mybinding", env: "PORT");
 
         var app = testProgram.Build();
 

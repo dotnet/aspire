@@ -55,7 +55,7 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Adds an environment variable to the resource with the binding for <paramref name="endpointReference"/>.
+    /// Adds an environment variable to the resource with the endpoint for <paramref name="endpointReference"/>.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
@@ -111,17 +111,17 @@ public static class ResourceBuilderExtensions
             var i = 0;
             foreach (var allocatedEndPoint in allocatedEndPoints)
             {
-                var bindingNameQualifiedUriStringKey = $"services__{name}__{i++}";
-                context.EnvironmentVariables[bindingNameQualifiedUriStringKey] = replaceLocalhostWithContainerHost
-                ? HostNameResolver.ReplaceLocalhostWithContainerHost(allocatedEndPoint.BindingNameQualifiedUriString, configuration)
-                : allocatedEndPoint.BindingNameQualifiedUriString;
+                var endpointNameQualifiedUriStringKey = $"services__{name}__{i++}";
+                context.EnvironmentVariables[endpointNameQualifiedUriStringKey] = replaceLocalhostWithContainerHost
+                    ? HostNameResolver.ReplaceLocalhostWithContainerHost(allocatedEndPoint.EndpointNameQualifiedUriString, configuration)
+                    : allocatedEndPoint.EndpointNameQualifiedUriString;
 
                 if (!containsAmbiguousEndpoints)
                 {
                     var uriStringKey = $"services__{name}__{i++}";
                     context.EnvironmentVariables[uriStringKey] = replaceLocalhostWithContainerHost
-                    ? HostNameResolver.ReplaceLocalhostWithContainerHost(allocatedEndPoint.UriString, configuration)
-                    : allocatedEndPoint.UriString;
+                        ? HostNameResolver.ReplaceLocalhostWithContainerHost(allocatedEndPoint.UriString, configuration)
+                        : allocatedEndPoint.UriString;
                 }
             }
         };
@@ -187,7 +187,7 @@ public static class ResourceBuilderExtensions
 
     /// <summary>
     /// Injects service discovery information as environment variables from the project resource into the destination resource, using the source resource's name as the service name.
-    /// Each endpoint defined on the project resource will be injected using the format "services__{sourceResourceName}__{bindingIndex}={bindingNameQualifiedUriString}."
+    /// Each endpoint defined on the project resource will be injected using the format "services__{sourceResourceName}__{endpointIndex}={endpointNameQualifiedUriString}."
     /// </summary>
     /// <typeparam name="TDestination">The destination resource.</typeparam>
     /// <param name="builder">The resource where the service discovery information will be injected.</param>
@@ -260,7 +260,7 @@ public static class ResourceBuilderExtensions
 
     /// <summary>
     /// Injects service discovery information from the specified endpoint into the project resource using the source resource's name as the service name.
-    /// Each endpoint will be injected using the format "services__{sourceResourceName}__{bindingIndex}={bindingNameQualifiedUriString}."
+    /// Each endpoint will be injected using the format "services__{sourceResourceName}__{endpointIndex}={endpointNameQualifiedUriString}."
     /// </summary>
     /// <typeparam name="TDestination">The destination resource.</typeparam>
     /// <param name="builder">The resource where the service discovery information will be injected.</param>
@@ -269,11 +269,11 @@ public static class ResourceBuilderExtensions
     public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, EndpointReference endpointReference)
         where TDestination : IResourceWithEnvironment
     {
-        ApplyEndpoints(builder, endpointReference.Owner, endpointReference.BindingName);
+        ApplyEndpoints(builder, endpointReference.Owner, endpointReference.EndpointName);
         return builder;
     }
 
-    private static void ApplyEndpoints<T>(this IResourceBuilder<T> builder, IResourceWithBindings resourceWithBindings, string? bindingName = null)
+    private static void ApplyEndpoints<T>(this IResourceBuilder<T> builder, IResourceWithEndpoints resourceWithEndpoints, string? endpointName = null)
         where T : IResourceWithEnvironment
     {
         // When adding a endpoint we get to see whether there is a EndpointReferenceAnnotation
@@ -282,41 +282,47 @@ public static class ResourceBuilderExtensions
         // in a single pass. There is one EndpointReferenceAnnotation per endpoint source.
         var endpointReferenceAnnotation = builder.Resource.Annotations
             .OfType<EndpointReferenceAnnotation>()
-            .Where(sra => sra.Resource == resourceWithBindings)
+            .Where(sra => sra.Resource == resourceWithEndpoints)
             .SingleOrDefault();
 
         if (endpointReferenceAnnotation == null)
         {
-            endpointReferenceAnnotation = new EndpointReferenceAnnotation(resourceWithBindings);
+            endpointReferenceAnnotation = new EndpointReferenceAnnotation(resourceWithEndpoints);
             builder.WithAnnotation(endpointReferenceAnnotation);
 
             var callback = CreateEndpointReferenceEnvironmentPopulationCallback(builder, endpointReferenceAnnotation);
             builder.WithEnvironment(callback);
         }
 
-        // If no specific binding name is specified, go and add all the bindings.
-        if (bindingName == null)
+        // If no specific endpoint name is specified, go and add all the endpoints.
+        if (endpointName == null)
         {
             endpointReferenceAnnotation.UseAllEndpoints = true;
         }
         else
         {
-            endpointReferenceAnnotation.EndpointNames.Add(bindingName);
+            endpointReferenceAnnotation.EndpointNames.Add(endpointName);
         }
     }
 
+    [Obsolete("WithServiceBinding has been renamed to WithEndpoint. Use WithEndpoint instead.")]
+    public static IResourceBuilder<T> WithServiceBinding<T>(this IResourceBuilder<T> builder, int? hostPort = null, string? scheme = null, string? name = null, string? env = null) where T : IResource
+    {
+        return builder.WithEndpoint(hostPort: hostPort, scheme: scheme, name: name, env: env);
+    }
+
     /// <summary>
-    /// Exposes an endpoint on a resource. This binding reference can be retrieved using <see cref="GetEndpoint{T}(IResourceBuilder{T}, string)"/>.
-    /// The binding name will be the scheme name if not specified.
+    /// Exposes an endpoint on a resource. This endpoint reference can be retrieved using <see cref="GetEndpoint{T}(IResourceBuilder{T}, string)"/>.
+    /// The endpoint name will be the scheme name if not specified.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="hostPort">The host port.</param>
-    /// <param name="scheme">The scheme e.g. (http/https)</param>
-    /// <param name="name">The name of the binding.</param>
-    /// <param name="env">The name of the environment variable to inject.</param>
+    /// <param name="hostPort">An optional host port.</param>
+    /// <param name="scheme">An optional scheme e.g. (http/https). Defaults to "tcp" if not specified.</param>
+    /// <param name="name">An optional name of the endpoint. Defaults to the scheme name if not specified.</param>
+    /// <param name="env">An optional name of the environment variable to inject.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    /// <exception cref="DistributedApplicationException">Throws an exception if the a binding with the same name already exists on the specified resource.</exception>
+    /// <exception cref="DistributedApplicationException">Throws an exception if an endpoint with the same name already exists on the specified resource.</exception>
     public static IResourceBuilder<T> WithEndpoint<T>(this IResourceBuilder<T> builder, int? hostPort = null, string? scheme = null, string? name = null, string? env = null) where T : IResource
     {
         if (builder.Resource.Annotations.OfType<EndpointAnnotation>().Any(sb => string.Equals(sb.Name, name, StringComparisons.EndpointAnnotationName)))
@@ -329,6 +335,109 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Exposes an HTTP endpoint on a resource. This endpoint reference can be retrieved using <see cref="GetEndpoint{T}(IResourceBuilder{T}, string)"/>.
+    /// The endpoint name will be "http" if not specified.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="hostPort">An optional host port.</param>
+    /// <param name="name">An optional name of the endpoint. Defaults to "http" if not specified.</param>
+    /// <param name="env">An optional name of the environment variable to inject.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <exception cref="DistributedApplicationException">Throws an exception if an endpoint with the same name already exists on the specified resource.</exception>
+    public static IResourceBuilder<T> WithHttpEndpoint<T>(this IResourceBuilder<T> builder, int? hostPort = null, string? name = null, string? env = null) where T : IResource
+    {
+        return builder.WithEndpoint(hostPort: hostPort, scheme: "http", name: name, env: env);
+    }
+
+    /// <summary>
+    /// Exposes an HTTPS endpoint on a resource. This endpoint reference can be retrieved using <see cref="GetEndpoint{T}(IResourceBuilder{T}, string)"/>.
+    /// The endpoint name will be "https" if not specified.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="hostPort">An optional host port.</param>
+    /// <param name="name">An optional name of the endpoint. Defaults to "https" if not specified.</param>
+    /// <param name="env">An optional name of the environment variable to inject.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <exception cref="DistributedApplicationException">Throws an exception if an endpoint with the same name already exists on the specified resource.</exception>
+    public static IResourceBuilder<T> WithHttpsEndpoint<T>(this IResourceBuilder<T> builder, int? hostPort = null, string? name = null, string? env = null) where T : IResource
+    {
+        return builder.WithEndpoint(hostPort: hostPort, scheme: "https", name: name, env: env);
+    }
+
+    [Obsolete("WithServiceBinding has been renamed to WithEndpoint. Use WithEndpoint instead.")]
+    public static IResourceBuilder<T> WithServiceBinding<T>(this IResourceBuilder<T> builder, int containerPort, int? hostPort = null, string? scheme = null, string? name = null, string? env = null) where T : IResource
+    {
+        return builder.WithEndpoint(containerPort: containerPort, hostPort: hostPort, scheme: scheme, name: name, env: env);
+    }
+
+    /// <summary>
+    /// Exposes an endpoint on a resource. This endpoint reference can be retrieved using <see cref="ResourceBuilderExtensions.GetEndpoint{T}(IResourceBuilder{T}, string)"/>.
+    /// The endpoint name will be the scheme name if not specified.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="containerPort">The container port.</param>
+    /// <param name="hostPort">An optional host port.</param>
+    /// <param name="scheme">An optional scheme e.g. (http/https). Defaults to "tcp" if not specified.</param>
+    /// <param name="name">An optional name of the endpoint. Defaults to the scheme name if not specified.</param>
+    /// <param name="env">An optional name of the environment variable to inject.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <exception cref="DistributedApplicationException">Throws an exception if an endpoint with the same name already exists on the specified resource.</exception>
+    public static IResourceBuilder<T> WithEndpoint<T>(this IResourceBuilder<T> builder, int containerPort, int? hostPort = null, string? scheme = null, string? name = null, string? env = null) where T : IResource
+    {
+        if (builder.Resource.Annotations.OfType<EndpointAnnotation>().Any(sb => string.Equals(sb.Name, name, StringComparisons.EndpointAnnotationName)))
+        {
+            throw new DistributedApplicationException($"Endpoint with name '{name}' already exists");
+        }
+
+        var annotation = new EndpointAnnotation(
+            protocol: ProtocolType.Tcp,
+            uriScheme: scheme,
+            name: name,
+            port: hostPort,
+            containerPort: containerPort,
+            env: env);
+
+        return builder.WithAnnotation(annotation);
+    }
+
+    /// <summary>
+    /// Exposes an HTTP endpoint on a resource. This endpoint reference can be retrieved using <see cref="ResourceBuilderExtensions.GetEndpoint{T}(IResourceBuilder{T}, string)"/>.
+    /// The endpoint name will be "http" if not specified.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="containerPort">The container port.</param>
+    /// <param name="hostPort">An optional host port.</param>
+    /// <param name="name">An optional name of the endpoint. Defaults to "http" if not specified.</param>
+    /// <param name="env">An optional name of the environment variable to inject.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <exception cref="DistributedApplicationException">Throws an exception if an endpoint with the same name already exists on the specified resource.</exception>
+    public static IResourceBuilder<T> WithHttpEndpoint<T>(this IResourceBuilder<T> builder, int containerPort, int? hostPort = null, string? name = null, string? env = null) where T : IResource
+    {
+        return builder.WithEndpoint(containerPort: containerPort, hostPort: hostPort, scheme: "http", name: name, env: env);
+    }
+
+    /// <summary>
+    /// Exposes an HTTPS endpoint on a resource. This endpoint reference can be retrieved using <see cref="ResourceBuilderExtensions.GetEndpoint{T}(IResourceBuilder{T}, string)"/>.
+    /// The endpoint name will be "https" if not specified.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="containerPort">The container port.</param>
+    /// <param name="hostPort">An optional host port.</param>
+    /// <param name="name">An optional name of the endpoint. Defaults to "https" if not specified.</param>
+    /// <param name="env">An optional name of the environment variable to inject.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <exception cref="DistributedApplicationException">Throws an exception if an endpoint with the same name already exists on the specified resource.</exception>
+    public static IResourceBuilder<T> WithHttpsEndpoint<T>(this IResourceBuilder<T> builder, int containerPort, int? hostPort = null, string? name = null, string? env = null) where T : IResource
+    {
+        return builder.WithEndpoint(containerPort: containerPort, hostPort: hostPort, scheme: "https", name: name, env: env);
+    }
+
+    /// <summary>
     /// Gets an <see cref="EndpointReference"/> by name from the resource. These endpoints are declared either using <see cref="WithEndpoint{T}(IResourceBuilder{T}, int?, string?, string?, string?)"/> or by launch settings (for project resources).
     /// The <see cref="EndpointReference"/> can be used to resolve the address of the endpoint in <see cref="WithEnvironment{T}(IResourceBuilder{T}, Action{EnvironmentCallbackContext})"/>.
     /// </summary>
@@ -336,7 +445,7 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The the resource builder.</param>
     /// <param name="name">The name of the endpoint.</param>
     /// <returns>An <see cref="EndpointReference"/> that can be used to resolve the address of the endpoint after resource allocation has occurred.</returns>
-    public static EndpointReference GetEndpoint<T>(this IResourceBuilder<T> builder, string name) where T : IResourceWithBindings
+    public static EndpointReference GetEndpoint<T>(this IResourceBuilder<T> builder, string name) where T : IResourceWithEndpoints
     {
         return builder.Resource.GetEndpoint(name);
     }
@@ -347,7 +456,7 @@ public static class ResourceBuilderExtensions
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<T> AsHttp2Service<T>(this IResourceBuilder<T> builder) where T : IResourceWithBindings
+    public static IResourceBuilder<T> AsHttp2Service<T>(this IResourceBuilder<T> builder) where T : IResourceWithEndpoints
     {
         return builder.WithAnnotation(new Http2ServiceAnnotation());
     }

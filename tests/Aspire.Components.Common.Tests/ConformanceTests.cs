@@ -26,7 +26,7 @@ public abstract class ConformanceTests<TService, TOptions>
 
     protected abstract string ActivitySourceName { get; }
 
-    protected abstract string JsonSchemaPath { get; }
+    protected string JsonSchemaPath => Path.Combine(AppContext.BaseDirectory, "ConfigurationSchema.json");
 
     protected virtual string ValidJsonConfig { get; } = string.Empty;
 
@@ -316,12 +316,10 @@ public abstract class ConformanceTests<TService, TOptions>
         Assert.Contains(healthReport.Entries, entry => entry.Value.Status == expected);
     }
 
-    [ConditionalFact]
+    [Fact]
     public void ConfigurationSchemaValidJsonConfigTest()
     {
-        SkipIfJsonSchemaPathNotSet();
-
-        var schema = JsonSchema.FromFile(Path.Combine(GetRepoRoot(), JsonSchemaPath));
+        var schema = JsonSchema.FromFile(JsonSchemaPath);
         var config = JsonNode.Parse(ValidJsonConfig);
 
         var results = schema.Evaluate(config);
@@ -329,12 +327,10 @@ public abstract class ConformanceTests<TService, TOptions>
         Assert.True(results.IsValid);
     }
 
-    [ConditionalFact]
+    [Fact]
     public void ConfigurationSchemaInvalidJsonConfigTest()
     {
-        SkipIfJsonSchemaPathNotSet();
-
-        var schema = JsonSchema.FromFile(Path.Combine(GetRepoRoot(), JsonSchemaPath));
+        var schema = JsonSchema.FromFile(JsonSchemaPath);
 
         foreach ((string json, string error) in InvalidJsonToErrorMessage)
         {
@@ -344,14 +340,6 @@ public abstract class ConformanceTests<TService, TOptions>
 
             Assert.NotNull(detail);
             Assert.Equal(error, detail.Errors!.First().Value);
-        }
-    }
-
-    private void SkipIfJsonSchemaPathNotSet()
-    {
-        if (string.IsNullOrEmpty(JsonSchemaPath))
-        {
-            throw new SkipTestException("ConfigurationSchema.json path not set.");
         }
     }
 
@@ -377,18 +365,6 @@ public abstract class ConformanceTests<TService, TOptions>
             key is null
                 ? host.Services.GetRequiredService<TService>()
                 : host.Services.GetRequiredKeyedService<TService>(key));
-    }
-
-    private static string GetRepoRoot()
-    {
-        string directory = AppContext.BaseDirectory;
-
-        while (directory != null && !Directory.Exists(Path.Combine(directory, ".git")))
-        {
-            directory = Directory.GetParent(directory)!.FullName;
-        }
-
-        return directory!;
     }
 
     protected virtual void SetupConnectionInformationIsDelayValidated() { }

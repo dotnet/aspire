@@ -16,7 +16,7 @@ public partial class ServiceEndPointResolverFactory
         {
             if (logger.IsEnabled(LogLevel.Debug))
             {
-                ServiceEndPointResolverListCore(logger, serviceName, resolvers.Count, string.Join(", ", resolvers.Select(static r => r.DisplayName)));
+                ServiceEndPointResolverListCore(logger, serviceName, resolvers.Count, string.Join(", ", resolvers.Select(static r => r.ToString())));
             }
         }
     }

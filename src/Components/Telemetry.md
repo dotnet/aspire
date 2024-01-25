@@ -25,7 +25,6 @@ Aspire.Azure.Messaging.ServiceBus:
   - "Azure.Messaging.ServiceBus"
 - Activity source names:
   - "Azure.Messaging.ServiceBus.*"
-  - "Azure.Messaging.ServiceBus"
 - Metric names:
   - none (currently not supported by the Azure SDK)
 
