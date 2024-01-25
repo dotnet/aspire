@@ -19,7 +19,9 @@
     <_HelixLogPath Condition="'$(OS)' != 'Windows_NT'">$HELIX_WORKITEM_UPLOAD_ROOT/log</_HelixLogPath>
     <_HelixLogPath Condition="'$(OS)' == 'Windows_NT'">%HELIX_WORKITEM_UPLOAD_ROOT%/log</_HelixLogPath>
 
-    <_TestCoverageCommand>dotnet dotnet-coverage collect</_TestCoverageCommand>
+    <_TestCoverageCommand Condition="'$(OS)' != 'Windows_NT'">$HELIX_CORRELATION_PAYLOAD/dotnet-coverage/dotnet-coverage collect</_TestCoverageCommand>
+    <_TestCoverageCommand Condition="'$(OS)' == 'Windows_NT'">%HELIX_CORRELATION_PAYLOAD%dotnet-coverage/dotnet-coverage collect</_TestCoverageCommand>
+    <!-- FIXME: config file as payload too -->
     <_TestCoverageCommand>$(_TestCoverageCommand) --settings $(RepoRoot)eng/CodeCoverage.config</_TestCoverageCommand>
     <_TestCoverageCommand>$(_TestCoverageCommand) --output $(_HelixLogPath)/Test.cobertura.xml</_TestCoverageCommand>
   </PropertyGroup>
