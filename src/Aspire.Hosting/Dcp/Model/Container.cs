@@ -225,7 +225,7 @@ internal sealed class Container : CustomResource<ContainerSpec, ContainerStatus>
 
     public static Container Create(string name, string image)
     {
-        var c = new Container(new ContainerSpec { Image = image, ContainerName = name });
+        var c = new Container(new ContainerSpec { Image = image });
 
         c.Kind = Dcp.ContainerKind;
         c.ApiVersion = Dcp.GroupVersion.ToString();
