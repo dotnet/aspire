@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.DotNet.Helix.Sdk" InitialTargets="ProvisionDotNetCoverage;BuildHelixWorkItems" DefaultTargets="Test">
+<Project Sdk="Microsoft.DotNet.Helix.Sdk" InitialTargets="BuildHelixWorkItems" DefaultTargets="Test">
 
   <PropertyGroup>
     <Language>msbuild</Language>
@@ -41,11 +41,14 @@
     <_TestRunCommandArguments Condition="'$(OS)' == 'Windows_NT'" Include="--logger:trx%3BLogFileName=TestResults.trx" />
   </ItemGroup>
 
-  <Target Name="BuildHelixWorkItems">
+  <Target Name="BuildHelixWorkItems" DependsOnTargets="_StageDependenciesForHelix">
     <PropertyGroup>
       <_TestRunCommand Condition="'$(RunWithCodeCoverage)' == 'true'">$(_TestCoverageCommand) &quot;@(_TestRunCommandArguments, ' ')&quot;</_TestRunCommand>
       <_TestRunCommand Condition="'$(RunWithCodeCoverage)' != 'true'">@(_TestRunCommandArguments, ' ')</_TestRunCommand>
     </PropertyGroup>
+
+    <Error Condition="'$(_DotNetCoverageToolPath)' == '' or !Exists($(_DotNetCoverageToolPath))"
+           Text="Could not find dotnet-coverage tool. %24(_DotNetCoverageToolPath)=$(_DotNetCoverageToolPath)" />
 
     <ItemGroup>
       <HelixCorrelationPayload Include="$(_DotNetCoverageToolPath)" Destination="dotnet-coverage" />
@@ -62,9 +65,14 @@
         <Timeout>$(_workItemTimeout)</Timeout>
       </HelixWorkItem>
     </ItemGroup>
+
+    <Message Text="HelixCorrelationPayload: %(HelixCorrelationPayload.Identity)" Condition="'$(HelixDryRun)' == 'true'" Importance="High" />
+    <Message Text="HelixWorkItem: %(HelixWorkItem.Identity), Command: %(HelixWorkItem.Command), PreCommands: %(HelixWorkItem.PreCommands) with PayloadArchive: %(HelixWorkItem.PayloadArchive)" Condition="'$(HelixDryRun)' == 'true'" Importance="High" />
+
+    <Error Text="Stopping the build for dry run" Condition="'$(HelixDryRun)' == 'true'" />
   </Target>
 
-  <Target Name="ProvisionDotNetCoverage">
+  <Target Name="_StageDependenciesForHelix">
     <InstallDotNetTool Name="dotnet-coverage"
                        DestinationPath="$(ArtifactsDir)/tools"
                        Version="$(DotNetCoverageToolVersion)"
