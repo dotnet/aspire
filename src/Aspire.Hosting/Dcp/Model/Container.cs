@@ -9,7 +9,7 @@ namespace Aspire.Hosting.Dcp.Model;
 
 internal sealed class ContainerSpec
 {
-    // Container name displayed in Docker
+    // Container name displayed in Docker. If not specified, the metadata name + random suffix is used.
     [JsonPropertyName("containerName")]
     public string? ContainerName { get; set; }
 
