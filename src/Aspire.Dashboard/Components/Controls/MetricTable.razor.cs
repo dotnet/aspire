@@ -24,7 +24,7 @@ public partial class MetricTable : ComponentBase
     private IEnumerable<Metric> _metricsView => _metrics.AsEnumerable().Reverse();
 
     [Inject]
-    public required IJSRuntime JS { get; set; }
+    public required IJSRuntime JS { get; init; }
 
     protected override void OnInitialized()
     {
