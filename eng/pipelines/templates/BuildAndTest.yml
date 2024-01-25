@@ -19,6 +19,14 @@ parameters:
     default: false
 
 steps:
+  - ${{ if eq(parameters.isWindows, 'true') }}:
+    - pwsh: >- dotnet coverage
+              merge
+              $((Get-ChildItem -Path ${{ parameters.repoTestResultsPath }}\* -Recurse -Filter *.cobertura.xml -File  | % { $_.FullName }) -join ' ')
+              -f cobertura
+              -o '${{ parameters.repoTestResultsPath }}/$(Agent.Os)_$(Agent.JobName).cobertura.xml'
+      displayName: Merge code coverage results
+
   - script: ${{ parameters.buildScript }}
             -restore -build
             -configuration ${{ parameters.buildConfig }}
@@ -49,7 +57,7 @@ steps:
       displayName: Run non-helix tests
 
     - ${{ if eq(parameters.isWindows, 'true') }}:
-      - powershell: >- powershell dotnet coverage
+      - pwsh: >- dotnet coverage
                 merge
                 $((Get-ChildItem -Path ${{ parameters.repoTestResultsPath }}\* -Recurse -Filter *.cobertura.xml -File  | % { $_.FullName }) -join ' ')
                 -f cobertura
