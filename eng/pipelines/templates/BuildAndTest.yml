@@ -20,10 +20,10 @@ parameters:
 
 steps:
   - pwsh: >-
-        echo dotnet coverage merge
+        echo "dotnet coverage merge
         $((Get-ChildItem -Path src -Recurse -Filter *.cs -File  | % { $_.FullName }) -join ' ')
         -f cobertura
-        -o '${{ parameters.repoTestResultsPath }}/$(Agent.Os)_$(Agent.JobName).cobertura.xml'
+        -o '${{ parameters.repoTestResultsPath }}/$(Agent.Os)_$(Agent.JobName).cobertura.xml'"
     displayName: Merge code coverage results
 
   - script: ${{ parameters.buildScript }}
