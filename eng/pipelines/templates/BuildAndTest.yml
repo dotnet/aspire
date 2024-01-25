@@ -48,6 +48,13 @@ steps:
               "${{ parameters.buildScript }} -testnobuild -test -configuration ${{ parameters.buildConfig }} /bl:${{ parameters.repoLogPath }}/tests.binlog /p:SkipHelixReadyTests=true $(_OfficialBuildIdArgs)"
       displayName: Run non-helix tests
 
+    - script: ${{ parameters.dotnetScript }} dotnet-coverage
+              merge
+              ${{ parameters.repoTestResultsPath}}/*cobertura.xml
+              -f cobertura
+              -o '${{ parameters.repoTestResultsPath }}/$(Agent.Os)_$(Agent.JobName).cobertura.xml'
+      displayName: Merge code coverage results
+
     - task: PublishBuildArtifacts@1
       inputs:
         PathtoPublish: '${{ parameters.repoTestResultsPath }}/$(Agent.Os)_$(Agent.JobName).cobertura.xml'
