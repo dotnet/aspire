@@ -49,7 +49,7 @@ steps:
       displayName: Run non-helix tests
 
     - ${{ if eq(parameters.isWindows, 'true') }}:
-      - script: ${{ parameters.dotnetScript }} dotnet-coverage
+      - powershell: >- powershell dotnet coverage
                 merge
                 $((Get-ChildItem -Path ${{ parameters.repoTestResultsPath }}\* -Recurse -Filter *.cobertura.xml -File  | % { $_.FullName }) -join ' ')
                 -f cobertura
