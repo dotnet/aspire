@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.DotNet.Helix.Sdk" DefaultTargets="Test">
+<Project Sdk="Microsoft.DotNet.Helix.Sdk" InitialTargets="ProvisionDotNetCoverage;BuildHelixWorkItems" DefaultTargets="Test">
 
   <PropertyGroup>
     <Language>msbuild</Language>
@@ -11,6 +11,8 @@
 
     <GlobalJsonContent>$([System.IO.File]::ReadAllText('$(RepoRoot)global.json'))</GlobalJsonContent>
     <DotNetCliVersion>$([System.Text.RegularExpressions.Regex]::Match($(GlobalJsonContent), '(%3F&lt;="dotnet": ").*(%3F=")'))</DotNetCliVersion>
+
+    <DotNetCoverageToolVersion>17.9.3</DotNetCoverageToolVersion>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -36,17 +38,32 @@
     <_TestRunCommandArguments Condition="'$(OS)' == 'Windows_NT'" Include="--logger:trx%3BLogFileName=TestResults.trx" />
   </ItemGroup>
 
-  <ItemGroup>
-    <_DefaultWorkItems Include="$(WorkItemArchiveWildCard)" />
-    <!--<_DefaultWorkItems Condition="'$(ContinuousIntegrationBuild)' != 'true'" Include="$(RepoRoot)artifacts/helix/tests/Aspire.Hosting.Tests.zip" />-->
+  <Target Name="BuildHelixWorkItems">
+    <ItemGroup>
+      <HelixCorrelationPayload Include="$(_DotNetCoverageToolPath)" Destination="dotnet-coverage" />
 
-    <HelixWorkItem Include="@(_DefaultWorkItems -> '%(FileName)')">
-      <PayloadArchive>$(TestArchiveTestsDir)%(Identity).zip</PayloadArchive>
-      <PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=%(Identity)&quot;</PreCommands>
-      <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=%(Identity)&quot;</PreCommands>
-      <Command Condition="'$(RunWithCodeCoverage)' == 'true'">$(_TestCoverageCommand) &quot;@(_TestRunCommandArguments, ' ')&quot;</Command>
-      <Command Condition="'$(RunWithCodeCoverage)' != 'true'">@(_TestRunCommandArguments, ' ')</Command>
-      <Timeout>$(_workItemTimeout)</Timeout>
-    </HelixWorkItem>
-  </ItemGroup>
+      <_DefaultWorkItems Include="$(WorkItemArchiveWildCard)" />
+      <!--<_DefaultWorkItems Condition="'$(ContinuousIntegrationBuild)' != 'true'" Include="$(RepoRoot)artifacts/helix/tests/Aspire.Hosting.Tests.zip" />-->
+
+      <HelixWorkItem Include="@(_DefaultWorkItems -> '%(FileName)')">
+        <PayloadArchive>%(Identity)</PayloadArchive>
+        <PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
+        <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
+        <Command Condition="'$(RunWithCodeCoverage)' == 'true'">$(_TestCoverageCommand) &quot;@(_TestRunCommandArguments, ' ')&quot;</Command>
+        <Command Condition="'$(RunWithCodeCoverage)' != 'true'">@(_TestRunCommandArguments, ' ')</Command>
+        <Timeout>$(_workItemTimeout)</Timeout>
+      </HelixWorkItem>
+    </ItemGroup>
+  </Target>
+
+  <Target Name="ProvisionDotNetCoverage">
+    <InstallDotNetTool Name="dotnet-coverage"
+                       DestinationPath="$(ArtifactsDir)/tools"
+                       Version="$(DotNetCoverageToolVersion)"
+                       WorkingDirectory="$(ArtifactsTmpDir)"
+                       DotNetPath="$(DotNetTool)"
+                       NoCache="$(XHarnessNoCache)">
+      <Output TaskParameter="ToolPath" PropertyName="_DotNetCoverageToolPath" />
+    </InstallDotNetTool>
+  </Target>
 </Project>
