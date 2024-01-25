@@ -238,7 +238,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
     {
         get
         {
-            if (Environment.GetEnvironmentVariable("DOTNET_ASPIRE_DASHBOARD_TIMEOUT") is { } timeoutString && int.TryParse(timeoutString, out var timeoutInSeconds))
+            if (Environment.GetEnvironmentVariable("DOTNET_ASPIRE_DASHBOARD_TIMEOUT_SECONDS") is { } timeoutString && int.TryParse(timeoutString, out var timeoutInSeconds))
             {
                 return TimeSpan.FromSeconds(timeoutInSeconds);
             }
