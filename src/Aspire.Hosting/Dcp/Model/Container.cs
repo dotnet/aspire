@@ -9,6 +9,10 @@ namespace Aspire.Hosting.Dcp.Model;
 
 internal sealed class ContainerSpec
 {
+    // Container name displayed in Docker
+    [JsonPropertyName("containerName")]
+    public string? ContainerName { get; set; }
+
     // Image to be used to create the container
     [JsonPropertyName("image")]
     public string? Image { get; set; }
@@ -153,6 +157,10 @@ internal sealed class ContainerPortSpec
 
 internal sealed class ContainerStatus : V1Status
 {
+    // Container name displayed in Docker
+    [JsonPropertyName("containerName")]
+    public string? ContainerName { get; set; }
+
     // Current state of the Container.
     [JsonPropertyName("state")]
     public string? State { get; set; }
@@ -217,7 +225,7 @@ internal sealed class Container : CustomResource<ContainerSpec, ContainerStatus>
 
     public static Container Create(string name, string image)
     {
-        var c = new Container(new ContainerSpec { Image = image });
+        var c = new Container(new ContainerSpec { Image = image, ContainerName = name });
 
         c.Kind = Dcp.ContainerKind;
         c.ApiVersion = Dcp.GroupVersion.ToString();
