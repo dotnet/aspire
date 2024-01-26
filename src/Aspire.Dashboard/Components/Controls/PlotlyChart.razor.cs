@@ -393,7 +393,7 @@ public partial class PlotlyChart : ComponentBase
     private async Task UpdateChart(bool tickUpdate, DateTime inProgressDataTime)
     {
         Debug.Assert(InstrumentViewModel.MatchedDimensions != null);
-        var unit = GetDisplayedUnit(InstrumentViewModel, Loc);
+        var unit = GetDisplayedUnit(InstrumentViewModel.Instrument, InstrumentViewModel.ShowCount, Loc);
 
         List<Trace> traces;
         List<DateTime> xValues;
@@ -433,12 +433,14 @@ public partial class PlotlyChart : ComponentBase
         }
     }
 
-    internal static string GetDisplayedUnit(InstrumentViewModel instrumentViewModel, IStringLocalizer<ControlsStrings> loc)
+    internal static string GetDisplayedUnit(OtlpInstrument? instrument, bool showCount, IStringLocalizer<ControlsStrings> loc)
     {
-        var instrument = instrumentViewModel.Instrument;
-        Debug.Assert(instrument is not null);
+        if (instrument is null)
+        {
+            return string.Empty;
+        }
 
-        if (instrumentViewModel.ShowCount)
+        if (showCount)
         {
             // Unit comes from the instrument and they're not localized.
             // The hardcoded "Count" label isn't localized for consistency.

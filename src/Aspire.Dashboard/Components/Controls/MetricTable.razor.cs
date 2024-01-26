@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Model;
@@ -21,10 +21,20 @@ public partial class MetricTable : ComponentBase
     private bool _anyDimensionsShown;
     private IJSObjectReference? _jsModule;
 
-    private IEnumerable<Metric> _metricsView => _metrics.AsEnumerable().Reverse();
+    private OtlpInstrument? _instrument;
+    private bool _showCount;
+    private TableType _tableType;
+
+    private IQueryable<Metric> _metricsView => _metrics.AsEnumerable().Reverse().AsQueryable();
 
     [Inject]
     public required IJSRuntime JS { get; init; }
+
+    [Parameter, EditorRequired]
+    public required InstrumentViewModel InstrumentViewModel { get; set; }
+
+    [Parameter, EditorRequired]
+    public required TimeSpan Duration { get; set; }
 
     protected override void OnInitialized()
     {
@@ -39,17 +49,42 @@ public partial class MetricTable : ComponentBase
         }
     }
 
+    protected override async Task OnParametersSetAsync()
+    {
+        // Immediately update data when parameters change.
+        await OnInstrumentDataUpdate();
+    }
+
     private async Task OnInstrumentDataUpdate()
     {
+        if (_instrument != InstrumentViewModel.Instrument || _showCount != InstrumentViewModel.ShowCount)
+        {
+            _metrics.Clear();
+        }
+
+        // Store local values from view model on data update.
+        // This keeps the instrument and data consistent while the view model is updated.
+        _instrument = InstrumentViewModel.Instrument;
+        _showCount = InstrumentViewModel.ShowCount;
+
+        if (IsHistogramInstrument())
+        {
+            _tableType = _showCount ? TableType.Count : TableType.Histogram;
+        }
+        else
+        {
+            _tableType = TableType.Instrument;
+        }
+
         var oldMetrics = _metrics.ToList();
 
         _anyDimensionsShown = false;
 
-        if (InstrumentViewModel.MatchedDimensions is not null)
+        if (InstrumentViewModel.MatchedDimensions is { } matchedDimensions)
         {
             var metrics = new List<Metric>();
-            _anyDimensionsShown = InstrumentViewModel.MatchedDimensions.Any(dimension => !dimension.Name.Equals(DimensionScope.NoDimensions));
-            var valuesWithDimensions = InstrumentViewModel.MatchedDimensions
+            _anyDimensionsShown = matchedDimensions.Any(dimension => !dimension.Name.Equals(DimensionScope.NoDimensions));
+            var valuesWithDimensions = matchedDimensions
                 .SelectMany(dimension => dimension.Values.Select(value => (value, dimension))).ToList();
 
             valuesWithDimensions.Sort((a, b) =>
@@ -254,6 +289,14 @@ public partial class MetricTable : ComponentBase
         Constant
     }
 
+    public enum TableType
+    {
+        None,
+        Histogram,
+        Instrument,
+        Count
+    }
+
     private (Icon Icon, string Title)? GetIconAndTitleForDirection(ValueDirectionChange? directionChange)
     {
         return directionChange switch
@@ -272,12 +315,12 @@ public partial class MetricTable : ComponentBase
 
     private bool ShouldShowHistogram()
     {
-        return IsHistogramInstrument() && !InstrumentViewModel.ShowCount;
+        return IsHistogramInstrument() && !_showCount;
     }
 
     private bool IsHistogramInstrument()
     {
-        return InstrumentViewModel.Instrument?.Type == OtlpInstrumentType.Histogram;
+        return _instrument?.Type == OtlpInstrumentType.Histogram;
     }
 
     private static ValueDirectionChange GetDirectionChange(IComparable? current, IComparable? previous)
