@@ -358,6 +358,12 @@ public static class OrleansServiceExtensions
             builder.WithEnvironment("Orleans__ServiceId", res.ServiceId);
         }
 
+        // Enable distributed tracing by default
+        if (res.EnableDistributedTracing != false)
+        {
+            builder.WithEnvironment("Orleans__EnableDistributedTracing", "true");
+        }
+
         return builder;
     }
 }
