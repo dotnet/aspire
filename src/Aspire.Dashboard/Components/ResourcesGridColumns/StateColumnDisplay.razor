@@ -3,7 +3,7 @@
 @using Aspire.Dashboard.Resources
 @inject IStringLocalizer<Columns> Loc
 
-@if (Resource is { State: ResourceStates.ExitedState /* containers */ or ResourceStates.FinishedState /* executables */ })
+@if (Resource is { State: ResourceStates.ExitedState /* containers */ or ResourceStates.FinishedState /* executables */ or ResourceStates.FailedToStartState })
 {
     if (Resource.TryGetExitCode(out int exitCode) && exitCode is not 0)
     {
