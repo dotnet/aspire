@@ -18,8 +18,8 @@
         <note />
       </trans-unit>
       <trans-unit id="TracesPageTitle">
-        <source>{0} Traces</source>
-        <target state="new">{0} Traces</target>
+        <source>{0} traces</source>
+        <target state="new">{0} traces</target>
         <note>{0} is an application name</note>
       </trans-unit>
       <trans-unit id="TracesResourceSpans">

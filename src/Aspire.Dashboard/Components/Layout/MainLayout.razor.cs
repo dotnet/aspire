@@ -19,16 +19,13 @@ public partial class MainLayout : IDisposable
     public required ThemeManager ThemeManager { get; init; }
 
     [Inject]
-    public required IJSRuntime JS { get; set; }
+    public required IJSRuntime JS { get; init; }
 
     [Inject]
-    public required IStringLocalizer<Resources.Layout> Loc { get; set; }
+    public required IStringLocalizer<Resources.Layout> Loc { get; init; }
 
     [Inject]
-    public required IResourceService ResourceService { get; set; }
-
-    [Inject]
-    public required IDialogService DialogService { get; set; }
+    public required IDialogService DialogService { get; init; }
 
     protected override void OnInitialized()
     {
@@ -83,7 +80,7 @@ public partial class MainLayout : IDisposable
     {
         if (firstRender)
         {
-            _jsModule = await JS.InvokeAsync<IJSObjectReference>("import", "/_content/Aspire.Dashboard/js/theme.js");
+            _jsModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/theme.js");
         }
     }
 
@@ -91,7 +88,7 @@ public partial class MainLayout : IDisposable
     {
         DialogParameters parameters = new()
         {
-            Title = Loc[Resources.Layout.MainLayoutSettingsDialogTitle],
+            Title = Loc[nameof(Resources.Layout.MainLayoutSettingsDialogTitle)],
             PrimaryAction = Resources.Layout.MainLayoutSettingsDialogClose,
             PrimaryActionEnabled = true,
             SecondaryAction = null,

@@ -42,44 +42,59 @@
         <target state="new">Unable to display chart</target>
         <note />
       </trans-unit>
+      <trans-unit id="DetailsColumnHeader">
+        <source>Details</source>
+        <target state="new">Details</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DurationColumnHeader">
+        <source>Duration</source>
+        <target state="new">Duration</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="EventColumnHeader">
+        <source>Event</source>
+        <target state="new">Event</target>
+        <note />
+      </trans-unit>
       <trans-unit id="FilterPlaceholder">
         <source>Filter...</source>
         <target state="new">Filter...</target>
         <note />
       </trans-unit>
       <trans-unit id="EnvironmentVariablesFilterToggleShowAll">
-        <source>Show All</source>
-        <target state="new">Show All</target>
+        <source>Show all</source>
+        <target state="new">Show all</target>
         <note />
       </trans-unit>
       <trans-unit id="EnvironmentVariablesFilterToggleShowSpecOnly">
-        <source>Show Spec Only</source>
-        <target state="new">Show Spec Only</target>
+        <source>Show spec only</source>
+        <target state="new">Show spec only</target>
         <note>Spec means from the resource specification</note>
       </trans-unit>
       <trans-unit id="EnvironmentVariablesHideVariableValues">
-        <source>Hide Values</source>
-        <target state="new">Hide Values</target>
+        <source>Hide values</source>
+        <target state="new">Hide values</target>
         <note />
       </trans-unit>
       <trans-unit id="EnvironmentVariablesShowVariableValues">
-        <source>Show Values</source>
-        <target state="new">Show Values</target>
+        <source>Show values</source>
+        <target state="new">Show values</target>
         <note />
       </trans-unit>
       <trans-unit id="GridValueCopyToClipboard">
-        <source>Copy to Clipboard</source>
-        <target state="new">Copy to Clipboard</target>
+        <source>Copy to clipboard</source>
+        <target state="new">Copy to clipboard</target>
         <note />
       </trans-unit>
       <trans-unit id="GridValueMaskHideValue">
-        <source>Hide Value</source>
-        <target state="new">Hide Value</target>
+        <source>Hide value</source>
+        <target state="new">Hide value</target>
         <note />
       </trans-unit>
       <trans-unit id="GridValueMaskShowValue">
-        <source>Show Value</source>
-        <target state="new">Show Value</target>
+        <source>Show value</source>
+        <target state="new">Show value</target>
         <note />
       </trans-unit>
       <trans-unit id="NameColumnHeader">
@@ -107,9 +122,14 @@
         <target state="new">Value</target>
         <note />
       </trans-unit>
+      <trans-unit id="SelectAResource">
+        <source>Select a resource</source>
+        <target state="new">Select a resource</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SelectAnApplication">
-        <source>Select an Application</source>
-        <target state="new">Select an Application</target>
+        <source>Select an application</source>
+        <target state="new">Select an application</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanDetailsDuration">
@@ -123,9 +143,19 @@
         <note>{0} is the application name. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
       <trans-unit id="SpanDetailsStartTime">
-        <source>Start Time &lt;strong&gt;{0}&lt;/strong&gt;</source>
-        <target state="new">Start Time &lt;strong&gt;{0}&lt;/strong&gt;</target>
+        <source>Start time &lt;strong&gt;{0}&lt;/strong&gt;</source>
+        <target state="new">Start time &lt;strong&gt;{0}&lt;/strong&gt;</target>
         <note>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+      </trans-unit>
+      <trans-unit id="TimeOffsetColumnHeader">
+        <source>Time offset</source>
+        <target state="new">Time offset</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TimestampColumnHeader">
+        <source>Timestamp</source>
+        <target state="new">Timestamp</target>
+        <note />
       </trans-unit>
       <trans-unit id="ViewAction">
         <source>View</source>
@@ -133,8 +163,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ViewLogsLink">
-        <source>View Logs</source>
-        <target state="new">View Logs</target>
+        <source>View logs</source>
+        <target state="new">View logs</target>
         <note />
       </trans-unit>
       <trans-unit id="SummaryDetailsViewCloseView">
@@ -143,13 +173,13 @@
         <note />
       </trans-unit>
       <trans-unit id="SummaryDetailsViewSplitHorizontal">
-        <source>Split Horizontal</source>
-        <target state="new">Split Horizontal</target>
+        <source>Split horizontal</source>
+        <target state="new">Split horizontal</target>
         <note />
       </trans-unit>
       <trans-unit id="SummaryDetailsViewSplitVertical">
-        <source>Split Vertical</source>
-        <target state="new">Split Vertical</target>
+        <source>Split vertical</source>
+        <target state="new">Split vertical</target>
         <note />
       </trans-unit>
       <trans-unit id="TotalItemsFooterText">

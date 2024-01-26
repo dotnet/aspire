@@ -28,8 +28,8 @@
         <note />
       </trans-unit>
       <trans-unit id="TraceDetailTotalSpansHeader">
-        <source>Total Spans</source>
-        <target state="new">Total Spans</target>
+        <source>Total spans</source>
+        <target state="new">Total spans</target>
         <note />
       </trans-unit>
       <trans-unit id="TraceDetailTraceNotFound">
@@ -38,8 +38,8 @@
         <note>{0} is an identifier</note>
       </trans-unit>
       <trans-unit id="TraceDetailTraceStartHeader">
-        <source>Trace Detail</source>
-        <target state="new">Trace Detail</target>
+        <source>Trace detail</source>
+        <target state="new">Trace detail</target>
         <note />
       </trans-unit>
     </body>

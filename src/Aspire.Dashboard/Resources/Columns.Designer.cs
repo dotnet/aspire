@@ -88,7 +88,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Copy Container ID to clipboard.
+        ///   Looks up a localized string similar to Copy container ID to clipboard.
         /// </summary>
         public static string ResourceNameDisplayCopyContainerIdText {
             get {
@@ -133,6 +133,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Copy full command to clipboard.
+        /// </summary>
+        public static string SourceColumnDisplayCopyCommandToClipboard {
+            get {
+                return ResourceManager.GetString("SourceColumnDisplayCopyCommandToClipboard", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Port: {0}.
         /// </summary>
         public static string SourceColumnDisplayPort {
@@ -151,7 +160,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Working Dir: {0}.
+        ///   Looks up a localized string similar to Working directory: {0}.
         /// </summary>
         public static string SourceColumnDisplayWorkingDirectory {
             get {
@@ -160,20 +169,47 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to {0} error log.
+        ///   Looks up a localized string similar to Copy image name and tag to clipboard.
         /// </summary>
-        public static string UnreadLogErrorsBadgeErrorLog {
+        public static string SourceColumnSourceCopyContainerToClipboard {
             get {
-                return ResourceManager.GetString("UnreadLogErrorsBadgeErrorLog", resourceCulture);
+                return ResourceManager.GetString("SourceColumnSourceCopyContainerToClipboard", resourceCulture);
             }
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to {0} error logs.
+        ///   Looks up a localized string similar to Copy file path to clipboard.
         /// </summary>
-        public static string UnreadLogErrorsBadgeErrorLogs {
+        public static string SourceColumnSourceCopyFullPathToClipboard {
             get {
-                return ResourceManager.GetString("UnreadLogErrorsBadgeErrorLogs", resourceCulture);
+                return ResourceManager.GetString("SourceColumnSourceCopyFullPathToClipboard", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} is no longer running.
+        /// </summary>
+        public static string StateColumnResourceExited {
+            get {
+                return ResourceManager.GetString("StateColumnResourceExited", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} exited unexpectedly with exit code {1}.
+        /// </summary>
+        public static string StateColumnResourceExitedUnexpectedly {
+            get {
+                return ResourceManager.GetString("StateColumnResourceExitedUnexpectedly", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} errors.
+        /// </summary>
+        public static string UnreadLogErrors {
+            get {
+                return ResourceManager.GetString("UnreadLogErrors", resourceCulture);
             }
         }
     }

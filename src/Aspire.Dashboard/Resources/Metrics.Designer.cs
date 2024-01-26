@@ -70,6 +70,24 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Description.
+        /// </summary>
+        public static string MetricsInsturementDescriptionGridNameColumnHeader {
+            get {
+                return ResourceManager.GetString("MetricsInsturementDescriptionGridNameColumnHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Instrument.
+        /// </summary>
+        public static string MetricsInsturementNameGridNameColumnHeader {
+            get {
+                return ResourceManager.GetString("MetricsInsturementNameGridNameColumnHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Last 15 minutes.
         /// </summary>
         public static string MetricsLastFifteenMinutes {
@@ -160,7 +178,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to {0} Metrics.
+        ///   Looks up a localized string similar to {0} metrics.
         /// </summary>
         public static string MetricsPageTitle {
             get {
@@ -169,7 +187,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Select a Duration.
+        ///   Looks up a localized string similar to Select a duration.
         /// </summary>
         public static string MetricsSelectADuration {
             get {

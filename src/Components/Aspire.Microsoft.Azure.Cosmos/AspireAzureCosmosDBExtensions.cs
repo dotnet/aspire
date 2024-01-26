@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Azure.Cosmos;
 using Aspire.Microsoft.Azure.Cosmos;
 using Azure.Identity;
 using Microsoft.Azure.Cosmos;
@@ -90,6 +91,16 @@ public static class AspireAzureCosmosDBExtensions
             {
                 tracerProviderBuilder.AddSource("Azure.Cosmos.Operation");
             });
+        }
+
+        if (settings.IgnoreEmulatorCertificate && CosmosUtils.IsEmulatorConnectionString(settings.ConnectionString))
+        {
+            clientOptions.HttpClientFactory = () => new HttpClient(new HttpClientHandler()
+            {
+                ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+            });
+            clientOptions.ConnectionMode = ConnectionMode.Gateway;
+            clientOptions.LimitToEndpoint = true;
         }
 
         configureClientOptions?.Invoke(clientOptions);

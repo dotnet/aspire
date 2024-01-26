@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <root>
-  <!-- 
-    Microsoft ResX Schema 
-    
+  <!--
+    Microsoft ResX Schema
+
     Version 2.0
-    
-    The primary goals of this format is to allow a simple XML format 
-    that is mostly human readable. The generation and parsing of the 
-    various data types are done through the TypeConverter classes 
+
+    The primary goals of this format is to allow a simple XML format
+    that is mostly human readable. The generation and parsing of the
+    various data types are done through the TypeConverter classes
     associated with the data types.
-    
+
     Example:
-    
+
     ... ado.net/XML headers & schema ...
     <resheader name="resmimetype">text/microsoft-resx</resheader>
     <resheader name="version">2.0</resheader>
@@ -26,36 +26,36 @@
         <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
         <comment>This is a comment</comment>
     </data>
-                
-    There are any number of "resheader" rows that contain simple 
+
+    There are any number of "resheader" rows that contain simple
     name/value pairs.
-    
-    Each data row contains a name, and value. The row also contains a 
-    type or mimetype. Type corresponds to a .NET class that support 
-    text/value conversion through the TypeConverter architecture. 
-    Classes that don't support this are serialized and stored with the 
+
+    Each data row contains a name, and value. The row also contains a
+    type or mimetype. Type corresponds to a .NET class that support
+    text/value conversion through the TypeConverter architecture.
+    Classes that don't support this are serialized and stored with the
     mimetype set.
-    
-    The mimetype is used for serialized objects, and tells the 
-    ResXResourceReader how to depersist the object. This is currently not 
+
+    The mimetype is used for serialized objects, and tells the
+    ResXResourceReader how to depersist the object. This is currently not
     extensible. For a given mimetype the value must be set accordingly:
-    
-    Note - application/x-microsoft.net.object.binary.base64 is the format 
-    that the ResXResourceWriter will generate, however the reader can 
+
+    Note - application/x-microsoft.net.object.binary.base64 is the format
+    that the ResXResourceWriter will generate, however the reader can
     read any of the formats listed below.
-    
+
     mimetype: application/x-microsoft.net.object.binary.base64
-    value   : The object must be serialized with 
+    value   : The object must be serialized with
             : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
             : and then encoded with base64 encoding.
-    
+
     mimetype: application/x-microsoft.net.object.soap.base64
-    value   : The object must be serialized with 
+    value   : The object must be serialized with
             : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
             : and then encoded with base64 encoding.
 
     mimetype: application/x-microsoft.net.object.bytearray.base64
-    value   : The object must be serialized into a byte array 
+    value   : The object must be serialized into a byte array
             : using a System.ComponentModel.TypeConverter
             : and then encoded with base64 encoding.
     -->
@@ -127,29 +127,29 @@
     <value>Select filters</value>
   </data>
   <data name="EnvironmentVariablesFilterToggleShowSpecOnly" xml:space="preserve">
-    <value>Show Spec Only</value>
+    <value>Show spec only</value>
     <comment>Spec means from the resource specification</comment>
   </data>
   <data name="EnvironmentVariablesFilterToggleShowAll" xml:space="preserve">
-    <value>Show All</value>
+    <value>Show all</value>
   </data>
   <data name="EnvironmentVariablesShowVariableValues" xml:space="preserve">
-    <value>Show Values</value>
+    <value>Show values</value>
   </data>
   <data name="EnvironmentVariablesHideVariableValues" xml:space="preserve">
-    <value>Hide Values</value>
+    <value>Hide values</value>
   </data>
   <data name="FilterPlaceholder" xml:space="preserve">
     <value>Filter...</value>
   </data>
   <data name="GridValueMaskShowValue" xml:space="preserve">
-    <value>Show Value</value>
+    <value>Show value</value>
   </data>
   <data name="GridValueMaskHideValue" xml:space="preserve">
-    <value>Hide Value</value>
+    <value>Hide value</value>
   </data>
   <data name="GridValueCopyToClipboard" xml:space="preserve">
-    <value>Copy to Clipboard</value>
+    <value>Copy to clipboard</value>
   </data>
   <data name="PlotlyChartCount" xml:space="preserve">
     <value>Count</value>
@@ -178,17 +178,17 @@
     <comment>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</comment>
   </data>
   <data name="SpanDetailsStartTime" xml:space="preserve">
-    <value>Start Time &lt;strong&gt;{0}&lt;/strong&gt;</value>
+    <value>Start time &lt;strong&gt;{0}&lt;/strong&gt;</value>
     <comment>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</comment>
   </data>
   <data name="ViewLogsLink" xml:space="preserve">
-    <value>View Logs</value>
+    <value>View logs</value>
   </data>
   <data name="SummaryDetailsViewSplitHorizontal" xml:space="preserve">
-    <value>Split Horizontal</value>
+    <value>Split horizontal</value>
   </data>
   <data name="SummaryDetailsViewSplitVertical" xml:space="preserve">
-    <value>Split Vertical</value>
+    <value>Split vertical</value>
   </data>
   <data name="SummaryDetailsViewCloseView" xml:space="preserve">
     <value>Close</value>
@@ -198,7 +198,7 @@
     <comment>{0} is a number. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</comment>
   </data>
   <data name="SelectAnApplication" xml:space="preserve">
-    <value>Select an Application</value>
+    <value>Select an application</value>
   </data>
   <data name="ViewAction" xml:space="preserve">
     <value>View</value>
@@ -217,5 +217,23 @@
   </data>
   <data name="ChartContainerShowCountLabel" xml:space="preserve">
     <value>Show count</value>
+  </data>
+  <data name="SelectAResource" xml:space="preserve">
+    <value>Select a resource</value>
+  </data>
+  <data name="TimeOffsetColumnHeader" xml:space="preserve">
+    <value>Time offset</value>
+  </data>
+  <data name="EventColumnHeader" xml:space="preserve">
+    <value>Event</value>
+  </data>
+  <data name="DurationColumnHeader" xml:space="preserve">
+    <value>Duration</value>
+  </data>
+  <data name="TimestampColumnHeader" xml:space="preserve">
+    <value>Timestamp</value>
+  </data>
+  <data name="DetailsColumnHeader" xml:space="preserve">
+    <value>Details</value>
   </data>
 </root>

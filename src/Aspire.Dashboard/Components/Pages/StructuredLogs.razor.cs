@@ -7,7 +7,6 @@ using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Microsoft.AspNetCore.Components;
-using Microsoft.Extensions.Logging;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -85,7 +84,7 @@ public partial class StructuredLogs
 
         _logLevels = new List<SelectViewModel<LogLevel?>>
         {
-            new SelectViewModel<LogLevel?> { Id = null, Name = $"({Loc[Dashboard.Resources.StructuredLogs.StructuredLogsAllTypes]})" },
+            new SelectViewModel<LogLevel?> { Id = null, Name = $"({Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsAllTypes)]})" },
             new SelectViewModel<LogLevel?> { Id = LogLevel.Trace, Name = "Trace" },
             new SelectViewModel<LogLevel?> { Id = LogLevel.Debug, Name = "Debug" },
             new SelectViewModel<LogLevel?> { Id = LogLevel.Information, Name = "Information" },
@@ -185,7 +184,7 @@ public partial class StructuredLogs
     {
         var logPropertyKeys = TelemetryRepository.GetLogPropertyKeys(_selectedApplication.Id);
 
-        var title = entry is not null ? Loc[Dashboard.Resources.StructuredLogs.StructuredLogsEditFilter] : Loc[Dashboard.Resources.StructuredLogs.StructuredLogsAddFilter];
+        var title = entry is not null ? Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsEditFilter)] : Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsAddFilter)];
         var parameters = new DialogParameters
         {
             OnDialogResult = DialogService.CreateDialogCallback(this, HandleFilterDialog),

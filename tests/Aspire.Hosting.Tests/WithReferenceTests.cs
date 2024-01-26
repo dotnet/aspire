@@ -9,12 +9,12 @@ namespace Aspire.Hosting.Tests;
 public class WithReferenceTests
 {
     [Fact]
-    public void ResourceWithSingleServiceBindingProducesSimplifiedEnvironmentVariables()
+    public void ResourceWithSingleEndpointProducesSimplifiedEnvironmentVariables()
     {
         var testProgram = CreateTestProgram();
 
         // Create a binding and its metching annotation (simulating DCP behavior)
-        testProgram.ServiceABuilder.WithServiceBinding(1000, 2000, "https", "mybinding");
+        testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 2000, "mybinding");
         testProgram.ServiceABuilder.WithAnnotation(
             new AllocatedEndpointAnnotation("mybinding",
             ProtocolType.Tcp,
@@ -40,17 +40,17 @@ public class WithReferenceTests
 
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("services__"));
         Assert.Equal(2, servicesKeysCount);
-        Assert.Contains(config, kvp => kvp.Key == "services__servicea__0" && kvp.Value == "https://_mybinding.localhost:2000");
+        Assert.Contains(config, kvp => kvp.Key == "services__servicea__0" && kvp.Value == "mybinding://localhost:2000");
         Assert.Contains(config, kvp => kvp.Key == "services__servicea__1" && kvp.Value == "https://localhost:2000");
     }
 
     [Fact]
-    public void ResourceWithConflictingServiceBindingsProducesFullyScopedEnvironmentVariables()
+    public void ResourceWithConflictingEndpointsProducesFullyScopedEnvironmentVariables()
     {
         var testProgram = CreateTestProgram();
 
         // Create a binding and its matching annotation (simulating DCP behavior)
-        testProgram.ServiceABuilder.WithServiceBinding(1000, 2000, "https", "mybinding");
+        testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 2000, "mybinding");
         testProgram.ServiceABuilder.WithAnnotation(
             new AllocatedEndpointAnnotation("mybinding",
             ProtocolType.Tcp,
@@ -61,7 +61,7 @@ public class WithReferenceTests
 
         // Create a binding and its matching annotation (simulating DCP behavior) - HOWEVER
         // this binding conflicts with the earlier because they have the same scheme.
-        testProgram.ServiceABuilder.WithServiceBinding(1000, 3000, "https", "myconflictingbinding");
+        testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 3000, "myconflictingbinding");
         testProgram.ServiceABuilder.WithAnnotation(
             new AllocatedEndpointAnnotation("myconflictingbinding",
             ProtocolType.Tcp,
@@ -89,17 +89,17 @@ public class WithReferenceTests
 
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("services__"));
         Assert.Equal(2, servicesKeysCount);
-        Assert.Contains(config, kvp => kvp.Key == "services__servicea__0" && kvp.Value == "https://_mybinding.localhost:2000");
-        Assert.Contains(config, kvp => kvp.Key == "services__servicea__1" && kvp.Value == "https://_myconflictingbinding.localhost:3000");
+        Assert.Contains(config, kvp => kvp.Key == "services__servicea__0" && kvp.Value == "mybinding://localhost:2000");
+        Assert.Contains(config, kvp => kvp.Key == "services__servicea__1" && kvp.Value == "myconflictingbinding://localhost:3000");
     }
 
     [Fact]
-    public void ResourceWithNonConflictingServiceBindingsProducesAllVariantsOfEnvironmentVariables()
+    public void ResourceWithNonConflictingEndpointsProducesAllVariantsOfEnvironmentVariables()
     {
         var testProgram = CreateTestProgram();
 
         // Create a binding and its matching annotation (simulating DCP behavior)
-        testProgram.ServiceABuilder.WithServiceBinding(1000, 2000, "https", "mybinding");
+        testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 2000, "mybinding");
         testProgram.ServiceABuilder.WithAnnotation(
             new AllocatedEndpointAnnotation("mybinding",
             ProtocolType.Tcp,
@@ -110,7 +110,7 @@ public class WithReferenceTests
 
         // Create a binding and its matching annotation (simulating DCP behavior) - not
         // conflicting because the scheme is different to the first binding.
-        testProgram.ServiceABuilder.WithServiceBinding(1000, 3000, "http", "mynonconflictingbinding");
+        testProgram.ServiceABuilder.WithHttpEndpoint(1000, 3000, "mynonconflictingbinding");
         testProgram.ServiceABuilder.WithAnnotation(
             new AllocatedEndpointAnnotation("mynonconflictingbinding",
             ProtocolType.Tcp,
@@ -138,19 +138,19 @@ public class WithReferenceTests
 
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("services__"));
         Assert.Equal(4, servicesKeysCount);
-        Assert.Contains(config, kvp => kvp.Key == "services__servicea__0" && kvp.Value == "https://_mybinding.localhost:2000");
+        Assert.Contains(config, kvp => kvp.Key == "services__servicea__0" && kvp.Value == "mybinding://localhost:2000");
         Assert.Contains(config, kvp => kvp.Key == "services__servicea__1" && kvp.Value == "https://localhost:2000");
-        Assert.Contains(config, kvp => kvp.Key == "services__servicea__2" && kvp.Value == "http://_mynonconflictingbinding.localhost:3000");
+        Assert.Contains(config, kvp => kvp.Key == "services__servicea__2" && kvp.Value == "mynonconflictingbinding://localhost:3000");
         Assert.Contains(config, kvp => kvp.Key == "services__servicea__3" && kvp.Value == "http://localhost:3000");
     }
 
     [Fact]
-    public void ResourceWithConflictingBindingsProducesAllBindingsEnvironmentVariables()
+    public void ResourceWithConflictingEndpointsProducesAllEnvironmentVariables()
     {
         var testProgram = CreateTestProgram();
 
         // Create a binding and its metching annotation (simulating DCP behavior)
-        testProgram.ServiceABuilder.WithServiceBinding(1000, 2000, "https", "mybinding");
+        testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 2000, "mybinding");
         testProgram.ServiceABuilder.WithAnnotation(
             new AllocatedEndpointAnnotation("mybinding",
             ProtocolType.Tcp,
@@ -159,7 +159,7 @@ public class WithReferenceTests
             "https"
             ));
 
-        testProgram.ServiceABuilder.WithServiceBinding(1000, 3000, "https", "mybinding2");
+        testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 3000, "mybinding2");
         testProgram.ServiceABuilder.WithAnnotation(
             new AllocatedEndpointAnnotation("mybinding2",
             ProtocolType.Tcp,
@@ -185,17 +185,17 @@ public class WithReferenceTests
 
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("services__"));
         Assert.Equal(2, servicesKeysCount);
-        Assert.Contains(config, kvp => kvp.Key == "services__servicea__0" && kvp.Value == "https://_mybinding.localhost:2000");
-        Assert.Contains(config, kvp => kvp.Key == "services__servicea__1" && kvp.Value == "https://_mybinding2.localhost:3000");
+        Assert.Contains(config, kvp => kvp.Key == "services__servicea__0" && kvp.Value == "mybinding://localhost:2000");
+        Assert.Contains(config, kvp => kvp.Key == "services__servicea__1" && kvp.Value == "mybinding2://localhost:3000");
     }
 
     [Fact]
-    public void ResourceWithBindingsProducesAllBindingsEnvironmentVariables()
+    public void ResourceWithEndpointsProducesAllEnvironmentVariables()
     {
         var testProgram = CreateTestProgram();
 
         // Create a binding and its metching annotation (simulating DCP behavior)
-        testProgram.ServiceABuilder.WithServiceBinding(1000, 2000, "https", "mybinding");
+        testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 2000, "mybinding");
         testProgram.ServiceABuilder.WithAnnotation(
             new AllocatedEndpointAnnotation("mybinding",
             ProtocolType.Tcp,
@@ -204,7 +204,7 @@ public class WithReferenceTests
             "https"
             ));
 
-        testProgram.ServiceABuilder.WithServiceBinding(1000, 3000, "http", "mybinding2");
+        testProgram.ServiceABuilder.WithHttpEndpoint(1000, 3000, "mybinding2");
         testProgram.ServiceABuilder.WithAnnotation(
             new AllocatedEndpointAnnotation("mybinding2",
             ProtocolType.Tcp,
@@ -230,9 +230,9 @@ public class WithReferenceTests
 
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("services__"));
         Assert.Equal(4, servicesKeysCount);
-        Assert.Contains(config, kvp => kvp.Key == "services__servicea__0" && kvp.Value == "https://_mybinding.localhost:2000");
+        Assert.Contains(config, kvp => kvp.Key == "services__servicea__0" && kvp.Value == "mybinding://localhost:2000");
         Assert.Contains(config, kvp => kvp.Key == "services__servicea__1" && kvp.Value == "https://localhost:2000");
-        Assert.Contains(config, kvp => kvp.Key == "services__servicea__2" && kvp.Value == "http://_mybinding2.localhost:3000");
+        Assert.Contains(config, kvp => kvp.Key == "services__servicea__2" && kvp.Value == "mybinding2://localhost:3000");
         Assert.Contains(config, kvp => kvp.Key == "services__servicea__3" && kvp.Value == "http://localhost:3000");
     }
 

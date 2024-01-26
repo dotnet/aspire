@@ -51,6 +51,7 @@
 ::deep .dimension-popup {
     max-width: 500px;
     min-width: 100px;
+    overflow-x: hidden;
 }
 
 ::deep .fluent-popover-content {

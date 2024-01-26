@@ -34,32 +34,21 @@ public partial class Traces
     public required TelemetryRepository TelemetryRepository { get; set; }
 
     [Inject]
-    public required TracesViewModel ViewModel { get; set; }
+    public required TracesViewModel TracesViewModel { get; set; }
 
     [Inject]
     public required IDialogService DialogService { get; set; }
-
-    private string GetRowStyle(OtlpTrace trace)
-    {
-        var percentage = 0.0;
-        if (ViewModel.MaxDuration != TimeSpan.Zero)
-        {
-            percentage = trace.Duration / ViewModel.MaxDuration * 100.0;
-        }
-
-        return string.Create(CultureInfo.InvariantCulture, $"background: linear-gradient(to right, var(--neutral-fill-input-alt-active) {percentage:0.##}%, transparent {percentage:0.##}%);");
-    }
 
     private string GetTooltip(IGrouping<OtlpApplication, OtlpSpan> applicationSpans)
     {
         var count = applicationSpans.Count();
         var errorCount = applicationSpans.Count(s => s.Status == OtlpSpanStatusCode.Error);
 
-        var tooltip = string.Format(CultureInfo.InvariantCulture, Loc[Dashboard.Resources.Traces.TracesResourceSpans], GetResourceName(applicationSpans.Key));
-        tooltip += Environment.NewLine + string.Format(CultureInfo.InvariantCulture, Loc[Dashboard.Resources.Traces.TracesTotalTraces], count);
+        var tooltip = string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Traces.TracesResourceSpans)], GetResourceName(applicationSpans.Key));
+        tooltip += Environment.NewLine + string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Traces.TracesTotalTraces)], count);
         if (errorCount > 0)
         {
-            tooltip += Environment.NewLine + string.Format(CultureInfo.InvariantCulture, Loc[Dashboard.Resources.Traces.TracesTotalErroredTraces], errorCount);
+            tooltip += Environment.NewLine + string.Format(CultureInfo.InvariantCulture, Loc[nameof(Dashboard.Resources.Traces.TracesTotalErroredTraces)], errorCount);
         }
 
         return tooltip;
@@ -67,10 +56,10 @@ public partial class Traces
 
     private ValueTask<GridItemsProviderResult<OtlpTrace>> GetData(GridItemsProviderRequest<OtlpTrace> request)
     {
-        ViewModel.StartIndex = request.StartIndex;
-        ViewModel.Count = request.Count;
+        TracesViewModel.StartIndex = request.StartIndex;
+        TracesViewModel.Count = request.Count;
 
-        var traces = ViewModel.GetTraces();
+        var traces = TracesViewModel.GetTraces();
 
         // Updating the total item count as a field doesn't work because it isn't updated with the grid.
         // The workaround is to put the count inside a control and explicitly update and refresh the control.
@@ -81,7 +70,7 @@ public partial class Traces
 
     protected override Task OnInitializedAsync()
     {
-        _allApplication  = new SelectViewModel<string> { Id = null, Name = $"({ControlsStringsLoc[ControlsStrings.All]})" };
+        _allApplication  = new SelectViewModel<string> { Id = null, Name = $"({ControlsStringsLoc[nameof(ControlsStrings.All)]})" };
         _selectedApplication = _allApplication;
 
         UpdateApplications();
@@ -97,7 +86,7 @@ public partial class Traces
     protected override void OnParametersSet()
     {
         _selectedApplication = _applicationViewModels.SingleOrDefault(e => e.Id == ApplicationInstanceId) ?? _allApplication;
-        ViewModel.ApplicationServiceId = _selectedApplication.Id;
+        TracesViewModel.ApplicationServiceId = _selectedApplication.Id;
         UpdateSubscription();
     }
 
@@ -125,7 +114,7 @@ public partial class Traces
             _tracesSubscription?.Dispose();
             _tracesSubscription = TelemetryRepository.OnNewTraces(_selectedApplication.Id, SubscriptionType.Read, async () =>
             {
-                ViewModel.ClearData();
+                TracesViewModel.ClearData();
                 await InvokeAsync(StateHasChanged);
             });
         }
@@ -143,7 +132,7 @@ public partial class Traces
             _ = Task.Run(async () =>
             {
                 await Task.Delay(400, cts.Token);
-                ViewModel.FilterText = newFilter;
+                TracesViewModel.FilterText = newFilter;
                 await InvokeAsync(StateHasChanged);
             });
         }
@@ -152,7 +141,7 @@ public partial class Traces
     private void HandleClear()
     {
         _filterCts?.Cancel();
-        ViewModel.FilterText = string.Empty;
+        TracesViewModel.FilterText = string.Empty;
         StateHasChanged();
     }
 

@@ -12,87 +12,82 @@
     <ProjectCapability Include="Aspire" Condition=" '$(IsAspireHost)' == 'true' " />
   </ItemGroup>
 
-  <!-- Generate the data structures for doing the codegen for service references -->
-  <Target Name="CreateServiceMetadataSources"
-          DependsOnTargets="FindReferenceAssembliesForReferences"
-          Inputs="@(ReferencePathWithRefAssemblies)"
-          Outputs="@(ReferencePathWithRefAssemblies)">
+  <Target Name="_CreateAspireProjectResources">
+
     <ItemGroup>
-      <ServiceMetadataSource Include="%(ReferencePathWithRefAssemblies.Identity)" Condition="%(ReferencePathWithRefAssemblies.ReferenceSourceTarget) == 'ProjectReference'">
-        <ClassName Condition="%(ReferencePathWithRefAssemblies.ReferenceSourceTarget) == 'ProjectReference' And %(ReferencePathWithRefAssemblies.ServiceNameOverride) == ''">$([System.IO.Path]::GetFileNameWithoutExtension(%(ReferencePathWithRefAssemblies.Identity)).Replace(".", "_").Replace("-","_").Replace(" ","_"))</ClassName>
-        <ClassName Condition="%(ReferencePathWithRefAssemblies.ReferenceSourceTarget) == 'ProjectReference' And %(ReferencePathWithRefAssemblies.ServiceNameOverride) != ''">$([System.String]::Copy(%(ReferencePathWithRefAssemblies.ServiceNameOverride)).Replace(".", "_").Replace("-","_").Replace(" ","_"))</ClassName>
-        <AssemblyName>$([System.IO.Path]::GetFileNameWithoutExtension(%(ReferencePathWithRefAssemblies.Identity)))</AssemblyName>
-        <ProjectPath>$([System.IO.Path]::GetFullPath(%(ReferencePathWithRefAssemblies.ProjectReferenceOriginalItemSpec)))</ProjectPath>
-        <Namespace>Projects</Namespace>
-      </ServiceMetadataSource>
+      <_AspireProjectResource Include="@(ProjectReference->WithMetadataValue('IsAspireProjectResource', 'true'))" />
+    </ItemGroup>
+
+  </Target>
+  
+  <!-- Generate the data structures for doing the codegen for project resources -->
+  <Target Name="CreateAspireProjectMetadataSources"
+          DependsOnTargets="_CreateAspireProjectResources">
+    <ItemGroup>
+      <AspireProjectMetadataSource Include="@(_AspireProjectResource)" Condition="'@(_AspireProjectResource)' != ''">
+        <ClassName Condition="%(_AspireProjectResource.AspireProjectMetadataTypeName) == ''">$([System.IO.Path]::GetFileNameWithoutExtension(%(_AspireProjectResource.Identity)).Replace(".", "_").Replace("-","_").Replace(" ","_"))</ClassName>
+        <ClassName Condition="%(_AspireProjectResource.AspireProjectMetadataTypeName) != ''">$([System.String]::Copy(%(_AspireProjectResource.AspireProjectMetadataTypeName)).Replace(".", "_").Replace("-","_").Replace(" ","_"))</ClassName>
+        <ProjectPath>$([System.IO.Path]::GetFullPath(%(_AspireProjectResource.Identity)))</ProjectPath>
+      </AspireProjectMetadataSource>
 		</ItemGroup>
   </Target>
 
-  <Target Name="_CSharpWriteServiceMetadataSources" DependsOnTargets="CreateServiceMetadataSources" Condition="'$(Language)' == 'C#'">
+  <Target Name="_CSharpWriteProjectMetadataSources" DependsOnTargets="CreateAspireProjectMetadataSources" Condition="'$(Language)' == 'C#'">
     <ItemGroup>
-      <ServiceMetadataSource Update="@(ServiceMetadataSource)">
+      <AspireProjectMetadataSource Update="@(AspireProjectMetadataSource)">
         <Source>
-        <![CDATA[using System%3B
+        <![CDATA[namespace Projects%3B
 
-namespace ]]>%(Namespace)<![CDATA[%3B
-
-public class ]]>%(ClassName)<![CDATA[ : IServiceMetadata
+[global::System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, ProjectPath = {ProjectPath}")]
+public class ]]>%(ClassName)<![CDATA[ : global::Aspire.Hosting.IProjectMetadata
 {
   public string ProjectPath => """]]>%(ProjectPath)<![CDATA["""%3B
 }]]>
         </Source>
-      </ServiceMetadataSource>
+      </AspireProjectMetadataSource>
     </ItemGroup>
 
-    <WriteLinesToFile
-      File="$(_AspireIntermediatePath)references\%(ServiceMetadataSource.AssemblyName).ServiceMetadata.g.cs"
-      Overwrite="true"
-      Lines="%(ServiceMetadataSource.Source)"
-      Encoding="Unicode"
-      Condition="%(ServiceMetadataSource.AssemblyName) != ''"
-      WriteOnlyWhenDifferent="true"
-      />
+    <WriteLinesToFile File="$(_AspireIntermediatePath)references\%(AspireProjectMetadataSource.ClassName).ProjectMetadata.g.cs"
+                      Overwrite="true"
+                      Lines="%(AspireProjectMetadataSource.Source)"
+                      Encoding="Unicode"
+                      Condition="%(AspireProjectMetadataSource.ClassName) != ''"
+                      WriteOnlyWhenDifferent="true" />
     <ItemGroup>
-      <FileWrites Include="$(_AspireIntermediatePath)references\%(ServiceMetadataSource.AssemblyName).ServiceMetadata.g.cs" />
-      <Compile
-        Include="$(_AspireIntermediatePath)references\%(ServiceMetadataSource.AssemblyName).ServiceMetadata.g.cs"
-        Condition="%(ServiceMetadataSource.AssemblyName) != ''"
-        />
+      <FileWrites Include="$(_AspireIntermediatePath)references\%(AspireProjectMetadataSource.ClassName).ProjectMetadata.g.cs" />
+      <Compile Include="$(_AspireIntermediatePath)references\%(AspireProjectMetadataSource.ClassName).ProjectMetadata.g.cs"
+               Condition="%(AspireProjectMetadataSource.ClassName) != ''" />
     </ItemGroup>
   </Target>
 
-  <Target Name="CreateProjectMetadata">
+  <Target Name="CreateAspireHostProjectMetadataSources">
     <ItemGroup>
-      <ProjectMetadataSource Include="$(MSBuildProjectDirectory)">
+      <AspireHostProjectMetadataSource Include="$(MSBuildProjectDirectory)">
         <ClassName>$([System.IO.Path]::GetFileNameWithoutExtension($(MSBuildProjectFile)).Replace(".", "_").Replace("-","_").Replace(" ","_"))</ClassName>
         <ProjectPath>$(MSBuildProjectDirectory)</ProjectPath>
-      </ProjectMetadataSource>
+      </AspireHostProjectMetadataSource>
     </ItemGroup>
   </Target>
 
-  <Target Name="_CSharpAppHostProjectMetadataSources" DependsOnTargets="CreateProjectMetadata" Condition="'$(Language)' == 'C#'">
+  <Target Name="_CSharpWriteHostProjectMetadataSources" DependsOnTargets="CreateAspireHostProjectMetadataSources" Condition="'$(Language)' == 'C#'">
     <ItemGroup>
-      <ProjectMetadataSource Update="@(ProjectMetadataSource)">
+      <AspireHostProjectMetadataSource Update="@(AspireHostProjectMetadataSource)">
         <Source>
-          <![CDATA[using System%3B
-
-namespace ]]>Projects<![CDATA[%3B
+          <![CDATA[namespace Projects%3B
 
 internal static class ]]>%(ClassName)<![CDATA[
 {
   public static string ProjectPath => """]]>%(ProjectPath)<![CDATA["""%3B
 }]]>
         </Source>
-      </ProjectMetadataSource>
+      </AspireHostProjectMetadataSource>
     </ItemGroup>
-    
-    <WriteLinesToFile
-      File="$(_AspireIntermediatePath)references\_AppHost.ProjectMetadata.g.cs"
-      Overwrite="true"
-      Lines="%(ProjectMetadataSource.Source)"
-      Encoding="Unicode"
-      WriteOnlyWhenDifferent="true"
-      />
+
+    <WriteLinesToFile File="$(_AspireIntermediatePath)references\_AppHost.ProjectMetadata.g.cs"
+                      Overwrite="true"
+                      Lines="%(AspireHostProjectMetadataSource.Source)"
+                      Encoding="Unicode"
+                      WriteOnlyWhenDifferent="true" />
     <ItemGroup>
       <FileWrites Include="$(_AspireIntermediatePath)references\_AppHost.ProjectMetadata.g.cs" />
       <Compile Include="$(_AspireIntermediatePath)references\_AppHost.ProjectMetadata.g.cs" />
@@ -103,21 +98,92 @@ internal static class ]]>%(ClassName)<![CDATA[
     <Warning Code="ASPIRE001" Text="The '$(Language)' language isn't fully supported by Aspire - some code generation targets will not run, so will require manual authoring." />
   </Target>
 
+  <!--
+  Gets the references in 'AppProjectTargetFramework' that aren't executable projects.
+  -->
+  <UsingTask TaskName="GetNonExecutableReferences"
+             TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <AppProjectTargetFramework ParameterType="Microsoft.Build.Framework.ITaskItem[]" Required="true" />
+      <NonExecutableReferences ParameterType="Microsoft.Build.Framework.ITaskItem[]" Output="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System.Xml.Linq" />
+      <Code Type="Fragment" Language="cs">
+        <![CDATA[
+          HashSet<ITaskItem> nonExecutableReferences = new HashSet<ITaskItem>();
+          
+          foreach (var appProject in AppProjectTargetFramework)
+          {
+            var additionalProperties = appProject.GetMetadata("AdditionalPropertiesFromProject");
+            if (string.IsNullOrEmpty(additionalProperties))
+            {
+              // Skip any projects that don't contain the right metadata
+              continue;
+            }
+                
+            var additionalPropertiesXml = XElement.Parse(additionalProperties);
+            foreach (var targetFrameworkElement in additionalPropertiesXml.Elements())
+            {
+              var isExe = targetFrameworkElement.Element("_IsExecutable");
+              if (isExe != null && !string.Equals(isExe.Value, "true", StringComparison.OrdinalIgnoreCase))
+              {
+                nonExecutableReferences.Add(appProject);
+              }
+            }
+          }
+
+          NonExecutableReferences = nonExecutableReferences.ToArray();
+        ]]>
+      </Code>
+    </Task>
+  </UsingTask>
+
+  <!--
+  Validates that all the ProjectReferences of an Aspire AppHost project are executables and
+  informs the developer to set 'IsAspireProjectResource=false' if they really intended on ProjectReferencing a library.
+  -->
+  <Target Name="_ValidateAspireHostProjectResources"
+          DependsOnTargets="_CreateAspireProjectResources"
+          Condition="'$(IsAspireHost)' == 'true' and '$(SkipValidateAspireHostProjectResources)' != 'true'">
+
+    <MSBuild Projects="@(_AspireProjectResource)"
+             Targets="GetTargetFrameworks"
+             BuildInParallel="$(BuildInParallel)"
+             Properties="%(_AspireProjectResource.SetConfiguration); %(_AspireProjectResource.SetPlatform)"
+             ContinueOnError="!$(BuildingProject)"
+             RemoveProperties="%(_AspireProjectResource.GlobalPropertiesToRemove);TargetFramework;RuntimeIdentifier;SelfContained;$(_GlobalPropertiesToRemoveFromProjectReferences)"
+             SkipNonexistentTargets="true">
+      <Output TaskParameter="TargetOutputs" ItemName="_AspireProjectResourceTargetFramework" />
+    </MSBuild>
+
+    <GetNonExecutableReferences AppProjectTargetFramework="@(_AspireProjectResourceTargetFramework)">
+      <Output TaskParameter="NonExecutableReferences" ItemName="_AspireNonExecutableProjectResource" />
+    </GetNonExecutableReferences>
+
+    <Warning Code="ASPIRE004"
+             Condition="'@(_AspireNonExecutableProjectResource)' != ''"
+             Text="'%(_AspireNonExecutableProjectResource.OriginalItemSpec)' is referenced by an Aspire Host project, but it is not an executable. Did you mean to set IsAspireProjectResource=&quot;false&quot;?" />
+  </Target>
+
   <PropertyGroup>
     <!-- Easy extension point for adding new languages' write support. -->
-    <_WriteServiceMetadataSourcesDependsOn>_CSharpWriteServiceMetadataSources;_CSharpAppHostProjectMetadataSources;_WarnOnUnsupportedLanguage</_WriteServiceMetadataSourcesDependsOn>
+    <WriteAspireProjectMetadataSourcesDependsOn>_CSharpWriteProjectMetadataSources;_CSharpWriteHostProjectMetadataSources;_WarnOnUnsupportedLanguage;_ValidateAspireHostProjectResources</WriteAspireProjectMetadataSourcesDependsOn>
   </PropertyGroup>
 
-  <!-- The purpose of this target is to take all of the generated service meta data and write them to the intermediate build directory
-     and reference them for compilation. There will be a AssemblyName.ServiceMetadata.g.cs file for each referenced project. -->
-  <Target Name="WriteServiceMetadataSources" DependsOnTargets="$(_WriteServiceMetadataSourcesDependsOn)" BeforeTargets="CoreCompile" />
+  <!-- The purpose of this target is to take all of the generated project metadata and write them to the intermediate build directory
+     and reference them for compilation. There will be a ClassName.ProjectMetadata.g.cs file for each referenced project. -->
+  <Target Name="WriteAspireProjectMetadataSources" DependsOnTargets="$(WriteAspireProjectMetadataSourcesDependsOn)" BeforeTargets="CoreCompile" />
 
   <!-- This target registers the location of the Aspire orchestration dependencies -->
-  <Target Name="SetOrchestrationDiscoveryAttributes" BeforeTargets="GetAssemblyAttributes">
+  <Target Name="SetOrchestrationDiscoveryAttributes" BeforeTargets="GetAssemblyAttributes" Condition=" '$(DcpDir)' != '' ">
     <PropertyGroup>
-      <DcpDir Condition=" '$(DcpDir)' == '' ">$([MSBuild]::NormalizePath($([System.Environment]::GetFolderPath(SpecialFolder.UserProfile)), '.dcp'))</DcpDir>
-      <DcpExtensionsPath Condition=" '$(DcpExtensionsPath)' == '' ">$([MSBuild]::NormalizePath($(DcpDir), 'ext'))</DcpExtensionsPath>
-      <DcpBinPath Condition=" '$(DcpBinPath)' == '' ">$([MSBuild]::NormalizePath($(DcpExtensionsPath), 'bin'))</DcpBinPath>
+      <DcpDir>$([MSBuild]::EnsureTrailingSlash('$(DcpDir)'))</DcpDir>
+      <DcpExtensionsDir Condition=" '$(DcpExtensionsDir)' == '' ">$([MSBuild]::NormalizePath($(DcpDir), 'ext'))</DcpExtensionsDir>
+      <DcpExtensionsDir>$([MSBuild]::EnsureTrailingSlash('$(DcpExtensionsDir)'))</DcpExtensionsDir>
+      <DcpBinDir Condition=" '$(DcpBinDir)' == '' ">$([MSBuild]::NormalizePath($(DcpExtensionsDir), 'bin'))</DcpBinDir>
+      <DcpBinDir>$([MSBuild]::EnsureTrailingSlash('$(DcpBinDir)'))</DcpBinDir>
       <DcpCliPath Condition=" '$(DcpCliPath)'  == '' ">$([MSBuild]::NormalizePath($(DcpDir), 'dcp'))</DcpCliPath>
       <DcpCliPath Condition=" '$(OS)' == 'Windows_NT' and !$(DcpCliPath.EndsWith('.exe')) ">$(DcpCliPath).exe</DcpCliPath>
     </PropertyGroup>
@@ -129,15 +195,30 @@ internal static class ]]>%(ClassName)<![CDATA[
       </AssemblyAttribute>
       <AssemblyAttribute Include="System.Reflection.AssemblyMetadata">
         <_Parameter1>dcpextensionpaths</_Parameter1>
-        <_Parameter2>$(DcpExtensionsPath)</_Parameter2>
+        <_Parameter2>$(DcpExtensionsDir)</_Parameter2>
       </AssemblyAttribute>
       <AssemblyAttribute Include="System.Reflection.AssemblyMetadata">
         <_Parameter1>dcpbinpath</_Parameter1>
-        <_Parameter2>$(DcpBinPath)</_Parameter2>
+        <_Parameter2>$(DcpBinDir)</_Parameter2>
       </AssemblyAttribute>
       <AssemblyAttribute Include="System.Reflection.AssemblyMetadata">
         <_Parameter1>apphostprojectpath</_Parameter1>
         <_Parameter2>$(MSBuildProjectDirectory)</_Parameter2>
+      </AssemblyAttribute>
+    </ItemGroup>
+  </Target>
+
+  <Target Name="SetDashboardDiscoveryAttributes" BeforeTargets="GetAssemblyAttributes" Condition=" '$(AspireDashboardDir)' != '' ">
+    <PropertyGroup>
+      <AspireDashboardDir>$([MSBuild]::EnsureTrailingSlash('$(AspireDashboardDir)'))</AspireDashboardDir>
+      <AspireDashboardPath Condition=" '$(AspireDashboardPath)' == '' ">$([MSBuild]::NormalizePath($(AspireDashboardDir), 'Aspire.Dashboard'))</AspireDashboardPath>
+      <AspireDashboardPath Condition=" '$(OS)' == 'Windows_NT' and !$(AspireDashboardPath.EndsWith('.exe')) ">$(AspireDashboardPath).exe</AspireDashboardPath>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <AssemblyAttribute Include="System.Reflection.AssemblyMetadata">
+        <_Parameter1>aspiredashboardpath</_Parameter1>
+        <_Parameter2>$(AspireDashboardPath)</_Parameter2>
       </AssemblyAttribute>
     </ItemGroup>
   </Target>
@@ -156,11 +237,10 @@ internal static class ]]>%(ClassName)<![CDATA[
     </ItemGroup>
 
     <Exec Command="@(_AspireManifestPublishArg, ' ')"
-      ConsoleToMsBuild="true"
-      IgnoreStandardErrorWarningFormat="true"
-      EchoOff="true"
-      StandardOutputImportance="low"
-      StandardErrorImportance="low"
-      />
+          ConsoleToMsBuild="true"
+          IgnoreStandardErrorWarningFormat="true"
+          EchoOff="true"
+          StandardOutputImportance="low"
+          StandardErrorImportance="low" />
   </Target>
 </Project>

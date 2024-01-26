@@ -18,15 +18,15 @@ public static class RabbitMQBuilderExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="port">The host port of RabbitMQ.</param>
-    /// <param name="password">The password for RabbitMQ. The default is "guest".</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{RabbitMQContainerResource}"/>.</returns>
+    /// <param name="password">The password for RabbitMQ.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<RabbitMQContainerResource> AddRabbitMQContainer(this IDistributedApplicationBuilder builder, string name, int? port = null, string? password = null)
     {
         password ??= Guid.NewGuid().ToString("N");
         var rabbitMq = new RabbitMQContainerResource(name, password);
         return builder.AddResource(rabbitMq)
-                       .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, port: port, containerPort: 5672))
-                       .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, uriScheme: "http", name: "management", port: null, containerPort: 15672))
+                       .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 5672))
+                       .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, uriScheme: "http", name: "management", port: null, containerPort: 15672))
                        .WithAnnotation(new ContainerImageAnnotation { Image = "rabbitmq", Tag = "3-management" })
                        .WithManifestPublishingCallback(context => WriteRabbitMQContainerToManifest(context, rabbitMq))
                        .WithEnvironment("RABBITMQ_DEFAULT_USER", "guest")
@@ -49,14 +49,14 @@ public static class RabbitMQBuilderExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{RabbitMQContainerResource}"/>.</returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<RabbitMQServerResource> AddRabbitMQ(this IDistributedApplicationBuilder builder, string name)
     {
         var password = Guid.NewGuid().ToString("N");
         var rabbitMq = new RabbitMQServerResource(name, password);
         return builder.AddResource(rabbitMq)
-                       .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, containerPort: 5672))
-                       .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, uriScheme: "http", name: "management", port: null, containerPort: 15672))
+                       .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, containerPort: 5672))
+                       .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, uriScheme: "http", name: "management", port: null, containerPort: 15672))
                        .WithAnnotation(new ContainerImageAnnotation { Image = "rabbitmq", Tag = "3-management" })
                        .WithManifestPublishingCallback(WriteRabbitMQServerToManifest)
                        .WithEnvironment("RABBITMQ_DEFAULT_USER", "guest")

@@ -6,6 +6,7 @@
     <IsPackable>true</IsPackable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <NoWarn>$(NoWarn);CS8002</NoWarn>
+    <PackageTags>aspire hosting</PackageTags>
     <Description>Core API and abstractions for the .NET Aspire application model.</Description>
   </PropertyGroup>
 
@@ -14,6 +15,15 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\Aspire.Dashboard\Model\KnownProperties.cs" Link="Dashboard\KnownProperties.cs" />
+    <Compile Include="..\Aspire.Dashboard\Model\KnownResourceTypes.cs" Link="Dashboard\KnownResourceTypes.cs" />
+    <Compile Include="..\Aspire.Dashboard\Utils\StringComparers.cs" Link="Utils\StringComparers.cs" />
+    <Compile Include="$(SharedDir)KnownFormats.cs" Link="Utils\KnownFormats.cs" />
+    <Compile Include="$(SharedDir)ValueStopwatch\*.cs" LinkBase="Utils" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Grpc.AspNetCore" />
     <PackageReference Include="KubernetesClient" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
   </ItemGroup>
@@ -21,10 +31,6 @@
   <!-- Download DCP orchestrator components for local development -->
   <ItemGroup>
     <PackageDownload Include="Microsoft.DeveloperControlPlane.$(BuildOs)-$(BuildArch)" Version="[$(MicrosoftDeveloperControlPlanedarwinamd64PackageVersion)]" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\Aspire.Dashboard\Aspire.Dashboard.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -44,6 +50,10 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Aspire.Hosting.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Protobuf Include="Dashboard\proto\resource_service.proto" GrpcServices="Server" Access="Internal" />
   </ItemGroup>
 
 </Project>

@@ -21,8 +21,8 @@ public static class ProjectResourceBuilderExtensions
     /// <typeparam name="TProject">A type that represents the project reference.</typeparam>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used for service discovery when referenced in a dependency.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{ProjectResource}"/>.</returns>
-    public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, string name) where TProject : IServiceMetadata, new()
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<ProjectResource> AddProject<TProject>(this IDistributedApplicationBuilder builder, string name) where TProject : IProjectMetadata, new()
     {
         var project = new ProjectResource(name);
         return builder.AddResource(project)
@@ -36,7 +36,7 @@ public static class ProjectResourceBuilderExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used for service discovery when referenced in a dependency.</param>
     /// <param name="projectPath">The path to the project file.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{ProjectResource}"/>.</returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<ProjectResource> AddProject(this IDistributedApplicationBuilder builder, string name, string projectPath)
     {
         var project = new ProjectResource(name);
@@ -45,7 +45,7 @@ public static class ProjectResourceBuilderExtensions
 
         return builder.AddResource(project)
                       .WithProjectDefaults()
-                      .WithAnnotation(new ServiceMetadata(projectPath));
+                      .WithAnnotation(new ProjectMetadata(projectPath));
     }
 
     private static IResourceBuilder<ProjectResource> WithProjectDefaults(this IResourceBuilder<ProjectResource> builder)
@@ -64,7 +64,7 @@ public static class ProjectResourceBuilderExtensions
     /// </summary>
     /// <param name="builder">The project resource builder.</param>
     /// <param name="replicas">The number of replicas.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{ProjectResource}"/>.</returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<ProjectResource> WithReplicas(this IResourceBuilder<ProjectResource> builder, int replicas)
     {
         builder.WithAnnotation(new ReplicaAnnotation(replicas));
@@ -76,7 +76,7 @@ public static class ProjectResourceBuilderExtensions
     /// </summary>
     /// <param name="builder">The executable resource builder.</param>
     /// <param name="replicas">The number of replicas.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{ExecutableResource}"/>.</returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<ExecutableResource> WithReplicas(this IResourceBuilder<ExecutableResource> builder, int replicas)
     {
         builder.WithAnnotation(new ReplicaAnnotation(replicas));
@@ -88,7 +88,7 @@ public static class ProjectResourceBuilderExtensions
     /// </summary>
     /// <param name="builder">The project resource builder.</param>
     /// <param name="launchProfileName">The name of the launch profile to use for execution.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{ProjectResource}"/>.</returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<ProjectResource> WithLaunchProfile(this IResourceBuilder<ProjectResource> builder, string launchProfileName)
     {
         ArgumentException.ThrowIfNullOrEmpty(launchProfileName);
@@ -100,13 +100,13 @@ public static class ProjectResourceBuilderExtensions
             throw new DistributedApplicationException(Resources.LaunchProfileIsSpecifiedButLaunchSettingsFileIsNotPresentExceptionMessage);
         }
 
-        if (!launchSettings.Profiles.TryGetValue(launchProfileName, out var launchProfile))
+        if (!launchSettings.Profiles.TryGetValue(launchProfileName, out _))
         {
             var message = string.Format(CultureInfo.InvariantCulture, Resources.LaunchSettingsFileDoesNotContainProfileExceptionMessage, launchProfileName);
             throw new DistributedApplicationException(message);
         }
 
-        var launchProfileAnnotation = new LaunchProfileAnnotation(launchProfileName, launchProfile);
+        var launchProfileAnnotation = new LaunchProfileAnnotation(launchProfileName);
         return builder.WithAnnotation(launchProfileAnnotation);
     }
 }

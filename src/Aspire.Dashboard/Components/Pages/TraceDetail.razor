@@ -1,16 +1,14 @@
 ﻿@page "/Trace/{traceId}"
 @page "/Trace/{traceId}/Span/{spanId}"
 
-@using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Model.Otlp
 @using Aspire.Dashboard.Otlp.Model
 @using System.Globalization
 @using Aspire.Dashboard.Resources
 @inject IStringLocalizer<Dashboard.Resources.TraceDetail> Loc
 @inject IStringLocalizer<ControlsStrings> ControlStringsLoc
-@inject IResourceService DashboardService
 
-<PageTitle>@string.Format(Loc[Dashboard.Resources.TraceDetail.TraceDetailPageTitle], DashboardService.ApplicationName)</PageTitle>
+<PageTitle><ApplicationName ResourceName="@nameof(Dashboard.Resources.TraceDetail.TraceDetailPageTitle)" Loc="@Loc" /></PageTitle>
 
 @if (_trace != null)
 {
@@ -21,27 +19,27 @@
         </div>
         <FluentToolbar Orientation="Orientation.Horizontal">
             <div>
-                @Loc[Dashboard.Resources.TraceDetail.TraceDetailTraceStartHeader] <strong>@_trace.FirstSpan.StartTime.ToString("MMMM d yyyy"), @OtlpHelpers.FormatTimeStamp(_trace.FirstSpan.StartTime)</strong>
+                @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailTraceStartHeader)] <strong>@_trace.FirstSpan.StartTime.ToString("MMMM d yyyy"), @OtlpHelpers.FormatTimeStamp(_trace.FirstSpan.StartTime)</strong>
             </div>
             <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
             <div>
-                @Loc[Dashboard.Resources.TraceDetail.TraceDetailDurationHeader] <strong>@DurationFormatter.FormatDuration(_trace.Duration)</strong>
+                @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailDurationHeader)] <strong>@DurationFormatter.FormatDuration(_trace.Duration)</strong>
             </div>
             <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
             <div>
-                @Loc[Dashboard.Resources.TraceDetail.TraceDetailResourcesHeader] <strong>@_trace.Spans.GroupBy(s => s.Source).Count()</strong>
+                @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailResourcesHeader)] <strong>@_trace.Spans.GroupBy(s => s.Source).Count()</strong>
             </div>
             <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
             <div>
-                @Loc[Dashboard.Resources.TraceDetail.TraceDetailDepthHeader] <strong>@_maxDepth</strong>
+                @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailDepthHeader)] <strong>@_maxDepth</strong>
             </div>
             <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
             <div>
-                @Loc[Dashboard.Resources.TraceDetail.TraceDetailTotalSpansHeader] <strong>@_trace.Spans.Count</strong>
+                @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailTotalSpansHeader)] <strong>@_trace.Spans.Count</strong>
             </div>
-            <FluentAnchor slot="end" Appearance="Appearance.Lightweight" Href="@($"/StructuredLogs?traceId={_trace.TraceId}")">@ControlStringsLoc[ControlsStrings.ViewLogsLink]</FluentAnchor>
+            <FluentAnchor slot="end" Appearance="Appearance.Lightweight" Href="@($"/StructuredLogs?traceId={_trace.TraceId}")">@ControlStringsLoc[nameof(ControlsStrings.ViewLogsLink)]</FluentAnchor>
             <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
-            <FluentAnchor slot="end" Appearance="Appearance.Lightweight" Href="@($"/Traces")">@Loc[Dashboard.Resources.TraceDetail.TraceDetailBackButtonText]</FluentAnchor>
+            <FluentAnchor slot="end" Appearance="Appearance.Lightweight" Href="@($"/Traces")">@Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailBackButtonText)]</FluentAnchor>
         </FluentToolbar>
 
         <SummaryDetailsView ShowDetails="SelectedSpan is not null" OnDismiss="() => ClearSelectedSpan()" ViewKey="TraceDetail">
@@ -53,19 +51,36 @@
                 </div>
             </DetailsTitleTemplate>
             <Summary>
-                <FluentDataGrid Class="trace-view-grid" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="SpanWaterfallViewModel" RowClass="@GetRowClass" GridTemplateColumns="2fr 6fr">
+                <FluentDataGrid Class="trace-view-grid" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="SpanWaterfallViewModel" RowClass="@GetRowClass" GridTemplateColumns="4fr 12fr 85px">
                     <TemplateColumn Title="Name">
                         <div class="col-long-content" title="@context.GetTooltip()" @onclick="() => OnShowProperties(context)">
-                            <span class="span-name-container" style="@($"margin-left: {(context.Depth - 1) * 15}px; border-left-color: {ColorGenerator.Instance.GetColorHexByKey(GetResourceName(context.Span.Source))};")">
+                            @{
+                                var isServerKind = context.Span.Kind == OtlpSpanKind.Server;
+                                var spanNameContainerStyle = $"margin-left: {(context.Depth - 1) * 15}px;";
+                                if (!isServerKind)
+                                {
+                                    spanNameContainerStyle += $"border-left-color: {ColorGenerator.Instance.GetColorHexByKey(GetResourceName(context.Span.Source))}; border-left-width: 5px; border-left-style: solid; padding-left: 5px;";
+                                }
+                            }
+                            <span class="span-name-container" style="@spanNameContainerStyle">
+                                @if (isServerKind)
+                                {
+                                    <FluentIcon
+                                        Class="server-request-icon"
+                                        Color="Color.Custom"
+                                        CustomColor="@ColorGenerator.Instance.GetColorHexByKey(GetResourceName(context.Span.Source))"
+                                        Icon="Icons.Filled.Size16.Server"/>
+                                }
+
                                 @if (context.IsError)
                                 {
-                                    <FluentIcon Icon="Icons.Filled.Size12.ErrorCircle" Color="Color.Error" Class="trace-tag-icon" />
+                                    <FluentIcon Icon="Icons.Filled.Size12.ErrorCircle" Color="Color.Error" Class="trace-tag-icon"/>
                                 }
                                 @GetResourceName(context.Span.Source)
                                 @if (context.HasUninstrumentedPeer)
                                 {
                                     <span class="uninstrumented-peer">
-                                        <FluentIcon Style="@($"fill: {ColorGenerator.Instance.GetColorHexByKey(context.UninstrumentedPeer)};")" Icon="Icons.Filled.Size16.ArrowCircleRight" Class="uninstrumented-peer-icon" />
+                                        <FluentIcon Style="@($"fill: {ColorGenerator.Instance.GetColorHexByKey(context.UninstrumentedPeer)};")" Icon="Icons.Filled.Size16.ArrowCircleRight" Class="uninstrumented-peer-icon"/>
                                         @context.UninstrumentedPeer
                                     </span>
                                 }
@@ -109,6 +124,12 @@
                             </div>
                         </ChildContent>
                     </TemplateColumn>
+                    <TemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.DetailsColumnHeader)]">
+                        <FluentButton
+                            Style="margin-left: 7px;"
+                            Title="@ControlStringsLoc[nameof(ControlsStrings.ViewAction)]"
+                            Appearance="Appearance.Lightweight" OnClick="() => OnShowProperties(context)">@ControlStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentButton>
+                    </TemplateColumn>
                 </FluentDataGrid>
             </Summary>
             <Details>
@@ -120,6 +141,6 @@
 else
 {
     <div class="empty-content">
-        <FluentIcon Icon="Icons.Regular.Size24.GanttChart" /> &nbsp; @Loc[Dashboard.Resources.TraceDetail.TraceDetailTraceNotFound]
+        <FluentIcon Icon="Icons.Regular.Size24.GanttChart" /> &nbsp; @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailTraceNotFound)]
     </div>
 }
