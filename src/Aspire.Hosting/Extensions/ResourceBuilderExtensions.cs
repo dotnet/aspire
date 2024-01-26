@@ -447,7 +447,13 @@ public static class ResourceBuilderExtensions
     /// <returns>An <see cref="EndpointReference"/> that can be used to resolve the address of the endpoint after resource allocation has occurred.</returns>
     public static EndpointReference GetEndpoint<T>(this IResourceBuilder<T> builder, string name) where T : IResourceWithEndpoints
     {
-        return builder.Resource.GetEndpoint(name);
+        if (builder.Resource.Annotations.OfType<EndpointAnnotation>()
+            .Any(sb => string.Equals(sb.Name, name, StringComparisons.EndpointAnnotationName)))
+        {
+            return builder.Resource.GetEndpoint(name);
+        }
+
+        throw new InvalidOperationException($"Endpoint with name '{name}' does not exist on this resource.");
     }
 
     /// <summary>

@@ -56,6 +56,20 @@ public class WithEndpointTests
         Assert.Equal("PORT", endpoints[0].EnvironmentVariable);
     }
 
+    [Fact]
+    public void GetEndpointWithoutNamedEndpointFails()
+    {
+        var testProgram = CreateTestProgram();
+
+        testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 2000, "mybinding");
+
+        var endpointReference = testProgram.ServiceABuilder.GetEndpoint("mYbinDing");
+        Assert.Equal("mYbinDing", endpointReference.EndpointName);
+
+        var ex = Assert.Throws<InvalidOperationException>(() => testProgram.ServiceABuilder.GetEndpoint("myOtherbinding"));
+        Assert.Equal("Endpoint with name 'myOtherbinding' does not exist on this resource.", ex.Message);
+    }
+
     private static TestProgram CreateTestProgram(string[]? args = null) => TestProgram.Create<WithEndpointTests>(args);
 
 }
