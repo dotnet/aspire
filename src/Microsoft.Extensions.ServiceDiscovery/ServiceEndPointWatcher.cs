@@ -16,7 +16,7 @@ namespace Microsoft.Extensions.ServiceDiscovery;
 /// Watches for updates to the collection of resolved endpoints for a specified service.
 /// </summary>
 public sealed partial class ServiceEndPointWatcher(
-    IServiceEndPointResolver[] resolvers,
+    IServiceEndPointProvider[] resolvers,
     ILogger logger,
     string serviceName,
     TimeProvider timeProvider,
@@ -28,7 +28,7 @@ public sealed partial class ServiceEndPointWatcher(
     private readonly ILogger _logger = logger;
     private readonly TimeProvider _timeProvider = timeProvider;
     private readonly ServiceEndPointResolverOptions _options = options.Value;
-    private readonly IServiceEndPointResolver[] _resolvers = resolvers;
+    private readonly IServiceEndPointProvider[] _resolvers = resolvers;
     private readonly CancellationTokenSource _disposalCancellation = new();
     private ITimer? _pollingTimer;
     private ServiceEndPointCollection? _cachedEndPoints;

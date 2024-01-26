@@ -12,7 +12,7 @@ partial class ServiceEndPointResolverFactory
     {
         [LoggerMessage(1, LogLevel.Debug, "Creating endpoint resolver for service '{ServiceName}' with {Count} resolvers: {Resolvers}.", EventName = "CreatingResolver")]
         public static partial void ServiceEndPointResolverListCore(ILogger logger, string serviceName, int count, string resolvers);
-        public static void CreatingResolver(ILogger logger, string serviceName, List<IServiceEndPointResolver> resolvers)
+        public static void CreatingResolver(ILogger logger, string serviceName, List<IServiceEndPointProvider> resolvers)
         {
             if (logger.IsEnabled(LogLevel.Debug))
             {

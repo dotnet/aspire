@@ -65,9 +65,9 @@ public class ServiceEndPointResolverTests
         Assert.Equal("No resolver which supports the provided service name, 'http://foo', has been configured.", exception.Message);
     }
 
-    private sealed class FakeEndPointResolverProvider(Func<string, (bool Result, IServiceEndPointResolver? Resolver)> createResolverDelegate) : IServiceEndPointResolverProvider
+    private sealed class FakeEndPointResolverProvider(Func<string, (bool Result, IServiceEndPointProvider? Resolver)> createResolverDelegate) : IServiceEndPointResolverProvider
     {
-        public bool TryCreateResolver(string serviceName, [NotNullWhen(true)] out IServiceEndPointResolver? resolver)
+        public bool TryCreateResolver(string serviceName, [NotNullWhen(true)] out IServiceEndPointProvider? resolver)
         {
             bool result;
             (result, resolver) = createResolverDelegate(serviceName);
@@ -75,7 +75,7 @@ public class ServiceEndPointResolverTests
         }
     }
 
-    private sealed class FakeEndPointResolver(Func<ServiceEndPointCollectionSource, CancellationToken, ValueTask<ResolutionStatus>> resolveAsync, Func<ValueTask> disposeAsync) : IServiceEndPointResolver
+    private sealed class FakeEndPointResolver(Func<ServiceEndPointCollectionSource, CancellationToken, ValueTask<ResolutionStatus>> resolveAsync, Func<ValueTask> disposeAsync) : IServiceEndPointProvider
     {
         public ValueTask<ResolutionStatus> ResolveAsync(ServiceEndPointCollectionSource endPoints, CancellationToken cancellationToken) => resolveAsync(endPoints, cancellationToken);
         public ValueTask DisposeAsync() => disposeAsync();

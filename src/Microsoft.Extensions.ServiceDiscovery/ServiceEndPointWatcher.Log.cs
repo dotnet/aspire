@@ -28,7 +28,7 @@ partial class ServiceEndPointWatcher
 
             static string GetEndPointString(ServiceEndPoint ep)
             {
-                if (ep.Features.Get<IServiceEndPointResolver>() is { } resolver)
+                if (ep.Features.Get<IServiceEndPointProvider>() is { } resolver)
                 {
                     return $"{ep.GetEndPointString()} ({resolver})";
                 }

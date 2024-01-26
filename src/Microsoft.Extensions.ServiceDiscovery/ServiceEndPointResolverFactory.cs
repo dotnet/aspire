@@ -31,7 +31,7 @@ public partial class ServiceEndPointResolverFactory(
     {
         ArgumentNullException.ThrowIfNull(serviceName);
 
-        List<IServiceEndPointResolver>? resolvers = null;
+        List<IServiceEndPointProvider>? resolvers = null;
         foreach (var factory in _resolverProviders)
         {
             if (factory.TryCreateResolver(serviceName, out var resolver))
