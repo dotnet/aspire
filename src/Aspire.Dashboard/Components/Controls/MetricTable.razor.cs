@@ -49,12 +49,6 @@ public partial class MetricTable : ComponentBase
         }
     }
 
-    protected override async Task OnParametersSetAsync()
-    {
-        // Immediately update data when parameters change.
-        await OnInstrumentDataUpdate();
-    }
-
     private async Task OnInstrumentDataUpdate()
     {
         if (_instrument != InstrumentViewModel.Instrument || _showCount != InstrumentViewModel.ShowCount)
