@@ -23,7 +23,6 @@ public partial class MetricTable : ComponentBase
 
     private OtlpInstrument? _instrument;
     private bool _showCount;
-    private TableType _tableType;
 
     private IQueryable<Metric> _metricsView => _metrics.AsEnumerable().Reverse().AsQueryable();
 
@@ -49,35 +48,24 @@ public partial class MetricTable : ComponentBase
         }
     }
 
-    private async Task OnInstrumentDataUpdate()
+    private static void UpdateMetrics(
+        List<DimensionScope>? matchedDimensions,
+        List<Metric> currentMetrics,
+        bool shouldShowHistogram,
+        bool showCount,
+        bool onlyShowValueChanges,
+        out List<Metric> oldMetrics,
+        out List<int> addedIndices,
+        out bool anyDimensionsShown)
     {
-        if (_instrument != InstrumentViewModel.Instrument || _showCount != InstrumentViewModel.ShowCount)
+        oldMetrics = [.. currentMetrics];
+
+        anyDimensionsShown = false;
+
+        if (matchedDimensions is not null)
         {
-            _metrics.Clear();
-        }
-
-        // Store local values from view model on data update.
-        // This keeps the instrument and data consistent while the view model is updated.
-        _instrument = InstrumentViewModel.Instrument;
-        _showCount = InstrumentViewModel.ShowCount;
-
-        if (IsHistogramInstrument())
-        {
-            _tableType = _showCount ? TableType.Count : TableType.Histogram;
-        }
-        else
-        {
-            _tableType = TableType.Instrument;
-        }
-
-        var oldMetrics = _metrics.ToList();
-
-        _anyDimensionsShown = false;
-
-        if (InstrumentViewModel.MatchedDimensions is { } matchedDimensions)
-        {
-            var metrics = new List<Metric>();
-            _anyDimensionsShown = matchedDimensions.Any(dimension => !dimension.Name.Equals(DimensionScope.NoDimensions));
+            var newMetrics = new List<Metric>();
+            anyDimensionsShown = matchedDimensions.Any(dimension => !dimension.Name.Equals(DimensionScope.NoDimensions));
             var valuesWithDimensions = matchedDimensions
                 .SelectMany(dimension => dimension.Values.Select(value => (value, dimension))).ToList();
 
@@ -107,11 +95,11 @@ public partial class MetricTable : ComponentBase
                     foreach (var percentile in s_shownPercentiles)
                     {
                         var percentileValue = CalculatePercentile(percentile, histogramValue);
-                        var directionChange = metrics.LastOrDefault() is HistogramMetric last ? GetDirectionChange(percentileValue, last.Percentiles[percentile].Value) : ValueDirectionChange.Constant;
+                        var directionChange = newMetrics.LastOrDefault() is HistogramMetric last ? GetDirectionChange(percentileValue, last.Percentiles[percentile].Value) : ValueDirectionChange.Constant;
                         percentiles.Add(percentile, (percentileValue, directionChange));
                     }
 
-                    metrics.Add(
+                    newMetrics.Add(
                         new HistogramMetric
                         {
                             DimensionName = dimension.Name,
@@ -125,7 +113,7 @@ public partial class MetricTable : ComponentBase
                 }
                 else
                 {
-                    metrics.Add(
+                    newMetrics.Add(
                         new Metric
                         {
                             DimensionName = dimension.Name,
@@ -137,62 +125,51 @@ public partial class MetricTable : ComponentBase
                 }
             }
 
-            if (_onlyShowValueChanges && metrics.Count > 0)
+            if (onlyShowValueChanges && newMetrics.Count > 0)
             {
-                RemoveDuplicateValues(metrics);
+                RemoveDuplicateValues(newMetrics);
             }
 
-            while (_metrics.Count > metrics.Count)
+            while (currentMetrics.Count > newMetrics.Count)
             {
-                _metrics.RemoveAt(_metrics.Count - 1);
+                currentMetrics.RemoveAt(currentMetrics.Count - 1);
             }
 
-            for (var i = 0; i < metrics.Count; i++)
+            for (var i = 0; i < newMetrics.Count; i++)
             {
-                if (i >= _metrics.Count)
+                if (i >= currentMetrics.Count)
                 {
-                    _metrics.Add(metrics[i]);
+                    currentMetrics.Add(newMetrics[i]);
                 }
-                else if (!_metrics[i].Equals(metrics[i]))
+                else if (!currentMetrics[i].Equals(newMetrics[i]))
                 {
-                    _metrics[i] = metrics[i];
+                    currentMetrics[i] = newMetrics[i];
                 }
             }
         }
 
-        await InvokeAsync(StateHasChanged);
+        addedIndices = [];
 
-        if (_jsModule is not null)
+        if (currentMetrics.Count < oldMetrics.Count)
         {
-            if (_metrics.Count < oldMetrics.Count)
-            {
-                return;
-            }
+            return;
+        }
 
-            var indices = new List<int>();
+        if (oldMetrics.Count > 0 && !currentMetrics[oldMetrics.Count - 1].Equals(oldMetrics.Last()))
+        {
+            addedIndices.Add(currentMetrics.Count - (oldMetrics.Count - 1) - 1);
+        }
 
-            if (oldMetrics.Count > 0 && !_metrics[oldMetrics.Count - 1].Equals(oldMetrics.Last()))
-            {
-                indices.Add(_metrics.Count - (oldMetrics.Count - 1) - 1);
-            }
-
-            for (var i = oldMetrics.Count; i < _metrics.Count; i++)
-            {
-                indices.Add(_metrics.Count - i - 1);
-            }
-
-            if (indices.Count > 0 && oldMetrics.Count > 0)
-            {
-                await Task.Delay(500);
-                await _jsModule.InvokeVoidAsync("announceDataGridRows", "metric-table-container", indices);
-            }
+        for (var i = oldMetrics.Count; i < currentMetrics.Count; i++)
+        {
+            addedIndices.Add(currentMetrics.Count - i - 1);
         }
 
         return;
 
         void RemoveDuplicateValues(IList<Metric> metrics)
         {
-            if (!ShouldShowHistogram())
+            if (!shouldShowHistogram)
             {
                 var start = metrics[0].Value;
                 for (var i = 1; i < metrics.Count; i++)
@@ -240,6 +217,29 @@ public partial class MetricTable : ComponentBase
                     return [CalculatePercentile(50, value), CalculatePercentile(90, value), CalculatePercentile(99, value)];
                 }
             }
+        }
+    }
+
+    private async Task OnInstrumentDataUpdate()
+    {
+        if (!Equals(_instrument?.Name, InstrumentViewModel.Instrument?.Name) || _showCount != InstrumentViewModel.ShowCount)
+        {
+            _metrics.Clear();
+        }
+
+        // Store local values from view model on data update.
+        // This keeps the instrument and data consistent while the view model is updated.
+        _instrument = InstrumentViewModel.Instrument;
+        _showCount = InstrumentViewModel.ShowCount;
+
+        UpdateMetrics(InstrumentViewModel.MatchedDimensions, _metrics, ShouldShowHistogram(), _showCount, _onlyShowValueChanges, out var oldMetrics, out var indices, out _anyDimensionsShown);
+
+        await InvokeAsync(StateHasChanged);
+
+        if (_jsModule is not null && indices.Count > 0 && oldMetrics.Count > 0)
+        {
+            await Task.Delay(500);
+            await _jsModule.InvokeVoidAsync("announceDataGridRows", "metric-table-container", indices);
         }
     }
 
