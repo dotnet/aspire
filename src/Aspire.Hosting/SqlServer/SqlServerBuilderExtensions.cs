@@ -65,7 +65,7 @@ public static class SqlServerBuilderExtensions
 
     private static void WriteSqlServerToManifest(ManifestPublishingContext context)
     {
-        context.Writer.WriteString("type", "sqlserver.server.v1");
+        context.Writer.WriteString("type", "sqlserver.server.v0");
     }
 
     private static void WriteSqlServerContainerToManifest(ManifestPublishingContext context, SqlServerContainerResource resource)
