@@ -69,7 +69,7 @@
 
 ::deep .ticks .tick {
     width: 1px;
-    height: 30px;
+    height: 32px;
     background: #d8d8d8;
     grid-row: 1;
 }
