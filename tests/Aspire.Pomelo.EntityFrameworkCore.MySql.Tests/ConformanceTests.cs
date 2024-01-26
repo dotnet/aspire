@@ -4,16 +4,18 @@
 using Aspire.Components.Common.Tests;
 using Aspire.Components.ConformanceTests;
 using Microsoft.DotNet.RemoteExecutor;
+using Microsoft.DotNet.XUnitExtensions;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using MySqlConnector.Logging;
 using Xunit;
 
 namespace Aspire.Pomelo.EntityFrameworkCore.MySql.Tests;
 
-public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, PomeloEntityFrameworkCoreMySqlSettings>
+public class ConformanceTests : ConformanceTests<TestDbContext, PomeloEntityFrameworkCoreMySqlSettings>
 {
     // in the future it can become a static property that reads the value from Env Var
     protected const string ConnectionString = "Server=localhost;User ID=root;Password=pass;Database=test";
@@ -53,9 +55,7 @@ public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, PomeloEn
             "Pomelo": {
               "EntityFrameworkCore": {
                 "MySql": {
-                  "ConnectionString": "YOUR_CONNECTION_STRING",
                   "HealthChecks": false,
-                  "DbContextPooling": true,
                   "Tracing": true,
                   "Metrics": true
                 }
@@ -67,9 +67,9 @@ public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, PomeloEn
 
     protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
         {
-            ("""{"Aspire": { "Pomelo": { "EntityFrameworkCore":{ "MySql": { "MaxRetryCount": "5"}}}}}""", "Value is \"string\" but should be \"integer\""),
             ("""{"Aspire": { "Pomelo": { "EntityFrameworkCore":{ "MySql": { "HealthChecks": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
-            ("""{"Aspire": { "Pomelo": { "EntityFrameworkCore":{ "MySql": { "ConnectionString": "", "DbContextPooling": "Yes"}}}}}""", "Value is \"string\" but should be \"boolean\"")
+            ("""{"Aspire": { "Pomelo": { "EntityFrameworkCore":{ "MySql": { "Tracing": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
+            ("""{"Aspire": { "Pomelo": { "EntityFrameworkCore":{ "MySql": { "Metrics": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
         };
 
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
@@ -80,7 +80,22 @@ public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, PomeloEn
         });
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<PomeloEntityFrameworkCoreMySqlSettings>? configure = null, string? key = null)
-        => builder.AddMySqlDbContext<TestDbContext>("mysql", configure);
+    {
+        var connectionString = builder.Configuration.GetValue<string>("Aspire:Pomelo:EntityFrameworkCore:MySql:ConnectionString");
+        var serverVersion = ServerVersion.Parse(builder.Configuration.GetValue<string>("Aspire:Pomelo:EntityFrameworkCore:MySql:ServerVersion"));
+
+        builder.Services.AddDbContextPool<TestDbContext>((serviceProvider, dbContextOptionsBuilder) =>
+        {
+            if (serviceProvider.GetService<ILoggerFactory>() is { } loggerFactory)
+            {
+                MySqlConnectorLogManager.Provider = new MicrosoftExtensionsLoggingLoggerProvider(loggerFactory);
+            }
+
+            dbContextOptionsBuilder.UseMySql(connectionString, serverVersion);
+        });
+
+        builder.AddMySqlEntityFrameworkCore<TestDbContext>(configure);
+    }
 
     protected override void SetHealthCheck(PomeloEntityFrameworkCoreMySqlSettings options, bool enabled)
         => options.HealthChecks = enabled;
@@ -99,37 +114,17 @@ public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, PomeloEn
         }
     }
 
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "EF1001:Internal EF Core API usage.", Justification = "Required to verify pooling without touching DB")]
-    public void DbContextPoolingRegistersIDbContextPool(bool enabled)
-    {
-        using IHost host = CreateHostWithComponent(options => options.DbContextPooling = enabled);
-
-        IDbContextPool<TestDbContext>? pool = host.Services.GetService<IDbContextPool<TestDbContext>>();
-
-        Assert.Equal(enabled, pool is not null);
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void DbContextCanBeAlwaysResolved(bool enabled)
-    {
-        using IHost host = CreateHostWithComponent(options => options.DbContextPooling = enabled);
-
-        TestDbContext? dbContext = host.Services.GetService<TestDbContext>();
-
-        Assert.NotNull(dbContext);
-    }
-
     [ConditionalFact]
     public void TracingEnablesTheRightActivitySource()
     {
         SkipIfCanNotConnectToServer();
 
         RemoteExecutor.Invoke(() => ActivitySourceTest(key: null)).Dispose();
+    }
+
+    protected override void SetupConnectionInformationIsDelayValidated()
+    {
+        throw new SkipTestException("EF doesn't require a connection string");
     }
 
     private static bool GetCanConnect()

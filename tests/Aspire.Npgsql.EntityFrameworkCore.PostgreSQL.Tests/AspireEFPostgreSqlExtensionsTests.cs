@@ -6,9 +6,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Xunit;
 
-namespace Aspire.Oracle.EntityFrameworkCore.Tests;
+namespace Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.Tests;
 
-public class AspireSqlServerEFCoreDatabaseExtensionsTests
+public class AspireEFPostgreSqlExtensionsTests
 {
     [Fact]
     public void CanConfigureDefaultSettings()
@@ -17,7 +17,7 @@ public class AspireSqlServerEFCoreDatabaseExtensionsTests
 
         bool? invoked = null, healthChecks = null, tracing = null, metrics = null;
 
-        builder.AddSqlServerEntityFrameworkCore<TestDbContext>(settings =>
+        builder.AddNpgsqlEntityFrameworkCore<TestDbContext>(settings =>
         {
             invoked = true;
             healthChecks = settings.HealthChecks;
@@ -38,14 +38,14 @@ public class AspireSqlServerEFCoreDatabaseExtensionsTests
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("Aspire:Microsoft:EntityFrameworkCore:SqlServer:HealthChecks", "false"),
-            new KeyValuePair<string, string?>("Aspire:Microsoft:EntityFrameworkCore:SqlServer:Tracing", "false"),
-            new KeyValuePair<string, string?>("Aspire:Microsoft:EntityFrameworkCore:SqlServer:Metrics", "false"),
+            new KeyValuePair<string, string?>("Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:HealthChecks", "false"),
+            new KeyValuePair<string, string?>("Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:Tracing", "false"),
+            new KeyValuePair<string, string?>("Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:Metrics", "false"),
         ]);
 
         bool? invoked = null, healthChecks = null, tracing = null, metrics = null;
 
-        builder.AddSqlServerEntityFrameworkCore<TestDbContext>(settings =>
+        builder.AddNpgsqlEntityFrameworkCore<TestDbContext>(settings =>
         {
             invoked = true;
             healthChecks = settings.HealthChecks;
@@ -66,14 +66,14 @@ public class AspireSqlServerEFCoreDatabaseExtensionsTests
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("Aspire:Microsoft:EntityFrameworkCore:SqlServer:TestDbContext:HealthChecks", "false"),
-            new KeyValuePair<string, string?>("Aspire:Microsoft:EntityFrameworkCore:SqlServer:TestDbContext:Tracing", "false"),
-            new KeyValuePair<string, string?>("Aspire:Microsoft:EntityFrameworkCore:SqlServer:TestDbContext:Metrics", "false"),
+            new KeyValuePair<string, string?>("Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:TestDbContext:HealthChecks", "false"),
+            new KeyValuePair<string, string?>("Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:TestDbContext:Tracing", "false"),
+            new KeyValuePair<string, string?>("Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:TestDbContext:Metrics", "false"),
         ]);
 
         bool? invoked = null, healthChecks = null, tracing = null, metrics = null;
 
-        builder.AddSqlServerEntityFrameworkCore<TestDbContext>(settings =>
+        builder.AddNpgsqlEntityFrameworkCore<TestDbContext>(settings =>
         {
             invoked = true;
             healthChecks = settings.HealthChecks;

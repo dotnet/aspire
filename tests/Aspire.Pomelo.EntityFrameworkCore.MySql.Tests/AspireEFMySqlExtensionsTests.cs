@@ -2,119 +2,90 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Components.Common.Tests;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure.Internal;
-using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Pomelo.EntityFrameworkCore.MySql.Infrastructure.Internal;
 using Xunit;
 
 namespace Aspire.Pomelo.EntityFrameworkCore.MySql.Tests;
 
 public class AspireEFMySqlExtensionsTests
 {
-    private const string ConnectionString = "Server=localhost;User ID=root;Database=test";
-    private const string ConnectionStringSuffixAddedByPomelo = ";Allow User Variables=True;Use Affected Rows=False";
-
     [Fact]
-    public void ReadsFromConnectionStringsCorrectly()
+    public void CanConfigureDefaultSettings()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
-        builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:ServerVersion", "8.2.0-mysql"),
-            new KeyValuePair<string, string?>("ConnectionStrings:mysql", ConnectionString)
-        ]);
 
-        builder.AddMySqlDbContext<TestDbContext>("mysql");
+        bool? invoked = null, healthChecks = null, tracing = null, metrics = null;
 
-        var host = builder.Build();
-        var context = host.Services.GetRequiredService<TestDbContext>();
-
-        Assert.Equal(ConnectionString + ConnectionStringSuffixAddedByPomelo, context.Database.GetDbConnection().ConnectionString);
-    }
-
-    [Fact]
-    public void ConnectionStringCanBeSetInCode()
-    {
-        var builder = Host.CreateEmptyApplicationBuilder(null);
-        builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:ServerVersion", "8.2.0-mysql"),
-            new KeyValuePair<string, string?>("ConnectionStrings:mysql", "unused")
-        ]);
-
-        builder.AddMySqlDbContext<TestDbContext>("mysql", settings => settings.ConnectionString = ConnectionString);
-
-        var host = builder.Build();
-        var context = host.Services.GetRequiredService<TestDbContext>();
-
-        var actualConnectionString = context.Database.GetDbConnection().ConnectionString;
-        Assert.Equal(ConnectionString + ConnectionStringSuffixAddedByPomelo, actualConnectionString);
-        // the connection string from config should not be used since code set it explicitly
-        Assert.DoesNotContain("unused", actualConnectionString);
-    }
-
-    [Fact]
-    public void ConnectionNameWinsOverConfigSection()
-    {
-        var builder = Host.CreateEmptyApplicationBuilder(null);
-        builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:ServerVersion", "8.2.0-mysql"),
-            new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:ConnectionString", "unused"),
-            new KeyValuePair<string, string?>("ConnectionStrings:mysql", ConnectionString)
-        ]);
-
-        builder.AddMySqlDbContext<TestDbContext>("mysql");
-
-        var host = builder.Build();
-        var context = host.Services.GetRequiredService<TestDbContext>();
-
-        var actualConnectionString = context.Database.GetDbConnection().ConnectionString;
-        Assert.Equal(ConnectionString + ConnectionStringSuffixAddedByPomelo, actualConnectionString);
-        // the connection string from config should not be used since it was found in ConnectionStrings
-        Assert.DoesNotContain("unused", actualConnectionString);
-    }
-
-    [Fact]
-    public void CanConfigureDbContextOptions()
-    {
-        var builder = Host.CreateEmptyApplicationBuilder(null);
-        builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:ServerVersion", "8.2.0-mysql"),
-            new KeyValuePair<string, string?>("ConnectionStrings:mysql", ConnectionString),
-            new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:MaxRetryCount", "304")
-        ]);
-
-        builder.AddMySqlDbContext<TestDbContext>("mysql", configureDbContextOptions: optionsBuilder =>
+        builder.AddMySqlEntityFrameworkCore<TestDbContext>(settings =>
         {
-            optionsBuilder.UseMySql(new MySqlServerVersion(new Version(8, 2, 0)), mySqlBuilder =>
-            {
-                mySqlBuilder.CommandTimeout(123);
-            });
+            invoked = true;
+            healthChecks = settings.HealthChecks;
+            tracing = settings.Tracing;
+            metrics = settings.Metrics;
         });
 
         var host = builder.Build();
-        var context = host.Services.GetRequiredService<TestDbContext>();
 
-#pragma warning disable EF1001 // Internal EF Core API usage.
+        Assert.True(invoked);
+        Assert.True(healthChecks);
+        Assert.True(tracing);
+        Assert.True(metrics);
+    }
 
-        var extension = context.Options.FindExtension<MySqlOptionsExtension>();
-        Assert.NotNull(extension);
+    [Fact]
+    public void CanBindDefaultSection()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:HealthChecks", "false"),
+            new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:Tracing", "false"),
+            new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:Metrics", "false"),
+        ]);
 
-        // ensure the command timeout was respected
-        Assert.Equal(123, extension.CommandTimeout);
+        bool? invoked = null, healthChecks = null, tracing = null, metrics = null;
 
-        // ensure the connection string from config was respected
-        var actualConnectionString = context.Database.GetDbConnection().ConnectionString;
-        Assert.Equal(ConnectionString + ";Allow User Variables=True;Default Command Timeout=123;Use Affected Rows=False", actualConnectionString);
+        builder.AddMySqlEntityFrameworkCore<TestDbContext>(settings =>
+        {
+            invoked = true;
+            healthChecks = settings.HealthChecks;
+            tracing = settings.Tracing;
+            metrics = settings.Metrics;
+        });
 
-        // ensure the max retry count from config was respected
-        Assert.NotNull(extension.ExecutionStrategyFactory);
-        var executionStrategy = extension.ExecutionStrategyFactory(new ExecutionStrategyDependencies(new CurrentDbContext(context), context.Options, null!));
-        var retryStrategy = Assert.IsType<MySqlRetryingExecutionStrategy>(executionStrategy);
-        Assert.Equal(304, retryStrategy.MaxRetryCount);
+        var host = builder.Build();
 
-#pragma warning restore EF1001 // Internal EF Core API usage.
+        Assert.True(invoked);
+        Assert.False(healthChecks);
+        Assert.False(tracing);
+        Assert.False(metrics);
+    }
+
+    [Fact]
+    public void CanBindTypeSpecificSection()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:TestDbContext:HealthChecks", "false"),
+            new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:TestDbContext:Tracing", "false"),
+            new KeyValuePair<string, string?>("Aspire:Pomelo:EntityFrameworkCore:MySql:TestDbContext:Metrics", "false"),
+        ]);
+
+        bool? invoked = null, healthChecks = null, tracing = null, metrics = null;
+
+        builder.AddMySqlEntityFrameworkCore<TestDbContext>(settings =>
+        {
+            invoked = true;
+            healthChecks = settings.HealthChecks;
+            tracing = settings.Tracing;
+            metrics = settings.Metrics;
+        });
+
+        var host = builder.Build();
+
+        Assert.True(invoked);
+        Assert.False(healthChecks);
+        Assert.False(tracing);
+        Assert.False(metrics);
     }
 }
