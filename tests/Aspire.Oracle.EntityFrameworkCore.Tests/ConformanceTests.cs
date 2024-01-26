@@ -4,6 +4,7 @@
 using Aspire.Components.Common.Tests;
 using Aspire.Components.ConformanceTests;
 using Microsoft.DotNet.RemoteExecutor;
+using Microsoft.DotNet.XUnitExtensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -85,6 +86,11 @@ public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFram
         {
             service.Database.EnsureCreated();
         }
+    }
+
+    protected override void SetupConnectionInformationIsDelayValidated()
+    {
+        throw new SkipTestException("EF doesn't require a connection string");
     }
 
     [ConditionalFact]

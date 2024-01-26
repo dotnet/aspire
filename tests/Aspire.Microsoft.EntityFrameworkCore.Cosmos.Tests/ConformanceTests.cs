@@ -4,7 +4,8 @@
 using Aspire.Components.Common.Tests;
 using Aspire.Components.ConformanceTests;
 using Microsoft.DotNet.RemoteExecutor;
-using Microsoft.EntityFrameworkCore.Internal;
+using Microsoft.DotNet.XUnitExtensions;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -12,7 +13,7 @@ using Xunit;
 
 namespace Aspire.Microsoft.EntityFrameworkCore.Cosmos.Tests;
 
-public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, EntityFrameworkCoreCosmosDBSettings>
+public class ConformanceTests : ConformanceTests<TestDbContext, EntityFrameworkCoreCosmosDBSettings>
 {
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
@@ -35,7 +36,14 @@ public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, EntityFr
         });
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<EntityFrameworkCoreCosmosDBSettings>? configure = null, string? key = null)
-        => builder.AddCosmosDbContext<TestDbContext>("cosmosdb", "TestDatabase", configure);
+    {
+        var connectionString = builder.Configuration.GetValue<string>("Aspire:Microsoft:EntityFrameworkCore:Cosmos:ConnectionString");
+
+        Assert.NotNull(connectionString);
+
+        builder.Services.AddDbContextPool<TestDbContext>(dbContextOptionsBuilder => dbContextOptionsBuilder.UseCosmos(connectionString, "TestDatabase"));
+        builder.AddCosmosDbEntityFrameworkCore<TestDbContext>(configure);
+    }
 
     protected override void SetHealthCheck(EntityFrameworkCoreCosmosDBSettings options, bool enabled)
         => throw new NotImplementedException();
@@ -64,10 +72,14 @@ public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, EntityFr
 
     protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
     {
-            ("""{"Aspire": { "Microsoft":{ "EntityFrameworkCore": { "Cosmos": { "AccountEndpoint": 3 }}}}}""", "Value is \"integer\" but should be \"string\""),
-            ("""{"Aspire": { "Microsoft":{ "EntityFrameworkCore": { "Cosmos": { "AccountEndpoint": "hello" }}}}}""", "Value does not match format \"uri\""),
-            ("""{"Aspire": { "Microsoft":{ "EntityFrameworkCore": { "Cosmos": { "Region": 3 }}}}}""", "Value is \"integer\" but should be \"string\""),
+            ("""{"Aspire": { "Microsoft": { "EntityFrameworkCore":{ "Cosmos": { "Tracing": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
+            ("""{"Aspire": { "Microsoft": { "EntityFrameworkCore":{ "Cosmos": { "Metrics": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
         };
+
+    protected override void SetupConnectionInformationIsDelayValidated()
+    {
+        throw new SkipTestException("EF doesn't require a connection string");
+    }
 
     protected override void TriggerActivity(TestDbContext service)
     {
@@ -75,31 +87,6 @@ public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, EntityFr
         {
             service.Database.EnsureCreated();
         }
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "EF1001:Internal EF Core API usage.", Justification = "Required to verify pooling without touching DB")]
-    public void DbContextPoolingRegistersIDbContextPool(bool enabled)
-    {
-        using IHost host = CreateHostWithComponent(options => options.DbContextPooling = enabled);
-
-        IDbContextPool<TestDbContext>? pool = host.Services.GetService<IDbContextPool<TestDbContext>>();
-
-        Assert.Equal(enabled, pool is not null);
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void DbContextCanBeAlwaysResolved(bool enabled)
-    {
-        using IHost host = CreateHostWithComponent(options => options.DbContextPooling = enabled);
-
-        TestDbContext? dbContext = host.Services.GetService<TestDbContext>();
-
-        Assert.NotNull(dbContext);
     }
 
     [ConditionalFact]
