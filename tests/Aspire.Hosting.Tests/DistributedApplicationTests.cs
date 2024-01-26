@@ -116,43 +116,20 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    public async Task TryAddWillNotAddTheSameLifecycleHook()
+    public void TryAddWillNotAddTheSameLifecycleHook()
     {
-        var exceptionMessage = "Exception from lifecycle hook to prove it ran!";
-
-        var signal = (FirstHookExecuted: false, SecondHookExecuted: false);
-
         var testProgram = CreateTestProgram();
 
-        // Lifecycle hook 1
-        testProgram.AppBuilder.Services.TryAddLifecycleHook((sp) =>
-        {
-            return new CallbackLifecycleHook((app, cancellationToken) =>
-            {
-                signal.FirstHookExecuted = true;
-                return Task.CompletedTask;
-            });
-        });
+        var callback1 = (IServiceProvider sp) => new DummyLifecycleHook();
+        testProgram.AppBuilder.Services.TryAddLifecycleHook(callback1);
 
-        // Lifecycle hook 2
-        testProgram.AppBuilder.Services.TryAddLifecycleHook((sp) =>
-        {
-            return new CallbackLifecycleHook((app, cancellationToken) =>
-            {
-                signal.SecondHookExecuted = true;
+        var callback2 = (IServiceProvider sp) => new DummyLifecycleHook();
+        testProgram.AppBuilder.Services.TryAddLifecycleHook(callback2);
 
-                // We still want to throw on the second one to block startup.
-                throw new DistributedApplicationException(exceptionMessage);
-            });
-        });
+        var lifecycleHookDescriptors = testProgram.AppBuilder.Services.Where(sd => sd.ServiceType == typeof(IDistributedApplicationLifecycleHook));
 
-        using var cts = new CancellationTokenSource();
-        cts.CancelAfter(TimeSpan.FromMinutes(1));
-        await using var app = testProgram.Build();
-        await app.StartAsync(cts.Token);
-
-        Assert.True(signal.FirstHookExecuted);
-        Assert.False(signal.SecondHookExecuted);
+        Assert.Single(lifecycleHookDescriptors.Where(sd => sd.ImplementationFactory == callback1));
+        Assert.Empty(lifecycleHookDescriptors.Where(sd => sd.ImplementationFactory == callback2));
     }
 
     [LocalOnlyFact]
