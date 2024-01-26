@@ -4,8 +4,13 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- AWS SDK for .NET dependencies -->
-    <PackageVersion Include="AWSSDK.CloudFormation" Version="3.7.301.2" />	
-	<PackageVersion Include="AWSSDK.SQS" Version="3.7.2.14" />
+    <PackageVersion Include="AWSSDK.CloudFormation" Version="3.7.302.28" />	
+	<PackageVersion Include="AWSSDK.SQS" Version="3.7.300.41" />
+	<PackageVersion Include="AWSSDK.SimpleNotificationService" Version="3.7.300.41" />
+	<PackageVersion Include="AWSSDK.Core" Version="3.7.302" />
+	<PackageVersion Include="AWSSDK.Extensions.NETCore.Setup" Version="3.7.300" />
+	<PackageVersion Include="AWS.Messaging" Version="0.1.0-beta" />	
+	<PackageVersion Include="OpenTelemetry.Instrumentation.AWS" Version="1.1.0-beta.2" />	
     <!-- Azure SDK for .NET dependencies -->
     <PackageVersion Include="Azure.AI.OpenAI" Version="1.0.0-beta.12" />
     <PackageVersion Include="Azure.Data.Tables" Version="12.8.2" />

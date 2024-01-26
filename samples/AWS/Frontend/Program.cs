@@ -1,15 +1,25 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
 using Amazon.SQS;
-using Frontend;
 using Frontend.Components;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-builder.Services.AddOptions<AWSResources>()
-                .Bind(builder.Configuration.GetSection("AWS").GetSection("Resources"));
+builder.Services.AddAWSService<IAmazonSQS>();
 
-builder.Services.AddSingleton<IAmazonSQS>(new AmazonSQSClient());
+// Configuring messaging using the AWS.Messaging library.
+builder.Services.AddAWSMessageBus(messageBuilder =>
+{
+    // Get the SQS queue URL that was created from AppHost and assigned to the project.
+    var chatTopicArn = builder.Configuration.GetSection("AWS:Resources")["ChatTopicArn"];
+    if(chatTopicArn != null )
+    {
+        messageBuilder.AddSNSPublisher<Frontend.Models.ChatMessage>(chatTopicArn);
+    }
+});
 
 // Add services to the container.
 builder.Services.AddRazorComponents()

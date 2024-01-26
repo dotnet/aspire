@@ -1,9 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-namespace Frontend;
+namespace Frontend.Models;
 
-public class AWSResources
+public class ChatMessage
 {
-    public string? OrderQueueUrl { get; set; }
+    public string? Message { get; set; }
+
+    public string? Recipient { get; set; }
 }

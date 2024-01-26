@@ -4,7 +4,8 @@ using Amazon;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var awsConfig = builder.AddAWSSDKConfig("default")
+var awsConfig = builder.AddAWSSDKConfig("frontend-aws-config")
+                        .WithProfile("default")
                         .WithRegion(RegionEndpoint.USEast2);
 
 var awsResource = builder.AddAWSCloudFormationProvisioning("AspireSampleDevResources", "app-resources.template")

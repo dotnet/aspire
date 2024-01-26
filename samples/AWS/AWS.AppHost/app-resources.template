@@ -1,16 +1,26 @@
 {
-	"AWSTemplateFormatVersion" : "2010-09-09",
+    "AWSTemplateFormatVersion" : "2010-09-09",
     "Resources" : {
-		"OrderQueue" : {
-		    "Type" : "AWS::SQS::Queue",
-		    "Properties" : {
-				
-		    }
-		}
+        "ChatMessagesQueue" : {
+            "Type" : "AWS::SQS::Queue",
+            "Properties" : {
+            }
+        },
+        "ChatTopic" : {
+            "Type" : "AWS::SNS::Topic",
+            "Properties" : {
+                "Subscription" : [
+                    {"Protocol" : "sqs", "Endpoint" : {"Fn::GetAtt" : [ "ChatMessagesQueue", "Arn"]}}
+                ]
+            }
+        }
 	},
     "Outputs" : {
-		"OrderQueueUrl" : {
-		    "Value" : { "Ref" : "OrderQueue" }
-		}
+        "ChatMessagesQueueUrl" : {
+            "Value" : { "Ref" : "ChatMessagesQueue" }
+        },
+        "ChatTopicArn" : {
+            "Value" : { "Ref" : "ChatTopic" }
+        }
 	}
 }

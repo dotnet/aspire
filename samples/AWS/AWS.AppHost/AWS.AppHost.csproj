@@ -9,8 +9,14 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Aspire.Hosting.AWS\Aspire.Hosting.AWS.csproj" />
-    <ProjectReference Include="..\..\..\src\Aspire.Hosting\Aspire.Hosting.csproj" />
+    <Compile Include="..\..\..\src\Aspire.Hosting\Utils\KnownResourceNames.cs" Link="KnownResourceNames.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Aspire.Dashboard\Aspire.Dashboard.csproj" />
+    <ProjectReference Include="..\..\..\src\Aspire.Hosting.AWS\Aspire.Hosting.AWS.csproj" IsAspireProjectResource="false" />    
+    <ProjectReference Include="..\..\..\src\Aspire.Hosting\Aspire.Hosting.csproj" IsAspireProjectResource="false" />
+    
     <ProjectReference Include="..\Frontend\Frontend.csproj" />
   </ItemGroup>
 
