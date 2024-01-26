@@ -22,8 +22,8 @@ public static class CosmosExtensions
 
             var item = await container.CreateItemAsync(new
             {
-                id = id,
-                title = title
+                id,
+                title
             });
 
             return item.Resource.id == id ? Results.Ok() : Results.Problem();

@@ -53,23 +53,18 @@ public class TestProgram
             var oracleDatabase = AppBuilder.AddOracleDatabase("oracledatabase")
                 .AddDatabase(oracleDbName);
             var kafkaContainer = AppBuilder.AddKafkaContainer("kafkacontainer");
+            var cosmos = AppBuilder.AddAzureCosmosDB("cosmos").UseEmulator();
 
             IntegrationServiceABuilder = AppBuilder.AddProject<Projects.IntegrationServiceA>("integrationservicea")
-                .WithReference(sqlserverContainer)
-                .WithReference(mysqlContainer)
-                .WithReference(redisContainer)
-                .WithReference(postgresContainer)
-                .WithReference(rabbitmqContainer)
-                .WithReference(mongodbContainer)
-                .WithReference(oracleDatabaseContainer)
-                .WithReference(sqlserverAbstract)
-                .WithReference(mysqlAbstract)
-                .WithReference(redisAbstract)
-                .WithReference(postgresAbstract)
-                .WithReference(rabbitmqAbstract)
-                .WithReference(mongodbAbstract)
-                .WithReference(oracleDatabaseAbstract)
-                .WithReference(kafkaContainer);
+                .WithReference(sqlserver)
+                .WithReference(mysql)
+                .WithReference(redis)
+                .WithReference(postgres)
+                .WithReference(rabbitmq)
+                .WithReference(mongodb)
+                .WithReference(oracleDatabase)
+                .WithReference(kafkaContainer)
+                .WithReference(cosmos);
         }
     }
 
