@@ -1,10 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
-
-using System.Net.Sockets;
 
 namespace Aspire.Hosting;
 
@@ -31,19 +30,16 @@ public static class MinioBuilderExtensions
         string name,
         string rootUser,
         string rootPassword,
-        int? minioPort = null,
-        int? minioAdminPort = null)
+        int minioPort = 9000,
+        int minioAdminPort = 9001)
     {
         var minioContainer = new MinioContainerResource(name, rootUser, rootPassword);
 
         return builder
             .AddResource(minioContainer)
             .WithManifestPublishingCallback(context => WriteMinioContainerToManifest(context, minioContainer))
-            .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: minioPort, containerPort: 9000))
-            .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: minioAdminPort, containerPort: 9001)) // Default Minio port
+            .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: minioPort, containerPort: 9000, name: "minio"))
             .WithAnnotation(new ContainerImageAnnotation { Image = "minio/minio", Tag = "latest" })
-            .WithEnvironment(RootUserEnvVarName, rootUser)
-            .WithEnvironment(RootPasswordEnvVarName, rootPassword)
             .WithEnvironment(context =>
             {
                 if (context.PublisherName == "manifest")
@@ -57,12 +53,12 @@ public static class MinioBuilderExtensions
                     context.EnvironmentVariables.Add(RootPasswordEnvVarName, minioContainer.RootPassword);
                 }
             })
-            .WithArgs("server", "--console-address", @"""9001""", "/data");
-            }
+            .WithArgs("server", "/data");
+    }
 
     private static void WriteMinioContainerToManifest(ManifestPublishingContext context, MinioContainerResource resource)
     {
-        // Want to see if there is interest in minio before finishing out every details
+        // Want to see if there is interest 
         context.WriteContainer(resource);
     }
 }
