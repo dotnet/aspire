@@ -89,7 +89,7 @@ public static class SqlServerBuilderExtensions
 
     private static void WriteSqlServerDatabaseToManifest(ManifestPublishingContext context, SqlServerDatabaseResource sqlServerDatabase)
     {
-        context.Writer.WriteString("type", "sqlserver.database.v1");
+        context.Writer.WriteString("type", "sqlserver.database.v0");
         context.Writer.WriteString("parent", sqlServerDatabase.Parent.Name);
     }
 
