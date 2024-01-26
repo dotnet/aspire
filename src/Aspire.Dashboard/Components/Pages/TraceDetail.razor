@@ -64,17 +64,17 @@
                                 if (!isServerKind)
                                 {
                                     // Client span has 19px extra content:
-                                    // - 5px border.
-                                    // - 9px padding-left;
-                                    // - 5px extra margin-left.
+                                    // - 5px border
+                                    // - 9px padding-left
+                                    // - 5px extra margin-left
                                     marginLeft += 5;
                                     spanNameContainerStyle = $"margin-left: {marginLeft}px; border-left-color: {ColorGenerator.Instance.GetColorHexByKey(GetResourceName(context.Span.Source))}; border-left-width: 5px; border-left-style: solid; padding-left: 9px;";
                                 }
                                 else
                                 {
                                     // Server span has 19px extra content:
-                                    // - 16px icon.
-                                    // - 3px padding-left;
+                                    // - 16px icon
+                                    // - 3px padding-left
                                     spanNameContainerStyle = $"margin-left: {marginLeft}px;";
                                 }
                             }
