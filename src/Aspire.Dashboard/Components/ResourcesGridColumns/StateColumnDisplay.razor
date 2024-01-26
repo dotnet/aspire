@@ -22,6 +22,12 @@
                     Class="severity-icon"/>
     }
 }
+else if (Resource is { State: ResourceStates.StartingState })
+{
+    <FluentIcon Icon="Icons.Filled.Size16.Circle"
+                Color="Color.Info"
+                Class="severity-icon"/>
+}
 else
 {
     <FluentIcon Icon="Icons.Filled.Size16.CheckmarkCircle"
