@@ -127,6 +127,11 @@
         <target state="new">End</target>
         <note />
       </trans-unit>
+      <trans-unit id="MetricTableNoValuesYet">
+        <source>There are no metric values yet.</source>
+        <target state="new">There are no metric values yet.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="MetricTableShowLatestValues">
         <source>Show latest 10 values</source>
         <target state="new">Show latest 10 values</target>

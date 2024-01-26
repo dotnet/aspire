@@ -257,6 +257,9 @@
   <data name="MetricTableValueNoChange" xml:space="preserve">
     <value>Value did not change</value>
   </data>
+  <data name="MetricTableNoValuesYet" xml:space="preserve">
+    <value>There are no metric values yet.</value>
+  </data>
   <data name="SelectAResource" xml:space="preserve">
     <value>Select a resource</value>
   </data>

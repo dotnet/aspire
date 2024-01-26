@@ -285,6 +285,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to There are no metric values yet..
+        /// </summary>
+        public static string MetricTableNoValuesYet {
+            get {
+                return ResourceManager.GetString("MetricTableNoValuesYet", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Show latest 10 values.
         /// </summary>
         public static string MetricTableShowLatestValues {

@@ -7,111 +7,21 @@
 @inject IStringLocalizer<ControlsStrings> Loc
 
 <div id="metric-table-container" style="height: 40vh; overflow-y: auto; margin-bottom: 20px;">
-    @if (_tableType == TableType.Instrument)
-    {
-        <FluentDataGrid Items="@_metricsView" ItemSize="35" Virtualize="true">
-            <ChildContent>
-                <TemplateColumn Class="metric-grid-cell" Title="@Loc[nameof(ControlsStrings.MetricTableStartColumnHeader)]" Tooltip="true" TooltipText="@(metric => metric.DimensionName)">
-                    <span aria-live="polite">@context.Value.Start</span>
-                    @if (_anyDimensionsShown)
-                    {
-                        <FluentIcon Icon="Icons.Filled.Size16.DataBarVertical" Color="Color.Info" Style="margin-left: 3px; vertical-align: text-bottom" />
-                    }
-                </TemplateColumn>
-                <PropertyColumn Property="@(c => c.Value.End)" Title="@Loc[nameof(ControlsStrings.MetricTableEndColumnHeader)]" />
-                <TemplateColumn Title="@Loc[nameof(ControlsStrings.MetricTableValueColumnHeader)]">
-                    @if (context.ValueChange is null)
-                    {
-                        @context.Value
-                    }
-                    else
-                    {
-                        <span style="margin-right: 4px;">@context.Value</span>
-                        if (GetIconAndTitleForDirection(context.ValueChange) is var (icon, title))
-                        {
-                            <FluentIcon Style="vertical-align: text-bottom" Value="@icon" Title="@title" />
-                        }
-                    }
-                </TemplateColumn>
-                <TemplateColumn Title="@Loc[nameof(ControlsStrings.MetricTableCountColumnHeader)]">
-                    <span style="margin-right: 2px;">@context.Value.Count</span>
-
-                    @if (GetIconAndTitleForDirection(context.CountChange) is var (icon, title))
-                    {
-                        <FluentIcon Style="vertical-align: text-bottom" Value="@icon" Title="@title" />
-                    }
-                </TemplateColumn>
-            </ChildContent>
-            <EmptyContent>
-                There are no metric values yet.
-            </EmptyContent>
-        </FluentDataGrid>
-    }
-    else if (_tableType == TableType.Histogram)
-    {
-        <FluentDataGrid Items="@_metricsView" ItemSize="35" Virtualize="true">
-            <ChildContent>
-                <TemplateColumn Class="metric-grid-cell" Title="@Loc[nameof(ControlsStrings.MetricTableStartColumnHeader)]" Tooltip="true" TooltipText="@(metric => metric.DimensionName)">
-                    <span aria-live="polite">@context.Value.Start</span>
-                    @if (_anyDimensionsShown)
-                    {
-                        <FluentIcon Icon="Icons.Filled.Size16.DataBarVertical" Color="Color.Info" Style="margin-left: 3px; vertical-align: text-bottom" />
-                    }
-                </TemplateColumn>
-                <PropertyColumn Property="@(c => c.Value.End)" Title="@Loc[nameof(ControlsStrings.MetricTableEndColumnHeader)]" />
-                @{
-                    var unit = PlotlyChart.GetDisplayedUnit(_instrument, _showCount, Loc);
-                    // these colors line up with P50/P90/P99 colors for the plotly graph
-                    var percentileColumns = new List<(int Percentile, string UnderlineColor)> { (50, "#89B5D3"), (90, "#F9B980"), (99, "#8FC98F") };
-                    foreach (var (percentile, underlineColor) in percentileColumns)
-                    {
-                        <TemplateColumn Title="@($"P{percentile}")">
-                            @if (context is HistogramMetric histogramMetric)
-                            {
-                                <span style="@($"text-decoration-thickness: 2px; text-decoration-line: underline; text-decoration-color: {underlineColor}; margin-right: 4px;")">@CalculatePercentile(percentile, (HistogramValue)context.Value) @unit</span>
-
-                                if (GetIconAndTitleForDirection(histogramMetric.Percentiles[percentile].Change) is var (icon, title))
-                                {
-                                    <FluentIcon Style="vertical-align: text-bottom" Value="@icon" Title="@title" />
-                                }
-                            }
-                        </TemplateColumn>
-                    }
-                }
-            </ChildContent>
-            <EmptyContent>
-                There are no metric values yet.
-            </EmptyContent>
-        </FluentDataGrid>
-
-    }
-    else if (_tableType == TableType.Count)
-    {
-        <FluentDataGrid Items="@_metricsView" ItemSize="35" Virtualize="true">
-            <ChildContent>
-                <TemplateColumn Class="metric-grid-cell" Title="@Loc[nameof(ControlsStrings.MetricTableStartColumnHeader)]" Tooltip="true" TooltipText="@(metric => metric.DimensionName)">
-                    <span aria-live="polite">@context.Value.Start</span>
-                    @if (_anyDimensionsShown)
-                    {
-                        <FluentIcon Icon="Icons.Filled.Size16.DataBarVertical" Color="Color.Info" Style="margin-left: 3px; vertical-align: text-bottom" />
-                    }
-                </TemplateColumn>
-                <PropertyColumn Property="@(c => c.Value.End)" Title="@Loc[nameof(ControlsStrings.MetricTableEndColumnHeader)]" />
-                <TemplateColumn Title="@Loc[nameof(ControlsStrings.MetricTableCountColumnHeader)]">
-                    <span style="margin-right: 2px;">@context.Value.Count</span>
-
-                    @if (GetIconAndTitleForDirection(context.CountChange) is var (icon, title))
-                    {
-                        <FluentIcon Style="vertical-align: text-bottom" Value="@icon" Title="@title" />
-                    }
-                </TemplateColumn>
-            </ChildContent>
-            <EmptyContent>
-                There are no metric values yet.
-            </EmptyContent>
-        </FluentDataGrid>
-
-    }
+   @if (IsHistogramInstrument())
+   {
+       if (_showCount)
+       {
+           <MetricTableGrid TableType="TableType.Count" Instrument="_instrument" Metrics="@_metricsView" AnyDimensionsShown="_anyDimensionsShown" />
+       }
+       else
+       {
+           <MetricTableGrid TableType="TableType.Histogram" Instrument="_instrument" Metrics="@_metricsView" AnyDimensionsShown="_anyDimensionsShown" />
+       }
+   }
+   else
+   {
+       <MetricTableGrid TableType="TableType.Instrument" Instrument="_instrument" Metrics="@_metricsView" AnyDimensionsShown="_anyDimensionsShown" />
+   }
 </div>
 
 <FluentStack Orientation="Orientation.Vertical" Style="margin-bottom: 20px;">

@@ -243,7 +243,7 @@ public partial class MetricTable : ComponentBase
         }
     }
 
-    private static double? CalculatePercentile(int percentile, HistogramValue value)
+    internal static double? CalculatePercentile(int percentile, HistogramValue value)
     {
         return PlotlyChart.CalculatePercentile(percentile, value.Values, value.ExplicitBounds);
     }
@@ -285,7 +285,6 @@ public partial class MetricTable : ComponentBase
 
     public enum TableType
     {
-        None,
         Histogram,
         Instrument,
         Count
