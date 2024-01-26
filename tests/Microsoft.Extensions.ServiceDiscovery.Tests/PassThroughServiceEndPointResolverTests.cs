@@ -109,4 +109,26 @@ public class PassThroughServiceEndPointResolverTests
             Assert.Equal(new DnsEndPoint("catalog", 80), initialResult.EndPoints[0].EndPoint);
         }
     }
+
+    // Ensures that pass-through resolution succeeds in scenarios where no scheme is specified during resolution.
+    [Fact]
+    public async Task ResolveServiceEndPoint_Fallback_NoScheme()
+    {
+        var configSource = new MemoryConfigurationSource
+        {
+            InitialData = new Dictionary<string, string?>
+            {
+                ["services:basket:0"] = "http://localhost:8080",
+            }
+        };
+        var config = new ConfigurationBuilder().Add(configSource);
+        var services = new ServiceCollection()
+            .AddSingleton<IConfiguration>(config.Build())
+            .AddServiceDiscovery() // Adds the configuration and pass-through providers.
+            .BuildServiceProvider();
+
+        var resolver = services.GetRequiredService<ServiceEndPointResolverRegistry>();
+        var endPoints = await resolver.GetEndPointsAsync("catalog", default);
+        Assert.Equal(new DnsEndPoint("catalog", 0), endPoints[0].EndPoint);
+    }
 }
