@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
@@ -230,9 +231,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             Metadata = { Name = KnownResourceNames.AspireDashboard }
         };
 
-        var firstDashboardUrl = dashboardUrls.Split(";")[0];
         await kubernetesService.CreateAsync(dashboardExecutable, cancellationToken).ConfigureAwait(false);
-        await WaitForHttpSuccessOrThrow(firstDashboardUrl, DashboardAvailabilityTimeoutDuration, cancellationToken).ConfigureAwait(false);
+        await CheckDashboardAvailabilityAsync(dashboardUrls, cancellationToken).ConfigureAwait(false);
     }
 
     private static TimeSpan DashboardAvailabilityTimeoutDuration
@@ -252,7 +252,19 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private const int DefaultDashboardAvailabilityTimeoutDurationInSeconds = 60;
 
-    private async Task WaitForHttpSuccessOrThrow(string url, TimeSpan timeout, CancellationToken cancellationToken = default)
+    private async Task CheckDashboardAvailabilityAsync(string delimitedUrlList, CancellationToken cancellationToken)
+    {
+        if (TryGetUriFromDelimitedString(delimitedUrlList, ";", out var firstDashboardUrl))
+        {
+            await WaitForHttpSuccessOrThrow(firstDashboardUrl, DashboardAvailabilityTimeoutDuration, cancellationToken).ConfigureAwait(false);
+        }
+        else
+        {
+            _logger.LogWarning("Skipping dashboard availability check because ASPNETCORE_URLS environment variable could not be parsed.");
+        }
+    }
+
+    private async Task WaitForHttpSuccessOrThrow(Uri url, TimeSpan timeout, CancellationToken cancellationToken = default)
     {
         using var timeoutCts = new CancellationTokenSource(timeout);
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
@@ -645,8 +657,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                         throw new DistributedApplicationException("Cannot check dashboard availability since ASPNETCORE_URLS environment variable not set.");
                     }
 
-                    var firstDashboardUrl = dashboardUrls.Split(";")[0];
-                    await WaitForHttpSuccessOrThrow(firstDashboardUrl, DashboardAvailabilityTimeoutDuration, cancellationToken).ConfigureAwait(false);
+                    await CheckDashboardAvailabilityAsync(dashboardUrls, cancellationToken).ConfigureAwait(false);
                 }
 
             }
@@ -655,6 +666,21 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         finally
         {
             AspireEventSource.Instance.DcpExecutablesCreateStop();
+        }
+    }
+
+    private static bool TryGetUriFromDelimitedString(string input, string delimiter, [NotNullWhen(true)]out Uri? uri)
+    {
+        if (!string.IsNullOrEmpty(input)
+            && input.Split(delimiter) is { Length: > 0} splitInput
+            && Uri.TryCreate(splitInput[0], UriKind.Absolute, out uri))
+        {
+            return true;
+        }
+        else
+        {
+            uri = null;
+            return false;
         }
     }
 
