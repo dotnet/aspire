@@ -12,8 +12,8 @@ var orleans = builder.AddOrleans("my-app")
 // instead of using the emulator, one can use the in memory provider from Orleans:
 //
 // var orleans = builder.AddOrleans("my-app")
-//                     .WithDevelopmentClustering()
-//                     .WithMemoryGrainStorage("Default");
+//                      .WithDevelopmentClustering()
+//                      .WithMemoryGrainStorage("Default");
 
 builder.AddProject<Projects.OrleansServer>("silo")
        .WithReference(orleans);
