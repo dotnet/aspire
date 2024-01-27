@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Amazon.SimpleNotificationService;
 using Amazon.SQS;
 using Frontend.Components;
 
@@ -9,6 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 
 builder.Services.AddAWSService<IAmazonSQS>();
+builder.Services.AddAWSService<IAmazonSimpleNotificationService>();
 
 // Configuring messaging using the AWS.Messaging library.
 builder.Services.AddAWSMessageBus(messageBuilder =>
