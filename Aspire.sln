@@ -165,11 +165,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{2136E31D
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AWS", "AWS", "{EF91843F-C4AB-47F8-909B-C494EABB2BA2}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AWS.AppHost", "samples\AWS\AWS.AppHost\AWS.AppHost.csproj", "{5FB59EA4-5D5D-4942-BF00-F034F57A146A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AWS.AppHost", "playground\AWS\AWS.AppHost\AWS.AppHost.csproj", "{5FB59EA4-5D5D-4942-BF00-F034F57A146A}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AWS.ServiceDefaults", "samples\AWS\AWS.ServiceDefaults\AWS.ServiceDefaults.csproj", "{2E54D01B-87AD-460E-A773-75C6DF50F30C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AWS.ServiceDefaults", "playground\AWS\AWS.ServiceDefaults\AWS.ServiceDefaults.csproj", "{2E54D01B-87AD-460E-A773-75C6DF50F30C}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Frontend", "samples\AWS\Frontend\Frontend.csproj", "{A1662C12-DB8B-4C68-94EA-101860072BB1}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Frontend", "playground\AWS\Frontend\Frontend.csproj", "{A1662C12-DB8B-4C68-94EA-101860072BB1}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.AWS", "src\Aspire.Hosting.AWS\Aspire.Hosting.AWS.csproj", "{3112D63C-A9E3-44F8-92A5-8F3052627312}"
 EndProject
