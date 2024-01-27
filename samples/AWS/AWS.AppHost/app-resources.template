@@ -14,7 +14,7 @@
                 ]
             }
         }
-	},
+    },
     "Outputs" : {
         "ChatMessagesQueueUrl" : {
             "Value" : { "Ref" : "ChatMessagesQueue" }
@@ -22,5 +22,5 @@
         "ChatTopicArn" : {
             "Value" : { "Ref" : "ChatTopic" }
         }
-	}
+    }
 }
