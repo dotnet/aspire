@@ -17,7 +17,7 @@ public class AspireOracleEFCoreDatabaseExtensionsTests
 
         bool? invoked = null, healthChecks = null, tracing = null, metrics = null;
 
-        builder.AddOracleEntityFrameworkCore<TestDbContext>(settings =>
+        builder.Services.EnrichOracleEntityFrameworkCore<TestDbContext>(builder, settings =>
         {
             invoked = true;
             healthChecks = settings.HealthChecks;
@@ -45,7 +45,7 @@ public class AspireOracleEFCoreDatabaseExtensionsTests
 
         bool? invoked = null, healthChecks = null, tracing = null, metrics = null;
 
-        builder.AddOracleEntityFrameworkCore<TestDbContext>(settings =>
+        builder.Services.EnrichOracleEntityFrameworkCore<TestDbContext>(builder, settings =>
         {
             invoked = true;
             healthChecks = settings.HealthChecks;
@@ -73,7 +73,7 @@ public class AspireOracleEFCoreDatabaseExtensionsTests
 
         bool? invoked = null, healthChecks = null, tracing = null, metrics = null;
 
-        builder.AddOracleEntityFrameworkCore<TestDbContext>(settings =>
+        builder.Services.EnrichOracleEntityFrameworkCore<TestDbContext>(builder, settings =>
         {
             invoked = true;
             healthChecks = settings.HealthChecks;

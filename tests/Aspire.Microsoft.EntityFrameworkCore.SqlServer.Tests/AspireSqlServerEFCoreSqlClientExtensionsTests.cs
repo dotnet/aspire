@@ -17,7 +17,7 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
 
         bool? invoked = null, healthChecks = null, tracing = null, metrics = null;
 
-        builder.AddSqlServerEntityFrameworkCore<TestDbContext>(settings =>
+        builder.Services.EnrichSqlServerEntityFrameworkCore<TestDbContext>(builder, settings =>
         {
             invoked = true;
             healthChecks = settings.HealthChecks;
@@ -45,7 +45,7 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
 
         bool? invoked = null, healthChecks = null, tracing = null, metrics = null;
 
-        builder.AddSqlServerEntityFrameworkCore<TestDbContext>(settings =>
+        builder.Services.EnrichSqlServerEntityFrameworkCore<TestDbContext>(builder, settings =>
         {
             invoked = true;
             healthChecks = settings.HealthChecks;
@@ -73,7 +73,7 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
 
         bool? invoked = null, healthChecks = null, tracing = null, metrics = null;
 
-        builder.AddSqlServerEntityFrameworkCore<TestDbContext>(settings =>
+        builder.Services.EnrichSqlServerEntityFrameworkCore<TestDbContext>(builder, settings =>
         {
             invoked = true;
             healthChecks = settings.HealthChecks;

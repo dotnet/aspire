@@ -70,8 +70,8 @@ public class ConformanceTests : ConformanceTests<TestDbContext, MicrosoftEntityF
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<MicrosoftEntityFrameworkCoreSqlServerSettings>? configure = null, string? key = null)
     {
         var connectionString = builder.Configuration.GetValue<string>("Aspire:Microsoft:EntityFrameworkCore:SqlServer:ConnectionString");
-        builder.Services.AddDbContextPool<TestDbContext>(dbContextOptionsBuilder => dbContextOptionsBuilder.UseSqlServer(connectionString));
-        builder.AddSqlServerEntityFrameworkCore<TestDbContext>(configure);
+        builder.Services.AddDbContextPool<TestDbContext>(dbContextOptionsBuilder => dbContextOptionsBuilder.UseSqlServer(connectionString))
+            .EnrichSqlServerEntityFrameworkCore<TestDbContext>(builder, configure);
     }
 
     protected override void SetHealthCheck(MicrosoftEntityFrameworkCoreSqlServerSettings options, bool enabled)

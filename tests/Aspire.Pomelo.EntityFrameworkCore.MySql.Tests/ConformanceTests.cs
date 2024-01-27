@@ -94,7 +94,7 @@ public class ConformanceTests : ConformanceTests<TestDbContext, PomeloEntityFram
             dbContextOptionsBuilder.UseMySql(connectionString, serverVersion);
         });
 
-        builder.AddMySqlEntityFrameworkCore<TestDbContext>(configure);
+        builder.Services.EnrichMySqlEntityFrameworkCore<TestDbContext>(builder, configure);
     }
 
     protected override void SetHealthCheck(PomeloEntityFrameworkCoreMySqlSettings options, bool enabled)

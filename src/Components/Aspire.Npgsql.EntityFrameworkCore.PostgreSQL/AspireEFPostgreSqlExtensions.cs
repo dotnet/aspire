@@ -24,7 +24,8 @@ public static partial class AspireEFPostgreSqlExtensions
     /// Enables db context pooling, corresponding health check, logging and telemetry.
     /// </summary>
     /// <typeparam name="TContext">The <see cref="DbContext" /> that needs to be registered.</typeparam>
-    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
+    /// <param name="services">The service collection.</param>
+    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from.</param>
     /// <param name="configureSettings">An optional delegate that can be used for customizing options. It's invoked after the settings are read from the configuration.</param>
     /// <remarks>
     /// <para>
@@ -34,11 +35,13 @@ public static partial class AspireEFPostgreSqlExtensions
     /// The <see cref="DbContext.OnConfiguring" /> method can then be overridden to configure <see cref="DbContext" /> options.
     /// </para>
     /// </remarks>
-    /// <exception cref="ArgumentNullException">Thrown if mandatory <paramref name="builder"/> is null.</exception>
-    public static void AddNpgsqlEntityFrameworkCore<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
-        this IHostApplicationBuilder builder,
+    /// <exception cref="ArgumentNullException">Thrown if mandatory <paramref name="services"/> or <paramref name="builder"/> is null.</exception>
+    public static void EnrichNpgsqlEntityFrameworkCore<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
+        this IServiceCollection services,
+        IHostApplicationBuilder builder,
         Action<NpgsqlEntityFrameworkCorePostgreSQLSettings>? configureSettings = null) where TContext : DbContext
     {
+        ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(builder);
 
         NpgsqlEntityFrameworkCorePostgreSQLSettings settings = new();

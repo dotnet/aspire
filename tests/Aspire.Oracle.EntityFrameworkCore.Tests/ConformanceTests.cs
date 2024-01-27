@@ -67,8 +67,8 @@ public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFram
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<OracleEntityFrameworkCoreSettings>? configure = null, string? key = null)
     {
         var connectionString = builder.Configuration.GetValue<string>("Aspire:Oracle:EntityFrameworkCore:ConnectionString");
-        builder.Services.AddDbContextPool<TestDbContext>(dbContextOptionsBuilder => dbContextOptionsBuilder.UseOracle(connectionString));
-        builder.AddOracleEntityFrameworkCore<TestDbContext>(configure);
+        builder.Services.AddDbContextPool<TestDbContext>(dbContextOptionsBuilder => dbContextOptionsBuilder.UseOracle(connectionString))
+            .EnrichOracleEntityFrameworkCore<TestDbContext>(builder, configure);
     }
 
     protected override void SetHealthCheck(OracleEntityFrameworkCoreSettings options, bool enabled)

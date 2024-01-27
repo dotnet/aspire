@@ -17,7 +17,7 @@ public class AspireEFPostgreSqlExtensionsTests
 
         bool? invoked = null, healthChecks = null, tracing = null, metrics = null;
 
-        builder.AddNpgsqlEntityFrameworkCore<TestDbContext>(settings =>
+        builder.Services.EnrichNpgsqlEntityFrameworkCore<TestDbContext>(builder, settings =>
         {
             invoked = true;
             healthChecks = settings.HealthChecks;
@@ -45,7 +45,7 @@ public class AspireEFPostgreSqlExtensionsTests
 
         bool? invoked = null, healthChecks = null, tracing = null, metrics = null;
 
-        builder.AddNpgsqlEntityFrameworkCore<TestDbContext>(settings =>
+        builder.Services.EnrichNpgsqlEntityFrameworkCore<TestDbContext>(builder, settings =>
         {
             invoked = true;
             healthChecks = settings.HealthChecks;
@@ -73,7 +73,7 @@ public class AspireEFPostgreSqlExtensionsTests
 
         bool? invoked = null, healthChecks = null, tracing = null, metrics = null;
 
-        builder.AddNpgsqlEntityFrameworkCore<TestDbContext>(settings =>
+        builder.Services.EnrichNpgsqlEntityFrameworkCore<TestDbContext>(builder, settings =>
         {
             invoked = true;
             healthChecks = settings.HealthChecks;

@@ -86,8 +86,8 @@ public class ConformanceTests : ConformanceTests<TestDbContext, NpgsqlEntityFram
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<NpgsqlEntityFrameworkCorePostgreSQLSettings>? configure = null, string? key = null)
     {
         var connectionString = builder.Configuration.GetValue<string>("Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:ConnectionString");
-        builder.Services.AddDbContextPool<TestDbContext>(dbContextOptionsBuilder => dbContextOptionsBuilder.UseNpgsql(connectionString));
-        builder.AddNpgsqlEntityFrameworkCore<TestDbContext>(configure);
+        builder.Services.AddDbContextPool<TestDbContext>(dbContextOptionsBuilder => dbContextOptionsBuilder.UseNpgsql(connectionString))
+            .EnrichNpgsqlEntityFrameworkCore<TestDbContext>(builder, configure);
     }
 
     protected override void SetHealthCheck(NpgsqlEntityFrameworkCorePostgreSQLSettings options, bool enabled)

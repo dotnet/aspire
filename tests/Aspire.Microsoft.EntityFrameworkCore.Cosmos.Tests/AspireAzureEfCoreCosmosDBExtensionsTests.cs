@@ -18,7 +18,7 @@ public class AspireAzureEfCoreCosmosDBExtensionsTests
 
         bool? invoked = null, tracing = null, metrics = null;
 
-        builder.AddCosmosDbEntityFrameworkCore<TestDbContext>(settings =>
+        builder.Services.EnrichCosmosDbEntityFrameworkCore<TestDbContext>(builder, settings =>
         {
             invoked = true;
             tracing = settings.Tracing;
@@ -44,7 +44,7 @@ public class AspireAzureEfCoreCosmosDBExtensionsTests
 
         bool? invoked = null, tracing = null, metrics = null;
 
-        builder.AddCosmosDbEntityFrameworkCore<TestDbContext>(settings =>
+        builder.Services.EnrichCosmosDbEntityFrameworkCore<TestDbContext>(builder, settings =>
         {
             invoked = true;
             tracing = settings.Tracing;
@@ -70,7 +70,7 @@ public class AspireAzureEfCoreCosmosDBExtensionsTests
 
         bool? invoked = null, tracing = null, metrics = null;
 
-        builder.AddCosmosDbEntityFrameworkCore<TestDbContext>(settings =>
+        builder.Services.EnrichCosmosDbEntityFrameworkCore<TestDbContext>(builder, settings =>
         {
             invoked = true;
             tracing = settings.Tracing;

@@ -24,12 +24,14 @@ public static class AspireOracleEFCoreExtensions
     /// Configures the connection pooling, health check, logging and telemetry for the <see cref="DbContext" />.
     /// </summary>
     /// <typeparam name="TContext">The <see cref="DbContext" /> that needs to be registered.</typeparam>
-    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
+    /// <param name="services">The service collection.</param>
+    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from.</param>
     /// <param name="configureSettings">An optional delegate that can be used for customizing options. It's invoked after the settings are read from the configuration.</param>
     /// <remarks>Reads the configuration from "Aspire:Oracle:EntityFrameworkCore:{typeof(TContext).Name}" config section, or "Aspire:Oracle:EntityFrameworkCore" if former does not exist.</remarks>
-    /// <exception cref="ArgumentNullException">Thrown if mandatory <paramref name="builder"/> is null.</exception>
-    public static void AddOracleEntityFrameworkCore<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
-        this IHostApplicationBuilder builder,
+    /// <exception cref="ArgumentNullException">Thrown if mandatory <paramref name="services"/> or <paramref name="builder"/> is null.</exception>
+    public static IServiceCollection EnrichOracleEntityFrameworkCore<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
+        this IServiceCollection services,
+        IHostApplicationBuilder builder,
         Action<OracleEntityFrameworkCoreSettings>? configureSettings = null) where TContext : DbContext
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -74,5 +76,7 @@ public static class AspireOracleEFCoreExtensions
                 name: typeof(TContext).Name,
                 static hcBuilder => hcBuilder.AddDbContextCheck<TContext>());
         }
+
+        return services;
     }
 }

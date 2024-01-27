@@ -41,8 +41,8 @@ public class ConformanceTests : ConformanceTests<TestDbContext, EntityFrameworkC
 
         Assert.NotNull(connectionString);
 
-        builder.Services.AddDbContextPool<TestDbContext>(dbContextOptionsBuilder => dbContextOptionsBuilder.UseCosmos(connectionString, "TestDatabase"));
-        builder.AddCosmosDbEntityFrameworkCore<TestDbContext>(configure);
+        builder.Services.AddDbContextPool<TestDbContext>(dbContextOptionsBuilder => dbContextOptionsBuilder.UseCosmos(connectionString, "TestDatabase"))
+            .EnrichCosmosDbEntityFrameworkCore<TestDbContext>(builder, configure);
     }
 
     protected override void SetHealthCheck(EntityFrameworkCoreCosmosDBSettings options, bool enabled)

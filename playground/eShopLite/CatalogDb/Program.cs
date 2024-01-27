@@ -9,13 +9,11 @@ builder.AddServiceDefaults();
 var connectionString = builder.Configuration.GetConnectionString("catalogdb")
     ?? throw new InvalidOperationException("Connection string is not configured.");
 
-// Add the Aspire components for Npgsql.EntityFrameworkCore.PostgreSQL (health-check, tracing, metrics)
-builder.AddNpgsqlEntityFrameworkCore<CatalogDbContext>();
-
 // a workaround for https://github.com/npgsql/efcore.pg/issues/2821
 var configureNpgsqlLogging = (NpgsqlDataSourceBuilder builder) => { builder.UseLoggerFactory(null); };
 builder.Services.AddNpgsqlDataSource(connectionString, configureNpgsqlLogging)
-    .AddDbContextPool<CatalogDbContext>(dbContextOptionsBuilder => dbContextOptionsBuilder.UseNpgsql());
+    .AddDbContextPool<CatalogDbContext>(dbContextOptionsBuilder => dbContextOptionsBuilder.UseNpgsql())
+    .EnrichNpgsqlEntityFrameworkCore<CatalogDbContext>(builder);
 
 builder.Services.AddOpenTelemetry()
     .WithTracing(tracing => tracing.AddSource(CatalogDbInitializer.ActivitySourceName));

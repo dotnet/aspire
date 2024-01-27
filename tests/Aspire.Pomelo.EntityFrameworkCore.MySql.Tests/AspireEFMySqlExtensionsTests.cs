@@ -17,7 +17,7 @@ public class AspireEFMySqlExtensionsTests
 
         bool? invoked = null, healthChecks = null, tracing = null, metrics = null;
 
-        builder.AddMySqlEntityFrameworkCore<TestDbContext>(settings =>
+        builder.Services.EnrichMySqlEntityFrameworkCore<TestDbContext>(builder, settings =>
         {
             invoked = true;
             healthChecks = settings.HealthChecks;
@@ -45,7 +45,7 @@ public class AspireEFMySqlExtensionsTests
 
         bool? invoked = null, healthChecks = null, tracing = null, metrics = null;
 
-        builder.AddMySqlEntityFrameworkCore<TestDbContext>(settings =>
+        builder.Services.EnrichMySqlEntityFrameworkCore<TestDbContext>(builder, settings =>
         {
             invoked = true;
             healthChecks = settings.HealthChecks;
@@ -73,7 +73,7 @@ public class AspireEFMySqlExtensionsTests
 
         bool? invoked = null, healthChecks = null, tracing = null, metrics = null;
 
-        builder.AddMySqlEntityFrameworkCore<TestDbContext>(settings =>
+        builder.Services.EnrichMySqlEntityFrameworkCore<TestDbContext>(builder, settings =>
         {
             invoked = true;
             healthChecks = settings.HealthChecks;

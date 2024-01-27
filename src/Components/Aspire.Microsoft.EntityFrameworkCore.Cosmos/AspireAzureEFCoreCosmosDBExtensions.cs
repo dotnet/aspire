@@ -23,13 +23,16 @@ public static class AspireAzureEFCoreCosmosDBExtensions
     /// Configures the connection pooling, logging and telemetry for the <see cref="DbContext" />.
     /// </summary>
     /// <typeparam name="TContext">The <see cref="DbContext" /> that needs to be registered.</typeparam>
-    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
+    /// <param name="services">The service collection.</param>
+    /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from.</param>
     /// <param name="configureSettings">An optional delegate that can be used for customizing settings. It's invoked after the settings are read from the configuration.</param>
-    /// <exception cref="ArgumentNullException">Thrown if mandatory <paramref name="builder"/> is null.</exception>
-    public static void AddCosmosDbEntityFrameworkCore<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
-        this IHostApplicationBuilder builder,
+    /// <exception cref="ArgumentNullException">Thrown if mandatory <paramref name="services"/> or <paramref name="builder"/> is null.</exception>
+    public static IServiceCollection EnrichCosmosDbEntityFrameworkCore<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
+        this IServiceCollection services,
+        IHostApplicationBuilder builder,
         Action<EntityFrameworkCoreCosmosDBSettings>? configureSettings = null) where TContext : DbContext
     {
+        ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(builder);
 
         var settings = new EntityFrameworkCoreCosmosDBSettings();
@@ -48,7 +51,7 @@ public static class AspireAzureEFCoreCosmosDBExtensions
 
         if (settings.Tracing)
         {
-            builder.Services.AddOpenTelemetry().WithTracing(tracerProviderBuilder =>
+            services.AddOpenTelemetry().WithTracing(tracerProviderBuilder =>
             {
                 tracerProviderBuilder.AddEntityFrameworkCoreInstrumentation();
                 tracerProviderBuilder.AddSource("Azure.Cosmos.Operation");
@@ -57,7 +60,7 @@ public static class AspireAzureEFCoreCosmosDBExtensions
 
         if (settings.Metrics)
         {
-            builder.Services.AddOpenTelemetry().WithMetrics(meterProviderBuilder =>
+            services.AddOpenTelemetry().WithMetrics(meterProviderBuilder =>
             {
                 meterProviderBuilder.AddEventCountersInstrumentation(eventCountersInstrumentationOptions =>
                 {
@@ -66,5 +69,7 @@ public static class AspireAzureEFCoreCosmosDBExtensions
                 });
             });
         }
+
+        return services;
     }
 }

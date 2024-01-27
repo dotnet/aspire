@@ -9,11 +9,9 @@ builder.AddServiceDefaults();
 var connectionString = builder.Configuration.GetConnectionString("catalogdb")
     ?? throw new InvalidOperationException("Connection string is not configured.");
 
-// Add the Aspire components for Npgsql.EntityFrameworkCore.PostgreSQL (health-check, tracing, metrics)
-builder.AddNpgsqlEntityFrameworkCore<CatalogDbContext>();
-
 // Configure Npgsql.EntityFrameworkCore.PostgreSQL services
-builder.Services.AddDbContextPool<CatalogDbContext>(dbContextOptionsBuilder => dbContextOptionsBuilder.UseNpgsql(connectionString));
+builder.Services.AddDbContextPool<CatalogDbContext>(dbContextOptionsBuilder => dbContextOptionsBuilder.UseNpgsql(connectionString))
+    .EnrichNpgsqlEntityFrameworkCore<CatalogDbContext>(builder);
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddProblemDetails();
