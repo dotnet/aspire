@@ -39,7 +39,7 @@ public static class MinioBuilderExtensions
             .AddResource(minioContainer)
             .WithManifestPublishingCallback(context => WriteMinioContainerToManifest(context, minioContainer))
             .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: minioPort, containerPort: 9000, name: "minio"))
-            .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: minioAdminPort, containerPort: 9001, name: "minio"))
+            .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: minioAdminPort, containerPort: 9001, name: "minio", uriScheme: "http"))
             .WithAnnotation(new ContainerImageAnnotation { Image = "minio/minio", Tag = "latest" })
             .WithEnvironment("MINIO_ADDRESS", ":9000")
             .WithEnvironment("MINIO_CONSOLE_ADDRESS", ":9001")
