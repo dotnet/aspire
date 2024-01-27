@@ -38,7 +38,7 @@ internal sealed class CloudFormationLifeCycle(ILogger<CloudFormationLifeCycle> l
         var templateSha256 = ComputeSHA256(templateBody);
 
         var stack = await FindExistingStackAsync(cfClient, cloudFormationResource.Name).ConfigureAwait(false);
-        if(stack == null)
+        if(stack == null || stack.StackStatus == StackStatus.DELETE_COMPLETE)
         {
             var createStackRequest = new CreateStackRequest
             {
@@ -61,6 +61,12 @@ internal sealed class CloudFormationLifeCycle(ILogger<CloudFormationLifeCycle> l
         }
         else
         {
+            if(stack.StackStatus.Value.EndsWith("IN_PROGRESS", StringComparison.CurrentCultureIgnoreCase))
+            {
+                logger.LogError("Stack {StackName} status's is currently in progress and can not be updated. ({StackStatus})", stack.StackName, stack.StackStatus);
+                throw new AWSProvisioningException($"Stack {stack.StackName} status's is currently in progress and can not be updated. ({stack.StackStatus})", null);
+            }
+
             var tags = stack.Tags;
 
             var shaTag = tags.FirstOrDefault(x => string.Equals(x.Key, SHA256_TAG, StringComparison.Ordinal));
