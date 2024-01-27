@@ -58,7 +58,10 @@ public static class Extensions
 
                 tracing.AddAspNetCoreInstrumentation()
                        .AddGrpcClientInstrumentation()
-                       .AddHttpClientInstrumentation();
+                       .AddHttpClientInstrumentation()
+
+                       // Add instrumentation for the AWS .NET SDK.
+                       .AddAWSInstrumentation();
             });
 
         builder.AddOpenTelemetryExporters();
