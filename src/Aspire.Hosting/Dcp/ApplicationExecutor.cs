@@ -198,7 +198,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
 
         var otlpEndpointUrl = environmentVariables.GetString("DOTNET_DASHBOARD_OTLP_ENDPOINT_URL");
-        var dashboardUrl = environmentVariables.GetString("ASPNETCORE_URLS") ?? throw new DistributedApplicationException("ASPNETCORE_URLS environment variable not set.");
+        var dashboardUrls = environmentVariables.GetString("ASPNETCORE_URLS") ?? throw new DistributedApplicationException("ASPNETCORE_URLS environment variable not set.");
         var aspnetcoreEnvironment = environmentVariables.GetString("ASPNETCORE_ENVIRONMENT");
 
         dashboardExecutableSpec.Env =
@@ -211,7 +211,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             new()
             {
                 Name = "ASPNETCORE_URLS",
-                Value = dashboardUrl
+                Value = dashboardUrls
             },
             new()
             {
@@ -230,8 +230,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             Metadata = { Name = KnownResourceNames.AspireDashboard }
         };
 
+        var firstDashboardUrl = dashboardUrls.Split(";")[0];
         await kubernetesService.CreateAsync(dashboardExecutable, cancellationToken).ConfigureAwait(false);
-        await WaitForHttpSuccessOrThrow(dashboardUrl, DashboardAvailabilityTimeoutDuration, cancellationToken).ConfigureAwait(false);
+        await WaitForHttpSuccessOrThrow(firstDashboardUrl, DashboardAvailabilityTimeoutDuration, cancellationToken).ConfigureAwait(false);
     }
 
     private static TimeSpan DashboardAvailabilityTimeoutDuration
@@ -639,12 +640,13 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 {
                     // We just check the HTTP endpoint because this will prove that the
                     // dashboard is listening and is ready to process requests.
-                    if (Environment.GetEnvironmentVariable("ASPNETCORE_URLS") is not { } dashboardUrl)
+                    if (Environment.GetEnvironmentVariable("ASPNETCORE_URLS") is not { } dashboardUrls)
                     {
                         throw new DistributedApplicationException("Cannot check dashboard availability since ASPNETCORE_URLS environment variable not set.");
                     }
 
-                    await WaitForHttpSuccessOrThrow(dashboardUrl, DashboardAvailabilityTimeoutDuration, cancellationToken).ConfigureAwait(false);
+                    var firstDashboardUrl = dashboardUrls.Split(";")[0];
+                    await WaitForHttpSuccessOrThrow(firstDashboardUrl, DashboardAvailabilityTimeoutDuration, cancellationToken).ConfigureAwait(false);
                 }
 
             }
