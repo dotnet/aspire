@@ -193,8 +193,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Confluent.Kafka", "s
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Confluent.Kafka.Tests", "tests\Aspire.Confluent.Kafka.Tests\Aspire.Confluent.Kafka.Tests.csproj", "{A8CB331A-1247-41D9-8118-538E5A2CC9DF}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Playgrounds", "Playgrounds", "{DF8ADBC2-5B15-422F-A703-C60711D5552D}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CosmosEndToEnd", "CosmosEndToEnd", "{DBEDDF76-1C33-4943-8CCB-337A7D48AFF5}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CosmosEndToEnd.AppHost", "playground\CosmosEndToEnd\CosmosEndToEnd.AppHost\CosmosEndToEnd.AppHost.csproj", "{51DDD6BC-1D6C-466A-B509-FC49E3BD72E4}"
@@ -202,6 +200,8 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CosmosEndToEnd.ApiService", "playground\CosmosEndToEnd\CosmosEndToEnd.ApiService\CosmosEndToEnd.ApiService.csproj", "{EABB20A8-CDA2-4AFE-A5B1-FB631200CD64}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Playground.ServiceDefaults", "playground\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj", "{25208C6F-0A9D-4D60-9EDD-256C9891B1CD}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Minio", "src\Components\Aspire.Minio\Aspire.Minio.csproj", "{18508B84-93C1-4F56-8538-355DBD5248EA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -541,6 +541,10 @@ Global
 		{25208C6F-0A9D-4D60-9EDD-256C9891B1CD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{25208C6F-0A9D-4D60-9EDD-256C9891B1CD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{25208C6F-0A9D-4D60-9EDD-256C9891B1CD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{18508B84-93C1-4F56-8538-355DBD5248EA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{18508B84-93C1-4F56-8538-355DBD5248EA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{18508B84-93C1-4F56-8538-355DBD5248EA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{18508B84-93C1-4F56-8538-355DBD5248EA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -635,6 +639,7 @@ Global
 		{51DDD6BC-1D6C-466A-B509-FC49E3BD72E4} = {DBEDDF76-1C33-4943-8CCB-337A7D48AFF5}
 		{EABB20A8-CDA2-4AFE-A5B1-FB631200CD64} = {DBEDDF76-1C33-4943-8CCB-337A7D48AFF5}
 		{25208C6F-0A9D-4D60-9EDD-256C9891B1CD} = {D173887B-AF42-4576-B9C1-96B9E9B3D9C0}
+		{18508B84-93C1-4F56-8538-355DBD5248EA} = {27381127-6C45-4B4C-8F18-41FF48DFE4B2}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6DCEDFEC-988E-4CB3-B45B-191EB5086E0C}

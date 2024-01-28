@@ -95,6 +95,7 @@
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="6.5.0" />
     <PackageVersion Include="Yarp.ReverseProxy" Version="2.1.0" />
     <PackageVersion Include="System.CommandLine" Version="2.0.0-beta4.23407.1" />
+    <PackageVersion Include="Minio" Version="6.0.1"/>
     <!-- Open Telemetry -->
     <PackageVersion Include="Npgsql.OpenTelemetry" Version="8.0.0" />
     <PackageVersion Include="OpenTelemetry.Exporter.InMemory" Version="1.7.0-alpha.1" />
