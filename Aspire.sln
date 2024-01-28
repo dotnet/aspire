@@ -193,9 +193,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Confluent.Kafka", "s
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Confluent.Kafka.Tests", "tests\Aspire.Confluent.Kafka.Tests\Aspire.Confluent.Kafka.Tests.csproj", "{A8CB331A-1247-41D9-8118-538E5A2CC9DF}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CosmosEndToEnd", "CosmosEndToEnd", "{DBEDDF76-1C33-4943-8CCB-337A7D48AFF5}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Playgrounds", "Playgrounds", "{DF8ADBC2-5B15-422F-A703-C60711D5552D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CosmosEndToEnd", "CosmosEndToEnd", "{DBEDDF76-1C33-4943-8CCB-337A7D48AFF5}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CosmosEndToEnd.AppHost", "playground\CosmosEndToEnd\CosmosEndToEnd.AppHost\CosmosEndToEnd.AppHost.csproj", "{51DDD6BC-1D6C-466A-B509-FC49E3BD72E4}"
 EndProject
