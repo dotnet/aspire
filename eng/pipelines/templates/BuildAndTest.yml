@@ -17,11 +17,16 @@ parameters:
   - name: skipTests
     type: boolean
     default: false
+  - name: defaultToRunningTestsOnHelix
+    type: boolean
+    default: true
 
 steps:
   - script: ${{ parameters.buildScript }}
             -restore -build
             -configuration ${{ parameters.buildConfig }}
+            /p:ArchiveTests=true
+            /p:DefaultToRunningTestsOnHelix=${{ parameters.defaultToRunningTestsOnHelix }}
             /bl:${{ parameters.repoLogPath }}/build.binlog
             $(_OfficialBuildIdArgs)
     displayName: Build
@@ -29,9 +34,40 @@ steps:
   - ${{ if ne(parameters.skipTests, 'true') }}:
     - script: ${{ parameters.dotnetScript }} dotnet-coverage collect
               --settings $(Build.SourcesDirectory)/eng/CodeCoverage.config
-              --output ${{ parameters.repoTestResultsPath }}/$(Agent.Os)_$(Agent.JobName).cobertura.xml
-              "${{ parameters.buildScript }} -test -configuration ${{ parameters.buildConfig }} /bl:${{ parameters.repoLogPath }}/tests.binlog $(_OfficialBuildIdArgs)"
-      displayName: Run tests
+              --output ${{ parameters.repoTestResultsPath }}/NonHelixTests.cobertura.xml
+              "${{ parameters.buildScript }} -testnobuild -test -configuration ${{ parameters.buildConfig }} /bl:${{ parameters.repoLogPath }}/tests.binlog /p:DefaultToRunningTestsOnHelix=${{ parameters.defaultToRunningTestsOnHelix }} $(_OfficialBuildIdArgs)"
+      displayName: Run non-helix tests
+
+    - template: /eng/pipelines/templates/send-to-helix.yml
+      parameters:
+        HelixProjectPath: '$(Build.SourcesDirectory)/tests/send-to-helix.proj'
+        HelixProjectArguments: /p:RunWithCodeCoverage=true /p:RepoTestResultsPath=${{ parameters.repoTestResultsPath }}
+
+        ${{ if eq(parameters.isWindows, 'true') }}:
+          HelixTargetQueues: Windows.11.Amd64.Client.Open
+        ${{ if ne(parameters.isWindows, 'true') }}:
+          HelixTargetQueues: Ubuntu.2204.Amd64.Open
+
+        IsWindows: ${{ parameters.isWindows }}
+        Creator: $(Build.DefinitionName)
+        HelixBuild: $(Build.BuildNumber)
+        HelixAccessToken: $(HelixApiAccessToken)
+
+    - ${{ if eq(parameters.isWindows, 'true') }}:
+      - pwsh: |
+            $_cov_filelist=$((Get-ChildItem -Path ${{ parameters.repoTestResultsPath }} -Recurse -Filter *.cobertura.xml -File | % { $_.FullName }) -join ' ')
+            echo "${{ parameters.dotnetScript }} dotnet-coverage merge $_cov_filelist -f cobertura -o ${{ parameters.repoTestResultsPath }}/$(Agent.Os)_$(Agent.JobName).cobertura.xml" > merge-cov.cmd
+            cmd /c merge-cov.cmd
+            rm merge-cov.cmd
+        displayName: Merge code coverage results
+
+    - ${{ if ne(parameters.isWindows, 'true') }}:
+      - script: ${{ parameters.dotnetScript }} dotnet-coverage
+                merge
+                `find ${{ parameters.repoTestResultsPath }} -name '*.cobertura.xml' -print0 | xargs -0`
+                -f cobertura
+                -o '${{ parameters.repoTestResultsPath }}/$(Agent.Os)_$(Agent.JobName).cobertura.xml'
+        displayName: Merge code coverage results
 
     - task: PublishBuildArtifacts@1
       inputs:

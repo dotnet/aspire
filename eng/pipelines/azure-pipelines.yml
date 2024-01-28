@@ -126,6 +126,7 @@ stages:
               buildConfig: $(_BuildConfig)
               repoLogPath: $(Build.Arcade.LogsPath)
               repoTestResultsPath: $(Build.Arcade.TestResultsPath)
+              defaultToRunningTestsOnHelix: false
               isWindows: true
 
 
@@ -159,6 +160,7 @@ stages:
               buildConfig: $(_BuildConfig)
               repoLogPath: $(Build.Arcade.LogsPath)
               repoTestResultsPath: $(Build.Arcade.TestResultsPath)
+              defaultToRunningTestsOnHelix: false
               isWindows: false
 
 
@@ -167,7 +169,7 @@ stages:
 # ----------------------------------------------------------------
 - stage: codecoverage
   displayName: CodeCoverage
-  dependsOn: 
+  dependsOn:
     - build
   condition: succeeded('build')
   variables:
