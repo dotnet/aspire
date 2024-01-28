@@ -43,6 +43,7 @@ public static class MinioBuilderExtensions
             .WithAnnotation(new ContainerImageAnnotation { Image = "minio/minio", Tag = "latest" })
             .WithEnvironment("MINIO_ADDRESS", ":9000")
             .WithEnvironment("MINIO_CONSOLE_ADDRESS", ":9001")
+            .WithEnvironment("MINIO_PROMETHEUS_AUTH_TYPE", "public")
             .WithEnvironment(context =>
             {
                 if (context.PublisherName == "manifest")
