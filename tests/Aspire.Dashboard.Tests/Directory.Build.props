@@ -1,0 +1,8 @@
+<Project>
+  <PropertyGroup>
+    <!-- Temporary - just to have at least one helix only project for now -->
+    <IsHelixOnlyTestProject>true</IsHelixOnlyTestProject>
+  </PropertyGroup>
+
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+</Project>
