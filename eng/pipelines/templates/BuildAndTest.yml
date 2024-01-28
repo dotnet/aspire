@@ -57,6 +57,7 @@ steps:
         -sign $(_SignArgs)
         -publish $(_PublishArgs)
         -configuration $(_BuildConfig)
+        /bl:${{ parameters.repoLogPath }}/build-workloads.binlog
         -projects eng\workloads\workloads.csproj
         $(_InternalBuildArgs)
       displayName: Build Workloads

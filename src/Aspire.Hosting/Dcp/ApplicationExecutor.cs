@@ -1,33 +1,37 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Lifecycle;
 using k8s;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Dcp;
 
 internal class AppResource
 {
-    public IResource ModelResource { get; private set; }
-    public CustomResource DcpResource { get; private set; }
-    public virtual List<ServiceAppResource> ServicesProduced { get; private set; } = new();
-    public virtual List<ServiceAppResource> ServicesConsumed { get; private set; } = new();
+    public IResource ModelResource { get; }
+    public CustomResource DcpResource { get; }
+    public virtual List<ServiceAppResource> ServicesProduced { get; } = [];
+    public virtual List<ServiceAppResource> ServicesConsumed { get; } = [];
 
     public AppResource(IResource modelResource, CustomResource dcpResource)
     {
-        this.ModelResource = modelResource;
-        this.DcpResource = dcpResource;
+        ModelResource = modelResource;
+        DcpResource = dcpResource;
     }
 }
 
 internal sealed class ServiceAppResource : AppResource
 {
     public Service Service => (Service)DcpResource;
-    public ServiceBindingAnnotation ServiceBindingAnnotation { get; private set; }
-    public ServiceProducerAnnotation DcpServiceProducerAnnotation { get; private set; }
+    public EndpointAnnotation EndpointAnnotation { get; }
+    public ServiceProducerAnnotation DcpServiceProducerAnnotation { get; }
 
     public override List<ServiceAppResource> ServicesProduced
     {
@@ -38,20 +42,30 @@ internal sealed class ServiceAppResource : AppResource
         get { throw new InvalidOperationException("Service resources do not consume any services"); }
     }
 
-    public ServiceAppResource(IResource modelResource, Service service, ServiceBindingAnnotation sba) : base(modelResource, service)
+    public ServiceAppResource(IResource modelResource, Service service, EndpointAnnotation sba) : base(modelResource, service)
     {
-        ServiceBindingAnnotation = sba;
+        EndpointAnnotation = sba;
         DcpServiceProducerAnnotation = new(service.Metadata.Name);
     }
 }
 
-internal sealed class ApplicationExecutor(DistributedApplicationModel model,
+internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
+                                          DistributedApplicationModel model,
+                                          DistributedApplicationOptions distributedApplicationOptions,
                                           KubernetesService kubernetesService,
-                                          IEnumerable<IDistributedApplicationLifecycleHook> lifecycleHooks)
+                                          IEnumerable<IDistributedApplicationLifecycleHook> lifecycleHooks,
+                                          IEnvironmentVariables environmentVariables,
+                                          IOptions<DcpOptions> options,
+                                          DashboardServiceHost dashboardHost)
 {
     private const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
 
+    private readonly ILogger<ApplicationExecutor> _logger = logger;
+    private readonly DistributedApplicationModel _model = model;
     private readonly IDistributedApplicationLifecycleHook[] _lifecycleHooks = lifecycleHooks.ToArray();
+    private readonly IOptions<DcpOptions> _options = options;
+    private readonly DashboardServiceHost _dashboardServiceHost = dashboardHost;
+    private readonly List<AppResource> _appResources = [];
 
     // These environment variables should never be inherited from app host;
     // they only make sense if they come from a launch profile of a service project.
@@ -63,14 +77,25 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
         "DOTNET_ENVIRONMENT"
     };
 
-    private readonly DistributedApplicationModel _model = model;
-    private readonly List<AppResource> _appResources = new();
-
     public async Task RunApplicationAsync(CancellationToken cancellationToken = default)
     {
         AspireEventSource.Instance.DcpModelCreationStart();
         try
         {
+            if (!distributedApplicationOptions.DisableDashboard)
+            {
+                if (_model.Resources.SingleOrDefault(r => StringComparers.ResourceName.Equals(r.Name, KnownResourceNames.AspireDashboard)) is not { } dashboardResource)
+                {
+                    // No dashboard is specified, so start one.
+                    // TODO validate that the dashboard has not been suppressed
+                    await StartDashboardAsDcpExecutableAsync(cancellationToken).ConfigureAwait(false);
+                }
+                else
+                {
+                    await ConfigureAspireDashboardResource(dashboardResource, cancellationToken).ConfigureAwait(false);
+                }
+            }
+
             PrepareServices();
             PrepareContainers();
             PrepareExecutables();
@@ -83,7 +108,197 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
         {
             AspireEventSource.Instance.DcpModelCreationStop();
         }
+    }
 
+    private async Task ConfigureAspireDashboardResource(IResource dashboardResource, CancellationToken cancellationToken)
+    {
+        // Don't publish the resource to the manifest.
+        dashboardResource.Annotations.Add(ManifestPublishingCallbackAnnotation.Ignore);
+
+        // Remove endpoint annotations because we are directly configuring
+        // the dashboard app (it doesn't go through the proxy!).
+        var endpointAnnotations = dashboardResource.Annotations.OfType<EndpointAnnotation>().ToList();
+        foreach (var endpointAnnotation in endpointAnnotations)
+        {
+            dashboardResource.Annotations.Remove(endpointAnnotation);
+        }
+
+        // Get resource endpoint URL.
+        string grpcEndpointUrl;
+        try
+        {
+            grpcEndpointUrl = await _dashboardServiceHost.GetResourceServiceUriAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            throw new DistributedApplicationException("Error getting the resource service URL.", ex);
+        }
+
+        dashboardResource.Annotations.Add(new EnvironmentCallbackAnnotation(context =>
+        {
+            if (Environment.GetEnvironmentVariable("ASPNETCORE_URLS") is not { } appHostApplicationUrl)
+            {
+                throw new DistributedApplicationException("Dashboard inner loop hook failed to configure resource because ASPNETCORE_URLS environment variable was not set.");
+            }
+
+            if (Environment.GetEnvironmentVariable("DOTNET_DASHBOARD_OTLP_ENDPOINT_URL") is not { } otlpEndpointUrl)
+            {
+                throw new DistributedApplicationException("Dashboard inner loop hook failed to configure resource because DOTNET_DASHBOARD_OTLP_ENDPOINT_URL environment variable was not set.");
+            }
+
+            // Grab the resource service URL. We need to inject this into the resource.
+
+            context.EnvironmentVariables["ASPNETCORE_URLS"] = appHostApplicationUrl;
+            context.EnvironmentVariables["DOTNET_RESOURCE_SERVICE_ENDPOINT_URL"] = grpcEndpointUrl;
+            context.EnvironmentVariables["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] = otlpEndpointUrl;
+        }));
+    }
+
+    private async Task StartDashboardAsDcpExecutableAsync(CancellationToken cancellationToken = default)
+    {
+        if (!distributedApplicationOptions.DashboardEnabled)
+        {
+            // The dashboard is disabled. Do nothing.
+            return;
+        }
+
+        if (_options.Value.DashboardPath is not { } dashboardPath)
+        {
+            throw new DistributedApplicationException("Dashboard path empty or file does not exist.");
+        }
+
+        var fullyQualifiedDashboardPath = Path.GetFullPath(dashboardPath);
+        var dashboardWorkingDirectory = Path.GetDirectoryName(fullyQualifiedDashboardPath);
+
+        var dashboardExecutableSpec = new ExecutableSpec
+        {
+            ExecutionType = ExecutionType.Process,
+            WorkingDirectory = dashboardWorkingDirectory
+        };
+
+        if (string.Equals(".dll", Path.GetExtension(fullyQualifiedDashboardPath), StringComparison.OrdinalIgnoreCase))
+        {
+            // The dashboard path is a DLL, so run it with `dotnet <dll>`
+            dashboardExecutableSpec.ExecutablePath = "dotnet";
+            dashboardExecutableSpec.Args = [fullyQualifiedDashboardPath];
+        }
+        else
+        {
+            // Assume the dashboard path is directly executable
+            dashboardExecutableSpec.ExecutablePath = fullyQualifiedDashboardPath;
+        }
+
+        string grpcEndpointUrl;
+        try
+        {
+            grpcEndpointUrl = await _dashboardServiceHost.GetResourceServiceUriAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            throw new DistributedApplicationException("Error getting the resource service URL.", ex);
+        }
+
+        var otlpEndpointUrl = environmentVariables.GetString("DOTNET_DASHBOARD_OTLP_ENDPOINT_URL");
+        var dashboardUrls = environmentVariables.GetString("ASPNETCORE_URLS") ?? throw new DistributedApplicationException("ASPNETCORE_URLS environment variable not set.");
+        var aspnetcoreEnvironment = environmentVariables.GetString("ASPNETCORE_ENVIRONMENT");
+
+        dashboardExecutableSpec.Env =
+        [
+            new()
+            {
+                Name = "DOTNET_RESOURCE_SERVICE_ENDPOINT_URL",
+                Value = grpcEndpointUrl
+            },
+            new()
+            {
+                Name = "ASPNETCORE_URLS",
+                Value = dashboardUrls
+            },
+            new()
+            {
+                Name = "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL",
+                Value = otlpEndpointUrl
+            },
+            new()
+            {
+                Name = "ASPNETCORE_ENVIRONMENT",
+                Value = aspnetcoreEnvironment
+            }
+        ];
+
+        var dashboardExecutable = new Executable(dashboardExecutableSpec)
+        {
+            Metadata = { Name = KnownResourceNames.AspireDashboard }
+        };
+
+        await kubernetesService.CreateAsync(dashboardExecutable, cancellationToken).ConfigureAwait(false);
+        await CheckDashboardAvailabilityAsync(dashboardUrls, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static TimeSpan DashboardAvailabilityTimeoutDuration
+    {
+        get
+        {
+            if (Environment.GetEnvironmentVariable("DOTNET_ASPIRE_DASHBOARD_TIMEOUT_SECONDS") is { } timeoutString && int.TryParse(timeoutString, out var timeoutInSeconds))
+            {
+                return TimeSpan.FromSeconds(timeoutInSeconds);
+            }
+            else
+            {
+                return TimeSpan.FromSeconds(DefaultDashboardAvailabilityTimeoutDurationInSeconds);
+            }
+        }
+    }
+
+    private const int DefaultDashboardAvailabilityTimeoutDurationInSeconds = 60;
+
+    private async Task CheckDashboardAvailabilityAsync(string delimitedUrlList, CancellationToken cancellationToken)
+    {
+        if (TryGetUriFromDelimitedString(delimitedUrlList, ";", out var firstDashboardUrl))
+        {
+            await WaitForHttpSuccessOrThrow(firstDashboardUrl, DashboardAvailabilityTimeoutDuration, cancellationToken).ConfigureAwait(false);
+        }
+        else
+        {
+            _logger.LogWarning("Skipping dashboard availability check because ASPNETCORE_URLS environment variable could not be parsed.");
+        }
+    }
+
+    private async Task WaitForHttpSuccessOrThrow(Uri url, TimeSpan timeout, CancellationToken cancellationToken = default)
+    {
+        using var timeoutCts = new CancellationTokenSource(timeout);
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+
+        var client = new HttpClient();
+
+        try
+        {
+            while (true)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                try
+                {
+                    var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, linkedCts.Token).ConfigureAwait(false);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        return;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "Dashboard not ready yet.");
+                }
+
+                await Task.Delay(TimeSpan.FromMilliseconds(50), linkedCts.Token).ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+        {
+            // Only display this error if the timeout CTS was the one that was cancelled.
+            throw new DistributedApplicationException($"Timed out after {timeout} while waiting for the dashboard to be responsive.");
+        }
     }
 
     public async Task StopApplicationAsync(CancellationToken cancellationToken = default)
@@ -174,11 +389,11 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
                 }
 
                 var a = new AllocatedEndpointAnnotation(
-                    sp.ServiceBindingAnnotation.Name,
+                    sp.EndpointAnnotation.Name,
                     PortProtocol.ToProtocolType(svc.Spec.Protocol),
                     svc.AllocatedAddress!,
                     (int)svc.AllocatedPort!,
-                    sp.ServiceBindingAnnotation.UriScheme
+                    sp.EndpointAnnotation.UriScheme
                     );
 
                 appResource.ModelResource.Annotations.Add(a);
@@ -189,19 +404,18 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
     private void PrepareServices()
     {
         var serviceProducers = _model.Resources
-            .Select(r => (ModelResource: r, SBAnnotations: r.Annotations.OfType<ServiceBindingAnnotation>()))
+            .Select(r => (ModelResource: r, SBAnnotations: r.Annotations.OfType<EndpointAnnotation>()))
             .Where(sp => sp.SBAnnotations.Any());
 
         // We need to ensure that Services have unique names (otherwise we cannot really distinguish between
         // services produced by different resources).
         List<string> serviceNames = new();
 
-        void addServiceAppResource(Service svc, IResource producingResource, ServiceBindingAnnotation sba)
+        void addServiceAppResource(Service svc, IResource producingResource, EndpointAnnotation sba)
         {
             svc.Spec.Protocol = PortProtocol.FromProtocolType(sba.Protocol);
-            svc.Spec.AddressAllocationMode = AddressAllocationModes.Localhost;
             svc.Annotate(CustomResource.UriSchemeAnnotation, sba.UriScheme);
-
+            svc.Spec.AddressAllocationMode = AddressAllocationModes.Localhost;
             _appResources.Add(new ServiceAppResource(producingResource, svc, sba));
         }
 
@@ -217,6 +431,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
                 var svc = Service.Create(uniqueServiceName);
 
                 svc.Spec.Port = sba.Port;
+
                 addServiceAppResource(svc, sp.ModelResource, sba);
             }
         }
@@ -256,7 +471,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
 
         foreach (var project in modelProjectResources)
         {
-            if (!project.TryGetLastAnnotation<IServiceMetadata>(out var projectMetadata))
+            if (!project.TryGetLastAnnotation<IProjectMetadata>(out var projectMetadata))
             {
                 throw new InvalidOperationException("A project resource is missing required metadata"); // Should never happen.
             }
@@ -270,17 +485,20 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
             exeSpec.WorkingDirectory = Path.GetDirectoryName(projectMetadata.ProjectPath);
 
             annotationHolder.Annotate(Executable.CSharpProjectPathAnnotation, projectMetadata.ProjectPath);
-            annotationHolder.Annotate(Executable.LaunchProfileNameAnnotation, project.SelectLaunchProfileName() ?? string.Empty);
             annotationHolder.Annotate(Executable.OtelServiceNameAnnotation, ers.Metadata.Name);
 
-            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable(DebugSessionPortVar)))
+            if (!string.IsNullOrEmpty(environmentVariables.GetString(DebugSessionPortVar)))
             {
                 exeSpec.ExecutionType = ExecutionType.IDE;
+                if (project.TryGetLastAnnotation<LaunchProfileAnnotation>(out var lpa))
+                {
+                    annotationHolder.Annotate(Executable.CSharpLaunchProfileAnnotation, lpa.LaunchProfileName);
+                }
             }
             else
             {
                 exeSpec.ExecutionType = ExecutionType.Process;
-                if (Environment.GetEnvironmentVariable("DOTNET_WATCH") != "1")
+                if (environmentVariables.GetBool("DOTNET_WATCH") is true)
                 {
                     exeSpec.Args = [
                         "run",
@@ -336,7 +554,18 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
         {
             AspireEventSource.Instance.DcpExecutablesCreateStart();
 
-            foreach (var er in executableResources)
+            // Hoisting the aspire-dashboard resource if it exists to the top of
+            // the list so we start it first.
+            var sortedExecutableResources = executableResources.ToList();
+            var (dashboardIndex, dashboardAppResource) = sortedExecutableResources.IndexOf(static r => StringComparers.ResourceName.Equals(r.ModelResource.Name, KnownResourceNames.AspireDashboard));
+
+            if (dashboardIndex > 0)
+            {
+                sortedExecutableResources.RemoveAt(dashboardIndex);
+                sortedExecutableResources.Insert(0, dashboardAppResource);
+            }
+
+            foreach (var er in sortedExecutableResources)
             {
                 ExecutableSpec spec;
                 Func<Task<CustomResource>> createResource;
@@ -385,9 +614,9 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
                     {
                         if (er.ModelResource is ProjectResource)
                         {
-                            var urls = er.ServicesProduced.Where(s => s.ServiceBindingAnnotation.UriScheme is "http" or "https").Select(sar =>
+                            var urls = er.ServicesProduced.Where(s => s.EndpointAnnotation.UriScheme is "http" or "https").Select(sar =>
                             {
-                                var url = sar.ServiceBindingAnnotation.UriScheme + "://localhost:{{- portForServing \"" + sar.Service.Metadata.Name + "\" -}}";
+                                var url = sar.EndpointAnnotation.UriScheme + "://localhost:{{- portForServing \"" + sar.Service.Metadata.Name + "\" -}}";
                                 return url;
                             });
 
@@ -396,17 +625,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
                             config["ASPNETCORE_URLS"] = string.Join(";", urls);
                         }
 
-                        // Inject environment variables for services produced by this executable.
-                        foreach (var serviceProduced in er.ServicesProduced)
-                        {
-                            var name = serviceProduced.Service.Metadata.Name;
-                            var envVar = serviceProduced.ServiceBindingAnnotation.EnvironmentVariable;
-
-                            if (envVar is not null)
-                            {
-                                config.Add(envVar, $"{{{{- portForServing \"{name}\" }}}}");
-                            }
-                        }
+                        InjectPortEnvVars(er, config);
                     }
                 }
 
@@ -425,12 +644,43 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
                 }
 
                 await createResource().ConfigureAwait(false);
+
+                // NOTE: This check is only necessary for the inner loop in the dotnet/aspire repo. When
+                //       running in the dotnet/aspire repo we will normally launch the dashboard via
+                //       AddProject<T>. When doing this we make sure that the dashboard is running.
+                if (!distributedApplicationOptions.DisableDashboard && er.ModelResource.Name.Equals(KnownResourceNames.AspireDashboard, StringComparisons.ResourceName))
+                {
+                    // We just check the HTTP endpoint because this will prove that the
+                    // dashboard is listening and is ready to process requests.
+                    if (Environment.GetEnvironmentVariable("ASPNETCORE_URLS") is not { } dashboardUrls)
+                    {
+                        throw new DistributedApplicationException("Cannot check dashboard availability since ASPNETCORE_URLS environment variable not set.");
+                    }
+
+                    await CheckDashboardAvailabilityAsync(dashboardUrls, cancellationToken).ConfigureAwait(false);
+                }
+
             }
 
         }
         finally
         {
             AspireEventSource.Instance.DcpExecutablesCreateStop();
+        }
+    }
+
+    private static bool TryGetUriFromDelimitedString(string input, string delimiter, [NotNullWhen(true)]out Uri? uri)
+    {
+        if (!string.IsNullOrEmpty(input)
+            && input.Split(delimiter) is { Length: > 0} splitInput
+            && Uri.TryCreate(splitInput[0], UriKind.Absolute, out uri))
+        {
+            return true;
+        }
+        else
+        {
+            uri = null;
+            return false;
         }
     }
 
@@ -446,21 +696,57 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
             {
                 var urls = executableResource.ServicesProduced.Select(sar =>
                 {
-                    var url = sar.ServiceBindingAnnotation.UriScheme + "://localhost:{{- portForServing \"" + sar.Service.Metadata.Name + "\" -}}";
+                    var url = sar.EndpointAnnotation.UriScheme + "://localhost:{{- portForServing \"" + sar.Service.Metadata.Name + "\" -}}";
                     return url;
                 });
+
                 config.Add("ASPNETCORE_URLS", string.Join(";", urls));
             }
             else
             {
                 config.Add("ASPNETCORE_URLS", launchProfile.ApplicationUrl);
             }
+
+            InjectPortEnvVars(executableResource, config);
         }
 
         foreach (var envVar in launchProfile.EnvironmentVariables)
         {
             string value = Environment.ExpandEnvironmentVariables(envVar.Value);
             config[envVar.Key] = value;
+        }
+    }
+
+    private static void InjectPortEnvVars(AppResource executableResource, Dictionary<string, string> config)
+    {
+        ServiceAppResource? httpsServiceAppResource = null;
+        // Inject environment variables for services produced by this executable.
+        foreach (var serviceProduced in executableResource.ServicesProduced)
+        {
+            var name = serviceProduced.Service.Metadata.Name;
+            var envVar = serviceProduced.EndpointAnnotation.EnvironmentVariable;
+
+            if (envVar is not null)
+            {
+                config.Add(envVar, $"{{{{- portForServing \"{name}\" }}}}");
+            }
+
+            if (httpsServiceAppResource is null && serviceProduced.EndpointAnnotation.UriScheme == "https")
+            {
+                httpsServiceAppResource = serviceProduced;
+            }
+        }
+
+        // REVIEW: If you run as an executable, we don't know that you're an ASP.NET Core application so we don't want to
+        // inject ASPNETCORE_HTTPS_PORT.
+        if (executableResource.ModelResource is ProjectResource)
+        {
+            // Add the environment variable for the HTTPS port if we have an HTTPS service. This will make sure the
+            // HTTPS redirection middleware avoids redirecting to the internal port.
+            if (httpsServiceAppResource is not null)
+            {
+                config.Add("ASPNETCORE_HTTPS_PORT", $"{{{{- portFor \"{httpsServiceAppResource.Service.Metadata.Name}\" }}}}");
+            }
         }
     }
 
@@ -487,9 +773,10 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
                 foreach (var mount in volumeMounts)
                 {
                     bool isBound = mount.Type == ApplicationModel.VolumeMountType.Bind;
-                    var volumeSpec = new VolumeMount()
+                    var volumeSpec = new VolumeMount
                     {
-                        Source = isBound ? Path.GetFullPath(mount.Source) : mount.Source,
+                        Source = isBound && !Path.IsPathRooted(mount.Source) ?
+                            Path.GetFullPath(mount.Source) : mount.Source,
                         Target = mount.Target,
                         Type = isBound ? Model.VolumeMountType.Bind : Model.VolumeMountType.Named,
                         IsReadOnly = mount.IsReadOnly
@@ -515,23 +802,9 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
                 var dcpContainerResource = (Container)cr.DcpResource;
                 var modelContainerResource = cr.ModelResource;
 
+                var config = new Dictionary<string, string>();
+
                 dcpContainerResource.Spec.Env = new();
-
-                if (modelContainerResource.TryGetEnvironmentVariables(out var containerEnvironmentVariables))
-                {
-                    var config = new Dictionary<string, string>();
-                    var context = new EnvironmentCallbackContext("dcp", config);
-
-                    foreach (var v in containerEnvironmentVariables)
-                    {
-                        v.Callback(context);
-                    }
-
-                    foreach (var kvp in config)
-                    {
-                        dcpContainerResource.Spec.Env.Add(new EnvVar { Name = kvp.Key, Value = kvp.Value });
-                    }
-                }
 
                 if (cr.ServicesProduced.Count > 0)
                 {
@@ -549,12 +822,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
                             portSpec.HostIP = sp.DcpServiceProducerAnnotation.Address;
                         }
 
-                        if (sp.ServiceBindingAnnotation.Port is not null)
-                        {
-                            portSpec.HostPort = sp.ServiceBindingAnnotation.Port;
-                        }
-
-                        switch (sp.ServiceBindingAnnotation.Protocol)
+                        switch (sp.EndpointAnnotation.Protocol)
                         {
                             case ProtocolType.Tcp:
                                 portSpec.Protocol = PortProtocol.TCP; break;
@@ -563,7 +831,30 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
                         }
 
                         dcpContainerResource.Spec.Ports.Add(portSpec);
+
+                        var name = sp.Service.Metadata.Name;
+                        var envVar = sp.EndpointAnnotation.EnvironmentVariable;
+
+                        if (envVar is not null)
+                        {
+                            config.Add(envVar, $"{{{{- portForServing \"{name}\" }}}}");
+                        }
                     }
+                }
+
+                if (modelContainerResource.TryGetEnvironmentVariables(out var containerEnvironmentVariables))
+                {
+                    var context = new EnvironmentCallbackContext("dcp", config);
+
+                    foreach (var v in containerEnvironmentVariables)
+                    {
+                        v.Callback(context);
+                    }
+                }
+
+                foreach (var kvp in config)
+                {
+                    dcpContainerResource.Spec.Env.Add(new EnvVar { Name = kvp.Key, Value = kvp.Value });
                 }
 
                 if (modelContainerResource.TryGetAnnotationsOfType<ExecutableArgsCallbackAnnotation>(out var argsCallback))
@@ -573,6 +864,11 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
                     {
                         callback.Callback(dcpContainerResource.Spec.Args);
                     }
+                }
+
+                if (modelContainerResource is ContainerResource containerResource)
+                {
+                    dcpContainerResource.Spec.Command = containerResource.Entrypoint;
                 }
 
                 await kubernetesService.CreateAsync(dcpContainerResource, cancellationToken).ConfigureAwait(false);
@@ -596,18 +892,18 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
         var servicesProduced = _appResources.OfType<ServiceAppResource>().Where(r => r.ModelResource == modelResource);
         foreach (var sp in servicesProduced)
         {
-            // Projects/Executables have their ports auto-allocated; the the port specified by the ServiceBindingAnnotation
+            // Projects/Executables have their ports auto-allocated; the the port specified by the EndpointAnnotation
             // is applied to the Service objects and used by clients.
-            // Containers use the port from the ServiceBindingAnnotation directly.
+            // Containers use the port from the EndpointAnnotation directly.
 
             if (modelResource.IsContainer())
             {
-                if (sp.ServiceBindingAnnotation.ContainerPort is null)
+                if (sp.EndpointAnnotation.ContainerPort is null)
                 {
-                    throw new InvalidOperationException($"The ServiceBindingAnnotation for container resource {modelResourceName} must specify the ContainerPort");
+                    throw new InvalidOperationException($"The endpoint for container resource {modelResourceName} must specify the ContainerPort");
                 }
 
-                sp.DcpServiceProducerAnnotation.Port = sp.ServiceBindingAnnotation.ContainerPort;
+                sp.DcpServiceProducerAnnotation.Port = sp.EndpointAnnotation.ContainerPort;
             }
 
             dcpResource.AnnotateAsObjectList(CustomResource.ServiceProducerAnnotation, sp.DcpServiceProducerAnnotation);
@@ -617,20 +913,29 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
 
     private async Task CreateResourcesAsync<RT>(CancellationToken cancellationToken) where RT : CustomResource
     {
-        var resourcesToCreate = _appResources.Select(r => r.DcpResource).OfType<RT>();
-        if (!resourcesToCreate.Any())
+        try
         {
-            return;
-        }
+            var resourcesToCreate = _appResources.Select(r => r.DcpResource).OfType<RT>();
+            if (!resourcesToCreate.Any())
+            {
+                return;
+            }
 
-        // CONSIDER batched creation
-        foreach (var res in resourcesToCreate)
+            // CONSIDER batched creation
+            foreach (var res in resourcesToCreate)
+            {
+                await kubernetesService.CreateAsync(res, cancellationToken).ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException ex)
         {
-            await kubernetesService.CreateAsync(res, cancellationToken).ConfigureAwait(false);
+            // We catch and suppress the OperationCancelledException because the user may CTRL-C
+            // during start up of the resources.
+            _logger.LogDebug(ex, "Cancellation during creation of resources.");
         }
     }
 
-    private async Task DeleteResourcesAsync<RT>(string resourceName, CancellationToken cancellationToken) where RT : CustomResource
+    private async Task DeleteResourcesAsync<RT>(string resourceType, CancellationToken cancellationToken) where RT : CustomResource
     {
         var resourcesToDelete = _appResources.Select(r => r.DcpResource).OfType<RT>();
         if (!resourcesToDelete.Any())
@@ -646,7 +951,7 @@ internal sealed class ApplicationExecutor(DistributedApplicationModel model,
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Could not stop {resourceName} '{res.Metadata.Name}': {ex}");
+                _logger.LogInformation(ex, "Could not stop {ResourceType} '{ResourceName}'.", resourceType, res.Metadata.Name);
             }
         }
     }

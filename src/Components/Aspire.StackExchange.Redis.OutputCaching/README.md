@@ -101,10 +101,10 @@ builder.AddRedisOutputCache("cache", configureOptions: options => options.Connec
 
 ## AppHost extensions
 
-In your AppHost project, register a Redis container and consume the connection using the following methods:
+In your AppHost project, register a Redis server and consume the connection using the following methods:
 
 ```csharp
-var redis = builder.AddRedisContainer("cache");
+var redis = builder.AddRedis("cache");
 
 var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(redis);

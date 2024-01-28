@@ -40,14 +40,25 @@
     column-gap: calc(var(--design-unit) * 4px);
 }
 
-::deep .metrics-filters-container td.dimension-name {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+::deep .metrics-filters-container {
+    width: 600px;
 }
 
-::deep .metrics-filters-container td.dimension-values {
-    width: auto;
+::deep .metrics-filters-section {
+    margin-bottom: 15px;
+}
+
+::deep .dimension-popup {
+    max-width: 500px;
+    min-width: 100px;
+    overflow-x: hidden;
+}
+
+::deep .fluent-popover-content {
+    overflow-wrap: normal;
+    word-break: normal;
+    max-height: 400px;
+    overflow-y: auto;
 }
 
 ::deep .metrics-tree {

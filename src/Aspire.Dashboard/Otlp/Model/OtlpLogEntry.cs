@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using Microsoft.Extensions.Logging;
 using OpenTelemetry.Proto.Logs.V1;
 
 namespace Aspire.Dashboard.Otlp.Model;
@@ -36,7 +35,7 @@ public class OtlpLogEntry
                     // Explicitly ignore these
                     break;
                 default:
-                    properties.Add(new KeyValuePair<string, string>(kv.Key, kv.Value.GetString()));
+                    properties.Add(KeyValuePair.Create(kv.Key, kv.Value.GetString()));
                     break;
             }
         }

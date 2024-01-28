@@ -20,7 +20,7 @@ public static class ExecutableResourceBuilderExtensions
     /// <param name="command">The executable path. This can be a fully qualified path or a executable to run from the shell/command line.</param>
     /// <param name="workingDirectory">The working directory of the executable.</param>
     /// <param name="args">The arguments to the executable.</param>
-    /// <returns>The <see cref="IResourceBuilder{ExecutableResource}"/>.</returns>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<ExecutableResource> AddExecutable(this IDistributedApplicationBuilder builder, string name, string command, string workingDirectory, params string[]? args)
     {
         workingDirectory = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, workingDirectory));
@@ -34,10 +34,26 @@ public static class ExecutableResourceBuilderExtensions
     /// </summary>
     /// <typeparam name="T">Type of executable resource</typeparam>
     /// <param name="builder">Resource builder</param>
-    /// <returns></returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> AsDockerfileInManifest<T>(this IResourceBuilder<T> builder) where T : ExecutableResource
     {
         return builder.WithManifestPublishingCallback(context => WriteExecutableAsDockerfileResource(context, builder.Resource));
+    }
+
+    /// <summary>
+    /// Adds the arguments to be passed to an executable resource when the executable is started.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="args">The arguments to be passed to the executable when it is started.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithArgs<T>(this IResourceBuilder<T> builder, params string[] args) where T : ExecutableResource
+    {
+        var annotation = new ExecutableArgsCallbackAnnotation(updatedArgs =>
+        {
+            updatedArgs.AddRange(args);
+        });
+        return builder.WithAnnotation(annotation);
     }
 
     private static void WriteExecutableAsDockerfileResource(ManifestPublishingContext context, ExecutableResource executable)

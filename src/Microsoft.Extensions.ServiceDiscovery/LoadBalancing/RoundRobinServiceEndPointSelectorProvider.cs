@@ -11,7 +11,7 @@ public class RoundRobinServiceEndPointSelectorProvider : IServiceEndPointSelecto
     /// <summary>
     /// Gets a shared instance of this class.
     /// </summary>
-    public static RandomServiceEndPointSelectorProvider Instance { get; } = new();
+    public static RoundRobinServiceEndPointSelectorProvider Instance { get; } = new();
 
     /// <inheritdoc/>
     public IServiceEndPointSelector CreateSelector() => new RoundRobinServiceEndPointSelector();

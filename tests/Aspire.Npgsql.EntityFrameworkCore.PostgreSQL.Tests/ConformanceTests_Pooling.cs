@@ -55,8 +55,6 @@ public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, NpgsqlEn
 
     protected override bool CanConnectToServer => s_canConnectToServer.Value;
 
-    protected override string JsonSchemaPath => "src/Components/Aspire.Npgsql.EntityFrameworkCore.PostgreSQL/ConfigurationSchema.json";
-
     protected override string ValidJsonConfig => """
         {
           "Aspire": {

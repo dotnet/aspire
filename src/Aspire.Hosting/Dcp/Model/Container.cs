@@ -9,6 +9,10 @@ namespace Aspire.Hosting.Dcp.Model;
 
 internal sealed class ContainerSpec
 {
+    // Container name displayed in Docker. If not specified, the metadata name + random suffix is used.
+    [JsonPropertyName("containerName")]
+    public string? ContainerName { get; set; }
+
     // Image to be used to create the container
     [JsonPropertyName("image")]
     public string? Image { get; set; }
@@ -153,6 +157,10 @@ internal sealed class ContainerPortSpec
 
 internal sealed class ContainerStatus : V1Status
 {
+    // Container name displayed in Docker
+    [JsonPropertyName("containerName")]
+    public string? ContainerName { get; set; }
+
     // Current state of the Container.
     [JsonPropertyName("state")]
     public string? State { get; set; }
@@ -173,6 +181,14 @@ internal sealed class ContainerStatus : V1Status
     // Default is -1, meaning the exit code is not known, or the container is still running.
     [JsonPropertyName("exitCode")]
     public int ExitCode { get; set; } = Conventions.UnknownExitCode;
+
+    // Effective values of environment variables, after all substitutions have been applied
+    [JsonPropertyName("effectiveEnv")]
+    public List<EnvVar>? EffectiveEnv { get; set; }
+
+    // Effective values of launch arguments to be passed to the Container, after all substitutions are applied.
+    [JsonPropertyName("effectiveArgs")]
+    public List<string>? EffectiveArgs { get; set; }
 
     // Note: the ContainerStatus has "Message" property that represents a human-readable information about Container state.
     // It is provided by V1Status base class.

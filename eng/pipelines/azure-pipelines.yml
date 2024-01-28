@@ -11,6 +11,7 @@ pr:
     include:
     - main
     - release/*
+    - feature/*
     - internal/release/*
 
 variables:
@@ -97,7 +98,7 @@ stages:
       jobs:
 
       - job: windows
-        timeoutInMinutes: 60
+        timeoutInMinutes: 30
 
         pool:
           ${{ if eq(variables['System.TeamProject'], 'public') }}:
@@ -130,7 +131,7 @@ stages:
 
       - ${{ if eq(variables._RunAsPublic, True) }}:
         - job: linux
-          timeoutInMinutes: 60
+          timeoutInMinutes: 30
 
           pool:
             ${{ if eq(variables['System.TeamProject'], 'public') }}:

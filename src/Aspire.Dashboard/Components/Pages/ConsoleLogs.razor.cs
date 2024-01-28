@@ -1,181 +1,200 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Dashboard.ConsoleLogs;
+using System.Collections.Concurrent;
+using System.Diagnostics;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Resources;
+using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Pages;
 
-public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
+public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPageWithSessionAndUrlState<ConsoleLogs.ConsoleLogsViewModel, ConsoleLogs.ConsoleLogsPageState>
 {
     [Inject]
-    public required IResourceService ResourceService { get; init; }
+    public required IDashboardClient DashboardClient { get; init; }
     [Inject]
     public required IJSRuntime JS { get; init; }
+
     [Inject]
-    public required NavigationManager NavigationManager { get; init; }
+    public required ProtectedSessionStorage SessionStorage { get; set; }
+
+    [Inject]
+    public required NavigationManager NavigationManager { get; set; }
 
     [Parameter]
     public string? ResourceName { get; set; }
 
-    private bool ConvertTimestampsFromUtc => _selectedResource is ContainerViewModel;
+    private readonly TaskCompletionSource _whenDomReady = new();
+    private readonly CancellationTokenSource _resourceSubscriptionCancellation = new();
+    private readonly CancellationSeries _logSubscriptionCancellationSeries = new();
+    private readonly ConcurrentDictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
+    private List<Option<string>>? _resources;
 
+    // UI
     private FluentSelect<Option<string>>? _resourceSelectComponent;
-    private Option<string>? _selectedOption;
-    private ResourceViewModel? _selectedResource;
-    private readonly Dictionary<string, ResourceViewModel> _resourceNameMapping = new();
-    private List<Option<string>>? Resources { get; set; }
-    private LogViewer? _logViewer;
-    private readonly CancellationTokenSource _watchResourcesCts = new();
-    private CancellationTokenSource? _watchLogsTokenSource;
-    private string _status = LogStatus.Initializing;
+    private Option<string> _noSelection = null!;
+    private LogViewer _logViewer = null!;
 
-    private readonly TaskCompletionSource _renderCompleteTcs = new();
+    // State
+    public ConsoleLogsViewModel ViewModel { get; set; } = null!;
 
-    private readonly Option<string> _noSelection = new() { Value = null, Text = "(Select a resource)" };
+    public string BasePath => "ConsoleLogs";
+    public string SessionStorageKey => "ConsoleLogs_PageState";
 
     protected override void OnInitialized()
     {
-        _status = LogStatus.LoadingResources;
+        _noSelection = new() { Value = null, Text = ControlsStringsLoc[nameof(ControlsStrings.SelectAResource)] };
+        ViewModel = new ConsoleLogsViewModel { SelectedResource = null, Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLoadingResources)] };
 
-        var (snapshot, subscription) = ResourceService.Subscribe();
+        TrackResourceSnapshots();
 
-        foreach (var resource in snapshot)
+        void TrackResourceSnapshots()
         {
-            _resourceNameMapping[resource.Name] = resource;
-        }
-
-        UpdateResourcesList();
-
-        _ = Task.Run(async () =>
-        {
-            await foreach (var (changeType, resource) in subscription.WithCancellation(_watchResourcesCts.Token))
+            if (!DashboardClient.IsEnabled)
             {
-                await OnResourceListChangedAsync(changeType, resource);
+                return;
             }
-        });
 
-        StateHasChanged();
+            var (snapshot, subscription) = DashboardClient.SubscribeResources();
+
+            foreach (var resource in snapshot)
+            {
+                var added = _resourceByName.TryAdd(resource.Name, resource);
+                Debug.Assert(added, "Should not receive duplicate resources in initial snapshot data.");
+            }
+
+            UpdateResourcesList();
+
+            _ = Task.Run(async () =>
+            {
+                await foreach (var (changeType, resource) in subscription.WithCancellation(_resourceSubscriptionCancellation.Token))
+                {
+                    await OnResourceChanged(changeType, resource);
+
+                    // the initial snapshot we obtain is [almost] never correct (it's always empty)
+                    // we still want to select the user's initial queried resource on page load,
+                    // so if there is no selected resource when we
+                    // receive an added resource, and that added resource name == ResourceName,
+                    // we should mark it as selected
+                    if (ResourceName is not null && ViewModel.SelectedResource is null && changeType == ResourceViewModelChangeType.Upsert && string.Equals(ResourceName, resource.Name))
+                    {
+                        ViewModel.SelectedResource = resource;
+                        Debug.Assert(_resources is not null);
+                        ViewModel.SelectedOption = _resources.Single(option => string.Equals(ResourceName, option.Value, StringComparison.Ordinal));
+                        await SetSelectedConsoleResource(resource);
+                    }
+                }
+            });
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await this.InitializeViewModelAsync();
+
+        await ClearLogsAsync();
+
+        if (ViewModel.SelectedResource is not null)
+        {
+            await LoadLogsAsync();
+        }
+        else
+        {
+            await StopWatchingLogsAsync();
+        }
     }
 
     protected override void OnAfterRender(bool firstRender)
     {
         if (firstRender)
         {
-            // Let anyone waiting know that the render is complete so we have access to the underlying log viewer
-            _renderCompleteTcs.SetResult();
+            // Let anyone waiting know that the render is complete, so we have access to the underlying log viewer.
+            _whenDomReady.SetResult();
         }
-    }
-
-    protected override async Task OnParametersSetAsync()
-    {
-        if (Resources is not null && ResourceName is not null)
-        {
-            _selectedOption = Resources.FirstOrDefault(c => string.Equals(ResourceName, c.Value, StringComparison.Ordinal)) ?? _noSelection;
-            _selectedResource = _selectedOption.Value is null ? null : _resourceNameMapping[_selectedOption.Value];
-            await LoadLogsAsync();
-        }
-        else
-        {
-            await StopWatchingLogsAsync();
-            await ClearLogsAsync();
-            _selectedOption = _noSelection;
-            _selectedResource = null;
-            _status = LogStatus.NoResourceSelected;
-        }
-    }
-
-    private Option<string> GetOption(ResourceViewModel resource)
-    {
-        return new Option<string>()
-        {
-            Value = resource.Name,
-            Text = GetDisplayText(resource)
-        };
     }
 
     private void UpdateResourcesList()
     {
-        Resources = _resourceNameMapping.Values
+        _resources ??= new(_resourceByName.Count + 1);
+        _resources.Clear();
+        _resources.Add(_noSelection);
+        _resources.AddRange(_resourceByName.Values
             .OrderBy(c => c.Name)
-            .Select(GetOption)
-            .ToList();
+            .Select(ToOption));
 
-        Resources.Insert(0, _noSelection);
+        Option<string> ToOption(ResourceViewModel resource)
+        {
+            return new Option<string>
+            {
+                Value = resource.Name,
+                Text = GetDisplayText()
+            };
+
+            string GetDisplayText()
+            {
+                var resourceName = ResourceViewModel.GetResourceName(resource, _resourceByName.Values);
+
+                return resource.State switch
+                {
+                    null or { Length: 0 } => $"{resourceName} ({Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsUnknownState)]})",
+                    "Running" => resourceName,
+                    _ => $"{resourceName} ({resource.State})"
+                };
+            }
+        }
     }
 
     private Task ClearLogsAsync()
-        => _logViewer is not null ? _logViewer.ClearLogsAsync() : Task.CompletedTask;
+    {
+        return _logViewer is not null ? _logViewer.ClearLogsAsync() : Task.CompletedTask;
+    }
 
     private async ValueTask LoadLogsAsync()
     {
         // Wait for the first render to complete so that the log viewer is available
-        await _renderCompleteTcs.Task;
+        await _whenDomReady.Task;
 
-        if (_selectedResource is null)
+        if (ViewModel.SelectedResource is null)
         {
-            _status = LogStatus.NoResourceSelected;
+            ViewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsNoResourceSelected)];
         }
         else if (_logViewer is null)
         {
-            _status = LogStatus.InitializingLogViewer;
+            ViewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsInitializingLogViewer)];
         }
         else
         {
-            _watchLogsTokenSource = new CancellationTokenSource();
-            if (await _selectedResource.LogSource.StartAsync(_watchLogsTokenSource.Token))
+            var cancellationToken = await _logSubscriptionCancellationSeries.NextAsync();
+
+            var subscription = DashboardClient.SubscribeConsoleLogs(ViewModel.SelectedResource.Name, cancellationToken);
+
+            if (subscription is not null)
             {
-                var outputTask = Task.Run(async () =>
-                {
-                    await _logViewer.WatchLogsAsync(
-                        () => _selectedResource.LogSource.WatchOutputLogAsync(_watchLogsTokenSource.Token),
-                        new LogParserOptions()
-                        {
-                            ConvertTimestampsFromUtc = ConvertTimestampsFromUtc
-                        }
-                    );
-                });
+                var task = _logViewer.SetLogSourceAsync(
+                    subscription,
+                    convertTimestampsFromUtc: ViewModel.SelectedResource.IsContainer());
 
-                var errorTask = Task.Run(async () =>
-                {
-                    await _logViewer.WatchLogsAsync(
-                        () => _selectedResource.LogSource.WatchErrorLogAsync(_watchLogsTokenSource.Token),
-                        new LogParserOptions()
-                        {
-                            ConvertTimestampsFromUtc = ConvertTimestampsFromUtc,
-                            LogEntryType = LogEntryType.Error
-                        }
-                    );
-                });
+                ViewModel.InitialisedSuccessfully = true;
+                ViewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsWatchingLogs)];
 
-                _ = Task.WhenAll(outputTask, errorTask).ContinueWith((task) =>
-                {
-                    // If the task was canceled, that means one or both of the underlying tasks were canceled
-                    // which only really happens when we switch to another container source or when leaving
-                    // page. In both of those situations we can skip updating the status because it'll just
-                    // cause a flash of text change before it changes again or the page is navigated away.
-                    if (!task.IsCanceled)
-                    {
-                        _status = LogStatus.FinishedWatchingLogs;
-                    }
-                }, TaskScheduler.Current);
-
-                _status = LogStatus.WatchingLogs;
+                // Indicate when logs finish (other than by cancellation).
+                _ = task.ContinueWith(
+                    _ => ViewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsFinishedWatchingLogs)],
+                    CancellationToken.None,
+                    TaskContinuationOptions.NotOnCanceled,
+                    TaskScheduler.Current);
             }
             else
             {
-                _watchLogsTokenSource = null;
-                if (_selectedResource is ContainerViewModel)
-                {
-                    _status = LogStatus.FailedToInitialize;
-                }
-                else
-                {
-                    _status = LogStatus.LogsNotYetAvailable;
-                }
+                ViewModel.InitialisedSuccessfully = false;
+                ViewModel.Status = Loc[ViewModel.SelectedResource.IsContainer()
+                    ? nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsFailedToInitialize)
+                    : nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLogsNotYetAvailable)];
             }
         }
     }
@@ -184,98 +203,124 @@ public partial class ConsoleLogs : ComponentBase, IAsyncDisposable
     {
         await StopWatchingLogsAsync();
         await ClearLogsAsync();
-        NavigationManager.NavigateTo($"/ConsoleLogs/{_selectedOption?.Value}");
+
+        ViewModel.SelectedResource = ViewModel.SelectedOption?.Value is null ? null : _resourceByName[ViewModel.SelectedOption.Value];
+        await this.AfterViewModelChangedAsync();
     }
 
-    private async Task OnResourceListChangedAsync(ObjectChangeType changeType, ResourceViewModel resourceViewModel)
+    private async Task OnResourceChanged(ResourceViewModelChangeType changeType, ResourceViewModel resource)
     {
-        if (changeType == ObjectChangeType.Added)
+        if (changeType == ResourceViewModelChangeType.Upsert)
         {
-            _resourceNameMapping[resourceViewModel.Name] = resourceViewModel;
-        }
-        else if (changeType == ObjectChangeType.Modified)
-        {
-            _resourceNameMapping[resourceViewModel.Name] = resourceViewModel;
-            if (string.Equals(_selectedResource?.Name, resourceViewModel.Name, StringComparison.Ordinal))
-            {
-                _selectedResource = resourceViewModel;
+            _resourceByName[resource.Name] = resource;
+            UpdateResourcesList();
 
-                if (_watchLogsTokenSource is null)
-                {
-                    await LoadLogsAsync();
-                }
-                else if (!string.Equals(_selectedResource.State, "Running", StringComparison.Ordinal))
-                {
-                    _status = LogStatus.FinishedWatchingLogs;
-                }
+            if (string.Equals(ViewModel.SelectedResource?.Name, resource.Name, StringComparison.Ordinal))
+            {
+                await SetSelectedConsoleResource(resource);
             }
         }
-        else if (changeType == ObjectChangeType.Deleted)
+        else if (changeType == ResourceViewModelChangeType.Delete)
         {
-            _resourceNameMapping.Remove(resourceViewModel.Name);
-            if (string.Equals(_selectedResource?.Name, resourceViewModel.Name, StringComparison.Ordinal))
+            var removed = _resourceByName.TryRemove(resource.Name, out _);
+            Debug.Assert(removed, "Cannot remove unknown resource.");
+
+            if (string.Equals(ViewModel.SelectedResource?.Name, resource.Name, StringComparison.Ordinal))
             {
-                _selectedOption = _noSelection;
+                // The selected resource was deleted
+                ViewModel.SelectedOption = _noSelection;
                 await HandleSelectedOptionChangedAsync();
             }
-        }
 
-        UpdateResourcesList();
+            UpdateResourcesList();
+        }
 
         await InvokeAsync(StateHasChanged);
 
         // Workaround for issue in fluent-select web component where the display value of the
         // selected item doesn't update automatically when the item changes
-        await UpdateResourceListSelectedResourceAsync();
-    }
-
-    private string GetDisplayText(ResourceViewModel resource)
-    {
-        var stateText = "";
-        if (string.IsNullOrEmpty(resource.State))
-        {
-            stateText = " (Unknown State)";
-        }
-        else if (resource.State != "Running")
-        {
-            stateText = $" ({resource.State})";
-        }
-        return $"{GetResourceName(resource)}{stateText}";
-    }
-
-    private string GetResourceName(ResourceViewModel resource) => ResourceViewModel.GetResourceName(resource, _resourceNameMapping.Values);
-
-    public async ValueTask DisposeAsync()
-    {
-        await DisposeWatchContainersTokenSource();
-        await StopWatchingLogsAsync();
-    }
-
-    private async Task DisposeWatchContainersTokenSource()
-    {
-        await _watchResourcesCts.CancelAsync();
-        _watchResourcesCts.Dispose();
-    }
-
-    private async Task StopWatchingLogsAsync()
-    {
-        if (_watchLogsTokenSource is not null)
-        {
-            await _watchLogsTokenSource.CancelAsync();
-            _watchLogsTokenSource.Dispose();
-            if (_selectedResource?.LogSource is not null)
-            {
-                await _selectedResource.LogSource.StopAsync();
-            }
-            _watchLogsTokenSource = null;
-        }
-    }
-
-    private async Task UpdateResourceListSelectedResourceAsync()
-    {
         if (_resourceSelectComponent is not null && JS is not null)
         {
             await JS.InvokeVoidAsync("updateFluentSelectDisplayValue", _resourceSelectComponent.Element);
         }
+    }
+
+    private async Task SetSelectedConsoleResource(ResourceViewModel resource)
+    {
+        // The selected resource was updated
+        ViewModel.SelectedResource = resource;
+
+        if (ViewModel.InitialisedSuccessfully is not true)
+        {
+            await LoadLogsAsync();
+        }
+        else if (!string.Equals(ViewModel.SelectedResource.State, "Running", StringComparison.Ordinal))
+        {
+            ViewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsFinishedWatchingLogs)];
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await _resourceSubscriptionCancellation.CancelAsync();
+        _resourceSubscriptionCancellation.Dispose();
+
+        await StopWatchingLogsAsync();
+
+        if (_logViewer is { } logViewer)
+        {
+            await logViewer.DisposeAsync();
+        }
+    }
+
+    private Task StopWatchingLogsAsync() => _logSubscriptionCancellationSeries.ClearAsync();
+
+    public class ConsoleLogsViewModel
+    {
+        public required string Status { get; set; }
+        public Option<string>? SelectedOption { get; set; }
+        public required ResourceViewModel? SelectedResource { get; set; }
+        public bool? InitialisedSuccessfully { get; set; }
+    }
+
+    public class ConsoleLogsPageState
+    {
+        public string? SelectedResource { get; set; }
+    }
+
+    public void UpdateViewModelFromQuery(ConsoleLogsViewModel viewModel)
+    {
+        if (_resources is not null && ResourceName is not null)
+        {
+            var selectedOption = _resources.FirstOrDefault(c => string.Equals(ResourceName, c.Value, StringComparisons.ResourceName)) ?? _noSelection;
+
+            viewModel.SelectedOption = selectedOption;
+            viewModel.SelectedResource = selectedOption?.Value is null ? null : _resourceByName[selectedOption.Value];
+            viewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLogsNotYetAvailable)];
+        }
+        else
+        {
+            viewModel.SelectedOption = _noSelection;
+            viewModel.SelectedResource = null;
+            viewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsNoResourceSelected)];
+        }
+    }
+
+    public UrlState GetUrlFromSerializableViewModel(ConsoleLogsPageState serializable)
+    {
+        if (serializable.SelectedResource is { } selectedOption)
+        {
+            return new UrlState($"{BasePath}/{selectedOption}", null);
+        }
+
+        return new UrlState($"/{BasePath}", null);
+    }
+
+    public ConsoleLogsPageState ConvertViewModelToSerializable()
+    {
+        return new ConsoleLogsPageState
+        {
+            SelectedResource = ViewModel.SelectedResource?.Name
+        };
     }
 }

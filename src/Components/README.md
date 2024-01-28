@@ -103,17 +103,17 @@ Aspire components leverage configurable resilience patterns such as retries, tim
 - Each component must ensure that by default reasonable timeouts are enabled. It should be possible to configure the timeouts.
 - If the client library provides connection pooling, it should be enabled by default (to scale proportionally). It should be possible to disable it via configuration.
 - If given client library provides built in mechanism for retries, it should be enabled by default and configurable.
-- It's not always possible to implement retries. Example: raw db driver does not know, whether currently executed command is part of a transaction or not. If it is, re-trying a failed command won't help as the whole transaction has already failed.
+- It's not always possible to implement retries. Example: A raw db driver does not know whether the currently executed command is part of a transaction or not. If it is, re-trying a failed command won't help as the whole transaction has already failed.
 
 ## Telemetry
 
 Aspire components offer integrated logging, metrics, and tracing using modern .NET abstractions (ILogger, Meter, Activity). Telemetry is schematized and part of a component’s contract, ensuring backward compatibility across versions of the component.
 
-- The Component's telemetry names should conform to [OpenTelemetry's Semantic Conventions](https://github.com/open-telemetry/semantic-conventions) when available.
+- The component's telemetry names should conform to [OpenTelemetry's Semantic Conventions](https://github.com/open-telemetry/semantic-conventions) when available.
 - Components are allowed to use OpenTelemetry [Instrumentation Libraries](https://opentelemetry.io/docs/specs/otel/glossary/#instrumentation-library), if available. (example: [OpenTelemetry.Instrumentation.StackExchangeRedis](https://www.nuget.org/packages/OpenTelemetry.Instrumentation.StackExchangeRedis)).
-- The Component should use `ILoggerFactory`/`ILogger` objects that come from DI.
+- The component should use `ILoggerFactory`/`ILogger` objects that come from DI.
 - If possible, no information should be logged twice (example: raw db driver and Entity Framework can both log SQL queries, when they are used together only one should be logging).
-- Defining [telemetry exporters](https://opentelemetry.io/docs/instrumentation/net/exporters/) is outside of the scope of a Component.
+- Defining [telemetry exporters](https://opentelemetry.io/docs/instrumentation/net/exporters/) is outside of the scope of a component.
 
 ## Performance
 

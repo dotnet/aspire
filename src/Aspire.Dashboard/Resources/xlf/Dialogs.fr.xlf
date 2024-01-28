@@ -2,24 +2,19 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="fr" original="../Dialogs.resx">
     <body>
-      <trans-unit id="FilterConditionContains">
-        <source>contains</source>
-        <target state="new">contains</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="FilterConditionNotContains">
-        <source>not contains</source>
-        <target state="new">not contains</target>
-        <note />
-      </trans-unit>
       <trans-unit id="FilterDialogApplyFilterButtonText">
-        <source>Apply Filter</source>
-        <target state="new">Apply Filter</target>
+        <source>Apply filter</source>
+        <target state="new">Apply filter</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterDialogCancelButtonText">
         <source>Cancel</source>
         <target state="new">Cancel</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FilterDialogConditionSelectLabel">
+        <source>Select a filter condition</source>
+        <target state="new">Select a filter condition</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterDialogFieldPlaceholder">
@@ -28,43 +23,13 @@
         <note />
       </trans-unit>
       <trans-unit id="FilterDialogRemoveFilterButtonText">
-        <source>Remove Filter</source>
-        <target state="new">Remove Filter</target>
+        <source>Remove filter</source>
+        <target state="new">Remove filter</target>
         <note />
       </trans-unit>
       <trans-unit id="FilterDialogTextValuePlaceholder">
         <source>Value</source>
         <target state="new">Value</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="FilterFieldApplication">
-        <source>Application</source>
-        <target state="new">Application</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="FilterFieldCategory">
-        <source>Category</source>
-        <target state="new">Category</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="FilterFieldMessage">
-        <source>Message</source>
-        <target state="new">Message</target>
-        <note>Message is a field name, not an action</note>
-      </trans-unit>
-      <trans-unit id="FilterFieldOriginalFormat">
-        <source>OriginalFormat</source>
-        <target state="new">OriginalFormat</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="FilterFieldSpanId">
-        <source>SpanId</source>
-        <target state="new">SpanId</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="FilterFieldTraceId">
-        <source>TraceId</source>
-        <target state="new">TraceId</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogDarkTheme">
@@ -86,6 +51,11 @@
         <source>Theme</source>
         <target state="new">Theme</target>
         <note />
+      </trans-unit>
+      <trans-unit id="SettingsDialogVersion">
+        <source>Version: {0}</source>
+        <target state="new">Version: {0}</target>
+        <note>{0} is the dashboard version string</note>
       </trans-unit>
     </body>
   </file>

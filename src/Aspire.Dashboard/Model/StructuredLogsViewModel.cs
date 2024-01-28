@@ -4,7 +4,6 @@
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
-using Microsoft.Extensions.Logging;
 
 namespace Aspire.Dashboard.Model;
 
@@ -90,4 +89,3 @@ public class StructuredLogsViewModel
         _logs = null;
     }
 }
-

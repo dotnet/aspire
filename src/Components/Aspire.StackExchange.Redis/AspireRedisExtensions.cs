@@ -1,9 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-global using System.Net.Security; // needed to work around https://github.com/dotnet/runtime/issues/94065
-
-using System.Text;
 using Aspire;
 using Aspire.StackExchange.Redis;
 using Microsoft.Extensions.Configuration;
@@ -89,22 +86,33 @@ public static class AspireRedisExtensions
         if (serviceKey is null)
         {
             builder.Services.AddSingleton<IConnectionMultiplexer>(
-                sp => ConnectionMultiplexer.Connect(GetConfigurationOptions(sp, connectionName, configurationSectionName, optionsName), CreateLogger(sp)));
+                sp => ConnectionMultiplexer.Connect(GetConfigurationOptions(sp, connectionName, configurationSectionName, optionsName)));
         }
         else
         {
             builder.Services.AddKeyedSingleton<IConnectionMultiplexer>(serviceKey,
-                (sp, key) => ConnectionMultiplexer.Connect(GetConfigurationOptions(sp, connectionName, configurationSectionName, optionsName), CreateLogger(sp)));
+                (sp, key) => ConnectionMultiplexer.Connect(GetConfigurationOptions(sp, connectionName, configurationSectionName, optionsName)));
         }
 
         if (settings.Tracing)
         {
             // Supports distributed tracing
-            builder.Services.AddOpenTelemetry()
+            if (serviceKey is null)
+            {
+                builder.Services.AddOpenTelemetry()
                 .WithTracing(t =>
                 {
                     t.AddRedisInstrumentation();
                 });
+            }
+            else
+            {
+                builder.Services.AddOpenTelemetry()
+                .WithTracing(t =>
+                {
+                    t.AddRedisInstrumentationWithKeyedService(serviceKey);
+                });
+            }
         }
 
         if (settings.HealthChecks)
@@ -120,11 +128,6 @@ public static class AspireRedisExtensions
                     connectionMultiplexerFactory: sp => serviceKey is null ? sp.GetRequiredService<IConnectionMultiplexer>() : sp.GetRequiredKeyedService<IConnectionMultiplexer>(serviceKey),
                     healthCheckName));
         }
-
-        static TextWriter? CreateLogger(IServiceProvider serviceProvider)
-            => serviceProvider.GetService<ILoggerFactory>() is { } loggerFactory
-                ? new LoggingTextWriter(loggerFactory.CreateLogger("Aspire.StackExchange.Redis"))
-                : null;
     }
 
     private static ConfigurationOptions GetConfigurationOptions(IServiceProvider serviceProvider, string connectionName, string configurationSectionName, string? optionsName)
@@ -138,6 +141,9 @@ public static class AspireRedisExtensions
             throw new InvalidOperationException($"No endpoints specified. Ensure a valid connection string was provided in 'ConnectionStrings:{connectionName}' or for the '{configurationSectionName}:ConnectionString' configuration key.");
         }
 
+        // ensure the LoggerFactory is initialized if someone hasn't already set it.
+        configurationOptions.LoggerFactory ??= serviceProvider.GetService<ILoggerFactory>();
+
         return configurationOptions;
     }
 
@@ -147,13 +153,6 @@ public static class AspireRedisExtensions
         configurationOptionsSection.Bind(options);
 
         return options;
-    }
-
-    private sealed class LoggingTextWriter(ILogger logger) : TextWriter
-    {
-        public override Encoding Encoding => Encoding.UTF8;
-
-        public override void Write(string? value) => logger.LogTrace(value);
     }
 
     /// <summary>

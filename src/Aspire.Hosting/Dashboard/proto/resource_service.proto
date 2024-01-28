@@ -1,0 +1,193 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+syntax = "proto3";
+
+package aspire.v1;
+
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+
+////////////////////////////////////////////
+
+message ApplicationInformationRequest {
+}
+
+message ApplicationInformationResponse {
+    string application_name = 1;
+}
+
+////////////////////////////////////////////
+
+message ResourceCommandRequest {
+    string command_type = 1;
+    string name = 2;
+    string resource_type = 3;
+    // When present, this message must be shown to the user and their confirmation obtained
+    // before sending the request for this command to be executed.
+    // The user will be presented with Ok/Cancel options.
+    optional string confirmation_message = 4;
+    // Optional parameter that configures the command in some way.
+    // Clients must return any value provided by the server when invoking
+    // the command.
+    optional google.protobuf.Value parameter = 5;
+}
+
+enum ResourceCommandResponseKind {
+    UNDEFINED = 0;
+    SUCCEEDED = 1;
+    FAILED = 2;
+    CANCELLED = 3;
+}
+
+message ResourceCommandResponse {
+    ResourceCommandResponseKind kind = 1;
+    optional string error_message = 2;
+}
+
+////////////////////////////////////////////
+
+message ResourceType {
+    // Unique name for the resource type. Equivalent to Resource.resource_type
+    // If "display_name" is omitted, this value will be used in UIs.
+    string unique_name = 1;
+
+    // Display string for references to this type in UI. May be localized.
+    // If this value is omitted, UIs will show "unique_name" instead.
+    optional string display_name = 2;
+
+    // Any commands that may be executed against resources of this type, avoiding
+    // the need to copy the value to every Resource instance.
+    //
+    // Note that these commands must apply to matching resources at any time.
+    //
+    // If the set of commands changes over time, use the "commands" property
+    // of the Resource itself.
+    repeated ResourceCommandRequest commands = 3;
+}
+
+////////////////////////////////////////////
+
+message EnvironmentVariable {
+    string name = 1;
+    optional string value = 2;
+    bool is_from_spec = 3;
+}
+
+message Endpoint {
+    string endpoint_url = 1;
+    string proxy_url = 2;
+}
+
+message Service {
+    string name = 1;
+    optional string allocated_address = 2;
+    optional int32 allocated_port = 3;
+}
+
+message ResourceProperty {
+    // Name of the data item, e.g. "container.id", "executable.pid", "project.path", ...
+    string name = 1;
+    // TODO move display_name to reference data, sent once when the connection starts
+    // Optional display name, may be localized
+    optional string display_name = 2;
+    // The data value. May be null, a number, a string, a boolean, a dictionary of values (Struct), or a list of values (ValueList).
+    google.protobuf.Value value = 3;
+}
+
+// Models the full state of an resource (container, executable, project, etc) at a particular point in time.
+message Resource {
+    string name = 1;
+    string resource_type = 2;
+    string display_name = 3;
+    string uid = 4;
+    optional string state = 5;
+    optional google.protobuf.Timestamp created_at = 6;
+    repeated EnvironmentVariable environment = 7;
+    optional int32 expected_endpoints_count = 8;
+    repeated Endpoint endpoints = 9;
+    repeated Service services = 10;
+    repeated ResourceCommandRequest commands = 11;
+
+    // Properties holding data not modeled directly on the message.
+    //
+    // For:
+    // - Containers: image, container_id, ports
+    // - Executables: process_id, executable_path, working_directory, arguments
+    // - Projects: process_id, project_path
+    repeated ResourceProperty properties = 12;
+}
+
+////////////////////////////////////////////
+
+// Models a snapshot of resource state
+message InitialResourceData {
+    repeated Resource resources = 1;
+    repeated ResourceType resource_types = 2;
+}
+
+////////////////////////////////////////////
+
+message ResourceDeletion {
+    string resource_name = 1;
+    string resource_type = 2;
+}
+
+message WatchResourcesChange  {
+    oneof kind {
+        ResourceDeletion delete = 1;
+        Resource upsert = 2;
+    }
+}
+
+message WatchResourcesChanges {
+    repeated WatchResourcesChange value = 1;
+}
+
+////////////////////////////////////////////
+
+// Initiates a subscription for data about resources.
+message WatchResourcesRequest {
+    // True if the client is establishing this connection because a prior one closed unexpectedly.
+    optional bool is_reconnect = 1;
+}
+
+// A message received from the server when watching resources. Has multiple types of payload.
+message WatchResourcesUpdate {
+    oneof kind {
+        // The current resource state, along with other reference data such as the set of resource types that may exist.
+        // Received once upon connection, before any changes.
+        InitialResourceData initial_data = 1;
+        // One or more deltas to apply.
+        WatchResourcesChanges changes = 2;
+    }
+}
+
+////////////////////////////////////////////
+
+message ConsoleLogLine {
+    string text = 1;
+    // Indicates whether this line came from STDERR or not.
+    optional bool is_std_err = 2;
+}
+
+// Initiates a subscription for the logs of a resource.
+message WatchResourceConsoleLogsRequest {
+    // Specifies the resource to watch logs from.
+    string resource_name = 1;
+}
+
+// A message received from the server when watching resource logs.
+// Contains potentially many lines to be appended to the log.
+message WatchResourceConsoleLogsUpdate {
+    repeated ConsoleLogLine log_lines = 1;
+}
+
+////////////////////////////////////////////
+
+service DashboardService {
+    rpc GetApplicationInformation(ApplicationInformationRequest) returns (ApplicationInformationResponse);
+    rpc WatchResources(WatchResourcesRequest) returns (stream WatchResourcesUpdate);
+    rpc WatchResourceConsoleLogs(WatchResourceConsoleLogsRequest) returns (stream WatchResourceConsoleLogsUpdate);
+    rpc ExecuteResourceCommand(ResourceCommandRequest) returns (ResourceCommandResponse);
+}

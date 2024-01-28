@@ -1,28 +1,24 @@
-﻿@using Aspire.Dashboard.Model
+﻿@namespace Aspire.Dashboard.Components
 
-<FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
-    <span><FluentHighlighter HighlightedText="@FilterText" Text="@FormatName(Resource)" /></span>
-    @if (Resource is ProjectViewModel projectViewModel)
-    {
-        var title = $"Process ID: {projectViewModel.ProcessId}";
-        <span class="subtext" title="@title" aria-label="@title">@projectViewModel.ProcessId</span>
-    }
-    else if (Resource is ContainerViewModel containerViewModel)
-    {
-        <div class="subtext">
-            <GridValue Value="@containerViewModel.ContainerId"
-                       MaxDisplayLength="8"
-                       EnableHighlighting="false"
-                       PreCopyToolTip="Copy container ID to clipboard"
-                       ToolTip="@($"Container ID: {containerViewModel.ContainerId}")"/>
-        </div>
-    }
-    else if (Resource is ExecutableViewModel executableViewModel)
-    {
-        var title = $"Process ID: {executableViewModel.ProcessId}";
-        <span class="subtext" title="@title" aria-label="@title">@executableViewModel.ProcessId</span>
-    }
-</FluentStack>
+@using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Otlp.Model
+@using Aspire.Dashboard.Resources
+@inject IStringLocalizer<Columns> Loc
+
+@{
+    var unviewedErrorCount = GetUnviewedErrorCount(Resource);
+}
+
+@if (unviewedErrorCount > 0)
+{
+    <FluentCounterBadge Class="error-counter-badge" Max="9" BackgroundColor="@Color.Error" Color="Color.Fill"  Appearance="Appearance.Lightweight" Count="@unviewedErrorCount" HorizontalPosition="100">
+        <span title="@FormatName(Resource)"><FluentHighlighter HighlightedText="@FilterText" Text="@FormatName(Resource)"/></span>
+    </FluentCounterBadge>
+}
+else
+{
+    <span title="@FormatName(Resource)"><FluentHighlighter HighlightedText="@FilterText" Text="@FormatName(Resource)"/></span>
+}
 
 @code {
     [Parameter, EditorRequired]
@@ -33,4 +29,7 @@
 
     [Parameter, EditorRequired]
     public required string FilterText { get; set; }
+
+    [Parameter, EditorRequired]
+    public required Dictionary<OtlpApplication, int>? UnviewedErrorCounts { get; set; }
 }

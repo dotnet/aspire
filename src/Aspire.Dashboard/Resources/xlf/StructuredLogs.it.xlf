@@ -1,0 +1,92 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="it" original="../StructuredLogs.resx">
+    <body>
+      <trans-unit id="StructuredLogsAddFilter">
+        <source>Add filter</source>
+        <target state="new">Add filter</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StructuredLogsAllTypes">
+        <source>All</source>
+        <target state="new">All</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StructuredLogsEditFilter">
+        <source>Edit filter</source>
+        <target state="new">Edit filter</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StructuredLogsEntryDetails">
+        <source>Log entry details</source>
+        <target state="new">Log entry details</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StructuredLogsFilters">
+        <source>Filters: </source>
+        <target state="new">Filters: </target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StructuredLogsHeader">
+        <source>Structured logs</source>
+        <target state="new">Structured logs</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StructuredLogsLevelColumnHeader">
+        <source>Level</source>
+        <target state="new">Level</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StructuredLogsMessageColumnHeader">
+        <source>Message</source>
+        <target state="new">Message</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StructuredLogsMessageFilter">
+        <source>Message filter</source>
+        <target state="new">Message filter</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StructuredLogsMinimumLogFilter">
+        <source>Minimum log level filter</source>
+        <target state="new">Minimum log level filter</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StructuredLogsNoFilters">
+        <source>No filters</source>
+        <target state="new">No filters</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StructuredLogsNoLogsFound">
+        <source>No structured logs found</source>
+        <target state="new">No structured logs found</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StructuredLogsPageTitle">
+        <source>{0} structured logs</source>
+        <target state="new">{0} structured logs</target>
+        <note>{0} is an application name</note>
+      </trans-unit>
+      <trans-unit id="StructuredLogsResourceColumnHeader">
+        <source>Resource</source>
+        <target state="new">Resource</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StructuredLogsSelectMinimumLogLevel">
+        <source>Select a minimum log level</source>
+        <target state="new">Select a minimum log level</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StructuredLogsTimestampColumnHeader">
+        <source>Timestamp</source>
+        <target state="new">Timestamp</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StructuredLogsTraceColumnHeader">
+        <source>Trace</source>
+        <target state="new">Trace</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

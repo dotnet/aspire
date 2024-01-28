@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Runtime.CompilerServices;
+using Aspire.Components.Common.Tests;
 using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.StackExchangeRedis;
@@ -9,7 +11,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using OpenTelemetry.Instrumentation.StackExchangeRedis;
+using OpenTelemetry.Trace;
 using StackExchange.Redis;
+using StackExchange.Redis.Profiling;
 using Xunit;
 
 namespace Aspire.StackExchange.Redis.Tests;
@@ -222,5 +227,64 @@ public class AspireRedisExtensionsTests
         // See https://github.com/dotnet/aspnetcore/blob/94ad7031db6744409de24f75777a59620cb94d9a/src/HealthChecks/HealthChecks/src/DefaultHealthCheckService.cs#L33-L36
         var healthCheckService = host.Services.GetRequiredService<HealthCheckService>();
         Assert.NotNull(healthCheckService);
+    }
+
+    [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "_profilingSessionProvider")]
+    static extern ref Func<ProfilingSession>? GetProfiler(ConnectionMultiplexer? @this);
+
+    [Fact]
+    public void KeyedServiceRedisInstrumentation()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+
+        builder.AddKeyedRedis("redis", settings =>
+        {
+            settings.ConnectionString = "localhost";
+            settings.Tracing = true;
+        });
+        var host = builder.Build();
+
+        //This will add the instrumentations.
+        var tracerProvider = host.Services.GetRequiredService<TracerProvider>();
+
+        var connectionMultiplexer = host.Services.GetRequiredKeyedService<IConnectionMultiplexer>("redis");
+        var profiler = GetProfiler(connectionMultiplexer as ConnectionMultiplexer);
+
+        Assert.NotNull(profiler);
+    }
+
+    [ConditionalFact]
+    public async Task KeyedServiceRedisInstrumentationEndToEnd()
+    {
+        AspireRedisHelpers.SkipIfCanNotConnectToServer();
+
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:redis", AspireRedisHelpers.TestingEndpoint)
+            ]);
+
+        var notifier = new ActivityNotifier();
+        builder.Services.AddOpenTelemetry().WithTracing(builder => builder.AddProcessor(notifier));
+        // set the FlushInterval to to zero so the Activity gets created immediately
+        builder.Services.Configure<StackExchangeRedisInstrumentationOptions>(options => options.FlushInterval = TimeSpan.Zero);
+
+        builder.AddKeyedRedis("redis");
+        var host = builder.Build();
+
+        // We start the host to make it build TracerProvider.
+        // If we don't, nothing gets reported!
+        host.Start();
+
+        var connectionMultiplexer = host.Services.GetRequiredKeyedService<IConnectionMultiplexer>("redis");
+        var database = connectionMultiplexer.GetDatabase();
+        database.StringGet("key");
+
+        await notifier.ActivityReceived.WaitAsync(TimeSpan.FromSeconds(10));
+
+        Assert.Single(notifier.ExportedActivities);
+
+        var activity = notifier.ExportedActivities[0];
+        Assert.Equal("GET", activity.OperationName);
+        Assert.Contains(activity.Tags, kvp => kvp.Key == "db.system" && kvp.Value == "redis");
     }
 }

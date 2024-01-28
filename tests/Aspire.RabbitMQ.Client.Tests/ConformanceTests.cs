@@ -25,8 +25,6 @@ public class ConformanceTests : ConformanceTests<IConnection, RabbitMQClientSett
 
     protected override string ActivitySourceName => "";
 
-    protected override string JsonSchemaPath => "src/Components/Aspire.RabbitMQ.Client/ConfigurationSchema.json";
-
     protected override string ValidJsonConfig => """
         {
           "Aspire": {

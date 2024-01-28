@@ -39,6 +39,11 @@ public sealed class ManifestPublishingContext(string manifestPath, Utf8JsonWrite
 
         Writer.WriteString("image", image);
 
+        if (container.Entrypoint is not null)
+        {
+            Writer.WriteString("entrypoint", container.Entrypoint);
+        }
+
         if (container.TryGetAnnotationsOfType<ExecutableArgsCallbackAnnotation>(out var argsCallback))
         {
             var args = new List<string>();
@@ -51,7 +56,7 @@ public sealed class ManifestPublishingContext(string manifestPath, Utf8JsonWrite
             {
                 Writer.WriteStartArray("args");
 
-                foreach (var arg in args ?? [])
+                foreach (var arg in args)
                 {
                     Writer.WriteStringValue(arg);
                 }
@@ -65,24 +70,24 @@ public sealed class ManifestPublishingContext(string manifestPath, Utf8JsonWrite
 
     public void WriteBindings(IResource resource, bool emitContainerPort = false)
     {
-        if (resource.TryGetServiceBindings(out var serviceBindings))
+        if (resource.TryGetEndpoints(out var endpoints))
         {
             Writer.WriteStartObject("bindings");
-            foreach (var serviceBinding in serviceBindings)
+            foreach (var endpoint in endpoints)
             {
-                Writer.WriteStartObject(serviceBinding.Name);
-                Writer.WriteString("scheme", serviceBinding.UriScheme);
-                Writer.WriteString("protocol", serviceBinding.Protocol.ToString().ToLowerInvariant());
-                Writer.WriteString("transport", serviceBinding.Transport);
+                Writer.WriteStartObject(endpoint.Name);
+                Writer.WriteString("scheme", endpoint.UriScheme);
+                Writer.WriteString("protocol", endpoint.Protocol.ToString().ToLowerInvariant());
+                Writer.WriteString("transport", endpoint.Transport);
 
-                if (emitContainerPort && serviceBinding.ContainerPort is { } containerPort)
+                if (emitContainerPort && endpoint.ContainerPort is { } containerPort)
                 {
                     Writer.WriteNumber("containerPort", containerPort);
                 }
 
-                if (serviceBinding.IsExternal)
+                if (endpoint.IsExternal)
                 {
-                    Writer.WriteBoolean("external", serviceBinding.IsExternal);
+                    Writer.WriteBoolean("external", endpoint.IsExternal);
                 }
 
                 Writer.WriteEndObject();
@@ -119,29 +124,29 @@ public sealed class ManifestPublishingContext(string manifestPath, Utf8JsonWrite
 
     public void WriteServiceDiscoveryEnvironmentVariables(IResource resource)
     {
-        var serviceReferenceAnnotations = resource.Annotations.OfType<ServiceReferenceAnnotation>();
+        var endpointReferenceAnnotations = resource.Annotations.OfType<EndpointReferenceAnnotation>();
 
-        if (serviceReferenceAnnotations.Any())
+        if (endpointReferenceAnnotations.Any())
         {
-            foreach (var serviceReferenceAnnotation in serviceReferenceAnnotations)
+            foreach (var endpointReferenceAnnotation in endpointReferenceAnnotations)
             {
-                var bindingNames = serviceReferenceAnnotation.UseAllBindings
-                    ? serviceReferenceAnnotation.Resource.Annotations.OfType<ServiceBindingAnnotation>().Select(sb => sb.Name)
-                    : serviceReferenceAnnotation.BindingNames;
+                var endpointNames = endpointReferenceAnnotation.UseAllEndpoints
+                    ? endpointReferenceAnnotation.Resource.Annotations.OfType<EndpointAnnotation>().Select(sb => sb.Name)
+                    : endpointReferenceAnnotation.EndpointNames;
 
-                var serviceBindingAnnotationsGroupedByScheme = serviceReferenceAnnotation.Resource.Annotations
-                    .OfType<ServiceBindingAnnotation>()
-                    .Where(sba => bindingNames.Contains(sba.Name))
+                var endpointAnnotationsGroupedByScheme = endpointReferenceAnnotation.Resource.Annotations
+                    .OfType<EndpointAnnotation>()
+                    .Where(sba => endpointNames.Contains(sba.Name, StringComparers.EndpointAnnotationName))
                     .GroupBy(sba => sba.UriScheme);
 
                 var i = 0;
-                foreach (var serviceBindingAnnotationGroupedByScheme in serviceBindingAnnotationsGroupedByScheme)
+                foreach (var endpointAnnotationGroupedByScheme in endpointAnnotationsGroupedByScheme)
                 {
-                    // HACK: For November we are only going to support a single service binding annotation
+                    // HACK: For November we are only going to support a single endpoint annotation
                     //       per URI scheme per service reference.
-                    var binding = serviceBindingAnnotationGroupedByScheme.Single();
+                    var binding = endpointAnnotationGroupedByScheme.Single();
 
-                    Writer.WriteString($"services__{serviceReferenceAnnotation.Resource.Name}__{i++}", $"{{{serviceReferenceAnnotation.Resource.Name}.bindings.{binding.Name}.url}}");
+                    Writer.WriteString($"services__{endpointReferenceAnnotation.Resource.Name}__{i++}", $"{{{endpointReferenceAnnotation.Resource.Name}.bindings.{binding.Name}.url}}");
                 }
 
             }
@@ -150,16 +155,16 @@ public sealed class ManifestPublishingContext(string manifestPath, Utf8JsonWrite
 
     public void WritePortBindingEnvironmentVariables(IResource resource)
     {
-        if (resource.TryGetServiceBindings(out var serviceBindings))
+        if (resource.TryGetEndpoints(out var endpoints))
         {
-            foreach (var serviceBinding in serviceBindings)
+            foreach (var endpoint in endpoints)
             {
-                if (serviceBinding.EnvironmentVariable is null)
+                if (endpoint.EnvironmentVariable is null)
                 {
                     continue;
                 }
 
-                Writer.WriteString(serviceBinding.EnvironmentVariable, $"{{{resource.Name}.bindings.{serviceBinding.Name}.port}}");
+                Writer.WriteString(endpoint.EnvironmentVariable, $"{{{resource.Name}.bindings.{endpoint.Name}.port}}");
             }
         }
     }

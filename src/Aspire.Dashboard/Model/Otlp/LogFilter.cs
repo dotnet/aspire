@@ -4,7 +4,6 @@
 using System.Diagnostics;
 using System.Globalization;
 using Aspire.Dashboard.Otlp.Model;
-using Microsoft.Extensions.Logging;
 
 namespace Aspire.Dashboard.Model.Otlp;
 
@@ -37,7 +36,7 @@ public class LogFilter
             _ => throw new ArgumentOutOfRangeException(nameof(c), c, null)
         };
 
-    private static Func<string, string, bool> ConditionToFuncString(FilterCondition c) =>
+    private static Func<string?, string, bool> ConditionToFuncString(FilterCondition c) =>
         c switch
         {
             FilterCondition.Equals => (a, b) => string.Equals(a, b, StringComparison.OrdinalIgnoreCase),
@@ -105,16 +104,17 @@ public class LogFilter
                 }
             case nameof(OtlpLogEntry.Severity):
                 {
-                    var func = ConditionToFuncNumber(Condition);
-                    if (Enum.TryParse<LogLevel>(Value, true, out var value))
+                    if (Enum.TryParse<LogLevel>(Value, ignoreCase: true, out var value))
                     {
+                        var func = ConditionToFuncNumber(Condition);
                         return input.Where(x => func((int)x.Severity, (double)value));
                     }
                     return input;
                 }
             default:
                 {
-                    return input.Where(x => ConditionToFuncString(Condition)(GetFieldValue(x)!, Value));
+                    var func = ConditionToFuncString(Condition);
+                    return input.Where(x => func(GetFieldValue(x), Value));
                 }
         }
     }

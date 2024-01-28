@@ -5,10 +5,9 @@ using System.Globalization;
 using System.Text.RegularExpressions;
 
 namespace Aspire.Dashboard.ConsoleLogs;
+
 public static partial class TimestampParser
 {
-    public const string DisplayFormat = "yyyy-MM-ddTHH:mm:ss.fffffff";
-
     private static readonly Regex s_rfc3339RegEx = GenerateRfc3339RegEx();
 
     public static bool TryColorizeTimestamp(string text, bool convertTimestampsFromUtc, out TimestampParserResult result)
@@ -37,7 +36,7 @@ public static partial class TimestampParser
         if (DateTimeOffset.TryParse(timestamp, out var dateTimeUtc))
         {
             var dateTimeLocal = dateTimeUtc.ToLocalTime();
-            return dateTimeLocal.ToString(DisplayFormat, CultureInfo.CurrentCulture);
+            return dateTimeLocal.ToString(KnownFormats.ConsoleLogsTimestampFormat, CultureInfo.CurrentCulture);
         }
 
         return timestamp.ToString();
@@ -74,5 +73,5 @@ public static partial class TimestampParser
     [GeneratedRegex("^(?:\\d{4})-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])T(?:[01][0-9]|2[0-3]):(?:[0-5][0-9]):(?:[0-5][0-9])(?:\\.\\d{1,9})?(?:Z|(?:[Z+-](?:[01][0-9]|2[0-3]):(?:[0-5][0-9])))?")]
     private static partial Regex GenerateRfc3339RegEx();
 
-    public readonly record struct TimestampParserResult(string? ModifiedText, string? Timestamp);
+    public readonly record struct TimestampParserResult(string ModifiedText, string Timestamp);
 }

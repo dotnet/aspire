@@ -9,18 +9,14 @@ using System.Net.Sockets;
 using System.Text;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
-using Aspire.Dashboard;
-using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp.Process;
 using Aspire.Hosting.Properties;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using ResourceService = Aspire.Hosting.Dashboard.ResourceService;
 
 namespace Aspire.Hosting.Dcp;
 
@@ -32,19 +28,17 @@ internal sealed partial class DcpHostService : IHostedLifecycleService, IAsyncDi
     private IAsyncDisposable? _dcpRunDisposable;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger _logger;
-    private readonly DashboardWebApplication? _dashboard;
     private readonly DcpOptions _dcpOptions;
     private readonly PublishingOptions _publishingOptions;
     private readonly Locations _locations;
 
-    public DcpHostService(DistributedApplicationModel applicationModel,
-                         DistributedApplicationOptions options,
-                         ILoggerFactory loggerFactory,
-                         IOptions<DcpOptions> dcpOptions,
-                         IOptions<PublishingOptions> publishingOptions,
-                         ApplicationExecutor appExecutor,
-                         Locations locations,
-                         KubernetesService kubernetesService)
+    public DcpHostService(
+        DistributedApplicationModel applicationModel,
+        ILoggerFactory loggerFactory,
+        IOptions<DcpOptions> dcpOptions,
+        IOptions<PublishingOptions> publishingOptions,
+        ApplicationExecutor appExecutor,
+        Locations locations)
     {
         _applicationModel = applicationModel;
         _loggerFactory = loggerFactory;
@@ -53,18 +47,6 @@ internal sealed partial class DcpHostService : IHostedLifecycleService, IAsyncDi
         _publishingOptions = publishingOptions.Value;
         _appExecutor = appExecutor;
         _locations = locations;
-
-        // HACK: Manifest publisher check is temporary util DcpHostService is integrated with DcpPublisher.
-        if (options.DashboardEnabled && publishingOptions.Value.Publisher != "manifest")
-        {
-            var dashboardLogger = _loggerFactory.CreateLogger<DashboardWebApplication>();
-            _dashboard = new DashboardWebApplication(dashboardLogger, serviceCollection =>
-            {
-                serviceCollection.AddSingleton(_applicationModel);
-                serviceCollection.AddSingleton(kubernetesService);
-                serviceCollection.AddScoped<IResourceService, ResourceService>();
-            });
-        }
     }
 
     public async Task StartAsync(CancellationToken cancellationToken = default)
@@ -81,11 +63,6 @@ internal sealed partial class DcpHostService : IHostedLifecycleService, IAsyncDi
 
         EnsureDcpHostRunning();
         await _appExecutor.RunApplicationAsync(cancellationToken).ConfigureAwait(false);
-
-        if (_dashboard is not null)
-        {
-            await _dashboard.StartAsync(cancellationToken).ConfigureAwait(false);
-        }
     }
 
     public async Task StopAsync(CancellationToken cancellationToken = default)
@@ -96,12 +73,6 @@ internal sealed partial class DcpHostService : IHostedLifecycleService, IAsyncDi
         }
 
         await _appExecutor.StopApplicationAsync(cancellationToken).ConfigureAwait(false);
-
-        // Stop the dashboard after the application has stopped
-        if (_dashboard is not null)
-        {
-            await _dashboard.StopAsync(cancellationToken).ConfigureAwait(false);
-        }
     }
 
     public async ValueTask DisposeAsync()
@@ -498,7 +469,7 @@ internal sealed partial class DcpHostService : IHostedLifecycleService, IAsyncDi
 
                 LogLines(result.Buffer, out var position);
 
-                reader.AdvanceTo(position);
+                reader.AdvanceTo(position, result.Buffer.End);
             }
         }
         catch

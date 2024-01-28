@@ -30,7 +30,7 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger,
         if (_options.Value.OutputPath == null)
         {
             throw new DistributedApplicationException(
-                "The '--output-path [path]' option was not specified even though '--publish manifest' argument was used."
+                "The '--output-path [path]' option was not specified even though '--publisher manifest' argument was used."
                 );
         }
 
@@ -40,12 +40,12 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger,
         await WriteManifestAsync(model, jsonWriter, cancellationToken).ConfigureAwait(false);
 
         var fullyQualifiedPath = Path.GetFullPath(_options.Value.OutputPath);
-        _logger.LogInformation("Published manifest to: {manifestPath}", fullyQualifiedPath);
+        _logger.LogInformation("Published manifest to: {ManifestPath}", fullyQualifiedPath);
     }
 
     protected async Task WriteManifestAsync(DistributedApplicationModel model, Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
     {
-        var manifestPath = _options.Value.OutputPath ?? throw new DistributedApplicationException("The '--output-path [path]' option was not specified even though '--publish manifest' argument was used.");
+        var manifestPath = _options.Value.OutputPath ?? throw new DistributedApplicationException("The '--output-path [path]' option was not specified even though '--publisher manifest' argument was used.");
         var context = new ManifestPublishingContext(manifestPath, jsonWriter);
 
         jsonWriter.WriteStartObject();
@@ -110,9 +110,9 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger,
     {
         context.Writer.WriteString("type", "project.v0");
 
-        if (!project.TryGetLastAnnotation<IServiceMetadata>(out var metadata))
+        if (!project.TryGetLastAnnotation<IProjectMetadata>(out var metadata))
         {
-            throw new DistributedApplicationException("Service metadata not found.");
+            throw new DistributedApplicationException("Project metadata not found.");
         }
 
         var relativePathToProjectFile = context.GetManifestRelativePath(metadata.ProjectPath);
@@ -132,13 +132,26 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger,
         context.Writer.WriteString("workingDirectory", relativePathToProjectFile);
 
         context.Writer.WriteString("command", executable.Command);
-        context.Writer.WriteStartArray("args");
 
-        foreach (var arg in executable.Args ?? [])
+        var args = new List<string>(executable.Args ?? []);
+        if (executable.TryGetAnnotationsOfType<ExecutableArgsCallbackAnnotation>(out var argsCallback))
         {
-            context.Writer.WriteStringValue(arg);
+            foreach (var callback in argsCallback)
+            {
+                callback.Callback(args);
+            }
         }
-        context.Writer.WriteEndArray();
+
+        if (args.Count > 0)
+        {
+            context.Writer.WriteStartArray("args");
+
+            foreach (var arg in args)
+            {
+                context.Writer.WriteStringValue(arg);
+            }
+            context.Writer.WriteEndArray();
+        }
 
         context.WriteEnvironmentVariables(executable);
         context.WriteBindings(executable);

@@ -26,7 +26,7 @@ public static class FileNameSuffixes
             else
             {
                 // assume everything else is Unix to avoid modifying this file
-                // everytime a new platform is introduced in runtime.
+                // every time a new platform is introduced in runtime.
                 return Unix;
             }
         }

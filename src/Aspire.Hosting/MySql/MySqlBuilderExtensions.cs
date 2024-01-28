@@ -21,14 +21,14 @@ public static class MySqlBuilderExtensions
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="port">The host port for MySQL.</param>
     /// <param name="password">The password for the MySQL root user. Defaults to a random password.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{MySqlContainerResource}"/>.</returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<MySqlContainerResource> AddMySqlContainer(this IDistributedApplicationBuilder builder, string name, int? port = null, string? password = null)
     {
         password ??= Guid.NewGuid().ToString("N");
         var mySqlContainer = new MySqlContainerResource(name, password);
         return builder.AddResource(mySqlContainer)
                       .WithManifestPublishingCallback(context => WriteMySqlContainerResourceToManifest(context, mySqlContainer))
-                      .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, port: port, containerPort: 3306)) // Internal port is always 3306.
+                      .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 3306)) // Internal port is always 3306.
                       .WithAnnotation(new ContainerImageAnnotation { Image = "mysql", Tag = "latest" })
                       .WithEnvironment(context =>
                       {
@@ -48,14 +48,14 @@ public static class MySqlBuilderExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{MySqlContainerResource}"/>.</returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<MySqlServerResource> AddMySql(this IDistributedApplicationBuilder builder, string name)
     {
         var password = Guid.NewGuid().ToString("N");
         var mySqlContainer = new MySqlServerResource(name, password);
         return builder.AddResource(mySqlContainer)
                       .WithManifestPublishingCallback(WriteMySqlContainerToManifest)
-                      .WithAnnotation(new ServiceBindingAnnotation(ProtocolType.Tcp, containerPort: 3306)) // Internal port is always 3306.
+                      .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, containerPort: 3306)) // Internal port is always 3306.
                       .WithAnnotation(new ContainerImageAnnotation { Image = "mysql", Tag = "latest" })
                       .WithEnvironment(PasswordEnvVarName, () => mySqlContainer.Password);
     }
@@ -65,7 +65,7 @@ public static class MySqlBuilderExtensions
     /// </summary>
     /// <param name="builder">The MySQL server resource builder.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{MySqlDatabaseResource}"/>.</returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<MySqlDatabaseResource> AddDatabase(this IResourceBuilder<IMySqlParentResource> builder, string name)
     {
         var mySqlDatabase = new MySqlDatabaseResource(name, builder.Resource);

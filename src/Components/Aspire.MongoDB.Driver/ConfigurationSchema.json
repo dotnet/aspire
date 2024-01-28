@@ -8,16 +8,16 @@
         "MongoDB.Command": {
           "$ref": "#/definitions/logLevelThreshold"
         },
-        "MongoDB.SDAM": {
-          "$ref": "#/definitions/logLevelThreshold"
-        },
-        "MongoDB.ServerSelection": {
-          "$ref": "#/definitions/logLevelThreshold"
-        },
         "MongoDB.Connection": {
           "$ref": "#/definitions/logLevelThreshold"
         },
         "MongoDB.Internal": {
+          "$ref": "#/definitions/logLevelThreshold"
+        },
+        "MongoDB.SDAM": {
+          "$ref": "#/definitions/logLevelThreshold"
+        },
+        "MongoDB.ServerSelection": {
           "$ref": "#/definitions/logLevelThreshold"
         }
       }
@@ -37,21 +37,24 @@
                   "type": "string",
                   "description": "Gets or sets the connection string of the MongoDB database to connect to."
                 },
-                "HealthChecks": {
-                  "type": "boolean",
-                  "description": "Gets or sets a boolean value that indicates whether the MongoDB health check is enabled or not."
-                },
                 "HealthCheckTimeout": {
                   "type": "integer",
                   "description": "Gets or sets a integer value that indicates the MongoDB health check timeout in milliseconds."
                 },
+                "HealthChecks": {
+                  "type": "boolean",
+                  "description": "Gets or sets a boolean value that indicates whether the MongoDB health check is enabled or not.",
+                  "default": true
+                },
                 "Tracing": {
                   "type": "boolean",
-                  "description": "Gets or sets a boolean value that indicates whether the Open Telemetry tracing is enabled or not."
+                  "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.",
+                  "default": true
                 }
-              }
+              },
+              "description": "Provides the client configuration settings for connecting to a MongoDB database using MongoDB driver."
             }
-          }          
+          }
         }
       }
     }
