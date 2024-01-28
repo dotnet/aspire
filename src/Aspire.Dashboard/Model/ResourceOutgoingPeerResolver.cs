@@ -55,15 +55,21 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
         var address = OtlpHelpers.GetValue(attributes, OtlpSpan.PeerServiceAttributeKey);
         if (address != null)
         {
-            foreach (var (resourceName, resource) in _resourceByName)
+            // Match exact value.
+            if (TryMatchResourceAddress(address, out name))
             {
-                foreach (var service in resource.Services)
+                return true;
+            }
+
+            // Some libraries modify the address. Transformed the address value and try to match again.
+            // Change from transformers are cumulative. e.g. "localhost,5000" -> "localhost:5000" -> "127.0.0.1:5000"
+            var transformedAddress = address;
+            foreach (var transformer in s_addressTransformers)
+            {
+                transformedAddress = transformer(transformedAddress);
+                if (TryMatchResourceAddress(transformedAddress, out name))
                 {
-                    if (string.Equals(service.AddressAndPort, address, StringComparison.OrdinalIgnoreCase))
-                    {
-                        name = resource.Name;
-                        return true;
-                    }
+                    return true;
                 }
             }
         }
@@ -71,6 +77,41 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
         name = null;
         return false;
     }
+
+    private bool TryMatchResourceAddress(string value, [NotNullWhen(true)] out string? name)
+    {
+        foreach (var (resourceName, resource) in _resourceByName)
+        {
+            foreach (var service in resource.Services)
+            {
+                if (string.Equals(service.AddressAndPort, value, StringComparison.OrdinalIgnoreCase))
+                {
+                    name = resource.Name;
+                    return true;
+                }
+            }
+        }
+
+        name = null;
+        return false;
+    }
+
+    private static readonly List<Func<string, string>> s_addressTransformers = [
+        s =>
+        {
+            // SQL Server uses comma instead of colon for port.
+            // https://www.connectionstrings.com/sql-server/
+            if (s.AsSpan().Count(',') == 1)
+            {
+                return s.Replace(',', ':');
+            }
+            return s;
+        },
+        s =>
+        {
+            // Some libraries use "127.0.0.1" instead of "localhost".
+            return s.Replace("127.0.0.1:", "localhost:");
+        }];
 
     public IDisposable OnPeerChanges(Func<Task> callback)
     {
