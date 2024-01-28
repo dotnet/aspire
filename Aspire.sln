@@ -181,6 +181,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Oracle.EntityFramewo
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Hosting.Orleans", "src\Aspire.Hosting.Orleans\Aspire.Hosting.Orleans.csproj", "{11EF253D-086B-4358-9A50-2695913BD7E1}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Playgrounds", "Playgrounds", "{DF8ADBC2-5B15-422F-A703-C60711D5552D}"
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "orleans", "orleans", "{8BAF2119-8370-4E9E-A887-D92506F8C727}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OrleansAppHost", "playground\orleans\OrleansAppHost\OrleansAppHost.csproj", "{04B03D1C-45C5-44D4-AEE5-BC315F3D9D26}"
