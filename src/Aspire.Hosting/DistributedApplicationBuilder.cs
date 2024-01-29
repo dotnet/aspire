@@ -9,6 +9,7 @@ using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
 
@@ -43,6 +44,9 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     {
         _args = options.Args ?? [];
         _innerBuilder = new HostApplicationBuilder();
+
+        _innerBuilder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.Warning);
+        _innerBuilder.Logging.AddFilter("Microsoft.AspNetCore.Server.Kestrel", LogLevel.None);
 
         AppHostDirectory = options.ProjectDirectory ?? _innerBuilder.Environment.ContentRootPath;
 

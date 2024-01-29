@@ -6,7 +6,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -115,7 +114,6 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// <inheritdoc cref="IHost.StartAsync" />
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
-        SuppressLogs();
         WriteStartupMessages();
         await _host.StartAsync(cancellationToken).ConfigureAwait(false);
         await ExecuteBeforeStartHooksAsync(cancellationToken).ConfigureAwait(false);
@@ -155,32 +153,9 @@ public class DistributedApplication : IHost, IAsyncDisposable
         await _host.StopAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private void SuppressLogs()
-    {
-        var config = (IConfigurationRoot)_host.Services.GetRequiredService<IConfiguration>();
-
-        // Suppress excess logging from lifetime logger category. This blocks the "Now listening on"
-        // message. This is not a problem for VS usage, but it does confuse "dotnet watch" which looks
-        // at the stdout to figure out when it should launch the browser. Rather than relying on
-        // lifetime logger category for this special string we will emit it ourselves to make
-        // sure that it is correct.
-        var hostingLifetimeLoggingLevelSection = config.GetSection("Logging:LogLevel:Microsoft.Hosting.Lifetime");
-        hostingLifetimeLoggingLevelSection.Value = "Warning";
-
-        // Suppresses warning that we've overridden the default ASPNETCORE_URLS value. This is
-        // because the endpoints that we host in the AppHost is a randomly assinged resource
-        // endpoint that is used for the dashboard. The ASPNETCORE_URLS value is actually passed
-        // into the dashboard that is launched out of process.
-        var aspNetCoreServerKestrelLoggingLevelSection = config.GetSection("Logging:LogLevel:Microsoft.AspNetCore.Server.Kestrel");
-        aspNetCoreServerKestrelLoggingLevelSection.Value = "None";
-
-        config.Reload();
-    }
-
     /// <inheritdoc cref="HostingAbstractionsHostExtensions.RunAsync" />
     public async Task RunAsync(CancellationToken cancellationToken = default)
     {
-        SuppressLogs();
         await ExecuteBeforeStartHooksAsync(cancellationToken).ConfigureAwait(false);
         WriteStartupMessages();
         await _host.RunAsync(cancellationToken).ConfigureAwait(false);
