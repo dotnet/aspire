@@ -5,7 +5,6 @@ using System.Diagnostics;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Publishing;
-using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -114,37 +113,9 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// <inheritdoc cref="IHost.StartAsync" />
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
-        WriteStartupMessages();
+        WriteStartingLog();
         await _host.StartAsync(cancellationToken).ConfigureAwait(false);
         await ExecuteBeforeStartHooksAsync(cancellationToken).ConfigureAwait(false);
-    }
-
-    private void WriteStartupMessages()
-    {
-        var options = _host.Services.GetRequiredService<IOptions<PublishingOptions>>();
-
-        if (options.Value?.Publisher == "manifest")
-        {
-            // If we are producing the manifest, don't write startup messages.
-            return;
-        }
-
-        if (Environment.GetEnvironmentVariable("ASPNETCORE_URLS") is { } dashboardUrls
-            && StringUtils.TryGetUriFromDelimitedString(dashboardUrls, ";", out var dashboardUrl))
-        {
-            // dotnet watch appears to blindly append a training slash to the URI which present
-            // on this message. This results in an address that looks like http://host:port// which
-            // is a 404 on the dashboard. This is a quick workaround.
-            var dotnetWatchSafeDashboardUrl = dashboardUrl.ToString().TrimEnd('/');
-            _logger.LogInformation("Now listening on: {DashboardUrl}", dotnetWatchSafeDashboardUrl);
-        }
-
-        if (Environment.GetEnvironmentVariable("DOTNET_DASHBOARD_OTLP_ENDPOINT_URL") is { } otlpEndpointUrl)
-        {
-            _logger.LogInformation("OTLP endpoint listening on: {OtlpEndpointUrl}", otlpEndpointUrl);
-        }
-
-        _logger.LogInformation("Application started. Press Ctrl+C to shut down.");
     }
 
     /// <inheritdoc cref="IHost.StopAsync" />
@@ -156,9 +127,22 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// <inheritdoc cref="HostingAbstractionsHostExtensions.RunAsync" />
     public async Task RunAsync(CancellationToken cancellationToken = default)
     {
+        WriteStartingLog();
         await ExecuteBeforeStartHooksAsync(cancellationToken).ConfigureAwait(false);
-        WriteStartupMessages();
         await _host.RunAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    private void WriteStartingLog()
+    {
+        var options = _host.Services.GetRequiredService<IOptions<PublishingOptions>>();
+
+        if (options.Value?.Publisher == "manifest")
+        {
+            // If we are producing the manifest, don't write startup messages.
+            return;
+        }
+
+        _logger.LogInformation("Distributed application starting.");
     }
 
     /// <summary>
