@@ -52,6 +52,11 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
 
     public bool TryResolvePeerName(KeyValuePair<string, string>[] attributes, [NotNullWhen(true)] out string? name)
     {
+        return TryResolvePeerNameCore(_resourceByName, attributes, out name);
+    }
+
+    internal static bool TryResolvePeerNameCore(IDictionary<string, ResourceViewModel> resources, KeyValuePair<string, string>[] attributes, out string? name)
+    {
         var address = OtlpHelpers.GetValue(attributes, OtlpSpan.PeerServiceAttributeKey);
         if (address != null)
         {
@@ -61,7 +66,8 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
                 return true;
             }
 
-            // Some libraries modify the address. Transformed the address value and try to match again.
+            // Resource addresses have the format "127.0.0.1:5000". Some libraries modify the peer.service value on the span.
+            // If there isn't an exact match then transform the peer.service value and try to match again.
             // Change from transformers are cumulative. e.g. "localhost,5000" -> "localhost:5000" -> "127.0.0.1:5000"
             var transformedAddress = address;
             foreach (var transformer in s_addressTransformers)
@@ -76,24 +82,24 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
 
         name = null;
         return false;
-    }
 
-    private bool TryMatchResourceAddress(string value, [NotNullWhen(true)] out string? name)
-    {
-        foreach (var (resourceName, resource) in _resourceByName)
+        bool TryMatchResourceAddress(string value, [NotNullWhen(true)] out string? name)
         {
-            foreach (var service in resource.Services)
+            foreach (var (resourceName, resource) in resources)
             {
-                if (string.Equals(service.AddressAndPort, value, StringComparison.OrdinalIgnoreCase))
+                foreach (var service in resource.Services)
                 {
-                    name = resource.Name;
-                    return true;
+                    if (string.Equals(service.AddressAndPort, value, StringComparison.OrdinalIgnoreCase))
+                    {
+                        name = resource.Name;
+                        return true;
+                    }
                 }
             }
-        }
 
-        name = null;
-        return false;
+            name = null;
+            return false;
+        }
     }
 
     private static readonly List<Func<string, string>> s_addressTransformers = [
