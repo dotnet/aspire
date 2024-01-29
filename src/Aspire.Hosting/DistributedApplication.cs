@@ -134,7 +134,11 @@ public class DistributedApplication : IHost, IAsyncDisposable
         if (Environment.GetEnvironmentVariable("ASPNETCORE_URLS") is { } dashboardUrls
             && StringUtils.TryGetUriFromDelimitedString(dashboardUrls, ";", out var dashboardUrl))
         {
-            _logger.LogInformation("Now listening on: {DashboardUrl}", dashboardUrl);
+            // dotnet watch appears to blindly append a training slash to the URI which present
+            // on this message. This results in an address that looks like http://host:port// which
+            // is a 404 on the dashboard. This is a quick workaround.
+            var dotnetWatchSafeDashboardUrl = dashboardUrl.ToString().TrimEnd('/');
+            _logger.LogInformation("Now listening on: {DashboardUrl}", dotnetWatchSafeDashboardUrl);
         }
 
         if (Environment.GetEnvironmentVariable("DOTNET_DASHBOARD_OTLP_ENDPOINT_URL") is { } otlpEndpointUrl)
