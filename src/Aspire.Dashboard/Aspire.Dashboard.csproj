@@ -174,13 +174,4 @@
     <Compile Include="..\Aspire.Hosting\Utils\KnownResourceNames.cs" Link="Utils\KnownResourceNames.cs" />
     <Compile Include="$(SharedDir)KnownFormats.cs" Link="Utils\KnownFormats.cs" />
   </ItemGroup>
-
-  <ItemGroup>
-    <UpToDateCheckInput Remove="Components\ResourcesGridColumns\UnreadLogErrorsBadge.razor" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <_ContentIncludedByDefault Remove="Components\ResourcesGridColumns\UnreadLogErrorsBadge.razor" />
-  </ItemGroup>
-
 </Project>
