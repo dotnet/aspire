@@ -177,13 +177,4 @@
     <Compile Include="$(SharedDir)Model\KnownProperties.cs" Link="Dashboard\KnownProperties.cs" />
     <Compile Include="$(SharedDir)Model\KnownResourceTypes.cs" Link="Dashboard\KnownResourceTypes.cs" />
   </ItemGroup>
-
-  <ItemGroup>
-    <UpToDateCheckInput Remove="Components\ResourcesGridColumns\UnreadLogErrorsBadge.razor" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <_ContentIncludedByDefault Remove="Components\ResourcesGridColumns\UnreadLogErrorsBadge.razor" />
-  </ItemGroup>
-
 </Project>
