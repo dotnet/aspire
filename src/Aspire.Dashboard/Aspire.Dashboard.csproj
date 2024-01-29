@@ -169,10 +169,13 @@
     <Protobuf Include="..\Aspire.Hosting\Dashboard\proto\resource_service.proto" GrpcServices="Client" Access="Internal">
       <Link>Protos\resource_service.proto</Link>
     </Protobuf>
-    <Compile Include="..\Aspire.Hosting\Extensions\ChannelExtensions.cs" Link="Extensions\ChannelExtensions.cs" />
-    <Compile Include="..\Aspire.Hosting\Utils\IEnvironmentVariables.cs" Link="Utils\IEnvironmentVariables.cs" />
-    <Compile Include="..\Aspire.Hosting\Utils\KnownResourceNames.cs" Link="Utils\KnownResourceNames.cs" />
+    <Compile Include="$(SharedDir)ChannelExtensions.cs" Link="Extensions\ChannelExtensions.cs" />
+    <Compile Include="$(SharedDir)IEnvironmentVariables.cs" Link="Utils\IEnvironmentVariables.cs" />
+    <Compile Include="$(SharedDir)KnownResourceNames.cs" Link="Utils\KnownResourceNames.cs" />
     <Compile Include="$(SharedDir)KnownFormats.cs" Link="Utils\KnownFormats.cs" />
+    <Compile Include="$(SharedDir)StringComparers.cs" Link="Utils\StringComparers.cs" />
+    <Compile Include="$(SharedDir)Model\KnownProperties.cs" Link="Dashboard\KnownProperties.cs" />
+    <Compile Include="$(SharedDir)Model\KnownResourceTypes.cs" Link="Dashboard\KnownResourceTypes.cs" />
   </ItemGroup>
 
 </Project>

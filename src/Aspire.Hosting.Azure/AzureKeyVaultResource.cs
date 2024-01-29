@@ -4,7 +4,7 @@
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// Represents an Azure Key Vault resource that can be deployed to an Azure resource group.
+/// A resource that represents an Azure Key Vault.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 public class AzureKeyVaultResource(string name) : Resource(name), IAzureResource, IResourceWithConnectionString
