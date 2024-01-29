@@ -5,9 +5,11 @@ using System.Diagnostics;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting;
@@ -46,6 +48,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
 {
     private readonly IHost _host;
     private readonly string[] _args;
+    private readonly ILogger<DistributedApplication> _logger;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DistributedApplication"/> class.
@@ -55,6 +58,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
     public DistributedApplication(IHost host, string[] args)
     {
         _host = host;
+        _logger = host.Services.GetRequiredService<ILogger<DistributedApplication>>();
         _args = args;
     }
 
@@ -111,8 +115,34 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// <inheritdoc cref="IHost.StartAsync" />
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
-        await ExecuteBeforeStartHooksAsync(cancellationToken).ConfigureAwait(false);
+        SuppressLogs();
+        WriteStartupMessages();
         await _host.StartAsync(cancellationToken).ConfigureAwait(false);
+        await ExecuteBeforeStartHooksAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    private void WriteStartupMessages()
+    {
+        var options = _host.Services.GetRequiredService<IOptions<PublishingOptions>>();
+
+        if (options.Value?.Publisher == "manifest")
+        {
+            // If we are producing the manifest, don't write startup messages.
+            return;
+        }
+
+        if (Environment.GetEnvironmentVariable("ASPNETCORE_URLS") is { } dashboardUrls
+            && StringUtils.TryGetUriFromDelimitedString(dashboardUrls, ";", out var dashboardUrl))
+        {
+            _logger.LogInformation("Now listening on: {DashboardUrl}", dashboardUrl);
+        }
+
+        if (Environment.GetEnvironmentVariable("DOTNET_DASHBOARD_OTLP_ENDPOINT_URL") is { } otlpEndpointUrl)
+        {
+            _logger.LogInformation("OTLP endpoint listening on: {OtlpEndpointUrl}", otlpEndpointUrl);
+        }
+
+        _logger.LogInformation("Application started. Press Ctrl+C to shut down.");
     }
 
     /// <inheritdoc cref="IHost.StopAsync" />
@@ -121,20 +151,24 @@ public class DistributedApplication : IHost, IAsyncDisposable
         await _host.StopAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private void SuppressLifetimeLogsDuringManifestPublishing()
+    private void SuppressLogs()
     {
         var config = (IConfigurationRoot)_host.Services.GetRequiredService<IConfiguration>();
-        var options = _host.Services.GetRequiredService<IOptions<PublishingOptions>>();
 
-        if (options.Value?.Publisher != "manifest")
-        {
-            // If we aren't doing manifest publishing we want the logs
-            // to be produced as normal.
-            return;
-        }
-
+        // Suppress excess logging from lifetime logger category. This blocks the "Now listening on"
+        // message. This is not a problem for VS usage, but it does confuse "dotnet watch" which looks
+        // at the stdout to figure out when it should launch the browser. Rather than relying on
+        // lifetime logger category for this special string we will emit it ourselves to make
+        // sure that it is correct.
         var hostingLifetimeLoggingLevelSection = config.GetSection("Logging:LogLevel:Microsoft.Hosting.Lifetime");
         hostingLifetimeLoggingLevelSection.Value = "Warning";
+
+        // Suppresses warning that we've overridden the default ASPNETCORE_URLS value. This is
+        // because the endpoints that we host in the AppHost is a randomly assinged resource
+        // endpoint that is used for the dashboard. The ASPNETCORE_URLS value is actually passed
+        // into the dashboard that is launched out of process.
+        var aspNetCoreServerKestrelLoggingLevelSection = config.GetSection("Logging:LogLevel:Microsoft.AspNetCore.Server.Kestrel");
+        aspNetCoreServerKestrelLoggingLevelSection.Value = "None";
 
         config.Reload();
     }
@@ -142,8 +176,9 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// <inheritdoc cref="HostingAbstractionsHostExtensions.RunAsync" />
     public async Task RunAsync(CancellationToken cancellationToken = default)
     {
-        SuppressLifetimeLogsDuringManifestPublishing();
+        SuppressLogs();
         await ExecuteBeforeStartHooksAsync(cancellationToken).ConfigureAwait(false);
+        WriteStartupMessages();
         await _host.RunAsync(cancellationToken).ConfigureAwait(false);
     }
 
