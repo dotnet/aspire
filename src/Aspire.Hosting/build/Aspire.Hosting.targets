@@ -1,7 +1,5 @@
 <Project>
 
-  <Import Sdk="Microsoft.NET.Sdk.StaticWebAssets" Project="Sdk.targets" />
-
   <PropertyGroup>
     <!-- Similar to ASP.NET Core and Worker apps, set the default CWD of orchestrator projects to be the project directory. -->
     <RunWorkingDirectory Condition=" '$(RunWorkingDirectory)' == '' and '$(EnableDefaultRunWorkingDirectory)' != 'false' ">$(MSBuildProjectDirectory)</RunWorkingDirectory>
