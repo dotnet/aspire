@@ -5,9 +5,9 @@ using System.Diagnostics;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Publishing;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting;
@@ -46,6 +46,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
 {
     private readonly IHost _host;
     private readonly string[] _args;
+    private readonly ILogger<DistributedApplication> _logger;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DistributedApplication"/> class.
@@ -55,6 +56,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
     public DistributedApplication(IHost host, string[] args)
     {
         _host = host;
+        _logger = host.Services.GetRequiredService<ILogger<DistributedApplication>>();
         _args = args;
     }
 
@@ -111,8 +113,9 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// <inheritdoc cref="IHost.StartAsync" />
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
-        await ExecuteBeforeStartHooksAsync(cancellationToken).ConfigureAwait(false);
+        WriteStartingLog();
         await _host.StartAsync(cancellationToken).ConfigureAwait(false);
+        await ExecuteBeforeStartHooksAsync(cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc cref="IHost.StopAsync" />
@@ -121,30 +124,25 @@ public class DistributedApplication : IHost, IAsyncDisposable
         await _host.StopAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private void SuppressLifetimeLogsDuringManifestPublishing()
-    {
-        var config = (IConfigurationRoot)_host.Services.GetRequiredService<IConfiguration>();
-        var options = _host.Services.GetRequiredService<IOptions<PublishingOptions>>();
-
-        if (options.Value?.Publisher != "manifest")
-        {
-            // If we aren't doing manifest publishing we want the logs
-            // to be produced as normal.
-            return;
-        }
-
-        var hostingLifetimeLoggingLevelSection = config.GetSection("Logging:LogLevel:Microsoft.Hosting.Lifetime");
-        hostingLifetimeLoggingLevelSection.Value = "Warning";
-
-        config.Reload();
-    }
-
     /// <inheritdoc cref="HostingAbstractionsHostExtensions.RunAsync" />
     public async Task RunAsync(CancellationToken cancellationToken = default)
     {
-        SuppressLifetimeLogsDuringManifestPublishing();
+        WriteStartingLog();
         await ExecuteBeforeStartHooksAsync(cancellationToken).ConfigureAwait(false);
         await _host.RunAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    private void WriteStartingLog()
+    {
+        var options = _host.Services.GetRequiredService<IOptions<PublishingOptions>>();
+
+        if (options.Value?.Publisher == "manifest")
+        {
+            // If we are producing the manifest, don't write startup messages.
+            return;
+        }
+
+        _logger.LogInformation("Distributed application starting.");
     }
 
     /// <summary>

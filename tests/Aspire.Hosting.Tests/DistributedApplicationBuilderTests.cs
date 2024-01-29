@@ -26,7 +26,7 @@ public class DistributedApplicationBuilderTests
 
         var lifecycles = app.Services.GetServices<IDistributedApplicationLifecycleHook>();
         Assert.Single(lifecycles.Where(h => h.GetType().Name == "DcpDistributedApplicationLifecycleHook"));
-        Assert.Equal(3, lifecycles.Count());
+        Assert.Equal(4, lifecycles.Count());
 
         var options = app.Services.GetRequiredService<IOptions<PublishingOptions>>();
         Assert.Null(options.Value.Publisher);
