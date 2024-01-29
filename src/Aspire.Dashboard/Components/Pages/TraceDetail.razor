@@ -68,6 +68,7 @@
                                     // - 5px border
                                     // - 9px padding-left
                                     // - 5px extra margin-left
+                                    marginLeft += 5;
                                     spanNameContainerWrapperStyle = $"margin-left: {marginLeft}px;";
                                     spanNameContainerStyle = $"border-left-color: {ColorGenerator.Instance.GetColorHexByKey(GetResourceName(context.Span.Source))}; border-left-width: 5px; border-left-style: solid; padding-left: 9px;";
                                 }
@@ -76,12 +77,12 @@
                                     // Server span has 19px extra content:
                                     // - 16px icon
                                     // - 3px padding-left
-                                    spanNameContainerWrapperStyle = $"margin-left: {marginLeft}px;";
-                                    spanNameContainerStyle = $"margin-left: -8px;";
+                                    spanNameContainerWrapperStyle = $"margin-left: {(marginLeft)}px;";
+                                    spanNameContainerStyle = string.Empty;
                                 }
                             }
 
-                            <div class="span-name-container-warpper" style="@spanNameContainerWrapperStyle">
+                            <span style="@spanNameContainerWrapperStyle">
                                 <span class="span-collapse-symbol" @onclick="() => OnToggleCollapse(context)" @onclick:stopPropagation="true">
                                     @if (context.Children.Count > 0)
                                     {
@@ -126,7 +127,7 @@
                                     }
                                     <span class="span-row-name">@context.GetDisplaySummary()</span>
                                 </span>
-                            </div>
+                            </span>
                         </div>
                     </TemplateColumn>
                     <TemplateColumn>
