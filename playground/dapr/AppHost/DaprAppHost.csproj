@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\..\..\src\Aspire.Hosting\Utils\KnownResourceNames.cs" Link="KnownResourceNames.cs" />
+    <Compile Include="$(SharedDir)KnownResourceNames.cs" Link="KnownResourceNames.cs" />
   </ItemGroup>
 
   <ItemGroup>
