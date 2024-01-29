@@ -60,7 +60,6 @@
                                 var marginLeft = (context.Depth - 1) * 15;
 
                                 // We want to have consistent margin for both client and server spans.
-                                string spanNameContainerWrapperStyle;
                                 string spanNameContainerStyle;
                                 if (!isServerKind)
                                 {
@@ -69,7 +68,6 @@
                                     // - 9px padding-left
                                     // - 5px extra margin-left
                                     marginLeft += 5;
-                                    spanNameContainerWrapperStyle = $"margin-left: {marginLeft}px;";
                                     spanNameContainerStyle = $"border-left-color: {ColorGenerator.Instance.GetColorHexByKey(GetResourceName(context.Span.Source))}; border-left-width: 5px; border-left-style: solid; padding-left: 9px;";
                                 }
                                 else
@@ -77,12 +75,11 @@
                                     // Server span has 19px extra content:
                                     // - 16px icon
                                     // - 3px padding-left
-                                    spanNameContainerWrapperStyle = $"margin-left: {(marginLeft)}px;";
                                     spanNameContainerStyle = string.Empty;
                                 }
                             }
 
-                            <span style="@spanNameContainerWrapperStyle">
+                            <span style="margin-left: @(marginLeft)px;">
                                 <span class="span-collapse-symbol" @onclick="() => OnToggleCollapse(context)" @onclick:stopPropagation="true">
                                     @if (context.Children.Count > 0)
                                     {

@@ -16,7 +16,7 @@ public sealed class SpanWaterfallViewModel
     public required int Depth { get; init; }
     public required bool LabelIsRight { get; init; }
     public required string? UninstrumentedPeer { get; init; }
-    public bool IsHidden { get; private set; }
+    public bool IsHidden { get; set; }
     [MemberNotNullWhen(true, nameof(UninstrumentedPeer))]
     public bool HasUninstrumentedPeer => !string.IsNullOrEmpty(UninstrumentedPeer);
     public bool IsError => Span.Status == OtlpSpanStatusCode.Error;
