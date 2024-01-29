@@ -4,9 +4,7 @@
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Model.MetricValues;
-using Aspire.Dashboard.Resources;
 using Microsoft.AspNetCore.Components;
-using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 using CollectionExtensions = Aspire.Dashboard.Extensions.CollectionExtensions;
 
@@ -48,11 +46,10 @@ public partial class MetricTable : ComponentBase
         }
     }
 
-    private static void UpdateMetrics(
+    internal static void UpdateMetrics(
         List<DimensionScope>? matchedDimensions,
         List<Metric> currentMetrics,
         bool shouldShowHistogram,
-        bool showCount,
         bool onlyShowValueChanges,
         out List<Metric> oldMetrics,
         out List<int> addedIndices,
@@ -137,11 +134,12 @@ public partial class MetricTable : ComponentBase
 
             for (var i = 0; i < newMetrics.Count; i++)
             {
+                var newMetric = newMetrics[i];
                 if (i >= currentMetrics.Count)
                 {
-                    currentMetrics.Add(newMetrics[i]);
+                    currentMetrics.Add(newMetric);
                 }
-                else if (!currentMetrics[i].Equals(newMetrics[i]))
+                else if (!currentMetrics[i].Equals(newMetrics[i]) || !currentMetrics[i].Value.End.Equals(newMetric.Value.End))
                 {
                     currentMetrics[i] = newMetrics[i];
                 }
@@ -232,7 +230,7 @@ public partial class MetricTable : ComponentBase
         _instrument = InstrumentViewModel.Instrument;
         _showCount = InstrumentViewModel.ShowCount;
 
-        UpdateMetrics(InstrumentViewModel.MatchedDimensions, _metrics, ShouldShowHistogram(), _showCount, _onlyShowValueChanges, out var oldMetrics, out var indices, out _anyDimensionsShown);
+        UpdateMetrics(InstrumentViewModel.MatchedDimensions, _metrics, ShouldShowHistogram(), _onlyShowValueChanges, out var oldMetrics, out var indices, out _anyDimensionsShown);
 
         await InvokeAsync(StateHasChanged);
 
@@ -288,17 +286,6 @@ public partial class MetricTable : ComponentBase
         Histogram,
         Instrument,
         Count
-    }
-
-    private (Icon Icon, string Title)? GetIconAndTitleForDirection(ValueDirectionChange? directionChange)
-    {
-        return directionChange switch
-        {
-            ValueDirectionChange.Up => (new Icons.Filled.Size16.ArrowCircleUp().WithColor(Color.Success), Loc[nameof(ControlsStrings.MetricTableValueIncreased)]),
-            ValueDirectionChange.Down => (new Icons.Filled.Size16.ArrowCircleDown().WithColor(Color.Warning), Loc[nameof(ControlsStrings.MetricTableValueDecreased)]),
-            ValueDirectionChange.Constant => (new Icons.Filled.Size16.ArrowCircleRight().WithColor(Color.Info), Loc[nameof(ControlsStrings.MetricTableValueNoChange)]),
-            _ => null
-        };
     }
 
     private Task SettingsChangedAsync()
