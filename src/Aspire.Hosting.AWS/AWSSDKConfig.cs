@@ -2,11 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Amazon;
-using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.AWS;
 
-internal sealed class AWSSDKConfigResource(string name) : Resource(name), IAWSSDKConfigResource
+internal sealed class AWSSDKConfig : IAWSSDKConfig
 {
     /// <inheritdoc/>
     public string? Profile { get; set; }

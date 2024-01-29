@@ -17,8 +17,7 @@ namespace Aspire.Hosting.AWS.CloudFormation;
 /// The lifecycle hook that handles deploying the CloudFormation template to a CloudFormation stack.
 /// </summary>
 /// <param name="logger"></param>
-/// <param name="cloudFormationResource"></param>
-internal sealed class CloudFormationLifeCycle(ILogger<CloudFormationLifeCycle> logger, CloudFormationResource cloudFormationResource) : IDistributedApplicationLifecycleHook
+internal sealed class CloudFormationLifecycleHook(ILogger<CloudFormationLifecycleHook> logger) : IDistributedApplicationLifecycleHook
 {
     // Name of the Tag for the stack to store the SHA256 of the CloudFormation template
     const string SHA256_TAG = "AspireAppHost_SHA256";
@@ -31,96 +30,98 @@ internal sealed class CloudFormationLifeCycle(ILogger<CloudFormationLifeCycle> l
 
     public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
-        // TODO: Figure out how to get the right credentials and region in here.
-        var cfClient = GetCloudFormationClient(cloudFormationResource);
-
-        var templateBody = File.ReadAllText(cloudFormationResource.TemplatePath);
-        var templateSha256 = ComputeSHA256(templateBody);
-
-        var stack = await FindExistingStackAsync(cfClient, cloudFormationResource.Name).ConfigureAwait(false);
-        if(stack == null || stack.StackStatus == StackStatus.DELETE_COMPLETE)
+        foreach(CloudFormationResource cloudFormationResource in appModel.Resources.Where(x => x is CloudFormationResource))
         {
-            var createStackRequest = new CreateStackRequest
-            {
-                StackName = cloudFormationResource.Name,
-                TemplateBody = templateBody,
-                Tags = {new Tag { Key = SHA256_TAG, Value = templateSha256} }
-            };
+            using var cfClient = GetCloudFormationClient(cloudFormationResource);
 
-            logger.LogInformation("Create CloudFormation stack {StackName}", cloudFormationResource.Name);
-            try
-            {
-                await cfClient.CreateStackAsync(createStackRequest, cancellationToken).ConfigureAwait(false);
-            }
-            catch(AmazonCloudFormationException ex)
-            {
-                logger.LogError(ex, "Error creating CloudFormation stack {StackName}", cloudFormationResource.Name);
-                throw new AWSProvisioningException($"Error creating CloudFormation stack {cloudFormationResource.Name}", ex);
-            }
-            stack = await WaitStackToCompleteAsync(cfClient, cloudFormationResource.Name, cancellationToken).ConfigureAwait(false);
-        }
-        else
-        {
-            if(stack.StackStatus.Value.EndsWith("IN_PROGRESS", StringComparison.CurrentCultureIgnoreCase))
-            {
-                logger.LogError("Stack {StackName} status's is currently in progress and can not be updated. ({StackStatus})", stack.StackName, stack.StackStatus);
-                throw new AWSProvisioningException($"Stack {stack.StackName} status's is currently in progress and can not be updated. ({stack.StackStatus})", null);
-            }
+            var templateBody = File.ReadAllText(cloudFormationResource.TemplatePath);
+            var templateSha256 = ComputeSHA256(templateBody);
 
-            var tags = stack.Tags;
-
-            var shaTag = tags.FirstOrDefault(x => string.Equals(x.Key, SHA256_TAG, StringComparison.Ordinal));
-            if (shaTag != null && string.Equals(templateSha256, shaTag.Value, StringComparison.Ordinal))
+            var stack = await FindExistingStackAsync(cfClient, cloudFormationResource.Name).ConfigureAwait(false);
+            if (stack == null || stack.StackStatus == StackStatus.DELETE_COMPLETE)
             {
-                logger.LogInformation("CloudFormation Template for CloudFormation stack {StackName} has not changed", cloudFormationResource.Name);
-            }
-            else
-            {
-                // Update the CloudFormation tag with the latest SHA256.
-                if (shaTag != null)
-                {
-                    shaTag.Value = templateSha256;
-                }
-                else
-                {
-                    tags.Add(new Tag { Key = SHA256_TAG, Value = templateSha256 });
-                }
-
-                var updateStackRequest = new UpdateStackRequest
+                var createStackRequest = new CreateStackRequest
                 {
                     StackName = cloudFormationResource.Name,
                     TemplateBody = templateBody,
-                    Tags = tags
+                    Tags = { new Tag { Key = SHA256_TAG, Value = templateSha256 } }
                 };
 
-                logger.LogInformation("Updating CloudFormation stack {StackName}", cloudFormationResource.Name);
+                logger.LogInformation("Create CloudFormation stack {StackName}", cloudFormationResource.Name);
                 try
                 {
-                    await cfClient.UpdateStackAsync(updateStackRequest, cancellationToken).ConfigureAwait(false);
+                    await cfClient.CreateStackAsync(createStackRequest, cancellationToken).ConfigureAwait(false);
                 }
                 catch (AmazonCloudFormationException ex)
                 {
-                    logger.LogError(ex, "Error updating CloudFormation stack {StackName}", cloudFormationResource.Name);
-                    throw new AWSProvisioningException($"Error updating CloudFormation stack {cloudFormationResource.Name}", ex);
+                    logger.LogError(ex, "Error creating CloudFormation stack {StackName}", cloudFormationResource.Name);
+                    throw new AWSProvisioningException($"Error creating CloudFormation stack {cloudFormationResource.Name}", ex);
                 }
-                
                 stack = await WaitStackToCompleteAsync(cfClient, cloudFormationResource.Name, cancellationToken).ConfigureAwait(false);
             }
-        }
-
-        logger.LogDebug("CloudFormation stack has {Count} output parameters", stack.Outputs.Count);
-        if(logger.IsEnabled(LogLevel.Debug))
-        {
-            foreach(var output in stack.Outputs)
+            else
             {
-                logger.LogDebug("Output Name: {Name}, Value {Value}", output.OutputKey, output.OutputValue);
-            }
-        }
+                if (stack.StackStatus.Value.EndsWith("IN_PROGRESS", StringComparison.CurrentCultureIgnoreCase))
+                {
+                    logger.LogError("Stack {StackName} status's is currently in progress and can not be updated. ({StackStatus})", stack.StackName, stack.StackStatus);
+                    throw new AWSProvisioningException($"Stack {stack.StackName} status's is currently in progress and can not be updated. ({stack.StackStatus})", null);
+                }
 
-        // Capture the CloudFormation stack output parameters on to the Aspire CloudFormation resource. This
-        // allows projects that have a reference to the stack have the output parameters applied to the
-        // projects IConfiguration.
-        cloudFormationResource.Outputs = stack.Outputs;
+                var tags = stack.Tags;
+
+                var shaTag = tags.FirstOrDefault(x => string.Equals(x.Key, SHA256_TAG, StringComparison.Ordinal));
+                if (shaTag != null && string.Equals(templateSha256, shaTag.Value, StringComparison.Ordinal))
+                {
+                    logger.LogInformation("CloudFormation Template for CloudFormation stack {StackName} has not changed", cloudFormationResource.Name);
+                }
+                else
+                {
+                    // Update the CloudFormation tag with the latest SHA256.
+                    if (shaTag != null)
+                    {
+                        shaTag.Value = templateSha256;
+                    }
+                    else
+                    {
+                        tags.Add(new Tag { Key = SHA256_TAG, Value = templateSha256 });
+                    }
+
+                    var updateStackRequest = new UpdateStackRequest
+                    {
+                        StackName = cloudFormationResource.Name,
+                        TemplateBody = templateBody,
+                        Tags = tags
+                    };
+
+                    logger.LogInformation("Updating CloudFormation stack {StackName}", cloudFormationResource.Name);
+                    try
+                    {
+                        await cfClient.UpdateStackAsync(updateStackRequest, cancellationToken).ConfigureAwait(false);
+                    }
+                    catch (AmazonCloudFormationException ex)
+                    {
+                        logger.LogError(ex, "Error updating CloudFormation stack {StackName}", cloudFormationResource.Name);
+                        throw new AWSProvisioningException($"Error updating CloudFormation stack {cloudFormationResource.Name}", ex);
+                    }
+
+                    stack = await WaitStackToCompleteAsync(cfClient, cloudFormationResource.Name, cancellationToken).ConfigureAwait(false);
+                }
+            }
+
+            logger.LogDebug("CloudFormation stack has {Count} output parameters", stack.Outputs.Count);
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                foreach (var output in stack.Outputs)
+                {
+                    logger.LogDebug("Output Name: {Name}, Value {Value}", output.OutputKey, output.OutputValue);
+                }
+            }
+
+            // Capture the CloudFormation stack output parameters on to the Aspire CloudFormation resource. This
+            // allows projects that have a reference to the stack have the output parameters applied to the
+            // projects IConfiguration.
+            cloudFormationResource.Outputs = stack.Outputs;
+        }
     }
 
     private static IAmazonCloudFormation GetCloudFormationClient(ICloudFormationResource resource)

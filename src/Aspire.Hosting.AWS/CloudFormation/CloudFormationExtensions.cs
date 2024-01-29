@@ -6,7 +6,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.AWS;
 using Aspire.Hosting.AWS.CloudFormation;
 using Aspire.Hosting.Lifecycle;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
 
@@ -19,32 +18,33 @@ public static class CloudFormationExtensions
     /// <param name="stackName">The name of the CloudFormation stack.</param>
     /// <param name="templatePath">The path to the CloudFormation template that defines the CloudFormation stack.</param>
     /// <returns></returns>
-    public static IResourceBuilder<ICloudFormationResource> AddAWSCloudFormationProvisioning(this IDistributedApplicationBuilder builder, string stackName, string templatePath)
+    public static IResourceBuilder<ICloudFormationResource> AddAWSCloudFormationTemplate(this IDistributedApplicationBuilder builder, string stackName, string templatePath)
     {
         var resource = new CloudFormationResource(stackName, templatePath);
         var cfBuilder = builder.AddResource(resource);
 
-        builder.Services.AddLifecycleHook<CloudFormationLifeCycle>(sp => ActivatorUtilities.CreateInstance<CloudFormationLifeCycle>(sp, resource));
+        builder.Services.TryAddLifecycleHook<CloudFormationLifecycleHook>();
         return cfBuilder;
     }
 
     /// <summary>
-    /// The AWS credential profile to use for resolving credentials to make AWS service API calls.
+    /// The AWS SDK service client configuration used to create the CloudFormation service client.
     /// </summary>
     /// <param name="builder"></param>
     /// <param name="awsSdkConfig">The name of the AWS credential profile.</param>
-    public static IResourceBuilder<ICloudFormationResource> WithAWSSDKReference(this IResourceBuilder<ICloudFormationResource> builder, IResourceBuilder<IAWSSDKConfigResource> awsSdkConfig)
+    public static IResourceBuilder<ICloudFormationResource> WithReference(this IResourceBuilder<ICloudFormationResource> builder, IAWSSDKConfig awsSdkConfig)
     {
-        builder.Resource.AWSSDKConfig = awsSdkConfig.Resource;
+        builder.Resource.AWSSDKConfig = awsSdkConfig;
         return builder;
     }
 
     /// <summary>
-    /// The configured Amazon CloudFormation service client used to make service calls.
+    /// Override the CloudFormation service client the ICloudFormationResource would create to interact with the CloudFormation service. This can be used for pointing the
+    /// CloudFormation service client to a non-standard CloudFormation endpoint like an emulator.
     /// </summary>
     /// <param name="builder"></param>
     /// <param name="cloudFormationClient">The AWS CloudFormation service client.</param>
-    public static IResourceBuilder<ICloudFormationResource> WithAWSCloudFormationClient(this IResourceBuilder<ICloudFormationResource> builder, IAmazonCloudFormation cloudFormationClient)
+    public static IResourceBuilder<ICloudFormationResource> WithReference(this IResourceBuilder<ICloudFormationResource> builder, IAmazonCloudFormation cloudFormationClient)
     {
         builder.Resource.CloudFormationClient = cloudFormationClient;
         return builder;
@@ -58,7 +58,7 @@ public static class CloudFormationExtensions
     /// <param name="cloudFormationResourceBuilder">The CloudFormation resource.</param>
     /// <param name="configSection">The config section in IConfiguration to add the output parameters.</param>
     /// <returns></returns>
-    public static IResourceBuilder<TDestination> WithAWSCloudFormationReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<ICloudFormationResource> cloudFormationResourceBuilder, string configSection = "AWS::Resources")
+    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<ICloudFormationResource> cloudFormationResourceBuilder, string configSection = "AWS::Resources")
         where TDestination : IResourceWithEnvironment
     {
         builder.WithEnvironment(context =>

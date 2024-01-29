@@ -11,7 +11,7 @@ namespace Aspire.Hosting.AWS.CloudFormation;
 internal sealed class CloudFormationResource(string name, string templatePath) : Resource(name), ICloudFormationResource
 {
     /// <inheritdoc/>
-    public IAWSSDKConfigResource? AWSSDKConfig { get; set; }
+    public IAWSSDKConfig? AWSSDKConfig { get; set; }
 
     /// <inheritdoc/>
     public IAmazonCloudFormation? CloudFormationClient { get; set; }

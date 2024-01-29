@@ -15,7 +15,7 @@ public interface ICloudFormationResource : IResource
     /// <summary>
     /// Configuration for creating service clients from the AWS .NET SDK.
     /// </summary>
-    IAWSSDKConfigResource? AWSSDKConfig { get; set; }
+    IAWSSDKConfig? AWSSDKConfig { get; set; }
 
     /// <summary>
     /// The configured Amazon CloudFormation service client used to make service calls. If this property set

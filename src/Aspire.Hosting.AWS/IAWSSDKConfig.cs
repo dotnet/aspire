@@ -3,14 +3,13 @@
 
 using Amazon;
 using Amazon.Runtime;
-using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.AWS;
 
 /// <summary>
 /// Configuration used to construct service client from the AWS SDK for .NET.
 /// </summary>
-public interface IAWSSDKConfigResource : IResource
+public interface IAWSSDKConfig
 {
     /// <summary>
     /// The AWS credential profile to use for resolving credentials to make AWS service API calls.

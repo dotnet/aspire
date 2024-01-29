@@ -13,37 +13,35 @@ public static class SDKResourceExtensions
     /// Add a configuration for resolving region and credentials for the AWS SDK for .NET.
     /// </summary>
     /// <param name="builder"></param>
-    /// <param name="name"></param>
     /// <returns></returns>
-    public static IResourceBuilder<IAWSSDKConfigResource> AddAWSSDKConfig(this IDistributedApplicationBuilder builder, string name)
+    public static IAWSSDKConfig AddAWSSDKConfig(this IDistributedApplicationBuilder builder)
     {
-        var resource = new AWSSDKConfigResource(name);
-        var sdkBuilder = builder.AddResource(resource);
+        var config = new AWSSDKConfig();
 
-        return sdkBuilder;
+        return config;
     }
 
     /// <summary>
     /// Assign the AWS credential profile to the IAWSSDKConfigResource.
     /// </summary>
-    /// <param name="builder"></param>
+    /// <param name="config"></param>
     /// <param name="profile">The name of the AWS credential profile.</param>
     /// <returns></returns>
-    public static IResourceBuilder<IAWSSDKConfigResource> WithProfile(this IResourceBuilder<IAWSSDKConfigResource> builder, string profile)
+    public static IAWSSDKConfig WithProfile(this IAWSSDKConfig config, string profile)
     {
-        builder.Resource.Profile = profile;
-        return builder;
+        config.Profile = profile;
+        return config;
     }
 
     /// <summary>
     /// Assign the region for the IAWSSDKConfigResource.
     /// </summary>
-    /// <param name="builder"></param>
+    /// <param name="config"></param>
     /// <param name="region">The AWS region.</param>
-    public static IResourceBuilder<IAWSSDKConfigResource> WithRegion(this IResourceBuilder<IAWSSDKConfigResource> builder, RegionEndpoint region)
+    public static IAWSSDKConfig WithRegion(this IAWSSDKConfig config, RegionEndpoint region)
     {
-        builder.Resource.Region = region;
-        return builder;
+        config.Region = region;
+        return config;
     }
 
     /// <summary>
@@ -52,7 +50,7 @@ public static class SDKResourceExtensions
     /// <param name="builder"></param>
     /// <param name="awsSdkConfig">The AWS SDK configuration</param>
     /// <returns></returns>
-    public static IResourceBuilder<ProjectResource> WithAWSSDKReference(this IResourceBuilder<ProjectResource> builder, IResourceBuilder<IAWSSDKConfigResource> awsSdkConfig)
+    public static IResourceBuilder<ProjectResource> WithReference(this IResourceBuilder<ProjectResource> builder, IAWSSDKConfig awsSdkConfig)
     {
         builder.WithEnvironment(context =>
         {
@@ -61,22 +59,22 @@ public static class SDKResourceExtensions
                 return;
             }
 
-            if(!string.IsNullOrEmpty(awsSdkConfig.Resource.Profile))
+            if(!string.IsNullOrEmpty(awsSdkConfig.Profile))
             {
                 // The environment variable that AWSSDK.Extensions.NETCore.Setup will look for via IConfiguration.
-                context.EnvironmentVariables["AWS__Profile"] = awsSdkConfig.Resource.Profile;
+                context.EnvironmentVariables["AWS__Profile"] = awsSdkConfig.Profile;
 
                 // The environment variable the service clients look for service clients created without AWSSDK.Extensions.NETCore.Setup.
-                context.EnvironmentVariables["AWS_PROFILE"] = awsSdkConfig.Resource.Profile;
+                context.EnvironmentVariables["AWS_PROFILE"] = awsSdkConfig.Profile;
             }
 
-            if (awsSdkConfig.Resource.Region != null)
+            if (awsSdkConfig.Region != null)
             {
                 // The environment variable that AWSSDK.Extensions.NETCore.Setup will look for via IConfiguration.
-                context.EnvironmentVariables["AWS__Region"] = awsSdkConfig.Resource.Region.SystemName;
+                context.EnvironmentVariables["AWS__Region"] = awsSdkConfig.Region.SystemName;
 
                 // The environment variable the service clients look for service clients created without AWSSDK.Extensions.NETCore.Setup.
-                context.EnvironmentVariables["AWS_REGION"] = awsSdkConfig.Resource.Region.SystemName;
+                context.EnvironmentVariables["AWS_REGION"] = awsSdkConfig.Region.SystemName;
             }
         });
 
