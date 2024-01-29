@@ -1,6 +1,7 @@
 ﻿@using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Resources
+@using Humanizer
 @inject IStringLocalizer<Columns> Loc
 
 @if (Resource is { State: ResourceStates.ExitedState /* containers */ or ResourceStates.FinishedState /* executables */ or ResourceStates.FailedToStartState })
@@ -35,7 +36,7 @@ else
                 Class="severity-icon"/>
 }
 
-@Resource.State
+@Resource.State.Humanize()
 
 @code {
     [Parameter, EditorRequired]
