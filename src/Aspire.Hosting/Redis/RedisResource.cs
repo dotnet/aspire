@@ -6,7 +6,7 @@ using Aspire.Hosting.Redis;
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// Represents a Redis resource independent of hosting model.
+/// A resource that represents a Redis resource independent of the hosting model.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 public class RedisResource(string name) : Resource(name), IResourceWithConnectionString, IRedisResource

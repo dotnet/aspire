@@ -3,7 +3,6 @@
 
 using System.Threading.Channels;
 using Aspire.Hosting.Dcp.Process;
-using Aspire.Hosting.Extensions;
 using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.Dashboard;

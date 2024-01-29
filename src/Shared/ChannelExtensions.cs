@@ -4,7 +4,7 @@
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 
-namespace Aspire.Hosting.Extensions;
+namespace Aspire;
 
 internal static class ChannelExtensions
 {
