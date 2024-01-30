@@ -32,7 +32,38 @@
       }
     },
     "messaging": {
-      "type": "rabbitmq.server.v0"
+      "type": "container.v0",
+      "image": "rabbitmq:3-management",
+      "env": {
+        "RABBITMQ_DEFAULT_USER": "guest",
+        "RABBITMQ_DEFAULT_PASS": "{messaging.inputs.password}"
+      },
+      "bindings": {
+        "tcp": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp",
+          "containerPort": 5672
+        },
+        "management": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http",
+          "containerPort": 15672
+        }
+      },
+      "connectionString": "amqp://guest:{messaging.inputs.password}@{messaging.bindings.tcp.host}:{messaging.bindings.tcp.port}",
+      "inputs": {
+        "password": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 10
+            }
+          }
+        }
+      }
     },
     "basketservice": {
       "type": "project.v0",

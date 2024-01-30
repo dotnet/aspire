@@ -26,7 +26,6 @@ public static class RabbitMQBuilderExtensions
         var rabbitMq = new RabbitMQContainerResource(name, password);
         return builder.AddResource(rabbitMq)
                        .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 5672))
-                       .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, uriScheme: "http", name: "management", port: null, containerPort: 15672))
                        .WithAnnotation(new ContainerImageAnnotation { Image = "rabbitmq", Tag = "3-management" })
                        .WithManifestPublishingCallback(context => WriteRabbitMQContainerToManifest(context, rabbitMq))
                        .WithEnvironment("RABBITMQ_DEFAULT_USER", "guest")
@@ -73,7 +72,7 @@ public static class RabbitMQBuilderExtensions
         context.WriteContainer(resource);
         context.Writer.WriteString(                     // "connectionString": "...",
             "connectionString",
-            $"amqp://guest:{{{resource.Name}.inputs.password}}@{{{resource.Name}.bindings.management.host}}:{{{resource.Name}.bindings.management.port}}");
+            $"amqp://guest:{{{resource.Name}.inputs.password}}@{{{resource.Name}.bindings.tcp.host}}:{{{resource.Name}.bindings.tcp.port}}");
         context.Writer.WriteStartObject("inputs");      // "inputs": {
         context.Writer.WriteStartObject("password");    //   "password": {
         context.Writer.WriteString("type", "string");   //     "type": "string",
