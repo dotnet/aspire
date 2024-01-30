@@ -1,6 +1,7 @@
 ::deep.appbar-item {
     width: 100%;
     --appbar-active-indicator-width: calc(var(--design-unit) * 0.5px);
+    height: 56px;
 }
 
 ::deep.appbar-item:hover {
@@ -13,6 +14,9 @@
     font-size: var(--type-ramp-minus-2-font-size);
     line-height: var(--type-ramp-minus-2-line-height);
     position: relative;
+    display: inline-block;
+    height: 100%;
+    width: 100%;
 }
 
 ::deep.appbar-item:hover .appbar-item-navlink .appbar-item-icon,
@@ -23,6 +27,7 @@
 
 ::deep .appbar-item-navlink .stack-vertical {
     padding: calc(var(--design-unit) * 1px) calc(var(--appbar-active-indicator-width) + (var(--design-unit) * 1.5px));
+    height: 100%;
 }
 
 ::deep .appbar-item-text {
@@ -40,5 +45,5 @@
     height: 100%;
     background-color: var(--accent-fill-rest);
     border-radius: calc(var(--control-corner-radius) * 1px);
-    left: calc(var(--design-unit) * 0.25px);
+    left: calc(var(--design-unit) * 0.5px);
 }

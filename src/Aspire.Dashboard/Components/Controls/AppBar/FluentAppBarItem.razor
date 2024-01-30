@@ -3,7 +3,10 @@
 
 <div @attributes="AdditionalAttributes" class="@ClassValue" style="@Style" title="@(Tooltip ?? Text)">
     <NavLink href="@Href" class="appbar-item-navlink" Match="Match">
-        <FluentStack Orientation="Orientation.Vertical" HorizontalAlignment="HorizontalAlignment.Center" VerticalGap="2">
+        <FluentStack Orientation="Orientation.Vertical"
+                     HorizontalAlignment="HorizontalAlignment.Center"
+                     VerticalAlignment="VerticalAlignment.Center"
+                     VerticalGap="0">
             <FluentIcon Value="Icon" Color="Color.Neutral" Class="appbar-item-icon" />
             <FluentIcon Value="SecondaryIcon ?? Icon" Class="appbar-item-icon-secondary" />
             <div class="appbar-item-text">
