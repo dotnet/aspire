@@ -4,7 +4,7 @@
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// Represents an Azure App Configuration resource.
+/// A resource that represents Azure App Configuration.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 public class AzureAppConfigurationResource(string name) : Resource(name), IAzureResource, IResourceWithConnectionString

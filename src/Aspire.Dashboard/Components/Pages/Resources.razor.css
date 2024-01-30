@@ -1,8 +1,3 @@
-::deep .resource-state-container {
-    display: flex;
-    align-items: center;
-}
-
 ::deep .resource-state-badge {
     padding: 0 3px;
     cursor: pointer;
@@ -12,9 +7,18 @@
     padding-left: calc(var(--design-unit) * 1px);
 }
 
-::deep .unread-logs-errors-link::part(control) {
-    padding-left: 0;
-    padding-right: 0;
-    margin-left: 3px;
+::deep .unread-logs-errors-link {
+    vertical-align: middle;
+    --unread-logs-badge-color: #ffffff;
 }
 
+::deep .unread-logs-errors-link::part(control) {
+    margin-left: 5px;
+    padding: 0;
+    flex-grow: 0;
+    color: #ffffff;
+}
+
+::deep .error-counter-badge {
+    padding: 1px;
+}

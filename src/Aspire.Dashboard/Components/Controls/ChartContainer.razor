@@ -70,6 +70,7 @@ else
                                                 {
                                                     var isChecked = context.SelectedValues.Contains(tag);
                                                     <FluentCheckbox Label="@tag.Name"
+                                                                    title="@tag.Name"
                                                                     @key=tag
                                                                     @bind-Value:get="isChecked"
                                                                     @bind-Value:set="c => context.OnTagSelectionChanged(tag, c)" />

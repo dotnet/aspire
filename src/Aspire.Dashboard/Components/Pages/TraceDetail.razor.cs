@@ -20,6 +20,7 @@ public partial class TraceDetail : ComponentBase
     private List<SpanWaterfallViewModel>? _spanWaterfallViewModels;
     private int _maxDepth;
     private List<OtlpApplication> _applications = default!;
+    private readonly List<string> _collapsedSpanIds = [];
 
     [Parameter]
     public required string TraceId { get; set; }
@@ -49,41 +50,46 @@ public partial class TraceDetail : ComponentBase
     {
         Debug.Assert(_spanWaterfallViewModels != null);
 
+        var visibleSpanWaterfallViewModels = _spanWaterfallViewModels.Where(viewModel => !viewModel.IsHidden).ToList();
         return ValueTask.FromResult(new GridItemsProviderResult<SpanWaterfallViewModel>
         {
-            Items = _spanWaterfallViewModels,
+            Items = visibleSpanWaterfallViewModels,
             TotalItemCount = _spanWaterfallViewModels.Count
         });
     }
 
-    private static List<SpanWaterfallViewModel> CreateSpanWaterfallViewModels(OtlpTrace trace, IEnumerable<IOutgoingPeerResolver> outgoingPeerResolvers)
+    private static List<SpanWaterfallViewModel> CreateSpanWaterfallViewModels(OtlpTrace trace, TraceDetailState state)
     {
         var orderedSpans = new List<SpanWaterfallViewModel>();
         // There should be one root span but just in case, we'll add them all.
         foreach (var rootSpan in trace.Spans.Where(s => string.IsNullOrEmpty(s.ParentSpanId)).OrderBy(s => s.StartTime))
         {
-            AddSelfAndChildren(orderedSpans, rootSpan, depth: 1, outgoingPeerResolvers, CreateViewModel);
+            AddSelfAndChildren(orderedSpans, rootSpan, depth: 1, hidden: false, state, CreateViewModel);
         }
         // Unparented spans.
         foreach (var unparentedSpan in trace.Spans.Where(s => !string.IsNullOrEmpty(s.ParentSpanId) && s.GetParentSpan() == null).OrderBy(s => s.StartTime))
         {
-            AddSelfAndChildren(orderedSpans, unparentedSpan, depth: 1, outgoingPeerResolvers, CreateViewModel);
+            AddSelfAndChildren(orderedSpans, unparentedSpan, depth: 1, hidden: false, state, CreateViewModel);
         }
 
         return orderedSpans;
 
-        static void AddSelfAndChildren(List<SpanWaterfallViewModel> orderedSpans, OtlpSpan span, int depth, IEnumerable<IOutgoingPeerResolver> outgoingPeerResolvers, Func<OtlpSpan, int, IEnumerable<IOutgoingPeerResolver>, SpanWaterfallViewModel> createViewModel)
+        static SpanWaterfallViewModel AddSelfAndChildren(List<SpanWaterfallViewModel> orderedSpans, OtlpSpan span, int depth, bool hidden, TraceDetailState state, Func<OtlpSpan, int, bool, TraceDetailState, SpanWaterfallViewModel> createViewModel)
         {
-            orderedSpans.Add(createViewModel(span, depth, outgoingPeerResolvers));
+            var viewModel = createViewModel(span, depth, hidden, state);
+            orderedSpans.Add(viewModel);
             depth++;
 
             foreach (var child in span.GetChildSpans().OrderBy(s => s.StartTime))
             {
-                AddSelfAndChildren(orderedSpans, child, depth, outgoingPeerResolvers, createViewModel);
+                var childViewModel = AddSelfAndChildren(orderedSpans, child, depth, viewModel.IsHidden || viewModel.IsCollapsed, state, createViewModel);
+                viewModel.Children.Add(childViewModel);
             }
+
+            return viewModel;
         }
 
-        static SpanWaterfallViewModel CreateViewModel(OtlpSpan span, int depth, IEnumerable<IOutgoingPeerResolver> outgoingPeerResolvers)
+        static SpanWaterfallViewModel CreateViewModel(OtlpSpan span, int depth, bool hidden, TraceDetailState state)
         {
             var traceStart = span.Trace.FirstSpan.StartTime;
             var relativeStart = span.StartTime - traceStart;
@@ -99,10 +105,11 @@ public partial class TraceDetail : ComponentBase
             // A span may indicate a call to another service but the service isn't instrumented.
             var hasPeerService = span.Attributes.Any(a => a.Key == OtlpSpan.PeerServiceAttributeKey);
             var isUninstrumentedPeer = hasPeerService && span.Kind is OtlpSpanKind.Client or OtlpSpanKind.Producer && !span.GetChildSpans().Any();
-            var uninstrumentedPeer = isUninstrumentedPeer ? ResolveUninstrumentedPeerName(span, outgoingPeerResolvers) : null;
+            var uninstrumentedPeer = isUninstrumentedPeer ? ResolveUninstrumentedPeerName(span, state.OutgoingPeerResolvers) : null;
 
             var viewModel = new SpanWaterfallViewModel
             {
+                Children = [],
                 Span = span,
                 LeftOffset = leftOffset,
                 Width = width,
@@ -110,6 +117,17 @@ public partial class TraceDetail : ComponentBase
                 LabelIsRight = labelIsRight,
                 UninstrumentedPeer = uninstrumentedPeer
             };
+
+            // Restore hidden/collapsed state to new view model.
+            if (state.CollapsedSpanIds.Contains(span.SpanId))
+            {
+                viewModel.IsCollapsed = true;
+            }
+            if (hidden)
+            {
+                viewModel.IsHidden = true;
+            }
+
             return viewModel;
         }
     }
@@ -146,7 +164,7 @@ public partial class TraceDetail : ComponentBase
             _trace = TelemetryRepository.GetTrace(TraceId);
             if (_trace != null)
             {
-                _spanWaterfallViewModels = CreateSpanWaterfallViewModels(_trace, OutgoingPeerResolvers);
+                _spanWaterfallViewModels = CreateSpanWaterfallViewModels(_trace, new TraceDetailState(OutgoingPeerResolvers, _collapsedSpanIds));
                 _maxDepth = _spanWaterfallViewModels.Max(s => s.Depth);
 
                 if (_tracesSubscription is null || _tracesSubscription.ApplicationId != _trace.FirstSpan.Source.InstanceId)
@@ -180,6 +198,22 @@ public partial class TraceDetail : ComponentBase
     }
 
     public SpanDetailsViewModel? SelectedSpan { get; set; }
+
+    private void OnToggleCollapse(SpanWaterfallViewModel viewModel)
+    {
+        // View model data is recreated if the trace updates.
+        // Persist the collapsed state in a separate list.
+        if (viewModel.IsCollapsed)
+        {
+            viewModel.IsCollapsed = false;
+            _collapsedSpanIds.Remove(viewModel.Span.SpanId);
+        }
+        else
+        {
+            viewModel.IsCollapsed = true;
+            _collapsedSpanIds.Add(viewModel.Span.SpanId);
+        }
+    }
 
     private void OnShowProperties(SpanWaterfallViewModel viewModel)
     {
@@ -219,4 +253,6 @@ public partial class TraceDetail : ComponentBase
         }
         _tracesSubscription?.Dispose();
     }
+
+    private sealed record TraceDetailState(IEnumerable<IOutgoingPeerResolver> OutgoingPeerResolvers, List<string> CollapsedSpanIds);
 }

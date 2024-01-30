@@ -1,16 +1,6 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
-var storage = builder.AddAzureStorage("storage");
-
-if (!args.Contains("--publisher")) // AZD UP passes in --publisher manifest
-{
-    storage.UseEmulator();
-}
-else
-{
-    builder.AddAzureProvisioning();
-}
-
+var storage = builder.AddAzureStorage("storage").UseEmulator();
 var clusteringTable = storage.AddTables("clustering");
 var grainStorage = storage.AddBlobs("grainstate");
 
@@ -18,12 +8,12 @@ var orleans = builder.AddOrleans("my-app")
                      .WithClustering(clusteringTable)
                      .WithGrainStorage("Default", grainStorage);
 
-// For local development, instead of using the emulator,
-// one can use the in memory provider from Orleans:
+// For local development (see https://github.com/dotnet/aspire/issues/1823 for how to detect),
+// instead of using the emulator, one can use the in memory provider from Orleans:
 //
-//var orleans = builder.AddOrleans("my-app")
-//                     .WithDevelopmentClustering()
-//                     .WithMemoryGrainStorage("Default");
+// var orleans = builder.AddOrleans("my-app")
+//                      .WithDevelopmentClustering()
+//                      .WithMemoryGrainStorage("Default");
 
 builder.AddProject<Projects.OrleansServer>("silo")
        .WithReference(orleans);
