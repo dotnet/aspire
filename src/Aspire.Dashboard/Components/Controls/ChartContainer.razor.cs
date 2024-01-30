@@ -170,13 +170,17 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
 
     private OtlpInstrument? GetInstrument()
     {
+        var endDate = DateTime.UtcNow;
+        // Get more data than is being displayed. Histogram graph uses some historical data to calculate the bucket ranges.
+        var startDate = endDate.Subtract(Duration + TimeSpan.FromSeconds(30));
+
         var instrument = TelemetryRepository.GetInstrument(new GetInstrumentRequest
         {
             ApplicationServiceId = ApplicationId,
             MeterName = MeterName,
             InstrumentName = InstrumentName,
-            StartTime = DateTime.UtcNow.Subtract(Duration),
-            EndTime = DateTime.UtcNow,
+            StartTime = startDate,
+            EndTime = endDate,
         });
 
         if (instrument == null)
