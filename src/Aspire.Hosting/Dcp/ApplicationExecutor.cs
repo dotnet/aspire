@@ -496,6 +496,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             if (!string.IsNullOrEmpty(configuration[DebugSessionPortVar]))
             {
                 exeSpec.ExecutionType = ExecutionType.IDE;
+
+                // ExcludeLaunchProfileAnnotation takes precedence over LaunchProfileAnnotation. 
                 if (project.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _))
                 {
                     // TODO
