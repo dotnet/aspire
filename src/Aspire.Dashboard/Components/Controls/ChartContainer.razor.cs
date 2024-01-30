@@ -171,7 +171,7 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
     private OtlpInstrument? GetInstrument()
     {
         var endDate = DateTime.UtcNow;
-        // Get more data than is being displayed. Histogram graph uses some historical data to calculate the bucket ranges.
+        // Get more data than is being displayed. Histogram graph uses some historical data to calculate bucket counts.
         // It's ok to get more data than is needed here. An additional date filter is applied when building chart values.
         var startDate = endDate.Subtract(Duration + TimeSpan.FromSeconds(30));
 
