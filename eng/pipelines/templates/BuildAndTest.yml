@@ -100,13 +100,6 @@ steps:
 
     - task: PublishBuildArtifacts@1
       inputs:
-        pathToPublish: '$(Build.SourcesDirectory)/artifacts/packages'
-        artifactName: PackageArtifacts
-        artifactType: container
-      displayName: Publish Package Artifacts
-
-    - task: PublishBuildArtifacts@1
-      inputs:
         pathToPublish: '$(Build.SourcesDirectory)/artifacts/VSSetup/$(_BuildConfig)'
         artifactName: VSDropInsertion
         artifactType: container

@@ -199,8 +199,11 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             throw new DistributedApplicationException("Error getting the resource service URL.", ex);
         }
 
+        // Matches DashboardWebApplication.DashboardUrlDefaultValue
+        const string defaultDashboardUrl = "http://localhost:18888";
+
         var otlpEndpointUrl = environmentVariables.GetString("DOTNET_DASHBOARD_OTLP_ENDPOINT_URL");
-        var dashboardUrls = environmentVariables.GetString("ASPNETCORE_URLS") ?? throw new DistributedApplicationException("ASPNETCORE_URLS environment variable not set.");
+        var dashboardUrls = environmentVariables.GetString("ASPNETCORE_URLS") ?? defaultDashboardUrl;
         var aspnetcoreEnvironment = environmentVariables.GetString("ASPNETCORE_ENVIRONMENT");
 
         dashboardExecutableSpec.Env =
