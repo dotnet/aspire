@@ -109,4 +109,10 @@ public static class ProjectResourceBuilderExtensions
         var launchProfileAnnotation = new LaunchProfileAnnotation(launchProfileName);
         return builder.WithAnnotation(launchProfileAnnotation);
     }
+
+    public static IResourceBuilder<ProjectResource> ExcludeLaunchProfile(this IResourceBuilder<ProjectResource> builder)
+    {
+        builder.WithAnnotation(new ExcludeLaunchProfileAnnotation());
+        return builder;
+    }
 }
