@@ -56,7 +56,7 @@ public class ConformanceTests : ConformanceTests<SearchIndexClient, AzureAISearc
             ("""{"Aspire": { "Azure": { "AI":{ "Search": {"Endpoint": "http://YOUR_URI", "Tracing": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
         };
 
-    protected override string ActivitySourceName => "Azure.Search.Documents.Indexes.SearchIndexClient";
+    protected override string ActivitySourceName => "Azure.Search.Documents.SearchIndexClient";
 
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[]

@@ -62,6 +62,11 @@ public static class AspireAzureAISearchExtensions
 
     private sealed class AISearchComponent : AzureComponent<AzureAISearchSettings, SearchIndexClient, SearchClientOptions>
     {
+        // `SearchIndexClient` is in the Azure.Search.Documents.Indexes namespace
+        // but uses `SearchClientOptions` which is in the Azure.Search.Documents namespace
+        // https://github.com/Azure/azure-sdk-for-net/blob/bed506dee05319ff2de27ca98500daa10573fe7d/sdk/search/Azure.Search.Documents/src/Indexes/SearchIndexClient.cs#L92
+        protected override string[] ActivitySourceNames => ["Azure.Search.Documents.*"];
+
         protected override IAzureClientBuilder<SearchIndexClient, SearchClientOptions> AddClient<TBuilder>(TBuilder azureFactoryBuilder, AzureAISearchSettings settings, string connectionName, string configurationSectionName)
         {
             return azureFactoryBuilder.RegisterClientFactory<SearchIndexClient, SearchClientOptions>((options, cred) =>
