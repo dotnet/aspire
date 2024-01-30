@@ -19,6 +19,11 @@ internal static class LaunchProfileExtensions
             throw new DistributedApplicationException(Resources.ProjectDoesNotContainMetadataExceptionMessage);
         }
 
+        if (projectResource.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _))
+        {
+            return null;
+        }
+
         return projectMetadata.GetLaunchSettings();
     }
 
@@ -40,7 +45,7 @@ internal static class LaunchProfileExtensions
         return found == true ? launchProfile : null;
     }
 
-    internal static LaunchSettings? GetLaunchSettings(this IProjectMetadata projectMetadata)
+    private static LaunchSettings? GetLaunchSettings(this IProjectMetadata projectMetadata)
     {
         if (!File.Exists(projectMetadata.ProjectPath))
         {
@@ -62,7 +67,7 @@ internal static class LaunchProfileExtensions
         }
 
         using var stream = File.OpenRead(launchSettingsFilePath);
-        var settings = JsonSerializer.Deserialize(stream, LaunchSetttingsSerializerContext.Default.LaunchSettings);
+        var settings = JsonSerializer.Deserialize(stream, LaunchSettingsSerializerContext.Default.LaunchSettings);
         return settings;
     }
 
@@ -130,6 +135,11 @@ internal static class LaunchProfileExtensions
 
     internal static string? SelectLaunchProfileName(this ProjectResource projectResource)
     {
+        if (projectResource.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _))
+        {
+            return null;
+        }
+
         foreach (var launchProfileSelector in s_launchProfileSelectors)
         {
             if (launchProfileSelector(projectResource, out var launchProfile))
@@ -146,7 +156,7 @@ internal delegate bool LaunchProfileSelector(ProjectResource project, out string
 
 [JsonSerializable(typeof(LaunchSettings))]
 [JsonSourceGenerationOptions(ReadCommentHandling = JsonCommentHandling.Skip)]
-internal sealed partial class LaunchSetttingsSerializerContext : JsonSerializerContext
+internal sealed partial class LaunchSettingsSerializerContext : JsonSerializerContext
 {
 
 }

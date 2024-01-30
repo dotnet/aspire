@@ -538,20 +538,17 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 // and the environment variables/application URLs inside CreateExecutableAsync().
                 exeSpec.Args.Add("--no-launch-profile");
 
-                if (!project.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _))
+                var launchProfileName = project.SelectLaunchProfileName();
+                if (!string.IsNullOrEmpty(launchProfileName))
                 {
-                    string? launchProfileName = project.SelectLaunchProfileName();
-                    if (!string.IsNullOrEmpty(launchProfileName))
+                    var launchProfile = project.GetEffectiveLaunchProfile();
+                    if (launchProfile is not null && !string.IsNullOrWhiteSpace(launchProfile.CommandLineArgs))
                     {
-                        var launchProfile = project.GetEffectiveLaunchProfile();
-                        if (launchProfile is not null && !string.IsNullOrWhiteSpace(launchProfile.CommandLineArgs))
+                        var cmdArgs = launchProfile.CommandLineArgs.Split((string?)null, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+                        if (cmdArgs is not null && cmdArgs.Length > 0)
                         {
-                            var cmdArgs = launchProfile.CommandLineArgs.Split((string?)null, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-                            if (cmdArgs is not null && cmdArgs.Length > 0)
-                            {
-                                exeSpec.Args.Add("--");
-                                exeSpec.Args.AddRange(cmdArgs);
-                            }
+                            exeSpec.Args.Add("--");
+                            exeSpec.Args.AddRange(cmdArgs);
                         }
                     }
                 }
