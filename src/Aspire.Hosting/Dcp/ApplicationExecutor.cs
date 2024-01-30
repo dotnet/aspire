@@ -1,12 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics.CodeAnalysis;
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.Utils;
 using k8s;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -50,6 +50,7 @@ internal sealed class ServiceAppResource : AppResource
 }
 
 internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
+                                          ILoggerFactory loggerFactory,
                                           DistributedApplicationModel model,
                                           DistributedApplicationOptions distributedApplicationOptions,
                                           KubernetesService kubernetesService,
@@ -138,12 +139,12 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         {
             if (Environment.GetEnvironmentVariable("ASPNETCORE_URLS") is not { } appHostApplicationUrl)
             {
-                throw new DistributedApplicationException("Dashboard inner loop hook failed to configure resource because ASPNETCORE_URLS environment variable was not set.");
+                throw new DistributedApplicationException("Failed to configure dashboard resource because ASPNETCORE_URLS environment variable was not set.");
             }
 
             if (Environment.GetEnvironmentVariable("DOTNET_DASHBOARD_OTLP_ENDPOINT_URL") is not { } otlpEndpointUrl)
             {
-                throw new DistributedApplicationException("Dashboard inner loop hook failed to configure resource because DOTNET_DASHBOARD_OTLP_ENDPOINT_URL environment variable was not set.");
+                throw new DistributedApplicationException("Failed to configure dashboard resource because DOTNET_DASHBOARD_OTLP_ENDPOINT_URL environment variable was not set.");
             }
 
             // Grab the resource service URL. We need to inject this into the resource.
@@ -254,9 +255,12 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private async Task CheckDashboardAvailabilityAsync(string delimitedUrlList, CancellationToken cancellationToken)
     {
-        if (TryGetUriFromDelimitedString(delimitedUrlList, ";", out var firstDashboardUrl))
+        if (StringUtils.TryGetUriFromDelimitedString(delimitedUrlList, ";", out var firstDashboardUrl))
         {
             await WaitForHttpSuccessOrThrow(firstDashboardUrl, DashboardAvailabilityTimeoutDuration, cancellationToken).ConfigureAwait(false);
+
+            var distributedApplicationLogger = loggerFactory.CreateLogger<DistributedApplication>();
+            distributedApplicationLogger.LogInformation("Now listening on: {DashboardUrl}", firstDashboardUrl.ToString().TrimEnd('/'));
         }
         else
         {
@@ -666,21 +670,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         finally
         {
             AspireEventSource.Instance.DcpExecutablesCreateStop();
-        }
-    }
-
-    private static bool TryGetUriFromDelimitedString(string input, string delimiter, [NotNullWhen(true)]out Uri? uri)
-    {
-        if (!string.IsNullOrEmpty(input)
-            && input.Split(delimiter) is { Length: > 0} splitInput
-            && Uri.TryCreate(splitInput[0], UriKind.Absolute, out uri))
-        {
-            return true;
-        }
-        else
-        {
-            uri = null;
-            return false;
         }
     }
 
