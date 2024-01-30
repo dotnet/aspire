@@ -39,7 +39,7 @@ internal sealed class AzureProvisioner(
     public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
         // TODO: Make this more general purpose
-        if (publishingOptions.Value.Publisher == "manifest")
+        if (publishingOptions.Value.Publisher == KnownPublishers.Manifest)
         {
             return;
         }

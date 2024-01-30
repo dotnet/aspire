@@ -42,7 +42,7 @@ public class AddOracleDatabaseTests
         var envAnnotations = containerResource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var context = new EnvironmentCallbackContext(KnownPublishers.Dcp, config);
 
         foreach (var annotation in envAnnotations)
         {
@@ -90,7 +90,7 @@ public class AddOracleDatabaseTests
         var envAnnotations = containerResource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var context = new EnvironmentCallbackContext(KnownPublishers.Dcp, config);
 
         foreach (var annotation in envAnnotations)
         {
@@ -189,7 +189,7 @@ public class AddOracleDatabaseTests
         var envAnnotations = containerResource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var context = new EnvironmentCallbackContext(KnownPublishers.Dcp, config);
 
         foreach (var annotation in envAnnotations)
         {

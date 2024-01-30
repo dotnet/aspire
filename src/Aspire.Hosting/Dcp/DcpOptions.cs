@@ -51,7 +51,7 @@ internal sealed class DcpOptions
     public void ApplyApplicationConfiguration(DistributedApplicationOptions appOptions, IConfiguration dcpPublisherConfiguration, IConfiguration publishingConfiguration)
     {
         string? publisher = publishingConfiguration[nameof(PublishingOptions.Publisher)];
-        if (publisher is not null && publisher != "dcp")
+        if (publisher is not null && publisher != KnownPublishers.Dcp)
         {
             // If DCP is not set as the publisher, don't calculate the DCP config
             return;

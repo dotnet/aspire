@@ -44,7 +44,7 @@ public static class SecretResourceBuilderExtensions
     {
         return builder.WithEnvironment(context =>
         {
-            if (context.PublisherName == "manifest")
+            if (context.PublisherName == KnownPublishers.Manifest)
             {
                 context.EnvironmentVariables[name] = $"{{{secret.Resource.Name}.value}}";
                 return;

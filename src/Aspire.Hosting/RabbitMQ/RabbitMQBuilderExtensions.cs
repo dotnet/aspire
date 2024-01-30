@@ -32,7 +32,7 @@ public static class RabbitMQBuilderExtensions
                        .WithEnvironment("RABBITMQ_DEFAULT_USER", "guest")
                        .WithEnvironment(context =>
                        {
-                           if (context.PublisherName == "manifest")
+                           if (context.PublisherName == KnownPublishers.Manifest)
                            {
                                context.EnvironmentVariables.Add("RABBITMQ_DEFAULT_PASS", $"{{{rabbitMq.Name}.inputs.password}}");
                            }

@@ -31,7 +31,7 @@ public class WithReferenceTests
         var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var context = new EnvironmentCallbackContext(KnownPublishers.Dcp, config);
 
         foreach (var annotation in annotations)
         {
@@ -80,7 +80,7 @@ public class WithReferenceTests
         var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var context = new EnvironmentCallbackContext(KnownPublishers.Dcp, config);
 
         foreach (var annotation in annotations)
         {
@@ -129,7 +129,7 @@ public class WithReferenceTests
         var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var context = new EnvironmentCallbackContext(KnownPublishers.Dcp, config);
 
         foreach (var annotation in annotations)
         {
@@ -176,7 +176,7 @@ public class WithReferenceTests
         var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var context = new EnvironmentCallbackContext(KnownPublishers.Dcp, config);
 
         foreach (var annotation in annotations)
         {
@@ -221,7 +221,7 @@ public class WithReferenceTests
         var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var context = new EnvironmentCallbackContext(KnownPublishers.Dcp, config);
 
         foreach (var annotation in annotations)
         {
@@ -250,7 +250,7 @@ public class WithReferenceTests
         var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var context = new EnvironmentCallbackContext(KnownPublishers.Dcp, config);
 
         Assert.Throws<DistributedApplicationException>(() =>
         {
@@ -275,7 +275,7 @@ public class WithReferenceTests
         var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var context = new EnvironmentCallbackContext(KnownPublishers.Dcp, config);
 
         foreach (var annotation in annotations)
         {
@@ -303,7 +303,7 @@ public class WithReferenceTests
         var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var context = new EnvironmentCallbackContext(KnownPublishers.Dcp, config);
 
         foreach (var annotation in annotations)
         {
@@ -332,7 +332,7 @@ public class WithReferenceTests
         var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var context = new EnvironmentCallbackContext(KnownPublishers.Dcp, config);
 
         foreach (var annotation in annotations)
         {
@@ -359,7 +359,7 @@ public class WithReferenceTests
         var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var context = new EnvironmentCallbackContext(KnownPublishers.Dcp, config);
 
         foreach (var annotation in annotations)
         {
@@ -398,7 +398,7 @@ public class WithReferenceTests
         var annotations = testProgram.ServiceABuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var context = new EnvironmentCallbackContext(KnownPublishers.Dcp, config);
 
         foreach (var annotation in annotations)
         {
@@ -422,7 +422,7 @@ public class WithReferenceTests
         var annotations = testProgram.ServiceABuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var context = new EnvironmentCallbackContext(KnownPublishers.Dcp, config);
 
         foreach (var annotation in annotations)
         {
@@ -448,7 +448,7 @@ public class WithReferenceTests
         var annotations = testProgram.ServiceABuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var context = new EnvironmentCallbackContext(KnownPublishers.Dcp, config);
 
         foreach (var annotation in annotations)
         {
@@ -473,7 +473,7 @@ public class WithReferenceTests
         var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var context = new EnvironmentCallbackContext(KnownPublishers.Dcp, config);
 
         Assert.Throws<DistributedApplicationException>(() =>
         {

@@ -18,7 +18,7 @@ public class SecretsTests
 
         var callbackAnnotations = container.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
-        var context = new EnvironmentCallbackContext("dcp");
+        var context = new EnvironmentCallbackContext(KnownPublishers.Dcp);
 
         foreach (var callbackAnnotation in callbackAnnotations)
         {

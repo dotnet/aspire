@@ -49,7 +49,7 @@ internal sealed partial class DcpHostService : IHostedLifecycleService, IAsyncDi
         _locations = locations;
     }
 
-    private bool IsSupported => _publishingOptions.Publisher is null or "dcp";
+    private bool IsSupported => _publishingOptions.Publisher is null or KnownPublishers.Dcp;
 
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {

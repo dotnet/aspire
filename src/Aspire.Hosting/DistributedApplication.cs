@@ -136,7 +136,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
     {
         var options = _host.Services.GetRequiredService<IOptions<PublishingOptions>>();
 
-        if (options.Value?.Publisher == "manifest")
+        if (options.Value?.Publisher == KnownPublishers.Manifest)
         {
             // If we are producing the manifest, don't write startup messages.
             return;

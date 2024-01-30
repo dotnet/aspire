@@ -22,6 +22,7 @@
     <Compile Include="$(SharedDir)KnownResourceNames.cs" Link="Utils\KnownResourceNames.cs" />
     <Compile Include="$(SharedDir)StringComparers.cs" Link="Utils\StringComparers.cs" />
     <Compile Include="$(SharedDir)KnownFormats.cs" Link="Utils\KnownFormats.cs" />
+    <Compile Include="$(SharedDir)KnownPublishers.cs" Link="Utils\KnownPublishers.cs" />
     <Compile Include="$(SharedDir)ValueStopwatch\*.cs" LinkBase="Utils" />
   </ItemGroup>
 

@@ -80,8 +80,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         ConfigurePublishingOptions(options);
         _innerBuilder.Services.AddLifecycleHook<AutomaticManifestPublisherBindingInjectionHook>();
         _innerBuilder.Services.AddLifecycleHook<Http2TransportMutationHook>();
-        _innerBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, ManifestPublisher>("manifest");
-        _innerBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, DcpPublisher>("dcp");
+        _innerBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, ManifestPublisher>(KnownPublishers.Manifest);
+        _innerBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, DcpPublisher>(KnownPublishers.Dcp);
     }
 
     private void ConfigurePublishingOptions(DistributedApplicationOptions options)

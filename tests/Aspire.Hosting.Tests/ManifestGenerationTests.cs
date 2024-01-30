@@ -572,8 +572,8 @@ public class ManifestGenerationTests
     private static TestProgram CreateTestProgramJsonDocumentManifestPublisher(bool includeNodeApp = false)
     {
         var manifestPath = Path.GetTempFileName();
-        var program = TestProgram.Create<ManifestGenerationTests>(["--publisher", "manifest", "--output-path", manifestPath], includeNodeApp: includeNodeApp);
-        program.AppBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, JsonDocumentManifestPublisher>("manifest");
+        var program = TestProgram.Create<ManifestGenerationTests>(["--publisher", KnownPublishers.Manifest, "--output-path", manifestPath], includeNodeApp: includeNodeApp);
+        program.AppBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, JsonDocumentManifestPublisher>(KnownPublishers.Manifest);
         return program;
     }
 }

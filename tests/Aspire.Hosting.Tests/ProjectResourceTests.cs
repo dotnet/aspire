@@ -31,7 +31,7 @@ public class ProjectResourceTests
         var annotations = resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var context = new EnvironmentCallbackContext(KnownPublishers.Dcp, config);
 
         foreach (var annotation in annotations)
         {
@@ -152,9 +152,9 @@ public class ProjectResourceTests
 
     private static IDistributedApplicationBuilder CreateBuilder()
     {
-        var appBuilder = DistributedApplication.CreateBuilder(["--publisher", "manifest"]);
+        var appBuilder = DistributedApplication.CreateBuilder(["--publisher", KnownPublishers.Manifest]);
         // Block DCP from actually starting anything up as we don't need it for this test.
-        appBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, NoopPublisher>("manifest");
+        appBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, NoopPublisher>(KnownPublishers.Manifest);
 
         return appBuilder;
     }

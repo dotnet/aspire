@@ -37,7 +37,7 @@ internal sealed class AutomaticManifestPublisherBindingInjectionHook(IOptions<Pu
 
     public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
-        if (_publishingOptions.Value.Publisher != "manifest")
+        if (_publishingOptions.Value.Publisher != KnownPublishers.Manifest)
         {
             return Task.CompletedTask;
         }

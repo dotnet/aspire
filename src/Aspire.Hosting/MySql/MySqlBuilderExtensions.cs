@@ -32,7 +32,7 @@ public static class MySqlBuilderExtensions
                       .WithAnnotation(new ContainerImageAnnotation { Image = "mysql", Tag = "latest" })
                       .WithEnvironment(context =>
                       {
-                          if (context.PublisherName == "manifest")
+                          if (context.PublisherName == KnownPublishers.Manifest)
                           {
                               context.EnvironmentVariables.Add(PasswordEnvVarName, $"{{{mySqlContainer.Name}.inputs.password}}");
                           }

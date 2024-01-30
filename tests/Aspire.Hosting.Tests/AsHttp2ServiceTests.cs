@@ -13,10 +13,10 @@ public class AsHttp2ServiceTests
     [Fact]
     public void Http2TransportIsNotSetWhenHttp2ServiceAnnotationIsNotApplied()
     {
-        var testProgram = CreateTestProgram(["--publisher", "manifest"]);
+        var testProgram = CreateTestProgram(["--publisher", KnownPublishers.Manifest]);
 
         // Block DCP from actually starting anything up as we don't need it for this test.
-        testProgram.AppBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, NoopPublisher>("manifest");
+        testProgram.AppBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, NoopPublisher>(KnownPublishers.Manifest);
 
         testProgram.Build();
         testProgram.Run();
@@ -33,11 +33,11 @@ public class AsHttp2ServiceTests
     [Fact]
     public void Http2TransportIsSetWhenHttp2ServiceAnnotationIsApplied()
     {
-        var testProgram = CreateTestProgram(["--publisher", "manifest"]);
+        var testProgram = CreateTestProgram(["--publisher", KnownPublishers.Manifest]);
         testProgram.ServiceABuilder.AsHttp2Service();
 
         // Block DCP from actually starting anything up as we don't need it for this test.
-        testProgram.AppBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, NoopPublisher>("manifest");
+        testProgram.AppBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, NoopPublisher>(KnownPublishers.Manifest);
 
         testProgram.Build();
         testProgram.Run();
@@ -50,12 +50,12 @@ public class AsHttp2ServiceTests
     [Fact]
     public void Http2TransportIsNotAppliedToNonHttpEndpoints()
     {
-        var testProgram = CreateTestProgram(["--publisher", "manifest"]);
+        var testProgram = CreateTestProgram(["--publisher", KnownPublishers.Manifest]);
         testProgram.ServiceABuilder.WithEndpoint(9999, scheme: "tcp");
         testProgram.ServiceABuilder.AsHttp2Service();
 
         // Block DCP from actually starting anything up as we don't need it for this test.
-        testProgram.AppBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, NoopPublisher>("manifest");
+        testProgram.AppBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, NoopPublisher>(KnownPublishers.Manifest);
 
         testProgram.Build();
         testProgram.Run();

@@ -99,7 +99,7 @@ public sealed class ManifestPublishingContext(string manifestPath, Utf8JsonWrite
     public void WriteEnvironmentVariables(IResource resource)
     {
         var config = new Dictionary<string, string>();
-        var envContext = new EnvironmentCallbackContext("manifest", config);
+        var envContext = new EnvironmentCallbackContext(KnownPublishers.Manifest, config);
 
         if (resource.TryGetAnnotationsOfType<EnvironmentCallbackAnnotation>(out var callbacks))
         {

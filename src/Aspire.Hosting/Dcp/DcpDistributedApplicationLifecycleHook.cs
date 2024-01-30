@@ -15,9 +15,9 @@ internal sealed class DcpDistributedApplicationLifecycleHook(IOptions<Publishing
 
     public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
-        var publisher = _publishingOptions.Value?.Publisher == null ? "dcp" : _publishingOptions.Value.Publisher;
+        var publisher = _publishingOptions.Value?.Publisher ?? KnownPublishers.Dcp;
 
-        if (publisher == "dcp")
+        if (publisher == KnownPublishers.Dcp)
         {
             PrepareServices(appModel);
         }

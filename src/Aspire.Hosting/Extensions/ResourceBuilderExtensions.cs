@@ -156,7 +156,7 @@ public static class ResourceBuilderExtensions
         {
             var connectionStringName = $"{ConnectionStringEnvironmentName}{connectionName}";
 
-            if (context.PublisherName == "manifest")
+            if (context.PublisherName == KnownPublishers.Manifest)
             {
                 context.EnvironmentVariables[connectionStringName] = $"{{{resource.Name}.connectionString}}";
                 return;

@@ -18,8 +18,8 @@ public class DistributedApplicationBuilderTests
         var appBuilder = DistributedApplication.CreateBuilder();
         var app = appBuilder.Build();
 
-        Assert.NotNull(app.Services.GetRequiredKeyedService<IDistributedApplicationPublisher>("manifest"));
-        Assert.NotNull(app.Services.GetRequiredKeyedService<IDistributedApplicationPublisher>("dcp"));
+        Assert.NotNull(app.Services.GetRequiredKeyedService<IDistributedApplicationPublisher>(KnownPublishers.Manifest));
+        Assert.NotNull(app.Services.GetRequiredKeyedService<IDistributedApplicationPublisher>(KnownPublishers.Dcp));
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         Assert.Empty(appModel.Resources);
@@ -48,18 +48,18 @@ public class DistributedApplicationBuilderTests
     [Fact]
     public void BuilderConfiguresPublishingOptionsFromCommandLine()
     {
-        var appBuilder = DistributedApplication.CreateBuilder(["--publisher", "manifest", "--output-path", "/tmp/"]);
+        var appBuilder = DistributedApplication.CreateBuilder(["--publisher", KnownPublishers.Manifest, "--output-path", "/tmp/"]);
         var app = appBuilder.Build();
 
         var publishOptions = app.Services.GetRequiredService<IOptions<PublishingOptions>>();
-        Assert.Equal("manifest", publishOptions.Value.Publisher);
+        Assert.Equal(KnownPublishers.Manifest, publishOptions.Value.Publisher);
         Assert.Equal("/tmp/", publishOptions.Value.OutputPath);
     }
 
     [Fact]
     public void BuilderConfiguresPublishingOptionsFromConfig()
     {
-        var appBuilder = DistributedApplication.CreateBuilder(["--publisher", "manifest", "--output-path", "/tmp/"]);
+        var appBuilder = DistributedApplication.CreateBuilder(["--publisher", KnownPublishers.Manifest, "--output-path", "/tmp/"]);
         appBuilder.Configuration["Publishing:Publisher"] = "docker";
         appBuilder.Configuration["Publishing:OutputPath"] = "/path/";
         var app = appBuilder.Build();

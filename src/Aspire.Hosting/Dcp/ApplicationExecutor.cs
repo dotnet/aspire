@@ -602,7 +602,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 }
 
                 var config = new Dictionary<string, string>();
-                var context = new EnvironmentCallbackContext("dcp", config);
+                var context = new EnvironmentCallbackContext(KnownPublishers.Dcp, config);
 
                 // Need to apply configuration settings manually; see PrepareExecutables() for details.
                 if (er.ModelResource is ProjectResource project && project.SelectLaunchProfileName() is { } launchProfileName && project.GetLaunchSettings() is { } launchSettings)
@@ -836,7 +836,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
                 if (modelContainerResource.TryGetEnvironmentVariables(out var containerEnvironmentVariables))
                 {
-                    var context = new EnvironmentCallbackContext("dcp", config);
+                    var context = new EnvironmentCallbackContext(KnownPublishers.Dcp, config);
 
                     foreach (var v in containerEnvironmentVariables)
                     {
