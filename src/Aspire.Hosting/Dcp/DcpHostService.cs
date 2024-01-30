@@ -49,9 +49,11 @@ internal sealed partial class DcpHostService : IHostedLifecycleService, IAsyncDi
         _locations = locations;
     }
 
+    private bool IsSupported => _publishingOptions.Publisher is null or "dcp";
+
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
-        if (_publishingOptions.Publisher is not null and not "dcp")
+        if (!IsSupported)
         {
             return;
         }
@@ -67,7 +69,7 @@ internal sealed partial class DcpHostService : IHostedLifecycleService, IAsyncDi
 
     public async Task StopAsync(CancellationToken cancellationToken = default)
     {
-        if (_publishingOptions.Publisher is not null and not "dcp")
+        if (!IsSupported)
         {
             return;
         }
