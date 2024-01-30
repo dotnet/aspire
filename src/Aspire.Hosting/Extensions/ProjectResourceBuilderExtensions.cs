@@ -110,6 +110,11 @@ public static class ProjectResourceBuilderExtensions
         return builder.WithAnnotation(launchProfileAnnotation);
     }
 
+    /// <summary>
+    /// Configures the project to exclude launch profile settings when running.
+    /// </summary>
+    /// <param name="builder">The project resource builder.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<ProjectResource> ExcludeLaunchProfile(this IResourceBuilder<ProjectResource> builder)
     {
         builder.WithAnnotation(new ExcludeLaunchProfileAnnotation());
