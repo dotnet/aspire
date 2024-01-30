@@ -27,6 +27,12 @@
     <div class="property-grid-container">
         <FluentAccordion>
             <FluentAccordionItem Heading="Span" Expanded="true">
+                <div slot="end">
+                    <FluentBadge Appearance="Appearance.Neutral"
+                                 Circular="true">
+                        @FilteredItems.Count()
+                    </FluentBadge>
+                </div>
                 <PropertyGrid TItem="SpanPropertyViewModel"
                               Items="@FilteredItems"
                               GridTemplateColumns="1fr 2fr"
@@ -37,6 +43,12 @@
                               HighlightText="@_filter" />
             </FluentAccordionItem>
             <FluentAccordionItem Heading="Application">
+                <div slot="end">
+                    <FluentBadge Appearance="Appearance.Neutral"
+                                 Circular="true">
+                        @FilteredApplicationItems.Count()
+                    </FluentBadge>
+                </div>
                 <PropertyGrid TItem="SpanPropertyViewModel"
                               Items="@FilteredApplicationItems"
                               GridTemplateColumns="1fr 2fr"
@@ -47,15 +59,12 @@
                               HighlightText="@_filter" />
             </FluentAccordionItem>
             <FluentAccordionItem Heading="Events">
-                @if (FilteredSpanEvents.Count() > 0)
-                {
-                    <div slot="end">
-                        <FluentBadge Appearance="Appearance.Accent"
-                                     Circular="true">
-                            @FilteredSpanEvents.Count()
-                        </FluentBadge>
-                    </div>
-                }
+                <div slot="end">
+                    <FluentBadge Appearance="Appearance.Neutral"
+                                 Circular="true">
+                        @FilteredSpanEvents.Count()
+                    </FluentBadge>
+                </div>
                 <PropertyGrid TItem="OtlpSpanEvent"
                               Items="@FilteredSpanEvents"
                               GridTemplateColumns="1fr 2fr"
