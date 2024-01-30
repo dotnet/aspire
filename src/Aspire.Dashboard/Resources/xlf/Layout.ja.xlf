@@ -17,11 +17,6 @@
         <target state="new">.NET Aspire repo</target>
         <note />
       </trans-unit>
-      <trans-unit id="MainLayoutDashboardName">
-        <source>.NET Aspire - {0}</source>
-        <target state="new">.NET Aspire - {0}</target>
-        <note>{0} is the name of the aspire application</note>
-      </trans-unit>
       <trans-unit id="MainLayoutLaunchSettings">
         <source>Launch settings</source>
         <target state="new">Launch settings</target>

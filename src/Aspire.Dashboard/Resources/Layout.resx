@@ -117,10 +117,6 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="MainLayoutDashboardName" xml:space="preserve">
-    <value>.NET Aspire - {0}</value>
-    <comment>{0} is the name of the aspire application</comment>
-  </data>
   <data name="MainLayoutAspireRepoLink" xml:space="preserve">
     <value>.NET Aspire repo</value>
   </data>

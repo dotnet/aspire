@@ -88,15 +88,6 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to .NET Aspire - {0}.
-        /// </summary>
-        public static string MainLayoutDashboardName {
-            get {
-                return ResourceManager.GetString("MainLayoutDashboardName", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Launch settings.
         /// </summary>
         public static string MainLayoutLaunchSettings {
