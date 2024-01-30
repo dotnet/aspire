@@ -143,6 +143,7 @@ public class DistributedApplication : IHost, IAsyncDisposable
         }
 
         _logger.LogInformation("Distributed application starting.");
+        _logger.LogInformation("Working directory is: {WorkingDirectory}", Directory.GetCurrentDirectory());
     }
 
     /// <summary>
