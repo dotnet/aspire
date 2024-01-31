@@ -104,8 +104,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             await CreateServicesAsync(cancellationToken).ConfigureAwait(false);
 
             await CreateContainersAndExecutablesAsync(cancellationToken).ConfigureAwait(false);
-
-            distributedApplicationLogger.LogInformation("Distributed application started. Press CTRL-C to stop.");
         }
         finally
         {
