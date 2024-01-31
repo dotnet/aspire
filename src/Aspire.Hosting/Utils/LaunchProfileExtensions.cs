@@ -19,6 +19,8 @@ internal static class LaunchProfileExtensions
             throw new DistributedApplicationException(Resources.ProjectDoesNotContainMetadataExceptionMessage);
         }
 
+        // ExcludeLaunchProfileAnnotation disables getting launch settings. This ensures consumers of launch settings
+        // never get a copy and can't use values from it to configure the application.
         if (projectResource.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _))
         {
             return null;
@@ -135,6 +137,7 @@ internal static class LaunchProfileExtensions
 
     internal static string? SelectLaunchProfileName(this ProjectResource projectResource)
     {
+        // ExcludeLaunchProfileAnnotation takes precedence over all other launch profile selectors.
         if (projectResource.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _))
         {
             return null;

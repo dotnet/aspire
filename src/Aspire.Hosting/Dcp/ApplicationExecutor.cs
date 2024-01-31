@@ -500,7 +500,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 // ExcludeLaunchProfileAnnotation takes precedence over LaunchProfileAnnotation. 
                 if (project.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _))
                 {
-                    // TODO
+                    annotationHolder.Annotate(Executable.CSharpDisableLaunchProfileAnnotation, "true");
                 }
                 else if (project.TryGetLastAnnotation<LaunchProfileAnnotation>(out var lpa))
                 {
