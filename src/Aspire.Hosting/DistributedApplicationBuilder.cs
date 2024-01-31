@@ -9,6 +9,7 @@ using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
 
@@ -44,6 +45,9 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _args = options.Args ?? [];
         _innerBuilder = new HostApplicationBuilder();
 
+        _innerBuilder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.Warning);
+        _innerBuilder.Logging.AddFilter("Microsoft.AspNetCore.Server.Kestrel", LogLevel.None);
+
         AppHostDirectory = options.ProjectDirectory ?? _innerBuilder.Environment.ContentRootPath;
 
         // Make the app host directory available to the application via configuration
@@ -54,13 +58,14 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         // Core things
         _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Resources));
+        _innerBuilder.Services.AddHostedService<DistributedApplicationLifecycle>();
         _innerBuilder.Services.AddHostedService<DistributedApplicationRunner>();
         _innerBuilder.Services.AddSingleton(options);
-        _innerBuilder.Services.AddSingleton<IEnvironmentVariables, EnvironmentVariables>();
 
         // Dashboard
         _innerBuilder.Services.AddSingleton<DashboardServiceHost>();
         _innerBuilder.Services.AddHostedService<DashboardServiceHost>(sp => sp.GetRequiredService<DashboardServiceHost>());
+        _innerBuilder.Services.AddLifecycleHook<DashboardManifestExclusionHook>();
 
         // DCP stuff
         _innerBuilder.Services.AddLifecycleHook<DcpDistributedApplicationLifecycleHook>();

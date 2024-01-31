@@ -1,4 +1,4 @@
-using CatalogDb;
+using CatalogModel;
 using CatalogService;
 
 var builder = WebApplication.CreateBuilder(args);

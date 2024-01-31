@@ -49,7 +49,7 @@ fluent-toolbar[orientation=horizontal] {
     --log-critical: #493634;
     --log-error: #493634;
     --log-warning: #3F3A2B;
-    --error: #F8040A !important;
+    --error: #E10B11 !important;
     --foreground-subtext-rest: #8D8D8D;
     --foreground-subtext-hover: #A1A1A1;
 
@@ -220,6 +220,18 @@ split-panels::part(handle) {
 div.error-counter-badge {
     padding: 3px 3px;
     color: var(--error-counter-badge-foreground-color) !important; /* color is applied directly to div style, so !important to override since we can't use a more specific selector */
+}
+
+.layout >.header > .header-gutters {
+    margin: 0 1.5rem 0 0;
+}
+
+layout > .header {
+    font-size: var(--type-ramp-base-font-size);
+}
+
+.flex-filler {
+    flex-grow: 1;
 }
 
 fluent-switch.table-switch::part(label) {

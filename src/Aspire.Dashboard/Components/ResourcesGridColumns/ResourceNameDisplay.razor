@@ -5,20 +5,7 @@
 @using Aspire.Dashboard.Resources
 @inject IStringLocalizer<Columns> Loc
 
-@{
-    var unviewedErrorCount = GetUnviewedErrorCount(Resource);
-}
-
-@if (unviewedErrorCount > 0)
-{
-    <FluentCounterBadge Class="error-counter-badge" Max="9" BackgroundColor="@Color.Error" Color="Color.Fill"  Appearance="Appearance.Lightweight" Count="@unviewedErrorCount" HorizontalPosition="100">
-        <span title="@FormatName(Resource)"><FluentHighlighter HighlightedText="@FilterText" Text="@FormatName(Resource)"/></span>
-    </FluentCounterBadge>
-}
-else
-{
-    <span title="@FormatName(Resource)"><FluentHighlighter HighlightedText="@FilterText" Text="@FormatName(Resource)"/></span>
-}
+<span title="@FormatName(Resource)"><FluentHighlighter HighlightedText="@FilterText" Text="@FormatName(Resource)"/></span>
 
 @code {
     [Parameter, EditorRequired]
@@ -29,7 +16,4 @@ else
 
     [Parameter, EditorRequired]
     public required string FilterText { get; set; }
-
-    [Parameter, EditorRequired]
-    public required Dictionary<OtlpApplication, int>? UnviewedErrorCounts { get; set; }
 }
