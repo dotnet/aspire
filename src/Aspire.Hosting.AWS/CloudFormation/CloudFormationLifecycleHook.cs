@@ -30,7 +30,7 @@ internal sealed class CloudFormationLifecycleHook(ILogger<CloudFormationLifecycl
 
     public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
-        foreach(CloudFormationResource cloudFormationResource in appModel.Resources.Where(x => x is CloudFormationResource))
+        foreach (CloudFormationResource cloudFormationResource in appModel.Resources.OfType<CloudFormationResource>())
         {
             using var cfClient = GetCloudFormationClient(cloudFormationResource);
 
@@ -163,7 +163,7 @@ internal sealed class CloudFormationLifecycleHook(ILogger<CloudFormationLifecycl
         const int RESOURCE_STATUS = 40;
         string mostRecentEventId = string.Empty;
 
-        DateTime minTimeStampForEvents = DateTime.Now;
+        var minTimeStampForEvents = DateTimeOffset.Now;
         logger.LogInformation("Waiting for CloudFormation stack {StackName} to be ready", stackName);
 
         Stack stack;
@@ -205,7 +205,7 @@ internal sealed class CloudFormationLifecycleHook(ILogger<CloudFormationLifecycl
         return stack;
     }
 
-    private static async Task<List<StackEvent>> GetLatestEventsAsync(IAmazonCloudFormation cfClient, string stackName, DateTime minTimeStampForEvents, string mostRecentEventId, CancellationToken cancellationToken)
+    private static async Task<List<StackEvent>> GetLatestEventsAsync(IAmazonCloudFormation cfClient, string stackName, DateTimeOffset minTimeStampForEvents, string mostRecentEventId, CancellationToken cancellationToken)
     {
         var noNewEvents = false;
         var events = new List<StackEvent>();
@@ -244,15 +244,8 @@ internal sealed class CloudFormationLifecycleHook(ILogger<CloudFormationLifecycl
 
     private static string ComputeSHA256(string templateBody)
     {
-        using var sha256Hash = SHA256.Create();
-
-        var bytes = sha256Hash.ComputeHash(Encoding.UTF8.GetBytes(templateBody));
-        var builder = new StringBuilder();
-        for (int i = 0; i < bytes.Length; i++)
-        {
-            builder.Append(bytes[i].ToString("x2", CultureInfo.InvariantCulture));
-        }
-        return builder.ToString();
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(templateBody));
+        return Convert.ToHexString(bytes).ToLower(CultureInfo.InvariantCulture);
     }
 
     private static async Task<Stack?> FindExistingStackAsync(IAmazonCloudFormation cfClient, string stackName)
