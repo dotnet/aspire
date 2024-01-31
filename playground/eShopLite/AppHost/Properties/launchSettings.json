@@ -6,8 +6,8 @@
       "dotnetRunMessages": true,
       "applicationUrl": "https://localhost:15887;http://localhost:15888",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development",
-        "DOTNET_ENVIRONMENT": "Development",
+        "ASPNETCORE_ENVIRONMENT": "NotDevelopment",
+        "DOTNET_ENVIRONMENT": "NotDevelopment",
         "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL": "http://localhost:16031",
         "DOTNET_ASPIRE_SHOW_DASHBOARD_RESOURCES": "true"
       }

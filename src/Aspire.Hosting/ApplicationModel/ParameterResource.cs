@@ -3,7 +3,7 @@
 
 namespace Aspire.Hosting.ApplicationModel;
 
-public class SecretResource(string name, SecretStoreResource parent) : Resource(name), IResourceWithParent<SecretStoreResource>
+public sealed class ParameterResource(string name, string value) : Resource(name)
 {
-    public SecretStoreResource Parent => parent;
+    public string Value { get; set; } = value;
 }
