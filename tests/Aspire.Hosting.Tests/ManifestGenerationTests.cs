@@ -525,6 +525,25 @@ public class ManifestGenerationTests
     }
 
     [Fact]
+    public void EnsureAllAzureApplicationInsightsManifestTypesHaveVersion0Suffix()
+    {
+        var program = CreateTestProgramJsonDocumentManifestPublisher();
+
+        program.AppBuilder.AddApplicationInsights("appInsights");
+
+        // Build AppHost so that publisher can be resolved.
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+
+        var storage = resources.GetProperty("appInsights");
+        Assert.Equal("azure.appinsights.v0", storage.GetProperty("type").GetString());
+    }
+
+    [Fact]
     public void NodeAppIsExecutableResource()
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher();

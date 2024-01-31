@@ -309,4 +309,29 @@ public static class AzureResourceExtensions
         context.Writer.WriteString("type", "azure.openai.deployment.v0");
         context.Writer.WriteString("parent", resource.Parent.Name);
     }
+
+    /// <summary>
+    /// Adds an Azure Application Insights resource to the application model.
+    /// </summary>
+    /// <param name="serverBuilder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <param name="connectionString">The connection string.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{AzureSqlDatabaseResource}"/>.</returns>
+    public static IResourceBuilder<AzureApplicationInsightsResource> AddApplicationInsights(
+        this IDistributedApplicationBuilder serverBuilder,
+        string name,
+        string? connectionString = null)
+    {
+        var appInsights = new AzureApplicationInsightsResource(name, connectionString);
+        return serverBuilder.AddResource(appInsights)
+                        .WithManifestPublishingCallback(WriteAzureApplicationInsightsDeploymentToManifest);
+    }
+
+    private static void WriteAzureApplicationInsightsDeploymentToManifest(ManifestPublishingContext context)
+    {
+        // Example:
+        // "type": "azure.appinsights.v0",
+
+        context.Writer.WriteString("type", "azure.appinsights.v0");
+    }
 }
