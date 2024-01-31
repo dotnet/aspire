@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Internal;
@@ -49,7 +50,7 @@ internal sealed class DashboardServiceHost : IHostedService
         DistributedApplicationOptions options,
         DistributedApplicationModel applicationModel,
         KubernetesService kubernetesService,
-        IEnvironmentVariables environmentVariables,
+        IConfiguration configuration,
         IOptions<PublishingOptions> publishingOptions,
         ILoggerFactory loggerFactory,
         IConfigureOptions<LoggerFilterOptions> loggerOptions)
@@ -68,8 +69,8 @@ internal sealed class DashboardServiceHost : IHostedService
         {
             var builder = WebApplication.CreateBuilder();
 
-            // Environment
-            builder.Services.AddSingleton<IEnvironmentVariables, EnvironmentVariables>();
+            // Configuration
+            builder.Services.AddSingleton(configuration);
 
             // Logging
             builder.Services.AddSingleton(loggerFactory);
@@ -98,7 +99,7 @@ internal sealed class DashboardServiceHost : IHostedService
         void ConfigureKestrel(KestrelServerOptions kestrelOptions)
         {
             // Inspect environment for the address to listen on.
-            var uri = environmentVariables.GetUri(ResourceServiceUrlVariableName);
+            var uri = configuration.GetUri(ResourceServiceUrlVariableName);
 
             string? scheme;
 

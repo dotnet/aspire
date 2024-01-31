@@ -8,6 +8,7 @@ using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Utils;
 using k8s;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -55,7 +56,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                                           DistributedApplicationOptions distributedApplicationOptions,
                                           KubernetesService kubernetesService,
                                           IEnumerable<IDistributedApplicationLifecycleHook> lifecycleHooks,
-                                          IEnvironmentVariables environmentVariables,
+                                          IConfiguration configuration,
                                           IOptions<DcpOptions> options,
                                           DashboardServiceHost dashboardHost)
 {
@@ -202,9 +203,9 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         // Matches DashboardWebApplication.DashboardUrlDefaultValue
         const string defaultDashboardUrl = "http://localhost:18888";
 
-        var otlpEndpointUrl = environmentVariables.GetString("DOTNET_DASHBOARD_OTLP_ENDPOINT_URL");
-        var dashboardUrls = environmentVariables.GetString("ASPNETCORE_URLS") ?? defaultDashboardUrl;
-        var aspnetcoreEnvironment = environmentVariables.GetString("ASPNETCORE_ENVIRONMENT");
+        var otlpEndpointUrl = configuration["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"];
+        var dashboardUrls = configuration["ASPNETCORE_URLS"] ?? defaultDashboardUrl;
+        var aspnetcoreEnvironment = configuration["ASPNETCORE_ENVIRONMENT"];
 
         dashboardExecutableSpec.Env =
         [
@@ -492,7 +493,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             annotationHolder.Annotate(Executable.CSharpProjectPathAnnotation, projectMetadata.ProjectPath);
             annotationHolder.Annotate(Executable.OtelServiceNameAnnotation, ers.Metadata.Name);
 
-            if (!string.IsNullOrEmpty(environmentVariables.GetString(DebugSessionPortVar)))
+            if (!string.IsNullOrEmpty(configuration[DebugSessionPortVar]))
             {
                 exeSpec.ExecutionType = ExecutionType.IDE;
                 if (project.TryGetLastAnnotation<LaunchProfileAnnotation>(out var lpa))
@@ -503,7 +504,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             else
             {
                 exeSpec.ExecutionType = ExecutionType.Process;
-                if (environmentVariables.GetBool("DOTNET_WATCH") is true)
+                if (configuration.GetBool("DOTNET_WATCH") is true)
                 {
                     exeSpec.Args = [
                         "run",
