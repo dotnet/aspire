@@ -10,7 +10,14 @@ namespace Aspire.Dashboard.Tests.Model;
 
 public sealed class DashboardClientTests
 {
-    private readonly IConfiguration _configuration = new MockConfiguration() { { "DOTNET_RESOURCE_SERVICE_ENDPOINT_URL", "http://localhost:12345" } };
+    private readonly IConfiguration _configuration;
+
+    public DashboardClientTests()
+    {
+        var configuration = new ConfigurationManager();
+        configuration.AddInMemoryCollection(new Dictionary<string, string?>() { { "DOTNET_RESOURCE_SERVICE_ENDPOINT_URL", "http://localhost:12345" } });
+        _configuration = configuration;
+    }
 
     [Fact]
     public async Task SubscribeResources_OnCancel_ChannelRemoved()
