@@ -27,8 +27,8 @@
   <Target Name="Build" />
 
   <!-- For MacOS, we need to update the publish output with final signed binaries -->
-  <Target Name="UpdateSignedFiles" Condition="Exists('$(ArtifactsTmpDir)MacSigning/$(TargetFramework)/$(Configuration)/Aspire.Dashboard.$(RuntimeIdentifier).zip') and '$(Sign)' == 'true'">
-    <Unzip SourceFiles="$(ArtifactsTmpDir)MacSigning/$(TargetFramework)/$(Configuration)/Aspire.Dashboard.$(RuntimeIdentifier).zip"
+  <Target Name="UpdateSignedFiles" Condition="Exists('$(ArtifactsTmpDir)MacSigning/Aspire.Dashboard.$(RuntimeIdentifier).zip') and '$(Sign)' == 'true'">
+    <Unzip SourceFiles="$(ArtifactsTmpDir)MacSigning/Aspire.Dashboard.$(RuntimeIdentifier).zip"
            DestinationFolder="$(DotNetOutputPath)Aspire.Dashboard/$(Configuration)/$(TargetFramework)/$(DashboardRuntime)/publish/" />
   </Target>
 

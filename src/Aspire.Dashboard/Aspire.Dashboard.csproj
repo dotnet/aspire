@@ -28,7 +28,7 @@
   <!-- For MacOS, we need to zip the executable for signing -->
   <Target Name="ZipMacBinary" AfterTargets="Publish" Condition="$(RuntimeIdentifier.StartsWith('osx-')) and '$(Sign)' == 'true'">
     <PropertyGroup>
-      <_ArtifactsMacSigningDir>$(ArtifactsTmpDir)MacSigning/$(TargetFramework)/$(Configuration)/</_ArtifactsMacSigningDir>
+      <_ArtifactsMacSigningDir>$(ArtifactsTmpDir)MacSigning/</_ArtifactsMacSigningDir>
     </PropertyGroup>
     <RemoveDir Directories="$(_ArtifactsMacSigningDir)$(AssemblyName).$(RuntimeIdentifier)" />
     <Delete Files="$(_ArtifactsMacSigningDir)$(AssemblyName).$(RuntimeIdentifier).zip" />
