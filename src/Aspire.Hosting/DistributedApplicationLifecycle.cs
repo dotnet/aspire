@@ -9,7 +9,7 @@ using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting;
 
-internal sealed class DistributedApplicationLifecycle(ILogger<DistributedApplicationLifecycle> logger, IConfiguration configuration, IOptions<PublishingOptions> publishingOptions) : IHostedLifecycleService
+internal sealed class DistributedApplicationLifecycle(ILogger<DistributedApplication> logger, IConfiguration configuration, IOptions<PublishingOptions> publishingOptions) : IHostedLifecycleService
 {
     public Task StartAsync(CancellationToken cancellationToken)
     {
