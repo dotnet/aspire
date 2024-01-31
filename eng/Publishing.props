@@ -26,8 +26,6 @@
   </ItemGroup>
 
   <Target Name="_PublishDashboardAssets">
-    <Error Condition="'@(_DashboardFilesToPublish)' == ''" Text="Couldn't find any published dashboard assets to push to blob feed." />
-
     <ItemGroup>
       <ItemsToPushToBlobFeed Include="@(_DashboardFilesToPublish)">
         <IsShipping>true</IsShipping>
