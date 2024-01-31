@@ -414,7 +414,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
         // We need to ensure that Services have unique names (otherwise we cannot really distinguish between
         // services produced by different resources).
-        List<string> serviceNames = new();
+        HashSet<string> serviceNames = [];
 
         void addServiceAppResource(Service svc, IResource producingResource, EndpointAnnotation sba)
         {
@@ -952,12 +952,12 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         return maybeWithSuffix(resource.Name);
     }
 
-    private static string GenerateUniqueServiceName(List<string> serviceNames, string candidateName)
+    private static string GenerateUniqueServiceName(HashSet<string> serviceNames, string candidateName)
     {
         int suffix = 1;
         string uniqueName = candidateName;
 
-        while (serviceNames.Contains(uniqueName))
+        while (!serviceNames.Add(uniqueName))
         {
             uniqueName = $"{candidateName}_{suffix}";
             suffix++;
@@ -968,8 +968,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             }
         }
 
-        serviceNames.Add(uniqueName);
         return uniqueName;
     }
-
 }
