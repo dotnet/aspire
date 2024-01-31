@@ -93,12 +93,9 @@ public static class AspireAzureCosmosDBExtensions
             });
         }
 
-        if (settings.IgnoreEmulatorCertificate && CosmosUtils.IsEmulatorConnectionString(settings.ConnectionString))
+        if (CosmosUtils.IsEmulatorConnectionString(settings.ConnectionString))
         {
-            clientOptions.HttpClientFactory = () => new HttpClient(new HttpClientHandler()
-            {
-                ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
-            });
+            clientOptions.ServerCertificateCustomValidationCallback = (_, __, ___) => true;
             clientOptions.ConnectionMode = ConnectionMode.Gateway;
             clientOptions.LimitToEndpoint = true;
         }
