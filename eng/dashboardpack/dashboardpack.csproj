@@ -26,12 +26,14 @@
 
   <Target Name="Build" />
 
-  <Target Name="UpdateSignedFiles" Condition="Exists('$(DotNetOutputPath)Aspire.Dashboard/$(Configuration)/$(TargetFramework)/$(DashboardRuntime)/publish/Aspire.Dashboard.$(DashboardRuntime).zip')">
+  <!-- For MacOS, we need to update the publish output with final signed binaries -->
+  <Target Name="UpdateSignedFiles" Condition="Exists('$(DotNetOutputPath)Aspire.Dashboard/$(Configuration)/$(TargetFramework)/$(DashboardRuntime)/publish/Aspire.Dashboard.$(DashboardRuntime).zip') and '$(Sign)' == 'true'">
     <Unzip SourceFiles="$(DotNetOutputPath)Aspire.Dashboard/$(Configuration)/$(TargetFramework)/$(DashboardRuntime)/publish/Aspire.Dashboard.$(DashboardRuntime).zip"
            DestinationFolder="$(DotNetOutputPath)Aspire.Dashboard/$(Configuration)/$(TargetFramework)/$(DashboardRuntime)/publish/" />
     <Delete Files="$(DotNetOutputPath)Aspire.Dashboard/$(Configuration)/$(TargetFramework)/$(DashboardRuntime)/publish/Aspire.Dashboard.$(DashboardRuntime).zip" />
   </Target>
 
+  <!-- The dashboard should have been published for all appropriate RIDs during the normal build -->
   <Target Name="BeforeBuild" BeforeTargets="Build" DependsOnTargets="UpdateSignedFiles">
     <ItemGroup>
       <_PublishItems Include="$(DotNetOutputPath)Aspire.Dashboard/$(Configuration)/$(TargetFramework)/$(DashboardRuntime)/publish/**/*" />

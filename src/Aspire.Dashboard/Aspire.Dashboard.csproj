@@ -10,6 +10,7 @@
     <NoWarn>$(NoWarn);CS8002</NoWarn>
   </PropertyGroup>
 
+  <!-- We want to publish the dashboard for every supported RID -->
   <Target Name="PublishAllRids" AfterTargets="Build" Condition="'$(RuntimeIdentifier)' == ''">
     <ItemGroup>
       <RuntimeIdentifierForPublish Include="$(RuntimeIdentifiers)" />
@@ -24,7 +25,8 @@
              BuildInParallel="true" />
   </Target>
 
-  <Target Name="ZipMacBinary" AfterTargets="Publish" Condition="$(RuntimeIdentifier.StartsWith('osx-'))">
+  <!-- For MacOS, we need to zip the executable for signing -->
+  <Target Name="ZipMacBinary" AfterTargets="Publish" Condition="$(RuntimeIdentifier.StartsWith('osx-')) and '$(Sign)' == 'true'">
     <RemoveDir Directories="$(ArtifactsTmpDir)MacSigning\$(AssemblyName)\$(Configuration)\$(TargetFramework)\$(RuntimeIdentifier)" />
     <Delete Files="$(PublishDir)Aspire.Dashboard.$(RuntimeIdentifier).zip" />
     <Copy SourceFiles="$(PublishDir)$(AssemblyName)" DestinationFolder="$(ArtifactsTmpDir)MacSigning\$(AssemblyName)\$(Configuration)\$(TargetFramework)\$(RuntimeIdentifier)" />
