@@ -17,7 +17,7 @@
     </ItemGroup>
 
   </Target>
-  
+
   <!-- Generate the data structures for doing the codegen for project resources -->
   <Target Name="CreateAspireProjectMetadataSources"
           DependsOnTargets="_CreateAspireProjectResources">
@@ -111,7 +111,7 @@ internal static class ]]>%(ClassName)<![CDATA[
       <Code Type="Fragment" Language="cs">
         <![CDATA[
           HashSet<ITaskItem> nonExecutableReferences = new HashSet<ITaskItem>();
-          
+
           foreach (var appProject in AppProjectTargetFramework)
           {
             var additionalProperties = appProject.GetMetadata("AdditionalPropertiesFromProject");
@@ -120,7 +120,7 @@ internal static class ]]>%(ClassName)<![CDATA[
               // Skip any projects that don't contain the right metadata
               continue;
             }
-                
+
             var additionalPropertiesXml = XElement.Parse(additionalProperties);
             foreach (var targetFrameworkElement in additionalPropertiesXml.Elements())
             {
@@ -211,6 +211,7 @@ internal static class ]]>%(ClassName)<![CDATA[
       <AspireDashboardDir>$([MSBuild]::EnsureTrailingSlash('$(AspireDashboardDir)'))</AspireDashboardDir>
       <AspireDashboardPath Condition=" '$(AspireDashboardPath)' == '' ">$([MSBuild]::NormalizePath($(AspireDashboardDir), 'Aspire.Dashboard'))</AspireDashboardPath>
       <AspireDashboardPath Condition=" '$(OS)' == 'Windows_NT' and !$(AspireDashboardPath.EndsWith('.exe')) ">$(AspireDashboardPath).exe</AspireDashboardPath>
+      <AspireDashboardPath Condition="$([MSBuild]::IsOsPlatform('OSX')) and !$(AspireDashboardPath.EndsWith('.dll'))">$(AspireDashboardPath).dll</AspireDashboardPath>
     </PropertyGroup>
 
     <ItemGroup>
