@@ -105,9 +105,6 @@ internal static class Conventions
 {
     // Indicates that process ID of some process is not known
     public const int UnknownPID = -1;
-
-    // Indicates that the exit code of some process is not known
-    public const int UnknownExitCode = -1;
 }
 
 internal sealed class ServiceProducerAnnotation

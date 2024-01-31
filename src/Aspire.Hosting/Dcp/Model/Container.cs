@@ -178,9 +178,9 @@ internal sealed class ContainerStatus : V1Status
     public DateTimeOffset? FinishTimestamp { get; set; }
 
     // Exit code of the Container.
-    // Default is -1, meaning the exit code is not known, or the container is still running.
+    // Default is null, meaning the exit code is not known, or the container is still running.
     [JsonPropertyName("exitCode")]
-    public int ExitCode { get; set; } = Conventions.UnknownExitCode;
+    public int? ExitCode { get; set; }
 
     // Effective values of environment variables, after all substitutions have been applied
     [JsonPropertyName("effectiveEnv")]
