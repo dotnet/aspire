@@ -1,4 +1,4 @@
-using CatalogDb;
+using CatalogModel;
 
 namespace CatalogService;
 
