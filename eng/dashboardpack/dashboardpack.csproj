@@ -26,10 +26,13 @@
 
   <Target Name="Build" />
 
-  <Target Name="BeforeBuild" BeforeTargets="Build">
-    <MSBuild Projects="../../src/Aspire.Dashboard/Aspire.Dashboard.csproj" Targets="publish" Properties="Configuration=$(Configuration);Platform=$(Platform);TargetFramework=$(TargetFramework);RuntimeIdentifier=$(DashboardRuntime)" />
+  <Target Name="UpdateSignedFiles" Condition="Exists('$(DotNetOutputPath)Aspire.Dashboard/$(Configuration)/$(TargetFramework)/$(DashboardRuntime)/publish/Aspire.Dashboard.$(DashboardRuntime).zip')">
+    <Unzip SourceFiles="$(DotNetOutputPath)Aspire.Dashboard/$(Configuration)/$(TargetFramework)/$(DashboardRuntime)/publish/Aspire.Dashboard.$(DashboardRuntime).zip"
+           DestinationFolder="$(DotNetOutputPath)Aspire.Dashboard/$(Configuration)/$(TargetFramework)/$(DashboardRuntime)/publish/" />
+    <Delete Files="$(DotNetOutputPath)Aspire.Dashboard/$(Configuration)/$(TargetFramework)/$(DashboardRuntime)/publish/Aspire.Dashboard.$(DashboardRuntime).zip" />
+  </Target>
 
-    <!-- After publishing the project, we ensure that the published assets get packed in the nuspec. -->
+  <Target Name="BeforeBuild" BeforeTargets="Build" DependsOnTargets="UpdateSignedFiles">
     <ItemGroup>
       <_PublishItems Include="$(DotNetOutputPath)Aspire.Dashboard/$(Configuration)/$(TargetFramework)/$(DashboardRuntime)/publish/**/*" />
       <None Include="@(_PublishItems)" Pack="true" PackagePath="tools/" />

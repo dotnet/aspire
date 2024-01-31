@@ -10,6 +10,25 @@
     <NoWarn>$(NoWarn);CS8002</NoWarn>
   </PropertyGroup>
 
+  <Target Name="PublishAllRids" AfterTargets="Build" Condition="'$(RuntimeIdentifier)' == ''">
+    <ItemGroup>
+      <RuntimeIdentifierForPublish Include="$(RuntimeIdentifiers)" />
+
+      <ProjectToPublish Include="@(RuntimeIdentifierForPublish->'$(MSBuildProjectFullPath)')">
+        <AdditionalProperties>RuntimeIdentifier=%(RuntimeIdentifierForPublish.Identity)</AdditionalProperties>
+      </ProjectToPublish>
+    </ItemGroup>
+
+    <MSBuild Projects="@(ProjectToPublish)"
+             Targets="Publish"
+             BuildInParallel="true" />
+  </Target>
+
+  <Target Name="ZipMacBinary" AfterTargets="Publish" Condition="$(RuntimeIdentifier.StartsWith('osx-'))">
+    <Copy SourceFiles="$(PublishDir)Aspire.Dashboard" DestinationFolder="$(IntermediateOutputPath)Signing" />
+    <ZipDirectory SourceDirectory="$(IntermediateOutputPath)Signing" DestinationFile="$(PublishDir)Aspire.Dashboard.$(RuntimeIdentifier).zip" />
+  </Target>
+
   <ItemGroup>
     <Protobuf Include="**/*.proto" GrpcServices="Server">
       <ProtoRoot>Otlp</ProtoRoot>

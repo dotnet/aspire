@@ -21,6 +21,8 @@
     <FileSignInfo Include="Grpc.Net.Client.dll" CertificateName="3PartySHA2" />
     <FileSignInfo Include="Grpc.Net.ClientFactory.dll" CertificateName="3PartySHA2" />
     <FileSignInfo Include="Grpc.Net.Common.dll" CertificateName="3PartySHA2" />
+    <FileSignInfo Include="Aspire.Dashboard.osx-x64.zip" CertificateName="MacDeveloperHarden" />
+    <FileSignInfo Include="Aspire.Dashboard.osx-arm64.zip" CertificateName="MacDeveloperHarden" />
   </ItemGroup>
 
   <ItemGroup>
