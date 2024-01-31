@@ -21,11 +21,14 @@
     <FileSignInfo Include="Grpc.Net.Client.dll" CertificateName="3PartySHA2" />
     <FileSignInfo Include="Grpc.Net.ClientFactory.dll" CertificateName="3PartySHA2" />
     <FileSignInfo Include="Grpc.Net.Common.dll" CertificateName="3PartySHA2" />
+    <!-- Sign MacOS binaries for Aspire dashboard -->
     <FileSignInfo Include="Aspire.Dashboard.osx-x64.zip" CertificateName="MacDeveloperHarden" />
     <FileSignInfo Include="Aspire.Dashboard.osx-arm64.zip" CertificateName="MacDeveloperHarden" />
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Sign MacOS binaries for Aspire Dashboard -->
+    <ItemsToSign Include="$(ArtifactsBinDir)Aspire.Dashboard\**\*.zip" Condition="'$(PostBuildSign)' != 'true'" />
     <ItemsToSign Include="$(VisualStudioSetupInsertionPath)\**\*.msi" Condition="'$(PostBuildSign)' != 'true'" />
     <ItemsToSign Include="$(ArtifactsPackagesDir)**\*.wixpack.zip" Condition="'$(PostBuildSign)' != 'true'" />
     <ItemsToSignPostBuild Include="$(VisualStudioSetupInsertionPath)\**\*.msi" Condition="'$(PostBuildSign)' == 'true'" />

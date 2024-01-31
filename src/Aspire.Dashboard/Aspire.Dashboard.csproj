@@ -25,8 +25,10 @@
   </Target>
 
   <Target Name="ZipMacBinary" AfterTargets="Publish" Condition="$(RuntimeIdentifier.StartsWith('osx-'))">
-    <Copy SourceFiles="$(PublishDir)Aspire.Dashboard" DestinationFolder="$(IntermediateOutputPath)Signing" />
-    <ZipDirectory SourceDirectory="$(IntermediateOutputPath)Signing" DestinationFile="$(PublishDir)Aspire.Dashboard.$(RuntimeIdentifier).zip" />
+    <RemoveDir Directories="$(ArtifactsTmpDir)MacSigning\$(AssemblyName)\$(Configuration)\$(TargetFramework)\$(RuntimeIdentifier)" />
+    <Delete Files="$(PublishDir)Aspire.Dashboard.$(RuntimeIdentifier).zip" />
+    <Copy SourceFiles="$(PublishDir)$(AssemblyName)" DestinationFolder="$(ArtifactsTmpDir)MacSigning\$(AssemblyName)\$(Configuration)\$(TargetFramework)\$(RuntimeIdentifier)" />
+    <ZipDirectory SourceDirectory="$(ArtifactsTmpDir)MacSigning\$(AssemblyName)\$(Configuration)\$(TargetFramework)\$(RuntimeIdentifier)" DestinationFile="$(PublishDir)Aspire.Dashboard.$(RuntimeIdentifier).zip" />
   </Target>
 
   <ItemGroup>
