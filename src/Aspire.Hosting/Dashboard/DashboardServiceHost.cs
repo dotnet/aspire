@@ -67,7 +67,10 @@ internal sealed class DashboardServiceHost : IHostedService
 
         try
         {
-            var builder = WebApplication.CreateBuilder();
+            var builder = WebApplication.CreateSlimBuilder();
+
+            // Turn on HTTPS
+            builder.WebHost.UseKestrelHttpsConfiguration();
 
             // Configuration
             builder.Services.AddSingleton(configuration);
