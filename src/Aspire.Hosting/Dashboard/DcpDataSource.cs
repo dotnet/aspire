@@ -203,7 +203,8 @@ internal sealed class DcpDataSource
             CreationTimeStamp = container.Metadata.CreationTimestamp?.ToLocalTime(),
             Image = container.Spec.Image!,
             State = container.Status?.State,
-            ExitCode = container.Status?.ExitCode,
+            // Map a container exit code of -1 (unknown) to null
+            ExitCode = container.Status?.ExitCode is null or Conventions.UnknownExitCode ? null : container.Status.ExitCode,
             ExpectedEndpointsCount = GetExpectedEndpointsCount(container),
             Environment = environment,
             Endpoints = endpoints,
