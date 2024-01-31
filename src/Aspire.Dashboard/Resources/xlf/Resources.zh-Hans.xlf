@@ -67,6 +67,11 @@
         <target state="new">Working directory</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourcesDetailsExitCodeProperty">
+        <source>Exit code</source>
+        <target state="new">Exit code</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourcesDetailsProjectPathProperty">
         <source>Project path</source>
         <target state="new">Project path</target>
