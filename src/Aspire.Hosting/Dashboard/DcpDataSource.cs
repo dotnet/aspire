@@ -364,7 +364,7 @@ internal sealed class DcpDataSource
         {
             foreach (var serviceName in resourceServiceMappings)
             {
-                if (_servicesMap.TryGetValue(name, out var service))
+                if (_servicesMap.TryGetValue(serviceName, out var service))
                 {
                     services.Add(new ResourceServiceSnapshot(service.Metadata.Name, service.AllocatedAddress, service.AllocatedPort));
                 }
