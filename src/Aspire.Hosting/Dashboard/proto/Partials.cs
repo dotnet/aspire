@@ -16,7 +16,7 @@ partial class Resource
             ResourceType = snapshot.ResourceType,
             DisplayName = snapshot.DisplayName,
             Uid = snapshot.Uid,
-            State = snapshot.State,
+            State = snapshot.State ?? "",
         };
 
         if (snapshot.CreationTimeStamp.HasValue)

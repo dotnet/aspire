@@ -2,6 +2,7 @@
 @using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Resources
 @using Humanizer
+
 @inject IStringLocalizer<Columns> Loc
 
 @if (Resource is { State: ResourceStates.ExitedState /* containers */ or ResourceStates.FinishedState /* executables */ or ResourceStates.FailedToStartState })
@@ -37,8 +38,13 @@ else
 }
 
 @Resource.State.Humanize()
+<UnreadLogErrorsBadge UnviewedErrorCounts="UnviewedErrorCounts" Resource="@Resource" />
 
 @code {
     [Parameter, EditorRequired]
     public required ResourceViewModel Resource { get; set; }
+
+
+    [Parameter, EditorRequired]
+    public required Dictionary<OtlpApplication, int>? UnviewedErrorCounts { get; set; }
 }

@@ -1,13 +1,14 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics.CodeAnalysis;
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.Utils;
 using k8s;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -50,11 +51,12 @@ internal sealed class ServiceAppResource : AppResource
 }
 
 internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
+                                          ILogger<DistributedApplication> distributedApplicationLogger,
                                           DistributedApplicationModel model,
                                           DistributedApplicationOptions distributedApplicationOptions,
                                           KubernetesService kubernetesService,
                                           IEnumerable<IDistributedApplicationLifecycleHook> lifecycleHooks,
-                                          IEnvironmentVariables environmentVariables,
+                                          IConfiguration configuration,
                                           IOptions<DcpOptions> options,
                                           DashboardServiceHost dashboardHost)
 {
@@ -136,14 +138,14 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
         dashboardResource.Annotations.Add(new EnvironmentCallbackAnnotation(context =>
         {
-            if (Environment.GetEnvironmentVariable("ASPNETCORE_URLS") is not { } appHostApplicationUrl)
+            if (configuration["ASPNETCORE_URLS"] is not { } appHostApplicationUrl)
             {
-                throw new DistributedApplicationException("Dashboard inner loop hook failed to configure resource because ASPNETCORE_URLS environment variable was not set.");
+                throw new DistributedApplicationException("Failed to configure dashboard resource because ASPNETCORE_URLS environment variable was not set.");
             }
 
-            if (Environment.GetEnvironmentVariable("DOTNET_DASHBOARD_OTLP_ENDPOINT_URL") is not { } otlpEndpointUrl)
+            if (configuration["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] is not { } otlpEndpointUrl)
             {
-                throw new DistributedApplicationException("Dashboard inner loop hook failed to configure resource because DOTNET_DASHBOARD_OTLP_ENDPOINT_URL environment variable was not set.");
+                throw new DistributedApplicationException("Failed to configure dashboard resource because DOTNET_DASHBOARD_OTLP_ENDPOINT_URL environment variable was not set.");
             }
 
             // Grab the resource service URL. We need to inject this into the resource.
@@ -198,9 +200,12 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             throw new DistributedApplicationException("Error getting the resource service URL.", ex);
         }
 
-        var otlpEndpointUrl = environmentVariables.GetString("DOTNET_DASHBOARD_OTLP_ENDPOINT_URL");
-        var dashboardUrls = environmentVariables.GetString("ASPNETCORE_URLS") ?? throw new DistributedApplicationException("ASPNETCORE_URLS environment variable not set.");
-        var aspnetcoreEnvironment = environmentVariables.GetString("ASPNETCORE_ENVIRONMENT");
+        // Matches DashboardWebApplication.DashboardUrlDefaultValue
+        const string defaultDashboardUrl = "http://localhost:18888";
+
+        var otlpEndpointUrl = configuration["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"];
+        var dashboardUrls = configuration["ASPNETCORE_URLS"] ?? defaultDashboardUrl;
+        var aspnetcoreEnvironment = configuration["ASPNETCORE_ENVIRONMENT"];
 
         dashboardExecutableSpec.Env =
         [
@@ -235,11 +240,11 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         await CheckDashboardAvailabilityAsync(dashboardUrls, cancellationToken).ConfigureAwait(false);
     }
 
-    private static TimeSpan DashboardAvailabilityTimeoutDuration
+    private TimeSpan DashboardAvailabilityTimeoutDuration
     {
         get
         {
-            if (Environment.GetEnvironmentVariable("DOTNET_ASPIRE_DASHBOARD_TIMEOUT_SECONDS") is { } timeoutString && int.TryParse(timeoutString, out var timeoutInSeconds))
+            if (configuration["DOTNET_ASPIRE_DASHBOARD_TIMEOUT_SECONDS"] is { } timeoutString && int.TryParse(timeoutString, out var timeoutInSeconds))
             {
                 return TimeSpan.FromSeconds(timeoutInSeconds);
             }
@@ -254,9 +259,10 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private async Task CheckDashboardAvailabilityAsync(string delimitedUrlList, CancellationToken cancellationToken)
     {
-        if (TryGetUriFromDelimitedString(delimitedUrlList, ";", out var firstDashboardUrl))
+        if (StringUtils.TryGetUriFromDelimitedString(delimitedUrlList, ";", out var firstDashboardUrl))
         {
             await WaitForHttpSuccessOrThrow(firstDashboardUrl, DashboardAvailabilityTimeoutDuration, cancellationToken).ConfigureAwait(false);
+            distributedApplicationLogger.LogInformation("Now listening on: {DashboardUrl}", firstDashboardUrl.ToString().TrimEnd('/'));
         }
         else
         {
@@ -409,7 +415,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
         // We need to ensure that Services have unique names (otherwise we cannot really distinguish between
         // services produced by different resources).
-        List<string> serviceNames = new();
+        HashSet<string> serviceNames = [];
 
         void addServiceAppResource(Service svc, IResource producingResource, EndpointAnnotation sba)
         {
@@ -487,7 +493,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             annotationHolder.Annotate(Executable.CSharpProjectPathAnnotation, projectMetadata.ProjectPath);
             annotationHolder.Annotate(Executable.OtelServiceNameAnnotation, ers.Metadata.Name);
 
-            if (!string.IsNullOrEmpty(environmentVariables.GetString(DebugSessionPortVar)))
+            if (!string.IsNullOrEmpty(configuration[DebugSessionPortVar]))
             {
                 exeSpec.ExecutionType = ExecutionType.IDE;
                 if (project.TryGetLastAnnotation<LaunchProfileAnnotation>(out var lpa))
@@ -498,7 +504,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             else
             {
                 exeSpec.ExecutionType = ExecutionType.Process;
-                if (environmentVariables.GetBool("DOTNET_WATCH") is true)
+                if (configuration.GetBool("DOTNET_WATCH") is true)
                 {
                     exeSpec.Args = [
                         "run",
@@ -652,7 +658,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 {
                     // We just check the HTTP endpoint because this will prove that the
                     // dashboard is listening and is ready to process requests.
-                    if (Environment.GetEnvironmentVariable("ASPNETCORE_URLS") is not { } dashboardUrls)
+                    if (configuration["ASPNETCORE_URLS"] is not { } dashboardUrls)
                     {
                         throw new DistributedApplicationException("Cannot check dashboard availability since ASPNETCORE_URLS environment variable not set.");
                     }
@@ -666,21 +672,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         finally
         {
             AspireEventSource.Instance.DcpExecutablesCreateStop();
-        }
-    }
-
-    private static bool TryGetUriFromDelimitedString(string input, string delimiter, [NotNullWhen(true)]out Uri? uri)
-    {
-        if (!string.IsNullOrEmpty(input)
-            && input.Split(delimiter) is { Length: > 0} splitInput
-            && Uri.TryCreate(splitInput[0], UriKind.Absolute, out uri))
-        {
-            return true;
-        }
-        else
-        {
-            uri = null;
-            return false;
         }
     }
 
@@ -962,12 +953,12 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         return maybeWithSuffix(resource.Name);
     }
 
-    private static string GenerateUniqueServiceName(List<string> serviceNames, string candidateName)
+    private static string GenerateUniqueServiceName(HashSet<string> serviceNames, string candidateName)
     {
         int suffix = 1;
         string uniqueName = candidateName;
 
-        while (serviceNames.Contains(uniqueName))
+        while (!serviceNames.Add(uniqueName))
         {
             uniqueName = $"{candidateName}_{suffix}";
             suffix++;
@@ -978,8 +969,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             }
         }
 
-        serviceNames.Add(uniqueName);
         return uniqueName;
     }
-
 }

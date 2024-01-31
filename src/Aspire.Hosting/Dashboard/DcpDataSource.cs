@@ -8,6 +8,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
 using k8s;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Dashboard;
@@ -35,7 +36,7 @@ internal sealed class DcpDataSource
     public DcpDataSource(
         KubernetesService kubernetesService,
         DistributedApplicationModel applicationModel,
-        IEnvironmentVariables environmentVariables,
+        IConfiguration configuration,
         ILoggerFactory loggerFactory,
         Func<ResourceSnapshot, ResourceSnapshotChangeType, ValueTask> onResourceChanged,
         CancellationToken cancellationToken)
@@ -96,7 +97,7 @@ internal sealed class DcpDataSource
             // We filter out any resources that start with aspire-dashboard (there are services as well as executables).
             if (resource.Metadata.Name.StartsWith(KnownResourceNames.AspireDashboard, StringComparisons.ResourceName))
             {
-                return environmentVariables.GetBool("DOTNET_ASPIRE_SHOW_DASHBOARD_RESOURCES") is not true;
+                return configuration.GetBool("DOTNET_ASPIRE_SHOW_DASHBOARD_RESOURCES") is not true;
             }
 
             return false;
@@ -203,7 +204,8 @@ internal sealed class DcpDataSource
             CreationTimeStamp = container.Metadata.CreationTimestamp?.ToLocalTime(),
             Image = container.Spec.Image!,
             State = container.Status?.State,
-            ExitCode = container.Status?.ExitCode,
+            // Map a container exit code of -1 (unknown) to null
+            ExitCode = container.Status?.ExitCode is null or Conventions.UnknownExitCode ? null : container.Status.ExitCode,
             ExpectedEndpointsCount = GetExpectedEndpointsCount(container),
             Environment = environment,
             Endpoints = endpoints,

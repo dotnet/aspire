@@ -1,15 +1,17 @@
 import {
     accentBaseColor,
     baseLayerLuminance,
-    SwatchRGB
+    SwatchRGB,
+    fillColor,
+    neutralLayerL2
 } from "/_content/Microsoft.FluentUI.AspNetCore.Components/Microsoft.FluentUI.AspNetCore.Components.lib.module.js";
 
 const currentThemeCookieName = "currentTheme";
 const themeSettingSystem = "System";
 const themeSettingDark = "Dark";
 const themeSettingLight = "Light";
-const darkThemeLuminance = 0.15;
-const lightThemeLuminance = 0.95;
+const darkThemeLuminance = 0.19;
+const lightThemeLuminance = 1.0;
 
 /**
  * Returns the current system theme (Light or Dark)
@@ -110,5 +112,14 @@ function setInitialAccentColor() {
     accentBaseColor.withDefault(accentBase);
 }
 
+function setFillColor() {
+    // Design specs say we should use --neutral-layer-2 as the fill color
+    // for the body. Most of the web components use --fill-color as their
+    // background color, so we need to make sure they get --neutral-layer-2
+    // when they request --fill-color.
+    fillColor.setValueFor(document.body, neutralLayerL2);
+}
+
 setInitialBaseLayerLuminance();
 setInitialAccentColor();
+setFillColor();
