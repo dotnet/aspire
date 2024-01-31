@@ -50,7 +50,7 @@ internal sealed class ServiceAppResource : AppResource
 }
 
 internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
-                                          ILoggerFactory loggerFactory,
+                                          ILogger<DistributedApplication> distributedApplicationLogger,
                                           DistributedApplicationModel model,
                                           DistributedApplicationOptions distributedApplicationOptions,
                                           KubernetesService kubernetesService,
@@ -261,8 +261,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         if (StringUtils.TryGetUriFromDelimitedString(delimitedUrlList, ";", out var firstDashboardUrl))
         {
             await WaitForHttpSuccessOrThrow(firstDashboardUrl, DashboardAvailabilityTimeoutDuration, cancellationToken).ConfigureAwait(false);
-
-            var distributedApplicationLogger = loggerFactory.CreateLogger<DistributedApplication>();
             distributedApplicationLogger.LogInformation("Now listening on: {DashboardUrl}", firstDashboardUrl.ToString().TrimEnd('/'));
         }
         else
