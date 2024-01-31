@@ -4,11 +4,9 @@
 using System.Diagnostics;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
-using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting;
 
@@ -113,7 +111,6 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// <inheritdoc cref="IHost.StartAsync" />
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
-        WriteStartingLog();
         await _host.StartAsync(cancellationToken).ConfigureAwait(false);
         await ExecuteBeforeStartHooksAsync(cancellationToken).ConfigureAwait(false);
     }
@@ -127,22 +124,8 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// <inheritdoc cref="HostingAbstractionsHostExtensions.RunAsync" />
     public async Task RunAsync(CancellationToken cancellationToken = default)
     {
-        WriteStartingLog();
         await ExecuteBeforeStartHooksAsync(cancellationToken).ConfigureAwait(false);
         await _host.RunAsync(cancellationToken).ConfigureAwait(false);
-    }
-
-    private void WriteStartingLog()
-    {
-        var options = _host.Services.GetRequiredService<IOptions<PublishingOptions>>();
-
-        if (options.Value?.Publisher == "manifest")
-        {
-            // If we are producing the manifest, don't write startup messages.
-            return;
-        }
-
-        _logger.LogInformation("Distributed application starting.");
     }
 
     /// <summary>
