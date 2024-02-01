@@ -25,8 +25,6 @@ public class ConformanceTests : ConformanceTests<SearchIndexClient, AzureAISearc
 
     protected override bool SupportsKeyedRegistrations => true;
 
-    protected override string JsonSchemaPath => "src/Components/Aspire.Azure.AI.Search/ConfigurationSchema.json";
-
     protected override string ValidJsonConfig => """
         {
           "Aspire": {
