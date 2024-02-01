@@ -111,8 +111,8 @@ public class DistributedApplication : IHost, IAsyncDisposable
     /// <inheritdoc cref="IHost.StartAsync" />
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
-        await _host.StartAsync(cancellationToken).ConfigureAwait(false);
         await ExecuteBeforeStartHooksAsync(cancellationToken).ConfigureAwait(false);
+        await _host.StartAsync(cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc cref="IHost.StopAsync" />
