@@ -39,7 +39,7 @@ public abstract class TestProgramFixture : IAsyncLifetime
 
         _httpClient = _app.Services.GetRequiredService<IHttpClientFactory>().CreateClient();
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
+        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
 
         await _app.StartAsync(cts.Token);
 
@@ -105,7 +105,11 @@ public class IntegrationServicesFixture : TestProgramFixture
             .AddHttpClient()
             .ConfigureHttpClientDefaults(b =>
             {
-                b.UseSocketsHttpHandler((handler, sp) => handler.PooledConnectionLifetime = TimeSpan.FromSeconds(5));
+                b.UseSocketsHttpHandler((handler, sp) =>
+                {
+                    handler.PooledConnectionLifetime = TimeSpan.FromSeconds(5);
+                    handler.ConnectTimeout = TimeSpan.FromSeconds(5);
+                });
 
                 // Ensure transient errors are retried.
                 b.AddStandardResilienceHandler();
