@@ -17,6 +17,7 @@
     <PackageReference Include="Azure.ResourceManager.ServiceBus" />
     <PackageReference Include="Azure.ResourceManager.Storage" />
     <PackageReference Include="Azure.ResourceManager.Sql" />
+    <PackageReference Include="Azure.ResourceManager.ApplicationInsights" />
     <Compile Include="$(SharedDir)ValueStopwatch\*.cs" />
   </ItemGroup>
 

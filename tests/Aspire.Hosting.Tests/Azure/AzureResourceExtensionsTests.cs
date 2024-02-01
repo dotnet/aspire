@@ -44,4 +44,56 @@ public class AzureResourceExtensionsTests
         var actualTag = containerImageAnnotation.Tag;
         Assert.Equal(imageTag ?? "latest", actualTag);
     }
+
+    [Fact]
+    public void WithReferenceAppInsightsWritesEnvVariableToManifest()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var ai = builder.AddApplicationInsights("ai");
+
+        var serviceA = builder.AddProject<Projects.ServiceA>("serviceA")
+            .WithReference(ai);
+
+        // Call environment variable callbacks.
+        var annotations = serviceA.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
+
+        var config = new Dictionary<string, string>();
+        var context = new EnvironmentCallbackContext("manifest", config);
+
+        foreach (var annotation in annotations)
+        {
+            annotation.Callback(context);
+        }
+
+        var servicesKeys = config.Keys.Where(key => key == "APPLICATIONINSIGHTS_CONNECTION_STRING");
+        Assert.Single(servicesKeys);
+        Assert.Contains(config, kvp => kvp.Key == "APPLICATIONINSIGHTS_CONNECTION_STRING" && kvp.Value == "{ai.connectionString}");
+    }
+
+    [Fact]
+    public void WithReferenceAppInsightsSetsEnvironmentVariable()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var ai = builder.AddApplicationInsights("ai", "connectionString1234");
+
+        var serviceA = builder.AddProject<Projects.ServiceA>("serviceA")
+            .WithReference(ai);
+
+        // Call environment variable callbacks.
+        var annotations = serviceA.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
+
+        var config = new Dictionary<string, string>();
+        var context = new EnvironmentCallbackContext("dcp", config);
+
+        foreach (var annotation in annotations)
+        {
+            annotation.Callback(context);
+        }
+
+        var servicesKeys = config.Keys.Where(key => key == "APPLICATIONINSIGHTS_CONNECTION_STRING");
+        Assert.Single(servicesKeys);
+        Assert.Contains(config, kvp => kvp.Key == "APPLICATIONINSIGHTS_CONNECTION_STRING" && kvp.Value == "connectionString1234");
+    }
 }

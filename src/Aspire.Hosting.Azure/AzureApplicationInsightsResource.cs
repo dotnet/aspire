@@ -12,8 +12,13 @@ public sealed class AzureApplicationInsightsResource(string name, string? connec
     : Resource(name), IAzureResource, IResourceWithConnectionString
 {
     /// <summary>
+    /// Gets or sets the connection string for the Azure Application Insights resource.
+    /// </summary>
+    public string? ConnectionString { get; set; } = connectionString;
+
+    /// <summary>
     /// Gets the connection string for the Azure Application Insights resource.
     /// </summary>
     /// <returns>The connection string for the Azure Application Insights resource.</returns>
-    public string? GetConnectionString() => connectionString;
+    public string? GetConnectionString() => ConnectionString;
 }
