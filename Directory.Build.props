@@ -25,6 +25,8 @@
     <RunSettingsFilePath>$(RepositoryEngineeringDir).runsettings</RunSettingsFilePath>
     <!-- We don't want to use the workload for AppHost projects in this repo -->
     <SkipAspireWorkloadManifest>true</SkipAspireWorkloadManifest>
+
+    <DashboardPublishedArtifactsOutputDir>$([MSBuild]::NormalizeDirectory('$(ArtifactsDir)', 'DashboardArtifacts', '$(Configuration)'))</DashboardPublishedArtifactsOutputDir>
   </PropertyGroup>
 
   <!-- OS/Architecture properties for local development resources -->
