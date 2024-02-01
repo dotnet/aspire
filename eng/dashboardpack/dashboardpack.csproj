@@ -35,6 +35,9 @@
       <None Include="@(_PublishItems)" Pack="true" PackagePath="tools/" />
     </ItemGroup>
 
+    <MakeDir Directories="$(DashboardPublishedArtifactsOutputDir)/$(DashboardRuntime)" />
+    <ZipDirectory SourceDirectory="$(DotNetOutputPath)Aspire.Dashboard/$(Configuration)/$(TargetFramework)/$(DashboardRuntime)/publish" DestinationFile="$(DashboardPublishedArtifactsOutputDir)/$(DashboardRuntime)/aspire-dashboard-$(DashboardRuntime).zip" />
+
     <!-- Throw an error if _PublishItems is empty. -->
     <Error Condition="'@(_PublishItems)' == ''" Text="No files were found to pack. Ensure that the project being packed has a publish target defined." />
   </Target>

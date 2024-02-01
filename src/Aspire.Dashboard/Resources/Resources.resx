@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!--
     Microsoft ResX Schema
@@ -151,6 +151,9 @@
   </data>
   <data name="ResourcesStartTimeColumnHeader" xml:space="preserve">
     <value>Start time</value>
+  </data>
+  <data name="ResourcesDetailsExitCodeProperty" xml:space="preserve">
+    <value>Exit code</value>
   </data>
   <data name="ResourcesSourceColumnHeader" xml:space="preserve">
     <value>Source</value>
