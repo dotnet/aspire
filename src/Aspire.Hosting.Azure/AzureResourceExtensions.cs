@@ -283,19 +283,6 @@ public static class AzureResourceExtensions
             .WithManifestPublishingCallback(WriteAzureOpenAIToManifest);
     }
 
-    /// <summary>
-    /// Adds an Azure AI Search resource to the application model.
-    /// </summary>
-    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
-    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{AzureAISearchResource}"/>.</returns>
-    public static IResourceBuilder<AzureAISearchResource> AddAzureAISearch(this IDistributedApplicationBuilder builder, string name)
-    {
-        var resource = new AzureAISearchResource(name);
-        return builder.AddResource(resource)
-            .WithManifestPublishingCallback(WriteAzureOpenAIToManifest);
-    }
-
     private static void WriteAzureOpenAIToManifest(ManifestPublishingContext context)
     {
         context.Writer.WriteString("type", "azure.openai.account.v0");
@@ -322,5 +309,23 @@ public static class AzureResourceExtensions
 
         context.Writer.WriteString("type", "azure.openai.deployment.v0");
         context.Writer.WriteString("parent", resource.Parent.Name);
+    }
+
+    /// <summary>
+    /// Adds an Azure AI Search resource to the application model.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{AzureAISearchResource}"/>.</returns>
+    public static IResourceBuilder<AzureAISearchResource> AddAzureAISearch(this IDistributedApplicationBuilder builder, string name)
+    {
+        var resource = new AzureAISearchResource(name);
+        return builder.AddResource(resource)
+            .WithManifestPublishingCallback(WriteAzureAISearchToManifest);
+    }
+
+    private static void WriteAzureAISearchToManifest(ManifestPublishingContext context)
+    {
+        context.Writer.WriteString("type", "azure.aisearch.v0");
     }
 }

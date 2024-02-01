@@ -8,14 +8,14 @@ namespace Aspire.Hosting.Azure;
 public class AzureAISearchResource(string name) : Resource(name), IAzureResource, IResourceWithConnectionString
 {
     /// <summary>
-    /// Gets or sets the connection string for the OpenAI resource.
+    /// Gets or sets the connection string for the AI Search resource.
     /// </summary>
     public string? ConnectionString { get; set; }
 
     /// <summary>
-    /// Gets the connection string for the OpenAI service.
+    /// Gets the connection string for the AI Search service.
     /// </summary>
-    /// <returns>The connection string for the OpenAI service.</returns>
+    /// <returns>The connection string for the AI Search service.</returns>
     string? IResourceWithConnectionString.GetConnectionString() => ConnectionString;
 }
 
