@@ -3,6 +3,7 @@
 
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.Data.Cosmos;
 using Aspire.Hosting.Publishing;
 
@@ -278,6 +279,19 @@ public static class AzureResourceExtensions
     public static IResourceBuilder<AzureOpenAIResource> AddAzureOpenAI(this IDistributedApplicationBuilder builder, string name)
     {
         var resource = new AzureOpenAIResource(name);
+        return builder.AddResource(resource)
+            .WithManifestPublishingCallback(WriteAzureOpenAIToManifest);
+    }
+
+    /// <summary>
+    /// Adds an Azure AI Search resource to the application model.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{AzureAISearchResource}"/>.</returns>
+    public static IResourceBuilder<AzureAISearchResource> AddAzureAISearch(this IDistributedApplicationBuilder builder, string name)
+    {
+        var resource = new AzureAISearchResource(name);
         return builder.AddResource(resource)
             .WithManifestPublishingCallback(WriteAzureOpenAIToManifest);
     }

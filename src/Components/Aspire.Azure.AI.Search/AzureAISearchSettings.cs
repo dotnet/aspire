@@ -14,7 +14,6 @@ namespace Aspire.Azure.AI.Search;
 public sealed class AzureAISearchSettings : IConnectionStringSettings
 {
     private const string ConnectionStringEndpoint = "Endpoint";
-    private const string ConnectionStringIndexName = "IndexName";
     private const string ConnectionStringKey = "Key";
 
     /// <summary>
@@ -23,14 +22,9 @@ public sealed class AzureAISearchSettings : IConnectionStringSettings
     /// </summary>
     /// <remarks>
     /// Must not contain shared access signature.
-    /// Used along with <see cref="IndexName"/> and <see cref="Credential"/> or <see cref="Key"/> to establish the connection.
+    /// Used along with <see cref="Credential"/> or <see cref="Key"/> to establish the connection.
     /// </remarks>
     public Uri? Endpoint { get; set; }
-
-    /// <summary>
-    /// Gets or sets the name of the AI Search Index.
-    /// </summary>
-    public string? IndexName { get; set; }
 
     /// <summary>
     /// Gets or sets the credential used to authenticate to the Azure AI Search resource.
@@ -64,10 +58,9 @@ public sealed class AzureAISearchSettings : IConnectionStringSettings
         {
             Endpoint = serviceUri;
         }
-
-        if (connectionBuilder.ContainsKey(ConnectionStringIndexName))
+        else if (Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))
         {
-            IndexName = connectionBuilder[ConnectionStringIndexName].ToString();
+            Endpoint = uri;
         }
 
         if (connectionBuilder.ContainsKey(ConnectionStringKey))
