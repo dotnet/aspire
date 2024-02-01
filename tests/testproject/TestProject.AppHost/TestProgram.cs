@@ -47,12 +47,12 @@ public class TestProgram
             var postgres = AppBuilder.AddPostgres("postgres")
                 .WithEnvironment("POSTGRES_DB", postgresDbName)
                 .AddDatabase(postgresDbName);
-            var rabbitmq = AppBuilder.AddRabbitMQContainer("rabbitmq");
-            var mongodb = AppBuilder.AddMongoDBContainer("mongodb")
+            var rabbitmq = AppBuilder.AddRabbitMQ("rabbitmq");
+            var mongodb = AppBuilder.AddMongoDB("mongodb")
                 .AddDatabase(mongoDbName);
             var oracleDatabase = AppBuilder.AddOracleDatabase("oracledatabase")
                 .AddDatabase(oracleDbName);
-            var kafkaContainer = AppBuilder.AddKafkaContainer("kafkacontainer");
+            var kafka = AppBuilder.AddKafka("kafka");
             var cosmos = AppBuilder.AddAzureCosmosDB("cosmos").UseEmulator();
 
             IntegrationServiceABuilder = AppBuilder.AddProject<Projects.IntegrationServiceA>("integrationservicea")
@@ -63,7 +63,7 @@ public class TestProgram
                 .WithReference(rabbitmq)
                 .WithReference(mongodb)
                 .WithReference(oracleDatabase)
-                .WithReference(kafkaContainer)
+                .WithReference(kafka)
                 .WithReference(cosmos);
         }
     }

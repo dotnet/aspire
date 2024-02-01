@@ -20,16 +20,13 @@ public static class MySqlExtensions
                 // retry every second for 60 seconds
                 .WaitAndRetryAsync(60, retryAttempt => TimeSpan.FromSeconds(1));
 
-            return await policy.ExecuteAsync(async () =>
-            {
-                await connection.OpenAsync();
+            await policy.ExecuteAsync(connection.OpenAsync);
 
-                var command = connection.CreateCommand();
-                command.CommandText = $"SELECT 1";
-                var results = await command.ExecuteReaderAsync();
+            var command = connection.CreateCommand();
+            command.CommandText = $"SELECT 1";
+            var results = await command.ExecuteReaderAsync();
 
-                return results.HasRows ? Results.Ok("Success!") : Results.Problem("Failed");
-            });
+            return results.HasRows ? Results.Ok("Success!") : Results.Problem("Failed");
         }
         catch (Exception e)
         {
