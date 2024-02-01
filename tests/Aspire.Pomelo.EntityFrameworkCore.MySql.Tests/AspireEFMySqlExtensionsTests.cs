@@ -18,7 +18,7 @@ public class AspireEFMySqlExtensionsTests
     private const string ConnectionString = "Server=localhost;User ID=root;Database=test";
     private const string ConnectionStringSuffixAddedByPomelo = ";Allow User Variables=True;Use Affected Rows=False";
 
-    [Fact]
+    [Fact(Skip = "Pomelo depends on ef method that was removed in 9.0")]
     public void ReadsFromConnectionStringsCorrectly()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
@@ -35,7 +35,7 @@ public class AspireEFMySqlExtensionsTests
         Assert.Equal(ConnectionString + ConnectionStringSuffixAddedByPomelo, context.Database.GetDbConnection().ConnectionString);
     }
 
-    [Fact]
+    [Fact(Skip = "Pomelo depends on ef method that was removed in 9.0")]
     public void ConnectionStringCanBeSetInCode()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
@@ -55,7 +55,7 @@ public class AspireEFMySqlExtensionsTests
         Assert.DoesNotContain("unused", actualConnectionString);
     }
 
-    [Fact]
+    [Fact(Skip = "Pomelo depends on ef method that was removed in 9.0")]
     public void ConnectionNameWinsOverConfigSection()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
@@ -76,7 +76,7 @@ public class AspireEFMySqlExtensionsTests
         Assert.DoesNotContain("unused", actualConnectionString);
     }
 
-    [Fact]
+    [Fact(Skip = "Pomelo depends on ef method that was removed in 9.0")]
     public void CanConfigureDbContextOptions()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);

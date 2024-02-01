@@ -124,7 +124,7 @@ public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, PomeloEn
         Assert.NotNull(dbContext);
     }
 
-    [ConditionalFact]
+    [ConditionalFact(Skip = "Pomelo depends on ef method that was removed in 9.0")]
     public void TracingEnablesTheRightActivitySource()
     {
         SkipIfCanNotConnectToServer();
