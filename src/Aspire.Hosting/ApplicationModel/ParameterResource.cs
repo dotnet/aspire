@@ -3,7 +3,10 @@
 
 namespace Aspire.Hosting.ApplicationModel;
 
-public sealed class ParameterResource(string name, string value) : Resource(name)
+public sealed class ParameterResource(string name, Func<Task<string>> callback) : Resource(name)
 {
-    public string Value { get; set; } = value;
+    public Task<string> GetValueAsync(CancellationToken cancellationToken)
+    {
+        return callback();
+    }
 }

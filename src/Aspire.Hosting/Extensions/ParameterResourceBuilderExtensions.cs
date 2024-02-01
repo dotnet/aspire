@@ -7,9 +7,19 @@ namespace Aspire.Hosting.Extensions;
 
 public static class ParameterResourceBuilderExtensions
 {
-    public static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder, string name, string value)
+    public static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder, string name)
     {
-        var resource = new ParameterResource(name, value);
+        return builder.AddParameter(name, () =>
+        {
+            var configurationKey = $"Parameters:{name}";
+            var configurationValue = builder.Configuration[configurationKey] ?? throw new DistributedApplicationException($"Parameter resource could not be used because configuration key `{configurationKey}` is missing.");
+            return Task.FromResult(configurationValue);
+        });
+    }
+
+    internal static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder, string name, Func<Task<string>> callback)
+    {
+        var resource = new ParameterResource(name, callback);
         return builder.AddResource(resource);
     }
 
