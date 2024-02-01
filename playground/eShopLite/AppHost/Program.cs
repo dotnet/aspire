@@ -5,10 +5,8 @@ var builder = DistributedApplication.CreateBuilder(args);
 var ratingsDb = builder.Environment.EnvironmentName switch
 {
     "Development" => builder.AddAzureCosmosDB("cosmos").UseEmulator().AddDatabase("ratingsdb"),
-    _ => builder.AddParameter("ratingsdb", secret: true).AsConnectionString()
+    _ => builder.AddConnectionString("ratingsdb")
 };
-
-var scale = builder.AddParameter("scale", "2");
 
 var catalogDb = builder.AddPostgres("postgres")
                        .WithPgAdmin()
@@ -19,8 +17,7 @@ var basketCache = builder.AddRedis("basketcache")
 
 var catalogService = builder.AddProject<Projects.CatalogService>("catalogservice")
                             .WithReference(catalogDb)
-                            .WithReference(ratingsDb)
-                            .WithReplicas(scale);
+                            .WithReference(ratingsDb);
 
 var messaging = builder.AddRabbitMQContainer("messaging");
 
