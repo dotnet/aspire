@@ -504,7 +504,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             else
             {
                 exeSpec.ExecutionType = ExecutionType.Process;
-                if (configuration.GetBool("DOTNET_WATCH") is true)
+                if (configuration.GetBool("DOTNET_WATCH") is not true)
                 {
                     exeSpec.Args = [
                         "run",
