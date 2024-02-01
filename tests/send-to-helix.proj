@@ -74,8 +74,8 @@
     <PropertyGroup>
       <_DotNetToolJsonPath>$(RepoRoot).config/dotnet-tools.json</_DotNetToolJsonPath>
       <_DotNetToolJsonContent>$([System.IO.File]::ReadAllText($(_DotNetToolJsonPath)))</_DotNetToolJsonContent>
-      <_DotNetCoverageVersionRegex>(?:"dotnet-coverage": *{.*?"version": *")([^"]*?)(?:")</_DotNetCoverageVersionRegex>
-      <_DotNetCoverageToolVersion>$([System.Text.RegularExpressions.Regex]::Match($(_DotNetToolJsonContent), '$(_DotNetCoverageVersionRegex)', 'System.Text.RegularExpressions.RegexOptions.Singleline').Groups[1].Value)</_DotNetCoverageToolVersion>
+      <_DotNetCoverageVersionRegex>"dotnet-coverage":\s*{\s*"version":\s*"([^"]*)"</_DotNetCoverageVersionRegex>
+      <_DotNetCoverageToolVersion>$([System.Text.RegularExpressions.Regex]::Match($(_DotNetToolJsonContent), '$(_DotNetCoverageVersionRegex)').Groups[1].Value)</_DotNetCoverageToolVersion>
     </PropertyGroup>
 
     <Error Condition="'$(_DotNetCoverageToolVersion)' == ''"
