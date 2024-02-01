@@ -1,9 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Dcp;
+using Aspire.Hosting.Dcp.Model;
+
 namespace Aspire.Hosting.Dashboard;
 
-internal sealed class ConsoleLogPublisher(ResourcePublisher resourcePublisher)
+internal sealed class ConsoleLogPublisher(ResourcePublisher resourcePublisher, IKubernetesService kubernetesService)
 {
     internal IAsyncEnumerable<IReadOnlyList<(string Content, bool IsErrorMessage)>>? Subscribe(string resourceName)
     {
@@ -22,24 +25,16 @@ internal sealed class ConsoleLogPublisher(ResourcePublisher resourcePublisher)
             _ => throw new NotSupportedException($"Unsupported resource type {resource.GetType()}.")
         };
 
-        static FileLogSource? SubscribeExecutable(ExecutableSnapshot executable)
+        IAsyncEnumerable<IReadOnlyList<(string Content, bool IsErrorMessage)>> SubscribeExecutable(ExecutableSnapshot executable)
         {
-            if (executable.StdOutFile is null || executable.StdErrFile is null)
-            {
-                return null;
-            }
-
-            return new FileLogSource(executable.StdOutFile, executable.StdErrFile);
+            var executableIdentity = Executable.Create(executable.Name, string.Empty);
+            return new ResourceLogSource<Executable>(kubernetesService, executableIdentity);
         }
 
-        static DockerContainerLogSource? SubscribeContainer(ContainerSnapshot container)
+        IAsyncEnumerable<IReadOnlyList<(string Content, bool IsErrorMessage)>> SubscribeContainer(ContainerSnapshot container)
         {
-            if (container.ContainerId is null)
-            {
-                return null;
-            }
-
-            return new DockerContainerLogSource(container.ContainerId);
+            var containerIdentity = Container.Create(container.Name, string.Empty);
+            return new ResourceLogSource<Container>(kubernetesService, containerIdentity);
         }
     }
 }
