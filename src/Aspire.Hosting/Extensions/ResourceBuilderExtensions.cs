@@ -26,7 +26,7 @@ public static class ResourceBuilderExtensions
     /// <returns>A resource configured with the specified environment variable.</returns>
     public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, string? value) where T : IResource
     {
-        return builder.WithAnnotation(new EnvironmentCallbackAnnotation(name, () => value ?? string.Empty));
+        return builder.WithAnnotation(new EnvironmentAnnotation(name, value ?? string.Empty));
     }
 
     /// <summary>
@@ -222,10 +222,7 @@ public static class ResourceBuilderExtensions
             throw new InvalidOperationException("The uri absolute path must be \"/\".");
         }
 
-        return builder.WithEnvironment(context =>
-        {
-            context.EnvironmentVariables[$"services__{name}"] = uri.ToString();
-        });
+        return builder.WithEnvironment($"services__{name}", uri.ToString());
     }
 
     /// <summary>

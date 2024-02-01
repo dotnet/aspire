@@ -6,7 +6,6 @@ using System.IO.Pipelines;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Channels;
-using Aspire.Hosting.Extensions;
 
 namespace Aspire.Hosting.Dashboard;
 

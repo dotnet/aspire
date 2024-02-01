@@ -6,6 +6,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.Utils;
 using k8s;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -49,6 +50,7 @@ internal sealed class ServiceAppResource : AppResource
 }
 
 internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
+                                          ILoggerFactory loggerFactory,
                                           DistributedApplicationModel model,
                                           DistributedApplicationOptions distributedApplicationOptions,
                                           KubernetesService kubernetesService,
@@ -137,12 +139,12 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         {
             if (Environment.GetEnvironmentVariable("ASPNETCORE_URLS") is not { } appHostApplicationUrl)
             {
-                throw new DistributedApplicationException("Dashboard inner loop hook failed to configure resource because ASPNETCORE_URLS environment variable was not set.");
+                throw new DistributedApplicationException("Failed to configure dashboard resource because ASPNETCORE_URLS environment variable was not set.");
             }
 
             if (Environment.GetEnvironmentVariable("DOTNET_DASHBOARD_OTLP_ENDPOINT_URL") is not { } otlpEndpointUrl)
             {
-                throw new DistributedApplicationException("Dashboard inner loop hook failed to configure resource because DOTNET_DASHBOARD_OTLP_ENDPOINT_URL environment variable was not set.");
+                throw new DistributedApplicationException("Failed to configure dashboard resource because DOTNET_DASHBOARD_OTLP_ENDPOINT_URL environment variable was not set.");
             }
 
             // Grab the resource service URL. We need to inject this into the resource.
@@ -197,8 +199,11 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             throw new DistributedApplicationException("Error getting the resource service URL.", ex);
         }
 
+        // Matches DashboardWebApplication.DashboardUrlDefaultValue
+        const string defaultDashboardUrl = "http://localhost:18888";
+
         var otlpEndpointUrl = environmentVariables.GetString("DOTNET_DASHBOARD_OTLP_ENDPOINT_URL");
-        var dashboardUrl = environmentVariables.GetString("ASPNETCORE_URLS") ?? throw new DistributedApplicationException("ASPNETCORE_URLS environment variable not set.");
+        var dashboardUrls = environmentVariables.GetString("ASPNETCORE_URLS") ?? defaultDashboardUrl;
         var aspnetcoreEnvironment = environmentVariables.GetString("ASPNETCORE_ENVIRONMENT");
 
         dashboardExecutableSpec.Env =
@@ -211,7 +216,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             new()
             {
                 Name = "ASPNETCORE_URLS",
-                Value = dashboardUrl
+                Value = dashboardUrls
             },
             new()
             {
@@ -231,7 +236,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         };
 
         await kubernetesService.CreateAsync(dashboardExecutable, cancellationToken).ConfigureAwait(false);
-        await WaitForHttpSuccessOrThrow(dashboardUrl, DashboardAvailabilityTimeoutDuration, cancellationToken).ConfigureAwait(false);
+        await CheckDashboardAvailabilityAsync(dashboardUrls, cancellationToken).ConfigureAwait(false);
     }
 
     private static TimeSpan DashboardAvailabilityTimeoutDuration
@@ -251,7 +256,22 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
     private const int DefaultDashboardAvailabilityTimeoutDurationInSeconds = 60;
 
-    private async Task WaitForHttpSuccessOrThrow(string url, TimeSpan timeout, CancellationToken cancellationToken = default)
+    private async Task CheckDashboardAvailabilityAsync(string delimitedUrlList, CancellationToken cancellationToken)
+    {
+        if (StringUtils.TryGetUriFromDelimitedString(delimitedUrlList, ";", out var firstDashboardUrl))
+        {
+            await WaitForHttpSuccessOrThrow(firstDashboardUrl, DashboardAvailabilityTimeoutDuration, cancellationToken).ConfigureAwait(false);
+
+            var distributedApplicationLogger = loggerFactory.CreateLogger<DistributedApplication>();
+            distributedApplicationLogger.LogInformation("Now listening on: {DashboardUrl}", firstDashboardUrl.ToString().TrimEnd('/'));
+        }
+        else
+        {
+            _logger.LogWarning("Skipping dashboard availability check because ASPNETCORE_URLS environment variable could not be parsed.");
+        }
+    }
+
+    private async Task WaitForHttpSuccessOrThrow(Uri url, TimeSpan timeout, CancellationToken cancellationToken = default)
     {
         using var timeoutCts = new CancellationTokenSource(timeout);
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
@@ -639,12 +659,12 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 {
                     // We just check the HTTP endpoint because this will prove that the
                     // dashboard is listening and is ready to process requests.
-                    if (Environment.GetEnvironmentVariable("ASPNETCORE_URLS") is not { } dashboardUrl)
+                    if (Environment.GetEnvironmentVariable("ASPNETCORE_URLS") is not { } dashboardUrls)
                     {
                         throw new DistributedApplicationException("Cannot check dashboard availability since ASPNETCORE_URLS environment variable not set.");
                     }
 
-                    await WaitForHttpSuccessOrThrow(dashboardUrl, DashboardAvailabilityTimeoutDuration, cancellationToken).ConfigureAwait(false);
+                    await CheckDashboardAvailabilityAsync(dashboardUrls, cancellationToken).ConfigureAwait(false);
                 }
 
             }

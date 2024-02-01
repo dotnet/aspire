@@ -46,6 +46,7 @@ rediscommander
 runtimeconfig
 sqlserver
 trce
+uninstrumented
 upsert
 uris
 urls

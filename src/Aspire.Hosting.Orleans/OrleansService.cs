@@ -59,4 +59,12 @@ public class OrleansService(IDistributedApplicationBuilder builder, string name)
     /// Gets the stream providers.
     /// </summary>
     public Dictionary<string, IProviderConfiguration> Streaming { get; } = [];
+
+    /// <summary>
+    /// Gets or sets a value indicating whether to enable tracing of grain calls.
+    /// </summary>
+    /// <remarks>
+    /// Distributed tracing is enabled by default.
+    /// </remarks>
+    public bool? EnableDistributedTracing { get; set; }
 }
