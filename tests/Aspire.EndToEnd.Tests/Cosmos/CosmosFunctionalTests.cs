@@ -1,10 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.Tests.Helpers;
 using Xunit;
 
-namespace Aspire.Hosting.Tests.Cosmos;
+namespace Aspire.EndToEnd.Tests.Cosmos;
 
 [Collection("IntegrationServices")]
 public class CosmosFunctionalTests
@@ -16,15 +15,12 @@ public class CosmosFunctionalTests
         _integrationServicesFixture = integrationServicesFixture;
     }
 
-    [LocalOnlyFact()]
+    [Fact]
     public async Task VerifyCosmosWorks()
     {
-        var testProgram = _integrationServicesFixture.TestProgram;
-        var client = _integrationServicesFixture.HttpClient;
-
         using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(6));
 
-        var response = await testProgram.IntegrationServiceABuilder!.HttpGetAsync(client, "http", "/cosmos/verify", cts.Token);
+        var response = await _integrationServicesFixture.IntegrationServiceA.HttpGetAsync("http", "/cosmos/verify", cts.Token);
         var responseContent = await response.Content.ReadAsStringAsync();
 
         Assert.True(response.IsSuccessStatusCode, responseContent);

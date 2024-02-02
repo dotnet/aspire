@@ -2,6 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Reflection;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using Aspire.Hosting.Lifecycle;
 
 public class TestProgram
 {
@@ -66,6 +69,8 @@ public class TestProgram
                 .WithReference(kafka)
                 .WithReference(cosmos);
         }
+
+        AppBuilder.Services.TryAddLifecycleHook<EndPointWriterHook>();
     }
 
     public static TestProgram Create<T>(string[]? args = null, bool includeIntegrationServices = false, bool includeNodeApp = false, bool disableDashboard = true) =>
@@ -102,6 +107,37 @@ public class TestProgram
     {
         Build();
         App!.Run();
+    }
+
+    /// <summary>
+    /// Writes the allocated endpoints to the console in JSON format.
+    /// This allows for easier consumption by the external test process.
+    /// </summary>
+    private sealed class EndPointWriterHook : IDistributedApplicationLifecycleHook
+    {
+        public async Task AfterEndpointsAllocatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
+        {
+            var root = new JsonObject();
+            foreach (var project in appModel.Resources.OfType<ProjectResource>())
+            {
+                var projectJson = new JsonObject();
+                root[project.Name] = projectJson;
+
+                var endpointsJsonArray = new JsonArray();
+                projectJson["Endpoints"] = endpointsJsonArray;
+
+                foreach (var endpoint in project.Annotations.OfType<AllocatedEndpointAnnotation>())
+                {
+                    var endpointJsonObject = new JsonObject();
+                    endpointJsonObject["Name"] = endpoint.Name;
+                    endpointJsonObject["Uri"] = endpoint.UriString;
+                    endpointsJsonArray.Add(endpointJsonObject);
+                }
+            }
+
+            // write the whole json in a single line so it's easier to parse by the external process
+            await Console.Out.WriteLineAsync("$ENDPOINTS: " + JsonSerializer.Serialize(root, JsonSerializerOptions.Default));
+        }
     }
 }
 
