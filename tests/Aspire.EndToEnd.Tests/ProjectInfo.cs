@@ -15,7 +15,7 @@ public sealed class ProjectInfo
     /// <summary>
     /// Sends a GET request to the specified resource and returns the response message.
     /// </summary>
-    public Task<HttpResponseMessage> HttpGetAsync(string bindingName, string path, CancellationToken cancellationToken)
+    public Task<HttpResponseMessage> HttpGetAsync(string bindingName, string path, CancellationToken cancellationToken = default)
     {
         var allocatedEndpoint = Endpoints.Single(e => e.Name == bindingName);
         var url = $"{allocatedEndpoint.Uri}{path}";
@@ -26,7 +26,7 @@ public sealed class ProjectInfo
     /// <summary>
     /// Sends a GET request to the specified resource and returns the response body as a string.
     /// </summary>
-    public Task<string> HttpGetStringAsync(string bindingName, string path, CancellationToken cancellationToken)
+    public Task<string> HttpGetStringAsync(string bindingName, string path, CancellationToken cancellationToken = default)
     {
         var allocatedEndpoint = Endpoints.Single(e => e.Name == bindingName);
         var url = $"{allocatedEndpoint.Uri}{path}";
@@ -34,7 +34,7 @@ public sealed class ProjectInfo
         return Client.GetStringAsync(url, cancellationToken);
     }
 
-    public async Task WaitForHealthyStatusAsync(string bindingName, CancellationToken cancellationToken)
+    public async Task WaitForHealthyStatusAsync(string bindingName, CancellationToken cancellationToken = default)
     {
         while (true)
         {

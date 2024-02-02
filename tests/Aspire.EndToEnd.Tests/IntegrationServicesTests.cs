@@ -26,9 +26,7 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
     [InlineData("sqlserver")]
     public async Task VerifyComponentWorks(string component)
     {
-        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
-
-        var response = await _integrationServicesFixture.IntegrationServiceA.HttpGetAsync("http", $"/{component}/verify", cts.Token);
+        var response = await _integrationServicesFixture.IntegrationServiceA.HttpGetAsync("http", $"/{component}/verify");
         var responseContent = await response.Content.ReadAsStringAsync();
 
         Assert.True(response.IsSuccessStatusCode, responseContent);
@@ -37,15 +35,13 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
     [Fact]
     public async Task KafkaComponentCanProduceAndConsume()
     {
-        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
-
         string topic = $"topic-{Guid.NewGuid()}";
 
-        var response = await _integrationServicesFixture.IntegrationServiceA.HttpGetAsync("http", $"/kafka/produce/{topic}", cts.Token);
+        var response = await _integrationServicesFixture.IntegrationServiceA.HttpGetAsync("http", $"/kafka/produce/{topic}");
         var responseContent = await response.Content.ReadAsStringAsync();
         Assert.True(response.IsSuccessStatusCode, responseContent);
 
-        response = await _integrationServicesFixture.IntegrationServiceA.HttpGetAsync("http", $"/kafka/consume/{topic}", cts.Token);
+        response = await _integrationServicesFixture.IntegrationServiceA.HttpGetAsync("http", $"/kafka/consume/{topic}");
         responseContent = await response.Content.ReadAsStringAsync();
         Assert.True(response.IsSuccessStatusCode, responseContent);
     }
@@ -53,10 +49,8 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
     [Fact]
     public async Task VerifyHealthyOnIntegrationServiceA()
     {
-        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
-
         // We wait until timeout for the /health endpoint to return successfully. We assume
         // that components wired up into this project have health checks enabled.
-        await _integrationServicesFixture.IntegrationServiceA.WaitForHealthyStatusAsync("http", cts.Token);
+        await _integrationServicesFixture.IntegrationServiceA.WaitForHealthyStatusAsync("http");
     }
 }
