@@ -6,6 +6,8 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.AWS;
 using Aspire.Hosting.AWS.CloudFormation;
 using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
 
@@ -21,7 +23,8 @@ public static class CloudFormationExtensions
     public static IResourceBuilder<ICloudFormationResource> AddAWSCloudFormationTemplate(this IDistributedApplicationBuilder builder, string stackName, string templatePath)
     {
         var resource = new CloudFormationTemplateResource(stackName, templatePath);
-        var cfBuilder = builder.AddResource(resource);
+        var cfBuilder = builder.AddResource(resource)
+                                .WithAnnotation(new ManifestPublishingCallbackAnnotation(context => WriteCloudFormationTemplateResourceToManifest(context, resource)));
 
         builder.Services.TryAddLifecycleHook<CloudFormationLifecycleHook>();
         return cfBuilder;
@@ -36,7 +39,8 @@ public static class CloudFormationExtensions
     public static IResourceBuilder<ICloudFormationResource> AddAWSCloudFormationStack(this IDistributedApplicationBuilder builder, string stackName)
     {
         var resource = new CloudFormationStackResource(stackName);
-        var cfBuilder = builder.AddResource(resource);
+        var cfBuilder = builder.AddResource(resource)
+                                .WithAnnotation(new ManifestPublishingCallbackAnnotation(context => WriteCloudFormationStackResourceToManifest(context, resource)));
 
         builder.Services.TryAddLifecycleHook<CloudFormationLifecycleHook>();
         return cfBuilder;
@@ -76,6 +80,9 @@ public static class CloudFormationExtensions
     public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<ICloudFormationResource> cloudFormationResourceBuilder, string configSection = "AWS::Resources")
         where TDestination : IResourceWithEnvironment
     {
+        var referenceResource = builder.ApplicationBuilder.AddResource(new CloudFormationReferenceResource(cloudFormationResourceBuilder.Resource, builder.Resource));
+        referenceResource.WithManifestPublishingCallback(context => WriteCloudFormationReference(context, cloudFormationResourceBuilder.Resource, builder.Resource));
+
         builder.WithEnvironment(context =>
         {
             if (context.PublisherName == "manifest" || cloudFormationResourceBuilder.Resource.Outputs == null)
@@ -92,5 +99,25 @@ public static class CloudFormationExtensions
             }
         });
         return builder;
+    }
+
+    private static void WriteCloudFormationStackResourceToManifest(ManifestPublishingContext context, CloudFormationStackResource resource)
+    {
+        context.Writer.WriteString("type", "cloudformation.stack.v0");
+        context.Writer.TryWriteString("stack-name", context.GetManifestRelativePath(resource.Name));
+    }
+
+    private static void WriteCloudFormationTemplateResourceToManifest(ManifestPublishingContext context, CloudFormationTemplateResource resource)
+    {
+        context.Writer.WriteString("type", "cloudformation.template.v0");
+        context.Writer.TryWriteString("stack-name", context.GetManifestRelativePath(resource.Name));
+        context.Writer.TryWriteString("template-path", context.GetManifestRelativePath(resource.TemplatePath));
+    }
+
+    private static void WriteCloudFormationReference(ManifestPublishingContext context, ICloudFormationResource cfResource, IResource targetResource)
+    {
+        context.Writer.WriteString("type", "cloudformation.reference.v0");
+        context.Writer.WriteString("cloudformation", cfResource.Name);
+        context.Writer.WriteString("resource", targetResource.Name);
     }
 }
