@@ -287,6 +287,82 @@ public class WithReferenceTests
     }
 
     [Fact]
+    public void ParameterAsConnectionStringResourceThrowsWhenConnectionStringSectionMissing()
+    {
+        var testProgram = CreateTestProgram();
+
+        // Get the service provider.
+        var missingResource = testProgram.AppBuilder.AddConnectionString("missingresource");
+        testProgram.ServiceBBuilder.WithReference(missingResource);
+        testProgram.Build();
+
+        // Call environment variable callbacks.
+        var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
+
+        var config = new Dictionary<string, string>();
+        var context = new EnvironmentCallbackContext("dcp", config);
+
+        var exception = Assert.Throws<DistributedApplicationException>(() =>
+        {
+            foreach (var annotation in annotations)
+            {
+                annotation.Callback(context);
+            }
+        });
+
+        Assert.Equal("Connection string parameter resource could not be used because connection string `missingresource` is missing.", exception.Message);
+    }
+
+    [Fact]
+    public void ParameterAsConnectionStringResourceInjectsConnectionStringWhenPresent()
+    {
+        var testProgram = CreateTestProgram();
+        testProgram.AppBuilder.Configuration["ConnectionStrings:missingresource"] = "test connection string";
+
+        // Get the service provider.
+        var missingResource = testProgram.AppBuilder.AddConnectionString("missingresource");
+        testProgram.ServiceBBuilder.WithReference(missingResource);
+        testProgram.Build();
+
+        // Call environment variable callbacks.
+        var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
+
+        var config = new Dictionary<string, string>();
+        var context = new EnvironmentCallbackContext("dcp", config);
+
+        foreach (var annotation in annotations)
+        {
+            annotation.Callback(context);
+        }
+
+        Assert.Equal("test connection string", config["ConnectionStrings__missingresource"]);
+    }
+
+    [Fact]
+    public void ParameterAsConnectionStringResourceInjectsExpressionWhenPublishingManifest()
+    {
+        var testProgram = CreateTestProgram();
+
+        // Get the service provider.
+        var missingResource = testProgram.AppBuilder.AddConnectionString("missingresource");
+        testProgram.ServiceBBuilder.WithReference(missingResource);
+        testProgram.Build();
+
+        // Call environment variable callbacks.
+        var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
+
+        var config = new Dictionary<string, string>();
+        var context = new EnvironmentCallbackContext("manifest", config);
+
+        foreach (var annotation in annotations)
+        {
+            annotation.Callback(context);
+        }
+
+        Assert.Equal("{missingresource.value}", config["ConnectionStrings__missingresource"]);
+    }
+
+    [Fact]
     public void ConnectionStringResourceWithConnectionString()
     {
         var testProgram = CreateTestProgram();

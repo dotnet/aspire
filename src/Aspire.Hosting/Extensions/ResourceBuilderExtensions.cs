@@ -74,6 +74,20 @@ public static class ResourceBuilderExtensions
         }));
     }
 
+    public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, IResourceBuilder<ParameterResource> parameter) where T: IResourceWithEnvironment
+    {
+        return builder.WithEnvironment(context =>
+        {
+            if (context.PublisherName == "manifest")
+            {
+                context.EnvironmentVariables[name] = $"{{{parameter.Resource.Name}.value}}";
+                return;
+            }
+
+            context.EnvironmentVariables[name] = parameter.Resource.Value;
+        });
+    }
+
     /// <summary>
     /// Registers a callback which is invoked when manifest is generated for the app model.
     /// </summary>
