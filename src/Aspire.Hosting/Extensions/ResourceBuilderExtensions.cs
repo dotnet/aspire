@@ -75,7 +75,7 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Adds an environment variable to the resource with the endpoint for <paramref name="endpointReference"/>.
+    /// Adds an environment variable to the resource with the value from <paramref name="parameter"/>.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The resource builder.</param>

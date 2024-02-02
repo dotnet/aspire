@@ -317,11 +317,11 @@ public class WithReferenceTests
     public void ParameterAsConnectionStringResourceInjectsConnectionStringWhenPresent()
     {
         var testProgram = CreateTestProgram();
-        testProgram.AppBuilder.Configuration["ConnectionStrings:missingresource"] = "test connection string";
+        testProgram.AppBuilder.Configuration["ConnectionStrings:resource"] = "test connection string";
 
         // Get the service provider.
-        var missingResource = testProgram.AppBuilder.AddConnectionString("missingresource");
-        testProgram.ServiceBBuilder.WithReference(missingResource);
+        var resource = testProgram.AppBuilder.AddConnectionString("resource");
+        testProgram.ServiceBBuilder.WithReference(resource);
         testProgram.Build();
 
         // Call environment variable callbacks.
@@ -335,7 +335,7 @@ public class WithReferenceTests
             annotation.Callback(context);
         }
 
-        Assert.Equal("test connection string", config["ConnectionStrings__missingresource"]);
+        Assert.Equal("test connection string", config["ConnectionStrings__resource"]);
     }
 
     [Fact]
@@ -344,8 +344,8 @@ public class WithReferenceTests
         var testProgram = CreateTestProgram();
 
         // Get the service provider.
-        var missingResource = testProgram.AppBuilder.AddConnectionString("missingresource");
-        testProgram.ServiceBBuilder.WithReference(missingResource);
+        var resource = testProgram.AppBuilder.AddConnectionString("resource");
+        testProgram.ServiceBBuilder.WithReference(resource);
         testProgram.Build();
 
         // Call environment variable callbacks.
@@ -359,7 +359,7 @@ public class WithReferenceTests
             annotation.Callback(context);
         }
 
-        Assert.Equal("{missingresource.value}", config["ConnectionStrings__missingresource"]);
+        Assert.Equal("{resource.value}", config["ConnectionStrings__resource"]);
     }
 
     [Fact]
