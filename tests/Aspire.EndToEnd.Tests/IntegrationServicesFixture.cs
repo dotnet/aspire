@@ -14,9 +14,6 @@ namespace Aspire.EndToEnd.Tests;
 /// Represents the the IntegrationServiceA project in the test application used to send HTTP requests
 /// to the project's endpoints.
 /// </summary>
-/// <remarks>
-/// Use <c>[Collection("IntegrationServices")]</c> to inject this fixture in test constructors.
-/// </remarks>
 public sealed class IntegrationServicesFixture : IAsyncLifetime
 {
     private Process? _appHostProcess;
@@ -107,12 +104,4 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
 
         return directory!;
     }
-}
-
-[CollectionDefinition("IntegrationServices")]
-public class IntegrationServicesCollection : ICollectionFixture<IntegrationServicesFixture>
-{
-    // This class has no code, and is never created. Its purpose is simply
-    // to be the place to apply [CollectionDefinition] and all the
-    // ICollectionFixture<> interfaces.
 }
