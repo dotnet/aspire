@@ -287,6 +287,82 @@ public class WithReferenceTests
     }
 
     [Fact]
+    public void ParameterAsConnectionStringResourceThrowsWhenConnectionStringSectionMissing()
+    {
+        var testProgram = CreateTestProgram();
+
+        // Get the service provider.
+        var missingResource = testProgram.AppBuilder.AddConnectionString("missingresource");
+        testProgram.ServiceBBuilder.WithReference(missingResource);
+        testProgram.Build();
+
+        // Call environment variable callbacks.
+        var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
+
+        var config = new Dictionary<string, string>();
+        var context = new EnvironmentCallbackContext("dcp", config);
+
+        var exception = Assert.Throws<DistributedApplicationException>(() =>
+        {
+            foreach (var annotation in annotations)
+            {
+                annotation.Callback(context);
+            }
+        });
+
+        Assert.Equal("Connection string parameter resource could not be used because connection string `missingresource` is missing.", exception.Message);
+    }
+
+    [Fact]
+    public void ParameterAsConnectionStringResourceInjectsConnectionStringWhenPresent()
+    {
+        var testProgram = CreateTestProgram();
+        testProgram.AppBuilder.Configuration["ConnectionStrings:resource"] = "test connection string";
+
+        // Get the service provider.
+        var resource = testProgram.AppBuilder.AddConnectionString("resource");
+        testProgram.ServiceBBuilder.WithReference(resource);
+        testProgram.Build();
+
+        // Call environment variable callbacks.
+        var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
+
+        var config = new Dictionary<string, string>();
+        var context = new EnvironmentCallbackContext("dcp", config);
+
+        foreach (var annotation in annotations)
+        {
+            annotation.Callback(context);
+        }
+
+        Assert.Equal("test connection string", config["ConnectionStrings__resource"]);
+    }
+
+    [Fact]
+    public void ParameterAsConnectionStringResourceInjectsExpressionWhenPublishingManifest()
+    {
+        var testProgram = CreateTestProgram();
+
+        // Get the service provider.
+        var resource = testProgram.AppBuilder.AddConnectionString("resource");
+        testProgram.ServiceBBuilder.WithReference(resource);
+        testProgram.Build();
+
+        // Call environment variable callbacks.
+        var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
+
+        var config = new Dictionary<string, string>();
+        var context = new EnvironmentCallbackContext("manifest", config);
+
+        foreach (var annotation in annotations)
+        {
+            annotation.Callback(context);
+        }
+
+        Assert.Equal("{resource.value}", config["ConnectionStrings__resource"]);
+    }
+
+    [Fact]
     public void ConnectionStringResourceWithConnectionString()
     {
         var testProgram = CreateTestProgram();
@@ -408,80 +484,6 @@ public class WithReferenceTests
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("services__"));
         Assert.Equal(1, servicesKeysCount);
         Assert.Contains(config, kvp => kvp.Key == "services__petstore" && kvp.Value == "https://petstore.swagger.io/");
-    }
-
-    [Fact]
-    public void WithReferenceToConnectionStringEnvironmentVariables()
-    {
-        var testProgram = CreateTestProgram();
-
-        var connectionString = new ConnectionString("petstoredb", "host=mydb;port=1234");
-        testProgram.ServiceABuilder.WithReference(connectionString);
-
-        // Call environment variable callbacks.
-        var annotations = testProgram.ServiceABuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
-
-        foreach (var annotation in annotations)
-        {
-            annotation.Callback(context);
-        }
-
-        var servicesKeysCount = config.Keys.Count(k => k.StartsWith("ConnectionStrings__"));
-        Assert.Equal(1, servicesKeysCount);
-        Assert.Contains(config, kvp => kvp.Key == "ConnectionStrings__petstoredb" && kvp.Value == "host=mydb;port=1234");
-    }
-
-    [Fact]
-    public void WithReferenceToConnectionStringNameOnlyEnvironmentVariables()
-    {
-        var testProgram = CreateTestProgram();
-
-        testProgram.AppBuilder.Configuration["ConnectionStrings:petstoredb"] = "host=mydb;port=1234";
-
-        var connectionString = new ConnectionString("petstoredb");
-        testProgram.ServiceABuilder.WithReference(connectionString);
-
-        // Call environment variable callbacks.
-        var annotations = testProgram.ServiceABuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
-
-        foreach (var annotation in annotations)
-        {
-            annotation.Callback(context);
-        }
-
-        var servicesKeysCount = config.Keys.Count(k => k.StartsWith("ConnectionStrings__"));
-        Assert.Equal(1, servicesKeysCount);
-        Assert.Contains(config, kvp => kvp.Key == "ConnectionStrings__petstoredb" && kvp.Value == "host=mydb;port=1234");
-    }
-
-    [Fact]
-    public void WithRefernceConnectionStringThrowsWhenMissingConnectionString()
-    {
-        var testProgram = CreateTestProgram();
-
-        // Get the service provider.
-        testProgram.ServiceBBuilder.WithReference(new ConnectionString("missing"));
-        testProgram.Build();
-
-        // Call environment variable callbacks.
-        var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
-
-        Assert.Throws<DistributedApplicationException>(() =>
-        {
-            foreach (var annotation in annotations)
-            {
-                annotation.Callback(context);
-            }
-        });
     }
 
     private static TestProgram CreateTestProgram(string[]? args = null) => TestProgram.Create<WithReferenceTests>(args);
