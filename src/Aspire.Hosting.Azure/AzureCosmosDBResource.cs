@@ -8,7 +8,7 @@ using Aspire.Hosting.Azure.Cosmos;
 namespace Aspire.Hosting.Azure.Data.Cosmos;
 
 /// <summary>
-/// Represents a connection to an Azure Cosmos DB account.
+/// A resource that represents an Azure Cosmos DB.
 /// </summary>
 /// <param name="name">The resource name.</param>
 /// <param name="connectionString">The connection string to use to connect.</param>

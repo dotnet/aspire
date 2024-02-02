@@ -4,7 +4,7 @@
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// A resource that represents a Oracle Database database. This is a child resource of a <see cref="OracleDatabaseContainerResource"/>.
+/// A resource that represents an Oracle Database database. This is a child resource of a <see cref="OracleDatabaseContainerResource"/>.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 /// <param name="oracleParentResource">The Oracle Database parent resource associated with this database.</param>

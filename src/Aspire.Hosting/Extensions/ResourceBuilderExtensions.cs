@@ -26,7 +26,7 @@ public static class ResourceBuilderExtensions
     /// <returns>A resource configured with the specified environment variable.</returns>
     public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, string? value) where T : IResource
     {
-        return builder.WithAnnotation(new EnvironmentCallbackAnnotation(name, () => value ?? string.Empty));
+        return builder.WithAnnotation(new EnvironmentAnnotation(name, value ?? string.Empty));
     }
 
     /// <summary>
@@ -72,6 +72,28 @@ public static class ResourceBuilderExtensions
             ? HostNameResolver.ReplaceLocalhostWithContainerHost(endpointReference.UriString, builder.ApplicationBuilder.Configuration)
             : endpointReference.UriString;
         }));
+    }
+
+    /// <summary>
+    /// Adds an environment variable to the resource with the value from <paramref name="parameter"/>.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">Name of enviroment variable</param>
+    /// <param name="parameter">Resource builder for the parameter resource.</param>
+    /// <returns>A resource configured with the environment variable callback.</returns>
+    public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, IResourceBuilder<ParameterResource> parameter) where T: IResourceWithEnvironment
+    {
+        return builder.WithEnvironment(context =>
+        {
+            if (context.PublisherName == "manifest")
+            {
+                context.EnvironmentVariables[name] = $"{{{parameter.Resource.Name}.value}}";
+                return;
+            }
+
+            context.EnvironmentVariables[name] = parameter.Resource.Value;
+        });
     }
 
     /// <summary>
@@ -158,7 +180,15 @@ public static class ResourceBuilderExtensions
 
             if (context.PublisherName == "manifest")
             {
-                context.EnvironmentVariables[connectionStringName] = $"{{{resource.Name}.connectionString}}";
+                if (source.Resource is ResourceWithConnectionStringSurrogate)
+                {
+                    context.EnvironmentVariables[connectionStringName] = $"{{{resource.Name}.value}}";
+                }
+                else
+                {
+                    context.EnvironmentVariables[connectionStringName] = $"{{{resource.Name}.connectionString}}";
+                }
+
                 return;
             }
 
@@ -222,40 +252,7 @@ public static class ResourceBuilderExtensions
             throw new InvalidOperationException("The uri absolute path must be \"/\".");
         }
 
-        return builder.WithEnvironment(context =>
-        {
-            context.EnvironmentVariables[$"services__{name}"] = uri.ToString();
-        });
-    }
-
-    /// <summary>
-    /// Injects a connection string as an environment variable. The format of the environment variable will be "ConnectionStrings__{name}={value}." If the
-    /// connection string is not specified, the configuration system will be queried for a connection string using the connection string name.
-    /// </summary>
-    /// <typeparam name="TDestination"></typeparam>
-    /// <param name="builder">The resource where connection string will be injected.</param>
-    /// <param name="connectionString">A connection string</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, ConnectionString connectionString)
-        where TDestination : IResourceWithEnvironment
-    {
-        return builder.WithEnvironment(context =>
-        {
-            var connectionStringValue = connectionString.Value ??
-                builder.ApplicationBuilder.Configuration.GetConnectionString(connectionString.Name);
-
-            if (string.IsNullOrEmpty(connectionStringValue))
-            {
-                throw new DistributedApplicationException($"A connection string for '{connectionString.Name}' could not be retrieved.");
-            }
-
-            if (builder.Resource is ContainerResource)
-            {
-                connectionStringValue = HostNameResolver.ReplaceLocalhostWithContainerHost(connectionStringValue, builder.ApplicationBuilder.Configuration);
-            }
-
-            context.EnvironmentVariables[$"{ConnectionStringEnvironmentName}{connectionString.Name}"] = connectionStringValue;
-        });
+        return builder.WithEnvironment($"services__{name}", uri.ToString());
     }
 
     /// <summary>

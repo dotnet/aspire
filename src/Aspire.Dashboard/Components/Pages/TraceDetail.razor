@@ -56,35 +56,73 @@
                         <div class="col-long-content" title="@context.GetTooltip()" @onclick="() => OnShowProperties(context)">
                             @{
                                 var isServerKind = context.Span.Kind == OtlpSpanKind.Server;
-                                var spanNameContainerStyle = $"margin-left: {(context.Depth - 1) * 15}px;";
+                                // Indent the span name based on the depth of the span.
+                                var marginLeft = (context.Depth - 1) * 15;
+
+                                // We want to have consistent margin for both client and server spans.
+                                string spanNameContainerStyle;
                                 if (!isServerKind)
                                 {
-                                    spanNameContainerStyle += $"border-left-color: {ColorGenerator.Instance.GetColorHexByKey(GetResourceName(context.Span.Source))}; border-left-width: 5px; border-left-style: solid; padding-left: 5px;";
+                                    // Client span has 19px extra content:
+                                    // - 5px extra margin-left
+                                    // - 5px border
+                                    // - 9px padding-left
+                                    spanNameContainerStyle = $"margin-left: 5px; border-left-color: {ColorGenerator.Instance.GetColorHexByKey(GetResourceName(context.Span.Source))}; border-left-width: 5px; border-left-style: solid; padding-left: 9px;";
+                                }
+                                else
+                                {
+                                    // Server span has 19px extra content:
+                                    // - 16px icon
+                                    // - 3px padding-left
+                                    spanNameContainerStyle = string.Empty;
                                 }
                             }
-                            <span class="span-name-container" style="@spanNameContainerStyle">
-                                @if (isServerKind)
-                                {
-                                    <FluentIcon
-                                        Class="server-request-icon"
-                                        Color="Color.Custom"
-                                        CustomColor="@ColorGenerator.Instance.GetColorHexByKey(GetResourceName(context.Span.Source))"
-                                        Icon="Icons.Filled.Size16.Server"/>
-                                }
 
-                                @if (context.IsError)
-                                {
-                                    <FluentIcon Icon="Icons.Filled.Size12.ErrorCircle" Color="Color.Error" Class="trace-tag-icon"/>
-                                }
-                                @GetResourceName(context.Span.Source)
-                                @if (context.HasUninstrumentedPeer)
-                                {
-                                    <span class="uninstrumented-peer">
-                                        <FluentIcon Style="@($"fill: {ColorGenerator.Instance.GetColorHexByKey(context.UninstrumentedPeer)};")" Icon="Icons.Filled.Size16.ArrowCircleRight" Class="uninstrumented-peer-icon"/>
-                                        @context.UninstrumentedPeer
-                                    </span>
-                                }
-                                <span class="span-row-name">@context.GetDisplaySummary()</span>
+                            <span style="margin-left: @(marginLeft)px;">
+                                <span class="span-collapse-symbol" @onclick="() => OnToggleCollapse(context)" @onclick:stopPropagation="true">
+                                    @if (context.Children.Count > 0)
+                                    {
+                                        @(context.IsCollapsed ? '+' : '-')
+                                    }
+                                </span>
+                                <span class="span-name-container" style="@spanNameContainerStyle">
+                                    @if (isServerKind)
+                                    {
+                                        <FluentIcon Class="server-request-icon"
+                                                    Color="Color.Custom"
+                                                    CustomColor="@ColorGenerator.Instance.GetColorHexByKey(GetResourceName(context.Span.Source))"
+                                                    Icon="Icons.Filled.Size16.Server" />
+                                    }
+
+                                    @if (context.IsError)
+                                    {
+                                        <FluentIcon Icon="Icons.Filled.Size12.ErrorCircle" Color="Color.Error" Class="trace-tag-icon" />
+                                    }
+                                    @GetResourceName(context.Span.Source)
+                                    @if (context.HasUninstrumentedPeer)
+                                    {
+                                        <span class="uninstrumented-peer">
+                                            @{
+                                                Icon icon;
+                                                if (context.Span.Attributes.HasKey("db.system"))
+                                                {
+                                                    icon = new Icons.Filled.Size16.Database();
+                                                }
+                                                else
+                                                {
+                                                    // Everything else.
+                                                    icon = new Icons.Filled.Size16.ArrowCircleRight();
+                                                }
+                                            }
+                                            <FluentIcon
+                                                Style="@($"fill: {ColorGenerator.Instance.GetColorHexByKey(context.UninstrumentedPeer)};")"
+                                                Value="icon"
+                                                Class="uninstrumented-peer-icon" />
+                                            @context.UninstrumentedPeer
+                                        </span>
+                                    }
+                                    <span class="span-row-name">@context.GetDisplaySummary()</span>
+                                </span>
                             </span>
                         </div>
                     </TemplateColumn>

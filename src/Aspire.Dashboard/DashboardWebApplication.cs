@@ -29,13 +29,9 @@ public class DashboardWebApplication
         builder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.None);
         builder.Logging.AddFilter("Microsoft.AspNetCore.Server.Kestrel", LogLevel.Error);
 
-        var environmentVariables = new EnvironmentVariables();
+        var dashboardUris = builder.Configuration.GetUris(DashboardUrlVariableName, new(DashboardUrlDefaultValue));
 
-        builder.Services.AddSingleton<IEnvironmentVariables>(environmentVariables);
-
-        var dashboardUris = environmentVariables.GetUris(DashboardUrlVariableName, new(DashboardUrlDefaultValue));
-
-        var otlpUris = environmentVariables.GetUris(DashboardOtlpUrlVariableName, new(DashboardOtlpUrlDefaultValue));
+        var otlpUris = builder.Configuration.GetUris(DashboardOtlpUrlVariableName, new(DashboardOtlpUrlDefaultValue));
 
         if (otlpUris.Length > 1)
         {
