@@ -207,3 +207,15 @@ div.error-counter-badge {
     padding: 3px 3px;
     color: var(--error-counter-badge-foreground-color) !important; /* color is applied directly to div style, so !important to override since we can't use a more specific selector */
 }
+
+.layout >.header > .header-gutters {
+    margin: 0 1.5rem 0 0;
+}
+
+layout > .header {
+    font-size: var(--type-ramp-base-font-size);
+}
+
+.flex-filler {
+    flex-grow: 1;
+}

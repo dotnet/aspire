@@ -2,6 +2,11 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="zh-Hant" original="../Layout.resx">
     <body>
+      <trans-unit id="MainLayoutAspire">
+        <source>.NET Aspire</source>
+        <target state="new">.NET Aspire</target>
+        <note />
+      </trans-unit>
       <trans-unit id="MainLayoutAspireDashboardHelpLink">
         <source>Help</source>
         <target state="new">Help</target>
@@ -11,11 +16,6 @@
         <source>.NET Aspire repo</source>
         <target state="new">.NET Aspire repo</target>
         <note />
-      </trans-unit>
-      <trans-unit id="MainLayoutDashboardName">
-        <source>{0} dashboard</source>
-        <target state="new">{0} dashboard</target>
-        <note>{0} is the name of the aspire application</note>
       </trans-unit>
       <trans-unit id="MainLayoutLaunchSettings">
         <source>Launch settings</source>
@@ -43,8 +43,8 @@
         <note />
       </trans-unit>
       <trans-unit id="NavMenuConsoleLogsTab">
-        <source>Console logs</source>
-        <target state="new">Console logs</target>
+        <source>Console</source>
+        <target state="new">Console</target>
         <note />
       </trans-unit>
       <trans-unit id="NavMenuMetricsTab">
@@ -63,8 +63,8 @@
         <note />
       </trans-unit>
       <trans-unit id="NavMenuStructuredLogsTab">
-        <source>Structured logs</source>
-        <target state="new">Structured logs</target>
+        <source>Structured</source>
+        <target state="new">Structured</target>
         <note />
       </trans-unit>
       <trans-unit id="NavMenuTracesTab">
