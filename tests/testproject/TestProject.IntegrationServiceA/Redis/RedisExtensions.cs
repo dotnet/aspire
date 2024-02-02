@@ -13,13 +13,13 @@ public static class RedisExtensions
     private static async Task<IResult> VerifyRedisAsync(IConnectionMultiplexer cm)
     {
         try
-        { 
-        var key = "somekey";
-        var content = "somecontent";
+        {
+            var key = "somekey";
+            var content = "somecontent";
 
-        var database = cm.GetDatabase();
-        await database.StringSetAsync(key, content);
-        var data = await database.StringGetAsync(key);
+            var database = cm.GetDatabase();
+            await database.StringSetAsync(key, content);
+            var data = await database.StringGetAsync(key);
 
             return data == content ? Results.Ok("Success!") : Results.Problem("Failed");
         }

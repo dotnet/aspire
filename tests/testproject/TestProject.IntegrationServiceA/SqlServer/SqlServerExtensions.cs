@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.Data.SqlClient;
+using Polly;
 
 public static class SqlServerExtensions
 {
@@ -14,7 +15,12 @@ public static class SqlServerExtensions
     {
         try
         {
-            await connection.OpenAsync();
+            var policy = Policy
+                .Handle<SqlException>()
+                // retry every second for 60 seconds
+                .WaitAndRetryAsync(60, retryAttempt => TimeSpan.FromSeconds(1));
+
+            await policy.ExecuteAsync(connection.OpenAsync);
 
             var command = connection.CreateCommand();
             command.CommandText = $"SELECT 1";
