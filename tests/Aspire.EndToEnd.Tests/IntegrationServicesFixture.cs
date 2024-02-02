@@ -66,12 +66,19 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         var successfulTask = Task.WhenAll(appRunning.Task, projectsParsed.Task);
         var failedTask = appExited.Task;
 
-        await Task.WhenAny(successfulTask, failedTask)
-            .ContinueWith(t =>
-            {
-                Assert.True(successfulTask == t.Result, $"App run failed: {Environment.NewLine}{output}");
-            }, TaskScheduler.Default)
-            .WaitAsync(TimeSpan.FromMinutes(5));
+        try
+        {
+            await Task.WhenAny(successfulTask, failedTask)
+                .ContinueWith(t =>
+                {
+                    Assert.True(successfulTask == t.Result, $"App run failed: {Environment.NewLine}{output}");
+                }, TaskScheduler.Default)
+                .WaitAsync(TimeSpan.FromMinutes(5));
+        }
+        catch (TimeoutException)
+        {
+            Assert.Fail($"Running the TestProject.AppHost timed out: {Environment.NewLine}{output}");
+        }
 
         _appHostProcess.Exited -= appExitedCallback;
 
