@@ -26,7 +26,7 @@
   </Target>
 
   <!-- For MacOS, we need to zip the executable for signing -->
-  <Target Name="ZipMacBinary" AfterTargets="Publish" Condition="$(RuntimeIdentifier.StartsWith('osx-')) and '$(Sign)' == 'true'">
+  <Target Name="ZipMacBinary" AfterTargets="Publish" Condition="$(RuntimeIdentifier.StartsWith('osx-'))">
     <PropertyGroup>
       <_ArtifactsMacSigningDir>$(ArtifactsTmpDir)MacSigning/</_ArtifactsMacSigningDir>
     </PropertyGroup>
