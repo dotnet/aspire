@@ -10,8 +10,8 @@ builder.AddNpgsqlDataSource("postgresdb");
 builder.AddRabbitMQ("rabbitmq");
 builder.AddMongoDBClient("mymongodb");
 builder.AddOracleDatabaseDbContext<MyDbContext>("freepdb1");
-builder.AddKafkaProducer<string, string>("kafkacontainer");
-builder.AddKafkaConsumer<string, string>("kafkacontainer", consumerBuilder =>
+builder.AddKafkaProducer<string, string>("kafka");
+builder.AddKafkaConsumer<string, string>("kafka", consumerBuilder =>
 {
     consumerBuilder.Config.GroupId = "aspire-consumer-group";
     consumerBuilder.Config.AutoOffsetReset = AutoOffsetReset.Earliest;
