@@ -27,8 +27,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Sign MacOS binaries for Aspire Dashboard -->
-    <ItemsToSign Include="$(ArtifactsTmpDir)MacSigning\**\*.zip" Condition="'$(PostBuildSign)' != 'true'" />
+    <!-- Sign MacOS binaries for Aspire Dashboard during build -->
+    <ItemsToSign Include="$(ArtifactsTmpDir)MacSigning\**\*.zip" />
     <ItemsToSign Include="$(VisualStudioSetupInsertionPath)\**\*.msi" Condition="'$(PostBuildSign)' != 'true'" />
     <ItemsToSign Include="$(ArtifactsPackagesDir)**\*.wixpack.zip" Condition="'$(PostBuildSign)' != 'true'" />
     <ItemsToSignPostBuild Include="$(VisualStudioSetupInsertionPath)\**\*.msi" Condition="'$(PostBuildSign)' == 'true'" />
