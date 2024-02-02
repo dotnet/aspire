@@ -20,6 +20,7 @@
   <PropertyGroup>
     <DashboardPlatformType Condition=" '$(DashboardPlatformType)' == '' and $(DcpPlatform.StartsWith('win-')) ">Windows</DashboardPlatformType>
     <DashboardPlatformType Condition=" '$(DashboardPlatformType)' == '' ">Unix</DashboardPlatformType>
+    <DashboardPublishDir>$(DotNetOutputPath)Aspire.Dashboard/$(DashboardRuntime)/$(Configuration)/$(TargetFramework)/$(DashboardRuntime)/publish/</DashboardPublishDir
   </PropertyGroup>
 
   <Import Sdk="Microsoft.NET.Sdk" Project="Sdk.targets" />
@@ -29,13 +30,13 @@
   <!-- For MacOS, we need to update the publish output with final signed binaries -->
   <Target Name="UpdateSignedFiles" Condition="Exists('$(ArtifactsTmpDir)MacSigning/Aspire.Dashboard.$(RuntimeIdentifier).zip') and '$(Sign)' == 'true'">
     <Unzip SourceFiles="$(ArtifactsTmpDir)MacSigning/Aspire.Dashboard.$(RuntimeIdentifier).zip"
-           DestinationFolder="$(DotNetOutputPath)Aspire.Dashboard/$(Configuration)/$(TargetFramework)/$(DashboardRuntime)/publish/" />
+           DestinationFolder="$(DashboardPublishDir)" />
   </Target>
 
   <!-- The dashboard should have been published for all appropriate RIDs during the normal build -->
   <Target Name="BeforeBuild" BeforeTargets="Build" DependsOnTargets="UpdateSignedFiles">
     <ItemGroup>
-      <_PublishItems Include="$(DotNetOutputPath)Aspire.Dashboard/$(Configuration)/$(TargetFramework)/$(DashboardRuntime)/publish/**/*" />
+      <_PublishItems Include="$(DashboardPublishDir)**/*" />
       <None Include="@(_PublishItems)" Pack="true" PackagePath="tools/" />
     </ItemGroup>
 
