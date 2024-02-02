@@ -5,6 +5,7 @@
     <IsPackable>true</IsPackable>
     <PackageTags>aspire hosting azure provisioning</PackageTags>
     <Description>Provisions Azure resources for development in .NET Aspire projects.</Description>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
@@ -23,7 +24,18 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\Aspire.Hosting\Dcp\Process\ProcessResult.cs" Link="Utils\ProcessResult.cs" />
+    <Compile Include="..\Aspire.Hosting\Dcp\Process\ProcessSpec.cs" Link="Utils\ProcessSpec.cs" />
+    <Compile Include="..\Aspire.Hosting\Dcp\Process\ProcessUtil.cs" Link="Utils\ProcessUtil.cs" />
+    <Compile Include="..\Aspire.Hosting\Utils\FileUtil.cs" Link="Utils\FileUtil.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Utils\" />
   </ItemGroup>
 
 </Project>

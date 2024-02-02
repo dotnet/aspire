@@ -95,7 +95,7 @@ internal static partial class ProcessUtil
 
         try
         {
-            AspireEventSource.Instance.ProcessLaunchStart(processSpec.ExecutablePath, processSpec.Arguments ?? "");
+            // AspireEventSource.Instance.ProcessLaunchStart(processSpec.ExecutablePath, processSpec.Arguments ?? "");
 
             process.Start();
             process.BeginOutputReadLine();
@@ -106,7 +106,7 @@ internal static partial class ProcessUtil
         {
             startupComplete.Set(); // Allow output/error/exit handlers to start processing data.
 
-            AspireEventSource.Instance.ProcessLaunchStop(processSpec.ExecutablePath, processSpec.Arguments ?? "");
+            // AspireEventSource.Instance.ProcessLaunchStop(processSpec.ExecutablePath, processSpec.Arguments ?? "");
         }
 
         return (processLifetimeTcs.Task, new ProcessDisposable(process, processLifetimeTcs.Task, processSpec.KillEntireProcessTree));

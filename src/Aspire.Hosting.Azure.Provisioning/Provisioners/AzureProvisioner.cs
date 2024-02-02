@@ -58,10 +58,6 @@ internal sealed class AzureProvisioner(
         {
             logger.LogWarning(ex, "Required configuration is missing.");
         }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error provisioning Azure resources.");
-        }
     }
 
     private async Task ProvisionAzureResources(IConfiguration configuration, IHostEnvironment environment, ILogger<AzureProvisioner> logger, IEnumerable<IAzureResource> azureResources, CancellationToken cancellationToken)
@@ -96,10 +92,11 @@ internal sealed class AzureProvisioner(
 
         Lazy<Task<(ResourceGroupResource, AzureLocation)>> resourceGroupAndLocationLazy = new(async () =>
         {
+            var unique = $"{Environment.MachineName.ToLowerInvariant()}-{environment.ApplicationName.ToLowerInvariant()}";
             // Name of the resource group to create based on the machine name and application name
             var (resourceGroupName, createIfAbsent) = _options.ResourceGroup switch
             {
-                null => ($"{Environment.MachineName.ToLowerInvariant()}-{environment.ApplicationName.ToLowerInvariant()}-rg", true),
+                null => ($"rg-aspire-{unique}", true),
                 string rg => (rg, _options.AllowResourceGroupCreation ?? false)
             };
 
@@ -185,11 +182,30 @@ internal sealed class AzureProvisioner(
             ? JsonNode.Parse(await File.ReadAllTextAsync(userSecretsPath, cancellationToken).ConfigureAwait(false))!.AsObject()
             : [];
 
+        IAzureResourceProvisioner? SelectProvisioner(IAzureResource resource)
+        {
+            var type = resource.GetType();
+
+            while (type is not null)
+            {
+                var provisioner = serviceProvider.GetKeyedService<IAzureResourceProvisioner>(type);
+
+                if (provisioner is not null)
+                {
+                    return provisioner;
+                }
+
+                type = type.BaseType;
+            }
+
+            return null;
+        }
+
         foreach (var resource in azureResources)
         {
             usedResources.Add(resource.Name);
 
-            var provisioner = serviceProvider.GetKeyedService<IAzureResourceProvisioner>(resource.GetType());
+            var provisioner = SelectProvisioner(resource);
 
             if (provisioner is null)
             {

@@ -59,6 +59,8 @@ public static class AzureProvisionerExtensions
         builder.AddAzureProvisioner<AzureSqlServerResource, SqlServerProvisioner>();
         builder.AddResourceEnumerator(resourceGroup => resourceGroup.GetSqlServers(), resource => resource.Data.Tags);
 
+        builder.AddAzureProvisioner<AzureBicepResource, BicepProvisioner>();
+
         builder.AddAzureProvisioner<AzureApplicationInsightsResource, AzureApplicationInsightsProvisioner>();
         builder.AddResourceEnumerator(resourceGroup => resourceGroup.GetApplicationInsightsComponents(), resource => resource.Data.Tags);
 
