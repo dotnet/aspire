@@ -8,16 +8,13 @@ using Aspire.Hosting.ApplicationModel;
 namespace Aspire.Hosting.AWS.CloudFormation;
 
 /// <inheritdoc/>
-internal sealed class CloudFormationResource(string name, string templatePath) : Resource(name), ICloudFormationResource
+internal abstract class CloudFormationResource(string name) : Resource(name), ICloudFormationResource
 {
     /// <inheritdoc/>
     public IAWSSDKConfig? AWSSDKConfig { get; set; }
 
     /// <inheritdoc/>
     public IAmazonCloudFormation? CloudFormationClient { get; set; }
-
-    /// <inheritdoc/>
-    public string TemplatePath { get; } = templatePath;
 
     /// <inheritdoc/>
     public List<Output>? Outputs { get; set; }

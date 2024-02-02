@@ -20,7 +20,22 @@ public static class CloudFormationExtensions
     /// <returns></returns>
     public static IResourceBuilder<ICloudFormationResource> AddAWSCloudFormationTemplate(this IDistributedApplicationBuilder builder, string stackName, string templatePath)
     {
-        var resource = new CloudFormationResource(stackName, templatePath);
+        var resource = new CloudFormationTemplateResource(stackName, templatePath);
+        var cfBuilder = builder.AddResource(resource);
+
+        builder.Services.TryAddLifecycleHook<CloudFormationLifecycleHook>();
+        return cfBuilder;
+    }
+
+    /// <summary>
+    /// Add a CloudFormation stack for provisioning application resources.
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="stackName">The name of the CloudFormation stack.</param>
+    /// <returns></returns>
+    public static IResourceBuilder<ICloudFormationResource> AddAWSCloudFormationStack(this IDistributedApplicationBuilder builder, string stackName)
+    {
+        var resource = new CloudFormationStackResource(stackName);
         var cfBuilder = builder.AddResource(resource);
 
         builder.Services.TryAddLifecycleHook<CloudFormationLifecycleHook>();

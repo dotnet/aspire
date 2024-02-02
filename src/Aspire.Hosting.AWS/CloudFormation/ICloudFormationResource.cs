@@ -24,11 +24,6 @@ public interface ICloudFormationResource : IResource
     IAmazonCloudFormation? CloudFormationClient { get; set; }
 
     /// <summary>
-    /// Path to the CloudFormation template.
-    /// </summary>
-    string TemplatePath { get; }
-
-    /// <summary>
     /// The output parameters of the CloudFormation stack.
     /// </summary>
     List<Output>? Outputs { get; }

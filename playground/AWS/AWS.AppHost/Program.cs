@@ -7,12 +7,17 @@ var builder = DistributedApplication.CreateBuilder(args);
 // Setup a configuration for the AWS .NET SDK.
 var awsConfig = builder.AddAWSSDKConfig()
                         .WithProfile("default")
-                        .WithRegion(RegionEndpoint.USEast2);
+                        .WithRegion(RegionEndpoint.USWest2);
 
 // Provision application level resources like SQS queues and SNS topics defined in the CloudFormation template file app-resources.template.
 var awsResources = builder.AddAWSCloudFormationTemplate("AspireSampleDevResources", "app-resources.template")
                         // Add the SDK configuration so the AppHost knows what account/region to provision the resources.
                         .WithReference(awsConfig);
+
+// To add outputs of a CloudFormation stack that was created outside of AppHost use the AddAWSCloudFormationStack method.
+// then attach the CloudFormation resource to a project using the WithReference method.
+//var awsExistingResource = builder.AddAWSCloudFormationStack("ExistingStackName")
+//                        .WithReference(awsConfig);
 
 builder.AddProject<Projects.Frontend>("frontend")
         // Reference the CloudFormation resource to project. The output parameters will added to the IConfiguration of the project.

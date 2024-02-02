@@ -30,7 +30,39 @@ internal sealed class CloudFormationLifecycleHook(ILogger<CloudFormationLifecycl
 
     public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
-        foreach (CloudFormationResource cloudFormationResource in appModel.Resources.OfType<CloudFormationResource>())
+        await ProcessCloudFormationStackResourceAsync(appModel, cancellationToken).ConfigureAwait(false);
+        await ProcessCloudFormationTemplateResourceAsync(appModel, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task ProcessCloudFormationStackResourceAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
+    {
+        foreach (CloudFormationStackResource cloudFormationResource in appModel.Resources.OfType<CloudFormationStackResource>())
+        {
+            using var cfClient = GetCloudFormationClient(cloudFormationResource);
+
+            try
+            {
+                var request = new DescribeStacksRequest { StackName = cloudFormationResource.Name };
+                var response = await cfClient.DescribeStacksAsync(request, cancellationToken).ConfigureAwait(false);
+
+                // If the stack didn't exist then a StackNotFoundException would have been thrown.
+                var stack = response.Stacks[0];
+
+                // Capture the CloudFormation stack output parameters on to the Aspire CloudFormation resource. This
+                // allows projects that have a reference to the stack have the output parameters applied to the
+                // projects IConfiguration.
+                cloudFormationResource.Outputs = stack!.Outputs;
+            }
+            catch(AmazonCloudFormationException e ) when (string.Equals(e.ErrorCode, "ValidationError"))
+            {
+                logger.LogError("Stack {StackName} does not exists to add as a resource.", cloudFormationResource.Name);
+            }
+        }
+    }
+
+    private async Task ProcessCloudFormationTemplateResourceAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
+    {
+        foreach (CloudFormationTemplateResource cloudFormationResource in appModel.Resources.OfType<CloudFormationTemplateResource>())
         {
             using var cfClient = GetCloudFormationClient(cloudFormationResource);
 
