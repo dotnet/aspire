@@ -74,6 +74,7 @@ public static class ResourceBuilderExtensions
         }));
     }
 
+
     /// <summary>
     /// Adds an environment variable to the resource with the value from <paramref name="parameter"/>.
     /// </summary>
