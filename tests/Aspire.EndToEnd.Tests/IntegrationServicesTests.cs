@@ -14,12 +14,21 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
         _integrationServicesFixture = integrationServicesFixture;
     }
 
-    [Fact]
-    public async Task VerifyCosmosWorks()
+    [Theory]
+    [InlineData("cosmos")]
+    [InlineData("mongodb")]
+    [InlineData("mysql")]
+    [InlineData("pomelo")]
+    [InlineData("oracledatabase")]
+    [InlineData("postgres")]
+    [InlineData("rabbitmq")]
+    [InlineData("redis")]
+    [InlineData("sqlserver")]
+    public async Task VerifyComponentWorks(string component)
     {
-        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(6));
+        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
 
-        var response = await _integrationServicesFixture.IntegrationServiceA.HttpGetAsync("http", "/cosmos/verify", cts.Token);
+        var response = await _integrationServicesFixture.IntegrationServiceA.HttpGetAsync("http", $"/{component}/verify", cts.Token);
         var responseContent = await response.Content.ReadAsStringAsync();
 
         Assert.True(response.IsSuccessStatusCode, responseContent);
@@ -38,97 +47,6 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
 
         response = await _integrationServicesFixture.IntegrationServiceA.HttpGetAsync("http", $"/kafka/consume/{topic}", cts.Token);
         responseContent = await response.Content.ReadAsStringAsync();
-        Assert.True(response.IsSuccessStatusCode, responseContent);
-    }
-
-    [Fact]
-    public async Task VerifyMongoWorks()
-    {
-        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
-
-        var response = await _integrationServicesFixture.IntegrationServiceA.HttpGetAsync("http", "/mongodb/verify", cts.Token);
-        var responseContent = await response.Content.ReadAsStringAsync();
-
-        Assert.True(response.IsSuccessStatusCode, responseContent);
-    }
-
-    [Fact]
-    public async Task VerifyMySqlWorks()
-    {
-        // MySql health check reports healthy during temporary server phase, c.f. https://github.com/Xabaril/AspNetCore.Diagnostics.HealthChecks/issues/2031
-        // This is mitigated by standard resilience handlers in the IntegrationServicesFixture HttpClient configuration
-
-        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
-
-        var response = await _integrationServicesFixture.IntegrationServiceA.HttpGetAsync("http", "/mysql/verify", cts.Token);
-        var responseContent = await response.Content.ReadAsStringAsync();
-
-        Assert.True(response.IsSuccessStatusCode, responseContent);
-    }
-
-    [Fact]
-    public async Task VerifyPomeloEFCoreMySqlWorks()
-    {
-        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
-
-        var response = await _integrationServicesFixture.IntegrationServiceA.HttpGetAsync("http", "/pomelo/verify", cts.Token);
-        var responseContent = await response.Content.ReadAsStringAsync();
-
-        Assert.True(response.IsSuccessStatusCode, responseContent);
-    }
-
-    [Fact]
-    public async Task VerifyOracleDatabaseWorks()
-    {
-        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
-
-        var response = await _integrationServicesFixture.IntegrationServiceA.HttpGetAsync("http", "/oracledatabase/verify", cts.Token);
-        var responseContent = await response.Content.ReadAsStringAsync();
-
-        Assert.True(response.IsSuccessStatusCode, responseContent);
-    }
-
-    [Fact]
-    public async Task VerifyPostgresWorks()
-    {
-        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
-
-        var response = await _integrationServicesFixture.IntegrationServiceA.HttpGetAsync("http", "/postgres/verify", cts.Token);
-        var responseContent = await response.Content.ReadAsStringAsync();
-
-        Assert.True(response.IsSuccessStatusCode, responseContent);
-    }
-
-    [Fact]
-    public async Task VerifyRabbitMQWorks()
-    {
-        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
-
-        var response = await _integrationServicesFixture.IntegrationServiceA.HttpGetAsync("http", "/rabbitmq/verify", cts.Token);
-        var responseContent = await response.Content.ReadAsStringAsync();
-
-        Assert.True(response.IsSuccessStatusCode, responseContent);
-    }
-
-    [Fact]
-    public async Task VerifyRedisWorks()
-    {
-        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
-
-        var response = await _integrationServicesFixture.IntegrationServiceA.HttpGetAsync("http", "/redis/verify", cts.Token);
-        var responseContent = await response.Content.ReadAsStringAsync();
-
-        Assert.True(response.IsSuccessStatusCode, responseContent);
-    }
-
-    [Fact]
-    public async Task VerifySqlServerWorks()
-    {
-        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
-
-        var response = await _integrationServicesFixture.IntegrationServiceA.HttpGetAsync("http", "/sqlserver/verify", cts.Token);
-        var responseContent = await response.Content.ReadAsStringAsync();
-
         Assert.True(response.IsSuccessStatusCode, responseContent);
     }
 
