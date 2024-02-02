@@ -30,12 +30,15 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
 
         var output = new StringBuilder();
         var appExited = new TaskCompletionSource();
-        var appRunning = new TaskCompletionSource();
         var projectsParsed = new TaskCompletionSource();
+        var appRunning = new TaskCompletionSource();
+        var stdoutComplete = new TaskCompletionSource();
+        var stderrComplete = new TaskCompletionSource();
         _appHostProcess = new Process();
         _appHostProcess.StartInfo = new ProcessStartInfo("dotnet", "run -- --disable-dashboard")
         {
             RedirectStandardOutput = true,
+            RedirectStandardError = true,
             RedirectStandardInput = true,
             UseShellExecute = false,
             CreateNoWindow = true,
@@ -43,6 +46,12 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         };
         _appHostProcess.OutputDataReceived += (sender, e) =>
         {
+            if (e.Data is null)
+            {
+                stdoutComplete.SetResult();
+                return;
+            }
+
             output.AppendLine(e.Data);
 
             if (e.Data?.StartsWith("$ENDPOINTS: ") == true)
@@ -56,28 +65,37 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
                 appRunning.SetResult();
             }
         };
+        _appHostProcess.ErrorDataReceived += (sender, e) =>
+        {
+            if (e.Data is null)
+            {
+                stderrComplete.SetResult();
+                return;
+            }
+
+            output.AppendLine(e.Data);
+        };
+
         EventHandler appExitedCallback = (sender, e) => appExited.SetResult();
+        _appHostProcess.EnableRaisingEvents = true;
         _appHostProcess.Exited += appExitedCallback;
 
         _appHostProcess.Start();
         _appHostProcess.BeginOutputReadLine();
+        _appHostProcess.BeginErrorReadLine();
 
         var successfulTask = Task.WhenAll(appRunning.Task, projectsParsed.Task);
         var failedTask = appExited.Task;
+        var timeoutTask = Task.Delay(TimeSpan.FromMinutes(5));
 
-        try
+        var resultTask = await Task.WhenAny(successfulTask, failedTask, timeoutTask);
+        if (resultTask == failedTask)
         {
-            await Task.WhenAny(successfulTask, failedTask)
-                .ContinueWith(t =>
-                {
-                    Assert.True(successfulTask == t.Result, $"App run failed: {Environment.NewLine}{output}");
-                }, TaskScheduler.Default)
-                .WaitAsync(TimeSpan.FromMinutes(5));
+            // wait for all the output to be read
+            var allOutputComplete = Task.WhenAll(stdoutComplete.Task, stderrComplete.Task);
+            await Task.WhenAny(allOutputComplete, timeoutTask);
         }
-        catch (TimeoutException)
-        {
-            Assert.Fail($"Running the TestProject.AppHost timed out: {Environment.NewLine}{output}");
-        }
+        Assert.True(resultTask == successfulTask, $"App run failed: {Environment.NewLine}{output}");
 
         _appHostProcess.Exited -= appExitedCallback;
 
@@ -119,7 +137,10 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
     {
         if (_appHostProcess is not null)
         {
-            _appHostProcess.StandardInput.WriteLine("Stop");
+            if (!_appHostProcess.HasExited)
+            {
+                _appHostProcess.StandardInput.WriteLine("Stop");
+            }
             await _appHostProcess.WaitForExitAsync();
         }
     }
