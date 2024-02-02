@@ -13,10 +13,10 @@
   <!-- We want to publish the dashboard for every supported RID -->
   <Target Name="PublishAllRids" AfterTargets="Build" Condition="'$(RuntimeIdentifier)' == ''">
     <ItemGroup>
-      <RuntimeIdentifierForPublish Include="$(RuntimeIdentifiers)" />
+      <_RuntimeIdentifier Include="$(RuntimeIdentifiers)" />
 
-      <ProjectToPublish Include="@(RuntimeIdentifierForPublish->'$(MSBuildProjectFullPath)')">
-        <AdditionalProperties>RuntimeIdentifier=%(RuntimeIdentifierForPublish.Identity)</AdditionalProperties>
+      <ProjectToPublish Include="@(_RuntimeIdentifier->'$(MSBuildProjectFullPath)')">
+        <AdditionalProperties>RuntimeIdentifier=%(_RuntimeIdentifier.Identity);PlatformName=%(_RuntimeIdentifier.Identity)</AdditionalProperties>
       </ProjectToPublish>
     </ItemGroup>
 
