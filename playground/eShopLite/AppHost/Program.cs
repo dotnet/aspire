@@ -10,7 +10,8 @@ var basketCache = builder.AddRedis("basketcache")
                          .WithRedisCommander();
 
 var catalogService = builder.AddProject<Projects.CatalogService>("catalogservice")
-                            .WithReference(catalogDb);
+                            .WithReference(catalogDb)
+                            .WithReplicas(2);
 
 var messaging = builder.AddRabbitMQContainer("messaging");
 
