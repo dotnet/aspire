@@ -1,23 +1,16 @@
-using Aspire.Hosting.Extensions;
-
 var builder = DistributedApplication.CreateBuilder(args);
 
-var ratingsDb = builder.Environment.EnvironmentName switch
+var catalogDb = bool.Parse(builder.Configuration["PROVISION_CATALOGDB"] ?? "true") switch
 {
-    "Development" => builder.AddAzureCosmosDB("cosmos").UseEmulator().AddDatabase("ratingsdb"),
-    _ => builder.AddConnectionString("ratingsdb")
+    false => builder.AddConnectionString("catalogdb"),
+    true => builder.AddPostgres("postgres").WithPgAdmin().AddDatabase("catalogdb"),
 };
-
-var catalogDb = builder.AddPostgres("postgres")
-                       .WithPgAdmin()
-                       .AddDatabase("catalogdb");
 
 var basketCache = builder.AddRedis("basketcache")
                          .WithRedisCommander();
 
 var catalogService = builder.AddProject<Projects.CatalogService>("catalogservice")
-                            .WithReference(catalogDb)
-                            .WithReference(ratingsDb);
+                            .WithReference(catalogDb);
 
 var messaging = builder.AddRabbitMQContainer("messaging");
 

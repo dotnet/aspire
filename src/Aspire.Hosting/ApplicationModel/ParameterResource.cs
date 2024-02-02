@@ -3,7 +3,8 @@
 
 namespace Aspire.Hosting.ApplicationModel;
 
-public sealed class ParameterResource(string name, Func<string> callback) : Resource(name)
+public sealed class ParameterResource(string name, Func<string> callback, bool secret = false) : Resource(name)
 {
     public string Value { get => callback(); }
+    public bool Secret { get; } = secret;
 }

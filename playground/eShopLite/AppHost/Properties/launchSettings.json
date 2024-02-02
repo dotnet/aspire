@@ -1,18 +1,31 @@
 {
   "profiles": {
-    "http": {
+    "http-resources": {
       "commandName": "Project",
       "launchBrowser": true,
       "dotnetRunMessages": true,
       "applicationUrl": "https://localhost:15887;http://localhost:15888",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "NotDevelopment",
-        "DOTNET_ENVIRONMENT": "NotDevelopment",
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DOTNET_ENVIRONMENT": "Development",
         "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL": "http://localhost:16031",
         "DOTNET_ASPIRE_SHOW_DASHBOARD_RESOURCES": "true"
       }
     },
-    "generate-manifest": {
+    "http-connectionstring": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "dotnetRunMessages": true,
+      "applicationUrl": "https://localhost:15887;http://localhost:15888",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DOTNET_ENVIRONMENT": "Development",
+        "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL": "http://localhost:16031",
+        "DOTNET_ASPIRE_SHOW_DASHBOARD_RESOURCES": "true",
+        "PROVISION_CATALOGDB": "false"
+      }
+    },
+    "generate-manifest-resources": {
       "commandName": "Project",
       "launchBrowser": true,
       "dotnetRunMessages": true,
@@ -22,6 +35,19 @@
         "ASPNETCORE_ENVIRONMENT": "Development",
         "DOTNET_ENVIRONMENT": "Development",
         "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL": "http://localhost:16031"
+      }
+    },
+    "generate-manifest-connectionstring": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "dotnetRunMessages": true,
+      "commandLineArgs": "--publisher manifest --output-path aspire-manifest.json",
+      "applicationUrl": "http://localhost:15888",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DOTNET_ENVIRONMENT": "Development",
+        "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL": "http://localhost:16031",
+        "PROVISION_CATALOGDB": "false"
       }
     }
   },

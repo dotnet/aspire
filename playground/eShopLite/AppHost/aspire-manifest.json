@@ -1,11 +1,14 @@
 {
   "resources": {
-    "postgres": {
-      "type": "postgres.server.v0"
-    },
     "catalogdb": {
-      "type": "postgres.database.v0",
-      "parent": "postgres"
+      "type": "parameter.v0",
+      "value": "{catalogdb.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true
+        }
+      }
     },
     "basketcache": {
       "type": "redis.v0"
@@ -16,7 +19,7 @@
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
-        "ConnectionStrings__catalogdb": "{catalogdb.connectionString}"
+        "ConnectionStrings__catalogdb": "{catalogdb.value}"
       },
       "bindings": {
         "http": {
@@ -143,7 +146,7 @@
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
-        "ConnectionStrings__catalogdb": "{catalogdb.connectionString}"
+        "ConnectionStrings__catalogdb": "{catalogdb.value}"
       },
       "bindings": {
         "http": {
