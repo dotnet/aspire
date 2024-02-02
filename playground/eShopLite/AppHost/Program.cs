@@ -1,10 +1,8 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
-var catalogDb = bool.Parse(builder.Configuration["PROVISION_CATALOGDB"] ?? "true") switch
-{
-    false => builder.AddConnectionString("catalogdb"),
-    true => builder.AddPostgres("postgres").WithPgAdmin().AddDatabase("catalogdb"),
-};
+var catalogDb = builder.AddPostgres("postgres")
+                       .WithPgAdmin()
+                       .AddDatabase("catalogdb");
 
 var basketCache = builder.AddRedis("basketcache")
                          .WithRedisCommander();

@@ -1,6 +1,6 @@
 {
   "profiles": {
-    "http-resources": {
+    "http": {
       "commandName": "Project",
       "launchBrowser": true,
       "dotnetRunMessages": true,
@@ -12,20 +12,7 @@
         "DOTNET_ASPIRE_SHOW_DASHBOARD_RESOURCES": "true"
       }
     },
-    "http-connectionstring": {
-      "commandName": "Project",
-      "launchBrowser": true,
-      "dotnetRunMessages": true,
-      "applicationUrl": "https://localhost:15887;http://localhost:15888",
-      "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development",
-        "DOTNET_ENVIRONMENT": "Development",
-        "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL": "http://localhost:16031",
-        "DOTNET_ASPIRE_SHOW_DASHBOARD_RESOURCES": "true",
-        "PROVISION_CATALOGDB": "false"
-      }
-    },
-    "generate-manifest-resources": {
+    "generate-manifest": {
       "commandName": "Project",
       "launchBrowser": true,
       "dotnetRunMessages": true,
@@ -35,19 +22,6 @@
         "ASPNETCORE_ENVIRONMENT": "Development",
         "DOTNET_ENVIRONMENT": "Development",
         "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL": "http://localhost:16031"
-      }
-    },
-    "generate-manifest-connectionstring": {
-      "commandName": "Project",
-      "launchBrowser": true,
-      "dotnetRunMessages": true,
-      "commandLineArgs": "--publisher manifest --output-path aspire-manifest.json",
-      "applicationUrl": "http://localhost:15888",
-      "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development",
-        "DOTNET_ENVIRONMENT": "Development",
-        "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL": "http://localhost:16031",
-        "PROVISION_CATALOGDB": "false"
       }
     }
   },
