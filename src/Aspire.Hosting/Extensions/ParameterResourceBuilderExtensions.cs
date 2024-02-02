@@ -7,8 +7,19 @@ using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting;
 
+/// <summary>
+/// Provides extension methods for adding parameter resources to an application.
+/// </summary>
 public static class ParameterResourceBuilderExtensions
 {
+    /// <summary>
+    /// Adds a parameter resource to the application.
+    /// </summary>
+    /// <param name="builder">Distributed application builder</param>
+    /// <param name="name">Name of parameter resource</param>
+    /// <param name="secret">Optional flag indicating whether the parameter should be regarded as secret.</param>
+    /// <returns>Resource builder for the parameter.</returns>
+    /// <exception cref="DistributedApplicationException"></exception>
     public static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder, string name, bool secret = false)
     {
         return builder.AddParameter(name, () =>
@@ -42,6 +53,13 @@ public static class ParameterResourceBuilderExtensions
         context.Writer.WriteEndObject();
     }
 
+    /// <summary>
+    /// Adds a parameter to the distributed application but wrapped in a resource with a connection string for use with <see cref="ResourceBuilderExtensions.WithReference{TDestination}(IResourceBuilder{TDestination}, IResourceBuilder{IResourceWithConnectionString}, string?, bool)"/>
+    /// </summary>
+    /// <param name="builder">Distributed application builder</param>
+    /// <param name="name">Name of parameter resource</param>
+    /// <returns>Resource builder for the parameter.</returns>
+    /// <exception cref="DistributedApplicationException"></exception>
     public static IResourceBuilder<IResourceWithConnectionString> AddConnectionString(this IDistributedApplicationBuilder builder, string name)
     {
         var parameterBuilder = builder.AddParameter(name, () =>

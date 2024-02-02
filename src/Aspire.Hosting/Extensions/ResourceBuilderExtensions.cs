@@ -74,6 +74,14 @@ public static class ResourceBuilderExtensions
         }));
     }
 
+    /// <summary>
+    /// Adds an environment variable to the resource with the endpoint for <paramref name="endpointReference"/>.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">Name of enviroment variable</param>
+    /// <param name="parameter">Resource builder for the parameter resource.</param>
+    /// <returns>A resource configured with the environment variable callback.</returns>
     public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, IResourceBuilder<ParameterResource> parameter) where T: IResourceWithEnvironment
     {
         return builder.WithEnvironment(context =>
