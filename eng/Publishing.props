@@ -11,7 +11,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <PublishDependsOnTargets>$(PublishDependsOnTargets);_PublishInstallers;_PublishDashboardAssets</PublishDependsOnTargets>
+    <PublishDependsOnTargets>$(PublishDependsOnTargets);_PublishBlobItems</PublishDependsOnTargets>
 
     <!-- NOTE: This property is also defined on the root-level Directory.Build.props, but that file is not imported by the Publishing project.
     Pulling it in here will cause different issues as that file will conflict with Arcade's publishing logic, so as a workaround we define it here.
@@ -25,17 +25,7 @@
     <_DashboardFilesToPublish Include="$(DashboardPublishedArtifactsOutputDir)\**\*.zip" />
   </ItemGroup>
 
-  <Target Name="_PublishDashboardAssets">
-    <ItemGroup>
-      <ItemsToPushToBlobFeed Include="@(_DashboardFilesToPublish)">
-        <IsShipping>true</IsShipping>
-        <PublishFlatContainer>true</PublishFlatContainer>
-        <RelativeBlobPath>$(_UploadPathRoot)/dashboard-assets/%(Filename)%(Extension)</RelativeBlobPath>
-      </ItemsToPushToBlobFeed>
-    </ItemGroup>
-  </Target>
-
-  <Target Name="_PublishInstallers">
+  <Target Name="_PublishBlobItems">
     <MSBuild Projects="$(RepoRoot)src\Microsoft.NET.Sdk.Aspire\Microsoft.NET.Sdk.Aspire.csproj"
         Targets="ReturnPackageVersion"
         SkipNonexistentProjects="false">
@@ -49,6 +39,11 @@
         <RelativeBlobPath>$(_UploadPathRoot)/$(_PackageVersion)/%(Filename)%(Extension)</RelativeBlobPath>
       </ItemsToPushToBlobFeed>
       <ItemsToPushToBlobFeed Include="@(_InstallerManifestFilesToPublish)">
+        <IsShipping>true</IsShipping>
+        <PublishFlatContainer>true</PublishFlatContainer>
+        <RelativeBlobPath>$(_UploadPathRoot)/$(_PackageVersion)/%(Filename)%(Extension)</RelativeBlobPath>
+      </ItemsToPushToBlobFeed>
+      <ItemsToPushToBlobFeed Include="@(_DashboardFilesToPublish)">
         <IsShipping>true</IsShipping>
         <PublishFlatContainer>true</PublishFlatContainer>
         <RelativeBlobPath>$(_UploadPathRoot)/$(_PackageVersion)/%(Filename)%(Extension)</RelativeBlobPath>

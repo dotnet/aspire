@@ -62,46 +62,6 @@ public class ManifestGenerationTests
     }
 
     [Fact]
-    public void SecretStoreAndSecretsEmitToManifest()
-    {
-        var program = CreateTestProgramJsonDocumentManifestPublisher();
-        program.AppBuilder.AddSecretStore("secretstore").AddSecret("secret");
-
-        program.Build();
-        var publisher = program.GetManifestPublisher();
-
-        program.Run();
-
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var secretStoreField = resources.GetProperty("secretstore");
-        Assert.Equal("secrets.store.v0", secretStoreField.GetProperty("type").GetString());
-
-        var secretField = resources.GetProperty("secret");
-        Assert.Equal("secrets.secret.v0", secretField.GetProperty("type").GetString());
-        Assert.Equal("{secret.inputs.value}", secretField.GetProperty("value").GetString());
-        Assert.Equal("string", secretField.GetProperty("inputs").GetProperty("value").GetProperty("type").GetString());
-        Assert.True(secretField.GetProperty("inputs").GetProperty("value").GetProperty("secret").GetBoolean());
-    }
-
-    [Fact]
-    public void EnvironmentReferenceSecretOutputsExpression()
-    {
-        var program = CreateTestProgramJsonDocumentManifestPublisher();
-        var secret = program.AppBuilder.AddSecretStore("secretstore").AddSecret("secret");
-        program.ServiceABuilder.WithEnvironment("API_KEY", secret);
-
-        program.Build();
-        var publisher = program.GetManifestPublisher();
-
-        program.Run();
-
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        Assert.Equal("{secret.value}", resources.GetProperty("servicea").GetProperty("env").GetProperty("API_KEY").GetString());
-    }
-
-    [Fact]
     public void EnsureContainerWithEndpointsEmitsContainerPort()
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher();
@@ -522,6 +482,25 @@ public class ManifestGenerationTests
         var db2 = resources.GetProperty("mydb2");
         Assert.Equal("azure.cosmosdb.database.v0", db2.GetProperty("type").GetString());
         Assert.Equal("cosmosaccount", db2.GetProperty("parent").GetString());
+    }
+
+    [Fact]
+    public void EnsureAllAzureApplicationInsightsManifestTypesHaveVersion0Suffix()
+    {
+        var program = CreateTestProgramJsonDocumentManifestPublisher();
+
+        program.AppBuilder.AddApplicationInsights("appInsights");
+
+        // Build AppHost so that publisher can be resolved.
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+
+        var storage = resources.GetProperty("appInsights");
+        Assert.Equal("azure.appinsights.v0", storage.GetProperty("type").GetString());
     }
 
     [Fact]
