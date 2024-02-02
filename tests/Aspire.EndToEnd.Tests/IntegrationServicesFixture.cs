@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Aspire.EndToEnd.Tests;
@@ -23,8 +24,6 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
 
     public ProjectInfo IntegrationServiceA => Projects["integrationservicea"];
 
-    public HttpClient HttpClient { get; } = new HttpClient();
-
     public async Task InitializeAsync()
     {
         var appHostDirectory = Path.Combine(GetRepoRoot(), "tests", "testproject", "TestProject.AppHost");
@@ -34,7 +33,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         var appRunning = new TaskCompletionSource();
         var projectsParsed = new TaskCompletionSource();
         _appHostProcess = new Process();
-        _appHostProcess.StartInfo = new ProcessStartInfo("dotnet", "run")
+        _appHostProcess.StartInfo = new ProcessStartInfo("dotnet", "run -- --disable-dashboard")
         {
             RedirectStandardOutput = true,
             RedirectStandardInput = true,
@@ -82,10 +81,35 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
 
         _appHostProcess.Exited -= appExitedCallback;
 
+        var client = CreateHttpClient();
         foreach (var project in Projects.Values)
         {
-            project.Client = HttpClient;
+            project.Client = client;
         }
+    }
+
+    private static HttpClient CreateHttpClient()
+    {
+        var services = new ServiceCollection();
+        services.AddHttpClient()
+            .ConfigureHttpClientDefaults(b =>
+            {
+                b.UseSocketsHttpHandler((handler, sp) =>
+                {
+                    handler.PooledConnectionLifetime = TimeSpan.FromSeconds(5);
+                    handler.ConnectTimeout = TimeSpan.FromSeconds(5);
+                });
+
+                // Ensure transient errors are retried for up to 5 minutes
+                b.AddStandardResilienceHandler(options =>
+                {
+                    options.AttemptTimeout.Timeout = TimeSpan.FromMinutes(1);
+                    options.CircuitBreaker.SamplingDuration = TimeSpan.FromMinutes(2); // needs to be at least double the AttemptTimeout to pass options validation
+                    options.TotalRequestTimeout.Timeout = TimeSpan.FromMinutes(5);
+                });
+            });
+
+        return services.BuildServiceProvider().GetRequiredService<IHttpClientFactory>().CreateClient();
     }
 
     private static Dictionary<string, ProjectInfo> ParseProjectInfo(string json) =>

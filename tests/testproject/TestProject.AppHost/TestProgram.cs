@@ -8,8 +8,13 @@ using Aspire.Hosting.Lifecycle;
 
 public class TestProgram
 {
-    private TestProgram(string[] args, Assembly assembly, bool includeIntegrationServices = false, bool disableDashboard = true, bool includeNodeApp = false)
+    private TestProgram(string[] args, Assembly assembly, bool includeIntegrationServices, bool includeNodeApp, bool disableDashboard)
     {
+        if (args.Contains("--disable-dashboard"))
+        {
+            disableDashboard = true;
+        }
+
         AppBuilder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions { Args = args, DisableDashboard = disableDashboard, AssemblyName = assembly.FullName });
 
         var serviceAPath = Path.Combine(Projects.TestProject_AppHost.ProjectPath, @"..\TestProject.ServiceA\TestProject.ServiceA.csproj");
@@ -74,7 +79,7 @@ public class TestProgram
     }
 
     public static TestProgram Create<T>(string[]? args = null, bool includeIntegrationServices = false, bool includeNodeApp = false, bool disableDashboard = true) =>
-        new TestProgram(args ?? [], typeof(T).Assembly, includeIntegrationServices, disableDashboard, includeNodeApp: includeNodeApp);
+        new TestProgram(args ?? [], typeof(T).Assembly, includeIntegrationServices, includeNodeApp, disableDashboard);
 
     public IDistributedApplicationBuilder AppBuilder { get; private set; }
     public IResourceBuilder<ProjectResource> ServiceABuilder { get; private set; }
