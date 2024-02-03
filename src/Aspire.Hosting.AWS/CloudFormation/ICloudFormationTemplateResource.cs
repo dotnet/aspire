@@ -12,4 +12,12 @@ public interface ICloudFormationTemplateResource : ICloudFormationResource
     /// Path to the CloudFormation template.
     /// </summary>
     string TemplatePath { get; }
+
+    /// <summary>
+    /// Add parameters to be provided to CloudFormation when creating the stack for the template.
+    /// </summary>
+    /// <param name="parameterName">Name of the CloudFormation parameter.</param>
+    /// <param name="parameterValue">Value of the CloudFormation parameter.</param>
+    /// <returns></returns>
+    ICloudFormationTemplateResource WithParameter(string parameterName, string parameterValue);
 }

@@ -69,6 +69,16 @@ internal sealed class CloudFormationLifecycleHook(ILogger<CloudFormationLifecycl
             var templateBody = File.ReadAllText(cloudFormationResource.TemplatePath);
             var templateSha256 = ComputeSHA256(templateBody);
 
+            var templateParameters = new List<Parameter>();
+            foreach(var kvp in cloudFormationResource.CloudFormationParameters)
+            {
+                templateParameters.Add(new Parameter
+                {
+                    ParameterKey = kvp.Key,
+                    ParameterValue = kvp.Value
+                });
+            }
+
             var stack = await FindExistingStackAsync(cfClient, cloudFormationResource.Name).ConfigureAwait(false);
             if (stack == null || stack.StackStatus == StackStatus.DELETE_COMPLETE)
             {
@@ -76,6 +86,7 @@ internal sealed class CloudFormationLifecycleHook(ILogger<CloudFormationLifecycl
                 {
                     StackName = cloudFormationResource.Name,
                     TemplateBody = templateBody,
+                    Parameters = templateParameters,
                     Tags = { new Tag { Key = SHA256_TAG, Value = templateSha256 } }
                 };
 
@@ -122,6 +133,7 @@ internal sealed class CloudFormationLifecycleHook(ILogger<CloudFormationLifecycl
                     {
                         StackName = cloudFormationResource.Name,
                         TemplateBody = templateBody,
+                        Parameters = templateParameters,
                         Tags = tags
                     };
 

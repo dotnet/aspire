@@ -20,7 +20,7 @@ public static class CloudFormationExtensions
     /// <param name="stackName">The name of the CloudFormation stack.</param>
     /// <param name="templatePath">The path to the CloudFormation template that defines the CloudFormation stack.</param>
     /// <returns></returns>
-    public static IResourceBuilder<ICloudFormationResource> AddAWSCloudFormationTemplate(this IDistributedApplicationBuilder builder, string stackName, string templatePath)
+    public static IResourceBuilder<ICloudFormationTemplateResource> AddAWSCloudFormationTemplate(this IDistributedApplicationBuilder builder, string stackName, string templatePath)
     {
         var resource = new CloudFormationTemplateResource(stackName, templatePath);
         var cfBuilder = builder.AddResource(resource)
@@ -31,12 +31,25 @@ public static class CloudFormationExtensions
     }
 
     /// <summary>
+    /// Add parameters to be provided to CloudFormation when creating the stack for the template.
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="parameterName">Name of the CloudFormation parameter.</param>
+    /// <param name="parameterValue">Value of the CloudFormation parameter.</param>
+    /// <returns></returns>
+    public static IResourceBuilder<ICloudFormationResource> WithParameter(this IResourceBuilder<ICloudFormationTemplateResource> builder, string parameterName, string parameterValue)
+    {
+        builder.Resource.WithParameter(parameterName, parameterValue);
+        return builder;
+    }
+
+    /// <summary>
     /// Add a CloudFormation stack for provisioning application resources.
     /// </summary>
     /// <param name="builder"></param>
     /// <param name="stackName">The name of the CloudFormation stack.</param>
     /// <returns></returns>
-    public static IResourceBuilder<ICloudFormationResource> AddAWSCloudFormationStack(this IDistributedApplicationBuilder builder, string stackName)
+    public static IResourceBuilder<ICloudFormationStackResource> AddAWSCloudFormationStack(this IDistributedApplicationBuilder builder, string stackName)
     {
         var resource = new CloudFormationStackResource(stackName);
         var cfBuilder = builder.AddResource(resource)
