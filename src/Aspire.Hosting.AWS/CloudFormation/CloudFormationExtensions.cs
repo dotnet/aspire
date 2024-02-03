@@ -37,9 +37,9 @@ public static class CloudFormationExtensions
     /// <param name="parameterName">Name of the CloudFormation parameter.</param>
     /// <param name="parameterValue">Value of the CloudFormation parameter.</param>
     /// <returns></returns>
-    public static IResourceBuilder<ICloudFormationResource> WithParameter(this IResourceBuilder<ICloudFormationTemplateResource> builder, string parameterName, string parameterValue)
+    public static IResourceBuilder<ICloudFormationResource> AddParameter(this IResourceBuilder<ICloudFormationTemplateResource> builder, string parameterName, string parameterValue)
     {
-        builder.Resource.WithParameter(parameterName, parameterValue);
+        builder.Resource.AddParameter(parameterName, parameterValue);
         return builder;
     }
 

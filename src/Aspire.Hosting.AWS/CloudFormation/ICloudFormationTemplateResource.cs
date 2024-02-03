@@ -19,5 +19,5 @@ public interface ICloudFormationTemplateResource : ICloudFormationResource
     /// <param name="parameterName">Name of the CloudFormation parameter.</param>
     /// <param name="parameterValue">Value of the CloudFormation parameter.</param>
     /// <returns></returns>
-    ICloudFormationTemplateResource WithParameter(string parameterName, string parameterValue);
+    ICloudFormationTemplateResource AddParameter(string parameterName, string parameterValue);
 }

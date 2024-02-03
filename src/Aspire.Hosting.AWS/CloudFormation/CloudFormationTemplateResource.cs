@@ -12,7 +12,7 @@ internal sealed class CloudFormationTemplateResource(string name, string templat
     public string TemplatePath { get; } = templatePath;
 
     /// <inheritdoc/>
-    public ICloudFormationTemplateResource WithParameter(string parameterName, string parameterValue)
+    public ICloudFormationTemplateResource AddParameter(string parameterName, string parameterValue)
     {
         CloudFormationParameters[parameterName] = parameterValue;
         return this;

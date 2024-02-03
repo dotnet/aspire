@@ -11,7 +11,7 @@ var awsConfig = builder.AddAWSSDKConfig()
 
 // Provision application level resources like SQS queues and SNS topics defined in the CloudFormation template file app-resources.template.
 var awsResources = builder.AddAWSCloudFormationTemplate("AspireSampleDevResources", "app-resources.template")
-                        .WithParameter("DefaultVisibilityTimeout", "30")
+                        .AddParameter("DefaultVisibilityTimeout", "30")
                         // Add the SDK configuration so the AppHost knows what account/region to provision the resources.
                         .WithReference(awsConfig);
 
