@@ -6,7 +6,9 @@ using Amazon.CloudFormation.Model;
 using Amazon.Runtime;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
@@ -17,7 +19,10 @@ namespace Aspire.Hosting.AWS.CloudFormation;
 /// The lifecycle hook that handles deploying the CloudFormation template to a CloudFormation stack.
 /// </summary>
 /// <param name="logger"></param>
-internal sealed class CloudFormationLifecycleHook(ILogger<CloudFormationLifecycleHook> logger) : IDistributedApplicationLifecycleHook
+/// <param name="publishingOptions"></param>
+internal sealed class CloudFormationLifecycleHook(
+    ILogger<CloudFormationLifecycleHook> logger,
+    IOptions<PublishingOptions> publishingOptions) : IDistributedApplicationLifecycleHook
 {
     // Name of the Tag for the stack to store the SHA256 of the CloudFormation template
     const string SHA256_TAG = "AspireAppHost_SHA256";
@@ -30,6 +35,11 @@ internal sealed class CloudFormationLifecycleHook(ILogger<CloudFormationLifecycl
 
     public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
+        if (publishingOptions.Value.Publisher == "manifest")
+        {
+            return;
+        }
+
         await ProcessCloudFormationStackResourceAsync(appModel, cancellationToken).ConfigureAwait(false);
         await ProcessCloudFormationTemplateResourceAsync(appModel, cancellationToken).ConfigureAwait(false);
     }
