@@ -14,7 +14,7 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
         _integrationServicesFixture = integrationServicesFixture;
     }
 
-    [Theory]
+    [LocalOnlyTheory]
     [InlineData("cosmos")]
     [InlineData("mongodb")]
     [InlineData("mysql")]
@@ -32,7 +32,7 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
         Assert.True(response.IsSuccessStatusCode, responseContent);
     }
 
-    [Fact]
+    [LocalOnlyFact]
     public async Task KafkaComponentCanProduceAndConsume()
     {
         string topic = $"topic-{Guid.NewGuid()}";
@@ -46,11 +46,49 @@ public class IntegrationServicesTests : IClassFixture<IntegrationServicesFixture
         Assert.True(response.IsSuccessStatusCode, responseContent);
     }
 
-    [Fact]
+    [LocalOnlyFact]
     public async Task VerifyHealthyOnIntegrationServiceA()
     {
         // We wait until timeout for the /health endpoint to return successfully. We assume
         // that components wired up into this project have health checks enabled.
         await _integrationServicesFixture.IntegrationServiceA.WaitForHealthyStatusAsync("http");
+    }
+}
+
+// TODO: remove these attributes when the above tests are running in CI
+
+public class LocalOnlyFactAttribute : FactAttribute
+{
+    public override string Skip
+    {
+        get
+        {
+            // BUILD_BUILDID is defined by Azure Dev Ops
+
+            if (Environment.GetEnvironmentVariable("BUILD_BUILDID") != null)
+            {
+                return "LocalOnlyFactAttribute tests are not run as part of CI.";
+            }
+
+            return null!;
+        }
+    }
+}
+
+public class LocalOnlyTheoryAttribute : TheoryAttribute
+{
+    public override string Skip
+    {
+        get
+        {
+            // BUILD_BUILDID is defined by Azure Dev Ops
+
+            if (Environment.GetEnvironmentVariable("BUILD_BUILDID") != null)
+            {
+                return "LocalOnlyTheoryAttribute tests are not run as part of CI.";
+            }
+
+            return null!;
+        }
     }
 }
