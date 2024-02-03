@@ -116,20 +116,20 @@ public static class CloudFormationExtensions
 
     private static void WriteCloudFormationStackResourceToManifest(ManifestPublishingContext context, CloudFormationStackResource resource)
     {
-        context.Writer.WriteString("type", "cloudformation.stack.v0");
+        context.Writer.WriteString("type", "aws.cloudformation.stack.v0");
         context.Writer.TryWriteString("stack-name", context.GetManifestRelativePath(resource.Name));
     }
 
     private static void WriteCloudFormationTemplateResourceToManifest(ManifestPublishingContext context, CloudFormationTemplateResource resource)
     {
-        context.Writer.WriteString("type", "cloudformation.template.v0");
+        context.Writer.WriteString("type", "aws.cloudformation.template.v0");
         context.Writer.TryWriteString("stack-name", context.GetManifestRelativePath(resource.Name));
         context.Writer.TryWriteString("template-path", context.GetManifestRelativePath(resource.TemplatePath));
     }
 
     private static void WriteCloudFormationReference(ManifestPublishingContext context, ICloudFormationResource cfResource, IResource targetResource)
     {
-        context.Writer.WriteString("type", "cloudformation.reference.v0");
+        context.Writer.WriteString("type", "aws.cloudformation.reference.v0");
         context.Writer.WriteString("cloudformation", cfResource.Name);
         context.Writer.WriteString("resource", targetResource.Name);
     }

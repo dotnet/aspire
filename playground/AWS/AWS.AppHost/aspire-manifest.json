@@ -1,7 +1,7 @@
 {
   "resources": {
     "AspireSampleDevResources": {
-      "type": "cloudformation.template.v0",
+      "type": "aws.cloudformation.template.v0",
       "stack-name": "AspireSampleDevResources",
       "template-path": "app-resources.template"
     },
@@ -26,7 +26,7 @@
       }
     },
     "frontend-AspireSampleDevResources-cloudformation": {
-      "type": "cloudformation.reference.v0",
+      "type": "aws.cloudformation.reference.v0",
       "cloudformation": "AspireSampleDevResources",
       "resource": "frontend"
     }
