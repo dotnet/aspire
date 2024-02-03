@@ -3,6 +3,8 @@
 
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.MySql;
 using Aspire.Hosting.Publishing;
 
 namespace Aspire.Hosting;
@@ -71,6 +73,34 @@ public static class MySqlBuilderExtensions
         var mySqlDatabase = new MySqlDatabaseResource(name, builder.Resource);
         return builder.ApplicationBuilder.AddResource(mySqlDatabase)
                                          .WithManifestPublishingCallback(context => WriteMySqlDatabaseToManifest(context, mySqlDatabase));
+    }
+
+    /// <summary>
+    /// Adds a phpMyAdmin administration and development platform for MySql to the application model.
+    /// </summary>
+    /// <param name="builder">The MySql server resource builder.</param>
+    /// <param name="hostPort">The host port for the application ui.</param>
+    /// <param name="containerName">The name of the container (Optional).</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithPhpMyAdmin<T>(this IResourceBuilder<T> builder, int? hostPort = null, string? containerName = null) where T : IMySqlParentResource
+    {
+        if (builder.ApplicationBuilder.Resources.OfType<PhpMyAdminContainerResource>().Any())
+        {
+            return builder;
+        }
+
+        builder.ApplicationBuilder.Services.TryAddLifecycleHook<PhpMyAdminConfigWriterHook>();
+
+        containerName ??= $"{builder.Resource.Name}-phpmyadmin";
+
+        var phpMyAdminContainer = new PhpMyAdminContainerResource(containerName);
+        builder.ApplicationBuilder.AddResource(phpMyAdminContainer)
+                                  .WithAnnotation(new ContainerImageAnnotation { Image = "phpmyadmin", Tag = "latest" })
+                                  .WithHttpEndpoint(containerPort: 80, hostPort: hostPort, name: containerName)
+                                  .WithVolumeMount(Path.GetTempFileName(), "/etc/phpmyadmin/config.user.inc.php")
+                                  .ExcludeFromManifest();
+        
+        return builder;
     }
 
     private static void WriteMySqlContainerToManifest(ManifestPublishingContext context)
