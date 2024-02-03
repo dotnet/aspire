@@ -1,0 +1,77 @@
+{
+  "resources": {
+    "statestore": {
+      "type": "dapr.component.v0",
+      "daprComponent": {
+        "type": "state"
+      }
+    },
+    "pubsub": {
+      "type": "dapr.component.v0",
+      "daprComponent": {
+        "type": "pubsub"
+      }
+    },
+    "servicea": {
+      "type": "project.v0",
+      "path": "../ServiceA/DaprServiceA.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http"
+        }
+      }
+    },
+    "servicea-dapr": {
+      "type": "dapr.v0",
+      "dapr": {
+        "application": "servicea",
+        "appId": "servicea",
+        "components": [
+          "statestore",
+          "pubsub"
+        ]
+      }
+    },
+    "serviceb": {
+      "type": "project.v0",
+      "path": "../ServiceB/DaprServiceB.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http"
+        }
+      }
+    },
+    "serviceb-dapr": {
+      "type": "dapr.v0",
+      "dapr": {
+        "application": "serviceb",
+        "appId": "serviceb",
+        "components": [
+          "pubsub"
+        ]
+      }
+    }
+  }
+}

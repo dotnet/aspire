@@ -5,12 +5,10 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
-using Aspire.Dashboard.Utils;
 using Aspire.V1;
 using Grpc.Core;
 using Grpc.Net.Client;
 using Grpc.Net.Client.Configuration;
-using Microsoft.Extensions.Logging;
 
 namespace Aspire.Dashboard.Model;
 
@@ -18,14 +16,22 @@ namespace Aspire.Dashboard.Model;
 /// Implements gRPC client that communicates with a resource server, populating data for the dashboard.
 /// </summary>
 /// <remarks>
+/// <para>
 /// An instance of this type is created per service call, so this class should not hold onto any state
 /// expected to live longer than a single RPC request. In the case of streaming requests, the instance
 /// lives until the stream is closed.
+/// </para>
+/// <para>
+/// If the <c>DOTNET_RESOURCE_SERVICE_ENDPOINT_URL</c> environment variable is not specified, then there's
+/// no known endpoint to connect to, and this dashboard client will be disabled. Calls to
+/// <see cref="IDashboardClient.SubscribeResources"/> and <see cref="IDashboardClient.SubscribeConsoleLogs"/>
+/// will throw if <see cref="IDashboardClient.IsEnabled"/> is <see langword="false"/>. Callers should
+/// check this property first, before calling these methods.
+/// </para>
 /// </remarks>
 internal sealed class DashboardClient : IDashboardClient
 {
-    private const string DashboardServiceUrlVariableName = "DOTNET_DASHBOARD_GRPC_ENDPOINT_URL";
-    private const string DashboardServiceUrlDefaultValue = "http://localhost:18999";
+    private const string ResourceServiceUrlVariableName = "DOTNET_RESOURCE_SERVICE_ENDPOINT_URL";
 
     private readonly Dictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
     private readonly CancellationTokenSource _cts = new();
@@ -33,28 +39,40 @@ internal sealed class DashboardClient : IDashboardClient
     private readonly object _lock = new();
 
     private readonly ILoggerFactory _loggerFactory;
+    private readonly IConfiguration _configuration;
     private readonly ILogger<DashboardClient> _logger;
 
     private ImmutableHashSet<Channel<ResourceViewModelChange>> _outgoingChannels = [];
     private string? _applicationName;
 
+    private const int StateDisabled = -1;
     private const int StateNone = 0;
     private const int StateInitialized = 1;
     private const int StateDisposed = 2;
-    private int _state;
+    private int _state = StateNone;
 
-    private readonly GrpcChannel _channel;
-    private readonly DashboardService.DashboardServiceClient _client;
+    private readonly GrpcChannel? _channel;
+    private readonly DashboardService.DashboardServiceClient? _client;
 
     private Task? _connection;
 
-    public DashboardClient(ILoggerFactory loggerFactory)
+    public DashboardClient(ILoggerFactory loggerFactory, IConfiguration configuration)
     {
         _loggerFactory = loggerFactory;
+        _configuration = configuration;
 
         _logger = loggerFactory.CreateLogger<DashboardClient>();
 
-        var address = GetAddressUri(DashboardServiceUrlVariableName, DashboardServiceUrlDefaultValue);
+        var address = configuration.GetUri(ResourceServiceUrlVariableName);
+
+        if (address is null)
+        {
+            _state = StateDisabled;
+            _logger.LogInformation($"{ResourceServiceUrlVariableName} is not specified. Dashboard client services are unavailable.");
+            _cts.Cancel();
+            _whenConnected.TrySetCanceled();
+            return;
+        }
 
         _logger.LogInformation("Dashboard configured to connect to: {Address}", address);
 
@@ -63,20 +81,6 @@ internal sealed class DashboardClient : IDashboardClient
         _channel = CreateChannel();
 
         _client = new DashboardService.DashboardServiceClient(_channel);
-
-        static Uri GetAddressUri(string variableName, string defaultValue)
-        {
-            try
-            {
-                var uri = Environment.GetEnvironmentVariable(variableName) ?? defaultValue;
-
-                return new Uri(uri);
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidOperationException($"Error parsing URIs from environment variable '{variableName}'.", ex);
-            }
-        }
 
         GrpcChannel CreateChannel()
         {
@@ -117,9 +121,19 @@ internal sealed class DashboardClient : IDashboardClient
         }
     }
 
+    // For testing purposes
+    internal int OutgoingResourceSubscriberCount => _outgoingChannels.Count;
+
+    public bool IsEnabled => _state is not StateDisabled;
+
     private void EnsureInitialized()
     {
-        var priorState = Interlocked.CompareExchange(ref _state, StateInitialized, comparand: StateNone);
+        var priorState = Interlocked.CompareExchange(ref _state, value: StateInitialized, comparand: StateNone);
+
+        if (priorState is StateDisabled)
+        {
+            throw new InvalidOperationException($"{nameof(DashboardClient)} is disabled. Check the {nameof(IsEnabled)} property before calling this.");
+        }
 
         if (priorState is not StateNone)
         {
@@ -141,7 +155,7 @@ internal sealed class DashboardClient : IDashboardClient
             {
                 try
                 {
-                    var response = await _client.GetApplicationInformationAsync(new(), cancellationToken: cancellationToken);
+                    var response = await _client!.GetApplicationInformationAsync(new(), cancellationToken: cancellationToken);
 
                     _applicationName = response.ApplicationName;
 
@@ -194,7 +208,7 @@ internal sealed class DashboardClient : IDashboardClient
 
                 async Task WatchResourcesAsync()
                 {
-                    var call = _client.WatchResources(new WatchResourcesRequest { IsReconnect = errorCount != 0 }, cancellationToken: cancellationToken);
+                    var call = _client!.WatchResources(new WatchResourcesRequest { IsReconnect = errorCount != 0 }, cancellationToken: cancellationToken);
 
                     await foreach (var response in call.ResponseStream.ReadAllAsync(cancellationToken: cancellationToken))
                     {
@@ -278,13 +292,30 @@ internal sealed class DashboardClient : IDashboardClient
         }
     }
 
-    Task IDashboardClient.WhenConnected => _whenConnected.Task;
+    Task IDashboardClient.WhenConnected
+    {
+        get
+        {
+            // All pages wait for this task (it is used to display the title) but some don't subscribe to resources.
+            // If someone is waiting for the connection, we need to ensure connection is starting.
+            EnsureInitialized();
 
-    string IDashboardClient.ApplicationName => _applicationName ?? "";
+            return _whenConnected.Task;
+        }
+    }
+
+    string IDashboardClient.ApplicationName
+    {
+        get => _applicationName
+            ?? _configuration["DOTNET_DASHBOARD_APPLICATION_NAME"]
+            ?? "Aspire";
+    }
 
     ResourceViewModelSubscription IDashboardClient.SubscribeResources()
     {
         EnsureInitialized();
+
+        var clientCancellationToken = _cts.Token;
 
         lock (_lock)
         {
@@ -300,11 +331,13 @@ internal sealed class DashboardClient : IDashboardClient
                 InitialState: _resourceByName.Values.ToImmutableArray(),
                 Subscription: StreamUpdates());
 
-            async IAsyncEnumerable<ResourceViewModelChange> StreamUpdates()
+            async IAsyncEnumerable<ResourceViewModelChange> StreamUpdates([EnumeratorCancellation] CancellationToken enumeratorCancellationToken = default)
             {
                 try
                 {
-                    await foreach (var batch in channel.Reader.ReadAllAsync(_cts.Token).ConfigureAwait(false))
+                    using var cts = CancellationTokenSource.CreateLinkedTokenSource(clientCancellationToken, enumeratorCancellationToken);
+
+                    await foreach (var batch in channel.Reader.ReadAllAsync(cts.Token).ConfigureAwait(false))
                     {
                         yield return batch;
                     }
@@ -321,11 +354,13 @@ internal sealed class DashboardClient : IDashboardClient
     {
         EnsureInitialized();
 
-        var call = _client.WatchResourceConsoleLogs(
-            new WatchResourceConsoleLogsRequest() { ResourceName = resourceName },
-            cancellationToken: cancellationToken);
+        using var combinedTokens = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, cancellationToken);
 
-        await foreach (var response in call.ResponseStream.ReadAllAsync(cancellationToken: cancellationToken))
+        var call = _client!.WatchResourceConsoleLogs(
+            new WatchResourceConsoleLogsRequest() { ResourceName = resourceName },
+            cancellationToken: combinedTokens.Token);
+
+        await foreach (var response in call.ResponseStream.ReadAllAsync(cancellationToken: combinedTokens.Token))
         {
             var logLines = new (string Content, bool IsErrorMessage)[response.LogLines.Count];
 
@@ -342,11 +377,13 @@ internal sealed class DashboardClient : IDashboardClient
     {
         if (Interlocked.Exchange(ref _state, StateDisposed) is not StateDisposed)
         {
+            _outgoingChannels = [];
+
             await _cts.CancelAsync().ConfigureAwait(false);
 
             _cts.Dispose();
 
-            _channel.Dispose();
+            _channel?.Dispose();
 
             try
             {

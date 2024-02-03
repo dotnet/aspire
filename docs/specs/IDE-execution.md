@@ -54,19 +54,30 @@ The payload is best explained using an example:
 
 ```jsonc
 {
-    "project_path": "<path to C# project file for the program>",
-    "debug": true, // Whether the program should be running under the debugger
+    "project_path": "(Path to C# project file for the program. Required.)",
+
+    // Whether the program should be running under the debugger. Optional.
+    "debug": true, 
+
+    // Environment variable settings (added on top of those inherited from IDE/user environment,
+    // and those read from the launch profile). Optional.
     "env" : [
         // Environment variables are modeled as objects, with 'name' and 'value' property, for example:
         { "name": "NO_COLOR", "value": "1" },
         { "name": "EMPTY_VALUE_VAR", "value": "" }
     ],
+
+    // Invocation arguments for the program (modeled as array of strings). Optional.
     "args": [
-        // Invocation arguments for the program (modeled as array of strings)
         "-v",
         "1"
     ],
-    "launch_profile": "<name of the launch profile to use for the program, optional>"
+
+    "launch_profile": "(Name of the launch profile to use for the program. Optional.)",
+
+    // If set to true, the project will be launched without a launch profile 
+    // and the value of "launch_profile" parameter is disregarded. Optional.
+    "disable_launch_profile": false,
 }
 ```
 

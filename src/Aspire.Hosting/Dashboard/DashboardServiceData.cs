@@ -1,8 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Dashboard;
@@ -20,12 +22,13 @@ internal sealed class DashboardServiceData : IAsyncDisposable
     public DashboardServiceData(
         DistributedApplicationModel applicationModel,
         KubernetesService kubernetesService,
+        IConfiguration configuration,
         ILoggerFactory loggerFactory)
     {
         _resourcePublisher = new ResourcePublisher(_cts.Token);
         _consoleLogPublisher = new ConsoleLogPublisher(_resourcePublisher);
 
-        _ = new DcpDataSource(kubernetesService, applicationModel, loggerFactory, _resourcePublisher.IntegrateAsync, _cts.Token);
+        _ = new DcpDataSource(kubernetesService, applicationModel, configuration, loggerFactory, _resourcePublisher.IntegrateAsync, _cts.Token);
     }
 
     public async ValueTask DisposeAsync()
@@ -46,9 +49,11 @@ internal sealed class DashboardServiceData : IAsyncDisposable
 
         return sequence is null ? null : Enumerate();
 
-        async IAsyncEnumerable<IReadOnlyList<(string Content, bool IsErrorMessage)>> Enumerate()
+        async IAsyncEnumerable<IReadOnlyList<(string Content, bool IsErrorMessage)>> Enumerate([EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            await foreach (var item in sequence.WithCancellation(_cts.Token))
+            using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _cts.Token);
+
+            await foreach (var item in sequence.WithCancellation(linked.Token))
             {
                 yield return item;
             }

@@ -6,7 +6,6 @@ using System.IO.Pipelines;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Channels;
-using Aspire.Hosting.Extensions;
 
 namespace Aspire.Hosting.Dashboard;
 
@@ -17,6 +16,11 @@ internal sealed partial class FileLogSource(string stdOutPath, string stdErrPath
 
     public async IAsyncEnumerator<IReadOnlyList<(string Content, bool IsErrorMessage)>> GetAsyncEnumerator(CancellationToken cancellationToken)
     {
+        if (!cancellationToken.CanBeCanceled)
+        {
+            throw new ArgumentException("Cancellation token must be cancellable in order to prevent leaking resources.", nameof(cancellationToken));
+        }
+
         var channel = Channel.CreateUnbounded<(string Content, bool IsErrorMessage)>(
             new UnboundedChannelOptions { AllowSynchronousContinuations = false, SingleReader = true, SingleWriter = false });
 

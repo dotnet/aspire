@@ -20,7 +20,7 @@ public static class RedisBuilderExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="port">The host port for the redis server.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{RedisContainerResource}"/>.</returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<RedisContainerResource> AddRedisContainer(this IDistributedApplicationBuilder builder, string name, int? port = null)
     {
         var redis = new RedisContainerResource(name);
@@ -35,7 +35,7 @@ public static class RedisBuilderExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{RedisContainerResource}"/>.</returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<RedisResource> AddRedis(this IDistributedApplicationBuilder builder, string name)
     {
         var redis = new RedisResource(name);
@@ -59,7 +59,7 @@ public static class RedisBuilderExtensions
         var resource = new RedisCommanderResource(containerName);
         builder.ApplicationBuilder.AddResource(resource)
                                   .WithAnnotation(new ContainerImageAnnotation { Image = "rediscommander/redis-commander", Tag = "latest" })
-                                  .WithEndpoint(containerPort: 8081, hostPort: hostPort, scheme: "http", name: containerName)
+                                  .WithHttpEndpoint(containerPort: 8081, hostPort: hostPort, name: containerName)
                                   .ExcludeFromManifest();
 
         return builder;

@@ -14,7 +14,7 @@ public class WithReferenceTests
         var testProgram = CreateTestProgram();
 
         // Create a binding and its metching annotation (simulating DCP behavior)
-        testProgram.ServiceABuilder.WithEndpoint(1000, 2000, "https", "mybinding");
+        testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 2000, "mybinding");
         testProgram.ServiceABuilder.WithAnnotation(
             new AllocatedEndpointAnnotation("mybinding",
             ProtocolType.Tcp,
@@ -50,7 +50,7 @@ public class WithReferenceTests
         var testProgram = CreateTestProgram();
 
         // Create a binding and its matching annotation (simulating DCP behavior)
-        testProgram.ServiceABuilder.WithEndpoint(1000, 2000, "https", "mybinding");
+        testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 2000, "mybinding");
         testProgram.ServiceABuilder.WithAnnotation(
             new AllocatedEndpointAnnotation("mybinding",
             ProtocolType.Tcp,
@@ -61,7 +61,7 @@ public class WithReferenceTests
 
         // Create a binding and its matching annotation (simulating DCP behavior) - HOWEVER
         // this binding conflicts with the earlier because they have the same scheme.
-        testProgram.ServiceABuilder.WithEndpoint(1000, 3000, "https", "myconflictingbinding");
+        testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 3000, "myconflictingbinding");
         testProgram.ServiceABuilder.WithAnnotation(
             new AllocatedEndpointAnnotation("myconflictingbinding",
             ProtocolType.Tcp,
@@ -99,7 +99,7 @@ public class WithReferenceTests
         var testProgram = CreateTestProgram();
 
         // Create a binding and its matching annotation (simulating DCP behavior)
-        testProgram.ServiceABuilder.WithEndpoint(1000, 2000, "https", "mybinding");
+        testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 2000, "mybinding");
         testProgram.ServiceABuilder.WithAnnotation(
             new AllocatedEndpointAnnotation("mybinding",
             ProtocolType.Tcp,
@@ -110,7 +110,7 @@ public class WithReferenceTests
 
         // Create a binding and its matching annotation (simulating DCP behavior) - not
         // conflicting because the scheme is different to the first binding.
-        testProgram.ServiceABuilder.WithEndpoint(1000, 3000, "http", "mynonconflictingbinding");
+        testProgram.ServiceABuilder.WithHttpEndpoint(1000, 3000, "mynonconflictingbinding");
         testProgram.ServiceABuilder.WithAnnotation(
             new AllocatedEndpointAnnotation("mynonconflictingbinding",
             ProtocolType.Tcp,
@@ -150,7 +150,7 @@ public class WithReferenceTests
         var testProgram = CreateTestProgram();
 
         // Create a binding and its metching annotation (simulating DCP behavior)
-        testProgram.ServiceABuilder.WithEndpoint(1000, 2000, "https", "mybinding");
+        testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 2000, "mybinding");
         testProgram.ServiceABuilder.WithAnnotation(
             new AllocatedEndpointAnnotation("mybinding",
             ProtocolType.Tcp,
@@ -159,7 +159,7 @@ public class WithReferenceTests
             "https"
             ));
 
-        testProgram.ServiceABuilder.WithEndpoint(1000, 3000, "https", "mybinding2");
+        testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 3000, "mybinding2");
         testProgram.ServiceABuilder.WithAnnotation(
             new AllocatedEndpointAnnotation("mybinding2",
             ProtocolType.Tcp,
@@ -195,7 +195,7 @@ public class WithReferenceTests
         var testProgram = CreateTestProgram();
 
         // Create a binding and its metching annotation (simulating DCP behavior)
-        testProgram.ServiceABuilder.WithEndpoint(1000, 2000, "https", "mybinding");
+        testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 2000, "mybinding");
         testProgram.ServiceABuilder.WithAnnotation(
             new AllocatedEndpointAnnotation("mybinding",
             ProtocolType.Tcp,
@@ -204,7 +204,7 @@ public class WithReferenceTests
             "https"
             ));
 
-        testProgram.ServiceABuilder.WithEndpoint(1000, 3000, "http", "mybinding2");
+        testProgram.ServiceABuilder.WithHttpEndpoint(1000, 3000, "mybinding2");
         testProgram.ServiceABuilder.WithAnnotation(
             new AllocatedEndpointAnnotation("mybinding2",
             ProtocolType.Tcp,
@@ -284,6 +284,82 @@ public class WithReferenceTests
 
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("ConnectionStrings__"));
         Assert.Equal(0, servicesKeysCount);
+    }
+
+    [Fact]
+    public void ParameterAsConnectionStringResourceThrowsWhenConnectionStringSectionMissing()
+    {
+        var testProgram = CreateTestProgram();
+
+        // Get the service provider.
+        var missingResource = testProgram.AppBuilder.AddConnectionString("missingresource");
+        testProgram.ServiceBBuilder.WithReference(missingResource);
+        testProgram.Build();
+
+        // Call environment variable callbacks.
+        var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
+
+        var config = new Dictionary<string, string>();
+        var context = new EnvironmentCallbackContext("dcp", config);
+
+        var exception = Assert.Throws<DistributedApplicationException>(() =>
+        {
+            foreach (var annotation in annotations)
+            {
+                annotation.Callback(context);
+            }
+        });
+
+        Assert.Equal("Connection string parameter resource could not be used because connection string `missingresource` is missing.", exception.Message);
+    }
+
+    [Fact]
+    public void ParameterAsConnectionStringResourceInjectsConnectionStringWhenPresent()
+    {
+        var testProgram = CreateTestProgram();
+        testProgram.AppBuilder.Configuration["ConnectionStrings:resource"] = "test connection string";
+
+        // Get the service provider.
+        var resource = testProgram.AppBuilder.AddConnectionString("resource");
+        testProgram.ServiceBBuilder.WithReference(resource);
+        testProgram.Build();
+
+        // Call environment variable callbacks.
+        var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
+
+        var config = new Dictionary<string, string>();
+        var context = new EnvironmentCallbackContext("dcp", config);
+
+        foreach (var annotation in annotations)
+        {
+            annotation.Callback(context);
+        }
+
+        Assert.Equal("test connection string", config["ConnectionStrings__resource"]);
+    }
+
+    [Fact]
+    public void ParameterAsConnectionStringResourceInjectsExpressionWhenPublishingManifest()
+    {
+        var testProgram = CreateTestProgram();
+
+        // Get the service provider.
+        var resource = testProgram.AppBuilder.AddConnectionString("resource");
+        testProgram.ServiceBBuilder.WithReference(resource);
+        testProgram.Build();
+
+        // Call environment variable callbacks.
+        var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
+
+        var config = new Dictionary<string, string>();
+        var context = new EnvironmentCallbackContext("manifest", config);
+
+        foreach (var annotation in annotations)
+        {
+            annotation.Callback(context);
+        }
+
+        Assert.Equal("{resource.value}", config["ConnectionStrings__resource"]);
     }
 
     [Fact]
@@ -408,80 +484,6 @@ public class WithReferenceTests
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("services__"));
         Assert.Equal(1, servicesKeysCount);
         Assert.Contains(config, kvp => kvp.Key == "services__petstore" && kvp.Value == "https://petstore.swagger.io/");
-    }
-
-    [Fact]
-    public void WithReferenceToConnectionStringEnvironmentVariables()
-    {
-        var testProgram = CreateTestProgram();
-
-        var connectionString = new ConnectionString("petstoredb", "host=mydb;port=1234");
-        testProgram.ServiceABuilder.WithReference(connectionString);
-
-        // Call environment variable callbacks.
-        var annotations = testProgram.ServiceABuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
-
-        foreach (var annotation in annotations)
-        {
-            annotation.Callback(context);
-        }
-
-        var servicesKeysCount = config.Keys.Count(k => k.StartsWith("ConnectionStrings__"));
-        Assert.Equal(1, servicesKeysCount);
-        Assert.Contains(config, kvp => kvp.Key == "ConnectionStrings__petstoredb" && kvp.Value == "host=mydb;port=1234");
-    }
-
-    [Fact]
-    public void WithReferenceToConnectionStringNameOnlyEnvironmentVariables()
-    {
-        var testProgram = CreateTestProgram();
-
-        testProgram.AppBuilder.Configuration["ConnectionStrings:petstoredb"] = "host=mydb;port=1234";
-
-        var connectionString = new ConnectionString("petstoredb");
-        testProgram.ServiceABuilder.WithReference(connectionString);
-
-        // Call environment variable callbacks.
-        var annotations = testProgram.ServiceABuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
-
-        foreach (var annotation in annotations)
-        {
-            annotation.Callback(context);
-        }
-
-        var servicesKeysCount = config.Keys.Count(k => k.StartsWith("ConnectionStrings__"));
-        Assert.Equal(1, servicesKeysCount);
-        Assert.Contains(config, kvp => kvp.Key == "ConnectionStrings__petstoredb" && kvp.Value == "host=mydb;port=1234");
-    }
-
-    [Fact]
-    public void WithRefernceConnectionStringThrowsWhenMissingConnectionString()
-    {
-        var testProgram = CreateTestProgram();
-
-        // Get the service provider.
-        testProgram.ServiceBBuilder.WithReference(new ConnectionString("missing"));
-        testProgram.Build();
-
-        // Call environment variable callbacks.
-        var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
-
-        Assert.Throws<DistributedApplicationException>(() =>
-        {
-            foreach (var annotation in annotations)
-            {
-                annotation.Callback(context);
-            }
-        });
     }
 
     private static TestProgram CreateTestProgram(string[]? args = null) => TestProgram.Create<WithReferenceTests>(args);

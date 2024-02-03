@@ -55,4 +55,9 @@ public sealed class EntityFrameworkCoreCosmosDBSettings
     /// Gets or sets a string value that indicates what Azure region this client will run in.
     /// </summary>
     public string? Region { get; set; }
+
+    /// <summary>
+    /// Controls whether the Cosmos DB emulator certificate is ignored when its use is detected.
+    /// </summary>
+    public bool IgnoreEmulatorCertificate { get; set; }
 }

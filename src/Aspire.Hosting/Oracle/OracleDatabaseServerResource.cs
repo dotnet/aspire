@@ -6,7 +6,7 @@ using Aspire.Hosting.Utils;
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// A resource that represents a Oracle Database container.
+/// A resource that represents an Oracle Database container.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 /// <param name="password">The Oracle Database server password.</param>

@@ -14,7 +14,7 @@ public class WithEnvironmentTests
         var testProgram = CreateTestProgram();
 
         // Create a binding and its metching annotation (simulating DCP behavior)
-        testProgram.ServiceABuilder.WithEndpoint(1000, 2000, "https", "mybinding");
+        testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 2000, "mybinding");
         testProgram.ServiceABuilder.WithAnnotation(
             new AllocatedEndpointAnnotation("mybinding",
             ProtocolType.Tcp,
@@ -93,6 +93,79 @@ public class WithEnvironmentTests
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("myName"));
         Assert.Equal(1, servicesKeysCount);
         Assert.Contains(config, kvp => kvp.Key == "myName" && kvp.Value == "value2");
+    }
+
+    [Fact]
+    public void EnvironmentCallbackPopulatesValueWhenParameterResourceProvided()
+    {
+        var testProgram = CreateTestProgram();
+        testProgram.AppBuilder.Configuration["Parameters:parameter"] = "MY_PARAMETER_VALUE";
+        var parameter = testProgram.AppBuilder.AddParameter("parameter");
+
+        testProgram.ServiceABuilder.WithEnvironment("MY_PARAMETER", parameter);
+
+        testProgram.Build();
+
+        var annotations = testProgram.ServiceABuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
+
+        var config = new Dictionary<string, string>();
+        var context = new EnvironmentCallbackContext("dcp", config);
+
+        foreach (var annotation in annotations)
+        {
+            annotation.Callback(context);
+        }
+
+        Assert.Contains(config, kvp => kvp.Key == "MY_PARAMETER" && kvp.Value == "MY_PARAMETER_VALUE");
+    }
+
+    [Fact]
+    public void EnvironmentCallbackPopulatesWithExpressionPlaceholderWhenPublishingManifest()
+    {
+        var testProgram = CreateTestProgram();
+        var parameter = testProgram.AppBuilder.AddParameter("parameter");
+
+        testProgram.ServiceABuilder.WithEnvironment("MY_PARAMETER", parameter);
+
+        testProgram.Build();
+
+        var annotations = testProgram.ServiceABuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
+
+        var config = new Dictionary<string, string>();
+        var context = new EnvironmentCallbackContext("manifest", config);
+
+        foreach (var annotation in annotations)
+        {
+            annotation.Callback(context);
+        }
+
+        Assert.Contains(config, kvp => kvp.Key == "MY_PARAMETER" && kvp.Value == "{parameter.value}");
+    }
+
+    [Fact]
+    public void EnvironmentCallbackThrowsWhenParameterValueMissingInDcpMode()
+    {
+        var testProgram = CreateTestProgram();
+        var parameter = testProgram.AppBuilder.AddParameter("parameter");
+
+        testProgram.ServiceABuilder.WithEnvironment("MY_PARAMETER", parameter);
+
+        testProgram.Build();
+
+        var annotations = testProgram.ServiceABuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
+
+        var config = new Dictionary<string, string>();
+        var context = new EnvironmentCallbackContext("dcp", config);
+
+        var exception = Assert.Throws<DistributedApplicationException>(() =>
+        {
+            foreach (var annotation in annotations)
+            {
+                annotation.Callback(context);
+            }
+        });
+
+        Assert.Equal("Parameter resource could not be used because configuration key `Parameters:parameter` is missing.", exception.Message);
     }
 
     [Fact]

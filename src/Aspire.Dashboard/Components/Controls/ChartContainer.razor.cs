@@ -6,7 +6,6 @@ using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Model.MetricValues;
 using Aspire.Dashboard.Otlp.Storage;
 using Microsoft.AspNetCore.Components;
-using Microsoft.Extensions.Logging;
 
 namespace Aspire.Dashboard.Components;
 
@@ -171,13 +170,18 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
 
     private OtlpInstrument? GetInstrument()
     {
+        var endDate = DateTime.UtcNow;
+        // Get more data than is being displayed. Histogram graph uses some historical data to calculate bucket counts.
+        // It's ok to get more data than is needed here. An additional date filter is applied when building chart values.
+        var startDate = endDate.Subtract(Duration + TimeSpan.FromSeconds(30));
+
         var instrument = TelemetryRepository.GetInstrument(new GetInstrumentRequest
         {
             ApplicationServiceId = ApplicationId,
             MeterName = MeterName,
             InstrumentName = InstrumentName,
-            StartTime = DateTime.UtcNow.Subtract(Duration),
-            EndTime = DateTime.UtcNow,
+            StartTime = startDate,
+            EndTime = endDate,
         });
 
         if (instrument == null)

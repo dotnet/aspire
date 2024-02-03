@@ -42,6 +42,16 @@
         <target state="new">Unable to display chart</target>
         <note />
       </trans-unit>
+      <trans-unit id="DetailsColumnHeader">
+        <source>Details</source>
+        <target state="new">Details</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DurationColumnHeader">
+        <source>Duration</source>
+        <target state="new">Duration</target>
+        <note />
+      </trans-unit>
       <trans-unit id="EventColumnHeader">
         <source>Event</source>
         <target state="new">Event</target>
@@ -140,6 +150,11 @@
       <trans-unit id="TimeOffsetColumnHeader">
         <source>Time offset</source>
         <target state="new">Time offset</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TimestampColumnHeader">
+        <source>Timestamp</source>
+        <target state="new">Timestamp</target>
         <note />
       </trans-unit>
       <trans-unit id="ViewAction">

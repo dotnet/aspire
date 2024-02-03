@@ -1,12 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics;
+using Aspire.Components.Common.Tests;
 using Aspire.StackExchange.Redis.Tests;
 using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using OpenTelemetry;
 using OpenTelemetry.Instrumentation.StackExchangeRedis;
 using OpenTelemetry.Trace;
 using Xunit;
@@ -15,6 +14,10 @@ namespace Aspire.StackExchange.Redis.OutputCaching.Tests;
 
 public class OutputCacheConformanceTests : ConformanceTests
 {
+    // Schema only references Aspire.StackExchange.Redis' schema so nothing
+    // specific to check here
+    protected override (string json, string error)[] InvalidJsonToErrorMessage => Array.Empty<(string json, string error)>();
+
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<StackExchangeRedisSettings>? configure = null, string? key = null)
     {
         if (key is null)
@@ -36,14 +39,8 @@ public class OutputCacheConformanceTests : ConformanceTests
 
         builder.AddRedisOutputCache("redis");
 
-        var tcs = new TaskCompletionSource();
-        var exportedActivities = new List<Activity>();
-        builder.Services.AddOpenTelemetry().WithTracing(builder =>
-        {
-            builder.AddInMemoryExporter(exportedActivities);
-            builder.AddProcessor(new NotificationProcessor(tcs));
-        });
-
+        var notifier = new ActivityNotifier();
+        builder.Services.AddOpenTelemetry().WithTracing(builder => builder.AddProcessor(notifier));
         // set the FlushInterval to to zero so the Activity gets created immediately
         builder.Services.Configure<StackExchangeRedisInstrumentationOptions>(options => options.FlushInterval = TimeSpan.Zero);
 
@@ -56,23 +53,12 @@ public class OutputCacheConformanceTests : ConformanceTests
         await cacheStore.GetAsync("myFakeKey", CancellationToken.None);
 
         // wait for the Activity to be processed
-        await tcs.Task;
+        await notifier.ActivityReceived.WaitAsync(TimeSpan.FromSeconds(10));
 
-        Assert.Single(exportedActivities);
+        Assert.Single(notifier.ExportedActivities);
 
-        var activity = exportedActivities[0];
+        var activity = notifier.ExportedActivities[0];
         Assert.Equal("GET", activity.OperationName);
         Assert.Contains(activity.Tags, kvp => kvp.Key == "db.system" && kvp.Value == "redis");
-    }
-
-    /// <summary>
-    /// An OpenTelemetry processor that can notify callers when it has processed an Activity.
-    /// </summary>
-    private sealed class NotificationProcessor(TaskCompletionSource taskSource) : BaseProcessor<Activity>
-    {
-        public override void OnEnd(Activity data)
-        {
-            taskSource.SetResult();
-        }
     }
 }

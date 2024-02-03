@@ -8,15 +8,15 @@ using Microsoft.Extensions.Localization;
 
 namespace Aspire.Dashboard.Components;
 
-public sealed partial class ApplicationName() : ComponentBase, IAsyncDisposable
+public sealed partial class ApplicationName : ComponentBase, IDisposable
 {
-    private readonly CancellationTokenSource _disposalCts = new();
+    private CancellationTokenSource? _disposalCts;
 
     [Parameter]
-    public required string ResourceName { get; init; }
+    public string? ResourceName { get; init; }
 
     [Parameter]
-    public required IStringLocalizer Loc { get; init; }
+    public IStringLocalizer? Loc { get; init; }
 
     [Inject]
     public required IDashboardClient DashboardClient { get; init; }
@@ -26,14 +26,25 @@ public sealed partial class ApplicationName() : ComponentBase, IAsyncDisposable
     protected override async Task OnInitializedAsync()
     {
         // We won't have an application name until the client has connected to the server.
-        await DashboardClient.WhenConnected.WaitAsync(_disposalCts.Token);
+        if (!DashboardClient.WhenConnected.IsCompletedSuccessfully)
+        {
+            _disposalCts = new CancellationTokenSource();
+            await DashboardClient.WhenConnected.WaitAsync(_disposalCts.Token);
+        }
 
-        _applicationName = string.Format(CultureInfo.InvariantCulture, Loc[ResourceName], DashboardClient.ApplicationName);
+        if (ResourceName is not null && Loc is not null)
+        {
+            _applicationName = string.Format(CultureInfo.InvariantCulture, Loc[ResourceName], DashboardClient.ApplicationName);
+        }
+        else
+        {
+            _applicationName = DashboardClient.ApplicationName;
+        }
     }
 
-    public async ValueTask DisposeAsync()
+    public void Dispose()
     {
-        await _disposalCts.CancelAsync();
-        _disposalCts.Dispose();
+        _disposalCts?.Cancel();
+        _disposalCts?.Dispose();
     }
 }

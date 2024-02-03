@@ -24,10 +24,10 @@ public class TestProgram
             var scriptPath = Path.Combine(path, "app.js");
 
             NodeAppBuilder = AppBuilder.AddNodeApp("nodeapp", scriptPath)
-                .WithEndpoint(hostPort: 5031, scheme: "http", env: "PORT");
+                .WithHttpEndpoint(hostPort: 5031, env: "PORT");
 
             NpmAppBuilder = AppBuilder.AddNpmApp("npmapp", path)
-                .WithEndpoint(hostPort: 5032, scheme: "http", env: "PORT");
+                .WithHttpEndpoint(hostPort: 5032, env: "PORT");
         }
 
         if (includeIntegrationServices)
@@ -38,44 +38,33 @@ public class TestProgram
             var mongoDbName = "mymongodb";
             var oracleDbName = "freepdb1";
 
-            var sqlserverContainer = AppBuilder.AddSqlServerContainer("sqlservercontainer")
+            var sqlserver = AppBuilder.AddSqlServer("sqlserver")
                 .AddDatabase(sqlserverDbName);
-            var mysqlContainer = AppBuilder.AddMySqlContainer("mysqlcontainer")
+            var mysql = AppBuilder.AddMySql("mysql")
                 .WithEnvironment("MYSQL_DATABASE", mysqlDbName)
                 .AddDatabase(mysqlDbName);
-            var redisContainer = AppBuilder.AddRedisContainer("rediscontainer");
-            var postgresContainer = AppBuilder.AddPostgresContainer("postgrescontainer")
+            var redis = AppBuilder.AddRedis("redis");
+            var postgres = AppBuilder.AddPostgres("postgres")
                 .WithEnvironment("POSTGRES_DB", postgresDbName)
                 .AddDatabase(postgresDbName);
-            var rabbitmqContainer = AppBuilder.AddRabbitMQContainer("rabbitmqcontainer");
-            var mongodbContainer = AppBuilder.AddMongoDBContainer("mongodbcontainer")
+            var rabbitmq = AppBuilder.AddRabbitMQ("rabbitmq");
+            var mongodb = AppBuilder.AddMongoDB("mongodb")
                 .AddDatabase(mongoDbName);
-            var oracleDatabaseContainer = AppBuilder.AddOracleDatabaseContainer("oracledatabasecontainer")
+            var oracleDatabase = AppBuilder.AddOracleDatabase("oracledatabase")
                 .AddDatabase(oracleDbName);
-
-            var sqlserverAbstract = AppBuilder.AddSqlServer("sqlserverabstract");
-            var mysqlAbstract = AppBuilder.AddMySql("mysqlabstract");
-            var redisAbstract = AppBuilder.AddRedis("redisabstract");
-            var postgresAbstract = AppBuilder.AddPostgres("postgresabstract");
-            var rabbitmqAbstract = AppBuilder.AddRabbitMQ("rabbitmqabstract");
-            var mongodbAbstract = AppBuilder.AddMongoDB("mongodbabstract");
-            var oracleDatabaseAbstract = AppBuilder.AddOracleDatabaseContainer("oracledatabaseabstract");
+            var kafka = AppBuilder.AddKafka("kafka");
+            var cosmos = AppBuilder.AddAzureCosmosDB("cosmos").UseEmulator();
 
             IntegrationServiceABuilder = AppBuilder.AddProject<Projects.IntegrationServiceA>("integrationservicea")
-                .WithReference(sqlserverContainer)
-                .WithReference(mysqlContainer)
-                .WithReference(redisContainer)
-                .WithReference(postgresContainer)
-                .WithReference(rabbitmqContainer)
-                .WithReference(mongodbContainer)
-                .WithReference(oracleDatabaseContainer)
-                .WithReference(sqlserverAbstract)
-                .WithReference(mysqlAbstract)
-                .WithReference(redisAbstract)
-                .WithReference(postgresAbstract)
-                .WithReference(rabbitmqAbstract)
-                .WithReference(mongodbAbstract)
-                .WithReference(oracleDatabaseAbstract);
+                .WithReference(sqlserver)
+                .WithReference(mysql)
+                .WithReference(redis)
+                .WithReference(postgres)
+                .WithReference(rabbitmq)
+                .WithReference(mongodb)
+                .WithReference(oracleDatabase)
+                .WithReference(kafka)
+                .WithReference(cosmos);
         }
     }
 

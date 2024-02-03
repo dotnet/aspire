@@ -159,6 +159,18 @@ public static class OtlpHelpers
         return null;
     }
 
+    public static bool HasKey(this KeyValuePair<string, string>[] values, string name)
+    {
+        for (var i = 0; i < values.Length; i++)
+        {
+            if (values[i].Key == name)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public static string ConcatProperties(this KeyValuePair<string, string>[] properties)
     {
         StringBuilder sb = new();

@@ -3,6 +3,8 @@
 
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.MySql;
 using Aspire.Hosting.Publishing;
 
 namespace Aspire.Hosting;
@@ -21,7 +23,7 @@ public static class MySqlBuilderExtensions
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="port">The host port for MySQL.</param>
     /// <param name="password">The password for the MySQL root user. Defaults to a random password.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{MySqlContainerResource}"/>.</returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<MySqlContainerResource> AddMySqlContainer(this IDistributedApplicationBuilder builder, string name, int? port = null, string? password = null)
     {
         password ??= Guid.NewGuid().ToString("N");
@@ -48,7 +50,7 @@ public static class MySqlBuilderExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{MySqlContainerResource}"/>.</returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<MySqlServerResource> AddMySql(this IDistributedApplicationBuilder builder, string name)
     {
         var password = Guid.NewGuid().ToString("N");
@@ -65,12 +67,40 @@ public static class MySqlBuilderExtensions
     /// </summary>
     /// <param name="builder">The MySQL server resource builder.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{MySqlDatabaseResource}"/>.</returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<MySqlDatabaseResource> AddDatabase(this IResourceBuilder<IMySqlParentResource> builder, string name)
     {
         var mySqlDatabase = new MySqlDatabaseResource(name, builder.Resource);
         return builder.ApplicationBuilder.AddResource(mySqlDatabase)
                                          .WithManifestPublishingCallback(context => WriteMySqlDatabaseToManifest(context, mySqlDatabase));
+    }
+
+    /// <summary>
+    /// Adds a phpMyAdmin administration and development platform for MySql to the application model.
+    /// </summary>
+    /// <param name="builder">The MySql server resource builder.</param>
+    /// <param name="hostPort">The host port for the application ui.</param>
+    /// <param name="containerName">The name of the container (Optional).</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithPhpMyAdmin<T>(this IResourceBuilder<T> builder, int? hostPort = null, string? containerName = null) where T : IMySqlParentResource
+    {
+        if (builder.ApplicationBuilder.Resources.OfType<PhpMyAdminContainerResource>().Any())
+        {
+            return builder;
+        }
+
+        builder.ApplicationBuilder.Services.TryAddLifecycleHook<PhpMyAdminConfigWriterHook>();
+
+        containerName ??= $"{builder.Resource.Name}-phpmyadmin";
+
+        var phpMyAdminContainer = new PhpMyAdminContainerResource(containerName);
+        builder.ApplicationBuilder.AddResource(phpMyAdminContainer)
+                                  .WithAnnotation(new ContainerImageAnnotation { Image = "phpmyadmin", Tag = "latest" })
+                                  .WithHttpEndpoint(containerPort: 80, hostPort: hostPort, name: containerName)
+                                  .WithVolumeMount(Path.GetTempFileName(), "/etc/phpmyadmin/config.user.inc.php")
+                                  .ExcludeFromManifest();
+        
+        return builder;
     }
 
     private static void WriteMySqlContainerToManifest(ManifestPublishingContext context)

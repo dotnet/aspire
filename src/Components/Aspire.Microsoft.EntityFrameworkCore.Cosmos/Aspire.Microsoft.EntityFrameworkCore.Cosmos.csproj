@@ -3,15 +3,16 @@
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <EnableConfigurationBindingGenerator>false</EnableConfigurationBindingGenerator>
-    <IsAotCompatible>false</IsAotCompatible>
     <PackageTags>$(ComponentEfCorePackageTags) azure cosmos cosmosdb </PackageTags>
     <Description>A Microsoft Azure Cosmos DB provider for Entity Framework Core that integrates with Aspire, including connection pooling, logging, and telemetry.</Description>
     <PackageIconFullPath>$(SharedDir)AzureCosmosDB_256x.png</PackageIconFullPath>
+    <NoWarn>$(NoWarn);SYSLIB1100;SYSLIB1101</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
     <Compile Include="..\Common\ConfigurationSchemaAttributes.cs" Link="ConfigurationSchemaAttributes.cs" />
+    <Compile Include="..\..\Shared\Cosmos\CosmosConstants.cs" Link="Shared\CosmosConstants.cs" />
+    <Compile Include="..\..\Shared\Cosmos\CosmosUtils.cs" Link="Shared\CosmosUtils.cs" />
   </ItemGroup>
   
   <ItemGroup>

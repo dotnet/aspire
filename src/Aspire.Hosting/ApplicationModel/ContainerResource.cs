@@ -4,10 +4,11 @@
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// Represents a container resource that implements <see cref="IResourceWithEnvironment"/> 
-/// and <see cref="IResourceWithBindings"/>.
+/// A resource that represents a specified container.
 /// </summary>
-public class ContainerResource(string name, string? entrypoint = null) : Resource(name), IResourceWithEnvironment, IResourceWithBindings
+/// <param name="name">The name of the resource.</param>
+/// <param name="entrypoint">An optional container entrypoint.</param>
+public class ContainerResource(string name, string? entrypoint = null) : Resource(name), IResourceWithEnvironment, IResourceWithEndpoints
 {
     /// <summary>
     /// The container Entrypoint.

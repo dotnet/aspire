@@ -22,20 +22,9 @@ internal sealed class KubernetesService(Locations locations) : IDisposable
     private static readonly TimeSpan s_initialRetryDelay = TimeSpan.FromMilliseconds(100);
     private static GroupVersion GroupVersion => Model.Dcp.GroupVersion;
 
-    private IKubernetes? _kubernetes;
-    private TimeSpan _maxRetryDuration = TimeSpan.FromSeconds(5);
+    private Kubernetes? _kubernetes;
 
-    public TimeSpan MaxRetryDuration
-    {
-        get
-        {
-            return _maxRetryDuration;
-        }
-        set
-        {
-            _maxRetryDuration = value;
-        }
-    }
+    public TimeSpan MaxRetryDuration { get; set; } = TimeSpan.FromSeconds(5);
 
     public Task<T> CreateAsync<T>(T obj, CancellationToken cancellationToken = default)
         where T : CustomResource

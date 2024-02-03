@@ -248,7 +248,8 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
             propertyNode["description"] = builder.ToString();
         }
 
-        if (propertyNode["type"]?.GetValue<string>() == "boolean")
+        var propertyNodeType = propertyNode["type"];
+        if (propertyNodeType?.GetValueKind() == JsonValueKind.String && propertyNodeType.GetValue<string>() == "boolean")
         {
             var value = memberRoot.Element("value")?.ToString();
             if (value?.Contains("default value is", StringComparison.OrdinalIgnoreCase) == true)
@@ -428,6 +429,18 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
             propertyNode["type"] = "string";
             propertyNode["format"] = "uri";
         }
+        else if (parsable.DisplayString == "float" ||
+            parsable.DisplayString == "double" ||
+            parsable.DisplayString == "decimal" ||
+            parsable.DisplayString == "Half")
+        {
+            propertyNode["type"] = new JsonArray { "number", "string" };
+        }
+        else if (parsable.DisplayString == "Guid")
+        {
+            propertyNode["type"] = "string";
+            propertyNode["format"] = "uuid";
+        }
         else
         {
             propertyNode["type"] = GetParsableTypeName(parsable);
@@ -437,13 +450,25 @@ internal sealed partial class ConfigSchemaEmitter(SchemaGenerationSpec spec, Com
     private static string GetParsableTypeName(ParsableFromStringSpec parsable) => parsable.DisplayString switch
     {
         "bool" => "boolean",
+        "byte" => "integer",
+        "sbyte" => "integer",
+        "char" => "integer",
         "short" => "integer",
         "ushort" => "integer",
         "int" => "integer",
         "uint" => "integer",
         "long" => "integer",
+        "ulong" => "integer",
+        "Int128" => "integer",
+        "UInt128" => "integer",
         "string" => "string",
         "Version" => "string",
+        "DateTime" => "string",
+        "DateTimeOffset" => "string",
+        "DateOnly" => "string",
+        "TimeOnly" => "string",
+        "object" => "string",
+        "CultureInfo" => "string",
         _ => throw new InvalidOperationException($"Unknown parsable type {parsable.DisplayString}")
     };
 

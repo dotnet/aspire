@@ -78,15 +78,6 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Details.
-        /// </summary>
-        public static string StructuredLogsDetailsColumnHeader {
-            get {
-                return ResourceManager.GetString("StructuredLogsDetailsColumnHeader", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Edit filter.
         /// </summary>
         public static string StructuredLogsEditFilter {

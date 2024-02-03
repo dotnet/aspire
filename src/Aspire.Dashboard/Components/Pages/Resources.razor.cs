@@ -7,7 +7,6 @@ using System.Diagnostics;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
-using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 
@@ -25,7 +24,6 @@ public partial class Resources : ComponentBase, IDisposable
     [Inject]
     public required NavigationManager NavigationManager { get; init; }
 
-    private IEnumerable<EnvironmentVariableViewModel>? SelectedEnvironmentVariables { get; set; }
     private ResourceViewModel? SelectedResource { get; set; }
 
     private readonly CancellationTokenSource _watchTaskCancellationTokenSource = new();
@@ -87,40 +85,50 @@ public partial class Resources : ComponentBase, IDisposable
     {
         _applicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
 
-        var (snapshot, subscription) = DashboardClient.SubscribeResources();
-
-        foreach (var resource in snapshot)
+        if (DashboardClient.IsEnabled)
         {
-            var added = _resourceByName.TryAdd(resource.Name, resource);
-            Debug.Assert(added, "Should not receive duplicate resources in initial snapshot data.");
+            SubscribeResources();
         }
-
-        _ = Task.Run(async () =>
-        {
-            await foreach (var (changeType, resource) in subscription.WithCancellation(_watchTaskCancellationTokenSource.Token))
-            {
-                if (changeType == ResourceViewModelChangeType.Upsert)
-                {
-                    _resourceByName[resource.Name] = resource;
-                }
-                else if (changeType == ResourceViewModelChangeType.Delete)
-                {
-                    var removed = _resourceByName.TryRemove(resource.Name, out _);
-                    Debug.Assert(removed, "Cannot remove unknown resource.");
-                }
-
-                await InvokeAsync(StateHasChanged);
-            }
-        });
 
         _logsSubscription = TelemetryRepository.OnNewLogs(null, SubscriptionType.Other, async () =>
         {
             _applicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
             await InvokeAsync(StateHasChanged);
         });
+
+        void SubscribeResources()
+        {
+            var (snapshot, subscription) = DashboardClient.SubscribeResources();
+
+            // Apply snapshot.
+            foreach (var resource in snapshot)
+            {
+                var added = _resourceByName.TryAdd(resource.Name, resource);
+                Debug.Assert(added, "Should not receive duplicate resources in initial snapshot data.");
+            }
+
+            // Listen for updates and apply.
+            _ = Task.Run(async () =>
+            {
+                await foreach (var (changeType, resource) in subscription.WithCancellation(_watchTaskCancellationTokenSource.Token))
+                {
+                    if (changeType == ResourceViewModelChangeType.Upsert)
+                    {
+                        _resourceByName[resource.Name] = resource;
+                    }
+                    else if (changeType == ResourceViewModelChangeType.Delete)
+                    {
+                        var removed = _resourceByName.TryRemove(resource.Name, out _);
+                        Debug.Assert(removed, "Cannot remove unknown resource.");
+                    }
+
+                    await InvokeAsync(StateHasChanged);
+                }
+            });
+        }
     }
 
-    private void ShowEnvironmentVariables(ResourceViewModel resource)
+    private void ShowResourceDetails(ResourceViewModel resource)
     {
         if (SelectedResource == resource)
         {
@@ -128,14 +136,12 @@ public partial class Resources : ComponentBase, IDisposable
         }
         else
         {
-            SelectedEnvironmentVariables = resource.Environment;
             SelectedResource = resource;
         }
     }
 
     private void ClearSelectedResource()
     {
-        SelectedEnvironmentVariables = null;
         SelectedResource = null;
     }
 
@@ -176,5 +182,5 @@ public partial class Resources : ComponentBase, IDisposable
     }
 
     private string? GetRowClass(ResourceViewModel resource)
-        => resource == SelectedResource ? "selected-row" : null;
+        => resource == SelectedResource ? "selected-row resource-row" : "resource-row";
 }

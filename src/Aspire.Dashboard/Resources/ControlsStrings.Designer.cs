@@ -132,6 +132,24 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Details.
+        /// </summary>
+        public static string DetailsColumnHeader {
+            get {
+                return ResourceManager.GetString("DetailsColumnHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Duration.
+        /// </summary>
+        public static string DurationColumnHeader {
+            get {
+                return ResourceManager.GetString("DurationColumnHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Show all.
         /// </summary>
         public static string EnvironmentVariablesFilterToggleShowAll {
@@ -335,6 +353,15 @@ namespace Aspire.Dashboard.Resources {
         public static string TimeOffsetColumnHeader {
             get {
                 return ResourceManager.GetString("TimeOffsetColumnHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Timestamp.
+        /// </summary>
+        public static string TimestampColumnHeader {
+            get {
+                return ResourceManager.GetString("TimestampColumnHeader", resourceCulture);
             }
         }
         
