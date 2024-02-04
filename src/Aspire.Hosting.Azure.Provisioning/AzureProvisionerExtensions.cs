@@ -9,6 +9,7 @@ using Aspire.Hosting.Azure.Provisioning.Provisioners;
 using Aspire.Hosting.Lifecycle;
 using Azure.ResourceManager;
 using Azure.ResourceManager.AppConfiguration;
+using Azure.ResourceManager.ApplicationInsights;
 using Azure.ResourceManager.CosmosDB;
 using Azure.ResourceManager.KeyVault;
 using Azure.ResourceManager.Redis;
@@ -62,6 +63,8 @@ public static class AzureProvisionerExtensions
 
         builder.AddAzureProvisioner<AzureAISearchResource, AISearchProvisioner>();
         builder.AddResourceEnumerator(resourceGroup => resourceGroup.GetSearchServices(), resource => resource.Data.Tags);
+        builder.AddAzureProvisioner<AzureApplicationInsightsResource, AzureApplicationInsightsProvisioner>();
+        builder.AddResourceEnumerator(resourceGroup => resourceGroup.GetApplicationInsightsComponents(), resource => resource.Data.Tags);
 
         return builder;
     }
