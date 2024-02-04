@@ -548,7 +548,7 @@ public class ManifestGenerationTests
         AssertNodeResource("npmapp", npmApp, "npm", ["run", "start"]);
     }
 
-
+    [Fact]
     public void MetadataPropertyNotEmittedWhenMetadataNotAdded()
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher();
