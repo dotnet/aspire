@@ -101,6 +101,8 @@ public static class AspireAzureAISearchExtensions
 
         protected override IHealthCheck CreateHealthCheck(SearchIndexClient client, AzureAISearchSettings settings)
         {
+            // The existing AI Search Health check uses SearchClient not SearchIndexClient
+            // https://github.com/Xabaril/AspNetCore.Diagnostics.HealthChecks/blob/master/src/HealthChecks.AzureSearch/AzureSearchHealthCheck.cs
             throw new NotImplementedException();
         }
 
