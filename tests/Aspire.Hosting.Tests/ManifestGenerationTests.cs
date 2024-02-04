@@ -548,6 +548,86 @@ public class ManifestGenerationTests
         AssertNodeResource("npmapp", npmApp, "npm", ["run", "start"]);
     }
 
+    [Fact]
+    public void MetadataPropertyNotEmittedWhenMetadataNotAdded()
+    {
+        var program = CreateTestProgramJsonDocumentManifestPublisher();
+
+        program.AppBuilder.AddContainer("testresource", "testresource");
+
+        // Build AppHost so that publisher can be resolved.
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+
+        var container = resources.GetProperty("testresource");
+        Assert.False(container.TryGetProperty("metadata", out var _));
+    }
+
+    [Fact]
+    public void MetadataPropertyEmittedWhenMetadataNotAdded()
+    {
+        var program = CreateTestProgramJsonDocumentManifestPublisher();
+
+        program.AppBuilder.AddContainer("testresource", "testresource")
+                          .WithMetadata("data", "value");
+
+        // Build AppHost so that publisher can be resolved.
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+
+        var container = resources.GetProperty("testresource");
+        Assert.True(container.TryGetProperty("metadata", out var metadata));
+        Assert.True(metadata.TryGetProperty("data", out var data));
+        Assert.Equal("value", data.GetString());
+    }
+
+    [Fact]
+    public void MetadataPropertyCanEmitComplexObjects()
+    {
+        var program = CreateTestProgramJsonDocumentManifestPublisher();
+
+        program.AppBuilder.AddContainer("testresource", "testresource")
+                          .WithMetadata("data", new
+                          {
+                              complexValue1 = 1,
+                              complexValue2 = "s",
+                              complexValue3 = true,
+                              complexValue4 = new
+                              {
+                                  nestedComplexValue = DateTime.MinValue
+                              }
+                          });
+
+        // Build AppHost so that publisher can be resolved.
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+
+        var container = resources.GetProperty("testresource");
+        Assert.True(container.TryGetProperty("metadata", out var metadata));
+        Assert.True(metadata.TryGetProperty("data", out var data));
+        Assert.True(data.TryGetProperty("complexValue1", out var complexValue1));
+        Assert.Equal(1, complexValue1.GetInt32());
+        Assert.True(data.TryGetProperty("complexValue2", out var complexValue2));
+        Assert.Equal("s", complexValue2.GetString());
+        Assert.True(data.TryGetProperty("complexValue3", out var complexValue3));
+        Assert.True(complexValue3.GetBoolean());
+        Assert.True(data.TryGetProperty("complexValue4", out var complexValue4));
+        Assert.True(complexValue4.TryGetProperty("nestedComplexValue", out var nestedComplexValue));
+        Assert.Equal(DateTime.MinValue, nestedComplexValue.GetDateTime());
+    }
+
     private static TestProgram CreateTestProgramJsonDocumentManifestPublisher(bool includeNodeApp = false)
     {
         var manifestPath = Path.GetTempFileName();
