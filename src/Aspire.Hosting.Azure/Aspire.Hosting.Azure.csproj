@@ -16,11 +16,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Remove="bicep\appconfig.bicep" />
-    <None Remove="bicep\keyvault.bicep" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
     <PackageReference Include="System.IO.Hashing" />
   </ItemGroup>

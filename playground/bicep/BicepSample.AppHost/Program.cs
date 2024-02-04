@@ -7,11 +7,11 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 builder.AddAzureProvisioning();
 
-//var parameter = builder.AddParameter("val");
+var parameter = builder.AddParameter("val");
 
-//var templ = builder.AddBicepTemplate("test", "test.bicep")
-//                   .AddParameter("test", parameter)
-//                   .AddParameter("values", ["one", "two"]);
+var templ = builder.AddBicepTemplate("test", "test.bicep")
+                   .AddParameter("test", parameter)
+                   .AddParameter("values", ["one", "two"]);
 
 var kv = builder.AddBicepKeyVault("kv");
 var appConfig = builder.AddBicepAppConfiguration("appConfig");
@@ -26,13 +26,16 @@ var pg = builder.AddAzurePostgres("postgres2", user, pwd).AddDatabase("db2");
 
 var cosmosDb = builder.AddBicepCosmosDb("cosmos").AddDatabase("db3");
 
+var appInsights = builder.AddBicepApplicationInsights("ai");
+
 builder.AddProject<Projects.BicepSample_ApiService>("api")
        .WithReference(sqlServer)
        .WithReference(pg)
        .WithReference(cosmosDb)
        .WithReference(blobs)
        .WithReference(kv)
-       .WithReference(appConfig);
+       .WithReference(appConfig)
+       .WithReference(appInsights);
 //.WithEnvironment("bicepValue_test", templ.GetOutput("test"))
 //.WithEnvironment("bicepValue0", templ.GetOutput("val0"))
 //.WithEnvironment("bicepValue1", templ.GetOutput("val1"));
