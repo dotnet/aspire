@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-//using Azure;
 using Azure;
 using Azure.ResourceManager.Search;
 using Microsoft.Extensions.Configuration;
@@ -13,7 +12,6 @@ internal sealed class AISearchProvisioner(ILogger<AISearchProvisioner> logger) :
 {
     public override bool ConfigureResource(IConfiguration configuration, AzureAISearchResource resource)
     {
-        logger.LogInformation("Here");
         if (configuration.GetConnectionString(resource.Name) is string connectionString)
         {
             resource.ConnectionString = connectionString;
