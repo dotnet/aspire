@@ -328,7 +328,12 @@ public static class AzureResourceExtensions
 
     private static void WriteAzureAISearchToManifest(ManifestPublishingContext context)
     {
+        // Example:
+        // "type": "azure.aisearch.v0",
         context.Writer.WriteString("type", "azure.aisearch.v0");
+    }
+
+    /// <summary>
     /// Adds an Azure Application Insights resource to the application model.
     /// </summary>
     /// <param name="serverBuilder">The <see cref="IDistributedApplicationBuilder"/>.</param>
