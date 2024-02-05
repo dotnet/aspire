@@ -17,13 +17,14 @@ public static class RabbitMQBuilderExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <param name="port">The host port that the underlying container is bound to when running locally.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<RabbitMQServerResource> AddRabbitMQ(this IDistributedApplicationBuilder builder, string name)
+    public static IResourceBuilder<RabbitMQServerResource> AddRabbitMQ(this IDistributedApplicationBuilder builder, string name, int? port = null)
     {
         var password = Guid.NewGuid().ToString("N");
         var rabbitMq = new RabbitMQServerResource(name, password);
         return builder.AddResource(rabbitMq)
-                       .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, containerPort: 5672))
+                       .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 5672))
                        .WithAnnotation(new ContainerImageAnnotation { Image = "rabbitmq", Tag = "3" })
                        .WithManifestPublishingCallback(WriteRabbitMQServerToManifest)
                        .WithEnvironment("RABBITMQ_DEFAULT_USER", "guest")
