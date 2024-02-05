@@ -6,18 +6,34 @@ using Aspire.Hosting.Publishing;
 
 namespace Aspire.Hosting.Azure;
 
+/// <summary>
+/// Represents an resource for Azure Postgres Flexible Server.
+/// </summary>
+/// <param name="name">The name of the resource.</param>
+/// <param name="username">A delegate to resolve the username.</param>
+/// <param name="password">A delegate to resolve the password.</param>
 public class AzureBicepPostgresResource(string name, Func<string> username, Func<string> password) :
     AzureBicepResource(name, templateResouceName: "Aspire.Hosting.Azure.Bicep.postgres.bicep"),
     IResourceWithConnectionString
 {
     internal List<string> Databases { get; } = [];
 
+    /// <summary>
+    /// Gets the connection string for the Azure Postgres Flexible Server.
+    /// </summary>
+    /// <returns>The connection string.</returns>
     public string? GetConnectionString()
     {
         return $"Host={Outputs["pgfqdn"]};Username={username()};Password={password()};";
     }
 }
 
+/// <summary>
+/// Represents a resource for an Azure Postgres Flexible Server database.
+/// </summary>
+/// <param name="name">The name of the resource.</param>
+/// <param name="databaseName">The database name</param>
+/// <param name="parent">The <see cref="AzureBicepPostgresResource"/> that this database is a part of.</param>
 public class AzureBicepPostgresDbResource(string name, string databaseName, AzureBicepPostgresResource parent) :
     Resource(name),
     IResourceWithConnectionString,
@@ -32,18 +48,27 @@ public class AzureBicepPostgresDbResource(string name, string databaseName, Azur
 
     public void WriteToManifest(ManifestPublishingContext context)
     {
-        var resource = this;
-
         // REVIEW: What do we do with resources that are defined in the parent's bicep file?
         context.Writer.WriteString("type", "azure.bicep.v0");
-        context.Writer.WriteString("connectionString", $"{{{resource.Parent.Name}.connectionString}};Database={databaseName}");
-        context.Writer.WriteString("parent", resource.Parent.Name);
+        context.Writer.WriteString("connectionString", $"{{{Parent.Name}.connectionString}};Database={databaseName}");
+        context.Writer.WriteString("parent", Parent.Name);
     }
 }
 
+/// <summary>
+/// Provides extension methods for adding the Azure Postgres resources to the application model.
+/// </summary>
 public static class AzureBicepPostgresExtensions
 {
-    public static IResourceBuilder<AzureBicepPostgresResource> AddAzurePostgres(this IDistributedApplicationBuilder builder,
+    /// <summary>
+    /// Adds an Azure Postgres resource to the application model. This resource can be used to create Azure Postgres Flexible Server resources.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource.</param>
+    /// <param name="administratorLogin">The administrator login.</param>
+    /// <param name="administratorLoginPassword">The administrator password.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<AzureBicepPostgresResource> AddBicepAzurePostgres(this IDistributedApplicationBuilder builder,
         string name,
         IResourceBuilder<ParameterResource> administratorLogin,
         IResourceBuilder<ParameterResource> administratorLoginPassword)
@@ -61,7 +86,15 @@ public static class AzureBicepPostgresExtensions
             .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 
-    public static IResourceBuilder<AzureBicepPostgresResource> AddAzurePostgres(this IDistributedApplicationBuilder builder,
+    /// <summary>
+    /// Adds an Azure Postgres resource to the application model. This resource can be used to create Azure Postgres Flexible Server resources.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource.</param>
+    /// <param name="administratorLogin">The administrator login.</param>
+    /// <param name="administratorLoginPassword">The administrator password.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<AzureBicepPostgresResource> AddBicepAzurePostgres(this IDistributedApplicationBuilder builder,
         string name,
         string administratorLogin,
         IResourceBuilder<ParameterResource> administratorLoginPassword)
@@ -79,6 +112,13 @@ public static class AzureBicepPostgresExtensions
             .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 
+    /// <summary>
+    /// Adds an Azure Postgres database to the application model.
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="name"></param>
+    /// <param name="databaseName"></param>
+    /// <returns></returns>
     public static IResourceBuilder<AzureBicepPostgresDbResource> AddDatabase(this IResourceBuilder<AzureBicepPostgresResource> builder, string name, string? databaseName = null)
     {
         var resource = new AzureBicepPostgresDbResource(name, databaseName ?? name, builder.Resource);

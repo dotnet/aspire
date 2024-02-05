@@ -27,7 +27,7 @@ var sqlServer = builder.AddBicepAzureSql("sql").AddDatabase("db");
 var user = builder.AddParameter("username");
 var pwd = builder.AddParameter("password", secret: true);
 
-var pg = builder.AddAzurePostgres("postgres2", user, pwd).AddDatabase("db2");
+var pg = builder.AddBicepAzurePostgres("postgres2", user, pwd).AddDatabase("db2");
 
 var cosmosDb = builder.AddBicepCosmosDb("cosmos")
                       // .UseEmulator()
