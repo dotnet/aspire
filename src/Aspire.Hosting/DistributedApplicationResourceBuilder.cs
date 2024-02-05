@@ -11,18 +11,18 @@ internal sealed class DistributedApplicationResourceBuilder<T>(IDistributedAppli
     public IDistributedApplicationBuilder ApplicationBuilder { get; } = applicationBuilder;
 
     /// <inheritdoc />
-    public IResourceBuilder<T> WithAnnotation<TAnnotation>(TAnnotation annotation, ResourceAnnotationMutationBehavior behavior = ResourceAnnotationMutationBehavior.AddAppend) where TAnnotation : IResourceAnnotation
+    public IResourceBuilder<T> WithAnnotation<TAnnotation>(TAnnotation annotation, ResourceAnnotationMutationBehavior behavior = ResourceAnnotationMutationBehavior.Append) where TAnnotation : IResourceAnnotation
     {
         // Some defensive code to protect against introducing a new enumeration value without first updating
         // this code to accomodate it.
-        if (behavior != ResourceAnnotationMutationBehavior.AddAppend && behavior != ResourceAnnotationMutationBehavior.AddReplace)
+        if (behavior != ResourceAnnotationMutationBehavior.Append && behavior != ResourceAnnotationMutationBehavior.Replace)
         {
             throw new ArgumentOutOfRangeException(nameof(behavior), behavior, "ResourceAnnotationMutationBehavior must be either AddAppend or AddReplace.");
         }
 
         // If the behavior is AddReplace then there should never be more than one annotation present. The following call will result in an exception which
         // allows us to easily spot these bugs.
-        if (behavior == ResourceAnnotationMutationBehavior.AddReplace && Resource.Annotations.OfType<TAnnotation>().SingleOrDefault() is { } existingAnnotation)
+        if (behavior == ResourceAnnotationMutationBehavior.Replace && Resource.Annotations.OfType<TAnnotation>().SingleOrDefault() is { } existingAnnotation)
         {
             Resource.Annotations.Remove(existingAnnotation);
         }

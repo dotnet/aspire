@@ -25,7 +25,7 @@ public interface IResourceBuilder<out T> where T : IResource
     /// <typeparam name="TAnnotation">The type of the annotation to add.</typeparam>
     /// <param name="behavior">The behavior to use when adding the annotation.</param>
     /// <returns>The resource builder instance.</returns>
-    IResourceBuilder<T> WithAnnotation<TAnnotation>(ResourceAnnotationMutationBehavior behavior = ResourceAnnotationMutationBehavior.AddAppend) where TAnnotation : IResourceAnnotation, new() => WithAnnotation(new TAnnotation(), behavior);
+    IResourceBuilder<T> WithAnnotation<TAnnotation>(ResourceAnnotationMutationBehavior behavior = ResourceAnnotationMutationBehavior.Append) where TAnnotation : IResourceAnnotation, new() => WithAnnotation(new TAnnotation(), behavior);
     
     /// <summary>
     /// Adds an annotation to the resource being built.
@@ -34,5 +34,5 @@ public interface IResourceBuilder<out T> where T : IResource
     /// <param name="annotation">The annotation to add.</param>
     /// <param name="behavior">The behavior to use when adding the annotation.</param>
     /// <returns>The resource builder instance.</returns>
-    IResourceBuilder<T> WithAnnotation<TAnnotation>(TAnnotation annotation, ResourceAnnotationMutationBehavior behavior = ResourceAnnotationMutationBehavior.AddAppend) where TAnnotation : IResourceAnnotation;
+    IResourceBuilder<T> WithAnnotation<TAnnotation>(TAnnotation annotation, ResourceAnnotationMutationBehavior behavior = ResourceAnnotationMutationBehavior.Append) where TAnnotation : IResourceAnnotation;
 }

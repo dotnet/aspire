@@ -43,7 +43,7 @@ public class WithAnnotationTests
 
         var firstAnnotation = redis.Resource.Annotations.OfType<DummyAnnotation>().Single();
 
-        redis.WithAnnotation<DummyAnnotation>(ResourceAnnotationMutationBehavior.AddReplace);
+        redis.WithAnnotation<DummyAnnotation>(ResourceAnnotationMutationBehavior.Replace);
 
         var secondAnnotation = redis.Resource.Annotations.OfType<DummyAnnotation>().Single();
 

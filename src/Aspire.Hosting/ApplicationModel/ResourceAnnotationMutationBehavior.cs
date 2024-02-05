@@ -5,6 +5,6 @@ namespace Aspire.Hosting.ApplicationModel;
 
 public enum ResourceAnnotationMutationBehavior
 {
-    AddAppend,
-    AddReplace
+    Append,
+    Replace
 }

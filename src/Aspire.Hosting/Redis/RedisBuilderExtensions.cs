@@ -19,13 +19,14 @@ public static class RedisBuilderExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <param name="port">The host port to bind the underlying container to.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<RedisResource> AddRedis(this IDistributedApplicationBuilder builder, string name)
+    public static IResourceBuilder<RedisResource> AddRedis(this IDistributedApplicationBuilder builder, string name, int? port = null)
     {
         var redis = new RedisResource(name);
         return builder.AddResource(redis)
                       .WithManifestPublishingCallback(WriteRedisResourceToManifest)
-                      .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, containerPort: 6379))
+                      .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 6379))
                       .WithAnnotation(new ContainerImageAnnotation { Image = "redis", Tag = "latest" });
     }
 
