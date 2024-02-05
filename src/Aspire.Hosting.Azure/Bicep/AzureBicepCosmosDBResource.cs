@@ -48,13 +48,12 @@ public static class AzureBicepCosmosExtensions
     {
         var resource = new AzureBicepCosmosDBResource(name)
         {
-            ConnectionStringTemplate = $"AccountEndpoint={{{name}.outputs.documentEndpoint}};AccountKey={{keys({{{name}.outputs.accountName}})}}"
+            ConnectionStringTemplate = $"AccountEndpoint={{{name}.outputs.documentEndpoint}};AccountKey={{keys(Microsoft.DocumentDB/databaseAccounts@2023-04-15/{{{name}.outputs.accountName}})}}"
         };
 
         return builder.AddResource(resource)
                       .AddParameter("databaseAccountName", resource.CreateBicepResourceName())
                       .AddParameter("databases", resource.Databases)
-                      .WithMetadata("azureResourceType", "Microsoft.DocumentDB/databaseAccounts@2023-04-15")
                       .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 

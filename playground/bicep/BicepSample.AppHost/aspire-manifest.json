@@ -120,16 +120,13 @@
     },
     "cosmos": {
       "type": "azure.bicep.v0",
-      "connectionString": "AccountEndpoint={cosmos.outputs.documentEndpoint};AccountKey={keys({cosmos.outputs.accountName})}",
+      "connectionString": "AccountEndpoint={cosmos.outputs.documentEndpoint};AccountKey={keys(Microsoft.DocumentDB/databaseAccounts@2023-04-15/{cosmos.outputs.accountName})}",
       "path": "aspire.hosting.azure.bicep.cosmosdb.bicep",
       "params": {
         "databaseAccountName": "cosmos",
         "databases": [
           "db3"
         ]
-      },
-      "metadata": {
-        "azureResourceType": "Microsoft.DocumentDB/databaseAccounts@2023-04-15"
       }
     },
     "db3": {
@@ -147,13 +144,10 @@
     },
     "redis": {
       "type": "azure.bicep.v0",
-      "connectionString": "{redis.outputs.hostName},ssl=true,password={keys({redis.outputs.cacheName})}",
+      "connectionString": "{redis.outputs.hostName},ssl=true,password={keys({Microsoft.Cache/redis@2023-04-15/redis.outputs.cacheName})}",
       "path": "aspire.hosting.azure.bicep.redis.bicep",
       "params": {
         "redisCacheName": "redis"
-      },
-      "metadata": {
-        "azureResourceType": "Microsoft.Cache/redis@2023-04-15"
       }
     },
     "sb": {
