@@ -1,0 +1,412 @@
+#nullable enable
+Aspire.Hosting.ApplicationModel.AllocatedEndpointAnnotation
+Aspire.Hosting.ApplicationModel.AllocatedEndpointAnnotation.Address.get -> string!
+Aspire.Hosting.ApplicationModel.AllocatedEndpointAnnotation.AllocatedEndpointAnnotation(string! name, System.Net.Sockets.ProtocolType protocol, string! address, int port, string! scheme) -> void
+Aspire.Hosting.ApplicationModel.AllocatedEndpointAnnotation.EndpointNameQualifiedUriString.get -> string!
+Aspire.Hosting.ApplicationModel.AllocatedEndpointAnnotation.EndPointString.get -> string!
+Aspire.Hosting.ApplicationModel.AllocatedEndpointAnnotation.Name.get -> string!
+Aspire.Hosting.ApplicationModel.AllocatedEndpointAnnotation.Port.get -> int
+Aspire.Hosting.ApplicationModel.AllocatedEndpointAnnotation.Protocol.get -> System.Net.Sockets.ProtocolType
+Aspire.Hosting.ApplicationModel.AllocatedEndpointAnnotation.UriScheme.get -> string!
+Aspire.Hosting.ApplicationModel.AllocatedEndpointAnnotation.UriString.get -> string!
+Aspire.Hosting.ApplicationModel.ContainerImageAnnotation
+Aspire.Hosting.ApplicationModel.ContainerImageAnnotation.ContainerImageAnnotation() -> void
+Aspire.Hosting.ApplicationModel.ContainerImageAnnotation.Image.get -> string!
+Aspire.Hosting.ApplicationModel.ContainerImageAnnotation.Image.set -> void
+Aspire.Hosting.ApplicationModel.ContainerImageAnnotation.Registry.get -> string?
+Aspire.Hosting.ApplicationModel.ContainerImageAnnotation.Registry.set -> void
+Aspire.Hosting.ApplicationModel.ContainerImageAnnotation.Tag.get -> string!
+Aspire.Hosting.ApplicationModel.ContainerImageAnnotation.Tag.set -> void
+Aspire.Hosting.ApplicationModel.ContainerResource
+Aspire.Hosting.ApplicationModel.ContainerResource.ContainerResource(string! name, string? entrypoint = null) -> void
+Aspire.Hosting.ApplicationModel.ContainerResource.Entrypoint.get -> string?
+Aspire.Hosting.ApplicationModel.ContainerResource.Entrypoint.set -> void
+Aspire.Hosting.ApplicationModel.DistributedApplicationModel
+Aspire.Hosting.ApplicationModel.DistributedApplicationModel.DistributedApplicationModel(Aspire.Hosting.ApplicationModel.IResourceCollection! resources) -> void
+Aspire.Hosting.ApplicationModel.DistributedApplicationModel.Resources.get -> Aspire.Hosting.ApplicationModel.IResourceCollection!
+Aspire.Hosting.ApplicationModel.EndpointAnnotation
+Aspire.Hosting.ApplicationModel.EndpointAnnotation.ContainerPort.get -> int?
+Aspire.Hosting.ApplicationModel.EndpointAnnotation.EndpointAnnotation(System.Net.Sockets.ProtocolType protocol, string? uriScheme = null, string? transport = null, string? name = null, int? port = null, int? containerPort = null, bool? isExternal = null, string? env = null) -> void
+Aspire.Hosting.ApplicationModel.EndpointAnnotation.EnvironmentVariable.get -> string?
+Aspire.Hosting.ApplicationModel.EndpointAnnotation.IsExternal.get -> bool
+Aspire.Hosting.ApplicationModel.EndpointAnnotation.Name.get -> string!
+Aspire.Hosting.ApplicationModel.EndpointAnnotation.Port.get -> int?
+Aspire.Hosting.ApplicationModel.EndpointAnnotation.Protocol.get -> System.Net.Sockets.ProtocolType
+Aspire.Hosting.ApplicationModel.EndpointAnnotation.Transport.get -> string!
+Aspire.Hosting.ApplicationModel.EndpointAnnotation.UriScheme.get -> string!
+Aspire.Hosting.ApplicationModel.EndpointAnnotationExtensions
+Aspire.Hosting.ApplicationModel.EndpointReference
+Aspire.Hosting.ApplicationModel.EndpointReference.EndpointName.get -> string!
+Aspire.Hosting.ApplicationModel.EndpointReference.EndpointReference(Aspire.Hosting.ApplicationModel.IResourceWithEndpoints! owner, string! endpointName) -> void
+Aspire.Hosting.ApplicationModel.EndpointReference.Owner.get -> Aspire.Hosting.ApplicationModel.IResourceWithEndpoints!
+Aspire.Hosting.ApplicationModel.EndpointReference.UriString.get -> string!
+Aspire.Hosting.ApplicationModel.EnvironmentCallbackAnnotation
+Aspire.Hosting.ApplicationModel.EnvironmentCallbackAnnotation.Callback.get -> System.Action<Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext!>!
+Aspire.Hosting.ApplicationModel.EnvironmentCallbackAnnotation.EnvironmentCallbackAnnotation(string! name, System.Func<string!>! callback) -> void
+Aspire.Hosting.ApplicationModel.EnvironmentCallbackAnnotation.EnvironmentCallbackAnnotation(System.Action<Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext!>! callback) -> void
+Aspire.Hosting.ApplicationModel.EnvironmentCallbackAnnotation.EnvironmentCallbackAnnotation(System.Action<System.Collections.Generic.Dictionary<string!, string!>!>! callback) -> void
+Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext
+Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext.EnvironmentCallbackContext(string! publisherName, System.Collections.Generic.Dictionary<string!, string!>? environmentVariables = null) -> void
+Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext.EnvironmentVariables.get -> System.Collections.Generic.Dictionary<string!, string!>!
+Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext.PublisherName.get -> string!
+Aspire.Hosting.ApplicationModel.ExecutableArgsCallbackAnnotation
+Aspire.Hosting.ApplicationModel.ExecutableArgsCallbackAnnotation.Callback.get -> System.Action<System.Collections.Generic.IList<string!>!>!
+Aspire.Hosting.ApplicationModel.ExecutableArgsCallbackAnnotation.ExecutableArgsCallbackAnnotation(System.Action<System.Collections.Generic.IList<string!>!>! callback) -> void
+Aspire.Hosting.ApplicationModel.ExecutableResource
+Aspire.Hosting.ApplicationModel.ExecutableResource.Args.get -> string![]?
+Aspire.Hosting.ApplicationModel.ExecutableResource.Command.get -> string!
+Aspire.Hosting.ApplicationModel.ExecutableResource.ExecutableResource(string! name, string! command, string! workingDirectory, string![]? args) -> void
+Aspire.Hosting.ApplicationModel.ExecutableResource.WorkingDirectory.get -> string!
+Aspire.Hosting.ApplicationModel.IMongoDBParentResource
+Aspire.Hosting.ApplicationModel.IMySqlParentResource
+Aspire.Hosting.ApplicationModel.IOracleDatabaseParentResource
+Aspire.Hosting.ApplicationModel.IPostgresParentResource
+Aspire.Hosting.ApplicationModel.IResource
+Aspire.Hosting.ApplicationModel.IResource.Annotations.get -> Aspire.Hosting.ApplicationModel.ResourceMetadataCollection!
+Aspire.Hosting.ApplicationModel.IResource.Name.get -> string!
+Aspire.Hosting.ApplicationModel.IResourceAnnotation
+Aspire.Hosting.ApplicationModel.IResourceBuilder<T>
+Aspire.Hosting.ApplicationModel.IResourceBuilder<T>.ApplicationBuilder.get -> Aspire.Hosting.IDistributedApplicationBuilder!
+Aspire.Hosting.ApplicationModel.IResourceBuilder<T>.Resource.get -> T
+Aspire.Hosting.ApplicationModel.IResourceBuilder<T>.WithAnnotation<TAnnotation>() -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
+Aspire.Hosting.ApplicationModel.IResourceBuilder<T>.WithAnnotation<TAnnotation>(TAnnotation annotation) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
+Aspire.Hosting.ApplicationModel.IResourceCollection
+Aspire.Hosting.ApplicationModel.IResourceWithConnectionString
+Aspire.Hosting.ApplicationModel.IResourceWithConnectionString.GetConnectionString() -> string?
+Aspire.Hosting.ApplicationModel.IResourceWithEndpoints
+Aspire.Hosting.ApplicationModel.IResourceWithEndpoints.GetEndpoint(string! endpointName) -> Aspire.Hosting.ApplicationModel.EndpointReference!
+Aspire.Hosting.ApplicationModel.IResourceWithEnvironment
+Aspire.Hosting.ApplicationModel.IResourceWithParent<T>
+Aspire.Hosting.ApplicationModel.IResourceWithParent<T>.Parent.get -> T
+Aspire.Hosting.ApplicationModel.ISqlServerParentResource
+Aspire.Hosting.ApplicationModel.KafkaServerResource
+Aspire.Hosting.ApplicationModel.KafkaServerResource.GetConnectionString() -> string?
+Aspire.Hosting.ApplicationModel.KafkaServerResource.KafkaServerResource(string! name) -> void
+Aspire.Hosting.ApplicationModel.ManifestPublishingCallbackAnnotation
+Aspire.Hosting.ApplicationModel.ManifestPublishingCallbackAnnotation.Callback.get -> System.Action<Aspire.Hosting.Publishing.ManifestPublishingContext!>?
+Aspire.Hosting.ApplicationModel.ManifestPublishingCallbackAnnotation.ManifestPublishingCallbackAnnotation(System.Action<Aspire.Hosting.Publishing.ManifestPublishingContext!>? callback) -> void
+Aspire.Hosting.ApplicationModel.MongoDBContainerResource
+Aspire.Hosting.ApplicationModel.MongoDBContainerResource.GetConnectionString() -> string?
+Aspire.Hosting.ApplicationModel.MongoDBContainerResource.MongoDBContainerResource(string! name) -> void
+Aspire.Hosting.ApplicationModel.MongoDBDatabaseResource
+Aspire.Hosting.ApplicationModel.MongoDBDatabaseResource.GetConnectionString() -> string?
+Aspire.Hosting.ApplicationModel.MongoDBDatabaseResource.MongoDBDatabaseResource(string! name, Aspire.Hosting.ApplicationModel.IMongoDBParentResource! mongoDBContainer) -> void
+Aspire.Hosting.ApplicationModel.MongoDBDatabaseResource.Parent.get -> Aspire.Hosting.ApplicationModel.IMongoDBParentResource!
+Aspire.Hosting.ApplicationModel.MongoDBServerResource
+Aspire.Hosting.ApplicationModel.MongoDBServerResource.GetConnectionString() -> string?
+Aspire.Hosting.ApplicationModel.MongoDBServerResource.MongoDBServerResource(string! name) -> void
+Aspire.Hosting.ApplicationModel.MySqlContainerResource
+Aspire.Hosting.ApplicationModel.MySqlContainerResource.GetConnectionString() -> string?
+Aspire.Hosting.ApplicationModel.MySqlContainerResource.MySqlContainerResource(string! name, string! password) -> void
+Aspire.Hosting.ApplicationModel.MySqlContainerResource.Password.get -> string!
+Aspire.Hosting.ApplicationModel.MySqlDatabaseResource
+Aspire.Hosting.ApplicationModel.MySqlDatabaseResource.GetConnectionString() -> string?
+Aspire.Hosting.ApplicationModel.MySqlDatabaseResource.MySqlDatabaseResource(string! name, Aspire.Hosting.ApplicationModel.IMySqlParentResource! mySqlParentResource) -> void
+Aspire.Hosting.ApplicationModel.MySqlDatabaseResource.Parent.get -> Aspire.Hosting.ApplicationModel.IMySqlParentResource!
+Aspire.Hosting.ApplicationModel.MySqlServerResource
+Aspire.Hosting.ApplicationModel.MySqlServerResource.GetConnectionString() -> string?
+Aspire.Hosting.ApplicationModel.MySqlServerResource.MySqlServerResource(string! name, string! password) -> void
+Aspire.Hosting.ApplicationModel.MySqlServerResource.Password.get -> string!
+Aspire.Hosting.ApplicationModel.OpenAIResource
+Aspire.Hosting.ApplicationModel.OpenAIResource.ConnectionString.get -> string?
+Aspire.Hosting.ApplicationModel.OpenAIResource.ConnectionString.set -> void
+Aspire.Hosting.ApplicationModel.OpenAIResource.OpenAIResource(string! name) -> void
+Aspire.Hosting.ApplicationModel.OracleDatabaseContainerResource
+Aspire.Hosting.ApplicationModel.OracleDatabaseContainerResource.GetConnectionString() -> string?
+Aspire.Hosting.ApplicationModel.OracleDatabaseContainerResource.OracleDatabaseContainerResource(string! name, string! password) -> void
+Aspire.Hosting.ApplicationModel.OracleDatabaseContainerResource.Password.get -> string!
+Aspire.Hosting.ApplicationModel.OracleDatabaseResource
+Aspire.Hosting.ApplicationModel.OracleDatabaseResource.GetConnectionString() -> string?
+Aspire.Hosting.ApplicationModel.OracleDatabaseResource.OracleDatabaseResource(string! name, Aspire.Hosting.ApplicationModel.IOracleDatabaseParentResource! oracleParentResource) -> void
+Aspire.Hosting.ApplicationModel.OracleDatabaseResource.Parent.get -> Aspire.Hosting.ApplicationModel.IOracleDatabaseParentResource!
+Aspire.Hosting.ApplicationModel.OracleDatabaseServerResource
+Aspire.Hosting.ApplicationModel.OracleDatabaseServerResource.GetConnectionString() -> string?
+Aspire.Hosting.ApplicationModel.OracleDatabaseServerResource.OracleDatabaseServerResource(string! name, string! password) -> void
+Aspire.Hosting.ApplicationModel.OracleDatabaseServerResource.Password.get -> string!
+Aspire.Hosting.ApplicationModel.PostgresContainerResource
+Aspire.Hosting.ApplicationModel.PostgresContainerResource.GetConnectionString() -> string?
+Aspire.Hosting.ApplicationModel.PostgresContainerResource.Password.get -> string!
+Aspire.Hosting.ApplicationModel.PostgresContainerResource.PostgresContainerResource(string! name, string! password) -> void
+Aspire.Hosting.ApplicationModel.PostgresDatabaseResource
+Aspire.Hosting.ApplicationModel.PostgresDatabaseResource.GetConnectionString() -> string?
+Aspire.Hosting.ApplicationModel.PostgresDatabaseResource.Parent.get -> Aspire.Hosting.ApplicationModel.IPostgresParentResource!
+Aspire.Hosting.ApplicationModel.PostgresDatabaseResource.PostgresDatabaseResource(string! name, Aspire.Hosting.ApplicationModel.IPostgresParentResource! postgresParentResource) -> void
+Aspire.Hosting.ApplicationModel.PostgresServerResource
+Aspire.Hosting.ApplicationModel.PostgresServerResource.GetConnectionString() -> string?
+Aspire.Hosting.ApplicationModel.PostgresServerResource.Password.get -> string!
+Aspire.Hosting.ApplicationModel.PostgresServerResource.PostgresServerResource(string! name, string! password) -> void
+Aspire.Hosting.ApplicationModel.ProjectResource
+Aspire.Hosting.ApplicationModel.ProjectResource.ProjectResource(string! name) -> void
+Aspire.Hosting.ApplicationModel.ProjectResourceExtensions
+Aspire.Hosting.ApplicationModel.RabbitMQContainerResource
+Aspire.Hosting.ApplicationModel.RabbitMQContainerResource.GetConnectionString() -> string?
+Aspire.Hosting.ApplicationModel.RabbitMQContainerResource.Password.get -> string!
+Aspire.Hosting.ApplicationModel.RabbitMQContainerResource.RabbitMQContainerResource(string! name, string! password) -> void
+Aspire.Hosting.ApplicationModel.RabbitMQServerResource
+Aspire.Hosting.ApplicationModel.RabbitMQServerResource.GetConnectionString() -> string?
+Aspire.Hosting.ApplicationModel.RabbitMQServerResource.Password.get -> string!
+Aspire.Hosting.ApplicationModel.RabbitMQServerResource.RabbitMQServerResource(string! name, string! password) -> void
+Aspire.Hosting.ApplicationModel.RedisContainerResource
+Aspire.Hosting.ApplicationModel.RedisContainerResource.GetConnectionString() -> string!
+Aspire.Hosting.ApplicationModel.RedisContainerResource.RedisContainerResource(string! name) -> void
+Aspire.Hosting.ApplicationModel.RedisResource
+Aspire.Hosting.ApplicationModel.RedisResource.GetConnectionString() -> string!
+Aspire.Hosting.ApplicationModel.RedisResource.RedisResource(string! name) -> void
+Aspire.Hosting.ApplicationModel.ReplicaAnnotation
+Aspire.Hosting.ApplicationModel.ReplicaAnnotation.ReplicaAnnotation(int replicas = 1) -> void
+Aspire.Hosting.ApplicationModel.ReplicaAnnotation.Replicas.get -> int
+Aspire.Hosting.ApplicationModel.Resource
+Aspire.Hosting.ApplicationModel.Resource.Annotations.get -> Aspire.Hosting.ApplicationModel.ResourceMetadataCollection!
+Aspire.Hosting.ApplicationModel.Resource.Name.get -> string!
+Aspire.Hosting.ApplicationModel.Resource.Resource(string! name) -> void
+Aspire.Hosting.ApplicationModel.ResourceExtensions
+Aspire.Hosting.ApplicationModel.ResourceMetadataCollection
+Aspire.Hosting.ApplicationModel.ResourceMetadataCollection.ResourceMetadataCollection() -> void
+Aspire.Hosting.ApplicationModel.SecretResource
+Aspire.Hosting.ApplicationModel.SecretResource.Parent.get -> Aspire.Hosting.ApplicationModel.SecretStoreResource!
+Aspire.Hosting.ApplicationModel.SecretResource.SecretResource(string! name, Aspire.Hosting.ApplicationModel.SecretStoreResource! parent) -> void
+Aspire.Hosting.ApplicationModel.SecretStoreResource
+Aspire.Hosting.ApplicationModel.SecretStoreResource.SecretStoreResource(string! name) -> void
+Aspire.Hosting.ApplicationModel.SqlServerContainerResource
+Aspire.Hosting.ApplicationModel.SqlServerContainerResource.GetConnectionString() -> string?
+Aspire.Hosting.ApplicationModel.SqlServerContainerResource.Password.get -> string!
+Aspire.Hosting.ApplicationModel.SqlServerContainerResource.SqlServerContainerResource(string! name, string! password) -> void
+Aspire.Hosting.ApplicationModel.SqlServerDatabaseResource
+Aspire.Hosting.ApplicationModel.SqlServerDatabaseResource.GetConnectionString() -> string?
+Aspire.Hosting.ApplicationModel.SqlServerDatabaseResource.Parent.get -> Aspire.Hosting.ApplicationModel.ISqlServerParentResource!
+Aspire.Hosting.ApplicationModel.SqlServerDatabaseResource.SqlServerDatabaseResource(string! name, Aspire.Hosting.ApplicationModel.ISqlServerParentResource! sqlServerContainer) -> void
+Aspire.Hosting.ApplicationModel.SqlServerServerResource
+Aspire.Hosting.ApplicationModel.SqlServerServerResource.GetConnectionString() -> string?
+Aspire.Hosting.ApplicationModel.SqlServerServerResource.Password.get -> string!
+Aspire.Hosting.ApplicationModel.SqlServerServerResource.SqlServerServerResource(string! name, string! password) -> void
+Aspire.Hosting.ApplicationModel.VolumeMountAnnotation
+Aspire.Hosting.ApplicationModel.VolumeMountAnnotation.IsReadOnly.get -> bool
+Aspire.Hosting.ApplicationModel.VolumeMountAnnotation.IsReadOnly.set -> void
+Aspire.Hosting.ApplicationModel.VolumeMountAnnotation.Source.get -> string!
+Aspire.Hosting.ApplicationModel.VolumeMountAnnotation.Source.set -> void
+Aspire.Hosting.ApplicationModel.VolumeMountAnnotation.Target.get -> string!
+Aspire.Hosting.ApplicationModel.VolumeMountAnnotation.Target.set -> void
+Aspire.Hosting.ApplicationModel.VolumeMountAnnotation.Type.get -> Aspire.Hosting.ApplicationModel.VolumeMountType
+Aspire.Hosting.ApplicationModel.VolumeMountAnnotation.Type.set -> void
+Aspire.Hosting.ApplicationModel.VolumeMountAnnotation.VolumeMountAnnotation(string! source, string! target, Aspire.Hosting.ApplicationModel.VolumeMountType type = Aspire.Hosting.ApplicationModel.VolumeMountType.Bind, bool isReadOnly = false) -> void
+Aspire.Hosting.ApplicationModel.VolumeMountType
+Aspire.Hosting.ApplicationModel.VolumeMountType.Bind = 0 -> Aspire.Hosting.ApplicationModel.VolumeMountType
+Aspire.Hosting.ApplicationModel.VolumeMountType.Named = 1 -> Aspire.Hosting.ApplicationModel.VolumeMountType
+Aspire.Hosting.ConnectionString
+Aspire.Hosting.ConnectionString.ConnectionString() -> void
+Aspire.Hosting.ConnectionString.ConnectionString(string! name) -> void
+Aspire.Hosting.ConnectionString.ConnectionString(string! name, string! value) -> void
+Aspire.Hosting.ConnectionString.Name.get -> string!
+Aspire.Hosting.ConnectionString.Value.get -> string?
+Aspire.Hosting.ContainerResourceBuilderExtensions
+Aspire.Hosting.ContainerResourceExtensions
+Aspire.Hosting.DistributedApplication
+Aspire.Hosting.DistributedApplication.Dispose() -> void
+Aspire.Hosting.DistributedApplication.DisposeAsync() -> System.Threading.Tasks.ValueTask
+Aspire.Hosting.DistributedApplication.DistributedApplication(Microsoft.Extensions.Hosting.IHost! host, string![]! args) -> void
+Aspire.Hosting.DistributedApplication.Run() -> void
+Aspire.Hosting.DistributedApplication.RunAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Aspire.Hosting.DistributedApplication.Services.get -> System.IServiceProvider!
+Aspire.Hosting.DistributedApplication.StartAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Aspire.Hosting.DistributedApplication.StopAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Aspire.Hosting.DistributedApplicationBuilder
+Aspire.Hosting.DistributedApplicationBuilder.AddResource<T>(T resource) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
+Aspire.Hosting.DistributedApplicationBuilder.AppHostDirectory.get -> string!
+Aspire.Hosting.DistributedApplicationBuilder.Build() -> Aspire.Hosting.DistributedApplication!
+Aspire.Hosting.DistributedApplicationBuilder.Configuration.get -> Microsoft.Extensions.Configuration.ConfigurationManager!
+Aspire.Hosting.DistributedApplicationBuilder.DistributedApplicationBuilder(Aspire.Hosting.DistributedApplicationOptions! options) -> void
+Aspire.Hosting.DistributedApplicationBuilder.Environment.get -> Microsoft.Extensions.Hosting.IHostEnvironment!
+Aspire.Hosting.DistributedApplicationBuilder.Resources.get -> Aspire.Hosting.ApplicationModel.IResourceCollection!
+Aspire.Hosting.DistributedApplicationBuilder.Services.get -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+Aspire.Hosting.DistributedApplicationException
+Aspire.Hosting.DistributedApplicationException.DistributedApplicationException() -> void
+Aspire.Hosting.DistributedApplicationException.DistributedApplicationException(string! message) -> void
+Aspire.Hosting.DistributedApplicationException.DistributedApplicationException(string! message, System.Exception! inner) -> void
+Aspire.Hosting.DistributedApplicationOptions
+Aspire.Hosting.DistributedApplicationOptions.Args.get -> string![]?
+Aspire.Hosting.DistributedApplicationOptions.Args.set -> void
+Aspire.Hosting.DistributedApplicationOptions.AssemblyName.get -> string?
+Aspire.Hosting.DistributedApplicationOptions.AssemblyName.set -> void
+Aspire.Hosting.DistributedApplicationOptions.DisableDashboard.get -> bool
+Aspire.Hosting.DistributedApplicationOptions.DisableDashboard.set -> void
+Aspire.Hosting.DistributedApplicationOptions.DistributedApplicationOptions() -> void
+Aspire.Hosting.ExecutableResourceBuilderExtensions
+Aspire.Hosting.ExecutableResourceExtensions
+Aspire.Hosting.IDistributedApplicationBuilder
+Aspire.Hosting.IDistributedApplicationBuilder.AddResource<T>(T resource) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
+Aspire.Hosting.IDistributedApplicationBuilder.AppHostDirectory.get -> string!
+Aspire.Hosting.IDistributedApplicationBuilder.Build() -> Aspire.Hosting.DistributedApplication!
+Aspire.Hosting.IDistributedApplicationBuilder.Configuration.get -> Microsoft.Extensions.Configuration.ConfigurationManager!
+Aspire.Hosting.IDistributedApplicationBuilder.Environment.get -> Microsoft.Extensions.Hosting.IHostEnvironment!
+Aspire.Hosting.IDistributedApplicationBuilder.Resources.get -> Aspire.Hosting.ApplicationModel.IResourceCollection!
+Aspire.Hosting.IDistributedApplicationBuilder.Services.get -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+Aspire.Hosting.IProjectMetadata
+Aspire.Hosting.IProjectMetadata.ProjectPath.get -> string!
+Aspire.Hosting.IResourceWithServiceDiscovery
+Aspire.Hosting.KafkaBuilderExtensions
+Aspire.Hosting.KafkaContainerResource
+Aspire.Hosting.KafkaContainerResource.GetConnectionString() -> string?
+Aspire.Hosting.KafkaContainerResource.KafkaContainerResource(string! name) -> void
+Aspire.Hosting.Lifecycle.IDistributedApplicationLifecycleHook
+Aspire.Hosting.Lifecycle.IDistributedApplicationLifecycleHook.AfterEndpointsAllocatedAsync(Aspire.Hosting.ApplicationModel.DistributedApplicationModel! appModel, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Aspire.Hosting.Lifecycle.IDistributedApplicationLifecycleHook.BeforeStartAsync(Aspire.Hosting.ApplicationModel.DistributedApplicationModel! appModel, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Aspire.Hosting.Lifecycle.LifecycleHookServiceCollectionExtensions
+Aspire.Hosting.MongoDBBuilderExtensions
+Aspire.Hosting.MySqlBuilderExtensions
+Aspire.Hosting.NodeAppHostingExtension
+Aspire.Hosting.NodeAppResource
+Aspire.Hosting.NodeAppResource.NodeAppResource(string! name, string! command, string! workingDirectory, string![]? args) -> void
+Aspire.Hosting.OpenAIBuilderExtensions
+Aspire.Hosting.OracleDatabaseBuilderExtensions
+Aspire.Hosting.OtlpConfigurationExtensions
+Aspire.Hosting.PostgresBuilderExtensions
+Aspire.Hosting.ProjectResourceBuilderExtensions
+Aspire.Hosting.Publishing.IDistributedApplicationPublisher
+Aspire.Hosting.Publishing.IDistributedApplicationPublisher.PublishAsync(Aspire.Hosting.ApplicationModel.DistributedApplicationModel! model, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Aspire.Hosting.Publishing.ManifestPublisher
+Aspire.Hosting.Publishing.ManifestPublisher.JsonWriter.get -> System.Text.Json.Utf8JsonWriter?
+Aspire.Hosting.Publishing.ManifestPublisher.JsonWriter.set -> void
+Aspire.Hosting.Publishing.ManifestPublisher.ManifestPublisher(Microsoft.Extensions.Logging.ILogger<Aspire.Hosting.Publishing.ManifestPublisher!>! logger, Microsoft.Extensions.Options.IOptions<Aspire.Hosting.Publishing.PublishingOptions!>! options, Microsoft.Extensions.Hosting.IHostApplicationLifetime! lifetime) -> void
+Aspire.Hosting.Publishing.ManifestPublisher.WriteManifestAsync(Aspire.Hosting.ApplicationModel.DistributedApplicationModel! model, System.Text.Json.Utf8JsonWriter! jsonWriter, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Aspire.Hosting.Publishing.ManifestPublishingContext
+Aspire.Hosting.Publishing.ManifestPublishingContext.GetManifestRelativePath(string? path) -> string?
+Aspire.Hosting.Publishing.ManifestPublishingContext.ManifestPath.get -> string!
+Aspire.Hosting.Publishing.ManifestPublishingContext.ManifestPublishingContext(string! manifestPath, System.Text.Json.Utf8JsonWriter! writer) -> void
+Aspire.Hosting.Publishing.ManifestPublishingContext.WriteBindings(Aspire.Hosting.ApplicationModel.IResource! resource, bool emitContainerPort = false) -> void
+Aspire.Hosting.Publishing.ManifestPublishingContext.WriteContainer(Aspire.Hosting.ApplicationModel.ContainerResource! container) -> void
+Aspire.Hosting.Publishing.ManifestPublishingContext.WriteEnvironmentVariables(Aspire.Hosting.ApplicationModel.IResource! resource) -> void
+Aspire.Hosting.Publishing.ManifestPublishingContext.WritePortBindingEnvironmentVariables(Aspire.Hosting.ApplicationModel.IResource! resource) -> void
+Aspire.Hosting.Publishing.ManifestPublishingContext.Writer.get -> System.Text.Json.Utf8JsonWriter!
+Aspire.Hosting.Publishing.ManifestPublishingContext.WriteServiceDiscoveryEnvironmentVariables(Aspire.Hosting.ApplicationModel.IResource! resource) -> void
+Aspire.Hosting.Publishing.PublishingOptions
+Aspire.Hosting.Publishing.PublishingOptions.OutputPath.get -> string?
+Aspire.Hosting.Publishing.PublishingOptions.OutputPath.set -> void
+Aspire.Hosting.Publishing.PublishingOptions.Publisher.get -> string?
+Aspire.Hosting.Publishing.PublishingOptions.Publisher.set -> void
+Aspire.Hosting.Publishing.PublishingOptions.PublishingOptions() -> void
+Aspire.Hosting.RabbitMQBuilderExtensions
+Aspire.Hosting.Redis.IRedisResource
+Aspire.Hosting.Redis.RedisCommanderConfigWriterHook
+Aspire.Hosting.Redis.RedisCommanderConfigWriterHook.AfterEndpointsAllocatedAsync(Aspire.Hosting.ApplicationModel.DistributedApplicationModel! appModel, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Aspire.Hosting.Redis.RedisCommanderConfigWriterHook.RedisCommanderConfigWriterHook() -> void
+Aspire.Hosting.Redis.RedisCommanderResource
+Aspire.Hosting.Redis.RedisCommanderResource.RedisCommanderResource(string! name) -> void
+Aspire.Hosting.RedisBuilderExtensions
+Aspire.Hosting.ResourceBuilderExtensions
+Aspire.Hosting.SecretResourceBuilderExtensions
+Aspire.Hosting.SqlServerBuilderExtensions
+Aspire.Hosting.Utils.FileNameSuffixes
+Aspire.Hosting.Utils.FileNameSuffixes.PlatformFileNameSuffixes
+Aspire.Hosting.Utils.FileNameSuffixes.PlatformFileNameSuffixes.DynamicLib.get -> string!
+Aspire.Hosting.Utils.FileNameSuffixes.PlatformFileNameSuffixes.Exe.get -> string!
+Aspire.Hosting.Utils.FileNameSuffixes.PlatformFileNameSuffixes.PlatformFileNameSuffixes() -> void
+Aspire.Hosting.Utils.FileNameSuffixes.PlatformFileNameSuffixes.ProgramDatabase.get -> string!
+Aspire.Hosting.Utils.FileNameSuffixes.PlatformFileNameSuffixes.StaticLib.get -> string!
+Aspire.Hosting.Utils.HostNameResolver
+Aspire.Hosting.Utils.HostNameResolver.HostNameResolver() -> void
+Aspire.Hosting.Utils.Utf8JsonWriterExtensions
+const Aspire.Hosting.Publishing.PublishingOptions.Publishing = "Publishing" -> string!
+const Aspire.Hosting.Utils.FileNameSuffixes.DepsJson = ".deps.json" -> string!
+const Aspire.Hosting.Utils.FileNameSuffixes.RuntimeConfigDevJson = ".runtimeconfig.dev.json" -> string!
+const Aspire.Hosting.Utils.FileNameSuffixes.RuntimeConfigJson = ".runtimeconfig.json" -> string!
+override Aspire.Hosting.ApplicationModel.AllocatedEndpointAnnotation.ToString() -> string!
+static Aspire.Hosting.ApplicationModel.EndpointAnnotationExtensions.AsExternal(this Aspire.Hosting.ApplicationModel.EndpointAnnotation! endpoint) -> Aspire.Hosting.ApplicationModel.EndpointAnnotation!
+static Aspire.Hosting.ApplicationModel.EndpointAnnotationExtensions.AsHttp2(this Aspire.Hosting.ApplicationModel.EndpointAnnotation! endpoint) -> Aspire.Hosting.ApplicationModel.EndpointAnnotation!
+static Aspire.Hosting.ApplicationModel.ManifestPublishingCallbackAnnotation.Ignore.get -> Aspire.Hosting.ApplicationModel.ManifestPublishingCallbackAnnotation!
+static Aspire.Hosting.ApplicationModel.ProjectResourceExtensions.GetProjectMetadata(this Aspire.Hosting.ApplicationModel.ProjectResource! projectResource) -> Aspire.Hosting.IProjectMetadata!
+static Aspire.Hosting.ApplicationModel.ProjectResourceExtensions.GetProjectResources(this Aspire.Hosting.ApplicationModel.DistributedApplicationModel! model) -> System.Collections.Generic.IEnumerable<Aspire.Hosting.ApplicationModel.ProjectResource!>!
+static Aspire.Hosting.ApplicationModel.ResourceExtensions.GetReplicaCount(this Aspire.Hosting.ApplicationModel.IResource! resource) -> int
+static Aspire.Hosting.ApplicationModel.ResourceExtensions.TryGetAllocatedEndPoints(this Aspire.Hosting.ApplicationModel.IResource! resource, out System.Collections.Generic.IEnumerable<Aspire.Hosting.ApplicationModel.AllocatedEndpointAnnotation!>? allocatedEndPoints) -> bool
+static Aspire.Hosting.ApplicationModel.ResourceExtensions.TryGetAnnotationsOfType<T>(this Aspire.Hosting.ApplicationModel.IResource! resource, out System.Collections.Generic.IEnumerable<T>? result) -> bool
+static Aspire.Hosting.ApplicationModel.ResourceExtensions.TryGetContainerImageName(this Aspire.Hosting.ApplicationModel.IResource! resource, out string? imageName) -> bool
+static Aspire.Hosting.ApplicationModel.ResourceExtensions.TryGetEndpoints(this Aspire.Hosting.ApplicationModel.IResource! resource, out System.Collections.Generic.IEnumerable<Aspire.Hosting.ApplicationModel.EndpointAnnotation!>? endpoints) -> bool
+static Aspire.Hosting.ApplicationModel.ResourceExtensions.TryGetEnvironmentVariables(this Aspire.Hosting.ApplicationModel.IResource! resource, out System.Collections.Generic.IEnumerable<Aspire.Hosting.ApplicationModel.EnvironmentCallbackAnnotation!>? environmentVariables) -> bool
+static Aspire.Hosting.ApplicationModel.ResourceExtensions.TryGetLastAnnotation<T>(this Aspire.Hosting.ApplicationModel.IResource! resource, out T? annotation) -> bool
+static Aspire.Hosting.ApplicationModel.ResourceExtensions.TryGetVolumeMounts(this Aspire.Hosting.ApplicationModel.IResource! resource, out System.Collections.Generic.IEnumerable<Aspire.Hosting.ApplicationModel.VolumeMountAnnotation!>? volumeMounts) -> bool
+static Aspire.Hosting.ContainerResourceBuilderExtensions.AddContainer(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, string! image) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ContainerResource!>!
+static Aspire.Hosting.ContainerResourceBuilderExtensions.AddContainer(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, string! image, string! tag) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ContainerResource!>!
+static Aspire.Hosting.ContainerResourceBuilderExtensions.WithArgs<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, params string![]! args) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
+static Aspire.Hosting.ContainerResourceBuilderExtensions.WithEntrypoint<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! entrypoint) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
+static Aspire.Hosting.ContainerResourceBuilderExtensions.WithVolumeMount<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, string! source, string! target, Aspire.Hosting.ApplicationModel.VolumeMountType type = Aspire.Hosting.ApplicationModel.VolumeMountType.Bind, bool isReadOnly = false) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
+static Aspire.Hosting.ContainerResourceExtensions.GetContainerResources(this Aspire.Hosting.ApplicationModel.DistributedApplicationModel! model) -> System.Collections.Generic.IEnumerable<Aspire.Hosting.ApplicationModel.IResource!>!
+static Aspire.Hosting.ContainerResourceExtensions.IsContainer(this Aspire.Hosting.ApplicationModel.IResource! resource) -> bool
+static Aspire.Hosting.DistributedApplication.CreateBuilder() -> Aspire.Hosting.IDistributedApplicationBuilder!
+static Aspire.Hosting.DistributedApplication.CreateBuilder(Aspire.Hosting.DistributedApplicationOptions! options) -> Aspire.Hosting.IDistributedApplicationBuilder!
+static Aspire.Hosting.DistributedApplication.CreateBuilder(string![]! args) -> Aspire.Hosting.IDistributedApplicationBuilder!
+static Aspire.Hosting.ExecutableResourceBuilderExtensions.AddExecutable(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, string! command, string! workingDirectory, params string![]? args) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ExecutableResource!>!
+static Aspire.Hosting.ExecutableResourceBuilderExtensions.AsDockerfileInManifest<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
+static Aspire.Hosting.ExecutableResourceBuilderExtensions.WithArgs<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>! builder, params string![]! args) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T!>!
+static Aspire.Hosting.ExecutableResourceExtensions.GetExecutableResources(this Aspire.Hosting.ApplicationModel.DistributedApplicationModel! model) -> System.Collections.Generic.IEnumerable<Aspire.Hosting.ApplicationModel.ExecutableResource!>!
+static Aspire.Hosting.KafkaBuilderExtensions.AddKafka(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.KafkaServerResource!>!
+static Aspire.Hosting.KafkaBuilderExtensions.AddKafkaContainer(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, int? port = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.KafkaContainerResource!>!
+static Aspire.Hosting.Lifecycle.LifecycleHookServiceCollectionExtensions.AddLifecycleHook<T>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> void
+static Aspire.Hosting.Lifecycle.LifecycleHookServiceCollectionExtensions.AddLifecycleHook<T>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Func<System.IServiceProvider!, T!>! implementationFactory) -> void
+static Aspire.Hosting.Lifecycle.LifecycleHookServiceCollectionExtensions.TryAddLifecycleHook<T>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> void
+static Aspire.Hosting.Lifecycle.LifecycleHookServiceCollectionExtensions.TryAddLifecycleHook<T>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Func<System.IServiceProvider!, T!>! implementationFactory) -> void
+static Aspire.Hosting.MongoDBBuilderExtensions.AddDatabase(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.MongoDBContainerResource!>! builder, string! name) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.MongoDBDatabaseResource!>!
+static Aspire.Hosting.MongoDBBuilderExtensions.AddMongoDB(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.MongoDBServerResource!>!
+static Aspire.Hosting.MongoDBBuilderExtensions.AddMongoDBContainer(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, int? port = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.MongoDBContainerResource!>!
+static Aspire.Hosting.MySqlBuilderExtensions.AddDatabase(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.IMySqlParentResource!>! builder, string! name) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.MySqlDatabaseResource!>!
+static Aspire.Hosting.MySqlBuilderExtensions.AddMySql(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.MySqlServerResource!>!
+static Aspire.Hosting.MySqlBuilderExtensions.AddMySqlContainer(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, int? port = null, string? password = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.MySqlContainerResource!>!
+static Aspire.Hosting.NodeAppHostingExtension.AddNodeApp(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, string! scriptPath, string? workingDirectory = null, string![]? args = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.NodeAppResource!>!
+static Aspire.Hosting.NodeAppHostingExtension.AddNpmApp(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, string! workingDirectory, string! scriptName = "start", string![]? args = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.NodeAppResource!>!
+static Aspire.Hosting.OpenAIBuilderExtensions.AddOpenAI(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.OpenAIResource!>!
+static Aspire.Hosting.OracleDatabaseBuilderExtensions.AddDatabase(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.IOracleDatabaseParentResource!>! builder, string! name) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.OracleDatabaseResource!>!
+static Aspire.Hosting.OracleDatabaseBuilderExtensions.AddOracleDatabase(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.OracleDatabaseServerResource!>!
+static Aspire.Hosting.OracleDatabaseBuilderExtensions.AddOracleDatabaseContainer(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, int? port = null, string? password = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.OracleDatabaseContainerResource!>!
+static Aspire.Hosting.OtlpConfigurationExtensions.AddOtlpEnvironment(Aspire.Hosting.ApplicationModel.IResource! resource, Microsoft.Extensions.Configuration.IConfiguration! configuration, Microsoft.Extensions.Hosting.IHostEnvironment! environment) -> void
+static Aspire.Hosting.OtlpConfigurationExtensions.WithOtlpExporter<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
+static Aspire.Hosting.PostgresBuilderExtensions.AddDatabase(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.IPostgresParentResource!>! builder, string! name) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.PostgresDatabaseResource!>!
+static Aspire.Hosting.PostgresBuilderExtensions.AddPostgres(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.PostgresServerResource!>!
+static Aspire.Hosting.PostgresBuilderExtensions.AddPostgresContainer(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, int? port = null, string? password = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.PostgresContainerResource!>!
+static Aspire.Hosting.PostgresBuilderExtensions.WithPgAdmin<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, int? hostPort = null, string? containerName = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
+static Aspire.Hosting.ProjectResourceBuilderExtensions.AddProject(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, string! projectPath) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ProjectResource!>!
+static Aspire.Hosting.ProjectResourceBuilderExtensions.AddProject<TProject>(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ProjectResource!>!
+static Aspire.Hosting.ProjectResourceBuilderExtensions.WithLaunchProfile(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ProjectResource!>! builder, string! launchProfileName) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ProjectResource!>!
+static Aspire.Hosting.ProjectResourceBuilderExtensions.WithReplicas(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ExecutableResource!>! builder, int replicas) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ExecutableResource!>!
+static Aspire.Hosting.ProjectResourceBuilderExtensions.WithReplicas(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ProjectResource!>! builder, int replicas) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ProjectResource!>!
+static Aspire.Hosting.RabbitMQBuilderExtensions.AddRabbitMQ(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.RabbitMQServerResource!>!
+static Aspire.Hosting.RabbitMQBuilderExtensions.AddRabbitMQContainer(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, int? port = null, string? password = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.RabbitMQContainerResource!>!
+static Aspire.Hosting.RedisBuilderExtensions.AddRedis(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.RedisResource!>!
+static Aspire.Hosting.RedisBuilderExtensions.AddRedisContainer(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, int? port = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.RedisContainerResource!>!
+static Aspire.Hosting.RedisBuilderExtensions.WithRedisCommander<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, string? containerName = null, int? hostPort = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
+static Aspire.Hosting.ResourceBuilderExtensions.AsHttp2Service<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
+static Aspire.Hosting.ResourceBuilderExtensions.ExcludeFromManifest<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
+static Aspire.Hosting.ResourceBuilderExtensions.GetEndpoint<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, string! name) -> Aspire.Hosting.ApplicationModel.EndpointReference!
+static Aspire.Hosting.ResourceBuilderExtensions.WithEndpoint<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, int containerPort, int? hostPort = null, string? scheme = null, string? name = null, string? env = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
+static Aspire.Hosting.ResourceBuilderExtensions.WithEndpoint<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, int? hostPort = null, string? scheme = null, string? name = null, string? env = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
+static Aspire.Hosting.ResourceBuilderExtensions.WithEnvironment<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, string! name, Aspire.Hosting.ApplicationModel.EndpointReference! endpointReference) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
+static Aspire.Hosting.ResourceBuilderExtensions.WithEnvironment<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, string! name, string? value) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
+static Aspire.Hosting.ResourceBuilderExtensions.WithEnvironment<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, string! name, System.Func<string!>! callback) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
+static Aspire.Hosting.ResourceBuilderExtensions.WithEnvironment<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, System.Action<Aspire.Hosting.ApplicationModel.EnvironmentCallbackContext!>! callback) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
+static Aspire.Hosting.ResourceBuilderExtensions.WithHttpEndpoint<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, int containerPort, int? hostPort = null, string? name = null, string? env = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
+static Aspire.Hosting.ResourceBuilderExtensions.WithHttpEndpoint<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, int? hostPort = null, string? name = null, string? env = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
+static Aspire.Hosting.ResourceBuilderExtensions.WithHttpsEndpoint<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, int containerPort, int? hostPort = null, string? name = null, string? env = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
+static Aspire.Hosting.ResourceBuilderExtensions.WithHttpsEndpoint<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, int? hostPort = null, string? name = null, string? env = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
+static Aspire.Hosting.ResourceBuilderExtensions.WithManifestPublishingCallback<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, System.Action<Aspire.Hosting.Publishing.ManifestPublishingContext!>! callback) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
+static Aspire.Hosting.ResourceBuilderExtensions.WithReference<TDestination>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<TDestination>! builder, Aspire.Hosting.ApplicationModel.EndpointReference! endpointReference) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<TDestination>!
+static Aspire.Hosting.ResourceBuilderExtensions.WithReference<TDestination>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<TDestination>! builder, Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.IResourceWithConnectionString!>! source, string? connectionName = null, bool optional = false) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<TDestination>!
+static Aspire.Hosting.ResourceBuilderExtensions.WithReference<TDestination>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<TDestination>! builder, Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.IResourceWithServiceDiscovery!>! source) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<TDestination>!
+static Aspire.Hosting.ResourceBuilderExtensions.WithReference<TDestination>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<TDestination>! builder, Aspire.Hosting.ConnectionString connectionString) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<TDestination>!
+static Aspire.Hosting.ResourceBuilderExtensions.WithReference<TDestination>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<TDestination>! builder, string! name, System.Uri! uri) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<TDestination>!
+static Aspire.Hosting.ResourceBuilderExtensions.WithServiceBinding<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, int containerPort, int? hostPort = null, string? scheme = null, string? name = null, string? env = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
+static Aspire.Hosting.ResourceBuilderExtensions.WithServiceBinding<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, int? hostPort = null, string? scheme = null, string? name = null, string? env = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
+static Aspire.Hosting.SecretResourceBuilderExtensions.AddSecret(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.SecretStoreResource!>! builder, string! name) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.SecretResource!>!
+static Aspire.Hosting.SecretResourceBuilderExtensions.AddSecretStore(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.SecretStoreResource!>!
+static Aspire.Hosting.SecretResourceBuilderExtensions.WithEnvironment<T>(this Aspire.Hosting.ApplicationModel.IResourceBuilder<T>! builder, string! name, Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.SecretResource!>! secret) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<T>!
+static Aspire.Hosting.SqlServerBuilderExtensions.AddDatabase(this Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.ISqlServerParentResource!>! builder, string! name) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.SqlServerDatabaseResource!>!
+static Aspire.Hosting.SqlServerBuilderExtensions.AddSqlServer(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.SqlServerServerResource!>!
+static Aspire.Hosting.SqlServerBuilderExtensions.AddSqlServerContainer(this Aspire.Hosting.IDistributedApplicationBuilder! builder, string! name, string? password = null, int? port = null) -> Aspire.Hosting.ApplicationModel.IResourceBuilder<Aspire.Hosting.ApplicationModel.SqlServerContainerResource!>!
+static Aspire.Hosting.Utils.FileNameSuffixes.CurrentPlatform.get -> Aspire.Hosting.Utils.FileNameSuffixes.PlatformFileNameSuffixes
+static Aspire.Hosting.Utils.FileNameSuffixes.DotNet.get -> Aspire.Hosting.Utils.FileNameSuffixes.PlatformFileNameSuffixes
+static Aspire.Hosting.Utils.FileNameSuffixes.OSX.get -> Aspire.Hosting.Utils.FileNameSuffixes.PlatformFileNameSuffixes
+static Aspire.Hosting.Utils.FileNameSuffixes.Unix.get -> Aspire.Hosting.Utils.FileNameSuffixes.PlatformFileNameSuffixes
+static Aspire.Hosting.Utils.FileNameSuffixes.Windows.get -> Aspire.Hosting.Utils.FileNameSuffixes.PlatformFileNameSuffixes
+static Aspire.Hosting.Utils.HostNameResolver.ReplaceLocalhostWithContainerHost(string! value, Microsoft.Extensions.Configuration.IConfiguration! configuration) -> string!
+static Aspire.Hosting.Utils.Utf8JsonWriterExtensions.TryWriteBoolean(this System.Text.Json.Utf8JsonWriter! writer, string! name, bool? value) -> bool
+static Aspire.Hosting.Utils.Utf8JsonWriterExtensions.TryWriteNumber(this System.Text.Json.Utf8JsonWriter! writer, string! name, int? value) -> bool
+static Aspire.Hosting.Utils.Utf8JsonWriterExtensions.TryWriteString(this System.Text.Json.Utf8JsonWriter! writer, string! name, string? value) -> bool
+static Aspire.Hosting.Utils.Utf8JsonWriterExtensions.TryWriteStringArray(this System.Text.Json.Utf8JsonWriter! writer, string! name, System.Collections.Generic.IEnumerable<string!>? values) -> bool
+virtual Aspire.Hosting.Publishing.ManifestPublisher.PublishAsync(Aspire.Hosting.ApplicationModel.DistributedApplicationModel! model, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+virtual Aspire.Hosting.Publishing.ManifestPublisher.PublishInternalAsync(Aspire.Hosting.ApplicationModel.DistributedApplicationModel! model, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
