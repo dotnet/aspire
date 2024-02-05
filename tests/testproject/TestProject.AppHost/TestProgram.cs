@@ -75,7 +75,7 @@ public class TestProgram
                 .WithReference(cosmos);
         }
 
-        AppBuilder.Services.TryAddLifecycleHook<EndPointWriterHook>();
+        AppBuilder.Services.AddLifecycleHook<EndPointWriterHook>();
     }
 
     public static TestProgram Create<T>(string[]? args = null, bool includeIntegrationServices = false, bool includeNodeApp = false, bool disableDashboard = true) =>
