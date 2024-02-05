@@ -86,7 +86,7 @@ public partial class PlotlyChart : ComponentBase
         return InvokeAsync(StateHasChanged);
     }
 
-    private sealed class Trace
+    internal sealed class Trace
     {
         public required string Name { get; init; }
         public List<double?> Values { get; } = new();
@@ -180,7 +180,7 @@ public partial class PlotlyChart : ComponentBase
         throw new InvalidOperationException("Unexpected metric type: " + metric.GetType());
     }
 
-    private static bool TryCalculateHistogramPoints(List<DimensionScope> dimensions, DateTime start, DateTime end, Dictionary<int, Trace> traces)
+    internal static bool TryCalculateHistogramPoints(List<DimensionScope> dimensions, DateTime start, DateTime end, Dictionary<int, Trace> traces)
     {
         var hasValue = false;
 

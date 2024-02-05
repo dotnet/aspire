@@ -26,5 +26,4 @@ public abstract class MetricValueBase
     internal abstract bool TryCompare(MetricValueBase other, out int comparisonResult);
 
     protected abstract MetricValueBase Clone();
-
 }
