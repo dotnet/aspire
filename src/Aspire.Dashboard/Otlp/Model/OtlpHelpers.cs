@@ -159,6 +159,37 @@ public static class OtlpHelpers
         return null;
     }
 
+    public static string? GetPeerValue(this KeyValuePair<string, string>[] values)
+    {
+        var address = GetValue(values, OtlpSpan.PeerServiceAttributeKey);
+        if (address != null)
+        {
+            return address;
+        }
+
+        // OTEL HTTP 1.7.0 doesn't return peer.service. Fallback to server.address and server.port.
+        if (GetValue(values, OtlpSpan.ServerAddressAttributeKey) is { } server)
+        {
+            if (GetValue(values, OtlpSpan.ServerPortAttributeKey) is { } serverPort)
+            {
+                server += ":" + serverPort;
+            }
+            return server;
+        }
+
+        // Fallback to older names of net.peer.name and net.peer.port.
+        if (GetValue(values, OtlpSpan.NetPeerNameAttributeKey) is { } peer)
+        {
+            if (GetValue(values, OtlpSpan.NetPeerPortAttributeKey) is { } peerPort)
+            {
+                peer += ":" + peerPort;
+            }
+            return peer;
+        }
+
+        return null;
+    }
+
     public static bool HasKey(this KeyValuePair<string, string>[] values, string name)
     {
         for (var i = 0; i < values.Length; i++)

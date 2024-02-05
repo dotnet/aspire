@@ -57,7 +57,7 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
 
     internal static bool TryResolvePeerNameCore(IDictionary<string, ResourceViewModel> resources, KeyValuePair<string, string>[] attributes, out string? name)
     {
-        var address = OtlpHelpers.GetValue(attributes, OtlpSpan.PeerServiceAttributeKey) ?? OtlpHelpers.GetValue(attributes, OtlpSpan.UrlFullAttributeKey);
+        var address = OtlpHelpers.GetPeerValue(attributes);
         if (address != null)
         {
             // Match exact value.
