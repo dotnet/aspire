@@ -28,6 +28,8 @@ var cosmosDb = builder.AddBicepCosmosDb("cosmos").AddDatabase("db3");
 
 var appInsights = builder.AddBicepApplicationInsights("ai");
 
+var redis  = builder.AddBicepRedis("redis");
+
 builder.AddProject<Projects.BicepSample_ApiService>("api")
        .WithReference(sqlServer)
        .WithReference(pg)
@@ -35,11 +37,11 @@ builder.AddProject<Projects.BicepSample_ApiService>("api")
        .WithReference(blobs)
        .WithReference(kv)
        .WithReference(appConfig)
-       .WithReference(appInsights);
-//.WithEnvironment("bicepValue_test", templ.GetOutput("test"))
-//.WithEnvironment("bicepValue0", templ.GetOutput("val0"))
-//.WithEnvironment("bicepValue1", templ.GetOutput("val1"));
-//.WithReference(pg);
+       .WithReference(appInsights)
+       .WithReference(redis)
+       .WithEnvironment("bicepValue_test", templ.GetOutput("test"))
+       .WithEnvironment("bicepValue0", templ.GetOutput("val0"))
+       .WithEnvironment("bicepValue1", templ.GetOutput("val1"));
 
 // This project is only added in playground projects to support development/debugging
 // of the dashboard. It is not required in end developer code. Comment out this code

@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Dcp.Process;
 using Azure.ResourceManager.CosmosDB;
+using Azure.ResourceManager.Redis;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -123,13 +124,19 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
         // REVIEW: Special case handling of keys. To avoid sending sensitive information to the deployment engine
         // we make requests to the RP after the deployment returns with outputs.
         if (resource is AzureBicepCosmosDBResource cosmosDb &&
-            cosmosDb.AccountNameOutputKey is { } accountNameKey &&
-            resource.Outputs.TryGetValue(accountNameKey, out var accountName) &&
-            cosmosDb.AccountKeyOutputKey is { } accountKeyOutputName)
+            resource.Outputs.TryGetValue(cosmosDb.ResourceNameOutputKey, out var accountName))
         {
             var cosmosDbResource = await context.ResourceGroup.GetCosmosDBAccounts().GetAsync(accountName, cancellationToken).ConfigureAwait(false);
             var keys = await cosmosDbResource.Value.GetKeysAsync(cancellationToken).ConfigureAwait(false);
-            resource.Outputs[accountKeyOutputName] = keys.Value.PrimaryMasterKey;
+            resource.Outputs[cosmosDb.AccountKeyOutputKey] = keys.Value.PrimaryMasterKey;
+        }
+
+        if (resource is AzureBicepRedisResource redis &&
+            resource.Outputs.TryGetValue(redis.ResourceNameOutputKey, out var redisName))
+        {
+            var redisResource = await context.ResourceGroup.GetAllRedis().GetAsync(redisName, cancellationToken).ConfigureAwait(false);
+            var keys = await redisResource.Value.GetKeysAsync(cancellationToken).ConfigureAwait(false);
+            resource.Outputs[redis.AccountKeyOutputKey] = keys.Value.PrimaryKey;
         }
 
         foreach (var item in resource.Outputs)
