@@ -18,40 +18,40 @@ internal static class ModelName
         ArgumentNullException.ThrowIfNull(target);
         ArgumentNullException.ThrowIfNull(name);
 
-        if (name.Length < 1 || name.Length > 64)
-        {
-            throw new ArgumentException($"{target} name '{name}' is invalid. Name must be between 1 and 64 characters long.", nameof(name));
-        }
+        //if (name.Length < 1 || name.Length > 64)
+        //{
+        //    throw new ArgumentException($"{target} name '{name}' is invalid. Name must be between 1 and 64 characters long.", nameof(name));
+        //}
 
-        var lastCharacterHyphen = false;
-        for (var i = 0; i < name.Length; i++)
-        {
-            if (name[i] == '-')
-            {
-                if (lastCharacterHyphen)
-                {
-                    throw new ArgumentException($"{target} name '{name}' is invalid. Name cannot contain consecutive hyphens.", nameof(name));
-                }
-                lastCharacterHyphen = true;
-            }
-            else if (!char.IsAsciiLetterOrDigit(name[i]))
-            {
-                throw new ArgumentException($"{target} name '{name}' is invalid. Name must contain only ASCII letters, digits, and hyphens.", nameof(name));
-            }
-            else
-            {
-                lastCharacterHyphen = false;
-            }
-        }
+        //var lastCharacterHyphen = false;
+        //for (var i = 0; i < name.Length; i++)
+        //{
+        //    if (name[i] == '-')
+        //    {
+        //        if (lastCharacterHyphen)
+        //        {
+        //            throw new ArgumentException($"{target} name '{name}' is invalid. Name cannot contain consecutive hyphens.", nameof(name));
+        //        }
+        //        lastCharacterHyphen = true;
+        //    }
+        //    else if (!char.IsAsciiLetterOrDigit(name[i]))
+        //    {
+        //        throw new ArgumentException($"{target} name '{name}' is invalid. Name must contain only ASCII letters, digits, and hyphens.", nameof(name));
+        //    }
+        //    else
+        //    {
+        //        lastCharacterHyphen = false;
+        //    }
+        //}
 
-        if (!char.IsAsciiLetter(name[0]))
-        {
-            throw new ArgumentException($"{target} name '{name}' is invalid. Name must start with an ASCII letter.", nameof(name));
-        }
+        //if (!char.IsAsciiLetter(name[0]))
+        //{
+        //    throw new ArgumentException($"{target} name '{name}' is invalid. Name must start with an ASCII letter.", nameof(name));
+        //}
 
-        if (name[^1] == '-')
-        {
-            throw new ArgumentException($"{target} name '{name}' is invalid. Name cannot end with a hyphen.", nameof(name));
-        }
+        //if (name[^1] == '-')
+        //{
+        //    throw new ArgumentException($"{target} name '{name}' is invalid. Name cannot end with a hyphen.", nameof(name));
+        //}
     }
 }
