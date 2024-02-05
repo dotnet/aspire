@@ -87,12 +87,14 @@ public static class AzureBicepSqlExtensions
     /// </summary>
     /// <param name="builder">The Azure SQL Server resource builder.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <param name="databaseName">The name of the database</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureBicepSqlDbResource> AddDatabase(this IResourceBuilder<AzureBicepSqlServerResource> builder, string name, string? databaseName = null)
     {
-        var resource = new AzureBicepSqlDbResource(name, databaseName ?? name, builder.Resource);
+        var dbName = databaseName ?? name;
+        var resource = new AzureBicepSqlDbResource(name, dbName, builder.Resource);
 
-        builder.Resource.Databases.Add(databaseName ?? name);
+        builder.Resource.Databases.Add(dbName);
 
         return builder.ApplicationBuilder.AddResource(resource)
             .WithManifestPublishingCallback(resource.WriteToManifest);

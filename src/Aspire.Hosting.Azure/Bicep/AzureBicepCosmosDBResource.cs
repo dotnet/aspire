@@ -126,7 +126,8 @@ public static class AzureBicepCosmosExtensions
     /// Adds a resource which represents a database in the associated Cosmos DB account resource.
     /// </summary>
     /// <param name="builder">AzureCosmosDB resource builder.</param>
-    /// <param name="name">Name of database.</param>
+    /// <param name="name">The name of the resource.</param>
+    /// <param name="databaseName">Name of database.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureBicepCosmosDBDatabaseResource> AddDatabase(this IResourceBuilder<AzureBicepCosmosDBResource> builder, string name, string? databaseName = null)
     {
