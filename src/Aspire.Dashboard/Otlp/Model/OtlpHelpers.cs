@@ -159,7 +159,7 @@ public static class OtlpHelpers
         return null;
     }
 
-    public static string? GetPeerValue(this KeyValuePair<string, string>[] values)
+    public static string? GetPeerAddress(this KeyValuePair<string, string>[] values)
     {
         var address = GetValue(values, OtlpSpan.PeerServiceAttributeKey);
         if (address != null)
