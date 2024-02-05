@@ -105,7 +105,8 @@ public static class ResourceBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithManifestPublishingCallback<T>(this IResourceBuilder<T> builder, Action<ManifestPublishingContext> callback) where T : IResource
     {
-        return builder.WithAnnotation(new ManifestPublishingCallbackAnnotation(callback));
+        // You can only ever have one manifest publishing callback, so it must be a replace operation.
+        return builder.WithAnnotation(new ManifestPublishingCallbackAnnotation(callback), ResourceAnnotationMutationBehavior.AddReplace);
     }
 
     private static bool ContainsAmbiguousEndpoints(IEnumerable<AllocatedEndpointAnnotation> endpoints)
