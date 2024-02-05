@@ -3,6 +3,7 @@
 
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.MongoDB;
 using Aspire.Hosting.Publishing;
 
 namespace Aspire.Hosting;
@@ -67,6 +68,45 @@ public static class MongoDBBuilderExtensions
         return builder.ApplicationBuilder
             .AddResource(mongoDBDatabase)
             .WithManifestPublishingCallback(context => context.WriteMongoDBDatabaseToManifest(mongoDBDatabase));
+    }
+
+    /// <summary>
+    /// Adds a MongoExpress administration and development platform for MongoDB to the application model.
+    /// </summary>
+    /// <param name="builder">The MongoDB server resource builder.</param>
+    /// <param name="hostPort">The host port for the application ui.</param>
+    /// <param name="containerName">The name of the container (Optional).</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithMongoExpress<T>(this IResourceBuilder<T> builder, int? hostPort = null, string? containerName = null) where T : IMongoDBParentResource
+    {
+        containerName ??= $"{builder.Resource.Name}-mongoexpress";
+
+        var mongoExpressContainer = new MongoExpressContainerResource(containerName);
+        builder.ApplicationBuilder.AddResource(mongoExpressContainer)
+                                  .WithAnnotation(new ContainerImageAnnotation { Image = "mongo-express", Tag = "latest" })
+                                  .WithEnvironment(context => ConfigureMongoExpressContainer(context, builder.Resource))
+                                  .WithHttpEndpoint(containerPort: 8081, hostPort: hostPort, name: containerName)
+                                  .ExcludeFromManifest();
+
+        return builder;
+    }
+
+    private static void ConfigureMongoExpressContainer(EnvironmentCallbackContext context, IResource resource)
+    {
+        var hostPort = GetResourcePort(resource);
+        
+        context.EnvironmentVariables.Add("ME_CONFIG_MONGODB_URL", $"mongodb://host.docker.internal:{hostPort}/?directConnection=true");
+
+        static int GetResourcePort(IResource resource)
+        {
+            if (!resource.TryGetAllocatedEndPoints(out var allocatedEndpoints))
+            {
+                throw new DistributedApplicationException(
+                    $"MongoDB resource \"{resource.Name}\" does not have endpoint annotation.");
+            }
+
+            return allocatedEndpoints.Single().Port;
+        }
     }
 
     private static void WriteMongoDBContainerToManifest(this ManifestPublishingContext context, MongoDBContainerResource resource)
