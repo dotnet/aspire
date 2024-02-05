@@ -17,16 +17,12 @@ parameters:
   - name: skipTests
     type: boolean
     default: false
-  - name: defaultToRunningTestsOnHelix
-    type: boolean
-    default: true
 
 steps:
   - script: ${{ parameters.buildScript }}
             -restore -build
             -configuration ${{ parameters.buildConfig }}
             /p:ArchiveTests=true
-            /p:DefaultToRunningTestsOnHelix=${{ parameters.defaultToRunningTestsOnHelix }}
             /bl:${{ parameters.repoLogPath }}/build.binlog
             $(_OfficialBuildIdArgs)
     displayName: Build
@@ -35,7 +31,7 @@ steps:
     - script: ${{ parameters.dotnetScript }} dotnet-coverage collect
               --settings $(Build.SourcesDirectory)/eng/CodeCoverage.config
               --output ${{ parameters.repoTestResultsPath }}/NonHelixTests.cobertura.xml
-              "${{ parameters.buildScript }} -testnobuild -test -configuration ${{ parameters.buildConfig }} /bl:${{ parameters.repoLogPath }}/tests.binlog /p:DefaultToRunningTestsOnHelix=${{ parameters.defaultToRunningTestsOnHelix }} $(_OfficialBuildIdArgs)"
+              "${{ parameters.buildScript }} -testnobuild -test -configuration ${{ parameters.buildConfig }} /bl:${{ parameters.repoLogPath }}/tests.binlog $(_OfficialBuildIdArgs)"
       displayName: Run non-helix tests
 
     - template: /eng/pipelines/templates/send-to-helix.yml
