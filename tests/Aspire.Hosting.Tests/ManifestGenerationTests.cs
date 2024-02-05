@@ -212,7 +212,7 @@ public class ManifestGenerationTests
         var program = CreateTestProgramJsonDocumentManifestPublisher();
 
         program.AppBuilder.AddRedis("redisabstract");
-        program.AppBuilder.AddRedisContainer("rediscontainer");
+        program.AppBuilder.AddRedis("rediscontainer").PublishAsContainer();
 
         // Build AppHost so that publisher can be resolved.
         program.Build();
@@ -227,6 +227,27 @@ public class ManifestGenerationTests
 
         var container = resources.GetProperty("rediscontainer");
         Assert.Equal("container.v0", container.GetProperty("type").GetString());
+    }
+
+    [Fact]
+    public void PublishingRedisResourceAsContainerResultsInConnectionStringProperty()
+    {
+        var program = CreateTestProgramJsonDocumentManifestPublisher();
+
+        program.AppBuilder.AddRedis("rediscontainer").PublishAsContainer();
+
+        // Build AppHost so that publisher can be resolved.
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+
+        var container = resources.GetProperty("rediscontainer");
+        Assert.Equal("container.v0", container.GetProperty("type").GetString());
+        Assert.Equal("{rediscontainer.bindings.tcp.host}:{rediscontainer.bindings.tcp.port}", container.GetProperty("connectionString").GetString());
+
     }
 
     [Fact]
