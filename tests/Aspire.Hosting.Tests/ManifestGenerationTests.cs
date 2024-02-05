@@ -313,7 +313,7 @@ public class ManifestGenerationTests
         var program = CreateTestProgramJsonDocumentManifestPublisher();
 
         program.AppBuilder.AddRabbitMQ("rabbitabstract");
-        program.AppBuilder.AddRabbitMQContainer("rabbitcontainer");
+        program.AppBuilder.AddRabbitMQ("rabbitcontainer").PublishAsContainer();
 
         // Build AppHost so that publisher can be resolved.
         program.Build();

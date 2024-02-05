@@ -13,37 +13,6 @@ namespace Aspire.Hosting;
 public static class RabbitMQBuilderExtensions
 {
     /// <summary>
-    /// Adds a RabbitMQ container to the application. The default image name is "rabbitmq" and the default tag is "3-management".
-    /// </summary>
-    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
-    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <param name="port">The host port of RabbitMQ.</param>
-    /// <param name="password">The password for RabbitMQ.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<RabbitMQContainerResource> AddRabbitMQContainer(this IDistributedApplicationBuilder builder, string name, int? port = null, string? password = null)
-    {
-        password ??= Guid.NewGuid().ToString("N");
-        var rabbitMq = new RabbitMQContainerResource(name, password);
-        return builder.AddResource(rabbitMq)
-                       .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 5672))
-                       .WithAnnotation(new ContainerImageAnnotation { Image = "rabbitmq", Tag = "3" })
-                       .WithManifestPublishingCallback(context => WriteRabbitMQContainerToManifest(context, rabbitMq))
-                       .WithEnvironment("RABBITMQ_DEFAULT_USER", "guest")
-                       .WithEnvironment(context =>
-                       {
-                           if (context.PublisherName == "manifest")
-                           {
-                               context.EnvironmentVariables.Add("RABBITMQ_DEFAULT_PASS", $"{{{rabbitMq.Name}.inputs.password}}");
-                           }
-                           else
-                           {
-                               context.EnvironmentVariables.Add("RABBITMQ_DEFAULT_PASS", rabbitMq.Password);
-                           }
-                       });
-
-    }
-
-    /// <summary>
     /// Adds a RabbitMQ resource to the application. A container is used for local development.
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
@@ -58,7 +27,17 @@ public static class RabbitMQBuilderExtensions
                        .WithAnnotation(new ContainerImageAnnotation { Image = "rabbitmq", Tag = "3" })
                        .WithManifestPublishingCallback(WriteRabbitMQServerToManifest)
                        .WithEnvironment("RABBITMQ_DEFAULT_USER", "guest")
-                       .WithEnvironment("RABBITMQ_DEFAULT_PASS", () => rabbitMq.Password);
+                       .WithEnvironment(context =>
+                       {
+                           if (context.PublisherName == "manifest")
+                           {
+                               context.EnvironmentVariables.Add("RABBITMQ_DEFAULT_PASS", $"{{{rabbitMq.Name}.inputs.password}}");
+                           }
+                           else
+                           {
+                               context.EnvironmentVariables.Add("RABBITMQ_DEFAULT_PASS", rabbitMq.Password);
+                           }
+                       });
     }
 
     private static void WriteRabbitMQServerToManifest(ManifestPublishingContext context)
@@ -66,7 +45,12 @@ public static class RabbitMQBuilderExtensions
         context.Writer.WriteString("type", "rabbitmq.server.v0");
     }
 
-    private static void WriteRabbitMQContainerToManifest(ManifestPublishingContext context, RabbitMQContainerResource resource)
+    public static IResourceBuilder<RabbitMQServerResource> PublishAsContainer(this IResourceBuilder<RabbitMQServerResource> builder)
+    {
+        return builder.WithManifestPublishingCallback(context => WriteRabbitMQContainerToManifest(context, builder.Resource));
+    }
+
+    private static void WriteRabbitMQContainerToManifest(ManifestPublishingContext context, RabbitMQServerResource resource)
     {
         context.WriteContainer(resource);
         context.Writer.WriteString(                     // "connectionString": "...",
