@@ -496,7 +496,13 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             if (!string.IsNullOrEmpty(configuration[DebugSessionPortVar]))
             {
                 exeSpec.ExecutionType = ExecutionType.IDE;
-                if (project.TryGetLastAnnotation<LaunchProfileAnnotation>(out var lpa))
+
+                // ExcludeLaunchProfileAnnotation takes precedence over LaunchProfileAnnotation. 
+                if (project.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _))
+                {
+                    annotationHolder.Annotate(Executable.CSharpDisableLaunchProfileAnnotation, "true");
+                }
+                else if (project.TryGetLastAnnotation<LaunchProfileAnnotation>(out var lpa))
                 {
                     annotationHolder.Annotate(Executable.CSharpLaunchProfileAnnotation, lpa.LaunchProfileName);
                 }
@@ -532,7 +538,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 // and the environment variables/application URLs inside CreateExecutableAsync().
                 exeSpec.Args.Add("--no-launch-profile");
 
-                string? launchProfileName = project.SelectLaunchProfileName();
+                var launchProfileName = project.SelectLaunchProfileName();
                 if (!string.IsNullOrEmpty(launchProfileName))
                 {
                     var launchProfile = project.GetEffectiveLaunchProfile();

@@ -21,7 +21,7 @@ var simulateProduction = builder.Configuration.GetValue<bool>("SimulateProductio
 var db = builder.Environment.EnvironmentName switch
 {
     "Production" => builder.AddConnectionString("db"),
-    _ => simulateProduction ? builder.AddConnectionString("db") : builder.AddAzureCosmosDB("cosmos").UseEmulator().AddDatabase("db")
+    _ => simulateProduction ? builder.AddConnectionString("db") : builder.AddSqlServer("sql").AddDatabase("db")
 };
 
 var insertionrows = builder.AddParameter("insertionrows");

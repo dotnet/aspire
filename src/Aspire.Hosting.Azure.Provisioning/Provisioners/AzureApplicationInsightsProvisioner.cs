@@ -3,8 +3,9 @@
 
 using System.Diagnostics;
 using Aspire.Hosting.ApplicationModel;
-using Azure.ResourceManager.ApplicationInsights;
 using Azure;
+using Azure.ResourceManager.ApplicationInsights;
+using Azure.ResourceManager.OperationalInsights;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -38,6 +39,17 @@ internal sealed class AzureApplicationInsightsProvisioner(ILogger<AzureApplicati
 
         if (applicationInsightsResource is null)
         {
+            var logAnalytics = new OperationalInsightsWorkspaceData(context.Location);
+            logAnalytics.Tags.Add(AzureProvisioner.AspireResourceNameTag, resource.Name);
+
+            var workspaceName = Guid.NewGuid().ToString().Replace("-", string.Empty)[0..20];
+
+            logger.LogInformation("Creating Log Analytics Workspace {workspaceName} in {location}...", workspaceName, context.Location);
+            var sw = Stopwatch.StartNew();
+            var workspaceOp = await context.ResourceGroup.GetOperationalInsightsWorkspaces().CreateOrUpdateAsync(WaitUntil.Completed, workspaceName, logAnalytics, cancellationToken).ConfigureAwait(false);
+            sw.Stop();
+            logger.LogInformation("Log Analytics Workspace {workspaceName} created in {elapsed}", workspaceOp.Value.Data.Name, TimeSpan.FromSeconds(10));
+
             var applicationInsightsName = Guid.NewGuid().ToString().Replace("-", string.Empty)[0..20];
 
             // We could model application insights as a child resource of a log analytics workspace, but instead,
@@ -47,11 +59,11 @@ internal sealed class AzureApplicationInsightsProvisioner(ILogger<AzureApplicati
 
             var applicationInsightsCreateOrUpdateContent = new ApplicationInsightsComponentData(context.Location, "web")
             {
-                WorkspaceResourceId = ""// context.LogAnalyticsWorkspace.Id
+                WorkspaceResourceId = workspaceOp.Value.Id
             };
             applicationInsightsCreateOrUpdateContent.Tags.Add(AzureProvisioner.AspireResourceNameTag, resource.Name);
 
-            var sw = Stopwatch.StartNew();
+            sw.Restart();
             var operation = await context.ResourceGroup.GetApplicationInsightsComponents().CreateOrUpdateAsync(WaitUntil.Completed, applicationInsightsName, applicationInsightsCreateOrUpdateContent, cancellationToken).ConfigureAwait(false);
             applicationInsightsResource = operation.Value;
             sw.Stop();
