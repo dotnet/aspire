@@ -144,7 +144,7 @@
     },
     "redis": {
       "type": "azure.bicep.v0",
-      "connectionString": "{redis.outputs.hostName},ssl=true,password={keys({Microsoft.Cache/redis@2023-04-15/redis.outputs.cacheName})}",
+      "connectionString": "{redis.outputs.hostName},ssl=true,password={keys(Microsoft.Cache/redis@2023-04-15/{redis.outputs.cacheName})}",
       "path": "aspire.hosting.azure.bicep.redis.bicep",
       "params": {
         "redisCacheName": "redis"

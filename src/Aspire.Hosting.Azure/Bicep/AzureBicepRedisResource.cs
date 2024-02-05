@@ -25,7 +25,7 @@ public static class AzureBicepRedisExtensions
     {
         var resource = new AzureBicepRedisResource(name)
         {
-            ConnectionStringTemplate = $"{{{name}.outputs.hostName}},ssl=true,password={{keys({{Microsoft.Cache/redis@2023-04-15/{name}.outputs.cacheName}})}}"
+            ConnectionStringTemplate = $"{{{name}.outputs.hostName}},ssl=true,password={{keys(Microsoft.Cache/redis@2023-04-15/{{{name}.outputs.cacheName}})}}"
         };
 
         return builder.AddResource(resource)
