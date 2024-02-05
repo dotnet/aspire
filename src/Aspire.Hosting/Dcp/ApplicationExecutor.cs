@@ -127,15 +127,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
 
         // Get resource endpoint URL.
-        string grpcEndpointUrl;
-        try
-        {
-            grpcEndpointUrl = await _dashboardEndpointProvider.GetResourceServiceUriAsync(cancellationToken).ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            throw new DistributedApplicationException("Error getting the resource service URL.", ex);
-        }
+        var grpcEndpointUrl = await _dashboardEndpointProvider.GetResourceServiceUriAsync(cancellationToken).ConfigureAwait(false);
 
         dashboardResource.Annotations.Add(new EnvironmentCallbackAnnotation(context =>
         {
@@ -191,15 +183,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             dashboardExecutableSpec.ExecutablePath = fullyQualifiedDashboardPath;
         }
 
-        string grpcEndpointUrl;
-        try
-        {
-            grpcEndpointUrl = await _dashboardEndpointProvider.GetResourceServiceUriAsync(cancellationToken).ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            throw new DistributedApplicationException("Error getting the resource service URL.", ex);
-        }
+        var grpcEndpointUrl = await _dashboardEndpointProvider.GetResourceServiceUriAsync(cancellationToken).ConfigureAwait(false);
 
         // Matches DashboardWebApplication.DashboardUrlDefaultValue
         const string defaultDashboardUrl = "http://localhost:18888";

@@ -14,8 +14,15 @@ internal sealed class HostDashboardEndpointProvider : IDashboardEndpointProvider
         _dashboardServiceHost = dashboardServiceHost;
     }
 
-    public Task<string> GetResourceServiceUriAsync(CancellationToken cancellationToken = default)
+    public async Task<string> GetResourceServiceUriAsync(CancellationToken cancellationToken = default)
     {
-        return _dashboardServiceHost.GetResourceServiceUriAsync(cancellationToken);
+        try
+        {
+            return await _dashboardServiceHost.GetResourceServiceUriAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            throw new DistributedApplicationException("Error getting the resource service URL.", ex);
+        }
     }
 }
