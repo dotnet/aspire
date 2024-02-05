@@ -10,8 +10,8 @@ builder.AddAzureProvisioning();
 var parameter = builder.AddParameter("val");
 
 var templ = builder.AddBicepTemplate("test", "test.bicep")
-                   .AddParameter("test", parameter)
-                   .AddParameter("values", ["one", "two"]);
+                   .WithParameter("test", parameter)
+                   .WithParameter("values", ["one", "two"]);
 
 var kv = builder.AddBicepKeyVault("kv");
 var appConfig = builder.AddBicepAppConfiguration("appConfig");
