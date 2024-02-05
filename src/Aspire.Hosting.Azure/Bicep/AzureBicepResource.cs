@@ -155,9 +155,6 @@ public class AzureBicepResource(string name, string? templateFile = null, string
 
     public static class KnownParameters
     {
-        public const string Location = "location";
-        public const string ResourceGroup = "resourceGroup";
-        public const string SubscriptionId = "subscriptionId";
         public const string PrincipalId = "principalId";
         public const string PrincipalName = "principalName";
         public const string PrincipalType = "principalType";

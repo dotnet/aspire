@@ -166,21 +166,6 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
 
     private static void PopulateWellKnownParameters(AzureBicepResource resource, ProvisioningContext context)
     {
-        if (resource.Parameters.TryGetValue(AzureBicepResource.KnownParameters.Location, out var location) && location is null)
-        {
-            resource.Parameters[AzureBicepResource.KnownParameters.Location] = context.Location.Name;
-        }
-
-        if (resource.Parameters.TryGetValue(AzureBicepResource.KnownParameters.ResourceGroup, out var resourceGroup) && resourceGroup is null)
-        {
-            resource.Parameters[AzureBicepResource.KnownParameters.ResourceGroup] = context.ResourceGroup.Data.Name;
-        }
-
-        if (resource.Parameters.TryGetValue(AzureBicepResource.KnownParameters.SubscriptionId, out var subscriptionId) && subscriptionId is null)
-        {
-            resource.Parameters[AzureBicepResource.KnownParameters.SubscriptionId] = context.Subscription.Data.Id;
-        }
-
         if (resource.Parameters.TryGetValue(AzureBicepResource.KnownParameters.PrincipalId, out var principalId) && principalId is null)
         {
             resource.Parameters[AzureBicepResource.KnownParameters.PrincipalId] = context.Principal.Id;
