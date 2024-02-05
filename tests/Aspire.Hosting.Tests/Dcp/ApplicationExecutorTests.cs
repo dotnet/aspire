@@ -1,7 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.Dashboard;
+using Aspire.Hosting.Dcp;
+using Aspire.Hosting.Dcp.Model;
+using Aspire.Hosting.Lifecycle;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using Xunit;
 
 namespace Aspire.Hosting.Tests.Dcp;
@@ -9,31 +14,40 @@ namespace Aspire.Hosting.Tests.Dcp;
 public class ApplicationExecutorTests
 {
     [Fact]
-    public async Task CancelledSubscriptionIsCleanedUp()
+    public async Task RunApplicationAsync_NoResources_DashboardStarted()
     {
-        ResourcePublisher publisher = new(CancellationToken.None);
-        CancellationTokenSource cts = new();
-        var called = false;
+        // Arrange
+        var distributedAppModel = new DistributedApplicationModel(new ResourceCollection());
+        var kubernetesService = new MockKubernetesService();
 
-        var (_, subscription) = publisher.Subscribe();
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService);
 
-        var task = Task.Run(async () =>
-        {
-            await foreach (var item in subscription.WithCancellation(cts.Token).ConfigureAwait(false))
+        // Act
+        await appExecutor.RunApplicationAsync();
+
+        // Assert
+        var dashboard = Assert.IsType<Executable>(Assert.Single(kubernetesService.CreatedResources));
+        Assert.Equal("aspire-dashboard", dashboard.Metadata.Name);
+    }
+
+    private static ApplicationExecutor CreateAppExecutor(
+        DistributedApplicationModel distributedAppModel,
+        IConfiguration? configuration = null,
+        IKubernetesService? kubernetesService = null)
+    {
+        return new ApplicationExecutor(
+            NullLogger<ApplicationExecutor>.Instance,
+            NullLogger<DistributedApplication>.Instance,
+            distributedAppModel,
+            new DistributedApplicationOptions(),
+            kubernetesService ?? new MockKubernetesService(),
+            Array.Empty<IDistributedApplicationLifecycleHook>(),
+            configuration ?? new ConfigurationBuilder().Build(),
+            Options.Create(new DcpOptions
             {
-                // We should only loop one time.
-                Assert.False(called);
-                called = true;
-
-                // Now we've received something, cancel.
-                await cts.CancelAsync();
-            }
-        });
-
-        // Push through an update.
-        await publisher.IntegrateAsync(CreateResourceSnapshot("A"), ResourceSnapshotChangeType.Upsert).ConfigureAwait(false);
-
-        // Let the subscriber exit.
-        await task;
+                DashboardPath = "./dashboard"
+            }),
+            new MockDashboardEndpointProvider(),
+            new MockDashboardAvailability());
     }
 }
