@@ -40,8 +40,11 @@ public sealed class ProjectInfo
         {
             try
             {
-                await HttpGetStringAsync(bindingName, "/health", cancellationToken);
-                return;
+                var status = await HttpGetStringAsync(bindingName, "/health", cancellationToken);
+                if (status == "Healthy")
+                {
+                    return;
+                }
             }
             catch
             {
