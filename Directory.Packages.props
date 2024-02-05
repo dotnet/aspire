@@ -70,6 +70,7 @@
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="$(MicrosoftExtensionsHttpResiliencePackageVersion)" />
     <!-- external dependencies -->
     <PackageVersion Include="Confluent.Kafka" Version="2.3.0" />
+    <PackageVersion Include="Dapper" Version="2.1.28" />
     <PackageVersion Include="Dapr.AspNetCore" Version="1.12.0" />
     <PackageVersion Include="DnsClient" Version="1.7.0" />
     <PackageVersion Include="Grpc.AspNetCore" Version="2.59.0" />
