@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json;
+using Azure.Storage.Blobs;
 using Microsoft.Azure.Cosmos;
 using Microsoft.EntityFrameworkCore;
 using StackExchange.Redis;
@@ -14,6 +15,7 @@ builder.AddSqlServerDbContext<MyDbContext>("db");
 builder.AddNpgsqlDbContext<MyPgDbContext>("db2");
 builder.AddAzureCosmosDB("db3");
 builder.AddRedis("redis");
+builder.AddAzureBlobService("blob");
 
 var app = builder.Build();
 
@@ -101,6 +103,30 @@ app.MapGet("/redis", async (IConnectionMultiplexer connection) =>
     foreach (var item in list)
     {
         entries.Add(JsonSerializer.Deserialize<Entry>((string)item!)!);
+    }
+
+    return entries;
+});
+
+app.MapGet("/blobs", async (BlobServiceClient blobServiceClient) =>
+{
+    var container = blobServiceClient.GetBlobContainerClient("blobs");
+
+    await container.CreateIfNotExistsAsync();
+
+    var entry = new Entry();
+
+    var blob = container.GetBlobClient(entry.Id.ToString());
+
+    // Add an entry to the blob on each request.
+    await blob.UploadAsync(BinaryData.FromObjectAsJson(entry));
+
+    var entries = new List<Entry>();
+    await foreach (var item in container.GetBlobsAsync())
+    {
+        var client = container.GetBlobClient(item.Name);
+        using var content = await client.OpenReadAsync();
+        entries.Add(JsonSerializer.Deserialize<Entry>(content)!);
     }
 
     return entries;
