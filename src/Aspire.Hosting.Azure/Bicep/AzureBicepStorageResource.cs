@@ -25,7 +25,7 @@ public class AzureBicepBlobStorageResource(string name, AzureBicepStorageResourc
     /// Gets the connection string for the Azure Blob Storage resource.
     /// </summary>
     /// <returns>The connection string for the Azure Blob Storage resource.</returns>
-    public string? GetConnectionString() => Parent.Outputs.TryGetValue("blobEndpoint", out var blobEndpoint) ? blobEndpoint : null;
+    public string? GetConnectionString() => Parent.Outputs["blobEndpoint"];
 
     public void WriteToManifest(ManifestPublishingContext context)
     {
@@ -48,7 +48,7 @@ public class AzureBicepTableStorageResource(string name, AzureBicepStorageResour
     /// Gets the connection string for the Azure Blob Storage resource.
     /// </summary>
     /// <returns>The connection string for the Azure Blob Storage resource.</returns>
-    public string? GetConnectionString() => Parent.Outputs.TryGetValue("tableEndpoint", out var tableEndpoint) ? tableEndpoint : null;
+    public string? GetConnectionString() => Parent.Outputs["tableEndpoint"];
 
     public void WriteToManifest(ManifestPublishingContext context)
     {
@@ -67,12 +67,11 @@ public class AzureBicepQueueStorageResource(string name, AzureBicepStorageResour
     /// </summary>
     public AzureBicepStorageResource Parent => storage;
 
-    ///
     /// <summary>
-    ///     Gets the connection string for the Azure Blob Storage resource.
-    ///        </summary>
-    ///          <returns>The connection string for the Azure Blob Storage resource.</returns>
-    public string? GetConnectionString() => Parent.Outputs.TryGetValue("queueEndpoint", out var queueEndpoint) ? queueEndpoint : null;
+    /// Gets the connection string for the Azure Blob Storage resource.
+    ///</summary>
+    ///<returns> The connection string for the Azure Blob Storage resource.</returns>
+    public string? GetConnectionString() => Parent.Outputs["queueEndpoint"];
 
     public void WriteToManifest(ManifestPublishingContext context)
     {
