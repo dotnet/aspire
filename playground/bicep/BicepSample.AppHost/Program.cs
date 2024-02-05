@@ -18,6 +18,7 @@ var appConfig = builder.AddBicepAppConfiguration("appConfig");
 var storage = builder.AddAzureBicepStorage("storage");
 var blobs = storage.AddBlob("blob");
 var tables = storage.AddTable("table");
+var queues = storage.AddQueue("queue");
 
 var sqlServer = builder.AddBicepAzureSql("sql").AddDatabase("db");
 
@@ -30,7 +31,9 @@ var cosmosDb = builder.AddBicepCosmosDb("cosmos").AddDatabase("db3");
 
 var appInsights = builder.AddBicepApplicationInsights("ai");
 
-var redis  = builder.AddBicepRedis("redis");
+var redis = builder.AddBicepRedis("redis");
+
+var serviceBus = builder.AddBicepServiceBus("sb", ["queue1"], ["topic1"]);
 
 builder.AddProject<Projects.BicepSample_ApiService>("api")
        .WithReference(sqlServer)
@@ -38,10 +41,12 @@ builder.AddProject<Projects.BicepSample_ApiService>("api")
        .WithReference(cosmosDb)
        .WithReference(blobs)
        .WithReference(tables)
+       .WithReference(queues)
        .WithReference(kv)
        .WithReference(appConfig)
        .WithReference(appInsights)
        .WithReference(redis)
+       .WithReference(serviceBus)
        .WithEnvironment("bicepValue_test", templ.GetOutput("test"))
        .WithEnvironment("bicepValue0", templ.GetOutput("val0"))
        .WithEnvironment("bicepValue1", templ.GetOutput("val1"));
