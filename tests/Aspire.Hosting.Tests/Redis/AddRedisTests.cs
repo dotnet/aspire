@@ -45,8 +45,7 @@ public class AddRedisTests
     public void AddRedisContainerAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.AddRedis("myRedis", port: 9813)
-                  .PublishAsContainer();
+        appBuilder.AddRedis("myRedis", port: 9813);
 
         var app = appBuilder.Build();
 
@@ -62,7 +61,7 @@ public class AddRedisTests
         Assert.Equal(6379, endpoint.ContainerPort);
         Assert.False(endpoint.IsExternal);
         Assert.Equal("tcp", endpoint.Name);
-        Assert.Equal(9813, endpoint.Port); // TODO: What should we do here, should we revert to u
+        Assert.Equal(9813, endpoint.Port);
         Assert.Equal(ProtocolType.Tcp, endpoint.Protocol);
         Assert.Equal("tcp", endpoint.Transport);
         Assert.Equal("tcp", endpoint.UriScheme);
