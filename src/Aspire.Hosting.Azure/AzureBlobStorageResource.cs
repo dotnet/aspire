@@ -1,10 +1,10 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// Represents a resource that is stored in Azure Blob Storage.
+/// A resource that represents an Azure Blob Storage account.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 /// <param name="storage">The <see cref="AzureStorageResource"/> that the resource is stored in.</param>

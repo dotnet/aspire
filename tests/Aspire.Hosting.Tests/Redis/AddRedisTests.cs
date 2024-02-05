@@ -14,13 +14,13 @@ public class AddRedisTests
     public void AddRedisContainerWithDefaultsAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.AddRedisContainer("myRedis");
+        appBuilder.AddRedis("myRedis").PublishAsContainer();
 
         var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var containerResource = Assert.Single(appModel.Resources.OfType<RedisContainerResource>());
+        var containerResource = Assert.Single(appModel.Resources.OfType<RedisResource>());
         Assert.Equal("myRedis", containerResource.Name);
 
         var manifestAnnotation = Assert.Single(containerResource.Annotations.OfType<ManifestPublishingCallbackAnnotation>());
@@ -45,13 +45,13 @@ public class AddRedisTests
     public void AddRedisContainerAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.AddRedisContainer("myRedis", 9813);
+        appBuilder.AddRedis("myRedis", port: 9813);
 
         var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var containerResource = Assert.Single(appModel.Resources.OfType<RedisContainerResource>());
+        var containerResource = Assert.Single(appModel.Resources.OfType<RedisResource>());
         Assert.Equal("myRedis", containerResource.Name);
 
         var manifestAnnotation = Assert.Single(containerResource.Annotations.OfType<ManifestPublishingCallbackAnnotation>());
@@ -76,7 +76,7 @@ public class AddRedisTests
     public void RedisCreatesConnectionString()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.AddRedisContainer("myRedis")
+        appBuilder.AddRedis("myRedis")
             .WithAnnotation(
             new AllocatedEndpointAnnotation("mybinding",
             ProtocolType.Tcp,
@@ -99,7 +99,7 @@ public class AddRedisTests
     {
         var builder = DistributedApplication.CreateBuilder();
         builder.AddRedis("myredis1").WithRedisCommander();
-        builder.AddRedisContainer("myredis2").WithRedisCommander();
+        builder.AddRedis("myredis2").WithRedisCommander();
 
         Assert.Single(builder.Resources.OfType<RedisCommanderResource>());
     }
@@ -138,7 +138,7 @@ public class AddRedisTests
     {
         var builder = DistributedApplication.CreateBuilder();
         var redis1 = builder.AddRedis("myredis1").WithRedisCommander();
-        var redis2 = builder.AddRedisContainer("myredis2").WithRedisCommander();
+        var redis2 = builder.AddRedis("myredis2").WithRedisCommander();
         var app = builder.Build();
 
         // Add fake allocated endpoints.

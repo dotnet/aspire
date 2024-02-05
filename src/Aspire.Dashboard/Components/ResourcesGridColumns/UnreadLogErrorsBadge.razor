@@ -5,14 +5,15 @@
 
 @if (_unviewedCount > 0)
 {
-    <FluentAnchor aria-label="@string.Format(Loc[_unviewedCount == 1 ? nameof(Columns.UnreadLogErrorsBadgeErrorLog) : nameof(Columns.UnreadLogErrorsBadgeErrorLogs)], _unviewedCount)"
+    <FluentAnchor aria-label="@(_unviewedCount == 1 ? nameof(Columns.UnreadLogErrorsBadgeOneErrorLog) : string.Format(Loc[nameof(Columns.UnreadLogErrorsBadgeErrorLogs)], _unviewedCount))"
                   Href="@GetResourceErrorStructuredLogsUrl(Resource)"
                   Appearance="Appearance.Stealth"
                   Class="unread-logs-errors-link">
         <FluentBadge
             Appearance="Appearance.Accent"
             Circular="true"
-            Fill="error">
+            Fill="error"
+            Color="var(--unread-logs-badge-color)">
             @(_unviewedCount > 9 ? "9+" : _unviewedCount.ToString())
         </FluentBadge>
     </FluentAnchor>

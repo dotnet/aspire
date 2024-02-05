@@ -25,7 +25,7 @@ public class ProjectResourceTests
         Assert.Equal("projectName", resource.Name);
         Assert.Equal(5, resource.Annotations.Count);
 
-        var serviceMetadata = Assert.Single(resource.Annotations.OfType<IServiceMetadata>());
+        var serviceMetadata = Assert.Single(resource.Annotations.OfType<IProjectMetadata>());
         Assert.IsType<TestProject>(serviceMetadata);
 
         var annotations = resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
@@ -139,6 +139,24 @@ public class ProjectResourceTests
     }
 
     [Fact]
+    public void ExcludeLaunchProfileAddsAnnotationToProject()
+    {
+        var appBuilder = CreateBuilder();
+
+        appBuilder.AddProject<Projects.ServiceA>("projectName")
+            .ExcludeLaunchProfile();
+        var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var projectResources = appModel.GetProjectResources();
+
+        var resource = Assert.Single(projectResources);
+        // ExcludeLaunchProfileAnnotation isn't public, so we just check the type name
+        Assert.Contains(resource.Annotations, a => a.GetType().Name == "ExcludeLaunchProfileAnnotation");
+    }
+
+    [Fact]
     public void ProjectWithoutServiceMetadataFailsWithLaunchProfile()
     {
         var appBuilder = CreateBuilder();
@@ -147,7 +165,7 @@ public class ProjectResourceTests
         var projectResource = appBuilder.AddResource(project);
 
         var ex = Assert.Throws<DistributedApplicationException>(() => projectResource.WithLaunchProfile("not-exist"));
-        Assert.Equal("Project does not contain service metadata.", ex.Message);
+        Assert.Equal("Project does not contain project metadata.", ex.Message);
     }
 
     private static IDistributedApplicationBuilder CreateBuilder()
@@ -159,7 +177,7 @@ public class ProjectResourceTests
         return appBuilder;
     }
 
-    private sealed class TestProject : IServiceMetadata
+    private sealed class TestProject : IProjectMetadata
     {
         public string ProjectPath => "another-path";
     }

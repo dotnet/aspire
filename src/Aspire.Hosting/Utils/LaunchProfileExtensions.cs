@@ -14,12 +14,19 @@ internal static class LaunchProfileExtensions
 {
     internal static LaunchSettings? GetLaunchSettings(this ProjectResource projectResource)
     {
-        if (!projectResource.TryGetLastAnnotation<IServiceMetadata>(out var serviceMetadata))
+        if (!projectResource.TryGetLastAnnotation<IProjectMetadata>(out var projectMetadata))
         {
-            throw new DistributedApplicationException(Resources.ProjectDoesNotContainServiceMetadataExceptionMessage);
+            throw new DistributedApplicationException(Resources.ProjectDoesNotContainMetadataExceptionMessage);
         }
 
-        return serviceMetadata.GetLaunchSettings();
+        // ExcludeLaunchProfileAnnotation disables getting launch settings. This ensures consumers of launch settings
+        // never get a copy and can't use values from it to configure the application.
+        if (projectResource.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _))
+        {
+            return null;
+        }
+
+        return projectMetadata.GetLaunchSettings();
     }
 
     internal static LaunchProfile? GetEffectiveLaunchProfile(this ProjectResource projectResource)
@@ -40,15 +47,15 @@ internal static class LaunchProfileExtensions
         return found == true ? launchProfile : null;
     }
 
-    internal static LaunchSettings? GetLaunchSettings(this IServiceMetadata serviceMetadata)
+    private static LaunchSettings? GetLaunchSettings(this IProjectMetadata projectMetadata)
     {
-        if (!File.Exists(serviceMetadata.ProjectPath))
+        if (!File.Exists(projectMetadata.ProjectPath))
         {
-            var message = string.Format(CultureInfo.InvariantCulture, Resources.ProjectFileNotFoundExceptionMessage, serviceMetadata.ProjectPath);
+            var message = string.Format(CultureInfo.InvariantCulture, Resources.ProjectFileNotFoundExceptionMessage, projectMetadata.ProjectPath);
             throw new DistributedApplicationException(message);
         }
 
-        var projectFileInfo = new FileInfo(serviceMetadata.ProjectPath);
+        var projectFileInfo = new FileInfo(projectMetadata.ProjectPath);
         var launchSettingsFilePath = projectFileInfo.DirectoryName switch
         {
             null => Path.Combine("Properties", "launchSettings.json"),
@@ -62,7 +69,7 @@ internal static class LaunchProfileExtensions
         }
 
         using var stream = File.OpenRead(launchSettingsFilePath);
-        var settings = JsonSerializer.Deserialize(stream, LaunchSetttingsSerializerContext.Default.LaunchSettings);
+        var settings = JsonSerializer.Deserialize(stream, LaunchSettingsSerializerContext.Default.LaunchSettings);
         return settings;
     }
 
@@ -130,6 +137,12 @@ internal static class LaunchProfileExtensions
 
     internal static string? SelectLaunchProfileName(this ProjectResource projectResource)
     {
+        // ExcludeLaunchProfileAnnotation takes precedence over all other launch profile selectors.
+        if (projectResource.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _))
+        {
+            return null;
+        }
+
         foreach (var launchProfileSelector in s_launchProfileSelectors)
         {
             if (launchProfileSelector(projectResource, out var launchProfile))
@@ -146,7 +159,7 @@ internal delegate bool LaunchProfileSelector(ProjectResource project, out string
 
 [JsonSerializable(typeof(LaunchSettings))]
 [JsonSourceGenerationOptions(ReadCommentHandling = JsonCommentHandling.Skip)]
-internal sealed partial class LaunchSetttingsSerializerContext : JsonSerializerContext
+internal sealed partial class LaunchSettingsSerializerContext : JsonSerializerContext
 {
 
 }

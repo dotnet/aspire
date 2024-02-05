@@ -59,7 +59,8 @@ public partial class ResourceDetails
         [
             new KnownProperty(KnownProperties.Resource.DisplayName, Loc[Resources.Resources.ResourcesDetailsDisplayNameProperty]),
             new KnownProperty(KnownProperties.Resource.State, Loc[Resources.Resources.ResourcesDetailsStateProperty]),
-            new KnownProperty(KnownProperties.Resource.CreateTime, Loc[Resources.Resources.ResourcesDetailsStartTimeProperty])
+            new KnownProperty(KnownProperties.Resource.CreateTime, Loc[Resources.Resources.ResourcesDetailsStartTimeProperty]),
+            new KnownProperty(KnownProperties.Resource.ExitCode, Loc[Resources.Resources.ResourcesDetailsExitCodeProperty])
         ];
         _projectProperties =
         [

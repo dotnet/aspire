@@ -1,0 +1,8 @@
+﻿@namespace Aspire.Dashboard.Components
+@inherits FluentComponentBase
+
+<nav id="@Id" @attributes="AdditionalAttributes" class="@ClassValue" style="@Style">
+    <FluentStack Orientation="Orientation.Vertical" HorizontalAlignment="HorizontalAlignment.Center" VerticalGap="0">
+        @ChildContent
+    </FluentStack>
+</nav>

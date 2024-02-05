@@ -13,7 +13,7 @@
                PreCopyToolTip="@Loc[nameof(Columns.SourceColumnSourceCopyFullPathToClipboard)]"
                ToolTip="@projectPath" />
 }
-else if (Resource.TryGetExecutablePath(out var executablePath) && Resource.TryGetWorkingDirectory(out var workingDirectory))
+else if (Resource.TryGetExecutablePath(out var executablePath))
 {
     Resource.TryGetExecutableArguments(out var arguments);
     var argumentsString = arguments.IsDefaultOrEmpty ? "" : string.Join(" ", arguments);
@@ -23,14 +23,12 @@ else if (Resource.TryGetExecutablePath(out var executablePath) && Resource.TryGe
                ValueToCopy="@fullCommandLine"
                EnableHighlighting="true"
                HighlightText="@FilterText"
-               PreCopyToolTip="@Loc[nameof(Columns.SourceColumnSourceCopyFullPathToClipboard)]"
-               ToolTip="@executablePath">
+               PreCopyToolTip="@Loc[nameof(Columns.SourceColumnDisplayCopyCommandToClipboard)]"
+               ToolTip="@fullCommandLine">
         <ContentAfterValue>
             <span class="subtext">@argumentsString</span>
         </ContentAfterValue>
     </GridValue>
-
-    <div class="ellipsis-overflow" title="@workingDirectory" aria-label="@workingDirectory">@string.Format(Loc[nameof(Columns.SourceColumnDisplayWorkingDirectory)], workingDirectory?.TrimMiddle(35))</div>
 }
 else if (Resource.TryGetContainerImage(out var containerImage))
 {

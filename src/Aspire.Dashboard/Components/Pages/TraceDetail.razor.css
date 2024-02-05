@@ -69,7 +69,7 @@
 
 ::deep .ticks .tick {
     width: 1px;
-    height: 30px;
+    height: 32px;
     background: #d8d8d8;
     grid-row: 1;
 }
@@ -86,7 +86,17 @@
     grid-row: 1;
 }
 
+::deep .span-collapse-symbol {
+    display: inline-block;
+    width: 20px;
+    text-align: center;
+    padding: 0px 5px;
+    line-height: 28px;
+    user-select: none;
+}
+
 ::deep .span-name-container {
+    margin-left: -3px;
     line-height: 28px;
 }
 

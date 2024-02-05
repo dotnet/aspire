@@ -4,7 +4,7 @@
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// Represents an OpenAI resource independent of hosting model.
+/// A resource that represents an OpenAI resource independent of the hosting model.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 public class OpenAIResource(string name) : Resource(name), IResourceWithConnectionString

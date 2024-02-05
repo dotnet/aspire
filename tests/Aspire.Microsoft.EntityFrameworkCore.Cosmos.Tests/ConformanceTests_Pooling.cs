@@ -46,9 +46,6 @@ public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, EntityFr
     protected override void SetMetrics(EntityFrameworkCoreCosmosDBSettings options, bool enabled)
         => options.Metrics = enabled;
 
-    protected override string JsonSchemaPath
-        => "src/Components/Aspire.Microsoft.EntityFrameworkCore.Cosmos/ConfigurationSchema.json";
-
     protected override string ValidJsonConfig => """
         {
           "Aspire": {

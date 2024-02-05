@@ -9,15 +9,28 @@ namespace Aspire.Dashboard.Model.Otlp;
 
 public sealed class SpanWaterfallViewModel
 {
+    public required List<SpanWaterfallViewModel> Children { get; init; }
     public required OtlpSpan Span { get; init; }
     public required double LeftOffset { get; init; }
     public required double Width { get; init; }
     public required int Depth { get; init; }
     public required bool LabelIsRight { get; init; }
     public required string? UninstrumentedPeer { get; init; }
+    public bool IsHidden { get; set; }
     [MemberNotNullWhen(true, nameof(UninstrumentedPeer))]
     public bool HasUninstrumentedPeer => !string.IsNullOrEmpty(UninstrumentedPeer);
     public bool IsError => Span.Status == OtlpSpanStatusCode.Error;
+
+    private bool _isCollapsed;
+    public bool IsCollapsed
+    {
+        get => _isCollapsed;
+        set
+        {
+            _isCollapsed = value;
+            UpdateHidden();
+        }
+    }
 
     public string GetTooltip()
     {
@@ -85,5 +98,11 @@ public sealed class SpanWaterfallViewModel
         }
 
         return Span.Name;
+    }
+
+    private void UpdateHidden(bool isParentCollapsed = false)
+    {
+        IsHidden = isParentCollapsed;
+        Children.ForEach(child => child.UpdateHidden(isParentCollapsed || IsCollapsed));
     }
 }
