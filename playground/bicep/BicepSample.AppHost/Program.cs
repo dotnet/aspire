@@ -15,7 +15,9 @@ var templ = builder.AddBicepTemplate("test", "test.bicep")
 
 var kv = builder.AddBicepKeyVault("kv");
 var appConfig = builder.AddBicepAppConfiguration("appConfig");
-var blobs = builder.AddAzureBicepStorage("storage").AddBlob("blob");
+var storage = builder.AddAzureBicepStorage("storage");
+var blobs = storage.AddBlob("blob");
+var tables = storage.AddTable("table");
 
 var sqlServer = builder.AddBicepAzureSql("sql").AddDatabase("db");
 
@@ -35,6 +37,7 @@ builder.AddProject<Projects.BicepSample_ApiService>("api")
        .WithReference(pg)
        .WithReference(cosmosDb)
        .WithReference(blobs)
+       .WithReference(tables)
        .WithReference(kv)
        .WithReference(appConfig)
        .WithReference(appInsights)

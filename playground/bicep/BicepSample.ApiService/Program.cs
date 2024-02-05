@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json;
+using Azure.Data.Tables;
 using Azure.Storage.Blobs;
 using Microsoft.Azure.Cosmos;
 using Microsoft.EntityFrameworkCore;
@@ -16,6 +17,7 @@ builder.AddNpgsqlDbContext<MyPgDbContext>("db2");
 builder.AddAzureCosmosDB("db3");
 builder.AddRedis("redis");
 builder.AddAzureBlobService("blob");
+builder.AddAzureTableService("table");
 
 var app = builder.Build();
 
@@ -127,6 +129,31 @@ app.MapGet("/blobs", async (BlobServiceClient blobServiceClient) =>
         var client = container.GetBlobClient(item.Name);
         using var content = await client.OpenReadAsync();
         entries.Add(JsonSerializer.Deserialize<Entry>(content)!);
+    }
+
+    return entries;
+});
+
+app.MapGet("/tables", async (TableServiceClient tableServiceClient) =>
+{
+    var table = tableServiceClient.GetTableClient("entries");
+
+    await table.CreateIfNotExistsAsync();
+
+    var entry = new Entry();
+
+    var tableEntry = new TableEntity(entry.Id.ToString(), entry.Id.ToString())
+    {
+        { "data", JsonSerializer.Serialize(entry) }
+    };
+
+    // Add an entry to the table on each request.
+    await table.AddEntityAsync(tableEntry);
+
+    var entries = new List<Entry>();
+    await foreach (var item in table.QueryAsync<TableEntity>())
+    {
+        entries.Add(JsonSerializer.Deserialize<Entry>((string)item["data"])!);
     }
 
     return entries;
