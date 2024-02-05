@@ -118,7 +118,9 @@
           "db3"
         ]
       },
-      "azureResourceType": "Microsoft.DocumentDB/databaseAccounts@2023-04-15"
+      "metadata": {
+        "azureResourceType": "Microsoft.DocumentDB/databaseAccounts@2023-04-15"
+      }
     },
     "db3": {
       "type": "azure.bicep.v0",
@@ -133,6 +135,17 @@
         "appInsightsName": "ai"
       }
     },
+    "redis": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{redis.outputs.hostName},ssl=true,password={keys({redis.outputs.cacheName})}",
+      "path": "aspire.hosting.azure.bicep.redis.bicep",
+      "params": {
+        "redisCacheName": "redis"
+      },
+      "metadata": {
+        "azureResourceType": "Microsoft.Cache/redis@2023-04-15"
+      }
+    },
     "api": {
       "type": "project.v0",
       "path": "../BicepSample.ApiService/BicepSample.ApiService.csproj",
@@ -145,7 +158,11 @@
         "ConnectionStrings__blob": "{blob.connectionString}",
         "ConnectionStrings__kv": "{kv.connectionString}",
         "ConnectionStrings__appConfig": "{appConfig.connectionString}",
-        "APPLICATIONINSIGHTS_CONNECTION_STRING": "{ai.connectionString}"
+        "APPLICATIONINSIGHTS_CONNECTION_STRING": "{ai.connectionString}",
+        "ConnectionStrings__redis": "{redis.connectionString}",
+        "bicepValue_test": "{test.outputs.test}",
+        "bicepValue0": "{test.outputs.val0}",
+        "bicepValue1": "{test.outputs.val1}"
       },
       "bindings": {
         "http": {

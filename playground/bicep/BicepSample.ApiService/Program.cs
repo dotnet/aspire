@@ -1,9 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text.Json;
 using Microsoft.Azure.Cosmos;
 using Microsoft.EntityFrameworkCore;
-using Newtonsoft.Json;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,10 +12,8 @@ builder.AddServiceDefaults();
 
 builder.AddSqlServerDbContext<MyDbContext>("db");
 builder.AddNpgsqlDbContext<MyPgDbContext>("db2");
-builder.AddAzureCosmosDB("db3", settings =>
-{
-    settings.IgnoreEmulatorCertificate = true;
-});
+builder.AddAzureCosmosDB("db3");
+builder.AddRedis("redis");
 
 var app = builder.Build();
 
@@ -87,6 +86,26 @@ app.MapGet("/cosmos", async (CosmosClient cosmosClient) =>
     };
 });
 
+app.MapGet("/redis", async (IConnectionMultiplexer connection) =>
+{
+    var database = connection.GetDatabase();
+
+    var entry = new Entry();
+
+    // Add an entry to the list on each request.
+    await database.ListRightPushAsync("entries", JsonSerializer.SerializeToUtf8Bytes(entry));
+
+    var entries = new List<Entry>();
+    var list = await database.ListRangeAsync("entries");
+
+    foreach (var item in list)
+    {
+        entries.Add(JsonSerializer.Deserialize<Entry>((string)item!)!);
+    }
+
+    return entries;
+});
+
 app.Run();
 
 public class MyPgDbContext(DbContextOptions<MyPgDbContext> options) : DbContext(options)
@@ -101,12 +120,6 @@ public class MyDbContext(DbContextOptions<MyDbContext> options) : DbContext(opti
 
 public class Entry
 {
-    [JsonProperty("id")]
+    [Newtonsoft.Json.JsonProperty("id")]
     public Guid Id { get; set; } = Guid.NewGuid();
 }
-
-//public class CosmosEntry
-//{
-//    [JsonProperty("id")]
-//    public string? Id { get; set; }
-//}
