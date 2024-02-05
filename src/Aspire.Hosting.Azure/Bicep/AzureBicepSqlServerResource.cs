@@ -14,7 +14,7 @@ public class AzureBicepSqlServerResource(string name) :
 
     public string? GetConnectionString()
     {
-        return $"Server=tcp:{Outputs["sqlServerFqdn"]},1433;Encrypt=True;Authentication=\"Active Directory Default\";";
+        return $"Server=tcp:{Outputs["sqlServerFqdn"]},1433;Encrypt=True;Authentication=\"Active Directory Default\"";
     }
 }
 
