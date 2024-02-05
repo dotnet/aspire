@@ -1,6 +1,7 @@
 ﻿@using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Resources
+@using Humanizer
 
 @inject IStringLocalizer<Columns> Loc
 
@@ -36,7 +37,7 @@ else
                 Class="severity-icon"/>
 }
 
-@Resource.State
+@Resource.State.Humanize()
 <UnreadLogErrorsBadge UnviewedErrorCounts="UnviewedErrorCounts" Resource="@Resource" />
 
 @code {

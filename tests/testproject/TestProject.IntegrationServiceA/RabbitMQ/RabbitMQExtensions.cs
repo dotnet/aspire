@@ -8,7 +8,7 @@ public static class RabbitMQExtensions
 {
     public static void MapRabbitMQApi(this WebApplication app)
     {
-        app.MapGet("/rabbit/verify", VerifyRabbitMQ);
+        app.MapGet("/rabbitmq/verify", VerifyRabbitMQ);
     }
 
     private static IResult VerifyRabbitMQ(IConnection connection)

@@ -4,6 +4,7 @@
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Dashboard;
@@ -21,13 +22,13 @@ internal sealed class DashboardServiceData : IAsyncDisposable
     public DashboardServiceData(
         DistributedApplicationModel applicationModel,
         KubernetesService kubernetesService,
-        IEnvironmentVariables environmentVariables,
+        IConfiguration configuration,
         ILoggerFactory loggerFactory)
     {
         _resourcePublisher = new ResourcePublisher(_cts.Token);
         _consoleLogPublisher = new ConsoleLogPublisher(_resourcePublisher);
 
-        _ = new DcpDataSource(kubernetesService, applicationModel, environmentVariables, loggerFactory, _resourcePublisher.IntegrateAsync, _cts.Token);
+        _ = new DcpDataSource(kubernetesService, applicationModel, configuration, loggerFactory, _resourcePublisher.IntegrateAsync, _cts.Token);
     }
 
     public async ValueTask DisposeAsync()

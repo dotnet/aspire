@@ -3,7 +3,8 @@
 
 namespace Aspire.Hosting.ApplicationModel;
 
-public class SecretResource(string name, SecretStoreResource parent) : Resource(name), IResourceWithParent<SecretStoreResource>
+public enum ResourceAnnotationMutationBehavior
 {
-    public SecretStoreResource Parent => parent;
+    Append,
+    Replace
 }
