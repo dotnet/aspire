@@ -62,6 +62,24 @@ public class ManifestGenerationTests
     }
 
     [Fact]
+    public void ExcludeLaunchProfileOmitsBindings()
+    {
+        var program = CreateTestProgramJsonDocumentManifestPublisher();
+        program.ServiceABuilder.ExcludeLaunchProfile();
+
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+
+        Assert.False(
+            resources.GetProperty("servicea").TryGetProperty("bindings", out _),
+            "Service has no bindings because they weren't populated from the launch profile.");
+    }
+
+    [Fact]
     public void EnsureContainerWithEndpointsEmitsContainerPort()
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher();
