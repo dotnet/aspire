@@ -3,10 +3,13 @@
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json.Nodes;
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp.Process;
+using Azure;
 using Azure.ResourceManager.CosmosDB;
 using Azure.ResourceManager.Redis;
 using Azure.ResourceManager.Resources;
+using Azure.ResourceManager.Resources.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -42,25 +45,7 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
 
     public override async Task GetOrCreateResourceAsync(AzureBicepResource resource, ProvisioningContext context, CancellationToken cancellationToken)
     {
-        // az deployment group create \
-        //      --name ExampleDeployment \
-        //--resource - group ExampleGroup \
-        //--template - file <path-to-bicep> \
-        //--parameters storageAccountType=Standard_GRS
-
-        static string Eval(object? input) => AzureBicepResource.EvalParameter(input);
-
         PopulateWellKnownParameters(resource, context);
-
-        var parameters = "";
-
-        if (resource.Parameters.Count > 0)
-        {
-            parameters = " --parameters " + string.Join(" ", resource.Parameters.Select(kvp => $"{kvp.Key}={Eval(kvp.Value)}"));
-        }
-
-        // TODO: Use a parameter file
-        // https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/parameter-files?tabs=JSON
 
         var azPath = FindFullPathFromPath("az") ??
             throw new InvalidOperationException("Azure CLI not found in PATH");
@@ -68,24 +53,61 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
         var template = resource.GetBicepTemplateFile();
 
         var path = template.Path;
-        var results = new StringBuilder();
-        var deploySpec = new ProcessSpec(azPath)
+
+        // Use the azure CLI to run the bicep compiler to transpile the bicep file to a ARM JSON file
+        var armTemplateContents = new StringBuilder();
+        var templateSpec = new ProcessSpec(azPath)
         {
-            Arguments = $"deployment group create --no-prompt --name \"{resource.Name}\" --resource-group {context.ResourceGroup.Data.Name} --template-file \"{path}\"{parameters}",
-            OnOutputData = data => results.AppendLine(data),
+            Arguments = $"bicep build --file \"{path}\" --stdout",
+            OnOutputData = data => armTemplateContents.AppendLine(data),
             OnErrorData = data => logger.Log(LogLevel.Error, 0, data, null, (s, e) => s),
         };
 
-        logger.LogInformation("Deploying {Name} to {ResourceGroup}", resource.Name, context.ResourceGroup.Data.Name);
-
-        if (await ExecuteCommand(logger, results, deploySpec).ConfigureAwait(false))
+        if (!await ExecuteCommand(logger, templateSpec).ConfigureAwait(false))
         {
-            // Only delete on success (makes debugging easier)
-            template.Dispose();
+            throw new InvalidOperationException();
         }
 
-        var deployment = await context.ResourceGroup.GetArmDeployments().GetAsync(resource.Name, cancellationToken).ConfigureAwait(false);
-        var outputs = deployment.Value.Data.Properties.Outputs;
+        var deployments = context.ResourceGroup.GetArmDeployments();
+
+        logger.LogInformation("Deploying {Name} to {ResourceGroup}", resource.Name, context.ResourceGroup.Data.Name);
+
+        // Convert the parameters to a JSON object
+        var parameters = new JsonObject();
+        foreach (var parameter in resource.Parameters)
+        {
+            parameters[parameter.Key] = new JsonObject()
+            {
+                ["value"] = parameter.Value switch
+                {
+                    string s => s,
+                    int i => i,
+                    bool b => b,
+                    JsonNode node => node,
+                    IResourceBuilder<IResourceWithConnectionString> c => c.Resource.GetConnectionString(),
+                    IResourceBuilder<ParameterResource> p => p.Resource.Value,
+                    object o => o.ToString()!,
+                    null => null,
+                }
+            };
+        }
+
+        var operation = await deployments.CreateOrUpdateAsync(WaitUntil.Completed, resource.Name, new ArmDeploymentContent(new(ArmDeploymentMode.Incremental)
+        {
+            Template = BinaryData.FromString(armTemplateContents.ToString()),
+            Parameters = BinaryData.FromObjectAsJson(parameters),
+            DebugSettingDetailLevel = "RequestContent, ResponseContent",
+        }),
+        cancellationToken).ConfigureAwait(false);
+
+        var deployment = operation.Value;
+
+        var outputs = deployment.Data.Properties.Outputs;
+
+        if (deployment.Data.Properties.ProvisioningState == ResourcesProvisioningState.Succeeded)
+        {
+            template.Dispose();
+        }
 
         // TODO: Handle complex types
         // e.g. {  "sqlServerName": {    "type": "String",    "value": "??"  }}
@@ -172,10 +194,10 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
         }
     }
 
-    private static async Task<bool> ExecuteCommand(ILogger<BicepProvisioner> logger, StringBuilder results, ProcessSpec deploySpec)
+    private static async Task<bool> ExecuteCommand(ILogger<BicepProvisioner> logger, ProcessSpec processSpec)
     {
         var sw = Stopwatch.StartNew();
-        var (task, disposable) = ProcessUtil.Run(deploySpec);
+        var (task, disposable) = ProcessUtil.Run(processSpec);
 
         try
         {
@@ -183,11 +205,6 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
             sw.Stop();
 
             logger.LogInformation("Process exited with {ExitCode}, took {Time}s", result.ExitCode, sw.Elapsed.TotalSeconds);
-
-            if (results != null)
-            {
-                logger.LogInformation("Results: {Results}", results);
-            }
 
             return result.ExitCode == 0;
         }
@@ -218,6 +235,6 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
             }
         }
 
-        return command;
+        return null;
     }
 }
