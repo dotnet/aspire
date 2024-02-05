@@ -103,7 +103,7 @@ public partial class TraceDetail : ComponentBase
             var labelIsRight = (relativeStart + span.Duration / 2) < (span.Trace.Duration / 2);
 
             // A span may indicate a call to another service but the service isn't instrumented.
-            var hasPeerService = span.Attributes.Any(a => a.Key == OtlpSpan.PeerServiceAttributeKey);
+            var hasPeerService = OtlpHelpers.GetPeerAddress(span.Attributes) != null;
             var isUninstrumentedPeer = hasPeerService && span.Kind is OtlpSpanKind.Client or OtlpSpanKind.Producer && !span.GetChildSpans().Any();
             var uninstrumentedPeer = isUninstrumentedPeer ? ResolveUninstrumentedPeerName(span, state.OutgoingPeerResolvers) : null;
 
@@ -144,7 +144,7 @@ public partial class TraceDetail : ComponentBase
         }
 
         // Fallback to the peer address.
-        return OtlpHelpers.GetValue(span.Attributes, OtlpSpan.PeerServiceAttributeKey);
+        return OtlpHelpers.GetPeerAddress(span.Attributes);
     }
 
     protected override void OnParametersSet()

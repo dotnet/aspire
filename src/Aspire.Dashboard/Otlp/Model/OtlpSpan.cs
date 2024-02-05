@@ -12,6 +12,11 @@ namespace Aspire.Dashboard.Otlp.Model;
 public class OtlpSpan
 {
     public const string PeerServiceAttributeKey = "peer.service";
+    public const string UrlFullAttributeKey = "url.full";
+    public const string ServerAddressAttributeKey = "server.address";
+    public const string ServerPortAttributeKey = "server.port";
+    public const string NetPeerNameAttributeKey = "net.peer.name";
+    public const string NetPeerPortAttributeKey = "net.peer.port";
     public const string SpanKindAttributeKey = "span.kind";
 
     public string TraceId => Trace.TraceId;
