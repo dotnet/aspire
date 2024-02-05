@@ -1,7 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure.Cosmos;
 using Aspire.Hosting.Publishing;
 
 namespace Aspire.Hosting.Azure;
@@ -16,10 +18,24 @@ public class AzureBicepCosmosDBResource(string name) :
 
     public string AccountKeyOutputKey => "accountKey";
 
+    public bool IsEmulator => this.IsContainer();
+
     public string? GetConnectionString()
     {
+        if (IsEmulator)
+        {
+            return AzureCosmosDBEmulatorConnectionString.Create(GetEmulatorPort("emulator"));
+        }
+
         return $"AccountEndpoint={Outputs["documentEndpoint"]};AccountKey={Outputs[AccountKeyOutputKey]};";
     }
+
+    private int GetEmulatorPort(string endpointName) =>
+        Annotations
+            .OfType<AllocatedEndpointAnnotation>()
+            .FirstOrDefault(x => x.Name == endpointName)
+            ?.Port
+        ?? throw new DistributedApplicationException($"Azure Cosmos DB resource does not have endpoint annotation with name '{endpointName}'.");
 }
 
 public class AzureBicepCosmosDBDatabaseResource(string name, AzureBicepCosmosDBResource cosmosDB) :
@@ -57,6 +73,12 @@ public static class AzureBicepCosmosExtensions
                       .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 
+    public static IResourceBuilder<AzureBicepCosmosDBResource> UseEmulator(this IResourceBuilder<AzureBicepCosmosDBResource> builder, int? port = null, string? imageTag = null)
+    {
+        return builder.WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, name: "emulator", port: port, containerPort: 8081))
+                      .WithAnnotation(new ContainerImageAnnotation { Image = "mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator", Tag = imageTag ?? "latest" });
+    }
+
     public static IResourceBuilder<AzureBicepCosmosDBDatabaseResource> AddDatabase(this IResourceBuilder<AzureBicepCosmosDBResource> builder, string name, string? databaseName = null)
     {
         var dbName = databaseName ?? name;
@@ -68,4 +90,9 @@ public static class AzureBicepCosmosExtensions
         return builder.ApplicationBuilder.AddResource(resource)
                       .WithManifestPublishingCallback(resource.WriteToManifest);
     }
+}
+
+file static class AzureCosmosDBEmulatorConnectionString
+{
+    public static string Create(int port) => $"AccountKey={CosmosConstants.EmulatorAccountKey};AccountEndpoint=https://127.0.0.1:{port};";
 }

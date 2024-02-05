@@ -16,6 +16,8 @@ var templ = builder.AddBicepTemplate("test", "test.bicep")
 var kv = builder.AddBicepKeyVault("kv");
 var appConfig = builder.AddBicepAppConfiguration("appConfig");
 var storage = builder.AddAzureBicepStorage("storage");
+                    // .UseEmulator();
+
 var blobs = storage.AddBlob("blob");
 var tables = storage.AddTable("table");
 var queues = storage.AddQueue("queue");
@@ -27,7 +29,9 @@ var pwd = builder.AddParameter("password", secret: true);
 
 var pg = builder.AddAzurePostgres("postgres2", user, pwd).AddDatabase("db2");
 
-var cosmosDb = builder.AddBicepCosmosDb("cosmos").AddDatabase("db3");
+var cosmosDb = builder.AddBicepCosmosDb("cosmos")
+                      // .UseEmulator()
+                      .AddDatabase("db3");
 
 var appInsights = builder.AddBicepApplicationInsights("ai");
 

@@ -17,6 +17,9 @@ namespace Aspire.Hosting.Azure.Provisioning;
 
 internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : AzureResourceProvisioner<AzureBicepResource>
 {
+    public override bool ShouldProvision(IConfiguration configuration, AzureBicepResource resource)
+        => !resource.IsContainer();
+
     public override bool ConfigureResource(IConfiguration configuration, AzureBicepResource resource)
     {
         var section = configuration.GetSection($"Azure:Deployments:{resource.Name}");
