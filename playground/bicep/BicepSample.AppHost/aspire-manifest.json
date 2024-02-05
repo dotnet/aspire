@@ -54,6 +54,16 @@
       "connectionString": "{storage.outputs.blobEndpoint}",
       "parent": "storage"
     },
+    "table": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{storage.outputs.tableEndpoint}",
+      "parent": "storage"
+    },
+    "queue": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{storage.outputs.queueEndpoint}",
+      "parent": "storage"
+    },
     "sql": {
       "type": "azure.bicep.v0",
       "connectionString": "Server=tcp:{sql.outputs.sqlServerFqdn},1433;Encrypt=True;Authentication=\u0022Active Directory Default\u0022",
@@ -146,6 +156,22 @@
         "azureResourceType": "Microsoft.Cache/redis@2023-04-15"
       }
     },
+    "sb": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{sb.outputs.serviceBusEndpoint}",
+      "path": "aspire.hosting.azure.bicep.servicebus.bicep",
+      "params": {
+        "serviceBusNamespaceName": "sb",
+        "principalId": "",
+        "principalType": "",
+        "topics": [
+          "topic1"
+        ],
+        "queues": [
+          "queue1"
+        ]
+      }
+    },
     "api": {
       "type": "project.v0",
       "path": "../BicepSample.ApiService/BicepSample.ApiService.csproj",
@@ -156,10 +182,13 @@
         "ConnectionStrings__db2": "{db2.connectionString}",
         "ConnectionStrings__db3": "{db3.connectionString}",
         "ConnectionStrings__blob": "{blob.connectionString}",
+        "ConnectionStrings__table": "{table.connectionString}",
+        "ConnectionStrings__queue": "{queue.connectionString}",
         "ConnectionStrings__kv": "{kv.connectionString}",
         "ConnectionStrings__appConfig": "{appConfig.connectionString}",
         "APPLICATIONINSIGHTS_CONNECTION_STRING": "{ai.connectionString}",
         "ConnectionStrings__redis": "{redis.connectionString}",
+        "ConnectionStrings__sb": "{sb.connectionString}",
         "bicepValue_test": "{test.outputs.test}",
         "bicepValue0": "{test.outputs.val0}",
         "bicepValue1": "{test.outputs.val1}"
