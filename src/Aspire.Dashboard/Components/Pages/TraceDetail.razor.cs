@@ -103,7 +103,7 @@ public partial class TraceDetail : ComponentBase
             var labelIsRight = (relativeStart + span.Duration / 2) < (span.Trace.Duration / 2);
 
             // A span may indicate a call to another service but the service isn't instrumented.
-            var hasPeerService = span.Attributes.Any(a => a.Key == OtlpSpan.PeerServiceAttributeKey);
+            var hasPeerService = span.Attributes.HasKey(OtlpSpan.PeerServiceAttributeKey) || span.Attributes.HasKey(OtlpSpan.UrlFullAttributeKey);
             var isUninstrumentedPeer = hasPeerService && span.Kind is OtlpSpanKind.Client or OtlpSpanKind.Producer && !span.GetChildSpans().Any();
             var uninstrumentedPeer = isUninstrumentedPeer ? ResolveUninstrumentedPeerName(span, state.OutgoingPeerResolvers) : null;
 
