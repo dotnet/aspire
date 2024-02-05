@@ -84,7 +84,7 @@ public class AzureBicepResource(string name, string? templateFile = null, string
     }
 
     // TODO: Make the name bicep safe
-    protected string CreateBicepResourceName() => Name.ToLower();
+    public string CreateBicepResourceName() => Name.ToLower();
 
     private static string EvalParameter(object? input)
     {
