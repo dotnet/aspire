@@ -88,9 +88,9 @@ public static class AzureBicepSqlResourceExtensions
         var resource = new AzureBicepStorageResource(name);
 
         return builder.AddResource(resource)
-                      .AddParameter(AzureBicepResource.KnownParameters.PrincipalId)
-                      .AddParameter(AzureBicepResource.KnownParameters.PrincipalType)
-                      .AddParameter("storageName", resource.CreateBicepResourceName())
+                      .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
+                      .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)
+                      .WithParameter("storageName", resource.CreateBicepResourceName())
                       .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 

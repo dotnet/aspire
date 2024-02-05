@@ -54,10 +54,10 @@ public static class AzureBicepPostgresExtensions
         };
 
         return builder.AddResource(resource)
-            .AddParameter("serverName", resource.CreateBicepResourceName())
-            .AddParameter("administratorLogin", administratorLogin)
-            .AddParameter("administratorLoginPassword", administratorLoginPassword)
-            .AddParameter("databases", resource.Databases)
+            .WithParameter("serverName", resource.CreateBicepResourceName())
+            .WithParameter("administratorLogin", administratorLogin)
+            .WithParameter("administratorLoginPassword", administratorLoginPassword)
+            .WithParameter("databases", resource.Databases)
             .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 
@@ -72,10 +72,10 @@ public static class AzureBicepPostgresExtensions
         };
 
         return builder.AddResource(resource)
-            .AddParameter("serverName", resource.CreateBicepResourceName())
-            .AddParameter("administratorLogin", administratorLogin)
-            .AddParameter("administratorLoginPassword", administratorLoginPassword)
-            .AddParameter("databases", resource.Databases)
+            .WithParameter("serverName", resource.CreateBicepResourceName())
+            .WithParameter("administratorLogin", administratorLogin)
+            .WithParameter("administratorLoginPassword", administratorLoginPassword)
+            .WithParameter("databases", resource.Databases)
             .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 

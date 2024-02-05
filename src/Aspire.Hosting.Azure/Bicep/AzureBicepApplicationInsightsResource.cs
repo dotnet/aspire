@@ -27,7 +27,7 @@ public static class AzureBicepApplicationInsightsExtensions
         };
 
         return builder.AddResource(resource)
-                .AddParameter("appInsightsName", resource.CreateBicepResourceName())
+                .WithParameter("appInsightsName", resource.CreateBicepResourceName())
                 .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 

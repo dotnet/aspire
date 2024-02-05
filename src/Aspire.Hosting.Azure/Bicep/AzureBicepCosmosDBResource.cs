@@ -52,8 +52,8 @@ public static class AzureBicepCosmosExtensions
         };
 
         return builder.AddResource(resource)
-                      .AddParameter("databaseAccountName", resource.CreateBicepResourceName())
-                      .AddParameter("databases", resource.Databases)
+                      .WithParameter("databaseAccountName", resource.CreateBicepResourceName())
+                      .WithParameter("databases", resource.Databases)
                       .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 

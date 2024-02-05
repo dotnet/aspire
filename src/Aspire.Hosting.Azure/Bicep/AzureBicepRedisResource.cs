@@ -29,7 +29,7 @@ public static class AzureBicepRedisExtensions
         };
 
         return builder.AddResource(resource)
-                    .AddParameter("redisCacheName", resource.CreateBicepResourceName())
+                    .WithParameter("redisCacheName", resource.CreateBicepResourceName())
                     .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 }

@@ -51,10 +51,10 @@ public static class AzureBicepSqlExtensions
         };
 
         return builder.AddResource(resource)
-                      .AddParameter(AzureBicepResource.KnownParameters.PrincipalId)
-                      .AddParameter(AzureBicepResource.KnownParameters.PrincipalName)
-                      .AddParameter("serverName", resource.CreateBicepResourceName())
-                      .AddParameter("databases", resource.Databases)
+                      .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
+                      .WithParameter(AzureBicepResource.KnownParameters.PrincipalName)
+                      .WithParameter("serverName", resource.CreateBicepResourceName())
+                      .WithParameter("databases", resource.Databases)
                       .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 

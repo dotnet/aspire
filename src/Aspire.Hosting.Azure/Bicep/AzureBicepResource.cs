@@ -228,27 +228,27 @@ public static class AzureBicepTemplateResourceExtensions
         });
     }
 
-    public static IResourceBuilder<T> AddParameter<T>(this IResourceBuilder<T> builder, string name)
+    public static IResourceBuilder<T> WithParameter<T>(this IResourceBuilder<T> builder, string name)
         where T : AzureBicepResource
     {
         builder.Resource.Parameters[name] = null;
         return builder;
     }
-    public static IResourceBuilder<T> AddParameter<T>(this IResourceBuilder<T> builder, string name, string value)
+    public static IResourceBuilder<T> WithParameter<T>(this IResourceBuilder<T> builder, string name, string value)
         where T : AzureBicepResource
     {
         builder.Resource.Parameters[name] = value;
         return builder;
     }
 
-    public static IResourceBuilder<T> AddParameter<T>(this IResourceBuilder<T> builder, string name, IEnumerable<string> value)
+    public static IResourceBuilder<T> WithParameter<T>(this IResourceBuilder<T> builder, string name, IEnumerable<string> value)
         where T : AzureBicepResource
     {
         builder.Resource.Parameters[name] = value;
         return builder;
     }
 
-    public static IResourceBuilder<T> AddParameter<T>(this IResourceBuilder<T> builder, string name, IResourceBuilder<ParameterResource> value)
+    public static IResourceBuilder<T> WithParameter<T>(this IResourceBuilder<T> builder, string name, IResourceBuilder<ParameterResource> value)
         where T : AzureBicepResource
     {
         builder.Resource.Parameters[name] = value;

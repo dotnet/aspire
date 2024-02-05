@@ -25,9 +25,9 @@ public static class AzureBicepKeyVaultResourceExtensions
         };
 
         return builder.AddResource(resource)
-                    .AddParameter(AzureBicepResource.KnownParameters.PrincipalId)
-                    .AddParameter(AzureBicepResource.KnownParameters.PrincipalType)
-                    .AddParameter("vaultName", resource.CreateBicepResourceName())
+                    .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
+                    .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)
+                    .WithParameter("vaultName", resource.CreateBicepResourceName())
                     .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 }

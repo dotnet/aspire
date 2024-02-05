@@ -6,6 +6,7 @@ using System.Text.Json.Nodes;
 using Aspire.Hosting.Dcp.Process;
 using Azure.ResourceManager.CosmosDB;
 using Azure.ResourceManager.Redis;
+using Azure.ResourceManager.Resources;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -61,7 +62,8 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
         // TODO: Use a parameter file
         // https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/parameter-files?tabs=JSON
 
-        var azPath = FindFullPathFromPath("az");
+        var azPath = FindFullPathFromPath("az") ??
+            throw new InvalidOperationException("Azure CLI not found in PATH");
 
         var template = resource.GetBicepTemplateFile();
 
@@ -82,22 +84,13 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
             template.Dispose();
         }
 
-        var outputs = new StringBuilder();
-        // Query the deployment outputs
-        // az deployment group show --name ExampleDeployment --resource-group ExampleGroup --query properties.outputs
-        var queryOutputsSpec = new ProcessSpec(azPath)
-        {
-            Arguments = $"deployment group show --name \"{resource.Name}\" --resource-group {context.ResourceGroup.Data.Name} --query properties.outputs",
-            OnOutputData = data => outputs.Append(data),
-            OnErrorData = data => logger.Log(LogLevel.Error, 0, data, null, (s, e) => s),
-        };
-
-        await ExecuteCommand(logger, outputs, queryOutputsSpec).ConfigureAwait(false);
+        var deployment = await context.ResourceGroup.GetArmDeployments().GetAsync(resource.Name, cancellationToken).ConfigureAwait(false);
+        var outputs = deployment.Value.Data.Properties.Outputs;
 
         // TODO: Handle complex types
         // e.g. {  "sqlServerName": {    "type": "String",    "value": "??"  }}
 
-        var outputObj = JsonNode.Parse(outputs.ToString());
+        var outputObj = outputs.ToObjectFromJson<JsonObject>();
 
         if (outputObj is null)
         {
@@ -189,7 +182,7 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
             var result = await task.ConfigureAwait(false);
             sw.Stop();
 
-            logger.LogInformation("Process exited with {ExitCode}, took {Time}ms", result.ExitCode, sw.Elapsed.TotalSeconds);
+            logger.LogInformation("Process exited with {ExitCode}, took {Time}s", result.ExitCode, sw.Elapsed.TotalSeconds);
 
             if (results != null)
             {
@@ -204,13 +197,16 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
         }
     }
 
-    public static string FindFullPathFromPath(string command) => FindFullPathFromPath(command, Environment.GetEnvironmentVariable("PATH"), Path.PathSeparator, File.Exists);
+    private static string? FindFullPathFromPath(string command) => FindFullPathFromPath(command, Environment.GetEnvironmentVariable("PATH"), Path.PathSeparator, File.Exists);
 
-    internal static string FindFullPathFromPath(string command, string? pathVariable, char pathSeparator, Func<string, bool> fileExists)
+    private static string? FindFullPathFromPath(string command, string? pathVariable, char pathSeparator, Func<string, bool> fileExists)
     {
         Debug.Assert(!string.IsNullOrWhiteSpace(command));
 
-        command += ".cmd";
+        if (OperatingSystem.IsWindows())
+        {
+            command += ".cmd";
+        }
 
         foreach (var directory in (pathVariable ?? string.Empty).Split(pathSeparator))
         {

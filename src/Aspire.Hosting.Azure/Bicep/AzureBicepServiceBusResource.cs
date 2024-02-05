@@ -27,11 +27,11 @@ public static class AzureBicepServiceBusExtensions
         // TODO: Change topics and queues to child resources
 
         return builder.AddResource(resource)
-                      .AddParameter("serviceBusNamespaceName", resource.CreateBicepResourceName())
-                      .AddParameter(AzureBicepResource.KnownParameters.PrincipalId)
-                      .AddParameter(AzureBicepResource.KnownParameters.PrincipalType)
-                      .AddParameter("topics", topicNames ?? [])
-                      .AddParameter("queues", queueNames ?? [])
+                      .WithParameter("serviceBusNamespaceName", resource.CreateBicepResourceName())
+                      .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
+                      .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)
+                      .WithParameter("topics", topicNames ?? [])
+                      .WithParameter("queues", queueNames ?? [])
                       .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 }

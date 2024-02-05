@@ -25,9 +25,9 @@ public static class AzureBicepAppConfigurationExtensions
         };
 
         return builder.AddResource(resource)
-                .AddParameter("configName", resource.CreateBicepResourceName())
-                .AddParameter(AzureBicepResource.KnownParameters.PrincipalId)
-                .AddParameter(AzureBicepResource.KnownParameters.PrincipalType)
+                .WithParameter("configName", resource.CreateBicepResourceName())
+                .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
+                .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)
                 .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 }
