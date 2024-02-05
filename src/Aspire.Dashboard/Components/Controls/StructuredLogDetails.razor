@@ -1,5 +1,6 @@
 ﻿@using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Resources
+@using System.Collections.Immutable
 @inject IStringLocalizer<ControlsStrings> Loc
 
 <div class="structured-log-details-layout">
@@ -18,6 +19,7 @@
                       ValueColumnValue="(vm) => vm.Value"
                       NameSort="_nameSort"
                       ValueSort="_valueSort"
-                      HighlightText="@_filter" />
+                      HighlightText="@_filter"
+                      WrappedProperties="@ImmutableArray.Create("ex.Message")"/>
     </div>
 </div>

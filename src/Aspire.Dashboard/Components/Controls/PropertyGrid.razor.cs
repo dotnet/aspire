@@ -58,6 +58,9 @@ public partial class PropertyGrid<TItem>
     [Parameter]
     public RenderFragment<TItem> ExtraValueContent { get; set; } = s_emptyChildContent;
 
+    [Parameter]
+    public ICollection<string>? WrappedProperties { get; set; }
+
     public readonly record struct PropertyGridIsMaskedChangedArgs(TItem Item, bool NewValue);
 
     private async Task OnIsMaskedChanged(TItem item, bool newValue)

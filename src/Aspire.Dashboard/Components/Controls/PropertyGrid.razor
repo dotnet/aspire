@@ -13,7 +13,8 @@
     <TemplateColumn Title="@(ValueColumnTitle ?? Loc[nameof(ControlsStrings.PropertyGridValueColumnHeader)])" Class="valueColumn" SortBy="@ValueSort" Sortable="@IsValueSortable">
         <GridValue Value="@ValueColumnValue(context)" HighlightText="@HighlightText"
                    EnableMasking="@EnableValueMasking" IsMasked="@GetIsItemMasked(context)"
-                   IsMaskedChanged="(newValue) => OnIsMaskedChanged(context, newValue)" />
+                   IsMaskedChanged="(newValue) => OnIsMaskedChanged(context, newValue)"
+                   IsWrapped="@(NameColumnValue(context) is { } name && WrappedProperties?.Contains(name) is true)" />
         @ExtraValueContent(context)
     </TemplateColumn>
 </FluentDataGrid>

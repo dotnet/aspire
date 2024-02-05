@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Resources;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
@@ -36,6 +37,12 @@ public partial class GridValue
     [Parameter]
     public bool IsMasked { get; set; }
 
+    /// <summary>
+    /// Determines whether or not the value should be wrapped, ie if we expect this property to have a long value
+    /// </summary>
+    [Parameter]
+    public bool IsWrapped { get; set; }
+
     [Parameter]
     public bool EnableHighlighting { get; set; } = false;
 
@@ -54,18 +61,34 @@ public partial class GridValue
     [Parameter]
     public string? ToolTip { get; set; }
 
-    [Parameter]
-    public string PreCopyToolTip { get; set; } = "Copy to clipboard";
+    [Parameter] public string PreCopyToolTip { get; set; } = null!;
 
-    [Parameter]
-    public string PostCopyToolTip { get; set; } = "Copied!";
+    [Parameter] public string PostCopyToolTip { get; set; } = null!;
 
     private readonly Icon _maskIcon = new Icons.Regular.Size16.EyeOff();
     private readonly Icon _unmaskIcon = new Icons.Regular.Size16.Eye();
     private readonly string _anchorId = $"copy-{Guid.NewGuid():N}";
 
+    protected override void OnInitialized()
+    {
+        PreCopyToolTip = Loc[nameof(ControlsStrings.GridValueCopyToClipboard)];
+        PostCopyToolTip = Loc[nameof(ControlsStrings.GridValueCopied)];
+    }
+
     private string GetContainerClass()
-        => EnableMasking ? "container masking-enabled" : "container";
+    {
+        var classes = new List<string>
+        {
+            EnableMasking ? "container masking-enabled" : "container"
+        };
+
+        if (IsWrapped)
+        {
+            classes.Add("wrap");
+        }
+
+        return string.Join(" ", classes);
+    }
 
     private async Task ToggleMaskStateAsync()
         => await IsMaskedChanged.InvokeAsync(!IsMasked);
