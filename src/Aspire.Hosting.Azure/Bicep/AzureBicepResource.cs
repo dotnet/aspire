@@ -9,12 +9,12 @@ using Aspire.Hosting.Publishing;
 namespace Aspire.Hosting.Azure;
 
 /// <summary>
-/// 
+/// Represents an Azure Bicep resource.
 /// </summary>
-/// <param name="name"></param>
-/// <param name="templateFile"></param>
-/// <param name="templateString"></param>
-/// <param name="templateResouceName"></param>
+/// <param name="name">Name of the resource. This will be the name of the deployment.</param>
+/// <param name="templateFile">The path to the bicep file.</param>
+/// <param name="templateString">A bicep snippet.</param>
+/// <param name="templateResouceName">The name of an embedded resource that represents the bicep file.</param>
 public class AzureBicepResource(string name, string? templateFile = null, string? templateString = null, string? templateResouceName = null) :
     Resource(name),
     IAzureResource
@@ -44,11 +44,17 @@ public class AzureBicepResource(string name, string? templateFile = null, string
     /// Gets the path to the bicep file. If the template is a string or embedded resource, it will be written to a temporary file.
     /// </summary>
     /// <param name="directory">The directory where the bicep file will be written to (if it's a temporary file)</param>
-    /// <param name="deleteTemporaryFilesOnDispose">A boolean that determines if the file should be deleted on disposal of the <see cref="BicepTemplateFile"/>.</param>
+    /// <param name="deleteTemporaryFileOnDispose">A boolean that determines if the file should be deleted on disposal of the <see cref="BicepTemplateFile"/>.</param>
     /// <returns>A <see cref="BicepTemplateFile"/> that represents the bicep file.</returns>
     /// <exception cref="InvalidOperationException"></exception>
-    public BicepTemplateFile GetBicepTemplateFile(string? directory = null, bool deleteTemporaryFilesOnDispose = true)
+    public BicepTemplateFile GetBicepTemplateFile(string? directory = null, bool deleteTemporaryFileOnDispose = true)
     {
+        // Throw if multiple template sources are specified
+        if (TemplateFile is not null && (TemplateString is not null || TemplateResourceName is not null))
+        {
+            throw new InvalidOperationException("Multiple template sources are specified.");
+        }
+
         var path = TemplateFile;
         var isTempFile = false;
 
@@ -71,6 +77,7 @@ public class AzureBicepResource(string name, string? templateFile = null, string
 
                 if (!File.Exists(path))
                 {
+                    // REVIEW: We should allow the user to specify the assembly where the resources reside.
                     using var resourceStream = GetType().Assembly.GetManifestResourceStream(TemplateResourceName)
                         ?? throw new InvalidOperationException($"Could not find resource {TemplateResourceName} in assembly {GetType().Assembly}");
 
@@ -80,7 +87,7 @@ public class AzureBicepResource(string name, string? templateFile = null, string
             }
         }
 
-        return new(path, isTempFile && deleteTemporaryFilesOnDispose);
+        return new(path, isTempFile && deleteTemporaryFileOnDispose);
     }
 
     // TODO: Make the name bicep safe
@@ -105,7 +112,7 @@ public class AzureBicepResource(string name, string? templateFile = null, string
     }
 
     // TODO: Use this when caching the results
-    private string GetChecksum()
+    public string GetChecksum()
     {
         // TODO: PERF Inefficient
 
@@ -143,7 +150,7 @@ public class AzureBicepResource(string name, string? templateFile = null, string
 
         context.Writer.WriteString("type", "azure.bicep.v0");
 
-        using var template = resource.GetBicepTemplateFile(Path.GetDirectoryName(context.ManifestPath), deleteTemporaryFilesOnDispose: false);
+        using var template = resource.GetBicepTemplateFile(Path.GetDirectoryName(context.ManifestPath), deleteTemporaryFileOnDispose: false);
         var path = template.Path;
 
         if (resource.ConnectionStringTemplate is not null)
@@ -198,8 +205,8 @@ public class AzureBicepResource(string name, string? templateFile = null, string
 /// Represents a bicep template file.
 /// </summary>
 /// <param name="path">The path to the bicep file.</param>
-/// <param name="deleteOnClose">Determines if the file should be deleted on disposal.</param>
-public readonly struct BicepTemplateFile(string path, bool deleteOnClose) : IDisposable
+/// <param name="deleteFileOnDispose">Determines if the file should be deleted on disposal.</param>
+public readonly struct BicepTemplateFile(string path, bool deleteFileOnDispose) : IDisposable
 {
     /// <summary>
     /// The path to the bicep file.
@@ -208,7 +215,7 @@ public readonly struct BicepTemplateFile(string path, bool deleteOnClose) : IDis
 
     public void Dispose()
     {
-        if (deleteOnClose)
+        if (deleteFileOnDispose)
         {
             File.Delete(Path);
         }
@@ -237,10 +244,10 @@ public static class AzureBicepTemplateResourceExtensions
     /// <summary>
     /// Adds an Azure Bicep resource to the application model.
     /// </summary>
-    /// <param name="builder"></param>
-    /// <param name="name"></param>
-    /// <param name="bicepFile"></param>
-    /// <returns></returns>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource. This name will be used as the deployment name.</param>
+    /// <param name="bicepFile">The path to the bicep file on disk. This path is relative to the apphost's project directory.</param>
+    /// <returns>An <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureBicepResource> AddBicepTemplate(this IDistributedApplicationBuilder builder, string name, string bicepFile)
     {
         var path = Path.GetFullPath(Path.Combine(builder.AppHostDirectory, bicepFile));
@@ -249,6 +256,13 @@ public static class AzureBicepTemplateResourceExtensions
                       .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 
+    /// <summary>
+    /// Adds an Azure Bicep resource to the application model.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource. This name will be used as the deployment name.</param>
+    /// <param name="bicepContent">A string that represents a snippet of bicep.</param>
+    /// <returns>An <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureBicepResource> AddBicepTemplateString(this IDistributedApplicationBuilder builder, string name, string bicepContent)
     {
         var resource = new AzureBicepResource(name, templateFile: null, templateString: bicepContent);
@@ -269,14 +283,13 @@ public static class AzureBicepTemplateResourceExtensions
     }
 
     /// <summary>
-    /// 
+    /// Adds an environment variable to the resource with the value of the output from the bicep template.
     /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="builder"></param>
-    /// <param name="name"></param>
-    /// <param name="bicepOutputReference"></param>
-    /// <returns></returns>
-    /// <exception cref="InvalidOperationException"></exception>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">The name of the environment variable.</param>
+    /// <param name="bicepOutputReference">The reference to the bicep output.</param>
+    /// <returns>An <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, BicepOutputReference bicepOutputReference)
         where T : IResourceWithEnvironment
     {
@@ -297,12 +310,28 @@ public static class AzureBicepTemplateResourceExtensions
         });
     }
 
+    /// <summary>
+    /// Adds a parameter to the bicep template.
+    /// </summary>
+    /// <typeparam name="T">The <see cref="AzureBicepResource"/>.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">The name of the input.</param>
+    /// <returns>An <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithParameter<T>(this IResourceBuilder<T> builder, string name)
         where T : AzureBicepResource
     {
         builder.Resource.Parameters[name] = null;
         return builder;
     }
+
+    /// <summary>
+    /// Adds a parameter to the bicep template.
+    /// </summary>
+    /// <typeparam name="T">The <see cref="AzureBicepResource"/></typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">The name of the input.</param>
+    /// <param name="value">The value of the parameter.</param>
+    /// <returns>An <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithParameter<T>(this IResourceBuilder<T> builder, string name, string value)
         where T : AzureBicepResource
     {
@@ -310,6 +339,14 @@ public static class AzureBicepTemplateResourceExtensions
         return builder;
     }
 
+    /// <summary>
+    /// Adds a parameter to the bicep template.
+    /// </summary>
+    /// <typeparam name="T">The <see cref="AzureBicepResource"/></typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">The name of the input.</param>
+    /// <param name="value">The value of the parameter.</param>
+    /// <returns>An <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithParameter<T>(this IResourceBuilder<T> builder, string name, IEnumerable<string> value)
         where T : AzureBicepResource
     {
@@ -317,6 +354,14 @@ public static class AzureBicepTemplateResourceExtensions
         return builder;
     }
 
+    /// <summary>
+    /// Adds a parameter to the bicep template.
+    /// </summary>
+    /// <typeparam name="T">The <see cref="AzureBicepResource"/></typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">The name of the input.</param>
+    /// <param name="value">The value of the parameter.</param>
+    /// <returns>An <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithParameter<T>(this IResourceBuilder<T> builder, string name, IResourceBuilder<ParameterResource> value)
         where T : AzureBicepResource
     {
@@ -324,6 +369,14 @@ public static class AzureBicepTemplateResourceExtensions
         return builder;
     }
 
+    /// <summary>
+    /// Adds a parameter to the bicep template.
+    /// </summary>
+    /// <typeparam name="T">The <see cref="AzureBicepResource"/></typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">The name of the input.</param>
+    /// <param name="value">The value of the parameter.</param>
+    /// <returns>An <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> AddParameter<T>(this IResourceBuilder<T> builder, string name, IResourceBuilder<IResourceWithConnectionString> value)
         where T : AzureBicepResource
     {
