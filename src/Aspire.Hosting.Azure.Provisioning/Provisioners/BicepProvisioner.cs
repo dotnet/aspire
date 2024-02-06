@@ -29,6 +29,8 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
             return false;
         }
 
+        // TODO: Cache contents by their checksum so we don't reuse changed outputs from potentially changed templates
+
         //var checkSum = resource.GetChecksum();
 
         //var checkSumSection = section.GetSection(checkSum);
@@ -112,8 +114,7 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
             template.Dispose();
         }
 
-        // TODO: Handle complex types
-        // e.g. {  "sqlServerName": {    "type": "String",    "value": "??"  }}
+        // e.g. {  "sqlServerName": { "type": "String", "value": "<value>" }}
 
         var outputObj = outputs.ToObjectFromJson<JsonObject>();
 
@@ -135,6 +136,7 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
 
         foreach (var item in outputObj.AsObject())
         {
+            // TODO: Handle complex output types
             // Populate the resource outputs
             resource.Outputs[item.Key] = item.Value?.Prop("value").ToString();
         }

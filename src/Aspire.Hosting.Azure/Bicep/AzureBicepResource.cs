@@ -3,6 +3,8 @@
 
 using System.IO.Hashing;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
 
@@ -66,7 +68,7 @@ public class AzureBicepResource(string name, string? templateFile = null, string
 
             if (TemplateResourceName is null)
             {
-                // TODO: Make users specify a name for the template
+                // REVIEW: Consider making users specify a name for the template
                 File.WriteAllText(path, TemplateString);
             }
             else
@@ -137,7 +139,7 @@ public class AzureBicepResource(string name, string? templateFile = null, string
 
         var hashedContents = Crc32.Hash(Encoding.UTF8.GetBytes(combined));
 
-        return Convert.ToHexString(hashedContents).ToLower();
+        return Convert.ToHexString(hashedContents).ToLowerInvariant();
     }
 
     /// <summary>
@@ -146,24 +148,22 @@ public class AzureBicepResource(string name, string? templateFile = null, string
     /// <param name="context">The <see cref="ManifestPublishingContext"/>.</param>
     public virtual void WriteToManifest(ManifestPublishingContext context)
     {
-        var resource = this;
-
         context.Writer.WriteString("type", "azure.bicep.v0");
 
-        using var template = resource.GetBicepTemplateFile(Path.GetDirectoryName(context.ManifestPath), deleteTemporaryFileOnDispose: false);
+        using var template = GetBicepTemplateFile(Path.GetDirectoryName(context.ManifestPath), deleteTemporaryFileOnDispose: false);
         var path = template.Path;
 
-        if (resource.ConnectionStringTemplate is not null)
+        if (ConnectionStringTemplate is not null)
         {
-            context.Writer.WriteString("connectionString", resource.ConnectionStringTemplate);
+            context.Writer.WriteString("connectionString", ConnectionStringTemplate);
         }
 
         context.Writer.WriteString("path", context.GetManifestRelativePath(path));
 
-        if (resource.Parameters.Count > 0)
+        if (Parameters.Count > 0)
         {
             context.Writer.WriteStartObject("params");
-            foreach (var input in resource.Parameters)
+            foreach (var input in Parameters)
             {
                 if (input.Value is IEnumerable<string> enumerable)
                 {
@@ -173,6 +173,13 @@ public class AzureBicepResource(string name, string? templateFile = null, string
                         context.Writer.WriteStringValue(item);
                     }
                     context.Writer.WriteEndArray();
+                    continue;
+                }
+
+                if (input.Value is JsonNode node)
+                {
+                    // Write JSON objects to the manifest for JSON node parameters
+                    JsonSerializer.Serialize(context.Writer, node);
                     continue;
                 }
 
@@ -306,6 +313,7 @@ public static class AzureBicepTemplateResourceExtensions
                 throw new InvalidOperationException($"No output for {bicepOutputReference.Name}");
             }
 
+            // TODO: How do we handle complex objects?
             ctx.EnvironmentVariables[name] = value?.ToString() ?? "";
         });
     }
@@ -348,6 +356,21 @@ public static class AzureBicepTemplateResourceExtensions
     /// <param name="value">The value of the parameter.</param>
     /// <returns>An <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithParameter<T>(this IResourceBuilder<T> builder, string name, IEnumerable<string> value)
+        where T : AzureBicepResource
+    {
+        builder.Resource.Parameters[name] = value;
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds a parameter to the bicep template.
+    /// </summary>
+    /// <typeparam name="T">The <see cref="AzureBicepResource"/></typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">The name of the input.</param>
+    /// <param name="value">The value of the parameter.</param>
+    /// <returns>An <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithParameter<T>(this IResourceBuilder<T> builder, string name, JsonNode value)
         where T : AzureBicepResource
     {
         builder.Resource.Parameters[name] = value;
