@@ -18,7 +18,7 @@ public static class OracleDatabaseExtensions
         {
             var policy = Policy
                 .Handle<OracleException>()
-                // retry every second for 60 seconds
+                // retry 60 times with a 1 second delay between retries
                 .WaitAndRetry(60, retryAttempt => TimeSpan.FromSeconds(1));
 
             return policy.Execute(() =>

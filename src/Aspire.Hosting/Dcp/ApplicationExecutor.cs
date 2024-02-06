@@ -3,7 +3,6 @@
 
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Utils;
@@ -54,11 +53,12 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                                           ILogger<DistributedApplication> distributedApplicationLogger,
                                           DistributedApplicationModel model,
                                           DistributedApplicationOptions distributedApplicationOptions,
-                                          KubernetesService kubernetesService,
+                                          IKubernetesService kubernetesService,
                                           IEnumerable<IDistributedApplicationLifecycleHook> lifecycleHooks,
                                           IConfiguration configuration,
                                           IOptions<DcpOptions> options,
-                                          DashboardServiceHost dashboardHost)
+                                          IDashboardEndpointProvider dashboardEndpointProvider,
+                                          IDashboardAvailability dashboardAvailability)
 {
     private const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
 
@@ -66,7 +66,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
     private readonly DistributedApplicationModel _model = model;
     private readonly IDistributedApplicationLifecycleHook[] _lifecycleHooks = lifecycleHooks.ToArray();
     private readonly IOptions<DcpOptions> _options = options;
-    private readonly DashboardServiceHost _dashboardServiceHost = dashboardHost;
+    private readonly IDashboardEndpointProvider _dashboardEndpointProvider = dashboardEndpointProvider;
+    private readonly IDashboardAvailability _dashboardAvailability = dashboardAvailability;
     private readonly List<AppResource> _appResources = [];
 
     // These environment variables should never be inherited from app host;
@@ -126,15 +127,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
 
         // Get resource endpoint URL.
-        string grpcEndpointUrl;
-        try
-        {
-            grpcEndpointUrl = await _dashboardServiceHost.GetResourceServiceUriAsync(cancellationToken).ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            throw new DistributedApplicationException("Error getting the resource service URL.", ex);
-        }
+        var grpcEndpointUrl = await _dashboardEndpointProvider.GetResourceServiceUriAsync(cancellationToken).ConfigureAwait(false);
 
         dashboardResource.Annotations.Add(new EnvironmentCallbackAnnotation(context =>
         {
@@ -190,15 +183,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             dashboardExecutableSpec.ExecutablePath = fullyQualifiedDashboardPath;
         }
 
-        string grpcEndpointUrl;
-        try
-        {
-            grpcEndpointUrl = await _dashboardServiceHost.GetResourceServiceUriAsync(cancellationToken).ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            throw new DistributedApplicationException("Error getting the resource service URL.", ex);
-        }
+        var grpcEndpointUrl = await _dashboardEndpointProvider.GetResourceServiceUriAsync(cancellationToken).ConfigureAwait(false);
 
         // Matches DashboardWebApplication.DashboardUrlDefaultValue
         const string defaultDashboardUrl = "http://localhost:18888";
@@ -261,49 +246,12 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
     {
         if (StringUtils.TryGetUriFromDelimitedString(delimitedUrlList, ";", out var firstDashboardUrl))
         {
-            await WaitForHttpSuccessOrThrow(firstDashboardUrl, DashboardAvailabilityTimeoutDuration, cancellationToken).ConfigureAwait(false);
+            await _dashboardAvailability.WaitForDashboardAvailabilityAsync(firstDashboardUrl, DashboardAvailabilityTimeoutDuration, cancellationToken).ConfigureAwait(false);
             distributedApplicationLogger.LogInformation("Now listening on: {DashboardUrl}", firstDashboardUrl.ToString().TrimEnd('/'));
         }
         else
         {
             _logger.LogWarning("Skipping dashboard availability check because ASPNETCORE_URLS environment variable could not be parsed.");
-        }
-    }
-
-    private async Task WaitForHttpSuccessOrThrow(Uri url, TimeSpan timeout, CancellationToken cancellationToken = default)
-    {
-        using var timeoutCts = new CancellationTokenSource(timeout);
-        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
-
-        var client = new HttpClient();
-
-        try
-        {
-            while (true)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                try
-                {
-                    var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, linkedCts.Token).ConfigureAwait(false);
-
-                    if (response.IsSuccessStatusCode)
-                    {
-                        return;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogDebug(ex, "Dashboard not ready yet.");
-                }
-
-                await Task.Delay(TimeSpan.FromMilliseconds(50), linkedCts.Token).ConfigureAwait(false);
-            }
-        }
-        catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
-        {
-            // Only display this error if the timeout CTS was the one that was cancelled.
-            throw new DistributedApplicationException($"Timed out after {timeout} while waiting for the dashboard to be responsive.");
         }
     }
 
@@ -496,7 +444,13 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             if (!string.IsNullOrEmpty(configuration[DebugSessionPortVar]))
             {
                 exeSpec.ExecutionType = ExecutionType.IDE;
-                if (project.TryGetLastAnnotation<LaunchProfileAnnotation>(out var lpa))
+
+                // ExcludeLaunchProfileAnnotation takes precedence over LaunchProfileAnnotation. 
+                if (project.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _))
+                {
+                    annotationHolder.Annotate(Executable.CSharpDisableLaunchProfileAnnotation, "true");
+                }
+                else if (project.TryGetLastAnnotation<LaunchProfileAnnotation>(out var lpa))
                 {
                     annotationHolder.Annotate(Executable.CSharpLaunchProfileAnnotation, lpa.LaunchProfileName);
                 }
@@ -532,7 +486,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 // and the environment variables/application URLs inside CreateExecutableAsync().
                 exeSpec.Args.Add("--no-launch-profile");
 
-                string? launchProfileName = project.SelectLaunchProfileName();
+                var launchProfileName = project.SelectLaunchProfileName();
                 if (!string.IsNullOrEmpty(launchProfileName))
                 {
                     var launchProfile = project.GetEffectiveLaunchProfile();
