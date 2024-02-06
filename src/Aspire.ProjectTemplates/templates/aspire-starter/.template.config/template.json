@@ -22,7 +22,7 @@
     "type": "solution",
     "editorTreatAs": "solution"
   },
-  "precedence": "8000",
+  "precedence": "9000",
   "identity": "Aspire.Starter.CSharp.9.0",
   "thirdPartyNotices": "https://aka.ms/aspire/1.0-third-party-notices",
   "groupIdentity": "Aspire.Starter",
