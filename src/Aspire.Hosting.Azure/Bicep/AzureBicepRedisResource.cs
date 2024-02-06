@@ -38,11 +38,11 @@ public static class AzureBicepRedisExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureBicepRedisResource> AddBicepRedis(this IDistributedApplicationBuilder builder, string name)
+    public static IResourceBuilder<AzureBicepRedisResource> AddBicepAzureRedis(this IDistributedApplicationBuilder builder, string name)
     {
         var resource = new AzureBicepRedisResource(name)
         {
-            ConnectionStringTemplate = $"{{{name}.outputs.hostName}},ssl=true,password={{keys(Microsoft.Cache/redis@2023-04-15/{{{name}.outputs.cacheName}})}}"
+            ConnectionStringTemplate = $"{{{name}.outputs.hostName}},ssl=true,password={{key(Microsoft.Cache/redis@2023-04-15/{{{name}.outputs.cacheName}}).primaryKey}}"
         };
 
         return builder.AddResource(resource)

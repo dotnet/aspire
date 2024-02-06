@@ -47,12 +47,10 @@ public class AzureBicepSqlDbResource(string name, string databaseName, AzureBice
 
     internal void WriteToManifest(ManifestPublishingContext context)
     {
-        var resource = this;
-
         // REVIEW: What do we do with resources that are defined in the parent's bicep file?
         context.Writer.WriteString("type", "azure.bicep.v0");
-        context.Writer.WriteString("connectionString", $"{{{resource.Parent.Name}.connectionString}};Intial Catalog={databaseName}");
-        context.Writer.WriteString("parent", resource.Parent.Name);
+        context.Writer.WriteString("connectionString", $"{{{Parent.Name}.connectionString}};Intial Catalog={databaseName}");
+        context.Writer.WriteString("parent", Parent.Name);
     }
 }
 
@@ -67,7 +65,7 @@ public static class AzureBicepSqlExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureBicepSqlServerResource> AddBicepAzureSql(this IDistributedApplicationBuilder builder, string name)
+    public static IResourceBuilder<AzureBicepSqlServerResource> AddBicepAzureSqlServer(this IDistributedApplicationBuilder builder, string name)
     {
         var resource = new AzureBicepSqlServerResource(name)
         {

@@ -95,7 +95,7 @@ public static class AzureBicepCosmosExtensions
     {
         var resource = new AzureBicepCosmosDBResource(name)
         {
-            ConnectionStringTemplate = $"AccountEndpoint={{{name}.outputs.documentEndpoint}};AccountKey={{keys(Microsoft.DocumentDB/databaseAccounts@2023-04-15/{{{name}.outputs.accountName}})}}"
+            ConnectionStringTemplate = $"AccountEndpoint={{{name}.outputs.documentEndpoint}};AccountKey={{key(Microsoft.DocumentDB/databaseAccounts@2023-04-15/{{{name}.outputs.accountName}}).primaryMasterKey}}"
         };
 
         return builder.AddResource(resource)

@@ -15,14 +15,14 @@ var templ = builder.AddBicepTemplate("test", "test.bicep")
 
 var kv = builder.AddBicepKeyVault("kv");
 var appConfig = builder.AddBicepAppConfiguration("appConfig");
-var storage = builder.AddAzureBicepStorage("storage");
+var storage = builder.AddAzureBicepAzureStorage("storage");
                     // .UseEmulator();
 
 var blobs = storage.AddBlob("blob");
 var tables = storage.AddTable("table");
 var queues = storage.AddQueue("queue");
 
-var sqlServer = builder.AddBicepAzureSql("sql").AddDatabase("db");
+var sqlServer = builder.AddBicepAzureSqlServer("sql").AddDatabase("db");
 
 var user = builder.AddParameter("username");
 var pwd = builder.AddParameter("password", secret: true);
@@ -35,9 +35,9 @@ var cosmosDb = builder.AddBicepCosmosDb("cosmos")
 
 var appInsights = builder.AddBicepApplicationInsights("ai");
 
-var redis = builder.AddBicepRedis("redis");
+var redis = builder.AddBicepAzureRedis("redis");
 
-var serviceBus = builder.AddBicepServiceBus("sb", ["queue1"], ["topic1"]);
+var serviceBus = builder.AddBicepAzureServiceBus("sb", ["queue1"], ["topic1"]);
 
 builder.AddProject<Projects.BicepSample_ApiService>("api")
        .WithReference(sqlServer)

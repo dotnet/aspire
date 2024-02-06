@@ -108,11 +108,12 @@ public class AzureBicepQueueStorageResource(string name, AzureBicepStorageResour
 
 public static class AzureBicepSqlResourceExtensions
 {
-    public static IResourceBuilder<AzureBicepStorageResource> AddAzureBicepStorage(this IDistributedApplicationBuilder builder, string name)
+    public static IResourceBuilder<AzureBicepStorageResource> AddAzureBicepAzureStorage(this IDistributedApplicationBuilder builder, string name)
     {
         var resource = new AzureBicepStorageResource(name);
 
         return builder.AddResource(resource)
+                      // These ambient parameters are only available in development time.
                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)
                       .WithParameter("storageName", resource.CreateBicepResourceName())

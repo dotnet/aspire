@@ -36,7 +36,7 @@ public static class AzureBicepServiceBusExtensions
     /// <param name="queueNames">A list of queue names associated with this service bus resource.</param>
     /// <param name="topicNames">A list of topic names associated with this service bus resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureBicepServiceBusResource> AddBicepServiceBus(this IDistributedApplicationBuilder builder, string name, string[]? queueNames = null, string[]? topicNames = null)
+    public static IResourceBuilder<AzureBicepServiceBusResource> AddBicepAzureServiceBus(this IDistributedApplicationBuilder builder, string name, string[]? queueNames = null, string[]? topicNames = null)
     {
         var resource = new AzureBicepServiceBusResource(name)
         {

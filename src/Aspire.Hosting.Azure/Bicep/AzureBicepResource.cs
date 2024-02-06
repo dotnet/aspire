@@ -21,11 +21,11 @@ public class AzureBicepResource(string name, string? templateFile = null, string
     Resource(name),
     IAzureResource
 {
-    private string? TemplateFile { get; } = templateFile;
+    internal string? TemplateFile { get; } = templateFile;
 
-    private string? TemplateString { get; } = templateString;
+    internal string? TemplateString { get; } = templateString;
 
-    private string? TemplateResourceName { get; } = templateResouceName;
+    internal string? TemplateResourceName { get; } = templateResouceName;
 
     /// <summary>
     /// Parameters that will be passed into the bicep template.
@@ -158,6 +158,7 @@ public class AzureBicepResource(string name, string? templateFile = null, string
             context.Writer.WriteString("connectionString", ConnectionStringTemplate);
         }
 
+        // REVIEW: Consider multiple files.
         context.Writer.WriteString("path", context.GetManifestRelativePath(path));
 
         if (Parameters.Count > 0)
@@ -165,21 +166,11 @@ public class AzureBicepResource(string name, string? templateFile = null, string
             context.Writer.WriteStartObject("params");
             foreach (var input in Parameters)
             {
-                if (input.Value is IEnumerable<string> enumerable)
+                if (input.Value is JsonNode || input.Value is IEnumerable<string>)
                 {
-                    context.Writer.WriteStartArray(input.Key);
-                    foreach (var item in enumerable)
-                    {
-                        context.Writer.WriteStringValue(item);
-                    }
-                    context.Writer.WriteEndArray();
-                    continue;
-                }
-
-                if (input.Value is JsonNode node)
-                {
+                    context.Writer.WritePropertyName(input.Key);
                     // Write JSON objects to the manifest for JSON node parameters
-                    JsonSerializer.Serialize(context.Writer, node);
+                    JsonSerializer.Serialize(context.Writer, input.Value);
                     continue;
                 }
 
@@ -240,7 +231,18 @@ public class BicepOutputReference(string name, AzureBicepResource resource)
 
     public AzureBicepResource Resource { get; } = resource;
 
-    public string? Value => Resource.Outputs[Name];
+    public string? Value
+    {
+        get
+        {
+            if (!Resource.Outputs.TryGetValue(Name, out var value))
+            {
+                throw new InvalidOperationException($"No output for {Name}");
+            }
+
+            return value;
+        }
+    }
 }
 
 /// <summary>
@@ -283,8 +285,7 @@ public static class AzureBicepTemplateResourceExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="name">Name of the output.</param>
     /// <returns>A <see cref="BicepOutputReference"/> that represents the output.</returns>
-    public static BicepOutputReference GetOutput<T>(this IResourceBuilder<T> builder, string name)
-        where T : AzureBicepResource
+    public static BicepOutputReference GetOutput(this IResourceBuilder<AzureBicepResource> builder, string name)
     {
         return new BicepOutputReference(name, builder.Resource);
     }
@@ -314,7 +315,7 @@ public static class AzureBicepTemplateResourceExtensions
             }
 
             // TODO: How do we handle complex objects?
-            ctx.EnvironmentVariables[name] = value?.ToString() ?? "";
+            ctx.EnvironmentVariables[name] = bicepOutputReference.Value!;
         });
     }
 
