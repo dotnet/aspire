@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
+using Aspire.Hosting.MongoDB;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -95,5 +96,24 @@ public class AddMongoDBTests
         var connectionString = connectionStringResource.GetConnectionString();
 
         Assert.Equal("mongodb://localhost:27017/mydatabase", connectionString);
+    }
+
+    [Fact]
+    public void WithMongoExpressAddsContainer()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        builder.AddMongoDB("mongo").WithMongoExpress();
+
+        Assert.Single(builder.Resources.OfType<MongoExpressContainerResource>());
+    }
+
+    [Fact]
+    public void WithMongoExpressOnMultipleResources()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        builder.AddMongoDB("mongo").WithMongoExpress();
+        builder.AddMongoDB("mongo2").WithMongoExpress();
+
+        Assert.Equal(2, builder.Resources.OfType<MongoExpressContainerResource>().Count());
     }
 }
