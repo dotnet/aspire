@@ -22,7 +22,7 @@ namespace Aspire.Hosting.Dashboard;
 /// </remarks>
 internal sealed class DcpDataSource
 {
-    private readonly KubernetesService _kubernetesService;
+    private readonly IKubernetesService _kubernetesService;
     private readonly DistributedApplicationModel _applicationModel;
     private readonly Func<ResourceSnapshot, ResourceSnapshotChangeType, ValueTask> _onResourceChanged;
     private readonly ILogger _logger;
@@ -34,7 +34,7 @@ internal sealed class DcpDataSource
     private readonly ConcurrentDictionary<(string, string), List<string>> _resourceAssociatedServicesMap = [];
 
     public DcpDataSource(
-        KubernetesService kubernetesService,
+        IKubernetesService kubernetesService,
         DistributedApplicationModel applicationModel,
         IConfiguration configuration,
         ILoggerFactory loggerFactory,
@@ -364,7 +364,7 @@ internal sealed class DcpDataSource
         {
             foreach (var serviceName in resourceServiceMappings)
             {
-                if (_servicesMap.TryGetValue(name, out var service))
+                if (_servicesMap.TryGetValue(serviceName, out var service))
                 {
                     services.Add(new ResourceServiceSnapshot(service.Metadata.Name, service.AllocatedAddress, service.AllocatedPort));
                 }

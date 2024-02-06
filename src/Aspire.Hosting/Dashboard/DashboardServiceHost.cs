@@ -49,7 +49,7 @@ internal sealed class DashboardServiceHost : IHostedService
     public DashboardServiceHost(
         DistributedApplicationOptions options,
         DistributedApplicationModel applicationModel,
-        KubernetesService kubernetesService,
+        IKubernetesService kubernetesService,
         IConfiguration configuration,
         IOptions<PublishingOptions> publishingOptions,
         ILoggerFactory loggerFactory,

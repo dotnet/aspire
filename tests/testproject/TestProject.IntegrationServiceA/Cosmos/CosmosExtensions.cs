@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.Azure.Cosmos;
+using Polly;
 
 public static class CosmosExtensions
 {
@@ -14,7 +15,14 @@ public static class CosmosExtensions
     {
         try
         {
-            var db = (await cosmosClient.CreateDatabaseIfNotExistsAsync("db")).Database;
+            var policy = Policy
+                .Handle<HttpRequestException>()
+                // retry 60 times with a 1 second delay between retries
+                .WaitAndRetryAsync(60, retryAttempt => TimeSpan.FromSeconds(1));
+
+            var db = await policy.ExecuteAsync(
+                async () => (await cosmosClient.CreateDatabaseIfNotExistsAsync("db")).Database);
+
             var container = (await db.CreateContainerIfNotExistsAsync("todos", "/id")).Container;
 
             var id = Guid.NewGuid().ToString();
@@ -22,8 +30,8 @@ public static class CosmosExtensions
 
             var item = await container.CreateItemAsync(new
             {
-                id = id,
-                title = title
+                id,
+                title
             });
 
             return item.Resource.id == id ? Results.Ok() : Results.Problem();

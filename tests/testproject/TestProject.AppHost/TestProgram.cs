@@ -2,11 +2,19 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Reflection;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using Aspire.Hosting.Lifecycle;
 
 public class TestProgram
 {
-    private TestProgram(string[] args, Assembly assembly, bool includeIntegrationServices = false, bool disableDashboard = true, bool includeNodeApp = false)
+    private TestProgram(string[] args, Assembly assembly, bool includeIntegrationServices, bool includeNodeApp, bool disableDashboard)
     {
+        if (args.Contains("--disable-dashboard"))
+        {
+            disableDashboard = true;
+        }
+
         AppBuilder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions { Args = args, DisableDashboard = disableDashboard, AssemblyName = assembly.FullName });
 
         var serviceAPath = Path.Combine(Projects.TestProject_AppHost.ProjectPath, @"..\TestProject.ServiceA\TestProject.ServiceA.csproj");
@@ -38,56 +46,40 @@ public class TestProgram
             var mongoDbName = "mymongodb";
             var oracleDbName = "freepdb1";
 
-            var sqlserverContainer = AppBuilder.AddSqlServerContainer("sqlservercontainer")
+            var sqlserver = AppBuilder.AddSqlServer("sqlserver")
                 .AddDatabase(sqlserverDbName);
-            var mysqlContainer = AppBuilder.AddMySqlContainer("mysqlcontainer")
+            var mysql = AppBuilder.AddMySql("mysql")
                 .WithEnvironment("MYSQL_DATABASE", mysqlDbName)
                 .AddDatabase(mysqlDbName);
-            var redisContainer = AppBuilder.AddRedisContainer("rediscontainer");
-            var postgresContainer = AppBuilder.AddPostgresContainer("postgrescontainer")
+            var redis = AppBuilder.AddRedis("redis");
+            var postgres = AppBuilder.AddPostgres("postgres")
                 .WithEnvironment("POSTGRES_DB", postgresDbName)
                 .AddDatabase(postgresDbName);
-            var rabbitmqContainer = AppBuilder.AddRabbitMQContainer("rabbitmqcontainer");
-            var mongodbContainer = AppBuilder.AddMongoDBContainer("mongodbcontainer")
+            var rabbitmq = AppBuilder.AddRabbitMQ("rabbitmq");
+            var mongodb = AppBuilder.AddMongoDB("mongodb")
                 .AddDatabase(mongoDbName);
-            var oracleDatabaseContainer = AppBuilder.AddOracleDatabaseContainer("oracledatabasecontainer")
+            var oracleDatabase = AppBuilder.AddOracleDatabase("oracledatabase")
                 .AddDatabase(oracleDbName);
-            var kafkaContainer = AppBuilder.AddKafkaContainer("kafkacontainer");
-
-            var sqlserverAbstract = AppBuilder.AddSqlServer("sqlserverabstract");
-            var mysqlAbstract = AppBuilder.AddMySql("mysqlabstract");
-            var redisAbstract = AppBuilder.AddRedis("redisabstract");
-            var postgresAbstract = AppBuilder.AddPostgres("postgresabstract");
-            var rabbitmqAbstract = AppBuilder.AddRabbitMQ("rabbitmqabstract");
-            var mongodbAbstract = AppBuilder.AddMongoDB("mongodbabstract");
-            var oracleDatabaseAbstract = AppBuilder.AddOracleDatabaseContainer("oracledatabaseabstract");
-            var kafkaAbstract = AppBuilder.AddKafka("kafkaabstract");
-
+            var kafka = AppBuilder.AddKafka("kafka");
             var cosmos = AppBuilder.AddAzureCosmosDB("cosmos").UseEmulator();
 
             IntegrationServiceABuilder = AppBuilder.AddProject<Projects.IntegrationServiceA>("integrationservicea")
-                .WithReference(sqlserverContainer)
-                .WithReference(mysqlContainer)
-                .WithReference(redisContainer)
-                .WithReference(postgresContainer)
-                .WithReference(rabbitmqContainer)
-                .WithReference(mongodbContainer)
-                .WithReference(oracleDatabaseContainer)
-                .WithReference(kafkaContainer)
-                .WithReference(sqlserverAbstract)
-                .WithReference(mysqlAbstract)
-                .WithReference(redisAbstract)
-                .WithReference(postgresAbstract)
-                .WithReference(rabbitmqAbstract)
-                .WithReference(mongodbAbstract)
-                .WithReference(oracleDatabaseAbstract)
-                .WithReference(kafkaAbstract)
+                .WithReference(sqlserver)
+                .WithReference(mysql)
+                .WithReference(redis)
+                .WithReference(postgres)
+                .WithReference(rabbitmq)
+                .WithReference(mongodb)
+                .WithReference(oracleDatabase)
+                .WithReference(kafka)
                 .WithReference(cosmos);
         }
+
+        AppBuilder.Services.AddLifecycleHook<EndPointWriterHook>();
     }
 
     public static TestProgram Create<T>(string[]? args = null, bool includeIntegrationServices = false, bool includeNodeApp = false, bool disableDashboard = true) =>
-        new TestProgram(args ?? [], typeof(T).Assembly, includeIntegrationServices, disableDashboard, includeNodeApp: includeNodeApp);
+        new TestProgram(args ?? [], typeof(T).Assembly, includeIntegrationServices, includeNodeApp, disableDashboard);
 
     public IDistributedApplicationBuilder AppBuilder { get; private set; }
     public IResourceBuilder<ProjectResource> ServiceABuilder { get; private set; }
@@ -120,6 +112,37 @@ public class TestProgram
     {
         Build();
         App!.Run();
+    }
+
+    /// <summary>
+    /// Writes the allocated endpoints to the console in JSON format.
+    /// This allows for easier consumption by the external test process.
+    /// </summary>
+    private sealed class EndPointWriterHook : IDistributedApplicationLifecycleHook
+    {
+        public async Task AfterEndpointsAllocatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
+        {
+            var root = new JsonObject();
+            foreach (var project in appModel.Resources.OfType<ProjectResource>())
+            {
+                var projectJson = new JsonObject();
+                root[project.Name] = projectJson;
+
+                var endpointsJsonArray = new JsonArray();
+                projectJson["Endpoints"] = endpointsJsonArray;
+
+                foreach (var endpoint in project.Annotations.OfType<AllocatedEndpointAnnotation>())
+                {
+                    var endpointJsonObject = new JsonObject();
+                    endpointJsonObject["Name"] = endpoint.Name;
+                    endpointJsonObject["Uri"] = endpoint.UriString;
+                    endpointsJsonArray.Add(endpointJsonObject);
+                }
+            }
+
+            // write the whole json in a single line so it's easier to parse by the external process
+            await Console.Out.WriteLineAsync("$ENDPOINTS: " + JsonSerializer.Serialize(root, JsonSerializerOptions.Default));
+        }
     }
 }
 
