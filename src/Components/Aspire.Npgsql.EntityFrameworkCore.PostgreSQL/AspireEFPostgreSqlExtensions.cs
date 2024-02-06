@@ -75,7 +75,7 @@ public static partial class AspireEFPostgreSqlExtensions
             }
 
             builder.UseLoggerFactory(null); // a workaround for https://github.com/npgsql/efcore.pg/issues/2821
-        });
+        }, serviceKey: typeof(TContext));
 
         if (settings.DbContextPooling)
         {
@@ -125,11 +125,13 @@ public static partial class AspireEFPostgreSqlExtensions
                 });
         }
 
-        void ConfigureDbContext(DbContextOptionsBuilder dbContextOptionsBuilder)
+        void ConfigureDbContext(IServiceProvider serviceProvider, DbContextOptionsBuilder dbContextOptionsBuilder)
         {
+            var connection = serviceProvider.GetRequiredKeyedService<NpgsqlConnection>(typeof(TContext));
+
             // We don't provide the connection string, it's going to use the pre-registered DataSource.
             // We don't register logger factory, because there is no need to: https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbcontextoptionsbuilder.useloggerfactory?view=efcore-7.0#remarks
-            dbContextOptionsBuilder.UseNpgsql(builder =>
+            dbContextOptionsBuilder.UseNpgsql(connection, builder =>
             {
                 // Resiliency:
                 // 1. Connection resiliency automatically retries failed database commands: https://www.npgsql.org/efcore/misc/other.html#execution-strategy
