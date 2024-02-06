@@ -21,8 +21,8 @@ If you are using Visual Studio:
 
 Otherwise:
 ```shell
-dotnet restore playground/TestShop/AppHost.csproj
-dotnet run --project playground/TestShop/AppHost.csproj
+dotnet restore playground/TestShop/AppHost/AppHost.csproj
+dotnet run --project playground/TestShop/AppHost/AppHost.csproj
 ```
 
 ## View Dashboard
