@@ -256,7 +256,7 @@ public class ManifestGenerationTests
         var program = CreateTestProgramJsonDocumentManifestPublisher();
 
         program.AppBuilder.AddPostgres("postgresabstract");
-        program.AppBuilder.AddPostgresContainer("postgrescontainer").AddDatabase("postgresdatabase");
+        program.AppBuilder.AddPostgres("postgrescontainer").PublishAsContainer().AddDatabase("postgresdatabase");
 
         // Build AppHost so that publisher can be resolved.
         program.Build();

@@ -229,7 +229,7 @@ public class DistributedApplicationTests
 
         await app.StartAsync();
 
-        var s = app.Services.GetRequiredService<KubernetesService>();
+        var s = app.Services.GetRequiredService<IKubernetesService>();
         var list = await s.ListAsync<Container>();
 
         Assert.Collection(list,
@@ -257,7 +257,7 @@ public class DistributedApplicationTests
 
         await using var app = testProgram.Build();
 
-        var kubernetes = app.Services.GetRequiredService<KubernetesService>();
+        var kubernetes = app.Services.GetRequiredService<IKubernetesService>();
 
         await app.StartAsync();
 
@@ -309,7 +309,7 @@ public class DistributedApplicationTests
 
         await app.StartAsync();
 
-        var s = app.Services.GetRequiredService<KubernetesService>();
+        var s = app.Services.GetRequiredService<IKubernetesService>();
 
         using var cts = new CancellationTokenSource(Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(10));
         var token = cts.Token;
@@ -338,7 +338,7 @@ public class DistributedApplicationTests
 
         await app.StartAsync();
 
-        var s = app.Services.GetRequiredService<KubernetesService>();
+        var s = app.Services.GetRequiredService<IKubernetesService>();
 
         using var cts = new CancellationTokenSource(Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(10));
         var token = cts.Token;
@@ -368,7 +368,7 @@ public class DistributedApplicationTests
 
         await app.StartAsync();
 
-        var s = app.Services.GetRequiredService<KubernetesService>();
+        var s = app.Services.GetRequiredService<IKubernetesService>();
 
         using var cts = new CancellationTokenSource(Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(10));
         var token = cts.Token;
