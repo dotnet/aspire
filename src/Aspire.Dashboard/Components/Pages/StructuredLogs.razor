@@ -74,7 +74,7 @@
                             </TemplateColumn>
                             <PropertyColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsTimestampColumnHeader)]" Property="@(context => OtlpHelpers.FormatTimeStamp(context.TimeStamp))" Tooltip="true" />
                             <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsMessageColumnHeader)]" Tooltip="true" TooltipText="(e) => e.Message">
-                                <FluentHighlighter HighlightedText="@(ViewModel.FilterText)" Text="@context.Message" />
+                                <LogMessageColumnDisplay FilterText="@(ViewModel.FilterText)" LogEntry="@context" />
                             </TemplateColumn>
                             <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsTraceColumnHeader)]">
                                 @if (!string.IsNullOrEmpty(context.TraceId))

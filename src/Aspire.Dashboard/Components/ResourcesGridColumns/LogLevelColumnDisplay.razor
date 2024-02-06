@@ -4,44 +4,13 @@
 @using Aspire.Dashboard.Resources
 @using Microsoft.Extensions.Logging
 
-@inject IJSRuntime JS
-@inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
-
-@{
-    var id = Guid.NewGuid().ToString();
-}
-
 @if (LogEntry.Severity is LogLevel.Error or LogLevel.Critical)
 {
-    <FluentIcon Id="@id" Icon="Icons.Filled.Size16.ErrorCircle" Color="Color.Error" Class="severity-icon"/>
+    <FluentIcon Icon="Icons.Filled.Size16.ErrorCircle" Color="Color.Error" Class="severity-icon"/>
 }
 else if (LogEntry.Severity is LogLevel.Warning)
 {
-    <FluentIcon Id="@id" Icon="Icons.Filled.Size16.Warning" Color="Color.Warning" Class="severity-icon"/>
-}
-
-@if (TryGetErrorInformation(out var errorInfo))
-{
-    var test = Guid.NewGuid().ToString();
-    <FluentTooltip Anchor="@id">
-        <div style="padding: 10px">
-            <pre style="white-space: pre-wrap">@errorInfo</pre>
-
-            <div style="float: right; margin-bottom: 10px;">
-                <FluentButton
-                    Id="@test"
-                    Appearance="Appearance.Lightweight"
-                    OnClick="@(() => CopyTextToClipboardAsync(errorInfo, test))">
-
-                    @ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)]
-
-                    <FluentIcon Class="copy-icon align-text-bottom" Style="display:inline;" Icon="Icons.Regular.Size16.Copy" />
-                    <FluentIcon  Class="checkmark-icon align-text-bottom" Style="display:none;" Icon="Icons.Regular.Size16.Checkmark" />
-                </FluentButton>
-                <FluentTooltip Anchor="@test" Position="TooltipPosition.Top">@ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)]</FluentTooltip>
-            </div>
-        </div>
-    </FluentTooltip>
+    <FluentIcon Icon="Icons.Filled.Size16.Warning" Color="Color.Warning" Class="severity-icon"/>
 }
 
 @LogEntry.Severity

@@ -37,12 +37,6 @@ public partial class GridValue
     [Parameter]
     public bool IsMasked { get; set; }
 
-    /// <summary>
-    /// Determines whether or not the value should be wrapped, ie if we expect this property to have a long value
-    /// </summary>
-    [Parameter]
-    public bool IsWrapped { get; set; }
-
     [Parameter]
     public bool EnableHighlighting { get; set; } = false;
 
@@ -75,20 +69,7 @@ public partial class GridValue
         PostCopyToolTip = Loc[nameof(ControlsStrings.GridValueCopied)];
     }
 
-    private string GetContainerClass()
-    {
-        var classes = new List<string>
-        {
-            EnableMasking ? "container masking-enabled" : "container"
-        };
-
-        if (IsWrapped)
-        {
-            classes.Add("wrap");
-        }
-
-        return string.Join(" ", classes);
-    }
+    private string GetContainerClass() => EnableMasking ? "container masking-enabled wrap" : "container wrap";
 
     private async Task ToggleMaskStateAsync()
         => await IsMaskedChanged.InvokeAsync(!IsMasked);

@@ -70,7 +70,7 @@ window.copyTextToClipboard = function (id, text, precopy, postcopy) {
             copyIcon.style.display = 'none';
             checkmarkIcon.style.display = 'inline';
         })
-        .catch((e) => {
+        .catch(() => {
             tooltipDiv.innerText = 'Could not access clipboard';
         });
 
