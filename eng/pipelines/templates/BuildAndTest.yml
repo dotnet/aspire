@@ -34,7 +34,7 @@ steps:
               "${{ parameters.buildScript }} -testnobuild -test -configuration ${{ parameters.buildConfig }} /bl:${{ parameters.repoLogPath }}/tests.binlog $(_OfficialBuildIdArgs)"
       displayName: Run non-helix tests
 
-    - template: /eng/common/templates/steps/send-to-helix.yml
+    - template: /eng/pipelines/templates/send-to-helix.yml
       parameters:
         HelixProjectPath: '$(Build.SourcesDirectory)/tests/send-to-helix.proj'
         HelixProjectArguments: /p:RunWithCodeCoverage=true /p:RepoTestResultsPath=${{ parameters.repoTestResultsPath }}
