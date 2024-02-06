@@ -229,7 +229,7 @@ public class DistributedApplicationTests
 
         await app.StartAsync();
 
-        var s = app.Services.GetRequiredService<KubernetesService>();
+        var s = app.Services.GetRequiredService<IKubernetesService>();
         var list = await s.ListAsync<Container>();
 
         Assert.Collection(list,
@@ -257,7 +257,7 @@ public class DistributedApplicationTests
 
         await using var app = testProgram.Build();
 
-        var kubernetes = app.Services.GetRequiredService<KubernetesService>();
+        var kubernetes = app.Services.GetRequiredService<IKubernetesService>();
 
         await app.StartAsync();
 
@@ -309,7 +309,7 @@ public class DistributedApplicationTests
 
         await app.StartAsync();
 
-        var s = app.Services.GetRequiredService<KubernetesService>();
+        var s = app.Services.GetRequiredService<IKubernetesService>();
 
         using var cts = new CancellationTokenSource(Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(10));
         var token = cts.Token;
@@ -338,7 +338,7 @@ public class DistributedApplicationTests
 
         await app.StartAsync();
 
-        var s = app.Services.GetRequiredService<KubernetesService>();
+        var s = app.Services.GetRequiredService<IKubernetesService>();
 
         using var cts = new CancellationTokenSource(Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(10));
         var token = cts.Token;
@@ -368,7 +368,7 @@ public class DistributedApplicationTests
 
         await app.StartAsync();
 
-        var s = app.Services.GetRequiredService<KubernetesService>();
+        var s = app.Services.GetRequiredService<IKubernetesService>();
 
         using var cts = new CancellationTokenSource(Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(10));
         var token = cts.Token;
@@ -384,6 +384,44 @@ public class DistributedApplicationTests
         Assert.True(Path.IsPathRooted(redisContainer.Spec.VolumeMounts[0].Source));
 
         await app.StopAsync();
+    }
+
+    [Fact]
+    public async Task KubernetesHasResourceNameForExecutables()
+    {
+        var testProgram = CreateTestProgram();
+        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+
+        await using var app = testProgram.Build();
+
+        await app.StartAsync();
+
+        var s = app.Services.GetRequiredService<IKubernetesService>();
+
+        using var cts = new CancellationTokenSource(Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(10));
+        var token = cts.Token;
+
+        var expectedResources = new HashSet<string>()
+        {
+            "servicea",
+            "serviceb",
+            "servicec",
+            "workera"
+        };
+
+        await foreach(var resource in s.WatchAsync<Executable>(cancellationToken: token))
+        {
+            Assert.True(resource.Item2.Metadata.Annotations.TryGetValue(Executable.ResourceNameAnnotation, out var value));
+            if (expectedResources.Contains(value))
+            {
+                expectedResources.Remove(value);
+            }
+
+            if (expectedResources.Count == 0)
+            {
+                break;
+            }
+        }
     }
 
     private static TestProgram CreateTestProgram(string[]? args = null, bool includeIntegrationServices = false, bool includeNodeApp = false) =>

@@ -412,6 +412,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             exe.Spec.Args = executable.Args?.ToList();
             exe.Spec.ExecutionType = ExecutionType.Process;
             exe.Annotate(Executable.OtelServiceNameAnnotation, exe.Metadata.Name);
+            exe.Annotate(Executable.ResourceNameAnnotation, exeName);
 
             var exeAppResource = new AppResource(executable, exe);
             AddServicesProducedInfo(executable, exe, exeAppResource);
@@ -440,6 +441,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
             annotationHolder.Annotate(Executable.CSharpProjectPathAnnotation, projectMetadata.ProjectPath);
             annotationHolder.Annotate(Executable.OtelServiceNameAnnotation, ers.Metadata.Name);
+            annotationHolder.Annotate(Executable.ResourceNameAnnotation, project.Name);
 
             if (!string.IsNullOrEmpty(configuration[DebugSessionPortVar]))
             {
