@@ -49,21 +49,18 @@ steps:
         HelixBuild: $(Build.BuildNumber)
         HelixAccessToken: $(HelixApiAccessToken)
 
-    - ${{ if eq(parameters.isWindows, 'true') }}:
-      - pwsh: |
-            $_cov_filelist=$((Get-ChildItem -Path ${{ parameters.repoTestResultsPath }} -Recurse -Filter *.cobertura.xml -File | % { $_.FullName }) -join ' ')
-            echo "${{ parameters.dotnetScript }} dotnet-coverage merge $_cov_filelist -f cobertura -o ${{ parameters.repoTestResultsPath }}/$(Agent.Os)_$(Agent.JobName).cobertura.xml" > merge-cov.cmd
-            cmd /c merge-cov.cmd
-            rm merge-cov.cmd
-        displayName: Merge code coverage results
+    - task: CopyFiles@2
+      inputs:
+        Contents: '${{ parameters.repoTestResultsPath }}/**/*.cobertura.xml'
+        TargetFolder: '${{ parameters.repoTestResultsPath }}/collected'
+        flattenFolders: true
+      displayName: Gather coverage results (cobertura.xml)
 
-    - ${{ if ne(parameters.isWindows, 'true') }}:
-      - script: ${{ parameters.dotnetScript }} dotnet-coverage
-                merge
-                `find ${{ parameters.repoTestResultsPath }} -name '*.cobertura.xml' -print0 | xargs -0`
-                -f cobertura
-                -o '${{ parameters.repoTestResultsPath }}/$(Agent.Os)_$(Agent.JobName).cobertura.xml'
-        displayName: Merge code coverage results
+    - script: $(Build.SourcesDirectory)/.dotnet/dotnet dotnet-coverage merge
+              ${{ parameters.repoTestResultsPath }}/collected/*.cobertura.xml
+              --output-format cobertura
+              --output ${{ parameters.repoTestResultsPath }}/$(Agent.Os)_$(Agent.JobName).cobertura.xml
+      displayName: Merge code coverage reports
 
     - task: PublishBuildArtifacts@1
       inputs:
