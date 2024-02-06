@@ -36,7 +36,7 @@ public CognitiveController(SearchIndexClient client)
 }
 ```
 
-See the [Azure AI Search Service Getting Started](https://learn.microsoft.com/en-us/dotnet/api/overview/azure/search.documents-readme) for examples on using the `SearchIndexClient`.
+See the [Azure AI Search Service Getting Started](https://learn.microsoft.com/dotnet/api/overview/azure/search.documents-readme) for examples on using the `SearchIndexClient`.
 
 ## Configuration
 
