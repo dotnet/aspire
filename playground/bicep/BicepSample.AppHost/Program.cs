@@ -14,7 +14,7 @@ var templ = builder.AddBicepTemplate("test", "test.bicep")
                    .WithParameter("values", ["one", "two"]);
 
 var kv = builder.AddBicepKeyVault("kv");
-var appConfig = builder.AddBicepAppConfiguration("appConfig");
+var appConfig = builder.AddBicepAppConfiguration("appConfig").WithParameter("sku", "standard");
 var storage = builder.AddAzureBicepAzureStorage("storage");
                     // .UseEmulator();
 
@@ -35,6 +35,7 @@ var cosmosDb = builder.AddBicepCosmosDb("cosmos")
 
 var appInsights = builder.AddBicepApplicationInsights("ai");
 
+// Redis takes forever to spin up...
 var redis = builder.AddBicepAzureRedis("redis");
 
 var serviceBus = builder.AddBicepAzureServiceBus("sb", ["queue1"], ["topic1"]);

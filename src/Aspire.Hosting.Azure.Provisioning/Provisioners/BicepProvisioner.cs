@@ -68,7 +68,7 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
             OnErrorData = data => logger.Log(LogLevel.Error, 0, data, null, (s, e) => s),
         };
 
-        if (!await ExecuteCommand(logger, templateSpec).ConfigureAwait(false))
+        if (!await ExecuteCommand(templateSpec).ConfigureAwait(false))
         {
             throw new InvalidOperationException();
         }
@@ -86,6 +86,7 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
                 ["value"] = parameter.Value switch
                 {
                     string s => s,
+                    IEnumerable<string> s => new JsonArray(s.Select(s => JsonValue.Create(s)).ToArray()),
                     int i => i,
                     bool b => b,
                     JsonNode node => node,
@@ -97,6 +98,7 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
             };
         }
 
+        var sw = Stopwatch.StartNew();
         var operation = await deployments.CreateOrUpdateAsync(WaitUntil.Completed, resource.Name, new ArmDeploymentContent(new(ArmDeploymentMode.Incremental)
         {
             Template = BinaryData.FromString(armTemplateContents.ToString()),
@@ -105,6 +107,9 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
         }),
         cancellationToken).ConfigureAwait(false);
 
+        sw.Stop();
+        logger.LogInformation("Deployment of {Name} to {ResourceGroup} took {Elapsed}", resource.Name, context.ResourceGroup.Data.Name, sw.Elapsed);
+
         var deployment = operation.Value;
 
         var outputs = deployment.Data.Properties.Outputs;
@@ -112,6 +117,10 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
         if (deployment.Data.Properties.ProvisioningState == ResourcesProvisioningState.Succeeded)
         {
             template.Dispose();
+        }
+        else
+        {
+            throw new InvalidOperationException($"Deployment of {resource.Name} to {context.ResourceGroup.Data.Name} failed with {deployment.Data.Properties.ProvisioningState}");
         }
 
         // e.g. {  "sqlServerName": { "type": "String", "value": "<value>" }}
@@ -184,7 +193,7 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
         }
     }
 
-    private static async Task<bool> ExecuteCommand(ILogger<BicepProvisioner> logger, ProcessSpec processSpec)
+    private static async Task<bool> ExecuteCommand(ProcessSpec processSpec)
     {
         var sw = Stopwatch.StartNew();
         var (task, disposable) = ProcessUtil.Run(processSpec);
@@ -193,8 +202,6 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
         {
             var result = await task.ConfigureAwait(false);
             sw.Stop();
-
-            logger.LogInformation("Process exited with {ExitCode}, took {Time}s", result.ExitCode, sw.Elapsed.TotalSeconds);
 
             return result.ExitCode == 0;
         }

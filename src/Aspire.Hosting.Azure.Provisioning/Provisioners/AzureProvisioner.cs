@@ -247,7 +247,7 @@ internal sealed class AzureProvisioner(
 
         if (tasks.Count > 0)
         {
-            await Task.WhenAll(tasks).ConfigureAwait(false);
+            await Task.WhenAll(tasks).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
 
             // If we created any resources then save the user secrets
             if (userSecretsPath is not null)

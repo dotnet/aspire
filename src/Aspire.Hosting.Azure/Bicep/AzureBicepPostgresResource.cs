@@ -115,9 +115,9 @@ public static class AzureBicepPostgresExtensions
     /// <summary>
     /// Adds an Azure Postgres database to the application model.
     /// </summary>
-    /// <param name="builder"></param>
-    /// <param name="name"></param>
-    /// <param name="databaseName"></param>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">The name of the database resource.</param>
+    /// <param name="databaseName">The name of the database.</param>
     /// <returns></returns>
     public static IResourceBuilder<AzureBicepPostgresDbResource> AddDatabase(this IResourceBuilder<AzureBicepPostgresResource> builder, string name, string? databaseName = null)
     {
