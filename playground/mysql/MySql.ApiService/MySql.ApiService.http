@@ -1,0 +1,26 @@
+@HostAddress = http://localhost:5168
+
+GET {{HostAddress}}/catalog/
+Accept: application/json
+
+###
+
+GET {{HostAddress}}/catalog/1
+Accept: application/json
+
+###
+
+POST {{HostAddress}}/catalog/
+Content-Type: application/json
+
+{
+  "name": "New Catalog Item",
+  "description": "New Catalog Description",
+  "price": 23.55
+}
+
+###
+DELETE {{HostAddress}}/catalog/4
+Accept: application/json
+
+###

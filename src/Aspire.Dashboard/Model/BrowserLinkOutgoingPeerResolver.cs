@@ -33,7 +33,9 @@ public sealed class BrowserLinkOutgoingPeerResolver : IOutgoingPeerResolver
         // A long term improvement here is to add tags to the BrowserLink client and then detect the
         // values in the span's attributes.
         const string lastSegment = "getScriptTag";
-        var url = OtlpHelpers.GetValue(attributes, "http.url");
+
+        // url.full replaces http.url but look for both for backwards compatibility.
+        var url = OtlpHelpers.GetValue(attributes, "url.full") ?? OtlpHelpers.GetValue(attributes, "http.url");
 
         // Quick check of URL with EndsWith before more expensive Uri parsing.
         if (url != null && url.EndsWith(lastSegment, StringComparison.OrdinalIgnoreCase))
