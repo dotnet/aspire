@@ -66,17 +66,6 @@ public static partial class AspireEFPostgreSqlExtensions
 
         configureSettings?.Invoke(settings);
 
-        builder.Services.AddNpgsqlDataSource(settings.ConnectionString ?? string.Empty, builder =>
-        {
-            // delay validating the ConnectionString until the DataSource is requested. This ensures an exception doesn't happen until a Logger is established.
-            if (string.IsNullOrEmpty(settings.ConnectionString))
-            {
-                throw new InvalidOperationException($"ConnectionString is missing. It should be provided in 'ConnectionStrings:{connectionName}' or under the 'ConnectionString' key in '{DefaultConfigSectionName}' or '{typeSpecificSectionName}' configuration section.");
-            }
-
-            builder.UseLoggerFactory(null); // a workaround for https://github.com/npgsql/efcore.pg/issues/2821
-        }, serviceKey: typeof(TContext));
-
         if (settings.DbContextPooling)
         {
             builder.Services.AddDbContextPool<TContext>(ConfigureDbContext);
@@ -125,13 +114,16 @@ public static partial class AspireEFPostgreSqlExtensions
                 });
         }
 
-        void ConfigureDbContext(IServiceProvider serviceProvider, DbContextOptionsBuilder dbContextOptionsBuilder)
+        void ConfigureDbContext(DbContextOptionsBuilder dbContextOptionsBuilder)
         {
-            var connection = serviceProvider.GetRequiredKeyedService<NpgsqlConnection>(typeof(TContext));
+            // delay validating the ConnectionString until the DbContext is requested. This ensures an exception doesn't happen until a Logger is established.
+            if (string.IsNullOrEmpty(settings.ConnectionString))
+            {
+                throw new InvalidOperationException($"ConnectionString is missing. It should be provided in 'ConnectionStrings:{connectionName}' or under the 'ConnectionString' key in '{DefaultConfigSectionName}' or '{typeSpecificSectionName}' configuration section.");
+            }
 
-            // We don't provide the connection string, it's going to use the pre-registered DataSource.
-            // We don't register logger factory, because there is no need to: https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbcontextoptionsbuilder.useloggerfactory?view=efcore-7.0#remarks
-            dbContextOptionsBuilder.UseNpgsql(connection, builder =>
+            // We don't register a logger factory, because there is no need to: https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbcontextoptionsbuilder.useloggerfactory?view=efcore-7.0#remarks
+            dbContextOptionsBuilder.UseNpgsql(settings.ConnectionString, builder =>
             {
                 // Resiliency:
                 // 1. Connection resiliency automatically retries failed database commands: https://www.npgsql.org/efcore/misc/other.html#execution-strategy
