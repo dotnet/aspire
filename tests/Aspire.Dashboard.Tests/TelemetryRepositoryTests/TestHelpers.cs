@@ -157,7 +157,7 @@ internal static class TestHelpers
             inMemorySettings[TelemetryRepository.MaxMetricsCountKey] = maxMetricsCount.Value.ToString(CultureInfo.InvariantCulture);
         }
 
-        IConfiguration configuration = new ConfigurationBuilder()
+        var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(inMemorySettings)
             .Build();
 
