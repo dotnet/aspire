@@ -50,3 +50,5 @@ uninstrumented
 upsert
 uris
 urls
+Npgsql
+Postgre

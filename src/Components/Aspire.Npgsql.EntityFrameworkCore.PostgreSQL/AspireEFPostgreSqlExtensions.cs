@@ -77,15 +77,98 @@ public static partial class AspireEFPostgreSqlExtensions
             builder.UseLoggerFactory(null); // a workaround for https://github.com/npgsql/efcore.pg/issues/2821
         });
 
-        if (settings.DbContextPooling)
+        builder.Services.AddDbContextPool<TContext>(options => ConfigureDbContext(settings, options, configureDbContextOptions));
+
+        ConfigureInstrumentation<TContext>(builder, settings);
+    }
+
+    /// <summary>
+    /// Configures health check, logging and telemetry for the <see cref="DbContext" />.
+    /// </summary>
+    /// <exception cref="ArgumentNullException">Thrown if mandatory <paramref name="builder"/> is null.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="DbContext"/> is not registered in DI.</exception>
+    public static void EnrichNpgsqlDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
+            this IHostApplicationBuilder builder,
+            Action<NpgsqlEntityFrameworkCorePostgreSQLSettings>? configureSettings = null) where TContext : DbContext
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        NpgsqlEntityFrameworkCorePostgreSQLSettings settings = new();
+        var typeSpecificSectionName = $"{DefaultConfigSectionName}:{typeof(TContext).Name}";
+        var typeSpecificConfigurationSection = builder.Configuration.GetSection(typeSpecificSectionName);
+        if (typeSpecificConfigurationSection.Exists()) // https://github.com/dotnet/runtime/issues/91380
         {
-            builder.Services.AddDbContextPool<TContext>(ConfigureDbContext);
+            typeSpecificConfigurationSection.Bind(settings);
         }
         else
         {
-            builder.Services.AddDbContext<TContext>(ConfigureDbContext);
+            builder.Configuration.GetSection(DefaultConfigSectionName).Bind(settings);
         }
 
+        configureSettings?.Invoke(settings);
+
+        
+        ConfigureRetry();
+
+        ConfigureInstrumentation<TContext>(builder, settings);
+
+        void ConfigureRetry()
+        {
+            if (!settings.Retry)
+            {
+                return;
+            }
+
+            // Resolving DbContext<TContextService> will resolve DbContextOptions<TContextImplementation>
+            var olDbContextOptionsDescriptor = builder.Services.FirstOrDefault(sd => sd.ServiceType == typeof(DbContextOptions<TContext>));
+
+            if (olDbContextOptionsDescriptor is null)
+            {
+                throw new InvalidOperationException($"DbContext<{nameof(TContext)}> was not registered");
+            }
+
+            builder.Services.Remove(olDbContextOptionsDescriptor);
+
+            ServiceDescriptor dbContextOptionsDescriptor;
+
+            dbContextOptionsDescriptor = new ServiceDescriptor(
+                olDbContextOptionsDescriptor.ServiceType,
+                olDbContextOptionsDescriptor.ServiceKey,
+                factory: (sp, key) =>
+                {
+                    DbContextOptionsBuilder? optionsBuilder = null;
+
+                    if (olDbContextOptionsDescriptor.ImplementationFactory != null)
+                    {
+                        var instance = olDbContextOptionsDescriptor.ImplementationFactory?.Invoke(sp) as DbContextOptions<TContext>;
+
+                        if (instance == null)
+                        {
+                            throw new InvalidOperationException($"DbContextOptions<{nameof(TContext)}> couldn't be resolved");
+                        }
+
+                        optionsBuilder = new DbContextOptionsBuilder<TContext>(instance);
+                    }
+                    else
+                    {
+                        optionsBuilder ??= new DbContextOptionsBuilder<TContext>();
+                    }
+
+                    ConfigureDbContext(settings, optionsBuilder, null);
+
+                    optionsBuilder.UseNpgsql(options => options.EnableRetryOnFailure());
+
+                    return optionsBuilder.Options;
+                },
+                olDbContextOptionsDescriptor.Lifetime
+                );
+
+            builder.Services.Add(dbContextOptionsDescriptor);
+        }
+    }
+
+    private static void ConfigureInstrumentation<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties)] TContext>(IHostApplicationBuilder builder, NpgsqlEntityFrameworkCorePostgreSQLSettings settings) where TContext : DbContext
+    {
         if (settings.HealthChecks)
         {
             // calling MapHealthChecks is the responsibility of the app, not Component
@@ -124,29 +207,31 @@ public static partial class AspireEFPostgreSqlExtensions
                     NpgsqlCommon.AddNpgsqlMetrics(meterProviderBuilder);
                 });
         }
+    }
 
-        void ConfigureDbContext(DbContextOptionsBuilder dbContextOptionsBuilder)
+    private static void ConfigureDbContext(NpgsqlEntityFrameworkCorePostgreSQLSettings settings, DbContextOptionsBuilder dbContextOptionsBuilder, Action<DbContextOptionsBuilder>? configureDbContextOptions)
+    {
+        if (settings.Retry)
         {
-            // We don't provide the connection string, it's going to use the pre-registered DataSource.
-            // We don't register logger factory, because there is no need to: https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbcontextoptionsbuilder.useloggerfactory?view=efcore-7.0#remarks
-            dbContextOptionsBuilder.UseNpgsql(builder =>
-            {
-                // Resiliency:
-                // 1. Connection resiliency automatically retries failed database commands: https://www.npgsql.org/efcore/misc/other.html#execution-strategy
-                if (settings.MaxRetryCount > 0)
-                {
-                    builder.EnableRetryOnFailure(settings.MaxRetryCount);
-                }
-                // 2. "Scale proportionally: You want to ensure that you don't scale out a resource to a point where it will exhaust other associated resources."
-                // The pooling is enabled by default, the min pool size is 0 by default: https://www.npgsql.org/doc/connection-string-parameters.html#pooling
-                // There is nothing for us to set here.
-                // 3. "Timeout: Places limit on the duration for which a caller can wait for a response."
-                // The timeouts have default values, except of Internal Command Timeout, which we should ignore:
-                // https://www.npgsql.org/doc/connection-string-parameters.html#timeouts-and-keepalive
-                // There is nothing for us to set here.
-            });
-
-            configureDbContextOptions?.Invoke(dbContextOptionsBuilder);
+            return;
         }
+
+        // We don't provide the connection string, it's going to use the pre-registered DataSource.
+        // We don't register logger factory, because there is no need to: https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbcontextoptionsbuilder.useloggerfactory?view=efcore-7.0#remarks
+        dbContextOptionsBuilder.UseNpgsql(builder =>
+        {
+            // Resiliency:
+            // 1. Connection resiliency automatically retries failed database commands: https://www.npgsql.org/efcore/misc/other.html#execution-strategy
+                builder.EnableRetryOnFailure();
+            // 2. "Scale proportionally: You want to ensure that you don't scale out a resource to a point where it will exhaust other associated resources."
+            // The pooling is enabled by default, the min pool size is 0 by default: https://www.npgsql.org/doc/connection-string-parameters.html#pooling
+            // There is nothing for us to set here.
+            // 3. "Timeout: Places limit on the duration for which a caller can wait for a response."
+            // The timeouts have default values, except of Internal Command Timeout, which we should ignore:
+            // https://www.npgsql.org/doc/connection-string-parameters.html#timeouts-and-keepalive
+            // There is nothing for us to set here.
+        });
+
+        configureDbContextOptions?.Invoke(dbContextOptionsBuilder);
     }
 }

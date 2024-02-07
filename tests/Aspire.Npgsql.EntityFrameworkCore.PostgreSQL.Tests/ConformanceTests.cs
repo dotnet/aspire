@@ -15,7 +15,7 @@ using Xunit;
 
 namespace Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.Tests;
 
-public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, NpgsqlEntityFrameworkCorePostgreSQLSettings>
+public class ConformanceTests : ConformanceTests<TestDbContext, NpgsqlEntityFrameworkCorePostgreSQLSettings>
 {
     // in the future it can become a static property that reads the value from Env Var
     protected const string ConnectionString = "Host=localhost;Database=test;Username=postgres;Password=postgres";
@@ -75,15 +75,16 @@ public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, NpgsqlEn
 
     protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
         {
-            ("""{"Aspire": { "Npgsql": { "EntityFrameworkCore":{ "PostgreSQL": { "MaxRetryCount": "5"}}}}}""", "Value is \"string\" but should be \"integer\""),
+            ("""{"Aspire": { "Npgsql": { "EntityFrameworkCore":{ "PostgreSQL": { "Retry": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
             ("""{"Aspire": { "Npgsql": { "EntityFrameworkCore":{ "PostgreSQL": { "HealthChecks": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
-            ("""{"Aspire": { "Npgsql": { "EntityFrameworkCore":{ "PostgreSQL": { "ConnectionString": "", "DbContextPooling": "Yes"}}}}}""", "Value is \"string\" but should be \"boolean\"")
+            ("""{"Aspire": { "Npgsql": { "EntityFrameworkCore":{ "PostgreSQL": { "Tracing": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
+            ("""{"Aspire": { "Npgsql": { "EntityFrameworkCore":{ "PostgreSQL": { "Metrics": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
         };
 
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[1]
         {
-            new KeyValuePair<string, string?>("Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:ConnectionString", ConnectionString)
+            new("Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:ConnectionString", ConnectionString)
         });
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<NpgsqlEntityFrameworkCorePostgreSQLSettings>? configure = null, string? key = null)
@@ -111,25 +112,21 @@ public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, NpgsqlEn
         throw new SkipTestException("Need to skip this test until https://github.com/npgsql/efcore.pg/issues/2891 is fixed.");
     }
 
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
+    [Fact]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "EF1001:Internal EF Core API usage.", Justification = "Required to verify pooling without touching DB")]
-    public void DbContextPoolingRegistersIDbContextPool(bool enabled)
+    public void DbContextPoolingRegistersIDbContextPool()
     {
-        using IHost host = CreateHostWithComponent(options => options.DbContextPooling = enabled);
+        using IHost host = CreateHostWithComponent();
 
         IDbContextPool<TestDbContext>? pool = host.Services.GetService<IDbContextPool<TestDbContext>>();
 
-        Assert.Equal(enabled, pool is not null);
+        Assert.NotNull(pool);
     }
 
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void DbContextCanBeAlwaysResolved(bool enabled)
+    [Fact]
+    public void DbContextCanBeAlwaysResolved()
     {
-        using IHost host = CreateHostWithComponent(options => options.DbContextPooling = enabled);
+        using IHost host = CreateHostWithComponent();
 
         TestDbContext? dbContext = host.Services.GetService<TestDbContext>();
 
