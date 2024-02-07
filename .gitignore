@@ -136,6 +136,3 @@ node_modules/
 
 # vscode python env files
 .env
-/playground/eShopLite/.gitignore
-/playground/eShopLite/azure.yaml
-/playground/eShopLite/next-steps.md

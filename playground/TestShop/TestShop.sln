@@ -17,6 +17,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AppHost", "AppHost\AppHost.
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OrderProcessor", "OrderProcessor\OrderProcessor.csproj", "{7926680B-CE02-4AE8-AED2-E95678309289}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CatalogModel", "CatalogModel\CatalogModel.csproj", "{AAD6BF29-5FB9-4CA5-8B84-4863B27D5228}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -51,6 +53,10 @@ Global
 		{7926680B-CE02-4AE8-AED2-E95678309289}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7926680B-CE02-4AE8-AED2-E95678309289}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7926680B-CE02-4AE8-AED2-E95678309289}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AAD6BF29-5FB9-4CA5-8B84-4863B27D5228}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AAD6BF29-5FB9-4CA5-8B84-4863B27D5228}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AAD6BF29-5FB9-4CA5-8B84-4863B27D5228}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AAD6BF29-5FB9-4CA5-8B84-4863B27D5228}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
