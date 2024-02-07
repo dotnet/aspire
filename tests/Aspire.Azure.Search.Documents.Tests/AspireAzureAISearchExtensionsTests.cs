@@ -11,7 +11,8 @@ namespace Aspire.Azure.Search.Documents.Tests;
 
 public class AspireAzureAISearchExtensionsTests
 {
-    private const string ConnectionString = "Endpoint=https://aspireaisearchtests.search.windows.net/;Key=fake";
+    private const string SearchEndpoint = "https://aspireaisearchtests.search.windows.net/";
+    private const string ConnectionString = $"Endpoint={SearchEndpoint};Key=fake";
 
     [Theory]
     [InlineData(true)]
@@ -38,6 +39,7 @@ public class AspireAzureAISearchExtensionsTests
             host.Services.GetRequiredService<SearchIndexClient>();
 
         Assert.NotNull(client);
+        Assert.Equal(new Uri(SearchEndpoint), client.Endpoint);
     }
 
     [Theory]
@@ -64,13 +66,6 @@ public class AspireAzureAISearchExtensionsTests
             host.Services.GetRequiredService<SearchIndexClient>();
 
         Assert.NotNull(client);
-        Assert.Equal(searchEndpoint, client.Endpoint);
-    }
-
-    public async Task<long> GetDocumentCountAsync(SearchIndexClient indexClient, string indexName, CancellationToken cancellationToken)
-    {
-        var searchClient = indexClient.GetSearchClient(indexName);
-        var documentCountResponse = await searchClient.GetDocumentCountAsync(cancellationToken);
-        return documentCountResponse.Value;
+        Assert.Equal(new Uri(SearchEndpoint), client.Endpoint);
     }
 }
