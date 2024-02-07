@@ -7,21 +7,24 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-builder.AddSqlServerDbContext<MyDbContext>("db");
+builder.AddSqlServerDbContext<MyDb1Context>("db1");
+builder.AddSqlServerDbContext<MyDb2Context>("db2");
 
 var app = builder.Build();
 
-app.MapGet("/", async (MyDbContext context) =>
+app.MapGet("/", async (MyDb1Context db1Context, MyDb2Context db2Context) =>
 {
     // You wouldn't normally do this on every call,
     // but doing it here just to make this simple.
-    context.Database.EnsureCreated();
+
+    await db1Context.Database.EnsureCreatedAsync();
+    await db2Context.Database.EnsureCreatedAsync();
 
     var entry = new Entry();
-    await context.Entries.AddAsync(entry);
-    await context.SaveChangesAsync();
+    await db1Context.Entries.AddAsync(entry);
+    await db1Context.SaveChangesAsync();
 
-    var entries = await context.Entries.ToListAsync();
+    var entries = await db1Context.Entries.ToListAsync();
 
     return new
     {
@@ -32,7 +35,12 @@ app.MapGet("/", async (MyDbContext context) =>
 
 app.Run();
 
-public class MyDbContext(DbContextOptions<MyDbContext> options) : DbContext(options)
+public class MyDb1Context(DbContextOptions<MyDb1Context> options) : DbContext(options)
+{
+    public DbSet<Entry> Entries { get; set; }
+}
+
+public class MyDb2Context(DbContextOptions<MyDb2Context> options) : DbContext(options)
 {
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

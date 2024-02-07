@@ -518,13 +518,14 @@ public class TelemetryRepository
         };
     }
 
-    private static OtlpSpanKind ConvertSpanKind(SpanKind? kind)
+    internal static OtlpSpanKind ConvertSpanKind(SpanKind? kind)
     {
         return kind switch
         {
             // Unspecified to Internal is intentional.
             // "Implementations MAY assume SpanKind to be INTERNAL when receiving UNSPECIFIED."
             SpanKind.Unspecified => OtlpSpanKind.Internal,
+            SpanKind.Internal => OtlpSpanKind.Internal,
             SpanKind.Client => OtlpSpanKind.Client,
             SpanKind.Server => OtlpSpanKind.Server,
             SpanKind.Producer => OtlpSpanKind.Producer,

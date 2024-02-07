@@ -113,4 +113,18 @@ public class ResourceOutgoingPeerResolverTests
         Assert.True(ResourceOutgoingPeerResolver.TryResolvePeerNameCore(resources, [KeyValuePair.Create("peer.service", "127.0.0.1,5000")], out var value));
         Assert.Equal("test", value);
     }
+
+    [Fact]
+    public void ServerAddressAndPort_Match()
+    {
+        // Arrange
+        var resources = new Dictionary<string, ResourceViewModel>
+        {
+            ["test"] = CreateResource("test", "localhost", 5000)
+        };
+
+        // Act & Assert
+        Assert.True(ResourceOutgoingPeerResolver.TryResolvePeerNameCore(resources, [KeyValuePair.Create("server.address", "localhost"), KeyValuePair.Create("server.port", "5000")], out var value));
+        Assert.Equal("test", value);
+    }
 }

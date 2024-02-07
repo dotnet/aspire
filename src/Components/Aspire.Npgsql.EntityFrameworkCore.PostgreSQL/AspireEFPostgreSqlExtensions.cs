@@ -211,7 +211,7 @@ public static partial class AspireEFPostgreSqlExtensions
 
     private static void ConfigureDbContext(NpgsqlEntityFrameworkCorePostgreSQLSettings settings, DbContextOptionsBuilder dbContextOptionsBuilder, Action<DbContextOptionsBuilder>? configureDbContextOptions)
     {
-        if (settings.Retry)
+        if (!settings.Retry)
         {
             return;
         }
@@ -222,7 +222,7 @@ public static partial class AspireEFPostgreSqlExtensions
         {
             // Resiliency:
             // 1. Connection resiliency automatically retries failed database commands: https://www.npgsql.org/efcore/misc/other.html#execution-strategy
-                builder.EnableRetryOnFailure();
+            builder.EnableRetryOnFailure();
             // 2. "Scale proportionally: You want to ensure that you don't scale out a resource to a point where it will exhaust other associated resources."
             // The pooling is enabled by default, the min pool size is 0 by default: https://www.npgsql.org/doc/connection-string-parameters.html#pooling
             // There is nothing for us to set here.

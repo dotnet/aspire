@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\eShopLite\ServiceDefaults\ServiceDefaults.csproj" />
+    <ProjectReference Include="..\..\TestShop\ServiceDefaults\ServiceDefaults.csproj" />
   </ItemGroup>
 
 </Project>

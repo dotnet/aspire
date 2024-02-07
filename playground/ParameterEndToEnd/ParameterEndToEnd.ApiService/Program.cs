@@ -1,51 +1,36 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Microsoft.Azure.Cosmos;
-using Newtonsoft.Json;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 int insertionRows = builder.Configuration.GetValue<int>("InsertionRows", 1);
 
 builder.AddServiceDefaults();
-builder.AddAzureCosmosDB("db", settings =>
-{
-    settings.IgnoreEmulatorCertificate = true;
-});
+
+builder.AddSqlServerDbContext<MyDbContext>("db");
 
 var app = builder.Build();
 
-app.MapGet("/", async (CosmosClient cosmosClient) =>
+app.MapGet("/", async (MyDbContext context) =>
 {
-    var db = (await cosmosClient.CreateDatabaseIfNotExistsAsync("db")).Database;
-    var container = (await db.CreateContainerIfNotExistsAsync("entries", "/Id")).Container;
+    // You wouldn't normally do this on every call,
+    // but doing it here just to make this simple.
+    context.Database.EnsureCreated();
 
-    // Just demonstrating the use of a non secret parameter from
-    // the AddParameter method in the app host.
-    for (var row = 0; row < insertionRows; row++)
+    for (var i = 0; i < insertionRows; i++)
     {
-        var newEntry = new Entry() { Id = Guid.NewGuid().ToString() };
-        await container.CreateItemAsync(newEntry);
+        var entry = new Entry();
+        await context.Entries.AddAsync(entry);
     }
 
-    var entries = new List<Entry>();
-    var iterator = container.GetItemQueryIterator<Entry>(requestOptions: new QueryRequestOptions() { MaxItemCount = 5 });
+    await context.SaveChangesAsync();
 
-    var batchCount = 0;
-    while (iterator.HasMoreResults)
-    {
-        batchCount++;
-        var batch = await iterator.ReadNextAsync();
-        foreach (var entry in batch)
-        {
-            entries.Add(entry);
-        }
-    }
+    var entries = await context.Entries.ToListAsync();
 
     return new
     {
-        batchCount = batchCount,
         totalEntries = entries.Count,
         entries = entries
     };
@@ -53,8 +38,19 @@ app.MapGet("/", async (CosmosClient cosmosClient) =>
 
 app.Run();
 
+public class MyDbContext(DbContextOptions<MyDbContext> options) : DbContext(options)
+{
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<Entry>().HasKey(e => e.Id);
+    }
+
+    public DbSet<Entry> Entries { get; set; }
+}
+
 public class Entry
 {
-    [JsonProperty("id")]
-    public string? Id { get; set; }
+    public Guid Id { get; set; } = Guid.NewGuid();
 }

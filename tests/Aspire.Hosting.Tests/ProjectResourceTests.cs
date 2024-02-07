@@ -139,6 +139,24 @@ public class ProjectResourceTests
     }
 
     [Fact]
+    public void ExcludeLaunchProfileAddsAnnotationToProject()
+    {
+        var appBuilder = CreateBuilder();
+
+        appBuilder.AddProject<Projects.ServiceA>("projectName")
+            .ExcludeLaunchProfile();
+        var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var projectResources = appModel.GetProjectResources();
+
+        var resource = Assert.Single(projectResources);
+        // ExcludeLaunchProfileAnnotation isn't public, so we just check the type name
+        Assert.Contains(resource.Annotations, a => a.GetType().Name == "ExcludeLaunchProfileAnnotation");
+    }
+
+    [Fact]
     public void ProjectWithoutServiceMetadataFailsWithLaunchProfile()
     {
         var appBuilder = CreateBuilder();

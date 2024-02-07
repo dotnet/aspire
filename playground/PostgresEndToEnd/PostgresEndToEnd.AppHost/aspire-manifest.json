@@ -1,0 +1,160 @@
+{
+  "resources": {
+    "pg1": {
+      "type": "postgres.server.v0"
+    },
+    "db1": {
+      "type": "postgres.database.v0",
+      "parent": "pg1"
+    },
+    "pg2": {
+      "type": "postgres.server.v0"
+    },
+    "db2": {
+      "type": "postgres.database.v0",
+      "parent": "pg2"
+    },
+    "pg3": {
+      "type": "postgres.server.v0"
+    },
+    "db3": {
+      "type": "postgres.database.v0",
+      "parent": "pg3"
+    },
+    "db4": {
+      "type": "postgres.database.v0",
+      "parent": "pg3"
+    },
+    "pg4": {
+      "type": "container.v0",
+      "image": "postgres:latest",
+      "env": {
+        "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
+        "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
+        "POSTGRES_PASSWORD": "{pg4.inputs.password}"
+      },
+      "bindings": {
+        "tcp": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp",
+          "containerPort": 5432
+        }
+      },
+      "connectionString": "Host={pg4.bindings.tcp.host};Port={pg4.bindings.tcp.port};Username=postgres;Password={pg4.inputs.password};",
+      "inputs": {
+        "password": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 10
+            }
+          }
+        }
+      }
+    },
+    "db5": {
+      "type": "postgres.database.v0",
+      "parent": "pg4"
+    },
+    "pg5": {
+      "type": "container.v0",
+      "image": "postgres:latest",
+      "env": {
+        "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
+        "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
+        "POSTGRES_PASSWORD": "{pg5.inputs.password}"
+      },
+      "bindings": {
+        "tcp": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp",
+          "containerPort": 5432
+        }
+      },
+      "connectionString": "Host={pg5.bindings.tcp.host};Port={pg5.bindings.tcp.port};Username=postgres;Password={pg5.inputs.password};",
+      "inputs": {
+        "password": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 10
+            }
+          }
+        }
+      }
+    },
+    "db6": {
+      "type": "postgres.database.v0",
+      "parent": "pg5"
+    },
+    "pg6": {
+      "type": "container.v0",
+      "image": "postgres:latest",
+      "env": {
+        "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
+        "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
+        "POSTGRES_PASSWORD": "{pg6.inputs.password}"
+      },
+      "bindings": {
+        "tcp": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp",
+          "containerPort": 5432
+        }
+      },
+      "connectionString": "Host={pg6.bindings.tcp.host};Port={pg6.bindings.tcp.port};Username=postgres;Password={pg6.inputs.password};",
+      "inputs": {
+        "password": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 10
+            }
+          }
+        }
+      }
+    },
+    "db7": {
+      "type": "postgres.database.v0",
+      "parent": "pg6"
+    },
+    "db8": {
+      "type": "postgres.database.v0",
+      "parent": "pg6"
+    },
+    "api": {
+      "type": "project.v0",
+      "path": "../PostgresEndToEnd.ApiService/PostgresEndToEnd.ApiService.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "ConnectionStrings__db1": "{db1.connectionString}",
+        "ConnectionStrings__db2": "{db2.connectionString}",
+        "ConnectionStrings__db3": "{db3.connectionString}",
+        "ConnectionStrings__db4": "{db4.connectionString}",
+        "ConnectionStrings__db5": "{db5.connectionString}",
+        "ConnectionStrings__db6": "{db6.connectionString}",
+        "ConnectionStrings__db7": "{db7.connectionString}",
+        "ConnectionStrings__db8": "{db8.connectionString}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http"
+        }
+      }
+    }
+  }
+}

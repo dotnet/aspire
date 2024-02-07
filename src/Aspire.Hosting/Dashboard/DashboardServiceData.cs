@@ -21,7 +21,7 @@ internal sealed class DashboardServiceData : IAsyncDisposable
 
     public DashboardServiceData(
         DistributedApplicationModel applicationModel,
-        KubernetesService kubernetesService,
+        IKubernetesService kubernetesService,
         IConfiguration configuration,
         ILoggerFactory loggerFactory)
     {

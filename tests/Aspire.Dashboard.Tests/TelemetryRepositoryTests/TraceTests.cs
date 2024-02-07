@@ -15,6 +15,20 @@ public class TraceTests
 {
     private static readonly DateTime s_testTime = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
+    [Theory]
+    [InlineData(OtlpSpanKind.Server, Span.Types.SpanKind.Server)]
+    [InlineData(OtlpSpanKind.Client, Span.Types.SpanKind.Client)]
+    [InlineData(OtlpSpanKind.Consumer, Span.Types.SpanKind.Consumer)]
+    [InlineData(OtlpSpanKind.Producer, Span.Types.SpanKind.Producer)]
+    [InlineData(OtlpSpanKind.Internal, Span.Types.SpanKind.Internal)]
+    [InlineData(OtlpSpanKind.Internal, Span.Types.SpanKind.Unspecified)]
+    [InlineData(OtlpSpanKind.Unspecified, (Span.Types.SpanKind)1000)]
+    public void ConvertSpanKind(OtlpSpanKind expected, Span.Types.SpanKind value)
+    {
+        var result = TelemetryRepository.ConvertSpanKind(value);
+        Assert.Equal(expected, result);
+    }
+
     [Fact]
     public void AddTraces()
     {

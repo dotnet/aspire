@@ -82,7 +82,7 @@ public static class ResourceBuilderExtensions
     /// <param name="name">Name of enviroment variable</param>
     /// <param name="parameter">Resource builder for the parameter resource.</param>
     /// <returns>A resource configured with the environment variable callback.</returns>
-    public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, IResourceBuilder<ParameterResource> parameter) where T: IResourceWithEnvironment
+    public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, IResourceBuilder<ParameterResource> parameter) where T : IResourceWithEnvironment
     {
         return builder.WithEnvironment(context =>
         {
@@ -105,7 +105,8 @@ public static class ResourceBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithManifestPublishingCallback<T>(this IResourceBuilder<T> builder, Action<ManifestPublishingContext> callback) where T : IResource
     {
-        return builder.WithAnnotation(new ManifestPublishingCallbackAnnotation(callback));
+        // You can only ever have one manifest publishing callback, so it must be a replace operation.
+        return builder.WithAnnotation(new ManifestPublishingCallbackAnnotation(callback), ResourceAnnotationMutationBehavior.Replace);
     }
 
     private static bool ContainsAmbiguousEndpoints(IEnumerable<AllocatedEndpointAnnotation> endpoints)
@@ -472,5 +473,25 @@ public static class ResourceBuilderExtensions
         }
 
         return builder.WithAnnotation(ManifestPublishingCallbackAnnotation.Ignore);
+    }
+
+    /// <summary>
+    /// Adds metadata to resource which is output into the manifest.
+    /// </summary>
+    /// <typeparam name="T">Type of resource.</typeparam>
+    /// <param name="builder">Resource builder.</param>
+    /// <param name="name">Name of metadata.</param>
+    /// <param name="value">Value of metadata.</param>
+    /// <returns>Resource builder.</returns>
+    public static IResourceBuilder<T> WithMetadata<T>(this IResourceBuilder<T> builder, string name, object value) where T: IResource
+    {
+        var existingAnnotation = builder.Resource.Annotations.OfType<ManifestMetadataAnnotation>().SingleOrDefault(a => a.Name == name);
+
+        if (existingAnnotation != null)
+        {
+            builder.Resource.Annotations.Remove(existingAnnotation);
+        }
+
+        return builder.WithAnnotation(new ManifestMetadataAnnotation(name, value));
     }
 }
