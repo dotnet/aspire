@@ -16,6 +16,10 @@ namespace Aspire.Dashboard.Otlp.Storage;
 
 public class TelemetryRepository
 {
+    internal const string MaxLogCountKey = "MaxLogCount";
+    internal const string MaxTraceCountKey = "MaxTraceCount";
+    internal const string MaxMetricsCountKey = "MaxMetricsCount";
+
     private const int DefaultMaxTelemetryCount = 10_000;
     private const int DefaultMaxMetricsCount = 100_000; // Allows for 1 metric point per second for over 24 hours.
 
@@ -44,9 +48,9 @@ public class TelemetryRepository
     {
         _logger = loggerFactory.CreateLogger(typeof(TelemetryRepository));
 
-        _logs = new(config.GetValue("MaxLogCount", DefaultMaxTelemetryCount));
-        _traces = new(config.GetValue("MaxTraceCount", DefaultMaxTelemetryCount));
-        _maxMetricsCount = config.GetValue("MaxMetricsCount", DefaultMaxMetricsCount);
+        _logs = new(config.GetValue(MaxLogCountKey, DefaultMaxTelemetryCount));
+        _traces = new(config.GetValue(MaxTraceCountKey, DefaultMaxTelemetryCount));
+        _maxMetricsCount = config.GetValue(MaxMetricsCountKey, DefaultMaxMetricsCount);
     }
 
     public List<OtlpApplication> GetApplications()
