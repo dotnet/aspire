@@ -455,25 +455,6 @@ public class ManifestGenerationTests
     }
 
     [Fact]
-    public void EnsureAllOpenAIManifestTypesHaveVersion0Suffix()
-    {
-        var program = CreateTestProgramJsonDocumentManifestPublisher();
-
-        program.AppBuilder.AddOpenAI("openai");
-
-        // Build AppHost so that publisher can be resolved.
-        program.Build();
-        var publisher = program.GetManifestPublisher();
-
-        program.Run();
-
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var openai = resources.GetProperty("openai");
-        Assert.Equal("openai.v0", openai.GetProperty("type").GetString());
-    }
-
-    [Fact]
     public void EnsureAllAzureAppConfigurationManifestTypesHaveVersion0Suffix()
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher();
