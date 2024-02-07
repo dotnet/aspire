@@ -107,7 +107,6 @@ public static partial class AspireEFPostgreSqlExtensions
 
         configureSettings?.Invoke(settings);
 
-        
         ConfigureRetry();
 
         ConfigureInstrumentation<TContext>(builder, settings);
