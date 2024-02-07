@@ -5,6 +5,7 @@
     <OutputType>Library</OutputType>
     <IsPackable>true</IsPackable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DefineConstants>ASPIRE_EVENTSOURCE</DefineConstants>
     <NoWarn>$(NoWarn);CS8002</NoWarn>
     <PackageTags>aspire hosting</PackageTags>
     <Description>Core API and abstractions for the .NET Aspire application model.</Description>
