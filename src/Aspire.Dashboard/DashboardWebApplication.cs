@@ -5,6 +5,7 @@ using System.Net;
 using Aspire.Dashboard.Components;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Grpc;
+using Aspire.Dashboard.Otlp.Security;
 using Aspire.Dashboard.Otlp.Storage;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
@@ -44,7 +45,11 @@ public class DashboardWebApplication
         builder.WebHost.ConfigureKestrel(kestrelOptions =>
         {
             ConfigureListenAddresses(kestrelOptions, dashboardUris);
-            ConfigureListenAddresses(kestrelOptions, otlpUris, HttpProtocols.Http2);
+            ConfigureListenAddresses(kestrelOptions, otlpUris, options =>
+            {
+                options.Protocols = HttpProtocols.Http2;
+                options.UseOtlpConnection();
+            });
         });
 
         if (isAllHttps)
@@ -61,7 +66,7 @@ public class DashboardWebApplication
         builder.Services.AddScoped<IDashboardClient, DashboardClient>();
 
         // OTLP services.
-        builder.Services.AddGrpc();
+        builder.Services.AddGrpc(options => options.Interceptors.Add<OtlpInterceptor>());
         builder.Services.AddSingleton<TelemetryRepository>();
         builder.Services.AddTransient<StructuredLogsViewModel>();
         builder.Services.AddTransient<TracesViewModel>();
@@ -153,7 +158,7 @@ public class DashboardWebApplication
 
     public void Run() => _app.Run();
 
-    private static void ConfigureListenAddresses(KestrelServerOptions kestrelOptions, Uri[] uris, HttpProtocols? httpProtocols = null)
+    private static void ConfigureListenAddresses(KestrelServerOptions kestrelOptions, Uri[] uris, Action<ListenOptions>? configureListenOptions = null)
     {
         foreach (var uri in uris)
         {
@@ -172,10 +177,7 @@ public class DashboardWebApplication
                 {
                     options.UseHttps();
                 }
-                if (httpProtocols is not null)
-                {
-                    options.Protocols = httpProtocols.Value;
-                }
+                configureListenOptions?.Invoke(options);
             }
         }
     }
