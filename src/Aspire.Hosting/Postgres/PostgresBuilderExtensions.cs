@@ -111,6 +111,11 @@ public static class PostgresBuilderExtensions
         context.Writer.WriteString("parent", postgresDatabase.Parent.Name);
     }
 
+    /// <summary>
+    /// Changes the PostgreSQL resource to be published as a container in the manifest.
+    /// </summary>
+    /// <param name="builder">The Postgres server resource builder.</param>
+    /// <returns></returns>
     public static IResourceBuilder<PostgresServerResource> PublishAsContainer(this IResourceBuilder<PostgresServerResource> builder)
     {
         return builder.WithManifestPublishingCallback(context => WritePostgresContainerResourceToManifest(context, builder.Resource));
