@@ -4,9 +4,6 @@
 using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.MongoDB;
-internal sealed class MongoExpressContainerResource : ContainerResource
+internal sealed class MongoExpressContainerResource(string name) : ContainerResource(name)
 {
-    public MongoExpressContainerResource(string name) : base(name)
-    {
-    }
 }
