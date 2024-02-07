@@ -13,17 +13,19 @@ public class MetricsTests
     [MemberData(nameof(GetMetricsUpdateCases))]
     public void MetricsUpdateTests(
         List<DimensionScope>? matchedDimensions,
-        List<MetricTable.MetricViewBase> currentMetrics,
-        bool shouldShowHistogram,
+        List<MetricTable.MetricView> currentMetrics,
+        bool isHistogramMetric,
+        bool showCount,
         bool onlyShowValueChanges,
-        List<MetricTable.MetricViewBase> expectedMetrics,
+        List<MetricTable.MetricView> expectedMetrics,
         List<int> expectedAddedIndices,
         bool expectedAnyDimensionsShown)
     {
         MetricTable.UpdateMetrics(
             matchedDimensions,
             currentMetrics,
-            shouldShowHistogram,
+            isHistogramMetric,
+            showCount,
             onlyShowValueChanges,
             out _,
             out var actualAddedIndices,
@@ -56,14 +58,15 @@ public class MetricsTests
             dimensionB.Values.Add(new MetricValue<int>(0, now.AddSeconds(10), now.AddSeconds(11)) { Count = 2 });
 
             List<DimensionScope> dimensions = [dimensionA, dimensionB];
-            List<MetricTable.MetricViewBase> currentMetrics = [];
+            List<MetricTable.MetricView> currentMetrics = [];
             return CreateCase(
                 dimensions,
                 currentMetrics,
                 false,
                 false,
+                false,
                 [
-                    new MetricTable.MetricViewBase
+                    new MetricTable.MetricView
                     {
                         CountChange = MetricTable.ValueDirectionChange.Constant,
                         DimensionAttributes = dimensionA.Attributes,
@@ -71,7 +74,7 @@ public class MetricsTests
                         Value = dimensionA.Values[0],
                         ValueChange = null
                     },
-                    new MetricTable.MetricViewBase
+                    new MetricTable.MetricView
                     {
                         CountChange = MetricTable.ValueDirectionChange.Up,
                         DimensionAttributes = dimensionA.Attributes,
@@ -79,7 +82,7 @@ public class MetricsTests
                         Value = dimensionA.Values[1],
                         ValueChange = MetricTable.ValueDirectionChange.Down
                     },
-                    new MetricTable.MetricViewBase
+                    new MetricTable.MetricView
                     {
                         CountChange = MetricTable.ValueDirectionChange.Down,
                         DimensionAttributes = dimensionB.Attributes,
@@ -110,8 +113,8 @@ public class MetricsTests
 
             List<DimensionScope> dimensions = [dimensionA, dimensionB];
 
-            List<MetricTable.MetricViewBase> currentMetrics = [
-                new MetricTable.MetricViewBase
+            List<MetricTable.MetricView> currentMetrics = [
+                new MetricTable.MetricView
                 {
                     CountChange = MetricTable.ValueDirectionChange.Constant,
                     DimensionAttributes = dimensionA.Attributes,
@@ -119,7 +122,7 @@ public class MetricsTests
                     Value = dimensionA.Values[0],
                     ValueChange = null
                 },
-                new MetricTable.MetricViewBase
+                new MetricTable.MetricView
                 {
                     CountChange = MetricTable.ValueDirectionChange.Up,
                     DimensionAttributes = dimensionA.Attributes,
@@ -127,7 +130,7 @@ public class MetricsTests
                     Value = new MetricValue<int>(-1, now.AddSeconds(5), now.AddSeconds(10)) { Count = 4 },
                     ValueChange = MetricTable.ValueDirectionChange.Down
                 },
-                new MetricTable.MetricViewBase
+                new MetricTable.MetricView
                 {
                     CountChange = MetricTable.ValueDirectionChange.Down,
                     DimensionAttributes = dimensionB.Attributes,
@@ -141,8 +144,9 @@ public class MetricsTests
                 currentMetrics,
                 false,
                 false,
+                false,
                 [
-                    new MetricTable.MetricViewBase
+                    new MetricTable.MetricView
                     {
                         CountChange = MetricTable.ValueDirectionChange.Constant,
                         DimensionAttributes = dimensionA.Attributes,
@@ -150,7 +154,7 @@ public class MetricsTests
                         Value = dimensionA.Values[0],
                         ValueChange = null
                     },
-                    new MetricTable.MetricViewBase
+                    new MetricTable.MetricView
                     {
                         CountChange = MetricTable.ValueDirectionChange.Constant,
                         DimensionAttributes = dimensionA.Attributes,
@@ -158,7 +162,7 @@ public class MetricsTests
                         Value = dimensionA.Values[1],
                         ValueChange = MetricTable.ValueDirectionChange.Up
                     },
-                    new MetricTable.MetricViewBase
+                    new MetricTable.MetricView
                     {
                         CountChange = MetricTable.ValueDirectionChange.Up,
                         DimensionAttributes = dimensionB.Attributes,
@@ -166,7 +170,7 @@ public class MetricsTests
                         Value = dimensionB.Values[0],
                         ValueChange = MetricTable.ValueDirectionChange.Up
                     },
-                    new MetricTable.MetricViewBase
+                    new MetricTable.MetricView
                     {
                         CountChange = MetricTable.ValueDirectionChange.Down,
                         DimensionAttributes = dimensionA.Attributes,
@@ -174,7 +178,7 @@ public class MetricsTests
                         Value = dimensionA.Values[2],
                         ValueChange = MetricTable.ValueDirectionChange.Constant
                     },
-                    new MetricTable.MetricViewBase
+                    new MetricTable.MetricView
                     {
                         CountChange = MetricTable.ValueDirectionChange.Up,
                         DimensionAttributes = dimensionB.Attributes,
@@ -206,6 +210,7 @@ public class MetricsTests
                 ],
                 false,
                 false,
+                false,
                 [],
                 [],
                 false);
@@ -213,10 +218,11 @@ public class MetricsTests
 
         static object?[] CreateCase(
             List<DimensionScope>? matchedDimensions,
-            List<MetricTable.MetricViewBase> currentMetrics,
-            bool shouldShowHistogram,
+            List<MetricTable.MetricView> currentMetrics,
+            bool isHistogram,
+            bool showCount,
             bool onlyShowValueChanges,
-            List<MetricTable.MetricViewBase> expectedMetrics,
+            List<MetricTable.MetricView> expectedMetrics,
             List<int> expectedAddedIndices,
             bool expectedAnyDimensionsShown)
         {
@@ -224,7 +230,8 @@ public class MetricsTests
             [
                 matchedDimensions,
                 currentMetrics,
-                shouldShowHistogram,
+                isHistogram,
+                showCount,
                 onlyShowValueChanges,
                 expectedMetrics,
                 expectedAddedIndices,

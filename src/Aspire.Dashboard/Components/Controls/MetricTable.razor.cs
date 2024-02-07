@@ -45,7 +45,8 @@ public partial class MetricTable : ComponentBase
     internal static void UpdateMetrics(
         List<DimensionScope>? matchedDimensions,
         List<MetricView> currentMetrics,
-        bool shouldShowHistogram,
+        bool isHistogramInstrument,
+        bool showCount,
         bool onlyShowValueChanges,
         out List<MetricView> oldMetrics,
         out List<int> addedIndices,
@@ -54,6 +55,7 @@ public partial class MetricTable : ComponentBase
         oldMetrics = [.. currentMetrics];
 
         anyDimensionsShown = false;
+        var shouldShowHistogram = isHistogramInstrument && !showCount;
 
         if (matchedDimensions is not null)
         {
@@ -64,6 +66,7 @@ public partial class MetricTable : ComponentBase
             {
                 var valuesWithDimensionsByEndDate = matchedDimensions
                     .SelectMany(dimension => dimension.Values.Select(value => (Value: value, Dimension: dimension)))
+                    .Where(kvp => DateTime.UtcNow.Subtract(kvp.Value.End).CompareTo(TimeSpan.FromSeconds(1)) > 0)
                     .GroupBy(kvp => kvp.Value.End)
                     .Select(kvp => kvp.ToList())
                     .ToList();
@@ -85,6 +88,12 @@ public partial class MetricTable : ComponentBase
                     if (i > 0)
                     {
                         var previousValue = newMetrics[i - 1].Value;
+
+                        if (isHistogramInstrument && showCount)
+                        {
+                            metricValue = MetricValueBase.Clone(metricValue);
+                            metricValue.Count += previousValue.Count;
+                        }
 
                         countChange = GetDirectionChange(metricValue.Count, previousValue.Count);
                         valueChange = metricValue.TryCompare(previousValue, out var comparisonResult) ? GetDirectionChange(comparisonResult) : null;
@@ -291,7 +300,7 @@ public partial class MetricTable : ComponentBase
         _instrument = InstrumentViewModel.Instrument;
         _showCount = InstrumentViewModel.ShowCount;
 
-        UpdateMetrics(InstrumentViewModel.MatchedDimensions, _metrics, ShouldShowHistogram(), _onlyShowValueChanges, out var oldMetrics, out var indices, out _anyDimensionsShown);
+        UpdateMetrics(InstrumentViewModel.MatchedDimensions, _metrics, IsHistogramInstrument(), _showCount, _onlyShowValueChanges, out var oldMetrics, out var indices, out _anyDimensionsShown);
 
         await InvokeAsync(StateHasChanged);
 
@@ -310,11 +319,6 @@ public partial class MetricTable : ComponentBase
     private Task SettingsChangedAsync()
     {
         return InvokeAsync(StateHasChanged);
-    }
-
-    private bool ShouldShowHistogram()
-    {
-        return IsHistogramInstrument() && !_showCount;
     }
 
     private bool IsHistogramInstrument()
@@ -354,9 +358,10 @@ public partial class MetricTable : ComponentBase
     {
         try
         {
-            if (_jsModule is not null)
+            if (_jsModule is { } module)
             {
-                await _jsModule.DisposeAsync();
+                _jsModule = null;
+                await module.DisposeAsync();
             }
         }
         catch (JSDisconnectedException)
