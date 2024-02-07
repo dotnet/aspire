@@ -236,6 +236,7 @@ public class MetricsTests
         Assert.Equal("widget", instrument.Unit);
         Assert.Equal("test-meter", instrument.Parent.MeterName);
 
+        // Only the last 3 values should be kept.
         var dimension = Assert.Single(instrument.Dimensions);
         Assert.Collection(dimension.Value.Values,
             m =>
