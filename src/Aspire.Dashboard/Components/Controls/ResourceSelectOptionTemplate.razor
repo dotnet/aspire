@@ -1,0 +1,22 @@
+﻿@using Aspire.Dashboard.Otlp.Model
+@using Aspire.Dashboard.Model.Otlp
+
+<FluentStack Orientation="Orientation.Horizontal" HorizontalGap="3">
+    @if (ViewModel.Id.Type is OtlpApplicationType.ReplicaSet)
+    {
+        <FluentIcon Icon="Icons.Regular.Size20.AppsList"
+                    Color="Color.Accent"
+                    Style="vertical-align: text-bottom;"/>
+    }
+    else if (ViewModel.Id.Type is OtlpApplicationType.Replica)
+    {
+        <div style="width: 20px;"></div>
+    }
+
+    @ViewModel.Name
+</FluentStack>
+
+@code {
+    [Parameter, EditorRequired]
+    public required SelectViewModel<(OtlpApplicationType? Type, string? InstanceId)> ViewModel { get; set; }
+}

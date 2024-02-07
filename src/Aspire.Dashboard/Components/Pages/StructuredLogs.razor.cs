@@ -110,7 +110,7 @@ public partial class StructuredLogs
 
     protected override void OnParametersSet()
     {
-        _selectedApplication = _applicationViewModels.SingleOrDefault(e => e.Id.InstanceId == ApplicationInstanceId) ?? s_allApplication;
+        _selectedApplication = _applicationViewModels.SingleOrDefault(e => e.Id.Type is OtlpApplicationType.Singleton or OtlpApplicationType.Replica && e.Id.InstanceId == ApplicationInstanceId) ?? s_allApplication;
         ViewModel.ApplicationServiceId = _selectedApplication.Id.InstanceId;
 
         if (LogLevelText != null && Enum.TryParse<LogLevel>(LogLevelText, ignoreCase: true, out var logLevel))

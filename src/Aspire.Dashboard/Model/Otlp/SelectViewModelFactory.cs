@@ -36,7 +36,7 @@ public class SelectViewModelFactory
             });
 
             // add each individual replica
-            selectViewModels.AddRange(applications.Select(replica =>
+            selectViewModels.AddRange(replicas.Select(replica =>
                 new SelectViewModel<(OtlpApplicationType? Type, string? InstanceId)>
                 {
                     Id = (OtlpApplicationType.Replica, replica.InstanceId),

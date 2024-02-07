@@ -104,7 +104,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     public void UpdateViewModelFromQuery(MetricsViewModel viewModel)
     {
         viewModel.SelectedDuration = _durations.SingleOrDefault(d => (int)d.Id.TotalMinutes == DurationMinutes) ?? _durations.Single(d => d.Id == s_defaultDuration);
-        viewModel.SelectedApplication = _applications.SingleOrDefault(e => e.Id.InstanceId == ApplicationInstanceId) ?? _selectApplication;
+        viewModel.SelectedApplication = _applications.SingleOrDefault(e => e.Id.Type is OtlpApplicationType.Singleton or OtlpApplicationType.Replica &&  e.Id.InstanceId == ApplicationInstanceId) ?? _selectApplication;
         viewModel.Instruments = !string.IsNullOrEmpty(viewModel.SelectedApplication.Id.InstanceId) ? TelemetryRepository.GetInstrumentsSummary(viewModel.SelectedApplication.Id.InstanceId) : null;
 
         viewModel.SelectedMeter = null;

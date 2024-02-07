@@ -85,7 +85,7 @@ public partial class Traces
 
     protected override void OnParametersSet()
     {
-        _selectedApplication = _applicationViewModels.SingleOrDefault(e => e.Id.InstanceId == ApplicationInstanceId) ?? _allApplication;
+        _selectedApplication = _applicationViewModels.SingleOrDefault(e => e.Id.Type is OtlpApplicationType.Singleton or OtlpApplicationType.Replica && e.Id.InstanceId == ApplicationInstanceId) ?? _allApplication;
         TracesViewModel.ApplicationServiceId = _selectedApplication.Id.InstanceId;
         UpdateSubscription();
     }
@@ -100,7 +100,7 @@ public partial class Traces
 
     private Task HandleSelectedApplicationChangedAsync()
     {
-        NavigationManager.NavigateTo($"/Traces/{_selectedApplication.Id}");
+        NavigationManager.NavigateTo($"/Traces/{_selectedApplication.Id.InstanceId}");
         _applicationChanged = true;
 
         return Task.CompletedTask;

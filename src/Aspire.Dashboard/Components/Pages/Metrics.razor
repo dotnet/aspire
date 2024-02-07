@@ -15,10 +15,14 @@
     <h1 class="page-header">@Loc[nameof(Dashboard.Resources.Metrics.MetricsHeader)]</h1>
     <FluentToolbar Orientation="Orientation.Horizontal">
         <FluentSelect Items="@_applications"
-                      OptionText="@(c => c.Name)"
+                      OptionDisabled="@(c => c.Id.Type is OtlpApplicationType.ReplicaSet)"
                       @bind-SelectedOption="ViewModel.SelectedApplication"
                       @bind-SelectedOption:after="HandleSelectedApplicationChangedAsync"
-                      AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAnApplication)]"/>
+                      AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAnApplication)]">
+            <OptionTemplate>
+                <ResourceSelectOptionTemplate ViewModel="@context" />
+            </OptionTemplate>
+        </FluentSelect>
         <FluentIcon slot="end" Icon="Icons.Regular.Size20.Clock" Style="margin-right:5px;" />
         <FluentSelect slot="end" TOption="SelectViewModel<TimeSpan>"
                       Items="@_durations"
