@@ -37,7 +37,6 @@ app.Run();
 
 public class MyDb1Context(DbContextOptions<MyDb1Context> options) : DbContext(options)
 {
-
     public DbSet<Entry> Entries { get; set; }
 }
 
