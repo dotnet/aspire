@@ -386,10 +386,10 @@ public class DistributedApplicationTests
         await app.StopAsync();
     }
 
-    [Fact]
-    public async Task KubernetesHasResourceNameForExecutables()
+    [LocalOnlyFact("docker")]
+    public async Task KubernetesHasResourceNameForContainersAndExes()
     {
-        var testProgram = CreateTestProgram();
+        var testProgram = CreateTestProgram(includeIntegrationServices: true, includeNodeApp: true);
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
         await using var app = testProgram.Build();
@@ -401,23 +401,53 @@ public class DistributedApplicationTests
         using var cts = new CancellationTokenSource(Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(10));
         var token = cts.Token;
 
-        var expectedResources = new HashSet<string>()
+        var expectedExeResources = new HashSet<string>()
         {
             "servicea",
             "serviceb",
             "servicec",
-            "workera"
+            "workera",
+            "nodeapp",
+            "npmapp",
+            "integrationservicea"
         };
+
+        var expectedContainerResources = new HashSet<string>()
+        {
+            "redis",
+            "postgres",
+            "mongodb",
+            "oracledatabase",
+            "cosmos",
+            "sqlserver",
+            "mysql",
+            "rabbitmq",
+            "kafka"
+        };
+
+        await foreach (var resource in s.WatchAsync<Container>(cancellationToken: token))
+        {
+            Assert.True(resource.Item2.Metadata.Annotations.TryGetValue(Container.ResourceNameAnnotation, out var value));
+            if (expectedContainerResources.Contains(value))
+            {
+                expectedContainerResources.Remove(value);
+            }
+
+            if (expectedContainerResources.Count == 0)
+            {
+                break;
+            }
+        }
 
         await foreach(var resource in s.WatchAsync<Executable>(cancellationToken: token))
         {
             Assert.True(resource.Item2.Metadata.Annotations.TryGetValue(Executable.ResourceNameAnnotation, out var value));
-            if (expectedResources.Contains(value))
+            if (expectedExeResources.Contains(value))
             {
-                expectedResources.Remove(value);
+                expectedExeResources.Remove(value);
             }
 
-            if (expectedResources.Count == 0)
+            if (expectedExeResources.Count == 0)
             {
                 break;
             }
