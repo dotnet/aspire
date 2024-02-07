@@ -1,0 +1,65 @@
+{
+  "resources": {
+    "sql1": {
+      "type": "sqlserver.server.v0"
+    },
+    "db1": {
+      "type": "sqlserver.database.v0",
+      "parent": "sql1"
+    },
+    "sql2": {
+      "type": "container.v0",
+      "image": "mcr.microsoft.com/mssql/server:2022-latest",
+      "env": {
+        "ACCEPT_EULA": "Y",
+        "MSSQL_SA_PASSWORD": "{sql2.inputs.password}"
+      },
+      "bindings": {
+        "tcp": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp",
+          "containerPort": 1433
+        }
+      },
+      "connectionString": "Server={sql2.bindings.tcp.host},{sql2.bindings.tcp.port};User ID=sa;Password={sql2.inputs.password};TrustServerCertificate=true;",
+      "inputs": {
+        "password": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 10
+            }
+          }
+        }
+      }
+    },
+    "db2": {
+      "type": "sqlserver.database.v0",
+      "parent": "sql2"
+    },
+    "api": {
+      "type": "project.v0",
+      "path": "../SqlServerEndToEnd.ApiService/SqlServerEndToEnd.ApiService.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "ConnectionStrings__db1": "{db1.connectionString}",
+        "ConnectionStrings__db2": "{db2.connectionString}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http"
+        }
+      }
+    }
+  }
+}

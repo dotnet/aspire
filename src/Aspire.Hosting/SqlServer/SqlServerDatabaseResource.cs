@@ -7,13 +7,13 @@ namespace Aspire.Hosting.ApplicationModel;
 /// A resource that represents a SQL Server database that is a child of a SQL Server container resource.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
-/// <param name="sqlServerContainer">The parent SQL Server container resource.</param>
-public class SqlServerDatabaseResource(string name, ISqlServerParentResource sqlServerContainer) : Resource(name), ISqlServerParentResource, IResourceWithParent<ISqlServerParentResource>
+/// <param name="parent">The parent SQL Server server resource.</param>
+public class SqlServerDatabaseResource(string name, SqlServerServerResource parent) : Resource(name), IResourceWithParent<SqlServerServerResource>, IResourceWithConnectionString
 {
     /// <summary>
     /// Gets the parent SQL Server container resource.
     /// </summary>
-    public ISqlServerParentResource Parent { get; } = sqlServerContainer;
+    public SqlServerServerResource Parent { get; } = parent;
 
     /// <summary>
     /// Gets the connection string for the database resource.
