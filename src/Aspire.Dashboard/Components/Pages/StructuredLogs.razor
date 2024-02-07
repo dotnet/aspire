@@ -17,8 +17,7 @@
 <div class="logs-layout">
     <h1 class="page-header">@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsHeader)]</h1>
     <FluentToolbar Orientation="Orientation.Horizontal">
-        <FluentSelect TOption="SelectViewModel<string>"
-                      Items="@_applicationViewModels"
+        <FluentSelect Items="@_applicationViewModels"
                       OptionText="@(c => c.Name)"
                       @bind-SelectedOption="_selectedApplication"
                       @bind-SelectedOption:after="HandleSelectedApplicationChangedAsync"

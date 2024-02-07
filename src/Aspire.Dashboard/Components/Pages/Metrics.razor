@@ -3,7 +3,6 @@
 @page "/Metrics/{applicationInstanceId}/Meter/{meterName}"
 @page "/Metrics/{applicationInstanceId}/Meter/{meterName}/Instrument/{instrumentName}"
 
-@using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Model.Otlp
 @using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Otlp.Model
@@ -15,8 +14,7 @@
 <div class="metrics-layout">
     <h1 class="page-header">@Loc[nameof(Dashboard.Resources.Metrics.MetricsHeader)]</h1>
     <FluentToolbar Orientation="Orientation.Horizontal">
-        <FluentSelect TOption="SelectViewModel<string>"
-                      Items="@_applications"
+        <FluentSelect Items="@_applications"
                       OptionText="@(c => c.Name)"
                       @bind-SelectedOption="ViewModel.SelectedApplication"
                       @bind-SelectedOption:after="HandleSelectedApplicationChangedAsync"
@@ -50,9 +48,9 @@
                 </Panel1>
                 <Panel2>
                     <div class="metrics-content">
-                        @if (ViewModel.SelectedApplication.Id != null && ViewModel.SelectedMeter != null && ViewModel.SelectedInstrument != null)
+                        @if (ViewModel.SelectedApplication.Id.InstanceId != null && ViewModel.SelectedMeter != null && ViewModel.SelectedInstrument != null)
                         {
-                            <ChartContainer ApplicationId="@(ViewModel.SelectedApplication.Id)" MeterName="@(ViewModel.SelectedMeter.MeterName)" InstrumentName="@(ViewModel.SelectedInstrument.Name)" Duration="ViewModel.SelectedDuration.Id" />
+                            <ChartContainer ApplicationId="@(ViewModel.SelectedApplication.Id.InstanceId)" MeterName="@(ViewModel.SelectedMeter.MeterName)" InstrumentName="@(ViewModel.SelectedInstrument.Name)" Duration="ViewModel.SelectedDuration.Id" />
                         }
                         else if (ViewModel.SelectedMeter != null)
                         {

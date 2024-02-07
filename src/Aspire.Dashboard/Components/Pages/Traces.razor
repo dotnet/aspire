@@ -16,9 +16,8 @@
 <div class="traces-layout">
     <h1 class="page-header">@Loc[nameof(Dashboard.Resources.Traces.TracesHeader)]</h1>
     <FluentToolbar Orientation="Orientation.Horizontal">
-        <FluentSelect TOption="SelectViewModel<string>"
-                      Items="@_applicationViewModels"
-                      OptionValue="@(c => c.Id)"
+        <FluentSelect Items="@_applicationViewModels"
+                      OptionValue="@(c => c.Id.InstanceId)"
                       OptionText="@(c => c.Name)"
                       @bind-SelectedOption="_selectedApplication"
                       @bind-SelectedOption:after="HandleSelectedApplicationChangedAsync"
