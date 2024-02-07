@@ -22,6 +22,7 @@ public class TraceTests
     [InlineData(OtlpSpanKind.Producer, Span.Types.SpanKind.Producer)]
     [InlineData(OtlpSpanKind.Internal, Span.Types.SpanKind.Internal)]
     [InlineData(OtlpSpanKind.Internal, Span.Types.SpanKind.Unspecified)]
+    [InlineData(OtlpSpanKind.Unspecified, (Span.Types.SpanKind)1000)]
     public void ConvertSpanKind(OtlpSpanKind expected, Span.Types.SpanKind value)
     {
         var result = TelemetryRepository.ConvertSpanKind(value);
