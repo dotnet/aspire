@@ -11,7 +11,7 @@
 @if (TryGetErrorInformation(out var errorInfo))
 {
     var iconId = Guid.NewGuid().ToString();
-    <FluentIcon Title="@Loc[nameof(Columns.LogMessageColumnExceptionDetailsIconTitle)]"
+    <FluentIcon Title="@Loc[nameof(Columns.LogMessageColumnExceptionDetailsTitle)]"
                 Id="@iconId"
                 Icon="Icons.Filled.Size16.DocumentError"
                 Color="Color.Warning"
@@ -21,7 +21,9 @@
 
     <FluentTooltip Anchor="@iconId" MaxWidth="650px">
         <div style="padding: 10px">
-            <pre style="white-space: pre-wrap; max-height: 400px; overflow: auto;">@errorInfo</pre>
+            <h3>@Loc[nameof(Columns.LogMessageColumnExceptionDetailsTitle)]</h3>
+
+            <pre style="white-space: pre-wrap; overflow-wrap: break-word; max-height: 400px; overflow: auto;">@errorInfo</pre>
 
             <div style="float: right; margin-bottom: 10px;">
                 <FluentButton
@@ -31,8 +33,8 @@
 
                     @ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)]
 
-                    <FluentIcon Class="copy-icon align-text-bottom" Style="display:inline;" Icon="Icons.Regular.Size16.Copy" />
-                    <FluentIcon  Class="checkmark-icon align-text-bottom" Style="display:none;" Icon="Icons.Regular.Size16.Checkmark" />
+                    <FluentIcon Class="copy-icon align-text-bottom" Style="display:inline;" Icon="Icons.Regular.Size16.Copy"/>
+                    <FluentIcon Class="checkmark-icon align-text-bottom" Style="display:none;" Icon="Icons.Regular.Size16.Checkmark"/>
                 </FluentButton>
                 <FluentTooltip Anchor="@copyButtonId" Position="TooltipPosition.Top">@ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)]</FluentTooltip>
             </div>

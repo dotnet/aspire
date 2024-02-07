@@ -57,5 +57,5 @@
 
 ::deep .wrap {
     text-wrap: wrap;
-    white-space: pre;
+    white-space: pre-line;
 }

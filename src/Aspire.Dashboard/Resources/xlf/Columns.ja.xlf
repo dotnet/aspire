@@ -12,9 +12,9 @@
         <target state="new">Starting...</target>
         <note />
       </trans-unit>
-      <trans-unit id="LogMessageColumnExceptionDetailsIconTitle">
-        <source>See exception details</source>
-        <target state="new">See exception details</target>
+      <trans-unit id="LogMessageColumnExceptionDetailsTitle">
+        <source>Exception details</source>
+        <target state="new">Exception details</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceNameDisplayContainerIdText">

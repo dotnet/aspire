@@ -160,7 +160,7 @@
     <value>{0} error logs</value>
     <comment>{0} is a number</comment>
   </data>
-  <data name="LogMessageColumnExceptionDetailsIconTitle" xml:space="preserve">
-    <value>See exception details</value>
+  <data name="LogMessageColumnExceptionDetailsTitle" xml:space="preserve">
+    <value>Exception details</value>
   </data>
 </root>

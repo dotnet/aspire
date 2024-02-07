@@ -78,11 +78,11 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to See exception details.
+        ///   Looks up a localized string similar to Exception details.
         /// </summary>
-        public static string LogMessageColumnExceptionDetailsIconTitle {
+        public static string LogMessageColumnExceptionDetailsTitle {
             get {
-                return ResourceManager.GetString("LogMessageColumnExceptionDetailsIconTitle", resourceCulture);
+                return ResourceManager.GetString("LogMessageColumnExceptionDetailsTitle", resourceCulture);
             }
         }
         

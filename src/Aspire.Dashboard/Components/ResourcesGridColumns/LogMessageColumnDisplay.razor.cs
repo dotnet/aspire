@@ -23,7 +23,7 @@ public partial class LogMessageColumnDisplay
         {
             var message = GetProperty("exception.message") ?? GetProperty("ex.Message");
             var type = GetProperty("exception.type") ?? GetProperty("ex.Type");
-            errorInfo = LogEntry.Message + Environment.NewLine + $"{type}: {message}" + Environment.NewLine + stackTrace;
+            errorInfo = $"{type}: {message}";
         }
         else
         {
