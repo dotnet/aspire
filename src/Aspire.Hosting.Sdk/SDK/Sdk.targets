@@ -30,6 +30,7 @@
       <ReferenceOutputAssembly Condition="'%(ReferenceOutputAssembly)' == '' and '%(IsAspireProjectResource)' == 'true'">false</ReferenceOutputAssembly>
       <SkipGetTargetFrameworkProperties Condition="'%(SkipGetTargetFrameworkProperties)' == '' and '%(IsAspireProjectResource)' == 'true'">true</SkipGetTargetFrameworkProperties>
       <ExcludeAssets Condition="'%(ExcludeAssets)' == '' and '%(IsAspireProjectResource)' == 'true'">all</ExcludeAssets>
+      <Private Condition="'%(Private)' == '' and '%(IsAspireProjectResource)' == 'true'">false</Private>
     </ProjectReference>
     
   </ItemGroup>
