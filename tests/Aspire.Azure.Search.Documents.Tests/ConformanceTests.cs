@@ -10,7 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Xunit;
 
-namespace Aspire.Azure.AI.Search.Tests;
+namespace Aspire.Azure.Search.Documents.Tests;
 
 public class ConformanceTests : ConformanceTests<SearchIndexClient, AzureAISearchSettings>
 {

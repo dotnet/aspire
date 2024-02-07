@@ -7,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Xunit;
 
-namespace Aspire.Azure.AI.Search.Tests;
+namespace Aspire.Azure.Search.Documents.Tests;
 
 public class AspireAzureAISearchExtensionsTests
 {
@@ -45,17 +45,17 @@ public class AspireAzureAISearchExtensionsTests
     [InlineData(false)]
     public void ConnectionStringCanBeSetInCode(bool useKeyed)
     {
-        var uri = new Uri("https://aspireaisearchtests.search.windows.net/");
+        var searchEndpoint = new Uri("https://aspireaisearchtests.search.windows.net/");
         var key = "fake";
         var builder = Host.CreateEmptyApplicationBuilder(null);
 
         if (useKeyed)
         {
-            builder.AddKeyedAzureAISearch("aisearch", settings => { settings.Endpoint = uri; settings.Key = key; });
+            builder.AddKeyedAzureAISearch("aisearch", settings => { settings.Endpoint = searchEndpoint; settings.Key = key; });
         }
         else
         {
-            builder.AddAzureAISearch("aisearch", settings => { settings.Endpoint = uri; settings.Key = key; });
+            builder.AddAzureAISearch("aisearch", settings => { settings.Endpoint = searchEndpoint; settings.Key = key; });
         }
 
         var host = builder.Build();
@@ -64,5 +64,13 @@ public class AspireAzureAISearchExtensionsTests
             host.Services.GetRequiredService<SearchIndexClient>();
 
         Assert.NotNull(client);
+        Assert.Equal(searchEndpoint, client.Endpoint);
+    }
+
+    public async Task<long> GetDocumentCountAsync(SearchIndexClient indexClient, string indexName, CancellationToken cancellationToken)
+    {
+        var searchClient = indexClient.GetSearchClient(indexName);
+        var documentCountResponse = await searchClient.GetDocumentCountAsync(cancellationToken);
+        return documentCountResponse.Value;
     }
 }

@@ -219,9 +219,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Mongo.ApiService", "playgro
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CatalogModel", "playground\eShopLite\CatalogModel\CatalogModel.csproj", "{83267206-9438-42CD-860C-C92E7DBAA4C3}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Azure.AI.Search", "src\Components\Aspire.Azure.AI.Search\Aspire.Azure.AI.Search.csproj", "{0921F457-16A7-40C8-86B4-7FB02D52244F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Azure.Search.Documents", "src\Components\Aspire.Azure.Search.Documents\Aspire.Azure.Search.Documents.csproj", "{0921F457-16A7-40C8-86B4-7FB02D52244F}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Azure.AI.Search.Tests", "tests\Aspire.Azure.AI.Search.Tests\Aspire.Azure.AI.Search.Tests.csproj", "{3DE1697E-BB8C-4EBA-8DCA-0A6A94804689}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.Azure.Search.Documents.Tests", "tests\Aspire.Azure.Search.Documents.Tests\Aspire.Azure.Search.Documents.Tests.csproj", "{3DE1697E-BB8C-4EBA-8DCA-0A6A94804689}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.EndToEnd.Tests", "tests\Aspire.EndToEnd.Tests\Aspire.EndToEnd.Tests.csproj", "{C1483B79-4FE9-47FF-B544-EB5DBB7A0A3E}"
 EndProject
@@ -236,6 +236,7 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PostgresEndToEnd.AppHost", "playground\PostgresEndToEnd\PostgresEndToEnd.AppHost\PostgresEndToEnd.AppHost.csproj", "{A4C06329-56EA-4AE6-A698-D2B7B7ABE318}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PostgresEndToEnd.ApiService", "playground\PostgresEndToEnd\PostgresEndToEnd.ApiService\PostgresEndToEnd.ApiService.csproj", "{B7BC1137-25E2-4B5D-A45F-38F5BA4811A2}"
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "mysql", "mysql", "{621991F1-854A-4743-835B-10CAF11A0CFF}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MySqlDb.AppHost", "Playground\mysql\MySqlDb.AppHost\MySqlDb.AppHost.csproj", "{7E2AD00B-60E0-46C2-8640-7217D678F312}"
