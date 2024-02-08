@@ -86,8 +86,7 @@ public class AzureBicepResourceTests
         var cosmos = builder.AddBicepCosmosDb("cosmos");
         cosmos.AddDatabase("db", "mydatabase");
 
-        cosmos.Resource.Outputs["documentEndpoint"] = "https://myendpoint";
-        cosmos.Resource.Outputs[cosmos.Resource.AccountKeyOutputKey] = "mykey";
+        cosmos.Resource.SecretOutputs["connectionString"] = "mycosmosconnectionstring";
 
         var databases = cosmos.Resource.Parameters["databases"] as IEnumerable<string>;
 
@@ -96,8 +95,8 @@ public class AzureBicepResourceTests
         Assert.Equal("cosmos", cosmos.Resource.Parameters["databaseAccountName"]);
         Assert.NotNull(databases);
         Assert.Equal(["mydatabase"], databases);
-        Assert.Equal("AccountEndpoint=https://myendpoint;AccountKey=mykey;", cosmos.Resource.GetConnectionString());
-        Assert.Equal("AccountEndpoint={cosmos.outputs.documentEndpoint};AccountKey={key(Microsoft.DocumentDB/databaseAccounts@2023-04-15/{cosmos.outputs.accountName}).primaryMasterKey}", cosmos.Resource.ConnectionStringTemplate);
+        Assert.Equal("mycosmosconnectionstring", cosmos.Resource.GetConnectionString());
+        Assert.Equal("{cosmos.secretOutputs.connectionString}", cosmos.Resource.ConnectionStringTemplate);
     }
 
     [Fact]
@@ -138,14 +137,13 @@ public class AzureBicepResourceTests
 
         var redis = builder.AddBicepAzureRedis("redis");
 
-        redis.Resource.Outputs["hostName"] = "myhost";
-        redis.Resource.Outputs[redis.Resource.AccountKeyOutputKey] = "mykey";
+        redis.Resource.SecretOutputs["connectionString"] = "myconnectionstring";
 
         Assert.Equal("Aspire.Hosting.Azure.Bicep.redis.bicep", redis.Resource.TemplateResourceName);
         Assert.Equal("redis", redis.Resource.Name);
         Assert.Equal("redis", redis.Resource.Parameters["redisCacheName"]);
-        Assert.Equal("myhost,ssl=true,password=mykey", redis.Resource.GetConnectionString());
-        Assert.Equal("{redis.outputs.hostName},ssl=true,password={key(Microsoft.Cache/redis@2023-04-15/{redis.outputs.cacheName}).primaryKey}", redis.Resource.ConnectionStringTemplate);
+        Assert.Equal("myconnectionstring", redis.Resource.GetConnectionString());
+        Assert.Equal("{redis.secretOutputs.connectionString}", redis.Resource.ConnectionStringTemplate);
     }
 
     [Fact]
