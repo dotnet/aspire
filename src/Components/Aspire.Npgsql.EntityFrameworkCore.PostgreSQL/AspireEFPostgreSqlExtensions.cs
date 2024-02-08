@@ -153,23 +153,11 @@ public static partial class AspireEFPostgreSqlExtensions
                 olDbContextOptionsDescriptor.ServiceKey,
                 factory: (sp, key) =>
                 {
-                    DbContextOptionsBuilder? optionsBuilder = null;
+                    var dbContextOptions = olDbContextOptionsDescriptor.ImplementationFactory?.Invoke(sp) as DbContextOptions<TContext>;
 
-                    if (olDbContextOptionsDescriptor.ImplementationFactory != null)
-                    {
-                        var instance = olDbContextOptionsDescriptor.ImplementationFactory?.Invoke(sp) as DbContextOptions<TContext>;
-
-                        if (instance == null)
-                        {
-                            throw new InvalidOperationException($"DbContextOptions<{nameof(TContext)}> couldn't be resolved");
-                        }
-
-                        optionsBuilder = new DbContextOptionsBuilder<TContext>(instance);
-                    }
-                    else
-                    {
-                        optionsBuilder ??= new DbContextOptionsBuilder<TContext>();
-                    }
+                    var optionsBuilder = dbContextOptions != null
+                        ? new DbContextOptionsBuilder<TContext>(dbContextOptions)
+                        : new DbContextOptionsBuilder<TContext>();
 
                     optionsBuilder.UseNpgsql(options => options.EnableRetryOnFailure());
 
