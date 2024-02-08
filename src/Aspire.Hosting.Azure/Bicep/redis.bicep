@@ -61,6 +61,3 @@ resource vault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
         }
     }
 }
-
-output cacheName string = redisCache.name
-output hostName string = redisCache.properties.hostName
