@@ -148,7 +148,7 @@ public class EnrichNpgsqlTests : ConformanceTests
 
         builder.EnrichNpgsqlDbContext<TestDbContext>();
 
-        // The service descriptor should not be affected with MaxRetryCount set to 0
+        // The service descriptor of DbContextOptions<TestDbContext> should not be affected since Retry is false
         var optionsDescriptor = builder.Services.FirstOrDefault(sd => sd.ServiceType == typeof(DbContextOptions<TestDbContext>));
         Assert.NotNull(optionsDescriptor);
         Assert.Same(oldOptionsDescriptor, optionsDescriptor);
@@ -269,14 +269,5 @@ public class EnrichNpgsqlTests : ConformanceTests
         // ensure the command timeout was respected
         Assert.Equal(123, extension.CommandTimeout);
 #pragma warning restore EF1001 // Internal EF Core API usage.
-    }
-
-    public class WorkaroundToReadProtectedField : NpgsqlRetryingExecutionStrategy
-    {
-        public WorkaroundToReadProtectedField(DbContext context) : base(context)
-        {
-        }
-
-        public int RetryCount => base.MaxRetryCount;
     }
 }

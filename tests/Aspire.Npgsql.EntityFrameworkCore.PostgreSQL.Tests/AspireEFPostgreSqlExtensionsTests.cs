@@ -162,13 +162,4 @@ public class AspireEFPostgreSqlExtensionsTests
 
 #pragma warning restore EF1001 // Internal EF Core API usage.
     }
-
-    public class WorkaroundToReadProtectedField : NpgsqlRetryingExecutionStrategy
-    {
-        public WorkaroundToReadProtectedField(DbContext context) : base(context)
-        {
-        }
-
-        public int RetryCount => base.MaxRetryCount;
-    }
 }
