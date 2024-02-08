@@ -37,43 +37,9 @@ public partial class MainLayout : IDisposable
             {
                 var newValue = ThemeManager.Theme!;
 
-                var newLuminanceValue = await GetBaseLayerLuminanceForSetting(newValue);
-
-                await _jsModule.InvokeVoidAsync("setDefaultBaseLayerLuminance", newLuminanceValue);
-                await _jsModule.InvokeVoidAsync("setThemeCookie", newValue);
-                await _jsModule.InvokeVoidAsync("setThemeOnDocument", newValue);
+                await _jsModule.InvokeVoidAsync("updateTheme", newValue);
             }
         });
-    }
-
-    private Task<float> GetBaseLayerLuminanceForSetting(string setting)
-    {
-        if (setting == ThemeManager.ThemeSettingLight)
-        {
-            return Task.FromResult(ThemeManager.LightThemeLuminance);
-        }
-        else if (setting == ThemeManager.ThemeSettingDark)
-        {
-            return Task.FromResult(ThemeManager.DarkThemeLuminance);
-        }
-        else // "System"
-        {
-            return GetSystemThemeLuminance();
-        }
-    }
-
-    private async Task<float> GetSystemThemeLuminance()
-    {
-        if (_jsModule is not null)
-        {
-            var systemTheme = await _jsModule.InvokeAsync<string>("getSystemTheme");
-            if (systemTheme == ThemeManager.ThemeSettingDark)
-            {
-                return ThemeManager.DarkThemeLuminance;
-            }
-        }
-
-        return ThemeManager.LightThemeLuminance;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
