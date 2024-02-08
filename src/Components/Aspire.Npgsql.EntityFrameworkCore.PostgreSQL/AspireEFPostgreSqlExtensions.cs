@@ -22,7 +22,7 @@ public static partial class AspireEFPostgreSqlExtensions
 
     /// <summary>
     /// Registers the given <see cref="DbContext" /> as a service in the services provided by the <paramref name="builder"/>.
-    /// Enables db context pooling, corresponding health check, logging and telemetry.
+    /// Enables db context pooling, connection retries, corresponding health check, logging and telemetry.
     /// </summary>
     /// <typeparam name="TContext">The <see cref="DbContext" /> that needs to be registered.</typeparam>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
@@ -100,7 +100,7 @@ public static partial class AspireEFPostgreSqlExtensions
     }
 
     /// <summary>
-    /// Configures health check, logging and telemetry for the <see cref="DbContext" />.
+    /// Configures connection retries, health check, logging and telemetry for the <see cref="DbContext" />.
     /// </summary>
     /// <exception cref="ArgumentNullException">Thrown if mandatory <paramref name="builder"/> is null.</exception>
     /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="DbContext"/> is not registered in DI.</exception>
@@ -143,7 +143,7 @@ public static partial class AspireEFPostgreSqlExtensions
 
             if (oldDbContextOptionsDescriptor is null)
             {
-                throw new InvalidOperationException($"DbContext<{nameof(TContext)}> was not registered");
+                throw new InvalidOperationException($"DbContext<{typeof(TContext).Name}> was not registered");
             }
 
             builder.Services.Remove(oldDbContextOptionsDescriptor);
