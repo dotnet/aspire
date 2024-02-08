@@ -5,7 +5,7 @@ using Azure.Search.Documents.Indexes;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Aspire.Azure.Search.Documents;
-internal class AzureSearchIndexHealthCheck : IHealthCheck
+internal sealed class AzureSearchIndexHealthCheck : IHealthCheck
 {
     private readonly SearchIndexClient _searchIndexClient;
 

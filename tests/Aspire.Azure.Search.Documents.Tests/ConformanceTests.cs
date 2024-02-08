@@ -29,8 +29,8 @@ public class ConformanceTests : ConformanceTests<SearchIndexClient, AzureAISearc
         {
           "Aspire": {
             "Azure": {
-              "AI": {
-                "Search": {
+              "Search": {
+                "Documents": {
                   "Endpoint": "http://YOUR_URI",
                   "Tracing": true,
                   "ClientOptions": {
@@ -50,8 +50,8 @@ public class ConformanceTests : ConformanceTests<SearchIndexClient, AzureAISearc
 
     protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
         {
-            ("""{"Aspire": { "Azure": { "AI":{ "Search": {"Endpoint": "YOUR_URI"}}}}}""", "Value does not match format \"uri\""),
-            ("""{"Aspire": { "Azure": { "AI":{ "Search": {"Endpoint": "http://YOUR_URI", "Tracing": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
+            ("""{"Aspire": { "Azure": { "Search":{ "Documents": {"Endpoint": "YOUR_URI"}}}}}""", "Value does not match format \"uri\""),
+            ("""{"Aspire": { "Azure": { "Search":{ "Documents": {"Endpoint": "http://YOUR_URI", "Tracing": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
         };
 
     protected override string ActivitySourceName => "Azure.Search.Documents.SearchIndexClient";
@@ -59,7 +59,7 @@ public class ConformanceTests : ConformanceTests<SearchIndexClient, AzureAISearc
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[]
         {
-            new(CreateConfigKey("Aspire:Azure:AI:Search", key, "Endpoint"), Endpoint)
+            new(CreateConfigKey("Aspire:Azure:Search:Documents", key, "Endpoint"), Endpoint)
         });
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<AzureAISearchSettings>? configure = null, string? key = null)
@@ -92,14 +92,14 @@ public class ConformanceTests : ConformanceTests<SearchIndexClient, AzureAISearc
     public void TracingEnablesTheRightActivitySource_Keyed()
         => RemoteExecutor.Invoke(() => ActivitySourceTest(key: "key")).Dispose();
 
-    protected override void SetHealthCheck(AzureAISearchSettings options, bool enabled)
+    protected override void SetHealthCheck(AzureAISearchSettings settings, bool enabled)
+        => settings.HealthChecks = enabled;
+
+    protected override void SetMetrics(AzureAISearchSettings settings, bool enabled)
         => throw new NotImplementedException();
 
-    protected override void SetMetrics(AzureAISearchSettings options, bool enabled)
-        => throw new NotImplementedException();
-
-    protected override void SetTracing(AzureAISearchSettings options, bool enabled)
-        => options.Tracing = enabled;
+    protected override void SetTracing(AzureAISearchSettings settings, bool enabled)
+        => settings.Tracing = enabled;
 
     protected override void TriggerActivity(SearchIndexClient service)
         => service.GetIndex("my-index");

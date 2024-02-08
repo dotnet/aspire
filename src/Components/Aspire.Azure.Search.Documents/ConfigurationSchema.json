@@ -104,6 +104,11 @@
                       "format": "uri",
                       "description": "Gets or sets a 'System.Uri' referencing the AI Search endpoint.\nThis is likely to be similar to \"https://{search_service}.search.windows.net\"."
                     },
+                    "HealthChecks": {
+                      "type": "boolean",
+                      "description": "Gets or sets a boolean value that indicates whether the Azure AI Search health check is enabled or not.",
+                      "default": true
+                    },
                     "Key": {
                       "type": "string",
                       "description": "Gets or sets the key to use to authenticate to the Azure AI Search endpoint."
