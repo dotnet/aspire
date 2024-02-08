@@ -40,6 +40,14 @@ public sealed class AzureAISearchSettings : IConnectionStringSettings
     public string? Key { get; set; }
 
     /// <summary>
+    /// Gets or sets a boolean value that indicates whether the Azure AI Search health check is enabled or not.
+    /// </summary>
+    /// <value>
+    /// The default value is <see langword="true"/>.
+    /// </value>
+    public bool HealthChecks { get; set; } = true;
+
+    /// <summary>
     /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.
     /// </summary>
     /// <value>
