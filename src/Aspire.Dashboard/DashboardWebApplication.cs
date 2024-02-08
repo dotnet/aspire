@@ -86,8 +86,8 @@ public class DashboardWebApplication
 
         if (otlpUris.FirstOrDefault() is { } reportedOtlpUri)
         {
-            // dotnet watch needs the trailing slash removed. See https://github.com/dotnet/sdk/issues/36709. Conform to dashboard URL format above
-            logger.LogInformation("OTLP server running at: {DashboardUri}", reportedOtlpUri.AbsoluteUri.TrimEnd('/'));
+            // This isn't used by dotnet watch but still useful to have for debugging
+            logger.LogInformation("OTLP server running at: {OtlpEndpointUri}", reportedOtlpUri.AbsoluteUri.TrimEnd('/'));
         }
 
         // Configure the HTTP request pipeline.
