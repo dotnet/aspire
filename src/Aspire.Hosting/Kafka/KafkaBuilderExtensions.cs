@@ -14,7 +14,7 @@ public static class KafkaBuilderExtensions
     /// Changes the Kafka resource to be published as a container in the manifest.
     /// </summary>
     /// <param name="builder">Resource builder for <see cref="KafkaServerResource"/>.</param>
-    /// <returns></returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<KafkaServerResource> PublishAsContainer(this IResourceBuilder<KafkaServerResource> builder)
     {
         return builder.WithManifestPublishingCallback(context => WriteKafkaContainerToManifest(context, builder.Resource));
