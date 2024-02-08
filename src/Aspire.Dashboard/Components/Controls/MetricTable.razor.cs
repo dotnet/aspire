@@ -21,6 +21,8 @@ public partial class MetricTable : ComponentBase
     private OtlpInstrument? _instrument;
     private bool _showCount;
 
+    private readonly CancellationTokenSource _waitTaskCancellationTokenSource = new();
+
     private IQueryable<MetricView> _metricsView => _metrics.AsEnumerable().Reverse().AsQueryable();
 
     [Inject] public required IJSRuntime JS { get; init; }
@@ -66,7 +68,6 @@ public partial class MetricTable : ComponentBase
             {
                 var valuesWithDimensionsByEndDate = matchedDimensions
                     .SelectMany(dimension => dimension.Values.Select(value => (Value: value, Dimension: dimension)))
-                    .Where(kvp => DateTime.UtcNow.Subtract(kvp.Value.End).CompareTo(TimeSpan.FromSeconds(1)) > 0)
                     .GroupBy(kvp => kvp.Value.End)
                     .Select(kvp => kvp.ToList())
                     .ToList();
@@ -113,6 +114,7 @@ public partial class MetricTable : ComponentBase
                     {
                         var sum = 0d;
                         var earliestStart = values.MinBy(value => value.Value.Start);
+                        ulong counts = 0;
 
                         foreach (var (value, _) in values)
                         {
@@ -123,9 +125,11 @@ public partial class MetricTable : ComponentBase
                                 HistogramValue histogramValue => histogramValue.Count,
                                 _ => 0
                             };
+
+                            counts += value.Count;
                         }
 
-                        return (new MetricValue<double>(sum, earliestStart.Value.Start, earliestStart.Value.End), earliestStart.Dimension);
+                        return (new MetricValue<double>(sum, earliestStart.Value.Start, earliestStart.Value.End) { Count = counts }, earliestStart.Dimension);
                     }
                 }
             }
@@ -306,8 +310,12 @@ public partial class MetricTable : ComponentBase
 
         if (_jsModule is not null && indices.Count > 0 && oldMetrics.Count > 0)
         {
-            await Task.Delay(500);
-            await _jsModule.InvokeVoidAsync("announceDataGridRows", "metric-table-container", indices);
+            await Task.Delay(500, _waitTaskCancellationTokenSource.Token);
+
+            if (_jsModule is not null)
+            {
+                await _jsModule.InvokeVoidAsync("announceDataGridRows", "metric-table-container", indices);
+            }
         }
     }
 
@@ -361,6 +369,8 @@ public partial class MetricTable : ComponentBase
             if (_jsModule is { } module)
             {
                 _jsModule = null;
+                await _waitTaskCancellationTokenSource.CancelAsync();
+                _waitTaskCancellationTokenSource.Dispose();
                 await module.DisposeAsync();
             }
         }

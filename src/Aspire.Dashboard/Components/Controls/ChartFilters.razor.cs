@@ -7,6 +7,15 @@ public partial class ChartFilters
 {
     private bool _showCount;
 
+    protected override void OnInitialized()
+    {
+        InstrumentViewModel.DataUpdateSubscriptions.Add(() =>
+        {
+            _showCount = InstrumentViewModel.ShowCount;
+            return Task.CompletedTask;
+        });
+    }
+
     private void ShowCountChanged()
     {
         InstrumentViewModel.ShowCount = _showCount;
