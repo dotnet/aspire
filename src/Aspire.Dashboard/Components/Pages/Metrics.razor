@@ -15,7 +15,7 @@
     <h1 class="page-header">@Loc[nameof(Dashboard.Resources.Metrics.MetricsHeader)]</h1>
     <FluentToolbar Orientation="Orientation.Horizontal">
         <FluentSelect Items="@_applications"
-                      OptionDisabled="@(c => c.Id.Type is OtlpApplicationType.ReplicaSet)"
+                      OptionDisabled="@(c => c.Id?.Type is OtlpApplicationType.ReplicaSet)"
                       @bind-SelectedOption="ViewModel.SelectedApplication"
                       @bind-SelectedOption:after="HandleSelectedApplicationChangedAsync"
                       AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAnApplication)]">
@@ -52,7 +52,7 @@
                 </Panel1>
                 <Panel2>
                     <div class="metrics-content">
-                        @if (ViewModel.SelectedApplication.Id.InstanceId != null && ViewModel.SelectedMeter != null && ViewModel.SelectedInstrument != null)
+                        @if (ViewModel.SelectedApplication.Id?.InstanceId != null && ViewModel.SelectedMeter != null && ViewModel.SelectedInstrument != null)
                         {
                             <ChartContainer ApplicationId="@(ViewModel.SelectedApplication.Id.InstanceId)" MeterName="@(ViewModel.SelectedMeter.MeterName)" InstrumentName="@(ViewModel.SelectedInstrument.Name)" Duration="ViewModel.SelectedDuration.Id" />
                         }

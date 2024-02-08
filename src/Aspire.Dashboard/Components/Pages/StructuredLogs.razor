@@ -18,7 +18,7 @@
     <h1 class="page-header">@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsHeader)]</h1>
     <FluentToolbar Orientation="Orientation.Horizontal">
         <FluentSelect Items="@_applicationViewModels"
-                      OptionDisabled="@(c => c.Id.Type is OtlpApplicationType.ReplicaSet)"
+                      OptionDisabled="@(c => c.Id?.Type is OtlpApplicationType.ReplicaSet)"
                       @bind-SelectedOption="_selectedApplication"
                       @bind-SelectedOption:after="HandleSelectedApplicationChangedAsync"
                       AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAnApplication)]">

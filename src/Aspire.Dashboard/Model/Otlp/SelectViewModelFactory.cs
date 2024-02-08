@@ -7,11 +7,11 @@ namespace Aspire.Dashboard.Model.Otlp;
 
 public class SelectViewModelFactory
 {
-    public static List<SelectViewModel<(OtlpApplicationType? Type, string? InstanceId)>> CreateApplicationsSelectViewModel(List<OtlpApplication> applications)
+    public static List<SelectViewModel<ResourceTypeDetails>> CreateApplicationsSelectViewModel(List<OtlpApplication> applications)
     {
         var replicasByApplicationName = OtlpApplication.GetReplicasByApplicationName(applications);
 
-        var selectViewModels = new List<SelectViewModel<(OtlpApplicationType? Type, string? InstanceId)>>();
+        var selectViewModels = new List<SelectViewModel<ResourceTypeDetails>>();
 
         foreach (var (applicationName, replicas) in replicasByApplicationName)
         {
@@ -19,9 +19,9 @@ public class SelectViewModelFactory
             {
                 // not replicated
                 var app = replicas.Single();
-                selectViewModels.Add(new SelectViewModel<(OtlpApplicationType? Type, string? InstanceId)>
+                selectViewModels.Add(new SelectViewModel<ResourceTypeDetails>
                 {
-                    Id = (OtlpApplicationType.Singleton, app.InstanceId),
+                    Id = new ResourceTypeDetails(OtlpApplicationType.Singleton, app.InstanceId),
                     Name = app.ApplicationName
                 });
 
@@ -29,17 +29,17 @@ public class SelectViewModelFactory
             }
 
             // add a disabled "Resource" as a header
-            selectViewModels.Add(new SelectViewModel<(OtlpApplicationType? Type, string? InstanceId)>
+            selectViewModels.Add(new SelectViewModel<ResourceTypeDetails>
             {
-                Id = (OtlpApplicationType.ReplicaSet, null),
+                Id = new ResourceTypeDetails(OtlpApplicationType.ReplicaSet, null),
                 Name = applicationName
             });
 
             // add each individual replica
             selectViewModels.AddRange(replicas.Select(replica =>
-                new SelectViewModel<(OtlpApplicationType? Type, string? InstanceId)>
+                new SelectViewModel<ResourceTypeDetails>
                 {
-                    Id = (OtlpApplicationType.Replica, replica.InstanceId),
+                    Id = new ReplicaTypeDetails(OtlpApplicationType.Replica, replica.InstanceId, applicationName),
                     Name = ResourceFormatter.GetName(replica.ApplicationName, replica.InstanceId)
                 }));
         }

@@ -15,11 +15,11 @@ namespace Aspire.Dashboard.Components.Pages;
 
 public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.MetricsViewModel, Metrics.MetricsPageState>
 {
-    private SelectViewModel<(OtlpApplicationType? Type, string? InstanceId)> _selectApplication = null!;
+    private SelectViewModel<ResourceTypeDetails> _selectApplication = null!;
     private List<SelectViewModel<TimeSpan>> _durations = null!;
     private static readonly TimeSpan s_defaultDuration = TimeSpan.FromMinutes(5);
 
-    private List<SelectViewModel<(OtlpApplicationType? Type, string? InstanceId)>> _applications = default!;
+    private List<SelectViewModel<ResourceTypeDetails>> _applications = default!;
     private Subscription? _applicationsSubscription;
     private Subscription? _metricsSubscription;
 
@@ -67,9 +67,9 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
             new() { Name = Loc[nameof(Dashboard.Resources.Metrics.MetricsLastTwentyFourHours)], Id = TimeSpan.FromHours(24) },
         };
 
-        _selectApplication = new SelectViewModel<(OtlpApplicationType? Type, string? InstanceId)>
+        _selectApplication = new SelectViewModel<ResourceTypeDetails>
         {
-            Id = (null, null),
+            Id = null,
             Name = ControlsStringsLoc[ControlsStrings.SelectAResource]
         };
         ViewModel = new MetricsViewModel { SelectedApplication = _selectApplication, SelectedDuration = _durations.Single(d => d.Id == s_defaultDuration) };
@@ -86,7 +86,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     protected override async Task OnParametersSetAsync()
     {
         await this.InitializeViewModelAsync();
-        TracesViewModel.ApplicationServiceId = ViewModel.SelectedApplication.Id.InstanceId;
+        TracesViewModel.ApplicationServiceId = ViewModel.SelectedApplication.Id?.InstanceId;
         UpdateSubscription();
     }
 
@@ -94,7 +94,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     {
         return new MetricsPageState
         {
-            ApplicationId = ViewModel.SelectedApplication.Id.InstanceId,
+            ApplicationId = ViewModel.SelectedApplication.Id?.InstanceId,
             MeterName = ViewModel.SelectedMeter?.MeterName,
             InstrumentName = ViewModel.SelectedInstrument?.Name,
             DurationMinutes = (int)ViewModel.SelectedDuration.Id.TotalMinutes
@@ -104,8 +104,8 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     public void UpdateViewModelFromQuery(MetricsViewModel viewModel)
     {
         viewModel.SelectedDuration = _durations.SingleOrDefault(d => (int)d.Id.TotalMinutes == DurationMinutes) ?? _durations.Single(d => d.Id == s_defaultDuration);
-        viewModel.SelectedApplication = _applications.SingleOrDefault(e => e.Id.Type is OtlpApplicationType.Singleton or OtlpApplicationType.Replica &&  e.Id.InstanceId == ApplicationInstanceId) ?? _selectApplication;
-        viewModel.Instruments = !string.IsNullOrEmpty(viewModel.SelectedApplication.Id.InstanceId) ? TelemetryRepository.GetInstrumentsSummary(viewModel.SelectedApplication.Id.InstanceId) : null;
+        viewModel.SelectedApplication = _applications.SingleOrDefault(e => e.Id?.Type is OtlpApplicationType.Singleton or OtlpApplicationType.Replica && e.Id?.InstanceId == ApplicationInstanceId) ?? _selectApplication;
+        viewModel.Instruments = !string.IsNullOrEmpty(viewModel.SelectedApplication.Id?.InstanceId) ? TelemetryRepository.GetInstrumentsSummary(viewModel.SelectedApplication.Id.InstanceId) : null;
 
         viewModel.SelectedMeter = null;
         viewModel.SelectedInstrument = null;
@@ -148,7 +148,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         public FluentTreeItem? SelectedTreeItem { get; set; }
         public OtlpMeter? SelectedMeter { get; set; }
         public OtlpInstrument? SelectedInstrument { get; set; }
-        public required SelectViewModel<(OtlpApplicationType? Type, string? InstanceId)> SelectedApplication { get; set; }
+        public required SelectViewModel<ResourceTypeDetails> SelectedApplication { get; set; }
         public SelectViewModel<TimeSpan> SelectedDuration { get; set; } = null!;
         public List<OtlpInstrument>? Instruments { get; set; }
     }
@@ -214,12 +214,12 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     {
         var selectedApplication = ViewModel.SelectedApplication.Id;
         // Subscribe to updates.
-        if (_metricsSubscription is null || _metricsSubscription.ApplicationId != selectedApplication.InstanceId)
+        if (_metricsSubscription is null || _metricsSubscription.ApplicationId != selectedApplication?.InstanceId)
         {
             _metricsSubscription?.Dispose();
-            _metricsSubscription = TelemetryRepository.OnNewMetrics(selectedApplication.InstanceId, SubscriptionType.Read, async () =>
+            _metricsSubscription = TelemetryRepository.OnNewMetrics(selectedApplication?.InstanceId, SubscriptionType.Read, async () =>
             {
-                if (!string.IsNullOrEmpty(selectedApplication.InstanceId))
+                if (!string.IsNullOrEmpty(selectedApplication?.InstanceId))
                 {
                     // If there are more instruments than before then update the UI.
                     var instruments = TelemetryRepository.GetInstrumentsSummary(selectedApplication.InstanceId);

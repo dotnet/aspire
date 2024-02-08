@@ -14,17 +14,13 @@ namespace Aspire.Dashboard.Components.Pages;
 
 public partial class StructuredLogs
 {
-    private static readonly SelectViewModel<(OtlpApplicationType? Type, string? InstanceId)> s_allApplication = new()
-    {
-        Id = (null, null),
-        Name = "(All)"
-    };
+    private SelectViewModel<ResourceTypeDetails> _allApplication = default!;
 
     private TotalItemsFooter _totalItemsFooter = default!;
     private List<OtlpApplication> _applications = default!;
-    private List<SelectViewModel<(OtlpApplicationType? Type, string? InstanceId)>> _applicationViewModels = default!;
+    private List<SelectViewModel<ResourceTypeDetails>> _applicationViewModels = default!;
     private List<SelectViewModel<LogLevel?>> _logLevels = default!;
-    private SelectViewModel<(OtlpApplicationType? Type, string? InstanceId)> _selectedApplication = s_allApplication;
+    private SelectViewModel<ResourceTypeDetails> _selectedApplication = default!;
     private SelectViewModel<LogLevel?> _selectedLogLevel = default!;
     private Subscription? _applicationsSubscription;
     private Subscription? _logsSubscription;
@@ -86,6 +82,14 @@ public partial class StructuredLogs
             ViewModel.AddFilter(new LogFilter { Field = "SpanId", Condition = FilterCondition.Equals, Value = SpanId  });
         }
 
+        _allApplication = new()
+        {
+            Id = null,
+            Name = Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsAllApplications)]
+        };
+
+        _selectedApplication = _allApplication;
+
         _logLevels = new List<SelectViewModel<LogLevel?>>
         {
             new SelectViewModel<LogLevel?> { Id = null, Name = $"({Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsAllTypes)]})" },
@@ -110,8 +114,8 @@ public partial class StructuredLogs
 
     protected override void OnParametersSet()
     {
-        _selectedApplication = _applicationViewModels.SingleOrDefault(e => e.Id.Type is OtlpApplicationType.Singleton or OtlpApplicationType.Replica && e.Id.InstanceId == ApplicationInstanceId) ?? s_allApplication;
-        ViewModel.ApplicationServiceId = _selectedApplication.Id.InstanceId;
+        _selectedApplication = _applicationViewModels.SingleOrDefault(e => e.Id?.Type is OtlpApplicationType.Singleton or OtlpApplicationType.Replica && e.Id.InstanceId == ApplicationInstanceId) ?? _allApplication;
+        ViewModel.ApplicationServiceId = _selectedApplication.Id?.InstanceId;
 
         if (LogLevelText != null && Enum.TryParse<LogLevel>(LogLevelText, ignoreCase: true, out var logLevel))
         {
@@ -130,12 +134,12 @@ public partial class StructuredLogs
     {
         _applications = TelemetryRepository.GetApplications();
         _applicationViewModels = SelectViewModelFactory.CreateApplicationsSelectViewModel(_applications);
-        _applicationViewModels.Insert(0, s_allApplication);
+        _applicationViewModels.Insert(0, _allApplication);
     }
 
     private Task HandleSelectedApplicationChangedAsync()
     {
-        NavigateTo(_selectedApplication.Id.InstanceId, _selectedLogLevel.Id);
+        NavigateTo(_selectedApplication.Id?.InstanceId, _selectedLogLevel.Id);
         _applicationChanged = true;
 
         return Task.CompletedTask;
@@ -143,7 +147,7 @@ public partial class StructuredLogs
 
     private Task HandleSelectedLogLevelChangedAsync()
     {
-        NavigateTo(_selectedApplication.Id.InstanceId, _selectedLogLevel.Id);
+        NavigateTo(_selectedApplication.Id?.InstanceId, _selectedLogLevel.Id);
         _applicationChanged = true;
 
         return Task.CompletedTask;
@@ -152,10 +156,10 @@ public partial class StructuredLogs
     private void UpdateSubscription()
     {
         // Subscribe to updates.
-        if (_logsSubscription is null || _logsSubscription.ApplicationId != _selectedApplication.Id.InstanceId)
+        if (_logsSubscription is null || _logsSubscription.ApplicationId != _selectedApplication.Id?.InstanceId)
         {
             _logsSubscription?.Dispose();
-            _logsSubscription = TelemetryRepository.OnNewLogs(_selectedApplication.Id.InstanceId, SubscriptionType.Read, async () =>
+            _logsSubscription = TelemetryRepository.OnNewLogs(_selectedApplication.Id?.InstanceId, SubscriptionType.Read, async () =>
             {
                 ViewModel.ClearData();
                 await InvokeAsync(StateHasChanged);
@@ -186,7 +190,7 @@ public partial class StructuredLogs
 
     private async Task OpenFilterAsync(LogFilter? entry)
     {
-        var logPropertyKeys = TelemetryRepository.GetLogPropertyKeys(_selectedApplication.Id.InstanceId);
+        var logPropertyKeys = TelemetryRepository.GetLogPropertyKeys(_selectedApplication.Id?.InstanceId);
 
         var title = entry is not null ? Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsEditFilter)] : Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsAddFilter)];
         var parameters = new DialogParameters
