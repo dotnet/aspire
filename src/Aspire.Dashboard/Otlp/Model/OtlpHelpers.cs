@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.RegularExpressions;
 using Aspire.Dashboard.Otlp.Storage;
 using Google.Protobuf;
 using Google.Protobuf.Collections;
@@ -13,8 +14,27 @@ using OpenTelemetry.Proto.Resource.V1;
 
 namespace Aspire.Dashboard.Otlp.Model;
 
-public static class OtlpHelpers
+public static partial class OtlpHelpers
 {
+    private static readonly string s_longTimePatternWithMilliseconds = GetLongTimePatternWithMilliseconds();
+
+    static string GetLongTimePatternWithMilliseconds()
+    {
+        // From https://learn.microsoft.com/dotnet/standard/base-types/how-to-display-milliseconds-in-date-and-time-values
+
+        // Gets the long time pattern, which is something like "h:mm:ss tt" (en-US), "H:mm:ss" (ja-JP), "HH:mm:ss" (fr-FR).
+        var longTimePattern = DateTimeFormatInfo.CurrentInfo.LongTimePattern;
+
+        // Create a format similar to .fff but based on the current culture.
+        var millisecondFormat = $"{NumberFormatInfo.CurrentInfo.NumberDecimalSeparator}fff";
+
+        // Append millisecond pattern to current culture's long time pattern.
+        return MatchSecondsInTimeFormatPattern().Replace(longTimePattern, $"$1{millisecondFormat}");
+    }
+
+    [GeneratedRegex("(:ss|:s)")]
+    private static partial Regex MatchSecondsInTimeFormatPattern();
+
     public static string? GetServiceId(this Resource resource)
     {
         string? serviceName = null;
@@ -44,7 +64,7 @@ public static class OtlpHelpers
 
     public static string FormatTimeStamp(DateTime timestamp)
     {
-        return timestamp.ToLocalTime().ToString("h:mm:ss.fff tt", CultureInfo.CurrentCulture);
+        return timestamp.ToLocalTime().ToString(s_longTimePatternWithMilliseconds, CultureInfo.CurrentCulture);
     }
 
     public static string ToHexString(ReadOnlyMemory<byte> bytes)
