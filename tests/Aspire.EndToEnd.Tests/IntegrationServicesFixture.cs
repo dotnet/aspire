@@ -22,7 +22,7 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
 
     public Dictionary<string, ProjectInfo> Projects => _projects!;
 
-    public ProjectInfo IntegrationServiceA => Projects["integrationservicea"];
+    public ProjectInfo   => Projects["integrationservicea"];
 
     public async Task InitializeAsync()
     {
