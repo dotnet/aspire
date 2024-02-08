@@ -101,7 +101,7 @@ public static class MySqlBuilderExtensions
     /// Changes resource to be published as a container.
     /// </summary>
     /// <param name="builder">The <see cref="MySqlServerResource"/> builder.</param>
-    /// <returns></returns>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<MySqlServerResource> PublishAsContainer(this IResourceBuilder<MySqlServerResource> builder)
     {
         return builder.WithManifestPublishingCallback(context => WriteMySqlContainerResourceToManifest(context, builder.Resource));
