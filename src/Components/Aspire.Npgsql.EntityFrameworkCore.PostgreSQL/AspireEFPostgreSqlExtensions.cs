@@ -139,21 +139,21 @@ public static partial class AspireEFPostgreSqlExtensions
             // We need to replace the DbContextOptions service descriptor to inject more logic. This won't be necessary once
             // Aspire targets .NET 9 as EF will respect the calls to services.ConfigureDbContext<TContext>(). c.f. https://github.com/dotnet/efcore/pull/32518
 
-            var olDbContextOptionsDescriptor = builder.Services.FirstOrDefault(sd => sd.ServiceType == typeof(DbContextOptions<TContext>));
+            var oldDbContextOptionsDescriptor = builder.Services.FirstOrDefault(sd => sd.ServiceType == typeof(DbContextOptions<TContext>));
 
-            if (olDbContextOptionsDescriptor is null)
+            if (oldDbContextOptionsDescriptor is null)
             {
                 throw new InvalidOperationException($"DbContext<{nameof(TContext)}> was not registered");
             }
 
-            builder.Services.Remove(olDbContextOptionsDescriptor);
+            builder.Services.Remove(oldDbContextOptionsDescriptor);
 
             var dbContextOptionsDescriptor = new ServiceDescriptor(
-                olDbContextOptionsDescriptor.ServiceType,
-                olDbContextOptionsDescriptor.ServiceKey,
+                oldDbContextOptionsDescriptor.ServiceType,
+                oldDbContextOptionsDescriptor.ServiceKey,
                 factory: (sp, key) =>
                 {
-                    var dbContextOptions = olDbContextOptionsDescriptor.ImplementationFactory?.Invoke(sp) as DbContextOptions<TContext>;
+                    var dbContextOptions = oldDbContextOptionsDescriptor.ImplementationFactory?.Invoke(sp) as DbContextOptions<TContext>;
 
                     var optionsBuilder = dbContextOptions != null
                         ? new DbContextOptionsBuilder<TContext>(dbContextOptions)
@@ -163,7 +163,7 @@ public static partial class AspireEFPostgreSqlExtensions
 
                     return optionsBuilder.Options;
                 },
-                olDbContextOptionsDescriptor.Lifetime
+                oldDbContextOptionsDescriptor.Lifetime
                 );
 
             builder.Services.Add(dbContextOptionsDescriptor);
