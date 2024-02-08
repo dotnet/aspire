@@ -113,4 +113,47 @@ public class AspireEFPostgreSqlExtensionsTests
 
 #pragma warning restore EF1001 // Internal EF Core API usage.
     }
+
+    /// <summary>
+    /// Verifies that two different DbContexts can be registered with different connection strings.
+    /// </summary>
+    [Fact]
+    public void CanHave2DbContexts()
+    {
+        const string connectionString2 = "Host=localhost2;Database=test2;Username=postgres2";
+
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:npgsql", ConnectionString),
+            new KeyValuePair<string, string?>("ConnectionStrings:npgsql2", connectionString2),
+        ]);
+
+        builder.AddNpgsqlDbContext<TestDbContext>("npgsql");
+        builder.AddNpgsqlDbContext<TestDbContext2>("npgsql2");
+
+        var host = builder.Build();
+        var context = host.Services.GetRequiredService<TestDbContext>();
+        var context2 = host.Services.GetRequiredService<TestDbContext2>();
+
+        var actualConnectionString = context.Database.GetDbConnection().ConnectionString;
+        Assert.Equal(ConnectionString, actualConnectionString);
+
+        actualConnectionString = context2.Database.GetDbConnection().ConnectionString;
+        Assert.Equal(connectionString2, actualConnectionString);
+    }
+
+    public class TestDbContext2 : DbContext
+    {
+        public TestDbContext2(DbContextOptions<TestDbContext2> options) : base(options)
+        {
+        }
+
+        public DbSet<Product> Products => Set<Product>();
+
+        public class Product
+        {
+            public int Id { get; set; }
+            public string Name { get; set; } = default!;
+        }
+    }
 }

@@ -3,7 +3,9 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var db = builder.AddMongoDB("mongo");
+var db = builder.AddMongoDB("mongo")
+    .WithMongoExpress()
+    .PublishAsContainer();
 
 builder.AddProject<Projects.Mongo_ApiService>("api")
        .WithReference(db);
