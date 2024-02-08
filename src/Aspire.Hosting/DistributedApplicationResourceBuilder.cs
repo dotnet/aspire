@@ -5,7 +5,7 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting;
 
-internal sealed class DistributedApplicationResourceBuilder<T>(IDistributedApplicationBuilder applicationBuilder, T resource) : IResourceBuilder<T> where T : IResource
+public sealed class DistributedApplicationResourceBuilder<T>(IDistributedApplicationBuilder applicationBuilder, T resource) : IResourceBuilder<T> where T : IResource
 {
     public T Resource { get; } = resource;
     public IDistributedApplicationBuilder ApplicationBuilder { get; } = applicationBuilder;
