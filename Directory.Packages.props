@@ -10,7 +10,7 @@
     <PackageVersion Include="Azure.Identity" Version="1.10.4" />
     <PackageVersion Include="Azure.Messaging.ServiceBus" Version="7.17.1" />
     <PackageVersion Include="Azure.ResourceManager.Resources" Version="1.7.0" />
-    <PackageVersion Include="Azure.Security.KeyVault.Secrets" Version="4.6.0-beta.2" />
+    <PackageVersion Include="Azure.Security.KeyVault.Secrets" Version="4.5.0" />
     <PackageVersion Include="Azure.Storage.Blobs" Version="12.19.1" />
     <PackageVersion Include="Azure.Storage.Queues" Version="12.17.1" />
     <PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.37.1" />
@@ -126,7 +126,7 @@
     <!-- unit test dependencies -->
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.Testing" Version="8.0.0" />
     <!-- Pinned version for Component Governance - Remove when root dependencies are updated -->
-    <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" /> <!-- Introduced by Microsoft.Azure.Cosmos, https://github.com/Azure/azure-cosmos-dotnet-v3/issues/4302 -->
-
+    <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
+    <!-- Introduced by Microsoft.Azure.Cosmos, https://github.com/Azure/azure-cosmos-dotnet-v3/issues/4302 -->
   </ItemGroup>
 </Project>
