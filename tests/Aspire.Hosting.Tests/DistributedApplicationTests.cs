@@ -386,6 +386,74 @@ public class DistributedApplicationTests
         await app.StopAsync();
     }
 
+    [LocalOnlyFact("docker")]
+    public async Task KubernetesHasResourceNameForContainersAndExes()
+    {
+        var testProgram = CreateTestProgram(includeIntegrationServices: true, includeNodeApp: true);
+        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+
+        await using var app = testProgram.Build();
+
+        await app.StartAsync();
+
+        var s = app.Services.GetRequiredService<IKubernetesService>();
+
+        using var cts = new CancellationTokenSource(Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(10));
+        var token = cts.Token;
+
+        var expectedExeResources = new HashSet<string>()
+        {
+            "servicea",
+            "serviceb",
+            "servicec",
+            "workera",
+            "nodeapp",
+            "npmapp",
+            "integrationservicea"
+        };
+
+        var expectedContainerResources = new HashSet<string>()
+        {
+            "redis",
+            "postgres",
+            "mongodb",
+            "oracledatabase",
+            "cosmos",
+            "sqlserver",
+            "mysql",
+            "rabbitmq",
+            "kafka"
+        };
+
+        await foreach (var resource in s.WatchAsync<Container>(cancellationToken: token))
+        {
+            Assert.True(resource.Item2.Metadata.Annotations.TryGetValue(Container.ResourceNameAnnotation, out var value));
+            if (expectedContainerResources.Contains(value))
+            {
+                expectedContainerResources.Remove(value);
+            }
+
+            if (expectedContainerResources.Count == 0)
+            {
+                break;
+            }
+        }
+
+        await foreach(var resource in s.WatchAsync<Executable>(cancellationToken: token))
+        {
+            Assert.True(resource.Item2.Metadata.Annotations.TryGetValue(Executable.ResourceNameAnnotation, out var value));
+            if (expectedExeResources.Contains(value))
+            {
+                expectedExeResources.Remove(value);
+            }
+
+            if (expectedExeResources.Count == 0)
+            {
+                break;
+            }
+        }
+    }
+
     private static TestProgram CreateTestProgram(string[]? args = null, bool includeIntegrationServices = false, bool includeNodeApp = false) =>
         TestProgram.Create<DistributedApplicationTests>(args, includeIntegrationServices: includeIntegrationServices, includeNodeApp: includeNodeApp);
 }
