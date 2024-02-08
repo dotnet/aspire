@@ -66,20 +66,37 @@ public static partial class AspireEFPostgreSqlExtensions
 
         configureSettings?.Invoke(settings);
 
-        builder.Services.AddNpgsqlDataSource(settings.ConnectionString ?? string.Empty, builder =>
+        builder.Services.AddDbContextPool<TContext>(ConfigureDbContext);
+
+        ConfigureInstrumentation<TContext>(builder, settings);
+
+        void ConfigureDbContext(DbContextOptionsBuilder dbContextOptionsBuilder)
         {
-            // delay validating the ConnectionString until the DataSource is requested. This ensures an exception doesn't happen until a Logger is established.
+            // delay validating the ConnectionString until the DbContext is requested. This ensures an exception doesn't happen until a Logger is established.
             if (string.IsNullOrEmpty(settings.ConnectionString))
             {
                 throw new InvalidOperationException($"ConnectionString is missing. It should be provided in 'ConnectionStrings:{connectionName}' or under the 'ConnectionString' key in '{DefaultConfigSectionName}' or '{typeSpecificSectionName}' configuration section.");
             }
 
-            builder.UseLoggerFactory(null); // a workaround for https://github.com/npgsql/efcore.pg/issues/2821
-        });
-
-        builder.Services.AddDbContextPool<TContext>(options => ConfigureDbContext(settings, options, configureDbContextOptions));
-
-        ConfigureInstrumentation<TContext>(builder, settings);
+            // We don't register a logger factory, because there is no need to: https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbcontextoptionsbuilder.useloggerfactory?view=efcore-7.0#remarks
+            dbContextOptionsBuilder.UseNpgsql(settings.ConnectionString, builder =>
+            {
+                // Resiliency:
+                // 1. Connection resiliency automatically retries failed database commands: https://www.npgsql.org/efcore/misc/other.html#execution-strategy
+                if (settings.Retry)
+                {
+                    builder.EnableRetryOnFailure();
+                }
+                // 2. "Scale proportionally: You want to ensure that you don't scale out a resource to a point where it will exhaust other associated resources."
+                // The pooling is enabled by default, the min pool size is 0 by default: https://www.npgsql.org/doc/connection-string-parameters.html#pooling
+                // There is nothing for us to set here.
+                // 3. "Timeout: Places limit on the duration for which a caller can wait for a response."
+                // The timeouts have default values, except of Internal Command Timeout, which we should ignore:
+                // https://www.npgsql.org/doc/connection-string-parameters.html#timeouts-and-keepalive
+                // There is nothing for us to set here.
+            });
+            configureDbContextOptions?.Invoke(dbContextOptionsBuilder);
+        }
     }
 
     /// <summary>
@@ -118,7 +135,10 @@ public static partial class AspireEFPostgreSqlExtensions
                 return;
             }
 
-            // Resolving DbContext<TContextService> will resolve DbContextOptions<TContextImplementation>
+            // Resolving DbContext<TContextService> will resolve DbContextOptions<TContextImplementation>.
+            // We need to replace the DbContextOptions service descriptor to inject more logic. This won't be necessary once
+            // Aspire targets .NET 9 as EF will respect the calls to services.ConfigureDbContext<TContext>(). c.f. https://github.com/dotnet/efcore/pull/32518
+
             var olDbContextOptionsDescriptor = builder.Services.FirstOrDefault(sd => sd.ServiceType == typeof(DbContextOptions<TContext>));
 
             if (olDbContextOptionsDescriptor is null)
@@ -128,9 +148,7 @@ public static partial class AspireEFPostgreSqlExtensions
 
             builder.Services.Remove(olDbContextOptionsDescriptor);
 
-            ServiceDescriptor dbContextOptionsDescriptor;
-
-            dbContextOptionsDescriptor = new ServiceDescriptor(
+            var dbContextOptionsDescriptor = new ServiceDescriptor(
                 olDbContextOptionsDescriptor.ServiceType,
                 olDbContextOptionsDescriptor.ServiceKey,
                 factory: (sp, key) =>
@@ -152,8 +170,6 @@ public static partial class AspireEFPostgreSqlExtensions
                     {
                         optionsBuilder ??= new DbContextOptionsBuilder<TContext>();
                     }
-
-                    ConfigureDbContext(settings, optionsBuilder, null);
 
                     optionsBuilder.UseNpgsql(options => options.EnableRetryOnFailure());
 
@@ -206,31 +222,5 @@ public static partial class AspireEFPostgreSqlExtensions
                     NpgsqlCommon.AddNpgsqlMetrics(meterProviderBuilder);
                 });
         }
-    }
-
-    private static void ConfigureDbContext(NpgsqlEntityFrameworkCorePostgreSQLSettings settings, DbContextOptionsBuilder dbContextOptionsBuilder, Action<DbContextOptionsBuilder>? configureDbContextOptions)
-    {
-        if (!settings.Retry)
-        {
-            return;
-        }
-
-        // We don't provide the connection string, it's going to use the pre-registered DataSource.
-        // We don't register logger factory, because there is no need to: https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbcontextoptionsbuilder.useloggerfactory?view=efcore-7.0#remarks
-        dbContextOptionsBuilder.UseNpgsql(builder =>
-        {
-            // Resiliency:
-            // 1. Connection resiliency automatically retries failed database commands: https://www.npgsql.org/efcore/misc/other.html#execution-strategy
-            builder.EnableRetryOnFailure();
-            // 2. "Scale proportionally: You want to ensure that you don't scale out a resource to a point where it will exhaust other associated resources."
-            // The pooling is enabled by default, the min pool size is 0 by default: https://www.npgsql.org/doc/connection-string-parameters.html#pooling
-            // There is nothing for us to set here.
-            // 3. "Timeout: Places limit on the duration for which a caller can wait for a response."
-            // The timeouts have default values, except of Internal Command Timeout, which we should ignore:
-            // https://www.npgsql.org/doc/connection-string-parameters.html#timeouts-and-keepalive
-            // There is nothing for us to set here.
-        });
-
-        configureDbContextOptions?.Invoke(dbContextOptionsBuilder);
     }
 }

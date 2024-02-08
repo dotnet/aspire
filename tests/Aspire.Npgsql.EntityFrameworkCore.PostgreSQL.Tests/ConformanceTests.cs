@@ -4,7 +4,6 @@
 using Aspire.Components.Common.Tests;
 using Aspire.Components.ConformanceTests;
 using Microsoft.DotNet.RemoteExecutor;
-using Microsoft.DotNet.XUnitExtensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.Extensions.Configuration;
@@ -105,11 +104,6 @@ public class ConformanceTests : ConformanceTests<TestDbContext, NpgsqlEntityFram
         {
             service.Database.EnsureCreated();
         }
-    }
-
-    protected override void SetupConnectionInformationIsDelayValidated()
-    {
-        throw new SkipTestException("Need to skip this test until https://github.com/npgsql/efcore.pg/issues/2891 is fixed.");
     }
 
     [Fact]
