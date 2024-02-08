@@ -7,7 +7,7 @@ using Xunit;
 
 namespace Aspire.Hosting.Tests.MongoDB;
 
-public class MongoDBContainerResourceTests
+public class MongoDBConnectionStringBuilderTests
 {
     [Theory]
     [InlineData("password", "mongodb://root:password@myserver:1000/")]
