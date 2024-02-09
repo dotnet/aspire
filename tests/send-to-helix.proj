@@ -1,0 +1,101 @@
+<Project Sdk="Microsoft.DotNet.Helix.Sdk" InitialTargets="BuildHelixWorkItems" DefaultTargets="Test">
+
+  <PropertyGroup>
+    <Language>msbuild</Language>
+
+    <_workItemTimeout>00:20:00</_workItemTimeout>
+    <WorkItemArchiveWildCard>$(TestArchiveTestsDir)**/*.zip</WorkItemArchiveWildCard>
+
+    <IncludeDotNetCli>true</IncludeDotNetCli>
+    <DotNetCliPackageType>sdk</DotNetCliPackageType>
+
+    <GlobalJsonContent>$([System.IO.File]::ReadAllText('$(RepoRoot)global.json'))</GlobalJsonContent>
+    <DotNetCliVersion>$([System.Text.RegularExpressions.Regex]::Match($(GlobalJsonContent), '(%3F&lt;="dotnet": ").*(%3F=")'))</DotNetCliVersion>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <_SupportDataStagingDir>$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'helix', 'support-data'))</_SupportDataStagingDir>
+    <_HelixLogsPath Condition="'$(OS)' != 'Windows_NT'">$HELIX_WORKITEM_UPLOAD_ROOT/logs</_HelixLogsPath>
+    <_HelixLogsPath Condition="'$(OS)' == 'Windows_NT'">%HELIX_WORKITEM_UPLOAD_ROOT%/logs</_HelixLogsPath>
+
+    <_HelixCorrelationPayloadEnvVar Condition="'$(OS)' != 'Windows_NT'">$HELIX_CORRELATION_PAYLOAD</_HelixCorrelationPayloadEnvVar>
+    <_HelixCorrelationPayloadEnvVar Condition="'$(OS)' == 'Windows_NT'">%HELIX_CORRELATION_PAYLOAD%</_HelixCorrelationPayloadEnvVar>
+
+    <_TestNameEnvVar Condition="'$(OS)' != 'Windows_NT'">$TEST_NAME</_TestNameEnvVar>
+    <_TestNameEnvVar Condition="'$(OS)' == 'Windows_NT'">%TEST_NAME%</_TestNameEnvVar>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <_TestCoverageCommand Include="$(_HelixCorrelationPayloadEnvVar)/dotnet-coverage/dotnet-coverage collect" />
+    <_TestCoverageCommand Include="--settings $(_HelixCorrelationPayloadEnvVar)/support-data/CodeCoverage.config" />
+    <_TestCoverageCommand Include="--output $(_HelixLogsPath)/$(_TestNameEnvVar).cobertura.xml" />
+
+    <_TestRunCommandArguments Include="dotnet test" />
+    <_TestRunCommandArguments Include="-s .runsettings" />
+    <_TestRunCommandArguments Include="$(_TestNameEnvVar).dll" />
+    <_TestRunCommandArguments Include="--ResultsDirectory:$(_HelixLogsPath)" />
+  </ItemGroup>
+
+  <Target Name="BuildHelixWorkItems" DependsOnTargets="_StageDependenciesForHelix">
+    <Error Condition="'$(RepoTestResultsPath)' == ''" Text="%24(RepoTestResultsPath) is unset" />
+
+    <PropertyGroup>
+      <HelixResultsDestinationDir>$(RepoTestResultsPath)</HelixResultsDestinationDir>
+
+      <_TestRunCommand Condition="'$(RunWithCodeCoverage)' == 'true'">@(_TestCoverageCommand, ' ') &quot;@(_TestRunCommandArguments, ' ')&quot;</_TestRunCommand>
+      <_TestRunCommand Condition="'$(RunWithCodeCoverage)' != 'true'">@(_TestRunCommandArguments, ' ')</_TestRunCommand>
+    </PropertyGroup>
+
+    <Error Condition="'$(_DotNetCoverageToolPath)' == '' or !Exists($(_DotNetCoverageToolPath))"
+           Text="Could not find dotnet-coverage tool. %24(_DotNetCoverageToolPath)=$(_DotNetCoverageToolPath)" />
+
+    <ItemGroup>
+      <_DefaultWorkItems Include="$(WorkItemArchiveWildCard)" />
+
+      <HelixWorkItem Include="@(_DefaultWorkItems -> '%(FileName)')">
+        <PayloadArchive>%(Identity)</PayloadArchive>
+        <PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
+        <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
+        <Command>$(_TestRunCommand)</Command>
+        <Timeout>$(_workItemTimeout)</Timeout>
+
+        <!-- Download results file so coverage files can be extracted -->
+        <DownloadFilesFromResults>logs/%(FileName).cobertura.xml</DownloadFilesFromResults>
+      </HelixWorkItem>
+    </ItemGroup>
+
+    <Message Text="HelixCorrelationPayload: %(HelixCorrelationPayload.Identity)" Condition="'$(HelixDryRun)' == 'true'" Importance="High" />
+    <Message Text="HelixWorkItem: %(HelixWorkItem.Identity), Command: %(HelixWorkItem.Command), PreCommands: %(HelixWorkItem.PreCommands) with PayloadArchive: %(HelixWorkItem.PayloadArchive)" Condition="'$(HelixDryRun)' == 'true'" Importance="High" />
+
+    <Error Text="Stopping the build for dry run" Condition="'$(HelixDryRun)' == 'true'" />
+  </Target>
+
+  <Target Name="_StageDependenciesForHelix">
+    <PropertyGroup>
+      <_DotNetToolJsonPath>$(RepoRoot).config/dotnet-tools.json</_DotNetToolJsonPath>
+      <_DotNetToolJsonContent>$([System.IO.File]::ReadAllText($(_DotNetToolJsonPath)))</_DotNetToolJsonContent>
+      <_DotNetCoverageVersionRegex>"dotnet-coverage":\s*{\s*"version":\s*"([^"]*)"</_DotNetCoverageVersionRegex>
+      <_DotNetCoverageToolVersion>$([System.Text.RegularExpressions.Regex]::Match($(_DotNetToolJsonContent), '$(_DotNetCoverageVersionRegex)').Groups[1].Value)</_DotNetCoverageToolVersion>
+    </PropertyGroup>
+
+    <Error Condition="'$(_DotNetCoverageToolVersion)' == ''"
+           Text="%24(_DotNetCoverageToolVersion) is unset. Could not determine the version from $(_DotNetToolJsonPath)" />
+
+    <Message Text="Installing dotnet-coverage $(_DotNetCoverageToolVersion)" />
+    <InstallDotNetTool Name="dotnet-coverage"
+                       DestinationPath="$(ArtifactsDir)/tools"
+                       Version="$(_DotNetCoverageToolVersion)"
+                       WorkingDirectory="$(ArtifactsTmpDir)"
+                       DotNetPath="$(DotNetTool)">
+      <Output TaskParameter="ToolPath" PropertyName="_DotNetCoverageToolPath" />
+    </InstallDotNetTool>
+
+    <MakeDir Directories="$(_SupportDataStagingDir)" />
+    <Copy SourceFiles="$(RepoRoot)eng/CodeCoverage.config" DestinationFolder="$(_SupportDataStagingDir)" />
+
+    <ItemGroup>
+      <HelixCorrelationPayload Include="$(_DotNetCoverageToolPath)" Destination="dotnet-coverage" />
+      <HelixCorrelationPayload Include="$(_SupportDataStagingDir)" Destination="support-data" />
+    </ItemGroup>
+  </Target>
+</Project>
