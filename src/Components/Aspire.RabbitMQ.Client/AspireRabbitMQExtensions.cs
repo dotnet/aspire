@@ -172,7 +172,7 @@ public static class AspireRabbitMQExtensions
                 if (connectAttemptActivity is not null)
                 {
                     connectAttemptActivity.AddTag("exception.message", ex.Message);
-                    connectAttemptActivity.AddTag("exception.stacktrace", ex.ToString());
+                    connectAttemptActivity.AddTag("exception.stacktrace", ex.StackTrace);
                     connectAttemptActivity.AddTag("exception.type", ex.GetType().FullName);
                     connectAttemptActivity.SetStatus(ActivityStatusCode.Error);
                 }
