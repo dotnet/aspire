@@ -243,4 +243,7 @@
     <value>{0} (replica of {1})</value>
     <comment>{0} is a resource name, {1} is a replica set name</comment>
   </data>
+  <data name="ReplicaSetLower" xml:space="preserve">
+    <value>replica set</value>
+  </data>
 </root>

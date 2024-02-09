@@ -11,7 +11,7 @@
         <FluentIcon Icon="Icons.Regular.Size20.AppsList"
                     Color="Color.Accent"
                     Style="vertical-align: text-bottom;"/>
-        @ViewModel.Name
+        <span>@ViewModel.Name (<span style="color: var(--accent-foreground-rest)">@Loc[nameof(ControlsStrings.ReplicaSetLower)]</span>)</span>
     }
     else if (ViewModel.Id?.Type is OtlpApplicationType.Replica)
     {

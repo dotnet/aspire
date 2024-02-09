@@ -57,6 +57,7 @@ fluent-toolbar[orientation=horizontal] {
 
     /* overrides of default fluentui-blazor styling */
     --error: #E10B11 !important;
+    --disabled-opacity: 0.85 !important;
 }
 
  #components-reconnect-modal :is(h5, p) {
