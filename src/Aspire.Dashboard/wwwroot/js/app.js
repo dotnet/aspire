@@ -63,19 +63,27 @@ window.copyTextToClipboard = function (id, text, precopy, postcopy) {
 
     const copyIcon = button.querySelector('.copy-icon');
     const checkmarkIcon = button.querySelector('.checkmark-icon');
-    const tooltipDiv = document.querySelector(`fluent-tooltip[anchor="${id}"]`).children[0];
+    const anchoredTooltip = document.querySelector(`fluent-tooltip[anchor="${id}"]`);
+    const tooltipDiv = anchoredTooltip ? anchoredTooltip.children[0] : null;
     navigator.clipboard.writeText(text)
         .then(() => {
-            tooltipDiv.innerText = postcopy;
+            if (tooltipDiv) {
+                tooltipDiv.innerText = postcopy;
+            }
             copyIcon.style.display = 'none';
             checkmarkIcon.style.display = 'inline';
         })
         .catch(() => {
-            tooltipDiv.innerText = 'Could not access clipboard';
+            if (tooltipDiv) {
+                tooltipDiv.innerText = 'Could not access clipboard';
+            }
         });
 
     button.dataset.copyTimeout = setTimeout(function () {
-        tooltipDiv.innerText = precopy;
+        if (tooltipDiv) {
+            tooltipDiv.innerText = precopy;
+        }
+
         copyIcon.style.display = 'inline';
         checkmarkIcon.style.display = 'none';
         delete button.dataset.copyTimeout;
