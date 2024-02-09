@@ -51,7 +51,8 @@ steps:
             HelixTargetQueues: Ubuntu.2204.Amd64
 
         IsWindows: ${{ parameters.isWindows }}
-        Creator: $(Build.DefinitionName)
+        ${{ if eq(variables['System.TeamProject'], 'public') }}:
+          Creator: $(Build.DefinitionName)
         HelixBuild: $(Build.BuildNumber)
         HelixAccessToken: $(HelixApiAccessToken)
 
