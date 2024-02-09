@@ -115,7 +115,7 @@ public class AspireEFPostgreSqlExtensionsTests
         var actualConnectionString = context.Database.GetDbConnection().ConnectionString;
         Assert.Equal(ConnectionString, actualConnectionString);
 
-        // ensure the max retry count from config was respected
+        // ensure the retry strategy is enabled and set to its default value
         Assert.NotNull(extension.ExecutionStrategyFactory);
         var executionStrategy = extension.ExecutionStrategyFactory(new ExecutionStrategyDependencies(new CurrentDbContext(context), context.Options, null!));
         var retryStrategy = Assert.IsType<NpgsqlRetryingExecutionStrategy>(executionStrategy);

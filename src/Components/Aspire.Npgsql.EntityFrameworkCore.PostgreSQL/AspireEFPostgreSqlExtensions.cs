@@ -22,7 +22,7 @@ public static partial class AspireEFPostgreSqlExtensions
 
     /// <summary>
     /// Registers the given <see cref="DbContext" /> as a service in the services provided by the <paramref name="builder"/>.
-    /// Enables db context pooling, connection retries, corresponding health check, logging and telemetry.
+    /// Enables db context pooling, retries, corresponding health check, logging and telemetry.
     /// </summary>
     /// <typeparam name="TContext">The <see cref="DbContext" /> that needs to be registered.</typeparam>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
@@ -47,17 +47,7 @@ public static partial class AspireEFPostgreSqlExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        NpgsqlEntityFrameworkCorePostgreSQLSettings settings = new();
-        var typeSpecificSectionName = $"{DefaultConfigSectionName}:{typeof(TContext).Name}";
-        var typeSpecificConfigurationSection = builder.Configuration.GetSection(typeSpecificSectionName);
-        if (typeSpecificConfigurationSection.Exists()) // https://github.com/dotnet/runtime/issues/91380
-        {
-            typeSpecificConfigurationSection.Bind(settings);
-        }
-        else
-        {
-            builder.Configuration.GetSection(DefaultConfigSectionName).Bind(settings);
-        }
+        var settings = GetDbContextSettings<TContext>(builder);
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {
@@ -75,7 +65,7 @@ public static partial class AspireEFPostgreSqlExtensions
             // delay validating the ConnectionString until the DbContext is requested. This ensures an exception doesn't happen until a Logger is established.
             if (string.IsNullOrEmpty(settings.ConnectionString))
             {
-                throw new InvalidOperationException($"ConnectionString is missing. It should be provided in 'ConnectionStrings:{connectionName}' or under the 'ConnectionString' key in '{DefaultConfigSectionName}' or '{typeSpecificSectionName}' configuration section.");
+                throw new InvalidOperationException($"ConnectionString is missing. It should be provided in 'ConnectionStrings:{connectionName}' or under the 'ConnectionString' key in '{DefaultConfigSectionName}' or '{DefaultConfigSectionName}:{typeof(TContext).Name}' configuration section.");
             }
 
             // We don't register a logger factory, because there is no need to: https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbcontextoptionsbuilder.useloggerfactory?view=efcore-7.0#remarks
@@ -100,7 +90,7 @@ public static partial class AspireEFPostgreSqlExtensions
     }
 
     /// <summary>
-    /// Configures connection retries, health check, logging and telemetry for the <see cref="DbContext" />.
+    /// Configures retries, health check, logging and telemetry for the <see cref="DbContext" />.
     /// </summary>
     /// <exception cref="ArgumentNullException">Thrown if mandatory <paramref name="builder"/> is null.</exception>
     /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="DbContext"/> is not registered in DI.</exception>
@@ -110,17 +100,7 @@ public static partial class AspireEFPostgreSqlExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        NpgsqlEntityFrameworkCorePostgreSQLSettings settings = new();
-        var typeSpecificSectionName = $"{DefaultConfigSectionName}:{typeof(TContext).Name}";
-        var typeSpecificConfigurationSection = builder.Configuration.GetSection(typeSpecificSectionName);
-        if (typeSpecificConfigurationSection.Exists()) // https://github.com/dotnet/runtime/issues/91380
-        {
-            typeSpecificConfigurationSection.Bind(settings);
-        }
-        else
-        {
-            builder.Configuration.GetSection(DefaultConfigSectionName).Bind(settings);
-        }
+        var settings = GetDbContextSettings<TContext>(builder);
 
         configureSettings?.Invoke(settings);
 
@@ -210,5 +190,22 @@ public static partial class AspireEFPostgreSqlExtensions
                     NpgsqlCommon.AddNpgsqlMetrics(meterProviderBuilder);
                 });
         }
+    }
+
+    private static NpgsqlEntityFrameworkCorePostgreSQLSettings GetDbContextSettings<TContext>(IHostApplicationBuilder builder)
+    {
+        NpgsqlEntityFrameworkCorePostgreSQLSettings settings = new();
+        var typeSpecificSectionName = $"{DefaultConfigSectionName}:{typeof(TContext).Name}";
+        var typeSpecificConfigurationSection = builder.Configuration.GetSection(typeSpecificSectionName);
+        if (typeSpecificConfigurationSection.Exists()) // https://github.com/dotnet/runtime/issues/91380
+        {
+            typeSpecificConfigurationSection.Bind(settings);
+        }
+        else
+        {
+            builder.Configuration.GetSection(DefaultConfigSectionName).Bind(settings);
+        }
+
+        return settings;
     }
 }
