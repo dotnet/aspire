@@ -154,25 +154,11 @@ internal sealed class RabbitMQEventSourceLogForwarder : IDisposable
                     return index switch
                     {
                         1 => new("exception.type", exData["Type"]),
-                        2 => new("exception.message", exData["Message"] is string message ? GetRabbitMQExceptionMessage(message) : null),
-                        3 => new("exception.stacktrace", exData["StackTrace"] is string { Length: 0 } && exData["Message"] is string message ? GetRabbitMQExceptionStackTrace(message) : exData["StackTrace"]),
+                        2 => new("exception.message", exData["Message"] ),
+                        3 => new("exception.stacktrace", exData["StackTrace"]),
                         4 => new("exception.innerexception", exData["InnerException"]),
                         _ => throw new UnreachableException()
                     };
-
-                    string GetRabbitMQExceptionMessage(string rawMessage)
-                    {
-                        // rabbitmq message contains both message + stack trace. only take the first line
-                        var firstNewLineIndex = rawMessage.IndexOf(Environment.NewLine, StringComparison.Ordinal);
-                        return firstNewLineIndex is -1 ? rawMessage : rawMessage[..firstNewLineIndex];
-                    }
-
-                    string? GetRabbitMQExceptionStackTrace(string rawMessage)
-                    {
-                        // rabbitmq message contains both message + stack trace. only take subsequent lines
-                        var firstNewLineIndex = rawMessage.IndexOf(Environment.NewLine, StringComparison.Ordinal);
-                        return firstNewLineIndex is -1 || firstNewLineIndex == rawMessage.Length - Environment.NewLine.Length ? null : rawMessage[(firstNewLineIndex + Environment.NewLine.Length)..];
-                    }
                 }
             }
         }
