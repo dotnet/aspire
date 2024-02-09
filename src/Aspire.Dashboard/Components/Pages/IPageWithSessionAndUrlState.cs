@@ -30,7 +30,7 @@ public interface IPageWithSessionAndUrlState<TViewModel, TSerializableViewModel>
     public ProtectedSessionStorage SessionStorage { get; }
 
     /// <summary>
-    /// The view model containing live state
+    /// The view model containing live state, to be instantiated in OnInitialized.
     /// </summary>
     public TViewModel PageViewModel { get; set; }
 

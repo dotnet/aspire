@@ -5,7 +5,6 @@
 @using Microsoft.Extensions.Logging
 @using System.Web
 @using Aspire.Dashboard.Resources
-@inject NavigationManager NavigationManager
 @inject IDashboardClient DashboardClient
 @inject IJSRuntime JS
 @implements IDisposable
@@ -20,10 +19,10 @@
         <FluentSelect TOption="SelectViewModel<string>"
                       Items="@_applicationViewModels"
                       OptionText="@(c => c.Name)"
-                      @bind-SelectedOption="_selectedApplication"
+                      @bind-SelectedOption="PageViewModel.SelectedApplication"
                       @bind-SelectedOption:after="HandleSelectedApplicationChangedAsync"
                       AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAnApplication)]"/>
-        <FluentSearch @bind-Value="_filter"
+        <FluentSearch @bind-Value="PageViewModel.Filter"
                       @oninput="HandleFilter"
                       @bind-Value:after="HandleClear"
                       Placeholder="@ControlsStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"
@@ -36,7 +35,7 @@
             <FluentSelect TOption="SelectViewModel<LogLevel?>"
                           Items="@_logLevels"
                           OptionText="@(c => c.Name)"
-                          @bind-SelectedOption="_selectedLogLevel"
+                          @bind-SelectedOption="PageViewModel.SelectedLogLevel"
                           @bind-SelectedOption:after="HandleSelectedLogLevelChangedAsync"
                           Width="120px"
                           Style="min-width: auto;"
