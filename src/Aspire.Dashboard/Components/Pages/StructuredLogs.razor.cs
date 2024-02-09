@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text.Json;
 using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Otlp;
@@ -59,6 +60,10 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     [Parameter]
     [SupplyParameterFromQuery(Name = "level")]
     public string? LogLevelText { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "filters")]
+    public string? SerializedLogFilters { get; set; }
 
     public IEnumerable<LogEntryPropertyViewModel>? SelectedLogEntryProperties { get; set; }
     private OtlpLogEntry? _selectedLogEntry;
@@ -210,7 +215,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
             }
         }
 
-        return Task.CompletedTask;
+        return this.AfterViewModelChangedAsync();
     }
 
     private void HandleFilter(ChangeEventArgs args)
@@ -282,6 +287,11 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
             queryParameters.Add("level", serializable.LogLevelText);
         }
 
+        if (serializable.Filters.Count > 0)
+        {
+            queryParameters.Add("filters", JsonSerializer.Serialize(serializable.Filters));
+        }
+
         return new UrlState(path, queryParameters);
     }
 
@@ -291,7 +301,8 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         {
             Filter = PageViewModel.Filter,
             LogLevelText = PageViewModel.SelectedLogLevel.Id?.ToString().ToLowerInvariant(),
-            SelectedApplication = PageViewModel.SelectedApplication.Id
+            SelectedApplication = PageViewModel.SelectedApplication.Id,
+            Filters = ViewModel.Filters
         };
     }
 
@@ -311,7 +322,28 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
         ViewModel.LogLevel = PageViewModel.SelectedLogLevel.Id;
 
-        _ = Task.Run(() => InvokeAsync(StateHasChanged));
+        if (SerializedLogFilters is not null)
+        {
+            try
+            {
+                var filters = JsonSerializer.Deserialize<List<LogFilter>>(SerializedLogFilters);
+
+                if (filters is not null)
+                {
+                    ViewModel.ClearFilters();
+                    ViewModel.AddFilters(filters);
+                }
+            }
+            catch (JsonException)
+            {
+                // Ignore invalid filters.
+            }
+        }
+
+        _ = Task.Run(async () =>
+        {
+            await InvokeAsync(StateHasChanged);
+        });
     }
 
     public class StructuredLogsPageViewModel
@@ -326,5 +358,6 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
         public required string Filter { get; set; }
         public string? SelectedApplication { get; set; }
         public string? LogLevelText { get; set; }
+        public required IReadOnlyCollection<LogFilter> Filters { get; set; }
     }
 }

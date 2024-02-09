@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Globalization;
+using System.Text.Json.Serialization;
 using Aspire.Dashboard.Otlp.Model;
 
 namespace Aspire.Dashboard.Model.Otlp;
@@ -13,6 +14,8 @@ public class LogFilter
     public string Field { get; set; } = default!;
     public FilterCondition Condition { get; set; }
     public string Value { get; set; } = default!;
+
+    [JsonIgnore]
     public string FilterText => $"{Field} {ConditionToString(Condition)} {Value}";
 
     public static List<string> GetAllPropertyNames(List<string> propertyKeys)
