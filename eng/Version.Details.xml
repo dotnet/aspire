@@ -33,6 +33,10 @@
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-extensions</Uri>
       <Sha>c63655a995fb1dfc8b8fd9cf149d5e6ad225a185</Sha>
     </Dependency>
+    <Dependency Name="Microsoft.Extensions.Diagnostics.Testing" Version="8.1.0">
+      <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-extensions</Uri>
+      <Sha>c63655a995fb1dfc8b8fd9cf149d5e6ad225a185</Sha>
+    </Dependency>
     <Dependency Name="Microsoft.Extensions.Configuration.Abstractions" Version="8.0.0">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-runtime</Uri>
       <Sha>5535e31a712343a63f5d7d796cd874e563e5ac14</Sha>
