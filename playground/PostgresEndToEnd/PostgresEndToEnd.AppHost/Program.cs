@@ -4,16 +4,16 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
 // Abstract resources.
-var db1 = builder.AddPostgres("pg1").AddDatabase("db1");
-var db2 = builder.AddPostgres("pg2").AddDatabase("db2");
-var pg3 = builder.AddPostgres("pg3");
+var db1 = builder.AddPostgres("pg1").WithPgAdmin().AddDatabase("db1");
+var db2 = builder.AddPostgres("pg2").WithPgAdmin().AddDatabase("db2");
+var pg3 = builder.AddPostgres("pg3").WithPgAdmin();
 var db3 = pg3.AddDatabase("db3");
 var db4 = pg3.AddDatabase("db4");
 
 // Containerized resources.
-var db5 = builder.AddPostgresContainer("pg4").AddDatabase("db5");
-var db6 = builder.AddPostgresContainer("pg5").AddDatabase("db6");
-var pg6 = builder.AddPostgresContainer("pg6");
+var db5 = builder.AddPostgres("pg4").WithPgAdmin().PublishAsContainer().AddDatabase("db5");
+var db6 = builder.AddPostgres("pg5").WithPgAdmin().PublishAsContainer().AddDatabase("db6");
+var pg6 = builder.AddPostgres("pg6").WithPgAdmin().PublishAsContainer();
 var db7 = pg6.AddDatabase("db7");
 var db8 = pg6.AddDatabase("db8");
 

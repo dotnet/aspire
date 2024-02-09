@@ -220,6 +220,8 @@ internal static class ContainerState
 
 internal sealed class Container : CustomResource<ContainerSpec, ContainerStatus>
 {
+    public const string ResourceNameAnnotation = "resource-name";
+
     [JsonConstructor]
     public Container(ContainerSpec spec) : base(spec) { }
 

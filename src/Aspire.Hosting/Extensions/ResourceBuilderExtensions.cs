@@ -82,7 +82,7 @@ public static class ResourceBuilderExtensions
     /// <param name="name">Name of enviroment variable</param>
     /// <param name="parameter">Resource builder for the parameter resource.</param>
     /// <returns>A resource configured with the environment variable callback.</returns>
-    public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, IResourceBuilder<ParameterResource> parameter) where T: IResourceWithEnvironment
+    public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, IResourceBuilder<ParameterResource> parameter) where T : IResourceWithEnvironment
     {
         return builder.WithEnvironment(context =>
         {

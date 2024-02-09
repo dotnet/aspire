@@ -14,19 +14,12 @@ public sealed class NpgsqlEntityFrameworkCorePostgreSQLSettings
     public string? ConnectionString { get; set; }
 
     /// <summary>
-    /// Gets or sets a boolean value that indicates whether the DbContext will be pooled or explicitly created every time it's requested.
+    /// Gets or sets whether retries should be enabled.
     /// </summary>
     /// <value>
     /// The default value is <see langword="true"/>.
     /// </value>
-    /// <remarks>Should be set to false in multi-tenant scenarios.</remarks>
-    public bool DbContextPooling { get; set; } = true;
-
-    /// <summary>
-    /// <para>Gets or sets the maximum number of retry attempts.</para>
-    /// <para>Default value is 6, set it to 0 to disable the retry mechanism.</para>
-    /// </summary>
-    public int MaxRetryCount { get; set; } = 6;
+    public bool Retry { get; set; } = true;
 
     /// <summary>
     /// Gets or sets a boolean value that indicates whether the database health check is enabled or not.
