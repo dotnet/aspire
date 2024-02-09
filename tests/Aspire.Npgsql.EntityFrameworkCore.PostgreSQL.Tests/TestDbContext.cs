@@ -5,7 +5,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Aspire.Components.Common.Tests;
 
-public class TestDbContext : DbContext
+public interface ITestDbContext
+{
+    public DbSet<TestDbContext.CatalogBrand> CatalogBrands { get; }
+}
+
+public class TestDbContext : DbContext, ITestDbContext
 {
     public TestDbContext(DbContextOptions<TestDbContext> options) : base(options)
     {
