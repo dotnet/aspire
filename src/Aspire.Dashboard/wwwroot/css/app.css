@@ -38,13 +38,15 @@ fluent-toolbar[orientation=horizontal] {
     --error-ui-accent-foreground-color: #1d00d0;
     --reconnection-ui-bg: rgb(255, 255, 255);
     --error-counter-badge-foreground-color: var(--neutral-fill-rest);
+
+    /* overrides of default fluentui-blazor styling */
+    --disabled-opacity: 0.7 !important;
 }
 
 [data-theme="dark"] {
     --log-critical: #493634;
     --log-error: #493634;
     --log-warning: #3F3A2B;
-    --error: #E10B11 !important;
     --foreground-subtext-rest: #8D8D8D;
     --foreground-subtext-hover: #A1A1A1;
 
@@ -52,6 +54,9 @@ fluent-toolbar[orientation=horizontal] {
     --error-ui-accent-foreground-color: #512bd4;
     --reconnection-ui-bg: #D6D6D6;
     --error-counter-badge-foreground-color: #ffffff;
+
+    /* overrides of default fluentui-blazor styling */
+    --error: #E10B11 !important;
 }
 
  #components-reconnect-modal :is(h5, p) {
