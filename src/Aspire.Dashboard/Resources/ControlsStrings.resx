@@ -151,6 +151,9 @@
   <data name="GridValueCopyToClipboard" xml:space="preserve">
     <value>Copy to clipboard</value>
   </data>
+  <data name="GridValueCopied" xml:space="preserve">
+    <value>Copied!</value>
+  </data>
   <data name="PlotlyChartCount" xml:space="preserve">
     <value>Count</value>
     <comment>Count is the name of a plot y-axis label</comment>
