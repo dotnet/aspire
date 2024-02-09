@@ -6,12 +6,13 @@ using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp.Process;
 using Azure;
-using Azure.ResourceManager.CosmosDB;
-using Azure.ResourceManager.Redis;
+using Azure.ResourceManager.KeyVault.Models;
+using Azure.ResourceManager.KeyVault;
 using Azure.ResourceManager.Resources;
 using Azure.ResourceManager.Resources.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Azure.Security.KeyVault.Secrets;
 
 namespace Aspire.Hosting.Azure.Provisioning;
 
@@ -45,6 +46,11 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
             resource.Outputs[item.Key] = item.Value;
         }
 
+        foreach (var item in section.GetSection("SecretOutputs").GetChildren())
+        {
+            resource.SecretOutputs[item.Key] = item.Value;
+        }
+
         return true;
     }
 
@@ -58,6 +64,57 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
         var template = resource.GetBicepTemplateFile();
 
         var path = template.Path;
+
+        KeyVaultResource? keyVault = null;
+
+        if (resource.Parameters.ContainsKey(AzureBicepResource.KnownParameters.KeyVaultName))
+        {
+            // This could be done as a bicep template that imports the other bicep template but this is
+            // quick and dirty for now
+            var keyVaults = context.ResourceGroup.GetKeyVaults();
+
+            // Check to see if there's a key vault for this resource already
+            await foreach (var kv in keyVaults.GetAllAsync(cancellationToken: cancellationToken).ConfigureAwait(false))
+            {
+                if (kv.Data.Tags.TryGetValue("aspire-secret-store", out var secretStore) && secretStore == resource.Name)
+                {
+                    logger.LogInformation("Found key vault {vaultName} for resource {resource} in {location}...", kv.Data.Name, resource.Name, context.Location);
+
+                    keyVault = kv;
+                    break;
+                }
+            }
+
+            if (keyVault is null)
+            {
+                // A vault's name must be between 3-24 alphanumeric characters. The name must begin with a letter, end with a letter or digit, and not contain consecutive hyphens.
+                // Follow this link for more information: https://go.microsoft.com/fwlink/?linkid=2147742
+                var vaultName = $"v{Guid.NewGuid().ToString().Replace("-", string.Empty)[0..20]}";
+
+                logger.LogInformation("Creating key vault {vaultName} for resource {resource} in {location}...", vaultName, resource.Name, context.Location);
+
+                var properties = new KeyVaultProperties(context.Subscription.Data.TenantId!.Value, new KeyVaultSku(KeyVaultSkuFamily.A, KeyVaultSkuName.Standard))
+                {
+                    EnabledForTemplateDeployment = true,
+                    EnableRbacAuthorization = true
+                };
+                var kvParameters = new KeyVaultCreateOrUpdateContent(context.Location, properties);
+                kvParameters.Tags.Add("aspire-secret-store", resource.Name);
+
+                var kvOperation = await keyVaults.CreateOrUpdateAsync(WaitUntil.Completed, vaultName, kvParameters, cancellationToken).ConfigureAwait(false);
+                keyVault = kvOperation.Value;
+
+                logger.LogInformation("Key vault {vaultName} created.", keyVault.Data.Name);
+
+                // Key Vault Administrator
+                // https://learn.microsoft.com/azure/role-based-access-control/built-in-roles#key-vault-administrator
+                var roleDefinitionId = CreateRoleDefinitionId(context.Subscription, "00482a5a-887f-4fb3-b363-3b7fe8e74483");
+
+                await DoRoleAssignmentAsync(context.ArmClient, keyVault.Id, context.Principal.Id, roleDefinitionId, cancellationToken).ConfigureAwait(false);
+            }
+
+            resource.Parameters[AzureBicepResource.KnownParameters.KeyVaultName] = keyVault.Data.Name;
+        }
 
         // Use the azure CLI to run the bicep compiler to transpile the bicep file to a ARM JSON file
         var armTemplateContents = new StringBuilder();
@@ -125,53 +182,59 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
 
         // e.g. {  "sqlServerName": { "type": "String", "value": "<value>" }}
 
-        var outputObj = outputs.ToObjectFromJson<JsonObject>();
+        var outputObj = outputs?.ToObjectFromJson<JsonObject>();
 
-        if (outputObj is null)
+        if (outputObj is not null)
         {
-            return;
+            // TODO: Make this more robust
+            // Cache contents by their checksum so we don't reuse changed outputs from potentially changed templates
+            // var checkSum = resource.GetChecksum();
+
+            var configOutputs = context.UserSecrets
+                .Prop("Azure")
+                .Prop("Deployments")
+                .Prop(resource.Name)
+                // .Prop(checkSum)
+                .Prop("Outputs");
+
+            foreach (var item in outputObj.AsObject())
+            {
+                // TODO: Handle complex output types
+                // Populate the resource outputs
+                resource.Outputs[item.Key] = item.Value?.Prop("value").ToString();
+            }
+
+            foreach (var item in resource.Outputs)
+            {
+                // Save them to configuration
+                configOutputs[item.Key] = resource.Outputs[item.Key];
+            }
         }
 
-        // TODO: Make this more robust
-        // Cache contents by their checksum so we don't reuse changed outputs from potentially changed templates
-        // var checkSum = resource.GetChecksum();
-
-        var configOutputs = context.UserSecrets
-            .Prop("Azure")
-            .Prop("Deployments")
-            .Prop(resource.Name)
-            // .Prop(checkSum)
-            .Prop("Outputs");
-
-        foreach (var item in outputObj.AsObject())
+        // Populate secret outputs from key vault (if any)
+        if (keyVault is not null)
         {
-            // TODO: Handle complex output types
-            // Populate the resource outputs
-            resource.Outputs[item.Key] = item.Value?.Prop("value").ToString();
-        }
+            var configOutputs = context.UserSecrets
+                .Prop("Azure")
+                .Prop("Deployments")
+                .Prop(resource.Name)
+                // .Prop(checkSum)
+                .Prop("SecretOutputs");
 
-        // REVIEW: Special case handling of keys. To avoid sending sensitive information to the deployment engine
-        // we make requests to the RP after the deployment returns with outputs.
-        if (resource is AzureBicepCosmosDBResource cosmosDb &&
-            resource.Outputs.TryGetValue(cosmosDb.ResourceNameOutputKey, out var accountName))
-        {
-            var cosmosDbResource = await context.ResourceGroup.GetCosmosDBAccounts().GetAsync(accountName, cancellationToken).ConfigureAwait(false);
-            var keys = await cosmosDbResource.Value.GetKeysAsync(cancellationToken).ConfigureAwait(false);
-            resource.Outputs[cosmosDb.AccountKeyOutputKey] = keys.Value.PrimaryMasterKey;
-        }
+            var client = new SecretClient(keyVault.Data.Properties.VaultUri, context.Credential);
 
-        if (resource is AzureBicepRedisResource redis &&
-            resource.Outputs.TryGetValue(redis.ResourceNameOutputKey, out var redisName))
-        {
-            var redisResource = await context.ResourceGroup.GetAllRedis().GetAsync(redisName, cancellationToken).ConfigureAwait(false);
-            var keys = await redisResource.Value.GetKeysAsync(cancellationToken).ConfigureAwait(false);
-            resource.Outputs[redis.AccountKeyOutputKey] = keys.Value.PrimaryKey;
-        }
+            await foreach (var item in keyVault.GetKeyVaultSecrets().GetAllAsync(cancellationToken: cancellationToken).ConfigureAwait(false))
+            {
+                var response = await client.GetSecretAsync(item.Data.Name, cancellationToken: cancellationToken).ConfigureAwait(false);
+                var secret = response.Value;
+                resource.SecretOutputs[item.Data.Name] = secret.Value;
+            }
 
-        foreach (var item in resource.Outputs)
-        {
-            // Save them to configuration
-            configOutputs[item.Key] = resource.Outputs[item.Key];
+            foreach (var item in resource.SecretOutputs)
+            {
+                // Save them to configuration
+                configOutputs[item.Key] = resource.SecretOutputs[item.Key];
+            }
         }
     }
 
