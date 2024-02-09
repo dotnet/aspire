@@ -76,7 +76,7 @@ Alternatively, a custom connection string can be used.
 }
 ```
 
-In order to connect to the non-Azure OpenAI service, use the AccountKey property only to set the API key (https://platform.openai.com/account/api-keys).
+In order to connect to the non-Azure OpenAI service, drop the Endpoint property and only set the Key property to set the API key (https://platform.openai.com/account/api-keys).
 
 ### Use configuration providers
 

@@ -13,18 +13,18 @@ public partial class SpanDetails
     [Parameter, EditorRequired]
     public required SpanDetailsViewModel ViewModel { get; set; }
 
-    private IQueryable<SpanPropertyViewModel>? FilteredItems =>
+    private IQueryable<SpanPropertyViewModel> FilteredItems =>
         ViewModel.Properties.Where(vm =>
             vm.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) ||
             vm.Value?.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) == true
-        )?.AsQueryable();
+        ).AsQueryable();
 
-    private IQueryable<SpanPropertyViewModel>? FilteredApplicationItems =>
+    private IQueryable<SpanPropertyViewModel> FilteredApplicationItems =>
         ViewModel.Span.Source.AllProperties().Select(p => new SpanPropertyViewModel { Name = p.Key, Value = p.Value })
             .Where(vm =>
                 vm.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) ||
                 vm.Value?.Contains(_filter, StringComparison.CurrentCultureIgnoreCase) == true
-        )?.AsQueryable();
+        ).AsQueryable();
 
     private IQueryable<OtlpSpanEvent> FilteredSpanEvents =>
         ViewModel.Span.Events.Where(e => e.Name.Contains(_filter, StringComparison.CurrentCultureIgnoreCase)).OrderBy(e => e.Time).AsQueryable();

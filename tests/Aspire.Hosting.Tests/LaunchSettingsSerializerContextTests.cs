@@ -30,6 +30,6 @@ public class LaunchSettingsSerializerContextTests
         """;
 
         // should not throw
-        JsonSerializer.Deserialize(launchSettingsJson, LaunchSetttingsSerializerContext.Default.LaunchSettings);
+        JsonSerializer.Deserialize(launchSettingsJson, LaunchSettingsSerializerContext.Default.LaunchSettings);
     }
 }
