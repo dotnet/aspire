@@ -235,7 +235,7 @@ internal sealed class AzureProvisioner(
 
             resourceMap ??= await resourceMapLazy.Value.ConfigureAwait(false);
             principal ??= await principalLazy.Value.ConfigureAwait(false);
-            provisioningContext ??= new ProvisioningContext(armClient, subscription, resourceGroup, resourceMap, location, principal, userSecrets);
+            provisioningContext ??= new ProvisioningContext(credential, armClient, subscription, resourceGroup, resourceMap, location, principal, userSecrets);
 
             var task = provisioner.GetOrCreateResourceAsync(
                     resource,

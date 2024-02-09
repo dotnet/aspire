@@ -13,17 +13,13 @@ public class AzureBicepRedisResource(string name) :
     AzureBicepResource(name, templateResouceName: "Aspire.Hosting.Azure.Bicep.redis.bicep"),
     IResourceWithConnectionString
 {
-    public string ResourceNameOutputKey => "cacheName";
-
-    public string AccountKeyOutputKey => "accountKey";
-
     /// <summary>
     /// Gets the connection string for the Azure Redis resource.
     /// </summary>
     /// <returns>The connection string for the Azure Redis resource.</returns>
     public string? GetConnectionString()
     {
-        return $"{Outputs["hostName"]},ssl=true,password={Outputs[AccountKeyOutputKey]}";
+        return SecretOutputs["connectionString"];
     }
 }
 
@@ -42,11 +38,12 @@ public static class AzureBicepRedisExtensions
     {
         var resource = new AzureBicepRedisResource(name)
         {
-            ConnectionStringTemplate = $"{{{name}.outputs.hostName}},ssl=true,password={{key(Microsoft.Cache/redis@2023-04-15/{{{name}.outputs.cacheName}}).primaryKey}}"
+            ConnectionStringTemplate = $"{{{name}.secretOutputs.connectionString}}"
         };
 
         return builder.AddResource(resource)
                     .WithParameter("redisCacheName", resource.CreateBicepResourceName())
+                    .WithParameter(AzureBicepResource.KnownParameters.KeyVaultName)
                     .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 }
