@@ -5,9 +5,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 var storage = builder.AddAzureStorage("storage").UseEmulator(configureContainer: builder =>
 {
-    // Temporary, we will have an extension method that allows setting persistence and specifying a local
-    // directory (for example).
-    builder.WithVolumeMount(Path.Combine(Environment.CurrentDirectory, "data"), "/data", VolumeMountType.Bind, false);
+    builder.UsePersistence("c:\\code\\mydata");
 });
 
 var blobs = storage.AddBlobs("blobs");

@@ -5,8 +5,6 @@ using Azure.Storage.Blobs;
 
 var builder = WebApplication.CreateBuilder(args);
 
-int insertionRows = builder.Configuration.GetValue<int>("InsertionRows", 1);
-
 builder.AddServiceDefaults();
 
 builder.AddAzureBlobService("blobs");

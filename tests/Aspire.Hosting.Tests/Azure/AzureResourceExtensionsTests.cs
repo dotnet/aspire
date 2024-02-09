@@ -7,6 +7,23 @@ namespace Aspire.Hosting.Tests.Azure;
 
 public class AzureResourceExtensionsTests
 {
+    [Fact]
+    public void AzureStorageUserEmulatorCallbackWithUsePersistenceResultsInVolumeAnnotation()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var storage = builder.AddAzureStorage("storage").UseEmulator(configureContainer: builder =>
+        {
+            builder.UsePersistence("mydata");
+        });
+
+        var computedPath = Path.GetFullPath("mydata");
+
+        var volumeAnnotation = storage.Resource.Annotations.OfType<VolumeMountAnnotation>().Single();
+        Assert.Equal(computedPath, volumeAnnotation.Source);
+        Assert.Equal("/data", volumeAnnotation.Target);
+        Assert.Equal(VolumeMountType.Bind, volumeAnnotation.Type);
+    }
+
     [Theory]
     [InlineData(null)]
     [InlineData(8081)]

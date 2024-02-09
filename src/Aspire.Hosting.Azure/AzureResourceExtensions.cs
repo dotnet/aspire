@@ -181,6 +181,20 @@ public static class AzureResourceExtensions
     }
 
     /// <summary>
+    /// Enables persistence in the Azure Storage emulator.
+    /// </summary>
+    /// <param name="builder">The builder for the <see cref="AzureStorageEmulatorResourceContainerSurrogate"/>.</param>
+    /// <param name="path">Relative path to the AppHost where emulator storage is persisted between runs.</param>
+    /// <returns>A builder for the <see cref="AzureStorageEmulatorResourceContainerSurrogate"/>.</returns>
+    public static IResourceBuilder<AzureStorageEmulatorResourceContainerSurrogate> UsePersistence(this IResourceBuilder<AzureStorageEmulatorResourceContainerSurrogate> builder, string? path = null)
+    {
+        path = path ?? $".azurite/{builder.Resource.Name}";
+        var fullyQualifiedPath = Path.GetFullPath(path);
+        return builder.WithVolumeMount(fullyQualifiedPath, "/data", VolumeMountType.Bind, false);
+
+    }
+
+    /// <summary>
     /// Configures an Azure Cosmos DB resource to be emulated using the Azure Cosmos DB emulator with the NoSQL API. This resource requires an <see cref="AzureCosmosDBResource"/> to be added to the application model.
     /// For more information on the Azure Cosmos DB emulator, see <a href="https://learn.microsoft.com/azure/cosmos-db/emulator#authentication"></a>
     /// </summary>
