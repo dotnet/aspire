@@ -154,7 +154,7 @@ internal sealed class RabbitMQEventSourceLogForwarder : IDisposable
                     return index switch
                     {
                         1 => new("exception.type", exData["Type"]),
-                        2 => new("exception.message", exData["Message"] ),
+                        2 => new("exception.message", exData["Message"]),
                         3 => new("exception.stacktrace", exData["StackTrace"]),
                         4 => new("exception.innerexception", exData["InnerException"]),
                         _ => throw new UnreachableException()
