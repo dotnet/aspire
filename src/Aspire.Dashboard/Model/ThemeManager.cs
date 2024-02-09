@@ -5,8 +5,6 @@ namespace Aspire.Dashboard.Model;
 
 public sealed class ThemeManager
 {
-    public const float DarkThemeLuminance = 0.19f;
-    public const float LightThemeLuminance = 1.0f;
     public const string ThemeSettingSystem = "System";
     public const string ThemeSettingDark = "Dark";
     public const string ThemeSettingLight = "Light";

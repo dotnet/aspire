@@ -1,0 +1,22 @@
+<Project>
+  <Import Project="..\Directory.Build.targets" />
+  <PropertyGroup>
+    <DeployRunSettingsFile Condition="'$(DeployRunSettingsFile)' == ''">true</DeployRunSettingsFile>
+
+    <RunTestsOnHelix Condition="'$(RunTestsOnHelix)' == ''">false</RunTestsOnHelix>
+    <SkipTests Condition="'$(SkipTests)' == '' and ('$(IsTestSupportProject)' == 'true' or '$(RunTestsOnHelix)' == 'true')">true</SkipTests>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="$(RepositoryEngineeringDir)testing\.runsettings" CopyToOutputDirectory="PreserveNewest" Condition="'$(DeployRunSettingsFile)' == 'true'" />
+  </ItemGroup>
+
+  <Target Name="ZipTestArchive" AfterTargets="Build" Condition="'$(ArchiveTests)' == 'true' and '$(RunTestsOnHelix)' == 'true'">
+    <Error Condition="'$(TestArchiveTestsDir)' == ''" Text="TestArchiveTestsDir property to archive the test folder must be set." />
+
+    <MakeDir Directories="$(TestArchiveTestsDir)" />
+    <ZipDirectory SourceDirectory="$(OutDir)"
+                  DestinationFile="$([MSBuild]::NormalizePath('$(TestArchiveTestsDir)', '$(MSBuildProjectName).zip'))"
+                  Overwrite="true" />
+  </Target>
+</Project>

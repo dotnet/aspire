@@ -22,5 +22,5 @@
   <ItemGroup Condition="'$(ReadMeExists)' == 'true'">
     <None Include="$(ReadMePath)" Pack="true" PackagePath="\" />
   </ItemGroup>
-  
+
 </Project>
