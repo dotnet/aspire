@@ -173,7 +173,7 @@ public static class AzureResourceExtensions
         if (configureContainer != null)
         {
             var surrogate = new AzureStorageEmulatorResourceContainerSurrogate(builder.Resource);
-            var surrogateBuilder = new DistributedApplicationResourceBuilder<AzureStorageEmulatorResourceContainerSurrogate>(builder.ApplicationBuilder, surrogate);
+            var surrogateBuilder = builder.ApplicationBuilder.CreateResourceBuilder(surrogate);
             configureContainer(surrogateBuilder);
         }
 

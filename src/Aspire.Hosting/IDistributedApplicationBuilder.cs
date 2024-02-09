@@ -45,6 +45,14 @@ public interface IDistributedApplicationBuilder
     IResourceBuilder<T> AddResource<T>(T resource) where T : IResource;
 
     /// <summary>
+    /// Creates a new resource builder based on an existing resource.
+    /// </summary>
+    /// <typeparam name="T">Type of resource.</typeparam>
+    /// <param name="resource">An existing resource.</param>
+    /// <returns>A resource builder.</returns>
+    IResourceBuilder<T> CreateResourceBuilder<T>(T resource) where T : IResource;
+
+    /// <summary>
     /// Builds and returns a new <see cref="DistributedApplication"/> instance. This can only be called once.
     /// </summary>
     /// <returns>A new <see cref="DistributedApplication"/> instance.</returns>

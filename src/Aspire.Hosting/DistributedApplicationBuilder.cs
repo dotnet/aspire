@@ -138,6 +138,12 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         }
 
         Resources.Add(resource);
+        return CreateResourceBuilder(resource);
+    }
+
+    /// <inheritdoc />
+    public IResourceBuilder<T> CreateResourceBuilder<T>(T resource) where T : IResource
+    {
         var builder = new DistributedApplicationResourceBuilder<T>(this, resource);
         return builder;
     }

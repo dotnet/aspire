@@ -5,7 +5,7 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting;
 
-public sealed class DistributedApplicationResourceBuilder<T>(IDistributedApplicationBuilder applicationBuilder, T resource) : IResourceBuilder<T> where T : IResource
+internal sealed class DistributedApplicationResourceBuilder<T>(IDistributedApplicationBuilder applicationBuilder, T resource) : IResourceBuilder<T> where T : IResource
 {
     public T Resource { get; } = resource;
     public IDistributedApplicationBuilder ApplicationBuilder { get; } = applicationBuilder;
@@ -17,7 +17,7 @@ public sealed class DistributedApplicationResourceBuilder<T>(IDistributedApplica
         // this code to accomodate it.
         if (behavior != ResourceAnnotationMutationBehavior.Append && behavior != ResourceAnnotationMutationBehavior.Replace)
         {
-            throw new ArgumentOutOfRangeException(nameof(behavior), behavior, "ResourceAnnotationMutationBehavior must be either AddAppend or AddReplace.");
+            throw new ArgumentOutOfRangeException(nameof(behavior), behavior, "ResourceAnnotationMutationBehavior must be either Append or Replace.");
         }
 
         // If the behavior is AddReplace then there should never be more than one annotation present. The following call will result in an exception which
