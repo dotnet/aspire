@@ -32,7 +32,7 @@ public interface IPageWithSessionAndUrlState<TViewModel, TSerializableViewModel>
     /// <summary>
     /// The view model containing live state
     /// </summary>
-    public TViewModel ViewModel { get; set; }
+    public TViewModel PageViewModel { get; set; }
 
     /// <summary>
     /// Computes the initial view model state based on query param values
@@ -86,8 +86,8 @@ public static class PageExtensions
             }
         }
 
-        ArgumentNullException.ThrowIfNull(page.ViewModel, nameof(page.ViewModel));
-        page.UpdateViewModelFromQuery(page.ViewModel);
+        ArgumentNullException.ThrowIfNull(page.PageViewModel, nameof(page.PageViewModel));
+        page.UpdateViewModelFromQuery(page.PageViewModel);
     }
 
     private static string GetUrlFromPathAndParameterParts(UrlState parts)

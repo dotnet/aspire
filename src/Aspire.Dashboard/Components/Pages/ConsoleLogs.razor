@@ -15,10 +15,10 @@
                       Items="@_resources"
                       OptionText="(o) => o.Text"
                       OptionValue="(o) => o.Value"
-                      @bind-SelectedOption="ViewModel.SelectedOption"
+                      @bind-SelectedOption="PageViewModel.SelectedOption"
                       @bind-SelectedOption:after="HandleSelectedOptionChangedAsync"
                       AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAResource)]"/>
-        <FluentLabel Typo="Typography.Body" aria-live="polite" aria-label="@Loc[nameof(Dashboard.Resources.ConsoleLogs.LogStatusLabel)]">@ViewModel.Status</FluentLabel>
+        <FluentLabel Typo="Typography.Body" aria-live="polite" aria-label="@Loc[nameof(Dashboard.Resources.ConsoleLogs.LogStatusLabel)]">@PageViewModel.Status</FluentLabel>
     </FluentToolbar>
     <LogViewer @ref="_logViewer" />
 </div>

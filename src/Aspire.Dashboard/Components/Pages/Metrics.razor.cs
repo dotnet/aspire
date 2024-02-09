@@ -25,7 +25,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
 
     public string BasePath => "Metrics";
     public string SessionStorageKey => "Metrics_PageState";
-    public MetricsViewModel ViewModel { get; set; } = null!;
+    public MetricsViewModel PageViewModel { get; set; } = null!;
 
     [Parameter]
     public string? ApplicationInstanceId { get; set; }
@@ -68,7 +68,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         };
 
         _selectApplication = new SelectViewModel<string> { Id = null, Name = ControlsStringsLoc[ControlsStrings.SelectAResource] };
-        ViewModel = new MetricsViewModel { SelectedApplication = _selectApplication, SelectedDuration = _durations.Single(d => d.Id == s_defaultDuration) };
+        PageViewModel = new MetricsViewModel { SelectedApplication = _selectApplication, SelectedDuration = _durations.Single(d => d.Id == s_defaultDuration) };
 
         UpdateApplications();
         _applicationsSubscription = TelemetryRepository.OnNewApplications(() => InvokeAsync(() =>
@@ -82,7 +82,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     protected override async Task OnParametersSetAsync()
     {
         await this.InitializeViewModelAsync();
-        TracesViewModel.ApplicationServiceId = ViewModel.SelectedApplication.Id;
+        TracesViewModel.ApplicationServiceId = PageViewModel.SelectedApplication.Id;
         UpdateSubscription();
     }
 
@@ -90,10 +90,10 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     {
         return new MetricsPageState
         {
-            ApplicationId = ViewModel.SelectedApplication.Id,
-            MeterName = ViewModel.SelectedMeter?.MeterName,
-            InstrumentName = ViewModel.SelectedInstrument?.Name,
-            DurationMinutes = (int)ViewModel.SelectedDuration.Id.TotalMinutes
+            ApplicationId = PageViewModel.SelectedApplication.Id,
+            MeterName = PageViewModel.SelectedMeter?.MeterName,
+            InstrumentName = PageViewModel.SelectedInstrument?.Name,
+            DurationMinutes = (int)PageViewModel.SelectedDuration.Id.TotalMinutes
         };
     }
 
@@ -129,8 +129,8 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
 
     private Task HandleSelectedApplicationChangedAsync()
     {
-        ViewModel.SelectedMeter = null;
-        ViewModel.SelectedInstrument = null;
+        PageViewModel.SelectedMeter = null;
+        PageViewModel.SelectedInstrument = null;
         return this.AfterViewModelChangedAsync();
     }
 
@@ -159,20 +159,20 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
 
     private Task HandleSelectedTreeItemChangedAsync()
     {
-        if (ViewModel.SelectedTreeItem?.Data is OtlpMeter meter)
+        if (PageViewModel.SelectedTreeItem?.Data is OtlpMeter meter)
         {
-            ViewModel.SelectedMeter = meter;
-            ViewModel.SelectedInstrument = null;
+            PageViewModel.SelectedMeter = meter;
+            PageViewModel.SelectedInstrument = null;
         }
-        else if (ViewModel.SelectedTreeItem?.Data is OtlpInstrument instrument)
+        else if (PageViewModel.SelectedTreeItem?.Data is OtlpInstrument instrument)
         {
-            ViewModel.SelectedMeter = instrument.Parent;
-            ViewModel.SelectedInstrument = instrument;
+            PageViewModel.SelectedMeter = instrument.Parent;
+            PageViewModel.SelectedInstrument = instrument;
         }
         else
         {
-            ViewModel.SelectedMeter = null;
-            ViewModel.SelectedInstrument = null;
+            PageViewModel.SelectedMeter = null;
+            PageViewModel.SelectedInstrument = null;
         }
 
         return this.AfterViewModelChangedAsync();
@@ -198,7 +198,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
 
         var queryParameters = new Dictionary<string, string?>();
 
-        if (ViewModel.SelectedDuration.Id != s_defaultDuration)
+        if (PageViewModel.SelectedDuration.Id != s_defaultDuration)
         {
             queryParameters.Add("duration", serializable.DurationMinutes.ToString(CultureInfo.InvariantCulture));
         }
@@ -208,7 +208,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
 
     private void UpdateSubscription()
     {
-        var selectedApplication = (ViewModel.SelectedApplication ?? _selectApplication).Id;
+        var selectedApplication = (PageViewModel.SelectedApplication ?? _selectApplication).Id;
         // Subscribe to updates.
         if (_metricsSubscription is null || _metricsSubscription.ApplicationId != selectedApplication)
         {
@@ -220,9 +220,9 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
                     // If there are more instruments than before then update the UI.
                     var instruments = TelemetryRepository.GetInstrumentsSummary(selectedApplication);
 
-                    if (ViewModel.Instruments is null || instruments.Count > ViewModel.Instruments.Count)
+                    if (PageViewModel.Instruments is null || instruments.Count > PageViewModel.Instruments.Count)
                     {
-                        ViewModel.Instruments = instruments;
+                        PageViewModel.Instruments = instruments;
                         await InvokeAsync(StateHasChanged);
                     }
                 }
