@@ -204,6 +204,10 @@ fluent-data-grid-cell .long-inner-content {
     margin-right: 3px;
 }
 
+.align-text-bottom {
+    vertical-align: text-bottom;
+}
+
 split-panels::part(handle) {
     display: none;
 }

@@ -15,13 +15,13 @@ public class AddMySqlTests
     public void AddMySqlContainerWithDefaultsAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.AddMySqlContainer("mysql");
+        appBuilder.AddMySql("mysql");
 
         var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var containerResource = Assert.Single(appModel.Resources.OfType<MySqlContainerResource>());
+        var containerResource = Assert.Single(appModel.Resources.OfType<MySqlServerResource>());
         Assert.Equal("mysql", containerResource.Name);
 
         var manifestAnnotation = Assert.Single(containerResource.Annotations.OfType<ManifestPublishingCallbackAnnotation>());
@@ -63,7 +63,7 @@ public class AddMySqlTests
     public void AddMySqlAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.AddMySqlContainer("mysql", 1234, "pass");
+        appBuilder.AddMySql("mysql", 1234, "pass");
 
         var app = appBuilder.Build();
 
@@ -111,7 +111,7 @@ public class AddMySqlTests
     public void MySqlCreatesConnectionString()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.AddMySqlContainer("mysql")
+        appBuilder.AddMySql("mysql")
             .WithAnnotation(
             new AllocatedEndpointAnnotation("mybinding",
             ProtocolType.Tcp,
@@ -134,7 +134,7 @@ public class AddMySqlTests
     public void MySqlCreatesConnectionStringWithDatabase()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.AddMySqlContainer("mysql")
+        appBuilder.AddMySql("mysql")
             .WithAnnotation(
             new AllocatedEndpointAnnotation("mybinding",
             ProtocolType.Tcp,
@@ -148,7 +148,7 @@ public class AddMySqlTests
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var mySqlResource = Assert.Single(appModel.Resources.OfType<MySqlContainerResource>());
+        var mySqlResource = Assert.Single(appModel.Resources.OfType<MySqlServerResource>());
         var mySqlConnectionString = mySqlResource.GetConnectionString();
         var mySqlDatabaseResource = Assert.Single(appModel.Resources.OfType<MySqlDatabaseResource>());
         var dbConnectionString = mySqlDatabaseResource.GetConnectionString();
@@ -162,7 +162,7 @@ public class AddMySqlTests
     {
         var builder = DistributedApplication.CreateBuilder();
         builder.AddMySql("mySql").WithPhpMyAdmin();
-        builder.AddMySqlContainer("mySql2").WithPhpMyAdmin();
+        builder.AddMySql("mySql2").WithPhpMyAdmin();
 
         Assert.Single(builder.Resources.OfType<PhpMyAdminContainerResource>());
     }

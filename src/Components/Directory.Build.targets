@@ -98,7 +98,8 @@
   </Target>
 
   <Target Name="CopyNewConfigurationSchema"
-          Condition="'$(ConfigurationSchemaExists)' != 'true' OR '$(UpdateConfigurationSchema)' == 'true'">
+          Condition="('$(ConfigurationSchemaExists)' != 'true' OR '$(UpdateConfigurationSchema)' == 'true')
+                     AND Exists('$(GeneratedConfigurationSchemaOutputPath)')">
 
     <Copy SourceFiles="$(GeneratedConfigurationSchemaOutputPath)"
           DestinationFiles="$(ConfigurationSchemaPath)" />

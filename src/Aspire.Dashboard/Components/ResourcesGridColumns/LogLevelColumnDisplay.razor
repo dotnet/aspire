@@ -1,0 +1,21 @@
+﻿@namespace Aspire.Dashboard.Components
+
+@using Aspire.Dashboard.Otlp.Model
+@using Aspire.Dashboard.Resources
+@using Microsoft.Extensions.Logging
+
+@if (LogEntry.Severity is LogLevel.Error or LogLevel.Critical)
+{
+    <FluentIcon Icon="Icons.Filled.Size16.ErrorCircle" Color="Color.Error" Class="severity-icon"/>
+}
+else if (LogEntry.Severity is LogLevel.Warning)
+{
+    <FluentIcon Icon="Icons.Filled.Size16.Warning" Color="Color.Warning" Class="severity-icon"/>
+}
+
+@LogEntry.Severity
+
+@code {
+    [Parameter, EditorRequired]
+    public required OtlpLogEntry LogEntry { get; set; }
+}
