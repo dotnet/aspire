@@ -68,6 +68,6 @@ public static class ParameterResourceBuilderExtensions
         }, secret: true);
 
         var surrogate = new ResourceWithConnectionStringSurrogate(parameterBuilder.Resource, () => parameterBuilder.Resource.Value);
-        return new DistributedApplicationResourceBuilder<IResourceWithConnectionString>(builder, surrogate);
+        return builder.CreateResourceBuilder(surrogate);
     }
 }
