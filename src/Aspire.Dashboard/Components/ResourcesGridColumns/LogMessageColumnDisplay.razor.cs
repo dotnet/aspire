@@ -12,6 +12,8 @@ public partial class LogMessageColumnDisplay
 {
     private bool TryGetErrorInformation([NotNullWhen(true)] out string? errorInfo)
     {
+        // exception.stacktrace includes the exception message and type.
+        // https://opentelemetry.io/docs/specs/semconv/attributes-registry/exception/
         if (GetProperty("exception.stacktrace") is { Length: > 0 } stackTrace)
         {
             errorInfo = stackTrace;
