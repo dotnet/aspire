@@ -147,6 +147,7 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
                     int i => i,
                     bool b => b,
                     JsonNode node => node,
+                    BicepOutputReference reference => reference.Value,
                     IResourceBuilder<IResourceWithConnectionString> c => c.Resource.GetConnectionString(),
                     IResourceBuilder<ParameterResource> p => p.Resource.Value,
                     object o => o.ToString()!,
