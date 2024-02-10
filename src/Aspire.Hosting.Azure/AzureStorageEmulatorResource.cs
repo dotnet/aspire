@@ -5,7 +5,7 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Azure;
 
-public class AzureStorageEmulatorResourceContainerSurrogate(AzureStorageResource innerResource) : ContainerResource(innerResource.Name), IResource
+public class AzureStorageEmulatorResource(AzureStorageResource innerResource) : ContainerResource(innerResource.Name), IResource
 {
     private readonly AzureStorageResource _innerResource = innerResource;
 
