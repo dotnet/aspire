@@ -158,16 +158,13 @@ public static class AzureResourceExtensions
     /// Configures an Azure Storage resource to be emulated using Azurite. This resource requires an <see cref="AzureStorageResource"/> to be added to the application model.
     /// </summary>
     /// <param name="builder">The Azure storage resource builder.</param>
-    /// <param name="blobPort">The port used for the blob endpoint.</param>
-    /// <param name="queuePort">The port used for the queue endpoint.</param>
-    /// <param name="tablePort">The port used for the table endpoint.</param>
     /// <param name="configureContainer">Callback that exposes underlying container used for emulation to allow for customization.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureStorageResource> UseEmulator(this IResourceBuilder<AzureStorageResource> builder, int? blobPort = null, int? queuePort = null, int? tablePort = null, Action<IResourceBuilder<AzureStorageEmulatorResourceContainerSurrogate>>? configureContainer = null)
+    public static IResourceBuilder<AzureStorageResource> UseEmulator(this IResourceBuilder<AzureStorageResource> builder, Action<IResourceBuilder<AzureStorageEmulatorResourceContainerSurrogate>>? configureContainer = null)
     {
-        builder.WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, name: "blob", port: blobPort, containerPort: 10000))
-               .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, name: "queue", port: queuePort, containerPort: 10001))
-               .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, name: "table", port: tablePort, containerPort: 10002))
+        builder.WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, name: "blob", containerPort: 10000))
+               .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, name: "queue", containerPort: 10001))
+               .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, name: "table", containerPort: 10002))
                .WithAnnotation(new ContainerImageAnnotation { Image = "mcr.microsoft.com/azure-storage/azurite", Tag = "latest" });
 
         if (configureContainer != null)
