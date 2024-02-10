@@ -5,7 +5,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 var storage = builder.AddAzureStorage("storage").UseEmulator(container  =>
 {
-    builder.UsePersistence("c:\\code\\mydata");
+    builder.UsePersistence();
 });
 
 var blobs = storage.AddBlobs("blobs");
