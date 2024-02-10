@@ -63,10 +63,7 @@ public static partial class AspireEFPostgreSqlExtensions
         void ConfigureDbContext(DbContextOptionsBuilder dbContextOptionsBuilder)
         {
             // delay validating the ConnectionString until the DbContext is requested. This ensures an exception doesn't happen until a Logger is established.
-            if (string.IsNullOrEmpty(settings.ConnectionString))
-            {
-                throw new InvalidOperationException($"ConnectionString is missing. It should be provided in 'ConnectionStrings:{connectionName}' or under the 'ConnectionString' key in '{DefaultConfigSectionName}' or '{DefaultConfigSectionName}:{typeof(TContext).Name}' configuration section.");
-            }
+            ConnectionStringValidation.ValidateConnectionString(settings.ConnectionString, connectionName, DefaultConfigSectionName, $"{DefaultConfigSectionName}:{typeof(TContext).Name}", isEfDesignTime: EF.IsDesignTime);
 
             // We don't register a logger factory, because there is no need to: https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbcontextoptionsbuilder.useloggerfactory?view=efcore-7.0#remarks
             dbContextOptionsBuilder.UseNpgsql(settings.ConnectionString, builder =>
