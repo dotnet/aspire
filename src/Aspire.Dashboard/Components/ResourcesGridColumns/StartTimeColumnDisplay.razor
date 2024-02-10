@@ -1,0 +1,24 @@
+﻿@using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Resources
+@using System.Globalization
+
+@if (Resource.CreationTimeStamp is not null)
+{
+    var localTime = Resource.CreationTimeStamp.Value.ToLocalTime();
+
+    if (localTime.Date == DateTime.Now.Date)
+    {
+        // e.g. "08:57:44" (based on user's culture and preferences)
+        @localTime.TimeOfDay.ToString()
+    }
+    else
+    {
+        // e.g. "9/02/2024 08:57:44" (based on user's culture and preferences)
+        @localTime.ToString(CultureInfo.CurrentCulture)
+    }
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public required ResourceViewModel Resource { get; set; }
+}
