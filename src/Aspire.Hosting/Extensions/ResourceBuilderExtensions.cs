@@ -333,13 +333,13 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Changes an existing endpoint's host port setting.
+    /// Changes an existing creates a new endpoint if it doesn't exist and invokes callback to modify the defaults.
     /// </summary>
     /// <param name="builder">Resource builder for resource with endpoints.</param>
     /// <param name="endpointName">Name of endpoint to change.</param>
-    /// <param name="hostPort">Host port</param>
+    /// <param name="callback">Callback that modifies the endpoint.</param>
     /// <returns></returns>
-    public static IResourceBuilder<T> WithEndpointHostPost<T>(this IResourceBuilder<T> builder, string endpointName, int hostPort) where T: IResourceWithEndpoints
+    public static IResourceBuilder<T> WithEndpoint<T>(this IResourceBuilder<T> builder, string endpointName, Action<EndpointAnnotation> callback) where T: IResourceWithEndpoints
     {
         var endpoint = builder.Resource.Annotations
             .OfType<EndpointAnnotation>()
@@ -348,10 +348,10 @@ public static class ResourceBuilderExtensions
 
         if (endpoint == null)
         {
-            throw new DistributedApplicationException($"Endpoint '{endpointName}' does not exist.");
+            endpoint = new EndpointAnnotation(ProtocolType.Tcp, name: endpointName);
         }
 
-        endpoint.Port = hostPort;
+        callback(endpoint);
 
         return builder;
     }

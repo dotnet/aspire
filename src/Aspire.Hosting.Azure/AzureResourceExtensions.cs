@@ -199,7 +199,10 @@ public static class AzureResourceExtensions
     /// <returns></returns>
     public static IResourceBuilder<AzureStorageEmulatorResource> UseBlobPort(this IResourceBuilder<AzureStorageEmulatorResource> builder, int port)
     {
-        return builder.WithEndpointHostPost("blob", port);
+        return builder.WithEndpoint("blob", endpoint =>
+        {
+            endpoint.Port = port;
+        });
     }
 
     /// <summary>
@@ -210,7 +213,10 @@ public static class AzureResourceExtensions
     /// <returns></returns>
     public static IResourceBuilder<AzureStorageEmulatorResource> UseQueuePort(this IResourceBuilder<AzureStorageEmulatorResource> builder, int port)
     {
-        return builder.WithEndpointHostPost("queue", port);
+        return builder.WithEndpoint("queue", endpoint =>
+        {
+            endpoint.Port = port;
+        });
     }
 
     /// <summary>
@@ -221,7 +227,10 @@ public static class AzureResourceExtensions
     /// <returns></returns>
     public static IResourceBuilder<AzureStorageEmulatorResource> UseTablePort(this IResourceBuilder<AzureStorageEmulatorResource> builder, int port)
     {
-        return builder.WithEndpointHostPost("table", port);
+        return builder.WithEndpoint("table", endpoint =>
+        {
+            endpoint.Port = port;
+        });
     }
 
     /// <summary>
