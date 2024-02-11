@@ -363,6 +363,30 @@ public class WithReferenceTests
     }
 
     [Fact]
+    public void ParameterAsConnectionStringResourceInjectsCorrectEnvWhenPublishingManifest()
+    {
+        var testProgram = CreateTestProgram();
+
+        // Get the service provider.
+        var resource = testProgram.AppBuilder.AddConnectionString("resource", "MY_ENV");
+        testProgram.ServiceBBuilder.WithReference(resource);
+        testProgram.Build();
+
+        // Call environment variable callbacks.
+        var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
+
+        var config = new Dictionary<string, string>();
+        var context = new EnvironmentCallbackContext("manifest", config);
+
+        foreach (var annotation in annotations)
+        {
+            annotation.Callback(context);
+        }
+
+        Assert.Equal("{resource.value}", config["MY_ENV"]);
+    }
+
+    [Fact]
     public void ConnectionStringResourceWithConnectionString()
     {
         var testProgram = CreateTestProgram();
