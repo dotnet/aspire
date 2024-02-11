@@ -9,6 +9,29 @@ namespace Aspire.Hosting.Tests;
 public class WithEndpointTests
 {
     [Fact]
+    public void WithEndpointHostPortOnEndpointThatDoesNotExistThrows()
+    {
+        var ex = Assert.Throws<DistributedApplicationException>(() =>
+        {
+            var testProgram = CreateTestProgram();
+            testProgram.ServiceABuilder.WithEndpointHostPost("mybinding", 1000);
+        });
+
+        Assert.Equal("Endpoint 'mybinding' does not exist.", ex.Message);
+    }
+
+    [Fact]
+    public void WithEndpointHostPortMutatesHostPort()
+    {
+        var testProgram = CreateTestProgram();
+        testProgram.ServiceABuilder.WithEndpoint(3000, 1000, name: "mybinding");
+        testProgram.ServiceABuilder.WithEndpointHostPost("mybinding", 2000);
+
+        var endpoint = testProgram.ServiceABuilder.Resource.Annotations.OfType<EndpointAnnotation>().Single();
+        Assert.Equal(2000, endpoint.Port);
+    }
+
+    [Fact]
     public void EndpointsWithTwoPortsSameNameThrows()
     {
         var ex = Assert.Throws<DistributedApplicationException>(() =>

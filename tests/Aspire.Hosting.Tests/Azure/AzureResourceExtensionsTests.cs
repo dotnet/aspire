@@ -24,6 +24,24 @@ public class AzureResourceExtensionsTests
         Assert.Equal(VolumeMountType.Bind, volumeAnnotation.Type);
     }
 
+    [Fact]
+    public void AzureStorageUserEmulatorUseBlobQueueTablePortMethodsMutateEndpoints()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var storage = builder.AddAzureStorage("storage").UseEmulator(configureContainer: builder =>
+        {
+            builder.UseBlobPort(9001);
+            builder.UseQueuePort(9002);
+            builder.UseTablePort(9003);
+        });
+
+        Assert.Collection(
+            storage.Resource.Annotations.OfType<EndpointAnnotation>(),
+            e => Assert.Equal(9001, e.Port),
+            e => Assert.Equal(9002, e.Port),
+            e => Assert.Equal(9003, e.Port));
+    }
+
     [Theory]
     [InlineData(null)]
     [InlineData(8081)]

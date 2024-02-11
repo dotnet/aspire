@@ -192,6 +192,39 @@ public static class AzureResourceExtensions
     }
 
     /// <summary>
+    /// Modifies the host port that the storage emulator listens on for blob requests.
+    /// </summary>
+    /// <param name="builder">Storage emulator resource builder.</param>
+    /// <param name="port">Host port to use.</param>
+    /// <returns></returns>
+    public static IResourceBuilder<AzureStorageEmulatorResource> UseBlobPort(this IResourceBuilder<AzureStorageEmulatorResource> builder, int port)
+    {
+        return builder.WithEndpointHostPost("blob", port);
+    }
+
+    /// <summary>
+    /// Modifies the host port that the storage emulator listens on for queue requests.
+    /// </summary>
+    /// <param name="builder">Storage emulator resource builder.</param>
+    /// <param name="port">Host port to use.</param>
+    /// <returns></returns>
+    public static IResourceBuilder<AzureStorageEmulatorResource> UseQueuePort(this IResourceBuilder<AzureStorageEmulatorResource> builder, int port)
+    {
+        return builder.WithEndpointHostPost("queue", port);
+    }
+
+    /// <summary>
+    /// Modifies the host port that the storage emulator listens on for table requests.
+    /// </summary>
+    /// <param name="builder">Storage emulator resource builder.</param>
+    /// <param name="port">Host port to use.</param>
+    /// <returns></returns>
+    public static IResourceBuilder<AzureStorageEmulatorResource> UseTablePort(this IResourceBuilder<AzureStorageEmulatorResource> builder, int port)
+    {
+        return builder.WithEndpointHostPost("table", port);
+    }
+
+    /// <summary>
     /// Configures an Azure Cosmos DB resource to be emulated using the Azure Cosmos DB emulator with the NoSQL API. This resource requires an <see cref="AzureCosmosDBResource"/> to be added to the application model.
     /// For more information on the Azure Cosmos DB emulator, see <a href="https://learn.microsoft.com/azure/cosmos-db/emulator#authentication"></a>
     /// </summary>

@@ -333,6 +333,30 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Changes an existing endpoint's host port setting.
+    /// </summary>
+    /// <param name="builder">Resource builder for resource with endpoints.</param>
+    /// <param name="endpointName">Name of endpoint to change.</param>
+    /// <param name="hostPort">Host port</param>
+    /// <returns></returns>
+    public static IResourceBuilder<T> WithEndpointHostPost<T>(this IResourceBuilder<T> builder, string endpointName, int hostPort) where T: IResourceWithEndpoints
+    {
+        var endpoint = builder.Resource.Annotations
+            .OfType<EndpointAnnotation>()
+            .Where(ea => StringComparers.EndpointAnnotationName.Equals(ea.Name, endpointName))
+            .SingleOrDefault();
+
+        if (endpoint == null)
+        {
+            throw new DistributedApplicationException($"Endpoint '{endpointName}' does not exist.");
+        }
+
+        endpoint.Port = hostPort;
+
+        return builder;
+    }
+
+    /// <summary>
     /// Exposes an HTTP endpoint on a resource. This endpoint reference can be retrieved using <see cref="GetEndpoint{T}(IResourceBuilder{T}, string)"/>.
     /// The endpoint name will be "http" if not specified.
     /// </summary>
