@@ -421,33 +421,6 @@ public class WithReferenceTests
     }
 
     [Fact]
-    public void ConnectionStringResourceMissingConnectionStringFallbackToConfig()
-    {
-        var testProgram = CreateTestProgram();
-
-        // Get the service provider.
-        var resource = testProgram.AppBuilder.AddResource(new TestResource("resource"));
-        testProgram.ServiceBBuilder.WithReference(resource);
-        testProgram.AppBuilder.Configuration["ConnectionStrings:resource"] = "test";
-        testProgram.Build();
-
-        // Call environment variable callbacks.
-        var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
-
-        foreach (var annotation in annotations)
-        {
-            annotation.Callback(context);
-        }
-
-        var servicesKeysCount = config.Keys.Count(k => k.StartsWith("ConnectionStrings__"));
-        Assert.Equal(1, servicesKeysCount);
-        Assert.Contains(config, kvp => kvp.Key == "ConnectionStrings__resource" && kvp.Value == "test");
-    }
-
-    [Fact]
     public void WithReferenceHttpRelativeUriThrowsException()
     {
         var testProgram = CreateTestProgram();

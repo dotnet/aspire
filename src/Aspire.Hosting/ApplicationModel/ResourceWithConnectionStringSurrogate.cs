@@ -13,4 +13,6 @@ internal sealed class ResourceWithConnectionStringSurrogate(IResource innerResou
     {
         return callback();
     }
+
+    public string ConnectionStringExpression => $"{{{Name}.value}}";
 }

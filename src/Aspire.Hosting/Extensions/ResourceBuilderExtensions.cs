@@ -5,7 +5,6 @@ using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
-using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting;
 
@@ -64,14 +63,20 @@ public static class ResourceBuilderExtensions
     /// <returns>A resource configured with the environment variable callback.</returns>
     public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, EndpointReference endpointReference) where T : IResourceWithEnvironment
     {
-        return builder.WithAnnotation(new EnvironmentCallbackAnnotation(name, () =>
+        return builder.WithEnvironment(context =>
         {
+            if (context.PublisherName == "manifest")
+            {
+                context.EnvironmentVariables[name] = endpointReference.ValueExpression;
+                return;
+            }
+
             var replaceLocalhostWithContainerHost = builder.Resource is ContainerResource;
 
-            return replaceLocalhostWithContainerHost
-            ? HostNameResolver.ReplaceLocalhostWithContainerHost(endpointReference.UriString, builder.ApplicationBuilder.Configuration)
-            : endpointReference.UriString;
-        }));
+            context.EnvironmentVariables[name] = replaceLocalhostWithContainerHost
+            ? HostNameResolver.ReplaceLocalhostWithContainerHost(endpointReference.Value, builder.ApplicationBuilder.Configuration)
+            : endpointReference.Value;
+        });
     }
 
     /// <summary>
@@ -88,7 +93,7 @@ public static class ResourceBuilderExtensions
         {
             if (context.PublisherName == "manifest")
             {
-                context.EnvironmentVariables[name] = $"{{{parameter.Resource.Name}.value}}";
+                context.EnvironmentVariables[name] = parameter.Resource.ValueExpression;
                 return;
             }
 
@@ -177,24 +182,15 @@ public static class ResourceBuilderExtensions
 
         return builder.WithEnvironment(context =>
         {
-            var connectionStringName = $"{ConnectionStringEnvironmentName}{connectionName}";
+            var connectionStringName = resource.ConnectionStringEnvironmentVariable ?? $"{ConnectionStringEnvironmentName}{connectionName}";
 
             if (context.PublisherName == "manifest")
             {
-                if (source.Resource is ResourceWithConnectionStringSurrogate)
-                {
-                    context.EnvironmentVariables[connectionStringName] = $"{{{resource.Name}.value}}";
-                }
-                else
-                {
-                    context.EnvironmentVariables[connectionStringName] = $"{{{resource.Name}.connectionString}}";
-                }
-
+                context.EnvironmentVariables[connectionStringName] = resource.ConnectionStringExpression;
                 return;
             }
 
-            var connectionString = resource.GetConnectionString() ??
-                builder.ApplicationBuilder.Configuration.GetConnectionString(resource.Name);
+            var connectionString = resource.GetConnectionString();
 
             if (string.IsNullOrEmpty(connectionString))
             {
@@ -483,7 +479,7 @@ public static class ResourceBuilderExtensions
     /// <param name="name">Name of metadata.</param>
     /// <param name="value">Value of metadata.</param>
     /// <returns>Resource builder.</returns>
-    public static IResourceBuilder<T> WithMetadata<T>(this IResourceBuilder<T> builder, string name, object value) where T: IResource
+    public static IResourceBuilder<T> WithMetadata<T>(this IResourceBuilder<T> builder, string name, object value) where T : IResource
     {
         var existingAnnotation = builder.Resource.Annotations.OfType<ManifestMetadataAnnotation>().SingleOrDefault(a => a.Name == name);
 
