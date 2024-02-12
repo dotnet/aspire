@@ -42,6 +42,11 @@
         <target state="new">Unable to display chart</target>
         <note />
       </trans-unit>
+      <trans-unit id="DetailsColumnHeader">
+        <source>Details</source>
+        <target state="new">Details</target>
+        <note />
+      </trans-unit>
       <trans-unit id="DurationColumnHeader">
         <source>Duration</source>
         <target state="new">Duration</target>
@@ -75,6 +80,11 @@
       <trans-unit id="EnvironmentVariablesShowVariableValues">
         <source>Show values</source>
         <target state="new">Show values</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GridValueCopied">
+        <source>Copied!</source>
+        <target state="new">Copied!</target>
         <note />
       </trans-unit>
       <trans-unit id="GridValueCopyToClipboard">

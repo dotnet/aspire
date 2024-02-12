@@ -4,31 +4,51 @@
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// Represents an endpoint reference for a resource with bindings.
+/// Represents an endpoint reference for a resource with endpoints.
 /// </summary>
-/// <param name="owner">The resource with bindings that owns the endpoint reference.</param>
-/// <param name="bindingName">The name of the binding.</param>
-public sealed class EndpointReference(IResourceWithBindings owner, string bindingName)
+/// <param name="owner">The resource with endpoints that owns the endpoint reference.</param>
+/// <param name="endpointName">The name of the endpoint.</param>
+public sealed class EndpointReference(IResourceWithEndpoints owner, string endpointName)
 {
     /// <summary>
     /// Gets the owner of the endpoint reference.
     /// </summary>
-    public IResourceWithBindings Owner { get; } = owner;
+    public IResourceWithEndpoints Owner { get; } = owner;
 
     /// <summary>
-    /// Gets the name of the binding associated with the endpoint reference.
+    /// Gets the name of the endpoint associated with the endpoint reference.
     /// </summary>
-    public string BindingName { get; } = bindingName;
+    public string EndpointName { get; } = endpointName;
+
+    /// <summary>
+    /// Gets the expression used in the manifest to reference the value of the endpoint.
+    /// </summary>
+    public string ValueExpression => $"{{{Owner.Name}.bindings.{EndpointName}.url}}";
 
     /// <summary>
     /// Gets the URI string for the endpoint reference.
     /// </summary>
+    public string Value
+    {
+        get
+        {
+            var allocatedEndpoint = Owner.Annotations.OfType<AllocatedEndpointAnnotation>().SingleOrDefault(a => a.Name == EndpointName);
+
+            return allocatedEndpoint?.UriString ??
+                throw new InvalidOperationException($"The endpoint `{EndpointName}` is not allocated for the resource `{Owner.Name}`.");
+        }
+    }
+
+    /// <summary>
+    /// Gets the URI string for the endpoint reference.
+    /// </summary>
+    [Obsolete("Use Value instead.")]
     public string UriString
     {
         get
         {
-            var allocatedEndpoint = Owner.Annotations.OfType<AllocatedEndpointAnnotation>().SingleOrDefault(a => a.Name == BindingName);
-            return allocatedEndpoint?.UriString ?? $"{{{Owner.Name}.bindings.{BindingName}.url}}";
+            var allocatedEndpoint = Owner.Annotations.OfType<AllocatedEndpointAnnotation>().SingleOrDefault(a => a.Name == EndpointName);
+            return allocatedEndpoint?.UriString ?? $"{{{Owner.Name}.bindings.{EndpointName}.url}}";
         }
     }
 }

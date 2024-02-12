@@ -97,6 +97,7 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger,
         {
             context.Writer.WriteStartObject(resource.Name);
             action();
+            context.WriteManifestMetadata(resource);
             context.Writer.WriteEndObject();
         }
     }
@@ -110,9 +111,9 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger,
     {
         context.Writer.WriteString("type", "project.v0");
 
-        if (!project.TryGetLastAnnotation<IServiceMetadata>(out var metadata))
+        if (!project.TryGetLastAnnotation<IProjectMetadata>(out var metadata))
         {
-            throw new DistributedApplicationException("Service metadata not found.");
+            throw new DistributedApplicationException("Project metadata not found.");
         }
 
         var relativePathToProjectFile = context.GetManifestRelativePath(metadata.ProjectPath);

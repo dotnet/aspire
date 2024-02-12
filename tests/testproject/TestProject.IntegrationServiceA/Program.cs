@@ -4,29 +4,22 @@
 var builder = WebApplication.CreateBuilder(args);
 builder.AddSqlServerClient("tempdb");
 builder.AddMySqlDataSource("mysqldb");
-builder.AddRedis("rediscontainer");
+builder.AddMySqlDbContext<PomeloDbContext>("mysqldb", settings => settings.ServerVersion = "8.2.0-mysql");
+builder.AddRedis("redis");
 builder.AddNpgsqlDataSource("postgresdb");
-builder.AddRabbitMQ("rabbitmqcontainer");
+builder.AddRabbitMQ("rabbitmq");
 builder.AddMongoDBClient("mymongodb");
 builder.AddOracleDatabaseDbContext<MyDbContext>("freepdb1");
-builder.AddKafkaProducer<string, string>("kafkacontainer");
-builder.AddKafkaConsumer<string, string>("kafkacontainer", consumerBuilder =>
+builder.AddKafkaProducer<string, string>("kafka");
+builder.AddKafkaConsumer<string, string>("kafka", consumerBuilder =>
 {
     consumerBuilder.Config.GroupId = "aspire-consumer-group";
     consumerBuilder.Config.AutoOffsetReset = AutoOffsetReset.Earliest;
 });
 
-builder.AddKeyedSqlServerClient("sqlserverabstract");
-builder.AddKeyedMySqlDataSource("mysqlabstract");
-builder.AddKeyedRedis("redisabstract");
-builder.AddKeyedNpgsqlDataSource("postgresabstract");
-builder.AddKeyedRabbitMQ("rabbitmqabstract");
-builder.AddKeyedMongoDBClient("mongodbabstract");
-builder.AddKeyedKafkaProducer<string, string>("kafkaabstract");
-builder.AddKeyedKafkaConsumer<string, string>("kafkaabstract", consumerBuilder =>
+builder.AddAzureCosmosDB("cosmos", settings =>
 {
-    consumerBuilder.Config.GroupId = "aspire-abstract-consumer-group";
-    consumerBuilder.Config.AutoOffsetReset = AutoOffsetReset.Earliest;
+    settings.IgnoreEmulatorCertificate = true;
 });
 
 var app = builder.Build();
@@ -43,6 +36,8 @@ app.MapMongoDBApi();
 
 app.MapMySqlApi();
 
+app.MapPomeloEFCoreMySqlApi();
+
 app.MapPostgresApi();
 
 app.MapSqlServerApi();
@@ -52,5 +47,7 @@ app.MapRabbitMQApi();
 app.MapOracleDatabaseApi();
 
 app.MapKafkaApi();
+
+app.MapCosmosApi();
 
 app.Run();

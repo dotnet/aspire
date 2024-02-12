@@ -13,7 +13,7 @@ public class AddOracleDatabaseTests
     public void AddOracleDatabaseWithDefaultsAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.AddOracleDatabaseContainer("orcl");
+        appBuilder.AddOracleDatabase("orcl");
 
         var app = appBuilder.Build();
 
@@ -30,14 +30,14 @@ public class AddOracleDatabaseTests
         Assert.Equal("database/free", containerAnnotation.Image);
         Assert.Equal("container-registry.oracle.com", containerAnnotation.Registry);
 
-        var serviceBinding = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
-        Assert.Equal(1521, serviceBinding.ContainerPort);
-        Assert.False(serviceBinding.IsExternal);
-        Assert.Equal("tcp", serviceBinding.Name);
-        Assert.Null(serviceBinding.Port);
-        Assert.Equal(ProtocolType.Tcp, serviceBinding.Protocol);
-        Assert.Equal("tcp", serviceBinding.Transport);
-        Assert.Equal("tcp", serviceBinding.UriScheme);
+        var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
+        Assert.Equal(1521, endpoint.ContainerPort);
+        Assert.False(endpoint.IsExternal);
+        Assert.Equal("tcp", endpoint.Name);
+        Assert.Null(endpoint.Port);
+        Assert.Equal(ProtocolType.Tcp, endpoint.Protocol);
+        Assert.Equal("tcp", endpoint.Transport);
+        Assert.Equal("tcp", endpoint.UriScheme);
 
         var envAnnotations = containerResource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
@@ -61,7 +61,7 @@ public class AddOracleDatabaseTests
     public void AddOracleDatabaseAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.AddOracleDatabaseContainer("orcl", 1234, "pass");
+        appBuilder.AddOracleDatabase("orcl", 1234, "pass");
 
         var app = appBuilder.Build();
 
@@ -78,14 +78,14 @@ public class AddOracleDatabaseTests
         Assert.Equal("database/free", containerAnnotation.Image);
         Assert.Equal("container-registry.oracle.com", containerAnnotation.Registry);
 
-        var serviceBinding = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
-        Assert.Equal(1521, serviceBinding.ContainerPort);
-        Assert.False(serviceBinding.IsExternal);
-        Assert.Equal("tcp", serviceBinding.Name);
-        Assert.Equal(1234, serviceBinding.Port);
-        Assert.Equal(ProtocolType.Tcp, serviceBinding.Protocol);
-        Assert.Equal("tcp", serviceBinding.Transport);
-        Assert.Equal("tcp", serviceBinding.UriScheme);
+        var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
+        Assert.Equal(1521, endpoint.ContainerPort);
+        Assert.False(endpoint.IsExternal);
+        Assert.Equal("tcp", endpoint.Name);
+        Assert.Equal(1234, endpoint.Port);
+        Assert.Equal(ProtocolType.Tcp, endpoint.Protocol);
+        Assert.Equal("tcp", endpoint.Transport);
+        Assert.Equal("tcp", endpoint.UriScheme);
 
         var envAnnotations = containerResource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
@@ -109,7 +109,7 @@ public class AddOracleDatabaseTests
     public void OracleCreatesConnectionString()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.AddOracleDatabaseContainer("orcl")
+        appBuilder.AddOracleDatabase("orcl")
             .WithAnnotation(
             new AllocatedEndpointAnnotation("mybinding",
             ProtocolType.Tcp,
@@ -133,7 +133,7 @@ public class AddOracleDatabaseTests
     public void OracleCreatesConnectionStringWithDatabase()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.AddOracleDatabaseContainer("orcl")
+        appBuilder.AddOracleDatabase("orcl")
             .WithAnnotation(
             new AllocatedEndpointAnnotation("mybinding",
             ProtocolType.Tcp,
@@ -147,7 +147,7 @@ public class AddOracleDatabaseTests
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var oracleResource = Assert.Single(appModel.Resources.OfType<OracleDatabaseContainerResource>());
+        var oracleResource = Assert.Single(appModel.Resources.OfType<OracleDatabaseServerResource>());
         var oracleConnectionString = oracleResource.GetConnectionString();
         var oracleDatabaseResource = Assert.Single(appModel.Resources.OfType<OracleDatabaseResource>());
         var dbConnectionString = oracleDatabaseResource.GetConnectionString();
@@ -159,7 +159,7 @@ public class AddOracleDatabaseTests
     public void AddDatabaseToOracleDatabaseAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.AddOracleDatabaseContainer("oracle", 1234, "pass").AddDatabase("db");
+        appBuilder.AddOracleDatabase("oracle", 1234, "pass").AddDatabase("db");
 
         var app = appBuilder.Build();
 
@@ -177,14 +177,14 @@ public class AddOracleDatabaseTests
         Assert.Equal("database/free", containerAnnotation.Image);
         Assert.Equal("container-registry.oracle.com", containerAnnotation.Registry);
 
-        var serviceBinding = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
-        Assert.Equal(1521, serviceBinding.ContainerPort);
-        Assert.False(serviceBinding.IsExternal);
-        Assert.Equal("tcp", serviceBinding.Name);
-        Assert.Equal(1234, serviceBinding.Port);
-        Assert.Equal(ProtocolType.Tcp, serviceBinding.Protocol);
-        Assert.Equal("tcp", serviceBinding.Transport);
-        Assert.Equal("tcp", serviceBinding.UriScheme);
+        var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
+        Assert.Equal(1521, endpoint.ContainerPort);
+        Assert.False(endpoint.IsExternal);
+        Assert.Equal("tcp", endpoint.Name);
+        Assert.Equal(1234, endpoint.Port);
+        Assert.Equal(ProtocolType.Tcp, endpoint.Protocol);
+        Assert.Equal("tcp", endpoint.Transport);
+        Assert.Equal("tcp", endpoint.UriScheme);
 
         var envAnnotations = containerResource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 

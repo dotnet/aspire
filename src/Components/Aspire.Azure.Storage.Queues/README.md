@@ -59,7 +59,7 @@ The recommended approach is to use a ServiceUri, which works with the `AzureStor
 ```json
 {
   "ConnectionStrings": {
-    "blobsConnectionName": "https://{account_name}.queue.core.windows.net/"
+    "queueConnectionName": "https://{account_name}.queue.core.windows.net/"
   }
 }
 ```

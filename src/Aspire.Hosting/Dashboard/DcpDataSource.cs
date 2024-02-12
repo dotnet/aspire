@@ -8,6 +8,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
 using k8s;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Dashboard;
@@ -21,7 +22,7 @@ namespace Aspire.Hosting.Dashboard;
 /// </remarks>
 internal sealed class DcpDataSource
 {
-    private readonly KubernetesService _kubernetesService;
+    private readonly IKubernetesService _kubernetesService;
     private readonly DistributedApplicationModel _applicationModel;
     private readonly Func<ResourceSnapshot, ResourceSnapshotChangeType, ValueTask> _onResourceChanged;
     private readonly ILogger _logger;
@@ -33,8 +34,9 @@ internal sealed class DcpDataSource
     private readonly ConcurrentDictionary<(string, string), List<string>> _resourceAssociatedServicesMap = [];
 
     public DcpDataSource(
-        KubernetesService kubernetesService,
+        IKubernetesService kubernetesService,
         DistributedApplicationModel applicationModel,
+        IConfiguration configuration,
         ILoggerFactory loggerFactory,
         Func<ResourceSnapshot, ResourceSnapshotChangeType, ValueTask> onResourceChanged,
         CancellationToken cancellationToken)
@@ -71,6 +73,11 @@ internal sealed class DcpDataSource
 
                     try
                     {
+                        if (IsFilteredResource(resource))
+                        {
+                            continue;
+                        }
+
                         await handler(eventType, resource).ConfigureAwait(false);
                     }
                     finally
@@ -83,6 +90,17 @@ internal sealed class DcpDataSource
             {
                 _logger.LogError(ex, "Watch task over kubernetes {ResourceType} resources terminated", typeof(T).Name);
             }
+        }
+
+        bool IsFilteredResource<T>(T resource) where T : CustomResource
+        {
+            // We filter out any resources that start with aspire-dashboard (there are services as well as executables).
+            if (resource.Metadata.Name.StartsWith(KnownResourceNames.AspireDashboard, StringComparisons.ResourceName))
+            {
+                return configuration.GetBool("DOTNET_ASPIRE_SHOW_DASHBOARD_RESOURCES") is not true;
+            }
+
+            return false;
         }
     }
 
@@ -186,7 +204,8 @@ internal sealed class DcpDataSource
             CreationTimeStamp = container.Metadata.CreationTimestamp?.ToLocalTime(),
             Image = container.Spec.Image!,
             State = container.Status?.State,
-            ExitCode = container.Status?.ExitCode,
+            // Map a container exit code of -1 (unknown) to null
+            ExitCode = container.Status?.ExitCode is null or Conventions.UnknownExitCode ? null : container.Status.ExitCode,
             ExpectedEndpointsCount = GetExpectedEndpointsCount(container),
             Environment = environment,
             Endpoints = endpoints,
@@ -345,7 +364,7 @@ internal sealed class DcpDataSource
         {
             foreach (var serviceName in resourceServiceMappings)
             {
-                if (_servicesMap.TryGetValue(name, out var service))
+                if (_servicesMap.TryGetValue(serviceName, out var service))
                 {
                     services.Add(new ResourceServiceSnapshot(service.Metadata.Name, service.AllocatedAddress, service.AllocatedPort));
                 }

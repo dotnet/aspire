@@ -330,32 +330,38 @@ public static class OrleansServiceExtensions
 
         foreach (var (name, provider) in res.GrainStorage)
         {
-            provider.ConfigureResource(builder, $"GrainStorage:{name}");
+            provider.ConfigureResource(builder, $"GrainStorage__{name}");
         }
 
         foreach (var (name, provider) in res.GrainDirectory)
         {
-            provider.ConfigureResource(builder, $"GrainDirectory:{name}");
+            provider.ConfigureResource(builder, $"GrainDirectory__{name}");
         }
 
         foreach (var (name, provider) in res.Streaming)
         {
-            provider.ConfigureResource(builder, $"Streaming:{name}");
+            provider.ConfigureResource(builder, $"Streaming__{name}");
         }
 
         foreach (var (name, provider) in res.BroadcastChannel)
         {
-            provider.ConfigureResource(builder, $"BroadcastChannel:{name}");
+            provider.ConfigureResource(builder, $"BroadcastChannel__{name}");
         }
 
         if (!string.IsNullOrWhiteSpace(res.ClusterId))
         {
-            builder.WithEnvironment("Orleans:ClusterId", res.ClusterId);
+            builder.WithEnvironment("Orleans__ClusterId", res.ClusterId);
         }
 
         if (!string.IsNullOrWhiteSpace(res.ServiceId))
         {
-            builder.WithEnvironment("Orleans:ServiceId", res.ServiceId);
+            builder.WithEnvironment("Orleans__ServiceId", res.ServiceId);
+        }
+
+        // Enable distributed tracing by default
+        if (res.EnableDistributedTracing != false)
+        {
+            builder.WithEnvironment("Orleans__EnableDistributedTracing", "true");
         }
 
         return builder;

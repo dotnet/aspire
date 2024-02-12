@@ -17,25 +17,28 @@ internal enum DcpApiOperationType
     Watch = 4
 }
 
-internal sealed class KubernetesService(Locations locations) : IDisposable
+internal interface IKubernetesService
+{
+    Task<T> CreateAsync<T>(T obj, CancellationToken cancellationToken = default)
+        where T : CustomResource;
+    Task<List<T>> ListAsync<T>(string? namespaceParameter = null, CancellationToken cancellationToken = default)
+        where T : CustomResource;
+    Task<T> DeleteAsync<T>(string name, string? namespaceParameter = null, CancellationToken cancellationToken = default)
+        where T : CustomResource;
+    IAsyncEnumerable<(WatchEventType, T)> WatchAsync<T>(
+        string? namespaceParameter = null,
+        CancellationToken cancellationToken = default)
+        where T : CustomResource;
+}
+
+internal sealed class KubernetesService(Locations locations) : IKubernetesService, IDisposable
 {
     private static readonly TimeSpan s_initialRetryDelay = TimeSpan.FromMilliseconds(100);
     private static GroupVersion GroupVersion => Model.Dcp.GroupVersion;
 
-    private IKubernetes? _kubernetes;
-    private TimeSpan _maxRetryDuration = TimeSpan.FromSeconds(5);
+    private Kubernetes? _kubernetes;
 
-    public TimeSpan MaxRetryDuration
-    {
-        get
-        {
-            return _maxRetryDuration;
-        }
-        set
-        {
-            _maxRetryDuration = value;
-        }
-    }
+    public TimeSpan MaxRetryDuration { get; set; } = TimeSpan.FromSeconds(5);
 
     public Task<T> CreateAsync<T>(T obj, CancellationToken cancellationToken = default)
         where T : CustomResource

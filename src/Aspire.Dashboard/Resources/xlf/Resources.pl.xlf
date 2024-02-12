@@ -12,6 +12,11 @@
         <target state="new">Proxy URL</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourcesDetailsColumnHeader">
+        <source>Details</source>
+        <target state="new">Details</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourcesDetailsContainerArgumentsProperty">
         <source>Container arguments</source>
         <target state="new">Container arguments</target>
@@ -62,6 +67,11 @@
         <target state="new">Working directory</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourcesDetailsExitCodeProperty">
+        <source>Exit code</source>
+        <target state="new">Exit code</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourcesDetailsProjectPathProperty">
         <source>Project path</source>
         <target state="new">Project path</target>
@@ -77,32 +87,32 @@
         <target state="new">State</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourcesEnvironmentVariablesGridEndpointsColumnHeader">
+      <trans-unit id="ResourcesEndpointsColumnHeader">
         <source>Endpoints</source>
         <target state="new">Endpoints</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourcesEnvironmentVariablesGridEnvironmentColumnHeader">
+      <trans-unit id="ResourcesEnvironmentColumnHeader">
         <source>Environment</source>
         <target state="new">Environment</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourcesEnvironmentVariablesGridNameColumnHeader">
-        <source>Name (ID)</source>
-        <target state="new">Name (ID)</target>
+      <trans-unit id="ResourcesLogsColumnHeader">
+        <source>Logs</source>
+        <target state="new">Logs</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourcesEnvironmentVariablesGridSourceColumnHeader">
+      <trans-unit id="ResourcesSourceColumnHeader">
         <source>Source</source>
         <target state="new">Source</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourcesEnvironmentVariablesGridStartTimeColumnHeader">
+      <trans-unit id="ResourcesStartTimeColumnHeader">
         <source>Start time</source>
         <target state="new">Start time</target>
         <note />
       </trans-unit>
-      <trans-unit id="ResourcesEnvironmentVariablesGridStateColumnHeader">
+      <trans-unit id="ResourcesStateColumnHeader">
         <source>State</source>
         <target state="new">State</target>
         <note />
@@ -135,6 +145,11 @@
       <trans-unit id="ResourcesResourceTypesHeader">
         <source>Resource types</source>
         <target state="new">Resource types</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourcesTypeColumnHeader">
+        <source>Type</source>
+        <target state="new">Type</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesTypeFilterAllVisible">

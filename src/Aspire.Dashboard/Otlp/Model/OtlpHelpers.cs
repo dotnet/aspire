@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.RegularExpressions;
 using Aspire.Dashboard.Otlp.Storage;
 using Google.Protobuf;
 using Google.Protobuf.Collections;
@@ -13,8 +14,27 @@ using OpenTelemetry.Proto.Resource.V1;
 
 namespace Aspire.Dashboard.Otlp.Model;
 
-public static class OtlpHelpers
+public static partial class OtlpHelpers
 {
+    private static readonly string s_longTimePatternWithMilliseconds = GetLongTimePatternWithMilliseconds();
+
+    static string GetLongTimePatternWithMilliseconds()
+    {
+        // From https://learn.microsoft.com/dotnet/standard/base-types/how-to-display-milliseconds-in-date-and-time-values
+
+        // Gets the long time pattern, which is something like "h:mm:ss tt" (en-US), "H:mm:ss" (ja-JP), "HH:mm:ss" (fr-FR).
+        var longTimePattern = DateTimeFormatInfo.CurrentInfo.LongTimePattern;
+
+        // Create a format similar to .fff but based on the current culture.
+        var millisecondFormat = $"{NumberFormatInfo.CurrentInfo.NumberDecimalSeparator}fff";
+
+        // Append millisecond pattern to current culture's long time pattern.
+        return MatchSecondsInTimeFormatPattern().Replace(longTimePattern, $"$1{millisecondFormat}");
+    }
+
+    [GeneratedRegex("(:ss|:s)")]
+    private static partial Regex MatchSecondsInTimeFormatPattern();
+
     public static string? GetServiceId(this Resource resource)
     {
         string? serviceName = null;
@@ -44,7 +64,7 @@ public static class OtlpHelpers
 
     public static string FormatTimeStamp(DateTime timestamp)
     {
-        return timestamp.ToLocalTime().ToString("h:mm:ss.fff tt", CultureInfo.CurrentCulture);
+        return timestamp.ToLocalTime().ToString(s_longTimePatternWithMilliseconds, CultureInfo.CurrentCulture);
     }
 
     public static string ToHexString(ReadOnlyMemory<byte> bytes)
@@ -157,6 +177,49 @@ public static class OtlpHelpers
             }
         }
         return null;
+    }
+
+    public static string? GetPeerAddress(this KeyValuePair<string, string>[] values)
+    {
+        var address = GetValue(values, OtlpSpan.PeerServiceAttributeKey);
+        if (address != null)
+        {
+            return address;
+        }
+
+        // OTEL HTTP 1.7.0 doesn't return peer.service. Fallback to server.address and server.port.
+        if (GetValue(values, OtlpSpan.ServerAddressAttributeKey) is { } server)
+        {
+            if (GetValue(values, OtlpSpan.ServerPortAttributeKey) is { } serverPort)
+            {
+                server += ":" + serverPort;
+            }
+            return server;
+        }
+
+        // Fallback to older names of net.peer.name and net.peer.port.
+        if (GetValue(values, OtlpSpan.NetPeerNameAttributeKey) is { } peer)
+        {
+            if (GetValue(values, OtlpSpan.NetPeerPortAttributeKey) is { } peerPort)
+            {
+                peer += ":" + peerPort;
+            }
+            return peer;
+        }
+
+        return null;
+    }
+
+    public static bool HasKey(this KeyValuePair<string, string>[] values, string name)
+    {
+        for (var i = 0; i < values.Length; i++)
+        {
+            if (values[i].Key == name)
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static string ConcatProperties(this KeyValuePair<string, string>[] properties)

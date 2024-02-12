@@ -18,10 +18,10 @@ dotnet add package Aspire.Microsoft.EntityFrameworkCore.Cosmos
 
 ## Usage example
 
-In the _Program.cs_ file of your project, call the `AddCosmosDbContext` extension method to register a `DbContext` for use via the dependency injection container. The method takes a connection name parameter.
+In the _Program.cs_ file of your project, call the `AddCosmosDbContext` extension method to register a `DbContext` for use via the dependency injection container. The method takes connection name and database name parameters.
 
 ```csharp
-builder.AddCosmosDbContext<MyDbContext>("cosmosdb");
+builder.AddCosmosDbContext<MyDbContext>("cosmosdb", "mydb");
 ```
 
 You can then retrieve the `MyDbContext` instance using dependency injection. For example, to retrieve the context from a Web API controller:
@@ -44,7 +44,7 @@ The .NET Aspire Microsoft EntityFrameworkCore Cosmos component provides multiple
 When using a connection string from the `ConnectionStrings` configuration section, you can provide the name of the connection string when calling `builder.AddCosmosDbContext()`:
 
 ```csharp
-builder.AddCosmosDbContext<MyDbContext>("myConnection");
+builder.AddCosmosDbContext<MyDbContext>("myConnection", "mydb");
 ```
 
 And then the connection string will be retrieved from the `ConnectionStrings` configuration section:
@@ -83,7 +83,7 @@ The .NET Aspire Microsoft EntityFrameworkCore Cosmos component supports [Microso
 Also you can pass the `Action<EntityFrameworkCoreCosmosDBSettings> configureSettings` delegate to set up some or all the options inline, for example to disable tracing from code:
 
 ```csharp
-    builder.AddCosmosDbContext<MyDbContext>("cosmosdb", settings => settings.Tracing = false);
+    builder.AddCosmosDbContext<MyDbContext>("cosmosdb", "mydb", settings => settings.Tracing = false);
 ```
 
 ## AppHost extensions
@@ -106,7 +106,27 @@ var myService = builder.AddProject<Projects.MyService>()
 The `AddAzureCosmosDB` method will read connection information from the AppHost's configuration (for example, from "user secrets") under the `ConnectionStrings:cosmosdb` config key. The `WithReference` method passes that connection information into a connection string named `cosmosdb` in the `MyService` project. In the _Program.cs_ file of `MyService`, the connection can be consumed using:
 
 ```csharp
-builder.AddCosmosDbContext<MyDbContext>("cosmosdb");
+builder.AddCosmosDbContext<MyDbContext>("cosmosdb", "cosmosdb");
+```
+
+### Emulator usage
+
+Aspire supports the usage of the Azure Cosmos DB emulator to use the emulator, add the following to your AppHost project:
+
+```csharp
+// AppHost
+var cosmosdb = builder.AddAzureCosmosDB("cosmos").UseEmulator();
+```
+
+When the AppHost starts up a local container running the Azure CosmosDB will also be started. Inside the project that uses CosmosDB you also need to specify that you want to ignore the server certificate (so you don't need to manually download and install it):
+
+```csharp
+// Service code
+builder.AddCosmosDbContext<MyDbContext>("cosmos", "mydb", (settings) =>
+{
+    settings.IgnoreEmulatorCertificate = true;
+});
+
 ```
 
 ## Additional documentation

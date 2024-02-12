@@ -142,14 +142,6 @@
   <data name="SourceColumnSourceCopyContainerToClipboard" xml:space="preserve">
     <value>Copy image name and tag to clipboard</value>
   </data>
-  <data name="UnreadLogErrorsBadgeErrorLog" xml:space="preserve">
-    <value>{0} error log</value>
-    <comment>{0} is 1</comment>
-  </data>
-  <data name="UnreadLogErrorsBadgeErrorLogs" xml:space="preserve">
-    <value>{0} error logs</value>
-    <comment>{0} is a number</comment>
-  </data>
   <data name="StateColumnResourceExitedUnexpectedly" xml:space="preserve">
     <value>{0} exited unexpectedly with exit code {1}</value>
     <comment>{0} is a resource type, {1} is a number</comment>
@@ -157,5 +149,18 @@
   <data name="StateColumnResourceExited" xml:space="preserve">
     <value>{0} is no longer running</value>
     <comment>{0} is a resource type</comment>
+  </data>
+  <data name="SourceColumnDisplayCopyCommandToClipboard" xml:space="preserve">
+    <value>Copy full command to clipboard</value>
+  </data>
+  <data name="UnreadLogErrorsBadgeOneErrorLog" xml:space="preserve">
+    <value>1 error log</value>
+  </data>
+  <data name="UnreadLogErrorsBadgeErrorLogs" xml:space="preserve">
+    <value>{0} error logs</value>
+    <comment>{0} is a number</comment>
+  </data>
+  <data name="LogMessageColumnExceptionDetailsTitle" xml:space="preserve">
+    <value>Exception details</value>
   </data>
 </root>

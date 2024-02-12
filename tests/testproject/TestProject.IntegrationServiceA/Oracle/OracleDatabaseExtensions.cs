@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.EntityFrameworkCore;
+using Oracle.ManagedDataAccess.Client;
+using Polly;
 
 public static class OracleDatabaseExtensions
 {
@@ -14,8 +16,16 @@ public static class OracleDatabaseExtensions
     {
         try
         {
-            var results = context.Database.SqlQueryRaw<int>("SELECT 1 FROM DUAL");
-            return results.Any() ? Results.Ok("Success!") : Results.Problem("Failed");
+            var policy = Policy
+                .Handle<OracleException>()
+                // retry 60 times with a 1 second delay between retries
+                .WaitAndRetry(60, retryAttempt => TimeSpan.FromSeconds(1));
+
+            return policy.Execute(() =>
+            {
+                var results = context.Database.SqlQueryRaw<int>("SELECT 1 FROM DUAL");
+                return results.Any() ? Results.Ok("Success!") : Results.Problem("Failed");
+            });
         }
         catch (Exception e)
         {

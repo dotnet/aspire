@@ -78,6 +78,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Exception details.
+        /// </summary>
+        public static string LogMessageColumnExceptionDetailsTitle {
+            get {
+                return ResourceManager.GetString("LogMessageColumnExceptionDetailsTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Container ID: {0}.
         /// </summary>
         public static string ResourceNameDisplayContainerIdText {
@@ -128,6 +137,15 @@ namespace Aspire.Dashboard.Resources {
         public static string SourceColumnDisplayContainerCommandTitle {
             get {
                 return ResourceManager.GetString("SourceColumnDisplayContainerCommandTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Copy full command to clipboard.
+        /// </summary>
+        public static string SourceColumnDisplayCopyCommandToClipboard {
+            get {
+                return ResourceManager.GetString("SourceColumnDisplayCopyCommandToClipboard", resourceCulture);
             }
         }
         
@@ -195,20 +213,20 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to {0} error log.
-        /// </summary>
-        public static string UnreadLogErrorsBadgeErrorLog {
-            get {
-                return ResourceManager.GetString("UnreadLogErrorsBadgeErrorLog", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to {0} error logs.
         /// </summary>
         public static string UnreadLogErrorsBadgeErrorLogs {
             get {
                 return ResourceManager.GetString("UnreadLogErrorsBadgeErrorLogs", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to 1 error log.
+        /// </summary>
+        public static string UnreadLogErrorsBadgeOneErrorLog {
+            get {
+                return ResourceManager.GetString("UnreadLogErrorsBadgeOneErrorLog", resourceCulture);
             }
         }
     }

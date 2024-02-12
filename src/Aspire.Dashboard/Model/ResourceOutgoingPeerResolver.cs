@@ -5,7 +5,6 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Dashboard.Otlp.Model;
-using Aspire.Dashboard.Utils;
 
 namespace Aspire.Dashboard.Model;
 
@@ -15,10 +14,15 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
     private readonly CancellationTokenSource _watchContainersTokenSource = new();
     private readonly List<ModelSubscription> _subscriptions = [];
     private readonly object _lock = new();
-    private readonly Task _watchTask;
+    private readonly Task? _watchTask;
 
     public ResourceOutgoingPeerResolver(IDashboardClient resourceService)
     {
+        if (!resourceService.IsEnabled)
+        {
+            return;
+        }
+
         var (snapshot, subscription) = resourceService.SubscribeResources();
 
         foreach (var resource in snapshot)
@@ -48,25 +52,72 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
 
     public bool TryResolvePeerName(KeyValuePair<string, string>[] attributes, [NotNullWhen(true)] out string? name)
     {
-        var address = OtlpHelpers.GetValue(attributes, OtlpSpan.PeerServiceAttributeKey);
+        return TryResolvePeerNameCore(_resourceByName, attributes, out name);
+    }
+
+    internal static bool TryResolvePeerNameCore(IDictionary<string, ResourceViewModel> resources, KeyValuePair<string, string>[] attributes, out string? name)
+    {
+        var address = OtlpHelpers.GetPeerAddress(attributes);
         if (address != null)
         {
-            foreach (var (resourceName, resource) in _resourceByName)
+            // Match exact value.
+            if (TryMatchResourceAddress(address, out name))
             {
-                foreach (var service in resource.Services)
+                return true;
+            }
+
+            // Resource addresses have the format "127.0.0.1:5000". Some libraries modify the peer.service value on the span.
+            // If there isn't an exact match then transform the peer.service value and try to match again.
+            // Change from transformers are cumulative. e.g. "localhost,5000" -> "localhost:5000" -> "127.0.0.1:5000"
+            var transformedAddress = address;
+            foreach (var transformer in s_addressTransformers)
+            {
+                transformedAddress = transformer(transformedAddress);
+                if (TryMatchResourceAddress(transformedAddress, out name))
                 {
-                    if (string.Equals(service.AddressAndPort, address, StringComparison.OrdinalIgnoreCase))
-                    {
-                        name = resource.Name;
-                        return true;
-                    }
+                    return true;
                 }
             }
         }
 
         name = null;
         return false;
+
+        bool TryMatchResourceAddress(string value, [NotNullWhen(true)] out string? name)
+        {
+            foreach (var (resourceName, resource) in resources)
+            {
+                foreach (var service in resource.Services)
+                {
+                    if (string.Equals(service.AddressAndPort, value, StringComparison.OrdinalIgnoreCase))
+                    {
+                        name = resource.Name;
+                        return true;
+                    }
+                }
+            }
+
+            name = null;
+            return false;
+        }
     }
+
+    private static readonly List<Func<string, string>> s_addressTransformers = [
+        s =>
+        {
+            // SQL Server uses comma instead of colon for port.
+            // https://www.connectionstrings.com/sql-server/
+            if (s.AsSpan().Count(',') == 1)
+            {
+                return s.Replace(',', ':');
+            }
+            return s;
+        },
+        s =>
+        {
+            // Some libraries use "127.0.0.1" instead of "localhost".
+            return s.Replace("127.0.0.1:", "localhost:");
+        }];
 
     public IDisposable OnPeerChanges(Func<Task> callback)
     {
@@ -110,12 +161,15 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
         _watchContainersTokenSource.Cancel();
         _watchContainersTokenSource.Dispose();
 
-        try
+        if (_watchTask is not null)
         {
-            await _watchTask.ConfigureAwait(false);
-        }
-        catch (OperationCanceledException)
-        {
+            try
+            {
+                await _watchTask.ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+            }
         }
     }
 }

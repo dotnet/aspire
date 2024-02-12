@@ -133,11 +133,11 @@ namespace Aspire.Hosting.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Project does not contain service metadata..
+        ///   Looks up a localized string similar to Project does not contain project metadata..
         /// </summary>
-        internal static string ProjectDoesNotContainServiceMetadataExceptionMessage {
+        internal static string ProjectDoesNotContainMetadataExceptionMessage {
             get {
-                return ResourceManager.GetString("ProjectDoesNotContainServiceMetadataExceptionMessage", resourceCulture);
+                return ResourceManager.GetString("ProjectDoesNotContainMetadataExceptionMessage", resourceCulture);
             }
         }
         

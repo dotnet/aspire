@@ -6,8 +6,6 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Dashboard.Otlp.Model;
 using Google.Protobuf.Collections;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 using OpenTelemetry.Proto.Logs.V1;
 using OpenTelemetry.Proto.Metrics.V1;
 using OpenTelemetry.Proto.Resource.V1;
@@ -520,13 +518,14 @@ public class TelemetryRepository
         };
     }
 
-    private static OtlpSpanKind ConvertSpanKind(SpanKind? kind)
+    internal static OtlpSpanKind ConvertSpanKind(SpanKind? kind)
     {
         return kind switch
         {
             // Unspecified to Internal is intentional.
             // "Implementations MAY assume SpanKind to be INTERNAL when receiving UNSPECIFIED."
             SpanKind.Unspecified => OtlpSpanKind.Internal,
+            SpanKind.Internal => OtlpSpanKind.Internal,
             SpanKind.Client => OtlpSpanKind.Client,
             SpanKind.Server => OtlpSpanKind.Server,
             SpanKind.Producer => OtlpSpanKind.Producer,

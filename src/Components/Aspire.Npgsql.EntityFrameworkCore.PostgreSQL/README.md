@@ -1,6 +1,6 @@
 # Aspire.Npgsql.EntityFrameworkCore.PostgreSQL library
 
-Registers [EntityFrameworkCore](https://learn.microsoft.com/ef/core/) [DbContext](https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbcontext) in the DI container for connecting PostgreSQL®* database. Enables connection pooling, health check, logging and telemetry.
+Registers [EntityFrameworkCore](https://learn.microsoft.com/ef/core/) [DbContext](https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbcontext) in the DI container for connecting PostgreSQL®* database. Enables connection pooling, retries, health check, logging and telemetry.
 
 ## Getting started
 
@@ -35,6 +35,14 @@ public ProductsController(MyDbContext context)
 }
 ```
 
+You might also need to configure specific option of Npgsql, or register a `DbContext` in other ways. In this case call the `EnrichNpgsqlDbContext` extension method, for example:
+
+```csharp
+var connectionString = builder.Configuration.GetConnectionString("catalogdb");
+builder.Services.AddDbContextPool<CatalogDbContext>(dbContextOptionsBuilder => dbContextOptionsBuilder.UseNpgsql(connectionString));
+builder.EnrichNpgsqlDbContext<CatalogDbContext>();
+```
+
 ## Configuration
 
 The .NET Aspire PostgreSQL EntityFrameworkCore Npgsql component provides multiple options to configure the database connection based on the requirements and conventions of your project.
@@ -57,6 +65,8 @@ And then the connection string will be retrieved from the `ConnectionStrings` co
 }
 ```
 
+The `EnrichNpgsqlDbContext` won't make use of the `ConnectionStrings` configuration section since it expects a `DbContext` to be registered at the point it is called.
+
 See the [ConnectionString documentation](https://www.npgsql.org/doc/connection-string-parameters.html) for more information on how to format this connection string.
 
 ### Use configuration providers
@@ -69,7 +79,6 @@ The .NET Aspire PostgreSQL EntityFrameworkCore Npgsql component supports [Micros
     "Npgsql": {
       "EntityFrameworkCore": {
         "PostgreSQL": {
-          "DbContextPooling": true,
           "HealthChecks": false,
           "Tracing": false
         }
@@ -85,6 +94,12 @@ Also you can pass the `Action<NpgsqlEntityFrameworkCorePostgreSQLSettings> confi
 
 ```csharp
     builder.AddNpgsqlDbContext<MyDbContext>("postgresdb", settings => settings.HealthChecks = false);
+```
+
+or
+
+```csharp
+    builder.EnrichNpgsqlDbContext<MyDbContext>(settings => settings.HealthChecks = false);
 ```
 
 ## AppHost extensions

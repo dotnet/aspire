@@ -9,20 +9,25 @@
 
         @if (ShowSpecOnlyToggle)
         {
-            <FluentButton Appearance="Appearance.Lightweight"
-                          Disabled="IsSpecOnlyToggleDisabled"
-                          IconEnd="@(_showAll ? _showSpecOnlyIcon : _showAllIcon)"
-                          Title="@(_showAll ? ControlStringsLoc[nameof(ControlsStrings.EnvironmentVariablesFilterToggleShowSpecOnly)] : ControlsStrings.EnvironmentVariablesFilterToggleShowAll)"
-                          aria-label="@(_showAll ? ControlStringsLoc[nameof(ControlsStrings.EnvironmentVariablesFilterToggleShowSpecOnly)] : ControlsStrings.EnvironmentVariablesFilterToggleShowAll)"
-                          OnClick="() => _showAll = !_showAll"
-                          slot="end" />
+            <FluentIconSwitch Appearance="Appearance.Lightweight"
+                              Disabled="IsSpecOnlyToggleDisabled"
+                              CheckedTitle="@ControlStringsLoc[nameof(ControlsStrings.EnvironmentVariablesFilterToggleShowSpecOnly)]"
+                              UncheckedTitle="@ControlStringsLoc[nameof(ControlsStrings.EnvironmentVariablesFilterToggleShowAll)]"
+                              OnToggle="@(() => _showAll = !_showAll)"
+                              CheckedIcon="@(new Icons.Regular.Size16.DocumentHeader())"
+                              UncheckedIcon="@(new Icons.Regular.Size16.DocumentOnePage())"
+                              slot="end"/>
         }
-        <FluentButton Appearance="Appearance.Lightweight"
-                      IconEnd="@(_defaultMasked ? _unmaskIcon : _maskIcon)"
-                      Title="@(_defaultMasked ? ControlStringsLoc[nameof(ControlsStrings.EnvironmentVariablesShowVariableValues)] : ControlStringsLoc[nameof(ControlsStrings.EnvironmentVariablesHideVariableValues)])"
-                      aria-label="@(_defaultMasked ? ControlStringsLoc[nameof(ControlsStrings.EnvironmentVariablesShowVariableValues)] : ControlStringsLoc[nameof(ControlsStrings.EnvironmentVariablesHideVariableValues)])"
-                      OnClick="ToggleMaskState"
-                      slot="end" />
+
+        <FluentIconSwitch @bind-Value="@_areEnvironmentVariablesMasked"
+                          Appearance="Appearance.Lightweight"
+                          CheckedTitle="@ControlStringsLoc[nameof(ControlsStrings.EnvironmentVariablesShowVariableValues)]"
+                          UncheckedTitle="@ControlStringsLoc[nameof(ControlsStrings.EnvironmentVariablesHideVariableValues)]"
+                          OnToggle="@ToggleMaskState"
+                          CheckedIcon="@(new Icons.Regular.Size16.Eye())"
+                          UncheckedIcon="@(new Icons.Regular.Size16.EyeOff())"
+                          slot="end" />
+
         <FluentSearch Placeholder="@ControlStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"
                       Immediate="true"
                       Autofocus="true"
@@ -82,7 +87,7 @@
                     </TemplateColumn>
                 </FluentDataGrid>
             </FluentAccordionItem>
-            <FluentAccordionItem Heading="Environment variables">
+            <FluentAccordionItem Heading="Environment variables" Expanded="true">
                 <div slot="end">
                     <FluentBadge Appearance="Appearance.Neutral"
                                  Circular="true">

@@ -3,7 +3,6 @@
 
 using System.Collections.Frozen;
 using System.Collections.Immutable;
-using Aspire.Dashboard.Utils;
 using Google.Protobuf.WellKnownTypes;
 
 namespace Aspire.Dashboard.Model;
@@ -75,4 +74,6 @@ public static class ResourceStates
 {
     public const string FinishedState = "Finished";
     public const string ExitedState = "Exited";
+    public const string FailedToStartState = "FailedToStart";
+    public const string StartingState = "Starting";
 }

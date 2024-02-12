@@ -23,7 +23,7 @@ internal sealed partial class DnsServiceEndPointResolver(
     string IHostNameFeature.HostName => hostName;
 
     /// <inheritdoc/>
-    public override string DisplayName => "DNS";
+    public override string ToString() => "DNS";
 
     protected override async Task ResolveAsyncCore()
     {

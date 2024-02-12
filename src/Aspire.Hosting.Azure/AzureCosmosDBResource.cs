@@ -3,11 +3,12 @@
 
 using System.Collections.ObjectModel;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure.Cosmos;
 
 namespace Aspire.Hosting.Azure.Data.Cosmos;
 
 /// <summary>
-/// Represents a connection to an Azure Cosmos DB account.
+/// A resource that represents an Azure Cosmos DB.
 /// </summary>
 /// <param name="name">The resource name.</param>
 /// <param name="connectionString">The connection string to use to connect.</param>
@@ -58,13 +59,5 @@ public class AzureCosmosDBResource(string name, string? connectionString)
 
 file static class AzureCosmosDBEmulatorConnectionString
 {
-    /// <summary>
-    /// Gets the well-known and documented Azure Cosmos DB emulator account key.
-    /// See <a href="https://learn.microsoft.com/azure/cosmos-db/emulator#authentication"></a>
-    /// </summary>
-    private const string ConnectionStringHeader = """
-        AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==;
-        """;
-
-    public static string Create(int port) => $"{ConnectionStringHeader}AccountEndpoint=https://127.0.0.1:{port};";
+    public static string Create(int port) => $"AccountKey={CosmosConstants.EmulatorAccountKey};AccountEndpoint=https://127.0.0.1:{port};";
 }

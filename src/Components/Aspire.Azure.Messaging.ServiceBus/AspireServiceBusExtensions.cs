@@ -28,7 +28,7 @@ public static class AspireServiceBusExtensions
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureMessagingServiceBusSettings"/>. It's invoked after the settings are read from the configuration.</param>
-    /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{ServiceBusClient, ServiceBusClientOptions}"/>.</param>
+    /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{TClient, TOptions}"/>.</param>
     /// <remarks>Reads the configuration from "Aspire:Azure:Messaging:ServiceBus" section.</remarks>
     /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureMessagingServiceBusSettings.ConnectionString"/> nor <see cref="AzureMessagingServiceBusSettings.Namespace"/> is provided.</exception>
     public static void AddAzureServiceBus(
@@ -46,7 +46,7 @@ public static class AspireServiceBusExtensions
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection string from the ConnectionStrings configuration section.</param>
     /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureMessagingServiceBusSettings"/>. It's invoked after the settings are read from the configuration.</param>
-    /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{ServiceBusClient, ServiceBusClientOptions}"/>.</param>
+    /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{TClient, TOptions}"/>.</param>
     /// <remarks>Reads the configuration from "Aspire:Azure:Messaging:ServiceBus:{name}" section.</remarks>
     /// <exception cref="InvalidOperationException">Thrown when neither <see cref="AzureMessagingServiceBusSettings.ConnectionString"/> nor <see cref="AzureMessagingServiceBusSettings.Namespace"/> is provided.</exception>
     public static void AddKeyedAzureServiceBus(
@@ -64,9 +64,6 @@ public static class AspireServiceBusExtensions
 
     private sealed class MessageBusComponent : AzureComponent<AzureMessagingServiceBusSettings, ServiceBusClient, ServiceBusClientOptions>
     {
-        // TODO: Remove "Azure.Messaging.ServiceBus" source when https://github.com/Azure/azure-sdk-for-net/issues/39166 is fixed
-        protected override string[] ActivitySourceNames => ["Azure.Messaging.ServiceBus.*", "Azure.Messaging.ServiceBus"];
-
         protected override IAzureClientBuilder<ServiceBusClient, ServiceBusClientOptions> AddClient<TBuilder>(TBuilder azureFactoryBuilder, AzureMessagingServiceBusSettings settings, string connectionName, string configurationSectionName)
         {
             return azureFactoryBuilder.RegisterClientFactory<ServiceBusClient, ServiceBusClientOptions>((options, cred) =>

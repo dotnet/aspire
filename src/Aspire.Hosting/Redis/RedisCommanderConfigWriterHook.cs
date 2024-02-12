@@ -17,7 +17,7 @@ public class RedisCommanderConfigWriterHook : IDistributedApplicationLifecycleHo
             return Task.CompletedTask;
         }
 
-        var redisInstances = appModel.Resources.OfType<IRedisResource>();
+        var redisInstances = appModel.Resources.OfType<RedisResource>();
 
         if (!redisInstances.Any())
         {

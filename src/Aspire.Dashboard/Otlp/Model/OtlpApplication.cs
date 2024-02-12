@@ -4,7 +4,6 @@
 using System.Diagnostics;
 using Aspire.Dashboard.Model;
 using Google.Protobuf.Collections;
-using Microsoft.Extensions.Logging;
 using OpenTelemetry.Proto.Common.V1;
 using OpenTelemetry.Proto.Metrics.V1;
 using OpenTelemetry.Proto.Resource.V1;

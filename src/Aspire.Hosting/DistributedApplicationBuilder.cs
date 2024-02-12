@@ -9,6 +9,7 @@ using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
 
@@ -44,6 +45,9 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _args = options.Args ?? [];
         _innerBuilder = new HostApplicationBuilder();
 
+        _innerBuilder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.Warning);
+        _innerBuilder.Logging.AddFilter("Microsoft.AspNetCore.Server.Kestrel", LogLevel.None);
+
         AppHostDirectory = options.ProjectDirectory ?? _innerBuilder.Environment.ContentRootPath;
 
         // Make the app host directory available to the application via configuration
@@ -54,21 +58,25 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         // Core things
         _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Resources));
+        _innerBuilder.Services.AddHostedService<DistributedApplicationLifecycle>();
         _innerBuilder.Services.AddHostedService<DistributedApplicationRunner>();
         _innerBuilder.Services.AddSingleton(options);
+
+        // Dashboard
+        _innerBuilder.Services.AddSingleton<DashboardServiceHost>();
+        _innerBuilder.Services.AddHostedService<DashboardServiceHost>(sp => sp.GetRequiredService<DashboardServiceHost>());
+        _innerBuilder.Services.AddLifecycleHook<DashboardManifestExclusionHook>();
 
         // DCP stuff
         _innerBuilder.Services.AddLifecycleHook<DcpDistributedApplicationLifecycleHook>();
         _innerBuilder.Services.AddSingleton<ApplicationExecutor>();
+        _innerBuilder.Services.AddSingleton<IDashboardEndpointProvider, HostDashboardEndpointProvider>();
+        _innerBuilder.Services.AddSingleton<IDashboardAvailability, HttpPingDashboardAvailability>();
         _innerBuilder.Services.AddHostedService<DcpHostService>();
-
-        // Dashboard
-        _innerBuilder.Services.AddHostedService<DashboardServiceHost>();
-        _innerBuilder.Services.AddHostedService<DashboardWebApplicationHost>();
 
         // We need a unique path per application instance
         _innerBuilder.Services.AddSingleton(new Locations());
-        _innerBuilder.Services.AddSingleton<KubernetesService>();
+        _innerBuilder.Services.AddSingleton<IKubernetesService, KubernetesService>();
 
         // Publishing support
         ConfigurePublishingOptions(options);
@@ -103,6 +111,15 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         AspireEventSource.Instance.DistributedApplicationBuildStart();
         try
         {
+            // AddResource(resource) validates that a name is unique but it's possible to add resources directly to the resource collection.
+            // Validate names for duplicates while building the application.
+            foreach (var duplicateResourceName in Resources.GroupBy(r => r.Name, StringComparers.ResourceName)
+                .Where(g => g.Count() > 1)
+                .Select(g => g.Key))
+            {
+                throw new DistributedApplicationException($"Multiple resources with the name '{duplicateResourceName}'. Resource names are case-insensitive.");
+            }
+
             var application = new DistributedApplication(_innerBuilder.Build(), _args);
             return application;
         }
@@ -115,12 +132,18 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     /// <inheritdoc />
     public IResourceBuilder<T> AddResource<T>(T resource) where T : IResource
     {
-        if (Resources.FirstOrDefault(r => r.Name == resource.Name) is { } existingResource)
+        if (Resources.FirstOrDefault(r => string.Equals(r.Name, resource.Name, StringComparisons.ResourceName)) is { } existingResource)
         {
-            throw new DistributedApplicationException($"Cannot add resource of type '{resource.GetType()}' with name '{resource.Name}' because resource of type '{existingResource.GetType()}' with that name already exists.");
+            throw new DistributedApplicationException($"Cannot add resource of type '{resource.GetType()}' with name '{resource.Name}' because resource of type '{existingResource.GetType()}' with that name already exists. Resource names are case-insensitive.");
         }
 
         Resources.Add(resource);
+        return CreateResourceBuilder(resource);
+    }
+
+    /// <inheritdoc />
+    public IResourceBuilder<T> CreateResourceBuilder<T>(T resource) where T : IResource
+    {
         var builder = new DistributedApplicationResourceBuilder<T>(this, resource);
         return builder;
     }

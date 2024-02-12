@@ -1,21 +1,42 @@
 import {
     accentBaseColor,
     baseLayerLuminance,
-    SwatchRGB
+    SwatchRGB,
+    fillColor,
+    neutralLayerL2
 } from "/_content/Microsoft.FluentUI.AspNetCore.Components/Microsoft.FluentUI.AspNetCore.Components.lib.module.js";
 
 const currentThemeCookieName = "currentTheme";
 const themeSettingSystem = "System";
 const themeSettingDark = "Dark";
 const themeSettingLight = "Light";
-const darkThemeLuminance = 0.15;
-const lightThemeLuminance = 0.95;
+const darkThemeLuminance = 0.19;
+const lightThemeLuminance = 1.0;
+
+/**
+ * Updates the current theme on the site based on the specified theme
+ * @param {string} specifiedTheme
+ */
+export function updateTheme(specifiedTheme) {
+    const effectiveTheme = getEffectiveTheme(specifiedTheme);
+
+    applyTheme(effectiveTheme);
+    setThemeCookie(specifiedTheme);
+}
+
+/**
+ * Returns the value of the currentTheme cookie, or System if the cookie is not set.
+ * @returns {string}
+ */
+export function getThemeCookieValue() {
+    return getCookieValue(currentThemeCookieName) ?? themeSettingSystem;
+}
 
 /**
  * Returns the current system theme (Light or Dark)
  * @returns {string}
  */
-export function getSystemTheme() {
+function getSystemTheme() {
     let matched = window.matchMedia('(prefers-color-scheme: dark)').matches;
 
     if (matched) {
@@ -29,19 +50,15 @@ export function getSystemTheme() {
  * Sets the currentTheme cookie to the specified value.
  * @param {string} theme
  */
-export function setThemeCookie(theme) {
+function setThemeCookie(theme) {
     document.cookie = `${currentThemeCookieName}=${theme}`;
 }
 
 /**
  * Sets the document data-theme attribute to the specified value.
- * @param {string} theme
+ * @param {string} theme The theme to set. Should be Light or Dark.
  */
-export function setThemeOnDocument(theme) {
-
-    if (!theme || theme === themeSettingSystem) {
-        theme = getSystemTheme();
-    }
+function setThemeOnDocument(theme) {
 
     if (theme === themeSettingDark) {
         document.documentElement.setAttribute('data-theme', 'dark');
@@ -51,15 +68,12 @@ export function setThemeOnDocument(theme) {
 }
 
 /**
- * Returns the value of the currentTheme cookie, or System if the cookie is not set.
- * @returns {string}
+ * 
+ * @param {string} theme The theme to use. Should be Light or Dark.
  */
-export function getThemeCookieValue() {
-    return getCookieValue(currentThemeCookieName) ?? themeSettingSystem;
-}
-
-export function setDefaultBaseLayerLuminance(value) {
-    baseLayerLuminance.withDefault(value);
+function setBaseLayerLuminance(theme) {
+    const baseLayerLuminanceValue = getBaseLayerLuminanceForTheme(theme);
+    baseLayerLuminance.withDefault(baseLayerLuminanceValue);
 }
 
 /**
@@ -81,23 +95,37 @@ function getCookieValue(cookieName) {
     return "";
 }
 
-function setInitialBaseLayerLuminance() {
-    let theme = getThemeCookieValue();
-
-    if (!theme || theme === themeSettingSystem) {
-        theme = getSystemTheme();
+/**
+ * Converts a setting value for the theme (Light, Dark, System or null/empty) into the effective theme that should be applied
+ * @param {string} specifiedTheme The setting value to use to determine the effective theme. Anything other than Light or Dark will be treated as System
+ * @returns {string} The actual theme to use based on the supplied setting. Will be either Light or Dark.
+ */
+function getEffectiveTheme(specifiedTheme) {
+    if (specifiedTheme === themeSettingLight ||
+        specifiedTheme === themeSettingDark) {
+        return specifiedTheme;
+    } else {
+        return getSystemTheme();
     }
-
-    if (theme === themeSettingDark) {
-        baseLayerLuminance.withDefault(darkThemeLuminance);
-    } else /* Light */ {
-        baseLayerLuminance.withDefault(lightThemeLuminance);
-    }
-
-    setThemeOnDocument(theme);
 }
 
-function setInitialAccentColor() {
+/**
+ * 
+ * @param {string} theme The theme to use. Should be Light or Dark
+ * @returns {string}
+ */
+function getBaseLayerLuminanceForTheme(theme) {
+    if (theme === themeSettingDark) {
+        return darkThemeLuminance;
+    } else /* Light */ {
+        return lightThemeLuminance;
+    }
+}
+
+/**
+ * Configures the accent color palette based on the .NET purple
+ */
+function setAccentColor() {
     // Convert the base color ourselves to avoid pulling in the
     // @microsoft/fast-colors library just for one call to parseColorHexRGB
     const baseColor = { // #512BD4
@@ -110,5 +138,33 @@ function setInitialAccentColor() {
     accentBaseColor.withDefault(accentBase);
 }
 
-setInitialBaseLayerLuminance();
-setInitialAccentColor();
+/**
+ * Configures the default background color to use for the body
+ */
+function setFillColor() {
+    // Design specs say we should use --neutral-layer-2 as the fill color
+    // for the body. Most of the web components use --fill-color as their
+    // background color, so we need to make sure they get --neutral-layer-2
+    // when they request --fill-color.
+    fillColor.setValueFor(document.body, neutralLayerL2);
+}
+
+/**
+ * Applies the Light or Dark theme to the entire site
+ * @param {string} theme The theme to use. Should be Light or Dark
+ */
+function applyTheme(theme) {
+    setBaseLayerLuminance(theme);
+    setAccentColor();
+    setFillColor();
+    setThemeOnDocument(theme);
+}
+
+function initializeTheme() {
+    const themeCookieValue = getThemeCookieValue();
+    const effectiveTheme = getEffectiveTheme(themeCookieValue);
+
+    applyTheme(effectiveTheme);
+}
+
+initializeTheme();

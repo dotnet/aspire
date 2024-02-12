@@ -22,10 +22,15 @@ public sealed class EndpointAnnotation : IResourceAnnotation
         // is because we eventually always need these values to be populated so lets do
         // it up front.
 
+        uriScheme ??= protocol.ToString().ToLowerInvariant();
+        name ??= uriScheme;
+
+        ModelName.ValidateName(nameof(EndpointAnnotation), name);
+
         Protocol = protocol;
-        UriScheme = uriScheme ?? protocol.ToString().ToLowerInvariant();
+        UriScheme = uriScheme;
         Transport = transport ?? (UriScheme == "http" || UriScheme == "https" ? "http" : Protocol.ToString().ToLowerInvariant());
-        Name = name ?? UriScheme;
+        Name = name;
         Port = port;
         ContainerPort = containerPort ?? port;
         IsExternal = isExternal ?? false;
@@ -48,7 +53,7 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     public int? Port { get; internal set; }
 
     /// <summary>
-    /// If the binding is used for the container, this is the port the container process is listening on.
+    /// If the endpoint is used for the container, this is the port the container process is listening on.
     /// </summary>
     /// <remarks>
     /// Defaults to <see cref="Port"/>.

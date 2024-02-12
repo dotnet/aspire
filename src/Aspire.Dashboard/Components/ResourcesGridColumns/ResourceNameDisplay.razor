@@ -1,10 +1,11 @@
-﻿@using Aspire.Dashboard.Model
+﻿@namespace Aspire.Dashboard.Components
+
+@using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Resources
 @inject IStringLocalizer<Columns> Loc
 
-<FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
-    <span><FluentHighlighter HighlightedText="@FilterText" Text="@FormatName(Resource)" /></span>
-</FluentStack>
+<span title="@FormatName(Resource)"><FluentHighlighter HighlightedText="@FilterText" Text="@FormatName(Resource)"/></span>
 
 @code {
     [Parameter, EditorRequired]

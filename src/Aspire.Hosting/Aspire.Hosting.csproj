@@ -5,6 +5,7 @@
     <OutputType>Library</OutputType>
     <IsPackable>true</IsPackable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DefineConstants>ASPIRE_EVENTSOURCE</DefineConstants>
     <NoWarn>$(NoWarn);CS8002</NoWarn>
     <PackageTags>aspire hosting</PackageTags>
     <Description>Core API and abstractions for the .NET Aspire application model.</Description>
@@ -15,7 +16,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\Aspire.Dashboard\Utils\StringComparers.cs" Link="Utils\StringComparers.cs" />
+    <Compile Include="$(SharedDir)Model\KnownProperties.cs" Link="Dashboard\KnownProperties.cs" />
+    <Compile Include="$(SharedDir)Model\KnownResourceTypes.cs" Link="Dashboard\KnownResourceTypes.cs" />
+    <Compile Include="$(SharedDir)ChannelExtensions.cs" Link="Extensions\ChannelExtensions.cs" />
+    <Compile Include="$(SharedDir)IConfigurationExtensions.cs" Link="Utils\IConfigurationExtensions.cs" />
+    <Compile Include="$(SharedDir)KnownResourceNames.cs" Link="Utils\KnownResourceNames.cs" />
+    <Compile Include="$(SharedDir)StringComparers.cs" Link="Utils\StringComparers.cs" />
+    <Compile Include="$(SharedDir)KnownFormats.cs" Link="Utils\KnownFormats.cs" />
+    <Compile Include="$(SharedDir)ValueStopwatch\*.cs" LinkBase="Utils" />
   </ItemGroup>
 
   <ItemGroup>
@@ -27,10 +35,6 @@
   <!-- Download DCP orchestrator components for local development -->
   <ItemGroup>
     <PackageDownload Include="Microsoft.DeveloperControlPlane.$(BuildOs)-$(BuildArch)" Version="[$(MicrosoftDeveloperControlPlanedarwinamd64PackageVersion)]" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\Aspire.Dashboard\Aspire.Dashboard.csproj" />
   </ItemGroup>
 
   <ItemGroup>

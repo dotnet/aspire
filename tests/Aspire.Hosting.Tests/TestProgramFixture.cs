@@ -39,7 +39,7 @@ public abstract class TestProgramFixture : IAsyncLifetime
 
         _httpClient = _app.Services.GetRequiredService<IHttpClientFactory>().CreateClient();
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
+        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
 
         await _app.StartAsync(cts.Token);
 
@@ -90,37 +90,6 @@ public class SlimTestProgramFixture : TestProgramFixture
 }
 
 /// <summary>
-/// TestProgram with integration services but no dashboard or node app.
-/// </summary>
-/// <remarks>
-/// Use <c>[Collection("IntegrationServices")]</c> to inject this fixture in test constructors.
-/// </remarks>
-public class IntegrationServicesFixture : TestProgramFixture
-{
-    public override TestProgram CreateTestProgram()
-    {
-        var testProgram = TestProgram.Create<DistributedApplicationTests>(includeIntegrationServices: true);
-
-        testProgram.AppBuilder.Services
-            .AddHttpClient()
-            .ConfigureHttpClientDefaults(b =>
-            {
-                b.UseSocketsHttpHandler((handler, sp) => handler.PooledConnectionLifetime = TimeSpan.FromSeconds(5));
-
-                // Ensure transient errors are retried.
-                b.AddStandardResilienceHandler();
-            });
-
-        return testProgram;
-    }
-
-    public override Task WaitReadyStateAsync(CancellationToken cancellationToken = default)
-    {
-        return TestProgram.IntegrationServiceABuilder!.HttpGetPidAsync(HttpClient, "http", cancellationToken);
-    }
-}
-
-/// <summary>
 /// TestProgram with node app but no dashboard or integration services.
 /// </summary>
 /// <remarks>
@@ -150,14 +119,6 @@ public class NodeAppFixture : TestProgramFixture
 
 [CollectionDefinition("SlimTestProgram")]
 public class SlimTestProgramCollection : ICollectionFixture<SlimTestProgramFixture>
-{
-    // This class has no code, and is never created. Its purpose is simply
-    // to be the place to apply [CollectionDefinition] and all the
-    // ICollectionFixture<> interfaces.
-}
-
-[CollectionDefinition("IntegrationServices")]
-public class IntegrationServicesCollection : ICollectionFixture<IntegrationServicesFixture>
 {
     // This class has no code, and is never created. Its purpose is simply
     // to be the place to apply [CollectionDefinition] and all the

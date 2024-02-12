@@ -55,6 +55,11 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
         void TrackResourceSnapshots()
         {
+            if (!DashboardClient.IsEnabled)
+            {
+                return;
+            }
+
             var (snapshot, subscription) = DashboardClient.SubscribeResources();
 
             foreach (var resource in snapshot)
@@ -92,6 +97,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     {
         await this.InitializeViewModelAsync();
 
+        await ClearLogsAsync();
+
         if (ViewModel.SelectedResource is not null)
         {
             await LoadLogsAsync();
@@ -99,7 +106,6 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         else
         {
             await StopWatchingLogsAsync();
-            await ClearLogsAsync();
         }
     }
 

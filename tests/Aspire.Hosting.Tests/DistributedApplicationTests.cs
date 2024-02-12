@@ -12,6 +12,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Xunit;
 using Xunit.Abstractions;
+using VolumeMountType = Aspire.Hosting.ApplicationModel.VolumeMountType;
 
 namespace Aspire.Hosting.Tests;
 
@@ -115,43 +116,20 @@ public class DistributedApplicationTests
     }
 
     [Fact]
-    public async Task TryAddWillNotAddTheSameLifecycleHook()
+    public void TryAddWillNotAddTheSameLifecycleHook()
     {
-        var exceptionMessage = "Exception from lifecycle hook to prove it ran!";
-
-        var signal = (FirstHookExecuted: false, SecondHookExecuted: false);
-
         var testProgram = CreateTestProgram();
 
-        // Lifecycle hook 1
-        testProgram.AppBuilder.Services.TryAddLifecycleHook((sp) =>
-        {
-            return new CallbackLifecycleHook((app, cancellationToken) =>
-            {
-                signal.FirstHookExecuted = true;
-                return Task.CompletedTask;
-            });
-        });
+        var callback1 = (IServiceProvider sp) => new DummyLifecycleHook();
+        testProgram.AppBuilder.Services.TryAddLifecycleHook(callback1);
 
-        // Lifecycle hook 2
-        testProgram.AppBuilder.Services.TryAddLifecycleHook((sp) =>
-        {
-            return new CallbackLifecycleHook((app, cancellationToken) =>
-            {
-                signal.SecondHookExecuted = true;
+        var callback2 = (IServiceProvider sp) => new DummyLifecycleHook();
+        testProgram.AppBuilder.Services.TryAddLifecycleHook(callback2);
 
-                // We still want to throw on the second one to block startup.
-                throw new DistributedApplicationException(exceptionMessage);
-            });
-        });
+        var lifecycleHookDescriptors = testProgram.AppBuilder.Services.Where(sd => sd.ServiceType == typeof(IDistributedApplicationLifecycleHook));
 
-        using var cts = new CancellationTokenSource();
-        cts.CancelAfter(TimeSpan.FromMinutes(1));
-        await using var app = testProgram.Build();
-        await app.StartAsync(cts.Token);
-
-        Assert.True(signal.FirstHookExecuted);
-        Assert.False(signal.SecondHookExecuted);
+        Assert.Single(lifecycleHookDescriptors.Where(sd => sd.ImplementationFactory == callback1));
+        Assert.Empty(lifecycleHookDescriptors.Where(sd => sd.ImplementationFactory == callback2));
     }
 
     [LocalOnlyFact]
@@ -251,7 +229,7 @@ public class DistributedApplicationTests
 
         await app.StartAsync();
 
-        var s = app.Services.GetRequiredService<KubernetesService>();
+        var s = app.Services.GetRequiredService<IKubernetesService>();
         var list = await s.ListAsync<Container>();
 
         Assert.Collection(list,
@@ -272,14 +250,14 @@ public class DistributedApplicationTests
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
         testProgram.ServiceABuilder
-            .WithEndpoint(scheme: "http", name: "http0", env: "PORT0");
+            .WithHttpEndpoint(name: "http0", env: "PORT0");
 
         testProgram.AppBuilder.AddContainer("redis0", "redis")
             .WithEndpoint(containerPort: 6379, name: "tcp", env: "REDIS_PORT");
 
         await using var app = testProgram.Build();
 
-        var kubernetes = app.Services.GetRequiredService<KubernetesService>();
+        var kubernetes = app.Services.GetRequiredService<IKubernetesService>();
 
         await app.StartAsync();
 
@@ -331,7 +309,7 @@ public class DistributedApplicationTests
 
         await app.StartAsync();
 
-        var s = app.Services.GetRequiredService<KubernetesService>();
+        var s = app.Services.GetRequiredService<IKubernetesService>();
 
         using var cts = new CancellationTokenSource(Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(10));
         var token = cts.Token;
@@ -345,6 +323,135 @@ public class DistributedApplicationTests
         Assert.Equal("bob", redisContainer.Spec.Command);
 
         await app.StopAsync();
+    }
+
+    [LocalOnlyFact("docker")]
+    public async Task VerifyDockerWithBoundVolumeMountWorksWithAbsolutePaths()
+    {
+        var testProgram = CreateTestProgram();
+        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+
+        testProgram.AppBuilder.AddContainer("redis-cli", "redis")
+            .WithVolumeMount("/etc/path-here", $"path-here", VolumeMountType.Bind);
+
+        await using var app = testProgram.Build();
+
+        await app.StartAsync();
+
+        var s = app.Services.GetRequiredService<IKubernetesService>();
+
+        using var cts = new CancellationTokenSource(Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(10));
+        var token = cts.Token;
+
+        var redisContainer = await KubernetesHelper.GetResourceByNameAsync<Container>(
+                s,
+                "redis-cli", r => r.Spec.VolumeMounts != null,
+                token);
+
+        Assert.NotNull(redisContainer.Spec.VolumeMounts);
+        Assert.NotEmpty(redisContainer.Spec.VolumeMounts);
+        Assert.Equal("/etc/path-here", redisContainer.Spec.VolumeMounts[0].Source);
+
+        await app.StopAsync();
+    }
+
+    [LocalOnlyFact("docker")]
+    public async Task VerifyDockerWithBoundVolumeMountWorksWithRelativePaths()
+    {
+        var testProgram = CreateTestProgram();
+        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+
+        testProgram.AppBuilder.AddContainer("redis-cli", "redis")
+            .WithVolumeMount("etc/path-here", $"path-here", VolumeMountType.Bind);
+
+        await using var app = testProgram.Build();
+
+        await app.StartAsync();
+
+        var s = app.Services.GetRequiredService<IKubernetesService>();
+
+        using var cts = new CancellationTokenSource(Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(10));
+        var token = cts.Token;
+
+        var redisContainer = await KubernetesHelper.GetResourceByNameAsync<Container>(
+            s,
+            "redis-cli", r => r.Spec.VolumeMounts != null,
+            token);
+
+        Assert.NotNull(redisContainer.Spec.VolumeMounts);
+        Assert.NotEmpty(redisContainer.Spec.VolumeMounts);
+        Assert.NotEqual("etc/path-here", redisContainer.Spec.VolumeMounts[0].Source);
+        Assert.True(Path.IsPathRooted(redisContainer.Spec.VolumeMounts[0].Source));
+
+        await app.StopAsync();
+    }
+
+    [LocalOnlyFact("docker")]
+    public async Task KubernetesHasResourceNameForContainersAndExes()
+    {
+        var testProgram = CreateTestProgram(includeIntegrationServices: true, includeNodeApp: true);
+        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+
+        await using var app = testProgram.Build();
+
+        await app.StartAsync();
+
+        var s = app.Services.GetRequiredService<IKubernetesService>();
+
+        using var cts = new CancellationTokenSource(Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(10));
+        var token = cts.Token;
+
+        var expectedExeResources = new HashSet<string>()
+        {
+            "servicea",
+            "serviceb",
+            "servicec",
+            "workera",
+            "nodeapp",
+            "npmapp",
+            "integrationservicea"
+        };
+
+        var expectedContainerResources = new HashSet<string>()
+        {
+            "redis",
+            "postgres",
+            "mongodb",
+            "oracledatabase",
+            "cosmos",
+            "sqlserver",
+            "mysql",
+            "rabbitmq",
+            "kafka"
+        };
+
+        await foreach (var resource in s.WatchAsync<Container>(cancellationToken: token))
+        {
+            Assert.True(resource.Item2.Metadata.Annotations.TryGetValue(Container.ResourceNameAnnotation, out var value));
+            if (expectedContainerResources.Contains(value))
+            {
+                expectedContainerResources.Remove(value);
+            }
+
+            if (expectedContainerResources.Count == 0)
+            {
+                break;
+            }
+        }
+
+        await foreach(var resource in s.WatchAsync<Executable>(cancellationToken: token))
+        {
+            Assert.True(resource.Item2.Metadata.Annotations.TryGetValue(Executable.ResourceNameAnnotation, out var value));
+            if (expectedExeResources.Contains(value))
+            {
+                expectedExeResources.Remove(value);
+            }
+
+            if (expectedExeResources.Count == 0)
+            {
+                break;
+            }
+        }
     }
 
     private static TestProgram CreateTestProgram(string[]? args = null, bool includeIntegrationServices = false, bool includeNodeApp = false) =>

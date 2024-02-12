@@ -5,6 +5,9 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Azure.Data.Cosmos;
 
+/// <summary>
+/// A resource that represents an Azure Cosmos DB database.
+/// </summary>
 public class AzureCosmosDBDatabaseResource : Resource, IResourceWithConnectionString, IResourceWithParent<AzureCosmosDBResource>
 {
     /// <summary>
@@ -26,5 +29,5 @@ public class AzureCosmosDBDatabaseResource : Resource, IResourceWithConnectionSt
     /// Gets the connection string to use for this database.
     /// </summary>
     /// <returns>The connection string to use for this database.</returns>
-    public string? GetConnectionString() => ConnectionString;
+    public string? GetConnectionString() => ConnectionString ?? Parent.GetConnectionString(); // HACK: Will go away when we get rid of Azure Provisioner package.
 }

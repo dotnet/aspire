@@ -58,9 +58,6 @@
   <data name="StructuredLogsTraceColumnHeader" xml:space="preserve">
     <value>Trace</value>
   </data>
-  <data name="StructuredLogsDetailsColumnHeader" xml:space="preserve">
-    <value>Details</value>
-  </data>
   <data name="StructuredLogsNoLogsFound" xml:space="preserve">
     <value>No structured logs found</value>
   </data>
