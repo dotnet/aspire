@@ -76,6 +76,16 @@ public class DashboardWebApplication
 
         _app = builder.Build();
 
+        // this needs to be explicitly enumerated
+        var supportedLanguages = new[]
+        {
+            "en", "cs", "de", "es", "fr", "it", "ja", "ko", "pl", "pt-BR", "ru", "tr", "zh-Hans", "zh-Hant"
+        };
+
+        _app.UseRequestLocalization(new RequestLocalizationOptions()
+            .AddSupportedCultures(supportedLanguages)
+            .AddSupportedUICultures(supportedLanguages));
+
         var logger = _app.Logger;
 
         if (dashboardUris.FirstOrDefault() is { } reportedDashboardUri)
