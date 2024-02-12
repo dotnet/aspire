@@ -9,6 +9,9 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AppHost", "playground\TestShop\AppHost\AppHost.csproj", "{C1D595AD-FFFD-4E52-AAF6-8DD8C4BD67F1}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "playground", "playground", "{D173887B-AF42-4576-B9C1-96B9E9B3D9C0}"
+	ProjectSection(SolutionItems) = preProject
+		playground\AISearchEndToEnd\AISearch.AppHost\AISearch.AppHost.csproj = playground\AISearchEndToEnd\AISearch.AppHost\AISearch.AppHost.csproj
+	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ServiceDefaults", "playground\TestShop\ServiceDefaults\ServiceDefaults.csproj", "{C7B2309C-073A-4552-A508-A69768B64C6F}"
 EndProject
@@ -249,11 +252,17 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BicepSample.AppHost", "play
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BicepSample.ApiService", "playground\bicep\BicepSample.ApiService\BicepSample.ApiService.csproj", "{54FE1759-A648-4805-94FD-08F0F4B147CF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenAIEndToEnd.AppHost", "playground\OpenAIEndToEnd\OpenAIEndToEnd.AppHost\OpenAIEndToEnd.AppHost.csproj", "{13A785BC-A884-44CF-A8BA-BCF676294ED8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OpenAIEndToEnd.AppHost", "playground\OpenAIEndToEnd\OpenAIEndToEnd.AppHost\OpenAIEndToEnd.AppHost.csproj", "{13A785BC-A884-44CF-A8BA-BCF676294ED8}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "OpenAIEndToEnd", "OpenAIEndToEnd", "{80F5BEF8-A3D0-4F30-8C15-92001DF93539}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenAIEndToEnd.WebStory", "playground\OpenAIEndToEnd\OpenAIEndToEnd.WebStory\OpenAIEndToEnd.WebStory.csproj", "{621BE1D9-D9D5-4D5E-8404-3F5CC492B555}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OpenAIEndToEnd.WebStory", "playground\OpenAIEndToEnd\OpenAIEndToEnd.WebStory\OpenAIEndToEnd.WebStory.csproj", "{621BE1D9-D9D5-4D5E-8404-3F5CC492B555}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AISearchEndToEnd", "AISearchEndToEnd", "{9D0798BD-2863-4381-A098-46621245B924}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AISearch.ApiService", "playground\AISearchEndToEnd\AISearch.ApiService\AISearch.ApiService.csproj", "{187A67CC-04EE-44D4-A834-0F16B7A23043}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AISearch.AppHost", "playground\AISearchEndToEnd\AISearch.AppHost\AISearch.AppHost.csproj", "{B29A6BDD-8621-4B59-87D3-2223C9A74C15}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -673,6 +682,14 @@ Global
 		{621BE1D9-D9D5-4D5E-8404-3F5CC492B555}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{621BE1D9-D9D5-4D5E-8404-3F5CC492B555}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{621BE1D9-D9D5-4D5E-8404-3F5CC492B555}.Release|Any CPU.Build.0 = Release|Any CPU
+		{187A67CC-04EE-44D4-A834-0F16B7A23043}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{187A67CC-04EE-44D4-A834-0F16B7A23043}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{187A67CC-04EE-44D4-A834-0F16B7A23043}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{187A67CC-04EE-44D4-A834-0F16B7A23043}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B29A6BDD-8621-4B59-87D3-2223C9A74C15}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B29A6BDD-8621-4B59-87D3-2223C9A74C15}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B29A6BDD-8621-4B59-87D3-2223C9A74C15}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B29A6BDD-8621-4B59-87D3-2223C9A74C15}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -794,6 +811,9 @@ Global
 		{13A785BC-A884-44CF-A8BA-BCF676294ED8} = {80F5BEF8-A3D0-4F30-8C15-92001DF93539}
 		{80F5BEF8-A3D0-4F30-8C15-92001DF93539} = {4E1F1835-7006-412D-83A1-740709A54A26}
 		{621BE1D9-D9D5-4D5E-8404-3F5CC492B555} = {80F5BEF8-A3D0-4F30-8C15-92001DF93539}
+		{9D0798BD-2863-4381-A098-46621245B924} = {D173887B-AF42-4576-B9C1-96B9E9B3D9C0}
+		{187A67CC-04EE-44D4-A834-0F16B7A23043} = {9D0798BD-2863-4381-A098-46621245B924}
+		{B29A6BDD-8621-4B59-87D3-2223C9A74C15} = {9D0798BD-2863-4381-A098-46621245B924}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6DCEDFEC-988E-4CB3-B45B-191EB5086E0C}
