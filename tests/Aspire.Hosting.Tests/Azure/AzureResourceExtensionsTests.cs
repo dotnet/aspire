@@ -52,7 +52,10 @@ public class AzureResourceExtensionsTests
 
         var cosmos = builder.AddAzureCosmosDB("cosmos");
 
-        cosmos.UseEmulator(port);
+        cosmos.UseEmulator(container =>
+        {
+            container.UseGatewayPort(port);
+        });
 
         var endpointAnnotation = cosmos.Resource.Annotations.OfType<EndpointAnnotation>().FirstOrDefault();
         Assert.NotNull(endpointAnnotation);
@@ -71,7 +74,10 @@ public class AzureResourceExtensionsTests
 
         var cosmos = builder.AddAzureCosmosDB("cosmos");
 
-        cosmos.UseEmulator(imageTag: imageTag);
+        cosmos.UseEmulator(container =>
+        {
+            container.WithImageTag(imageTag);
+        });
 
         var containerImageAnnotation = cosmos.Resource.Annotations.OfType<ContainerImageAnnotation>().FirstOrDefault();
         Assert.NotNull(containerImageAnnotation);
