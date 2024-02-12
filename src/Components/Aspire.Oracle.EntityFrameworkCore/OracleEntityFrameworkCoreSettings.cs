@@ -14,16 +14,12 @@ public sealed class OracleEntityFrameworkCoreSettings
     public string? ConnectionString { get; set; }
 
     /// <summary>
-    /// Gets or sets a boolean value that indicates whether the db context will be pooled or explicitly created every time it's requested.
+    /// Gets or sets whether retries should be enabled.
     /// </summary>
-    public bool DbContextPooling { get; set; } = true;
-
-    /// <summary>
-    /// <para>Gets or sets the maximum number of retry attempts.</para>
-    /// <para>The default is 6.</para>
-    /// <para>Set it to 0 to disable the retry mechanism.</para>
-    /// </summary>
-    public int MaxRetryCount { get; set; } = 6;
+    /// <value>
+    /// The default value is <see langword="true"/>.
+    /// </value>
+    public bool Retry { get; set; } = true;
 
     /// <summary>
     /// <para>Gets or sets a boolean value that indicates whether the database health check is enabled or not.</para>
