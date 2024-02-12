@@ -173,8 +173,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServiceDefaults", "samples\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Nats", "src\Components\Aspire.Nats\Aspire.Nats.csproj", "{303E6308-740C-4673-96D2-0E81934C9E69}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.MongoDB.Driver", "src\Components\Aspire.MongoDB.Driver\Aspire.MongoDB.Driver.csproj", "{20A5A907-A135-4735-B4BF-E13514F360E3}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{2136E31D-2CBB-41BB-8618-716FF8E46E9E}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConfigurationSchemaGenerator", "src\Tools\ConfigurationSchemaGenerator\ConfigurationSchemaGenerator.csproj", "{39FA2A64-012F-4EB9-A14F-E8AC54C975F6}"
