@@ -161,15 +161,15 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aspire.MySqlConnector.Tests
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestProject.IntegrationServiceA", "tests\testproject\TestProject.IntegrationServiceA\TestProject.IntegrationServiceA.csproj", "{DCF2D47A-921A-4900-B5B2-CF97B3531CE8}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Nats", "Nats", "{91F22EEA-EB23-425A-9B32-9438A0809F4B}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "nats", "nats", "{91F22EEA-EB23-425A-9B32-9438A0809F4B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MyService", "samples\Nats\MyService\MyService.csproj", "{74F89D52-645B-4283-98AF-D04DA794EE37}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MyService", "playground\nats\Nats.ApiService\Nats.ApiService.csproj", "{74F89D52-645B-4283-98AF-D04DA794EE37}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AppHosting", "samples\Nats\AppHosting\AppHosting.csproj", "{A0BB6F6B-9543-4525-81D6-95DC07BD3D02}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AppHosting", "playground\nats\Nats.AppHosting\Nats.AppHosting.csproj", "{A0BB6F6B-9543-4525-81D6-95DC07BD3D02}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.Nats", "src\Aspire.Hosting.Nats\Aspire.Hosting.Nats.csproj", "{88C11654-B250-4C32-B2C2-83B34F46BE4E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServiceDefaults", "samples\Nats\ServiceDefaults\ServiceDefaults.csproj", "{0631CA8E-9C4E-4C02-B356-7B596F713EBD}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServiceDefaults", "playground\nats\Nats.ServiceDefaults\Nats.ServiceDefaults.csproj", "{0631CA8E-9C4E-4C02-B356-7B596F713EBD}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Nats", "src\Components\Aspire.Nats\Aspire.Nats.csproj", "{303E6308-740C-4673-96D2-0E81934C9E69}"
 EndProject
@@ -247,7 +247,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PostgresEndToEnd.ApiService
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "mysql", "mysql", "{621991F1-854A-4743-835B-10CAF11A0CFF}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MySqlDb.AppHost", "Playground\mysql\MySqlDb.AppHost\MySqlDb.AppHost.csproj", "{7E2AD00B-60E0-46C2-8640-7217D678F312}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MySqlDb.AppHost", "playground\mysql\MySqlDb.AppHost\MySqlDb.AppHost.csproj", "{7E2AD00B-60E0-46C2-8640-7217D678F312}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MySql.ApiService", "playground\mysql\MySql.ApiService\MySql.ApiService.csproj", "{F699F3AD-2AD9-454B-BA40-82AC3D6250FE}"
 EndProject

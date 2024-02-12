@@ -11,7 +11,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\Aspire.Hosting.Nats\Aspire.Hosting.Nats.csproj" />
     <ProjectReference Include="..\..\..\src\Aspire.Hosting\Aspire.Hosting.csproj" />
-    <ProjectReference Include="..\MyService\MyService.csproj" />
+    <ProjectReference Include="..\Nats.ApiService\Nats.ApiService.csproj" />
   </ItemGroup>
 
 </Project>
