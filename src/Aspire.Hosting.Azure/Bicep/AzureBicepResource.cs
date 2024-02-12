@@ -181,8 +181,8 @@ public class AzureBicepResource(string name, string? templateFile = null, string
 
                 var value = input.Value switch
                 {
-                    IResourceBuilder<ParameterResource> p => $"{{{p.Resource.Name}.value}}",
-                    IResourceBuilder<IResourceWithConnectionString> p => $"{{{p.Resource.Name}.connectionString}}",
+                    IResourceBuilder<ParameterResource> p => p.Resource.ValueExpression,
+                    IResourceBuilder<IResourceWithConnectionString> p => p.Resource.ConnectionStringExpression,
                     object obj => obj.ToString(),
                     null => ""
                 };
@@ -233,10 +233,19 @@ public readonly struct BicepTemplateFile(string path, bool deleteFileOnDispose) 
 /// <param name="resource">The <see cref="AzureBicepResource"/>.</param>
 public class BicepOutputReference(string name, AzureBicepResource resource)
 {
+    /// <summary>
+    /// Name of the output.
+    /// </summary>
     public string Name { get; } = name;
 
+    /// <summary>
+    /// The instance of the bicep resource.
+    /// </summary>
     public AzureBicepResource Resource { get; } = resource;
 
+    /// <summary>
+    /// The value of the output.
+    /// </summary>
     public string? Value
     {
         get
@@ -249,6 +258,11 @@ public class BicepOutputReference(string name, AzureBicepResource resource)
             return value;
         }
     }
+
+    /// <summary>
+    /// The expression used in the manifest to reference the value of the output.
+    /// </summary>
+    public string ValueExpression => $"{{{Resource.Name}.outputs.{Name}}}";
 }
 
 /// <summary>
@@ -311,16 +325,10 @@ public static class AzureBicepTemplateResourceExtensions
         {
             if (ctx.PublisherName == "manifest")
             {
-                ctx.EnvironmentVariables[name] = $"{{{bicepOutputReference.Resource.Name}.outputs.{bicepOutputReference.Name}}}";
+                ctx.EnvironmentVariables[name] = bicepOutputReference.ValueExpression;
                 return;
             }
 
-            if (!bicepOutputReference.Resource.Outputs.TryGetValue(bicepOutputReference.Name, out var value))
-            {
-                throw new InvalidOperationException($"No output for {bicepOutputReference.Name}");
-            }
-
-            // TODO: How do we handle complex objects?
             ctx.EnvironmentVariables[name] = bicepOutputReference.Value!;
         });
     }

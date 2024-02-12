@@ -6,8 +6,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.Data.Cosmos;
 using Aspire.Hosting.Publishing;
-using Aspire.Hosting.Utils;
-using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting;
 
