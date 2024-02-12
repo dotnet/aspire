@@ -82,6 +82,11 @@
         <target state="new">Show values</target>
         <note />
       </trans-unit>
+      <trans-unit id="GridValueCopied">
+        <source>Copied!</source>
+        <target state="new">Copied!</target>
+        <note />
+      </trans-unit>
       <trans-unit id="GridValueCopyToClipboard">
         <source>Copy to clipboard</source>
         <target state="new">Copy to clipboard</target>

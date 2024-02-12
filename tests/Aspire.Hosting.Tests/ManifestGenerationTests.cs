@@ -336,7 +336,7 @@ public class ManifestGenerationTests
         var program = CreateTestProgramJsonDocumentManifestPublisher();
 
         program.AppBuilder.AddKafka("kafkaabstract");
-        program.AppBuilder.AddKafkaContainer("kafkacontainer");
+        program.AppBuilder.AddKafka("kafkacontainer").PublishAsContainer();
 
         // Build AppHost so that publisher can be resolved.
         program.Build();

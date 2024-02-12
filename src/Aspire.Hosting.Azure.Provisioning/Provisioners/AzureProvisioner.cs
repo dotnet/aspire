@@ -235,7 +235,7 @@ internal sealed class AzureProvisioner(
 
             resourceMap ??= await resourceMapLazy.Value.ConfigureAwait(false);
             principal ??= await principalLazy.Value.ConfigureAwait(false);
-            provisioningContext ??= new ProvisioningContext(armClient, subscription, resourceGroup, resourceMap, location, principal, userSecrets);
+            provisioningContext ??= new ProvisioningContext(credential, armClient, subscription, resourceGroup, resourceMap, location, principal, userSecrets);
 
             var task = provisioner.GetOrCreateResourceAsync(
                     resource,
@@ -247,7 +247,10 @@ internal sealed class AzureProvisioner(
 
         if (tasks.Count > 0)
         {
-            await Task.WhenAll(tasks).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+            var task = Task.WhenAll(tasks);
+
+            // Suppress throwing so that we can save the user secrets even if the task fails
+            await task.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
 
             // If we created any resources then save the user secrets
             if (userSecretsPath is not null)
@@ -258,6 +261,9 @@ internal sealed class AzureProvisioner(
 
                 logger.LogInformation("Azure resource connection strings saved to user secrets.");
             }
+
+            // Throw if any of the tasks failed, but after we've saved to user secrets
+            await task.ConfigureAwait(false);
         }
 
         // Do this in the background to avoid blocking startup

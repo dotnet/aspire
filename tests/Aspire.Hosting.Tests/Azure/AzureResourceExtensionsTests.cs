@@ -7,42 +7,21 @@ namespace Aspire.Hosting.Tests.Azure;
 
 public class AzureResourceExtensionsTests
 {
-    [Theory]
-    [InlineData(null)]
-    [InlineData(8081)]
-    [InlineData(9007)]
-    public void AddAzureCosmosDBWithEmulatorGetsExpectedPort(int? port = null)
+    [Fact]
+    public void AzureStorageUserEmulatorCallbackWithUsePersistenceResultsInVolumeAnnotation()
     {
         var builder = DistributedApplication.CreateBuilder();
+        var storage = builder.AddAzureStorage("storage").UseEmulator(configureContainer: builder =>
+        {
+            builder.UsePersistence("mydata");
+        });
 
-        var cosmos = builder.AddAzureCosmosDB("cosmos");
+        var computedPath = Path.GetFullPath("mydata");
 
-        cosmos.UseEmulator(port);
-
-        var endpointAnnotation = cosmos.Resource.Annotations.OfType<EndpointAnnotation>().FirstOrDefault();
-        Assert.NotNull(endpointAnnotation);
-
-        var actualPort = endpointAnnotation.Port;
-        Assert.Equal(port, actualPort);
-    }
-
-    [Theory]
-    [InlineData(null)]
-    [InlineData("2.3.97-preview")]
-    [InlineData("1.0.7")]
-    public void AddAzureCosmosDBWithEmulatorGetsExpectedImageTag(string? imageTag = null)
-    {
-        var builder = DistributedApplication.CreateBuilder();
-
-        var cosmos = builder.AddAzureCosmosDB("cosmos");
-
-        cosmos.UseEmulator(imageTag: imageTag);
-
-        var containerImageAnnotation = cosmos.Resource.Annotations.OfType<ContainerImageAnnotation>().FirstOrDefault();
-        Assert.NotNull(containerImageAnnotation);
-
-        var actualTag = containerImageAnnotation.Tag;
-        Assert.Equal(imageTag ?? "latest", actualTag);
+        var volumeAnnotation = storage.Resource.Annotations.OfType<VolumeMountAnnotation>().Single();
+        Assert.Equal(computedPath, volumeAnnotation.Source);
+        Assert.Equal("/data", volumeAnnotation.Target);
+        Assert.Equal(VolumeMountType.Bind, volumeAnnotation.Type);
     }
 
     [Fact]

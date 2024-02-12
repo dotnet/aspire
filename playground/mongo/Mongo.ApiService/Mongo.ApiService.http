@@ -1,6 +1,7 @@
-@CosmosEndToEnd.ApiService_HostAddress = http://localhost:5301
+@ApiService_HostAddress = http://localhost:5301
 
-GET {{CosmosEndToEnd.ApiService_HostAddress}}/weatherforecast/
+GET {{ApiService_HostAddress}}/
 Accept: application/json
 
 ###
+

@@ -33,12 +33,14 @@ mssql
 mysql
 noreferrer
 noopener
+npgsql
 oninput
 openai
 orleans
 otel
 otlp
 pgadmin
+postgre
 postgres
 protoc
 rabbitmq
@@ -48,6 +50,7 @@ runtimeconfig
 sqlserver
 trce
 uninstrumented
+unix
 upsert
 uris
 urls

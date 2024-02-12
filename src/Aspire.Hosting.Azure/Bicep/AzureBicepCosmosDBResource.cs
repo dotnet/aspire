@@ -18,16 +18,6 @@ public class AzureBicepCosmosDBResource(string name) :
     internal List<string> Databases { get; } = [];
 
     /// <summary>
-    /// Name of the output key that contains the created resource name.
-    /// </summary>
-    public string ResourceNameOutputKey => "accountName";
-
-    /// <summary>
-    /// Name of the output key that will contain the account key.
-    /// </summary>
-    public string AccountKeyOutputKey => "accountKey";
-
-    /// <summary>
     /// Gets a value indicating whether the Azure Cosmos DB resource is running in the local emulator.
     /// </summary>
     public bool IsEmulator => this.IsContainer();
@@ -43,7 +33,7 @@ public class AzureBicepCosmosDBResource(string name) :
             return AzureCosmosDBEmulatorConnectionString.Create(GetEmulatorPort("emulator"));
         }
 
-        return $"AccountEndpoint={Outputs["documentEndpoint"]};AccountKey={Outputs[AccountKeyOutputKey]};";
+        return SecretOutputs["connectionString"];
     }
 
     private int GetEmulatorPort(string endpointName) =>
@@ -95,12 +85,13 @@ public static class AzureBicepCosmosExtensions
     {
         var resource = new AzureBicepCosmosDBResource(name)
         {
-            ConnectionStringTemplate = $"AccountEndpoint={{{name}.outputs.documentEndpoint}};AccountKey={{key(Microsoft.DocumentDB/databaseAccounts@2023-04-15/{{{name}.outputs.accountName}}).primaryMasterKey}}"
+            ConnectionStringTemplate = $"{{{name}.secretOutputs.connectionString}}"
         };
 
         return builder.AddResource(resource)
                       .WithParameter("databaseAccountName", resource.CreateBicepResourceName())
                       .WithParameter("databases", resource.Databases)
+                      .WithParameter(AzureBicepResource.KnownParameters.KeyVaultName)
                       .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 

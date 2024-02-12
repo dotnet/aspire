@@ -52,6 +52,12 @@ fluent-toolbar[orientation=horizontal] {
     --error-ui-accent-foreground-color: #512bd4;
     --reconnection-ui-bg: #D6D6D6;
     --error-counter-badge-foreground-color: #ffffff;
+
+    color-scheme: dark;
+}
+
+[data-theme="light"] {
+    color-scheme: light;
 }
 
  #components-reconnect-modal :is(h5, p) {
@@ -197,6 +203,10 @@ fluent-data-grid-cell .long-inner-content {
 .severity-icon {
     vertical-align: text-bottom;
     margin-right: 3px;
+}
+
+.align-text-bottom {
+    vertical-align: text-bottom;
 }
 
 split-panels::part(handle) {

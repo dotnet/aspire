@@ -6,8 +6,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.Data.Cosmos;
 using Aspire.Hosting.Publishing;
-using Aspire.Hosting.Utils;
-using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting;
 
@@ -158,27 +156,37 @@ public static class AzureResourceExtensions
     /// Configures an Azure Storage resource to be emulated using Azurite. This resource requires an <see cref="AzureStorageResource"/> to be added to the application model.
     /// </summary>
     /// <param name="builder">The Azure storage resource builder.</param>
-    /// <param name="blobPort">The port used for the blob endpoint.</param>
-    /// <param name="queuePort">The port used for the queue endpoint.</param>
-    /// <param name="tablePort">The port used for the table endpoint.</param>
-    /// <param name="imageTag">The image tag for the <c>mcr.microsoft.com/azure-storage/azurite</c> image.</param>
-    /// <param name="storagePath">The path on the host to persist the storage volume to.</param>
-    /// <remarks>If no <paramref name="storagePath"/> is provided, data will not be persisted when the container is deleted.</remarks>
+    /// <param name="configureContainer">Callback that exposes underlying container used for emulation to allow for customization.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureStorageResource> UseEmulator(this IResourceBuilder<AzureStorageResource> builder, int? blobPort = null, int? queuePort = null, int? tablePort = null, string? imageTag = null, string? storagePath = null)
+    public static IResourceBuilder<AzureStorageResource> UseEmulator(this IResourceBuilder<AzureStorageResource> builder, Action<IResourceBuilder<AzureStorageEmulatorResource>>? configureContainer = null)
     {
-        builder.WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, name: "blob", port: blobPort, containerPort: 10000))
-               .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, name: "queue", port: queuePort, containerPort: 10001))
-               .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, name: "table", port: tablePort, containerPort: 10002))
-               .WithAnnotation(new ContainerImageAnnotation { Image = "mcr.microsoft.com/azure-storage/azurite", Tag = imageTag ?? "latest" });
+        builder.WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, name: "blob", containerPort: 10000))
+               .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, name: "queue", containerPort: 10001))
+               .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, name: "table", containerPort: 10002))
+               .WithAnnotation(new ContainerImageAnnotation { Image = "mcr.microsoft.com/azure-storage/azurite", Tag = "latest" });
 
-        if (storagePath is not null)
+        if (configureContainer != null)
         {
-            var volumeAnnotation = new VolumeMountAnnotation(storagePath, "/data", VolumeMountType.Bind, false);
-            return builder.WithAnnotation(volumeAnnotation);
+            var surrogate = new AzureStorageEmulatorResource(builder.Resource);
+            var surrogateBuilder = builder.ApplicationBuilder.CreateResourceBuilder(surrogate);
+            configureContainer(surrogateBuilder);
         }
 
         return builder;
+    }
+
+    /// <summary>
+    /// Enables persistence in the Azure Storage emulator.
+    /// </summary>
+    /// <param name="builder">The builder for the <see cref="AzureStorageEmulatorResource"/>.</param>
+    /// <param name="path">Relative path to the AppHost where emulator storage is persisted between runs.</param>
+    /// <returns>A builder for the <see cref="AzureStorageEmulatorResource"/>.</returns>
+    public static IResourceBuilder<AzureStorageEmulatorResource> UsePersistence(this IResourceBuilder<AzureStorageEmulatorResource> builder, string? path = null)
+    {
+        path = path ?? $".azurite/{builder.Resource.Name}";
+        var fullyQualifiedPath = Path.GetFullPath(path, builder.ApplicationBuilder.AppHostDirectory);
+        return builder.WithVolumeMount(fullyQualifiedPath, "/data", VolumeMountType.Bind, false);
+
     }
 
     /// <summary>
@@ -186,17 +194,25 @@ public static class AzureResourceExtensions
     /// For more information on the Azure Cosmos DB emulator, see <a href="https://learn.microsoft.com/azure/cosmos-db/emulator#authentication"></a>
     /// </summary>
     /// <param name="builder">The Azure Cosmos DB resource builder.</param>
-    /// <param name="port">The port used for the client SDK to access the emulator. Defaults to <c>8081</c></param>
-    /// <param name="imageTag">The image tag for the <c>mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator</c> image.</param>
+    /// <param name="configureContainer">Callback that exposes underlying container used for emulation to allow for customization.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// When using the Azure Cosmos DB emulator, the container requires a TLS/SSL certificate.
     /// For more information, see <a href="https://learn.microsoft.com/azure/cosmos-db/how-to-develop-emulator?tabs=docker-linux#export-the-emulators-tlsssl-certificate"></a>
     /// </remarks>
-    public static IResourceBuilder<AzureCosmosDBResource> UseEmulator(this IResourceBuilder<AzureCosmosDBResource> builder, int? port = null, string? imageTag = null)
+    public static IResourceBuilder<AzureCosmosDBResource> UseEmulator(this IResourceBuilder<AzureCosmosDBResource> builder, Action<IResourceBuilder<AzureCosmosDBEmulatorResource>>? configureContainer = null)
     {
-        return builder.WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, name: "emulator", port: port, containerPort: 8081))
-                      .WithAnnotation(new ContainerImageAnnotation { Image = "mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator", Tag = imageTag ?? "latest" });
+        builder.WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, name: "emulator", containerPort: 8081))
+               .WithAnnotation(new ContainerImageAnnotation { Image = "mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator", Tag = "latest" });
+
+        if (configureContainer != null)
+        {
+            var surrogate = new AzureCosmosDBEmulatorResource(builder.Resource);
+            var surrogateBuilder = builder.ApplicationBuilder.CreateResourceBuilder(surrogate);
+            configureContainer(surrogateBuilder);
+        }
+
+        return builder;
     }
 
     /// <summary>
@@ -356,63 +372,5 @@ public static class AzureResourceExtensions
         // "type": "azure.appinsights.v0",
 
         context.Writer.WriteString("type", "azure.appinsights.v0");
-    }
-
-    /// <summary>
-    /// Injects a connection string as an environment variable from the source resource into the destination resource.
-    /// The environment variable will be "APPLICATIONINSIGHTS_CONNECTION_STRING={connectionString}."
-    /// <para>
-    /// Each resource defines the format of the connection string value. The
-    /// underlying connection string value can be retrieved using <see cref="IResourceWithConnectionString.GetConnectionString"/>.
-    /// </para>
-    /// <para>
-    /// Connection strings are also resolved by the configuration system (appSettings.json in the AppHost project, or environment variables). If a connection string is not found on the resource, the configuration system will be queried for a connection string
-    /// using the resource's name.
-    /// </para>
-    /// </summary>
-    /// <typeparam name="TDestination">The destination resource.</typeparam>
-    /// <param name="builder">The resource where connection string will be injected.</param>
-    /// <param name="source">The Azure Application Insights resource from which to extract the connection string.</param>
-    /// <param name="optional"><see langword="true"/> to allow a missing connection string; <see langword="false"/> to throw an exception if the connection string is not found.</param>
-    /// <exception cref="DistributedApplicationException">Throws an exception if the connection string resolves to null. It can be null if the resource has no connection string, and if the configuration has no connection string for the source resource.</exception>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder,
-        IResourceBuilder<AzureApplicationInsightsResource> source, bool optional = false)
-        where TDestination : IResourceWithEnvironment
-    {
-        var resource = source.Resource;
-
-        return builder.WithEnvironment(context =>
-        {
-            // UseAzureMonitor is looking for this specific environment variable name.
-            var connectionStringName = "APPLICATIONINSIGHTS_CONNECTION_STRING";
-
-            if (context.PublisherName == "manifest")
-            {
-                context.EnvironmentVariables[connectionStringName] = $"{{{resource.Name}.connectionString}}";
-                return;
-            }
-
-            var connectionString = resource.GetConnectionString() ??
-                builder.ApplicationBuilder.Configuration.GetConnectionString(resource.Name);
-
-            if (string.IsNullOrEmpty(connectionString))
-            {
-                if (optional)
-                {
-                    // This is an optional connection string, so we can just return.
-                    return;
-                }
-
-                throw new DistributedApplicationException($"A connection string for '{resource.Name}' could not be retrieved.");
-            }
-
-            if (builder.Resource is ContainerResource)
-            {
-                connectionString = HostNameResolver.ReplaceLocalhostWithContainerHost(connectionString, builder.ApplicationBuilder.Configuration);
-            }
-
-            context.EnvironmentVariables[connectionStringName] = connectionString;
-        });
     }
 }
