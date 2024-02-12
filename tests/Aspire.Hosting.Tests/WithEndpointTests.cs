@@ -23,6 +23,50 @@ public class WithEndpointTests
     }
 
     [Fact]
+    public void WithEndpointCallbackDoesNotRunIfEndpointDoesntExistAndCreateIfNotExistsIsFalse()
+    {
+        var executed = false;
+
+        var testProgram = CreateTestProgram();
+        testProgram.ServiceABuilder.WithEndpoint("mybinding", endpoint =>
+        {
+            executed = true;
+        },
+        createIfNotExists: false);
+
+        Assert.False(executed);
+    }
+
+    [Fact]
+    public void WithEndpointCallbackRunsIfEndpointDoesntExistAndCreateIfNotExistsIsDefault()
+    {
+        var executed = false;
+
+        var testProgram = CreateTestProgram();
+        testProgram.ServiceABuilder.WithEndpoint("mybinding", endpoint =>
+        {
+            executed = true;
+        });
+
+        Assert.True(executed);
+    }
+
+    [Fact]
+    public void WithEndpointCallbackRunsIfEndpointDoesntExistAndCreateIfNotExistsIsTrue()
+    {
+        var executed = false;
+
+        var testProgram = CreateTestProgram();
+        testProgram.ServiceABuilder.WithEndpoint("mybinding", endpoint =>
+        {
+            executed = true;
+        },
+        createIfNotExists: true);
+
+        Assert.True(executed);
+    }
+
+    [Fact]
     public void EndpointsWithTwoPortsSameNameThrows()
     {
         var ex = Assert.Throws<DistributedApplicationException>(() =>

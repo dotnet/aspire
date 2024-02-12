@@ -338,17 +338,22 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">Resource builder for resource with endpoints.</param>
     /// <param name="endpointName">Name of endpoint to change.</param>
     /// <param name="callback">Callback that modifies the endpoint.</param>
+    /// <param name="createIfNotExists">Create endpoint if it does not exist.</param>
     /// <returns></returns>
-    public static IResourceBuilder<T> WithEndpoint<T>(this IResourceBuilder<T> builder, string endpointName, Action<EndpointAnnotation> callback) where T: IResourceWithEndpoints
+    public static IResourceBuilder<T> WithEndpoint<T>(this IResourceBuilder<T> builder, string endpointName, Action<EndpointAnnotation> callback, bool createIfNotExists = true) where T: IResourceWithEndpoints
     {
         var endpoint = builder.Resource.Annotations
             .OfType<EndpointAnnotation>()
             .Where(ea => StringComparers.EndpointAnnotationName.Equals(ea.Name, endpointName))
             .SingleOrDefault();
 
-        if (endpoint == null)
+        if (endpoint == null && createIfNotExists)
         {
             endpoint = new EndpointAnnotation(ProtocolType.Tcp, name: endpointName);
+        }
+        else
+        {
+            return builder;
         }
 
         callback(endpoint);
