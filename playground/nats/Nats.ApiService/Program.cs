@@ -18,10 +18,7 @@ builder.AddNats("nats", opts =>
     return opts with { SerializerRegistry = jsonRegistry };
 });
 
-builder.Services.AddSingleton<INatsJSContext>(static provider =>
-{
-    return new NatsJSContextFactory().CreateContext(provider.GetService<INatsConnection>()!);
-});
+builder.AddNatsJetStream();
 
 var app = builder.Build();
 

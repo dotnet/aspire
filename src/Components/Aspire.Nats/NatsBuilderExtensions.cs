@@ -2,8 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using NATS.Client.Core;
 using NATS.Client.Hosting;
+using NATS.Client.JetStream;
 
 namespace Microsoft.Extensions.Hosting;
 
@@ -29,5 +31,15 @@ public static class NatsBuilderExtensions
         {
             throw new InvalidOperationException($"NATS connection string not found: {connectionName}");
         }
+    }
+
+    public static void AddNatsJetStream(this IHostApplicationBuilder builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        builder.Services.AddSingleton<INatsJSContext>(static provider =>
+        {
+            return new NatsJSContextFactory().CreateContext(provider.GetService<INatsConnection>()!);
+        });
     }
 }
