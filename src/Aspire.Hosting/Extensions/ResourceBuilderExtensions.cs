@@ -186,7 +186,7 @@ public static class ResourceBuilderExtensions
 
             if (context.PublisherName == "manifest")
             {
-                context.EnvironmentVariables[connectionStringName] = resource.ConnectionStringExpression;
+                context.EnvironmentVariables[connectionStringName] = resource.ConnectionStringReferenceExpression;
                 return;
             }
 

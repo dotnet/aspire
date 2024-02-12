@@ -12,11 +12,17 @@ namespace Aspire.Hosting.Azure;
 /// <param name="name">The name of the resource.</param>
 /// <param name="username">A delegate to resolve the username.</param>
 /// <param name="password">A delegate to resolve the password.</param>
-public class AzureBicepPostgresResource(string name, Func<string> username, Func<string> password) :
+public class AzureBicepPostgresResource(string name, string username, ParameterResource password) :
     AzureBicepResource(name, templateResouceName: "Aspire.Hosting.Azure.Bicep.postgres.bicep"),
     IResourceWithConnectionString
 {
     internal List<string> Databases { get; } = [];
+
+    /// <summary>
+    /// Gets the connection template for the manifest for the Azure Postgres Flexible Server.
+    /// </summary>
+    public string ConnectionStringExpression =>
+        $"Host={{{Name}.outputs.pgfqdn}};Username={username};Password={password.ValueExpression}";
 
     /// <summary>
     /// Gets the connection string for the Azure Postgres Flexible Server.
@@ -24,7 +30,7 @@ public class AzureBicepPostgresResource(string name, Func<string> username, Func
     /// <returns>The connection string.</returns>
     public string? GetConnectionString()
     {
-        return $"Host={Outputs["pgfqdn"]};Username={username()};Password={password()};";
+        return $"Host={Outputs["pgfqdn"]};Username={username};Password={password.Value};";
     }
 }
 
@@ -41,6 +47,9 @@ public class AzureBicepPostgresDbResource(string name, string databaseName, Azur
 {
     public AzureBicepPostgresResource Parent { get; } = parent;
 
+    public string ConnectionStringExpression =>
+        $"{{{Parent.Name}.connectionString}};Database={databaseName}";
+
     public string? GetConnectionString()
     {
         return $"{Parent.GetConnectionString()};Database={databaseName}";
@@ -50,7 +59,7 @@ public class AzureBicepPostgresDbResource(string name, string databaseName, Azur
     {
         // REVIEW: What do we do with resources that are defined in the parent's bicep file?
         context.Writer.WriteString("type", "azure.bicep.v0");
-        context.Writer.WriteString("connectionString", $"{{{Parent.Name}.connectionString}};Database={databaseName}");
+        context.Writer.WriteString("connectionString", ConnectionStringExpression);
         context.Writer.WriteString("parent", Parent.Name);
     }
 }
@@ -70,39 +79,10 @@ public static class AzureBicepPostgresExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureBicepPostgresResource> AddBicepAzurePostgres(this IDistributedApplicationBuilder builder,
         string name,
-        IResourceBuilder<ParameterResource> administratorLogin,
-        IResourceBuilder<ParameterResource> administratorLoginPassword)
-    {
-        var resource = new AzureBicepPostgresResource(name, () => administratorLogin.Resource.Value, () => administratorLoginPassword.Resource.Value)
-        {
-            ConnectionStringTemplate = $"Host={{{name}.outputs.pgfqdn}};Username={{{administratorLogin.Resource.Name}.value}};Password={{{administratorLoginPassword.Resource.Name}.value}}"
-        };
-
-        return builder.AddResource(resource)
-            .WithParameter("serverName", resource.CreateBicepResourceName())
-            .WithParameter("administratorLogin", administratorLogin)
-            .WithParameter("administratorLoginPassword", administratorLoginPassword)
-            .WithParameter("databases", resource.Databases)
-            .WithManifestPublishingCallback(resource.WriteToManifest);
-    }
-
-    /// <summary>
-    /// Adds an Azure Postgres resource to the application model. This resource can be used to create Azure Postgres Flexible Server resources.
-    /// </summary>
-    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
-    /// <param name="name">The name of the resource.</param>
-    /// <param name="administratorLogin">The administrator login.</param>
-    /// <param name="administratorLoginPassword">The administrator password.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureBicepPostgresResource> AddBicepAzurePostgres(this IDistributedApplicationBuilder builder,
-        string name,
         string administratorLogin,
         IResourceBuilder<ParameterResource> administratorLoginPassword)
     {
-        var resource = new AzureBicepPostgresResource(name, () => administratorLogin, () => administratorLoginPassword.Resource.Value)
-        {
-            ConnectionStringTemplate = $"Host={{{name}.outputs.pgfqdn}};Username={administratorLogin};Password={{{administratorLoginPassword.Resource.Name}.value}}"
-        };
+        var resource = new AzureBicepPostgresResource(name, administratorLogin, administratorLoginPassword.Resource);
 
         return builder.AddResource(resource)
             .WithParameter("serverName", resource.CreateBicepResourceName())
