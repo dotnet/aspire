@@ -163,13 +163,13 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestProject.IntegrationServ
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "nats", "nats", "{91F22EEA-EB23-425A-9B32-9438A0809F4B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MyService", "playground\nats\Nats.ApiService\Nats.ApiService.csproj", "{74F89D52-645B-4283-98AF-D04DA794EE37}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nats.ApiService", "playground\nats\Nats.ApiService\Nats.ApiService.csproj", "{74F89D52-645B-4283-98AF-D04DA794EE37}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AppHosting", "playground\nats\Nats.AppHosting\Nats.AppHosting.csproj", "{A0BB6F6B-9543-4525-81D6-95DC07BD3D02}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nats.AppHosting", "playground\nats\Nats.AppHosting\Nats.AppHosting.csproj", "{A0BB6F6B-9543-4525-81D6-95DC07BD3D02}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Hosting.Nats", "src\Aspire.Hosting.Nats\Aspire.Hosting.Nats.csproj", "{88C11654-B250-4C32-B2C2-83B34F46BE4E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServiceDefaults", "playground\nats\Nats.ServiceDefaults\Nats.ServiceDefaults.csproj", "{0631CA8E-9C4E-4C02-B356-7B596F713EBD}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nats.ServiceDefaults", "playground\nats\Nats.ServiceDefaults\Nats.ServiceDefaults.csproj", "{0631CA8E-9C4E-4C02-B356-7B596F713EBD}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspire.Nats", "src\Components\Aspire.Nats\Aspire.Nats.csproj", "{303E6308-740C-4673-96D2-0E81934C9E69}"
 EndProject
