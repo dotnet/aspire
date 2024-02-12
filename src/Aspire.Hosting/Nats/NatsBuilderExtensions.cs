@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
@@ -9,10 +9,19 @@ namespace Aspire.Hosting.Nats;
 
 public static class NatsBuilderExtensions
 {
-    public static IResourceBuilder<NatsContainerResource> AddNatsContainer(
-        this IDistributedApplicationBuilder builder, string name, int? port = null, bool enableJetStream = false, string? mountPath = null)
+    /// <summary>
+    /// Adds a NATS server resource to the application model. A container is used for local development.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <param name="port">The host port for NATS server.</param>
+    /// <param name="enableJetStream">Enable JetStream.</param>
+    /// <param name="srcMountPath">JetStream data source mount path to persist streams between restarts.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<NatsServerResource> AddNats(
+        this IDistributedApplicationBuilder builder, string name, int? port = null, bool enableJetStream = false, string? srcMountPath = null)
     {
-        var nats = new NatsContainerResource(name);
+        var nats = new NatsServerResource(name);
         var resourceBuilder = builder.AddResource(nats)
             .WithManifestPublishingCallback(WriteNatsResourceToManifest)
             .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, uriScheme: "nats", port: port, containerPort: 4222))
@@ -28,16 +37,16 @@ public static class NatsBuilderExtensions
                         updatedArgs.Add("-js");
                     }
 
-                    if (mountPath != null)
+                    if (srcMountPath != null)
                     {
                         updatedArgs.Add("-sd");
                         updatedArgs.Add("/data");
                     }
                 }));
 
-            if (mountPath != null)
+            if (srcMountPath != null)
             {
-                resourceBuilder.WithAnnotation(new VolumeMountAnnotation(mountPath, "/data"));
+                resourceBuilder.WithAnnotation(new VolumeMountAnnotation(srcMountPath, "/data"));
             }
         }
 
