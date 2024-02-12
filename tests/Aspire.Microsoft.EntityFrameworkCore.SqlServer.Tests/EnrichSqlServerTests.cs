@@ -14,7 +14,7 @@ using Xunit;
 
 namespace Aspire.Microsoft.EntityFrameworkCore.SqlServer.Tests;
 
-public class EnrichNpgsqlTests : ConformanceTests
+public class EnrichSqlServerTests : ConformanceTests
 {
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<MicrosoftEntityFrameworkCoreSqlServerSettings>? configure = null, string? key = null)
     {
@@ -51,14 +51,14 @@ public class EnrichNpgsqlTests : ConformanceTests
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:Retry", "true")
+            new KeyValuePair<string, string?>("Aspire:Microsoft:EntityFrameworkCore:SqlServer:Retry", "true")
         ]);
 
         builder.Services.AddDbContextPool<TestDbContext>(optionsBuilder =>
         {
-            optionsBuilder.UseSqlServer(ConnectionString, npgsqlBuilder =>
+            optionsBuilder.UseSqlServer(ConnectionString, builder =>
             {
-                npgsqlBuilder.CommandTimeout(123);
+                builder.CommandTimeout(123);
             });
         });
 
@@ -121,14 +121,14 @@ public class EnrichNpgsqlTests : ConformanceTests
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:Retry", "false")
+            new KeyValuePair<string, string?>("Aspire:Microsoft:EntityFrameworkCore:SqlServer:Retry", "false")
         ]);
 
         builder.Services.AddDbContextPool<TestDbContext>(optionsBuilder =>
         {
-            optionsBuilder.UseSqlServer(ConnectionString, npgsqlBuilder =>
+            optionsBuilder.UseSqlServer(ConnectionString, builder =>
             {
-                npgsqlBuilder.EnableRetryOnFailure(456);
+                builder.EnableRetryOnFailure(456);
             });
         });
 
@@ -164,14 +164,14 @@ public class EnrichNpgsqlTests : ConformanceTests
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("Aspire:Npgsql:EntityFrameworkCore:PostgreSQL:Retry", "true")
+            new KeyValuePair<string, string?>("Aspire:Microsoft:EntityFrameworkCore:SqlServer:Retry", "true")
         ]);
 
         builder.Services.AddDbContextPool<TestDbContext>(optionsBuilder =>
         {
-            optionsBuilder.UseSqlServer(ConnectionString, npgsqlBuilder =>
+            optionsBuilder.UseSqlServer(ConnectionString, builder =>
             {
-                npgsqlBuilder.EnableRetryOnFailure(456);
+                builder.EnableRetryOnFailure(456);
             });
         });
 
