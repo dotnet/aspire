@@ -245,6 +245,8 @@ public class AzureBicepResourceTests
         Assert.Equal("https://myqueue", queue.Resource.GetConnectionString());
         Assert.Equal("https://mytable", table.Resource.GetConnectionString());
         Assert.Equal("{storage.outputs.blobEndpoint}", blob.Resource.ConnectionStringExpression);
+        Assert.Equal("{storage.outputs.queueEndpoint}", queue.Resource.ConnectionStringExpression);
+        Assert.Equal("{storage.outputs.tableEndpoint}", table.Resource.ConnectionStringExpression);
 
         var blobManifest = GetManifest(blob.Resource.WriteToManifest);
         Assert.Equal("{storage.outputs.blobEndpoint}", blobManifest["connectionString"]?.ToString());
