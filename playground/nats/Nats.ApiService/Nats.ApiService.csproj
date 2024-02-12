@@ -1,19 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
-    <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
-        <Nullable>enable</Nullable>
-        <ImplicitUsings>enable</ImplicitUsings>
-    </PropertyGroup>
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="NATS.Net" />
+    <ProjectReference Include="..\..\..\src\Aspire.Hosting.Nats\Aspire.Hosting.Nats.csproj" />
+    <ProjectReference Include="..\..\..\src\Components\Aspire.Nats\Aspire.Nats.csproj" />
+    <ProjectReference Include="..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" />
   </ItemGroup>
-
-    <ItemGroup>
-      <ProjectReference Include="..\..\..\src\Aspire.Hosting.Nats\Aspire.Hosting.Nats.csproj" />
-      <ProjectReference Include="..\..\..\src\Components\Aspire.Nats\Aspire.Nats.csproj" />
-      <ProjectReference Include="..\Nats.ServiceDefaults\Nats.ServiceDefaults.csproj" />
-    </ItemGroup>
 
 </Project>

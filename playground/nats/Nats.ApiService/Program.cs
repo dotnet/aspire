@@ -11,7 +11,7 @@ var app = builder.Build();
 app.MapGet("/", async (INatsConnection nats) => $"""
                                                  Hello NATS!
                                                  rtt: {await nats.PingAsync()}
-                                                 {((NatsConnection)nats).ServerInfo}
+                                                 {nats.ServerInfo}
                                                  """);
 
 app.Run();

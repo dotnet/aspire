@@ -1,4 +1,4 @@
-﻿using Aspire.Hosting.Nats;
+using Aspire.Hosting.Nats;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
