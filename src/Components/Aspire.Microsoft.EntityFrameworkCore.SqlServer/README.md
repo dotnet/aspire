@@ -43,7 +43,6 @@ builder.Services.AddDbContextPool<CatalogDbContext>(dbContextOptionsBuilder => d
 builder.EnrichSqlServerDbContext<CatalogDbContext>();
 ```
 
-
 ## Configuration
 
 The .NET Aspire SQL Server EntityFrameworkCore SqlClient component provides multiple options to configure the SQL connection based on the requirements and conventions of your project.
@@ -97,7 +96,6 @@ Also you can pass the `Action<MicrosoftEntityFrameworkCoreSqlServerSettings> con
 ```csharp
     builder.AddSqlServerDbContext<MyDbContext>("sqldata", settings => settings.HealthChecks = false);
 ```
-
 
 or
 
