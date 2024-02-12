@@ -40,6 +40,9 @@ public class AzureBicepSqlDbResource(string name, string databaseName, AzureBice
     IResourceWithConnectionString,
     IResourceWithParent<AzureBicepSqlServerResource>
 {
+    /// <summary>
+    /// Gets the parent Azure SQL Server resource.
+    /// </summary>
     public AzureBicepSqlServerResource Parent { get; } = parent;
 
     public string ConnectionStringExpression =>

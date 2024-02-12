@@ -3,8 +3,17 @@
 
 namespace Aspire.Hosting.ApplicationModel;
 
+/// <summary>
+/// TODO: Doc Comments
+/// </summary>
 public enum ResourceAnnotationMutationBehavior
 {
+    /// <summary>
+    /// TODO: Doc Comments
+    /// </summary>
     Append,
+    /// <summary>
+    /// TODO: Doc Comments
+    /// </summary>
     Replace
 }
