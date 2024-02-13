@@ -26,7 +26,8 @@ public static class MySqlBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<MySqlServerResource> AddMySql(this IDistributedApplicationBuilder builder, string name, int? port = null, string? password = null)
     {
-        password = password ?? Guid.NewGuid().ToString("N");
+        password ??= PasswordGenerator.GeneratePassword(6, 6, 2, 2);
+
         var resource = new MySqlServerResource(name, password);
         return builder.AddResource(resource)
                       .WithManifestPublishingCallback(WriteMySqlContainerToManifest)
