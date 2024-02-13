@@ -90,6 +90,23 @@ public class DashboardWebApplication
             logger.LogInformation("OTLP server running at: {OtlpEndpointUri}", reportedOtlpUri.AbsoluteUri.TrimEnd('/'));
         }
 
+        // Redirect browser directly to /StructuredLogs address if the dashboard is running without a resource service.
+        // This is done to avoid immediately navigating in the Blazor app.
+        _app.Use(async (context, next) =>
+        {
+            if (context.Request.Path == TargetLocationInterceptor.ResourcesPath)
+            {
+                var client = context.RequestServices.GetRequiredService<IDashboardClient>();
+                if (!client.IsEnabled)
+                {
+                    context.Response.Redirect(TargetLocationInterceptor.StructuredLogsPath);
+                    return;
+                }
+            }
+
+            await next(context).ConfigureAwait(false);
+        });
+
         // Configure the HTTP request pipeline.
         if (_app.Environment.IsDevelopment())
         {
