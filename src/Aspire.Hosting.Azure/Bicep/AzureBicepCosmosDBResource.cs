@@ -57,6 +57,9 @@ public class AzureBicepCosmosDBDatabaseResource(string name, AzureBicepCosmosDBR
     IResourceWithConnectionString,
     IResourceWithParent<AzureBicepCosmosDBResource>
 {
+    /// <summary>
+    /// Gets the parent Azure Cosmos DB resource.
+    /// </summary>
     public AzureBicepCosmosDBResource Parent => cosmosDB;
 
     /// <summary>

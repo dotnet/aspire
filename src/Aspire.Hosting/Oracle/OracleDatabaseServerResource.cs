@@ -12,6 +12,9 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="password">The Oracle Database server password.</param>
 public class OracleDatabaseServerResource(string name, string password) : ContainerResource(name), IResourceWithConnectionString
 {
+    /// <summary>
+    /// Gets the Oracle Database server password.
+    /// </summary>
     public string Password { get; } = password;
 
     /// <summary>

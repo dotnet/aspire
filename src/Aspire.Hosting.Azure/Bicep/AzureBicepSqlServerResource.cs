@@ -40,8 +40,14 @@ public class AzureBicepSqlDbResource(string name, string databaseName, AzureBice
     IResourceWithConnectionString,
     IResourceWithParent<AzureBicepSqlServerResource>
 {
+    /// <summary>
+    /// Gets the parent Azure SQL Server resource.
+    /// </summary>
     public AzureBicepSqlServerResource Parent { get; } = parent;
 
+    /// <summary>
+    /// Gets the connection template for the manifest for the Azure SQL Database resource.
+    /// </summary>
     public string ConnectionStringExpression =>
         $"{{{Parent.Name}.connectionString}};Intial Catalog={databaseName}";
 

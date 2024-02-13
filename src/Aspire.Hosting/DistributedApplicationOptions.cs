@@ -13,6 +13,9 @@ public sealed class DistributedApplicationOptions
     private readonly Lazy<Assembly?> _assembly;
     private readonly Lazy<string?> _projectDirectory;
 
+    /// <summary>
+    /// Initializes a new instance of <see cref="DistributedApplicationOptions"/>.
+    /// </summary>
     public DistributedApplicationOptions()
     {
         _assembly = new(ResolveAssembly);
