@@ -343,16 +343,20 @@ public static class ResourceBuilderExtensions
             .Where(ea => StringComparers.EndpointAnnotationName.Equals(ea.Name, endpointName))
             .SingleOrDefault();
 
+        if (endpoint != null)
+        {
+            callback(endpoint);
+
+        }
         if (endpoint == null && createIfNotExists)
         {
             endpoint = new EndpointAnnotation(ProtocolType.Tcp, name: endpointName);
+            callback(endpoint);
         }
-        else
+        else if (endpoint == null && !createIfNotExists)
         {
             return builder;
         }
-
-        callback(endpoint);
 
         return builder;
     }
