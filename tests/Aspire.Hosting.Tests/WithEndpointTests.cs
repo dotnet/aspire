@@ -9,6 +9,64 @@ namespace Aspire.Hosting.Tests;
 public class WithEndpointTests
 {
     [Fact]
+    public void WithEndpointInvokesCallback()
+    {
+        var testProgram = CreateTestProgram();
+        testProgram.ServiceABuilder.WithEndpoint(3000, 1000, name: "mybinding");
+        testProgram.ServiceABuilder.WithEndpoint("mybinding", endpoint =>
+        {
+            endpoint.Port = 2000;
+        });
+
+        var endpoint = testProgram.ServiceABuilder.Resource.Annotations.OfType<EndpointAnnotation>().Single();
+        Assert.Equal(2000, endpoint.Port);
+    }
+
+    [Fact]
+    public void WithEndpointCallbackDoesNotRunIfEndpointDoesntExistAndCreateIfNotExistsIsFalse()
+    {
+        var executed = false;
+
+        var testProgram = CreateTestProgram();
+        testProgram.ServiceABuilder.WithEndpoint("mybinding", endpoint =>
+        {
+            executed = true;
+        },
+        createIfNotExists: false);
+
+        Assert.False(executed);
+    }
+
+    [Fact]
+    public void WithEndpointCallbackRunsIfEndpointDoesntExistAndCreateIfNotExistsIsDefault()
+    {
+        var executed = false;
+
+        var testProgram = CreateTestProgram();
+        testProgram.ServiceABuilder.WithEndpoint("mybinding", endpoint =>
+        {
+            executed = true;
+        });
+
+        Assert.True(executed);
+    }
+
+    [Fact]
+    public void WithEndpointCallbackRunsIfEndpointDoesntExistAndCreateIfNotExistsIsTrue()
+    {
+        var executed = false;
+
+        var testProgram = CreateTestProgram();
+        testProgram.ServiceABuilder.WithEndpoint("mybinding", endpoint =>
+        {
+            executed = true;
+        },
+        createIfNotExists: true);
+
+        Assert.True(executed);
+    }
+
+    [Fact]
     public void EndpointsWithTwoPortsSameNameThrows()
     {
         var ex = Assert.Throws<DistributedApplicationException>(() =>

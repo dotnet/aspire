@@ -17,6 +17,12 @@ public class AzureBicepSqlServerResource(string name) :
     internal List<string> Databases { get; } = [];
 
     /// <summary>
+    /// Gets the connection template for the manifest for the Azure SQL Server resource.
+    /// </summary>
+    public string ConnectionStringExpression =>
+        $"Server=tcp:{{{Name}.outputs.sqlServerFqdn}},1433;Encrypt=True;Authentication=\"Active Directory Default\"";
+
+    /// <summary>
     /// Gets the connection string for the Azure SQL Server resource.
     /// </summary>
     /// <returns>The connection string for the Azure SQL Server resource.</returns>
@@ -36,6 +42,9 @@ public class AzureBicepSqlDbResource(string name, string databaseName, AzureBice
 {
     public AzureBicepSqlServerResource Parent { get; } = parent;
 
+    public string ConnectionStringExpression =>
+        $"{{{Parent.Name}.connectionString}};Intial Catalog={databaseName}";
+
     /// <summary>
     /// Gets the connection string for the Azure SQL Database resource.
     /// </summary>
@@ -49,7 +58,7 @@ public class AzureBicepSqlDbResource(string name, string databaseName, AzureBice
     {
         // REVIEW: What do we do with resources that are defined in the parent's bicep file?
         context.Writer.WriteString("type", "azure.bicep.v0");
-        context.Writer.WriteString("connectionString", $"{{{Parent.Name}.connectionString}};Intial Catalog={databaseName}");
+        context.Writer.WriteString("connectionString", ConnectionStringExpression);
         context.Writer.WriteString("parent", Parent.Name);
     }
 }
@@ -67,11 +76,7 @@ public static class AzureBicepSqlExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureBicepSqlServerResource> AddBicepAzureSqlServer(this IDistributedApplicationBuilder builder, string name)
     {
-        var resource = new AzureBicepSqlServerResource(name)
-        {
-            ConnectionStringTemplate = $"Server=tcp:{{{name}.outputs.sqlServerFqdn}},1433;Encrypt=True;Authentication=\"Active Directory Default\""
-        };
-
+        var resource = new AzureBicepSqlServerResource(name);
         return builder.AddResource(resource)
                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalName)

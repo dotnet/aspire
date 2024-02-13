@@ -14,12 +14,12 @@ public abstract class Resource : IResource
     /// <summary>
     /// Gets the name of the resource.
     /// </summary>
-    public string Name { get; }
-    
+    public virtual string Name { get; }
+
     /// <summary>
     /// Gets the annotations associated with the resource.
     /// </summary>
-    public ResourceMetadataCollection Annotations { get; } = new();
+    public virtual ResourceMetadataCollection Annotations { get; } = new();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Resource"/> class.
