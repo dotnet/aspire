@@ -5,6 +5,9 @@ using Azure.Search.Documents.Indexes;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Aspire.Azure.Search.Documents;
+
+// TODO: Use health check from AspNetCore.Diagnostics.HealthChecks once it's implemented via this issue:
+// https://github.com/Xabaril/AspNetCore.Diagnostics.HealthChecks/issues/2156
 internal sealed class AzureSearchIndexHealthCheck : IHealthCheck
 {
     private readonly SearchIndexClient _searchIndexClient;

@@ -28,6 +28,15 @@ Aspire.Azure.Messaging.ServiceBus:
 - Metric names:
   - none (currently not supported by the Azure SDK)
 
+Aspire.Azure.Search.Documents:
+- Log categories:
+  - "Azure.Core"
+  - "Azure.Identity"
+- Activity source names:
+  - "Azure.Search.Documents.*"
+- Metric names:
+  - none (currently not supported by the Azure SDK)
+
 Aspire.Azure.Security.KeyVault:
 - Log categories:
   - "Azure.Core"

@@ -5,6 +5,10 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Azure;
 
+/// <summary>
+/// A resource that represents an Azure AI Search.
+/// </summary>
+/// <param name="name">The name of the resource.</param>
 public class AzureAISearchResource(string name) : Resource(name), IAzureResource, IResourceWithConnectionString
 {
     /// <summary>

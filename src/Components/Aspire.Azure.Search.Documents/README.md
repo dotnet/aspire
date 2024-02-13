@@ -1,13 +1,13 @@
 # Aspire.Azure.Search.Documents library
 
-Registers [SearchIndexClient](https://learn.microsoft.com/en-us/dotnet/api/azure.search.documents.indexes.searchindexclient) as a singleton in the DI container for connecting to Azure AI Search. Enables corresponding logging and telemetry.
+Registers [SearchIndexClient](https://learn.microsoft.com/dotnet/api/azure.search.documents.indexes.searchindexclient) as a singleton in the DI container for connecting to Azure AI Search. Enables corresponding logging and telemetry.
 
 ## Getting started
 
 ### Prerequisites
 
 - Azure subscription - [create one for free](https://azure.microsoft.com/free/)
-- Azure AI Search Service - [create an Azure AI Search Service resource](https://learn.microsoft.com/en-us/azure/search/search-create-service-portal)
+- Azure AI Search Service - [create an Azure AI Search Service resource](https://learn.microsoft.com/azure/search/search-create-service-portal)
 
 ### Install the package
 
@@ -120,7 +120,7 @@ You can also pass the `Action<AzureAISearchSettings> configureSettings` delegate
     builder.AddAzureAISearch("aiSearchConnectionName", settings => settings.Tracing = false);
 ```
 
-You can also setup the [SearchClientOptions](https://learn.microsoft.com/en-us/dotnet/api/azure.search.documents.searchclientoptions) using the optional `Action<IAzureClientBuilder<SearchIndexClient, SearchClientOptions>> configureClientBuilder` parameter of the `AddAzureAISearch` method. For example, to set the client ID for this client:
+You can also setup the [SearchClientOptions](https://learn.microsoft.com/dotnet/api/azure.search.documents.searchclientoptions) using the optional `Action<IAzureClientBuilder<SearchIndexClient, SearchClientOptions>> configureClientBuilder` parameter of the `AddAzureAISearch` method. For example, to set the client ID for this client:
 
 ```csharp
     builder.AddAzureAISearch("aiSearchConnectionName", configureClientBuilder: builder => builder.ConfigureOptions(options => options.Diagnostics.ApplicationId = "CLIENT_ID"));
@@ -151,7 +151,7 @@ builder.AddAzureAISearch("aisearch");
 
 ## Additional documentation
 
-* https://learn.microsoft.com/en-us/azure/search/search-howto-dotnet-sdk
+* https://learn.microsoft.com/azure/search/search-howto-dotnet-sdk
 * https://github.com/dotnet/aspire/tree/main/src/Components/README.md
 
 ## Feedback & contributing
