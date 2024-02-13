@@ -53,7 +53,7 @@
     <ItemGroup>
       <_DefaultWorkItems Include="$(WorkItemArchiveWildCard)" />
 
-      <HelixWorkItem Include="@(_DefaultWorkItems -> '%(FileName)')">
+      <HelixWorkItem Include="@(_DefaultWorkItems -> '%(FileName)-0')">
         <PayloadArchive>%(Identity)</PayloadArchive>
         <PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
         <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
@@ -63,7 +63,7 @@
         <!-- Download results file so coverage files can be extracted -->
         <DownloadFilesFromResults>logs/%(FileName).cobertura.xml</DownloadFilesFromResults>
       </HelixWorkItem>
-      <HelixWorkItem Include="@(_DefaultWorkItems -> '%(FileName)')-1">
+      <HelixWorkItem Include="@(_DefaultWorkItems -> '%(FileName)-1')">
         <PayloadArchive>%(Identity)</PayloadArchive>
         <PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
         <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
@@ -73,7 +73,7 @@
         <!-- Download results file so coverage files can be extracted -->
         <DownloadFilesFromResults>logs/%(FileName).cobertura.xml</DownloadFilesFromResults>
       </HelixWorkItem>
-      <HelixWorkItem Include="@(_DefaultWorkItems -> '%(FileName)')-2">
+      <HelixWorkItem Include="@(_DefaultWorkItems -> '%(FileName)-2')">
         <PayloadArchive>%(Identity)</PayloadArchive>
         <PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
         <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
