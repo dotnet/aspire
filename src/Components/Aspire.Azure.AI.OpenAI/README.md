@@ -7,7 +7,7 @@ Registers [OpenAIClient](https://learn.microsoft.com/dotnet/api/azure.ai.openai.
 ### Prerequisites
 
 - Azure subscription - [create one for free](https://azure.microsoft.com/free/)
-- Azure OpenAI or OpenAI account - [create am Azure OpenAI Service resource](https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/create-resource)
+- Azure OpenAI or OpenAI account - [create an Azure OpenAI Service resource](https://learn.microsoft.com/azure/ai-services/openai/how-to/create-resource)
 
 ### Install the package
 
