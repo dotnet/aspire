@@ -47,6 +47,11 @@ public class AzureBicepBlobStorageResource(string name, AzureBicepStorageResourc
     public AzureBicepStorageResource Parent => storage;
 
     /// <summary>
+    /// Gets the connection string template for the manifest for the Azure Blob Storage resource.
+    /// </summary>
+    public string ConnectionStringExpression => $"{{{Parent.Name}.outputs.blobEndpoint}}";
+
+    /// <summary>
     /// Gets the connection string for the Azure Blob Storage resource.
     /// </summary>
     /// <returns>The connection string for the Azure Blob Storage resource.</returns>
@@ -55,7 +60,7 @@ public class AzureBicepBlobStorageResource(string name, AzureBicepStorageResourc
     public void WriteToManifest(ManifestPublishingContext context)
     {
         context.Writer.WriteString("type", "azure.bicep.v0");
-        context.Writer.WriteString("connectionString", $"{{{Parent.Name}.outputs.blobEndpoint}}");
+        context.Writer.WriteString("connectionString", ConnectionStringExpression);
         context.Writer.WriteString("parent", Parent.Name);
     }
 }
@@ -70,6 +75,11 @@ public class AzureBicepTableStorageResource(string name, AzureBicepStorageResour
     public AzureBicepStorageResource Parent => storage;
 
     /// <summary>
+    /// Gets the connection string template for the manifest for the Azure Blob Storage resource.
+    /// </summary>
+    public string ConnectionStringExpression => $"{{{Parent.Name}.outputs.tableEndpoint}}";
+
+    /// <summary>
     /// Gets the connection string for the Azure Blob Storage resource.
     /// </summary>
     /// <returns>The connection string for the Azure Blob Storage resource.</returns>
@@ -78,7 +88,7 @@ public class AzureBicepTableStorageResource(string name, AzureBicepStorageResour
     public void WriteToManifest(ManifestPublishingContext context)
     {
         context.Writer.WriteString("type", "azure.bicep.v0");
-        context.Writer.WriteString("connectionString", $"{{{Parent.Name}.outputs.tableEndpoint}}");
+        context.Writer.WriteString("connectionString", ConnectionStringExpression);
         context.Writer.WriteString("parent", Parent.Name);
     }
 }
@@ -93,6 +103,11 @@ public class AzureBicepQueueStorageResource(string name, AzureBicepStorageResour
     public AzureBicepStorageResource Parent => storage;
 
     /// <summary>
+    /// Gets the connection string template for the manifest for the Azure Blob Storage resource.
+    /// </summary>
+    public string ConnectionStringExpression => $"{{{Parent.Name}.outputs.queueEndpoint}}";
+
+    /// <summary>
     /// Gets the connection string for the Azure Blob Storage resource.
     ///</summary>
     ///<returns> The connection string for the Azure Blob Storage resource.</returns>
@@ -101,7 +116,7 @@ public class AzureBicepQueueStorageResource(string name, AzureBicepStorageResour
     public void WriteToManifest(ManifestPublishingContext context)
     {
         context.Writer.WriteString("type", "azure.bicep.v0");
-        context.Writer.WriteString("connectionString", $"{{{Parent.Name}.outputs.queueEndpoint}}");
+        context.Writer.WriteString("connectionString", ConnectionStringExpression);
         context.Writer.WriteString("parent", Parent.Name);
     }
 }
