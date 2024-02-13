@@ -18,6 +18,7 @@ public class OtlpInstrument
     public required string Unit { get; init; }
     public required OtlpInstrumentType Type { get; init; }
     public required OtlpMeter Parent { get; init; }
+    public required int Capacity { get; init; }
 
     public Dictionary<ReadOnlyMemory<KeyValuePair<string, string>>, DimensionScope> Dimensions { get; } = new(ScopeAttributesComparer.Instance);
     public Dictionary<string, List<string>> KnownAttributeValues { get; } = new();
@@ -69,7 +70,7 @@ public class OtlpInstrument
     {
         var isFirst = Dimensions.Count == 0;
         var durableAttributes = comparableAttributes.ToArray();
-        var dimension = new DimensionScope(durableAttributes);
+        var dimension = new DimensionScope(Capacity, durableAttributes);
         Dimensions.Add(durableAttributes, dimension);
 
         var keys = KnownAttributeValues.Keys.Union(durableAttributes.Select(a => a.Key)).Distinct();
@@ -109,7 +110,8 @@ public class OtlpInstrument
             Description = instrument.Description,
             Parent = instrument.Parent,
             Type = instrument.Type,
-            Unit = instrument.Unit
+            Unit = instrument.Unit,
+            Capacity = instrument.Capacity,
         };
 
         if (cloneData)
