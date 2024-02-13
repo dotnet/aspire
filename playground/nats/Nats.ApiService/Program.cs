@@ -12,7 +12,7 @@ builder.Services.AddSwaggerGen();
 
 builder.AddServiceDefaults();
 
-builder.AddNats("nats", opts =>
+builder.AddNats("nats", configureOptions: opts =>
 {
     var jsonRegistry = new NatsJsonContextSerializerRegistry(AppJsonContext.Default);
     return opts with { SerializerRegistry = jsonRegistry };
