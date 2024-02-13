@@ -77,15 +77,12 @@ public class AzureBicepResource(string name, string? templateFile = null, string
                     ? path
                     : Path.Combine(directory, $"{TemplateResourceName.ToLowerInvariant()}");
 
-                if (!File.Exists(path))
-                {
-                    // REVIEW: We should allow the user to specify the assembly where the resources reside.
-                    using var resourceStream = GetType().Assembly.GetManifestResourceStream(TemplateResourceName)
-                        ?? throw new InvalidOperationException($"Could not find resource {TemplateResourceName} in assembly {GetType().Assembly}");
+                // REVIEW: We should allow the user to specify the assembly where the resources reside.
+                using var resourceStream = GetType().Assembly.GetManifestResourceStream(TemplateResourceName)
+                    ?? throw new InvalidOperationException($"Could not find resource {TemplateResourceName} in assembly {GetType().Assembly}");
 
-                    using var fs = File.OpenWrite(path);
-                    resourceStream.CopyTo(fs);
-                }
+                using var fs = File.OpenWrite(path);
+                resourceStream.CopyTo(fs);
             }
         }
 
