@@ -4,6 +4,7 @@
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
 

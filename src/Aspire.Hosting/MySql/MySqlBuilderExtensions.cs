@@ -6,6 +6,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.MySql;
 using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
 
