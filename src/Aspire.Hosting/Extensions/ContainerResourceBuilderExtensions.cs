@@ -81,6 +81,63 @@ public static class ContainerResourceBuilderExtensions
         builder.Resource.Entrypoint = entrypoint;
         return builder;
     }
+
+    /// <summary>
+    /// Allows overriding the image tag on a container.
+    /// </summary>
+    /// <typeparam name="T">Type of container resource.</typeparam>
+    /// <param name="builder">Builder for the container resource.</param>
+    /// <param name="tag">Tag value.</param>
+    /// <returns></returns>
+    public static IResourceBuilder<T> WithImageTag<T>(this IResourceBuilder<T> builder, string? tag) where T : ContainerResource
+    {
+        var containerImageAnnotation = builder.Resource.Annotations.OfType<ContainerImageAnnotation>().Single();
+        containerImageAnnotation.Tag = tag ?? "latest";
+        return builder;
+    }
+
+    /// <summary>
+    /// Allows overriding the image registry on a container.
+    /// </summary>
+    /// <typeparam name="T">Type of container resource.</typeparam>
+    /// <param name="builder">Builder for the container resource.</param>
+    /// <param name="registry">Registry value.</param>
+    /// <returns></returns>
+    public static IResourceBuilder<T> WithImageRegistry<T>(this IResourceBuilder<T> builder, string registry) where T : ContainerResource
+    {
+        var containerImageAnnotation = builder.Resource.Annotations.OfType<ContainerImageAnnotation>().Single();
+        containerImageAnnotation.Registry = registry;
+        return builder;
+    }
+
+    /// <summary>
+    /// Allows overriding the image on a container.
+    /// </summary>
+    /// <typeparam name="T">Type of container resource.</typeparam>
+    /// <param name="builder">Builder for the container resource.</param>
+    /// <param name="image">Registry value.</param>
+    /// <returns></returns>
+    public static IResourceBuilder<T> WithImage<T>(this IResourceBuilder<T> builder, string image) where T : ContainerResource
+    {
+        var containerImageAnnotation = builder.Resource.Annotations.OfType<ContainerImageAnnotation>().Single();
+        containerImageAnnotation.Image = image;
+        return builder;
+    }
+
+    /// <summary>
+    /// Allows setting the image to a specific sha256 on a container.
+    /// </summary>
+    /// <typeparam name="T">Type of container resource.</typeparam>
+    /// <param name="builder">Builder for the container resource.</param>
+    /// <param name="sha256">Registry value.</param>
+    /// <returns></returns>
+    public static IResourceBuilder<T> WithImageSHA256<T>(this IResourceBuilder<T> builder, string sha256) where T : ContainerResource
+    {
+        var containerImageAnnotation = builder.Resource.Annotations.OfType<ContainerImageAnnotation>().Single();
+        containerImageAnnotation.SHA256 = sha256;
+        return builder;
+    }
+
 }
 
 internal static class IListExtensions

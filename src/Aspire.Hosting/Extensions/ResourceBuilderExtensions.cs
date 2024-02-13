@@ -329,6 +329,39 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Changes an existing creates a new endpoint if it doesn't exist and invokes callback to modify the defaults.
+    /// </summary>
+    /// <param name="builder">Resource builder for resource with endpoints.</param>
+    /// <param name="endpointName">Name of endpoint to change.</param>
+    /// <param name="callback">Callback that modifies the endpoint.</param>
+    /// <param name="createIfNotExists">Create endpoint if it does not exist.</param>
+    /// <returns></returns>
+    public static IResourceBuilder<T> WithEndpoint<T>(this IResourceBuilder<T> builder, string endpointName, Action<EndpointAnnotation> callback, bool createIfNotExists = true) where T: IResourceWithEndpoints
+    {
+        var endpoint = builder.Resource.Annotations
+            .OfType<EndpointAnnotation>()
+            .Where(ea => StringComparers.EndpointAnnotationName.Equals(ea.Name, endpointName))
+            .SingleOrDefault();
+
+        if (endpoint != null)
+        {
+            callback(endpoint);
+
+        }
+        if (endpoint == null && createIfNotExists)
+        {
+            endpoint = new EndpointAnnotation(ProtocolType.Tcp, name: endpointName);
+            callback(endpoint);
+        }
+        else if (endpoint == null && !createIfNotExists)
+        {
+            return builder;
+        }
+
+        return builder;
+    }
+
+    /// <summary>
     /// Exposes an HTTP endpoint on a resource. This endpoint reference can be retrieved using <see cref="GetEndpoint{T}(IResourceBuilder{T}, string)"/>.
     /// The endpoint name will be "http" if not specified.
     /// </summary>
