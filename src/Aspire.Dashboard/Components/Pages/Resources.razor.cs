@@ -84,17 +84,12 @@ public partial class Resources : ComponentBase, IDisposable
 
     protected override void OnInitialized()
     {
-        // If the client is not enabled then there are never any resources to display on this page.
-        // Send the user to the structured logs page instead.
-        if (!DashboardClient.IsEnabled)
-        {
-            NavigationManager.NavigateTo("/StructuredLogs");
-            return;
-        }
-
         _applicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
 
-        SubscribeResources();
+        if (DashboardClient.IsEnabled)
+        {
+            SubscribeResources();
+        }
 
         _logsSubscription = TelemetryRepository.OnNewLogs(null, SubscriptionType.Other, async () =>
         {
