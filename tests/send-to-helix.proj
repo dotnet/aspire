@@ -32,6 +32,8 @@
 
     <_TestRunCommandArguments Include="dotnet test" />
     <_TestRunCommandArguments Include="-s .runsettings" />
+    <_TestRunCommandArguments Include="--blame" />
+    <_TestRunCommandArguments Include="--blame-crash" />
     <_TestRunCommandArguments Include="--blame-hang-dump-type full" />
     <_TestRunCommandArguments Include="$(_TestNameEnvVar).dll" />
     <_TestRunCommandArguments Include="--ResultsDirectory:$(_HelixLogsPath)" />
