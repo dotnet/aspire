@@ -56,7 +56,7 @@ public partial class MainLayout : IDisposable
                 if (TargetLocationInterceptor.InterceptTargetLocation(NavigationManager.BaseUri, context.TargetLocation, out var newTargetLocation))
                 {
                     context.PreventNavigation();
-                    NavigationManager.NavigateTo("/StructuredLogs");
+                    NavigationManager.NavigateTo(newTargetLocation);
                 }
 
                 return ValueTask.CompletedTask;
