@@ -141,21 +141,15 @@
       <Uri>https://github.com/dotnet/arcade</Uri>
       <Sha>d82d6eb7c6aa6c737a83cbf3141d19db02a00006</Sha>
     </Dependency>
-    <Dependency Name="Microsoft.DotNet.XliffTasks" Version="1.0.0-beta.23526.1">
-      <Uri>https://github.com/dotnet/xliff-tasks</Uri>
-      <Sha>8523ee2147c37df79a26122ad11a9e29fbededf2</Sha>
+    <Dependency Name="Microsoft.DotNet.XliffTasks" Version="9.0.0-beta.24101.1">
+      <Uri>https://github.com/dotnet/arcade</Uri>
+      <Sha>d82d6eb7c6aa6c737a83cbf3141d19db02a00006</Sha>
     </Dependency>
     <!-- Intermediate is necessary for source build. -->
     <Dependency Name="Microsoft.SourceBuild.Intermediate.arcade" Version="9.0.0-beta.24101.1">
       <Uri>https://github.com/dotnet/arcade</Uri>
       <Sha>d82d6eb7c6aa6c737a83cbf3141d19db02a00006</Sha>
       <SourceBuild RepoName="arcade" ManagedOnly="true" />
-    </Dependency>
-    <!-- Intermediate is necessary for source build. -->
-    <Dependency Name="Microsoft.SourceBuild.Intermediate.xliff-tasks" Version="1.0.0-beta.23526.1">
-      <Uri>https://github.com/dotnet/xliff-tasks</Uri>
-      <Sha>8523ee2147c37df79a26122ad11a9e29fbededf2</Sha>
-      <SourceBuild RepoName="xliff-tasks" ManagedOnly="true" />
     </Dependency>
   </ToolsetDependencies>
 </Dependencies>
