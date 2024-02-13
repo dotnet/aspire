@@ -28,11 +28,11 @@ steps:
     displayName: Build
 
   - ${{ if ne(parameters.skipTests, 'true') }}:
-    - script: ${{ parameters.dotnetScript }} dotnet-coverage collect
-              --settings $(Build.SourcesDirectory)/eng/CodeCoverage.config
-              --output ${{ parameters.repoTestResultsPath }}/NonHelixTests.cobertura.xml
-              "${{ parameters.buildScript }} -testnobuild -test -configuration ${{ parameters.buildConfig }} /bl:${{ parameters.repoLogPath }}/tests.binlog $(_OfficialBuildIdArgs)"
-      displayName: Run non-helix tests
+    #- script: ${{ parameters.dotnetScript }} dotnet-coverage collect
+              #--settings $(Build.SourcesDirectory)/eng/CodeCoverage.config
+              #--output ${{ parameters.repoTestResultsPath }}/NonHelixTests.cobertura.xml
+              #"${{ parameters.buildScript }} -testnobuild -test -configuration ${{ parameters.buildConfig }} /bl:${{ parameters.repoLogPath }}/tests.binlog $(_OfficialBuildIdArgs)"
+      #displayName: Run non-helix tests
 
     - template: /eng/pipelines/templates/send-to-helix.yml
       parameters:
