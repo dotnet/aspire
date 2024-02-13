@@ -12,7 +12,7 @@
   </ItemGroup>
   
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Components\Aspire.Nats\Aspire.Nats.csproj" />
+    <ProjectReference Include="..\..\..\src\Components\Aspire.Nats.Client\Aspire.Nats.Client.csproj" />
     <ProjectReference Include="..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" />
   </ItemGroup>
 
