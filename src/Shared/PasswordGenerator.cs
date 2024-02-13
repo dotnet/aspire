@@ -5,7 +5,7 @@ using System.Security.Cryptography;
 
 namespace Aspire;
 
-internal abstract class PasswordGenerator
+internal static class PasswordGenerator
 {
     // Some chars are excluded:
     // - prevent potential confusions, e.g., 0,o,O and i,I,l
