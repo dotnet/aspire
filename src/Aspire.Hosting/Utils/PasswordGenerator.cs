@@ -15,7 +15,7 @@ internal static class PasswordGenerator
     internal const string LowerCaseChars = "abcdefghjkmnpqrstuvwxyz"; // exclude i,l,o
     internal const string UpperCaseChars = "ABCDEFGHJKMNPQRSTUVWXYZ"; // exclude I,L,O
     internal const string DigitChars = "0123456789";
-    internal const string SpecialChars = "-_#@!./:[]{}+,*()~"; // exclude =&<>;=,`'^%$
+    internal const string SpecialChars = "-_#@!./:[]{}+,*()~"; // exclude &<>=;,`'^%$
 
     /// <summary>
     /// Creates a cryptographically random password.
