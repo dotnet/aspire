@@ -33,7 +33,7 @@
     <_TestRunCommandArguments Include="dotnet test" />
     <_TestRunCommandArguments Include="-s .runsettings" />
     <_TestRunCommandArguments Include="--blame" />
-    <_TestRunCommandArguments Include="--blame-crash" />
+    <_TestRunCommandArguments Include="--blame-hang" />
     <_TestRunCommandArguments Include="--blame-hang-dump-type full" />
     <_TestRunCommandArguments Include="$(_TestNameEnvVar).dll" />
     <_TestRunCommandArguments Include="--ResultsDirectory:$(_HelixLogsPath)" />
@@ -159,7 +159,6 @@
         <PayloadArchive>%(Identity)</PayloadArchive>
         <PreCommands Condition="'$(OS)' == 'Windows_NT'">set &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
         <PreCommands Condition="'$(OS)' != 'Windows_NT'">export &quot;TEST_NAME=%(FileName)&quot;</PreCommands>
-        <PostCommands Condition="'$(OS)' != 'Windows_NT'">find .</PostCommands>
         <Command>$(_TestRunCommand)</Command>
         <Timeout>$(_workItemTimeout)</Timeout>
 
