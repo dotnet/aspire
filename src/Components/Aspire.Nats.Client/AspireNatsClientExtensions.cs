@@ -4,8 +4,9 @@
 using Aspire.Nats.Client;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 using NATS.Client.Core;
-using NATS.Client.Hosting;
 using NATS.Client.JetStream;
 
 namespace Microsoft.Extensions.Hosting;
@@ -14,12 +15,45 @@ public static class AspireNatsClientExtensions
 {
     private const string DefaultConfigSectionName = "Aspire:Nats:Client";
 
-    public static void AddNats(this IHostApplicationBuilder builder, string connectionName, Action<NatsClientSettings>? configureSettings = null, Func<NatsOpts, NatsOpts>? configureOptions = null)
+    public static void AddNats(this IHostApplicationBuilder builder,
+        string connectionName,
+        Action<NatsClientSettings>? configureSettings = null,
+        Func<NatsOpts, NatsOpts>? configureOptions = null)
+        => AddNats(
+            builder,
+            configurationSectionName: DefaultConfigSectionName,
+            connectionName: connectionName,
+            serviceKey: null,
+            configureSettings: configureSettings,
+            configureOptions: configureOptions);
+
+    public static void AddKeyedNats(this IHostApplicationBuilder builder,
+        string name,
+        Action<NatsClientSettings>? configureSettings = null,
+        Func<NatsOpts, NatsOpts>? configureOptions = null)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
+        AddNats(
+            builder,
+            configurationSectionName: $"{DefaultConfigSectionName}:{name}",
+            connectionName: name,
+            serviceKey: name,
+            configureSettings: configureSettings,
+            configureOptions: configureOptions);
+    }
+
+    private static void AddNats(this IHostApplicationBuilder builder,
+        string configurationSectionName,
+        string connectionName,
+        object? serviceKey,
+        Action<NatsClientSettings>? configureSettings,
+        Func<NatsOpts, NatsOpts>? configureOptions)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
         NatsClientSettings settings = new();
-        builder.Configuration.GetSection(DefaultConfigSectionName).Bind(settings);
+        builder.Configuration.GetSection(configurationSectionName).Bind(settings);
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {
@@ -28,20 +62,38 @@ public static class AspireNatsClientExtensions
 
         configureSettings?.Invoke(settings);
 
-        if (settings.ConnectionString == null)
+        NatsConnection Factory(IServiceProvider provider)
         {
-            throw new InvalidOperationException($"NATS connection string not found: {connectionName}");
-        }
+            var options = NatsOpts.Default with
+            {
+                LoggerFactory = provider.GetRequiredService<ILoggerFactory>(),
+            };
 
-        builder.Services.AddNats(configureOpts: opts =>
-        {
             if (configureOptions != null)
             {
-                opts = configureOptions(opts);
+                options = configureOptions(options);
             }
 
-            return opts with { Url = settings.ConnectionString };
-        });
+            if (settings.ConnectionString == null)
+            {
+                throw new InvalidOperationException($"NATS connection string not found: {connectionName}");
+            }
+
+            options = options with { Url = settings.ConnectionString };
+
+            return new NatsConnection(options);
+        }
+
+        if (serviceKey == null)
+        {
+            builder.Services.TryAddSingleton(Factory);
+            builder.Services.TryAddSingleton<INatsConnection>(static provider => provider.GetRequiredService<NatsConnection>());
+        }
+        else
+        {
+            builder.Services.TryAddKeyedSingleton<NatsConnection>(serviceKey, (provider, _) => Factory(provider));
+            builder.Services.TryAddKeyedSingleton<INatsConnection>(serviceKey, static (provider, key) => provider.GetRequiredKeyedService<NatsConnection>(key));
+        }
     }
 
     public static void AddNatsJetStream(this IHostApplicationBuilder builder)
