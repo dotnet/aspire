@@ -15,6 +15,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Build service and client types. Integration tests use the client types to call OTLP services. -->
     <Protobuf Include="**/*.proto">
       <ProtoRoot>Otlp</ProtoRoot>
     </Protobuf>
