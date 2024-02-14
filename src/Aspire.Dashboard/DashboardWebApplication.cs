@@ -7,9 +7,6 @@ using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Grpc;
 using Aspire.Dashboard.Otlp.Security;
 using Aspire.Dashboard.Otlp.Storage;
-using Microsoft.AspNetCore.Hosting.Server;
-using Microsoft.AspNetCore.Hosting.Server.Features;
-using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -36,8 +33,6 @@ public class DashboardWebApplication : IAsyncDisposable
     {
         get => _otlpServiceEndPointAccessor ?? throw new InvalidOperationException("WebApplication not started yet.");
     }
-    public ICollection<string> ServerAddresses => _app.Services.GetRequiredService<IServer>().Features.GetRequiredFeature<IServerAddressesFeature>().Addresses;
-
     public DashboardWebApplication(IConfiguration? configuration = null)
     {
         var builder = WebApplication.CreateBuilder();
