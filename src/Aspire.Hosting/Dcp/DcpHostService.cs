@@ -25,6 +25,7 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
     private readonly ILogger _logger;
     private readonly DcpOptions _dcpOptions;
     private readonly PublishingOptions _publishingOptions;
+    private readonly IDcpDependencyCheckService _dependencyCheckService;
     private readonly Locations _locations;
 
     public DcpHostService(
@@ -33,6 +34,7 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
         IOptions<DcpOptions> dcpOptions,
         IOptions<PublishingOptions> publishingOptions,
         ApplicationExecutor appExecutor,
+        IDcpDependencyCheckService dependencyCheckService,
         Locations locations)
     {
         _applicationModel = applicationModel;
@@ -41,6 +43,7 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
         _dcpOptions = dcpOptions.Value;
         _publishingOptions = publishingOptions.Value;
         _appExecutor = appExecutor;
+        _dependencyCheckService = dependencyCheckService;
         _locations = locations;
     }
 
@@ -53,11 +56,7 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
             return;
         }
 
-        await DcpDependencyCheck.EnsureDcpDependenciesAsync(
-            _dcpOptions.CliPath,
-            _applicationModel.Resources.Any(c => c.Annotations.OfType<ContainerImageAnnotation>().Any()),
-            _dcpOptions.ContainerRuntime,
-            cancellationToken).ConfigureAwait(false);
+        await _dependencyCheckService.EnsureDcpDependenciesAsync(cancellationToken).ConfigureAwait(false);
 
         EnsureDcpHostRunning();
         await _appExecutor.RunApplicationAsync(cancellationToken).ConfigureAwait(false);

@@ -1,17 +1,19 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Text.Json.Serialization;
-using Aspire.Hosting.Dcp.Process;
+using System.Globalization;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
-using System.Globalization;
+using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Dcp.Process;
 using Aspire.Hosting.Properties;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Dcp;
 
-internal sealed partial class DcpDependencyCheck
+internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
 {
     // Docker goes to into resource saver mode after 5 minutes of not running a container (by default).
     // While in this mode, the commands we use for the docker runtime checks can take quite some time
@@ -20,8 +22,22 @@ internal sealed partial class DcpDependencyCheck
     [GeneratedRegex("[^\\d\\.].*$")]
     private static partial Regex VersionRegex();
 
-    public static async Task EnsureDcpDependenciesAsync(string? dcpPath, bool hasContainers, string? containerRuntime, CancellationToken cancellationToken)
+    private readonly DistributedApplicationModel _applicationModel;
+    private readonly DcpOptions _dcpOptions;
+
+    public DcpDependencyCheck(
+        DistributedApplicationModel applicationModel,
+        IOptions<DcpOptions> dcpOptions)
     {
+        _applicationModel = applicationModel;
+        _dcpOptions = dcpOptions.Value;
+    }
+
+    public async Task EnsureDcpDependenciesAsync(CancellationToken cancellationToken = default)
+    {
+        string? dcpPath = _dcpOptions.CliPath;
+        string? containerRuntime = _dcpOptions.ContainerRuntime;
+
         if (!File.Exists(dcpPath))
         {
             throw new FileNotFoundException($"The Aspire orchestration component is not installed at \"{dcpPath}\". The application cannot be run without it.", dcpPath);
@@ -65,7 +81,7 @@ internal sealed partial class DcpDependencyCheck
             }
 
             EnsureDcpVersion(dcpInfo);
-            EnsureDcpContainerRuntime(dcpInfo, hasContainers, containerRuntime);
+            EnsureDcpContainerRuntime(dcpInfo);
         }
         catch (Exception ex) when (ex is not DistributedApplicationException)
         {
@@ -124,11 +140,11 @@ internal sealed partial class DcpDependencyCheck
         }
     }
 
-    private static void EnsureDcpContainerRuntime(DcpInfo dcpInfo, bool hasContainers, string? containerRuntime)
+    private void EnsureDcpContainerRuntime(DcpInfo dcpInfo)
     {
         // If we don't have any resources that need a container then we
         // don't need to check for a healthy container runtime.
-        if (!hasContainers)
+        if (!_applicationModel.Resources.Any(c => c.Annotations.OfType<ContainerImageAnnotation>().Any()))
         {
             return;
         }
@@ -137,7 +153,12 @@ internal sealed partial class DcpDependencyCheck
 
         try
         {
-            containerRuntime ??= "docker";
+            string? containerRuntime = _dcpOptions.ContainerRuntime;
+            if (string.IsNullOrEmpty(containerRuntime))
+            {
+                // Default runtime is Docker
+                containerRuntime = "docker";
+            }
             bool installed = dcpInfo.Containers?.Installed ?? false;
             bool running = dcpInfo.Containers?.Running ?? false;
             string? error = dcpInfo.Containers?.Error;

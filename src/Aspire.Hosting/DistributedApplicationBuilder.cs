@@ -72,6 +72,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddSingleton<ApplicationExecutor>();
         _innerBuilder.Services.AddSingleton<IDashboardEndpointProvider, HostDashboardEndpointProvider>();
         _innerBuilder.Services.AddSingleton<IDashboardAvailability, HttpPingDashboardAvailability>();
+        _innerBuilder.Services.AddSingleton<IDcpDependencyCheckService, DcpDependencyCheck>();
         _innerBuilder.Services.AddHostedService<DcpHostService>();
 
         // We need a unique path per application instance
