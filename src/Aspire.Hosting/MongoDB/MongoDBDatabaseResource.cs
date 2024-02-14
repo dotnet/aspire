@@ -10,6 +10,9 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="parent">The MongoDB server resource associated with this database.</param>
 public class MongoDBDatabaseResource(string name, MongoDBServerResource parent) : Resource(name), IResourceWithParent<MongoDBServerResource>, IResourceWithConnectionString
 {
+    /// <summary>
+    /// Gets the parent MongoDB container resource.
+    /// </summary>
     public MongoDBServerResource Parent => parent;
 
     /// <summary>

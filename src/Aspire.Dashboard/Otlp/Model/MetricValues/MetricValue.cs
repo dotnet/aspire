@@ -1,8 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
+
 namespace Aspire.Dashboard.Otlp.Model.MetricValues;
 
+[DebuggerDisplay("Start = {Start}, End = {End}, Value = {Value}")]
 public class MetricValue<T> : MetricValueBase where T : struct
 {
     public readonly T Value;

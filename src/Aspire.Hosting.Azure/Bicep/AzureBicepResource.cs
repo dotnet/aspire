@@ -77,15 +77,12 @@ public class AzureBicepResource(string name, string? templateFile = null, string
                     ? path
                     : Path.Combine(directory, $"{TemplateResourceName.ToLowerInvariant()}");
 
-                if (!File.Exists(path))
-                {
-                    // REVIEW: We should allow the user to specify the assembly where the resources reside.
-                    using var resourceStream = GetType().Assembly.GetManifestResourceStream(TemplateResourceName)
-                        ?? throw new InvalidOperationException($"Could not find resource {TemplateResourceName} in assembly {GetType().Assembly}");
+                // REVIEW: We should allow the user to specify the assembly where the resources reside.
+                using var resourceStream = GetType().Assembly.GetManifestResourceStream(TemplateResourceName)
+                    ?? throw new InvalidOperationException($"Could not find resource {TemplateResourceName} in assembly {GetType().Assembly}");
 
-                    using var fs = File.OpenWrite(path);
-                    resourceStream.CopyTo(fs);
-                }
+                using var fs = File.OpenWrite(path);
+                resourceStream.CopyTo(fs);
             }
         }
 
@@ -93,6 +90,10 @@ public class AzureBicepResource(string name, string? templateFile = null, string
     }
 
     // TODO: Make the name bicep safe
+    /// <summary>
+    /// TODO: Doc Comments
+    /// </summary>
+    /// <returns></returns>
     public string CreateBicepResourceName() => Name.ToLower();
 
     private static string EvalParameter(object? input)
@@ -114,6 +115,11 @@ public class AzureBicepResource(string name, string? templateFile = null, string
     }
 
     // TODO: Use this when caching the results
+    /// <summary>
+    /// TODO: Doc Comments
+    /// </summary>
+    /// <returns></returns>
+    /// <exception cref="InvalidOperationException"></exception>
     public string GetChecksum()
     {
         // TODO: PERF Inefficient
@@ -194,9 +200,21 @@ public class AzureBicepResource(string name, string? templateFile = null, string
     /// </summary>
     public static class KnownParameters
     {
+        /// <summary>
+        /// TODO: Doc Comments
+        /// </summary>
         public const string PrincipalId = "principalId";
+        /// <summary>
+        /// TODO: Doc Comments
+        /// </summary>
         public const string PrincipalName = "principalName";
+        /// <summary>
+        /// TODO: Doc Comments
+        /// </summary>
         public const string PrincipalType = "principalType";
+        /// <summary>
+        /// TODO: Doc Comments
+        /// </summary>
         public static string KeyVaultName = "keyVaultName";
     }
 }
@@ -213,6 +231,9 @@ public readonly struct BicepTemplateFile(string path, bool deleteFileOnDispose) 
     /// </summary>
     public string Path { get; } = path;
 
+    /// <summary>
+    /// Releases the resources used by the current instance of <see cref="BicepTemplateFile" />.
+    /// </summary>
     public void Dispose()
     {
         if (deleteFileOnDispose)

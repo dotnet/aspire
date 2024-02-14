@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using System.Text;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
@@ -62,7 +63,7 @@ internal static class TestHelpers
         };
     }
 
-    public static Metric CreateSumMetric(string metricName, DateTime startTime, KeyValuePair<string, string>[]? attributes = null)
+    public static Metric CreateSumMetric(string metricName, DateTime startTime, KeyValuePair<string, string>[]? attributes = null, int? value = null)
     {
         return new Metric
         {
@@ -75,17 +76,17 @@ internal static class TestHelpers
                 IsMonotonic = true,
                 DataPoints =
                 {
-                    CreateNumberPoint(startTime, attributes)
+                    CreateNumberPoint(startTime, value ?? 1, attributes)
                 }
             }
         };
     }
 
-    private static NumberDataPoint CreateNumberPoint(DateTime startTime, KeyValuePair<string, string>[]? attributes = null)
+    private static NumberDataPoint CreateNumberPoint(DateTime startTime, int value, KeyValuePair<string, string>[]? attributes = null)
     {
         var point = new NumberDataPoint
         {
-            AsInt = 1,
+            AsInt = value,
             StartTimeUnixNano = DateTimeToUnixNanoseconds(startTime),
             TimeUnixNano = DateTimeToUnixNanoseconds(startTime)
         };
@@ -148,9 +149,19 @@ internal static class TestHelpers
         };
     }
 
-    public static TelemetryRepository CreateRepository()
+    public static TelemetryRepository CreateRepository(int? maxMetricsCount = null)
     {
-        return new TelemetryRepository(new ConfigurationManager(), NullLoggerFactory.Instance);
+        var inMemorySettings = new Dictionary<string, string?>();
+        if (maxMetricsCount != null)
+        {
+            inMemorySettings[TelemetryRepository.MaxMetricsCountKey] = maxMetricsCount.Value.ToString(CultureInfo.InvariantCulture);
+        }
+
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(inMemorySettings)
+            .Build();
+
+        return new TelemetryRepository(configuration, NullLoggerFactory.Instance);
     }
 
     public static ulong DateTimeToUnixNanoseconds(DateTime dateTime)

@@ -1,0 +1,10 @@
+<Project>
+
+  <PropertyGroup>
+    <!-- Enabling this rule will cause build failures on undocumented public APIs. -->
+    <SkipArcadeNoWarnCS1591>true</SkipArcadeNoWarnCS1591>
+  </PropertyGroup>
+
+  <Import Project="..\Directory.Build.props" />
+
+</Project>

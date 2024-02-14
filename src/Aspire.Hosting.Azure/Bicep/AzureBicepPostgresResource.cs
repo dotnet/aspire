@@ -45,16 +45,30 @@ public class AzureBicepPostgresDbResource(string name, string databaseName, Azur
     IResourceWithConnectionString,
     IResourceWithParent<AzureBicepPostgresResource>
 {
+    /// <summary>
+    /// Gets the parent Azure Postgres Flexible Server resource.
+    /// </summary>
     public AzureBicepPostgresResource Parent { get; } = parent;
 
+    /// <summary>
+    /// TODO: Doc Comments
+    /// </summary>
     public string ConnectionStringExpression =>
         $"{{{Parent.Name}.connectionString}};Database={databaseName}";
 
+    /// <summary>
+    /// Gets the connection string for the Azure Postgres Flexible Server database.
+    /// </summary>
+    /// <returns>The connection string.</returns>
     public string? GetConnectionString()
     {
         return $"{Parent.GetConnectionString()};Database={databaseName}";
     }
 
+    /// <summary>
+    /// TODO: Doc Comments
+    /// </summary>
+    /// <param name="context"></param>
     public void WriteToManifest(ManifestPublishingContext context)
     {
         // REVIEW: What do we do with resources that are defined in the parent's bicep file?
