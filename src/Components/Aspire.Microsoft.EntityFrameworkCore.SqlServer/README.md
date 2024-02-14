@@ -1,6 +1,6 @@
 # Aspire.Microsoft.EntityFrameworkCore.SqlServer library
 
-Registers [EntityFrameworkCore](https://learn.microsoft.com/ef/core/) [DbContext](https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbcontext) service for connecting Azure SQL, MS SQL server database. Enables connection pooling, health check, logging and telemetry.
+Registers [EntityFrameworkCore](https://learn.microsoft.com/ef/core/) [DbContext](https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbcontext) service for connecting Azure SQL, MS SQL server database. Enables connection pooling, retries, health check, logging and telemetry.
 
 ## Getting started
 
@@ -35,6 +35,14 @@ public ProductsController(MyDbContext context)
 }
 ```
 
+You might also need to configure specific option of Sql Server, or register a `DbContext` in other ways. In this case call the `EnrichSqlServerDbContext` extension method, for example:
+
+```csharp
+var connectionString = builder.Configuration.GetConnectionString("catalogdb");
+builder.Services.AddDbContextPool<CatalogDbContext>(dbContextOptionsBuilder => dbContextOptionsBuilder.UseSqlServer(connectionString));
+builder.EnrichSqlServerDbContext<CatalogDbContext>();
+```
+
 ## Configuration
 
 The .NET Aspire SQL Server EntityFrameworkCore SqlClient component provides multiple options to configure the SQL connection based on the requirements and conventions of your project.
@@ -57,6 +65,8 @@ And then the connection string will be retrieved from the `ConnectionStrings` co
 }
 ```
 
+The `EnrichSqlServerDbContext` won't make use of the `ConnectionStrings` configuration section since it expects a `DbContext` to be registered at the point it is called.
+
 See the [ConnectionString documentation](https://learn.microsoft.com/dotnet/api/system.data.sqlclient.sqlconnection.connectionstring#remarks) for more information on how to format this connection string.
 
 ### Use configuration providers
@@ -69,7 +79,6 @@ The .NET Aspire SQL Server EntityFrameworkCore SqlClient component supports [Mic
     "Microsoft": {
       "EntityFrameworkCore": {
         "SqlServer": {
-          "DbContextPooling": true,
           "HealthChecks": false,
           "Tracing": false,
           "Metrics": true
@@ -86,6 +95,12 @@ Also you can pass the `Action<MicrosoftEntityFrameworkCoreSqlServerSettings> con
 
 ```csharp
     builder.AddSqlServerDbContext<MyDbContext>("sqldata", settings => settings.HealthChecks = false);
+```
+
+or
+
+```csharp
+    builder.EnrichSqlServerDbContext<MyDbContext>(settings => settings.HealthChecks = false);
 ```
 
 ## AppHost extensions

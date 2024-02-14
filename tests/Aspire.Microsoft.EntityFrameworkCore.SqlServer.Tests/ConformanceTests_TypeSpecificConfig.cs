@@ -6,7 +6,7 @@ using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Microsoft.EntityFrameworkCore.SqlServer.Tests;
 
-public class ConformanceTests_NoPooling_TypeSpecificConfig : ConformanceTests_NoPooling
+public class ConformanceTests_TypeSpecificConfig : ConformanceTests
 {
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[1]
