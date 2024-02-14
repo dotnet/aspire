@@ -29,6 +29,12 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.MapPost("/ping", async (INatsConnection nats) =>
+{
+    var rtt = await nats.PingAsync();
+    return Results.Json(new { rtt, nats.ServerInfo });
+});
+
 app.MapPost("/stream", async (StreamConfig config, INatsJSContext jetStream) =>
 {
     var stream = await jetStream.CreateStreamAsync(config);

@@ -1,5 +1,9 @@
 @HostAddress = http://localhost:5156
 
+POST {{HostAddress}}/ping/
+
+###
+
 POST {{HostAddress}}/stream/
 Content-Type: application/json
 
