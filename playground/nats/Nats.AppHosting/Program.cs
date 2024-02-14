@@ -4,7 +4,10 @@ var nats = builder.AddNats("nats")
     .WithJetStream()
     .PublishAsContainer();
 
-builder.AddProject<Projects.Nats_ApiService>("apiservice")
+builder.AddProject<Projects.Nats_ApiService>("api")
+    .WithReference(nats);
+
+builder.AddProject<Projects.Nats_Backend>("backend")
     .WithReference(nats);
 
 builder.Build().Run();

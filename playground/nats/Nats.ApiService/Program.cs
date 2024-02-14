@@ -1,7 +1,7 @@
-using System.Text.Json.Serialization;
 using NATS.Client.Core;
 using NATS.Client.JetStream;
 using NATS.Client.JetStream.Models;
+using Nats.Common;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -50,8 +50,16 @@ app.MapGet("/stream/{name}", async (string name, INatsJSContext jetStream) =>
 
 app.MapPost("/publish/", async (AppEvent @event, INatsJSContext jetStream) =>
 {
-    var ack = await jetStream.PublishAsync(@event.Subject, @event);
-    ack.EnsureSuccess();
+    try
+    {
+        var ack = await jetStream.PublishAsync(@event.Subject, @event);
+        ack.EnsureSuccess();
+    }
+    catch (NatsJSPublishNoResponseException)
+    {
+        return Results.Problem("Make sure the stream is created before publishing.");
+    }
+
     return Results.Created();
 });
 
@@ -75,11 +83,3 @@ app.MapGet("/consume/{name}", async (string name, INatsJSContext jetStream) =>
 });
 
 app.Run();
-
-public record AppEvent(string Subject, string Name, string Description, decimal Priority);
-
-[JsonSerializable(typeof(AppEvent))]
-[JsonSourceGenerationOptions(PropertyNameCaseInsensitive = true)]
-public partial class AppJsonContext : JsonSerializerContext
-{
-}

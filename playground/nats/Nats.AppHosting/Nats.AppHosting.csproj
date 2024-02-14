@@ -17,6 +17,7 @@
     <ProjectReference Include="..\..\..\src\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\..\..\src\Aspire.Hosting\Aspire.Hosting.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\Nats.ApiService\Nats.ApiService.csproj" />
+    <ProjectReference Include="..\Nats.Backend\Nats.Backend.csproj" />
   </ItemGroup>
 
 </Project>
