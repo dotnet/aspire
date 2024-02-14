@@ -13,6 +13,8 @@ namespace Aspire.Hosting.Dcp;
 
 internal sealed partial class DcpDependencyCheck
 {
+    // Docker goes to into resource saver mode after 5 minutes of not running a container (by default).
+    // While in this mode, the commands we use for the docker runtime checks can take quite some time
     private const int WaitTimeForDcpInfoCommandInSeconds = 10;
 
     [GeneratedRegex("[^\\d\\.].*$")]
