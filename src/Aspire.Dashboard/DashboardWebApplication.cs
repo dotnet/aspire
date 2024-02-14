@@ -176,8 +176,11 @@ public class DashboardWebApplication : IAsyncDisposable
 
         static Func<IPEndPoint> CreateEndPointAccessor(ListenOptions options)
         {
-            // An endpoint with a dynamic port is updated after it is bound.
-            // Set a func to get the latest endpoint.
+            // We want to provide a way for someone to get the IP address of an endpoint.
+            // However, if a dynamic port is used, the port is not known until the server is started.
+            // Instead of returning the ListenOption's endpoint directly, we provide a func that returns the endpoint.
+            // The endpoint on ListenOptions is updated after binding, so accessing it via the func after the server
+            // has started returns the resolved port.
             return () => options.IPEndPoint!;
         }
     }
