@@ -26,7 +26,7 @@ public sealed partial class ApplicationName : ComponentBase, IDisposable
     protected override async Task OnInitializedAsync()
     {
         // We won't have an application name until the client has connected to the server.
-        if (!DashboardClient.WhenConnected.IsCompletedSuccessfully)
+        if (DashboardClient.IsEnabled && !DashboardClient.WhenConnected.IsCompletedSuccessfully)
         {
             _disposalCts = new CancellationTokenSource();
             await DashboardClient.WhenConnected.WaitAsync(_disposalCts.Token);

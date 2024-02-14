@@ -186,7 +186,7 @@ public static class ResourceBuilderExtensions
 
             if (context.PublisherName == "manifest")
             {
-                context.EnvironmentVariables[connectionStringName] = resource.ConnectionStringExpression;
+                context.EnvironmentVariables[connectionStringName] = resource.ConnectionStringReferenceExpression;
                 return;
             }
 
@@ -299,6 +299,16 @@ public static class ResourceBuilderExtensions
         }
     }
 
+    /// <summary>
+    /// TODO: Doc Comments
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="builder"></param>
+    /// <param name="hostPort"></param>
+    /// <param name="scheme"></param>
+    /// <param name="name"></param>
+    /// <param name="env"></param>
+    /// <returns></returns>
     [Obsolete("WithServiceBinding has been renamed to WithEndpoint. Use WithEndpoint instead.")]
     public static IResourceBuilder<T> WithServiceBinding<T>(this IResourceBuilder<T> builder, int? hostPort = null, string? scheme = null, string? name = null, string? env = null) where T : IResource
     {
@@ -326,6 +336,39 @@ public static class ResourceBuilderExtensions
 
         var annotation = new EndpointAnnotation(ProtocolType.Tcp, uriScheme: scheme, name: name, port: hostPort, env: env);
         return builder.WithAnnotation(annotation);
+    }
+
+    /// <summary>
+    /// Changes an existing creates a new endpoint if it doesn't exist and invokes callback to modify the defaults.
+    /// </summary>
+    /// <param name="builder">Resource builder for resource with endpoints.</param>
+    /// <param name="endpointName">Name of endpoint to change.</param>
+    /// <param name="callback">Callback that modifies the endpoint.</param>
+    /// <param name="createIfNotExists">Create endpoint if it does not exist.</param>
+    /// <returns></returns>
+    public static IResourceBuilder<T> WithEndpoint<T>(this IResourceBuilder<T> builder, string endpointName, Action<EndpointAnnotation> callback, bool createIfNotExists = true) where T: IResourceWithEndpoints
+    {
+        var endpoint = builder.Resource.Annotations
+            .OfType<EndpointAnnotation>()
+            .Where(ea => StringComparers.EndpointAnnotationName.Equals(ea.Name, endpointName))
+            .SingleOrDefault();
+
+        if (endpoint != null)
+        {
+            callback(endpoint);
+
+        }
+        if (endpoint == null && createIfNotExists)
+        {
+            endpoint = new EndpointAnnotation(ProtocolType.Tcp, name: endpointName);
+            callback(endpoint);
+        }
+        else if (endpoint == null && !createIfNotExists)
+        {
+            return builder;
+        }
+
+        return builder;
     }
 
     /// <summary>
@@ -360,6 +403,17 @@ public static class ResourceBuilderExtensions
         return builder.WithEndpoint(hostPort: hostPort, scheme: "https", name: name, env: env);
     }
 
+    /// <summary>
+    /// TODO: Doc Comments
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="builder"></param>
+    /// <param name="containerPort"></param>
+    /// <param name="hostPort"></param>
+    /// <param name="scheme"></param>
+    /// <param name="name"></param>
+    /// <param name="env"></param>
+    /// <returns></returns>
     [Obsolete("WithServiceBinding has been renamed to WithEndpoint. Use WithEndpoint instead.")]
     public static IResourceBuilder<T> WithServiceBinding<T>(this IResourceBuilder<T> builder, int containerPort, int? hostPort = null, string? scheme = null, string? name = null, string? env = null) where T : IResource
     {

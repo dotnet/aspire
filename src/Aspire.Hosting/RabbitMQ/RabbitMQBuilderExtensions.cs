@@ -46,6 +46,11 @@ public static class RabbitMQBuilderExtensions
         context.Writer.WriteString("type", "rabbitmq.server.v0");
     }
 
+    /// <summary>
+    /// Changes the RabbitMQ resource to be published as a container in the manifest.
+    /// </summary>
+    /// <param name="builder">Resource builder for <see cref="RabbitMQServerResource"/>.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<RabbitMQServerResource> PublishAsContainer(this IResourceBuilder<RabbitMQServerResource> builder)
     {
         return builder.WithManifestPublishingCallback(context => WriteRabbitMQContainerToManifest(context, builder.Resource));

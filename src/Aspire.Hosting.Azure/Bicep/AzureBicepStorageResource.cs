@@ -9,6 +9,10 @@ using Aspire.Hosting.Publishing;
 
 namespace Aspire.Hosting.Azure;
 
+/// <summary>
+/// TODO: Doc Comments
+/// </summary>
+/// <param name="name"></param>
 public class AzureBicepStorageResource(string name) :
     AzureBicepResource(name, templateResouceName: "Aspire.Hosting.Azure.Bicep.storage.bicep")
 {
@@ -37,6 +41,11 @@ public class AzureBicepStorageResource(string name) :
         ?? throw new DistributedApplicationException($"Azure storage resource does not have endpoint annotation with name '{endpointName}'.");
 }
 
+/// <summary>
+/// TODO: Doc Comments
+/// </summary>
+/// <param name="name"></param>
+/// <param name="storage"></param>
 public class AzureBicepBlobStorageResource(string name, AzureBicepStorageResource storage) : Resource(name),
     IResourceWithConnectionString,
     IResourceWithParent<AzureBicepStorageResource>
@@ -47,19 +56,33 @@ public class AzureBicepBlobStorageResource(string name, AzureBicepStorageResourc
     public AzureBicepStorageResource Parent => storage;
 
     /// <summary>
+    /// Gets the connection string template for the manifest for the Azure Blob Storage resource.
+    /// </summary>
+    public string ConnectionStringExpression => $"{{{Parent.Name}.outputs.blobEndpoint}}";
+
+    /// <summary>
     /// Gets the connection string for the Azure Blob Storage resource.
     /// </summary>
     /// <returns>The connection string for the Azure Blob Storage resource.</returns>
     public string? GetConnectionString() => Parent.GetBlobConnectionString();
 
+    /// <summary>
+    /// TODO: Doc Comments
+    /// </summary>
+    /// <param name="context"></param>
     public void WriteToManifest(ManifestPublishingContext context)
     {
         context.Writer.WriteString("type", "azure.bicep.v0");
-        context.Writer.WriteString("connectionString", $"{{{Parent.Name}.outputs.blobEndpoint}}");
+        context.Writer.WriteString("connectionString", ConnectionStringExpression);
         context.Writer.WriteString("parent", Parent.Name);
     }
 }
 
+/// <summary>
+/// TODO: Doc Comments
+/// </summary>
+/// <param name="name"></param>
+/// <param name="storage"></param>
 public class AzureBicepTableStorageResource(string name, AzureBicepStorageResource storage) : Resource(name),
     IResourceWithConnectionString,
     IResourceWithParent<AzureBicepStorageResource>
@@ -70,19 +93,33 @@ public class AzureBicepTableStorageResource(string name, AzureBicepStorageResour
     public AzureBicepStorageResource Parent => storage;
 
     /// <summary>
+    /// Gets the connection string template for the manifest for the Azure Blob Storage resource.
+    /// </summary>
+    public string ConnectionStringExpression => $"{{{Parent.Name}.outputs.tableEndpoint}}";
+
+    /// <summary>
     /// Gets the connection string for the Azure Blob Storage resource.
     /// </summary>
     /// <returns>The connection string for the Azure Blob Storage resource.</returns>
     public string? GetConnectionString() => Parent.GetTableConnectionString();
 
+    /// <summary>
+    /// TODO: Doc Comments
+    /// </summary>
+    /// <param name="context"></param>
     public void WriteToManifest(ManifestPublishingContext context)
     {
         context.Writer.WriteString("type", "azure.bicep.v0");
-        context.Writer.WriteString("connectionString", $"{{{Parent.Name}.outputs.tableEndpoint}}");
+        context.Writer.WriteString("connectionString", ConnectionStringExpression);
         context.Writer.WriteString("parent", Parent.Name);
     }
 }
 
+/// <summary>
+/// TODO: Doc Comments
+/// </summary>
+/// <param name="name"></param>
+/// <param name="storage"></param>
 public class AzureBicepQueueStorageResource(string name, AzureBicepStorageResource storage) : Resource(name),
     IResourceWithConnectionString,
     IResourceWithParent<AzureBicepStorageResource>
@@ -93,21 +130,39 @@ public class AzureBicepQueueStorageResource(string name, AzureBicepStorageResour
     public AzureBicepStorageResource Parent => storage;
 
     /// <summary>
+    /// Gets the connection string template for the manifest for the Azure Blob Storage resource.
+    /// </summary>
+    public string ConnectionStringExpression => $"{{{Parent.Name}.outputs.queueEndpoint}}";
+
+    /// <summary>
     /// Gets the connection string for the Azure Blob Storage resource.
     ///</summary>
     ///<returns> The connection string for the Azure Blob Storage resource.</returns>
     public string? GetConnectionString() => Parent.GetQueueConnectionString();
 
+    /// <summary>
+    /// TODO: Doc Comments
+    /// </summary>
+    /// <param name="context"></param>
     public void WriteToManifest(ManifestPublishingContext context)
     {
         context.Writer.WriteString("type", "azure.bicep.v0");
-        context.Writer.WriteString("connectionString", $"{{{Parent.Name}.outputs.queueEndpoint}}");
+        context.Writer.WriteString("connectionString", ConnectionStringExpression);
         context.Writer.WriteString("parent", Parent.Name);
     }
 }
 
+/// <summary>
+/// TODO: Doc Comments
+/// </summary>
 public static class AzureBicepSqlResourceExtensions
 {
+    /// <summary>
+    /// TODO: Doc Comments
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="name"></param>
+    /// <returns></returns>
     public static IResourceBuilder<AzureBicepStorageResource> AddAzureBicepAzureStorage(this IDistributedApplicationBuilder builder, string name)
     {
         var resource = new AzureBicepStorageResource(name);
@@ -120,6 +175,16 @@ public static class AzureBicepSqlResourceExtensions
                       .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 
+    /// <summary>
+    /// TODO: Doc Comments
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="blobPort"></param>
+    /// <param name="queuePort"></param>
+    /// <param name="tablePort"></param>
+    /// <param name="imageTag"></param>
+    /// <param name="storagePath"></param>
+    /// <returns></returns>
     public static IResourceBuilder<AzureBicepStorageResource> UseEmulator(this IResourceBuilder<AzureBicepStorageResource> builder, int? blobPort = null, int? queuePort = null, int? tablePort = null, string? imageTag = null, string? storagePath = null)
     {
         builder.WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, name: "blob", port: blobPort, containerPort: 10000))
@@ -136,6 +201,12 @@ public static class AzureBicepSqlResourceExtensions
         return builder;
     }
 
+    /// <summary>
+    /// TODO: Doc Comments
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="name"></param>
+    /// <returns></returns>
     public static IResourceBuilder<AzureBicepBlobStorageResource> AddBlob(this IResourceBuilder<AzureBicepStorageResource> builder, string name)
     {
         var resource = new AzureBicepBlobStorageResource(name, builder.Resource);
@@ -144,6 +215,12 @@ public static class AzureBicepSqlResourceExtensions
             .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 
+    /// <summary>
+    /// TODO: Doc Comments
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="name"></param>
+    /// <returns></returns>
     public static IResourceBuilder<AzureBicepTableStorageResource> AddTable(this IResourceBuilder<AzureBicepStorageResource> builder, string name)
     {
         var resource = new AzureBicepTableStorageResource(name, builder.Resource);
@@ -152,6 +229,12 @@ public static class AzureBicepSqlResourceExtensions
             .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 
+    /// <summary>
+    /// TODO: Doc Comments
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="name"></param>
+    /// <returns></returns>
     public static IResourceBuilder<AzureBicepQueueStorageResource> AddQueue(this IResourceBuilder<AzureBicepStorageResource> builder, string name)
     {
         var resource = new AzureBicepQueueStorageResource(name, builder.Resource);

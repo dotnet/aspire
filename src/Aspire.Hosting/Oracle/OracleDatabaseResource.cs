@@ -10,6 +10,9 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="parent">The Oracle Database parent resource associated with this database.</param>
 public class OracleDatabaseResource(string name, OracleDatabaseServerResource parent) : Resource(name), IResourceWithParent<OracleDatabaseServerResource>, IResourceWithConnectionString
 {
+    /// <summary>
+    /// Gets the parent Oracle container resource.
+    /// </summary>
     public OracleDatabaseServerResource Parent { get; } = parent;
 
     /// <summary>

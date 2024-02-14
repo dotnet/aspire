@@ -30,7 +30,13 @@ public static class RedisBuilderExtensions
                       .WithAnnotation(new ContainerImageAnnotation { Image = "redis", Tag = "latest" });
     }
 
-    
+    /// <summary>
+    /// TODO: Doc Comments
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="containerName"></param>
+    /// <param name="hostPort"></param>
+    /// <returns></returns>
     public static IResourceBuilder<RedisResource> WithRedisCommander(this IResourceBuilder<RedisResource> builder, string? containerName = null, int? hostPort = null)
     {
         if (builder.ApplicationBuilder.Resources.OfType<RedisCommanderResource>().Any())
@@ -56,6 +62,11 @@ public static class RedisBuilderExtensions
         context.Writer.WriteString("type", "redis.v0");
     }
 
+    /// <summary>
+    /// Changes the Redis resource to be published as a container in the manifest.
+    /// </summary>
+    /// <param name="builder">Resource builder for <see cref="RedisResource"/>.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<RedisResource> PublishAsContainer(this IResourceBuilder<RedisResource> builder)
     {
         return builder.WithManifestPublishingCallback(context => WriteRedisContainerResourceToManifest(context, builder.Resource));

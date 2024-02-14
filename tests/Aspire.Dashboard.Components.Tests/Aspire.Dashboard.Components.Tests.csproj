@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk.Razor">
 
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
@@ -6,6 +6,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Aspire.Dashboard\Aspire.Dashboard.csproj" />
+    
+    <PackageReference Include="bUnit" />
   </ItemGroup>
 
 </Project>
