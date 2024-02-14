@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
-using Aspire.Hosting.Nats;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -46,7 +45,7 @@ public class AddNatsTests
     public void AddNatsContainerAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.AddNats("nats", 1234, enableJetStream: true, srcMountPath: "/tmp/dev-data");
+        appBuilder.AddNats("nats", 1234).WithJetStream(srcMountPath: "/tmp/dev-data");
 
         var app = appBuilder.Build();
 
