@@ -41,10 +41,10 @@ internal static class PasswordGenerator
 
         Span<char> chars = stackalloc char[length];
 
-        RandomNumberGenerator.GetItems<char>(LowerCaseChars, lowerCase).CopyTo(chars);
-        RandomNumberGenerator.GetItems<char>(UpperCaseChars, upperCase).CopyTo(chars[lowerCase..]);
-        RandomNumberGenerator.GetItems<char>(DigitChars, digit).CopyTo(chars[(lowerCase + upperCase)..]);
-        RandomNumberGenerator.GetItems<char>(SpecialChars, special).CopyTo(chars[(lowerCase + upperCase + digit)..]);
+        RandomNumberGenerator.GetItems(LowerCaseChars, chars.Slice(0, lowerCase));
+        RandomNumberGenerator.GetItems(UpperCaseChars, chars.Slice(lowerCase, upperCase));
+        RandomNumberGenerator.GetItems(DigitChars, chars.Slice(lowerCase + upperCase, digit)));
+        RandomNumberGenerator.GetItems(SpecialChars, chars.Slice(lowerCase + upperCase + digit, special));
         RandomNumberGenerator.Shuffle(chars);
 
         return new string(chars);
