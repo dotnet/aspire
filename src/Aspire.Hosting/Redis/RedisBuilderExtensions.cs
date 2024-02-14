@@ -27,7 +27,7 @@ public static class RedisBuilderExtensions
         return builder.AddResource(redis)
                       .WithManifestPublishingCallback(WriteRedisResourceToManifest)
                       .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 6379))
-                      .WithAnnotation(new ContainerImageAnnotation { Image = "redis", Tag = "latest" });
+                      .WithAnnotation(new ContainerImageAnnotation { Image = "redis", Tag = "7.2.4" });
     }
 
     /// <summary>

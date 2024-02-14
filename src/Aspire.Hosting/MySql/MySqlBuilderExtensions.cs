@@ -31,7 +31,7 @@ public static class MySqlBuilderExtensions
         return builder.AddResource(resource)
                       .WithManifestPublishingCallback(WriteMySqlContainerToManifest)
                       .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 3306)) // Internal port is always 3306.
-                      .WithAnnotation(new ContainerImageAnnotation { Image = "mysql", Tag = "latest" })
+                      .WithAnnotation(new ContainerImageAnnotation { Image = "mysql", Tag = "8.3.0" })
                       .WithEnvironment(context =>
                       {
                           if (context.PublisherName == "manifest")
@@ -78,7 +78,7 @@ public static class MySqlBuilderExtensions
 
         var phpMyAdminContainer = new PhpMyAdminContainerResource(containerName);
         builder.ApplicationBuilder.AddResource(phpMyAdminContainer)
-                                  .WithAnnotation(new ContainerImageAnnotation { Image = "phpmyadmin", Tag = "latest" })
+                                  .WithAnnotation(new ContainerImageAnnotation { Image = "phpmyadmin", Tag = "5.2" })
                                   .WithHttpEndpoint(containerPort: 80, hostPort: hostPort, name: containerName)
                                   .WithVolumeMount(Path.GetTempFileName(), "/etc/phpmyadmin/config.user.inc.php")
                                   .ExcludeFromManifest();

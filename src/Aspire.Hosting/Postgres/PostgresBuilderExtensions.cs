@@ -31,7 +31,7 @@ public static class PostgresBuilderExtensions
         return builder.AddResource(postgresServer)
                       .WithManifestPublishingCallback(WritePostgresContainerToManifest)
                       .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 5432)) // Internal port is always 5432.
-                      .WithAnnotation(new ContainerImageAnnotation { Image = "postgres", Tag = "latest" })
+                      .WithAnnotation(new ContainerImageAnnotation { Image = "postgres", Tag = "16.2" })
                       .WithEnvironment("POSTGRES_HOST_AUTH_METHOD", "scram-sha-256")
                       .WithEnvironment("POSTGRES_INITDB_ARGS", "--auth-host=scram-sha-256 --auth-local=scram-sha-256")
                       .WithEnvironment(context =>
@@ -80,7 +80,7 @@ public static class PostgresBuilderExtensions
 
         var pgAdminContainer = new PgAdminContainerResource(containerName);
         builder.ApplicationBuilder.AddResource(pgAdminContainer)
-                                  .WithAnnotation(new ContainerImageAnnotation { Image = "dpage/pgadmin4", Tag = "latest" })
+                                  .WithAnnotation(new ContainerImageAnnotation { Image = "dpage/pgadmin4", Tag = "8.3" })
                                   .WithHttpEndpoint(containerPort: 80, hostPort: hostPort, name: containerName)
                                   .WithEnvironment(SetPgAdminEnviromentVariables)
                                   .WithVolumeMount(Path.GetTempFileName(), "/pgadmin4/servers.json")

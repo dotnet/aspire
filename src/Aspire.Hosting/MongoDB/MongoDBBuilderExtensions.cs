@@ -30,7 +30,7 @@ public static class MongoDBBuilderExtensions
             .AddResource(mongoDBContainer)
             .WithManifestPublishingCallback(WriteMongoDBServerToManifest)
             .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: DefaultContainerPort)) // Internal port is always 27017.
-            .WithAnnotation(new ContainerImageAnnotation { Image = "mongo", Tag = "latest" });
+            .WithAnnotation(new ContainerImageAnnotation { Image = "mongo", Tag = "7.0.5" });
     }
 
     /// <summary>
@@ -61,7 +61,7 @@ public static class MongoDBBuilderExtensions
 
         var mongoExpressContainer = new MongoExpressContainerResource(containerName);
         builder.ApplicationBuilder.AddResource(mongoExpressContainer)
-                                  .WithAnnotation(new ContainerImageAnnotation { Image = "mongo-express", Tag = "latest" })
+                                  .WithAnnotation(new ContainerImageAnnotation { Image = "mongo-express", Tag = "1.0.2-20" })
                                   .WithEnvironment(context => ConfigureMongoExpressContainer(context, builder.Resource))
                                   .WithHttpEndpoint(containerPort: 8081, hostPort: hostPort, name: containerName)
                                   .ExcludeFromManifest();
