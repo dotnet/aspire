@@ -18,8 +18,8 @@
         <note />
       </trans-unit>
       <trans-unit id="DcpDependencyCheckFailedMessage">
-        <source>Application orchestrator dependency check had an unexpected error {1}.</source>
-        <target state="new">Application orchestrator dependency check had an unexpected error {1}.</target>
+        <source>Application orchestrator dependency check had an unexpected error {0}.</source>
+        <target state="new">Application orchestrator dependency check had an unexpected error {0}.</target>
         <note />
       </trans-unit>
       <trans-unit id="DcpVersionCheckFailedMessage">

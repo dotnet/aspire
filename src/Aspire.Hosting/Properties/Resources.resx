@@ -127,7 +127,7 @@
     <value>Container runtime '{0}' was found but appears to be unresponsive. The command '{0}' did not return after {1} seconds.</value>
   </data>
   <data name="DcpDependencyCheckFailedMessage" xml:space="preserve">
-    <value>Application orchestrator dependency check had an unexpected error {1}.</value>
+    <value>Application orchestrator dependency check had an unexpected error {0}.</value>
   </data>
   <data name="DcpVersionCheckFailedMessage" xml:space="preserve">
     <value>The application orchestrator version could not be determined. Continuing.</value>

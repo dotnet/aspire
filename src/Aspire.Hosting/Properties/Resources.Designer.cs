@@ -88,7 +88,7 @@ namespace Aspire.Hosting.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Application orchestrator dependency check had an unexpected error {1}..
+        ///   Looks up a localized string similar to Application orchestrator dependency check had an unexpected error {0}..
         /// </summary>
         internal static string DcpDependencyCheckFailedMessage {
             get {
