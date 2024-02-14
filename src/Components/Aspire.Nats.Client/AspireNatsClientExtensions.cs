@@ -120,13 +120,3 @@ public static class AspireNatsClientExtensions
         });
     }
 }
-
-public class NatsHealthCheck(INatsConnection connection) : IHealthCheck
-{
-    public Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
-    {
-        return Task.FromResult(connection.ConnectionState == NatsConnectionState.Open
-            ? HealthCheckResult.Healthy()
-            : HealthCheckResult.Unhealthy());
-    }
-}
