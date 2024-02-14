@@ -33,7 +33,7 @@ public class ManifestGenerationTests
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher(includeNodeApp: true);
         program.NodeAppBuilder!.WithHttpsEndpoint(containerPort: 3000, env: "HTTPS_PORT")
-            .AsDockerfileInManifest();
+            .PublishAsDockerFile();
 
         // Build AppHost so that publisher can be resolved.
         program.Build();
