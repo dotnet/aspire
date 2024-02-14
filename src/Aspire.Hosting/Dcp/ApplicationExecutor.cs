@@ -714,6 +714,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             var ctr = Container.Create(container.Name, containerImageName);
 
             ctr.Annotate(Container.ResourceNameAnnotation, container.Name);
+            ctr.Annotate(Container.OtelServiceNameAnnotation, container.Name);
 
             if (container.TryGetVolumeMounts(out var volumeMounts))
             {

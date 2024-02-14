@@ -24,10 +24,9 @@ var queues = storage.AddQueue("queue");
 
 var sqlServer = builder.AddBicepAzureSqlServer("sql").AddDatabase("db");
 
-var user = builder.AddParameter("username");
 var pwd = builder.AddParameter("password", secret: true);
 
-var pg = builder.AddBicepAzurePostgres("postgres2", user, pwd).AddDatabase("db2");
+var pg = builder.AddBicepAzurePostgres("postgres2", "someuser", pwd).AddDatabase("db2");
 
 var cosmosDb = builder.AddBicepCosmosDb("cosmos")
                       // .UseEmulator()
@@ -36,7 +35,7 @@ var cosmosDb = builder.AddBicepCosmosDb("cosmos")
 var appInsights = builder.AddBicepApplicationInsights("ai");
 
 // Redis takes forever to spin up...
-var redis = builder.AddBicepAzureRedis("redis");
+var redis = builder.AddRedis("redis").PublishAsAzureRedis();
 
 var serviceBus = builder.AddBicepAzureServiceBus("sb", ["queue1"], ["topic1"]);
 

@@ -6,6 +6,8 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.Data.Cosmos;
 using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Utils;
+using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting;
 
@@ -190,6 +192,48 @@ public static class AzureResourceExtensions
     }
 
     /// <summary>
+    /// Modifies the host port that the storage emulator listens on for blob requests.
+    /// </summary>
+    /// <param name="builder">Storage emulator resource builder.</param>
+    /// <param name="port">Host port to use.</param>
+    /// <returns></returns>
+    public static IResourceBuilder<AzureStorageEmulatorResource> UseBlobPort(this IResourceBuilder<AzureStorageEmulatorResource> builder, int port)
+    {
+        return builder.WithEndpoint("blob", endpoint =>
+        {
+            endpoint.Port = port;
+        });
+    }
+
+    /// <summary>
+    /// Modifies the host port that the storage emulator listens on for queue requests.
+    /// </summary>
+    /// <param name="builder">Storage emulator resource builder.</param>
+    /// <param name="port">Host port to use.</param>
+    /// <returns></returns>
+    public static IResourceBuilder<AzureStorageEmulatorResource> UseQueuePort(this IResourceBuilder<AzureStorageEmulatorResource> builder, int port)
+    {
+        return builder.WithEndpoint("queue", endpoint =>
+        {
+            endpoint.Port = port;
+        });
+    }
+
+    /// <summary>
+    /// Modifies the host port that the storage emulator listens on for table requests.
+    /// </summary>
+    /// <param name="builder">Storage emulator resource builder.</param>
+    /// <param name="port">Host port to use.</param>
+    /// <returns></returns>
+    public static IResourceBuilder<AzureStorageEmulatorResource> UseTablePort(this IResourceBuilder<AzureStorageEmulatorResource> builder, int port)
+    {
+        return builder.WithEndpoint("table", endpoint =>
+        {
+            endpoint.Port = port;
+        });
+    }
+
+    /// <summary>
     /// Configures an Azure Cosmos DB resource to be emulated using the Azure Cosmos DB emulator with the NoSQL API. This resource requires an <see cref="AzureCosmosDBResource"/> to be added to the application model.
     /// For more information on the Azure Cosmos DB emulator, see <a href="https://learn.microsoft.com/azure/cosmos-db/emulator#authentication"></a>
     /// </summary>
@@ -213,6 +257,20 @@ public static class AzureResourceExtensions
         }
 
         return builder;
+    }
+
+    /// <summary>
+    /// Configures the gateway port for the Azure Cosmos DB emulator.
+    /// </summary>
+    /// <param name="builder">Builder for the Cosmos emulator container</param>
+    /// <param name="port">Host port to bind to the emulator gateway port.</param>
+    /// <returns>Cosmos emulator resource builder.</returns>
+    public static IResourceBuilder<AzureCosmosDBEmulatorResource> UseGatewayPort(this IResourceBuilder<AzureCosmosDBEmulatorResource> builder, int? port)
+    {
+        return builder.WithEndpoint("emulator", endpoint =>
+        {
+            endpoint.Port = port;
+        });
     }
 
     /// <summary>
@@ -372,5 +430,115 @@ public static class AzureResourceExtensions
         // "type": "azure.appinsights.v0",
 
         context.Writer.WriteString("type", "azure.appinsights.v0");
+    }
+
+    /// <summary>
+    /// Injects a connection string as an environment variable from the source resource into the destination resource.
+    /// The environment variable will be "APPLICATIONINSIGHTS_CONNECTION_STRING={connectionString}."
+    /// <para>
+    /// Each resource defines the format of the connection string value. The
+    /// underlying connection string value can be retrieved using <see cref="IResourceWithConnectionString.GetConnectionString"/>.
+    /// </para>
+    /// <para>
+    /// Connection strings are also resolved by the configuration system (appSettings.json in the AppHost project, or environment variables). If a connection string is not found on the resource, the configuration system will be queried for a connection string
+    /// using the resource's name.
+    /// </para>
+    /// </summary>
+    /// <typeparam name="TDestination">The destination resource.</typeparam>
+    /// <param name="builder">The resource where connection string will be injected.</param>
+    /// <param name="source">The Azure Application Insights resource from which to extract the connection string.</param>
+    /// <param name="optional"><see langword="true"/> to allow a missing connection string; <see langword="false"/> to throw an exception if the connection string is not found.</param>
+    /// <exception cref="DistributedApplicationException">Throws an exception if the connection string resolves to null. It can be null if the resource has no connection string, and if the configuration has no connection string for the source resource.</exception>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder,
+        IResourceBuilder<AzureApplicationInsightsResource> source, bool optional = false)
+        where TDestination : IResourceWithEnvironment
+    {
+        var resource = source.Resource;
+
+        return builder.WithEnvironment(context =>
+        {
+            // UseAzureMonitor is looking for this specific environment variable name.
+            var connectionStringName = "APPLICATIONINSIGHTS_CONNECTION_STRING";
+
+            if (context.PublisherName == "manifest")
+            {
+                context.EnvironmentVariables[connectionStringName] = $"{{{resource.Name}.connectionString}}";
+                return;
+            }
+
+            var connectionString = resource.GetConnectionString() ??
+                builder.ApplicationBuilder.Configuration.GetConnectionString(resource.Name);
+
+            if (string.IsNullOrEmpty(connectionString))
+            {
+                if (optional)
+                {
+                    // This is an optional connection string, so we can just return.
+                    return;
+                }
+
+                throw new DistributedApplicationException($"A connection string for '{resource.Name}' could not be retrieved.");
+            }
+
+            if (builder.Resource is ContainerResource)
+            {
+                connectionString = HostNameResolver.ReplaceLocalhostWithContainerHost(connectionString, builder.ApplicationBuilder.Configuration);
+            }
+
+            context.EnvironmentVariables[connectionStringName] = connectionString;
+        });
+    }
+
+    /// <summary>
+    /// Adds an Azure Cosmos DB connection to the application model.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <param name="connectionString">The connection string.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<AzureCosmosDBResource> AddAzureCosmosDB(
+       this IDistributedApplicationBuilder builder,
+       string name,
+       string? connectionString = null)
+    {
+        var connection = new AzureCosmosDBResource(name, connectionString);
+        return builder.AddResource(connection)
+                      .WithManifestPublishingCallback(context => WriteCosmosDBToManifest(context, connection));
+    }
+
+    /// <summary>
+    /// Adds a resource which represents a database in the associated Cosmos DB account resource.
+    /// </summary>
+    /// <param name="builder">AzureCosmosDB resource builder.</param>
+    /// <param name="name">Name of database.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<AzureCosmosDBDatabaseResource> AddDatabase(this IResourceBuilder<AzureCosmosDBResource> builder, string name)
+    {
+        var database = new AzureCosmosDBDatabaseResource(name, builder.Resource);
+        return builder.ApplicationBuilder.AddResource(database)
+            .WithManifestPublishingCallback(context => WriteCosmosDBDatabaseToManifest(context, database));
+    }
+
+    private static void WriteCosmosDBDatabaseToManifest(ManifestPublishingContext context, AzureCosmosDBDatabaseResource database)
+    {
+        context.Writer.WriteString("type", "azure.cosmosdb.database.v0");
+        context.Writer.WriteString("parent", database.Parent.Name);
+    }
+
+    private static void WriteCosmosDBToManifest(ManifestPublishingContext context, AzureCosmosDBResource cosmosDb)
+    {
+        // If we are using an emulator then we assume that a connection string was not
+        // provided for the purpose of manifest generation.
+        if (cosmosDb.IsEmulator || cosmosDb.GetConnectionString() is not { } connectionString)
+        {
+            context.Writer.WriteString("type", "azure.cosmosdb.account.v0");
+        }
+        else
+        {
+            context.Writer.WriteString("type", "azure.cosmosdb.connection.v0");
+            context.Writer.WriteString("connectionString", connectionString);
+        }
+
     }
 }
