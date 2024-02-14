@@ -142,23 +142,6 @@ public static class AspireOracleEFCoreExtensions
         }
     }
 
-    private static OracleEntityFrameworkCoreSettings GetDbContextSettings<TContext>(IHostApplicationBuilder builder)
-    {
-        OracleEntityFrameworkCoreSettings settings = new();
-        var typeSpecificSectionName = $"{DefaultConfigSectionName}:{typeof(TContext).Name}";
-        var typeSpecificConfigurationSection = builder.Configuration.GetSection(typeSpecificSectionName);
-        if (typeSpecificConfigurationSection.Exists()) // https://github.com/dotnet/runtime/issues/91380
-        {
-            typeSpecificConfigurationSection.Bind(settings);
-        }
-        else
-        {
-            builder.Configuration.GetSection(DefaultConfigSectionName).Bind(settings);
-        }
-
-        return settings;
-    }
-
     private static void ConfigureInstrumentation<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties)] TContext>(IHostApplicationBuilder builder, OracleEntityFrameworkCoreSettings settings) where TContext : DbContext
     {
         if (settings.Tracing)
@@ -187,5 +170,22 @@ public static class AspireOracleEFCoreExtensions
                 name: typeof(TContext).Name,
                 static hcBuilder => hcBuilder.AddDbContextCheck<TContext>());
         }
+    }
+
+    private static OracleEntityFrameworkCoreSettings GetDbContextSettings<TContext>(IHostApplicationBuilder builder)
+    {
+        OracleEntityFrameworkCoreSettings settings = new();
+        var typeSpecificSectionName = $"{DefaultConfigSectionName}:{typeof(TContext).Name}";
+        var typeSpecificConfigurationSection = builder.Configuration.GetSection(typeSpecificSectionName);
+        if (typeSpecificConfigurationSection.Exists()) // https://github.com/dotnet/runtime/issues/91380
+        {
+            typeSpecificConfigurationSection.Bind(settings);
+        }
+        else
+        {
+            builder.Configuration.GetSection(DefaultConfigSectionName).Bind(settings);
+        }
+
+        return settings;
     }
 }
