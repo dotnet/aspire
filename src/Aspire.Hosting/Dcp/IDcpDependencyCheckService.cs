@@ -3,7 +3,7 @@
 
 namespace Aspire.Hosting.Dcp;
 
-internal static class DcpVersion
+internal interface IDcpDependencyCheckService
 {
-    public static Version MinimumVersionInclusive = new Version(0, 1, 52);
+    Task EnsureDcpDependenciesAsync(CancellationToken cancellationToken = default);
 }
