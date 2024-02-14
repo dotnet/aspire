@@ -15,7 +15,7 @@
       </Logger>
       <Logger friendlyName="console">
         <Configuration>
-          <Verbosity>normal</Verbosity>
+          <Verbosity>diagnostic</Verbosity>
         </Configuration>
       </Logger>
     </Loggers>
