@@ -10,15 +10,15 @@ using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
 
-internal enum DockerHealthCheckFailures : int
+internal enum ContainerRuntimeHealthCheckFailures : int
 {
     /// <summary>
-    /// Represents the error code for when the invocation of Docker CLI test command didn't finish within expected time period.
+    /// Represents the error code for when the check for a valid container runtime timed out.
     /// </summary>
     Unresponsive = 125,
 
     /// <summary>
-    /// Represents the error code for when the Docker CLI test command returned an error exit code.
+    /// Represents the error code for when the container runtime is installed, but isn't healthy.
     /// </summary>
     Unhealthy = 126,
 
