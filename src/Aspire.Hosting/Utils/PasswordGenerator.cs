@@ -43,7 +43,7 @@ internal static class PasswordGenerator
 
         RandomNumberGenerator.GetItems(LowerCaseChars, chars.Slice(0, lowerCase));
         RandomNumberGenerator.GetItems(UpperCaseChars, chars.Slice(lowerCase, upperCase));
-        RandomNumberGenerator.GetItems(DigitChars, chars.Slice(lowerCase + upperCase, digit)));
+        RandomNumberGenerator.GetItems(DigitChars, chars.Slice(lowerCase + upperCase, digit));
         RandomNumberGenerator.GetItems(SpecialChars, chars.Slice(lowerCase + upperCase + digit, special));
         RandomNumberGenerator.Shuffle(chars);
 
