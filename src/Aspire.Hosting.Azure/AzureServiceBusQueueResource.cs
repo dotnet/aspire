@@ -19,7 +19,9 @@ public class AzureServiceBusQueueResource : Resource, IResourceWithConnectionStr
         Parent.AddQueue(this);
     }
 
+    /// <inheritdoc/>
     public AzureServiceBusResource Parent { get; }
 
+    /// <inheritdoc/>
     public string? GetConnectionString() => Parent.GetConnectionString();
 }

@@ -9,7 +9,7 @@ param sku string = 'Standard'
 
 param location string = resourceGroup().location
 param queues array = []
-param topics array = []
+param topics object = {}
 
 var resourceToken = uniqueString(resourceGroup().id)
 
@@ -28,8 +28,12 @@ resource serviceBusNamespace 'Microsoft.ServiceBus/namespaces@2022-10-01-preview
     name: name
   }]
 
-  resource topic 'topics@2022-10-01-preview' = [for name in topics:{
-    name: name
+  resource topic 'topics@2022-10-01-preview' = [for topic in items(topics):{
+    name: topic.key
+    
+    resource subscription 'subscriptions@2022-10-01-preview' = [for subscription in topic.value.subscriptions: {
+      name: subscription.name
+    }]
   }]
 }
 

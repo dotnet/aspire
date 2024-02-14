@@ -21,8 +21,14 @@ public class AzureServiceBusTopicResource : Resource, IResourceWithConnectionStr
         Parent.AddTopic(this);
     }
 
+    /// <inheritdoc/>
     public AzureServiceBusResource Parent { get; }
+
+    /// <summary>
+    /// Gets the list of subscriptions of the Azure Service Bus Topic resource.
+    /// </summary>
     public string[] Subscriptions { get; }
 
+    /// <inheritdoc/>
     public string? GetConnectionString() => Parent.GetConnectionString();
 }
