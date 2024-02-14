@@ -34,6 +34,11 @@ internal enum DcpVersionCheckFailures: int
     /// Represents the exit code indicating that the version of DCP is too low or too high.
     /// </summary>
     DcpVersionIncompatible = 128,
+
+    /// <summary>
+    /// Represents the exit code indicating that the DCP version check failed.
+    /// </summary>
+    DcpVersionFailed = 129,
 }
 
 /// <summary>
