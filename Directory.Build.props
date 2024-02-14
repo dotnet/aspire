@@ -28,6 +28,11 @@
 
     <DashboardPublishedArtifactsOutputDir>$([MSBuild]::NormalizeDirectory('$(ArtifactsDir)', 'DashboardArtifacts', '$(Configuration)'))</DashboardPublishedArtifactsOutputDir>
   </PropertyGroup>
+  
+ <!-- Source Build properties -->
+  <PropertyGroup>
+    <PackageProjectUrl>https://github.com/dotnet/aspire</PackageProjectUrl>
+  </PropertyGroup>
 
   <!-- OS/Architecture properties for local development resources -->
   <PropertyGroup>
