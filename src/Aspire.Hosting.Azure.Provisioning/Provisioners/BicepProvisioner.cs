@@ -89,7 +89,7 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
             {
                 // A vault's name must be between 3-24 alphanumeric characters. The name must begin with a letter, end with a letter or digit, and not contain consecutive hyphens.
                 // Follow this link for more information: https://go.microsoft.com/fwlink/?linkid=2147742
-                var vaultName = $"v{Guid.NewGuid().ToString().Replace("-", string.Empty)[0..20]}";
+                var vaultName = $"v{Guid.NewGuid().ToString("N")[0..20]}";
 
                 logger.LogInformation("Creating key vault {vaultName} for resource {resource} in {location}...", vaultName, resource.Name, context.Location);
 
