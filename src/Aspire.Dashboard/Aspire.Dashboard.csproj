@@ -15,7 +15,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Protobuf Include="**/*.proto" GrpcServices="Server">
+    <Protobuf Include="**/*.proto">
       <ProtoRoot>Otlp</ProtoRoot>
     </Protobuf>
   </ItemGroup>

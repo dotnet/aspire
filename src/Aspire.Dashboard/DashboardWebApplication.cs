@@ -7,6 +7,9 @@ using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Grpc;
 using Aspire.Dashboard.Otlp.Security;
 using Aspire.Dashboard.Otlp.Storage;
+using Microsoft.AspNetCore.Hosting.Server;
+using Microsoft.AspNetCore.Hosting.Server.Features;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -14,7 +17,7 @@ using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard;
 
-public class DashboardWebApplication
+public class DashboardWebApplication : IAsyncDisposable
 {
     private const string DashboardOtlpUrlVariableName = "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL";
     private const string DashboardOtlpUrlDefaultValue = "http://localhost:18889";
@@ -22,10 +25,26 @@ public class DashboardWebApplication
     private const string DashboardUrlDefaultValue = "http://localhost:18888";
 
     private readonly WebApplication _app;
+    private Func<IPEndPoint>? _browserEndPointAccessor;
+    private Func<IPEndPoint>? _otlpServiceEndPointAccessor;
 
-    public DashboardWebApplication()
+    public Func<IPEndPoint> BrowserEndPointAccessor
+    {
+        get => _browserEndPointAccessor ?? throw new InvalidOperationException("WebApplication not started yet.");
+    }
+    public Func<IPEndPoint> OtlpServiceEndPointAccessor
+    {
+        get => _otlpServiceEndPointAccessor ?? throw new InvalidOperationException("WebApplication not started yet.");
+    }
+    public ICollection<string> ServerAddresses => _app.Services.GetRequiredService<IServer>().Features.GetRequiredFeature<IServerAddressesFeature>().Addresses;
+
+    public DashboardWebApplication(IConfiguration? configuration = null)
     {
         var builder = WebApplication.CreateBuilder();
+        if (configuration != null)
+        {
+            builder.Configuration.AddConfiguration(configuration);
+        }
 
         builder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.None);
         builder.Logging.AddFilter("Microsoft.AspNetCore.Server.Kestrel", LogLevel.Error);
@@ -44,11 +63,16 @@ public class DashboardWebApplication
 
         builder.WebHost.ConfigureKestrel(kestrelOptions =>
         {
-            ConfigureListenAddresses(kestrelOptions, dashboardUris);
+            ConfigureListenAddresses(kestrelOptions, dashboardUris, options =>
+            {
+                _browserEndPointAccessor = CreateEndPointAccessor(options);
+            });
             ConfigureListenAddresses(kestrelOptions, otlpUris, options =>
             {
                 options.Protocols = HttpProtocols.Http2;
                 options.UseOtlpConnection();
+
+                _otlpServiceEndPointAccessor = CreateEndPointAccessor(options);
             });
         });
 
@@ -154,15 +178,31 @@ public class DashboardWebApplication
         _app.MapGrpcService<OtlpMetricsService>();
         _app.MapGrpcService<OtlpTraceService>();
         _app.MapGrpcService<OtlpLogsService>();
+
+        static Func<IPEndPoint> CreateEndPointAccessor(ListenOptions options)
+        {
+            // An endpoint with a dynamic port is updated after it is bound.
+            // Set a func to get the latest endpoint.
+            return () => options.IPEndPoint!;
+        }
     }
 
     public void Run() => _app.Run();
+
+    public Task StartAsync(CancellationToken cancellationToken = default) => _app.StartAsync(cancellationToken);
+
+    public Task StopAsync(CancellationToken cancellationToken = default) => _app.StopAsync(cancellationToken);
+
+    public ValueTask DisposeAsync()
+    {
+        return _app.DisposeAsync();
+    }
 
     private static void ConfigureListenAddresses(KestrelServerOptions kestrelOptions, Uri[] uris, Action<ListenOptions>? configureListenOptions = null)
     {
         foreach (var uri in uris)
         {
-            if (uri.IsLoopback)
+            if (string.Equals(uri.Host, "localhost", StringComparison.OrdinalIgnoreCase))
             {
                 kestrelOptions.ListenLocalhost(uri.Port, ConfigureListenOptions);
             }
