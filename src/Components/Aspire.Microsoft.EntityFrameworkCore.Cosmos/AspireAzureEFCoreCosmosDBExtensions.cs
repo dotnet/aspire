@@ -108,7 +108,7 @@ public static class AspireAzureEFCoreCosmosDBExtensions
     }
 
     /// <summary>
-    /// Configures retries, health check, logging and telemetry for the <see cref="DbContext" />.
+    /// Configures logging and telemetry for the <see cref="DbContext" />.
     /// </summary>
     /// <exception cref="ArgumentNullException">Thrown if mandatory <paramref name="builder"/> is null.</exception>
     /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="DbContext"/> is not registered in DI.</exception>
