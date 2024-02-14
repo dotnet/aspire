@@ -35,8 +35,8 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
 
     public async Task EnsureDcpDependenciesAsync(CancellationToken cancellationToken = default)
     {
-        string? dcpPath = _dcpOptions.CliPath;
-        string? containerRuntime = _dcpOptions.ContainerRuntime;
+        var dcpPath = _dcpOptions.CliPath;
+        var containerRuntime = _dcpOptions.ContainerRuntime;
 
         if (!File.Exists(dcpPath))
         {
@@ -107,7 +107,7 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
 
         try
         {
-            string? dcpVersionString = dcpInfo.Version;
+            var dcpVersionString = dcpInfo.Version;
 
             if (dcpVersionString == null
                 || dcpVersionString == string.Empty
@@ -121,8 +121,7 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
             // which does not parse. Strip off anything like that.
             dcpVersionString = VersionRegex().Replace(dcpVersionString, string.Empty);
 
-            Version? dcpVersion;
-            if (Version.TryParse(dcpVersionString, out dcpVersion))
+            if (Version.TryParse(dcpVersionString, out var dcpVersion))
             {
                 if (dcpVersion < DcpVersion.MinimumVersionInclusive)
                 {
@@ -153,15 +152,15 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
 
         try
         {
-            string? containerRuntime = _dcpOptions.ContainerRuntime;
+            var containerRuntime = _dcpOptions.ContainerRuntime;
             if (string.IsNullOrEmpty(containerRuntime))
             {
                 // Default runtime is Docker
                 containerRuntime = "docker";
             }
-            bool installed = dcpInfo.Containers?.Installed ?? false;
-            bool running = dcpInfo.Containers?.Running ?? false;
-            string? error = dcpInfo.Containers?.Error;
+            var installed = dcpInfo.Containers?.Installed ?? false;
+            var running = dcpInfo.Containers?.Running ?? false;
+            var error = dcpInfo.Containers?.Error;
 
             if (!installed)
             {

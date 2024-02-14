@@ -123,7 +123,7 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
 
     private ProcessSpec CreateDcpProcessSpec(Locations locations)
     {
-        string? dcpExePath = _dcpOptions.CliPath;
+        var dcpExePath = _dcpOptions.CliPath;
         if (!File.Exists(dcpExePath))
         {
             throw new FileNotFoundException($"The Aspire application host is not installed at \"{dcpExePath}\". The application cannot be run without it.", dcpExePath);
