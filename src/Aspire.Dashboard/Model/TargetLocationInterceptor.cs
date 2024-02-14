@@ -19,8 +19,8 @@ internal static class TargetLocationInterceptor
         if (uri.IsAbsoluteUri)
         {
             // Don't want to modify the URL if it is to a different app.
-            var targetBaseUri = uri.GetLeftPart(UriPartial.Authority);
-            if (!string.Equals(targetBaseUri.TrimEnd('/'), appBaseUri.TrimEnd('/'), StringComparison.OrdinalIgnoreCase))
+            var targetBaseUri = new Uri(uri.GetLeftPart(UriPartial.Authority));
+            if (targetBaseUri != new Uri(appBaseUri))
             {
                 newTargetLocation = null;
                 return false;
@@ -33,7 +33,7 @@ internal static class TargetLocationInterceptor
             path = originalTargetLocation;
         }
 
-        if (path == ResourcesPath)
+        if (string.Equals(path, ResourcesPath, StringComparisons.UrlPath))
         {
             newTargetLocation = StructuredLogsPath;
             return true;

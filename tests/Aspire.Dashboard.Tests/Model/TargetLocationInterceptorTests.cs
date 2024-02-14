@@ -16,6 +16,27 @@ public sealed class TargetLocationInterceptorTests
     }
 
     [Fact]
+    public void InterceptTargetLocation_Absolute_Redirect()
+    {
+        Assert.True(TargetLocationInterceptor.InterceptTargetLocation("http://localhost", "http://localhost/", out var newTargetLocation));
+        Assert.Equal(TargetLocationInterceptor.StructuredLogsPath, newTargetLocation);
+    }
+
+    [Fact]
+    public void InterceptTargetLocation_Absolute_WithoutTrailingSlash_Redirect()
+    {
+        Assert.True(TargetLocationInterceptor.InterceptTargetLocation("http://localhost", "http://localhost", out var newTargetLocation));
+        Assert.Equal(TargetLocationInterceptor.StructuredLogsPath, newTargetLocation);
+    }
+
+    [Fact]
+    public void InterceptTargetLocation_AbsoluteDifferentCase_Redirect()
+    {
+        Assert.True(TargetLocationInterceptor.InterceptTargetLocation("http://LOCALHOST", "http://localhost/", out var newTargetLocation));
+        Assert.Equal(TargetLocationInterceptor.StructuredLogsPath, newTargetLocation);
+    }
+
+    [Fact]
     public void InterceptTargetLocation_StructuredLogs_Unchanged()
     {
         Assert.False(TargetLocationInterceptor.InterceptTargetLocation("http://localhost", TargetLocationInterceptor.StructuredLogsPath, out _));
