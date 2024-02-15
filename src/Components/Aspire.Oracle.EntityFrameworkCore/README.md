@@ -1,6 +1,6 @@
 # Aspire.Oracle.EntityFrameworkCore library
 
-Registers [EntityFrameworkCore](https://learn.microsoft.com/ef/core/) [DbContext](https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbcontext) service for connecting Oracle database. Enables connection pooling, health check, logging and telemetry.
+Registers [EntityFrameworkCore](https://learn.microsoft.com/ef/core/) [DbContext](https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbcontext) service for connecting Oracle database. Enables connection pooling, retries, health check, logging and telemetry.
 
 ## Getting started
 
@@ -35,6 +35,14 @@ public ProductsController(MyDbContext context)
 }
 ```
 
+You might also need to configure specific option of Oracle database, or register a `DbContext` in other ways. In this case call the `EnrichOracleDatabaseDbContext` extension method, for example:
+
+```csharp
+var connectionString = builder.Configuration.GetConnectionString("catalogdb");
+builder.Services.AddDbContextPool<CatalogDbContext>(dbContextOptionsBuilder => dbContextOptionsBuilder.UseOracle(connectionString));
+builder.EnrichOracleDatabaseDbContext<CatalogDbContext>();
+```
+
 ## Configuration
 
 The .NET Aspire Oracle EntityFrameworkCore component provides multiple options to configure the database connection based on the requirements and conventions of your project.
@@ -57,6 +65,8 @@ And then the connection string will be retrieved from the `ConnectionStrings` co
 }
 ```
 
+The `EnrichOracleDatabaseDbContext` won't make use of the `ConnectionStrings` configuration section since it expects a `DbContext` to be registered at the point it is called.
+
 See the [ODP.NET documentation](https://www.oracle.com/database/technologies/appdev/dotnet/odp.html) for more information on how to format this connection string.
 
 ### Use configuration providers
@@ -68,7 +78,6 @@ The .NET Aspire Oracle EntityFrameworkCore component supports [Microsoft.Extensi
   "Aspire": {
     "Oracle": {
       "EntityFrameworkCore": {
-        "DbContextPooling": true,
         "HealthChecks": false,
         "Tracing": false,
         "Metrics": true
@@ -84,6 +93,12 @@ Also you can pass the `Action<OracleEntityFrameworkCoreSettings> configureSettin
 
 ```csharp
     builder.AddOracleDatabaseDbContext<MyDbContext>("orcl", settings => settings.HealthChecks = false);
+```
+
+or
+
+```csharp
+    builder.EnrichOracleDatabaseDbContext<MyDbContext>(settings => settings.HealthChecks = false);
 ```
 
 ## AppHost extensions 

@@ -35,7 +35,19 @@ public static class ExecutableResourceBuilderExtensions
     /// <typeparam name="T">Type of executable resource</typeparam>
     /// <param name="builder">Resource builder</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [Obsolete("Use PublishAsDockerFile instead")]
     public static IResourceBuilder<T> AsDockerfileInManifest<T>(this IResourceBuilder<T> builder) where T : ExecutableResource
+    {
+        return builder.PublishAsDockerFile();
+    }
+
+    /// <summary>
+    /// Adds annotation to <see cref="ExecutableResource" /> to support containerization during deployment.
+    /// </summary>
+    /// <typeparam name="T">Type of executable resource</typeparam>
+    /// <param name="builder">Resource builder</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> PublishAsDockerFile<T>(this IResourceBuilder<T> builder) where T : ExecutableResource
     {
         return builder.WithManifestPublishingCallback(context => WriteExecutableAsDockerfileResource(context, builder.Resource));
     }
