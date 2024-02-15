@@ -1,11 +1,10 @@
-﻿@page "/StructuredLogs/{applicationInstanceId?}"
-@using Aspire.Dashboard.Model
+﻿@page "/StructuredLogs/{resourceName?}"
+
 @using Aspire.Dashboard.Model.Otlp
 @using Aspire.Dashboard.Otlp.Model
 @using Microsoft.Extensions.Logging
 @using System.Web
 @using Aspire.Dashboard.Resources
-@inject IDashboardClient DashboardClient
 @inject IJSRuntime JS
 @implements IDisposable
 @inject IStringLocalizer<Dashboard.Resources.StructuredLogs> Loc
