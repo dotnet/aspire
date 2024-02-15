@@ -35,6 +35,14 @@ public ProductsController(MyDbContext context)
 }
 ```
 
+You might also need to configure specific option of CosmosDB, or register a `DbContext` in other ways. In this case call the `EnrichCosmosDbContext` extension method, for example:
+
+```csharp
+var connectionString = builder.Configuration.GetConnectionString("mydb");
+builder.Services.AddDbContextPool<MyDbContext>(dbContextOptionsBuilder => dbContextOptionsBuilder.UseCosmos(connectionString, "mydb"));
+builder.EnrichCosmosDbContext<MyDbContext>();
+```
+
 ## Configuration
 
 The .NET Aspire Microsoft EntityFrameworkCore Cosmos component provides multiple options to configure the database connection based on the requirements and conventions of your project.
@@ -56,6 +64,8 @@ And then the connection string will be retrieved from the `ConnectionStrings` co
   }
 }
 ```
+
+The `EnrichCosmosDbContext` won't make use of the `ConnectionStrings`, `Region` and `AccountEndpoint` configuration section since it expects a `DbContext` to be registered at the point it is called.
 
 See the [ConnectionString documentation](https://learn.microsoft.com/azure/cosmos-db/nosql/how-to-dotnet-get-started#connect-with-a-connection-string) for more information.
 
@@ -84,6 +94,12 @@ Also you can pass the `Action<EntityFrameworkCoreCosmosDBSettings> configureSett
 
 ```csharp
     builder.AddCosmosDbContext<MyDbContext>("cosmosdb", "mydb", settings => settings.Tracing = false);
+```
+
+or
+
+```csharp
+    builder.EnrichCosmosDbContext<MyDbContext>(settings => settings.HealthChecks = false);
 ```
 
 ## AppHost extensions

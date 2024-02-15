@@ -45,7 +45,7 @@ internal sealed class AzureRedisProvisioner(ILogger<AzureRedisProvisioner> logge
 
         if (redisResource is null)
         {
-            var redisName = Guid.NewGuid().ToString().Replace("-", string.Empty)[0..20];
+            var redisName = Guid.NewGuid().ToString("N")[0..20];
 
             logger.LogInformation("Creating redis {redisName} in {location}...", redisName, context.Location);
 

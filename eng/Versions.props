@@ -11,21 +11,21 @@
   <PropertyGroup>
     <!-- Package versions defined directly in <reporoot>/Directory.Packages.props -->
     <MicrosoftDotnetSdkInternalPackageVersion>8.0.100-rtm.23512.16</MicrosoftDotnetSdkInternalPackageVersion>
-    <MicrosoftDeveloperControlPlanedarwinamd64PackageVersion>0.1.52</MicrosoftDeveloperControlPlanedarwinamd64PackageVersion>
-    <MicrosoftDeveloperControlPlanedarwinarm64PackageVersion>0.1.52</MicrosoftDeveloperControlPlanedarwinarm64PackageVersion>
-    <MicrosoftDeveloperControlPlanelinuxamd64PackageVersion>0.1.52</MicrosoftDeveloperControlPlanelinuxamd64PackageVersion>
-    <MicrosoftDeveloperControlPlanelinuxarm64PackageVersion>0.1.52</MicrosoftDeveloperControlPlanelinuxarm64PackageVersion>
-    <MicrosoftDeveloperControlPlanewindows386PackageVersion>0.1.52</MicrosoftDeveloperControlPlanewindows386PackageVersion>
-    <MicrosoftDeveloperControlPlanewindowsamd64PackageVersion>0.1.52</MicrosoftDeveloperControlPlanewindowsamd64PackageVersion>
-    <MicrosoftDeveloperControlPlanewindowsarm64PackageVersion>0.1.52</MicrosoftDeveloperControlPlanewindowsarm64PackageVersion>
+    <MicrosoftDeveloperControlPlanedarwinamd64PackageVersion>0.1.53</MicrosoftDeveloperControlPlanedarwinamd64PackageVersion>
+    <MicrosoftDeveloperControlPlanedarwinarm64PackageVersion>0.1.53</MicrosoftDeveloperControlPlanedarwinarm64PackageVersion>
+    <MicrosoftDeveloperControlPlanelinuxamd64PackageVersion>0.1.53</MicrosoftDeveloperControlPlanelinuxamd64PackageVersion>
+    <MicrosoftDeveloperControlPlanelinuxarm64PackageVersion>0.1.53</MicrosoftDeveloperControlPlanelinuxarm64PackageVersion>
+    <MicrosoftDeveloperControlPlanewindows386PackageVersion>0.1.53</MicrosoftDeveloperControlPlanewindows386PackageVersion>
+    <MicrosoftDeveloperControlPlanewindowsamd64PackageVersion>0.1.53</MicrosoftDeveloperControlPlanewindowsamd64PackageVersion>
+    <MicrosoftDeveloperControlPlanewindowsarm64PackageVersion>0.1.53</MicrosoftDeveloperControlPlanewindowsarm64PackageVersion>
     <MicrosoftNETCoreAppRefPackageVersion>8.0.0-rc.1.23419.3</MicrosoftNETCoreAppRefPackageVersion>
     <MicrosoftmacOSSdkPackageVersion>13.3.8825-net8-rc1</MicrosoftmacOSSdkPackageVersion>
     <MicrosoftDotNetRemoteExecutorPackageVersion>8.0.0-beta.24113.2</MicrosoftDotNetRemoteExecutorPackageVersion>
     <MicrosoftDotNetXUnitExtensionsPackageVersion>8.0.0-beta.24113.2</MicrosoftDotNetXUnitExtensionsPackageVersion>
     <MicrosoftDotNetBuildTasksInstallersPackageVersion>8.0.0-beta.24113.2</MicrosoftDotNetBuildTasksInstallersPackageVersion>
     <MicrosoftDotNetBuildTasksWorkloadsPackageVersion>8.0.0-beta.24113.2</MicrosoftDotNetBuildTasksWorkloadsPackageVersion>
-    <MicrosoftExtensionsHttpResiliencePackageVersion>8.1.0</MicrosoftExtensionsHttpResiliencePackageVersion>
-    <MicrosoftExtensionsDiagnosticsTestingPackageVersion>8.1.0</MicrosoftExtensionsDiagnosticsTestingPackageVersion>
+    <MicrosoftExtensionsHttpResiliencePackageVersion>8.2.0</MicrosoftExtensionsHttpResiliencePackageVersion>
+    <MicrosoftExtensionsDiagnosticsTestingPackageVersion>8.2.0</MicrosoftExtensionsDiagnosticsTestingPackageVersion>
     <MicrosoftExtensionsConfigurationAbstractionsPackageVersion>8.0.0</MicrosoftExtensionsConfigurationAbstractionsPackageVersion>
     <MicrosoftExtensionsConfigurationBinderPackageVersion>8.0.1</MicrosoftExtensionsConfigurationBinderPackageVersion>
     <MicrosoftExtensionsDependencyInjectionAbstractionsPackageVersion>8.0.0</MicrosoftExtensionsDependencyInjectionAbstractionsPackageVersion>
@@ -33,16 +33,16 @@
     <MicrosoftExtensionsHostingPackageVersion>8.0.0</MicrosoftExtensionsHostingPackageVersion>
     <MicrosoftExtensionsHttpPackageVersion>8.0.0</MicrosoftExtensionsHttpPackageVersion>
     <MicrosoftExtensionsLoggingAbstractionsPackageVersion>8.0.0</MicrosoftExtensionsLoggingAbstractionsPackageVersion>
-    <MicrosoftExtensionsOptionsPackageVersion>8.0.1</MicrosoftExtensionsOptionsPackageVersion>
+    <MicrosoftExtensionsOptionsPackageVersion>8.0.2</MicrosoftExtensionsOptionsPackageVersion>
     <MicrosoftExtensionsPrimitivesPackageVersion>8.0.0</MicrosoftExtensionsPrimitivesPackageVersion>
-    <MicrosoftAspNetCoreOpenApiPackageVersion>8.0.1</MicrosoftAspNetCoreOpenApiPackageVersion>
-    <MicrosoftAspNetCoreOutputCachingStackExchangeRedisPackageVersion>8.0.1</MicrosoftAspNetCoreOutputCachingStackExchangeRedisPackageVersion>
-    <MicrosoftExtensionsCachingStackExchangeRedisPackageVersion>8.0.1</MicrosoftExtensionsCachingStackExchangeRedisPackageVersion>
-    <MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCorePackageVersion>8.0.1</MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCorePackageVersion>
-    <MicrosoftExtensionsDiagnosticsHealthChecksPackageVersion>8.0.1</MicrosoftExtensionsDiagnosticsHealthChecksPackageVersion>
-    <MicrosoftExtensionsFeaturesPackageVersion>8.0.1</MicrosoftExtensionsFeaturesPackageVersion>
-    <MicrosoftEntityFrameworkCoreCosmosPackageVersion>8.0.1</MicrosoftEntityFrameworkCoreCosmosPackageVersion>
-    <MicrosoftEntityFrameworkCoreSqlServerPackageVersion>8.0.1</MicrosoftEntityFrameworkCoreSqlServerPackageVersion>
-    <MicrosoftEntityFrameworkCoreToolsPackageVersion>8.0.1</MicrosoftEntityFrameworkCoreToolsPackageVersion>
+    <MicrosoftAspNetCoreOpenApiPackageVersion>8.0.2</MicrosoftAspNetCoreOpenApiPackageVersion>
+    <MicrosoftAspNetCoreOutputCachingStackExchangeRedisPackageVersion>8.0.2</MicrosoftAspNetCoreOutputCachingStackExchangeRedisPackageVersion>
+    <MicrosoftExtensionsCachingStackExchangeRedisPackageVersion>8.0.2</MicrosoftExtensionsCachingStackExchangeRedisPackageVersion>
+    <MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCorePackageVersion>8.0.2</MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCorePackageVersion>
+    <MicrosoftExtensionsDiagnosticsHealthChecksPackageVersion>8.0.2</MicrosoftExtensionsDiagnosticsHealthChecksPackageVersion>
+    <MicrosoftExtensionsFeaturesPackageVersion>8.0.2</MicrosoftExtensionsFeaturesPackageVersion>
+    <MicrosoftEntityFrameworkCoreCosmosPackageVersion>8.0.2</MicrosoftEntityFrameworkCoreCosmosPackageVersion>
+    <MicrosoftEntityFrameworkCoreSqlServerPackageVersion>8.0.2</MicrosoftEntityFrameworkCoreSqlServerPackageVersion>
+    <MicrosoftEntityFrameworkCoreToolsPackageVersion>8.0.2</MicrosoftEntityFrameworkCoreToolsPackageVersion>
   </PropertyGroup>
 </Project>
