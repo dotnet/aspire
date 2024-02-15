@@ -205,7 +205,7 @@ public class AddMySqlTests
         builder.AddMySql("mySql").WithPhpMyAdmin();
 
         var container = builder.Resources.Single(r => r.Name == "mySql-phpmyadmin");
-        var volume = container.Annotations.OfType<VolumeMountAnnotation>().Single();
+        var volume = container.Annotations.OfType<ContainerMountAnnotation>().Single();
 
         Assert.True(File.Exists(volume.Source)); // File should exist, but will be empty.
         Assert.Equal("/etc/phpmyadmin/config.user.inc.php", volume.Target);
@@ -223,7 +223,7 @@ public class AddMySqlTests
         mysql2.WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "host.docker.internal", 5002, "tcp"));
 
         var myAdmin = builder.Resources.Single(r => r.Name.EndsWith("-phpmyadmin"));
-        var volume = myAdmin.Annotations.OfType<VolumeMountAnnotation>().Single();
+        var volume = myAdmin.Annotations.OfType<ContainerMountAnnotation>().Single();
 
         var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();

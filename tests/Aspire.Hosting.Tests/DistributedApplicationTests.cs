@@ -12,7 +12,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Xunit;
 using Xunit.Abstractions;
-using VolumeMountType = Aspire.Hosting.ApplicationModel.VolumeMountType;
 
 namespace Aspire.Hosting.Tests;
 
@@ -332,7 +331,7 @@ public class DistributedApplicationTests
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
         testProgram.AppBuilder.AddContainer("redis-cli", "redis")
-            .WithVolumeMount("/etc/path-here", $"path-here", VolumeMountType.Bind);
+            .WithBindMount("/etc/path-here", $"path-here");
 
         await using var app = testProgram.Build();
 
@@ -362,7 +361,7 @@ public class DistributedApplicationTests
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
         testProgram.AppBuilder.AddContainer("redis-cli", "redis")
-            .WithVolumeMount("etc/path-here", $"path-here", VolumeMountType.Bind);
+            .WithBindMount("etc/path-here", $"path-here");
 
         await using var app = testProgram.Build();
 

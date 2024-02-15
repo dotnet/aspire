@@ -194,7 +194,7 @@ public static class AzureBicepSqlResourceExtensions
 
         if (storagePath is not null)
         {
-            var volumeAnnotation = new VolumeMountAnnotation(storagePath, "/data", VolumeMountType.Bind, false);
+            var volumeAnnotation = new ContainerMountAnnotation(storagePath, "/data", ContainerMountType.Bind, false);
             return builder.WithAnnotation(volumeAnnotation);
         }
 

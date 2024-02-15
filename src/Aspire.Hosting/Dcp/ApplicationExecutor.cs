@@ -722,13 +722,27 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
                 foreach (var mount in volumeMounts)
                 {
-                    bool isBound = mount.Type == ApplicationModel.VolumeMountType.Bind;
+                    var isBound = mount.Type == ContainerMountType.Bind;
+                    var resolvedSource = mount.Source;
+                    if (isBound)
+                    {
+                        // Source is only optional for creating anonymous volume mounts.
+                        if (mount.Source == null)
+                        {
+                            throw new InvalidDataException($"Bind mount for container '{container.Name}' is missing required source.");
+                        }
+
+                        if (!Path.IsPathRooted(mount.Source))
+                        {
+                            resolvedSource = Path.GetFullPath(mount.Source);
+                        }
+                    }
+
                     var volumeSpec = new VolumeMount
                     {
-                        Source = isBound && !Path.IsPathRooted(mount.Source) ?
-                            Path.GetFullPath(mount.Source) : mount.Source,
+                        Source = resolvedSource,
                         Target = mount.Target,
-                        Type = isBound ? Model.VolumeMountType.Bind : Model.VolumeMountType.Named,
+                        Type = isBound ? VolumeMountType.Bind : VolumeMountType.Named,
                         IsReadOnly = mount.IsReadOnly
                     };
                     ctr.Spec.VolumeMounts.Add(volumeSpec);

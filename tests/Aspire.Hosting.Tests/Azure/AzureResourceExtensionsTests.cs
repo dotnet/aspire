@@ -18,10 +18,10 @@ public class AzureResourceExtensionsTests
 
         var computedPath = Path.GetFullPath("mydata");
 
-        var volumeAnnotation = storage.Resource.Annotations.OfType<VolumeMountAnnotation>().Single();
+        var volumeAnnotation = storage.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
         Assert.Equal(computedPath, volumeAnnotation.Source);
         Assert.Equal("/data", volumeAnnotation.Target);
-        Assert.Equal(VolumeMountType.Bind, volumeAnnotation.Type);
+        Assert.Equal(ContainerMountType.Bind, volumeAnnotation.Type);
     }
 
     [Fact]

@@ -82,7 +82,7 @@ public static class MySqlBuilderExtensions
         builder.ApplicationBuilder.AddResource(phpMyAdminContainer)
                                   .WithAnnotation(new ContainerImageAnnotation { Image = "phpmyadmin", Tag = "latest" })
                                   .WithHttpEndpoint(containerPort: 80, hostPort: hostPort, name: containerName)
-                                  .WithVolumeMount(Path.GetTempFileName(), "/etc/phpmyadmin/config.user.inc.php")
+                                  .WithBindMount(Path.GetTempFileName(), "/etc/phpmyadmin/config.user.inc.php")
                                   .ExcludeFromManifest();
         
         return builder;
