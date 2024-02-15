@@ -149,5 +149,5 @@ public static class AzureBicepCosmosExtensions
 
 file static class AzureCosmosDBEmulatorConnectionString
 {
-    public static string Create(int port) => $"AccountKey={CosmosConstants.EmulatorAccountKey};AccountEndpoint=https://127.0.0.1:{port};";
+    public static string Create(int port) => $"AccountKey={CosmosConstants.EmulatorAccountKey};AccountEndpoint=https://127.0.0.1:{port};DisableServerCertificateValidation=True;";
 }
