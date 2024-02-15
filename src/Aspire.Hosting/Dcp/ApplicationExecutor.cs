@@ -742,7 +742,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     {
                         Source = resolvedSource,
                         Target = mount.Target,
-                        Type = isBound ? VolumeMountType.Bind : VolumeMountType.Named,
+                        Type = isBound ? VolumeMountType.Bind : VolumeMountType.Volume,
                         IsReadOnly = mount.IsReadOnly
                     };
                     ctr.Spec.VolumeMounts.Add(volumeSpec);

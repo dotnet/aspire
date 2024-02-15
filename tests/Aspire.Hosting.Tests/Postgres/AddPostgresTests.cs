@@ -279,7 +279,7 @@ public class AddPostgresTests
         var hook = new PgAdminConfigWriterHook();
         hook.AfterEndpointsAllocatedAsync(appModel, CancellationToken.None);
 
-        using var stream = File.OpenRead(volume.Source);
+        using var stream = File.OpenRead(volume.Source!);
         var document = JsonDocument.Parse(stream);
 
         var servers = document.RootElement.GetProperty("Servers");
