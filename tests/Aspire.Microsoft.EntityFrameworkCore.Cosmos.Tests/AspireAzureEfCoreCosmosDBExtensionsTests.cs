@@ -48,4 +48,47 @@ public class AspireAzureEfCoreCosmosDBExtensionsTests
 
 #pragma warning restore EF1001 // Internal EF Core API usage.
     }
+
+    /// <summary>
+    /// Verifies that two different DbContexts can be registered with different connection strings.
+    /// </summary>
+    [Fact]
+    public void CanHave2DbContexts()
+    {
+        const string connectionString2 = "AccountEndpoint=https://fake-account2.documents.azure.com:443/;AccountKey=<fake-key2>;";
+
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:cosmos", ConnectionString),
+            new KeyValuePair<string, string?>("ConnectionStrings:cosmos2", connectionString2),
+        ]);
+
+        builder.AddCosmosDbContext<TestDbContext>("cosmos", "test");
+        builder.AddCosmosDbContext<TestDbContext2>("cosmos2", "test2");
+
+        var host = builder.Build();
+        var context = host.Services.GetRequiredService<TestDbContext>();
+        var context2 = host.Services.GetRequiredService<TestDbContext2>();
+
+        var actualConnectionString = context.Database.GetCosmosDatabaseId();
+        Assert.Equal("test", actualConnectionString);
+
+        actualConnectionString = context2.Database.GetCosmosDatabaseId();
+        Assert.Equal("test2", actualConnectionString);
+    }
+
+    public class TestDbContext2 : DbContext
+    {
+        public TestDbContext2(DbContextOptions<TestDbContext2> options) : base(options)
+        {
+        }
+
+        public DbSet<Product> Products => Set<Product>();
+
+        public class Product
+        {
+            public int Id { get; set; }
+            public string Name { get; set; } = default!;
+        }
+    }
 }

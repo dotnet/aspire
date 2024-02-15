@@ -1,0 +1,52 @@
+﻿@namespace Aspire.Dashboard.Components
+
+@using Aspire.Dashboard.Otlp.Model
+@using Aspire.Dashboard.Resources
+@using Microsoft.Extensions.Logging
+
+@inject IJSRuntime JS
+@inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
+@inject IStringLocalizer<Columns> Loc
+
+@if (TryGetErrorInformation(out var errorInfo))
+{
+    var iconId = Guid.NewGuid().ToString();
+    <FluentIcon Title="@Loc[nameof(Columns.LogMessageColumnExceptionDetailsTitle)]"
+                Id="@iconId"
+                Icon="Icons.Filled.Size16.DocumentError"
+                Color="Color.Accent"
+                Class="severity-icon"/>
+
+    var copyButtonId = Guid.NewGuid().ToString();
+
+    <FluentTooltip Anchor="@iconId" MaxWidth="650px">
+        <div style="padding: 10px">
+            <h3>@Loc[nameof(Columns.LogMessageColumnExceptionDetailsTitle)]</h3>
+
+            <pre style="white-space: pre-wrap; overflow-wrap: break-word; max-height: 400px; overflow: auto;">@errorInfo</pre>
+
+            <div style="float: right; margin-bottom: 10px;">
+                <FluentButton
+                    Id="@copyButtonId"
+                    Appearance="Appearance.Lightweight"
+                    OnClick="@(() => CopyTextToClipboardAsync(errorInfo, copyButtonId))">
+
+                    @ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)]
+
+                    <FluentIcon Class="copy-icon align-text-bottom" Style="display:inline;" Icon="Icons.Regular.Size16.Copy"/>
+                    <FluentIcon Class="checkmark-icon align-text-bottom" Style="display:none;" Icon="Icons.Regular.Size16.Checkmark"/>
+                </FluentButton>
+            </div>
+        </div>
+    </FluentTooltip>
+}
+
+<FluentHighlighter HighlightedText="@FilterText" Text="@LogEntry.Message" />
+
+@code {
+    [Parameter, EditorRequired]
+    public required OtlpLogEntry LogEntry { get; set; }
+
+    [Parameter, EditorRequired]
+    public required string FilterText { get; set; }
+}

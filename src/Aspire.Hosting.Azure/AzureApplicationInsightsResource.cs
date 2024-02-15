@@ -21,4 +21,7 @@ public sealed class AzureApplicationInsightsResource(string name, string? connec
     /// </summary>
     /// <returns>The connection string for the Azure Application Insights resource.</returns>
     public string? GetConnectionString() => ConnectionString;
+
+    // UseAzureMonitor is looking for this specific environment variable name.
+    string IResourceWithConnectionString.ConnectionStringEnvironmentVariable => "APPLICATIONINSIGHTS_CONNECTION_STRING";
 }

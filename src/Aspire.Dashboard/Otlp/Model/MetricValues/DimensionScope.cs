@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using Aspire.Dashboard.Otlp.Storage;
 using OpenTelemetry.Proto.Metrics.V1;
 
 namespace Aspire.Dashboard.Otlp.Model.MetricValues;
@@ -12,16 +13,20 @@ public class DimensionScope
     public const string NoDimensions = "no-dimensions";
     public string Name { get; init; }
     public KeyValuePair<string, string>[] Attributes { get; init; }
-    public readonly List<MetricValueBase> Values = new();
+    public IList<MetricValueBase> Values => _values;
 
+    private readonly CircularBuffer<MetricValueBase> _values;
     // Used to aid in merging values that are the same in a concurrent environment
     private MetricValueBase? _lastValue;
 
-    public DimensionScope(KeyValuePair<string, string>[] attributes)
+    public int Capacity => _values.Capacity;
+
+    public DimensionScope(int capacity, KeyValuePair<string, string>[] attributes)
     {
         Attributes = attributes;
         var name = Attributes.ConcatProperties();
-        Name = name != null && name.Length > 0 ? name : NoDimensions;
+        Name = name != null && name.Length > 0 ? name : "no-dimensions";
+        _values = new(capacity);
     }
 
     /// <summary>
@@ -49,7 +54,7 @@ public class DimensionScope
                     start = lastLongValue.End;
                 }
                 _lastValue = new MetricValue<long>(d.AsInt, start, end);
-                Values.Add(_lastValue);
+                _values.Add(_lastValue);
             }
         }
         else if (d.ValueCase == NumberDataPoint.ValueOneofCase.AsDouble)
@@ -67,7 +72,7 @@ public class DimensionScope
                     start = lastDoubleValue.End;
                 }
                 _lastValue = new MetricValue<double>(d.AsDouble, start, end);
-                Values.Add(_lastValue);
+                _values.Add(_lastValue);
             }
         }
     }
@@ -98,21 +103,21 @@ public class DimensionScope
                 explicitBounds = h.ExplicitBounds.ToArray();
             }
             _lastValue = new HistogramValue(h.BucketCounts.ToArray(), h.Sum, h.Count, start, end, explicitBounds);
-            Values.Add(_lastValue);
+            _values.Add(_lastValue);
         }
     }
 
     internal static DimensionScope Clone(DimensionScope value, DateTime? valuesStart, DateTime? valuesEnd)
     {
-        var newDimensionScope = new DimensionScope(value.Attributes);
+        var newDimensionScope = new DimensionScope(value.Capacity, value.Attributes);
         if (valuesStart != null && valuesEnd != null)
         {
-            foreach (var item in value.Values)
+            foreach (var item in value._values)
             {
                 if ((item.Start <= valuesEnd.Value && item.End >= valuesStart.Value) ||
                     (item.Start >= valuesStart.Value && item.End <= valuesEnd.Value))
                 {
-                    newDimensionScope.Values.Add(MetricValueBase.Clone(item));
+                    newDimensionScope._values.Add(MetricValueBase.Clone(item));
                 }
             }
         }

@@ -18,19 +18,14 @@ public class AzureBicepCosmosDBResource(string name) :
     internal List<string> Databases { get; } = [];
 
     /// <summary>
-    /// Name of the output key that contains the created resource name.
-    /// </summary>
-    public string ResourceNameOutputKey => "accountName";
-
-    /// <summary>
-    /// Name of the output key that will contain the account key.
-    /// </summary>
-    public string AccountKeyOutputKey => "accountKey";
-
-    /// <summary>
     /// Gets a value indicating whether the Azure Cosmos DB resource is running in the local emulator.
     /// </summary>
     public bool IsEmulator => this.IsContainer();
+
+    /// <summary>
+    /// Gets the connection string template for the manifest for the Azure Cosmos DB resource.
+    /// </summary>
+    public string ConnectionStringExpression => $"{{{Name}.secretOutputs.connectionString}}";
 
     /// <summary>
     /// Gets the connection string to use for this database.
@@ -43,7 +38,7 @@ public class AzureBicepCosmosDBResource(string name) :
             return AzureCosmosDBEmulatorConnectionString.Create(GetEmulatorPort("emulator"));
         }
 
-        return $"AccountEndpoint={Outputs["documentEndpoint"]};AccountKey={Outputs[AccountKeyOutputKey]};";
+        return SecretOutputs["connectionString"];
     }
 
     private int GetEmulatorPort(string endpointName) =>
@@ -62,7 +57,15 @@ public class AzureBicepCosmosDBDatabaseResource(string name, AzureBicepCosmosDBR
     IResourceWithConnectionString,
     IResourceWithParent<AzureBicepCosmosDBResource>
 {
+    /// <summary>
+    /// Gets the parent Azure Cosmos DB resource.
+    /// </summary>
     public AzureBicepCosmosDBResource Parent => cosmosDB;
+
+    /// <summary>
+    /// Gets the connection string template for the manifest for the Azure Cosmos DB database resource.
+    /// </summary>
+    public string ConnectionStringExpression => $"{{{Parent.Name}.connectionString}}";
 
     /// <summary>
     /// Gets the connection string to use for this database.
@@ -75,7 +78,7 @@ public class AzureBicepCosmosDBDatabaseResource(string name, AzureBicepCosmosDBR
     internal void WriteToManifest(ManifestPublishingContext context)
     {
         context.Writer.WriteString("type", "azure.bicep.v0");
-        context.Writer.WriteString("connectionString", $"{{{Parent.Name}.connectionString}}");
+        context.Writer.WriteString("connectionString", ConnectionStringExpression);
         context.Writer.WriteString("parent", Parent.Name);
     }
 }
@@ -93,14 +96,11 @@ public static class AzureBicepCosmosExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<AzureBicepCosmosDBResource> AddBicepCosmosDb(this IDistributedApplicationBuilder builder, string name)
     {
-        var resource = new AzureBicepCosmosDBResource(name)
-        {
-            ConnectionStringTemplate = $"AccountEndpoint={{{name}.outputs.documentEndpoint}};AccountKey={{key(Microsoft.DocumentDB/databaseAccounts@2023-04-15/{{{name}.outputs.accountName}}).primaryMasterKey}}"
-        };
-
+        var resource = new AzureBicepCosmosDBResource(name);
         return builder.AddResource(resource)
                       .WithParameter("databaseAccountName", resource.CreateBicepResourceName())
                       .WithParameter("databases", resource.Databases)
+                      .WithParameter(AzureBicepResource.KnownParameters.KeyVaultName)
                       .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 

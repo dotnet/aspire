@@ -5,8 +5,11 @@
     <OutputType>Exe</OutputType>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>annotations</Nullable>
-    <!-- CS1570 - XML comment has badly formed XML. ignored because of runtime shared code -->
-    <NoWarn>$(NoWarn);CS1570</NoWarn>
+    <!--
+      CS1570: XML comment has badly formed XML. ignored because of runtime shared code
+      CS1591: Missing XML comment for publicly visible type or member 'Type_or_Member'
+    -->
+    <NoWarn>$(NoWarn);CS1570;CS1591</NoWarn>
     <!--<DefineConstants>$(DefineConstants);LAUNCH_DEBUGGER</DefineConstants>-->
   </PropertyGroup>
 

@@ -14,7 +14,11 @@ builder.AddNpgsqlDbContext<MyDb4Context>("db4");
 builder.AddNpgsqlDbContext<MyDb5Context>("db5");
 builder.AddNpgsqlDbContext<MyDb6Context>("db6");
 builder.AddNpgsqlDbContext<MyDb7Context>("db7");
-builder.AddNpgsqlDbContext<MyDb8Context>("db8");
+
+var connectionString = builder.Configuration.GetConnectionString("db8");
+builder.Services.AddDbContextPool<MyDb8Context>(dbContextOptionsBuilder => dbContextOptionsBuilder.UseNpgsql(connectionString));
+builder.EnrichNpgsqlDbContext<MyDb8Context>();
+
 var app = builder.Build();
 
 app.MapGet("/", async (MyDb1Context db1Context, MyDb2Context db2Context, MyDb3Context db3Context, MyDb4Context db4Context, MyDb5Context db5Context, MyDb6Context db6Context, MyDb7Context db7Context, MyDb8Context db8Context) =>

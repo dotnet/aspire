@@ -9,7 +9,7 @@ using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Publishing;
 
-public class ManifestPublisher(ILogger<ManifestPublisher> logger,
+internal class ManifestPublisher(ILogger<ManifestPublisher> logger,
                                IOptions<PublishingOptions> options,
                                IHostApplicationLifetime lifetime) : IDistributedApplicationPublisher
 {

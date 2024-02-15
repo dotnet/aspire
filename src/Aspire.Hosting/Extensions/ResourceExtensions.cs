@@ -109,8 +109,18 @@ public static class ResourceExtensions
         if (resource.Annotations.OfType<ContainerImageAnnotation>().LastOrDefault() is { } imageAnnotation)
         {
             var registryPrefix = string.IsNullOrEmpty(imageAnnotation.Registry) ? string.Empty : $"{imageAnnotation.Registry}/";
-            var tagSuffix = string.IsNullOrEmpty(imageAnnotation.Tag) ? string.Empty : $":{imageAnnotation.Tag}";
-            imageName = $"{registryPrefix}{imageAnnotation.Image}{tagSuffix}";
+
+            if (string.IsNullOrEmpty(imageAnnotation.SHA256))
+            {
+                var tagSuffix = string.IsNullOrEmpty(imageAnnotation.Tag) ? string.Empty : $":{imageAnnotation.Tag}";
+                imageName = $"{registryPrefix}{imageAnnotation.Image}{tagSuffix}";
+            }
+            else
+            {
+                var shaSuffix = $"@sha256:{imageAnnotation.SHA256}";
+                imageName = $"{registryPrefix}{imageAnnotation.Image}{shaSuffix}";
+            }
+
             return true;
         }
 
