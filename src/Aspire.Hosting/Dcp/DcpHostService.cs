@@ -28,6 +28,15 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
     private readonly IDcpDependencyCheckService _dependencyCheckService;
     private readonly Locations _locations;
 
+    // These environment variables should never be inherited by DCP from app host.
+    private static readonly string[] s_doNotInheritEnvironmentVars =
+    {
+        "ASPNETCORE_URLS",
+        "DOTNET_LAUNCH_PROFILE",
+        "ASPNETCORE_ENVIRONMENT",
+        "DOTNET_ENVIRONMENT"
+    };
+
     public DcpHostService(
         DistributedApplicationModel applicationModel,
         ILoggerFactory loggerFactory,
@@ -149,7 +158,7 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
         {
             var key = de.Key?.ToString();
             var val = de.Value?.ToString();
-            if (key is not null && val is not null)
+            if (key is not null && val is not null && !s_doNotInheritEnvironmentVars.Contains(key))
             {
                 dcpProcessSpec.EnvironmentVariables.Add(key, val);
             }
