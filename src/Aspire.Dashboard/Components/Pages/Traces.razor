@@ -4,6 +4,7 @@
 @using Aspire.Dashboard.Model.Otlp
 @using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Resources
+@using Aspire.Dashboard.Utils
 @inject NavigationManager NavigationManager
 @inject IDashboardClient DashboardClient
 @inject IJSRuntime JS
@@ -33,7 +34,7 @@
     <div class="datagrid-overflow-area continuous-scroll-overflow" tabindex="-1">
         <FluentDataGrid Virtualize="true" GenerateHeader="GenerateHeaderOption.Sticky" ItemSize="46" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="OtlpTrace" GridTemplateColumns="0.8fr 2fr 3fr 0.8fr 0.5fr">
             <ChildContent>
-                <PropertyColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.TimestampColumnHeader)]" Property="@(context => OtlpHelpers.FormatTimeStamp(context.FirstSpan.StartTime))" />
+                <PropertyColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.TimestampColumnHeader)]" Property="@(context => FormatHelpers.FormatTimeStamp(context.FirstSpan.StartTime))" />
                 <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Tooltip="true" TooltipText="@((t) => $"{t.FullName}: {OtlpHelpers.ToShortenedId(t.TraceId)}")">
                     <span><FluentHighlighter HighlightedText="@(TracesViewModel.FilterText)" Text="@(context.FullName)" /></span>
                     <span class="trace-id">@OtlpHelpers.ToShortenedId(context.TraceId)</span>
