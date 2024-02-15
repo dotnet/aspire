@@ -7,6 +7,41 @@ namespace Aspire.Hosting.Tests.Azure;
 
 public class AzureResourceExtensionsTests
 {
+    [Fact]
+    public void AzureStorageUserEmulatorCallbackWithUsePersistenceResultsInVolumeAnnotation()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var storage = builder.AddAzureStorage("storage").UseEmulator(configureContainer: builder =>
+        {
+            builder.UsePersistence("mydata");
+        });
+
+        var computedPath = Path.GetFullPath("mydata");
+
+        var volumeAnnotation = storage.Resource.Annotations.OfType<VolumeMountAnnotation>().Single();
+        Assert.Equal(computedPath, volumeAnnotation.Source);
+        Assert.Equal("/data", volumeAnnotation.Target);
+        Assert.Equal(VolumeMountType.Bind, volumeAnnotation.Type);
+    }
+
+    [Fact]
+    public void AzureStorageUserEmulatorUseBlobQueueTablePortMethodsMutateEndpoints()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        var storage = builder.AddAzureStorage("storage").UseEmulator(configureContainer: builder =>
+        {
+            builder.UseBlobPort(9001);
+            builder.UseQueuePort(9002);
+            builder.UseTablePort(9003);
+        });
+
+        Assert.Collection(
+            storage.Resource.Annotations.OfType<EndpointAnnotation>(),
+            e => Assert.Equal(9001, e.Port),
+            e => Assert.Equal(9002, e.Port),
+            e => Assert.Equal(9003, e.Port));
+    }
+
     [Theory]
     [InlineData(null)]
     [InlineData(8081)]
@@ -17,7 +52,10 @@ public class AzureResourceExtensionsTests
 
         var cosmos = builder.AddAzureCosmosDB("cosmos");
 
-        cosmos.UseEmulator(port);
+        cosmos.UseEmulator(container =>
+        {
+            container.UseGatewayPort(port);
+        });
 
         var endpointAnnotation = cosmos.Resource.Annotations.OfType<EndpointAnnotation>().FirstOrDefault();
         Assert.NotNull(endpointAnnotation);
@@ -36,7 +74,10 @@ public class AzureResourceExtensionsTests
 
         var cosmos = builder.AddAzureCosmosDB("cosmos");
 
-        cosmos.UseEmulator(imageTag: imageTag);
+        cosmos.UseEmulator(container =>
+        {
+            container.WithImageTag(imageTag);
+        });
 
         var containerImageAnnotation = cosmos.Resource.Annotations.OfType<ContainerImageAnnotation>().FirstOrDefault();
         Assert.NotNull(containerImageAnnotation);

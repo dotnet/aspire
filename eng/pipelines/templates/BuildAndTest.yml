@@ -40,12 +40,19 @@ steps:
         HelixProjectArguments: /p:RunWithCodeCoverage=true /p:RepoTestResultsPath=${{ parameters.repoTestResultsPath }}
 
         ${{ if eq(parameters.isWindows, 'true') }}:
-          HelixTargetQueues: Windows.11.Amd64.Client.Open
+          ${{ if eq(variables['System.TeamProject'], 'public') }}:
+            HelixTargetQueues: Windows.11.Amd64.Client.Open
+          ${{ if eq(variables['System.TeamProject'], 'internal') }}:
+            HelixTargetQueues: Windows.11.Amd64.Client
         ${{ if ne(parameters.isWindows, 'true') }}:
-          HelixTargetQueues: Ubuntu.2204.Amd64.Open
+          ${{ if eq(variables['System.TeamProject'], 'public') }}:
+            HelixTargetQueues: Ubuntu.2204.Amd64.Open
+          ${{ if eq(variables['System.TeamProject'], 'internal') }}:
+            HelixTargetQueues: Ubuntu.2204.Amd64
 
         IsWindows: ${{ parameters.isWindows }}
-        Creator: $(Build.DefinitionName)
+        ${{ if eq(variables['System.TeamProject'], 'public') }}:
+          Creator: $(Build.DefinitionName)
         HelixBuild: $(Build.BuildNumber)
         HelixAccessToken: $(HelixApiAccessToken)
 

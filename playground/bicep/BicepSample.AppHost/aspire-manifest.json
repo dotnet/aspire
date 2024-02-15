@@ -37,7 +37,8 @@
       "params": {
         "configName": "appconfig",
         "principalId": "",
-        "principalType": ""
+        "principalType": "",
+        "sku": "standard"
       }
     },
     "storage": {
@@ -82,15 +83,6 @@
       "connectionString": "{sql.connectionString};Intial Catalog=db",
       "parent": "sql"
     },
-    "username": {
-      "type": "parameter.v0",
-      "value": "{username.inputs.value}",
-      "inputs": {
-        "value": {
-          "type": "string"
-        }
-      }
-    },
     "password": {
       "type": "parameter.v0",
       "value": "{password.inputs.value}",
@@ -102,11 +94,11 @@
     },
     "postgres2": {
       "type": "azure.bicep.v0",
-      "connectionString": "Host={postgres2.outputs.pgfqdn};Username={username.value};Password={password.value}",
+      "connectionString": "Host={postgres2.outputs.pgfqdn};Username=someuser;Password={password.value}",
       "path": "aspire.hosting.azure.bicep.postgres.bicep",
       "params": {
         "serverName": "postgres2",
-        "administratorLogin": "{username.value}",
+        "administratorLogin": "someuser",
         "administratorLoginPassword": "{password.value}",
         "databases": [
           "db2"
@@ -120,13 +112,14 @@
     },
     "cosmos": {
       "type": "azure.bicep.v0",
-      "connectionString": "AccountEndpoint={cosmos.outputs.documentEndpoint};AccountKey={keys(Microsoft.DocumentDB/databaseAccounts@2023-04-15/{cosmos.outputs.accountName})}",
+      "connectionString": "{cosmos.secretOutputs.connectionString}",
       "path": "aspire.hosting.azure.bicep.cosmosdb.bicep",
       "params": {
         "databaseAccountName": "cosmos",
         "databases": [
           "db3"
-        ]
+        ],
+        "keyVaultName": ""
       }
     },
     "db3": {
@@ -144,10 +137,11 @@
     },
     "redis": {
       "type": "azure.bicep.v0",
-      "connectionString": "{redis.outputs.hostName},ssl=true,password={keys(Microsoft.Cache/redis@2023-04-15/{redis.outputs.cacheName})}",
+      "connectionString": "{redis.secretOutputs.connectionString}",
       "path": "aspire.hosting.azure.bicep.redis.bicep",
       "params": {
-        "redisCacheName": "redis"
+        "redisCacheName": "redis",
+        "keyVaultName": ""
       }
     },
     "sb": {

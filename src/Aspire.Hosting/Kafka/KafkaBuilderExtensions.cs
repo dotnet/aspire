@@ -6,6 +6,9 @@ using Aspire.Hosting.Publishing;
 
 namespace Aspire.Hosting;
 
+/// <summary>
+/// Provides extension methods for adding Kafka resources to the application model.
+/// </summary>
 public static class KafkaBuilderExtensions
 {
     private const int KafkaBrokerPort = 9092;

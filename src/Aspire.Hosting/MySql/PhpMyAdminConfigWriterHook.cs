@@ -5,7 +5,8 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 
 namespace Aspire.Hosting.MySql;
-public class PhpMyAdminConfigWriterHook : IDistributedApplicationLifecycleHook
+
+internal class PhpMyAdminConfigWriterHook : IDistributedApplicationLifecycleHook
 {
     public Task AfterEndpointsAllocatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
     {

@@ -48,7 +48,15 @@ internal sealed class DcpOptions
     /// </example>
     public string? BinPath { get; set; }
 
-    public void ApplyApplicationConfiguration(DistributedApplicationOptions appOptions, IConfiguration dcpPublisherConfiguration, IConfiguration publishingConfiguration)
+    /// <summary>
+    /// Optional container runtime to override default runtime for DCP containers.
+    /// </summary>
+    /// <example>
+    /// podman
+    /// </example>
+    public string? ContainerRuntime { get; set; }
+
+    public void ApplyApplicationConfiguration(DistributedApplicationOptions appOptions, IConfiguration dcpPublisherConfiguration, IConfiguration publishingConfiguration, string? containerRuntimeConfigValue)
     {
         string? publisher = publishingConfiguration[nameof(PublishingOptions.Publisher)];
         if (publisher is not null && publisher != "dcp")
@@ -69,6 +77,15 @@ internal sealed class DcpOptions
             ExtensionsPath = GetMetadataValue(assemblyMetadata, DcpExtensionsPathMetadataKey);
             BinPath = GetMetadataValue(assemblyMetadata, DcpBinPathMetadataKey);
             DashboardPath = GetMetadataValue(assemblyMetadata, DashboardPathMetadataKey);
+        }
+
+        if (!string.IsNullOrEmpty(dcpPublisherConfiguration[nameof(ContainerRuntime)]))
+        {
+            ContainerRuntime = dcpPublisherConfiguration[nameof(ContainerRuntime)];
+        }
+        else
+        {
+            ContainerRuntime = containerRuntimeConfigValue;
         }
 
         if (string.IsNullOrEmpty(CliPath))

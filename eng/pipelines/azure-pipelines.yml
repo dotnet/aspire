@@ -98,7 +98,8 @@ stages:
       jobs:
 
       - job: windows
-        timeoutInMinutes: 45
+        # timeout accounts for wait times for helix agents up to 30mins
+        timeoutInMinutes: 60
 
         pool:
           ${{ if eq(variables['System.TeamProject'], 'public') }}:
@@ -131,7 +132,8 @@ stages:
 
       - ${{ if eq(variables._RunAsPublic, True) }}:
         - job: linux
-          timeoutInMinutes: 45
+          # timeout accounts for wait times for helix agents up to 30mins
+          timeoutInMinutes: 60
 
           pool:
             ${{ if eq(variables['System.TeamProject'], 'public') }}:

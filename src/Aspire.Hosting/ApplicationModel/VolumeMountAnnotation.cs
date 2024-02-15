@@ -47,8 +47,17 @@ public sealed class VolumeMountAnnotation : IResourceAnnotation
     public bool IsReadOnly { get; set; }
 }
 
+/// <summary>
+/// Represents the type of a volume mount.
+/// </summary>
 public enum VolumeMountType
 {
+    /// <summary>
+    /// A local folder that is mounted into the container.
+    /// </summary>
     Bind,
+    /// <summary>
+    /// A named volume.
+    /// </summary>
     Named
 }
