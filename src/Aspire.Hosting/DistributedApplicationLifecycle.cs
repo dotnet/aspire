@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Reflection;
 using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
@@ -30,6 +31,12 @@ internal sealed class DistributedApplicationLifecycle(ILogger<DistributedApplica
 
     public Task StartingAsync(CancellationToken cancellationToken)
     {
+        if (GetType().Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion is string informationalVersion)
+        {
+            // Display version and commit like 8.0.0-preview.2.23619.3+17dd83f67c6822954ec9a918ef2d048a78ad4697
+            logger.LogInformation("Version: {InformationalVersion}", informationalVersion);
+        }
+
         if (publishingOptions.Value.Publisher != "manifest")
         {
             logger.LogInformation("Distributed application starting.");
