@@ -81,7 +81,8 @@ public class DashboardWebApplication
 
         _app = builder.Build();
 
-        // this needs to be explicitly enumerated
+        // this needs to be explicitly enumerated for each supported language
+        // our language list comes from https://github.com/dotnet/arcade/blob/89008f339a79931cc49c739e9dbc1a27c608b379/src/Microsoft.DotNet.XliffTasks/build/Microsoft.DotNet.XliffTasks.props#L22
         var supportedLanguages = new[]
         {
             "en", "cs", "de", "es", "fr", "it", "ja", "ko", "pl", "pt-BR", "ru", "tr", "zh-Hans", "zh-Hant"
