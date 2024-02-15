@@ -25,7 +25,7 @@ public static class AspireAzureEFCoreCosmosDBExtensions
 
     /// <summary>
     /// Registers the given <see cref="DbContext" /> as a service in the services provided by the <paramref name="builder"/>.
-    /// Configures the connection pooling, logging and telemetry for the <see cref="DbContext" />.
+    /// Enables db context pooling, logging and telemetry.
     /// </summary>
     /// <typeparam name="TContext">The <see cref="DbContext" /> that needs to be registered.</typeparam>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
@@ -44,17 +44,7 @@ public static class AspireAzureEFCoreCosmosDBExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        var settings = new EntityFrameworkCoreCosmosDBSettings();
-        var typeSpecificSectionName = $"{DefaultConfigSectionName}:{typeof(TContext).Name}";
-        var typeSpecificConfigurationSection = builder.Configuration.GetSection(typeSpecificSectionName);
-        if (typeSpecificConfigurationSection.Exists()) // https://github.com/dotnet/runtime/issues/91380
-        {
-            typeSpecificConfigurationSection.Bind(settings);
-        }
-        else
-        {
-            builder.Configuration.GetSection(DefaultConfigSectionName).Bind(settings);
-        }
+        var settings = GetDbContextSettings<TContext>(builder);
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {
@@ -67,37 +57,12 @@ public static class AspireAzureEFCoreCosmosDBExtensions
                 settings.ConnectionString = connectionString;
             }
         }
+
         configureSettings?.Invoke(settings);
 
-        if (settings.DbContextPooling)
-        {
-            builder.Services.AddDbContextPool<TContext>(ConfigureDbContext);
-        }
-        else
-        {
-            builder.Services.AddDbContext<TContext>(ConfigureDbContext);
-        }
+        builder.Services.AddDbContextPool<TContext>(ConfigureDbContext);
 
-        if (settings.Tracing)
-        {
-            builder.Services.AddOpenTelemetry().WithTracing(tracerProviderBuilder =>
-            {
-                tracerProviderBuilder.AddEntityFrameworkCoreInstrumentation();
-                tracerProviderBuilder.AddSource("Azure.Cosmos.Operation");
-            });
-        }
-
-        if (settings.Metrics)
-        {
-            builder.Services.AddOpenTelemetry().WithMetrics(meterProviderBuilder =>
-            {
-                meterProviderBuilder.AddEventCountersInstrumentation(eventCountersInstrumentationOptions =>
-                {
-                    // https://github.com/dotnet/efcore/blob/main/src/EFCore/Infrastructure/EntityFrameworkEventSource.cs#L45
-                    eventCountersInstrumentationOptions.AddEventSources("Microsoft.EntityFrameworkCore");
-                });
-            });
-        }
+        ConfigureInstrumentation<TContext>(builder, settings);
 
         void ConfigureDbContext(DbContextOptionsBuilder dbContextOptionsBuilder)
         {
@@ -115,7 +80,7 @@ public static class AspireAzureEFCoreCosmosDBExtensions
                 throw new InvalidOperationException(
                   $"A DbContext could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or either " +
                   $"{nameof(settings.ConnectionString)} or {nameof(settings.AccountEndpoint)} must be provided " +
-                  $"in the '{DefaultConfigSectionName}' or '{typeSpecificSectionName}' configuration section.");
+                  $"in the '{DefaultConfigSectionName}' or '{DefaultConfigSectionName}:{typeof(TContext).Name}' configuration section.");
             }
 
             configureDbContextOptions?.Invoke(dbContextOptionsBuilder);
@@ -140,5 +105,73 @@ public static class AspireAzureEFCoreCosmosDBExtensions
                 builder.LimitToEndpoint(true);
             }
         }
+    }
+
+    /// <summary>
+    /// Configures logging and telemetry for the <see cref="DbContext" />.
+    /// </summary>
+    /// <exception cref="ArgumentNullException">Thrown if mandatory <paramref name="builder"/> is null.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="DbContext"/> is not registered in DI.</exception>
+    public static void EnrichCosmosDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
+            this IHostApplicationBuilder builder,
+            Action<EntityFrameworkCoreCosmosDBSettings>? configureSettings = null) where TContext : DbContext
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        var settings = GetDbContextSettings<TContext>(builder);
+
+        configureSettings?.Invoke(settings);
+
+        // Ensure DbContext was registered prior to calling EnrichCosmosDbContext
+        var dbContextOptionsDescriptor = builder.Services.FirstOrDefault(sd => sd.ServiceType == typeof(DbContextOptions<TContext>));
+
+        if (dbContextOptionsDescriptor is null)
+        {
+            throw new InvalidOperationException($"DbContext<{typeof(TContext).Name}> was not registered. Ensure you have registered the DbContext in DI before calling EnrichCosmosDbContext.");
+        }
+
+        ConfigureInstrumentation<TContext>(builder, settings);
+    }
+
+    private static void ConfigureInstrumentation<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties)] TContext>(IHostApplicationBuilder builder, EntityFrameworkCoreCosmosDBSettings settings) where TContext : DbContext
+    {
+        if (settings.Tracing)
+        {
+            builder.Services.AddOpenTelemetry().WithTracing(tracerProviderBuilder =>
+            {
+                tracerProviderBuilder.AddEntityFrameworkCoreInstrumentation();
+                tracerProviderBuilder.AddSource("Azure.Cosmos.Operation");
+            });
+        }
+
+        if (settings.Metrics)
+        {
+            builder.Services.AddOpenTelemetry().WithMetrics(meterProviderBuilder =>
+            {
+                meterProviderBuilder.AddEventCountersInstrumentation(eventCountersInstrumentationOptions =>
+                {
+                    // https://github.com/dotnet/efcore/blob/main/src/EFCore/Infrastructure/EntityFrameworkEventSource.cs#L45
+                    eventCountersInstrumentationOptions.AddEventSources("Microsoft.EntityFrameworkCore");
+                });
+            });
+        }
+
+    }
+
+    private static EntityFrameworkCoreCosmosDBSettings GetDbContextSettings<TContext>(IHostApplicationBuilder builder)
+    {
+        var settings = new EntityFrameworkCoreCosmosDBSettings();
+        var typeSpecificSectionName = $"{DefaultConfigSectionName}:{typeof(TContext).Name}";
+        var typeSpecificConfigurationSection = builder.Configuration.GetSection(typeSpecificSectionName);
+        if (typeSpecificConfigurationSection.Exists()) // https://github.com/dotnet/runtime/issues/91380
+        {
+            typeSpecificConfigurationSection.Bind(settings);
+        }
+        else
+        {
+            builder.Configuration.GetSection(DefaultConfigSectionName).Bind(settings);
+        }
+
+        return settings;
     }
 }

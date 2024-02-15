@@ -42,7 +42,7 @@ internal sealed class AppConfigurationProvisioner(ILogger<AppConfigurationProvis
 
         if (appConfigurationResource is null)
         {
-            var appConfigurationName = Guid.NewGuid().ToString().Replace("-", string.Empty)[0..20];
+            var appConfigurationName = Guid.NewGuid().ToString("N")[0..20];
 
             logger.LogInformation("Creating app configuration {appConfigurationName} in {location}...", appConfigurationName, context.Location);
 

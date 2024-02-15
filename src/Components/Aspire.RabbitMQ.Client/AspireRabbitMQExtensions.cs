@@ -172,6 +172,9 @@ public static class AspireRabbitMQExtensions
                 if (connectAttemptActivity is not null)
                 {
                     connectAttemptActivity.AddTag("exception.message", ex.Message);
+                    // Note that "exception.stacktrace" is the full exception detail, not just the StackTrace property. 
+                    // See https://opentelemetry.io/docs/specs/semconv/attributes-registry/exception/
+                    // and https://github.com/open-telemetry/opentelemetry-specification/pull/697#discussion_r453662519
                     connectAttemptActivity.AddTag("exception.stacktrace", ex.ToString());
                     connectAttemptActivity.AddTag("exception.type", ex.GetType().FullName);
                     connectAttemptActivity.SetStatus(ActivityStatusCode.Error);

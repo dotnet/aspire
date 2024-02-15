@@ -7,12 +7,29 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Publishing;
 
+/// <summary>
+/// TODO: Doc Comments
+/// </summary>
+/// <param name="manifestPath"></param>
+/// <param name="writer"></param>
 public sealed class ManifestPublishingContext(string manifestPath, Utf8JsonWriter writer)
 {
+    /// <summary>
+    /// TODO: Doc Comments
+    /// </summary>
     public string ManifestPath { get; } = manifestPath;
 
+    /// <summary>
+    /// TODO: Doc Comments
+    /// </summary>
     public Utf8JsonWriter Writer { get; } = writer;
 
+    /// <summary>
+    /// TODO: Doc Comments
+    /// </summary>
+    /// <param name="path"></param>
+    /// <returns></returns>
+    /// <exception cref="DistributedApplicationException"></exception>
     [return: NotNullIfNotNull(nameof(path))]
     public string? GetManifestRelativePath(string? path)
     {
@@ -28,6 +45,11 @@ public sealed class ManifestPublishingContext(string manifestPath, Utf8JsonWrite
         return relativePath.Replace('\\', '/');
     }
 
+    /// <summary>
+    /// TODO: Doc Comments
+    /// </summary>
+    /// <param name="container"></param>
+    /// <exception cref="DistributedApplicationException"></exception>
     public void WriteContainer(ContainerResource container)
     {
         Writer.WriteString("type", "container.v0");
@@ -68,6 +90,11 @@ public sealed class ManifestPublishingContext(string manifestPath, Utf8JsonWrite
         WriteBindings(container, emitContainerPort: true);
     }
 
+    /// <summary>
+    /// TODO: Doc Comments
+    /// </summary>
+    /// <param name="resource"></param>
+    /// <param name="emitContainerPort"></param>
     public void WriteBindings(IResource resource, bool emitContainerPort = false)
     {
         if (resource.TryGetEndpoints(out var endpoints))
@@ -96,6 +123,10 @@ public sealed class ManifestPublishingContext(string manifestPath, Utf8JsonWrite
         }
     }
 
+    /// <summary>
+    /// TODO: Doc Comments
+    /// </summary>
+    /// <param name="resource"></param>
     public void WriteEnvironmentVariables(IResource resource)
     {
         var config = new Dictionary<string, string>();
@@ -122,6 +153,10 @@ public sealed class ManifestPublishingContext(string manifestPath, Utf8JsonWrite
         }
     }
 
+    /// <summary>
+    /// TODO: Doc Comments
+    /// </summary>
+    /// <param name="resource"></param>
     public void WriteServiceDiscoveryEnvironmentVariables(IResource resource)
     {
         var endpointReferenceAnnotations = resource.Annotations.OfType<EndpointReferenceAnnotation>();
@@ -153,6 +188,10 @@ public sealed class ManifestPublishingContext(string manifestPath, Utf8JsonWrite
         }
     }
 
+    /// <summary>
+    /// TODO: Doc Comments
+    /// </summary>
+    /// <param name="resource"></param>
     public void WritePortBindingEnvironmentVariables(IResource resource)
     {
         if (resource.TryGetEndpoints(out var endpoints))

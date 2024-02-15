@@ -83,15 +83,6 @@
       "connectionString": "{sql.connectionString};Intial Catalog=db",
       "parent": "sql"
     },
-    "username": {
-      "type": "parameter.v0",
-      "value": "{username.inputs.value}",
-      "inputs": {
-        "value": {
-          "type": "string"
-        }
-      }
-    },
     "password": {
       "type": "parameter.v0",
       "value": "{password.inputs.value}",
@@ -103,11 +94,11 @@
     },
     "postgres2": {
       "type": "azure.bicep.v0",
-      "connectionString": "Host={postgres2.outputs.pgfqdn};Username={username.value};Password={password.value}",
+      "connectionString": "Host={postgres2.outputs.pgfqdn};Username=someuser;Password={password.value}",
       "path": "aspire.hosting.azure.bicep.postgres.bicep",
       "params": {
         "serverName": "postgres2",
-        "administratorLogin": "{username.value}",
+        "administratorLogin": "someuser",
         "administratorLoginPassword": "{password.value}",
         "databases": [
           "db2"

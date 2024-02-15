@@ -6,6 +6,8 @@ param principalType string = 'ServicePrincipal'
 
 param sku string = 'Standard_GRS'
 
+param kind string = 'Storage'
+
 @description('Tags that will be applied to all resources')
 param tags object = {}
 
@@ -17,7 +19,7 @@ var resourceToken = uniqueString(resourceGroup().id)
 resource storage 'Microsoft.Storage/storageAccounts@2022-05-01' = {
   name: replace('${storageName}-${resourceToken}', '-', '')
   location: location
-  kind: 'Storage'
+  kind: kind
   sku: {
     name: sku
   }

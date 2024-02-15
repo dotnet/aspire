@@ -53,7 +53,7 @@ internal static partial class ProcessUtil
             {
                 startupComplete.Wait();
 
-                if (e.Data == null || process.HasExited)
+                if (String.IsNullOrEmpty(e.Data))
                 {
                     return;
                 }
@@ -67,7 +67,7 @@ internal static partial class ProcessUtil
             process.ErrorDataReceived += (_, e) =>
             {
                 startupComplete.Wait();
-                if (e.Data == null || process.HasExited)
+                if (String.IsNullOrEmpty(e.Data))
                 {
                     return;
                 }

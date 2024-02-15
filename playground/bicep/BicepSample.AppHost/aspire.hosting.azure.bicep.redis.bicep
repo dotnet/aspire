@@ -1,6 +1,8 @@
 @description('Specify the name of the Azure Redis Cache to create.')
 param redisCacheName string
 
+param keyVaultName string
+
 @description('Location of all resources')
 param location string = resourceGroup().location
 
@@ -47,5 +49,15 @@ resource redisCache 'Microsoft.Cache/Redis@2020-06-01' = {
   }
 }
 
-output cacheName string = redisCache.name
-output hostName string = redisCache.properties.hostName
+var primaryKey = redisCache.listKeys(redisCache.apiVersion).primaryKey
+
+resource vault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
+    name: keyVaultName
+
+    resource secret 'secrets@2023-07-01' = {
+        name: 'connectionString'
+        properties: {
+            value: '${redisCache.properties.hostName},ssl=true,password=${primaryKey}'
+        }
+    }
+}

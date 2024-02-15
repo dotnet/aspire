@@ -13,6 +13,7 @@ namespace Aspire.Dashboard.Components.Layout;
 public partial class MainLayout : IDisposable
 {
     private IDisposable? _themeChangedSubscription;
+    private IDisposable? _locationChangingRegistration;
     private IJSObjectReference? _jsModule;
 
     [Inject]
@@ -27,6 +28,12 @@ public partial class MainLayout : IDisposable
     [Inject]
     public required IDialogService DialogService { get; init; }
 
+    [Inject]
+    public required NavigationManager NavigationManager { get; init; }
+
+    [Inject]
+    public required IDashboardClient DashboardClient { get; init; }
+
     protected override void OnInitialized()
     {
         // Theme change can be triggered from the settings dialog. This logic applies the new theme to the browser window.
@@ -40,6 +47,21 @@ public partial class MainLayout : IDisposable
                 await _jsModule.InvokeVoidAsync("updateTheme", newValue);
             }
         });
+
+        // Redirect to the structured logs page if the dashboard has no resource service.
+        if (!DashboardClient.IsEnabled)
+        {
+            _locationChangingRegistration = NavigationManager.RegisterLocationChangingHandler((context) =>
+            {
+                if (TargetLocationInterceptor.InterceptTargetLocation(NavigationManager.BaseUri, context.TargetLocation, out var newTargetLocation))
+                {
+                    context.PreventNavigation();
+                    NavigationManager.NavigateTo(newTargetLocation);
+                }
+
+                return ValueTask.CompletedTask;
+            });
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -71,5 +93,6 @@ public partial class MainLayout : IDisposable
     public void Dispose()
     {
         _themeChangedSubscription?.Dispose();
+        _locationChangingRegistration?.Dispose();
     }
 }
