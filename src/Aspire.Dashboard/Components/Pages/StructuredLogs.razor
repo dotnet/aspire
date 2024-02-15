@@ -2,6 +2,7 @@
 @using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Model.Otlp
 @using Aspire.Dashboard.Otlp.Model
+@using Aspire.Dashboard.Utils
 @using Microsoft.Extensions.Logging
 @using System.Web
 @using Aspire.Dashboard.Resources
@@ -75,7 +76,7 @@
                             <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsLevelColumnHeader)]">
                                 <LogLevelColumnDisplay LogEntry="@context" />
                             </TemplateColumn>
-                            <PropertyColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsTimestampColumnHeader)]" Property="@(context => OtlpHelpers.FormatTimeStamp(context.TimeStamp))" Tooltip="true" />
+                            <PropertyColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsTimestampColumnHeader)]" Property="@(context => FormatHelpers.FormatTimeStamp(context.TimeStamp))" Tooltip="true" />
                             <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsMessageColumnHeader)]" Tooltip="true" TooltipText="(e) => e.Message">
                                 <LogMessageColumnDisplay FilterText="@(ViewModel.FilterText)" LogEntry="@context" />
                             </TemplateColumn>
