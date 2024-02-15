@@ -4,6 +4,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
+using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting.Publishing;
 
@@ -12,7 +13,9 @@ namespace Aspire.Hosting.Publishing;
 /// </summary>
 /// <param name="manifestPath"></param>
 /// <param name="writer"></param>
-public sealed class ManifestPublishingContext(string manifestPath, Utf8JsonWriter writer)
+/// <param name="configuration"></param>
+/// <param name="appModel"></param>
+public sealed class ManifestPublishingContext(string manifestPath, Utf8JsonWriter writer, IConfiguration configuration, DistributedApplicationModel appModel)
 {
     /// <summary>
     /// TODO: Doc Comments
@@ -23,6 +26,16 @@ public sealed class ManifestPublishingContext(string manifestPath, Utf8JsonWrite
     /// TODO: Doc Comments
     /// </summary>
     public Utf8JsonWriter Writer { get; } = writer;
+
+    /// <summary>
+    /// TODO: Doc Comments.
+    /// </summary>
+    public IConfiguration Configuration { get; } = configuration;
+
+    /// <summary>
+    /// TODO: Doc comments.
+    /// </summary>
+    public DistributedApplicationModel AppModel { get; } = appModel;
 
     /// <summary>
     /// TODO: Doc Comments

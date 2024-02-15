@@ -6,6 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsAspireHost>true</IsAspireHost>
+    <UserSecretsId>30fe4fb3-4a36-45dd-a62b-fcd18c2a2d94</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -15,7 +16,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\Aspire.Dashboard\Aspire.Dashboard.csproj" />
     <ProjectReference Include="..\..\..\src\Aspire.Hosting\Aspire.Hosting.csproj" IsAspireProjectResource="false" />
-    
+    <ProjectReference Include="..\..\..\src\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" IsAspireProjectResource="false" />
+
     <ProjectReference Include="..\SqlServerEndToEnd.ApiService\SqlServerEndToEnd.ApiService.csproj" />
   </ItemGroup>
 

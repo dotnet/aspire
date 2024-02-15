@@ -27,6 +27,7 @@
     <PackageVersion Include="Azure.ResourceManager.Sql" Version="1.2.0" />
     <PackageVersion Include="Azure.ResourceManager.ApplicationInsights" Version="1.0.0-beta.4" />
     <PackageVersion Include="Azure.ResourceManager.OperationalInsights" Version="1.2.0" />
+    <PackageVersion Include="Azure.Provisioning" Version="1.0.0-alpha.20240213.3" />
     <!-- ASP.NET Core dependencies -->
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="$(MicrosoftAspNetCoreOpenApiPackageVersion)" />
     <PackageVersion Include="Microsoft.AspNetCore.OutputCaching.StackExchangeRedis" Version="$(MicrosoftAspNetCoreOutputCachingStackExchangeRedisPackageVersion)" />
