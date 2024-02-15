@@ -325,7 +325,7 @@ public class DistributedApplicationTests
     }
 
     [LocalOnlyFact("docker")]
-    public async Task VerifyDockerWithBoundVolumeMountWorksWithAbsolutePaths()
+    public async Task VerifyDockerWithBindMountWorksWithAbsolutePaths()
     {
         var testProgram = CreateTestProgram();
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
@@ -355,7 +355,7 @@ public class DistributedApplicationTests
     }
 
     [LocalOnlyFact("docker")]
-    public async Task VerifyDockerWithBoundVolumeMountWorksWithRelativePaths()
+    public async Task VerifyDockerWithBindMountWorksWithRelativePaths()
     {
         var testProgram = CreateTestProgram();
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));

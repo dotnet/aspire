@@ -716,11 +716,11 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             ctr.Annotate(Container.ResourceNameAnnotation, container.Name);
             ctr.Annotate(Container.OtelServiceNameAnnotation, container.Name);
 
-            if (container.TryGetVolumeMounts(out var volumeMounts))
+            if (container.TryGetContainerMounts(out var containerMounts))
             {
                 ctr.Spec.VolumeMounts = new();
 
-                foreach (var mount in volumeMounts)
+                foreach (var mount in containerMounts)
                 {
                     var isBound = mount.Type == ContainerMountType.Bind;
                     var resolvedSource = mount.Source;
