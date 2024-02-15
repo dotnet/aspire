@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Components.Controls;
@@ -32,8 +32,7 @@ public class MetricsTests
             out var actualAnyDimensionsShown);
 
         Assert.Equal(expectedMetrics, currentMetrics);
-        Assert.Equal(expectedAddedIndices,
-            actualAddedIndices.AsEnumerable().Reverse()); // reverse because we show newest values first
+        Assert.Equal(expectedAddedIndices, actualAddedIndices.AsEnumerable().Reverse()); // reverse because we show newest values first
         Assert.Equal(expectedAnyDimensionsShown, actualAnyDimensionsShown);
     }
 
@@ -52,10 +51,10 @@ public class MetricsTests
             var dimensionA = new DimensionScope([new KeyValuePair<string, string>("a", "a")]) { Name = "a" };
             var dimensionB = new DimensionScope([new KeyValuePair<string, string>("a", "b")]) { Name = "b" };
 
-            dimensionA.Values.Add(new MetricValue<int>(1, now, now.AddSeconds(5)) { Count = 1 });
-            dimensionA.Values.Add(new MetricValue<int>(-1, now.AddSeconds(5), now.AddSeconds(10)) { Count = 4 });
+            dimensionA.Values.Add(new MetricValue<double>(1, now, now.AddSeconds(5)) { Count = 1 });
+            dimensionA.Values.Add(new MetricValue<double>(-1, now.AddSeconds(5), now.AddSeconds(10)) { Count = 4 });
 
-            dimensionB.Values.Add(new MetricValue<int>(0, now.AddSeconds(10), now.AddSeconds(11)) { Count = 2 });
+            dimensionB.Values.Add(new MetricValue<double>(0, now.AddSeconds(10), now.AddSeconds(11)) { Count = 2 });
 
             List<DimensionScope> dimensions = [dimensionA, dimensionB];
             List<MetricTable.MetricView> currentMetrics = [];
@@ -72,7 +71,7 @@ public class MetricsTests
                         DimensionAttributes = dimensionA.Attributes,
                         DimensionName = dimensionA.Name,
                         Value = dimensionA.Values[0],
-                        ValueChange = null
+                        ValueChange = MetricTable.ValueDirectionChange.Constant
                     },
                     new MetricTable.MetricView
                     {
@@ -88,7 +87,7 @@ public class MetricsTests
                         DimensionAttributes = dimensionB.Attributes,
                         DimensionName = dimensionB.Name,
                         Value = dimensionB.Values[0],
-                        ValueChange = MetricTable.ValueDirectionChange.Down
+                        ValueChange = MetricTable.ValueDirectionChange.Up
                     }
                 ],
                 [0, 1, 2],
@@ -104,12 +103,12 @@ public class MetricsTests
                 new KeyValuePair<string, string>("a", "b"), new KeyValuePair<string, string>("b", "c")
             ]) { Name = "b" };
 
-            dimensionA.Values.Add(new MetricValue<int>(1, now, now.AddSeconds(5)) { Count = 1 });
-            dimensionA.Values.Add(new MetricValue<int>(2, now.AddSeconds(5), now.AddSeconds(10)) { Count = 1 });
-            dimensionA.Values.Add(new MetricValue<int>(4, now.AddSeconds(12), now.AddSeconds(16)) { Count = 1 });
+            dimensionA.Values.Add(new MetricValue<double>(1, now, now.AddSeconds(5)) { Count = 1 });
+            dimensionA.Values.Add(new MetricValue<double>(2, now.AddSeconds(5), now.AddSeconds(10)) { Count = 1 });
+            dimensionA.Values.Add(new MetricValue<double>(4, now.AddSeconds(12), now.AddSeconds(16)) { Count = 1 });
 
-            dimensionB.Values.Add(new MetricValue<int>(4, now.AddSeconds(10), now.AddSeconds(11)) { Count = 2 });
-            dimensionB.Values.Add(new MetricValue<int>(2, now.AddSeconds(17), now.AddSeconds(19)) { Count = 2 });
+            dimensionB.Values.Add(new MetricValue<double>(4, now.AddSeconds(10), now.AddSeconds(11)) { Count = 2 });
+            dimensionB.Values.Add(new MetricValue<double>(2, now.AddSeconds(17), now.AddSeconds(19)) { Count = 2 });
 
             List<DimensionScope> dimensions = [dimensionA, dimensionB];
 
@@ -120,14 +119,14 @@ public class MetricsTests
                     DimensionAttributes = dimensionA.Attributes,
                     DimensionName = dimensionA.Name,
                     Value = dimensionA.Values[0],
-                    ValueChange = null
+                    ValueChange = MetricTable.ValueDirectionChange.Constant
                 },
                 new MetricTable.MetricView
                 {
                     CountChange = MetricTable.ValueDirectionChange.Up,
                     DimensionAttributes = dimensionA.Attributes,
                     DimensionName = dimensionA.Name,
-                    Value = new MetricValue<int>(-1, now.AddSeconds(5), now.AddSeconds(10)) { Count = 4 },
+                    Value = new MetricValue<double>(-1, now.AddSeconds(5), now.AddSeconds(10)) { Count = 4 },
                     ValueChange = MetricTable.ValueDirectionChange.Down
                 },
                 new MetricTable.MetricView
@@ -135,7 +134,7 @@ public class MetricsTests
                     CountChange = MetricTable.ValueDirectionChange.Down,
                     DimensionAttributes = dimensionB.Attributes,
                     DimensionName = dimensionB.Name,
-                    Value = new MetricValue<int>(0, now.AddSeconds(10), now.AddSeconds(11)) { Count = 2 },
+                    Value = new MetricValue<double>(0, now.AddSeconds(10), now.AddSeconds(11)) { Count = 2 },
                     ValueChange = MetricTable.ValueDirectionChange.Down
                 }];
 
@@ -152,7 +151,7 @@ public class MetricsTests
                         DimensionAttributes = dimensionA.Attributes,
                         DimensionName = dimensionA.Name,
                         Value = dimensionA.Values[0],
-                        ValueChange = null
+                        ValueChange = MetricTable.ValueDirectionChange.Constant
                     },
                     new MetricTable.MetricView
                     {
