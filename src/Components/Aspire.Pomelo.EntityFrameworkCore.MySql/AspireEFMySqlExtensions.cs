@@ -10,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MySqlConnector.Logging;
 using OpenTelemetry.Metrics;
+using Pomelo.EntityFrameworkCore.MySql.Infrastructure.Internal;
 
 namespace Microsoft.Extensions.Hosting;
 
@@ -23,7 +24,7 @@ public static partial class AspireEFMySqlExtensions
 
     /// <summary>
     /// Registers the given <see cref="DbContext" /> as a service in the services provided by the <paramref name="builder"/>.
-    /// Enables db context pooling, corresponding health check, logging and telemetry.
+    /// Enables db context pooling, retries, corresponding health check, logging and telemetry.
     /// </summary>
     /// <typeparam name="TContext">The <see cref="DbContext" /> that needs to be registered.</typeparam>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
@@ -47,18 +48,8 @@ public static partial class AspireEFMySqlExtensions
         Action<DbContextOptionsBuilder>? configureDbContextOptions = null) where TContext : DbContext
     {
         ArgumentNullException.ThrowIfNull(builder);
-
-        PomeloEntityFrameworkCoreMySqlSettings settings = new();
-        var typeSpecificSectionName = $"{DefaultConfigSectionName}:{typeof(TContext).Name}";
-        var typeSpecificConfigurationSection = builder.Configuration.GetSection(typeSpecificSectionName);
-        if (typeSpecificConfigurationSection.Exists()) // https://github.com/dotnet/runtime/issues/91380
-        {
-            typeSpecificConfigurationSection.Bind(settings);
-        }
-        else
-        {
-            builder.Configuration.GetSection(DefaultConfigSectionName).Bind(settings);
-        }
+         
+        var settings = GetDbContextSettings<TContext>(builder);
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {
@@ -67,15 +58,129 @@ public static partial class AspireEFMySqlExtensions
 
         configureSettings?.Invoke(settings);
 
-        if (settings.DbContextPooling)
-        {
-            builder.Services.AddDbContextPool<TContext>(ConfigureDbContext);
-        }
-        else
-        {
-            builder.Services.AddDbContext<TContext>(ConfigureDbContext);
-        }
+        builder.Services.AddDbContextPool<TContext>(ConfigureDbContext);
 
+        ConfigureInstrumentation<TContext>(builder, settings);
+
+        void ConfigureDbContext(IServiceProvider serviceProvider, DbContextOptionsBuilder dbContextOptionsBuilder)
+        {
+            // use the legacy method of setting the ILoggerFactory because Pomelo EF Core doesn't use MySqlDataSource
+            if (serviceProvider.GetService<ILoggerFactory>() is { } loggerFactory)
+            {
+                MySqlConnectorLogManager.Provider = new MicrosoftExtensionsLoggingLoggerProvider(loggerFactory);
+            }
+
+            var connectionString = settings.ConnectionString ?? string.Empty;
+
+            ServerVersion serverVersion;
+            if (settings.ServerVersion is null)
+            {
+                if (string.IsNullOrEmpty(connectionString))
+                {
+                    ThrowForMissingConnectionString();
+                }
+                serverVersion = ServerVersion.AutoDetect(connectionString);
+            }
+            else
+            {
+                serverVersion = ServerVersion.Parse(settings.ServerVersion);
+            }
+
+            var builder = dbContextOptionsBuilder.UseMySql(connectionString, serverVersion, builder =>
+            {
+                // delay validating the ConnectionString until the DbContext is configured. This ensures an exception doesn't happen until a Logger is established.
+                if (string.IsNullOrEmpty(connectionString))
+                {
+                    ThrowForMissingConnectionString();
+                }
+
+                // Resiliency:
+                // 1. Connection resiliency automatically retries failed database commands: https://github.com/PomeloFoundation/Pomelo.EntityFrameworkCore.MySql/wiki/Configuration-Options#enableretryonfailure
+                if (settings.Retry)
+                {
+                    builder.EnableRetryOnFailure();
+                }
+            });
+
+            configureDbContextOptions?.Invoke(dbContextOptionsBuilder);
+
+            void ThrowForMissingConnectionString()
+            {
+                throw new InvalidOperationException($"ConnectionString is missing. It should be provided in 'ConnectionStrings:{connectionName}' or under the 'ConnectionString' key in '{DefaultConfigSectionName}' or '{DefaultConfigSectionName}:{typeof(TContext).Name}' configuration section.");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Configures retries, health check, logging and telemetry for the <see cref="DbContext" />.
+    /// </summary>
+    /// <exception cref="ArgumentNullException">Thrown if mandatory <paramref name="builder"/> is null.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="DbContext"/> is not registered in DI.</exception>
+    public static void EnrichMySqlDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
+            this IHostApplicationBuilder builder,
+            Action<PomeloEntityFrameworkCoreMySqlSettings>? configureSettings = null) where TContext : DbContext
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        var settings = GetDbContextSettings<TContext>(builder);
+
+        configureSettings?.Invoke(settings);
+
+        ConfigureRetry();
+
+        ConfigureInstrumentation<TContext>(builder, settings);
+
+        void ConfigureRetry()
+        {
+            if (!settings.Retry)
+            {
+                return;
+            }
+
+            // Resolving DbContext<TContextService> will resolve DbContextOptions<TContextImplementation>.
+            // We need to replace the DbContextOptions service descriptor to inject more logic. This won't be necessary once
+            // Aspire targets .NET 9 as EF will respect the calls to services.ConfigureDbContext<TContext>(). c.f. https://github.com/dotnet/efcore/pull/32518
+
+            var oldDbContextOptionsDescriptor = builder.Services.FirstOrDefault(sd => sd.ServiceType == typeof(DbContextOptions<TContext>));
+
+            if (oldDbContextOptionsDescriptor is null)
+            {
+                throw new InvalidOperationException($"DbContext<{typeof(TContext).Name}> was not registered");
+            }
+
+            builder.Services.Remove(oldDbContextOptionsDescriptor);
+
+            var dbContextOptionsDescriptor = new ServiceDescriptor(
+                oldDbContextOptionsDescriptor.ServiceType,
+                oldDbContextOptionsDescriptor.ServiceKey,
+                factory: (sp, key) =>
+                {
+                    var dbContextOptions = oldDbContextOptionsDescriptor.ImplementationFactory?.Invoke(sp) as DbContextOptions<TContext>;
+
+#pragma warning disable EF1001 // Internal EF Core API usage.
+                    if (dbContextOptions is null ||
+                        dbContextOptions.FindExtension<MySqlOptionsExtension>() is not MySqlOptionsExtension extension ||
+                        extension.ServerVersion is not ServerVersion serverVersion)
+                    {
+                        throw new InvalidOperationException($"A DbContextOptions<{typeof(TContext).Name}> was not found. Please ensure 'ServerVersion' was configured.");
+                    }
+#pragma warning restore EF1001 // Internal EF Core API usage.
+
+                    var optionsBuilder = new DbContextOptionsBuilder<TContext>(dbContextOptions);
+
+                    optionsBuilder.UseMySql(serverVersion, options => options.EnableRetryOnFailure());
+
+                    return optionsBuilder.Options;
+                },
+                oldDbContextOptionsDescriptor.Lifetime
+                );
+
+            builder.Services.Add(dbContextOptionsDescriptor);
+        }
+    }
+
+    private static void ConfigureInstrumentation<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties)] TContext>(IHostApplicationBuilder builder, PomeloEntityFrameworkCoreMySqlSettings settings) where TContext : DbContext
+    {
         if (settings.HealthChecks)
         {
             // calling MapHealthChecks is the responsibility of the app, not Component
@@ -112,53 +217,22 @@ public static partial class AspireEFMySqlExtensions
                     meterProviderBuilder.AddMeter("MySqlConnector");
                 });
         }
+    }
 
-        void ConfigureDbContext(IServiceProvider serviceProvider, DbContextOptionsBuilder dbContextOptionsBuilder)
+    private static PomeloEntityFrameworkCoreMySqlSettings GetDbContextSettings<TContext>(IHostApplicationBuilder builder)
+    {
+        PomeloEntityFrameworkCoreMySqlSettings settings = new();
+        var typeSpecificSectionName = $"{DefaultConfigSectionName}:{typeof(TContext).Name}";
+        var typeSpecificConfigurationSection = builder.Configuration.GetSection(typeSpecificSectionName);
+        if (typeSpecificConfigurationSection.Exists()) // https://github.com/dotnet/runtime/issues/91380
         {
-            // use the legacy method of setting the ILoggerFactory because Pomelo EF Core doesn't use MySqlDataSource
-            if (serviceProvider.GetService<ILoggerFactory>() is { } loggerFactory)
-            {
-                MySqlConnectorLogManager.Provider = new MicrosoftExtensionsLoggingLoggerProvider(loggerFactory);
-            }
-
-            var connectionString = settings.ConnectionString ?? string.Empty;
-
-            ServerVersion serverVersion;
-            if (settings.ServerVersion is null)
-            {
-                if (string.IsNullOrEmpty(connectionString))
-                {
-                    ThrowForMissingConnectionString();
-                }
-                serverVersion = ServerVersion.AutoDetect(connectionString);
-            }
-            else
-            {
-                serverVersion = ServerVersion.Parse(settings.ServerVersion);
-            }
-
-            var builder = dbContextOptionsBuilder.UseMySql(connectionString, serverVersion, builder =>
-            {
-                // delay validating the ConnectionString until the DbContext is configured. This ensures an exception doesn't happen until a Logger is established.
-                if (string.IsNullOrEmpty(connectionString))
-                {
-                    ThrowForMissingConnectionString();
-                }
-
-                // Resiliency:
-                // 1. Connection resiliency automatically retries failed database commands: https://github.com/PomeloFoundation/Pomelo.EntityFrameworkCore.MySql/wiki/Configuration-Options#enableretryonfailure
-                if (settings.MaxRetryCount > 0)
-                {
-                    builder.EnableRetryOnFailure(settings.MaxRetryCount);
-                }
-            });
-
-            configureDbContextOptions?.Invoke(dbContextOptionsBuilder);
-
-            void ThrowForMissingConnectionString()
-            {
-                throw new InvalidOperationException($"ConnectionString is missing. It should be provided in 'ConnectionStrings:{connectionName}' or under the 'ConnectionString' key in '{DefaultConfigSectionName}' or '{typeSpecificSectionName}' configuration section.");
-            }
+            typeSpecificConfigurationSection.Bind(settings);
         }
+        else
+        {
+            builder.Configuration.GetSection(DefaultConfigSectionName).Bind(settings);
+        }
+
+        return settings;
     }
 }
