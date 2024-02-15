@@ -22,4 +22,8 @@
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Aspire.RabbitMQ.Client.Tests" />
+  </ItemGroup>
+
 </Project>
