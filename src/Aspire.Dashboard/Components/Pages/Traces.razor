@@ -16,13 +16,16 @@
 <div class="traces-layout">
     <h1 class="page-header">@Loc[nameof(Dashboard.Resources.Traces.TracesHeader)]</h1>
     <FluentToolbar Orientation="Orientation.Horizontal">
-        <FluentSelect TOption="SelectViewModel<string>"
-                      Items="@_applicationViewModels"
-                      OptionValue="@(c => c.Id)"
-                      OptionText="@(c => c.Name)"
+        <FluentSelect Items="@_applicationViewModels"
+                      OptionValue="@(c => c.Id?.InstanceId)"
+                      OptionDisabled="@(c => c.Id?.Type is OtlpApplicationType.ReplicaSet)"
                       @bind-SelectedOption="_selectedApplication"
                       @bind-SelectedOption:after="HandleSelectedApplicationChangedAsync"
-                      AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAnApplication)]"/>
+                      AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAnApplication)]">
+            <OptionTemplate>
+                <ResourceSelectOptionTemplate ViewModel="@context" />
+            </OptionTemplate>
+        </FluentSelect>
         <FluentSearch @bind-Value="_filter"
                       @oninput="HandleFilter"
                       @bind-Value:after="HandleClear"
