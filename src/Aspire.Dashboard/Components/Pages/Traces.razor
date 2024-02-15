@@ -1,11 +1,9 @@
-﻿@page "/Traces/{applicationInstanceId?}"
+﻿@page "/Traces/{resourceName?}"
 
-@using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Model.Otlp
 @using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Resources
 @inject NavigationManager NavigationManager
-@inject IDashboardClient DashboardClient
 @inject IJSRuntime JS
 @inject IStringLocalizer<Dashboard.Resources.Traces> Loc
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc

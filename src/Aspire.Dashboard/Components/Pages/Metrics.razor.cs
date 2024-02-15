@@ -28,7 +28,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     public MetricsViewModel ViewModel { get; set; } = null!;
 
     [Parameter]
-    public string? ApplicationInstanceId { get; set; }
+    public string? ResourceName { get; set; }
 
     [Parameter]
     public string? MeterName { get; set; }
@@ -90,7 +90,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     {
         return new MetricsPageState
         {
-            ApplicationId = ViewModel.SelectedApplication.Id,
+            ApplicationName = ViewModel.SelectedApplication.Id is not null ? ViewModel.SelectedApplication.Name : null,
             MeterName = ViewModel.SelectedMeter?.MeterName,
             InstrumentName = ViewModel.SelectedInstrument?.Name,
             DurationMinutes = (int)ViewModel.SelectedDuration.Id.TotalMinutes
@@ -100,7 +100,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     public void UpdateViewModelFromQuery(MetricsViewModel viewModel)
     {
         viewModel.SelectedDuration = _durations.SingleOrDefault(d => (int)d.Id.TotalMinutes == DurationMinutes) ?? _durations.Single(d => d.Id == s_defaultDuration);
-        viewModel.SelectedApplication = _applications.SingleOrDefault(e => e.Id == ApplicationInstanceId) ?? _selectApplication;
+        viewModel.SelectedApplication = _applications.SingleOrDefault(e => string.Equals(ResourceName, e.Name, StringComparisons.ResourceName)) ?? _selectApplication;
         viewModel.Instruments = !string.IsNullOrEmpty(viewModel.SelectedApplication.Id) ? TelemetryRepository.GetInstrumentsSummary(viewModel.SelectedApplication.Id) : null;
 
         viewModel.SelectedMeter = null;
@@ -112,7 +112,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
             {
                 viewModel.SelectedInstrument = TelemetryRepository.GetInstrument(new GetInstrumentRequest
                 {
-                    ApplicationServiceId = ApplicationInstanceId!,
+                    ApplicationServiceId = viewModel.SelectedApplication.Id!,
                     MeterName = MeterName,
                     InstrumentName = InstrumentName
                 });
@@ -151,7 +151,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
 
     public class MetricsPageState
     {
-        public string? ApplicationId { get; set; }
+        public string? ApplicationName { get; set; }
         public string? MeterName { get; set; }
         public string? InstrumentName { get; set; }
         public int DurationMinutes { get; set; }
@@ -181,15 +181,15 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     public UrlState GetUrlFromSerializableViewModel(MetricsPageState serializable)
     {
         string path;
-        if (serializable.ApplicationId is not null && serializable.MeterName is not null)
+        if (serializable.ApplicationName is not null && serializable.MeterName is not null)
         {
-            path = serializable.InstrumentName != null
-                ? $"/{BasePath}/{serializable.ApplicationId}/Meter/{serializable.MeterName}/Instrument/{serializable.InstrumentName}"
-                : $"/{BasePath}/{serializable.ApplicationId}/Meter/{serializable.MeterName}";
+            path = serializable.InstrumentName is not null
+                ? $"/{BasePath}/{serializable.ApplicationName}/Meter/{serializable.MeterName}/Instrument/{serializable.InstrumentName}"
+                : $"/{BasePath}/{serializable.ApplicationName}/Meter/{serializable.MeterName}";
         }
-        else if (serializable.ApplicationId != null)
+        else if (serializable.ApplicationName is not null)
         {
-            path = $"/{BasePath}/{serializable.ApplicationId}";
+            path = $"/{BasePath}/{serializable.ApplicationName}";
         }
         else
         {
@@ -208,7 +208,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
 
     private void UpdateSubscription()
     {
-        var selectedApplication = (ViewModel.SelectedApplication ?? _selectApplication).Id;
+        var selectedApplication = ViewModel.SelectedApplication.Id;
         // Subscribe to updates.
         if (_metricsSubscription is null || _metricsSubscription.ApplicationId != selectedApplication)
         {
