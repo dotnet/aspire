@@ -576,7 +576,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     {
                         if (er.ModelResource is ProjectResource)
                         {
-                            var urls = er.ServicesProduced.Where(s => s.EndpointAnnotation.UriScheme is "http" or "https").Select(sar =>
+                            var urls = er.ServicesProduced.Where(IsUnspecifiedHttpService).Select(sar =>
                             {
                                 var url = sar.EndpointAnnotation.UriScheme + "://localhost:{{- portForServing \"" + sar.Service.Metadata.Name + "\" -}}";
                                 return url;
@@ -641,7 +641,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         {
             if (executableResource.DcpResource is ExecutableReplicaSet)
             {
-                var urls = executableResource.ServicesProduced.Select(sar =>
+                var urls = executableResource.ServicesProduced.Where(IsUnspecifiedHttpService).Select(sar =>
                 {
                     var url = sar.EndpointAnnotation.UriScheme + "://localhost:{{- portForServing \"" + sar.Service.Metadata.Name + "\" -}}";
                     return url;
@@ -929,5 +929,16 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
 
         return uniqueName;
+    }
+
+    // Returns true if this resource represents an HTTP service endpoint which does not specify an environment variable for the endpoint.
+    // This is used to decide whether the endpoint should be propagated via the ASPNETCORE_URLS environment variable.
+    private static bool IsUnspecifiedHttpService(ServiceAppResource serviceAppResource)
+    {
+        return serviceAppResource.EndpointAnnotation is
+        {
+            UriScheme: "http" or "https",
+            EnvironmentVariable: null or { Length: 0 }
+        };
     }
 }
