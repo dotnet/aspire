@@ -10,6 +10,9 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="parent">The MySQL parent resource associated with this database.</param>
 public class MySqlDatabaseResource(string name, MySqlServerResource parent) : Resource(name), IResourceWithParent<MySqlServerResource>, IResourceWithConnectionString
 {
+    /// <summary>
+    /// Gets the parent MySQL container resource.
+    /// </summary>
     public MySqlServerResource Parent { get; } = parent;
 
     /// <summary>

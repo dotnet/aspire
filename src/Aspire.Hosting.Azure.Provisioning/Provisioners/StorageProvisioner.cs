@@ -54,7 +54,7 @@ internal sealed class StorageProvisioner(ILogger<StorageProvisioner> logger) : A
         if (storageAccount is null)
         {
             //  Storage account name must be between 3 and 24 characters in length and use numbers and lower-case letters only.
-            var accountName = Guid.NewGuid().ToString().Replace("-", string.Empty)[0..20];
+            var accountName = Guid.NewGuid().ToString("N")[0..20];
 
             logger.LogInformation("Creating storage account {accountName} in {location}...", accountName, context.Location);
 

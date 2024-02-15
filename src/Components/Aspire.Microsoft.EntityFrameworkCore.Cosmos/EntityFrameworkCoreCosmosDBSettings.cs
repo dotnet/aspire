@@ -31,11 +31,6 @@ public sealed class EntityFrameworkCoreCosmosDBSettings
     public TokenCredential? Credential { get; set; }
 
     /// <summary>
-    /// Gets or sets a boolean value that indicates whether the DbContext will be pooled or explicitly created every time it's requested.
-    /// </summary>
-    public bool DbContextPooling { get; set; } = true;
-
-    /// <summary>
     /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.
     /// </summary>
     /// <value>

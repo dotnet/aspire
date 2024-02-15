@@ -62,7 +62,7 @@ internal sealed class AzureCosmosDBProvisioner(ILogger<AzureCosmosDBProvisioner>
 
         if (cosmosResource is null)
         {
-            var cosmosDbName = Guid.NewGuid().ToString().Replace("-", string.Empty)[0..20];
+            var cosmosDbName = Guid.NewGuid().ToString("N")[0..20];
 
             logger.LogInformation("Creating CosmosDB {cosmosDbName} in {location}...", cosmosDbName, context.Location);
 

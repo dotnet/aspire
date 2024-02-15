@@ -72,6 +72,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddSingleton<ApplicationExecutor>();
         _innerBuilder.Services.AddSingleton<IDashboardEndpointProvider, HostDashboardEndpointProvider>();
         _innerBuilder.Services.AddSingleton<IDashboardAvailability, HttpPingDashboardAvailability>();
+        _innerBuilder.Services.AddSingleton<IDcpDependencyCheckService, DcpDependencyCheck>();
         _innerBuilder.Services.AddHostedService<DcpHostService>();
 
         // We need a unique path per application instance
@@ -93,6 +94,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             { "--publisher", "Publishing:Publisher" },
             { "--output-path", "Publishing:OutputPath" },
             { "--dcp-cli-path", "DcpPublisher:CliPath" },
+            { "--container-runtime", "DcpPublisher:ContainerRuntime" },
         };
         _innerBuilder.Configuration.AddCommandLine(options.Args ?? [], switchMappings);
         _innerBuilder.Services.Configure<PublishingOptions>(_innerBuilder.Configuration.GetSection(PublishingOptions.Publishing));
@@ -100,7 +102,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             o => o.ApplyApplicationConfiguration(
                 options,
                 dcpPublisherConfiguration: _innerBuilder.Configuration.GetSection(DcpOptions.DcpPublisher),
-                publishingConfiguration: _innerBuilder.Configuration.GetSection(PublishingOptions.Publishing)
+                publishingConfiguration: _innerBuilder.Configuration.GetSection(PublishingOptions.Publishing),
+                containerRuntimeConfigValue: _innerBuilder.Configuration.GetValue<string>("DOTNET_ASPIRE_CONTAINER_RUNTIME")
             )
         );
     }

@@ -22,7 +22,7 @@ public static class AspireSqlServerEFCoreSqlClientExtensions
 
     /// <summary>
     /// Registers the given <see cref="DbContext" /> as a service in the services provided by the <paramref name="builder"/>.
-    /// Configures the connection pooling, health check, logging and telemetry for the <see cref="DbContext" />.
+    /// Enables db context pooling, retries, health check, logging and telemetry for the <see cref="DbContext" />.
     /// </summary>
     /// <typeparam name="TContext">The <see cref="DbContext" /> that needs to be registered.</typeparam>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
@@ -40,17 +40,7 @@ public static class AspireSqlServerEFCoreSqlClientExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        MicrosoftEntityFrameworkCoreSqlServerSettings settings = new();
-        var typeSpecificSectionName = $"{DefaultConfigSectionName}:{typeof(TContext).Name}";
-        var typeSpecificConfigurationSection = builder.Configuration.GetSection(typeSpecificSectionName);
-        if (typeSpecificConfigurationSection.Exists()) // https://github.com/dotnet/runtime/issues/91380
-        {
-            typeSpecificConfigurationSection.Bind(settings);
-        }
-        else
-        {
-            builder.Configuration.GetSection(DefaultConfigSectionName).Bind(settings);
-        }
+        var settings = GetDbContextSettings<TContext>(builder);
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {
@@ -59,15 +49,102 @@ public static class AspireSqlServerEFCoreSqlClientExtensions
 
         configureSettings?.Invoke(settings);
 
-        if (settings.DbContextPooling)
-        {
-            builder.Services.AddDbContextPool<TContext>(ConfigureDbContext);
-        }
-        else
-        {
-            builder.Services.AddDbContext<TContext>(ConfigureDbContext);
-        }
+        builder.Services.AddDbContextPool<TContext>(ConfigureDbContext);
 
+        ConfigureInstrumentation<TContext>(builder, settings);
+
+        void ConfigureDbContext(DbContextOptionsBuilder dbContextOptionsBuilder)
+        {
+            // We don't register logger factory, because there is no need to:
+            // https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbcontextoptionsbuilder.useloggerfactory?view=efcore-7.0#remarks
+            dbContextOptionsBuilder.UseSqlServer(settings.ConnectionString, builder =>
+            {
+                if (string.IsNullOrEmpty(settings.ConnectionString))
+                {
+                    throw new InvalidOperationException($"ConnectionString is missing. It should be provided in 'ConnectionStrings:{connectionName}' or under the 'ConnectionString' key in '{DefaultConfigSectionName}' or '{DefaultConfigSectionName}:{typeof(TContext).Name}' configuration section.");
+                }
+
+                // Resiliency:
+                // Connection resiliency automatically retries failed database commands
+                if (settings.Retry)
+                {
+                    builder.EnableRetryOnFailure();
+                }
+
+                // The time in seconds to wait for the command to execute.
+                if (settings.Timeout.HasValue)
+                {
+                    builder.CommandTimeout(settings.Timeout);
+                }
+            });
+
+            configureDbContextOptions?.Invoke(dbContextOptionsBuilder);
+        }
+    }
+
+    /// <summary>
+    /// Configures retries, health check, logging and telemetry for the <see cref="DbContext" />.
+    /// </summary>
+    /// <exception cref="ArgumentNullException">Thrown if mandatory <paramref name="builder"/> is null.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when mandatory <see cref="DbContext"/> is not registered in DI.</exception>
+    public static void EnrichSqlServerDbContext<[DynamicallyAccessedMembers(RequiredByEF)] TContext>(
+            this IHostApplicationBuilder builder,
+            Action<MicrosoftEntityFrameworkCoreSqlServerSettings>? configureSettings = null) where TContext : DbContext
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        var settings = GetDbContextSettings<TContext>(builder);
+
+        configureSettings?.Invoke(settings);
+
+        ConfigureRetry();
+
+        ConfigureInstrumentation<TContext>(builder, settings);
+
+        void ConfigureRetry()
+        {
+            if (!settings.Retry)
+            {
+                return;
+            }
+
+            // Resolving DbContext<TContextService> will resolve DbContextOptions<TContextImplementation>.
+            // We need to replace the DbContextOptions service descriptor to inject more logic. This won't be necessary once
+            // Aspire targets .NET 9 as EF will respect the calls to services.ConfigureDbContext<TContext>(). c.f. https://github.com/dotnet/efcore/pull/32518
+
+            var oldDbContextOptionsDescriptor = builder.Services.FirstOrDefault(sd => sd.ServiceType == typeof(DbContextOptions<TContext>));
+
+            if (oldDbContextOptionsDescriptor is null)
+            {
+                throw new InvalidOperationException($"DbContext<{typeof(TContext).Name}> was not registered");
+            }
+
+            builder.Services.Remove(oldDbContextOptionsDescriptor);
+
+            var dbContextOptionsDescriptor = new ServiceDescriptor(
+                oldDbContextOptionsDescriptor.ServiceType,
+                oldDbContextOptionsDescriptor.ServiceKey,
+                factory: (sp, key) =>
+                {
+                    var dbContextOptions = oldDbContextOptionsDescriptor.ImplementationFactory?.Invoke(sp) as DbContextOptions<TContext>;
+
+                    var optionsBuilder = dbContextOptions != null
+                        ? new DbContextOptionsBuilder<TContext>(dbContextOptions)
+                        : new DbContextOptionsBuilder<TContext>();
+
+                    optionsBuilder.UseSqlServer(options => options.EnableRetryOnFailure());
+
+                    return optionsBuilder.Options;
+                },
+                oldDbContextOptionsDescriptor.Lifetime
+                );
+
+            builder.Services.Add(dbContextOptionsDescriptor);
+        }
+    }
+
+    private static void ConfigureInstrumentation<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties)] TContext>(IHostApplicationBuilder builder, MicrosoftEntityFrameworkCoreSqlServerSettings settings) where TContext : DbContext
+    {
         if (settings.Tracing)
         {
             builder.Services.AddOpenTelemetry().WithTracing(tracerProviderBuilder =>
@@ -95,33 +172,22 @@ public static class AspireSqlServerEFCoreSqlClientExtensions
                 name: typeof(TContext).Name,
                 static hcBuilder => hcBuilder.AddDbContextCheck<TContext>());
         }
+    }
 
-        void ConfigureDbContext(DbContextOptionsBuilder dbContextOptionsBuilder)
+    private static MicrosoftEntityFrameworkCoreSqlServerSettings GetDbContextSettings<TContext>(IHostApplicationBuilder builder)
+    {
+        MicrosoftEntityFrameworkCoreSqlServerSettings settings = new();
+        var typeSpecificSectionName = $"{DefaultConfigSectionName}:{typeof(TContext).Name}";
+        var typeSpecificConfigurationSection = builder.Configuration.GetSection(typeSpecificSectionName);
+        if (typeSpecificConfigurationSection.Exists()) // https://github.com/dotnet/runtime/issues/91380
         {
-            // We don't register logger factory, because there is no need to:
-            // https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbcontextoptionsbuilder.useloggerfactory?view=efcore-7.0#remarks
-            dbContextOptionsBuilder.UseSqlServer(settings.ConnectionString, builder =>
-            {
-                if (string.IsNullOrEmpty(settings.ConnectionString))
-                {
-                    throw new InvalidOperationException($"ConnectionString is missing. It should be provided in 'ConnectionStrings:{connectionName}' or under the 'ConnectionString' key in '{DefaultConfigSectionName}' or '{typeSpecificSectionName}' configuration section.");
-                }
-
-                // Resiliency:
-                // Connection resiliency automatically retries failed database commands
-                if (settings.MaxRetryCount > 0)
-                {
-                    builder.EnableRetryOnFailure(settings.MaxRetryCount);
-                }
-
-                // The time in seconds to wait for the command to execute.
-                if (settings.Timeout.HasValue)
-                {
-                    builder.CommandTimeout(settings.Timeout);
-                }
-            });
-
-            configureDbContextOptions?.Invoke(dbContextOptionsBuilder);
+            typeSpecificConfigurationSection.Bind(settings);
         }
+        else
+        {
+            builder.Configuration.GetSection(DefaultConfigSectionName).Bind(settings);
+        }
+
+        return settings;
     }
 }
