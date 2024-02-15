@@ -20,6 +20,11 @@ public sealed class ContainerMountAnnotation : IResourceAnnotation
     /// <param name="isReadOnly">A value indicating whether the mount is read-only.</param>
     public ContainerMountAnnotation(string? source, string target, ContainerMountType type, bool isReadOnly)
     {
+        if (source == null && ContainerMountType.Bind == type)
+        {
+            throw new ArgumentException("The source path must be specified for a bind mount.", nameof(source));
+        }
+
         Source = source;
         Target = target;
         Type = type;

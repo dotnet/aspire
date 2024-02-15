@@ -231,7 +231,7 @@ public class AddMySqlTests
         var hook = new PhpMyAdminConfigWriterHook();
         hook.AfterEndpointsAllocatedAsync(appModel, CancellationToken.None);
 
-        using var stream = File.OpenRead(volume.Source);
+        using var stream = File.OpenRead(volume.Source!);
         var fileContents = new StreamReader(stream).ReadToEnd();
 
         // check to see that the two hosts are in the file
