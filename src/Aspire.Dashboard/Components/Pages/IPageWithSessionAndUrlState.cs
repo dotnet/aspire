@@ -3,7 +3,6 @@
 
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
-using Microsoft.AspNetCore.WebUtilities;
 
 namespace Aspire.Dashboard.Components.Pages;
 
@@ -51,7 +50,18 @@ public interface IPageWithSessionAndUrlState<TViewModel, TSerializableViewModel>
     public TSerializableViewModel ConvertViewModelToSerializable();
 }
 
-public sealed record UrlState(string Path, Dictionary<string, string?>? QueryParameters);
+public sealed record UrlState(string Path, Dictionary<string, string?>? QueryParameters)
+{
+    public override string ToString()
+    {
+        if (QueryParameters is null || QueryParameters.Count == 0 || !QueryParameters.Any(kvp => kvp.Value is not null))
+        {
+            return Path;
+        }
+
+        return Path + "?" + string.Join('&', QueryParameters.Select(kvp => $"{kvp.Key}=${kvp.Value}"));
+    }
+}
 
 public static class PageExtensions
 {
@@ -62,7 +72,7 @@ public static class PageExtensions
     public static async Task AfterViewModelChangedAsync<TViewModel, TSerializableViewModel>(this IPageWithSessionAndUrlState<TViewModel, TSerializableViewModel> page) where TSerializableViewModel : class
     {
         var serializableViewModel = page.ConvertViewModelToSerializable();
-        var pathWithParameters = GetUrlFromPathAndParameterParts(page.GetUrlFromSerializableViewModel(serializableViewModel));
+        var pathWithParameters = page.GetUrlFromSerializableViewModel(serializableViewModel).ToString();
 
         page.NavigationManager.NavigateTo(pathWithParameters);
         await page.SessionStorage.SetAsync(page.SessionStorageKey, serializableViewModel).ConfigureAwait(false);
@@ -75,7 +85,7 @@ public static class PageExtensions
             var result = await page.SessionStorage.GetAsync<TSerializableViewModel>(page.SessionStorageKey).ConfigureAwait(false);
             if (result is { Success: true, Value: not null })
             {
-                var newUrl = GetUrlFromPathAndParameterParts(page.GetUrlFromSerializableViewModel(result.Value));
+                var newUrl = page.GetUrlFromSerializableViewModel(result.Value).ToString();
 
                 // Don't navigate if the URL redirects to itself.
                 if (newUrl != "/" + page.BasePath)
@@ -88,14 +98,5 @@ public static class PageExtensions
 
         ArgumentNullException.ThrowIfNull(page.PageViewModel, nameof(page.PageViewModel));
         page.UpdateViewModelFromQuery(page.PageViewModel);
-    }
-
-    private static string GetUrlFromPathAndParameterParts(UrlState parts)
-    {
-        var (path, queryParameters) = parts;
-
-        return queryParameters is null || queryParameters.Count == 0
-            ? path
-            : QueryHelpers.AddQueryString(path, queryParameters);
     }
 }
