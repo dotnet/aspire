@@ -150,6 +150,7 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
             Arguments = arguments,
             OnOutputData = Console.Out.Write,
             OnErrorData = Console.Error.Write,
+            InheritEnv = false,
         };
 
         _logger.LogInformation("Starting DCP with arguments: {Arguments}", dcpProcessSpec.Arguments);
