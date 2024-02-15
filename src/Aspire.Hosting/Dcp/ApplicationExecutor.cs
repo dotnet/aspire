@@ -930,6 +930,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         return uniqueName;
     }
 
+    // Returns true if this resource represents an HTTP service endpoint which does not specify an environment variable for the endpoint.
+    // This is used to decide whether the endpoint should be propagated via the ASPNETCORE_URLS environment variable.
     private static bool IsUnspecifiedHttpService(ServiceAppResource serviceAppResource)
     {
         return serviceAppResource.EndpointAnnotation is
