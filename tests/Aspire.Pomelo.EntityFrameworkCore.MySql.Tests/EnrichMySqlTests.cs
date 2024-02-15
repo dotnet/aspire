@@ -58,9 +58,9 @@ public class EnrichMySqlTests : ConformanceTests
 
         builder.Services.AddDbContextPool<TestDbContext>(optionsBuilder =>
         {
-            optionsBuilder.UseMySql(ConnectionString, DefaultVersion, npgsqlBuilder =>
+            optionsBuilder.UseMySql(ConnectionString, DefaultVersion, builder =>
             {
-                npgsqlBuilder.CommandTimeout(123);
+                builder.CommandTimeout(123);
             });
         });
 
@@ -128,9 +128,9 @@ public class EnrichMySqlTests : ConformanceTests
 
         builder.Services.AddDbContextPool<TestDbContext>(optionsBuilder =>
         {
-            optionsBuilder.UseMySql(ConnectionString, DefaultVersion, npgsqlBuilder =>
+            optionsBuilder.UseMySql(ConnectionString, DefaultVersion, builder =>
             {
-                npgsqlBuilder.EnableRetryOnFailure(456);
+                builder.EnableRetryOnFailure(456);
             });
         });
 
@@ -171,9 +171,9 @@ public class EnrichMySqlTests : ConformanceTests
 
         builder.Services.AddDbContextPool<TestDbContext>(optionsBuilder =>
         {
-            optionsBuilder.UseMySql(ConnectionString, DefaultVersion, npgsqlBuilder =>
+            optionsBuilder.UseMySql(ConnectionString, DefaultVersion, builder =>
             {
-                npgsqlBuilder.EnableRetryOnFailure(456);
+                builder.EnableRetryOnFailure(456);
             });
         });
 
