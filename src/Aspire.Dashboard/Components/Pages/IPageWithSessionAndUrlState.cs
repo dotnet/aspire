@@ -59,7 +59,7 @@ public sealed record UrlState(string Path, Dictionary<string, string?>? QueryPar
             return Path;
         }
 
-        return Path + "?" + string.Join('&', QueryParameters.Select(kvp => $"{kvp.Key}=${kvp.Value}"));
+        return Path + "?" + string.Join('&', QueryParameters.Select(kvp => $"{kvp.Key}={kvp.Value}"));
     }
 }
 

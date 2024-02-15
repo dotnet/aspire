@@ -10,7 +10,18 @@ public class LogFilterSerialization
 {
     private static string SerializeLogFilterToString(LogFilter filter)
     {
-        var condition = LogFilter.ConditionToString(filter.Condition);
+        var condition = filter.Condition switch
+        {
+            FilterCondition.Equals => "equals",
+            FilterCondition.Contains => "contains",
+            FilterCondition.GreaterThan => "gt",
+            FilterCondition.LessThan => "lt",
+            FilterCondition.GreaterThanOrEqual => "gte",
+            FilterCondition.LessThanOrEqual => "lte",
+            FilterCondition.NotEqual => "!equals",
+            FilterCondition.NotContains => "!contains",
+            _ => null
+        };
 
         return $"{filter.Field}:{condition}:{HttpUtility.UrlEncode(filter.Value)}";
     }
@@ -32,14 +43,14 @@ public class LogFilterSerialization
 
         FilterCondition? condition = parts[1] switch
         {
-            "==" => FilterCondition.Equals,
+            "equals" => FilterCondition.Equals,
             "contains" => FilterCondition.Contains,
-            ">" => FilterCondition.GreaterThan,
-            "<" => FilterCondition.LessThan,
-            ">=" => FilterCondition.GreaterThanOrEqual,
-            "<=" => FilterCondition.LessThanOrEqual,
-            "!=" => FilterCondition.NotEqual,
-            "not contains" => FilterCondition.NotContains,
+            "gt" => FilterCondition.GreaterThan,
+            "lt" => FilterCondition.LessThan,
+            "gte" => FilterCondition.GreaterThanOrEqual,
+            "lte" => FilterCondition.LessThanOrEqual,
+            "!equals" => FilterCondition.NotEqual,
+            "!contains" => FilterCondition.NotContains,
             _ => null
         };
 
