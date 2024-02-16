@@ -181,6 +181,13 @@ public class OtlpApplication
         }
     }
 
+    public static Dictionary<string, List<OtlpApplication>> GetReplicasByApplicationName(IEnumerable<OtlpApplication> allApplications)
+    {
+        return allApplications
+            .GroupBy(application => application.ApplicationName)
+            .ToDictionary(grouping => grouping.Key, grouping => grouping.ToList());
+    }
+
     public static string GetResourceName(OtlpApplication app, List<OtlpApplication> allApplications)
     {
         var count = 0;

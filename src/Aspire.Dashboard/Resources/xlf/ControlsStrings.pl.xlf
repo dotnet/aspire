@@ -127,6 +127,16 @@
         <target state="new">Value</target>
         <note />
       </trans-unit>
+      <trans-unit id="ReplicaSetLower">
+        <source>replica set</source>
+        <target state="new">replica set</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceDropdownReplicaAccessibleTitle">
+        <source>{0} (replica of {1})</source>
+        <target state="new">{0} (replica of {1})</target>
+        <note>{0} is a resource name, {1} is a replica set name</note>
+      </trans-unit>
       <trans-unit id="SelectAResource">
         <source>Select a resource</source>
         <target state="new">Select a resource</target>

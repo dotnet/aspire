@@ -70,6 +70,8 @@ public class ApplicationExecutorTests
                 DashboardPath = "./dashboard"
             }),
             new MockDashboardEndpointProvider(),
-            new MockDashboardAvailability());
+            new MockDashboardAvailability(),
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run)
+            );
     }
 }
