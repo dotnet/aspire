@@ -65,7 +65,7 @@ public static class ResourceBuilderExtensions
     {
         return builder.WithEnvironment(context =>
         {
-            if (context.PublisherName == "manifest")
+            if (context.ExecutionContext.Operation == DistributedApplicationOperation.Publish)
             {
                 context.EnvironmentVariables[name] = endpointReference.ValueExpression;
                 return;
@@ -91,7 +91,7 @@ public static class ResourceBuilderExtensions
     {
         return builder.WithEnvironment(context =>
         {
-            if (context.PublisherName == "manifest")
+            if (context.ExecutionContext.Operation == DistributedApplicationOperation.Publish)
             {
                 context.EnvironmentVariables[name] = parameter.Resource.ValueExpression;
                 return;
@@ -184,7 +184,7 @@ public static class ResourceBuilderExtensions
         {
             var connectionStringName = resource.ConnectionStringEnvironmentVariable ?? $"{ConnectionStringEnvironmentName}{connectionName}";
 
-            if (context.PublisherName == "manifest")
+            if (context.ExecutionContext.Operation == DistributedApplicationOperation.Publish)
             {
                 context.EnvironmentVariables[connectionStringName] = resource.ConnectionStringReferenceExpression;
                 return;

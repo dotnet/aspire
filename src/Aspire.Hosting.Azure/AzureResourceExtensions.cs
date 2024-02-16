@@ -441,7 +441,7 @@ public static class AzureResourceExtensions
             // UseAzureMonitor is looking for this specific environment variable name.
             var connectionStringName = "APPLICATIONINSIGHTS_CONNECTION_STRING";
 
-            if (context.PublisherName == "manifest")
+            if (context.ExecutionContext.Operation == DistributedApplicationOperation.Publish)
             {
                 context.EnvironmentVariables[connectionStringName] = $"{{{resource.Name}.connectionString}}";
                 return;

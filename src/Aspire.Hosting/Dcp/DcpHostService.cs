@@ -8,7 +8,6 @@ using System.Net.Sockets;
 using System.Text;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp.Process;
-using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -24,7 +23,7 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger _logger;
     private readonly DcpOptions _dcpOptions;
-    private readonly PublishingOptions _publishingOptions;
+    private readonly DistributedApplicationExecutionContext _executionContext;
     private readonly IDcpDependencyCheckService _dependencyCheckService;
     private readonly Locations _locations;
 
@@ -32,7 +31,7 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
         DistributedApplicationModel applicationModel,
         ILoggerFactory loggerFactory,
         IOptions<DcpOptions> dcpOptions,
-        IOptions<PublishingOptions> publishingOptions,
+        DistributedApplicationExecutionContext executionContext,
         ApplicationExecutor appExecutor,
         IDcpDependencyCheckService dependencyCheckService,
         Locations locations)
@@ -41,13 +40,13 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
         _loggerFactory = loggerFactory;
         _logger = loggerFactory.CreateLogger<DcpHostService>();
         _dcpOptions = dcpOptions.Value;
-        _publishingOptions = publishingOptions.Value;
+        _executionContext = executionContext;
         _appExecutor = appExecutor;
         _dependencyCheckService = dependencyCheckService;
         _locations = locations;
     }
 
-    private bool IsSupported => _publishingOptions.Publisher is null or "dcp";
+    private bool IsSupported => _executionContext.Operation == DistributedApplicationOperation.Run;
 
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {

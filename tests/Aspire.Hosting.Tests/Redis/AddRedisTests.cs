@@ -123,7 +123,8 @@ public class AddRedisTests
         var envAnnotations = commander.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
+        var context = new EnvironmentCallbackContext(executionContext, config);
 
         foreach (var annotation in envAnnotations)
         {
@@ -154,7 +155,8 @@ public class AddRedisTests
         var envAnnotations = commander.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
+        var context = new EnvironmentCallbackContext(executionContext, config);
 
         foreach (var annotation in envAnnotations)
         {
