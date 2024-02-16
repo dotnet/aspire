@@ -132,7 +132,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
             {
                 _resources.Add(new SelectViewModel<ResourceTypeDetails>
                 {
-                    Id = new ResourceTypeDetails(OtlpApplicationType.ReplicaSet, null),
+                    Id = ResourceTypeDetails.CreateReplicaSet(resourceGroupsByApplicationName.Key),
                     Name = resourceGroupsByApplicationName.Key
                 });
             }
@@ -145,9 +145,13 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
         SelectViewModel<ResourceTypeDetails> ToOption(ResourceViewModel resource, bool isReplica, string applicationName)
         {
+            var id = isReplica
+                ? ResourceTypeDetails.CreateReplica(resource.Name, applicationName)
+                : ResourceTypeDetails.CreateSingleton(resource.Name);
+
             return new SelectViewModel<ResourceTypeDetails>
             {
-                Id = isReplica ? new ReplicaTypeDetails(OtlpApplicationType.Replica, resource.Name, applicationName) : new ResourceTypeDetails(OtlpApplicationType.Singleton, resource.Name),
+                Id = id,
                 Name = GetDisplayText()
             };
 

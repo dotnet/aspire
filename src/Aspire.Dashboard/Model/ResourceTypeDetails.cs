@@ -7,31 +7,29 @@ namespace Aspire.Dashboard.Model;
 
 public class ResourceTypeDetails
 {
-    public ResourceTypeDetails(OtlpApplicationType? type, string? instanceId)
+    private ResourceTypeDetails(OtlpApplicationType type, string? instanceId, string? replicaSetName)
     {
-        // Double check that the replica's have the right type.
-        // TODO: This feels pretty hacky. Consider refactoring.
-        if (type == OtlpApplicationType.Replica && !typeof(ResourceTypeDetails).IsAssignableFrom(GetType()))
-        {
-            throw new InvalidOperationException("Create a ReplicaTypeDetails instance for replica types");
-        }
-
         Type = type;
         InstanceId = instanceId;
-    }
-
-    public OtlpApplicationType? Type { get; }
-    public string? InstanceId { get; }
-}
-
-public class ReplicaTypeDetails : ResourceTypeDetails
-{
-    public ReplicaTypeDetails(OtlpApplicationType? type, string? instanceId, string replicaSetName)
-        : base(type, instanceId)
-    {
         ReplicaSetName = replicaSetName;
     }
 
-    public string ReplicaSetName { get; }
-}
+    public OtlpApplicationType Type { get; }
+    public string? InstanceId { get; }
+    public string? ReplicaSetName { get; }
 
+    public static ResourceTypeDetails CreateReplicaSet(string replicaSetName)
+    {
+        return new ResourceTypeDetails(OtlpApplicationType.ReplicaSet, instanceId: null, replicaSetName);
+    }
+
+    public static ResourceTypeDetails CreateSingleton(string instanceId)
+    {
+        return new ResourceTypeDetails(OtlpApplicationType.Singleton, instanceId, replicaSetName: null);
+    }
+
+    public static ResourceTypeDetails CreateReplica(string instanceId, string replicaSetName)
+    {
+        return new ResourceTypeDetails(OtlpApplicationType.Replica, instanceId, replicaSetName);
+    }
+}

@@ -16,7 +16,7 @@
     else if (ViewModel.Id?.Type is OtlpApplicationType.Replica)
     {
         <div style="width: 20px;"></div>
-        <span aria-label="@string.Format(@Loc[nameof(ControlsStrings.ResourceDropdownReplicaAccessibleTitle)], ViewModel.Name, ((ReplicaTypeDetails)ViewModel.Id).ReplicaSetName)">@ViewModel.Name</span>
+        <span aria-label="@string.Format(@Loc[nameof(ControlsStrings.ResourceDropdownReplicaAccessibleTitle)], ViewModel.Name, ViewModel.Id.ReplicaSetName)">@ViewModel.Name</span>
     }
     else
     {
