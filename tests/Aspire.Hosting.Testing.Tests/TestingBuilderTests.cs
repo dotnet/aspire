@@ -1,0 +1,41 @@
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using Microsoft.Extensions.DependencyInjection;
+using Xunit;
+
+namespace Aspire.Hosting.Testing.Tests;
+
+public class TestingBuilderTests
+{
+    [Fact]
+    public async Task HasEndPoints()
+    {
+        await using var appHost = new DistributedApplicationTestingBuilder<Program>();
+        var app = appHost.Build();
+        await app.StartAsync();
+
+        // Check that we can get endpoints from resources
+        var workerEndpoint = app.GetEndpoint("myworker1", "myendpoint1");
+        Assert.NotNull(workerEndpoint);
+        Assert.True(workerEndpoint.Host.Length > 0);
+
+        var pgConnectionString = app.GetConnectionString("postgres1");
+        Assert.NotNull(pgConnectionString);
+        Assert.True(pgConnectionString.Length > 0);
+    }
+
+    [Fact]
+    public async Task CanRemoveResources()
+    {
+        await using var appHost = new DistributedApplicationTestingBuilder<Program>();
+        appHost.Resources.Remove(appHost.Resources.Single(r => r.Name == "redis1"));
+        var app = appHost.Build();
+        await app.StartAsync();
+
+        // Ensure that the resource which we added is present in the model.
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        Assert.DoesNotContain(appModel.GetContainerResources(), c => c.Name == "redis1");
+        Assert.Contains(appModel.GetProjectResources(), p => p.Name == "myworker1");
+    }
+}

@@ -688,7 +688,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 throw new InvalidOperationException();
             }
 
-            var ctr = Container.Create(container.Name, containerImageName);
+            var ctr = Container.Create(GetObjectNameForResource(container), containerImageName);
 
             ctr.Annotate(Container.ResourceNameAnnotation, container.Name);
             ctr.Annotate(Container.OtelServiceNameAnnotation, container.Name);
@@ -896,10 +896,17 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
     }
 
-    private static string GetObjectNameForResource(IResource resource, string suffix = "")
+    private string GetObjectNameForResource(IResource resource, string suffix = "")
     {
-        string maybeWithSuffix(string s) => string.IsNullOrWhiteSpace(suffix) ? s : $"{s}_{suffix}";
-        return maybeWithSuffix(resource.Name);
+        static string maybeWithSuffix(string s, string localSuffix, string? globalSuffix)
+            => (string.IsNullOrWhiteSpace(localSuffix), string.IsNullOrWhiteSpace(globalSuffix)) switch
+            {
+                (true, true) => s,
+                (false, true) => $"{s}_{localSuffix}",
+                (true, false) => $"{s}_{globalSuffix}",
+                (false, false) => $"{s}_{localSuffix}_{globalSuffix}"
+            };
+        return maybeWithSuffix(resource.Name, suffix, _options.Value.ResourceNameSuffix);
     }
 
     private static string GenerateUniqueServiceName(HashSet<string> serviceNames, string candidateName)
@@ -930,5 +937,43 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             UriScheme: "http" or "https",
             EnvironmentVariable: null or { Length: 0 }
         };
+    }
+
+    public async Task DeleteResourcesAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            AspireEventSource.Instance.DcpModelCleanupStart();
+            await DeleteResourcesAsync<ExecutableReplicaSet>("project", cancellationToken).ConfigureAwait(false);
+            await DeleteResourcesAsync<Executable>("project", cancellationToken).ConfigureAwait(false);
+            await DeleteResourcesAsync<Container>("container", cancellationToken).ConfigureAwait(false);
+            await DeleteResourcesAsync<Service>("service", cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            AspireEventSource.Instance.DcpModelCleanupStop();
+            _appResources.Clear();
+        }
+    }
+
+    private async Task DeleteResourcesAsync<RT>(string resourceType, CancellationToken cancellationToken) where RT : CustomResource
+    {
+        var resourcesToDelete = _appResources.Select(r => r.DcpResource).OfType<RT>();
+        if (!resourcesToDelete.Any())
+        {
+            return;
+        }
+
+        foreach (var res in resourcesToDelete)
+        {
+            try
+            {
+                await kubernetesService.DeleteAsync<RT>(res.Metadata.Name, res.Metadata.NamespaceProperty, cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogInformation(ex, "Could not stop {ResourceType} '{ResourceName}'.", resourceType, res.Metadata.Name);
+            }
+        }
     }
 }
