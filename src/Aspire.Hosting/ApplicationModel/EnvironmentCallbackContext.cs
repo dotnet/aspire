@@ -6,9 +6,9 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Represents a callback context for environment variables associated with a publisher.
 /// </summary>
-/// <param name="publisherName">The name of the publisher.</param>
-/// <param name="environmentVariables">The environment variables associated with the publisher.</param>
-public class EnvironmentCallbackContext(string publisherName, Dictionary<string, string>? environmentVariables = null)
+/// <param name="executionContext">The execution context for this invocation of the AppHost.</param>
+/// <param name="environmentVariables">The environment variables associated with this execution.</param>
+public class EnvironmentCallbackContext(DistributedApplicationExecutionContext executionContext, Dictionary<string, string>? environmentVariables = null)
 {
     /// <summary>
     /// Gets the environment variables associated with the callback context.
@@ -16,7 +16,7 @@ public class EnvironmentCallbackContext(string publisherName, Dictionary<string,
     public Dictionary<string, string> EnvironmentVariables { get; } = environmentVariables ?? new();
 
     /// <summary>
-    /// Gets the name of the publisher associated with the callback context.
+    /// Gets the execution context associated with this invocation of the AppHost.
     /// </summary>
-    public string PublisherName { get; } = publisherName;
+    public DistributedApplicationExecutionContext ExecutionContext { get; } = executionContext;
 }

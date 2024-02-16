@@ -7,7 +7,6 @@ using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Lifecycle;
-using Aspire.Hosting.Publishing;
 using Azure;
 using Azure.Core;
 using Azure.Identity;
@@ -25,7 +24,7 @@ namespace Aspire.Hosting.Azure;
 // Provisions azure resources for development purposes
 internal sealed class AzureProvisioner(
     IOptions<AzureProvisionerOptions> options,
-    IOptions<PublishingOptions> publishingOptions,
+    DistributedApplicationExecutionContext executionContext,
     IConfiguration configuration,
     IHostEnvironment environment,
     ILogger<AzureProvisioner> logger,
@@ -39,7 +38,7 @@ internal sealed class AzureProvisioner(
     public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
         // TODO: Make this more general purpose
-        if (publishingOptions.Value.Publisher == "manifest")
+        if (executionContext.Operation == DistributedApplicationOperation.Publish)
         {
             return;
         }
