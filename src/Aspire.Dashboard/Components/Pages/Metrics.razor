@@ -16,6 +16,7 @@
     <FluentToolbar Orientation="Orientation.Horizontal">
         <FluentSelect Items="@_applications"
                       OptionDisabled="@(c => c.Id?.Type is OtlpApplicationType.ReplicaSet)"
+                      OptionValue="@(c => c.Id?.InstanceId)"
                       @bind-SelectedOption="PageViewModel.SelectedApplication"
                       @bind-SelectedOption:after="HandleSelectedApplicationChangedAsync"
                       AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAnApplication)]">

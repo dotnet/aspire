@@ -17,6 +17,7 @@
     <h1 class="page-header">@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsHeader)]</h1>
     <FluentToolbar Orientation="Orientation.Horizontal">
         <FluentSelect Items="@_applicationViewModels"
+                      OptionValue="@(c => c.Id?.InstanceId)"
                       OptionDisabled="@(c => c.Id?.Type is OtlpApplicationType.ReplicaSet)"
                       @bind-SelectedOption="PageViewModel.SelectedApplication"
                       @bind-SelectedOption:after="HandleSelectedApplicationChangedAsync"
