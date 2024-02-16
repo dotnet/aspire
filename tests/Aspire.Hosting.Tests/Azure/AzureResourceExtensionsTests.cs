@@ -100,7 +100,8 @@ public class AzureResourceExtensionsTests
         var annotations = serviceA.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("manifest", config);
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish);
+        var context = new EnvironmentCallbackContext(executionContext, config);
 
         foreach (var annotation in annotations)
         {
@@ -126,7 +127,8 @@ public class AzureResourceExtensionsTests
         var annotations = serviceA.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
+        var context = new EnvironmentCallbackContext(executionContext, config);
 
         foreach (var annotation in annotations)
         {

@@ -7,12 +7,43 @@ namespace Aspire.Dashboard.Model.Otlp;
 
 public class SelectViewModelFactory
 {
-    public static List<SelectViewModel<string>> CreateApplicationsSelectViewModel(List<OtlpApplication> applications)
+    public static List<SelectViewModel<ResourceTypeDetails>> CreateApplicationsSelectViewModel(List<OtlpApplication> applications)
     {
-        return applications.Select(a => new SelectViewModel<string>
+        var replicasByApplicationName = OtlpApplication.GetReplicasByApplicationName(applications);
+
+        var selectViewModels = new List<SelectViewModel<ResourceTypeDetails>>();
+
+        foreach (var (applicationName, replicas) in replicasByApplicationName)
         {
-            Id = a.InstanceId,
-            Name = OtlpApplication.GetResourceName(a, applications)
-        }).ToList();
+            if (replicas.Count == 1)
+            {
+                // not replicated
+                var app = replicas.Single();
+                selectViewModels.Add(new SelectViewModel<ResourceTypeDetails>
+                {
+                    Id = new ResourceTypeDetails(OtlpApplicationType.Singleton, app.InstanceId),
+                    Name = app.ApplicationName
+                });
+
+                continue;
+            }
+
+            // add a disabled "Resource" as a header
+            selectViewModels.Add(new SelectViewModel<ResourceTypeDetails>
+            {
+                Id = new ResourceTypeDetails(OtlpApplicationType.ReplicaSet, null),
+                Name = applicationName
+            });
+
+            // add each individual replica
+            selectViewModels.AddRange(replicas.Select(replica =>
+                new SelectViewModel<ResourceTypeDetails>
+                {
+                    Id = new ReplicaTypeDetails(OtlpApplicationType.Replica, replica.InstanceId, applicationName),
+                    Name = ResourceFormatter.GetName(replica.ApplicationName, replica.InstanceId)
+                }));
+        }
+
+        return selectViewModels;
     }
 }

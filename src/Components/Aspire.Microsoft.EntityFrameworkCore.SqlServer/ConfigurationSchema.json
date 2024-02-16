@@ -58,22 +58,19 @@
                       "type": "string",
                       "description": "The connection string of the SQL server database to connect to."
                     },
-                    "DbContextPooling": {
-                      "type": "boolean",
-                      "description": "Gets or sets a boolean value that indicates whether the DbContext will be pooled or explicitly created every time it's requested."
-                    },
                     "HealthChecks": {
                       "type": "boolean",
                       "description": "Gets or sets a boolean value that indicates whether the database health check is enabled or not.",
                       "default": true
                     },
-                    "MaxRetryCount": {
-                      "type": "integer",
-                      "description": "Gets or sets the maximum number of retry attempts."
-                    },
                     "Metrics": {
                       "type": "boolean",
                       "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not.",
+                      "default": true
+                    },
+                    "Retry": {
+                      "type": "boolean",
+                      "description": "Gets or sets whether retries should be enabled.",
                       "default": true
                     },
                     "Timeout": {

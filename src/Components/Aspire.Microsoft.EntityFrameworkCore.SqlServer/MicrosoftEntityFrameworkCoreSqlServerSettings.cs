@@ -14,18 +14,12 @@ public sealed class MicrosoftEntityFrameworkCoreSqlServerSettings
     public string? ConnectionString { get; set; }
 
     /// <summary>
-    /// Gets or sets a boolean value that indicates whether the DbContext will be pooled or explicitly created every time it's requested.
-    /// </summary>
-    public bool DbContextPooling { get; set; } = true;
-
-    /// <summary>
-    /// Gets or sets the maximum number of retry attempts.
+    /// Gets or sets whether retries should be enabled.
     /// </summary>
     /// <value>
-    /// The default is 6.
-    /// Set it to 0 to disable the retry mechanism.
+    /// The default value is <see langword="true"/>.
     /// </value>
-    public int MaxRetryCount { get; set; } = 6;
+    public bool Retry { get; set; } = true;
 
     /// <summary>
     /// Gets or sets a boolean value that indicates whether the database health check is enabled or not.
