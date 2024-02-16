@@ -105,7 +105,8 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     {
         viewModel.SelectedDuration = _durations.SingleOrDefault(d => (int)d.Id.TotalMinutes == DurationMinutes) ?? _durations.Single(d => d.Id == s_defaultDuration);
         viewModel.SelectedApplication = _applications.SingleOrDefault(e => string.Equals(ResourceName, e.Name, StringComparisons.ResourceName)) ?? _selectApplication;
-        viewModel.Instruments = !string.IsNullOrEmpty(viewModel.SelectedApplication.Id) ? TelemetryRepository.GetInstrumentsSummary(viewModel.SelectedApplication.Id) : null;
+        var selectedInstance = viewModel.SelectedApplication.Id?.InstanceId;
+        viewModel.Instruments = !string.IsNullOrEmpty(selectedInstance) ? TelemetryRepository.GetInstrumentsSummary(selectedInstance) : null;
 
         viewModel.SelectedMeter = null;
         viewModel.SelectedInstrument = null;
@@ -116,7 +117,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
             {
                 viewModel.SelectedInstrument = TelemetryRepository.GetInstrument(new GetInstrumentRequest
                 {
-                    ApplicationServiceId = viewModel.SelectedApplication.Id!,
+                    ApplicationServiceId = viewModel.SelectedApplication.Id?.InstanceId!,
                     MeterName = MeterName,
                     InstrumentName = InstrumentName
                 });
