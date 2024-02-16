@@ -100,7 +100,8 @@ stages:
       jobs:
 
       - job: windows
-        timeoutInMinutes: 30
+        # timeout accounts for wait times for helix agents up to 30mins
+        timeoutInMinutes: 60
 
         pool:
           ${{ if eq(variables['System.TeamProject'], 'public') }}:
@@ -133,7 +134,8 @@ stages:
 
       - ${{ if eq(variables._RunAsPublic, True) }}:
         - job: linux
-          timeoutInMinutes: 30
+          # timeout accounts for wait times for helix agents up to 30mins
+          timeoutInMinutes: 60
 
           pool:
             ${{ if eq(variables['System.TeamProject'], 'public') }}:
@@ -169,7 +171,7 @@ stages:
 # ----------------------------------------------------------------
 - stage: codecoverage
   displayName: CodeCoverage
-  dependsOn: 
+  dependsOn:
     - build
   condition: succeeded('build')
   variables:

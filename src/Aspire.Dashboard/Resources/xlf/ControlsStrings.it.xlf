@@ -82,6 +82,11 @@
         <target state="new">Show values</target>
         <note />
       </trans-unit>
+      <trans-unit id="GridValueCopied">
+        <source>Copied!</source>
+        <target state="new">Copied!</target>
+        <note />
+      </trans-unit>
       <trans-unit id="GridValueCopyToClipboard">
         <source>Copy to clipboard</source>
         <target state="new">Copy to clipboard</target>
@@ -121,6 +126,16 @@
         <source>Value</source>
         <target state="new">Value</target>
         <note />
+      </trans-unit>
+      <trans-unit id="ReplicaSetLower">
+        <source>replica set</source>
+        <target state="new">replica set</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceDropdownReplicaAccessibleTitle">
+        <source>{0} (replica of {1})</source>
+        <target state="new">{0} (replica of {1})</target>
+        <note>{0} is a resource name, {1} is a replica set name</note>
       </trans-unit>
       <trans-unit id="SelectAResource">
         <source>Select a resource</source>

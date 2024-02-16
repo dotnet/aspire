@@ -48,7 +48,7 @@
                         OnDismiss="() => ClearSelectedResource()"
                         ViewKey="ResourcesList">
         <Summary>
-            <FluentDataGrid Items="@FilteredResources" ResizableColumns="true" GridTemplateColumns="1fr 2fr 1.25fr 2fr 2.5fr 2fr 1fr 1fr" RowClass="GetRowClass">
+            <FluentDataGrid Items="@FilteredResources" ResizableColumns="true" GridTemplateColumns="1fr 2fr 1.25fr 1.5fr 2.5fr 2fr 1fr 1fr" RowClass="GetRowClass">
                 <ChildContent>
                     <PropertyColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesTypeColumnHeader)]" Property="@(c => c.ResourceType)" Sortable="true" />
                     <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Sortable="true" SortBy="@_nameSort">
@@ -57,7 +57,9 @@
                     <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesStateColumnHeader)]" Sortable="true" SortBy="@_stateSort">
                         <StateColumnDisplay Resource="@context" UnviewedErrorCounts ="@_applicationUnviewedErrorCounts" />
                     </TemplateColumn>
-                    <PropertyColumn Property="@(c => c.CreationTimeStamp)" Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesStartTimeColumnHeader)]" Sortable="true" Tooltip="true" />
+                    <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesStartTimeColumnHeader)]" Sortable="true" SortBy="@_startTimeSort" Tooltip="true">
+                        <StartTimeColumnDisplay Resource="@context" />
+                    </TemplateColumn>
                     <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesSourceColumnHeader)]">
                         <SourceColumnDisplay Resource="context" FilterText="@_filter" />
                     </TemplateColumn>

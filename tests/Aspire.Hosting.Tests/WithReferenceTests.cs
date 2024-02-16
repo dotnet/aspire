@@ -31,7 +31,8 @@ public class WithReferenceTests
         var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
+        var context = new EnvironmentCallbackContext(executionContext, config);
 
         foreach (var annotation in annotations)
         {
@@ -80,7 +81,8 @@ public class WithReferenceTests
         var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
+        var context = new EnvironmentCallbackContext(executionContext, config);
 
         foreach (var annotation in annotations)
         {
@@ -129,7 +131,8 @@ public class WithReferenceTests
         var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
+        var context = new EnvironmentCallbackContext(executionContext, config);
 
         foreach (var annotation in annotations)
         {
@@ -176,7 +179,8 @@ public class WithReferenceTests
         var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
+        var context = new EnvironmentCallbackContext(executionContext, config);
 
         foreach (var annotation in annotations)
         {
@@ -221,7 +225,8 @@ public class WithReferenceTests
         var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
+        var context = new EnvironmentCallbackContext(executionContext, config);
 
         foreach (var annotation in annotations)
         {
@@ -250,7 +255,8 @@ public class WithReferenceTests
         var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
+        var context = new EnvironmentCallbackContext(executionContext, config);
 
         Assert.Throws<DistributedApplicationException>(() =>
         {
@@ -275,7 +281,8 @@ public class WithReferenceTests
         var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
+        var context = new EnvironmentCallbackContext(executionContext, config);
 
         foreach (var annotation in annotations)
         {
@@ -300,7 +307,8 @@ public class WithReferenceTests
         var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
+        var context = new EnvironmentCallbackContext(executionContext, config);
 
         var exception = Assert.Throws<DistributedApplicationException>(() =>
         {
@@ -328,7 +336,8 @@ public class WithReferenceTests
         var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
+        var context = new EnvironmentCallbackContext(executionContext, config);
 
         foreach (var annotation in annotations)
         {
@@ -352,7 +361,8 @@ public class WithReferenceTests
         var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("manifest", config);
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish);
+        var context = new EnvironmentCallbackContext(executionContext, config);
 
         foreach (var annotation in annotations)
         {
@@ -360,6 +370,31 @@ public class WithReferenceTests
         }
 
         Assert.Equal("{resource.value}", config["ConnectionStrings__resource"]);
+    }
+
+    [Fact]
+    public void ParameterAsConnectionStringResourceInjectsCorrectEnvWhenPublishingManifest()
+    {
+        var testProgram = CreateTestProgram();
+
+        // Get the service provider.
+        var resource = testProgram.AppBuilder.AddConnectionString("resource", "MY_ENV");
+        testProgram.ServiceBBuilder.WithReference(resource);
+        testProgram.Build();
+
+        // Call environment variable callbacks.
+        var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
+
+        var config = new Dictionary<string, string>();
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish);
+        var context = new EnvironmentCallbackContext(executionContext, config);
+
+        foreach (var annotation in annotations)
+        {
+            annotation.Callback(context);
+        }
+
+        Assert.Equal("{resource.value}", config["MY_ENV"]);
     }
 
     [Fact]
@@ -379,7 +414,8 @@ public class WithReferenceTests
         var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
+        var context = new EnvironmentCallbackContext(executionContext, config);
 
         foreach (var annotation in annotations)
         {
@@ -408,7 +444,8 @@ public class WithReferenceTests
         var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
+        var context = new EnvironmentCallbackContext(executionContext, config);
 
         foreach (var annotation in annotations)
         {
@@ -418,33 +455,6 @@ public class WithReferenceTests
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("ConnectionStrings__"));
         Assert.Equal(1, servicesKeysCount);
         Assert.Contains(config, kvp => kvp.Key == "ConnectionStrings__bob" && kvp.Value == "123");
-    }
-
-    [Fact]
-    public void ConnectionStringResourceMissingConnectionStringFallbackToConfig()
-    {
-        var testProgram = CreateTestProgram();
-
-        // Get the service provider.
-        var resource = testProgram.AppBuilder.AddResource(new TestResource("resource"));
-        testProgram.ServiceBBuilder.WithReference(resource);
-        testProgram.AppBuilder.Configuration["ConnectionStrings:resource"] = "test";
-        testProgram.Build();
-
-        // Call environment variable callbacks.
-        var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-
-        var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
-
-        foreach (var annotation in annotations)
-        {
-            annotation.Callback(context);
-        }
-
-        var servicesKeysCount = config.Keys.Count(k => k.StartsWith("ConnectionStrings__"));
-        Assert.Equal(1, servicesKeysCount);
-        Assert.Contains(config, kvp => kvp.Key == "ConnectionStrings__resource" && kvp.Value == "test");
     }
 
     [Fact]
@@ -474,7 +484,8 @@ public class WithReferenceTests
         var annotations = testProgram.ServiceABuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
+        var context = new EnvironmentCallbackContext(executionContext, config);
 
         foreach (var annotation in annotations)
         {

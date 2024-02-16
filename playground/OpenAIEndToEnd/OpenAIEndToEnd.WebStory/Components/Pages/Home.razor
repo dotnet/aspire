@@ -1,0 +1,46 @@
+﻿@page "/"
+@using Azure.AI.OpenAI
+@inject OpenAIClient aiClient
+@inject ILogger<Home> logger
+
+    <div class="storybox" style="margin: 25%">
+        @foreach (var message in chatCompletionOptions.Messages.OfType<ChatRequestAssistantMessage>())
+        {
+            <p style="font-size: 3em;">@message.Content</p>
+        }
+
+        <button @onclick="GenerateNextParagraph" autofocus>Generate</button>
+    </div>
+
+@code {
+    private ChatCompletionsOptions chatCompletionOptions = new ChatCompletionsOptions()
+    {
+        DeploymentName = "gpt-3.5-turbo",
+        Messages =
+        {
+            new ChatRequestSystemMessage("Pick a random topic and write a sentence of a fictional story about it.")
+        }
+    };
+
+    private async Task GenerateNextParagraph()
+    {
+        if (chatCompletionOptions.Messages.Count > 1)
+        {
+            chatCompletionOptions.Messages.Add(
+                new ChatRequestUserMessage("Write the next sentence in the story.")
+            );
+        }
+
+        var response = await aiClient.GetChatCompletionsAsync(chatCompletionOptions);
+        var x = new ChatRequestAssistantMessage(response.Value.Choices[0].Message);
+        chatCompletionOptions.Messages.Add(x);
+
+        this.StateHasChanged();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await GenerateNextParagraph();
+        await base.OnInitializedAsync();
+    }
+}

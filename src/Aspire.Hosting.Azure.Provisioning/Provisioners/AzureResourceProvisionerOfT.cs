@@ -16,6 +16,7 @@ namespace Aspire.Hosting.Azure.Provisioning;
 internal sealed record UserPrincipal(Guid Id, string Name);
 
 internal sealed class ProvisioningContext(
+    TokenCredential credential,
     ArmClient armClient,
     SubscriptionResource subscription,
     ResourceGroupResource resourceGroup,
@@ -24,6 +25,7 @@ internal sealed class ProvisioningContext(
     UserPrincipal principal,
     JsonObject userSecrets)
 {
+    public TokenCredential Credential => credential;
     public ArmClient ArmClient => armClient;
     public SubscriptionResource Subscription => subscription;
     public ResourceGroupResource ResourceGroup => resourceGroup;

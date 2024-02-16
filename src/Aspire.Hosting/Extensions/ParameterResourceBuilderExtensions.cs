@@ -58,16 +58,18 @@ public static class ParameterResourceBuilderExtensions
     /// </summary>
     /// <param name="builder">Distributed application builder</param>
     /// <param name="name">Name of parameter resource</param>
+    /// <param name="environmentVariableName">Environment variable name to set when WithReference is used.</param>
     /// <returns>Resource builder for the parameter.</returns>
     /// <exception cref="DistributedApplicationException"></exception>
-    public static IResourceBuilder<IResourceWithConnectionString> AddConnectionString(this IDistributedApplicationBuilder builder, string name)
+    public static IResourceBuilder<IResourceWithConnectionString> AddConnectionString(this IDistributedApplicationBuilder builder, string name, string? environmentVariableName = null)
     {
         var parameterBuilder = builder.AddParameter(name, () =>
         {
             return builder.Configuration.GetConnectionString(name) ?? throw new DistributedApplicationException($"Connection string parameter resource could not be used because connection string `{name}` is missing.");
-        }, secret: true);
+        },
+        secret: true);
 
-        var surrogate = new ResourceWithConnectionStringSurrogate(parameterBuilder.Resource, () => parameterBuilder.Resource.Value);
-        return new DistributedApplicationResourceBuilder<IResourceWithConnectionString>(builder, surrogate);
+        var surrogate = new ResourceWithConnectionStringSurrogate(parameterBuilder.Resource, () => parameterBuilder.Resource.Value, environmentVariableName);
+        return builder.CreateResourceBuilder(surrogate);
     }
 }

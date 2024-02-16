@@ -9,20 +9,20 @@ See [machine-requirements.md](machine-requirements.md).
 ## Build the repo
 `.\build.cmd` (Windows) or `.\build.sh` (macOS and Linux)
 
-## Run eShopLite
+## Run TestShop
 
 This will confirm that you're all set up.
 
 If you are using Visual Studio:
 
 1. Open `Aspire.sln`
-1. Set the Startup Project to be the `AppHost` project (it's under `\samples\eShopLite`). Make sure the launch profile is set to "http".
+1. Set the Startup Project to be the `AppHost` project (it's under `\playground\TestShop`). Make sure the launch profile is set to "http".
 1. <kbd>F5</kbd> to debug, or <kbd>Ctrl+F5</kbd> to launch without debugging.
 
 Otherwise:
 ```shell
-dotnet restore samples/eShopLite/AppHost/AppHost.csproj
-dotnet run --project samples/eShopLite/AppHost/AppHost.csproj
+dotnet restore playground/TestShop/AppHost/AppHost.csproj
+dotnet run --project playground/TestShop/AppHost/AppHost.csproj
 ```
 
 ## View Dashboard

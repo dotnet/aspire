@@ -5,6 +5,7 @@
 @using Aspire.Dashboard.Otlp.Model
 @using System.Globalization
 @using Aspire.Dashboard.Resources
+@using Aspire.Dashboard.Utils
 @inject IStringLocalizer<Dashboard.Resources.TraceDetail> Loc
 @inject IStringLocalizer<ControlsStrings> ControlStringsLoc
 
@@ -19,7 +20,7 @@
         </div>
         <FluentToolbar Orientation="Orientation.Horizontal">
             <div>
-                @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailTraceStartHeader)] <strong>@_trace.FirstSpan.StartTime.ToString("MMMM d yyyy"), @OtlpHelpers.FormatTimeStamp(_trace.FirstSpan.StartTime)</strong>
+                @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailTraceStartHeader)] <strong>@_trace.FirstSpan.StartTime.ToString("MMMM d yyyy"), @FormatHelpers.FormatTimeStamp(_trace.FirstSpan.StartTime)</strong>
             </div>
             <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
             <div>

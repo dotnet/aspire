@@ -4,14 +4,16 @@
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// A resource that represents a MongoDB database. This is a child resource of a <see cref="MongoDBContainerResource"/>.
+/// A resource that represents a MongoDB database. This is a child resource of a <see cref="MongoDBServerResource"/>.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
-/// <param name="mongoDBContainer">The MongoDB server resource associated with this database.</param>
-public class MongoDBDatabaseResource(string name, IMongoDBParentResource mongoDBContainer)
-    : Resource(name), IResourceWithParent<IMongoDBParentResource>, IResourceWithConnectionString
+/// <param name="parent">The MongoDB server resource associated with this database.</param>
+public class MongoDBDatabaseResource(string name, MongoDBServerResource parent) : Resource(name), IResourceWithParent<MongoDBServerResource>, IResourceWithConnectionString
 {
-    public IMongoDBParentResource Parent => mongoDBContainer;
+    /// <summary>
+    /// Gets the parent MongoDB container resource.
+    /// </summary>
+    public MongoDBServerResource Parent => parent;
 
     /// <summary>
     /// Gets the connection string for the MongoDB database.

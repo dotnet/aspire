@@ -15,7 +15,7 @@ public class AddPostgresTests
     public void AddPostgresWithDefaultsAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.AddPostgresContainer("myPostgres");
+        appBuilder.AddPostgres("myPostgres");
 
         var app = appBuilder.Build();
 
@@ -44,7 +44,8 @@ public class AddPostgresTests
         var envAnnotations = containerResource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
+        var context = new EnvironmentCallbackContext(executionContext, config);
 
         foreach (var annotation in envAnnotations)
         {
@@ -73,7 +74,7 @@ public class AddPostgresTests
     public void AddPostgresAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.AddPostgresContainer("myPostgres", 1234, "pass");
+        appBuilder.AddPostgres("myPostgres", 1234, "pass");
 
         var app = appBuilder.Build();
 
@@ -102,7 +103,8 @@ public class AddPostgresTests
         var envAnnotations = containerResource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
+        var context = new EnvironmentCallbackContext(executionContext, config);
 
         foreach (var annotation in envAnnotations)
         {
@@ -131,7 +133,7 @@ public class AddPostgresTests
     public void PostgresCreatesConnectionString()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.AddPostgresContainer("postgres")
+        appBuilder.AddPostgres("postgres")
             .WithAnnotation(
             new AllocatedEndpointAnnotation("mybinding",
             ProtocolType.Tcp,
@@ -154,7 +156,7 @@ public class AddPostgresTests
     public void PostgresCreatesConnectionStringWithDatabase()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.AddPostgresContainer("postgres")
+        appBuilder.AddPostgres("postgres")
             .WithAnnotation(
             new AllocatedEndpointAnnotation("mybinding",
             ProtocolType.Tcp,
@@ -168,7 +170,7 @@ public class AddPostgresTests
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var postgresResource = Assert.Single(appModel.Resources.OfType<PostgresContainerResource>());
+        var postgresResource = Assert.Single(appModel.Resources.OfType<PostgresServerResource>());
         var postgresConnectionString = postgresResource.GetConnectionString();
         var postgresDatabaseResource = Assert.Single(appModel.Resources.OfType<PostgresDatabaseResource>());
         var dbConnectionString = postgresDatabaseResource.GetConnectionString();
@@ -181,7 +183,7 @@ public class AddPostgresTests
     public void AddDatabaseToPostgresAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.AddPostgresContainer("postgres", 1234, "pass").AddDatabase("db");
+        appBuilder.AddPostgres("postgres", 1234, "pass").AddDatabase("db");
 
         var app = appBuilder.Build();
 
@@ -211,7 +213,8 @@ public class AddPostgresTests
         var envAnnotations = containerResource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
+        var context = new EnvironmentCallbackContext(executionContext, config);
 
         foreach (var annotation in envAnnotations)
         {

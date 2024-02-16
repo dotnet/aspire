@@ -4,6 +4,7 @@
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
 
@@ -15,49 +16,33 @@ public static class OracleDatabaseBuilderExtensions
     private const string PasswordEnvVarName = "ORACLE_PWD";
 
     /// <summary>
-    /// Adds a Oracle Database container to the application model. The default image is "database/free" and the tag is "latest".
+    /// Adds a Oracle Database resource to the application model. A container is used for local development.
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <param name="port">The host port for Oracle Database.</param>
     /// <param name="password">The password for the Oracle Database container. Defaults to a random password.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<OracleDatabaseContainerResource> AddOracleDatabaseContainer(this IDistributedApplicationBuilder builder, string name, int? port = null, string? password = null)
+    public static IResourceBuilder<OracleDatabaseServerResource> AddOracleDatabase(this IDistributedApplicationBuilder builder, string name, int? port = null, string? password = null)
     {
-        password = password ?? Guid.NewGuid().ToString("N").Substring(0, 30);
-        var oracleDatabaseContainer = new OracleDatabaseContainerResource(name, password);
-        return builder.AddResource(oracleDatabaseContainer)
-                      .WithManifestPublishingCallback(context => WriteOracleDatabaseContainerResourceToManifest(context, oracleDatabaseContainer))
+        password ??= PasswordGenerator.GeneratePassword(6, 6, 2, 2);
+
+        var oracleDatabaseServer = new OracleDatabaseServerResource(name, password);
+        return builder.AddResource(oracleDatabaseServer)
+                      .WithManifestPublishingCallback(WriteOracleDatabaseContainerToManifest)
                       .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 1521))
                       .WithAnnotation(new ContainerImageAnnotation { Image = "database/free", Tag = "latest", Registry = "container-registry.oracle.com" })
                       .WithEnvironment(context =>
                       {
-                          if (context.PublisherName == "manifest")
+                          if (context.ExecutionContext.Operation == DistributedApplicationOperation.Publish)
                           {
-                              context.EnvironmentVariables.Add(PasswordEnvVarName, $"{{{oracleDatabaseContainer.Name}.inputs.password}}");
+                              context.EnvironmentVariables.Add(PasswordEnvVarName, $"{{{oracleDatabaseServer.Name}.inputs.password}}");
                           }
                           else
                           {
-                              context.EnvironmentVariables.Add(PasswordEnvVarName, oracleDatabaseContainer.Password);
+                              context.EnvironmentVariables.Add(PasswordEnvVarName, oracleDatabaseServer.Password);
                           }
                       });
-    }
-
-    /// <summary>
-    /// Adds a Oracle Database resource to the application model. A container is used for local development.
-    /// </summary>
-    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
-    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<OracleDatabaseServerResource> AddOracleDatabase(this IDistributedApplicationBuilder builder, string name)
-    {
-        var password = Guid.NewGuid().ToString("N").Substring(0, 30);
-        var oracleDatabaseServer = new OracleDatabaseServerResource(name, password);
-        return builder.AddResource(oracleDatabaseServer)
-                      .WithManifestPublishingCallback(WriteOracleDatabaseContainerToManifest)
-                      .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, containerPort: 1521))
-                      .WithAnnotation(new ContainerImageAnnotation { Image = "database/free", Tag = "latest", Registry = "container-registry.oracle.com" })
-                      .WithEnvironment(PasswordEnvVarName, () => oracleDatabaseServer.Password);
     }
 
     /// <summary>
@@ -66,7 +51,7 @@ public static class OracleDatabaseBuilderExtensions
     /// <param name="builder">The Oracle Database server resource builder.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<OracleDatabaseResource> AddDatabase(this IResourceBuilder<IOracleDatabaseParentResource> builder, string name)
+    public static IResourceBuilder<OracleDatabaseResource> AddDatabase(this IResourceBuilder<OracleDatabaseServerResource> builder, string name)
     {
         var oracleDatabase = new OracleDatabaseResource(name, builder.Resource);
         return builder.ApplicationBuilder.AddResource(oracleDatabase)
@@ -84,7 +69,17 @@ public static class OracleDatabaseBuilderExtensions
         context.Writer.WriteString("parent", oracleDatabase.Parent.Name);
     }
 
-    private static void WriteOracleDatabaseContainerResourceToManifest(ManifestPublishingContext context, OracleDatabaseContainerResource resource)
+    /// <summary>
+    /// Changes the Oracle Database Server resource to be published as a container.
+    /// </summary>
+    /// <param name="builder">Builder for the underlying <see cref="OracleDatabaseServerResource"/>.</param>
+    /// <returns></returns>
+    public static IResourceBuilder<OracleDatabaseServerResource> PublishAsContainer(this IResourceBuilder<OracleDatabaseServerResource> builder)
+    {
+        return builder.WithManifestPublishingCallback(context => WriteOracleDatabaseContainerResourceToManifest(context, builder.Resource));
+    }
+
+    private static void WriteOracleDatabaseContainerResourceToManifest(ManifestPublishingContext context, OracleDatabaseServerResource resource)
     {
         context.WriteContainer(resource);
         context.Writer.WriteString(                     // "connectionString": "...",

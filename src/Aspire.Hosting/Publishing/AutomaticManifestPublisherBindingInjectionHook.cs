@@ -4,14 +4,11 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Publishing;
 
-internal sealed class AutomaticManifestPublisherBindingInjectionHook(IOptions<PublishingOptions> publishingOptions) : IDistributedApplicationLifecycleHook
+internal sealed class AutomaticManifestPublisherBindingInjectionHook(DistributedApplicationExecutionContext executionContext) : IDistributedApplicationLifecycleHook
 {
-    private readonly IOptions<PublishingOptions> _publishingOptions = publishingOptions;
-
     private static bool IsKestrelHttp2ConfigurationPresent(ProjectResource projectResource)
     {
         var projectMetadata = projectResource.GetProjectMetadata();
@@ -37,7 +34,7 @@ internal sealed class AutomaticManifestPublisherBindingInjectionHook(IOptions<Pu
 
     public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
-        if (_publishingOptions.Value.Publisher != "manifest")
+        if (executionContext.Operation == DistributedApplicationOperation.Run)
         {
             return Task.CompletedTask;
         }

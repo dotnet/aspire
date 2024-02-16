@@ -61,6 +61,42 @@ namespace Aspire.Hosting.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Container runtime &apos;{0}&apos; could not be found. The error from the container runtime check was: {1}..
+        /// </summary>
+        internal static string ContainerRuntimePrerequisiteMissingExceptionMessage {
+            get {
+                return ResourceManager.GetString("ContainerRuntimePrerequisiteMissingExceptionMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Container runtime &apos;{0}&apos; was found but appears to be unhealthy. The error from the container runtime check was {1}..
+        /// </summary>
+        internal static string ContainerRuntimeUnhealthyExceptionMessage {
+            get {
+                return ResourceManager.GetString("ContainerRuntimeUnhealthyExceptionMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Container runtime &apos;{0}&apos; was found but appears to be unresponsive. The command &apos;{0}&apos; did not return after {1} seconds..
+        /// </summary>
+        internal static string ContainerRuntimeUnresponsiveExceptionMessage {
+            get {
+                return ResourceManager.GetString("ContainerRuntimeUnresponsiveExceptionMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Application orchestrator dependency check had an unexpected error {0}..
+        /// </summary>
+        internal static string DcpDependencyCheckFailedMessage {
+            get {
+                return ResourceManager.GetString("DcpDependencyCheckFailedMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to The application orchestrator version could not be determined. Continuing..
         /// </summary>
         internal static string DcpVersionCheckFailedMessage {
@@ -84,33 +120,6 @@ namespace Aspire.Hosting.Properties {
         internal static string DcpVersionCheckTooLowMessage {
             get {
                 return ResourceManager.GetString("DcpVersionCheckTooLowMessage", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Docker could not be found. The error from Docker invocation was: {0}.
-        /// </summary>
-        internal static string DockerPrerequisiteMissingExceptionMessage {
-            get {
-                return ResourceManager.GetString("DockerPrerequisiteMissingExceptionMessage", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Docker was found but appears to be unhealthy. Exit code for &apos;{0}&apos; was {1}..
-        /// </summary>
-        internal static string DockerUnhealthyExceptionMessage {
-            get {
-                return ResourceManager.GetString("DockerUnhealthyExceptionMessage", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Docker was found but appears to be unresponsive. The command &apos;{0}&apos; did not return after {1} seconds..
-        /// </summary>
-        internal static string DockerUnresponsiveExceptionMessage {
-            get {
-                return ResourceManager.GetString("DockerUnresponsiveExceptionMessage", resourceCulture);
             }
         }
         

@@ -5,6 +5,7 @@ using System.Net;
 using Aspire.Dashboard.Components;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Grpc;
+using Aspire.Dashboard.Otlp.Security;
 using Aspire.Dashboard.Otlp.Storage;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
@@ -44,7 +45,11 @@ public class DashboardWebApplication
         builder.WebHost.ConfigureKestrel(kestrelOptions =>
         {
             ConfigureListenAddresses(kestrelOptions, dashboardUris);
-            ConfigureListenAddresses(kestrelOptions, otlpUris, HttpProtocols.Http2);
+            ConfigureListenAddresses(kestrelOptions, otlpUris, options =>
+            {
+                options.Protocols = HttpProtocols.Http2;
+                options.UseOtlpConnection();
+            });
         });
 
         if (isAllHttps)
@@ -61,7 +66,7 @@ public class DashboardWebApplication
         builder.Services.AddScoped<IDashboardClient, DashboardClient>();
 
         // OTLP services.
-        builder.Services.AddGrpc();
+        builder.Services.AddGrpc(options => options.Interceptors.Add<OtlpInterceptor>());
         builder.Services.AddSingleton<TelemetryRepository>();
         builder.Services.AddTransient<StructuredLogsViewModel>();
         builder.Services.AddTransient<TracesViewModel>();
@@ -86,9 +91,26 @@ public class DashboardWebApplication
 
         if (otlpUris.FirstOrDefault() is { } reportedOtlpUri)
         {
-            // dotnet watch needs the trailing slash removed. See https://github.com/dotnet/sdk/issues/36709. Conform to dashboard URL format above
-            logger.LogInformation("OTLP server running at: {DashboardUri}", reportedOtlpUri.AbsoluteUri.TrimEnd('/'));
+            // This isn't used by dotnet watch but still useful to have for debugging
+            logger.LogInformation("OTLP server running at: {OtlpEndpointUri}", reportedOtlpUri.AbsoluteUri.TrimEnd('/'));
         }
+
+        // Redirect browser directly to /StructuredLogs address if the dashboard is running without a resource service.
+        // This is done to avoid immediately navigating in the Blazor app.
+        _app.Use(async (context, next) =>
+        {
+            if (context.Request.Path.Equals(TargetLocationInterceptor.ResourcesPath, StringComparisons.UrlPath))
+            {
+                var client = context.RequestServices.GetRequiredService<IDashboardClient>();
+                if (!client.IsEnabled)
+                {
+                    context.Response.Redirect(TargetLocationInterceptor.StructuredLogsPath);
+                    return;
+                }
+            }
+
+            await next(context).ConfigureAwait(false);
+        });
 
         // Configure the HTTP request pipeline.
         if (_app.Environment.IsDevelopment())
@@ -136,7 +158,7 @@ public class DashboardWebApplication
 
     public void Run() => _app.Run();
 
-    private static void ConfigureListenAddresses(KestrelServerOptions kestrelOptions, Uri[] uris, HttpProtocols? httpProtocols = null)
+    private static void ConfigureListenAddresses(KestrelServerOptions kestrelOptions, Uri[] uris, Action<ListenOptions>? configureListenOptions = null)
     {
         foreach (var uri in uris)
         {
@@ -155,10 +177,7 @@ public class DashboardWebApplication
                 {
                     options.UseHttps();
                 }
-                if (httpProtocols is not null)
-                {
-                    options.Protocols = httpProtocols.Value;
-                }
+                configureListenOptions?.Invoke(options);
             }
         }
     }

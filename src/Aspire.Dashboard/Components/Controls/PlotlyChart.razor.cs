@@ -198,9 +198,10 @@ public partial class PlotlyChart : ComponentBase
 
         foreach (var dimension in dimensions)
         {
-            for (var i = dimension.Values.Count - 1; i >= 0; i--)
+            var dimensionValues = dimension.Values;
+            for (var i = dimensionValues.Count - 1; i >= 0; i--)
             {
-                var metric = dimension.Values[i];
+                var metric = dimensionValues[i];
                 if (metric.Start >= start && metric.Start <= end)
                 {
                     var histogramValue = GetHistogramValue(metric);
@@ -214,7 +215,7 @@ public partial class PlotlyChart : ComponentBase
 
                     explicitBounds ??= histogramValue.ExplicitBounds;
 
-                    var previousHistogramValues = i > 0 ? GetHistogramValue(dimension.Values[i - 1]).Values : null;
+                    var previousHistogramValues = i > 0 ? GetHistogramValue(dimensionValues[i - 1]).Values : null;
 
                     if (currentBucketCounts is null)
                     {
@@ -231,7 +232,7 @@ public partial class PlotlyChart : ComponentBase
 
                         if (previousHistogramValues != null)
                         {
-                            // Histogram values are culmulative, so subtract the previous value to get the diff.
+                            // Histogram values are cumulative, so subtract the previous value to get the diff.
                             newValue -= previousHistogramValues[valuesIndex];
                         }
 
@@ -359,10 +360,11 @@ public partial class PlotlyChart : ComponentBase
 
         foreach (var dimension in dimensions)
         {
+            var dimensionValues = dimension.Values;
             var dimensionValue = 0d;
-            for (var i = dimension.Values.Count - 1; i >= 0; i--)
+            for (var i = dimensionValues.Count - 1; i >= 0; i--)
             {
-                var metric = dimension.Values[i];
+                var metric = dimensionValues[i];
                 if ((metric.Start <= end && metric.End >= start) || (metric.Start >= start && metric.End <= end))
                 {
                     var value = metric switch

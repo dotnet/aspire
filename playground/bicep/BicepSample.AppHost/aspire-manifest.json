@@ -1,0 +1,198 @@
+{
+  "resources": {
+    "val": {
+      "type": "parameter.v0",
+      "value": "{val.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "test": {
+      "type": "azure.bicep.v0",
+      "path": "test.bicep",
+      "params": {
+        "test": "{val.value}",
+        "values": [
+          "one",
+          "two"
+        ]
+      }
+    },
+    "kv": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{kv.outputs.vaultUri}",
+      "path": "aspire.hosting.azure.bicep.keyvault.bicep",
+      "params": {
+        "principalId": "",
+        "principalType": "",
+        "vaultName": "kv"
+      }
+    },
+    "appConfig": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{appConfig.outputs.appConfigEndpoint}",
+      "path": "aspire.hosting.azure.bicep.appconfig.bicep",
+      "params": {
+        "configName": "appconfig",
+        "principalId": "",
+        "principalType": "",
+        "sku": "standard"
+      }
+    },
+    "storage": {
+      "type": "azure.bicep.v0",
+      "path": "aspire.hosting.azure.bicep.storage.bicep",
+      "params": {
+        "principalId": "",
+        "principalType": "",
+        "storageName": "storage"
+      }
+    },
+    "blob": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{storage.outputs.blobEndpoint}",
+      "parent": "storage"
+    },
+    "table": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{storage.outputs.tableEndpoint}",
+      "parent": "storage"
+    },
+    "queue": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{storage.outputs.queueEndpoint}",
+      "parent": "storage"
+    },
+    "sql": {
+      "type": "azure.bicep.v0",
+      "connectionString": "Server=tcp:{sql.outputs.sqlServerFqdn},1433;Encrypt=True;Authentication=\u0022Active Directory Default\u0022",
+      "path": "aspire.hosting.azure.bicep.sql.bicep",
+      "params": {
+        "principalId": "",
+        "principalName": "",
+        "serverName": "sql",
+        "databases": [
+          "db"
+        ]
+      }
+    },
+    "db": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{sql.connectionString};Intial Catalog=db",
+      "parent": "sql"
+    },
+    "password": {
+      "type": "parameter.v0",
+      "value": "{password.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "postgres2": {
+      "type": "azure.bicep.v0",
+      "connectionString": "Host={postgres2.outputs.pgfqdn};Username=someuser;Password={password.value}",
+      "path": "aspire.hosting.azure.bicep.postgres.bicep",
+      "params": {
+        "serverName": "postgres2",
+        "administratorLogin": "someuser",
+        "administratorLoginPassword": "{password.value}",
+        "databases": [
+          "db2"
+        ]
+      }
+    },
+    "db2": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{postgres2.connectionString};Database=db2",
+      "parent": "postgres2"
+    },
+    "cosmos": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{cosmos.secretOutputs.connectionString}",
+      "path": "aspire.hosting.azure.bicep.cosmosdb.bicep",
+      "params": {
+        "databaseAccountName": "cosmos",
+        "databases": [
+          "db3"
+        ],
+        "keyVaultName": ""
+      }
+    },
+    "db3": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{cosmos.connectionString}",
+      "parent": "cosmos"
+    },
+    "ai": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{ai.outputs.appInsightsConnectionString}",
+      "path": "aspire.hosting.azure.bicep.appinsights.bicep",
+      "params": {
+        "appInsightsName": "ai"
+      }
+    },
+    "redis": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{redis.secretOutputs.connectionString}",
+      "path": "aspire.hosting.azure.bicep.redis.bicep",
+      "params": {
+        "redisCacheName": "redis",
+        "keyVaultName": ""
+      }
+    },
+    "sb": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{sb.outputs.serviceBusEndpoint}",
+      "path": "aspire.hosting.azure.bicep.servicebus.bicep",
+      "params": {
+        "serviceBusNamespaceName": "sb",
+        "principalId": "",
+        "principalType": "",
+        "topics": [
+          "topic1"
+        ],
+        "queues": [
+          "queue1"
+        ]
+      }
+    },
+    "api": {
+      "type": "project.v0",
+      "path": "../BicepSample.ApiService/BicepSample.ApiService.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "ConnectionStrings__db": "{db.connectionString}",
+        "ConnectionStrings__db2": "{db2.connectionString}",
+        "ConnectionStrings__db3": "{db3.connectionString}",
+        "ConnectionStrings__blob": "{blob.connectionString}",
+        "ConnectionStrings__table": "{table.connectionString}",
+        "ConnectionStrings__queue": "{queue.connectionString}",
+        "ConnectionStrings__kv": "{kv.connectionString}",
+        "ConnectionStrings__appConfig": "{appConfig.connectionString}",
+        "APPLICATIONINSIGHTS_CONNECTION_STRING": "{ai.connectionString}",
+        "ConnectionStrings__redis": "{redis.connectionString}",
+        "ConnectionStrings__sb": "{sb.connectionString}",
+        "bicepValue_test": "{test.outputs.test}",
+        "bicepValue0": "{test.outputs.val0}",
+        "bicepValue1": "{test.outputs.val1}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http"
+        }
+      }
+    }
+  }
+}

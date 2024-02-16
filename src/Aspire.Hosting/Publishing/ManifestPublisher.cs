@@ -9,13 +9,15 @@ using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Publishing;
 
-public class ManifestPublisher(ILogger<ManifestPublisher> logger,
+internal class ManifestPublisher(ILogger<ManifestPublisher> logger,
                                IOptions<PublishingOptions> options,
-                               IHostApplicationLifetime lifetime) : IDistributedApplicationPublisher
+                               IHostApplicationLifetime lifetime,
+                               DistributedApplicationExecutionContext executionContext) : IDistributedApplicationPublisher
 {
     private readonly ILogger<ManifestPublisher> _logger = logger;
     private readonly IOptions<PublishingOptions> _options = options;
     private readonly IHostApplicationLifetime _lifetime = lifetime;
+    private readonly DistributedApplicationExecutionContext _executionContext = executionContext;
 
     public Utf8JsonWriter? JsonWriter { get; set; }
 
@@ -46,7 +48,7 @@ public class ManifestPublisher(ILogger<ManifestPublisher> logger,
     protected async Task WriteManifestAsync(DistributedApplicationModel model, Utf8JsonWriter jsonWriter, CancellationToken cancellationToken)
     {
         var manifestPath = _options.Value.OutputPath ?? throw new DistributedApplicationException("The '--output-path [path]' option was not specified even though '--publisher manifest' argument was used.");
-        var context = new ManifestPublishingContext(manifestPath, jsonWriter);
+        var context = new ManifestPublishingContext(_executionContext, manifestPath, jsonWriter);
 
         jsonWriter.WriteStartObject();
         WriteResources(model, context);

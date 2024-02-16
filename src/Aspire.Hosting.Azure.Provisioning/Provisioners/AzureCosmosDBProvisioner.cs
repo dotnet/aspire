@@ -13,6 +13,9 @@ namespace Aspire.Hosting.Azure.Provisioning;
 
 internal sealed class AzureCosmosDBProvisioner(ILogger<AzureCosmosDBProvisioner> logger) : AzureResourceProvisioner<AzureCosmosDBResource>
 {
+    public override bool ShouldProvision(IConfiguration configuration, AzureCosmosDBResource resource)
+        => !resource.IsEmulator;
+
     public override bool ConfigureResource(IConfiguration configuration, AzureCosmosDBResource resource)
     {
         if (configuration.GetConnectionString(resource.Name) is string connectionString)
@@ -59,7 +62,7 @@ internal sealed class AzureCosmosDBProvisioner(ILogger<AzureCosmosDBProvisioner>
 
         if (cosmosResource is null)
         {
-            var cosmosDbName = Guid.NewGuid().ToString().Replace("-", string.Empty)[0..20];
+            var cosmosDbName = Guid.NewGuid().ToString("N")[0..20];
 
             logger.LogInformation("Creating CosmosDB {cosmosDbName} in {location}...", cosmosDbName, context.Location);
 

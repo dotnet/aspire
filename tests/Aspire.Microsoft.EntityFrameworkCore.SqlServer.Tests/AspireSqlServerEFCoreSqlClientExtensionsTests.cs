@@ -78,7 +78,7 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>("ConnectionStrings:sqlconnection", ConnectionString),
-            new KeyValuePair<string, string?>("Aspire:Microsoft:EntityFrameworkCore:SqlServer:MaxRetryCount", "304"),
+            new KeyValuePair<string, string?>("Aspire:Microsoft:EntityFrameworkCore:SqlServer:Retry", "true"),
             new KeyValuePair<string, string?>("Aspire:Microsoft:EntityFrameworkCore:SqlServer:Timeout", "608")
         ]);
 
@@ -105,15 +105,96 @@ public class AspireSqlServerEFCoreSqlClientExtensionsTests
         var actualConnectionString = context.Database.GetDbConnection().ConnectionString;
         Assert.Equal(ConnectionString, actualConnectionString);
 
-        // ensure the max retry count from config was respected
+        // ensure the retry strategy is enabled and set to its default value
         Assert.NotNull(extension.ExecutionStrategyFactory);
         var executionStrategy = extension.ExecutionStrategyFactory(new ExecutionStrategyDependencies(new CurrentDbContext(context), context.Options, null!));
         var retryStrategy = Assert.IsType<SqlServerRetryingExecutionStrategy>(executionStrategy);
-        Assert.Equal(304, retryStrategy.MaxRetryCount);
+        Assert.Equal(new WorkaroundToReadProtectedField(context).MaxRetryCount, retryStrategy.MaxRetryCount);
 
         // ensure the command timeout from config was respected
         Assert.Equal(608, extension.CommandTimeout);
 
 #pragma warning restore EF1001 // Internal EF Core API usage.
+    }
+
+    [Fact]
+    public void CanConfigureDbContextOptionsWithoutRetry()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:sqlconnection", ConnectionString),
+            new KeyValuePair<string, string?>("Aspire:Microsoft:EntityFrameworkCore:SqlServer:Retry", "false"),
+        ]);
+
+        builder.AddSqlServerDbContext<TestDbContext>("sqlconnection", configureDbContextOptions: optionsBuilder =>
+        {
+            optionsBuilder.UseSqlServer(sqlBuilder =>
+            {
+                sqlBuilder.CommandTimeout(123);
+            });
+        });
+
+        var host = builder.Build();
+        var context = host.Services.GetRequiredService<TestDbContext>();
+
+#pragma warning disable EF1001 // Internal EF Core API usage.
+
+        var extension = context.Options.FindExtension<SqlServerOptionsExtension>();
+        Assert.NotNull(extension);
+
+        // ensure the command timeout was respected
+        Assert.Equal(123, extension.CommandTimeout);
+
+        // ensure the connection string from config was respected
+        var actualConnectionString = context.Database.GetDbConnection().ConnectionString;
+        Assert.Equal(ConnectionString, actualConnectionString);
+
+        // ensure no retry strategy was registered
+        Assert.Null(extension.ExecutionStrategyFactory);
+
+#pragma warning restore EF1001 // Internal EF Core API usage.
+    }
+
+    /// <summary>
+    /// Verifies that two different DbContexts can be registered with different connection strings.
+    /// </summary>
+    [Fact]
+    public void CanHave2DbContexts()
+    {
+        const string connectionString2 = "Data Source=fake2;Database=master2";
+
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:sqlconnection", ConnectionString),
+            new KeyValuePair<string, string?>("ConnectionStrings:sqlconnection2", connectionString2),
+        ]);
+
+        builder.AddSqlServerDbContext<TestDbContext>("sqlconnection");
+        builder.AddSqlServerDbContext<TestDbContext2>("sqlconnection2");
+
+        var host = builder.Build();
+        var context = host.Services.GetRequiredService<TestDbContext>();
+        var context2 = host.Services.GetRequiredService<TestDbContext2>();
+
+        var actualConnectionString = context.Database.GetDbConnection().ConnectionString;
+        Assert.Equal(ConnectionString, actualConnectionString);
+
+        actualConnectionString = context2.Database.GetDbConnection().ConnectionString;
+        Assert.Equal(connectionString2, actualConnectionString);
+    }
+
+    public class TestDbContext2 : DbContext
+    {
+        public TestDbContext2(DbContextOptions<TestDbContext2> options) : base(options)
+        {
+        }
+
+        public DbSet<Product> Products => Set<Product>();
+
+        public class Product
+        {
+            public int Id { get; set; }
+            public string Name { get; set; } = default!;
+        }
     }
 }
