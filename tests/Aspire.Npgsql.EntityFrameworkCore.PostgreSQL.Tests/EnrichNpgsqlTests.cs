@@ -29,7 +29,7 @@ public class EnrichNpgsqlTests : ConformanceTests
         HostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(settings: null);
 
         var exception = Assert.Throws<InvalidOperationException>(() => builder.EnrichNpgsqlDbContext<TestDbContext>());
-        Assert.Equal("DbContext<TestDbContext> was not registered", exception.Message);
+        Assert.Contains("DbContext<TestDbContext> was not registered", exception.Message);
     }
 
     [Fact]

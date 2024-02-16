@@ -116,7 +116,7 @@ public static class AspireSqlServerEFCoreSqlClientExtensions
 
             if (oldDbContextOptionsDescriptor is null)
             {
-                throw new InvalidOperationException($"DbContext<{typeof(TContext).Name}> was not registered");
+                throw new InvalidOperationException($"DbContext<{typeof(TContext).Name}> was not registered. Ensure you have registered the DbContext in DI before calling {nameof(EnrichSqlServerDbContext)}.");
             }
 
             builder.Services.Remove(oldDbContextOptionsDescriptor);

@@ -145,7 +145,7 @@ public static partial class AspireEFMySqlExtensions
 
             if (oldDbContextOptionsDescriptor is null)
             {
-                throw new InvalidOperationException($"DbContext<{typeof(TContext).Name}> was not registered");
+                throw new InvalidOperationException($"DbContext<{typeof(TContext).Name}> was not registered. Ensure you have registered the DbContext in DI before calling {nameof(EnrichMySqlDbContext)}.");
             }
 
             builder.Services.Remove(oldDbContextOptionsDescriptor);
