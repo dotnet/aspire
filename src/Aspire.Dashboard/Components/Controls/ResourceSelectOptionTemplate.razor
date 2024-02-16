@@ -13,7 +13,7 @@
                     Style="vertical-align: text-bottom;"/>
         <span>@ViewModel.Name (<span style="color: var(--accent-foreground-rest)">@Loc[nameof(ControlsStrings.ReplicaSetLower)]</span>)</span>
     }
-    else if (ViewModel.Id?.Type is OtlpApplicationType.Replica)
+    else if (ViewModel.Id?.Type is OtlpApplicationType.ReplicaInstance)
     {
         <div style="width: 20px;"></div>
         <span aria-label="@string.Format(@Loc[nameof(ControlsStrings.ResourceDropdownReplicaAccessibleTitle)], ViewModel.Name, ViewModel.Id.ReplicaSetName)">@ViewModel.Name</span>

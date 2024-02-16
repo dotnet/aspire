@@ -146,7 +146,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         SelectViewModel<ResourceTypeDetails> ToOption(ResourceViewModel resource, bool isReplica, string applicationName)
         {
             var id = isReplica
-                ? ResourceTypeDetails.CreateReplica(resource.Name, applicationName)
+                ? ResourceTypeDetails.CreateReplicaInstance(resource.Name, applicationName)
                 : ResourceTypeDetails.CreateSingleton(resource.Name);
 
             return new SelectViewModel<ResourceTypeDetails>

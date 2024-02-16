@@ -39,7 +39,7 @@ public class SelectViewModelFactory
             selectViewModels.AddRange(replicas.Select(replica =>
                 new SelectViewModel<ResourceTypeDetails>
                 {
-                    Id = ResourceTypeDetails.CreateReplica(replica.InstanceId, applicationName),
+                    Id = ResourceTypeDetails.CreateReplicaInstance(replica.InstanceId, applicationName),
                     Name = ResourceFormatter.GetName(replica.ApplicationName, replica.InstanceId)
                 }));
         }

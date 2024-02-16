@@ -28,8 +28,8 @@ public class ResourceTypeDetails
         return new ResourceTypeDetails(OtlpApplicationType.Singleton, instanceId, replicaSetName: null);
     }
 
-    public static ResourceTypeDetails CreateReplica(string instanceId, string replicaSetName)
+    public static ResourceTypeDetails CreateReplicaInstance(string instanceId, string replicaSetName)
     {
-        return new ResourceTypeDetails(OtlpApplicationType.Replica, instanceId, replicaSetName);
+        return new ResourceTypeDetails(OtlpApplicationType.ReplicaInstance, instanceId, replicaSetName);
     }
 }
