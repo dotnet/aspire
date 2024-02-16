@@ -41,7 +41,7 @@ public class EnrichMySqlTests : ConformanceTests
         HostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(settings: null);
 
         var exception = Assert.Throws<InvalidOperationException>(() => builder.EnrichMySqlDbContext<TestDbContext>());
-        Assert.Contains("DbContext<TestDbContext> was not registered", exception.Message);
+        Assert.Equal("DbContext<TestDbContext> was not registered. Ensure you have registered the DbContext in DI before calling EnrichMySqlDbContext.", exception.Message);
     }
 
     [Fact]
