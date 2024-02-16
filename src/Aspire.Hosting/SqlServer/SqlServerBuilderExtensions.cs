@@ -35,7 +35,7 @@ public static class SqlServerBuilderExtensions
                       .WithEnvironment("ACCEPT_EULA", "Y")
                       .WithEnvironment(context =>
                       {
-                          if (context.PublisherName == "manifest")
+                          if (context.ExecutionContext.Operation == DistributedApplicationOperation.Publish)
                           {
                               context.EnvironmentVariables.Add("MSSQL_SA_PASSWORD", $"{{{sqlServer.Name}.inputs.password}}");
                           }
