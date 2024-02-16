@@ -139,15 +139,15 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
             foreach (var resource in resourceGroupsByApplicationName)
             {
-                _resources.Add(ToOption(resource, resourceGroupsByApplicationName.Count() > 1));
+                _resources.Add(ToOption(resource, resourceGroupsByApplicationName.Count() > 1, resourceGroupsByApplicationName.Key));
             }
         }
 
-        SelectViewModel<ResourceTypeDetails> ToOption(ResourceViewModel resource, bool isReplica)
+        SelectViewModel<ResourceTypeDetails> ToOption(ResourceViewModel resource, bool isReplica, string applicationName)
         {
             return new SelectViewModel<ResourceTypeDetails>
             {
-                Id = new ResourceTypeDetails(isReplica ? OtlpApplicationType.Replica : OtlpApplicationType.Singleton, resource.Name),
+                Id = isReplica ? new ReplicaTypeDetails(OtlpApplicationType.Replica, resource.Name, applicationName) : new ResourceTypeDetails(OtlpApplicationType.Singleton, resource.Name),
                 Name = GetDisplayText()
             };
 
