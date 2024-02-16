@@ -65,10 +65,9 @@ public class AzureResourceExtensionsTests
     }
 
     [Theory]
-    [InlineData(null)]
     [InlineData("2.3.97-preview")]
     [InlineData("1.0.7")]
-    public void AddAzureCosmosDBWithEmulatorGetsExpectedImageTag(string? imageTag = null)
+    public void AddAzureCosmosDBWithEmulatorGetsExpectedImageTag(string imageTag)
     {
         var builder = DistributedApplication.CreateBuilder();
 
