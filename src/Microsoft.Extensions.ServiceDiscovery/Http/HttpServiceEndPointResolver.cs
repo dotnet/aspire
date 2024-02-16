@@ -5,6 +5,10 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using Microsoft.Extensions.ServiceDiscovery.Abstractions;
 
+#if NETFRAMEWORK
+using System.Net.Http;
+#endif
+
 namespace Microsoft.Extensions.ServiceDiscovery.Http;
 
 /// <summary>
@@ -31,7 +35,7 @@ public class HttpServiceEndPointResolver(ServiceEndPointResolverFactory resolver
     /// <exception cref="InvalidOperationException">The request had no <see cref="HttpRequestMessage.RequestUri"/> set or a suitable endpoint could not be found.</exception>
     public async ValueTask<ServiceEndPoint> GetEndpointAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(request);
+        ThrowHelper.ThrowIfNull(request);
         if (request.RequestUri is null)
         {
             throw new InvalidOperationException("Cannot resolve an endpoint for a request which has no RequestUri");
@@ -44,8 +48,7 @@ public class HttpServiceEndPointResolver(ServiceEndPointResolverFactory resolver
         {
             var resolver = _resolvers.GetOrAdd(
                 key,
-                static (name, self) => self.CreateResolver(name),
-                this);
+                CreateResolver);
 
             var (valid, endPoint) = await resolver.TryGetEndPointAsync(request, cancellationToken).ConfigureAwait(false);
             if (valid)
@@ -114,7 +117,7 @@ public class HttpServiceEndPointResolver(ServiceEndPointResolverFactory resolver
         _resolvers.Clear();
         if (_cleanupTask is not null)
         {
-            await _cleanupTask.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+            await _cleanupTask.SuppressThrowing();
         }
     }
 
@@ -132,8 +135,11 @@ public class HttpServiceEndPointResolver(ServiceEndPointResolverFactory resolver
     private async Task CleanupResolversAsyncCore()
     {
         List<Task>? cleanupTasks = null;
-        foreach (var (name, resolver) in _resolvers)
+        foreach (var resolverEntry in _resolvers)
         {
+            var name = resolverEntry.Key;
+            var resolver = resolverEntry.Value;
+
             if (resolver.CanExpire() && _resolvers.TryRemove(name, out var _))
             {
                 cleanupTasks ??= new();
@@ -163,7 +169,7 @@ public class HttpServiceEndPointResolver(ServiceEndPointResolverFactory resolver
         private const ulong RecentUseFlag = 1UL << 62;
         private const ulong DisposingFlag = 1UL << 63;
         private ulong _status;
-        private TaskCompletionSource? _onDisposed;
+        private TaskCompletionSource<bool>? _onDisposed;
 
         public ResolverEntry(ServiceEndPointResolver resolver, IServiceEndPointSelector selector)
         {
@@ -183,7 +189,7 @@ public class HttpServiceEndPointResolver(ServiceEndPointResolverFactory resolver
         public bool CanExpire()
         {
             // Read the status, clearing the recent use flag in the process.
-            var status = Interlocked.And(ref _status, ~RecentUseFlag);
+            var status = InterlockedEx.And(ref _status, ~RecentUseFlag);
 
             // The instance can be expired if there are no concurrent callers and the recent use flag was not set.
             return (status & (CountMask | RecentUseFlag)) == 0;
@@ -193,7 +199,7 @@ public class HttpServiceEndPointResolver(ServiceEndPointResolverFactory resolver
         {
             try
             {
-                var status = Interlocked.Increment(ref _status);
+                var status = InterlockedEx.Increment(ref _status);
                 if ((status & DisposingFlag) == 0)
                 {
                     // If the resolver is valid, resolve.
@@ -210,11 +216,11 @@ public class HttpServiceEndPointResolver(ServiceEndPointResolverFactory resolver
             finally
             {
                 // Set the recent use flag to prevent the instance from being disposed.
-                Interlocked.Or(ref _status, RecentUseFlag);
+                InterlockedEx.Or(ref _status, RecentUseFlag);
 
                 // If we are the last concurrent request to complete and the Disposing flag has been set,
                 // dispose the resolver now. DisposeAsync was prevented by concurrent requests.
-                var status = Interlocked.Decrement(ref _status);
+                var status = InterlockedEx.Decrement(ref _status);
                 if ((status & DisposingFlag) == DisposingFlag && (status & CountMask) == 0)
                 {
                     await DisposeAsyncCore().ConfigureAwait(false);
@@ -229,7 +235,7 @@ public class HttpServiceEndPointResolver(ServiceEndPointResolverFactory resolver
                 Interlocked.CompareExchange(ref _onDisposed, new(TaskCreationOptions.RunContinuationsAsynchronously), null);
             }
 
-            var status = Interlocked.Or(ref _status, DisposingFlag);
+            var status = InterlockedEx.Or(ref _status, DisposingFlag);
             if ((status & DisposingFlag) != DisposingFlag && (status & CountMask) == 0)
             {
                 // If we are the one who flipped the Disposing flag and there are no concurrent requests,
@@ -251,7 +257,7 @@ public class HttpServiceEndPointResolver(ServiceEndPointResolverFactory resolver
             finally
             {
                 Debug.Assert(_onDisposed is not null);
-                _onDisposed.SetResult();
+                _onDisposed.SetResult(true);
             }
         }
     }

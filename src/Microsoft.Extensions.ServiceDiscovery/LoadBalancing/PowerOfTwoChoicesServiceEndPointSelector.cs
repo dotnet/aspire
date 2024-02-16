@@ -30,11 +30,11 @@ public class PowerOfTwoChoicesServiceEndPointSelector : IServiceEndPointSelector
             return collection[0];
         }
 
-        var first = collection[Random.Shared.Next(collection.Count)];
+        var first = collection[ThreadSafeRandom.Next(collection.Count)];
         ServiceEndPoint second;
         do
         {
-            second = collection[Random.Shared.Next(collection.Count)];
+            second = collection[ThreadSafeRandom.Next(collection.Count)];
         } while (ReferenceEquals(first, second));
 
         // Note that this relies on fresh data to be effective.

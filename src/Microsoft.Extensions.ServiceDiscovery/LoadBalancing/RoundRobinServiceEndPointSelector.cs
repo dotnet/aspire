@@ -25,6 +25,6 @@ public class RoundRobinServiceEndPointSelector : IServiceEndPointSelector
             throw new InvalidOperationException("The endpoint collection contains no endpoints");
         }
 
-        return collection[(int)(Interlocked.Increment(ref _next) % collection.Count)];
+        return collection[(int)(InterlockedEx.Increment(ref _next) % collection.Count)];
     }
 }

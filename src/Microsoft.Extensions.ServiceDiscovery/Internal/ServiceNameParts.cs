@@ -15,11 +15,11 @@ internal readonly struct ServiceNameParts : IEquatable<ServiceNameParts>
         Port = port;
     }
 
-    public string? EndPointName { get; init; }
+    public string? EndPointName { get; }
 
-    public string Host { get; init; }
+    public string Host { get; }
 
-    public int Port { get; init; }
+    public int Port { get; }
 
     public override string? ToString() => EndPointName is not null ? $"EndPointName: {EndPointName}, Host: {Host}, Port: {Port}" : $"Host: {Host}, Port: {Port}";
 
@@ -46,12 +46,12 @@ internal readonly struct ServiceNameParts : IEquatable<ServiceNameParts>
             var segmentSeparatorIndex = uriHost.IndexOf('.');
             string host;
             string? endPointName = null;
-            if (uriHost.StartsWith('_') && segmentSeparatorIndex > 1 && uriHost[^1] != '.')
+            if (uriHost.StartsWith("_") && segmentSeparatorIndex > 1 && uriHost[uriHost.Length - 1] != '.')
             {
-                endPointName = uriHost[1..segmentSeparatorIndex];
+                endPointName = uriHost.Substring(1, segmentSeparatorIndex);
 
                 // Skip the endpoint name, including its prefix ('_') and suffix ('.').
-                host = uriHost[(segmentSeparatorIndex + 1)..];
+                host = uriHost.Substring(segmentSeparatorIndex + 1);
             }
             else
             {

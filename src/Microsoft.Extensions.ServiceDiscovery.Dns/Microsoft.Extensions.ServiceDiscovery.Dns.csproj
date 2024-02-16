@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <TargetFrameworks>net6.0;netstandard2.0;net462</TargetFrameworks>
     <IsPackable>true</IsPackable>
-    <IsAotCompatible>true</IsAotCompatible>
+    <IsAotCompatible Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net6.0'))">true</IsAotCompatible>
     <Description>Provides extensions to HttpClient to resolve well-known hostnames to concrete endpoints based on DNS records. Useful for service resolution in orchestrators such as Kubernetes.</Description>
     <PackageIconFullPath>$(DefaultDotnetIconFullPath)</PackageIconFullPath>
   </PropertyGroup>

@@ -26,8 +26,8 @@ public class ServiceEndPointCollection : IReadOnlyList<ServiceEndPoint>
     /// <param name="features">The feature collection.</param>
     public ServiceEndPointCollection(string serviceName, List<ServiceEndPoint>? endpoints, IChangeToken changeToken, IFeatureCollection features)
     {
-        ArgumentNullException.ThrowIfNull(serviceName);
-        ArgumentNullException.ThrowIfNull(changeToken);
+        ThrowHelper.ThrowIfNull(serviceName);
+        ThrowHelper.ThrowIfNull(changeToken);
 
         _endpoints = endpoints;
         Features = features;

@@ -32,18 +32,24 @@ public sealed class ServiceEndPointResolverRegistry(ServiceEndPointResolverFacto
     /// <returns>The resolved service endpoints.</returns>
     public async ValueTask<ServiceEndPointCollection> GetEndPointsAsync(string serviceName, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(serviceName);
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        ThrowHelper.ThrowIfNull(serviceName);
+        if (_disposed)
+        {
+            throw new ObjectDisposedException(this.GetType().FullName!);
+        }
 
         EnsureCleanupTimerStarted();
 
         while (true)
         {
-            ObjectDisposedException.ThrowIf(_disposed, this);
+            if (_disposed)
+            {
+                throw new ObjectDisposedException(this.GetType().FullName!);
+            }
+
             var resolver = _resolvers.GetOrAdd(
                 serviceName,
-                static (name, self) => self.CreateResolver(name),
-                this);
+                CreateResolver);
 
             var (valid, result) = await resolver.GetEndPointsAsync(cancellationToken).ConfigureAwait(false);
             if (valid)
@@ -113,7 +119,7 @@ public sealed class ServiceEndPointResolverRegistry(ServiceEndPointResolverFacto
         _resolvers.Clear();
         if (_cleanupTask is not null)
         {
-            await _cleanupTask.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+            await _cleanupTask.SuppressThrowing();
         }
     }
 
@@ -131,8 +137,11 @@ public sealed class ServiceEndPointResolverRegistry(ServiceEndPointResolverFacto
     private async Task CleanupResolversAsyncCore()
     {
         List<Task>? cleanupTasks = null;
-        foreach (var (name, resolver) in _resolvers)
+        foreach (var resolverEntry in _resolvers)
         {
+            var name = resolverEntry.Key;
+            var resolver = resolverEntry.Value;
+
             if (resolver.CanExpire() && _resolvers.TryRemove(name, out var _))
             {
                 cleanupTasks ??= new();
@@ -159,14 +168,14 @@ public sealed class ServiceEndPointResolverRegistry(ServiceEndPointResolverFacto
         private const ulong RecentUseFlag = 1UL << 62;
         private const ulong DisposingFlag = 1UL << 63;
         private ulong _status;
-        private TaskCompletionSource? _onDisposed;
+        private TaskCompletionSource<bool>? _onDisposed;
 
         public string ServiceName => _resolver.ServiceName;
 
         public bool CanExpire()
         {
             // Read the status, clearing the recent use flag in the process.
-            var status = Interlocked.And(ref _status, ~RecentUseFlag);
+            var status = InterlockedEx.And(ref _status, ~RecentUseFlag);
 
             // The instance can be expired if there are no concurrent callers and the recent use flag was not set.
             return (status & (CountMask | RecentUseFlag)) == 0;
@@ -176,7 +185,7 @@ public sealed class ServiceEndPointResolverRegistry(ServiceEndPointResolverFacto
         {
             try
             {
-                var status = Interlocked.Increment(ref _status);
+                var status = InterlockedEx.Increment(ref _status);
                 if ((status & DisposingFlag) == 0)
                 {
                     // If the resolver is valid, resolve.
@@ -192,11 +201,11 @@ public sealed class ServiceEndPointResolverRegistry(ServiceEndPointResolverFacto
             finally
             {
                 // Set the recent use flag to prevent the instance from being disposed.
-                Interlocked.Or(ref _status, RecentUseFlag);
+                InterlockedEx.Or(ref _status, RecentUseFlag);
 
                 // If we are the last concurrent request to complete and the Disposing flag has been set,
                 // dispose the resolver now. DisposeAsync was prevented by concurrent requests.
-                var status = Interlocked.Decrement(ref _status);
+                var status = InterlockedEx.Decrement(ref _status);
                 if ((status & DisposingFlag) == DisposingFlag && (status & CountMask) == 0)
                 {
                     await DisposeAsyncCore().ConfigureAwait(false);
@@ -211,7 +220,7 @@ public sealed class ServiceEndPointResolverRegistry(ServiceEndPointResolverFacto
                 Interlocked.CompareExchange(ref _onDisposed, new(TaskCreationOptions.RunContinuationsAsynchronously), null);
             }
 
-            var status = Interlocked.Or(ref _status, DisposingFlag);
+            var status = InterlockedEx.Or(ref _status, DisposingFlag);
             if ((status & DisposingFlag) != DisposingFlag && (status & CountMask) == 0)
             {
                 // If we are the one who flipped the Disposing flag and there are no concurrent requests,
@@ -233,7 +242,7 @@ public sealed class ServiceEndPointResolverRegistry(ServiceEndPointResolverFacto
             finally
             {
                 Debug.Assert(_onDisposed is not null);
-                _onDisposed.SetResult();
+                _onDisposed.SetResult(true);
             }
         }
     }

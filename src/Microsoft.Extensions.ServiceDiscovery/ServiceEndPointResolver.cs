@@ -78,7 +78,7 @@ public sealed partial class ServiceEndPointResolver(
             ServiceEndPointCollection? result;
             do
             {
-                await RefreshAsync(force: false).WaitAsync(cancellationToken).ConfigureAwait(false);
+                await RefreshAsync(force: false).WaitAsync(Timeout.InfiniteTimeSpan, _timeProvider, cancellationToken).ConfigureAwait(false);
                 result = _cachedEndPoints;
             } while (result is null);
             return result;
@@ -123,9 +123,16 @@ public sealed partial class ServiceEndPointResolver(
 
     private async Task RefreshAsyncInternal()
     {
-        await Task.CompletedTask.ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
+        // yield execution
+        await Task.Factory.StartNew(
+                () => { },
+                CancellationToken.None,
+                TaskCreationOptions.PreferFairness,
+                TaskScheduler.Current)
+            .ConfigureAwait(false);
+
         var cancellationToken = _disposalCancellation.Token;
-        Exception? error = null;
+        ExceptionDispatchInfo? error = null;
         ServiceEndPointCollection? newEndPoints = null;
         CacheStatus newCacheState;
         ResolutionStatus status = ResolutionStatus.Success;
@@ -156,13 +163,13 @@ public sealed partial class ServiceEndPointResolver(
                     else if (statusCode is ResolutionStatusCode.Cancelled)
                     {
                         newCacheState = CacheStatus.Invalid;
-                        error = status.Exception ?? new OperationCanceledException();
+                        error = ExceptionDispatchInfo.Capture(status.Exception ?? new OperationCanceledException());
                         break;
                     }
                     else if (statusCode is ResolutionStatusCode.Error)
                     {
                         newCacheState = CacheStatus.Invalid;
-                        error = status.Exception;
+                        error = status.Exception != null ? ExceptionDispatchInfo.Capture(status.Exception) : null;
                         break;
                     }
                 }
@@ -193,7 +200,7 @@ public sealed partial class ServiceEndPointResolver(
             }
             catch (Exception exception)
             {
-                error = exception;
+                error = ExceptionDispatchInfo.Capture(exception);
                 newCacheState = CacheStatus.Invalid;
                 SchedulePollingTimer();
                 status = CombineStatus(status, ResolutionStatus.FromException(exception));
@@ -231,8 +238,8 @@ public sealed partial class ServiceEndPointResolver(
 
         if (error is not null)
         {
-            Log.ResolutionFailed(_logger, error, ServiceName);
-            ExceptionDispatchInfo.Throw(error);
+            Log.ResolutionFailed(_logger, error.SourceException, ServiceName);
+            error.Throw();
         }
         else if (newEndPoints is not null)
         {
@@ -312,7 +319,7 @@ public sealed partial class ServiceEndPointResolver(
         _disposalCancellation.Cancel();
         if (_refreshTask is { } task)
         {
-            await task.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+            await task.SuppressThrowing();
         }
 
         foreach (var resolver in _resolvers)
@@ -335,7 +342,7 @@ public sealed partial class ServiceEndPointResolver(
             return;
         }
 
-        TaskCompletionSource completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource<bool> completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
         IDisposable? changeTokenRegistration = null;
         IDisposable? cancellationRegistration = null;
         IDisposable? pollPeriodRegistration = null;
@@ -346,17 +353,17 @@ public sealed partial class ServiceEndPointResolver(
             // Either wait for a callback or poll externally.
             if (changeToken.ActiveChangeCallbacks)
             {
-                changeTokenRegistration = changeToken.RegisterChangeCallback(static state => ((TaskCompletionSource)state!).TrySetResult(), completion);
+                changeTokenRegistration = changeToken.RegisterChangeCallback(static state => ((TaskCompletionSource<bool>)state!).TrySetResult(true), completion);
             }
             else
             {
                 timerCancellation = new(pollPeriod);
-                pollPeriodRegistration = timerCancellation.Token.UnsafeRegister(static state => ((TaskCompletionSource)state!).TrySetResult(), completion);
+                pollPeriodRegistration = timerCancellation.Token.Register(static state => ((TaskCompletionSource<bool>)state!).TrySetResult(true), completion, false);
             }
 
             if (cancellationToken.CanBeCanceled)
             {
-                cancellationRegistration = cancellationToken.UnsafeRegister(static state => ((TaskCompletionSource)state!).TrySetResult(), completion);
+                cancellationRegistration = cancellationToken.Register(static state => ((TaskCompletionSource<bool>)state!).TrySetResult(true), completion, false);
             }
 
             await completion.Task.ConfigureAwait(false);

@@ -29,7 +29,7 @@ public partial class ServiceEndPointResolverFactory(
     /// </summary>
     public ServiceEndPointResolver CreateResolver(string serviceName)
     {
-        ArgumentNullException.ThrowIfNull(serviceName);
+        ThrowHelper.ThrowIfNull(serviceName);
 
         List<IServiceEndPointResolver>? resolvers = null;
         foreach (var factory in _resolverProviders)
