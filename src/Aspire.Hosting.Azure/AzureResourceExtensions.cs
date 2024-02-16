@@ -3,6 +3,7 @@
 
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.Data.Cosmos;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
@@ -157,27 +158,79 @@ public static class AzureResourceExtensions
     /// Configures an Azure Storage resource to be emulated using Azurite. This resource requires an <see cref="AzureStorageResource"/> to be added to the application model.
     /// </summary>
     /// <param name="builder">The Azure storage resource builder.</param>
-    /// <param name="blobPort">The port used for the blob endpoint.</param>
-    /// <param name="queuePort">The port used for the queue endpoint.</param>
-    /// <param name="tablePort">The port used for the table endpoint.</param>
-    /// <param name="imageTag">The image tag for the <c>mcr.microsoft.com/azure-storage/azurite</c> image.</param>
-    /// <param name="storagePath">The path on the host to persist the storage volume to.</param>
-    /// <remarks>If no <paramref name="storagePath"/> is provided, data will not be persisted when the container is deleted.</remarks>
+    /// <param name="configureContainer">Callback that exposes underlying container used for emulation to allow for customization.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureStorageResource> UseEmulator(this IResourceBuilder<AzureStorageResource> builder, int? blobPort = null, int? queuePort = null, int? tablePort = null, string? imageTag = null, string? storagePath = null)
+    public static IResourceBuilder<AzureStorageResource> UseEmulator(this IResourceBuilder<AzureStorageResource> builder, Action<IResourceBuilder<AzureStorageEmulatorResource>>? configureContainer = null)
     {
-        builder.WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, name: "blob", port: blobPort, containerPort: 10000))
-               .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, name: "queue", port: queuePort, containerPort: 10001))
-               .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, name: "table", port: tablePort, containerPort: 10002))
-               .WithAnnotation(new ContainerImageAnnotation { Image = "mcr.microsoft.com/azure-storage/azurite", Tag = imageTag ?? "latest" });
+        builder.WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, name: "blob", containerPort: 10000))
+               .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, name: "queue", containerPort: 10001))
+               .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, name: "table", containerPort: 10002))
+               .WithAnnotation(new ContainerImageAnnotation { Image = "mcr.microsoft.com/azure-storage/azurite", Tag = "latest" });
 
-        if (storagePath is not null)
+        if (configureContainer != null)
         {
-            var volumeAnnotation = new VolumeMountAnnotation(storagePath, "/data", VolumeMountType.Bind, false);
-            return builder.WithAnnotation(volumeAnnotation);
+            var surrogate = new AzureStorageEmulatorResource(builder.Resource);
+            var surrogateBuilder = builder.ApplicationBuilder.CreateResourceBuilder(surrogate);
+            configureContainer(surrogateBuilder);
         }
 
         return builder;
+    }
+
+    /// <summary>
+    /// Enables persistence in the Azure Storage emulator.
+    /// </summary>
+    /// <param name="builder">The builder for the <see cref="AzureStorageEmulatorResource"/>.</param>
+    /// <param name="path">Relative path to the AppHost where emulator storage is persisted between runs.</param>
+    /// <returns>A builder for the <see cref="AzureStorageEmulatorResource"/>.</returns>
+    public static IResourceBuilder<AzureStorageEmulatorResource> UsePersistence(this IResourceBuilder<AzureStorageEmulatorResource> builder, string? path = null)
+    {
+        path = path ?? $".azurite/{builder.Resource.Name}";
+        var fullyQualifiedPath = Path.GetFullPath(path, builder.ApplicationBuilder.AppHostDirectory);
+        return builder.WithVolumeMount(fullyQualifiedPath, "/data", VolumeMountType.Bind, false);
+
+    }
+
+    /// <summary>
+    /// Modifies the host port that the storage emulator listens on for blob requests.
+    /// </summary>
+    /// <param name="builder">Storage emulator resource builder.</param>
+    /// <param name="port">Host port to use.</param>
+    /// <returns></returns>
+    public static IResourceBuilder<AzureStorageEmulatorResource> UseBlobPort(this IResourceBuilder<AzureStorageEmulatorResource> builder, int port)
+    {
+        return builder.WithEndpoint("blob", endpoint =>
+        {
+            endpoint.Port = port;
+        });
+    }
+
+    /// <summary>
+    /// Modifies the host port that the storage emulator listens on for queue requests.
+    /// </summary>
+    /// <param name="builder">Storage emulator resource builder.</param>
+    /// <param name="port">Host port to use.</param>
+    /// <returns></returns>
+    public static IResourceBuilder<AzureStorageEmulatorResource> UseQueuePort(this IResourceBuilder<AzureStorageEmulatorResource> builder, int port)
+    {
+        return builder.WithEndpoint("queue", endpoint =>
+        {
+            endpoint.Port = port;
+        });
+    }
+
+    /// <summary>
+    /// Modifies the host port that the storage emulator listens on for table requests.
+    /// </summary>
+    /// <param name="builder">Storage emulator resource builder.</param>
+    /// <param name="port">Host port to use.</param>
+    /// <returns></returns>
+    public static IResourceBuilder<AzureStorageEmulatorResource> UseTablePort(this IResourceBuilder<AzureStorageEmulatorResource> builder, int port)
+    {
+        return builder.WithEndpoint("table", endpoint =>
+        {
+            endpoint.Port = port;
+        });
     }
 
     /// <summary>
@@ -185,17 +238,39 @@ public static class AzureResourceExtensions
     /// For more information on the Azure Cosmos DB emulator, see <a href="https://learn.microsoft.com/azure/cosmos-db/emulator#authentication"></a>
     /// </summary>
     /// <param name="builder">The Azure Cosmos DB resource builder.</param>
-    /// <param name="port">The port used for the client SDK to access the emulator. Defaults to <c>8081</c></param>
-    /// <param name="imageTag">The image tag for the <c>mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator</c> image.</param>
+    /// <param name="configureContainer">Callback that exposes underlying container used for emulation to allow for customization.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// When using the Azure Cosmos DB emulator, the container requires a TLS/SSL certificate.
     /// For more information, see <a href="https://learn.microsoft.com/azure/cosmos-db/how-to-develop-emulator?tabs=docker-linux#export-the-emulators-tlsssl-certificate"></a>
     /// </remarks>
-    public static IResourceBuilder<AzureCosmosDBResource> UseEmulator(this IResourceBuilder<AzureCosmosDBResource> builder, int? port = null, string? imageTag = null)
+    public static IResourceBuilder<AzureCosmosDBResource> UseEmulator(this IResourceBuilder<AzureCosmosDBResource> builder, Action<IResourceBuilder<AzureCosmosDBEmulatorResource>>? configureContainer = null)
     {
-        return builder.WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, name: "emulator", port: port, containerPort: 8081))
-                      .WithAnnotation(new ContainerImageAnnotation { Image = "mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator", Tag = imageTag ?? "latest" });
+        builder.WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, name: "emulator", containerPort: 8081))
+               .WithAnnotation(new ContainerImageAnnotation { Image = "mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator", Tag = "latest" });
+
+        if (configureContainer != null)
+        {
+            var surrogate = new AzureCosmosDBEmulatorResource(builder.Resource);
+            var surrogateBuilder = builder.ApplicationBuilder.CreateResourceBuilder(surrogate);
+            configureContainer(surrogateBuilder);
+        }
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures the gateway port for the Azure Cosmos DB emulator.
+    /// </summary>
+    /// <param name="builder">Builder for the Cosmos emulator container</param>
+    /// <param name="port">Host port to bind to the emulator gateway port.</param>
+    /// <returns>Cosmos emulator resource builder.</returns>
+    public static IResourceBuilder<AzureCosmosDBEmulatorResource> UseGatewayPort(this IResourceBuilder<AzureCosmosDBEmulatorResource> builder, int? port)
+    {
+        return builder.WithEndpoint("emulator", endpoint =>
+        {
+            endpoint.Port = port;
+        });
     }
 
     /// <summary>
@@ -366,7 +441,7 @@ public static class AzureResourceExtensions
             // UseAzureMonitor is looking for this specific environment variable name.
             var connectionStringName = "APPLICATIONINSIGHTS_CONNECTION_STRING";
 
-            if (context.PublisherName == "manifest")
+            if (context.ExecutionContext.Operation == DistributedApplicationOperation.Publish)
             {
                 context.EnvironmentVariables[connectionStringName] = $"{{{resource.Name}.connectionString}}";
                 return;
@@ -393,5 +468,57 @@ public static class AzureResourceExtensions
 
             context.EnvironmentVariables[connectionStringName] = connectionString;
         });
+    }
+
+    /// <summary>
+    /// Adds an Azure Cosmos DB connection to the application model.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <param name="connectionString">The connection string.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<AzureCosmosDBResource> AddAzureCosmosDB(
+       this IDistributedApplicationBuilder builder,
+       string name,
+       string? connectionString = null)
+    {
+        var connection = new AzureCosmosDBResource(name, connectionString);
+        return builder.AddResource(connection)
+                      .WithManifestPublishingCallback(context => WriteCosmosDBToManifest(context, connection));
+    }
+
+    /// <summary>
+    /// Adds a resource which represents a database in the associated Cosmos DB account resource.
+    /// </summary>
+    /// <param name="builder">AzureCosmosDB resource builder.</param>
+    /// <param name="name">Name of database.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<AzureCosmosDBDatabaseResource> AddDatabase(this IResourceBuilder<AzureCosmosDBResource> builder, string name)
+    {
+        var database = new AzureCosmosDBDatabaseResource(name, builder.Resource);
+        return builder.ApplicationBuilder.AddResource(database)
+            .WithManifestPublishingCallback(context => WriteCosmosDBDatabaseToManifest(context, database));
+    }
+
+    private static void WriteCosmosDBDatabaseToManifest(ManifestPublishingContext context, AzureCosmosDBDatabaseResource database)
+    {
+        context.Writer.WriteString("type", "azure.cosmosdb.database.v0");
+        context.Writer.WriteString("parent", database.Parent.Name);
+    }
+
+    private static void WriteCosmosDBToManifest(ManifestPublishingContext context, AzureCosmosDBResource cosmosDb)
+    {
+        // If we are using an emulator then we assume that a connection string was not
+        // provided for the purpose of manifest generation.
+        if (cosmosDb.IsEmulator || cosmosDb.GetConnectionString() is not { } connectionString)
+        {
+            context.Writer.WriteString("type", "azure.cosmosdb.account.v0");
+        }
+        else
+        {
+            context.Writer.WriteString("type", "azure.cosmosdb.connection.v0");
+            context.Writer.WriteString("connectionString", connectionString);
+        }
+
     }
 }

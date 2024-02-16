@@ -7,7 +7,6 @@ using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Lifecycle;
-using Aspire.Hosting.Publishing;
 using Azure;
 using Azure.Core;
 using Azure.Identity;
@@ -25,7 +24,7 @@ namespace Aspire.Hosting.Azure;
 // Provisions azure resources for development purposes
 internal sealed class AzureProvisioner(
     IOptions<AzureProvisionerOptions> options,
-    IOptions<PublishingOptions> publishingOptions,
+    DistributedApplicationExecutionContext executionContext,
     IConfiguration configuration,
     IHostEnvironment environment,
     ILogger<AzureProvisioner> logger,
@@ -39,7 +38,7 @@ internal sealed class AzureProvisioner(
     public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
         // TODO: Make this more general purpose
-        if (publishingOptions.Value.Publisher == "manifest")
+        if (executionContext.Operation == DistributedApplicationOperation.Publish)
         {
             return;
         }
@@ -57,10 +56,6 @@ internal sealed class AzureProvisioner(
         catch (MissingConfigurationException ex)
         {
             logger.LogWarning(ex, "Required configuration is missing.");
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error provisioning Azure resources.");
         }
     }
 
@@ -96,10 +91,11 @@ internal sealed class AzureProvisioner(
 
         Lazy<Task<(ResourceGroupResource, AzureLocation)>> resourceGroupAndLocationLazy = new(async () =>
         {
+            var unique = $"{Environment.MachineName.ToLowerInvariant()}-{environment.ApplicationName.ToLowerInvariant()}";
             // Name of the resource group to create based on the machine name and application name
             var (resourceGroupName, createIfAbsent) = _options.ResourceGroup switch
             {
-                null => ($"{Environment.MachineName.ToLowerInvariant()}-{environment.ApplicationName.ToLowerInvariant()}-rg", true),
+                null => ($"rg-aspire-{unique}", true),
                 string rg => (rg, _options.AllowResourceGroupCreation ?? false)
             };
 
@@ -185,11 +181,30 @@ internal sealed class AzureProvisioner(
             ? JsonNode.Parse(await File.ReadAllTextAsync(userSecretsPath, cancellationToken).ConfigureAwait(false))!.AsObject()
             : [];
 
+        IAzureResourceProvisioner? SelectProvisioner(IAzureResource resource)
+        {
+            var type = resource.GetType();
+
+            while (type is not null)
+            {
+                var provisioner = serviceProvider.GetKeyedService<IAzureResourceProvisioner>(type);
+
+                if (provisioner is not null)
+                {
+                    return provisioner;
+                }
+
+                type = type.BaseType;
+            }
+
+            return null;
+        }
+
         foreach (var resource in azureResources)
         {
             usedResources.Add(resource.Name);
 
-            var provisioner = serviceProvider.GetKeyedService<IAzureResourceProvisioner>(resource.GetType());
+            var provisioner = SelectProvisioner(resource);
 
             if (provisioner is null)
             {
@@ -219,7 +234,7 @@ internal sealed class AzureProvisioner(
 
             resourceMap ??= await resourceMapLazy.Value.ConfigureAwait(false);
             principal ??= await principalLazy.Value.ConfigureAwait(false);
-            provisioningContext ??= new ProvisioningContext(armClient, subscription, resourceGroup, resourceMap, location, principal, userSecrets);
+            provisioningContext ??= new ProvisioningContext(credential, armClient, subscription, resourceGroup, resourceMap, location, principal, userSecrets);
 
             var task = provisioner.GetOrCreateResourceAsync(
                     resource,
@@ -231,7 +246,10 @@ internal sealed class AzureProvisioner(
 
         if (tasks.Count > 0)
         {
-            await Task.WhenAll(tasks).ConfigureAwait(false);
+            var task = Task.WhenAll(tasks);
+
+            // Suppress throwing so that we can save the user secrets even if the task fails
+            await task.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
 
             // If we created any resources then save the user secrets
             if (userSecretsPath is not null)
@@ -242,6 +260,9 @@ internal sealed class AzureProvisioner(
 
                 logger.LogInformation("Azure resource connection strings saved to user secrets.");
             }
+
+            // Throw if any of the tasks failed, but after we've saved to user secrets
+            await task.ConfigureAwait(false);
         }
 
         // Do this in the background to avoid blocking startup

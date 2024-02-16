@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
+using Aspire.Hosting.MongoDB;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -14,13 +15,13 @@ public class AddMongoDBTests
     {
         var appBuilder = DistributedApplication.CreateBuilder();
 
-        appBuilder.AddMongoDBContainer("mongodb");
+        appBuilder.AddMongoDB("mongodb");
 
         var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var containerResource = Assert.Single(appModel.Resources.OfType<MongoDBContainerResource>());
+        var containerResource = Assert.Single(appModel.Resources.OfType<MongoDBServerResource>());
         Assert.Equal("mongodb", containerResource.Name);
 
         var manifestAnnotation = Assert.Single(containerResource.Annotations.OfType<ManifestPublishingCallbackAnnotation>());
@@ -45,13 +46,13 @@ public class AddMongoDBTests
     public void AddMongoDBContainerAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.AddMongoDBContainer("mongodb", 9813);
+        appBuilder.AddMongoDB("mongodb", 9813);
 
         var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var containerResource = Assert.Single(appModel.Resources.OfType<MongoDBContainerResource>());
+        var containerResource = Assert.Single(appModel.Resources.OfType<MongoDBServerResource>());
         Assert.Equal("mongodb", containerResource.Name);
 
         var manifestAnnotation = Assert.Single(containerResource.Annotations.OfType<ManifestPublishingCallbackAnnotation>());
@@ -77,7 +78,7 @@ public class AddMongoDBTests
     {
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder
-            .AddMongoDBContainer("mongodb")
+            .AddMongoDB("mongodb")
             .WithAnnotation(
                 new AllocatedEndpointAnnotation("mybinding",
                 ProtocolType.Tcp,
@@ -95,5 +96,24 @@ public class AddMongoDBTests
         var connectionString = connectionStringResource.GetConnectionString();
 
         Assert.Equal("mongodb://localhost:27017/mydatabase", connectionString);
+    }
+
+    [Fact]
+    public void WithMongoExpressAddsContainer()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        builder.AddMongoDB("mongo").WithMongoExpress();
+
+        Assert.Single(builder.Resources.OfType<MongoExpressContainerResource>());
+    }
+
+    [Fact]
+    public void WithMongoExpressOnMultipleResources()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+        builder.AddMongoDB("mongo").WithMongoExpress();
+        builder.AddMongoDB("mongo2").WithMongoExpress();
+
+        Assert.Equal(2, builder.Resources.OfType<MongoExpressContainerResource>().Count());
     }
 }

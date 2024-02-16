@@ -5,6 +5,9 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Azure.Data.Cosmos;
 
+/// <summary>
+/// A resource that represents an Azure Cosmos DB database.
+/// </summary>
 public class AzureCosmosDBDatabaseResource : Resource, IResourceWithConnectionString, IResourceWithParent<AzureCosmosDBResource>
 {
     /// <summary>
@@ -18,8 +21,14 @@ public class AzureCosmosDBDatabaseResource : Resource, IResourceWithConnectionSt
         parent.AddDatabase(this);
     }
 
+    /// <summary>
+    /// Gets the connection string to use for this database.
+    /// </summary>
     public string? ConnectionString { get; set; }
 
+    /// <summary>
+    /// Gets the parent Azure Cosmos DB resource.
+    /// </summary>
     public AzureCosmosDBResource Parent { get; }
 
     /// <summary>

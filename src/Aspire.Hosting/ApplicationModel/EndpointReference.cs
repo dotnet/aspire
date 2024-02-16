@@ -21,8 +21,28 @@ public sealed class EndpointReference(IResourceWithEndpoints owner, string endpo
     public string EndpointName { get; } = endpointName;
 
     /// <summary>
+    /// Gets the expression used in the manifest to reference the value of the endpoint.
+    /// </summary>
+    public string ValueExpression => $"{{{Owner.Name}.bindings.{EndpointName}.url}}";
+
+    /// <summary>
     /// Gets the URI string for the endpoint reference.
     /// </summary>
+    public string Value
+    {
+        get
+        {
+            var allocatedEndpoint = Owner.Annotations.OfType<AllocatedEndpointAnnotation>().SingleOrDefault(a => a.Name == EndpointName);
+
+            return allocatedEndpoint?.UriString ??
+                throw new InvalidOperationException($"The endpoint `{EndpointName}` is not allocated for the resource `{Owner.Name}`.");
+        }
+    }
+
+    /// <summary>
+    /// Gets the URI string for the endpoint reference.
+    /// </summary>
+    [Obsolete("Use Value instead.")]
     public string UriString
     {
         get

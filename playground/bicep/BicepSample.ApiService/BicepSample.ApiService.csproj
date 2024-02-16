@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Components\Aspire.Azure.Data.Tables\Aspire.Azure.Data.Tables.csproj" />
+    <ProjectReference Include="..\..\..\src\Components\Aspire.Azure.Messaging.ServiceBus\Aspire.Azure.Messaging.ServiceBus.csproj" />
+    <ProjectReference Include="..\..\..\src\Components\Aspire.Azure.Storage.Blobs\Aspire.Azure.Storage.Blobs.csproj" />
+    <ProjectReference Include="..\..\..\src\Components\Aspire.Azure.Storage.Queues\Aspire.Azure.Storage.Queues.csproj" />
+    <ProjectReference Include="..\..\..\src\Components\Aspire.Microsoft.Azure.Cosmos\Aspire.Microsoft.Azure.Cosmos.csproj" />
+    <ProjectReference Include="..\..\..\src\Components\Aspire.Microsoft.EntityFrameworkCore.SqlServer\Aspire.Microsoft.EntityFrameworkCore.SqlServer.csproj" />
+    <ProjectReference Include="..\..\..\src\Components\Aspire.Npgsql.EntityFrameworkCore.PostgreSQL\Aspire.Npgsql.EntityFrameworkCore.PostgreSQL.csproj" />
+    <ProjectReference Include="..\..\..\src\Components\Aspire.StackExchange.Redis\Aspire.StackExchange.Redis.csproj" />
+    <ProjectReference Include="..\..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj" />
+  </ItemGroup>
+
+</Project>

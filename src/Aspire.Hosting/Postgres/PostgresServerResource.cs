@@ -10,8 +10,11 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 /// <param name="password">The PostgreSQL server password.</param>
-public class PostgresServerResource(string name, string password) : Resource(name), IPostgresParentResource
+public class PostgresServerResource(string name, string password) : ContainerResource(name), IResourceWithConnectionString
 {
+    /// <summary>
+    /// Gets the PostgreSQL server password.
+    /// </summary>
     public string Password { get; } = password;
 
     /// <summary>

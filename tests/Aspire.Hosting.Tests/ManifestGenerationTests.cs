@@ -33,7 +33,7 @@ public class ManifestGenerationTests
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher(includeNodeApp: true);
         program.NodeAppBuilder!.WithHttpsEndpoint(containerPort: 3000, env: "HTTPS_PORT")
-            .AsDockerfileInManifest();
+            .PublishAsDockerFile();
 
         // Build AppHost so that publisher can be resolved.
         program.Build();
@@ -256,7 +256,7 @@ public class ManifestGenerationTests
         var program = CreateTestProgramJsonDocumentManifestPublisher();
 
         program.AppBuilder.AddPostgres("postgresabstract");
-        program.AppBuilder.AddPostgresContainer("postgrescontainer").AddDatabase("postgresdatabase");
+        program.AppBuilder.AddPostgres("postgrescontainer").PublishAsContainer().AddDatabase("postgresdatabase");
 
         // Build AppHost so that publisher can be resolved.
         program.Build();
@@ -336,7 +336,7 @@ public class ManifestGenerationTests
         var program = CreateTestProgramJsonDocumentManifestPublisher();
 
         program.AppBuilder.AddKafka("kafkaabstract");
-        program.AppBuilder.AddKafkaContainer("kafkacontainer");
+        program.AppBuilder.AddKafka("kafkacontainer").PublishAsContainer();
 
         // Build AppHost so that publisher can be resolved.
         program.Build();
@@ -452,25 +452,6 @@ public class ManifestGenerationTests
 
         var deployment = resources.GetProperty("deployment");
         Assert.Equal("azure.openai.deployment.v0", deployment.GetProperty("type").GetString());
-    }
-
-    [Fact]
-    public void EnsureAllOpenAIManifestTypesHaveVersion0Suffix()
-    {
-        var program = CreateTestProgramJsonDocumentManifestPublisher();
-
-        program.AppBuilder.AddOpenAI("openai");
-
-        // Build AppHost so that publisher can be resolved.
-        program.Build();
-        var publisher = program.GetManifestPublisher();
-
-        program.Run();
-
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var openai = resources.GetProperty("openai");
-        Assert.Equal("openai.v0", openai.GetProperty("type").GetString());
     }
 
     [Fact]

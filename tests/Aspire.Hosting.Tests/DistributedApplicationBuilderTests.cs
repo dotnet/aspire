@@ -12,6 +12,15 @@ namespace Aspire.Hosting.Tests;
 
 public class DistributedApplicationBuilderTests
 {
+    [Theory]
+    [InlineData(new string[0], DistributedApplicationOperation.Run)]
+    [InlineData(new string[] { "--publisher", "manifest" }, DistributedApplicationOperation.Publish)]
+    public void BuilderExecutionContextExposesCorrectOperation(string[] args, DistributedApplicationOperation operation)
+    {
+        var builder = DistributedApplication.CreateBuilder(args);
+        Assert.Equal(operation, builder.ExecutionContext.Operation);
+    }
+
     [Fact]
     public void BuilderAddsDefaultServices()
     {

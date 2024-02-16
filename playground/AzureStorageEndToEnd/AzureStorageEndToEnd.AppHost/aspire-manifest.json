@@ -1,0 +1,45 @@
+{
+  "resources": {
+    "db": {
+      "type": "parameter.v0",
+      "value": "{db.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true
+        }
+      }
+    },
+    "insertionrows": {
+      "type": "parameter.v0",
+      "value": "{insertionrows.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "api": {
+      "type": "project.v0",
+      "path": "../ParameterEndToEnd.ApiService/ParameterEndToEnd.ApiService.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "InsertionRows": "{insertionrows.value}",
+        "ConnectionStrings__db": "{db.value}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http"
+        }
+      }
+    }
+  }
+}

@@ -204,6 +204,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Copied!.
+        /// </summary>
+        public static string GridValueCopied {
+            get {
+                return ResourceManager.GetString("GridValueCopied", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Copy to clipboard.
         /// </summary>
         public static string GridValueCopyToClipboard {
@@ -272,6 +281,24 @@ namespace Aspire.Dashboard.Resources {
         public static string PropertyGridValueColumnHeader {
             get {
                 return ResourceManager.GetString("PropertyGridValueColumnHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to replica set.
+        /// </summary>
+        public static string ReplicaSetLower {
+            get {
+                return ResourceManager.GetString("ReplicaSetLower", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} (replica of {1}).
+        /// </summary>
+        public static string ResourceDropdownReplicaAccessibleTitle {
+            get {
+                return ResourceManager.GetString("ResourceDropdownReplicaAccessibleTitle", resourceCulture);
             }
         }
         

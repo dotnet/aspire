@@ -5,7 +5,6 @@ using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
-using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting;
 
@@ -64,14 +63,20 @@ public static class ResourceBuilderExtensions
     /// <returns>A resource configured with the environment variable callback.</returns>
     public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, EndpointReference endpointReference) where T : IResourceWithEnvironment
     {
-        return builder.WithAnnotation(new EnvironmentCallbackAnnotation(name, () =>
+        return builder.WithEnvironment(context =>
         {
+            if (context.ExecutionContext.Operation == DistributedApplicationOperation.Publish)
+            {
+                context.EnvironmentVariables[name] = endpointReference.ValueExpression;
+                return;
+            }
+
             var replaceLocalhostWithContainerHost = builder.Resource is ContainerResource;
 
-            return replaceLocalhostWithContainerHost
-            ? HostNameResolver.ReplaceLocalhostWithContainerHost(endpointReference.UriString, builder.ApplicationBuilder.Configuration)
-            : endpointReference.UriString;
-        }));
+            context.EnvironmentVariables[name] = replaceLocalhostWithContainerHost
+            ? HostNameResolver.ReplaceLocalhostWithContainerHost(endpointReference.Value, builder.ApplicationBuilder.Configuration)
+            : endpointReference.Value;
+        });
     }
 
     /// <summary>
@@ -82,13 +87,13 @@ public static class ResourceBuilderExtensions
     /// <param name="name">Name of enviroment variable</param>
     /// <param name="parameter">Resource builder for the parameter resource.</param>
     /// <returns>A resource configured with the environment variable callback.</returns>
-    public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, IResourceBuilder<ParameterResource> parameter) where T: IResourceWithEnvironment
+    public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, IResourceBuilder<ParameterResource> parameter) where T : IResourceWithEnvironment
     {
         return builder.WithEnvironment(context =>
         {
-            if (context.PublisherName == "manifest")
+            if (context.ExecutionContext.Operation == DistributedApplicationOperation.Publish)
             {
-                context.EnvironmentVariables[name] = $"{{{parameter.Resource.Name}.value}}";
+                context.EnvironmentVariables[name] = parameter.Resource.ValueExpression;
                 return;
             }
 
@@ -177,24 +182,15 @@ public static class ResourceBuilderExtensions
 
         return builder.WithEnvironment(context =>
         {
-            var connectionStringName = $"{ConnectionStringEnvironmentName}{connectionName}";
+            var connectionStringName = resource.ConnectionStringEnvironmentVariable ?? $"{ConnectionStringEnvironmentName}{connectionName}";
 
-            if (context.PublisherName == "manifest")
+            if (context.ExecutionContext.Operation == DistributedApplicationOperation.Publish)
             {
-                if (source.Resource is ResourceWithConnectionStringSurrogate)
-                {
-                    context.EnvironmentVariables[connectionStringName] = $"{{{resource.Name}.value}}";
-                }
-                else
-                {
-                    context.EnvironmentVariables[connectionStringName] = $"{{{resource.Name}.connectionString}}";
-                }
-
+                context.EnvironmentVariables[connectionStringName] = resource.ConnectionStringReferenceExpression;
                 return;
             }
 
-            var connectionString = resource.GetConnectionString() ??
-                builder.ApplicationBuilder.Configuration.GetConnectionString(resource.Name);
+            var connectionString = resource.GetConnectionString();
 
             if (string.IsNullOrEmpty(connectionString))
             {
@@ -303,6 +299,16 @@ public static class ResourceBuilderExtensions
         }
     }
 
+    /// <summary>
+    /// TODO: Doc Comments
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="builder"></param>
+    /// <param name="hostPort"></param>
+    /// <param name="scheme"></param>
+    /// <param name="name"></param>
+    /// <param name="env"></param>
+    /// <returns></returns>
     [Obsolete("WithServiceBinding has been renamed to WithEndpoint. Use WithEndpoint instead.")]
     public static IResourceBuilder<T> WithServiceBinding<T>(this IResourceBuilder<T> builder, int? hostPort = null, string? scheme = null, string? name = null, string? env = null) where T : IResource
     {
@@ -330,6 +336,39 @@ public static class ResourceBuilderExtensions
 
         var annotation = new EndpointAnnotation(ProtocolType.Tcp, uriScheme: scheme, name: name, port: hostPort, env: env);
         return builder.WithAnnotation(annotation);
+    }
+
+    /// <summary>
+    /// Changes an existing creates a new endpoint if it doesn't exist and invokes callback to modify the defaults.
+    /// </summary>
+    /// <param name="builder">Resource builder for resource with endpoints.</param>
+    /// <param name="endpointName">Name of endpoint to change.</param>
+    /// <param name="callback">Callback that modifies the endpoint.</param>
+    /// <param name="createIfNotExists">Create endpoint if it does not exist.</param>
+    /// <returns></returns>
+    public static IResourceBuilder<T> WithEndpoint<T>(this IResourceBuilder<T> builder, string endpointName, Action<EndpointAnnotation> callback, bool createIfNotExists = true) where T: IResourceWithEndpoints
+    {
+        var endpoint = builder.Resource.Annotations
+            .OfType<EndpointAnnotation>()
+            .Where(ea => StringComparers.EndpointAnnotationName.Equals(ea.Name, endpointName))
+            .SingleOrDefault();
+
+        if (endpoint != null)
+        {
+            callback(endpoint);
+
+        }
+        if (endpoint == null && createIfNotExists)
+        {
+            endpoint = new EndpointAnnotation(ProtocolType.Tcp, name: endpointName);
+            callback(endpoint);
+        }
+        else if (endpoint == null && !createIfNotExists)
+        {
+            return builder;
+        }
+
+        return builder;
     }
 
     /// <summary>
@@ -364,6 +403,17 @@ public static class ResourceBuilderExtensions
         return builder.WithEndpoint(hostPort: hostPort, scheme: "https", name: name, env: env);
     }
 
+    /// <summary>
+    /// TODO: Doc Comments
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="builder"></param>
+    /// <param name="containerPort"></param>
+    /// <param name="hostPort"></param>
+    /// <param name="scheme"></param>
+    /// <param name="name"></param>
+    /// <param name="env"></param>
+    /// <returns></returns>
     [Obsolete("WithServiceBinding has been renamed to WithEndpoint. Use WithEndpoint instead.")]
     public static IResourceBuilder<T> WithServiceBinding<T>(this IResourceBuilder<T> builder, int containerPort, int? hostPort = null, string? scheme = null, string? name = null, string? env = null) where T : IResource
     {
@@ -483,7 +533,7 @@ public static class ResourceBuilderExtensions
     /// <param name="name">Name of metadata.</param>
     /// <param name="value">Value of metadata.</param>
     /// <returns>Resource builder.</returns>
-    public static IResourceBuilder<T> WithMetadata<T>(this IResourceBuilder<T> builder, string name, object value) where T: IResource
+    public static IResourceBuilder<T> WithMetadata<T>(this IResourceBuilder<T> builder, string name, object value) where T : IResource
     {
         var existingAnnotation = builder.Resource.Annotations.OfType<ManifestMetadataAnnotation>().SingleOrDefault(a => a.Name == name);
 

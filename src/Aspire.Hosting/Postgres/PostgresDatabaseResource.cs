@@ -4,13 +4,16 @@
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// A resource that represents a PostgreSQL database. This is a child resource of a <see cref="PostgresContainerResource"/>.
+/// A resource that represents a PostgreSQL database. This is a child resource of a <see cref="PostgresServerResource"/>.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 /// <param name="postgresParentResource">The PostgreSQL parent resource associated with this database.</param>
-public class PostgresDatabaseResource(string name, IPostgresParentResource postgresParentResource) : Resource(name), IResourceWithParent<IPostgresParentResource>, IResourceWithConnectionString
+public class PostgresDatabaseResource(string name, PostgresServerResource postgresParentResource) : Resource(name), IResourceWithParent<PostgresServerResource>, IResourceWithConnectionString
 {
-    public IPostgresParentResource Parent { get; } = postgresParentResource;
+    /// <summary>
+    /// Gets the parent PostgresSQL container resource.
+    /// </summary>
+    public PostgresServerResource Parent { get; } = postgresParentResource;
 
     /// <summary>
     /// Gets the connection string for the Postgres database.

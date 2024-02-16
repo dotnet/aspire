@@ -6,7 +6,7 @@ We have seen Docker get into weird state on "DevBox" machines that get hibernate
 
 The remedy is to do "Restart Docker" gesture from the Docker icon in system tray.
 
-## If something goes wrong and you are left with a bunch of .NET Aspire eShopLite orphaned processes and containers
+## If something goes wrong and you are left with a bunch of .NET Aspire TestShop orphaned processes and containers
 
 This will display process IDs of all the .NET Aspire shopping running processes
 

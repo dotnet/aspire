@@ -9,7 +9,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// A resource that represents a MongoDB container.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
-public class MongoDBServerResource(string name) : Resource(name), IMongoDBParentResource
+public class MongoDBServerResource(string name) : ContainerResource(name), IResourceWithConnectionString
 {
     /// <summary>
     /// Gets the connection string for the MongoDB server.

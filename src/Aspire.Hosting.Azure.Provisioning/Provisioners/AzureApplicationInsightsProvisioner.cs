@@ -42,7 +42,7 @@ internal sealed class AzureApplicationInsightsProvisioner(ILogger<AzureApplicati
             var logAnalytics = new OperationalInsightsWorkspaceData(context.Location);
             logAnalytics.Tags.Add(AzureProvisioner.AspireResourceNameTag, resource.Name);
 
-            var workspaceName = Guid.NewGuid().ToString().Replace("-", string.Empty)[0..20];
+            var workspaceName = Guid.NewGuid().ToString("N")[0..20];
 
             logger.LogInformation("Creating Log Analytics Workspace {workspaceName} in {location}...", workspaceName, context.Location);
             var sw = Stopwatch.StartNew();
@@ -50,7 +50,7 @@ internal sealed class AzureApplicationInsightsProvisioner(ILogger<AzureApplicati
             sw.Stop();
             logger.LogInformation("Log Analytics Workspace {workspaceName} created in {elapsed}", workspaceOp.Value.Data.Name, TimeSpan.FromSeconds(10));
 
-            var applicationInsightsName = Guid.NewGuid().ToString().Replace("-", string.Empty)[0..20];
+            var applicationInsightsName = Guid.NewGuid().ToString("N")[0..20];
 
             // We could model application insights as a child resource of a log analytics workspace, but instead,
             // we'll just create it on demand.

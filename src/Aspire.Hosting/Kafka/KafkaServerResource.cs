@@ -1,13 +1,15 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-namespace Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.ApplicationModel;
+
+namespace Aspire.Hosting;
 
 /// <summary>
 /// A resource that represents a Kafka broker.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
-public class KafkaServerResource(string name) : Resource(name), IResourceWithConnectionString, IResourceWithEnvironment
+public class KafkaServerResource(string name) : ContainerResource(name), IResourceWithConnectionString, IResourceWithEnvironment
 {
     /// <summary>
     /// Gets the connection string for Kafka broker.

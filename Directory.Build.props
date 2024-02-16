@@ -11,6 +11,7 @@
     <!-- DefaultDotnetIconFullPath is only needed for the ServiceDisovery packages. The property can be removed when these libraries move. See https://github.com/dotnet/aspire/issues/170 -->
     <DefaultDotnetIconFullPath>$(PackageIconFullPath)</DefaultDotnetIconFullPath>
     <PackageIconFullPath>$(SharedDir)Aspire_icon_256.png</PackageIconFullPath>
+    <PackageProjectUrl>https://github.com/dotnet/aspire</PackageProjectUrl>
     <WarnOnPackingNonPackableProject>false</WarnOnPackingNonPackableProject>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
@@ -39,6 +40,7 @@
     <BuildArch Condition=" '$(BuildArch)' == '' ">amd64</BuildArch>
     <DcpDir>$(NuGetPackageRoot)microsoft.developercontrolplane.$(BuildOs)-$(BuildArch)/$(MicrosoftDeveloperControlPlanedarwinamd64PackageVersion)/tools/</DcpDir>
 
+    <TestArchiveTestsDir>$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'helix', 'tests'))</TestArchiveTestsDir>
     <!-- TODO: Need to figure out we can automatically detect target framework here. This property
                is specified to support dashboard path metadata generation on the inner loop. -->
     <AspireDashboardDir>$(MSBuildThisFileDirectory)/artifacts/bin/Aspire.Dashboard/$(Configuration)/net9.0/</AspireDashboardDir>

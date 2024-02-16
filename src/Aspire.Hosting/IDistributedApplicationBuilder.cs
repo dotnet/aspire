@@ -28,6 +28,11 @@ public interface IDistributedApplicationBuilder
     public IServiceCollection Services { get; }
 
     /// <summary>
+    /// Execution context for this invocation of the AppHost.
+    /// </summary>
+    public DistributedApplicationExecutionContext ExecutionContext { get; }
+
+    /// <summary>
     /// Gets the collection of resources for the distributed application.
     /// </summary>
     /// <remarks>
@@ -43,6 +48,14 @@ public interface IDistributedApplicationBuilder
     /// <returns>A builder for configuring the added resource.</returns>
     /// <exception cref="DistributedApplicationException">Thrown when a resource with the same name already exists.</exception>
     IResourceBuilder<T> AddResource<T>(T resource) where T : IResource;
+
+    /// <summary>
+    /// Creates a new resource builder based on an existing resource.
+    /// </summary>
+    /// <typeparam name="T">Type of resource.</typeparam>
+    /// <param name="resource">An existing resource.</param>
+    /// <returns>A resource builder.</returns>
+    IResourceBuilder<T> CreateResourceBuilder<T>(T resource) where T : IResource;
 
     /// <summary>
     /// Builds and returns a new <see cref="DistributedApplication"/> instance. This can only be called once.

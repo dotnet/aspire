@@ -20,4 +20,9 @@ public sealed class ParameterResource(string name, Func<string> callback, bool s
     /// Gets a value indicating whether the parameter is secret.
     /// </summary>
     public bool Secret { get; } = secret;
+
+    /// <summary>
+    /// Gets the expression used in the manifest to reference the value of the parameter.
+    /// </summary>
+    public string ValueExpression => $"{{{Name}.value}}";
 }

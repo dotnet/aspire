@@ -112,6 +112,12 @@ public sealed class IntegrationServicesFixture : IAsyncLifetime
         services.AddHttpClient()
             .ConfigureHttpClientDefaults(b =>
             {
+                b.ConfigureHttpClient(client =>
+                {
+                    // Disable the HttpClient timeout to allow the timeout strategies to control the timeout.
+                    client.Timeout = Timeout.InfiniteTimeSpan;
+                });
+
                 b.UseSocketsHttpHandler((handler, sp) =>
                 {
                     handler.PooledConnectionLifetime = TimeSpan.FromSeconds(5);

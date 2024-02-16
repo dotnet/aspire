@@ -5,13 +5,14 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 
 namespace Aspire.Hosting.MySql;
-public class PhpMyAdminConfigWriterHook : IDistributedApplicationLifecycleHook
+
+internal class PhpMyAdminConfigWriterHook : IDistributedApplicationLifecycleHook
 {
     public Task AfterEndpointsAllocatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
     {
         var adminResource = appModel.Resources.OfType<PhpMyAdminContainerResource>().Single();
         var serverFileMount = adminResource.Annotations.OfType<VolumeMountAnnotation>().Single(v => v.Target == "/etc/phpmyadmin/config.user.inc.php");
-        var mySqlInstances = appModel.Resources.OfType<IMySqlParentResource>();
+        var mySqlInstances = appModel.Resources.OfType<MySqlServerResource>();
 
         if (appModel.Resources.OfType<PhpMyAdminContainerResource>().SingleOrDefault() is not { } myAdminResource)
         {
@@ -35,13 +36,7 @@ public class PhpMyAdminConfigWriterHook : IDistributedApplicationLifecycleHook
                 {
                     context.EnvironmentVariables.Add("PMA_HOST", $"host.docker.internal:{endpoint.Port}");
                     context.EnvironmentVariables.Add("PMA_USER", "root");
-                    var password = singleInstance switch
-                    {
-                        MySqlServerResource psr => psr.Password,
-                        MySqlContainerResource pcr => pcr.Password,
-                        _ => throw new InvalidOperationException("MySql resource is neither MySqlServerResource or MySqlContainerResource.")
-                    };
-                    context.EnvironmentVariables.Add("PMA_PASSWORD", password);
+                    context.EnvironmentVariables.Add("PMA_PASSWORD", singleInstance.Password);
                 }));
             }
         }
@@ -58,20 +53,13 @@ public class PhpMyAdminConfigWriterHook : IDistributedApplicationLifecycleHook
             {
                 if (mySqlInstance.TryGetAllocatedEndPoints(out var allocatedEndpoints))
                 {
-                    var password = mySqlInstance switch
-                    {
-                        MySqlServerResource psr => psr.Password,
-                        MySqlContainerResource pcr => pcr.Password,
-                        _ => throw new InvalidOperationException("MySql resource is neither MySqlServerResource or MySqlContainerResource.")
-                    };
-
                     var endpoint = allocatedEndpoints.Where(ae => ae.Name == "tcp").Single();
                     writer.WriteLine("$i++;");
                     writer.WriteLine($"$cfg['Servers'][$i]['host'] = 'host.docker.internal:{endpoint.Port}';");
                     writer.WriteLine($"$cfg['Servers'][$i]['verbose'] = '{mySqlInstance.Name}';");
                     writer.WriteLine($"$cfg['Servers'][$i]['auth_type'] = 'cookie';");
                     writer.WriteLine($"$cfg['Servers'][$i]['user'] = 'root';");
-                    writer.WriteLine($"$cfg['Servers'][$i]['password'] = '{password}';");
+                    writer.WriteLine($"$cfg['Servers'][$i]['password'] = '{mySqlInstance.Password}';");
                     writer.WriteLine($"$cfg['Servers'][$i]['AllowNoPassword'] = true;");
                     writer.WriteLine();
                 }

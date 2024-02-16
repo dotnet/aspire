@@ -54,7 +54,7 @@ internal sealed class SqlServerProvisioner(ILogger<SqlServerProvisioner> logger)
 
         if (sqlServerResource is null)
         {
-            var sqlServerName = Guid.NewGuid().ToString().Replace("-", string.Empty)[0..20];
+            var sqlServerName = Guid.NewGuid().ToString("N")[0..20];
 
             logger.LogInformation("Creating SQL server {sqlServerName} in {location}...", sqlServerName, context.Location);
 

@@ -6,30 +6,27 @@ using Aspire.Hosting.Publishing;
 
 namespace Aspire.Hosting;
 
+/// <summary>
+/// Provides extension methods for adding Kafka resources to the application model.
+/// </summary>
 public static class KafkaBuilderExtensions
 {
     private const int KafkaBrokerPort = 9092;
-    /// <summary>
-    /// Adds a Kafka broker container to the application.
-    /// </summary>
-    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
-    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <param name="port">The host port of Kafka broker.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{KafkaContainerResource}"/></returns>
-    public static IResourceBuilder<KafkaContainerResource> AddKafkaContainer(this IDistributedApplicationBuilder builder, string name, int? port = null)
-    {
-        var kafka = new KafkaContainerResource(name);
-        return builder.AddResource(kafka)
-             .WithEndpoint(hostPort: port, containerPort: KafkaBrokerPort)
-             .WithAnnotation(new ContainerImageAnnotation { Image = "confluentinc/confluent-local", Tag = "latest" })
-             .WithManifestPublishingCallback(context => WriteKafkaContainerToManifest(context, kafka))
-             .WithEnvironment(context => ConfigureKafkaContainer(context, kafka));
 
-        static void WriteKafkaContainerToManifest(ManifestPublishingContext context, KafkaContainerResource resource)
-        {
-            context.WriteContainer(resource);
-            context.Writer.WriteString("connectionString", $"{{{resource.Name}.bindings.tcp.host}}:{{{resource.Name}.bindings.tcp.port}}");
-        }
+    /// <summary>
+    /// Changes the Kafka resource to be published as a container in the manifest.
+    /// </summary>
+    /// <param name="builder">Resource builder for <see cref="KafkaServerResource"/>.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<KafkaServerResource> PublishAsContainer(this IResourceBuilder<KafkaServerResource> builder)
+    {
+        return builder.WithManifestPublishingCallback(context => WriteKafkaContainerToManifest(context, builder.Resource));
+    }
+
+    private static void WriteKafkaContainerToManifest(ManifestPublishingContext context, KafkaServerResource resource)
+    {
+        context.WriteContainer(resource);
+        context.Writer.WriteString("connectionString", $"{{{resource.Name}.bindings.tcp.host}}:{{{resource.Name}.bindings.tcp.port}}");
     }
 
     /// <summary>
@@ -37,12 +34,13 @@ public static class KafkaBuilderExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency</param>
+    /// <param name="port">The host port of Kafka broker.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{KafkaServerResource}"/>.</returns>
-    public static IResourceBuilder<KafkaServerResource> AddKafka(this IDistributedApplicationBuilder builder, string name)
+    public static IResourceBuilder<KafkaServerResource> AddKafka(this IDistributedApplicationBuilder builder, string name, int? port = null)
     {
         var kafka = new KafkaServerResource(name);
         return builder.AddResource(kafka)
-            .WithEndpoint(containerPort: KafkaBrokerPort)
+            .WithEndpoint(containerPort: KafkaBrokerPort, hostPort: port)
             .WithAnnotation(new ContainerImageAnnotation{ Image = "confluentinc/confluent-local", Tag = "latest" })
             .WithManifestPublishingCallback(WriteKafkaServerToManifest)
             .WithEnvironment(context => ConfigureKafkaContainer(context, kafka));
@@ -60,7 +58,7 @@ public static class KafkaBuilderExtensions
         // When not explicitly set default configuration is applied.
         // See https://github.com/confluentinc/kafka-images/blob/master/local/include/etc/confluent/docker/configureDefaults for more details.
 
-        var hostPort = context.PublisherName == "manifest"
+        var hostPort = context.ExecutionContext.Operation == DistributedApplicationOperation.Publish
             ? KafkaBrokerPort
             : GetResourcePort(resource);
         context.EnvironmentVariables.Add("KAFKA_ADVERTISED_LISTENERS",
