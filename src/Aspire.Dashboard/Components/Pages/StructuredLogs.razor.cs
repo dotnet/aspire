@@ -16,11 +16,11 @@ namespace Aspire.Dashboard.Components.Pages;
 
 public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs.StructuredLogsPageViewModel, StructuredLogs.StructuredLogsPageState>
 {
-    private static readonly SelectViewModel<string> s_allApplication = new SelectViewModel<string> { Id = null, Name = "(All)" };
+    private SelectViewModel<ResourceTypeDetails> _allApplication = default!;
 
     private TotalItemsFooter _totalItemsFooter = default!;
     private List<OtlpApplication> _applications = default!;
-    private List<SelectViewModel<string>> _applicationViewModels = default!;
+    private List<SelectViewModel<ResourceTypeDetails>> _applicationViewModels = default!;
     private List<SelectViewModel<LogLevel?>> _logLevels = default!;
     private Subscription? _applicationsSubscription;
     private Subscription? _logsSubscription;
@@ -95,6 +95,14 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
             ViewModel.AddFilter(new LogFilter { Field = "SpanId", Condition = FilterCondition.Equals, Value = SpanId  });
         }
 
+        _allApplication = new()
+        {
+            Id = null,
+            Name = Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsAllApplications)]
+        };
+
+        _selectedApplication = _allApplication;
+
         _logLevels = new List<SelectViewModel<LogLevel?>>
         {
             new SelectViewModel<LogLevel?> { Id = null, Name = $"({Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsAllTypes)]})" },
@@ -128,7 +136,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     {
         _applications = TelemetryRepository.GetApplications();
         _applicationViewModels = SelectViewModelFactory.CreateApplicationsSelectViewModel(_applications);
-        _applicationViewModels.Insert(0, s_allApplication);
+        _applicationViewModels.Insert(0, _allApplication);
     }
 
     private Task HandleSelectedApplicationChangedAsync()

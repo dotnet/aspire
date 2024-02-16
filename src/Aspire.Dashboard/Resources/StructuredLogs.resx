@@ -70,4 +70,7 @@
   <data name="StructuredLogsMessageFilter" xml:space="preserve">
     <value>Message filter</value>
   </data>
+  <data name="StructuredLogsAllApplications" xml:space="preserve">
+    <value>(All)</value>
+  </data>
 </root>

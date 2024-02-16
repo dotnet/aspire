@@ -4,6 +4,8 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Model.Otlp;
+using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
@@ -33,11 +35,11 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     private readonly CancellationTokenSource _resourceSubscriptionCancellation = new();
     private readonly CancellationSeries _logSubscriptionCancellationSeries = new();
     private readonly ConcurrentDictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
-    private List<Option<string>>? _resources;
+    private List<SelectViewModel<ResourceTypeDetails>>? _resources;
 
     // UI
-    private FluentSelect<Option<string>>? _resourceSelectComponent;
-    private Option<string> _noSelection = null!;
+    private FluentSelect<SelectViewModel<ResourceTypeDetails>>? _resourceSelectComponent;
+    private SelectViewModel<ResourceTypeDetails> _noSelection = null!;
     private LogViewer _logViewer = null!;
 
     // State
@@ -48,8 +50,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
 
     protected override void OnInitialized()
     {
-        _noSelection = new() { Value = null, Text = ControlsStringsLoc[nameof(ControlsStrings.SelectAResource)] };
-        PageViewModel = new ConsoleLogsViewModel { SelectedResource = null, Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLoadingResources)] };
+        _noSelection = new() { Id = null, Name = ControlsStringsLoc[nameof(ControlsStrings.SelectAResource)] };
+        PageViewModel = new ConsoleLogsViewModel { SelectedOption = _noSelection, SelectedResource = null, Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLoadingResources)] };
 
         TrackResourceSnapshots();
 
@@ -85,7 +87,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                     {
                         PageViewModel.SelectedResource = resource;
                         Debug.Assert(_resources is not null);
-                        PageViewModel.SelectedOption = _resources.Single(option => string.Equals(ResourceName, option.Value, StringComparison.Ordinal));
+                        PageViewModel.SelectedOption = _resources.Single(option => option.Id?.Type is not OtlpApplicationType.ReplicaSet && string.Equals(ResourceName, option.Id?.InstanceId, StringComparison.Ordinal));
                         await SetSelectedConsoleResource(resource);
                     }
                 }
@@ -123,16 +125,30 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         _resources ??= new(_resourceByName.Count + 1);
         _resources.Clear();
         _resources.Add(_noSelection);
-        _resources.AddRange(_resourceByName.Values
-            .OrderBy(c => c.Name)
-            .Select(ToOption));
 
-        Option<string> ToOption(ResourceViewModel resource)
+        foreach (var resourceGroupsByApplicationName in _resourceByName.Values.OrderBy(c => c.Name).GroupBy(resource => resource.DisplayName))
         {
-            return new Option<string>
+            if (resourceGroupsByApplicationName.Count() > 1)
             {
-                Value = resource.Name,
-                Text = GetDisplayText()
+                _resources.Add(new SelectViewModel<ResourceTypeDetails>
+                {
+                    Id = new ResourceTypeDetails(OtlpApplicationType.ReplicaSet, null),
+                    Name = resourceGroupsByApplicationName.Key
+                });
+            }
+
+            foreach (var resource in resourceGroupsByApplicationName)
+            {
+                _resources.Add(ToOption(resource, resourceGroupsByApplicationName.Count() > 1));
+            }
+        }
+
+        SelectViewModel<ResourceTypeDetails> ToOption(ResourceViewModel resource, bool isReplica)
+        {
+            return new SelectViewModel<ResourceTypeDetails>
+            {
+                Id = new ResourceTypeDetails(isReplica ? OtlpApplicationType.Replica : OtlpApplicationType.Singleton, resource.Name),
+                Name = GetDisplayText()
             };
 
             string GetDisplayText()
@@ -204,7 +220,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         await StopWatchingLogsAsync();
         await ClearLogsAsync();
 
-        PageViewModel.SelectedResource = PageViewModel.SelectedOption?.Value is null ? null : _resourceByName[PageViewModel.SelectedOption.Value];
+        PageViewModel.SelectedResource = PageViewModel.SelectedOption.Id?.InstanceId is null ? null : _resourceByName[ViewModel.SelectedOption.Id.InstanceId];
         await this.AfterViewModelChangedAsync();
     }
 
@@ -278,7 +294,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     public class ConsoleLogsViewModel
     {
         public required string Status { get; set; }
-        public Option<string>? SelectedOption { get; set; }
+        public required SelectViewModel<ResourceTypeDetails> SelectedOption { get; set; }
         public required ResourceViewModel? SelectedResource { get; set; }
         public bool? InitialisedSuccessfully { get; set; }
     }
@@ -292,10 +308,10 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     {
         if (_resources is not null && ResourceName is not null)
         {
-            var selectedOption = _resources.FirstOrDefault(c => string.Equals(ResourceName, c.Value, StringComparisons.ResourceName)) ?? _noSelection;
+            var selectedOption = _resources.FirstOrDefault(c => string.Equals(ResourceName, c.Id?.InstanceId, StringComparisons.ResourceName)) ?? _noSelection;
 
             viewModel.SelectedOption = selectedOption;
-            viewModel.SelectedResource = selectedOption?.Value is null ? null : _resourceByName[selectedOption.Value];
+            viewModel.SelectedResource = selectedOption.Id?.InstanceId is null ? null : _resourceByName[selectedOption.Id.InstanceId];
             viewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLogsNotYetAvailable)];
         }
         else

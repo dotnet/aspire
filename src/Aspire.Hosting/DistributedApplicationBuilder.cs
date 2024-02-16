@@ -34,6 +34,9 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     public string AppHostDirectory { get; }
 
     /// <inheritdoc />
+    public DistributedApplicationExecutionContext ExecutionContext { get; }
+
+    /// <inheritdoc />
     public IResourceCollection Resources { get; } = new ResourceCollection();
 
     /// <summary>
@@ -85,6 +88,14 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddLifecycleHook<Http2TransportMutationHook>();
         _innerBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, ManifestPublisher>("manifest");
         _innerBuilder.Services.AddKeyedSingleton<IDistributedApplicationPublisher, DcpPublisher>("dcp");
+
+        ExecutionContext = _innerBuilder.Configuration["Publishing:Publisher"] switch
+        {
+            "manifest" => new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish),
+            _ => new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run)
+        };
+
+        _innerBuilder.Services.AddSingleton<DistributedApplicationExecutionContext>(ExecutionContext);
     }
 
     private void ConfigurePublishingOptions(DistributedApplicationOptions options)
@@ -95,6 +106,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             { "--output-path", "Publishing:OutputPath" },
             { "--dcp-cli-path", "DcpPublisher:CliPath" },
             { "--container-runtime", "DcpPublisher:ContainerRuntime" },
+            { "--dependency-check-timeout", "DcpPublisher:DependencyCheckTimeout" },
         };
         _innerBuilder.Configuration.AddCommandLine(options.Args ?? [], switchMappings);
         _innerBuilder.Services.Configure<PublishingOptions>(_innerBuilder.Configuration.GetSection(PublishingOptions.Publishing));
@@ -103,7 +115,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                 options,
                 dcpPublisherConfiguration: _innerBuilder.Configuration.GetSection(DcpOptions.DcpPublisher),
                 publishingConfiguration: _innerBuilder.Configuration.GetSection(PublishingOptions.Publishing),
-                containerRuntimeConfigValue: _innerBuilder.Configuration.GetValue<string>("DOTNET_ASPIRE_CONTAINER_RUNTIME")
+                coreConfiguration: _innerBuilder.Configuration
             )
         );
     }
