@@ -6,7 +6,7 @@ using Aspire.Dashboard.Model.Otlp;
 
 namespace Aspire.Dashboard.Extensions;
 
-public class LogFilterSerialization
+public static class LogFilterFormatter
 {
     private static string SerializeLogFilterToString(LogFilter filter)
     {
@@ -67,7 +67,7 @@ public class LogFilterSerialization
     public static List<LogFilter> DeserializeLogFiltersFromString(string filtersString)
     {
         return filtersString
-            .Split('+')
+            .Split(' ') // + turns into space from query parameter (' ')
             .Select(DeserializeLogFilterFromString)
             .Where(filter => filter is not null)
             .Cast<LogFilter>()

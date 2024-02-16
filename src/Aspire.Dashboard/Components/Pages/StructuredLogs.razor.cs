@@ -295,7 +295,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
         if (serializable.Filters.Count > 0)
         {
-            queryParameters.Add("filters", LogFilterSerialization.SerializeLogFiltersToString(serializable.Filters));
+            queryParameters.Add("filters", LogFilterFormatter.SerializeLogFiltersToString(serializable.Filters));
         }
 
         return new UrlState(path, queryParameters);
@@ -330,7 +330,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
         if (SerializedLogFilters is not null)
         {
-            var filters = LogFilterSerialization.DeserializeLogFiltersFromString(SerializedLogFilters);
+            var filters = LogFilterFormatter.DeserializeLogFiltersFromString(SerializedLogFilters);
 
             if (filters.Count > 0)
             {
