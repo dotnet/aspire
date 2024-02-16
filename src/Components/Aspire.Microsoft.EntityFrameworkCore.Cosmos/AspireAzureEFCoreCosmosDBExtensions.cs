@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
+using Aspire;
 using Aspire.Hosting.Azure.Cosmos;
 using Aspire.Microsoft.EntityFrameworkCore.Cosmos;
 using Azure.Identity;
@@ -122,13 +123,7 @@ public static class AspireAzureEFCoreCosmosDBExtensions
 
         configureSettings?.Invoke(settings);
 
-        // Ensure DbContext was registered prior to calling EnrichCosmosDbContext
-        var dbContextOptionsDescriptor = builder.Services.FirstOrDefault(sd => sd.ServiceType == typeof(DbContextOptions<TContext>));
-
-        if (dbContextOptionsDescriptor is null)
-        {
-            throw new InvalidOperationException($"DbContext<{typeof(TContext).Name}> was not registered. Ensure you have registered the DbContext in DI before calling EnrichCosmosDbContext.");
-        }
+        builder.PatchServiceDescriptor<TContext>();
 
         ConfigureInstrumentation<TContext>(builder, settings);
     }
