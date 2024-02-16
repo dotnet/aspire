@@ -101,8 +101,6 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
             Name = Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsAllApplications)]
         };
 
-        _selectedApplication = _allApplication;
-
         _logLevels = new List<SelectViewModel<LogLevel?>>
         {
             new SelectViewModel<LogLevel?> { Id = null, Name = $"({Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsAllTypes)]})" },
@@ -114,7 +112,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
             new SelectViewModel<LogLevel?> { Id = LogLevel.Critical, Name = "Critical" },
         };
 
-        PageViewModel = new StructuredLogsPageViewModel { SelectedLogLevel = _logLevels[0] };
+        PageViewModel = new StructuredLogsPageViewModel { SelectedLogLevel = _logLevels[0], SelectedApplication = _allApplication };
 
         UpdateApplications();
         _applicationsSubscription = TelemetryRepository.OnNewApplications(() => InvokeAsync(() =>
@@ -156,10 +154,10 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     private void UpdateSubscription()
     {
         // Subscribe to updates.
-        if (_logsSubscription is null || _logsSubscription.ApplicationId != PageViewModel.SelectedApplication.Id)
+        if (_logsSubscription is null || _logsSubscription.ApplicationId != PageViewModel.SelectedApplication.Id?.InstanceId)
         {
             _logsSubscription?.Dispose();
-            _logsSubscription = TelemetryRepository.OnNewLogs(PageViewModel.SelectedApplication.Id, SubscriptionType.Read, async () =>
+            _logsSubscription = TelemetryRepository.OnNewLogs(PageViewModel.SelectedApplication.Id?.InstanceId, SubscriptionType.Read, async () =>
             {
                 ViewModel.ClearData();
                 await InvokeAsync(StateHasChanged);
@@ -190,7 +188,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
     private async Task OpenFilterAsync(LogFilter? entry)
     {
-        var logPropertyKeys = TelemetryRepository.GetLogPropertyKeys(PageViewModel.SelectedApplication.Id);
+        var logPropertyKeys = TelemetryRepository.GetLogPropertyKeys(PageViewModel.SelectedApplication.Id?.InstanceId);
 
         var title = entry is not null ? Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsEditFilter)] : Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsAddFilter)];
         var parameters = new DialogParameters
@@ -316,8 +314,8 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
     public void UpdateViewModelFromQuery(StructuredLogsPageViewModel viewModel)
     {
-        PageViewModel.SelectedApplication = _applicationViewModels.SingleOrDefault(e => string.Equals(ResourceName, e.Name, StringComparisons.ResourceName)) ?? s_allApplication;
-        ViewModel.ApplicationServiceId = PageViewModel.SelectedApplication.Id;
+        PageViewModel.SelectedApplication = _applicationViewModels.SingleOrDefault(e => string.Equals(ResourceName, e.Name, StringComparisons.ResourceName)) ?? _allApplication;
+        ViewModel.ApplicationServiceId = PageViewModel.SelectedApplication.Id?.InstanceId;
 
         if (LogLevelText is not null && Enum.TryParse<LogLevel>(LogLevelText, ignoreCase: true, out var logLevel))
         {
@@ -350,7 +348,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
     public class StructuredLogsPageViewModel
     {
         public string Filter { get; set; } = string.Empty;
-        public SelectViewModel<string> SelectedApplication { get; set; } = s_allApplication;
+        public required SelectViewModel<ResourceTypeDetails> SelectedApplication { get; set; }
         public SelectViewModel<LogLevel?> SelectedLogLevel { get; set; } = default!;
     }
 

@@ -20,7 +20,7 @@
                  <ResourceSelectOptionTemplate ViewModel="@context" />
             </OptionTemplate>
         </FluentSelect>
-        <FluentLabel Typo="Typography.Body" aria-live="polite" aria-label="@Loc[nameof(Dashboard.Resources.ConsoleLogs.LogStatusLabel)]">@ViewModel.Status</FluentLabel>
+        <FluentLabel Typo="Typography.Body" aria-live="polite" aria-label="@Loc[nameof(Dashboard.Resources.ConsoleLogs.LogStatusLabel)]">@PageViewModel.Status</FluentLabel>
     </FluentToolbar>
     <LogViewer @ref="_logViewer" />
 </div>
