@@ -30,11 +30,16 @@
 
 ::deep fluent-accordion-item::part(region) {
     background-color: var(--fill-color);
+    padding-bottom: 0;
 }
 
 ::deep fluent-accordion-item::part(heading-content) {
     font-weight: bold;
     font-size: var(--type-ramp-plus-1-font-size);
+}
+
+::deep fluent-accordion fluent-data-grid-row:last-of-type {
+    border-bottom: none;
 }
 
 ::deep fluent-accordion fluent-data-grid fluent-button[appearance=stealth]:not(:hover)::part(control),
