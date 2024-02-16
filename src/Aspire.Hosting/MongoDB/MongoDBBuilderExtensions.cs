@@ -88,6 +88,11 @@ public static class MongoDBBuilderExtensions
         }
     }
 
+    /// <summary>
+    /// Changes the MongoDB resource to be published as a container in the manifest.
+    /// </summary>
+    /// <param name="builder">Resource builder for <see cref="MongoDBServerResource"/>.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<MongoDBServerResource> PublishAsContainer(this IResourceBuilder<MongoDBServerResource> builder)
     {
         return builder.WithManifestPublishingCallback(context => WriteMongoDBContainerToManifest(context, builder.Resource));

@@ -180,6 +180,85 @@ public class MetricsTests
         AssertDimensionValues(instrument.Dimensions, new KeyValuePair<string, string>[] { KeyValuePair.Create("key1", "value1"), KeyValuePair.Create("key2", "value1") }, valueCount: 1);
     }
 
+    [Fact]
+    public void AddMetrics_Capacity_ValuesRemoved()
+    {
+        // Arrange
+        var repository = CreateRepository(maxMetricsCount: 3);
+
+        // Act
+        var addContext = new AddContext();
+        repository.AddMetrics(addContext, new RepeatedField<ResourceMetrics>()
+        {
+            new ResourceMetrics
+            {
+                Resource = CreateResource(),
+                ScopeMetrics =
+                {
+                    new ScopeMetrics
+                    {
+                        Scope = CreateScope(name: "test-meter"),
+                        Metrics =
+                        {
+                            CreateSumMetric(metricName: "test", startTime: s_testTime.AddMinutes(1), value: 1),
+                            CreateSumMetric(metricName: "test", startTime: s_testTime.AddMinutes(2), value: 2),
+                            CreateSumMetric(metricName: "test", startTime: s_testTime.AddMinutes(3), value: 3),
+                            CreateSumMetric(metricName: "test", startTime: s_testTime.AddMinutes(4), value: 4),
+                            CreateSumMetric(metricName: "test", startTime: s_testTime.AddMinutes(5), value: 5),
+                        }
+                    }
+                }
+            }
+        });
+
+        // Assert
+        Assert.Equal(0, addContext.FailureCount);
+
+        var applications = repository.GetApplications();
+        Assert.Collection(applications,
+            app =>
+            {
+                Assert.Equal("TestService", app.ApplicationName);
+                Assert.Equal("TestId", app.InstanceId);
+            });
+
+        var instrument = repository.GetInstrument(new GetInstrumentRequest
+        {
+            ApplicationServiceId = applications[0].InstanceId,
+            InstrumentName = "test",
+            MeterName = "test-meter",
+            StartTime = DateTime.MinValue,
+            EndTime = DateTime.MaxValue
+        })!;
+
+        Assert.Equal("test", instrument.Name);
+        Assert.Equal("Test metric description", instrument.Description);
+        Assert.Equal("widget", instrument.Unit);
+        Assert.Equal("test-meter", instrument.Parent.MeterName);
+
+        // Only the last 3 values should be kept.
+        var dimension = Assert.Single(instrument.Dimensions);
+        Assert.Collection(dimension.Value.Values,
+            m =>
+            {
+                Assert.Equal(s_testTime.AddMinutes(2), m.Start);
+                Assert.Equal(s_testTime.AddMinutes(3), m.End);
+                Assert.Equal(3, ((MetricValue<long>)m).Value);
+            },
+            m =>
+            {
+                Assert.Equal(s_testTime.AddMinutes(3), m.Start);
+                Assert.Equal(s_testTime.AddMinutes(4), m.End);
+                Assert.Equal(4, ((MetricValue<long>)m).Value);
+            },
+            m =>
+            {
+                Assert.Equal(s_testTime.AddMinutes(4), m.Start);
+                Assert.Equal(s_testTime.AddMinutes(5), m.End);
+                Assert.Equal(5, ((MetricValue<long>)m).Value);
+            });
+    }
+
     private static void AssertDimensionValues(Dictionary<ReadOnlyMemory<KeyValuePair<string, string>>, DimensionScope> dimensions, ReadOnlyMemory<KeyValuePair<string, string>> key, int valueCount)
     {
         var scope = dimensions[key];

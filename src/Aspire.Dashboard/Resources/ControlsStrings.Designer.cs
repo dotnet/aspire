@@ -411,6 +411,24 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to replica set.
+        /// </summary>
+        public static string ReplicaSetLower {
+            get {
+                return ResourceManager.GetString("ReplicaSetLower", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} (replica of {1}).
+        /// </summary>
+        public static string ResourceDropdownReplicaAccessibleTitle {
+            get {
+                return ResourceManager.GetString("ResourceDropdownReplicaAccessibleTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Select an application.
         /// </summary>
         public static string SelectAnApplication {

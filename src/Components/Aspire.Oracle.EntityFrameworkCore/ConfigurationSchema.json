@@ -55,21 +55,18 @@
                   "type": "string",
                   "description": "The connection string of the Oracle database to connect to."
                 },
-                "DbContextPooling": {
-                  "type": "boolean",
-                  "description": "Gets or sets a boolean value that indicates whether the db context will be pooled or explicitly created every time it's requested."
-                },
                 "HealthChecks": {
                   "type": "boolean",
                   "description": "Gets or sets a boolean value that indicates whether the database health check is enabled or not. The default value is true."
                 },
-                "MaxRetryCount": {
-                  "type": "integer",
-                  "description": "Gets or sets the maximum number of retry attempts. The default is 6. Set it to 0 to disable the retry mechanism."
-                },
                 "Metrics": {
                   "type": "boolean",
                   "description": "Gets or sets a boolean value that indicates whether the Open Telemetry metrics are enabled or not. The default value is true."
+                },
+                "Retry": {
+                  "type": "boolean",
+                  "description": "Gets or sets whether retries should be enabled.",
+                  "default": true
                 },
                 "Timeout": {
                   "type": "integer",

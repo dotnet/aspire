@@ -4,6 +4,7 @@
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
 
@@ -21,7 +22,8 @@ public static class RabbitMQBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<RabbitMQServerResource> AddRabbitMQ(this IDistributedApplicationBuilder builder, string name, int? port = null)
     {
-        var password = Guid.NewGuid().ToString("N");
+        var password = PasswordGenerator.GeneratePassword(6, 6, 2, 2);
+
         var rabbitMq = new RabbitMQServerResource(name, password);
         return builder.AddResource(rabbitMq)
                        .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 5672))
@@ -30,7 +32,7 @@ public static class RabbitMQBuilderExtensions
                        .WithEnvironment("RABBITMQ_DEFAULT_USER", "guest")
                        .WithEnvironment(context =>
                        {
-                           if (context.PublisherName == "manifest")
+                           if (context.ExecutionContext.Operation == DistributedApplicationOperation.Publish)
                            {
                                context.EnvironmentVariables.Add("RABBITMQ_DEFAULT_PASS", $"{{{rabbitMq.Name}.inputs.password}}");
                            }
@@ -46,6 +48,11 @@ public static class RabbitMQBuilderExtensions
         context.Writer.WriteString("type", "rabbitmq.server.v0");
     }
 
+    /// <summary>
+    /// Changes the RabbitMQ resource to be published as a container in the manifest.
+    /// </summary>
+    /// <param name="builder">Resource builder for <see cref="RabbitMQServerResource"/>.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<RabbitMQServerResource> PublishAsContainer(this IResourceBuilder<RabbitMQServerResource> builder)
     {
         return builder.WithManifestPublishingCallback(context => WriteRabbitMQContainerToManifest(context, builder.Resource));

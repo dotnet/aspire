@@ -15,6 +15,17 @@ namespace Aspire.Hosting.ApplicationModel;
 [DebuggerDisplay("Type = {GetType().Name,nq}, Name = {Name}")]
 public sealed class EndpointAnnotation : IResourceAnnotation
 {
+    /// <summary>
+    /// Initializes a new instance of <see cref="EndpointAnnotation"/>.
+    /// </summary>
+    /// <param name="protocol">Network protocol: TCP or UDP are supported today, others possibly in future.</param>
+    /// <param name="uriScheme">If a service is URI-addressable, this is the URI scheme to use for constructing service URI.</param>
+    /// <param name="transport">Transport that is being used (e.g. http, http2, http3 etc).</param>
+    /// <param name="name">Name of the service.</param>
+    /// <param name="port">Desired port for the service.</param>
+    /// <param name="containerPort">If the endpoint is used for the container, this is the port the container process is listening on.</param>
+    /// <param name="isExternal">Indicates that this endpoint should be exposed externally at publish time.</param>
+    /// <param name="env">The name of the environment variable that will be set to the port number of this endpoint.</param>
     public EndpointAnnotation(ProtocolType protocol, string? uriScheme = null, string? transport = null, string? name = null, int? port = null, int? containerPort = null, bool? isExternal = null, string? env = null)
     {
         // If the URI scheme is null, we'll adopt either udp:// or tcp:// based on the
@@ -40,17 +51,17 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     /// <summary>
     ///  Name of the service
     /// </summary>
-    public string Name { get; internal set; }
+    public string Name { get; set; }
 
     /// <summary>
     /// Network protocol: TCP or UDP are supported today, others possibly in future.
     /// </summary>
-    public ProtocolType Protocol { get; internal set; }
+    public ProtocolType Protocol { get; set; }
 
     /// <summary>
     /// Desired port for the service
     /// </summary>
-    public int? Port { get; internal set; }
+    public int? Port { get; set; }
 
     /// <summary>
     /// If the endpoint is used for the container, this is the port the container process is listening on.
@@ -58,25 +69,25 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     /// <remarks>
     /// Defaults to <see cref="Port"/>.
     /// </remarks>
-    public int? ContainerPort { get; internal set; }
+    public int? ContainerPort { get; set; }
 
     /// <summary>
-    /// If a service is URI-addressable, this will property will contain the URI scheme to use for constructing service URI.
+    /// If a service is URI-addressable, this property will contain the URI scheme to use for constructing service URI.
     /// </summary>
-    public string UriScheme { get; internal set; }
+    public string UriScheme { get; set; }
 
     /// <summary>
     /// Transport that is being used (e.g. http, http2, http3 etc).
     /// </summary>
-    public string Transport { get; internal set; }
+    public string Transport { get; set; }
 
     /// <summary>
     /// Indicates that this endpoint should be exposed externally at publish time.
     /// </summary>
-    public bool IsExternal { get; internal set; }
+    public bool IsExternal { get; set; }
 
     /// <summary>
     /// The name of the environment variable that will be set to the port number of this endpoint.
     /// </summary>
-    public string? EnvironmentVariable { get; internal set; }
+    public string? EnvironmentVariable { get; set; }
 }

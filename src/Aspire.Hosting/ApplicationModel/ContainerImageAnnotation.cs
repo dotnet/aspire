@@ -8,7 +8,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Represents an annotation for a container image.
 /// </summary>
-[DebuggerDisplay("Type = {GetType().Name,nq}, Image = {Image}, Tag = {Tag}")]
+[DebuggerDisplay("Type = {GetType().Name,nq}, Image = {Image}, Tag = {Tag}, SHA256 = {SHA256}")]
 public sealed class ContainerImageAnnotation : IResourceAnnotation
 {
     /// <summary>
@@ -25,4 +25,10 @@ public sealed class ContainerImageAnnotation : IResourceAnnotation
     /// Gets or sets the tag for the container image.
     /// </summary>
     public required string Tag { get; set; }
+
+    /// <summary>
+    /// Gets or sets the SHA256 for the specific image.
+    /// </summary>
+    public string? SHA256 { get; set; }
+
 }

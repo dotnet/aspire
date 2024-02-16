@@ -5,6 +5,7 @@ using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Lifecycle;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Xunit;
@@ -30,6 +31,27 @@ public class ApplicationExecutorTests
         Assert.Equal("aspire-dashboard", dashboard.Metadata.Name);
     }
 
+    [Fact]
+    public async Task ContainersArePassedOtelServiceName()
+    {
+        // Arrange
+        var builder = DistributedApplication.CreateBuilder();
+        builder.AddContainer("CustomName", "container").WithOtlpExporter();
+
+        var kubernetesService = new MockKubernetesService();
+
+        var distributedAppModel = builder.Build().Services.GetRequiredService<DistributedApplicationModel>();
+
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService);
+
+        // Act
+        await appExecutor.RunApplicationAsync();
+
+        // Assert
+        var container = Assert.Single(kubernetesService.CreatedResources.OfType<Container>());
+        Assert.Equal("CustomName", container.Metadata.Annotations["otel-service-name"]);
+    }
+
     private static ApplicationExecutor CreateAppExecutor(
         DistributedApplicationModel distributedAppModel,
         IConfiguration? configuration = null,
@@ -48,6 +70,8 @@ public class ApplicationExecutorTests
                 DashboardPath = "./dashboard"
             }),
             new MockDashboardEndpointProvider(),
-            new MockDashboardAvailability());
+            new MockDashboardAvailability(),
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run)
+            );
     }
 }

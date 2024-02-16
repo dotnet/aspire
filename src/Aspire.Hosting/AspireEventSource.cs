@@ -29,8 +29,8 @@ internal sealed class AspireEventSource : EventSource
         }
     }
 
-    [Event(3, Level = EventLevel.Informational, Message = "Docker health check is starting...")]
-    public void DockerHealthCheckStart()
+    [Event(3, Level = EventLevel.Informational, Message = "Container runtime health check is starting...")]
+    public void ContainerRuntimeHealthCheckStart()
     {
         if (IsEnabled())
         {
@@ -38,8 +38,8 @@ internal sealed class AspireEventSource : EventSource
         }
     }
 
-    [Event(4, Level = EventLevel.Informational, Message = "Docker health check completed")]
-    public void DockerHealthCheckStop()
+    [Event(4, Level = EventLevel.Informational, Message = "Container runtime health check completed")]
+    public void ContainerRuntimeHealthCheckStop()
     {
         if (IsEnabled())
         {

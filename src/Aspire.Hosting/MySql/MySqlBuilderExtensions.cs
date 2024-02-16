@@ -6,6 +6,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.MySql;
 using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
 
@@ -26,7 +27,8 @@ public static class MySqlBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<MySqlServerResource> AddMySql(this IDistributedApplicationBuilder builder, string name, int? port = null, string? password = null)
     {
-        password = password ?? Guid.NewGuid().ToString("N");
+        password ??= PasswordGenerator.GeneratePassword(6, 6, 2, 2);
+
         var resource = new MySqlServerResource(name, password);
         return builder.AddResource(resource)
                       .WithManifestPublishingCallback(WriteMySqlContainerToManifest)
@@ -34,7 +36,7 @@ public static class MySqlBuilderExtensions
                       .WithAnnotation(new ContainerImageAnnotation { Image = "mysql", Tag = "latest" })
                       .WithEnvironment(context =>
                       {
-                          if (context.PublisherName == "manifest")
+                          if (context.ExecutionContext.Operation == DistributedApplicationOperation.Publish)
                           {
                               context.EnvironmentVariables.Add(PasswordEnvVarName, $"{{{resource.Name}.inputs.password}}");
                           }

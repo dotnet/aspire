@@ -58,7 +58,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                                           IConfiguration configuration,
                                           IOptions<DcpOptions> options,
                                           IDashboardEndpointProvider dashboardEndpointProvider,
-                                          IDashboardAvailability dashboardAvailability)
+                                          IDashboardAvailability dashboardAvailability,
+                                          DistributedApplicationExecutionContext executionContext)
 {
     private const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
 
@@ -68,6 +69,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
     private readonly IOptions<DcpOptions> _options = options;
     private readonly IDashboardEndpointProvider _dashboardEndpointProvider = dashboardEndpointProvider;
     private readonly IDashboardAvailability _dashboardAvailability = dashboardAvailability;
+    private readonly DistributedApplicationExecutionContext _executionContext = executionContext;
     private readonly List<AppResource> _appResources = [];
 
     // These environment variables should never be inherited from app host;
@@ -557,7 +559,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 }
 
                 var config = new Dictionary<string, string>();
-                var context = new EnvironmentCallbackContext("dcp", config);
+                var context = new EnvironmentCallbackContext(_executionContext, config);
 
                 // Need to apply configuration settings manually; see PrepareExecutables() for details.
                 if (er.ModelResource is ProjectResource project && project.SelectLaunchProfileName() is { } launchProfileName && project.GetLaunchSettings() is { } launchSettings)
@@ -576,7 +578,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                     {
                         if (er.ModelResource is ProjectResource)
                         {
-                            var urls = er.ServicesProduced.Where(s => s.EndpointAnnotation.UriScheme is "http" or "https").Select(sar =>
+                            var urls = er.ServicesProduced.Where(IsUnspecifiedHttpService).Select(sar =>
                             {
                                 var url = sar.EndpointAnnotation.UriScheme + "://localhost:{{- portForServing \"" + sar.Service.Metadata.Name + "\" -}}";
                                 return url;
@@ -641,7 +643,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         {
             if (executableResource.DcpResource is ExecutableReplicaSet)
             {
-                var urls = executableResource.ServicesProduced.Select(sar =>
+                var urls = executableResource.ServicesProduced.Where(IsUnspecifiedHttpService).Select(sar =>
                 {
                     var url = sar.EndpointAnnotation.UriScheme + "://localhost:{{- portForServing \"" + sar.Service.Metadata.Name + "\" -}}";
                     return url;
@@ -714,6 +716,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             var ctr = Container.Create(container.Name, containerImageName);
 
             ctr.Annotate(Container.ResourceNameAnnotation, container.Name);
+            ctr.Annotate(Container.OtelServiceNameAnnotation, container.Name);
 
             if (container.TryGetVolumeMounts(out var volumeMounts))
             {
@@ -793,7 +796,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
                 if (modelContainerResource.TryGetEnvironmentVariables(out var containerEnvironmentVariables))
                 {
-                    var context = new EnvironmentCallbackContext("dcp", config);
+                    var context = new EnvironmentCallbackContext(_executionContext, config);
 
                     foreach (var v in containerEnvironmentVariables)
                     {
@@ -928,5 +931,16 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
 
         return uniqueName;
+    }
+
+    // Returns true if this resource represents an HTTP service endpoint which does not specify an environment variable for the endpoint.
+    // This is used to decide whether the endpoint should be propagated via the ASPNETCORE_URLS environment variable.
+    private static bool IsUnspecifiedHttpService(ServiceAppResource serviceAppResource)
+    {
+        return serviceAppResource.EndpointAnnotation is
+        {
+            UriScheme: "http" or "https",
+            EnvironmentVariable: null or { Length: 0 }
+        };
     }
 }

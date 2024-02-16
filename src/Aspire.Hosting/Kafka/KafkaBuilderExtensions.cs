@@ -6,6 +6,9 @@ using Aspire.Hosting.Publishing;
 
 namespace Aspire.Hosting;
 
+/// <summary>
+/// Provides extension methods for adding Kafka resources to the application model.
+/// </summary>
 public static class KafkaBuilderExtensions
 {
     private const int KafkaBrokerPort = 9092;
@@ -55,7 +58,7 @@ public static class KafkaBuilderExtensions
         // When not explicitly set default configuration is applied.
         // See https://github.com/confluentinc/kafka-images/blob/master/local/include/etc/confluent/docker/configureDefaults for more details.
 
-        var hostPort = context.PublisherName == "manifest"
+        var hostPort = context.ExecutionContext.Operation == DistributedApplicationOperation.Publish
             ? KafkaBrokerPort
             : GetResourcePort(resource);
         context.EnvironmentVariables.Add("KAFKA_ADVERTISED_LISTENERS",

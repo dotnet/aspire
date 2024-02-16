@@ -4,6 +4,7 @@
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
 
@@ -24,7 +25,8 @@ public static class OracleDatabaseBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<OracleDatabaseServerResource> AddOracleDatabase(this IDistributedApplicationBuilder builder, string name, int? port = null, string? password = null)
     {
-        password = password ?? Guid.NewGuid().ToString("N").Substring(0, 30);
+        password ??= PasswordGenerator.GeneratePassword(6, 6, 2, 2);
+
         var oracleDatabaseServer = new OracleDatabaseServerResource(name, password);
         return builder.AddResource(oracleDatabaseServer)
                       .WithManifestPublishingCallback(WriteOracleDatabaseContainerToManifest)
@@ -32,7 +34,7 @@ public static class OracleDatabaseBuilderExtensions
                       .WithAnnotation(new ContainerImageAnnotation { Image = "database/free", Tag = "latest", Registry = "container-registry.oracle.com" })
                       .WithEnvironment(context =>
                       {
-                          if (context.PublisherName == "manifest")
+                          if (context.ExecutionContext.Operation == DistributedApplicationOperation.Publish)
                           {
                               context.EnvironmentVariables.Add(PasswordEnvVarName, $"{{{oracleDatabaseServer.Name}.inputs.password}}");
                           }

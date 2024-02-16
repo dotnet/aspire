@@ -11,7 +11,14 @@
 @if (TryGetErrorInformation(out var errorInfo))
 {
     var iconId = Guid.NewGuid().ToString();
-    <FluentIcon Title="@Loc[nameof(Columns.LogMessageColumnExceptionDetailsTitle)]"
+
+    @*
+        We don't want a browser tooltip to display when hovering over the error icon.
+        Use alt instead of title for screen readers. Also, the column has a title set
+        so add a whitespace title to prevent a browser tooltip from displaying.
+    *@
+    <FluentIcon alt="@Loc[nameof(Columns.LogMessageColumnExceptionDetailsTitle)]"
+                title=" "
                 Id="@iconId"
                 Icon="Icons.Filled.Size16.DocumentError"
                 Color="Color.Accent"
@@ -21,9 +28,9 @@
 
     <FluentTooltip Anchor="@iconId" MaxWidth="650px">
         <div style="padding: 10px">
-            <h3>@Loc[nameof(Columns.LogMessageColumnExceptionDetailsTitle)]</h3>
+            <h4>@Loc[nameof(Columns.LogMessageColumnExceptionDetailsTitle)]</h4>
 
-            <pre style="white-space: pre-wrap; overflow-wrap: break-word; max-height: 400px; overflow: auto;">@errorInfo</pre>
+            <pre style="white-space: pre-wrap; overflow-wrap: break-word; max-height: 300px; overflow: auto;">@errorInfo</pre>
 
             <div style="float: right; margin-bottom: 10px;">
                 <FluentButton
@@ -36,7 +43,6 @@
                     <FluentIcon Class="copy-icon align-text-bottom" Style="display:inline;" Icon="Icons.Regular.Size16.Copy"/>
                     <FluentIcon Class="checkmark-icon align-text-bottom" Style="display:none;" Icon="Icons.Regular.Size16.Checkmark"/>
                 </FluentButton>
-                <FluentTooltip Anchor="@copyButtonId" Position="TooltipPosition.Top">@ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)]</FluentTooltip>
             </div>
         </div>
     </FluentTooltip>
