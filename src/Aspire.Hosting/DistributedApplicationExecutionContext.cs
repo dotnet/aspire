@@ -6,15 +6,11 @@ namespace Aspire.Hosting;
 /// <summary>
 /// Exposes the global contextual information for this invocation of the AppHost.
 /// </summary>
-public class DistributedApplicationExecutionContext
+/// <param name="operation">The operation being performed in this invocation of the AppHost.</param>
+public class DistributedApplicationExecutionContext(DistributedApplicationOperation operation)
 {
-    internal DistributedApplicationExecutionContext(DistributedApplicationOperation operation)
-    {
-        Operation = operation;
-    }
-
     /// <summary>
     /// The operation currently being performed by the AppHost.
     /// </summary>
-    public DistributedApplicationOperation Operation { get; } 
+    public DistributedApplicationOperation Operation { get; } = operation;
 }
