@@ -1,13 +1,11 @@
-﻿@page "/StructuredLogs/{applicationInstanceId?}"
-@using Aspire.Dashboard.Model
+﻿@page "/StructuredLogs/{resourceName?}"
+
 @using Aspire.Dashboard.Model.Otlp
 @using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Utils
 @using Microsoft.Extensions.Logging
 @using System.Web
 @using Aspire.Dashboard.Resources
-@inject NavigationManager NavigationManager
-@inject IDashboardClient DashboardClient
 @inject IJSRuntime JS
 @implements IDisposable
 @inject IStringLocalizer<Dashboard.Resources.StructuredLogs> Loc
@@ -19,15 +17,16 @@
     <h1 class="page-header">@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsHeader)]</h1>
     <FluentToolbar Orientation="Orientation.Horizontal">
         <FluentSelect Items="@_applicationViewModels"
+                      OptionValue="@(c => c.Id?.InstanceId)"
                       OptionDisabled="@(c => c.Id?.Type is OtlpApplicationType.ReplicaSet)"
-                      @bind-SelectedOption="_selectedApplication"
+                      @bind-SelectedOption="PageViewModel.SelectedApplication"
                       @bind-SelectedOption:after="HandleSelectedApplicationChangedAsync"
                       AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAnApplication)]">
             <OptionTemplate>
                 <ResourceSelectOptionTemplate ViewModel="@context" />
             </OptionTemplate>
         </FluentSelect>
-        <FluentSearch @bind-Value="_filter"
+        <FluentSearch @bind-Value="PageViewModel.Filter"
                       @oninput="HandleFilter"
                       @bind-Value:after="HandleClear"
                       Placeholder="@ControlsStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"
@@ -40,7 +39,7 @@
             <FluentSelect TOption="SelectViewModel<LogLevel?>"
                           Items="@_logLevels"
                           OptionText="@(c => c.Name)"
-                          @bind-SelectedOption="_selectedLogLevel"
+                          @bind-SelectedOption="PageViewModel.SelectedLogLevel"
                           @bind-SelectedOption:after="HandleSelectedLogLevelChangedAsync"
                           Width="120px"
                           Style="min-width: auto;"
