@@ -3,21 +3,15 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
-using Aspire.Hosting.Publishing;
-using Microsoft.Extensions.Options;
 using System.Net.Sockets;
 
 namespace Aspire.Hosting.Dcp;
 
-internal sealed class DcpDistributedApplicationLifecycleHook(IOptions<PublishingOptions> publishingOptions) : IDistributedApplicationLifecycleHook
+internal sealed class DcpDistributedApplicationLifecycleHook(DistributedApplicationExecutionContext executionContext) : IDistributedApplicationLifecycleHook
 {
-    private readonly IOptions<PublishingOptions> _publishingOptions = publishingOptions;
-
     public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
-        var publisher = _publishingOptions.Value?.Publisher == null ? "dcp" : _publishingOptions.Value.Publisher;
-
-        if (publisher == "dcp")
+        if (executionContext.Operation == DistributedApplicationOperation.Run)
         {
             PrepareServices(appModel);
         }

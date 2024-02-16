@@ -15,12 +15,12 @@ namespace Aspire.Dashboard.Components.Pages;
 
 public partial class Traces
 {
-    private SelectViewModel<string> _allApplication = null!;
+    private SelectViewModel<ResourceTypeDetails> _allApplication = null!;
 
     private TotalItemsFooter _totalItemsFooter = default!;
     private List<OtlpApplication> _applications = default!;
-    private List<SelectViewModel<string>> _applicationViewModels = default!;
-    private SelectViewModel<string> _selectedApplication = null!;
+    private List<SelectViewModel<ResourceTypeDetails>> _applicationViewModels = default!;
+    private SelectViewModel<ResourceTypeDetails> _selectedApplication = null!;
     private Subscription? _applicationsSubscription;
     private Subscription? _tracesSubscription;
     private bool _applicationChanged;
@@ -70,7 +70,7 @@ public partial class Traces
 
     protected override Task OnInitializedAsync()
     {
-        _allApplication  = new SelectViewModel<string> { Id = null, Name = $"({ControlsStringsLoc[nameof(ControlsStrings.All)]})" };
+        _allApplication = new SelectViewModel<ResourceTypeDetails> { Id = null, Name = $"({ControlsStringsLoc[nameof(ControlsStrings.All)]})" };
         _selectedApplication = _allApplication;
 
         UpdateApplications();
@@ -86,7 +86,7 @@ public partial class Traces
     protected override void OnParametersSet()
     {
         _selectedApplication = _applicationViewModels.SingleOrDefault(e => string.Equals(ResourceName, e.Name, StringComparisons.ResourceName)) ?? _allApplication;
-        TracesViewModel.ApplicationServiceId = _selectedApplication.Id;
+        TracesViewModel.ApplicationServiceId = _selectedApplication.Id?.InstanceId;
         UpdateSubscription();
     }
 
@@ -109,10 +109,10 @@ public partial class Traces
     private void UpdateSubscription()
     {
         // Subscribe to updates.
-        if (_tracesSubscription is null || _tracesSubscription.ApplicationId != _selectedApplication.Id)
+        if (_tracesSubscription is null || _tracesSubscription.ApplicationId != _selectedApplication.Id?.InstanceId)
         {
             _tracesSubscription?.Dispose();
-            _tracesSubscription = TelemetryRepository.OnNewTraces(_selectedApplication.Id, SubscriptionType.Read, async () =>
+            _tracesSubscription = TelemetryRepository.OnNewTraces(_selectedApplication.Id?.InstanceId, SubscriptionType.Read, async () =>
             {
                 TracesViewModel.ClearData();
                 await InvokeAsync(StateHasChanged);

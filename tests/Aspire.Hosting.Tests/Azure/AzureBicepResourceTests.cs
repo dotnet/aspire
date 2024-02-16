@@ -266,7 +266,8 @@ public class AzureBicepResourceTests
         using var ms = new MemoryStream();
         var writer = new Utf8JsonWriter(ms);
         writer.WriteStartObject();
-        writeManifest(new ManifestPublishingContext(Environment.CurrentDirectory, writer));
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish);
+        writeManifest(new ManifestPublishingContext(executionContext, Environment.CurrentDirectory, writer));
         writer.WriteEndObject();
         writer.Flush();
         ms.Position = 0;

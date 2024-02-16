@@ -36,7 +36,7 @@ public static class MySqlBuilderExtensions
                       .WithAnnotation(new ContainerImageAnnotation { Image = "mysql", Tag = "latest" })
                       .WithEnvironment(context =>
                       {
-                          if (context.PublisherName == "manifest")
+                          if (context.ExecutionContext.Operation == DistributedApplicationOperation.Publish)
                           {
                               context.EnvironmentVariables.Add(PasswordEnvVarName, $"{{{resource.Name}.inputs.password}}");
                           }

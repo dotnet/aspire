@@ -31,7 +31,8 @@ public class ProjectResourceTests
         var annotations = resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
+        var context = new EnvironmentCallbackContext(executionContext, config);
 
         foreach (var annotation in annotations)
         {
