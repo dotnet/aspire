@@ -56,7 +56,13 @@ internal sealed class DcpOptions
     /// </example>
     public string? ContainerRuntime { get; set; }
 
-    public void ApplyApplicationConfiguration(DistributedApplicationOptions appOptions, IConfiguration dcpPublisherConfiguration, IConfiguration publishingConfiguration, string? containerRuntimeConfigValue)
+    /// <summary>
+    /// How long the dependency check will wait (in seconds) for a response before timing out.
+    /// Timeout is disabled if set to zero or a negative value.
+    /// </summary>
+    public int DependencyCheckTimeout { get; set; } = 25;
+
+    public void ApplyApplicationConfiguration(DistributedApplicationOptions appOptions, IConfiguration dcpPublisherConfiguration, IConfiguration publishingConfiguration, IConfiguration coreConfiguration)
     {
         string? publisher = publishingConfiguration[nameof(PublishingOptions.Publisher)];
         if (publisher is not null && publisher != "dcp")
@@ -85,7 +91,23 @@ internal sealed class DcpOptions
         }
         else
         {
-            ContainerRuntime = containerRuntimeConfigValue;
+            ContainerRuntime = coreConfiguration.GetValue<string>("DOTNET_ASPIRE_CONTAINER_RUNTIME");
+        }
+
+        if (!string.IsNullOrEmpty(dcpPublisherConfiguration[nameof(DependencyCheckTimeout)]))
+        {
+            if (int.TryParse(dcpPublisherConfiguration[nameof(DependencyCheckTimeout)], out var timeout))
+            {
+                DependencyCheckTimeout = timeout;
+            }
+            else
+            {
+                throw new InvalidOperationException($"Invalid value \"{dcpPublisherConfiguration[nameof(DependencyCheckTimeout)]}\" for \"--dependency-check-timeout\". Exepcted an integer value.");
+            }
+        }
+        else
+        {
+            DependencyCheckTimeout = coreConfiguration.GetValue<int>("DOTNET_ASPIRE_DEPENDENCY_CHECK_TIMEOUT", DependencyCheckTimeout);
         }
 
         if (string.IsNullOrEmpty(CliPath))

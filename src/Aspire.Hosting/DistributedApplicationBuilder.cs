@@ -95,6 +95,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             { "--output-path", "Publishing:OutputPath" },
             { "--dcp-cli-path", "DcpPublisher:CliPath" },
             { "--container-runtime", "DcpPublisher:ContainerRuntime" },
+            { "--dependency-check-timeout", "DcpPublisher:DependencyCheckTimeout" },
         };
         _innerBuilder.Configuration.AddCommandLine(options.Args ?? [], switchMappings);
         _innerBuilder.Services.Configure<PublishingOptions>(_innerBuilder.Configuration.GetSection(PublishingOptions.Publishing));
@@ -103,7 +104,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                 options,
                 dcpPublisherConfiguration: _innerBuilder.Configuration.GetSection(DcpOptions.DcpPublisher),
                 publishingConfiguration: _innerBuilder.Configuration.GetSection(PublishingOptions.Publishing),
-                containerRuntimeConfigValue: _innerBuilder.Configuration.GetValue<string>("DOTNET_ASPIRE_CONTAINER_RUNTIME")
+                coreConfiguration: _innerBuilder.Configuration
             )
         );
     }
