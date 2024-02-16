@@ -4,7 +4,7 @@
 using Aspire.Dashboard.Resources;
 using Microsoft.FluentUI.AspNetCore.Components;
 
-namespace Aspire.Dashboard.Components.Controls;
+namespace Aspire.Dashboard.Components.Controls.Chart;
 
 public partial class MetricTableGrid
 {
