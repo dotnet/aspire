@@ -5,6 +5,7 @@
         "toolbar"
         "main";
     overflow: auto;
+    gap: calc(var(--design-unit) * 1px);
 }
 
 ::deep.environment-variables-layout > fluent-toolbar {
@@ -20,20 +21,28 @@
 
 ::deep fluent-accordion {
     gap: calc(var(--design-unit) * 2px);
+    --fill-color: var(--neutral-layer-1);
 }
 
 ::deep fluent-accordion-item {
-    border-color: transparent; /* A zero width border adds a horizontal scroll bar for some reason */
-    background: unset;
+    margin:0 calc(var(--design-unit) * 1px);
 }
 
 ::deep fluent-accordion-item::part(region) {
-    border-color: transparent; /* A zero width border adds a horizontal scroll bar for some reason */
-    background: unset;
-    padding: 0;
+    background-color: var(--fill-color);
 }
 
 ::deep fluent-accordion-item::part(heading-content) {
     font-weight: bold;
     font-size: var(--type-ramp-plus-1-font-size);
+}
+
+::deep fluent-accordion fluent-data-grid fluent-button[appearance=stealth]:not(:hover)::part(control),
+::deep fluent-accordion fluent-data-grid fluent-button[appearance=lightweight]:not(:hover)::part(control) {
+    background-color: var(--fill-color);
+}
+
+::deep fluent-accordion fluent-data-grid fluent-button[appearance=stealth]:hover::part(control),
+::deep fluent-accordion fluent-data-grid fluent-button[appearance=lightweight]:hover::part(control) {
+    background-color: var(--neutral-fill-stealth-hover-on-neutral-fill-layer-rest);
 }
