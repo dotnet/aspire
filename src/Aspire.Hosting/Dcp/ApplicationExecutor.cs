@@ -7,6 +7,7 @@ using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Utils;
 using k8s;
+using k8s.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -221,8 +222,59 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             Metadata = { Name = KnownResourceNames.AspireDashboard }
         };
 
+        dashboardExecutable.Annotate(Executable.ResourceNameAnnotation, KnownResourceNames.AspireDashboard);
+
+        // Create the service
         await kubernetesService.CreateAsync(dashboardExecutable, cancellationToken).ConfigureAwait(false);
-        await CheckDashboardAvailabilityAsync(dashboardUrls, cancellationToken).ConfigureAwait(false);
+
+        var processId = -1;
+
+        _ = Task.Run(async () =>
+        {
+            await foreach (var (evt, exe) in kubernetesService.WatchAsync<Executable>(cancellationToken: cancellationToken))
+            {
+                var resourceName = exe.GetAnnotation(Executable.ResourceNameAnnotation);
+
+                if (resourceName == KnownResourceNames.AspireDashboard)
+                {
+                    var state = exe.Status?.State;
+
+                    distributedApplicationLogger.LogInformation("Dashboard state: {State}, ProcessId: {ProcessId}, {Event}", state, exe.Status?.ProcessId, evt);
+
+                    if (evt == WatchEventType.Modified)
+                    {
+                        if (state == "Finished")
+                        {
+                            Volatile.Write(ref processId, -1);
+
+                            distributedApplicationLogger.LogError("Dashboard process has finished unexpectedly.");
+
+                            // Delete the object
+                            await kubernetesService.DeleteAsync<Executable>(exe.Metadata.Name, exe.Metadata.NamespaceProperty, cancellationToken).ConfigureAwait(false);
+
+                            // Wait a little bit before recreating the object
+                            await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken).ConfigureAwait(false);
+
+                            // Recreate the object
+                            await kubernetesService.CreateAsync(dashboardExecutable, cancellationToken).ConfigureAwait(false);
+                        }
+                        else if (state == "Running")
+                        {
+                            distributedApplicationLogger.LogInformation("Dashboard process is running.");
+
+                            Volatile.Write(ref processId, exe.Status!.ProcessId);
+                        }
+                    }
+
+                }
+            }
+        },
+        cancellationToken);
+
+        // Wait for the status to be ready and get the pid
+        // var state = await kubernetesService.ListAsync<Executable>(cancellationToken: cancellationToken).ConfigureAwait(false);
+
+        // await CheckDashboardAvailabilityAsync(dashboardUrls, cancellationToken).ConfigureAwait(false);
     }
 
     private TimeSpan DashboardAvailabilityTimeoutDuration
