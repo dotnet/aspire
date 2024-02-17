@@ -11,7 +11,8 @@ namespace Aspire.Hosting.Azure;
 /// <param name="name">The name of the resource.</param>
 public class AzureBicepAppConfigurationResource(string name) :
     AzureBicepResource(name, templateResouceName: "Aspire.Hosting.Azure.Bicep.appconfig.bicep"),
-    IResourceWithConnectionString
+    IResourceWithConnectionString,
+    IAzureResourceWithManagedIdentity
 {
     /// <summary>
     /// Gets the connection string template for the manifest for the Azure App Configuration resource.

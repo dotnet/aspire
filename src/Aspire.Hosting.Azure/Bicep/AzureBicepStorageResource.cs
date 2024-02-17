@@ -14,7 +14,8 @@ namespace Aspire.Hosting.Azure;
 /// </summary>
 /// <param name="name"></param>
 public class AzureBicepStorageResource(string name) :
-    AzureBicepResource(name, templateResouceName: "Aspire.Hosting.Azure.Bicep.storage.bicep")
+    AzureBicepResource(name, templateResouceName: "Aspire.Hosting.Azure.Bicep.storage.bicep"),
+    IAzureResourceWithManagedIdentity
 {
     /// <summary>
     /// Gets a value indicating whether the Azure Storage resource is running in the local emulator.

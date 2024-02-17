@@ -11,7 +11,8 @@ namespace Aspire.Hosting.Azure;
 /// <param name="name">The name of the resource.</param>
 public class AzureBicepServiceBusResource(string name) :
     AzureBicepResource(name, templateResouceName: "Aspire.Hosting.Azure.Bicep.servicebus.bicep"),
-    IResourceWithConnectionString
+    IResourceWithConnectionString,
+    IAzureResourceWithManagedIdentity
 {
     /// <summary>
     /// Gets the connection string template for the manifest for the Azure Service Bus endpoint.
