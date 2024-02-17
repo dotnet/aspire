@@ -200,6 +200,33 @@ public class AzureBicepResourceTests
     }
 
     [Fact]
+    public void AddBicepPostgres()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        builder.Configuration["Parameters:pwd"] = "password";
+
+        var pwd = builder.AddParameter("pwd");
+        var postgres = builder.AddBicepAzurePostgres("postgres", "user", pwd);
+        postgres.AddDatabase("db", "database");
+
+        postgres.Resource.SecretOutputs["connectionString"] = "myconnectionstring";
+
+        var databases = postgres.Resource.Parameters["databases"] as IEnumerable<string>;
+
+        Assert.Equal("Aspire.Hosting.Azure.Bicep.postgres.bicep", postgres.Resource.TemplateResourceName);
+        Assert.Equal("postgres", postgres.Resource.Name);
+        Assert.Equal("postgres", postgres.Resource.Parameters["serverName"]);
+        Assert.Equal("user", postgres.Resource.Parameters["administratorLogin"]);
+        Assert.Same(pwd, postgres.Resource.Parameters["administratorLoginPassword"]);
+        Assert.True(postgres.Resource.Parameters.ContainsKey(AzureBicepResource.KnownParameters.KeyVaultName));
+        Assert.NotNull(databases);
+        Assert.Equal(["database"], databases);
+        Assert.Equal("myconnectionstring", postgres.Resource.GetConnectionString());
+        Assert.Equal("{postgres.secretOutputs.connectionString}", postgres.Resource.ConnectionStringExpression);
+    }
+
+    [Fact]
     public void AddBicepServiceBus()
     {
         var builder = DistributedApplication.CreateBuilder();

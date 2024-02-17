@@ -10,9 +10,7 @@ namespace Aspire.Hosting.Azure;
 /// Represents an resource for Azure Postgres Flexible Server.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
-/// <param name="username">A delegate to resolve the username.</param>
-/// <param name="password">A delegate to resolve the password.</param>
-public class AzureBicepPostgresResource(string name, string username, ParameterResource password) :
+public class AzureBicepPostgresResource(string name) :
     AzureBicepResource(name, templateResouceName: "Aspire.Hosting.Azure.Bicep.postgres.bicep"),
     IResourceWithConnectionString
 {
@@ -22,7 +20,7 @@ public class AzureBicepPostgresResource(string name, string username, ParameterR
     /// Gets the connection template for the manifest for the Azure Postgres Flexible Server.
     /// </summary>
     public string ConnectionStringExpression =>
-        $"Host={{{Name}.outputs.pgfqdn}};Username={username};Password={password.ValueExpression}";
+        $"{{{Name}.secretOutputs.connectionString}}";
 
     /// <summary>
     /// Gets the connection string for the Azure Postgres Flexible Server.
@@ -30,7 +28,7 @@ public class AzureBicepPostgresResource(string name, string username, ParameterR
     /// <returns>The connection string.</returns>
     public string? GetConnectionString()
     {
-        return $"Host={Outputs["pgfqdn"]};Username={username};Password={password.Value};";
+        return SecretOutputs["connectionString"];
     }
 }
 
@@ -96,13 +94,14 @@ public static class AzureBicepPostgresExtensions
         string administratorLogin,
         IResourceBuilder<ParameterResource> administratorLoginPassword)
     {
-        var resource = new AzureBicepPostgresResource(name, administratorLogin, administratorLoginPassword.Resource);
+        var resource = new AzureBicepPostgresResource(name);
 
         return builder.AddResource(resource)
             .WithParameter("serverName", resource.CreateBicepResourceName())
             .WithParameter("administratorLogin", administratorLogin)
             .WithParameter("administratorLoginPassword", administratorLoginPassword)
             .WithParameter("databases", resource.Databases)
+            .WithParameter(AzureBicepResource.KnownParameters.KeyVaultName)
             .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 
