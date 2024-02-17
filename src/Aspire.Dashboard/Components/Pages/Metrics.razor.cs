@@ -28,7 +28,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     public MetricsViewModel PageViewModel { get; set; } = null!;
 
     [Parameter]
-    public string? ApplicationInstanceId { get; set; }
+    public string? ApplicationName { get; set; }
 
     [Parameter]
     public string? MeterName { get; set; }
@@ -94,7 +94,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     {
         return new MetricsPageState
         {
-            ApplicationId = PageViewModel.SelectedApplication.Id?.InstanceId,
+            ApplicationName = PageViewModel.SelectedApplication.Id is not null ? PageViewModel.SelectedApplication.Name : null,
             MeterName = PageViewModel.SelectedMeter?.MeterName,
             InstrumentName = PageViewModel.SelectedInstrument?.Name,
             DurationMinutes = (int)PageViewModel.SelectedDuration.Id.TotalMinutes
@@ -104,8 +104,9 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     public void UpdateViewModelFromQuery(MetricsViewModel viewModel)
     {
         viewModel.SelectedDuration = _durations.SingleOrDefault(d => (int)d.Id.TotalMinutes == DurationMinutes) ?? _durations.Single(d => d.Id == s_defaultDuration);
-        viewModel.SelectedApplication = _applications.SingleOrDefault(e => e.Id?.Type is OtlpApplicationType.Singleton or OtlpApplicationType.ReplicaInstance && e.Id?.InstanceId == ApplicationInstanceId) ?? _selectApplication;
-        viewModel.Instruments = !string.IsNullOrEmpty(viewModel.SelectedApplication.Id?.InstanceId) ? TelemetryRepository.GetInstrumentsSummary(viewModel.SelectedApplication.Id.InstanceId) : null;
+        viewModel.SelectedApplication = _applications.SingleOrDefault(e => string.Equals(ApplicationName, e.Name, StringComparisons.ResourceName)) ?? _selectApplication;
+        var selectedInstance = viewModel.SelectedApplication.Id?.InstanceId;
+        viewModel.Instruments = !string.IsNullOrEmpty(selectedInstance) ? TelemetryRepository.GetInstrumentsSummary(selectedInstance) : null;
 
         viewModel.SelectedMeter = null;
         viewModel.SelectedInstrument = null;
@@ -116,7 +117,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
             {
                 viewModel.SelectedInstrument = TelemetryRepository.GetInstrument(new GetInstrumentRequest
                 {
-                    ApplicationServiceId = ApplicationInstanceId!,
+                    ApplicationServiceId = viewModel.SelectedApplication.Id?.InstanceId!,
                     MeterName = MeterName,
                     InstrumentName = InstrumentName
                 });
@@ -155,7 +156,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
 
     public class MetricsPageState
     {
-        public string? ApplicationId { get; set; }
+        public string? ApplicationName { get; set; }
         public string? MeterName { get; set; }
         public string? InstrumentName { get; set; }
         public int DurationMinutes { get; set; }
@@ -185,15 +186,15 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     public UrlState GetUrlFromSerializableViewModel(MetricsPageState serializable)
     {
         string path;
-        if (serializable.ApplicationId is not null && serializable.MeterName is not null)
+        if (serializable.ApplicationName is not null && serializable.MeterName is not null)
         {
-            path = serializable.InstrumentName != null
-                ? $"/{BasePath}/{serializable.ApplicationId}/Meter/{serializable.MeterName}/Instrument/{serializable.InstrumentName}"
-                : $"/{BasePath}/{serializable.ApplicationId}/Meter/{serializable.MeterName}";
+            path = serializable.InstrumentName is not null
+                ? $"/{BasePath}/{serializable.ApplicationName}/Meter/{serializable.MeterName}/Instrument/{serializable.InstrumentName}"
+                : $"/{BasePath}/{serializable.ApplicationName}/Meter/{serializable.MeterName}";
         }
-        else if (serializable.ApplicationId != null)
+        else if (serializable.ApplicationName is not null)
         {
-            path = $"/{BasePath}/{serializable.ApplicationId}";
+            path = $"/{BasePath}/{serializable.ApplicationName}";
         }
         else
         {
