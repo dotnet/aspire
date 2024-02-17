@@ -14,19 +14,20 @@ public class AzureBicepRedisResource(string name) :
     IResourceWithConnectionString
 {
     /// <summary>
+    /// Gets the "connectionString" output reference from the bicep template for the Azure Redis resource.
+    /// </summary>
+    public BicepSecretOutputReference ConnectionString => new("connectionString", this);
+
+    /// <summary>
     /// Gets the connection string template for the manifest for the Azure Redis resource.
     /// </summary>
-    public string ConnectionStringExpression =>
-        $"{{{Name}.secretOutputs.connectionString}}";
+    public string ConnectionStringExpression => ConnectionString.ValueExpression;
 
     /// <summary>
     /// Gets the connection string for the Azure Redis resource.
     /// </summary>
     /// <returns>The connection string for the Azure Redis resource.</returns>
-    public string? GetConnectionString()
-    {
-        return SecretOutputs["connectionString"];
-    }
+    public string? GetConnectionString() => ConnectionString.Value;
 }
 
 /// <summary>
