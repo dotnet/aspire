@@ -257,7 +257,7 @@ public class HttpServiceEndPointResolver(ServiceEndPointResolverFactory resolver
             finally
             {
                 Debug.Assert(_onDisposed is not null);
-                _onDisposed.SetResult(true);
+                _onDisposed!.SetResult(true);
             }
         }
     }

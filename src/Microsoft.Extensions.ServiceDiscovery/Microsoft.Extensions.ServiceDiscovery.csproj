@@ -8,21 +8,18 @@
     <PackageIconFullPath>$(DefaultDotnetIconFullPath)</PackageIconFullPath>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <CommonPath>..\Shared\Common\</CommonPath>
-    <CoreLibSharedDir>..\Shared\CoreLib\</CoreLibSharedDir>
-  </PropertyGroup>
-
   <ItemGroup>
-    <Compile Include="$(CommonPath)System\ThrowHelper.cs" />
+    <Compile Include="$(SharedDir)Compatibility\System\ThrowHelper.cs" />
+    <Compile Include="$(SharedDir)Compatibility\System\Threading\Tasks\TaskExtensions.cs" />
     <Compile Include="$(SharedDir)ValueStopwatch\*.cs" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFrameworkIdentifier)' != '.NETCoreApp'">
-    <Compile Include="$(CoreLibSharedDir)System\Diagnostics\CodeAnalysis\NullableAttributes.cs" />
+    <Compile Include="$(SharedDir)Compatibility\System\Diagnostics\CodeAnalysis\NullableAttributes.cs" />
     <PackageReference Include="System.Memory" />
   </ItemGroup>
 
+  <!-- TimeProvider is available in >= .NET 8 -->
   <ItemGroup Condition="!$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">
     <PackageReference Include="Microsoft.Bcl.TimeProvider" />
   </ItemGroup>

@@ -8,20 +8,12 @@
     <PackageIconFullPath>$(DefaultDotnetIconFullPath)</PackageIconFullPath>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <CommonPath>..\Shared\Common\</CommonPath>
-    <CoreLibSharedDir>..\Shared\CoreLib\</CoreLibSharedDir>
-  </PropertyGroup>
-
   <ItemGroup>
-    <Compile Include="$(CommonPath)System\ThrowHelper.cs" />
+    <Compile Include="$(SharedDir)Compatibility\System\ThrowHelper.cs" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFrameworkIdentifier)' != '.NETCoreApp'">
-    <Compile Include="$(CoreLibSharedDir)System\Diagnostics\CodeAnalysis\NullableAttributes.cs" />
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(TargetFrameworkIdentifier)' != '.NETCoreApp'">
+    <Compile Include="$(SharedDir)Compatibility\System\Diagnostics\CodeAnalysis\NullableAttributes.cs" />
     <PackageReference Include="Microsoft.Bcl.HashCode" />
   </ItemGroup>
 

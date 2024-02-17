@@ -20,7 +20,7 @@ internal static class TaskExtensions
             }
             catch
             {
-                // suppress exception when _cleanupTask throws
+                // suppress exception when Task throws
             }
         }).ConfigureAwait(false);
 #endif

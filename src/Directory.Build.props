@@ -3,6 +3,12 @@
   <PropertyGroup>
     <!-- Enabling this rule will cause build failures on undocumented public APIs. -->
     <SkipArcadeNoWarnCS1591>true</SkipArcadeNoWarnCS1591>
+
+    <!-- Ignore analyzers that recommend APIs introduced in .NET Core when targeting frameworks that lack those APIs
+     to avoid issues with multitargeting. -->
+    <NoWarn Condition="$(TargetFrameworks.StartsWith('net4')) or $(TargetFrameworks.StartsWith('netstandard'))">
+      $(NoWarn);CA1510;CA1511;CA1512;CA1513;CA1845;CA1846;CA1847
+    </NoWarn>
   </PropertyGroup>
 
   <Import Project="..\Directory.Build.props" />

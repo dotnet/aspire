@@ -3,6 +3,7 @@
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.ServiceDiscovery.Abstractions;
 
 namespace Microsoft.Extensions.ServiceDiscovery;
@@ -30,6 +31,10 @@ public sealed class ServiceEndPointResolverRegistry(ServiceEndPointResolverFacto
     /// <param name="serviceName">The service name.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The resolved service endpoints.</returns>
+    [SuppressMessage(
+        "Maintainability",
+        "CA1513:ObjectDisposedException-Throw",
+        Justification = "ObjectDisposedException.ThrowIf() is not available in all target frameworks.")]
     public async ValueTask<ServiceEndPointCollection> GetEndPointsAsync(string serviceName, CancellationToken cancellationToken)
     {
         ThrowHelper.ThrowIfNull(serviceName);
@@ -242,7 +247,7 @@ public sealed class ServiceEndPointResolverRegistry(ServiceEndPointResolverFacto
             finally
             {
                 Debug.Assert(_onDisposed is not null);
-                _onDisposed.SetResult(true);
+                _onDisposed!.SetResult(true);
             }
         }
     }
