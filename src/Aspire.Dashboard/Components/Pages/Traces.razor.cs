@@ -85,7 +85,7 @@ public partial class Traces
 
     protected override void OnParametersSet()
     {
-        _selectedApplication = _applicationViewModels.SingleOrDefault(e => e.Id?.Type is OtlpApplicationType.Singleton or OtlpApplicationType.ReplicaInstance && e.Id?.InstanceId == ApplicationInstanceId) ?? _allApplication;
+        _selectedApplication = _applicationViewModels.SingleOrDefault(e => string.Equals(ResourceName, e.Name, StringComparisons.ResourceName)) ?? _allApplication;
         TracesViewModel.ApplicationServiceId = _selectedApplication.Id?.InstanceId;
         UpdateSubscription();
     }
