@@ -18,10 +18,10 @@ public class ConformanceTests : ConformanceTests<SearchIndexClient, AzureSearchS
 
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
-    protected override string[] RequiredLogCategories => new string[] {
+    protected override string[] RequiredLogCategories => [
         "Azure.Core",
         "Azure.Identity"
-    };
+    ];
 
     protected override bool SupportsKeyedRegistrations => true;
 
@@ -46,19 +46,19 @@ public class ConformanceTests : ConformanceTests<SearchIndexClient, AzureSearchS
         }
         """;
 
-    protected override (string json, string error)[] InvalidJsonToErrorMessage => new[]
-        {
+    protected override (string json, string error)[] InvalidJsonToErrorMessage =>
+        [
             ("""{"Aspire": { "Azure": { "Search":{ "Documents": {"Endpoint": "YOUR_URI"}}}}}""", "Value does not match format \"uri\""),
             ("""{"Aspire": { "Azure": { "Search":{ "Documents": {"Endpoint": "http://YOUR_URI", "Tracing": "false"}}}}}""", "Value is \"string\" but should be \"boolean\""),
-        };
+        ];
 
     protected override string ActivitySourceName => "Azure.Search.Documents.SearchIndexClient";
 
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
-        => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[]
-        {
+        => configuration.AddInMemoryCollection(
+        [
             new(CreateConfigKey("Aspire:Azure:Search:Documents", key, "Endpoint"), Endpoint)
-        });
+        ]);
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<AzureSearchSettings>? configure = null, string? key = null)
     {

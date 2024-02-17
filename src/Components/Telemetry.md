@@ -32,6 +32,7 @@ Aspire.Azure.Search.Documents:
 - Log categories:
   - "Azure.Core"
   - "Azure.Identity"
+  - "Azure-Search-Documents"
 - Activity source names:
   - "Azure.Search.Documents.*"
 - Metric names:
