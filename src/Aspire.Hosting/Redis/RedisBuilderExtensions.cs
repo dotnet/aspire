@@ -15,7 +15,7 @@ namespace Aspire.Hosting;
 public static class RedisBuilderExtensions
 {
     /// <summary>
-    /// Adds a Redis container to the application model. The default image is "redis" and tag is "latest".
+    /// Adds a Redis container to the application model. The default image is "redis" and tag is "latest". This version the package defaults to the 7.2.4 tag of the redis container image
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
@@ -27,7 +27,7 @@ public static class RedisBuilderExtensions
         return builder.AddResource(redis)
                       .WithManifestPublishingCallback(WriteRedisResourceToManifest)
                       .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 6379))
-                      .WithAnnotation(new ContainerImageAnnotation { Image = "redis", Tag = "latest" });
+                      .WithAnnotation(new ContainerImageAnnotation { Image = "redis", Tag = "7.2.4" });
     }
 
     /// <summary>

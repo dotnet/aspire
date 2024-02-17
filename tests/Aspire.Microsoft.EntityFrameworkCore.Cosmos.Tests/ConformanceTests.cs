@@ -12,7 +12,7 @@ using Xunit;
 
 namespace Aspire.Microsoft.EntityFrameworkCore.Cosmos.Tests;
 
-public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, EntityFrameworkCoreCosmosDBSettings>
+public class ConformanceTests : ConformanceTests<TestDbContext, EntityFrameworkCoreCosmosDBSettings>
 {
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
@@ -77,25 +77,21 @@ public class ConformanceTests_Pooling : ConformanceTests<TestDbContext, EntityFr
         }
     }
 
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
+    [Fact]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "EF1001:Internal EF Core API usage.", Justification = "Required to verify pooling without touching DB")]
-    public void DbContextPoolingRegistersIDbContextPool(bool enabled)
+    public void DbContextPoolingRegistersIDbContextPool()
     {
-        using IHost host = CreateHostWithComponent(options => options.DbContextPooling = enabled);
+        using IHost host = CreateHostWithComponent();
 
         IDbContextPool<TestDbContext>? pool = host.Services.GetService<IDbContextPool<TestDbContext>>();
 
-        Assert.Equal(enabled, pool is not null);
+        Assert.NotNull(pool);
     }
 
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void DbContextCanBeAlwaysResolved(bool enabled)
+    [Fact]
+    public void DbContextCanBeAlwaysResolved()
     {
-        using IHost host = CreateHostWithComponent(options => options.DbContextPooling = enabled);
+        using IHost host = CreateHostWithComponent();
 
         TestDbContext? dbContext = host.Services.GetService<TestDbContext>();
 

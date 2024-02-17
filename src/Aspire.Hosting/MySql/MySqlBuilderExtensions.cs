@@ -6,6 +6,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.MySql;
 using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
 
@@ -17,7 +18,7 @@ public static class MySqlBuilderExtensions
     private const string PasswordEnvVarName = "MYSQL_ROOT_PASSWORD";
 
     /// <summary>
-    /// Adds a MySQL server resource to the application model. For local development a container is used.
+    /// Adds a MySQL server resource to the application model. For local development a container is used. This version the package defaults to the 8.3.0 tag of the mysql container image
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
@@ -26,15 +27,16 @@ public static class MySqlBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<MySqlServerResource> AddMySql(this IDistributedApplicationBuilder builder, string name, int? port = null, string? password = null)
     {
-        password = password ?? Guid.NewGuid().ToString("N");
+        password ??= PasswordGenerator.GeneratePassword(6, 6, 2, 2);
+
         var resource = new MySqlServerResource(name, password);
         return builder.AddResource(resource)
                       .WithManifestPublishingCallback(WriteMySqlContainerToManifest)
                       .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 3306)) // Internal port is always 3306.
-                      .WithAnnotation(new ContainerImageAnnotation { Image = "mysql", Tag = "latest" })
+                      .WithAnnotation(new ContainerImageAnnotation { Image = "mysql", Tag = "8.3.0" })
                       .WithEnvironment(context =>
                       {
-                          if (context.PublisherName == "manifest")
+                          if (context.ExecutionContext.Operation == DistributedApplicationOperation.Publish)
                           {
                               context.EnvironmentVariables.Add(PasswordEnvVarName, $"{{{resource.Name}.inputs.password}}");
                           }
@@ -59,7 +61,7 @@ public static class MySqlBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a phpMyAdmin administration and development platform for MySql to the application model.
+    /// Adds a phpMyAdmin administration and development platform for MySql to the application model. This version the package defaults to the 5.2 tag of the phpmyadmin container image
     /// </summary>
     /// <param name="builder">The MySql server resource builder.</param>
     /// <param name="hostPort">The host port for the application ui.</param>
@@ -78,7 +80,7 @@ public static class MySqlBuilderExtensions
 
         var phpMyAdminContainer = new PhpMyAdminContainerResource(containerName);
         builder.ApplicationBuilder.AddResource(phpMyAdminContainer)
-                                  .WithAnnotation(new ContainerImageAnnotation { Image = "phpmyadmin", Tag = "latest" })
+                                  .WithAnnotation(new ContainerImageAnnotation { Image = "phpmyadmin", Tag = "5.2" })
                                   .WithHttpEndpoint(containerPort: 80, hostPort: hostPort, name: containerName)
                                   .WithVolumeMount(Path.GetTempFileName(), "/etc/phpmyadmin/config.user.inc.php")
                                   .ExcludeFromManifest();

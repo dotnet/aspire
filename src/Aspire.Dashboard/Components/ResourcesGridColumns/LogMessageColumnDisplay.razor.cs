@@ -12,25 +12,27 @@ public partial class LogMessageColumnDisplay
 {
     private bool TryGetErrorInformation([NotNullWhen(true)] out string? errorInfo)
     {
-        var stackTrace = GetProperty("exception.stacktrace") ?? GetProperty("ex.StackTrace");
-        if (stackTrace is null)
-        {
-            errorInfo = null;
-            return false;
-        }
-
-        if (string.IsNullOrEmpty(stackTrace))
-        {
-            var message = GetProperty("exception.message") ?? GetProperty("ex.Message");
-            var type = GetProperty("exception.type") ?? GetProperty("ex.Type");
-            errorInfo = $"{type}: {message}";
-        }
-        else
+        // exception.stacktrace includes the exception message and type.
+        // https://opentelemetry.io/docs/specs/semconv/attributes-registry/exception/
+        if (GetProperty("exception.stacktrace") is { Length: > 0 } stackTrace)
         {
             errorInfo = stackTrace;
+            return true;
+        }
+        if (GetProperty("exception.message") is { Length: > 0 } message)
+        {
+            if (GetProperty("exception.type") is { Length: > 0 } type)
+            {
+                errorInfo = $"{type}: {message}";
+                return true;
+            }
+
+            errorInfo = message;
+            return true;
         }
 
-        return true;
+        errorInfo = null;
+        return false;
 
         string? GetProperty(string propertyName)
         {

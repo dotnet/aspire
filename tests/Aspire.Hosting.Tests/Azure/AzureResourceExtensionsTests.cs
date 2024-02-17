@@ -65,10 +65,9 @@ public class AzureResourceExtensionsTests
     }
 
     [Theory]
-    [InlineData(null)]
     [InlineData("2.3.97-preview")]
     [InlineData("1.0.7")]
-    public void AddAzureCosmosDBWithEmulatorGetsExpectedImageTag(string? imageTag = null)
+    public void AddAzureCosmosDBWithEmulatorGetsExpectedImageTag(string imageTag)
     {
         var builder = DistributedApplication.CreateBuilder();
 
@@ -100,7 +99,8 @@ public class AzureResourceExtensionsTests
         var annotations = serviceA.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("manifest", config);
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish);
+        var context = new EnvironmentCallbackContext(executionContext, config);
 
         foreach (var annotation in annotations)
         {
@@ -126,7 +126,8 @@ public class AzureResourceExtensionsTests
         var annotations = serviceA.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
+        var context = new EnvironmentCallbackContext(executionContext, config);
 
         foreach (var annotation in annotations)
         {

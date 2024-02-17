@@ -37,7 +37,7 @@ public class AddMongoDBTests
         Assert.Equal("tcp", endpoint.UriScheme);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal("latest", containerAnnotation.Tag);
+        Assert.Equal("7.0.5", containerAnnotation.Tag);
         Assert.Equal("mongo", containerAnnotation.Image);
         Assert.Null(containerAnnotation.Registry);
     }
@@ -68,7 +68,7 @@ public class AddMongoDBTests
         Assert.Equal("tcp", endpoint.UriScheme);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal("latest", containerAnnotation.Tag);
+        Assert.Equal("7.0.5", containerAnnotation.Tag);
         Assert.Equal("mongo", containerAnnotation.Image);
         Assert.Null(containerAnnotation.Registry);
     }

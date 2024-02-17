@@ -109,6 +109,8 @@ public class AzureBicepResource(string name, string? templateFile = null, string
             IEnumerable<string> enumerable => Quote(Parenthesize(Join(enumerable.Select(SingleQuote)))),
             IResourceBuilder<IResourceWithConnectionString> builder => Quote(builder.Resource.GetConnectionString() ?? throw new InvalidOperationException("Missing connection string")),
             IResourceBuilder<ParameterResource> p => Quote(p.Resource.Value),
+            // REVIEW: The value might not be calculated yet
+            BicepOutputReference output => Quote(output.Name + "=" + output.Resource.GetChecksum()),
             object o => Quote(input.ToString()!),
             null => ""
         };
@@ -185,6 +187,7 @@ public class AzureBicepResource(string name, string? templateFile = null, string
                 {
                     IResourceBuilder<ParameterResource> p => p.Resource.ValueExpression,
                     IResourceBuilder<IResourceWithConnectionString> p => p.Resource.ConnectionStringReferenceExpression,
+                    BicepOutputReference output => output.ValueExpression,
                     object obj => obj.ToString(),
                     null => ""
                 };
@@ -340,7 +343,7 @@ public static class AzureBicepTemplateResourceExtensions
     {
         return builder.WithEnvironment(ctx =>
         {
-            if (ctx.PublisherName == "manifest")
+            if (ctx.ExecutionContext.Operation == DistributedApplicationOperation.Publish)
             {
                 ctx.EnvironmentVariables[name] = bicepOutputReference.ValueExpression;
                 return;
@@ -433,6 +436,21 @@ public static class AzureBicepTemplateResourceExtensions
     /// <param name="value">The value of the parameter.</param>
     /// <returns>An <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithParameter<T>(this IResourceBuilder<T> builder, string name, IResourceBuilder<IResourceWithConnectionString> value)
+        where T : AzureBicepResource
+    {
+        builder.Resource.Parameters[name] = value;
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds a parameter to the bicep template.
+    /// </summary>
+    /// <typeparam name="T">The <see cref="AzureBicepResource"/></typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">The name of the input.</param>
+    /// <param name="value">The value of the parameter.</param>
+    /// <returns>An <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithParameter<T>(this IResourceBuilder<T> builder, string name, BicepOutputReference value)
         where T : AzureBicepResource
     {
         builder.Resource.Parameters[name] = value;

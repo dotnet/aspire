@@ -36,7 +36,7 @@ public class AddRedisTests
         Assert.Equal("tcp", endpoint.UriScheme);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal("latest", containerAnnotation.Tag);
+        Assert.Equal("7.2.4", containerAnnotation.Tag);
         Assert.Equal("redis", containerAnnotation.Image);
         Assert.Null(containerAnnotation.Registry);
     }
@@ -67,7 +67,7 @@ public class AddRedisTests
         Assert.Equal("tcp", endpoint.UriScheme);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal("latest", containerAnnotation.Tag);
+        Assert.Equal("7.2.4", containerAnnotation.Tag);
         Assert.Equal("redis", containerAnnotation.Image);
         Assert.Null(containerAnnotation.Registry);
     }
@@ -123,7 +123,8 @@ public class AddRedisTests
         var envAnnotations = commander.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
+        var context = new EnvironmentCallbackContext(executionContext, config);
 
         foreach (var annotation in envAnnotations)
         {
@@ -154,7 +155,8 @@ public class AddRedisTests
         var envAnnotations = commander.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
+        var context = new EnvironmentCallbackContext(executionContext, config);
 
         foreach (var annotation in envAnnotations)
         {
