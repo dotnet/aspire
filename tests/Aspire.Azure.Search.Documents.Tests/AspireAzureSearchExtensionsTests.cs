@@ -47,7 +47,7 @@ public class AspireAzureSearchExtensionsTests
     [InlineData(false)]
     public void ConnectionStringCanBeSetInCode(bool useKeyed)
     {
-        var searchEndpoint = new Uri("https://aspiresearchtests.search.windows.net/");
+        var searchEndpoint = new Uri("https://aspireazuresearchtests.search.windows.net/");
         var key = "fake";
         var builder = Host.CreateEmptyApplicationBuilder(null);
 
