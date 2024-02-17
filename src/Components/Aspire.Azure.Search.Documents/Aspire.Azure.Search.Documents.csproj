@@ -3,9 +3,9 @@
   <PropertyGroup>
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <PackageTags>$(ComponentAzurePackageTags) ai search</PackageTags>
-    <Description>A client for Azure AI Search that integrates with Aspire, including logging and telemetry.</Description>
-    <PackageIconFullPath>$(SharedDir)AzureAISearch_256x.png</PackageIconFullPath>
+    <PackageTags>$(ComponentAzurePackageTags) azure search</PackageTags>
+    <Description>A client for Azure Search that integrates with Aspire, including logging and telemetry.</Description>
+    <PackageIconFullPath>$(SharedDir)AzureSearch_256x.png</PackageIconFullPath>
     <NoWarn>$(NoWarn);SYSLIB1100;SYSLIB1101</NoWarn>
   </PropertyGroup>
 

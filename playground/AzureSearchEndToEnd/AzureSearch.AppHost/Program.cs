@@ -3,10 +3,10 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var aiSearch = builder.AddConnectionString("search");
+var azureSearch = builder.AddConnectionString("search");
 
 builder.AddProject<Projects.AzureSearch_ApiService>("api")
-       .WithReference(aiSearch);
+       .WithReference(azureSearch);
 
 // This project is only added in playground projects to support development/debugging
 // of the dashboard. It is not required in end developer code. Comment out this code

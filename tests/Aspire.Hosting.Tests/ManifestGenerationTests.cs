@@ -455,11 +455,11 @@ public class ManifestGenerationTests
     }
 
     [Fact]
-    public void EnsureAllAzureAISearchManifestTypesHaveVersion0Suffix()
+    public void EnsureAllAzureSearchManifestTypesHaveVersion0Suffix()
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher();
 
-        program.AppBuilder.AddAzureAISearch("aisearch");
+        program.AppBuilder.AddAzureSearch("search");
 
         // Build AppHost so that publisher can be resolved.
         program.Build();
@@ -469,8 +469,8 @@ public class ManifestGenerationTests
 
         var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
 
-        var aiSearch = resources.GetProperty("aisearch");
-        Assert.Equal("azure.aisearch.v0", aiSearch.GetProperty("type").GetString());
+        var azureSearch = resources.GetProperty("search");
+        Assert.Equal("azure.search.v0", azureSearch.GetProperty("type").GetString());
     }
 
     [Fact]

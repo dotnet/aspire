@@ -388,23 +388,23 @@ public static class AzureResourceExtensions
     }
 
     /// <summary>
-    /// Adds an Azure AI Search resource to the application model.
+    /// Adds an Azure Search resource to the application model.
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{AzureAISearchResource}"/>.</returns>
-    public static IResourceBuilder<AzureSearchResource> AddAzureAISearch(this IDistributedApplicationBuilder builder, string name)
+    /// <returns>A reference to the <see cref="IResourceBuilder{AzureSearchResource}"/>.</returns>
+    public static IResourceBuilder<AzureSearchResource> AddAzureSearch(this IDistributedApplicationBuilder builder, string name)
     {
         var resource = new AzureSearchResource(name);
         return builder.AddResource(resource)
-            .WithManifestPublishingCallback(WriteAzureAISearchToManifest);
+            .WithManifestPublishingCallback(WriteAzureSearchToManifest);
     }
 
-    private static void WriteAzureAISearchToManifest(ManifestPublishingContext context)
+    private static void WriteAzureSearchToManifest(ManifestPublishingContext context)
     {
         // Example:
-        // "type": "azure.aisearch.v0",
-        context.Writer.WriteString("type", "azure.aisearch.v0");
+        // "type": "azure.search.v0",
+        context.Writer.WriteString("type", "azure.search.v0");
     }
 
     /// <summary>
