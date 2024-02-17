@@ -28,7 +28,7 @@ public partial class Traces
     private string _filter = string.Empty;
 
     [Parameter]
-    public string? ResourceName { get; set; }
+    public string? ApplicationName { get; set; }
 
     [Inject]
     public required TelemetryRepository TelemetryRepository { get; set; }
@@ -85,7 +85,7 @@ public partial class Traces
 
     protected override void OnParametersSet()
     {
-        _selectedApplication = _applicationViewModels.SingleOrDefault(e => string.Equals(ResourceName, e.Name, StringComparisons.ResourceName)) ?? _allApplication;
+        _selectedApplication = _applicationViewModels.SingleOrDefault(e => string.Equals(ApplicationName, e.Name, StringComparisons.ResourceName)) ?? _allApplication;
         TracesViewModel.ApplicationServiceId = _selectedApplication.Id?.InstanceId;
         UpdateSubscription();
     }

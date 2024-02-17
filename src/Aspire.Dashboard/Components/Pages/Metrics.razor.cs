@@ -28,7 +28,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     public MetricsViewModel PageViewModel { get; set; } = null!;
 
     [Parameter]
-    public string? ResourceName { get; set; }
+    public string? ApplicationName { get; set; }
 
     [Parameter]
     public string? MeterName { get; set; }
@@ -104,7 +104,7 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
     public void UpdateViewModelFromQuery(MetricsViewModel viewModel)
     {
         viewModel.SelectedDuration = _durations.SingleOrDefault(d => (int)d.Id.TotalMinutes == DurationMinutes) ?? _durations.Single(d => d.Id == s_defaultDuration);
-        viewModel.SelectedApplication = _applications.SingleOrDefault(e => string.Equals(ResourceName, e.Name, StringComparisons.ResourceName)) ?? _selectApplication;
+        viewModel.SelectedApplication = _applications.SingleOrDefault(e => string.Equals(ApplicationName, e.Name, StringComparisons.ResourceName)) ?? _selectApplication;
         var selectedInstance = viewModel.SelectedApplication.Id?.InstanceId;
         viewModel.Instruments = !string.IsNullOrEmpty(selectedInstance) ? TelemetryRepository.GetInstrumentsSummary(selectedInstance) : null;
 
