@@ -3,9 +3,9 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var aiSearch = builder.AddConnectionString("aisearch");
+var aiSearch = builder.AddConnectionString("search");
 
-builder.AddProject<Projects.AISearch_ApiService>("api")
+builder.AddProject<Projects.AzureSearch_ApiService>("api")
        .WithReference(aiSearch);
 
 // This project is only added in playground projects to support development/debugging

@@ -3,7 +3,7 @@
 
 using Azure.Search.Documents.Indexes;
 
-namespace AISearch.ApiService;
+namespace AzureSearch.ApiService;
 
 public partial class Address
 {

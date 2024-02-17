@@ -255,11 +255,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "OpenAIEndToEnd", "OpenAIEnd
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OpenAIEndToEnd.WebStory", "playground\OpenAIEndToEnd\OpenAIEndToEnd.WebStory\OpenAIEndToEnd.WebStory.csproj", "{621BE1D9-D9D5-4D5E-8404-3F5CC492B555}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AISearchEndToEnd", "AISearchEndToEnd", "{9D0798BD-2863-4381-A098-46621245B924}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AzureSearchEndToEnd", "AzureSearchEndToEnd", "{9D0798BD-2863-4381-A098-46621245B924}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AISearch.ApiService", "playground\AISearchEndToEnd\AISearch.ApiService\AISearch.ApiService.csproj", "{187A67CC-04EE-44D4-A834-0F16B7A23043}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AzureSearch.ApiService", "playground\AzureSearchEndToEnd\AzureSearch.ApiService\AzureSearch.ApiService.csproj", "{187A67CC-04EE-44D4-A834-0F16B7A23043}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AISearch.AppHost", "playground\AISearchEndToEnd\AISearch.AppHost\AISearch.AppHost.csproj", "{B29A6BDD-8621-4B59-87D3-2223C9A74C15}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AzureSearch.AppHost", "playground\AzureSearchEndToEnd\AzureSearch.AppHost\AzureSearch.AppHost.csproj", "{B29A6BDD-8621-4B59-87D3-2223C9A74C15}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AzureStorageEndToEnd", "AzureStorageEndToEnd", "{8AA07A14-A4A7-45EC-B0F6-4690B516B16D}"
 EndProject

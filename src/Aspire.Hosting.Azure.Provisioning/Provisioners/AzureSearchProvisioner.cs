@@ -3,14 +3,15 @@
 
 using Azure;
 using Azure.ResourceManager.Search;
+using Azure.ResourceManager.Search.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Azure.Provisioning.Provisioners;
 
-internal sealed class AISearchProvisioner(ILogger<AISearchProvisioner> logger) : AzureResourceProvisioner<AzureAISearchResource>
+internal sealed class AzureSearchProvisioner(ILogger<AzureSearchProvisioner> logger) : AzureResourceProvisioner<AzureSearchResource>
 {
-    public override bool ConfigureResource(IConfiguration configuration, AzureAISearchResource resource)
+    public override bool ConfigureResource(IConfiguration configuration, AzureSearchResource resource)
     {
         if (configuration.GetConnectionString(resource.Name) is string connectionString)
         {
@@ -22,7 +23,7 @@ internal sealed class AISearchProvisioner(ILogger<AISearchProvisioner> logger) :
     }
 
     public override async Task GetOrCreateResourceAsync(
-        AzureAISearchResource resource,
+        AzureSearchResource resource,
         ProvisioningContext context,
         CancellationToken cancellationToken)
     {
@@ -30,30 +31,33 @@ internal sealed class AISearchProvisioner(ILogger<AISearchProvisioner> logger) :
 
         if (azureResource is not null && azureResource is not SearchServiceResource)
         {
-            logger.LogWarning("Resource {resourceName} is not an AI Search resource. Deleting it.", resource.Name);
+            logger.LogWarning("Resource {resourceName} is not an Azure Search resource. Deleting it.", resource.Name);
 
             await context.ArmClient.GetGenericResource(azureResource.Id).DeleteAsync(WaitUntil.Started, cancellationToken).ConfigureAwait(false);
         }
 
-        var aiSearchResource = azureResource as SearchServiceResource;
+        var searchResource = azureResource as SearchServiceResource;
 
-        if (aiSearchResource is null)
+        if (searchResource is null)
         {
-            var aiSearchName = Guid.NewGuid().ToString().Replace("-", string.Empty);
+            var searchName = Guid.NewGuid().ToString("N");
 
-            var parameters = new SearchServiceData(context.Location);
+            var searchServiceData = new SearchServiceData(context.Location)
+            {
+                SkuName = SearchSkuName.Free
+            };
 
-            logger.LogInformation("Creating AI Search {aiSearchName} in {location}...", aiSearchName, context.Location);
+            logger.LogInformation("Creating Azure Search {searchName} in {location}...", searchName, context.Location);
 
-            var aiSearchCreateOperation = await context.ResourceGroup
-                .GetSearchServices().CreateOrUpdateAsync(WaitUntil.Completed, aiSearchName, parameters, cancellationToken: cancellationToken).ConfigureAwait(false);
-            aiSearchResource = aiSearchCreateOperation.Value;
+            var searchCreateOperation = await context.ResourceGroup
+                .GetSearchServices().CreateOrUpdateAsync(WaitUntil.Completed, searchName, searchServiceData, cancellationToken: cancellationToken).ConfigureAwait(false);
+            searchResource = searchCreateOperation.Value;
 
-            logger.LogInformation("AI Search {aiSearchName} created.", aiSearchResource.Data.Name);
+            logger.LogInformation("Azure Search {searchName} created.", searchResource.Data.Name);
         }
 
         // SearchServiceResource doesn't have an "Endpoint" property
-        resource.ConnectionString = $"https://{aiSearchResource.Data.Name.ToLowerInvariant()}.search.windows.net";
+        resource.ConnectionString = $"https://{searchResource.Data.Name.ToLowerInvariant()}.search.windows.net";
 
         // Search Service Contributor role
         // https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles#search-service-contributor
@@ -63,8 +67,8 @@ internal sealed class AISearchProvisioner(ILogger<AISearchProvisioner> logger) :
         // https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles#search-index-data-contributor
         var searchIndexDataContributorId = CreateRoleDefinitionId(context.Subscription, "8ebe5a00-799e-43f5-93ac-243d3dce84a7");
 
-        var t0 = DoRoleAssignmentAsync(context.ArmClient, aiSearchResource.Id, context.Principal.Id, searchServiceContributorId, cancellationToken);
-        var t1 = DoRoleAssignmentAsync(context.ArmClient, aiSearchResource.Id, context.Principal.Id, searchIndexDataContributorId, cancellationToken);
+        var t0 = DoRoleAssignmentAsync(context.ArmClient, searchResource.Id, context.Principal.Id, searchServiceContributorId, cancellationToken);
+        var t1 = DoRoleAssignmentAsync(context.ArmClient, searchResource.Id, context.Principal.Id, searchIndexDataContributorId, cancellationToken);
 
         await Task.WhenAll(t0, t1).ConfigureAwait(false);
     }

@@ -9,9 +9,9 @@ using Xunit;
 
 namespace Aspire.Azure.Search.Documents.Tests;
 
-public class AspireAzureAISearchExtensionsTests
+public class AspireAzureSearchExtensionsTests
 {
-    private const string SearchEndpoint = "https://aspireaisearchtests.search.windows.net/";
+    private const string SearchEndpoint = "https://aspireazuresearchtests.search.windows.net/";
     private const string ConnectionString = $"Endpoint={SearchEndpoint};Key=fake";
 
     [Theory]
@@ -21,21 +21,21 @@ public class AspireAzureAISearchExtensionsTests
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
-            new KeyValuePair<string, string?>("ConnectionStrings:aisearch", ConnectionString)
+            new KeyValuePair<string, string?>("ConnectionStrings:search", ConnectionString)
         ]);
 
         if (useKeyed)
         {
-            builder.AddKeyedAzureAISearch("aisearch");
+            builder.AddKeyedAzureSearch("search");
         }
         else
         {
-            builder.AddAzureAISearch("aisearch");
+            builder.AddAzureSearch("search");
         }
 
         var host = builder.Build();
         var client = useKeyed ?
-            host.Services.GetRequiredKeyedService<SearchIndexClient>("aisearch") :
+            host.Services.GetRequiredKeyedService<SearchIndexClient>("search") :
             host.Services.GetRequiredService<SearchIndexClient>();
 
         Assert.NotNull(client);
@@ -47,22 +47,22 @@ public class AspireAzureAISearchExtensionsTests
     [InlineData(false)]
     public void ConnectionStringCanBeSetInCode(bool useKeyed)
     {
-        var searchEndpoint = new Uri("https://aspireaisearchtests.search.windows.net/");
+        var searchEndpoint = new Uri("https://aspiresearchtests.search.windows.net/");
         var key = "fake";
         var builder = Host.CreateEmptyApplicationBuilder(null);
 
         if (useKeyed)
         {
-            builder.AddKeyedAzureAISearch("aisearch", settings => { settings.Endpoint = searchEndpoint; settings.Key = key; });
+            builder.AddKeyedAzureSearch("search", settings => { settings.Endpoint = searchEndpoint; settings.Key = key; });
         }
         else
         {
-            builder.AddAzureAISearch("aisearch", settings => { settings.Endpoint = searchEndpoint; settings.Key = key; });
+            builder.AddAzureSearch("search", settings => { settings.Endpoint = searchEndpoint; settings.Key = key; });
         }
 
         var host = builder.Build();
         var client = useKeyed ?
-            host.Services.GetRequiredKeyedService<SearchIndexClient>("aisearch") :
+            host.Services.GetRequiredKeyedService<SearchIndexClient>("search") :
             host.Services.GetRequiredService<SearchIndexClient>();
 
         Assert.NotNull(client);

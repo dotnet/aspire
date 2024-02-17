@@ -5,11 +5,12 @@ using Aspire;
 using Aspire.Azure.Search.Documents;
 using Azure.Search.Documents;
 
-[assembly: ConfigurationSchema("Aspire:Azure:Search:Documents", typeof(AzureAISearchSettings))]
+[assembly: ConfigurationSchema("Aspire:Azure:Search:Documents", typeof(AzureSearchSettings))]
 [assembly: ConfigurationSchema("Aspire:Azure:Search:Documents:ClientOptions", typeof(SearchClientOptions), exclusionPaths: ["Default"])]
 
 [assembly: LoggingCategories(
     "Azure",
     "Azure.Core",
-    "Azure.Identity"
+    "Azure.Identity",
+    "Azure-Search-Documents"
 )]

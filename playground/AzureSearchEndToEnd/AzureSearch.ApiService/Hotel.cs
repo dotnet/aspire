@@ -6,7 +6,7 @@ using Azure.Search.Documents.Indexes;
 using Azure.Search.Documents.Indexes.Models;
 using Microsoft.Spatial;
 
-namespace AISearch.ApiService;
+namespace AzureSearch.ApiService;
 
 public partial class Hotel
 {

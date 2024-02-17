@@ -12,9 +12,9 @@ using Xunit;
 
 namespace Aspire.Azure.Search.Documents.Tests;
 
-public class ConformanceTests : ConformanceTests<SearchIndexClient, AzureAISearchSettings>
+public class ConformanceTests : ConformanceTests<SearchIndexClient, AzureSearchSettings>
 {
-    protected const string Endpoint = "https://aspireaisearchtests.search.windows.net/";
+    protected const string Endpoint = "https://aspireazuresearchtests.search.windows.net/";
 
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
@@ -34,9 +34,7 @@ public class ConformanceTests : ConformanceTests<SearchIndexClient, AzureAISearc
                   "Endpoint": "http://YOUR_URI",
                   "Tracing": true,
                   "ClientOptions": {
-                    "ConnectionIdleTimeout": "PT1S",
-                    "EnableCrossEntityTransactions": true,
-                    "RetryOptions": {
+                    "Retry": {
                       "Mode": "Fixed",
                       "MaxDelay": "PT3S"  
                     }
@@ -62,18 +60,18 @@ public class ConformanceTests : ConformanceTests<SearchIndexClient, AzureAISearc
             new(CreateConfigKey("Aspire:Azure:Search:Documents", key, "Endpoint"), Endpoint)
         });
 
-    protected override void RegisterComponent(HostApplicationBuilder builder, Action<AzureAISearchSettings>? configure = null, string? key = null)
+    protected override void RegisterComponent(HostApplicationBuilder builder, Action<AzureSearchSettings>? configure = null, string? key = null)
     {
         if (key is null)
         {
-            builder.AddAzureAISearch("aisearch", ConfigureCredentials);
+            builder.AddAzureSearch("search", ConfigureCredentials);
         }
         else
         {
-            builder.AddKeyedAzureAISearch(key, ConfigureCredentials);
+            builder.AddKeyedAzureSearch(key, ConfigureCredentials);
         }
 
-        void ConfigureCredentials(AzureAISearchSettings settings)
+        void ConfigureCredentials(AzureSearchSettings settings)
         {
             if (CanConnectToServer)
             {
@@ -92,14 +90,14 @@ public class ConformanceTests : ConformanceTests<SearchIndexClient, AzureAISearc
     public void TracingEnablesTheRightActivitySource_Keyed()
         => RemoteExecutor.Invoke(() => ActivitySourceTest(key: "key")).Dispose();
 
-    protected override void SetHealthCheck(AzureAISearchSettings settings, bool enabled)
-        => settings.HealthChecks = enabled;
+    protected override void SetHealthCheck(AzureSearchSettings options, bool enabled)
+        => options.HealthChecks = enabled;
 
-    protected override void SetMetrics(AzureAISearchSettings settings, bool enabled)
+    protected override void SetMetrics(AzureSearchSettings options, bool enabled)
         => throw new NotImplementedException();
 
-    protected override void SetTracing(AzureAISearchSettings settings, bool enabled)
-        => settings.Tracing = enabled;
+    protected override void SetTracing(AzureSearchSettings options, bool enabled)
+        => options.Tracing = enabled;
 
     protected override void TriggerActivity(SearchIndexClient service)
         => service.GetIndex("my-index");

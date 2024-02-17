@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 using Azure.Search.Documents.Indexes;
 using Azure.Search.Documents.Indexes.Models;
 
-namespace AISearch.ApiService;
+namespace AzureSearch.ApiService;
 
 public partial class Room
 {

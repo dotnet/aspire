@@ -19,7 +19,7 @@ namespace Microsoft.Extensions.Hosting;
 /// <summary>
 /// Provides extension methods for registering <see cref="SearchIndexClient"/> as a singleton in the services provided by the <see cref="IHostApplicationBuilder"/>.
 /// </summary>
-public static class AspireAzureAISearchExtensions
+public static class AspireAzureSearchExtensions
 {
     private const string DefaultConfigSectionName = "Aspire:Azure:Search:Documents";
     /// <summary>
@@ -27,16 +27,16 @@ public static class AspireAzureAISearchExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="connectionName">A name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
-    /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureAISearchSettings"/>. It's invoked after the settings are read from the configuration.</param>
+    /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureSearchSettings"/>. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{SearchIndexClient, SearchClientOptions}"/>.</param>
     /// <remarks>Reads the configuration from "Aspire:Azure:Search:Documents" section.</remarks>
-    public static void AddAzureAISearch(
+    public static void AddAzureSearch(
         this IHostApplicationBuilder builder,
         string connectionName,
-        Action<AzureAISearchSettings>? configureSettings = null,
+        Action<AzureSearchSettings>? configureSettings = null,
         Action<IAzureClientBuilder<SearchIndexClient, SearchClientOptions>>? configureClientBuilder = null)
     {
-        new AISearchComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName, serviceKey: null);
+        new AzureSearchComponent().AddClient(builder, DefaultConfigSectionName, configureSettings, configureClientBuilder, connectionName, serviceKey: null);
     }
 
     /// <summary>
@@ -44,36 +44,36 @@ public static class AspireAzureAISearchExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder" /> to read config from and add services to.</param>
     /// <param name="name">The name of the component, which is used as the <see cref="ServiceDescriptor.ServiceKey"/> of the service and also to retrieve the connection string from the ConnectionStrings configuration section.</param>
-    /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureAISearchSettings"/>. It's invoked after the settings are read from the configuration.</param>
+    /// <param name="configureSettings">An optional method that can be used for customizing the <see cref="AzureSearchSettings"/>. It's invoked after the settings are read from the configuration.</param>
     /// <param name="configureClientBuilder">An optional method that can be used for customizing the <see cref="IAzureClientBuilder{SearchIndexClient, SearchClientOptions}"/>.</param>
     /// <remarks>Reads the configuration from "Aspire:Azure:Search:Documents:{name}" section.</remarks>
-    public static void AddKeyedAzureAISearch(
+    public static void AddKeyedAzureSearch(
         this IHostApplicationBuilder builder,
         string name,
-        Action<AzureAISearchSettings>? configureSettings = null,
+        Action<AzureSearchSettings>? configureSettings = null,
         Action<IAzureClientBuilder<SearchIndexClient, SearchClientOptions>>? configureClientBuilder = null)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        var configurationSectionName = AISearchComponent.GetKeyedConfigurationSectionName(name, DefaultConfigSectionName);
+        var configurationSectionName = AzureSearchComponent.GetKeyedConfigurationSectionName(name, DefaultConfigSectionName);
 
-        new AISearchComponent().AddClient(builder, configurationSectionName, configureSettings, configureClientBuilder, connectionName: name, serviceKey: name);
+        new AzureSearchComponent().AddClient(builder, configurationSectionName, configureSettings, configureClientBuilder, connectionName: name, serviceKey: name);
     }
 
-    private sealed class AISearchComponent : AzureComponent<AzureAISearchSettings, SearchIndexClient, SearchClientOptions>
+    private sealed class AzureSearchComponent : AzureComponent<AzureSearchSettings, SearchIndexClient, SearchClientOptions>
     {
         // `SearchIndexClient` is in the Azure.Search.Documents.Indexes namespace
         // but uses `SearchClientOptions` which is in the Azure.Search.Documents namespace
         // https://github.com/Azure/azure-sdk-for-net/blob/bed506dee05319ff2de27ca98500daa10573fe7d/sdk/search/Azure.Search.Documents/src/Indexes/SearchIndexClient.cs#L92
         protected override string[] ActivitySourceNames => ["Azure.Search.Documents.*"];
 
-        protected override IAzureClientBuilder<SearchIndexClient, SearchClientOptions> AddClient<TBuilder>(TBuilder azureFactoryBuilder, AzureAISearchSettings settings, string connectionName, string configurationSectionName)
+        protected override IAzureClientBuilder<SearchIndexClient, SearchClientOptions> AddClient<TBuilder>(TBuilder azureFactoryBuilder, AzureSearchSettings settings, string connectionName, string configurationSectionName)
         {
             return azureFactoryBuilder.RegisterClientFactory<SearchIndexClient, SearchClientOptions>((options, cred) =>
             {
                 if (settings.Endpoint is null)
                 {
-                    throw new InvalidOperationException($"A SearchIndexClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify an '{nameof(AzureAISearchSettings.Endpoint)}' in the '{configurationSectionName}' configuration section.");
+                    throw new InvalidOperationException($"A SearchIndexClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify an '{nameof(AzureSearchSettings.Endpoint)}' in the '{configurationSectionName}' configuration section.");
                 }
 
                 if (!string.IsNullOrWhiteSpace(settings.Key))
@@ -94,21 +94,21 @@ public static class AspireAzureAISearchExtensions
 #pragma warning restore IDE0200
         }
 
-        protected override void BindSettingsToConfiguration(AzureAISearchSettings settings, IConfiguration config)
+        protected override void BindSettingsToConfiguration(AzureSearchSettings settings, IConfiguration config)
         {
             config.Bind(settings);
         }
 
-        protected override IHealthCheck CreateHealthCheck(SearchIndexClient client, AzureAISearchSettings settings)
+        protected override IHealthCheck CreateHealthCheck(SearchIndexClient client, AzureSearchSettings settings)
             => new AzureSearchIndexHealthCheck(client);
 
-        protected override bool GetHealthCheckEnabled(AzureAISearchSettings settings)
+        protected override bool GetHealthCheckEnabled(AzureSearchSettings settings)
             => settings.HealthChecks;
 
-        protected override TokenCredential? GetTokenCredential(AzureAISearchSettings settings)
+        protected override TokenCredential? GetTokenCredential(AzureSearchSettings settings)
             => settings.Credential;
 
-        protected override bool GetTracingEnabled(AzureAISearchSettings settings)
+        protected override bool GetTracingEnabled(AzureSearchSettings settings)
             => settings.Tracing;
     }
 }
