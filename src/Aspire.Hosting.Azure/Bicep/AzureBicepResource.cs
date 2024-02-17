@@ -107,7 +107,6 @@ public class AzureBicepResource(string name, string? templateFile = null, string
         {
             string s => Quote(s),
             IEnumerable<string> enumerable => Quote(Parenthesize(Join(enumerable.Select(SingleQuote)))),
-            BicepOutputReference reference => Quote(reference.Value ?? ""),
             IResourceBuilder<IResourceWithConnectionString> builder => Quote(builder.Resource.GetConnectionString() ?? throw new InvalidOperationException("Missing connection string")),
             IResourceBuilder<ParameterResource> p => Quote(p.Resource.Value),
             // REVIEW: The value might not be calculated yet
