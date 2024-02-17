@@ -149,6 +149,8 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
                     JsonNode node => node,
                     IResourceBuilder<IResourceWithConnectionString> c => c.Resource.GetConnectionString(),
                     IResourceBuilder<ParameterResource> p => p.Resource.Value,
+                    // TODO: Support this
+                    BicepOutputReference reference => throw new NotSupportedException("Referencing bicep outputs is not supported"),
                     object o => o.ToString()!,
                     null => null,
                 }
