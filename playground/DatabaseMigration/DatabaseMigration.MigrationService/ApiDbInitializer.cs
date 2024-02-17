@@ -26,10 +26,14 @@ public class ApiDbInitializer(
 
     private static async Task InitializeDatabaseAsync(MyDb1Context dbContext, CancellationToken cancellationToken)
     {
-        var strategy = dbContext.Database.CreateExecutionStrategy();
-
         using var activity = s_activitySource.StartActivity("Migrating database", ActivityKind.Client);
 
-        await strategy.ExecuteAsync(() => dbContext.Database.MigrateAsync(cancellationToken));
+        var strategy = dbContext.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
+        {
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+            await dbContext.Database.MigrateAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        });
     }
 }
