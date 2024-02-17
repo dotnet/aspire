@@ -24,6 +24,11 @@ public class AzureBicepManagedIdentityResource(string name) :
 }
 
 /// <summary>
+/// Represents an Azure resource that supports specifying a managed identity.
+/// </summary>
+public interface IAzureResourceWithManagedIdentity : IAzureResource { }
+
+/// <summary>
 /// Extension methods for <see cref="AzureBicepManagedIdentityResource"/>.
 /// </summary>
 public static class AzureBicepManagedIdentityExtensions
@@ -51,7 +56,7 @@ public static class AzureBicepManagedIdentityExtensions
     /// <param name="identity">The managed identity resource builder.</param>
     /// <returns>A configured resource builder.</returns>
     public static IResourceBuilder<T> WithIdentity<T>(this IResourceBuilder<T> builder, IResourceBuilder<AzureBicepManagedIdentityResource> identity)
-        where T : AzureBicepResource
+        where T : AzureBicepResource, IAzureResourceWithManagedIdentity
     {
         return builder.WithParameter("identity", identity.Resource.PrincipalId)
                       .WithParameter("identityType", "ServicePrincipal");

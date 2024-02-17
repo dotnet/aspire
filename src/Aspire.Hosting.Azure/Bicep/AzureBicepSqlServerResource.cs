@@ -12,7 +12,8 @@ namespace Aspire.Hosting.Azure;
 /// <param name="name">The name of the resource.</param>
 public class AzureBicepSqlServerResource(string name) :
     AzureBicepResource(name, templateResouceName: "Aspire.Hosting.Azure.Bicep.sql.bicep"),
-    IResourceWithConnectionString
+    IResourceWithConnectionString,
+    IAzureResourceWithManagedIdentity
 {
     internal List<string> Databases { get; } = [];
 
