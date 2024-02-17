@@ -28,7 +28,7 @@ public class AddPostgresTests
         Assert.NotNull(manifestPublishing.Callback);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal("latest", containerAnnotation.Tag);
+        Assert.Equal("16.2", containerAnnotation.Tag);
         Assert.Equal("postgres", containerAnnotation.Image);
         Assert.Null(containerAnnotation.Registry);
 
@@ -87,7 +87,7 @@ public class AddPostgresTests
         Assert.NotNull(manifestPublishing.Callback);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal("latest", containerAnnotation.Tag);
+        Assert.Equal("16.2", containerAnnotation.Tag);
         Assert.Equal("postgres", containerAnnotation.Image);
         Assert.Null(containerAnnotation.Registry);
 
@@ -197,7 +197,7 @@ public class AddPostgresTests
         Assert.NotNull(manifestPublishing.Callback);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal("latest", containerAnnotation.Tag);
+        Assert.Equal("16.2", containerAnnotation.Tag);
         Assert.Equal("postgres", containerAnnotation.Image);
         Assert.Null(containerAnnotation.Registry);
 

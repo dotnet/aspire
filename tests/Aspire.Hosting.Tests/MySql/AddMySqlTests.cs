@@ -28,7 +28,7 @@ public class AddMySqlTests
         Assert.NotNull(manifestAnnotation.Callback);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal("latest", containerAnnotation.Tag);
+        Assert.Equal("8.3.0", containerAnnotation.Tag);
         Assert.Equal("mysql", containerAnnotation.Image);
         Assert.Null(containerAnnotation.Registry);
 
@@ -77,7 +77,7 @@ public class AddMySqlTests
         Assert.NotNull(manifestPublishing.Callback);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal("latest", containerAnnotation.Tag);
+        Assert.Equal("8.3.0", containerAnnotation.Tag);
         Assert.Equal("mysql", containerAnnotation.Image);
         Assert.Null(containerAnnotation.Registry);
 

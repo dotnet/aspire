@@ -89,10 +89,10 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="builder">Builder for the container resource.</param>
     /// <param name="tag">Tag value.</param>
     /// <returns></returns>
-    public static IResourceBuilder<T> WithImageTag<T>(this IResourceBuilder<T> builder, string? tag) where T : ContainerResource
+    public static IResourceBuilder<T> WithImageTag<T>(this IResourceBuilder<T> builder, string tag) where T : ContainerResource
     {
         var containerImageAnnotation = builder.Resource.Annotations.OfType<ContainerImageAnnotation>().Single();
-        containerImageAnnotation.Tag = tag ?? "latest";
+        containerImageAnnotation.Tag = tag;
         return builder;
     }
 
