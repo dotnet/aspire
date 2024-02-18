@@ -48,7 +48,7 @@ internal readonly struct ServiceNameParts : IEquatable<ServiceNameParts>
             string? endPointName = null;
             if (uriHost.StartsWith("_") && segmentSeparatorIndex > 1 && uriHost[uriHost.Length - 1] != '.')
             {
-                endPointName = uriHost.Substring(1, segmentSeparatorIndex);
+                endPointName = uriHost.Substring(1, segmentSeparatorIndex - 1);
 
                 // Skip the endpoint name, including its prefix ('_') and suffix ('.').
                 host = uriHost.Substring(segmentSeparatorIndex + 1);
