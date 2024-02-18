@@ -1,0 +1,14 @@
+<Project>
+
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <!-- NOTE: This line is only required because we are using P2P references, not NuGet. It will not exist in real apps. -->
+  <Import Project="../../../src/Aspire.Hosting/build/Aspire.Hosting.props" />
+
+  <PropertyGroup>
+    <!-- Clear solution default because EF tooling doesn't like a custom output path. -->
+    <!-- Issue: https://github.com/dotnet/efcore/issues/23853 -->
+    <BaseIntermediateOutputPath></BaseIntermediateOutputPath>
+  </PropertyGroup>
+
+</Project>
