@@ -46,4 +46,12 @@
     <AspireDashboardDir>$(MSBuildThisFileDirectory)/artifacts/bin/Aspire.Dashboard/$(Configuration)/net8.0/</AspireDashboardDir>
   </PropertyGroup>
 
+  <!-- Ignore analyzers that recommend APIs introduced in .NET Core when targeting frameworks that lack those APIs
+   to avoid issues with multitargeting. -->
+  <PropertyGroup>
+    <NoWarn Condition="$(TargetFrameworks.StartsWith('net4')) or $(TargetFrameworks.StartsWith('netstandard'))">
+      $(NoWarn);CA1510;CA1511;CA1512;CA1513;CA1845;CA1846;CA1847
+    </NoWarn>
+  </PropertyGroup>
+
 </Project>

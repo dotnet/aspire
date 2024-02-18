@@ -130,6 +130,7 @@
     <!-- unit test dependencies -->
     <PackageVersion Include="bUnit" Version="1.26.64" />
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.Testing" Version="$(MicrosoftExtensionsDiagnosticsTestingPackageVersion)" />
+    <PackageVersion Include="System.Threading.Channels" Version="8.0.0" />
     <!-- Pinned version for Component Governance - Remove when root dependencies are updated -->
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
     <!-- Introduced by Microsoft.Azure.Cosmos, https://github.com/Azure/azure-cosmos-dotnet-v3/issues/4302 -->

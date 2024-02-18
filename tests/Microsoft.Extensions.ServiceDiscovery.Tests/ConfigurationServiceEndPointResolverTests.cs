@@ -143,9 +143,9 @@ public class ConfigurationServiceEndPointResolverTests
         public void SetValues(IEnumerable<KeyValuePair<string, string?>> values)
         {
             Data.Clear();
-            foreach (var (key, value) in values)
+            foreach (var keyValue in values)
             {
-                Data[key] = value;
+                Data[keyValue.Key] = keyValue.Value;
             }
 
             OnReload();

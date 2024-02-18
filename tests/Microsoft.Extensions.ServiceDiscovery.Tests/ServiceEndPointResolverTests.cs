@@ -12,6 +12,10 @@ using Microsoft.Extensions.ServiceDiscovery.Abstractions;
 using Microsoft.Extensions.ServiceDiscovery.Http;
 using Xunit;
 
+#if NET462
+using System.Net.Http;
+#endif
+
 namespace Microsoft.Extensions.ServiceDiscovery.Tests;
 
 /// <summary>
