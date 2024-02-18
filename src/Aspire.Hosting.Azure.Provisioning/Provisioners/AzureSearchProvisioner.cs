@@ -40,7 +40,7 @@ internal sealed class AzureSearchProvisioner(ILogger<AzureSearchProvisioner> log
 
         if (searchResource is null)
         {
-            var searchName = "glowingwaffledev"; //Guid.NewGuid().ToString("N");
+            var searchName = Guid.NewGuid().ToString("N");
 
             var searchServiceData = new SearchServiceData(context.Location)
             {
