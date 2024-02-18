@@ -44,7 +44,10 @@ internal sealed class AzureSearchProvisioner(ILogger<AzureSearchProvisioner> log
 
             var searchServiceData = new SearchServiceData(context.Location)
             {
-                SkuName = SearchSkuName.Free
+                SkuName = SearchSkuName.Free,
+                // AuthOptions.AadOrApiKey is internal, so cannot set it.
+                // https://github.com/Azure/azure-sdk-for-net/issues/42051
+                IsLocalAuthDisabled = true
             };
 
             logger.LogInformation("Creating Azure Search {searchName} in {location}...", searchName, context.Location);
@@ -58,6 +61,9 @@ internal sealed class AzureSearchProvisioner(ILogger<AzureSearchProvisioner> log
 
         // SearchServiceResource doesn't have an "Endpoint" property
         resource.ConnectionString = $"https://{searchResource.Data.Name.ToLowerInvariant()}.search.windows.net";
+
+        var connectionStrings = context.UserSecrets.Prop("ConnectionStrings");
+        connectionStrings[resource.Name] = resource.ConnectionString;
 
         // Search Service Contributor role
         // https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles#search-service-contributor
