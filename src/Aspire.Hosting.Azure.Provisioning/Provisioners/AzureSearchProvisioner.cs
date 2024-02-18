@@ -40,14 +40,17 @@ internal sealed class AzureSearchProvisioner(ILogger<AzureSearchProvisioner> log
 
         if (searchResource is null)
         {
-            var searchName = Guid.NewGuid().ToString("N");
+            var searchName = "glowingwaffledev"; //Guid.NewGuid().ToString("N");
 
             var searchServiceData = new SearchServiceData(context.Location)
             {
                 SkuName = SearchSkuName.Free,
-                // AuthOptions.AadOrApiKey is internal, so cannot set it.
-                // https://github.com/Azure/azure-sdk-for-net/issues/42051
-                IsLocalAuthDisabled = true
+                AuthOptions = new SearchAadAuthDataPlaneAuthOptions
+                {
+                    // this internally sets AuthOption to 'Both', i.e. api key and RBAC
+                    // https://github.com/Azure/azure-sdk-for-net/blob/2dc0ca8a6a16025011fca42c671f0052bab922a0/sdk/search/Azure.ResourceManager.Search/src/Generated/Models/SearchAadAuthDataPlaneAuthOptions.cs#L104
+                    AadAuthFailureMode = SearchAadAuthFailureMode.Http403
+                }
             };
 
             logger.LogInformation("Creating Azure Search {searchName} in {location}...", searchName, context.Location);
