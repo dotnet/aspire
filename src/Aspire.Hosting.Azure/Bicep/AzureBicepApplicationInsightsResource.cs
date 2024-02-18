@@ -14,18 +14,20 @@ public class AzureBicepApplicationInsightsResource(string name) :
     IResourceWithConnectionString
 {
     /// <summary>
+    /// Gets the "appInsightsConnectionString" output reference for the Azure Application Insights resource.
+    /// </summary>
+    public BicepOutputReference ConnectionString => new("appInsightsConnectionString", this);
+
+    /// <summary>
     /// Gets the connection string template for the manifest for the Azure Application Insights resource.
     /// </summary>
-    public string ConnectionStringExpression => $"{{{Name}.outputs.appInsightsConnectionString}}";
+    public string ConnectionStringExpression => ConnectionString.ValueExpression;
 
     /// <summary>
     /// Gets the connection string for the Azure Application Insights resource.
     /// </summary>
     /// <returns>The connection string for the Azure Application Insights resource.</returns>
-    public string? GetConnectionString()
-    {
-        return Outputs["appInsightsConnectionString"];
-    }
+    public string? GetConnectionString() => ConnectionString.Value;
 
     // UseAzureMonitor is looks for this specific environment variable name.
     string IResourceWithConnectionString.ConnectionStringEnvironmentVariable => "APPLICATIONINSIGHTS_CONNECTION_STRING";

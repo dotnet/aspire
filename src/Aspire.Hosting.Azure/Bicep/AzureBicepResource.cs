@@ -247,6 +247,44 @@ public readonly struct BicepTemplateFile(string path, bool deleteFileOnDispose) 
 }
 
 /// <summary>
+/// A reference to a secret output from a bicep template.
+/// </summary>
+/// <param name="name">The name of the secret output.</param>
+/// <param name="resource">The <see cref="AzureBicepResource"/>.</param>
+public class BicepSecretOutputReference(string name, AzureBicepResource resource)
+{
+    /// <summary>
+    /// Name of the output.
+    /// </summary>
+    public string Name { get; } = name;
+
+    /// <summary>
+    /// The instance of the bicep resource.
+    /// </summary>
+    public AzureBicepResource Resource { get; } = resource;
+
+    /// <summary>
+    /// The value of the output.
+    /// </summary>
+    public string? Value
+    {
+        get
+        {
+            if (!Resource.SecretOutputs.TryGetValue(Name, out var value))
+            {
+                throw new InvalidOperationException($"No secret output for {Name}");
+            }
+            return value;
+        }
+    }
+
+    /// <summary>
+    /// The expression used in the manifest to reference the value of the secret output.
+    /// </summary>
+    public string ValueExpression => $"{{{Resource.Name}.secretOutputs.{Name}}}";
+}
+
+/// <summary>
 /// A reference to an output from a bicep template.
 /// </summary>
 /// <param name="name">The name of the output</param>

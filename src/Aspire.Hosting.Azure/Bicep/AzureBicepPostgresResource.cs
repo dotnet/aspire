@@ -17,19 +17,20 @@ public class AzureBicepPostgresResource(string name) :
     internal List<string> Databases { get; } = [];
 
     /// <summary>
+    /// Gets the "connectionString" secret output reference from the bicep template for the Azure Postgres Flexible Server.
+    /// </summary>
+    public BicepSecretOutputReference ConnectionString => new("connectionString", this);
+
+    /// <summary>
     /// Gets the connection template for the manifest for the Azure Postgres Flexible Server.
     /// </summary>
-    public string ConnectionStringExpression =>
-        $"{{{Name}.secretOutputs.connectionString}}";
+    public string ConnectionStringExpression => ConnectionString.ValueExpression;
 
     /// <summary>
     /// Gets the connection string for the Azure Postgres Flexible Server.
     /// </summary>
     /// <returns>The connection string.</returns>
-    public string? GetConnectionString()
-    {
-        return SecretOutputs["connectionString"];
-    }
+    public string? GetConnectionString() => ConnectionString.Value;
 }
 
 /// <summary>
@@ -49,7 +50,7 @@ public class AzureBicepPostgresDbResource(string name, string databaseName, Azur
     public AzureBicepPostgresResource Parent { get; } = parent;
 
     /// <summary>
-    /// TODO: Doc Comments
+    /// Gets the connection template for the manifest for the Azure Postgres Flexible Server database.
     /// </summary>
     public string ConnectionStringExpression =>
         $"{{{Parent.Name}.connectionString}};Database={databaseName}";
