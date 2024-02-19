@@ -59,7 +59,8 @@ public class ManifestGenerationTests
         var x = resources.GetProperty("x");
         var inputs = x.GetProperty("inputs");
         var value = inputs.GetProperty("value");
-        Assert.True(value.TryGetProperty("secret", out _));
+        Assert.True(value.TryGetProperty("secret", out var secret));
+        Assert.True(secret.GetBoolean());
     }
 
     [Fact]
