@@ -18,13 +18,8 @@ public sealed class ContainerMountAnnotation : IResourceAnnotation
     /// <param name="target">The target path of the mount.</param>
     /// <param name="type">The type of the mount.</param>
     /// <param name="isReadOnly">A value indicating whether the mount is read-only.</param>
-    public ContainerMountAnnotation(string? source, string target, ContainerMountType type, bool isReadOnly)
+    public ContainerMountAnnotation(string source, string target, ContainerMountType type, bool isReadOnly)
     {
-        if (source == null && ContainerMountType.Bind == type)
-        {
-            throw new ArgumentException("The source path must be specified for a bind mount.", nameof(source));
-        }
-
         Source = source;
         Target = target;
         Type = type;
@@ -34,7 +29,7 @@ public sealed class ContainerMountAnnotation : IResourceAnnotation
     /// <summary>
     /// Gets or sets the source of the mount.
     /// </summary>
-    public string? Source { get; set; }
+    public string Source { get; set; }
 
     /// <summary>
     /// Gets or sets the target of the mount.

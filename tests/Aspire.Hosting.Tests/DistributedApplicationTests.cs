@@ -416,36 +416,6 @@ public class DistributedApplicationTests
     }
 
     [LocalOnlyFact("docker")]
-    public async Task VerifyDockerWithVolumeMountWorksWithoutName()
-    {
-        var testProgram = CreateTestProgram();
-        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
-
-        testProgram.AppBuilder.AddContainer("redis-cli", "redis")
-            .WithVolumeMount(source: null, $"/path-here");
-
-        await using var app = testProgram.Build();
-
-        await app.StartAsync();
-
-        var s = app.Services.GetRequiredService<IKubernetesService>();
-
-        using var cts = new CancellationTokenSource(Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(10));
-        var token = cts.Token;
-
-        var redisContainer = await KubernetesHelper.GetResourceByNameAsync<Container>(
-                s,
-                "redis-cli", r => r.Spec.VolumeMounts != null,
-                token);
-
-        Assert.NotNull(redisContainer.Spec.VolumeMounts);
-        Assert.NotEmpty(redisContainer.Spec.VolumeMounts);
-        Assert.Equal("", redisContainer.Spec.VolumeMounts[0].Source);
-
-        await app.StopAsync();
-    }
-
-    [LocalOnlyFact("docker")]
     public async Task KubernetesHasResourceNameForContainersAndExes()
     {
         var testProgram = CreateTestProgram(includeIntegrationServices: true, includeNodeApp: true);
