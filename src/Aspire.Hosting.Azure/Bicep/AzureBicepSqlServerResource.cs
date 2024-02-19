@@ -54,7 +54,7 @@ public class AzureBicepSqlDbResource(string name, string databaseName, AzureBice
     /// Gets the connection template for the manifest for the Azure SQL Database resource.
     /// </summary>
     public string ConnectionStringExpression =>
-        $"{{{Parent.Name}.connectionString}};Intial Catalog={databaseName}";
+        $"{{{Parent.Name}.connectionString}};Initial Catalog={databaseName}";
 
     /// <summary>
     /// Gets the connection string for the Azure SQL Database resource.
