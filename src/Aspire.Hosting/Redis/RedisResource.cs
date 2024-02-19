@@ -15,7 +15,18 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
     /// <returns>A connection string for the redis server in the form "host:port".</returns>
     public string? GetConnectionString()
     {
-        var annotation = this.Annotations.OfType<ConnectionStringCallbackAnnotation>().Single();
-        return annotation.Callback();
+        if (this.Annotations.OfType<ConnectionStringRedirectAnnotation>().SingleOrDefault() is { } connectionStringAnnotation)
+        {
+            return connectionStringAnnotation.Resource.GetConnectionString();
+        }
+
+        if (!this.TryGetAnnotationsOfType<AllocatedEndpointAnnotation>(out var allocatedEndpoints))
+        {
+            throw new DistributedApplicationException("Redis resource does not have endpoint annotation.");
+        }
+
+        // We should only have one endpoint for Redis for local scenarios.
+        var endpoint = allocatedEndpoints.Single();
+        return endpoint.EndPointString;
     }
 }
