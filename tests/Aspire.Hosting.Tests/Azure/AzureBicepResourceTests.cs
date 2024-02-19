@@ -4,7 +4,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Azure;
-using Aspire.Hosting.Azure.Redis;
 using Aspire.Hosting.Publishing;
 using Xunit;
 
