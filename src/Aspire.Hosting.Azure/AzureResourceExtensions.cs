@@ -274,24 +274,6 @@ public static class AzureResourceExtensions
     }
 
     /// <summary>
-    /// Adds an Azure Redis resource to the application model.
-    /// </summary>
-    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
-    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureRedisResource> AddAzureRedis(this IDistributedApplicationBuilder builder, string name)
-    {
-        var resource = new AzureRedisResource(name);
-        return builder.AddResource(resource)
-            .WithManifestPublishingCallback(WriteAzureRedisToManifest);
-    }
-
-    private static void WriteAzureRedisToManifest(ManifestPublishingContext context)
-    {
-        context.Writer.WriteString("type", "azure.redis.v0");
-    }
-
-    /// <summary>
     /// Adds an Azure App Configuration resource to the application model.
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
