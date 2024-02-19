@@ -33,7 +33,7 @@ public class AzureRedisResource(string name) :
 /// <summary>
 /// Provides extension methods for adding the Azure Redis resources to the application model.
 /// </summary>
-public static class AzureBicepRedisExtensions
+public static class AzureRedisExtensions
 {
     /// <summary>
     /// Publishes the Azure Redis resource to the manifest.
