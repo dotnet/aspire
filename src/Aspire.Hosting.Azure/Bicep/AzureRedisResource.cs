@@ -9,7 +9,7 @@ namespace Aspire.Hosting.Azure;
 /// Represents an Azure Redis resource.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
-public class AzureBicepRedisResource(string name) :
+public class AzureRedisResource(string name) :
     AzureBicepResource(name, templateResouceName: "Aspire.Hosting.Azure.Bicep.redis.bicep"),
     IResourceWithConnectionString
 {
@@ -36,29 +36,18 @@ public class AzureBicepRedisResource(string name) :
 public static class AzureBicepRedisExtensions
 {
     /// <summary>
-    /// Adds an Azure Redis resource to the application model.
-    /// </summary>
-    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
-    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureBicepRedisResource> AddBicepAzureRedis(this IDistributedApplicationBuilder builder, string name)
-    {
-        return builder.AddResource(new AzureBicepRedisResource(name)).ConfigureDefaults();
-    }
-
-    /// <summary>
     /// Publishes the Azure Redis resource to the manifest.
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<RedisResource> PublishAsAzureRedis(this IResourceBuilder<RedisResource> builder)
     {
-        var resource = new AzureBicepRedisResource(builder.Resource.Name);
+        var resource = new AzureRedisResource(builder.Resource.Name);
         builder.ApplicationBuilder.CreateResourceBuilder(resource).ConfigureDefaults();
         return builder.WithManifestPublishingCallback(resource.WriteToManifest);
     }
 
-    private static IResourceBuilder<AzureBicepRedisResource> ConfigureDefaults(this IResourceBuilder<AzureBicepRedisResource> builder)
+    private static IResourceBuilder<AzureRedisResource> ConfigureDefaults(this IResourceBuilder<AzureRedisResource> builder)
     {
         var resource = builder.Resource;
         return builder.WithParameter("redisCacheName", resource.CreateBicepResourceName())
