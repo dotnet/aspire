@@ -9,7 +9,7 @@ public static class TestCertificateLoader
 {
     private static readonly string s_baseDir = Path.Combine(Directory.GetCurrentDirectory(), "shared", "TestCertificates");
 
-    private static readonly TimeSpan s_mutexTimeout = TimeSpan.FromMilliseconds(120 * 1000);
+    private static readonly TimeSpan s_mutexTimeout = TimeSpan.FromSeconds(120);
     private static readonly Mutex? s_importPfxMutex = OperatingSystem.IsWindows()
         ? new Mutex(initiallyOwned: false, "Global\\AspireTests.Certificates.LoadPfxCertificate")
         : null;
