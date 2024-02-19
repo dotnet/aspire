@@ -49,6 +49,54 @@ public class AzureBicepResourceTests
         Assert.Equal("https://myendpoint;Key=43", bicepResource.GetSecretOutput("connectionString").Value);
     }
 
+    [Theory]
+    [InlineData(DistributedApplicationOperation.Run, "https://myendpoint;Key=43", "https://myendpoint;Key=43")]
+    [InlineData(DistributedApplicationOperation.Publish, "https://myendpoint;Key=43", "{templ.secretOutputs.connectionString}")]
+    public void GetSecretOutputWithEnvironmentWorks(DistributedApplicationOperation operation, string value, string expectedValue)
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var bicepResource = builder.AddBicepTemplateString("templ", "content");
+
+        bicepResource.Resource.SecretOutputs["connectionString"] = value;
+
+        var secretOutput = bicepResource.GetSecretOutput("connectionString");
+
+        var c = builder.AddContainer("app", "fake")
+            .WithEnvironment("E", secretOutput);
+
+        Assert.True(c.Resource.TryGetAnnotationsOfType<EnvironmentCallbackAnnotation>(out var annotations));
+        var annotation = Assert.Single(annotations);
+        var env = new Dictionary<string, string>();
+        var context = new EnvironmentCallbackContext(new DistributedApplicationExecutionContext(operation), env);
+        annotation.Callback(context);
+        Assert.Equal(expectedValue, env["E"]);
+    }
+
+    [Theory]
+    [InlineData(DistributedApplicationOperation.Run, "https://myendpoint", "https://myendpoint")]
+    [InlineData(DistributedApplicationOperation.Publish, "https://myendpoint", "{templ.outputs.value}")]
+    public void GetOutputWithEnvironmentWorks(DistributedApplicationOperation operation, string value, string expectedValue)
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var bicepResource = builder.AddBicepTemplateString("templ", "content");
+
+        bicepResource.Resource.Outputs["value"] = value;
+
+        var output = bicepResource.GetOutput("value");
+
+        var c = builder.AddContainer("app", "fake")
+            .WithEnvironment("E", output);
+
+        Assert.True(c.Resource.TryGetAnnotationsOfType<EnvironmentCallbackAnnotation>(out var annotations));
+        var annotation = Assert.Single(annotations);
+        var env = new Dictionary<string, string>();
+        var context = new EnvironmentCallbackContext(new DistributedApplicationExecutionContext(operation), env);
+        annotation.Callback(context);
+        Assert.Equal(expectedValue, env["E"]);
+    }
+
     [Fact]
     public void GetOutputValueThrowsIfNoOutput()
     {
