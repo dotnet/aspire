@@ -1,8 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Security.Cryptography.X509Certificates;
 using Grpc.Core;
 using Grpc.Net.Client;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
 using OpenTelemetry.Proto.Collector.Logs.V1;
 using Xunit;
@@ -39,11 +41,17 @@ public class OtlpServiceTests
     public async void CallService_BrowserEndPoint_Failure()
     {
         // Arrange
+        var testCert = TestCertificateLoader.GetTestCertificate();
+        var testCertPath = TestCertificateLoader.GetCertPath("testCert.pfx");
+        X509Certificate2? clientCallbackCert = null;
+
         var configBuilder = new ConfigurationManager()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["ASPNETCORE_URLS"] = "https://127.0.0.1:0",
-                ["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] = "http://127.0.0.1:0"
+                ["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] = "http://127.0.0.1:0",
+                ["Kestrel:Certificates:Default:Path"] = testCertPath,
+                ["Kestrel:Certificates:Default:Password"] = "testPassword"
             });
 
         await using var app = new DashboardWebApplication(configBuilder.Build());
@@ -53,7 +61,11 @@ public class OtlpServiceTests
         {
             HttpHandler = new HttpClientHandler
             {
-                ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+                ServerCertificateCustomValidationCallback = (message, cert, chain, errors) =>
+                {
+                    clientCallbackCert = cert;
+                    return true;
+                }
             }
         });
         var client = new LogsService.LogsServiceClient(channel);
@@ -63,5 +75,7 @@ public class OtlpServiceTests
 
         // Assert
         Assert.Equal(StatusCode.PermissionDenied, ex.StatusCode);
+        Assert.NotNull(clientCallbackCert);
+        Assert.Equal(testCert.Thumbprint, clientCallbackCert.Thumbprint);
     }
 }
