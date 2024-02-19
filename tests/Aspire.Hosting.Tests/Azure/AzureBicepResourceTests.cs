@@ -4,6 +4,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Azure;
+using Aspire.Hosting.Azure.Redis;
 using Aspire.Hosting.Publishing;
 using Xunit;
 
@@ -147,22 +148,6 @@ public class AzureBicepResourceTests
         Assert.Equal("appconfig", appConfig.Resource.Parameters["configName"]);
         Assert.Equal("https://myendpoint", appConfig.Resource.GetConnectionString());
         Assert.Equal("{appConfig.outputs.appConfigEndpoint}", appConfig.Resource.ConnectionStringExpression);
-    }
-
-    [Fact]
-    public void AddBicepRedis()
-    {
-        var builder = DistributedApplication.CreateBuilder();
-
-        var redis = builder.AddBicepAzureRedis("redis");
-
-        redis.Resource.SecretOutputs["connectionString"] = "myconnectionstring";
-
-        Assert.Equal("Aspire.Hosting.Azure.Bicep.redis.bicep", redis.Resource.TemplateResourceName);
-        Assert.Equal("redis", redis.Resource.Name);
-        Assert.Equal("redis", redis.Resource.Parameters["redisCacheName"]);
-        Assert.Equal("myconnectionstring", redis.Resource.GetConnectionString());
-        Assert.Equal("{redis.secretOutputs.connectionString}", redis.Resource.ConnectionStringExpression);
     }
 
     [Fact]

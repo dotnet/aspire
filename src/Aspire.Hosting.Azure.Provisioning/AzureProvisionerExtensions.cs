@@ -5,6 +5,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.Data.Cosmos;
 using Aspire.Hosting.Azure.Provisioning;
+using Aspire.Hosting.Azure.Redis;
 using Aspire.Hosting.Lifecycle;
 using Azure.ResourceManager;
 using Azure.ResourceManager.AppConfiguration;
@@ -46,9 +47,6 @@ public static class AzureProvisionerExtensions
 
         builder.AddAzureProvisioner<AzureServiceBusResource, ServiceBusProvisioner>();
         builder.AddResourceEnumerator(resourceGroup => resourceGroup.GetServiceBusNamespaces(), resource => resource.Data.Tags);
-
-        builder.AddAzureProvisioner<AzureRedisResource, AzureRedisProvisioner>();
-        builder.AddResourceEnumerator(resourceGroup => resourceGroup.GetAllRedis(), resource => resource.Data.Tags);
 
         builder.AddAzureProvisioner<AzureAppConfigurationResource, AppConfigurationProvisioner>();
         builder.AddResourceEnumerator(resourceGroup => resourceGroup.GetAppConfigurationStores(), resource => resource.Data.Tags);
