@@ -199,26 +199,29 @@ public class AzureBicepResource(string name, string? templateFile = null, string
     }
 
     /// <summary>
-    /// Known parameters that can be used in the bicep template.
+    /// Known parameters that will be filled in automatically by the host environment.
     /// </summary>
     public static class KnownParameters
     {
         /// <summary>
-        /// TODO: Doc Comments
+        /// The principal id of the current user or managed identity.
         /// </summary>
-        public const string PrincipalId = "principalId";
+        public static readonly string PrincipalId = "principalId";
+
         /// <summary>
-        /// TODO: Doc Comments
+        /// The principal name of the current user or managed identity.
         /// </summary>
-        public const string PrincipalName = "principalName";
+        public static readonly string PrincipalName = "principalName";
+
         /// <summary>
-        /// TODO: Doc Comments
+        /// The principal type of the current user or managed identity. Either 'User' or 'ServicePrincipal'.
         /// </summary>
-        public const string PrincipalType = "principalType";
+        public static readonly string PrincipalType = "principalType";
+
         /// <summary>
-        /// TODO: Doc Comments
+        /// The name of the key vault resource used to store secret outputs.
         /// </summary>
-        public static string KeyVaultName = "keyVaultName";
+        public static readonly string KeyVaultName = "keyVaultName";
     }
 }
 
@@ -369,6 +372,17 @@ public static class AzureBicepTemplateResourceExtensions
     }
 
     /// <summary>
+    /// Gets a reference to a secret output from a bicep template. This is an output that is written to a keyvault using the "keyVaultName" convention.
+    /// </summary>
+    /// <param name="builder">The resource buider.</param>
+    /// <param name="name">The name of the secret output.</param>
+    /// <returns>A <see cref="BicepSecretOutputReference"/> that represents the output.</returns>
+    public static BicepSecretOutputReference GetSecretOutput(this IResourceBuilder<AzureBicepResource> builder, string name)
+    {
+        return new BicepSecretOutputReference(name, builder.Resource);
+    }
+
+    /// <summary>
     /// Adds an environment variable to the resource with the value of the output from the bicep template.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
@@ -381,13 +395,28 @@ public static class AzureBicepTemplateResourceExtensions
     {
         return builder.WithEnvironment(ctx =>
         {
-            if (ctx.ExecutionContext.Operation == DistributedApplicationOperation.Publish)
-            {
-                ctx.EnvironmentVariables[name] = bicepOutputReference.ValueExpression;
-                return;
-            }
+            ctx.EnvironmentVariables[name] = ctx.ExecutionContext.Operation == DistributedApplicationOperation.Publish
+                ? bicepOutputReference.Value!
+                : bicepOutputReference.ValueExpression;
+        });
+    }
 
-            ctx.EnvironmentVariables[name] = bicepOutputReference.Value!;
+    /// <summary>
+    /// Adds an environment variable to the resource with the value of the secret output from the bicep template.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">The name of the environment variable.</param>
+    /// <param name="bicepOutputReference">The reference to the bicep output.</param>
+    /// <returns>An <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, BicepSecretOutputReference bicepOutputReference)
+        where T : IResourceWithEnvironment
+    {
+        return builder.WithEnvironment(ctx =>
+        {
+            ctx.EnvironmentVariables[name] = ctx.ExecutionContext.Operation == DistributedApplicationOperation.Publish
+                ? bicepOutputReference.Value!
+                : bicepOutputReference.ValueExpression;
         });
     }
 

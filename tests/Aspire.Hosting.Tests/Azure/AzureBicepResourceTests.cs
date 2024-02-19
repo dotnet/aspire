@@ -38,6 +38,18 @@ public class AzureBicepResourceTests
     }
 
     [Fact]
+    public void GetSecretOutputReturnsSecretOutputValue()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var bicepResource = builder.AddBicepTemplateString("templ", "content");
+
+        bicepResource.Resource.SecretOutputs["connectionString"] = "https://myendpoint;Key=43";
+
+        Assert.Equal("https://myendpoint;Key=43", bicepResource.GetSecretOutput("connectionString").Value);
+    }
+
+    [Fact]
     public void GetOutputValueThrowsIfNoOutput()
     {
         var builder = DistributedApplication.CreateBuilder();
@@ -45,6 +57,16 @@ public class AzureBicepResourceTests
         var bicepResource = builder.AddBicepTemplateString("templ", "content");
 
         Assert.Throws<InvalidOperationException>(() => bicepResource.GetOutput("resourceEndpoint").Value);
+    }
+
+    [Fact]
+    public void GetSecretOutputValueThrowsIfNoOutput()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var bicepResource = builder.AddBicepTemplateString("templ", "content");
+
+        Assert.Throws<InvalidOperationException>(() => bicepResource.GetSecretOutput("connectionString").Value);
     }
 
     [Fact]
