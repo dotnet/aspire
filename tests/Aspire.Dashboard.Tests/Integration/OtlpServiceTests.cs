@@ -41,8 +41,6 @@ public class OtlpServiceTests
     public async void CallService_BrowserEndPoint_Failure()
     {
         // Arrange
-        var testCert = TestCertificateLoader.GetTestCertificate();
-        var testCertPath = TestCertificateLoader.GetCertPath("testCert.pfx");
         X509Certificate2? clientCallbackCert = null;
 
         var configBuilder = new ConfigurationManager()
@@ -50,7 +48,7 @@ public class OtlpServiceTests
             {
                 ["ASPNETCORE_URLS"] = "https://127.0.0.1:0",
                 ["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] = "http://127.0.0.1:0",
-                ["Kestrel:Certificates:Default:Path"] = testCertPath,
+                ["Kestrel:Certificates:Default:Path"] = TestCertificateLoader.TestCertificatePath,
                 ["Kestrel:Certificates:Default:Password"] = "testPassword"
             });
 
@@ -76,6 +74,6 @@ public class OtlpServiceTests
         // Assert
         Assert.Equal(StatusCode.PermissionDenied, ex.StatusCode);
         Assert.NotNull(clientCallbackCert);
-        Assert.Equal(testCert.Thumbprint, clientCallbackCert.Thumbprint);
+        Assert.Equal(TestCertificateLoader.GetTestCertificate().Thumbprint, clientCallbackCert.Thumbprint);
     }
 }

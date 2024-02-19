@@ -8,8 +8,8 @@
     <PackageReference Include="Grpc.Tools" />
     <ProjectReference Include="..\..\src\Aspire.Dashboard\Aspire.Dashboard.csproj" />
 
-    <Compile Include="$(TestsSharedDir)TestCertificateLoader.cs" Link="Shared/TestCertificateLoader.cs" />
-    <Content Include="$(TestsSharedDir)TestCertificates\*.pfx" LinkBase="Shared/TestCertificates" CopyToOutputDirectory="PreserveNewest" />
+    <Compile Include="$(TestsSharedDir)TestCertificateLoader.cs" Link="shared/TestCertificateLoader.cs" />
+    <Content Include="$(TestsSharedDir)TestCertificates\*.pfx" LinkBase="shared/TestCertificates" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
