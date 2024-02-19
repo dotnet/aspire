@@ -14,7 +14,7 @@ namespace Aspire.Hosting;
 public static class AzureRedisExtensions
 {
     /// <summary>
-    /// Publishes the Azure Redis resource to the manifest.
+    /// Configures the resource to be published as Azure Cache for Redis when deployed via Azure Developer CLI.
     /// </summary>
     /// <param name="builder">The <see cref="IResourceBuilder{RedisResource}"/> builder.</param>
     /// <param name="callback">Callback to configure Azure resource.</param>
@@ -33,14 +33,15 @@ public static class AzureRedisExtensions
     }
 
     /// <summary>
-    /// Used in conjunction with the Azure Provisioner to provision an Azure Redis resource for local development.
+    /// Configures resource to use Azure for local development and when doing a deployment via the Azure Developer CLI.
     /// </summary>
     /// <param name="builder">The <see cref="IResourceBuilder{RedisResource}"/> builder.</param>
+    /// <param name="callback">Callback to configure Azure resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{RedisResource}"/> builder.</returns>
-    public static IResourceBuilder<RedisResource> RunAsAzureRedis(this IResourceBuilder<RedisResource> builder)
+    public static IResourceBuilder<RedisResource> AsAzureRedis(this IResourceBuilder<RedisResource> builder, Action<IResourceBuilder<AzureRedisResource>>? callback = null)
     {
         var resource = new AzureRedisResource(builder.Resource);
-        builder.ApplicationBuilder.CreateResourceBuilder(resource).ConfigureDefaults();
+        var azureRedisBuilder = builder.ApplicationBuilder.CreateResourceBuilder(resource).ConfigureDefaults();
 
         // Used to hold a reference to the azure surrogate for use with the provisioner.
         builder.WithAnnotation(new AzureBicepResourceAnnotation(resource));
@@ -49,6 +50,11 @@ public static class AzureRedisExtensions
         if (builder.Resource.Annotations.OfType<ContainerImageAnnotation>().SingleOrDefault() is { } containerAnnotation)
         {
             builder.Resource.Annotations.Remove(containerAnnotation);
+        }
+
+        if (callback != null)
+        {
+            callback(azureRedisBuilder);
         }
 
         return builder;
