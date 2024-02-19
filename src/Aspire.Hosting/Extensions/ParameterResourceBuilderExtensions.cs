@@ -26,7 +26,7 @@ public static class ParameterResourceBuilderExtensions
         {
             var configurationKey = $"Parameters:{name}";
             return builder.Configuration[configurationKey] ?? throw new DistributedApplicationException($"Parameter resource could not be used because configuration key `{configurationKey}` is missing.");
-        }, secret: false);
+        }, secret: secret);
     }
 
     internal static IResourceBuilder<ParameterResource> AddParameter(this IDistributedApplicationBuilder builder, string name, Func<string> callback, bool secret = false)
