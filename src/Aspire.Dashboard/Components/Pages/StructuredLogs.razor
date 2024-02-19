@@ -61,7 +61,7 @@
         }
         <FluentButton slot="end" Appearance="Appearance.Stealth" aria-label="Add Filter" OnClick="() => OpenFilterAsync(null)"><FluentIcon Value="@(new Icons.Regular.Size16.Filter())" /></FluentButton>
     </FluentToolbar>
-    <SummaryDetailsView DetailsTitle="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsEntryDetails)]" ShowDetails="SelectedLogEntryProperties is not null" OnDismiss="() => ClearSelectedLogEntry()">
+    <SummaryDetailsView DetailsTitle="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsEntryDetails)]" ShowDetails="SelectedLogEntryProperties is not null" OnDismiss="() => ClearSelectedLogEntry()" ViewKey="StructuredLogsList">
         <Summary>
             <div class="logs-summary-layout">
                 <div class="logs-grid-container continuous-scroll-overflow">
