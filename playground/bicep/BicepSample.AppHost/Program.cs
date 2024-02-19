@@ -24,7 +24,7 @@ var queues = storage.AddQueue("queue");
 
 var sqlServer = builder.AddBicepAzureSqlServer("sql").AddDatabase("db");
 
-var pwd = builder.AddParameter("password", secret: true);
+var pwd = builder.AddParameter("possword", secret: true);
 
 var pg = builder.AddBicepAzurePostgres("postgres2", "someuser", pwd).AddDatabase("db2");
 

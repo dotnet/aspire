@@ -12,6 +12,57 @@ namespace Aspire.Hosting.Tests;
 public class ManifestGenerationTests
 {
     [Fact]
+    public void EnsureAddParameterWithSecretFalseDoesntEmitSecretField()
+    {
+        var program = CreateTestProgramJsonDocumentManifestPublisher();
+        program.AppBuilder.AddParameter("x", secret: false);
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+        var x = resources.GetProperty("x");
+        var inputs = x.GetProperty("inputs");
+        var value = inputs.GetProperty("value");
+        Assert.False(value.TryGetProperty("secret", out _));
+    }
+
+    [Fact]
+    public void EnsureAddParameterWithSecretDefaultDoesntEmitSecretField()
+    {
+        var program = CreateTestProgramJsonDocumentManifestPublisher();
+        program.AppBuilder.AddParameter("x");
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+        var x = resources.GetProperty("x");
+        var inputs = x.GetProperty("inputs");
+        var value = inputs.GetProperty("value");
+        Assert.False(value.TryGetProperty("secret", out _));
+    }
+
+    [Fact]
+    public void EnsureAddParameterWithSecretTrueDoesEmitSecretField()
+    {
+        var program = CreateTestProgramJsonDocumentManifestPublisher();
+        program.AppBuilder.AddParameter("x", secret: true);
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+        var x = resources.GetProperty("x");
+        var inputs = x.GetProperty("inputs");
+        var value = inputs.GetProperty("value");
+        Assert.True(value.TryGetProperty("secret", out _));
+    }
+
+    [Fact]
     public void EnsureWorkerProjectDoesNotGetBindingsGenerated()
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher();
