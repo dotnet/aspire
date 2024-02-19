@@ -36,7 +36,7 @@ var appInsights = builder.AddBicepApplicationInsights("ai");
 
 // Redis takes forever to spin up...
 var redis = builder.AddRedis("redis")
-    .AsAzureRedis();
+                   .AsAzureRedis();
 
 var serviceBus = builder.AddBicepAzureServiceBus("sb", ["queue1"], ["topic1"]);
 
