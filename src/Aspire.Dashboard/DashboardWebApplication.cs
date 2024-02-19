@@ -29,10 +29,16 @@ public class DashboardWebApplication : IAsyncDisposable
     {
         get => _browserEndPointAccessor ?? throw new InvalidOperationException("WebApplication not started yet.");
     }
+
     public Func<IPEndPoint> OtlpServiceEndPointAccessor
     {
         get => _otlpServiceEndPointAccessor ?? throw new InvalidOperationException("WebApplication not started yet.");
     }
+
+    /// <summary>
+    /// Create a new instance of the <see cref="DashboardWebApplication"/> class.
+    /// </summary>
+    /// <param name="configureBuilder">Configuration the internal app builder. This is for unit testing.</param>
     public DashboardWebApplication(Action<WebApplicationBuilder>? configureBuilder = null)
     {
         var builder = WebApplication.CreateBuilder();

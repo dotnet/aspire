@@ -17,7 +17,7 @@ public class StartupTests
     }
 
     [Fact]
-    public async void EndPointAccessors_AppStarted_NotNull()
+    public async void EndPointAccessors_AppStarted_EndPointPortsAssigned()
     {
         // Arrange
         await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper);
@@ -32,6 +32,7 @@ public class StartupTests
 
     private static void AssertDynamicIPEndpoint(Func<IPEndPoint> endPointAccessor)
     {
+        // Check that the specified dynamic port of 0 is overridden with the actual port number.
         var ipEndPoint = endPointAccessor();
         Assert.NotEqual(0, ipEndPoint.Port);
     }
