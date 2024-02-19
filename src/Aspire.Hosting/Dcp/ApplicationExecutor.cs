@@ -718,19 +718,33 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             ctr.Annotate(Container.ResourceNameAnnotation, container.Name);
             ctr.Annotate(Container.OtelServiceNameAnnotation, container.Name);
 
-            if (container.TryGetVolumeMounts(out var volumeMounts))
+            if (container.TryGetContainerMounts(out var containerMounts))
             {
                 ctr.Spec.VolumeMounts = new();
 
-                foreach (var mount in volumeMounts)
+                foreach (var mount in containerMounts)
                 {
-                    bool isBound = mount.Type == ApplicationModel.VolumeMountType.Bind;
+                    var isBound = mount.Type == ContainerMountType.Bind;
+                    var resolvedSource = mount.Source;
+                    if (isBound)
+                    {
+                        // Source is only optional for creating anonymous volume mounts.
+                        if (mount.Source == null)
+                        {
+                            throw new InvalidDataException($"Bind mount for container '{container.Name}' is missing required source.");
+                        }
+
+                        if (!Path.IsPathRooted(mount.Source))
+                        {
+                            resolvedSource = Path.GetFullPath(mount.Source);
+                        }
+                    }
+
                     var volumeSpec = new VolumeMount
                     {
-                        Source = isBound && !Path.IsPathRooted(mount.Source) ?
-                            Path.GetFullPath(mount.Source) : mount.Source,
+                        Source = resolvedSource,
                         Target = mount.Target,
-                        Type = isBound ? Model.VolumeMountType.Bind : Model.VolumeMountType.Named,
+                        Type = isBound ? VolumeMountType.Bind : VolumeMountType.Volume,
                         IsReadOnly = mount.IsReadOnly
                     };
                     ctr.Spec.VolumeMounts.Add(volumeSpec);

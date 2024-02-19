@@ -85,7 +85,7 @@ public static class PostgresBuilderExtensions
                                   .WithAnnotation(new ContainerImageAnnotation { Image = "dpage/pgadmin4", Tag = "8.3" })
                                   .WithHttpEndpoint(containerPort: 80, hostPort: hostPort, name: containerName)
                                   .WithEnvironment(SetPgAdminEnviromentVariables)
-                                  .WithVolumeMount(Path.GetTempFileName(), "/pgadmin4/servers.json")
+                                  .WithBindMount(Path.GetTempFileName(), "/pgadmin4/servers.json")
                                   .ExcludeFromManifest();
 
         return builder;

@@ -187,7 +187,7 @@ public static class AzureResourceExtensions
     {
         path = path ?? $".azurite/{builder.Resource.Name}";
         var fullyQualifiedPath = Path.GetFullPath(path, builder.ApplicationBuilder.AppHostDirectory);
-        return builder.WithVolumeMount(fullyQualifiedPath, "/data", VolumeMountType.Bind, false);
+        return builder.WithBindMount(fullyQualifiedPath, "/data", isReadOnly: false);
 
     }
 

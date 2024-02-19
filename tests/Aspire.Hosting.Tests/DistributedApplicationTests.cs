@@ -12,7 +12,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Xunit;
 using Xunit.Abstractions;
-using VolumeMountType = Aspire.Hosting.ApplicationModel.VolumeMountType;
 
 namespace Aspire.Hosting.Tests;
 
@@ -326,13 +325,13 @@ public class DistributedApplicationTests
     }
 
     [LocalOnlyFact("docker")]
-    public async Task VerifyDockerWithBoundVolumeMountWorksWithAbsolutePaths()
+    public async Task VerifyDockerWithBindMountWorksWithAbsolutePaths()
     {
         var testProgram = CreateTestProgram();
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
         testProgram.AppBuilder.AddContainer("redis-cli", "redis")
-            .WithVolumeMount("/etc/path-here", $"path-here", VolumeMountType.Bind);
+            .WithBindMount("/etc/path-here", $"path-here");
 
         await using var app = testProgram.Build();
 
@@ -356,13 +355,13 @@ public class DistributedApplicationTests
     }
 
     [LocalOnlyFact("docker")]
-    public async Task VerifyDockerWithBoundVolumeMountWorksWithRelativePaths()
+    public async Task VerifyDockerWithBindMountWorksWithRelativePaths()
     {
         var testProgram = CreateTestProgram();
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
         testProgram.AppBuilder.AddContainer("redis-cli", "redis")
-            .WithVolumeMount("etc/path-here", $"path-here", VolumeMountType.Bind);
+            .WithBindMount("etc/path-here", $"path-here");
 
         await using var app = testProgram.Build();
 
@@ -382,6 +381,66 @@ public class DistributedApplicationTests
         Assert.NotEmpty(redisContainer.Spec.VolumeMounts);
         Assert.NotEqual("etc/path-here", redisContainer.Spec.VolumeMounts[0].Source);
         Assert.True(Path.IsPathRooted(redisContainer.Spec.VolumeMounts[0].Source));
+
+        await app.StopAsync();
+    }
+
+    [LocalOnlyFact("docker")]
+    public async Task VerifyDockerWithVolumeMountWorksWithName()
+    {
+        var testProgram = CreateTestProgram();
+        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+
+        testProgram.AppBuilder.AddContainer("redis-cli", "redis")
+            .WithVolumeMount("test-volume-name", $"/path-here");
+
+        await using var app = testProgram.Build();
+
+        await app.StartAsync();
+
+        var s = app.Services.GetRequiredService<IKubernetesService>();
+
+        using var cts = new CancellationTokenSource(Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(10));
+        var token = cts.Token;
+
+        var redisContainer = await KubernetesHelper.GetResourceByNameAsync<Container>(
+                s,
+                "redis-cli", r => r.Spec.VolumeMounts != null,
+                token);
+
+        Assert.NotNull(redisContainer.Spec.VolumeMounts);
+        Assert.NotEmpty(redisContainer.Spec.VolumeMounts);
+        Assert.Equal("test-volume-name", redisContainer.Spec.VolumeMounts[0].Source);
+
+        await app.StopAsync();
+    }
+
+    [LocalOnlyFact("docker")]
+    public async Task VerifyDockerWithVolumeMountWorksWithoutName()
+    {
+        var testProgram = CreateTestProgram();
+        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+
+        testProgram.AppBuilder.AddContainer("redis-cli", "redis")
+            .WithVolumeMount(source: null, $"/path-here");
+
+        await using var app = testProgram.Build();
+
+        await app.StartAsync();
+
+        var s = app.Services.GetRequiredService<IKubernetesService>();
+
+        using var cts = new CancellationTokenSource(Debugger.IsAttached ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(10));
+        var token = cts.Token;
+
+        var redisContainer = await KubernetesHelper.GetResourceByNameAsync<Container>(
+                s,
+                "redis-cli", r => r.Spec.VolumeMounts != null,
+                token);
+
+        Assert.NotNull(redisContainer.Spec.VolumeMounts);
+        Assert.NotEmpty(redisContainer.Spec.VolumeMounts);
+        Assert.Equal("", redisContainer.Spec.VolumeMounts[0].Source);
 
         await app.StopAsync();
     }

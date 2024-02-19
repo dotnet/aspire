@@ -11,7 +11,7 @@ internal class PhpMyAdminConfigWriterHook : IDistributedApplicationLifecycleHook
     public Task AfterEndpointsAllocatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
     {
         var adminResource = appModel.Resources.OfType<PhpMyAdminContainerResource>().Single();
-        var serverFileMount = adminResource.Annotations.OfType<VolumeMountAnnotation>().Single(v => v.Target == "/etc/phpmyadmin/config.user.inc.php");
+        var serverFileMount = adminResource.Annotations.OfType<ContainerMountAnnotation>().Single(v => v.Target == "/etc/phpmyadmin/config.user.inc.php");
         var mySqlInstances = appModel.Resources.OfType<MySqlServerResource>();
 
         if (appModel.Resources.OfType<PhpMyAdminContainerResource>().SingleOrDefault() is not { } myAdminResource)
@@ -42,7 +42,7 @@ internal class PhpMyAdminConfigWriterHook : IDistributedApplicationLifecycleHook
         }
         else
         {
-            using var stream = new FileStream(serverFileMount.Source, FileMode.Create);
+            using var stream = new FileStream(serverFileMount.Source!, FileMode.Create);
             using var writer = new StreamWriter(stream);
 
             writer.WriteLine("<?php");
