@@ -33,16 +33,18 @@ public class DashboardWebApplication : IAsyncDisposable
     {
         get => _otlpServiceEndPointAccessor ?? throw new InvalidOperationException("WebApplication not started yet.");
     }
-    public DashboardWebApplication(IConfiguration? configuration = null)
+    public DashboardWebApplication(Action<WebApplicationBuilder>? configureBuilder = null)
     {
         var builder = WebApplication.CreateBuilder();
-        if (configuration != null)
+        if (configureBuilder != null)
         {
-            builder.Configuration.AddConfiguration(configuration);
+            configureBuilder(builder);
         }
 
+#if !DEBUG
         builder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.None);
         builder.Logging.AddFilter("Microsoft.AspNetCore.Server.Kestrel", LogLevel.Error);
+#endif
 
         var dashboardUris = builder.Configuration.GetUris(DashboardUrlVariableName, new(DashboardUrlDefaultValue));
 

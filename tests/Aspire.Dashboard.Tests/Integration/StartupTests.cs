@@ -2,25 +2,25 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net;
-using Microsoft.Extensions.Configuration;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Aspire.Dashboard.Tests.Integration;
 
 public class StartupTests
 {
+    private readonly ITestOutputHelper _testOutputHelper;
+
+    public StartupTests(ITestOutputHelper testOutputHelper)
+    {
+        _testOutputHelper = testOutputHelper;
+    }
+
     [Fact]
     public async void EndPointAccessors_AppStarted_NotNull()
     {
         // Arrange
-        var configBuilder = new ConfigurationManager()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["ASPNETCORE_URLS"] = "http://127.0.0.1:0",
-                ["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] = "http://127.0.0.1:0"
-            });
-
-        await using var app = new DashboardWebApplication(configBuilder.Build());
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper);
 
         // Act
         await app.StartAsync();

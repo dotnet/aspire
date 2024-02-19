@@ -5,26 +5,26 @@ using System.Security.Cryptography.X509Certificates;
 using Grpc.Core;
 using Grpc.Net.Client;
 using Microsoft.AspNetCore.InternalTesting;
-using Microsoft.Extensions.Configuration;
 using OpenTelemetry.Proto.Collector.Logs.V1;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Aspire.Dashboard.Tests.Integration;
 
 public class OtlpServiceTests
 {
+    private readonly ITestOutputHelper _testOutputHelper;
+
+    public OtlpServiceTests(ITestOutputHelper testOutputHelper)
+    {
+        _testOutputHelper = testOutputHelper;
+    }
+
     [Fact]
     public async void CallService_OtlpEndPoint_Success()
     {
         // Arrange
-        var configBuilder = new ConfigurationManager()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["ASPNETCORE_URLS"] = "http://127.0.0.1:0",
-                ["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] = "http://127.0.0.1:0"
-            });
-
-        await using var app = new DashboardWebApplication(configBuilder.Build());
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper);
         await app.StartAsync();
 
         using var channel = GrpcChannel.ForAddress($"http://{app.OtlpServiceEndPointAccessor()}");
@@ -43,16 +43,7 @@ public class OtlpServiceTests
         // Arrange
         X509Certificate2? clientCallbackCert = null;
 
-        var configBuilder = new ConfigurationManager()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["ASPNETCORE_URLS"] = "https://127.0.0.1:0",
-                ["DOTNET_DASHBOARD_OTLP_ENDPOINT_URL"] = "http://127.0.0.1:0",
-                ["Kestrel:Certificates:Default:Path"] = TestCertificateLoader.TestCertificatePath,
-                ["Kestrel:Certificates:Default:Password"] = "testPassword"
-            });
-
-        await using var app = new DashboardWebApplication(configBuilder.Build());
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper);
         await app.StartAsync();
 
         using var channel = GrpcChannel.ForAddress($"https://{app.BrowserEndPointAccessor()}", new()
