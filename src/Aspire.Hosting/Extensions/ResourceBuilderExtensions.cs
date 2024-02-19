@@ -114,6 +114,19 @@ public static class ResourceBuilderExtensions
         return builder.WithAnnotation(new ManifestPublishingCallbackAnnotation(callback), ResourceAnnotationMutationBehavior.Replace);
     }
 
+    /// <summary>
+    /// Registers a callback which is invoked when a connection string is requested for a resource.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="callback">Callback that returns a <see cref="Nullable{String}"/>.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithConnectionStringCallback<T>(this IResourceBuilder<T> builder, Func<string?> callback) where T : IResource
+    {
+        // You can only ever have one manifest publishing callback, so it must be a replace operation.
+        return builder.WithAnnotation(new ConnectionStringCallbackAnnotation(callback), ResourceAnnotationMutationBehavior.Replace);
+    }
+
     private static bool ContainsAmbiguousEndpoints(IEnumerable<AllocatedEndpointAnnotation> endpoints)
     {
         // An ambiguous endpoint is where any scheme (

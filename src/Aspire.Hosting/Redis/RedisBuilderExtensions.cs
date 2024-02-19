@@ -27,7 +27,18 @@ public static class RedisBuilderExtensions
         return builder.AddResource(redis)
                       .WithManifestPublishingCallback(WriteRedisResourceToManifest)
                       .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 6379))
-                      .WithAnnotation(new ContainerImageAnnotation { Image = "redis", Tag = "7.2.4" });
+                      .WithAnnotation(new ContainerImageAnnotation { Image = "redis", Tag = "7.2.4" })
+                      .WithConnectionStringCallback(() =>
+                      {
+                          if (!redis.TryGetAnnotationsOfType<AllocatedEndpointAnnotation>(out var allocatedEndpoints))
+                          {
+                              throw new DistributedApplicationException("Redis resource does not have endpoint annotation.");
+                          }
+
+                          // We should only have one endpoint for Redis for local scenarios.
+                          var endpoint = allocatedEndpoints.Single();
+                          return endpoint.EndPointString;
+                      });
     }
 
     /// <summary>
