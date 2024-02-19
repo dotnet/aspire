@@ -45,7 +45,7 @@ public static class AzureRedisExtensions
 
         // Used to hold a reference to the azure surrogate for use with the provisioner.
         builder.WithAnnotation(new AzureBicepResourceAnnotation(resource));
-        builder.WithConnectionRedirection(resource);
+        builder.WithConnectionStringRedirection(resource);
 
         // Remove the container annotation so that DCP doesn't do anything with it.
         if (builder.Resource.Annotations.OfType<ContainerImageAnnotation>().SingleOrDefault() is { } containerAnnotation)

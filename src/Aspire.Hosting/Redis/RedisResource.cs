@@ -15,7 +15,7 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
     /// <returns>A connection string for the redis server in the form "host:port".</returns>
     public string? GetConnectionString()
     {
-        if (this.Annotations.OfType<ConnectionStringRedirectAnnotation>().SingleOrDefault() is { } connectionStringAnnotation)
+        if (this.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var connectionStringAnnotation))
         {
             return connectionStringAnnotation.Resource.GetConnectionString();
         }
