@@ -88,13 +88,14 @@
       "value": "{password.inputs.value}",
       "inputs": {
         "value": {
-          "type": "string"
+          "type": "string",
+          "secret": true
         }
       }
     },
     "postgres2": {
       "type": "azure.bicep.v0",
-      "connectionString": "Host={postgres2.outputs.pgfqdn};Username=someuser;Password={password.value}",
+      "connectionString": "{postgres2.secretOutputs.connectionString}",
       "path": "aspire.hosting.azure.bicep.postgres.bicep",
       "params": {
         "serverName": "postgres2",
@@ -102,7 +103,8 @@
         "administratorLoginPassword": "{password.value}",
         "databases": [
           "db2"
-        ]
+        ],
+        "keyVaultName": ""
       }
     },
     "db2": {

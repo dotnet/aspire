@@ -466,25 +466,6 @@ public class ManifestGenerationTests
     }
 
     [Fact]
-    public void EnsureAllAzureRedisManifestTypesHaveVersion0Suffix()
-    {
-        var program = CreateTestProgramJsonDocumentManifestPublisher();
-
-        program.AppBuilder.AddAzureRedis("redis");
-
-        // Build AppHost so that publisher can be resolved.
-        program.Build();
-        var publisher = program.GetManifestPublisher();
-
-        program.Run();
-
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var redis = resources.GetProperty("redis");
-        Assert.Equal("azure.redis.v0", redis.GetProperty("type").GetString());
-    }
-
-    [Fact]
     public void EnsureAllAzureOpenAIManifestTypesHaveVersion0Suffix()
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher();

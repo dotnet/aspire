@@ -396,8 +396,8 @@ public static class AzureBicepTemplateResourceExtensions
         return builder.WithEnvironment(ctx =>
         {
             ctx.EnvironmentVariables[name] = ctx.ExecutionContext.Operation == DistributedApplicationOperation.Publish
-                ? bicepOutputReference.Value!
-                : bicepOutputReference.ValueExpression;
+                ? bicepOutputReference.ValueExpression
+                : bicepOutputReference.Value!;
         });
     }
 
