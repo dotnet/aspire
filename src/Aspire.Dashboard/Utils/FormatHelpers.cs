@@ -66,4 +66,9 @@ internal static partial class FormatHelpers
             return FormatDateTime(local, includeMilliseconds);
         }
     }
+
+    public static string FormatNumberWithOptionalDecimalPlaces(double value, IFormatProvider? provider = null)
+    {
+        return value.ToString("##,0.######", provider ?? CultureInfo.CurrentCulture);
+    }
 }
