@@ -75,7 +75,9 @@
                             <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsLevelColumnHeader)]">
                                 <LogLevelColumnDisplay LogEntry="@context" />
                             </TemplateColumn>
-                            <PropertyColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsTimestampColumnHeader)]" Property="@(context => FormatHelpers.FormatTimeStamp(context.TimeStamp))" Tooltip="true" />
+                            <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsTimestampColumnHeader)]" TooltipText="@(context => FormatHelpers.FormatDateTime(context.TimeStamp, true))" Tooltip="true">
+                                @FormatHelpers.FormatTimeWithOptionalDate(context.TimeStamp, includeMilliseconds: true)
+                            </TemplateColumn>
                             <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsMessageColumnHeader)]" Tooltip="true" TooltipText="(e) => e.Message">
                                 <LogMessageColumnDisplay FilterText="@(ViewModel.FilterText)" LogEntry="@context" />
                             </TemplateColumn>

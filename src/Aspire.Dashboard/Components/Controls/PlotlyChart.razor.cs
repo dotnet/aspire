@@ -7,6 +7,7 @@ using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Model.MetricValues;
 using Aspire.Dashboard.Resources;
+using Aspire.Dashboard.Utils;
 using Humanizer;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
@@ -173,7 +174,7 @@ public partial class PlotlyChart : ComponentBase
 
     private string FormatTooltip(string name, double yValue, DateTime xValue)
     {
-        return $"<b>{InstrumentViewModel.Instrument?.Name}</b><br />{name}: {yValue.ToString("##,0.######", CultureInfo.InvariantCulture)}<br />Time: {xValue.ToString("h:mm:ss tt", CultureInfo.InvariantCulture)}";
+        return $"<b>{InstrumentViewModel.Instrument?.Name}</b><br />{name}: {yValue.ToString("##,0.######", CultureInfo.CurrentCulture)}<br />Time: {FormatHelpers.FormatTime(xValue)}";
     }
 
     private static HistogramValue GetHistogramValue(MetricValueBase metric)
@@ -431,12 +432,23 @@ public partial class PlotlyChart : ComponentBase
 
         if (!tickUpdate)
         {
+            // The chart mostly shows numbers but some localization is needed for displaying time ticks.
+            var is24Hour = DateTimeFormatInfo.CurrentInfo.LongTimePattern.StartsWith("H", StringComparison.Ordinal);
+            // Plotly uses d3-time-format https://d3js.org/d3-time-format
+            var time = is24Hour ? "%H:%M:%S" : "%-I:%M:%S %p";
+            var userLocale = new
+            {
+                periods = new string[] { DateTimeFormatInfo.CurrentInfo.AMDesignator, DateTimeFormatInfo.CurrentInfo.PMDesignator },
+                time = time
+            };
+
             await JSRuntime.InvokeVoidAsync("initializeChart",
                 "plotly-chart-container",
                 traceDtos,
                 xValues,
                 inProgressDataTime.ToLocalTime(),
-                (inProgressDataTime - Duration).ToLocalTime()).ConfigureAwait(false);
+                (inProgressDataTime - Duration).ToLocalTime(),
+                userLocale).ConfigureAwait(false);
         }
         else
         {
