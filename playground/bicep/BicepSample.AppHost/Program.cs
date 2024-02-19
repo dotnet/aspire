@@ -35,7 +35,9 @@ var cosmosDb = builder.AddBicepCosmosDb("cosmos")
 var appInsights = builder.AddBicepApplicationInsights("ai");
 
 // Redis takes forever to spin up...
-var redis = builder.AddRedis("redis").PublishAsAzureRedis();
+var redis = builder.AddRedis("redis")
+    .PublishAsAzureRedis()
+    .RunAsAzureRedis();
 
 var serviceBus = builder.AddBicepAzureServiceBus("sb", ["queue1"], ["topic1"]);
 
