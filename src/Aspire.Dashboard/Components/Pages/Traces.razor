@@ -61,6 +61,19 @@
                                 @($"+{another_name.ItemsOverflow.Count()}")
                             </span>
                         </MoreButtonTemplate>
+                        <OverflowTemplate Context="another_name">
+                            @{
+                                var items = another_name.ItemsOverflow.ToList();
+                            }
+                            <FluentTooltip UseTooltipService="false" Anchor="@another_name.IdMoreButton">
+                                @foreach (var item in items)
+                                {
+                                    <div style="margin-top: 8px; margin-bottom: 8px;">
+                                        @item.ChildContent
+                                    </div>
+                                }
+                            </FluentTooltip>
+                        </OverflowTemplate>
                     </FluentOverflow>
                 </TemplateColumn>
                 <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.DurationColumnHeader)]">
