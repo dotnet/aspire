@@ -57,6 +57,7 @@ public static class PostgresBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<PostgresDatabaseResource> AddDatabase(this IResourceBuilder<PostgresServerResource> builder, string name)
     {
+        builder.Resource.AddDatabase(name);
         var postgresDatabase = new PostgresDatabaseResource(name, builder.Resource);
         return builder.ApplicationBuilder.AddResource(postgresDatabase)
                                          .WithManifestPublishingCallback(context => WritePostgresDatabaseToManifest(context, postgresDatabase));
@@ -109,8 +110,9 @@ public static class PostgresBuilderExtensions
 
     private static void WritePostgresDatabaseToManifest(ManifestPublishingContext context, PostgresDatabaseResource postgresDatabase)
     {
-        context.Writer.WriteString("type", "postgres.database.v0");
+        context.Writer.WriteString("type", "value.v0");
         context.Writer.WriteString("parent", postgresDatabase.Parent.Name);
+        context.Writer.WriteString("connectionString", $"{{{postgresDatabase.Parent.Name}.connectionString}};Database={postgresDatabase.Name};");
     }
 
     /// <summary>

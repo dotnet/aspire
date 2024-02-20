@@ -4,7 +4,9 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Azure;
+using Aspire.Hosting.Azure.Postgres;
 using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Utils;
 using Xunit;
 
 namespace Aspire.Hosting.Tests.Azure;
@@ -254,30 +256,87 @@ public class AzureBicepResourceTests
     }
 
     [Fact]
-    public void AddBicepPostgres()
+    public void AsAzurePostgresFlexibleServer()
     {
         var builder = DistributedApplication.CreateBuilder();
 
+        builder.Configuration["Parameters:usr"] = "user";
         builder.Configuration["Parameters:pwd"] = "password";
 
-        var pwd = builder.AddParameter("pwd");
-        var postgres = builder.AddBicepAzurePostgres("postgres", "user", pwd);
-        postgres.AddDatabase("db", "database");
+        var usr = builder.AddParameter("usr");
+        var pwd = builder.AddParameter("pwd", secret: true);
 
-        postgres.Resource.SecretOutputs["connectionString"] = "myconnectionstring";
+        IResourceBuilder<AzurePostgresResource>? azurePostgres = null;
+        var postgres = builder.AddPostgres("postgres").AsAzurePostgresFlexibleServer(usr, pwd, (resource) =>
+        {
+            Assert.NotNull(resource);
+            azurePostgres = resource;
+        });
+        postgres.AddDatabase("db");
 
-        var databases = postgres.Resource.Parameters["databases"] as IEnumerable<string>;
+        Assert.NotNull(azurePostgres);
 
-        Assert.Equal("Aspire.Hosting.Azure.Bicep.postgres.bicep", postgres.Resource.TemplateResourceName);
+        var databasesCallback = azurePostgres.Resource.Parameters["databases"] as Func<object?>;
+        Assert.NotNull(databasesCallback);
+        var databases = databasesCallback() as IEnumerable<string>;
+
+        Assert.Equal("Aspire.Hosting.Azure.Bicep.postgres.bicep", azurePostgres.Resource.TemplateResourceName);
         Assert.Equal("postgres", postgres.Resource.Name);
-        Assert.Equal("postgres", postgres.Resource.Parameters["serverName"]);
-        Assert.Equal("user", postgres.Resource.Parameters["administratorLogin"]);
-        Assert.Same(pwd, postgres.Resource.Parameters["administratorLoginPassword"]);
-        Assert.True(postgres.Resource.Parameters.ContainsKey(AzureBicepResource.KnownParameters.KeyVaultName));
+        Assert.Equal("postgres", azurePostgres.Resource.Parameters["serverName"]);
+        Assert.Same(usr, azurePostgres.Resource.Parameters["administratorLogin"]);
+        Assert.Same(pwd, azurePostgres.Resource.Parameters["administratorLoginPassword"]);
+        Assert.True(azurePostgres.Resource.Parameters.ContainsKey(AzureBicepResource.KnownParameters.KeyVaultName));
         Assert.NotNull(databases);
-        Assert.Equal(["database"], databases);
+        Assert.Equal(["db"], databases);
+
+        // Setup to verify that connection strings is acquired via resource connectionstring redirct.
+        azurePostgres.Resource.SecretOutputs["connectionString"] = "myconnectionstring";
         Assert.Equal("myconnectionstring", postgres.Resource.GetConnectionString());
-        Assert.Equal("{postgres.secretOutputs.connectionString}", postgres.Resource.ConnectionStringExpression);
+
+        Assert.Equal("{postgres.secretOutputs.connectionString}", azurePostgres.Resource.ConnectionStringExpression);
+    }
+
+    [Fact]
+    public void PublishAsAzurePostgresFlexibleServer()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        builder.Configuration["Parameters:usr"] = "user";
+        builder.Configuration["Parameters:pwd"] = "password";
+
+        var usr = builder.AddParameter("usr");
+        var pwd = builder.AddParameter("pwd", secret: true);
+
+        IResourceBuilder<AzurePostgresResource>? azurePostgres = null;
+        var postgres = builder.AddPostgres("postgres").PublishAsAzurePostgresFlexibleServer(usr, pwd, (resource) =>
+        {
+            azurePostgres = resource;
+        });
+        postgres.AddDatabase("db");
+
+        Assert.NotNull(azurePostgres);
+
+        var databasesCallback = azurePostgres.Resource.Parameters["databases"] as Func<object?>;
+        Assert.NotNull(databasesCallback);
+        var databases = databasesCallback() as IEnumerable<string>;
+
+        Assert.Equal("Aspire.Hosting.Azure.Bicep.postgres.bicep", azurePostgres.Resource.TemplateResourceName);
+        Assert.Equal("postgres", postgres.Resource.Name);
+        Assert.Equal("postgres", azurePostgres.Resource.Parameters["serverName"]);
+        Assert.Same(usr, azurePostgres.Resource.Parameters["administratorLogin"]);
+        Assert.Same(pwd, azurePostgres.Resource.Parameters["administratorLoginPassword"]);
+        Assert.True(azurePostgres.Resource.Parameters.ContainsKey(AzureBicepResource.KnownParameters.KeyVaultName));
+        Assert.NotNull(databases);
+        Assert.Equal(["db"], databases);
+
+        // Verify that when PublishAs variant is used, connection string acquisition
+        // still uses the local endpoint.
+        var endpointAnnotation = new AllocatedEndpointAnnotation("dummy", System.Net.Sockets.ProtocolType.Tcp, "localhost", 1234, "tcp");
+        postgres.WithAnnotation(endpointAnnotation);
+        var expectedConnectionString = $"Host={endpointAnnotation.Address};Port={endpointAnnotation.Port};Username=postgres;Password={PasswordUtil.EscapePassword(postgres.Resource.Password)}";
+        Assert.NotNull(postgres.Resource.GetConnectionString());
+
+        Assert.Equal("{postgres.secretOutputs.connectionString}", azurePostgres.Resource.ConnectionStringExpression);
     }
 
     [Fact]

@@ -24,9 +24,11 @@ var queues = storage.AddQueue("queue");
 
 var sqlServer = builder.AddBicepAzureSqlServer("sql").AddDatabase("db");
 
-var pwd = builder.AddParameter("password", secret: true);
-
-var pg = builder.AddBicepAzurePostgres("postgres2", "someuser", pwd).AddDatabase("db2");
+var administratorLogin = builder.AddParameter("administratorLogin");
+var administratorLoginPassword = builder.AddParameter("administratorLoginPassword", secret: true);
+var pg = builder.AddPostgres("postgres2")
+                .AsAzurePostgresFlexibleServer(administratorLogin, administratorLoginPassword)
+                .AddDatabase("db2");
 
 var cosmosDb = builder.AddBicepCosmosDb("cosmos")
                       // .UseEmulator()

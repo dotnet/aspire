@@ -325,7 +325,7 @@ public class ManifestGenerationTests
         Assert.Equal("container.v0", server.GetProperty("type").GetString());
 
         var db = resources.GetProperty("postgresdatabase");
-        Assert.Equal("postgres.database.v0", db.GetProperty("type").GetString());
+        Assert.Equal("value.v0", db.GetProperty("type").GetString());
     }
 
     [Fact]

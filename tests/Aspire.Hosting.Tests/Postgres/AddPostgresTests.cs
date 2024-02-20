@@ -4,6 +4,7 @@
 using System.Net.Sockets;
 using System.Text.Json;
 using Aspire.Hosting.Postgres;
+using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -133,23 +134,17 @@ public class AddPostgresTests
     public void PostgresCreatesConnectionString()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.AddPostgres("postgres")
-            .WithAnnotation(
-            new AllocatedEndpointAnnotation("mybinding",
-            ProtocolType.Tcp,
-            "localhost",
-            2000,
-            "https"
-            ));
+        var postgres = appBuilder.AddPostgres("postgres")
+                                 .WithAnnotation(
+                                     new AllocatedEndpointAnnotation("mybinding",
+                                      ProtocolType.Tcp,
+                                     "localhost",
+                                     2000,
+                                     "https"
+                                 ));
 
-        var app = appBuilder.Build();
-
-        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-
-        var connectionStringResource = Assert.Single(appModel.Resources.OfType<IResourceWithConnectionString>());
-        var connectionString = connectionStringResource.GetConnectionString();
-        Assert.StartsWith("Host=localhost;Port=2000;Username=postgres;Password=", connectionString);
-        Assert.EndsWith(";", connectionString);
+        var connectionString = postgres.Resource.GetConnectionString();
+        Assert.Equal($"Host=localhost;Port=2000;Username=postgres;Password={PasswordUtil.EscapePassword(postgres.Resource.Password)};", connectionString);
     }
 
     [Fact]
@@ -176,7 +171,7 @@ public class AddPostgresTests
         var dbConnectionString = postgresDatabaseResource.GetConnectionString();
 
         Assert.EndsWith(";", postgresConnectionString);
-        Assert.Equal(postgresConnectionString + "Database=db", dbConnectionString);
+        Assert.Equal(postgresConnectionString + ";Database=db", dbConnectionString);
     }
 
     [Fact]
