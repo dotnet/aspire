@@ -14,18 +14,20 @@ public class AzureBicepAppConfigurationResource(string name) :
     IResourceWithConnectionString
 {
     /// <summary>
+    /// Gets the appConfigEndpoint output reference for the Azure App Configuration resource.
+    /// </summary>
+    public BicepOutputReference Endpoint => new("appConfigEndpoint", this);
+
+    /// <summary>
     /// Gets the connection string template for the manifest for the Azure App Configuration resource.
     /// </summary>
-    public string ConnectionStringExpression => $"{{{Name}.outputs.appConfigEndpoint}}";
+    public string ConnectionStringExpression => Endpoint.ValueExpression;
 
     /// <summary>
     /// Gets the connection string for the Azure App Configuration resource.
     /// </summary>
     /// <returns>The connection string for the Azure App Configuration resource.</returns>
-    public string? GetConnectionString()
-    {
-        return Outputs["appConfigEndpoint"];
-    }
+    public string? GetConnectionString() => Endpoint.Value;
 }
 
 /// <summary>

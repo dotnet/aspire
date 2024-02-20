@@ -7,6 +7,7 @@ using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Model.MetricValues;
 using Aspire.Dashboard.Resources;
+using Aspire.Dashboard.Utils;
 using Humanizer;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
@@ -158,7 +159,7 @@ public abstract class ChartBase : ComponentBase
 
     private string FormatTooltip(string name, double yValue, DateTime xValue)
     {
-        return $"<b>{InstrumentViewModel.Instrument?.Name}</b><br />{name}: {yValue.ToString("##,0.######", CultureInfo.InvariantCulture)}<br />Time: {xValue.ToString("h:mm:ss tt", CultureInfo.InvariantCulture)}";
+        return $"<b>{InstrumentViewModel.Instrument?.Name}</b><br />{name}: {FormatHelpers.FormatNumberWithOptionalDecimalPlaces(yValue, CultureInfo.CurrentCulture)}<br />Time: {FormatHelpers.FormatTime(xValue, cultureInfo: CultureInfo.CurrentCulture)}";
     }
 
     private static HistogramValue GetHistogramValue(MetricValueBase metric)
@@ -400,42 +401,6 @@ public abstract class ChartBase : ComponentBase
         }
 
         await OnChartUpdated(traces, xValues, tickUpdate, inProgressDataTime);
-    }
-
-    internal static string GetDisplayedUnit(OtlpInstrument? instrument, bool showCount, IStringLocalizer<ControlsStrings> loc)
-    {
-        if (instrument is null)
-        {
-            return string.Empty;
-        }
-
-        if (showCount)
-        {
-            // Unit comes from the instrument and they're not localized.
-            // The hardcoded "Count" label isn't localized for consistency.
-            return "Count";
-        }
-
-        if (!string.IsNullOrEmpty(instrument.Unit))
-        {
-            var unit = OtlpUnits.GetUnit(instrument.Unit.TrimStart('{').TrimEnd('}'));
-            return unit.Pluralize().Titleize();
-        }
-
-        // Hard code for instrument names that don't have units
-        // but have a descriptive name that lets us infer the unit.
-        if (instrument.Name.EndsWith(".count"))
-        {
-            return loc[nameof(ControlsStrings.PlotlyChartCount)];
-        }
-        else if (instrument.Name.EndsWith(".length"))
-        {
-            return loc[nameof(ControlsStrings.PlotlyChartLength)];
-        }
-        else
-        {
-            return loc[nameof(ControlsStrings.PlotlyChartValue)];
-        }
     }
 
     private static DateTime GetCurrentDataTime()

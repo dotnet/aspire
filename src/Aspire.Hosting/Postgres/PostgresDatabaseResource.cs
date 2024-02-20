@@ -23,7 +23,7 @@ public class PostgresDatabaseResource(string name, PostgresServerResource postgr
     {
         if (Parent.GetConnectionString() is { } connectionString)
         {
-            return $"{connectionString}Database={Name}";
+            return $"{connectionString};Database={Name}";
         }
         else
         {

@@ -126,10 +126,7 @@ public static partial class AspireEFMySqlExtensions
             ServerVersion serverVersion;
             if (settings.ServerVersion is null)
             {
-                if (string.IsNullOrEmpty(connectionString))
-                {
-                    ThrowForMissingConnectionString();
-                }
+                ConnectionStringValidation.ValidateConnectionString(connectionString, connectionName, DefaultConfigSectionName, typeSpecificSectionName, isEfDesignTime: EF.IsDesignTime);
                 serverVersion = ServerVersion.AutoDetect(connectionString);
             }
             else
@@ -140,10 +137,7 @@ public static partial class AspireEFMySqlExtensions
             var builder = dbContextOptionsBuilder.UseMySql(connectionString, serverVersion, builder =>
             {
                 // delay validating the ConnectionString until the DbContext is configured. This ensures an exception doesn't happen until a Logger is established.
-                if (string.IsNullOrEmpty(connectionString))
-                {
-                    ThrowForMissingConnectionString();
-                }
+                ConnectionStringValidation.ValidateConnectionString(connectionString, connectionName, DefaultConfigSectionName, typeSpecificSectionName, isEfDesignTime: EF.IsDesignTime);
 
                 // Resiliency:
                 // 1. Connection resiliency automatically retries failed database commands: https://github.com/PomeloFoundation/Pomelo.EntityFrameworkCore.MySql/wiki/Configuration-Options#enableretryonfailure
@@ -154,11 +148,6 @@ public static partial class AspireEFMySqlExtensions
             });
 
             configureDbContextOptions?.Invoke(dbContextOptionsBuilder);
-
-            void ThrowForMissingConnectionString()
-            {
-                throw new InvalidOperationException($"ConnectionString is missing. It should be provided in 'ConnectionStrings:{connectionName}' or under the 'ConnectionString' key in '{DefaultConfigSectionName}' or '{typeSpecificSectionName}' configuration section.");
-            }
         }
     }
 }

@@ -16,7 +16,7 @@ public static class MongoDBBuilderExtensions
     private const int DefaultContainerPort = 27017;
 
     /// <summary>
-    /// Adds a MongoDB resource to the application model. A container is used for local development.
+    /// Adds a MongoDB resource to the application model. A container is used for local development.Adds a Kafka resource to the application. A container is used for local development.  This version the package defaults to the 7.0.5 tag of the mongo container image
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
@@ -30,7 +30,7 @@ public static class MongoDBBuilderExtensions
             .AddResource(mongoDBContainer)
             .WithManifestPublishingCallback(WriteMongoDBServerToManifest)
             .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: DefaultContainerPort)) // Internal port is always 27017.
-            .WithAnnotation(new ContainerImageAnnotation { Image = "mongo", Tag = "latest" });
+            .WithAnnotation(new ContainerImageAnnotation { Image = "mongo", Tag = "7.0.5" });
     }
 
     /// <summary>
@@ -49,7 +49,7 @@ public static class MongoDBBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a MongoExpress administration and development platform for MongoDB to the application model.
+    /// Adds a MongoExpress administration and development platform for MongoDB to the application model. This version the package defaults to the 1.0.2-20 tag of the mongo-express container image
     /// </summary>
     /// <param name="builder">The MongoDB server resource builder.</param>
     /// <param name="hostPort">The host port for the application ui.</param>
@@ -61,7 +61,7 @@ public static class MongoDBBuilderExtensions
 
         var mongoExpressContainer = new MongoExpressContainerResource(containerName);
         builder.ApplicationBuilder.AddResource(mongoExpressContainer)
-                                  .WithAnnotation(new ContainerImageAnnotation { Image = "mongo-express", Tag = "latest" })
+                                  .WithAnnotation(new ContainerImageAnnotation { Image = "mongo-express", Tag = "1.0.2-20" })
                                   .WithEnvironment(context => ConfigureMongoExpressContainer(context, builder.Resource))
                                   .WithHttpEndpoint(containerPort: 8081, hostPort: hostPort, name: containerName)
                                   .ExcludeFromManifest();

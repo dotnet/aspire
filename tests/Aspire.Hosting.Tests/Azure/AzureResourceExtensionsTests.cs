@@ -18,10 +18,10 @@ public class AzureResourceExtensionsTests
 
         var computedPath = Path.GetFullPath("mydata");
 
-        var volumeAnnotation = storage.Resource.Annotations.OfType<VolumeMountAnnotation>().Single();
+        var volumeAnnotation = storage.Resource.Annotations.OfType<ContainerMountAnnotation>().Single();
         Assert.Equal(computedPath, volumeAnnotation.Source);
         Assert.Equal("/data", volumeAnnotation.Target);
-        Assert.Equal(VolumeMountType.Bind, volumeAnnotation.Type);
+        Assert.Equal(ContainerMountType.Bind, volumeAnnotation.Type);
     }
 
     [Fact]
@@ -65,10 +65,9 @@ public class AzureResourceExtensionsTests
     }
 
     [Theory]
-    [InlineData(null)]
     [InlineData("2.3.97-preview")]
     [InlineData("1.0.7")]
-    public void AddAzureCosmosDBWithEmulatorGetsExpectedImageTag(string? imageTag = null)
+    public void AddAzureCosmosDBWithEmulatorGetsExpectedImageTag(string imageTag)
     {
         var builder = DistributedApplication.CreateBuilder();
 

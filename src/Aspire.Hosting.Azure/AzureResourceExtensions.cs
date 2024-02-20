@@ -155,7 +155,7 @@ public static class AzureResourceExtensions
     }
 
     /// <summary>
-    /// Configures an Azure Storage resource to be emulated using Azurite. This resource requires an <see cref="AzureStorageResource"/> to be added to the application model.
+    /// Configures an Azure Storage resource to be emulated using Azurite. This resource requires an <see cref="AzureStorageResource"/> to be added to the application model. This version the package defaults to version 3.29.0 of the mcr.microsoft.com/azure-storage/azurite container image.
     /// </summary>
     /// <param name="builder">The Azure storage resource builder.</param>
     /// <param name="configureContainer">Callback that exposes underlying container used for emulation to allow for customization.</param>
@@ -165,7 +165,7 @@ public static class AzureResourceExtensions
         builder.WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, name: "blob", containerPort: 10000))
                .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, name: "queue", containerPort: 10001))
                .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, name: "table", containerPort: 10002))
-               .WithAnnotation(new ContainerImageAnnotation { Image = "mcr.microsoft.com/azure-storage/azurite", Tag = "latest" });
+               .WithAnnotation(new ContainerImageAnnotation { Image = "mcr.microsoft.com/azure-storage/azurite", Tag = "3.29.0" });
 
         if (configureContainer != null)
         {
@@ -187,7 +187,7 @@ public static class AzureResourceExtensions
     {
         path = path ?? $".azurite/{builder.Resource.Name}";
         var fullyQualifiedPath = Path.GetFullPath(path, builder.ApplicationBuilder.AppHostDirectory);
-        return builder.WithVolumeMount(fullyQualifiedPath, "/data", VolumeMountType.Bind, false);
+        return builder.WithBindMount(fullyQualifiedPath, "/data", isReadOnly: false);
 
     }
 
@@ -271,24 +271,6 @@ public static class AzureResourceExtensions
         {
             endpoint.Port = port;
         });
-    }
-
-    /// <summary>
-    /// Adds an Azure Redis resource to the application model.
-    /// </summary>
-    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
-    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureRedisResource> AddAzureRedis(this IDistributedApplicationBuilder builder, string name)
-    {
-        var resource = new AzureRedisResource(name);
-        return builder.AddResource(resource)
-            .WithManifestPublishingCallback(WriteAzureRedisToManifest);
-    }
-
-    private static void WriteAzureRedisToManifest(ManifestPublishingContext context)
-    {
-        context.Writer.WriteString("type", "azure.redis.v0");
     }
 
     /// <summary>
