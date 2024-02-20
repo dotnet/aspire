@@ -39,7 +39,7 @@ public class FormatHelpersTests
     public void FormatDateTime_WithMilliseconds_InvariantCulture(string expected, bool includeMilliseconds, string value)
     {
         var date = GetLocalDateTime(value);
-        Assert.Equal(expected, FormatHelpers.FormatDateTime(date, includeMilliseconds, provider: CultureInfo.InvariantCulture));
+        Assert.Equal(expected, FormatHelpers.FormatDateTime(date, includeMilliseconds, cultureInfo: CultureInfo.InvariantCulture));
     }
 
     [Theory]
@@ -50,7 +50,7 @@ public class FormatHelpersTests
     public void FormatDateTime_WithMilliseconds_GermanCulture(string expected, bool includeMilliseconds, string value)
     {
         var date = GetLocalDateTime(value);
-        Assert.Equal(expected, FormatHelpers.FormatDateTime(date, includeMilliseconds, provider: CultureInfo.GetCultureInfo("de-DE")));
+        Assert.Equal(expected, FormatHelpers.FormatDateTime(date, includeMilliseconds, cultureInfo: CultureInfo.GetCultureInfo("de-DE")));
     }
 
     [Theory]
@@ -61,7 +61,7 @@ public class FormatHelpersTests
     public void FormatDateTime_WithMilliseconds_NewZealandCulture(string expected, bool includeMilliseconds, string value)
     {
         var date = GetLocalDateTime(value);
-        Assert.Equal(expected, FormatHelpers.FormatDateTime(date, includeMilliseconds, provider: CultureInfo.GetCultureInfo("en-NZ")));
+        Assert.Equal(expected, FormatHelpers.FormatDateTime(date, includeMilliseconds, cultureInfo: CultureInfo.GetCultureInfo("en-NZ")));
     }
 
     private static DateTime GetLocalDateTime(string value)

@@ -174,7 +174,7 @@ public partial class PlotlyChart : ComponentBase
 
     private string FormatTooltip(string name, double yValue, DateTime xValue)
     {
-        return $"<b>{InstrumentViewModel.Instrument?.Name}</b><br />{name}: {FormatHelpers.FormatNumberWithOptionalDecimalPlaces(yValue, CultureInfo.CurrentCulture)}<br />Time: {FormatHelpers.FormatTime(xValue, provider: CultureInfo.CurrentCulture)}";
+        return $"<b>{InstrumentViewModel.Instrument?.Name}</b><br />{name}: {FormatHelpers.FormatNumberWithOptionalDecimalPlaces(yValue, CultureInfo.CurrentCulture)}<br />Time: {FormatHelpers.FormatTime(xValue, cultureInfo: CultureInfo.CurrentCulture)}";
     }
 
     private static HistogramValue GetHistogramValue(MetricValueBase metric)
