@@ -117,8 +117,9 @@
       }
     },
     "db2": {
-      "type": "postgres.database.v0",
-      "parent": "postgres2"
+      "type": "azure.bicep.v0",
+      "parent": "postgres2",
+      "connectionString": "{postgres2.connectionString};Database=db2;"
     },
     "cosmos": {
       "type": "azure.bicep.v0",

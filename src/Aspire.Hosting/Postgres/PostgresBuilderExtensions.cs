@@ -110,8 +110,9 @@ public static class PostgresBuilderExtensions
 
     private static void WritePostgresDatabaseToManifest(ManifestPublishingContext context, PostgresDatabaseResource postgresDatabase)
     {
-        context.Writer.WriteString("type", "postgres.database.v0");
+        context.Writer.WriteString("type", "azure.bicep.v0");
         context.Writer.WriteString("parent", postgresDatabase.Parent.Name);
+        context.Writer.WriteString("connectionString", $"{{{postgresDatabase.Parent.Name}.connectionString}};Database={postgresDatabase.Name};");
     }
 
     /// <summary>
