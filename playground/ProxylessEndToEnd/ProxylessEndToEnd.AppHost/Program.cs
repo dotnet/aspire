@@ -3,17 +3,24 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
+var redis = builder.AddRedis("redis", 9999).WithEndpoint("tcp", (endpoint) =>
+{
+    endpoint.IsProxied = false;
+});
+
 builder.AddProject<Projects.ProxylessEndToEnd_ApiService>("api")
     .WithEndpoint("http", ea =>
     {
         ea.UriScheme = "http";
         ea.Port = 12345;
         ea.IsProxied = false;
-    });
+    })
+    .WithReference(redis);
 
 builder.AddProject<Projects.ProxylessEndToEnd_ApiService>("api2")
     .ExcludeLaunchProfile()
-    .WithEndpoint(13456, "http");
+    .WithEndpoint(13456, "http")
+    .WithReference(redis);
 
 // This project is only added in playground projects to support development/debugging
 // of the dashboard. It is not required in end developer code. Comment out this code

@@ -12,6 +12,8 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Xunit;
 using Xunit.Abstractions;
+using Xunit.Sdk;
+using VolumeMountType = Aspire.Hosting.ApplicationModel.VolumeMountType;
 
 namespace Aspire.Hosting.Tests;
 
@@ -516,7 +518,7 @@ public class DistributedApplicationTests
     }
 
     [LocalOnlyFact("docker")]
-    public async Task ProxylessEndpoint()
+    public async Task ProxylessEndpointWorks()
     {
         var testProgram = CreateTestProgram();
 
@@ -541,8 +543,88 @@ public class DistributedApplicationTests
 
         var client = app.Services.GetRequiredService<IHttpClientFactory>().CreateClient();
 
-        await Task.Delay(1000);
-        await client.GetStringAsync("http://localhost:5156/pid");
+        var token = new CancellationTokenSource(TimeSpan.FromMinutes(1)).Token;
+
+        while (true)
+        {
+            try
+            {
+                await client.GetStringAsync("http://localhost:1234/pid", token);
+                break;
+            }
+            catch
+            {
+                await Task.Delay(100, token);
+            }
+        }
+
+        // Check that endpoint from launchsettings doesn't work
+        await Assert.ThrowsAnyAsync<Exception>(() => client.GetStringAsync("http://localhost:5156/pid"));
+    }
+
+    [LocalOnlyFact("docker")]
+    public async Task ProxylessAndProxiedEndpointBothWorkOnSameResource()
+    {
+        var testProgram = CreateTestProgram();
+
+        testProgram.AppBuilder.Services
+            .AddHttpClient()
+            .ConfigureHttpClientDefaults(b =>
+            {
+                b.UseSocketsHttpHandler((handler, sp) => handler.PooledConnectionLifetime = TimeSpan.FromSeconds(5));
+            });
+
+        testProgram.ServiceABuilder
+            .ExcludeLaunchProfile()
+            .WithEndpoint("http", endpoint =>
+            {
+                endpoint.UriScheme = "http";
+                endpoint.Port = 1234;
+                endpoint.IsProxied = false;
+            })
+            .WithEndpoint(1543, "https");
+
+        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+
+        await using var app = testProgram.Build();
+
+        await app.StartAsync();
+
+        var client = app.Services.GetRequiredService<IHttpClientFactory>().CreateClient();
+
+        var token = new CancellationTokenSource(TimeSpan.FromMinutes(1)).Token;
+
+        var urls = string.Empty;
+        while (true)
+        {
+            try
+            {
+                urls = await client.GetStringAsync("http://localhost:1234/urls", token);
+                break;
+            }
+            catch
+            {
+                await Task.Delay(100, token);
+            }
+        }
+
+        Assert.Contains("http://localhost:1234", urls);
+        // https endpoint is proxied so app won't have this specific endpoint
+        Assert.DoesNotContain("https://localhost:1543", urls);
+
+        while (true)
+        {
+            try
+            {
+                var value = await client.GetStringAsync("https://localhost:1543/urls", token);
+                Assert.Equal(urls, value);
+                break;
+            }
+            catch (Exception ex) when (ex is not EqualException)
+            {
+                await Task.Delay(100, token);
+            }
+        }
     }
 
     private static TestProgram CreateTestProgram(string[]? args = null, bool includeIntegrationServices = false, bool includeNodeApp = false) =>

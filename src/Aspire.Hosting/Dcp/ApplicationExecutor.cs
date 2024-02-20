@@ -756,6 +756,11 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                             ContainerPort = sp.DcpServiceProducerAnnotation.Port,
                         };
 
+                        if (!sp.EndpointAnnotation.IsProxied)
+                        {
+                            portSpec.HostPort = sp.EndpointAnnotation.Port;
+                        }
+
                         if (!string.IsNullOrEmpty(sp.DcpServiceProducerAnnotation.Address))
                         {
                             portSpec.HostIP = sp.DcpServiceProducerAnnotation.Address;
@@ -844,8 +849,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
                 sp.DcpServiceProducerAnnotation.Port = sp.EndpointAnnotation.ContainerPort;
             }
-
-            if (!sp.EndpointAnnotation.IsProxied)
+            else if (!sp.EndpointAnnotation.IsProxied)
             {
                 if (appResource.DcpResource is ExecutableReplicaSet ers && ers.Spec.Replicas > 1)
                 {
