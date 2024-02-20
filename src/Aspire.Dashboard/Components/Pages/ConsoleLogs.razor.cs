@@ -162,7 +162,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
                 return resource.State switch
                 {
                     null or { Length: 0 } => $"{resourceName} ({Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsUnknownState)]})",
-                    "Running" => resourceName,
+                    ResourceStates.RunningState => resourceName,
                     _ => $"{resourceName} ({resource.State})"
                 };
             }
@@ -274,7 +274,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         {
             await LoadLogsAsync();
         }
-        else if (!string.Equals(PageViewModel.SelectedResource.State, "Running", StringComparison.Ordinal))
+        else if (!string.Equals(PageViewModel.SelectedResource.State, ResourceStates.RunningState, StringComparison.Ordinal))
         {
             PageViewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsFinishedWatchingLogs)];
         }
