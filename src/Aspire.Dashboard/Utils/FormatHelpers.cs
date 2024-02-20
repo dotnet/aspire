@@ -16,6 +16,7 @@ internal static partial class FormatHelpers
         var longTimePattern = DateTimeFormatInfo.CurrentInfo.LongTimePattern;
 
         // Create a format similar to .fff but based on the current culture.
+        // Intentionally use fff here instead of FFF so output has a consistent length.
         var millisecondFormat = $"{NumberFormatInfo.CurrentInfo.NumberDecimalSeparator}fff";
 
         // Append millisecond pattern to current culture's long time pattern.
@@ -26,22 +27,48 @@ internal static partial class FormatHelpers
     private static partial Regex MatchSecondsInTimeFormatPattern();
 
     private static readonly string s_longTimePatternWithMilliseconds = GetLongTimePatternWithMilliseconds();
+    private static readonly string s_shortDateLongTimePatternWithMilliseconds = DateTimeFormatInfo.CurrentInfo.ShortDatePattern + " " + s_longTimePatternWithMilliseconds;
 
-    public static string FormatTimeStamp(DateTime time)
+    public static string FormatTime(DateTime value, bool includeMilliseconds = false)
     {
-        // Long time with milliseconds
-        return time.ToLocalTime().ToString(s_longTimePatternWithMilliseconds, CultureInfo.CurrentCulture);
-    }
+        var local = value.ToLocalTime();
 
-    public static string FormatTime(DateTime time)
-    {
         // Long time
-        return time.ToLocalTime().ToString("T", CultureInfo.CurrentCulture);
+        return includeMilliseconds
+            ? local.ToString(s_longTimePatternWithMilliseconds, CultureInfo.CurrentCulture)
+            : local.ToString("T", CultureInfo.CurrentCulture);
     }
 
-    public static string FormatDateTime(DateTime dateTime)
+    public static string FormatDateTime(DateTime value, bool includeMilliseconds = false)
     {
+        var local = value.ToLocalTime();
+
         // Short date, long time
-        return dateTime.ToLocalTime().ToString("G", CultureInfo.CurrentCulture);
+        return includeMilliseconds
+            ? local.ToString(s_shortDateLongTimePatternWithMilliseconds, CultureInfo.CurrentCulture)
+            : local.ToString("G", CultureInfo.CurrentCulture);
+    }
+
+    public static string FormatTimeWithOptionalDate(DateTime value, bool includeMilliseconds = false)
+    {
+        var local = value.ToLocalTime();
+
+        // If the date is today then only return time, otherwise return entire date time text.
+        if (local.Date == DateTime.Now.Date)
+        {
+            // e.g. "08:57:44" (based on user's culture and preferences)
+            // Don't include milliseconds as resource server returned time stamp is second precision.
+            return FormatTime(local, includeMilliseconds);
+        }
+        else
+        {
+            // e.g. "9/02/2024 08:57:44" (based on user's culture and preferences)
+            return FormatDateTime(local, includeMilliseconds);
+        }
+    }
+
+    public static string FormatNumberWithOptionalDecimalPlaces(double value, IFormatProvider? provider = null)
+    {
+        return value.ToString("##,0.######", provider ?? CultureInfo.CurrentCulture);
     }
 }
