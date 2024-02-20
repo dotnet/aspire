@@ -17,7 +17,7 @@ public class FormatHelpersTests
     [InlineData("1.234568", 1.23456789d)]
     public void FormatNumberWithOptionalDecimalPlaces_InvariantCulture(string expected, double value)
     {
-        Assert.Equal(expected, FormatHelpers.FormatNumberWithOptionalDecimalPlaces(value, CultureInfo.InvariantCulture));
+        Assert.Equal(expected, FormatHelpers.FormatNumberWithOptionalDecimalPlaces(value, CultureInfo.InvariantCulture), StringComparer.Ordinal);
     }
 
     [Theory]
@@ -28,6 +28,6 @@ public class FormatHelpersTests
     [InlineData("1,234568", 1.23456789d)]
     public void FormatNumberWithOptionalDecimalPlaces_FrenchCulture(string expected, double value)
     {
-        Assert.Equal(expected, FormatHelpers.FormatNumberWithOptionalDecimalPlaces(value, CultureInfo.GetCultureInfo("fr-FR")));
+        Assert.Equal(expected, FormatHelpers.FormatNumberWithOptionalDecimalPlaces(value, CultureInfo.GetCultureInfo("fr-FR")), StringComparer.Ordinal);
     }
 }
