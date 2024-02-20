@@ -85,9 +85,9 @@ public static class AzureServiceBusExtensions
                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalId)
                       .WithParameter(AzureBicepResource.KnownParameters.PrincipalType)
                       // TODO: Shouldn't these be lazily evaluated?
-                      .WithParameter("topics", resource.Queues)
-                      // TODO: Create Object from Dictionary { "name": ["subscription1", "subscription2"] }
-                      .WithParameter("queues", new JsonObject(resource.Topics))
+                      .WithParameter("queues", resource.Queues)
+                      // TODO: Shouldn't these be lazily evaluated?
+                      .WithParameter("topics", new JsonArray(resource.Topics.Select(CreateTopicJsonObject).ToArray()))
                       .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 
@@ -116,6 +116,9 @@ public static class AzureServiceBusExtensions
         var resource = new AzureBicepServiceBusQueueResource(name, parent);
 
         parent.Queues.Add(name);
+
+        // TODO: This should not be needed here. It should be lazily evaluated.
+        parent.Parameters["queues"] = parent.Queues;
 
         return builder.AddResource(resource)
                       .WithManifestPublishingCallback(resource.WriteToManifest);
@@ -149,7 +152,17 @@ public static class AzureServiceBusExtensions
 
         parent.Topics.Add(name, subscriptions);
 
+        // TODO: This should not be needed here. It should be lazily evaluated.
+        parent.Parameters["topics"] = new JsonArray(parent.Topics.Select(CreateTopicJsonObject).ToArray());
+
         return builder.AddResource(resource)
                       .WithManifestPublishingCallback(resource.WriteToManifest);
     }
+
+    // Create Object from KV pair { "name": "topic-name", "subscriptions": ["subscription1", "subscription2"] }
+    private static JsonObject CreateTopicJsonObject(KeyValuePair<string, string[]> topic) => new()
+    {
+        ["name"] = topic.Key,
+        ["subscriptions"] = new JsonArray(topic.Value.Select(v => JsonValue.Create(v)).ToArray())
+    };
 }

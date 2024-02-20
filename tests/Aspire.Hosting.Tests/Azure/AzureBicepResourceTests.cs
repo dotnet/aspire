@@ -335,8 +335,10 @@ public class AzureBicepResourceTests
     public void AddBicepServiceBus()
     {
         var builder = DistributedApplication.CreateBuilder();
+        var sb = builder.AddAzureServiceBus("sb");
 
-        var sb = AzureServiceBusExtensions.AddAzureServiceBus(builder, "sb", ["queue1"], ["topic1"]);
+        sb.AddQueue("queue1");
+        sb.AddTopic("topic1", []);
 
         sb.Resource.Outputs["serviceBusEndpoint"] = "mynamespaceEndpoint";
 

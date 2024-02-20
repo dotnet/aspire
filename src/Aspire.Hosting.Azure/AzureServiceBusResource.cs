@@ -13,9 +13,6 @@ public class AzureServiceBusResource(string name) :
     AzureBicepResource(name, templateResouceName: "Aspire.Hosting.Azure.Bicep.servicebus.bicep"),
     IResourceWithConnectionString
 {
-    private readonly List<AzureServiceBusQueueResource> _queues = new();
-    private readonly List<AzureServiceBusTopicResource> _topics = new();
-
     /// <summary>
     /// Gets the "serviceBusEndpoint" output reference from the bicep template for the Azure Service Bus endpoint.
     /// </summary>
