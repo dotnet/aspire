@@ -27,7 +27,7 @@ internal static partial class FormatHelpers
     private static partial Regex MatchSecondsInTimeFormatPattern();
 
     private static readonly string s_longTimePatternWithMilliseconds = GetLongTimePatternWithMilliseconds();
-    private static readonly string s_shortDateLongTimePatternWithMilliseconds = DateTimeFormatInfo.CurrentInfo.ShortDatePattern + " " + GetLongTimePatternWithMilliseconds();
+    private static readonly string s_shortDateLongTimePatternWithMilliseconds = DateTimeFormatInfo.CurrentInfo.ShortDatePattern + " " + s_longTimePatternWithMilliseconds;
 
     public static string FormatTime(DateTime value, bool includeMilliseconds = false)
     {

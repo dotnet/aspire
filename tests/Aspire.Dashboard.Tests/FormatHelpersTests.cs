@@ -24,7 +24,7 @@ public class FormatHelpersTests
     [InlineData("9", 9d)]
     [InlineData("9,9", 9.9d)]
     [InlineData("0,9", 0.9d)]
-    [InlineData("12 345 678,9", 12345678.9d)]
+    [InlineData("12 345 678,9", 12345678.9d)]
     [InlineData("1,234568", 1.23456789d)]
     public void FormatNumberWithOptionalDecimalPlaces_FrenchCulture(string expected, double value)
     {
