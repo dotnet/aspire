@@ -6,8 +6,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.Data.Cosmos;
 using Aspire.Hosting.Publishing;
-using Aspire.Hosting.Utils;
-using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting;
 
@@ -16,69 +14,6 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class AzureResourceExtensions
 {
-    /// <summary>
-    /// Adds an Azure Key Vault resource to the application model.
-    /// </summary>
-    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
-    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureKeyVaultResource> AddAzureKeyVault(this IDistributedApplicationBuilder builder, string name)
-    {
-        var keyVault = new AzureKeyVaultResource(name);
-        return builder.AddResource(keyVault)
-                      .WithManifestPublishingCallback(WriteAzureKeyVaultToManifest);
-    }
-
-    private static void WriteAzureKeyVaultToManifest(ManifestPublishingContext context)
-    {
-        context.Writer.WriteString("type", "azure.keyvault.v0");
-    }
-
-    /// <summary>
-    /// Adds an Azure Service Bus resource to the application model.
-    /// </summary>
-    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
-    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <param name="queueNames">A list of queue names associated with this service bus resource.</param>
-    /// <param name="topicNames">A list of topic names associated with this service bus resource.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureServiceBusResource> AddAzureServiceBus(this IDistributedApplicationBuilder builder, string name, string[]? queueNames = null, string[]? topicNames = null)
-    {
-        var resource = new AzureServiceBusResource(name)
-        {
-            QueueNames = queueNames ?? [],
-            TopicNames = topicNames ?? []
-        };
-
-        return builder.AddResource(resource)
-                      .WithManifestPublishingCallback(context => WriteAzureServiceBusToManifest(resource, context));
-    }
-
-    private static void WriteAzureServiceBusToManifest(AzureServiceBusResource resource, ManifestPublishingContext context)
-    {
-        context.Writer.WriteString("type", "azure.servicebus.v0");
-
-        if (resource.QueueNames.Length > 0)
-        {
-            context.Writer.WriteStartArray("queues");
-            foreach (var queueName in resource.QueueNames)
-            {
-                context.Writer.WriteStringValue(queueName);
-            }
-            context.Writer.WriteEndArray();
-        }
-
-        if (resource.TopicNames.Length > 0)
-        {
-            context.Writer.WriteStartArray("topics");
-            foreach (var topicName in resource.TopicNames)
-            {
-                context.Writer.WriteStringValue(topicName);
-            }
-            context.Writer.WriteEndArray();
-        }
-    }
-
     /// <summary>
     /// Adds an Azure Storage resource to the application model. This resource can be used to create Azure blob, table, and queue resources.
     /// </summary>
@@ -274,24 +209,6 @@ public static class AzureResourceExtensions
     }
 
     /// <summary>
-    /// Adds an Azure App Configuration resource to the application model.
-    /// </summary>
-    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
-    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureAppConfigurationResource> AddAzureAppConfiguration(this IDistributedApplicationBuilder builder, string name)
-    {
-        var resource = new AzureAppConfigurationResource(name);
-        return builder.AddResource(resource)
-            .WithManifestPublishingCallback(WriteAzureAppConfigurationToManifest);
-    }
-
-    private static void WriteAzureAppConfigurationToManifest(ManifestPublishingContext context)
-    {
-        context.Writer.WriteString("type", "azure.appconfiguration.v0");
-    }
-
-    /// <summary>
     /// Adds an Azure SQL Server resource to the application model. This resource can be used to create Azure SQL Database resources.
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
@@ -367,89 +284,6 @@ public static class AzureResourceExtensions
 
         context.Writer.WriteString("type", "azure.openai.deployment.v0");
         context.Writer.WriteString("parent", resource.Parent.Name);
-    }
-
-    /// <summary>
-    /// Adds an Azure Application Insights resource to the application model.
-    /// </summary>
-    /// <param name="serverBuilder">The <see cref="IDistributedApplicationBuilder"/>.</param>
-    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <param name="connectionString">The connection string.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{AzureSqlDatabaseResource}"/>.</returns>
-    public static IResourceBuilder<AzureApplicationInsightsResource> AddApplicationInsights(
-        this IDistributedApplicationBuilder serverBuilder,
-        string name,
-        string? connectionString = null)
-    {
-        var appInsights = new AzureApplicationInsightsResource(name, connectionString);
-        return serverBuilder.AddResource(appInsights)
-                        .WithManifestPublishingCallback(WriteAzureApplicationInsightsDeploymentToManifest);
-    }
-
-    private static void WriteAzureApplicationInsightsDeploymentToManifest(ManifestPublishingContext context)
-    {
-        // Example:
-        // "type": "azure.appinsights.v0",
-
-        context.Writer.WriteString("type", "azure.appinsights.v0");
-    }
-
-    /// <summary>
-    /// Injects a connection string as an environment variable from the source resource into the destination resource.
-    /// The environment variable will be "APPLICATIONINSIGHTS_CONNECTION_STRING={connectionString}."
-    /// <para>
-    /// Each resource defines the format of the connection string value. The
-    /// underlying connection string value can be retrieved using <see cref="IResourceWithConnectionString.GetConnectionString"/>.
-    /// </para>
-    /// <para>
-    /// Connection strings are also resolved by the configuration system (appSettings.json in the AppHost project, or environment variables). If a connection string is not found on the resource, the configuration system will be queried for a connection string
-    /// using the resource's name.
-    /// </para>
-    /// </summary>
-    /// <typeparam name="TDestination">The destination resource.</typeparam>
-    /// <param name="builder">The resource where connection string will be injected.</param>
-    /// <param name="source">The Azure Application Insights resource from which to extract the connection string.</param>
-    /// <param name="optional"><see langword="true"/> to allow a missing connection string; <see langword="false"/> to throw an exception if the connection string is not found.</param>
-    /// <exception cref="DistributedApplicationException">Throws an exception if the connection string resolves to null. It can be null if the resource has no connection string, and if the configuration has no connection string for the source resource.</exception>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder,
-        IResourceBuilder<AzureApplicationInsightsResource> source, bool optional = false)
-        where TDestination : IResourceWithEnvironment
-    {
-        var resource = source.Resource;
-
-        return builder.WithEnvironment(context =>
-        {
-            // UseAzureMonitor is looking for this specific environment variable name.
-            var connectionStringName = "APPLICATIONINSIGHTS_CONNECTION_STRING";
-
-            if (context.ExecutionContext.Operation == DistributedApplicationOperation.Publish)
-            {
-                context.EnvironmentVariables[connectionStringName] = $"{{{resource.Name}.connectionString}}";
-                return;
-            }
-
-            var connectionString = resource.GetConnectionString() ??
-                builder.ApplicationBuilder.Configuration.GetConnectionString(resource.Name);
-
-            if (string.IsNullOrEmpty(connectionString))
-            {
-                if (optional)
-                {
-                    // This is an optional connection string, so we can just return.
-                    return;
-                }
-
-                throw new DistributedApplicationException($"A connection string for '{resource.Name}' could not be retrieved.");
-            }
-
-            if (builder.Resource is ContainerResource)
-            {
-                connectionString = HostNameResolver.ReplaceLocalhostWithContainerHost(connectionString, builder.ApplicationBuilder.Configuration);
-            }
-
-            context.EnvironmentVariables[connectionStringName] = connectionString;
-        });
     }
 
     /// <summary>
