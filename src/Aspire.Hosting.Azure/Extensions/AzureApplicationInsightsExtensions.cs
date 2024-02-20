@@ -17,7 +17,7 @@ public static class AzureApplicationInsightsExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{AzureSqlDatabaseResource}"/>.</returns>
-    public static IResourceBuilder<AzureApplicationInsightsResource> AddApplicationInsights(this IDistributedApplicationBuilder builder, string name)
+    public static IResourceBuilder<AzureApplicationInsightsResource> AddAzureApplicationInsights(this IDistributedApplicationBuilder builder, string name)
     {
         var resource = new AzureApplicationInsightsResource(name);
         return builder.AddResource(resource)

@@ -32,7 +32,7 @@ var cosmosDb = builder.AddBicepCosmosDb("cosmos")
                       // .UseEmulator()
                       .AddDatabase("db3");
 
-var appInsights = builder.AddApplicationInsights("ai");
+var appInsights = builder.AddAzureApplicationInsights("ai");
 
 // Redis takes forever to spin up...
 var redis = builder.AddRedis("redis")

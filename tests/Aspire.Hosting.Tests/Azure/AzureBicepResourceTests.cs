@@ -154,7 +154,7 @@ public class AzureBicepResourceTests
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        var appInsights = builder.AddApplicationInsights("appInsights");
+        var appInsights = builder.AddAzureApplicationInsights("appInsights");
 
         appInsights.Resource.Outputs["appInsightsConnectionString"] = "myinstrumentationkey";
 
@@ -170,7 +170,7 @@ public class AzureBicepResourceTests
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        var appInsights = builder.AddApplicationInsights("ai");
+        var appInsights = builder.AddAzureApplicationInsights("ai");
 
         appInsights.Resource.Outputs["appInsightsConnectionString"] = "myinstrumentationkey";
 
