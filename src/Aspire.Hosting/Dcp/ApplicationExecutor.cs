@@ -72,16 +72,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
     private readonly DistributedApplicationExecutionContext _executionContext = executionContext;
     private readonly List<AppResource> _appResources = [];
 
-    // These environment variables should never be inherited from app host;
-    // they only make sense if they come from a launch profile of a service project.
-    private static readonly string[] s_doNotInheritEnvironmentVars =
-    {
-        "ASPNETCORE_URLS",
-        "DOTNET_LAUNCH_PROFILE",
-        "ASPNETCORE_ENVIRONMENT",
-        "DOTNET_ENVIRONMENT"
-    };
-
     public async Task RunApplicationAsync(CancellationToken cancellationToken = default)
     {
         AspireEventSource.Instance.DcpModelCreationStart();
@@ -568,12 +558,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 }
                 else
                 {
-                    // If there is no launch profile, we want to make sure that certain environment variables are NOT inherited
-                    foreach (var envVar in s_doNotInheritEnvironmentVars)
-                    {
-                        config.Add(envVar, "");
-                    }
-
                     if (er.ServicesProduced.Count > 0)
                     {
                         if (er.ModelResource is ProjectResource)
