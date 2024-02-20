@@ -70,14 +70,9 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
         await _appExecutor.RunApplicationAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task StopAsync(CancellationToken cancellationToken = default)
+    public Task StopAsync(CancellationToken cancellationToken = default)
     {
-        if (!IsSupported)
-        {
-            return;
-        }
-
-        await _appExecutor.StopApplicationAsync(cancellationToken).ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
     public async ValueTask DisposeAsync()
@@ -87,7 +82,6 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
             return;
         }
 
-        await _appExecutor.StopApplicationAsync().ConfigureAwait(false);
         await _dcpRunDisposable.DisposeAsync().ConfigureAwait(false);
         _dcpRunDisposable = null;
     }
