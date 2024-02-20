@@ -11,10 +11,9 @@ namespace Aspire.Hosting.Publishing;
 /// Contextual information used for manifest publishing during this execution of the AppHost.
 /// </summary>
 /// <param name="executionContext">Global contextual information for this invocation of the AppHost.</param>
-/// <param name="appModel">The distributed application model.</param>
 /// <param name="manifestPath">Manifest path passed in for this invocation of the AppHost.</param>
 /// <param name="writer">JSON writer used to writing the manifest.</param>
-public sealed class ManifestPublishingContext(DistributedApplicationExecutionContext executionContext, DistributedApplicationModel appModel, string manifestPath, Utf8JsonWriter writer)
+public sealed class ManifestPublishingContext(DistributedApplicationExecutionContext executionContext, string manifestPath, Utf8JsonWriter writer)
 {
     /// <summary>
     /// Gets execution context for this invocation of the AppHost.
@@ -30,11 +29,6 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     /// Gets JSON writer for writing manifest entries.
     /// </summary>
     public Utf8JsonWriter Writer { get; } = writer;
-
-    /// <summary>
-    /// The distributed application model.
-    /// </summary>
-    public DistributedApplicationModel AppModel { get; } = appModel;
 
     /// <summary>
     /// Generates a relative path based on the location of the manifest path.
