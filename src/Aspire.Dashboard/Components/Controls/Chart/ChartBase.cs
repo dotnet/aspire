@@ -159,7 +159,7 @@ public abstract class ChartBase : ComponentBase
 
     private string FormatTooltip(string name, double yValue, DateTime xValue)
     {
-        return $"<b>{InstrumentViewModel.Instrument?.Name}</b><br />{name}: {FormatHelpers.FormatNumberWithOptionalDecimalPlaces(yValue, CultureInfo.CurrentCulture)}<br />Time: {FormatHelpers.FormatTime(xValue, cultureInfo: CultureInfo.CurrentCulture)}";
+        return $"<b>{InstrumentViewModel.Instrument?.Name}</b><br />{name}: {FormatHelpers.FormatNumberWithOptionalDecimalPlaces(yValue, CultureInfo.CurrentCulture)}<br />Time: {FormatHelpers.FormatTime(xValue)}";
     }
 
     private static HistogramValue GetHistogramValue(MetricValueBase metric)
@@ -386,8 +386,16 @@ public abstract class ChartBase : ComponentBase
 
     private async Task UpdateChart(bool tickUpdate, DateTime inProgressDataTime)
     {
+        // Unit comes from the instrument and they're not localized.
+        // The hardcoded "Count" label isn't localized for consistency.
+        const string CountUnit = "Count";
+
         Debug.Assert(InstrumentViewModel.MatchedDimensions != null);
-        var unit = GetDisplayedUnit(InstrumentViewModel.Instrument, InstrumentViewModel.ShowCount, Loc);
+        Debug.Assert(InstrumentViewModel.Instrument != null);
+
+        var unit = !InstrumentViewModel.ShowCount
+            ? GetDisplayedUnit(InstrumentViewModel.Instrument)
+            : CountUnit;
 
         List<ChartTrace> traces;
         List<DateTime> xValues;
@@ -406,6 +414,30 @@ public abstract class ChartBase : ComponentBase
     private static DateTime GetCurrentDataTime()
     {
         return DateTime.UtcNow.Subtract(TimeSpan.FromSeconds(1)); // Compensate for delay in receiving metrics from sevices.;
+    }
+
+    private string GetDisplayedUnit(OtlpInstrument instrument)
+    {
+        if (!string.IsNullOrEmpty(instrument.Unit))
+        {
+            var unit = OtlpUnits.GetUnit(instrument.Unit.TrimStart('{').TrimEnd('}'));
+            return unit.Pluralize().Titleize();
+        }
+
+        // Hard code for instrument names that don't have units
+        // but have a descriptive name that lets us infer the unit.
+        if (instrument.Name.EndsWith(".count"))
+        {
+            return Loc[nameof(ControlsStrings.PlotlyChartCount)];
+        }
+        else if (instrument.Name.EndsWith(".length"))
+        {
+            return Loc[nameof(ControlsStrings.PlotlyChartLength)];
+        }
+        else
+        {
+            return Loc[nameof(ControlsStrings.PlotlyChartValue)];
+        }
     }
 
     protected abstract Task OnChartUpdated(List<ChartTrace> traces, List<DateTime> xValues, bool tickUpdate, DateTime inProgressDataTime);
