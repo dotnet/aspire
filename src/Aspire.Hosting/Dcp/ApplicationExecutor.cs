@@ -247,23 +247,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
     }
 
-    public async Task StopApplicationAsync(CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            AspireEventSource.Instance.DcpModelCleanupStart();
-            await DeleteResourcesAsync<ExecutableReplicaSet>("project", cancellationToken).ConfigureAwait(false);
-            await DeleteResourcesAsync<Executable>("project", cancellationToken).ConfigureAwait(false);
-            await DeleteResourcesAsync<Container>("container", cancellationToken).ConfigureAwait(false);
-            await DeleteResourcesAsync<Service>("service", cancellationToken).ConfigureAwait(false);
-        }
-        finally
-        {
-            AspireEventSource.Instance.DcpModelCleanupStop();
-            _appResources.Clear();
-        }
-    }
-
     private async Task CreateServicesAsync(CancellationToken cancellationToken = default)
     {
         try
@@ -439,7 +422,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             {
                 exeSpec.ExecutionType = ExecutionType.IDE;
 
-                // ExcludeLaunchProfileAnnotation takes precedence over LaunchProfileAnnotation. 
+                // ExcludeLaunchProfileAnnotation takes precedence over LaunchProfileAnnotation.
                 if (project.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _))
                 {
                     annotationHolder.Annotate(Executable.CSharpDisableLaunchProfileAnnotation, "true");
@@ -882,27 +865,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             // We catch and suppress the OperationCancelledException because the user may CTRL-C
             // during start up of the resources.
             _logger.LogDebug(ex, "Cancellation during creation of resources.");
-        }
-    }
-
-    private async Task DeleteResourcesAsync<RT>(string resourceType, CancellationToken cancellationToken) where RT : CustomResource
-    {
-        var resourcesToDelete = _appResources.Select(r => r.DcpResource).OfType<RT>();
-        if (!resourcesToDelete.Any())
-        {
-            return;
-        }
-
-        foreach (var res in resourcesToDelete)
-        {
-            try
-            {
-                await kubernetesService.DeleteAsync<RT>(res.Metadata.Name, res.Metadata.NamespaceProperty, cancellationToken).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogInformation(ex, "Could not stop {ResourceType} '{ResourceName}'.", resourceType, res.Metadata.Name);
-            }
         }
     }
 
