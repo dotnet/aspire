@@ -117,7 +117,7 @@
       }
     },
     "db2": {
-      "type": "azure.bicep.v0",
+      "type": "value.v0",
       "parent": "postgres2",
       "connectionString": "{postgres2.connectionString};Database=db2;"
     },
