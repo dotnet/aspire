@@ -122,16 +122,6 @@
         <target state="new">Show value</target>
         <note />
       </trans-unit>
-      <trans-unit id="MetricTableCountColumnHeader">
-        <source>Count</source>
-        <target state="new">Count</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="MetricTableEndColumnHeader">
-        <source>End</source>
-        <target state="new">End</target>
-        <note />
-      </trans-unit>
       <trans-unit id="MetricTableNoValuesYet">
         <source>There are no metric values yet.</source>
         <target state="new">There are no metric values yet.</target>
@@ -148,13 +138,8 @@
         <note />
       </trans-unit>
       <trans-unit id="MetricTableStartColumnHeader">
-        <source>Start</source>
-        <target state="new">Start</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="MetricTableValueColumnHeader">
-        <source>Value</source>
-        <target state="new">Value</target>
+        <source>Date</source>
+        <target state="new">Date</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricTableValueDecreased">

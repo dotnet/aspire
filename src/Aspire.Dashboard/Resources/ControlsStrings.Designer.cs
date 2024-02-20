@@ -276,24 +276,6 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Count.
-        /// </summary>
-        public static string MetricTableCountColumnHeader {
-            get {
-                return ResourceManager.GetString("MetricTableCountColumnHeader", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to End.
-        /// </summary>
-        public static string MetricTableEndColumnHeader {
-            get {
-                return ResourceManager.GetString("MetricTableEndColumnHeader", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to There are no metric values yet..
         /// </summary>
         public static string MetricTableNoValuesYet {
@@ -321,20 +303,11 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Start.
+        ///   Looks up a localized string similar to Date.
         /// </summary>
         public static string MetricTableStartColumnHeader {
             get {
                 return ResourceManager.GetString("MetricTableStartColumnHeader", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Value.
-        /// </summary>
-        public static string MetricTableValueColumnHeader {
-            get {
-                return ResourceManager.GetString("MetricTableValueColumnHeader", resourceCulture);
             }
         }
         

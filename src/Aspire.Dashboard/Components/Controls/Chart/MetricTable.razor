@@ -11,22 +11,15 @@
    {
        if (_showCount)
        {
-           <MetricTableGrid TableType="TableType.Count" Instrument="_instrument" Metrics="@_metricsView" AnyDimensionsShown="_anyDimensionsShown" />
+           <MetricTableGrid TableType="TableType.Count" Instrument="_instrument" Metrics="@_metricsView" ValueUnit="@_unitColumnHeader" />
        }
        else
        {
-           <MetricTableGrid TableType="TableType.Histogram" Instrument="_instrument" Metrics="@_metricsView" AnyDimensionsShown="_anyDimensionsShown" />
+           <MetricTableGrid TableType="TableType.Histogram" Instrument="_instrument" Metrics="@_metricsView" ValueUnit="@_unitColumnHeader" />
        }
    }
    else
    {
-       <MetricTableGrid TableType="TableType.Instrument" Instrument="_instrument" Metrics="@_metricsView" AnyDimensionsShown="_anyDimensionsShown" />
+       <MetricTableGrid TableType="TableType.Instrument" Instrument="_instrument" Metrics="@_metricsView" ValueUnit="@_unitColumnHeader" />
    }
 </div>
-
-<FluentStack Orientation="Orientation.Vertical" Style="margin-bottom: 20px;">
-    <FluentSwitch Class="table-switch"
-                  @bind-Value="@_onlyShowValueChanges"
-                  @bind-Value:after="SettingsChangedAsync"
-                  Label="@Loc[nameof(ControlsStrings.MetricTableShowOnlyValueChanges)]"/>
-</FluentStack>

@@ -234,16 +234,7 @@
     <value>(None)</value>
   </data>
   <data name="MetricTableStartColumnHeader" xml:space="preserve">
-    <value>Start</value>
-  </data>
-  <data name="MetricTableEndColumnHeader" xml:space="preserve">
-    <value>End</value>
-  </data>
-  <data name="MetricTableValueColumnHeader" xml:space="preserve">
-    <value>Value</value>
-  </data>
-  <data name="MetricTableCountColumnHeader" xml:space="preserve">
-    <value>Count</value>
+    <value>Date</value>
   </data>
   <data name="MetricTableShowLatestValues" xml:space="preserve">
     <value>Show latest 10 values</value>

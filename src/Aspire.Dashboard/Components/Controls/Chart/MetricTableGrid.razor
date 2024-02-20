@@ -5,57 +5,51 @@
 
 <FluentDataGrid Items="@Metrics" ItemSize="35" Virtualize="true">
     <ChildContent>
-        <TemplateColumn Class="metric-grid-cell" Title="@Loc[nameof(ControlsStrings.MetricTableStartColumnHeader)]" Tooltip="true" TooltipText="@(metric => metric.DimensionName)">
-           @context.Value.Start.ToLocalTime()
+        <TemplateColumn Class="metric-grid-cell" Title="@Loc[nameof(ControlsStrings.MetricTableStartColumnHeader)]">
+           @context.DateTime.ToLocalTime()
         </TemplateColumn>
 
-        <PropertyColumn Property="@(c => c.Value.End.ToLocalTime())" Title="@Loc[nameof(ControlsStrings.MetricTableEndColumnHeader)]"/>
-
-        @if (TableType == MetricTable.TableType.Instrument)
+        @if (TableType == MetricTable.TableType.Histogram)
         {
-            <TemplateColumn Title="@Loc[nameof(ControlsStrings.MetricTableValueColumnHeader)]">
-                @if (context.ValueChange is null)
-                {
-                    @context.Value
-                }
-                else
-                {
-                    <span style="margin-right: 4px;">@context.Value</span>
-                    if (GetIconAndTitleForDirection(context.ValueChange) is var (icon, title))
-                    {
-                        <FluentIcon Style="vertical-align: text-bottom" Value="@icon" Title="@title"/>
-                    }
-                }
-            </TemplateColumn>
-        }
-        else if (TableType == MetricTable.TableType.Histogram)
-        {
-            /*var unit = PlotlyChart.GetDisplayedUnit(Instrument, false, Loc);
             // these colors line up with P50/P90/P99 colors for the plotly graph
             var percentileColumns = new List<(int Percentile, string UnderlineColor)> { (50, "#89B5D3"), (90, "#F9B980"), (99, "#8FC98F") };
             foreach (var (percentile, underlineColor) in percentileColumns)
             {
-                <TemplateColumn Title="@($"P{percentile}")">
+                <TemplateColumn Title="@((Metrics.FirstOrDefault() as MetricTable.HistogramMetricView)?.Percentiles[percentile].Name ?? $"P{percentile}")">
                     @if (context is MetricTable.HistogramMetricView histogramMetric)
                     {
-                        <span style="@($"text-decoration-thickness: 2px; text-decoration-line: underline; text-decoration-color: {underlineColor}; margin-right: 4px;")">@MetricTable.CalculatePercentile(percentile, (HistogramValue)context.Value) @unit</span>
+                        var percentileData = histogramMetric.Percentiles[percentile];
 
-                        if (GetIconAndTitleForDirection(histogramMetric.Percentiles[percentile].Direction) is var (icon, title))
+                        <span style="@($"text-decoration-thickness: 2px; text-decoration-line: underline; text-decoration-color: {underlineColor}; margin-right: 4px;")">
+                            @percentileData.Value
+                        </span>
+
+                        if (GetIconAndTitleForDirection(percentileData.Direction) is var (icon, title))
                         {
                             <FluentIcon Style="vertical-align: text-bottom" Value="@icon" Title="@title"/>
                         }
                     }
                 </TemplateColumn>
-            }*/
+            }
         }
         else
         {
-            <TemplateColumn Title="@Loc[nameof(ControlsStrings.MetricTableCountColumnHeader)]">
-                <span style="margin-right: 2px;">@context.Value.Count</span>
+            <TemplateColumn Title="@ValueUnit">
+                @{
+                    var metricValueView = (MetricTable.MetricValueView)context;
+                }
 
-                @if (GetIconAndTitleForDirection(context.CountChange) is var (icon, title))
+                @if (metricValueView.ValueChange is null)
                 {
-                    <FluentIcon Style="vertical-align: text-bottom" Value="@icon" Title="@title"/>
+                    @metricValueView.Value
+                }
+                else
+                {
+                    <span style="margin-right: 4px;">@metricValueView.Value</span>
+                    if (GetIconAndTitleForDirection(metricValueView.ValueChange) is var (icon, title))
+                    {
+                        <FluentIcon Style="vertical-align: text-bottom" Value="@icon" Title="@title"/>
+                    }
                 }
             </TemplateColumn>
         }
@@ -73,5 +67,8 @@
     public required OtlpInstrument Instrument { get; set; }
 
     [Parameter, EditorRequired]
-    public required IQueryable<MetricTable.MetricView> Metrics { get; set; }
+    public required IQueryable<MetricTable.MetricViewBase> Metrics { get; set; }
+
+    [Parameter, EditorRequired]
+    public required string ValueUnit { get; set; }
 }
