@@ -47,7 +47,10 @@ public static partial class AspireEFPostgreSqlExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        var settings = GetDbContextSettings<TContext>(builder);
+        var settings = builder.GetDbContextSettings<TContext, NpgsqlEntityFrameworkCorePostgreSQLSettings>(
+            DefaultConfigSectionName,
+            (settings, section) => section.Bind(settings)
+        );
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {
@@ -100,7 +103,10 @@ public static partial class AspireEFPostgreSqlExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        var settings = GetDbContextSettings<TContext>(builder);
+        var settings = builder.GetDbContextSettings<TContext, NpgsqlEntityFrameworkCorePostgreSQLSettings>(
+            DefaultConfigSectionName,
+            (settings, section) => section.Bind(settings)
+        );
 
         configureSettings?.Invoke(settings);
 
@@ -159,22 +165,5 @@ public static partial class AspireEFPostgreSqlExtensions
                     NpgsqlCommon.AddNpgsqlMetrics(meterProviderBuilder);
                 });
         }
-    }
-
-    private static NpgsqlEntityFrameworkCorePostgreSQLSettings GetDbContextSettings<TContext>(IHostApplicationBuilder builder)
-    {
-        NpgsqlEntityFrameworkCorePostgreSQLSettings settings = new();
-        var typeSpecificSectionName = $"{DefaultConfigSectionName}:{typeof(TContext).Name}";
-        var typeSpecificConfigurationSection = builder.Configuration.GetSection(typeSpecificSectionName);
-        if (typeSpecificConfigurationSection.Exists()) // https://github.com/dotnet/runtime/issues/91380
-        {
-            typeSpecificConfigurationSection.Bind(settings);
-        }
-        else
-        {
-            builder.Configuration.GetSection(DefaultConfigSectionName).Bind(settings);
-        }
-
-        return settings;
     }
 }

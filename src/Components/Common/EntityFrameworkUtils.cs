@@ -3,6 +3,7 @@
 
 using System.Runtime.CompilerServices;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -10,6 +11,28 @@ namespace Aspire;
 
 internal static class EntityFrameworkUtils
 {
+    /// <summary>
+    /// Binds the DbContext specific configuration section to settings when available.
+    /// </summary>
+    public static TSettings GetDbContextSettings<TContext, TSettings>(this IHostApplicationBuilder builder, string defaultConfigSectionName, Action<TSettings, IConfiguration> bindSettings)
+        where TSettings : new()
+    {
+        TSettings settings = new();
+        var typeSpecificSectionName = $"{defaultConfigSectionName}:{typeof(TContext).Name}";
+        var typeSpecificConfigurationSection = builder.Configuration.GetSection(typeSpecificSectionName);
+        if (typeSpecificConfigurationSection.Exists()) // https://github.com/dotnet/runtime/issues/91380
+        {
+            bindSettings(settings, typeSpecificConfigurationSection);
+        }
+        else
+        {
+            var section = builder.Configuration.GetSection(defaultConfigSectionName);
+            bindSettings(settings, section);
+        }
+
+        return settings;
+    }
+
     /// <summary>
     /// Enriches the DbContext options service descriptor with custom alterations.
     /// </summary>

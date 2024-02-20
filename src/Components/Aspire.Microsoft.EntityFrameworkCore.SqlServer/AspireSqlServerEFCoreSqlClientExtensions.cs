@@ -40,7 +40,10 @@ public static class AspireSqlServerEFCoreSqlClientExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        var settings = GetDbContextSettings<TContext>(builder);
+        var settings = builder.GetDbContextSettings<TContext, MicrosoftEntityFrameworkCoreSqlServerSettings>(
+            DefaultConfigSectionName,
+            (settings, section) => section.Bind(settings)
+        );
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {
@@ -93,7 +96,10 @@ public static class AspireSqlServerEFCoreSqlClientExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        var settings = GetDbContextSettings<TContext>(builder);
+        var settings = builder.GetDbContextSettings<TContext, MicrosoftEntityFrameworkCoreSqlServerSettings>(
+            DefaultConfigSectionName,
+            (settings, section) => section.Bind(settings)
+        );
 
         configureSettings?.Invoke(settings);
 
@@ -144,22 +150,5 @@ public static class AspireSqlServerEFCoreSqlClientExtensions
                 name: typeof(TContext).Name,
                 static hcBuilder => hcBuilder.AddDbContextCheck<TContext>());
         }
-    }
-
-    private static MicrosoftEntityFrameworkCoreSqlServerSettings GetDbContextSettings<TContext>(IHostApplicationBuilder builder)
-    {
-        MicrosoftEntityFrameworkCoreSqlServerSettings settings = new();
-        var typeSpecificSectionName = $"{DefaultConfigSectionName}:{typeof(TContext).Name}";
-        var typeSpecificConfigurationSection = builder.Configuration.GetSection(typeSpecificSectionName);
-        if (typeSpecificConfigurationSection.Exists()) // https://github.com/dotnet/runtime/issues/91380
-        {
-            typeSpecificConfigurationSection.Bind(settings);
-        }
-        else
-        {
-            builder.Configuration.GetSection(DefaultConfigSectionName).Bind(settings);
-        }
-
-        return settings;
     }
 }
