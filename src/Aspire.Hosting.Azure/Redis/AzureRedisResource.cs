@@ -14,6 +14,11 @@ public class AzureRedisResource(RedisResource innerResource) :
     IResourceWithConnectionString
 {
     /// <summary>
+    /// TODO: Doc comments.
+    /// </summary>
+    public RedisResource InnerResource => innerResource;
+
+    /// <summary>
     /// Gets the "connectionString" output reference from the bicep template for the Azure Redis resource.
     /// </summary>
     public BicepSecretOutputReference ConnectionString => new("connectionString", this);

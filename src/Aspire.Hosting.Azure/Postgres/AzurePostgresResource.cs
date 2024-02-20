@@ -1,0 +1,52 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Publishing;
+
+namespace Aspire.Hosting.Azure.Postgres;
+
+/// <summary>
+/// Represents an resource for Azure Postgres Flexible Server.
+/// </summary>
+/// <param name="innerResource">The name of the resource.</param>
+public class AzurePostgresResource(PostgresServerResource innerResource) :
+    AzureBicepResource(innerResource.Name, templateResouceName: "Aspire.Hosting.Azure.Bicep.postgres.bicep"),
+    IResourceWithConnectionString
+{
+    /// <summary>
+    /// TODO: Doc comments.
+    /// </summary>
+    public PostgresServerResource InnerResource => innerResource;
+
+    /// <summary>
+    /// Gets the "connectionString" secret output reference from the bicep template for the Azure Postgres Flexible Server.
+    /// </summary>
+    public BicepSecretOutputReference ConnectionString => new("connectionString", this);
+
+    /// <summary>
+    /// Gets the connection template for the manifest for the Azure Postgres Flexible Server.
+    /// </summary>
+    public string ConnectionStringExpression => ConnectionString.ValueExpression;
+
+    /// <summary>
+    /// Gets the connection string for the Azure Postgres Flexible Server.
+    /// </summary>
+    /// <returns>The connection string.</returns>
+    public string? GetConnectionString() => ConnectionString.Value;
+
+    /// <inheritdoc/>
+    public override string Name => innerResource.Name;
+
+    /// <inheritdoc />
+    public override ResourceMetadataCollection Annotations => innerResource.Annotations;
+
+    /// <inheritdoc />
+    public override void WriteToManifest(ManifestPublishingContext context)
+    {
+        var databaseList = context.AppModel.Resources.OfType<PostgresDatabaseResource>().Where(db => db.Parent == innerResource).Select(db => db.Name).ToList();
+        Parameters.Add("databases", databaseList);
+
+        base.WriteToManifest(context);
+    }
+}

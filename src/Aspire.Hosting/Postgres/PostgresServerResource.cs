@@ -23,6 +23,11 @@ public class PostgresServerResource(string name, string password) : ContainerRes
     /// <returns>A connection string for the PostgreSQL server in the form "Host=host;Port=port;Username=postgres;Password=password".</returns>
     public string? GetConnectionString()
     {
+        if (this.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var connectionStringAnnotation))
+        {
+            return connectionStringAnnotation.Resource.GetConnectionString();
+        }
+
         if (!this.TryGetAllocatedEndPoints(out var allocatedEndpoints))
         {
             throw new DistributedApplicationException("Expected allocated endpoints!");
