@@ -51,54 +51,6 @@ public class AzureBicepResourceTests
         Assert.Equal("https://myendpoint;Key=43", bicepResource.GetSecretOutput("connectionString").Value);
     }
 
-    [Theory]
-    [InlineData(DistributedApplicationOperation.Run, "https://myendpoint;Key=43", "https://myendpoint;Key=43")]
-    [InlineData(DistributedApplicationOperation.Publish, "https://myendpoint;Key=43", "{templ.secretOutputs.connectionString}")]
-    public void GetSecretOutputWithEnvironmentWorks(DistributedApplicationOperation operation, string value, string expectedValue)
-    {
-        var builder = DistributedApplication.CreateBuilder();
-
-        var bicepResource = builder.AddBicepTemplateString("templ", "content");
-
-        bicepResource.Resource.SecretOutputs["connectionString"] = value;
-
-        var secretOutput = bicepResource.GetSecretOutput("connectionString");
-
-        var c = builder.AddContainer("app", "fake")
-            .WithEnvironment("E", secretOutput);
-
-        Assert.True(c.Resource.TryGetAnnotationsOfType<EnvironmentCallbackAnnotation>(out var annotations));
-        var annotation = Assert.Single(annotations);
-        var env = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext(new DistributedApplicationExecutionContext(operation), env);
-        annotation.Callback(context);
-        Assert.Equal(expectedValue, env["E"]);
-    }
-
-    [Theory]
-    [InlineData(DistributedApplicationOperation.Run, "https://myendpoint", "https://myendpoint")]
-    [InlineData(DistributedApplicationOperation.Publish, "https://myendpoint", "{templ.outputs.value}")]
-    public void GetOutputWithEnvironmentWorks(DistributedApplicationOperation operation, string value, string expectedValue)
-    {
-        var builder = DistributedApplication.CreateBuilder();
-
-        var bicepResource = builder.AddBicepTemplateString("templ", "content");
-
-        bicepResource.Resource.Outputs["value"] = value;
-
-        var output = bicepResource.GetOutput("value");
-
-        var c = builder.AddContainer("app", "fake")
-            .WithEnvironment("E", output);
-
-        Assert.True(c.Resource.TryGetAnnotationsOfType<EnvironmentCallbackAnnotation>(out var annotations));
-        var annotation = Assert.Single(annotations);
-        var env = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext(new DistributedApplicationExecutionContext(operation), env);
-        annotation.Callback(context);
-        Assert.Equal(expectedValue, env["E"]);
-    }
-
     [Fact]
     public void GetOutputValueThrowsIfNoOutput()
     {
@@ -188,7 +140,7 @@ public class AzureBicepResourceTests
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        var appConfig = builder.AddBicepAppConfiguration("appConfig");
+        var appConfig = builder.AddAzureAppConfiguration("appConfig");
 
         appConfig.Resource.Outputs["appConfigEndpoint"] = "https://myendpoint";
 
@@ -197,6 +149,50 @@ public class AzureBicepResourceTests
         Assert.Equal("appconfig", appConfig.Resource.Parameters["configName"]);
         Assert.Equal("https://myendpoint", appConfig.Resource.GetConnectionString());
         Assert.Equal("{appConfig.outputs.appConfigEndpoint}", appConfig.Resource.ConnectionStringExpression);
+    }
+
+    [Fact]
+    public void AddApplicationInsights()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var appInsights = builder.AddAzureApplicationInsights("appInsights");
+
+        appInsights.Resource.Outputs["appInsightsConnectionString"] = "myinstrumentationkey";
+
+        Assert.Equal("Aspire.Hosting.Azure.Bicep.appinsights.bicep", appInsights.Resource.TemplateResourceName);
+        Assert.Equal("appInsights", appInsights.Resource.Name);
+        Assert.Equal("appinsights", appInsights.Resource.Parameters["appInsightsName"]);
+        Assert.Equal("myinstrumentationkey", appInsights.Resource.GetConnectionString());
+        Assert.Equal("{appInsights.outputs.appInsightsConnectionString}", appInsights.Resource.ConnectionStringExpression);
+    }
+
+    [Fact]
+    public void WithReferenceAppInsightsSetsEnvironmentVariable()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var appInsights = builder.AddAzureApplicationInsights("ai");
+
+        appInsights.Resource.Outputs["appInsightsConnectionString"] = "myinstrumentationkey";
+
+        var serviceA = builder.AddProject<Projects.ServiceA>("serviceA")
+            .WithReference(appInsights);
+
+        // Call environment variable callbacks.
+        var annotations = serviceA.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
+
+        var config = new Dictionary<string, string>();
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
+        var context = new EnvironmentCallbackContext(executionContext, config);
+
+        foreach (var annotation in annotations)
+        {
+            annotation.Callback(context);
+        }
+
+        Assert.True(config.ContainsKey("APPLICATIONINSIGHTS_CONNECTION_STRING"));
+        Assert.Equal("myinstrumentationkey", config["APPLICATIONINSIGHTS_CONNECTION_STRING"]);
     }
 
     [Fact]
@@ -223,7 +219,7 @@ public class AzureBicepResourceTests
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        var keyVault = builder.AddBicepKeyVault("keyVault");
+        var keyVault = builder.AddAzureKeyVault("keyVault");
 
         keyVault.Resource.Outputs["vaultUri"] = "https://myvault";
 
@@ -344,7 +340,7 @@ public class AzureBicepResourceTests
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        var sb = builder.AddBicepAzureServiceBus("sb", ["queue1"], ["topic1"]);
+        var sb = AzureServiceBusExtensions.AddAzureServiceBus(builder, "sb", ["queue1"], ["topic1"]);
 
         sb.Resource.Outputs["serviceBusEndpoint"] = "mynamespaceEndpoint";
 
