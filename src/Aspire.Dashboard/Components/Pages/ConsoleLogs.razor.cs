@@ -274,7 +274,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
         {
             await LoadLogsAsync();
         }
-        else if (!string.Equals(PageViewModel.SelectedResource.State, ResourceStates.RunningState, StringComparison.Ordinal))
+        else if (PageViewModel.SelectedResource.State != ResourceStates.RunningState)
         {
             PageViewModel.Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsFinishedWatchingLogs)];
         }
