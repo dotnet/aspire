@@ -483,6 +483,68 @@ public class DistributedApplicationTests
         }
     }
 
+    [LocalOnlyFact("docker")]
+    public async Task ReplicasAndProxylessEndpointThrows()
+    {
+        var testProgram = CreateTestProgram();
+        testProgram.ServiceABuilder.WithReplicas(2).WithEndpoint("http", endpoint =>
+        {
+            endpoint.IsProxied = false;
+        });
+        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+
+        await using var app = testProgram.Build();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => app.StartAsync());
+        Assert.Equal("'servicea' specifies multiple replicas and at least one proxyless endpoint. These features do not work together.", ex.Message);
+    }
+
+    [LocalOnlyFact("docker")]
+    public async Task ProxylessEndpointWithoutPortThrows()
+    {
+        var testProgram = CreateTestProgram();
+        testProgram.ServiceABuilder.WithEndpoint("http", endpoint =>
+        {
+            endpoint.IsProxied = false;
+        });
+        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+
+        await using var app = testProgram.Build();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => app.StartAsync());
+        Assert.Equal("Service 'servicea' needs to specify a port for endpoint 'http' since it isn't using a proxy.", ex.Message);
+    }
+
+    [LocalOnlyFact("docker")]
+    public async Task ProxylessEndpoint()
+    {
+        var testProgram = CreateTestProgram();
+
+        testProgram.AppBuilder.Services
+            .AddHttpClient()
+            .ConfigureHttpClientDefaults(b =>
+            {
+                b.UseSocketsHttpHandler((handler, sp) => handler.PooledConnectionLifetime = TimeSpan.FromSeconds(5));
+            });
+
+        testProgram.ServiceABuilder.WithEndpoint("http", endpoint =>
+        {
+            endpoint.UriScheme = "http";
+            endpoint.Port = 1234;
+            endpoint.IsProxied = false;
+        });
+        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+
+        await using var app = testProgram.Build();
+
+        await app.StartAsync();
+
+        var client = app.Services.GetRequiredService<IHttpClientFactory>().CreateClient();
+
+        await Task.Delay(1000);
+        await client.GetStringAsync("http://localhost:5156/pid");
+    }
+
     private static TestProgram CreateTestProgram(string[]? args = null, bool includeIntegrationServices = false, bool includeNodeApp = false) =>
         TestProgram.Create<DistributedApplicationTests>(args, includeIntegrationServices: includeIntegrationServices, includeNodeApp: includeNodeApp);
 }

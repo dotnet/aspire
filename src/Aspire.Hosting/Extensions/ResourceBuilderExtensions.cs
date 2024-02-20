@@ -283,7 +283,7 @@ public static class ResourceBuilderExtensions
     private static void ApplyEndpoints<T>(this IResourceBuilder<T> builder, IResourceWithEndpoints resourceWithEndpoints, string? endpointName = null)
         where T : IResourceWithEnvironment
     {
-        // When adding a endpoint we get to see whether there is a EndpointReferenceAnnotation
+        // When adding an endpoint we get to see whether there is an EndpointReferenceAnnotation
         // on the resource, if there is then it means we have already been here before and we can just
         // skip this and note the endpoint that we want to apply to the environment in the future
         // in a single pass. There is one EndpointReferenceAnnotation per endpoint source.
@@ -375,6 +375,7 @@ public static class ResourceBuilderExtensions
         {
             endpoint = new EndpointAnnotation(ProtocolType.Tcp, name: endpointName);
             callback(endpoint);
+            builder.Resource.Annotations.Add(endpoint);
         }
         else if (endpoint == null && !createIfNotExists)
         {

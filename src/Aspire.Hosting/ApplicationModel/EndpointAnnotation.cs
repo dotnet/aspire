@@ -90,4 +90,11 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     /// The name of the environment variable that will be set to the port number of this endpoint.
     /// </summary>
     public string? EnvironmentVariable { get; set; }
+
+    /// <summary>
+    /// Indicates that this endpoint should be managed by DCP. This means it can be replicated and use a different port internally than the one publicly exposed.
+    /// Setting to false means the endpoint will be handled and exposed by the resource.
+    /// </summary>
+    /// <remarks>Defaults to <c>true</c>.</remarks>
+    public bool IsProxied { get; set; } = true;
 }
