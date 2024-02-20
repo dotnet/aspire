@@ -44,9 +44,6 @@ public class AzurePostgresResource(PostgresServerResource innerResource) :
     /// <inheritdoc />
     public override void WriteToManifest(ManifestPublishingContext context)
     {
-        var databaseList = context.AppModel.Resources.OfType<PostgresDatabaseResource>().Where(db => db.Parent == innerResource).Select(db => db.Name).ToList();
-        Parameters.Add("databases", databaseList);
-
         base.WriteToManifest(context);
     }
 }

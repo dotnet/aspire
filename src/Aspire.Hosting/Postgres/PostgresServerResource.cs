@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Immutable;
 using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.ApplicationModel;
@@ -35,7 +36,24 @@ public class PostgresServerResource(string name, string password) : ContainerRes
 
         var allocatedEndpoint = allocatedEndpoints.Single(); // We should only have one endpoint for Postgres.
 
-        var connectionString = $"Host={allocatedEndpoint.Address};Port={allocatedEndpoint.Port};Username=postgres;Password={PasswordUtil.EscapePassword(Password)};";
+        var connectionString = $"Host={allocatedEndpoint.Address};Port={allocatedEndpoint.Port};Username=postgres;Password={PasswordUtil.EscapePassword(Password)}";
         return connectionString;
+    }
+
+    private readonly List<string> _databases = new List<string>();
+
+    /// <summary>
+    /// TODO
+    /// </summary>
+    public IEnumerable<string> Databases => _databases.ToImmutableArray();
+
+    internal void AddDatabase(string databaseName)
+    {
+        if (_databases.Contains(databaseName, StringComparers.ResourceName))
+        {
+            return;
+        }
+
+        _databases.Add(databaseName);
     }
 }

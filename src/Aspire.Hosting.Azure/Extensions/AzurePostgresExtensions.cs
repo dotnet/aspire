@@ -50,7 +50,8 @@ public static class AzurePostgresExtensions
         var resource = new AzurePostgresResource(builder.Resource);
         var azurePostgres = builder.ApplicationBuilder.CreateResourceBuilder(resource).ConfigureDefaults();
         azurePostgres.WithParameter("administratorLogin", administratorLogin)
-                     .WithParameter("administratorLoginPassword", administratorLoginPassword);
+                     .WithParameter("administratorLoginPassword", administratorLoginPassword)
+                     .WithParameter("databases", () => builder.Resource.Databases);
 
         if (callback != null)
         {
@@ -73,7 +74,8 @@ public static class AzurePostgresExtensions
         var resource = new AzurePostgresResource(builder.Resource);
         var azurePostgres = builder.ApplicationBuilder.CreateResourceBuilder(resource).ConfigureDefaults();
         azurePostgres.WithParameter("administratorLogin", administratorLogin)
-                     .WithParameter("administratorLoginPassword", administratorLoginPassword);
+                     .WithParameter("administratorLoginPassword", administratorLoginPassword)
+                     .WithParameter("databases", () => builder.Resource.Databases);
 
         // Used to hold a reference to the azure surrogate for use with the provisioner.
         builder.WithAnnotation(new AzureBicepResourceAnnotation(resource));
@@ -98,12 +100,6 @@ public static class AzurePostgresExtensions
         var resource = builder.Resource;
         return builder.WithManifestPublishingCallback(resource.WriteToManifest)
                       .WithParameter("serverName", resource.CreateBicepResourceName())
-                      .WithParameter(AzureBicepResource.KnownParameters.KeyVaultName)
-                      .WithParameter("databases", () =>
-                      {
-                          // Evaluation of databases to bind to parameters is deferred until
-                          // the parameter is requested.
-                          return builder.ApplicationBuilder.Resources.OfType<PostgresDatabaseResource>().Where(db => db.Parent == builder.Resource.InnerResource).Select(db => db.Name);
-                      });
+                      .WithParameter(AzureBicepResource.KnownParameters.KeyVaultName);
     }
 }

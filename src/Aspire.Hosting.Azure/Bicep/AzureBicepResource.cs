@@ -182,7 +182,7 @@ public class AzureBicepResource(string name, string? templateFile = null, string
                 {
                     context.Writer.WritePropertyName(input.Key);
                     // Write JSON objects to the manifest for JSON node parameters
-                    JsonSerializer.Serialize(context.Writer, input.Value);
+                    JsonSerializer.Serialize(context.Writer, inputValue);
                     continue;
                 }
 
