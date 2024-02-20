@@ -3,6 +3,7 @@
 @using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Utils
+@using System.Globalization
 @inject IStringLocalizer<Dashboard.Resources.Resources> Loc
 @inject IStringLocalizer<ControlsStrings> ControlsStringsLoc
 
@@ -58,7 +59,7 @@
                     <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesStateColumnHeader)]" Sortable="true" SortBy="@_stateSort">
                         <StateColumnDisplay Resource="@context" UnviewedErrorCounts ="@_applicationUnviewedErrorCounts" />
                     </TemplateColumn>
-                    <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesStartTimeColumnHeader)]" Sortable="true" SortBy="@_startTimeSort" TooltipText="@(context => context.CreationTimeStamp != null ? FormatHelpers.FormatDateTime(context.CreationTimeStamp.Value, false) : null)" Tooltip="true">
+                    <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesStartTimeColumnHeader)]" Sortable="true" SortBy="@_startTimeSort" TooltipText="@(context => context.CreationTimeStamp != null ? FormatHelpers.FormatDateTime(context.CreationTimeStamp.Value, false, CultureInfo.CurrentCulture) : null)" Tooltip="true">
                         <StartTimeColumnDisplay Resource="@context" />
                     </TemplateColumn>
                     <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Resources.ResourcesSourceColumnHeader)]">
