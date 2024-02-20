@@ -26,7 +26,7 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     /// <param name="containerPort">If the endpoint is used for the container, this is the port the container process is listening on.</param>
     /// <param name="isExternal">Indicates that this endpoint should be exposed externally at publish time.</param>
     /// <param name="env">The name of the environment variable that will be set to the port number of this endpoint.</param>
-    public EndpointAnnotation(ProtocolType protocol, string? uriScheme = null, string? transport = null, string? name = null, int? port = null, int? containerPort = null, bool? isExternal = null, string? env = null)
+    public EndpointAnnotation(ProtocolType protocol, string? uriScheme = null, string? transport = null, string? name = null, int? port = null, int? containerPort = null, bool? isExternal = null, string? env = null, bool isProxied = true)
     {
         // If the URI scheme is null, we'll adopt either udp:// or tcp:// based on the
         // protocol. If the name is null, we'll use the URI scheme as the default. This
@@ -46,6 +46,7 @@ public sealed class EndpointAnnotation : IResourceAnnotation
         ContainerPort = containerPort ?? port;
         IsExternal = isExternal ?? false;
         EnvironmentVariable = env;
+        IsProxied = isProxied;
     }
 
     /// <summary>

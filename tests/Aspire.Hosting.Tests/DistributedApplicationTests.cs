@@ -529,12 +529,7 @@ public class DistributedApplicationTests
                 b.UseSocketsHttpHandler((handler, sp) => handler.PooledConnectionLifetime = TimeSpan.FromSeconds(5));
             });
 
-        testProgram.ServiceABuilder.WithEndpoint("http", endpoint =>
-        {
-            endpoint.UriScheme = "http";
-            endpoint.Port = 1234;
-            endpoint.IsProxied = false;
-        });
+        testProgram.ServiceABuilder.WithEndpoint(1234, "http", isProxied: false);
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
         await using var app = testProgram.Build();
@@ -576,12 +571,7 @@ public class DistributedApplicationTests
 
         testProgram.ServiceABuilder
             .ExcludeLaunchProfile()
-            .WithEndpoint("http", endpoint =>
-            {
-                endpoint.UriScheme = "http";
-                endpoint.Port = 1234;
-                endpoint.IsProxied = false;
-            })
+            .WithEndpoint(1234, "http", isProxied: false)
             .WithEndpoint(1543, "https");
 
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
@@ -625,6 +615,53 @@ public class DistributedApplicationTests
                 await Task.Delay(100, token);
             }
         }
+    }
+
+    [LocalOnlyFact("docker")]
+    public async Task ProxylessContainerCanBeReferenced()
+    {
+        var builder = DistributedApplication.CreateBuilder(
+            new DistributedApplicationOptions { DisableDashboard = true, AssemblyName = typeof(DistributedApplicationTests).Assembly.FullName });
+
+        var redis = builder.AddRedis("redis", 1234).WithEndpoint("tcp", endpoint =>
+        {
+            endpoint.IsProxied = false;
+        });
+        var servicea = builder.AddProject<Projects.ServiceA>("servicea")
+            .WithReference(redis);
+
+        var app = builder.Build();
+        await app.StartAsync();
+
+        var s = app.Services.GetRequiredService<IKubernetesService>();
+        var exeList = await s.ListAsync<Executable>();
+
+        var service = Assert.Single(exeList);
+        var env = Assert.Single(service.Spec.Env!.Where(e => e.Name == "ConnectionStrings__redis"));
+        Assert.Equal("localhost:1234", env.Value);
+
+        var list = await s.ListAsync<Container>();
+        var redisContainer = Assert.Single(list);
+        Assert.Equal(1234, Assert.Single(redisContainer.Spec.Ports!).HostPort);
+
+        await app.StopAsync();
+    }
+
+    [Fact]
+    public async Task ProxylessContainerWithoutPortThrows()
+    {
+        var builder = DistributedApplication.CreateBuilder(
+            new DistributedApplicationOptions { DisableDashboard = true, AssemblyName = typeof(DistributedApplicationTests).Assembly.FullName });
+
+        var redis = builder.AddRedis("redis").WithEndpoint("tcp", endpoint =>
+        {
+            endpoint.IsProxied = false;
+        });
+
+        var app = builder.Build();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => app.StartAsync());
+        Assert.Equal("Service 'redis' needs to specify a port for endpoint 'tcp' since it isn't using a proxy.", ex.Message);
     }
 
     private static TestProgram CreateTestProgram(string[]? args = null, bool includeIntegrationServices = false, bool includeNodeApp = false) =>
