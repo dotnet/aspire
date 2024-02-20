@@ -30,4 +30,45 @@ public class FormatHelpersTests
     {
         Assert.Equal(expected, FormatHelpers.FormatNumberWithOptionalDecimalPlaces(value, CultureInfo.GetCultureInfo("de-DE")));
     }
+
+    [Theory]
+    [InlineData("06/15/2009 13:45:30.000", true, "2009-06-15T13:45:30.0000000Z")]
+    [InlineData("06/15/2009 13:45:30.123", true, "2009-06-15T13:45:30.1234567Z")]
+    [InlineData("06/15/2009 13:45:30", false, "2009-06-15T13:45:30.0000000Z")]
+    [InlineData("06/15/2009 13:45:30", false, "2009-06-15T13:45:30.1234567Z")]
+    public void FormatDateTime_WithMilliseconds_InvariantCulture(string expected, bool includeMilliseconds, string value)
+    {
+        var date = GetLocalDateTime(value);
+        Assert.Equal(expected, FormatHelpers.FormatDateTime(date, includeMilliseconds, provider: CultureInfo.InvariantCulture));
+    }
+
+    [Theory]
+    [InlineData("15.06.2009 13:45:30,000", true, "2009-06-15T13:45:30.0000000Z")]
+    [InlineData("15.06.2009 13:45:30,123", true, "2009-06-15T13:45:30.1234567Z")]
+    [InlineData("15.06.2009 13:45:30", false, "2009-06-15T13:45:30.0000000Z")]
+    [InlineData("15.06.2009 13:45:30", false, "2009-06-15T13:45:30.1234567Z")]
+    public void FormatDateTime_WithMilliseconds_GermanCulture(string expected, bool includeMilliseconds, string value)
+    {
+        var date = GetLocalDateTime(value);
+        Assert.Equal(expected, FormatHelpers.FormatDateTime(date, includeMilliseconds, provider: CultureInfo.GetCultureInfo("de-DE")));
+    }
+
+    [Theory]
+    [InlineData("15/06/2009 1:45:30.000 pm", true, "2009-06-15T13:45:30.0000000Z")]
+    [InlineData("15/06/2009 1:45:30.123 pm", true, "2009-06-15T13:45:30.1234567Z")]
+    [InlineData("15/06/2009 1:45:30 pm", false, "2009-06-15T13:45:30.0000000Z")]
+    [InlineData("15/06/2009 1:45:30 pm", false, "2009-06-15T13:45:30.1234567Z")]
+    public void FormatDateTime_WithMilliseconds_NewZealandCulture(string expected, bool includeMilliseconds, string value)
+    {
+        var date = GetLocalDateTime(value);
+        Assert.Equal(expected, FormatHelpers.FormatDateTime(date, includeMilliseconds, provider: CultureInfo.GetCultureInfo("en-NZ")));
+    }
+
+    private static DateTime GetLocalDateTime(string value)
+    {
+        Assert.True(DateTime.TryParseExact(value, "o", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var date));
+        Assert.Equal(DateTimeKind.Utc, date.Kind);
+        date = DateTime.SpecifyKind(date, DateTimeKind.Local);
+        return date;
+    }
 }
