@@ -43,7 +43,7 @@ public class PostgresServerResource(string name, string password) : ContainerRes
     private readonly List<string> _databases = new List<string>();
 
     /// <summary>
-    /// TODO
+    /// List of databases hosted on this server resource.
     /// </summary>
     public IEnumerable<string> Databases => _databases.ToImmutableArray();
 

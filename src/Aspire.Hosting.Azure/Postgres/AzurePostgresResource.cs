@@ -15,11 +15,6 @@ public class AzurePostgresResource(PostgresServerResource innerResource) :
     IResourceWithConnectionString
 {
     /// <summary>
-    /// TODO: Doc comments.
-    /// </summary>
-    public PostgresServerResource InnerResource => innerResource;
-
-    /// <summary>
     /// Gets the "connectionString" secret output reference from the bicep template for the Azure Postgres Flexible Server.
     /// </summary>
     public BicepSecretOutputReference ConnectionString => new("connectionString", this);
@@ -40,10 +35,4 @@ public class AzurePostgresResource(PostgresServerResource innerResource) :
 
     /// <inheritdoc />
     public override ResourceMetadataCollection Annotations => innerResource.Annotations;
-
-    /// <inheritdoc />
-    public override void WriteToManifest(ManifestPublishingContext context)
-    {
-        base.WriteToManifest(context);
-    }
 }
