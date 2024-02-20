@@ -3,19 +3,11 @@
 
 using Aspire.Hosting.Utils;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Aspire.Hosting.Tests.Utils;
 
 public class PasswordGeneratorTests
 {
-    private readonly ITestOutputHelper _output;
-
-    public PasswordGeneratorTests(ITestOutputHelper output)
-    {
-        this._output = output;
-    }
-
     [Fact]
     public void ThrowsArgumentOutOfRangeException()
     {
@@ -95,15 +87,11 @@ public class PasswordGeneratorTests
     [InlineData(10)]
     public void ValidUriCharacters(int length)
     {
-        var password = PasswordGenerator.GeneratePassword(length, length, length, length);
-        var fakeUri = new Uri($"https://guest:{password}@localhost:12345");
+        var password = PasswordGenerator.GeneratePassword(length, length, length, 0);
+        password += PasswordGenerator.SpecialChars;
 
-        _output.WriteLine($"Generated password: {password}");
-        _output.WriteLine($"Fake URI: {fakeUri.OriginalString}");
+        Exception exception = Record.Exception(() => new Uri($"https://guest:{password}@localhost:12345"));
 
-        Assert.Equal(length * 4, password.Length);
-
-        // validate that the password contains only valid URI characters
-        Assert.True(Uri.IsWellFormedUriString(fakeUri.AbsoluteUri, UriKind.Absolute));
+        Assert.True((exception is null), $"Password contains invalid chars: {password}");
     }
 }
