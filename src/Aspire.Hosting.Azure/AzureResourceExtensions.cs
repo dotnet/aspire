@@ -55,43 +55,6 @@ public static class AzureResourceExtensions
     }
 
     /// <summary>
-    /// Adds an Azure SQL Server resource to the application model. This resource can be used to create Azure SQL Database resources.
-    /// </summary>
-    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
-    /// <param name="name">The name of the resource.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureSqlServerResource> AddAzureSqlServer(this IDistributedApplicationBuilder builder, string name)
-    {
-        var resource = new AzureSqlServerResource(name);
-        return builder.AddResource(resource)
-                      .WithManifestPublishingCallback(WriteSqlServerToManifest);
-    }
-
-    private static void WriteSqlServerToManifest(ManifestPublishingContext context)
-    {
-        context.Writer.WriteString("type", "azure.sql.v0");
-    }
-
-    /// <summary>
-    /// Adds an Azure SQL Database resource to the application model. This resource requires an <see cref="AzureSqlServerResource"/> to be added to the application model.
-    /// </summary>
-    /// <param name="serverBuilder">The Azure SQL Server resource builder.</param>
-    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureSqlDatabaseResource> AddDatabase(this IResourceBuilder<AzureSqlServerResource> serverBuilder, string name)
-    {
-        var resource = new AzureSqlDatabaseResource(name, serverBuilder.Resource);
-        return serverBuilder.ApplicationBuilder.AddResource(resource)
-                            .WithManifestPublishingCallback(context => WriteSqlDatabaseToManifest(context, resource));
-    }
-
-    private static void WriteSqlDatabaseToManifest(ManifestPublishingContext context, AzureSqlDatabaseResource resource)
-    {
-        context.Writer.WriteString("type", "azure.sql.database.v0");
-        context.Writer.WriteString("parent", resource.Parent.Name);
-    }
-
-    /// <summary>
     /// Adds an Azure OpenAI resource to the application model.
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
