@@ -79,22 +79,48 @@ public class DnsSrvServiceEndPointResolverTests
         {
             QueryAsyncFunc = (query, queryType, queryClass, cancellationToken) =>
             {
-                var response = new FakeDnsQueryResponse
+                IDnsQueryResponse response;
+                if (queryType == QueryType.SRV)
                 {
-                    Answers = new List<DnsResourceRecord>
+                    response = new FakeDnsQueryResponse
                     {
-                        new SrvRecord(new ResourceRecordInfo(query, ResourceRecordType.SRV, queryClass, 123, 0), 99, 66, 8888, DnsString.Parse("srv-a")),
-                        new SrvRecord(new ResourceRecordInfo(query, ResourceRecordType.SRV, queryClass, 123, 0), 99, 62, 9999, DnsString.Parse("srv-b")),
-                        new SrvRecord(new ResourceRecordInfo(query, ResourceRecordType.SRV, queryClass, 123, 0), 99, 62, 7777, DnsString.Parse("srv-c"))
-                    },
-                    Additionals = new List<DnsResourceRecord>
+                        Answers =
+                        [
+                            new SrvRecord(new ResourceRecordInfo(query, ResourceRecordType.SRV, queryClass, 123, 0), 99, 66, 8888, DnsString.Parse("srv-a")),
+                            new SrvRecord(new ResourceRecordInfo(query, ResourceRecordType.SRV, queryClass, 123, 0), 99, 62, 9999, DnsString.Parse("srv-b")),
+                            new SrvRecord(new ResourceRecordInfo(query, ResourceRecordType.SRV, queryClass, 123, 0), 99, 62, 7777, DnsString.Parse("srv-c"))
+                        ],
+                        Additionals =
+                        [
+                            new ARecord(new ResourceRecordInfo("srv-a", ResourceRecordType.A, queryClass, 64, 0), IPAddress.Parse("10.10.10.10")),
+                            new AaaaRecord(new ResourceRecordInfo("srv-b", ResourceRecordType.AAAA, queryClass, 64, 0), IPAddress.IPv6Loopback),
+                        ]
+                    };
+                }
+                else if (queryType == QueryType.A)
+                {
+                    Assert.Equal(QueryType.A, queryType);
+                    response = new FakeDnsQueryResponse
                     {
-                        new ARecord(new ResourceRecordInfo("srv-a", ResourceRecordType.A, queryClass, 64, 0), IPAddress.Parse("10.10.10.10")),
-                        new ARecord(new ResourceRecordInfo("srv-b", ResourceRecordType.AAAA, queryClass, 64, 0), IPAddress.IPv6Loopback),
-                    }
-                };
+                        Answers =
+                        [
+                            new ARecord(new ResourceRecordInfo("srv-c", ResourceRecordType.A, queryClass, 64, 0), IPAddress.Parse("10.10.10.10")),
+                        ]
+                    };
+                }
+                else
+                {
+                    Assert.Equal(QueryType.AAAA, queryType);
+                    response = new FakeDnsQueryResponse
+                    {
+                        Answers =
+                        [
+                            new AaaaRecord(new ResourceRecordInfo("srv-c", ResourceRecordType.AAAA, queryClass, 64, 0), IPAddress.IPv6Loopback),
+                        ]
+                    };
+                }
 
-                return Task.FromResult<IDnsQueryResponse>(response);
+                return Task.FromResult(response);
             }
         };
         var services = new ServiceCollection()
@@ -114,10 +140,12 @@ public class DnsSrvServiceEndPointResolverTests
             Assert.NotNull(initialResult);
             Assert.True(initialResult.ResolvedSuccessfully);
             Assert.Equal(ResolutionStatus.Success, initialResult.Status);
-            Assert.Equal(2, initialResult.EndPoints.Count);
+            Assert.Equal(4, initialResult.EndPoints.Count);
             var eps = initialResult.EndPoints;
             Assert.Equal(new IPEndPoint(IPAddress.Parse("10.10.10.10"), 8888), eps[0].EndPoint);
             Assert.Equal(new IPEndPoint(IPAddress.IPv6Loopback, 9999), eps[1].EndPoint);
+            Assert.Equal(new IPEndPoint(IPAddress.IPv6Loopback, 7777), eps[2].EndPoint);
+            Assert.Equal(new IPEndPoint(IPAddress.Parse("10.10.10.10"), 7777), eps[3].EndPoint);
 
             Assert.All(initialResult.EndPoints, ep =>
             {

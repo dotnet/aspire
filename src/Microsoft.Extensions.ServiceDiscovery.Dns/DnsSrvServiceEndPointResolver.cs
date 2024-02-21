@@ -53,19 +53,29 @@ internal sealed partial class DnsSrvServiceEndPointResolver(
         var srvRecords = result.Answers.OfType<SrvRecord>();
         foreach (var record in srvRecords)
         {
-            if (!lookupMapping.TryGetValue(record.Target, out var targetRecord))
+            if (lookupMapping.TryGetValue(record.Target, out var targetRecord))
             {
-                continue;
-            }
+                ttl = MinTtl(record, ttl);
+                if (targetRecord is AddressRecord addressRecord)
+                {
+                    AddEndpoint(endPoints, record, addressRecord);
+                    continue;
+                }
 
-            ttl = MinTtl(record, ttl);
-            if (targetRecord is not AddressRecord addressRecord)
-            {
+                // Log that the record is unsupported and proceed to query the record as if it were not present.
                 Log.UnsupportedDnsSrvRecord(Logger, record.RecordType.ToString(), ServiceName);
-                continue;
             }
 
-            endPoints.Add(CreateEndPoint(new IPEndPoint(addressRecord.Address, record.Port)));
+            // RFC 2782: "Implementors are urged, but not required, to return the address record(s) in the Additional Data section."
+            // Query the A and AAAA records for the target
+            var v6RecordsTask = dnsClient.QueryAsync(record.Target, QueryType.AAAA, cancellationToken: ShutdownToken);
+            var v4RecordsTask = dnsClient.QueryAsync(record.Target, QueryType.A, cancellationToken: ShutdownToken);
+
+            var v6Records = await v6RecordsTask.ConfigureAwait(false);
+            AddEndpoints(endPoints, record, v6Records);
+
+            var v4Records = await v4RecordsTask.ConfigureAwait(false);
+            AddEndpoints(endPoints, record, v4Records);
         }
 
         SetResult(endPoints, ttl);
@@ -96,6 +106,27 @@ internal sealed partial class DnsSrvServiceEndPointResolver(
             }
 
             return serviceEndPoint;
+        }
+
+        void AddEndpoint(List<ServiceEndPoint> endPoints, SrvRecord record, AddressRecord addressRecord)
+        {
+            endPoints.Add(CreateEndPoint(new IPEndPoint(addressRecord.Address, record.Port)));
+        }
+
+        void AddEndpoints(List<ServiceEndPoint> endPoints, SrvRecord record, IDnsQueryResponse? records)
+        {
+            if (records is null)
+            {
+                return;
+            }
+
+            foreach (var answer in records.Answers)
+            {
+                if (answer is AddressRecord addressRecord)
+                {
+                    AddEndpoint(endPoints, record, addressRecord);
+                }
+            }
         }
     }
 }
