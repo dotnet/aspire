@@ -24,6 +24,8 @@
     <PackageVersion Include="Azure.ResourceManager.Authorization" Version="1.1.0" />
     <PackageVersion Include="Azure.ResourceManager.Redis" Version="1.3.0" />
     <PackageVersion Include="Azure.ResourceManager.AppConfiguration" Version="1.2.0" />
+    <PackageVersion Include="Azure.ResourceManager.SignalR" Version="1.1.0" />
+    <PackageVersion Include="Microsoft.Azure.SignalR" Version="1.25.0-preview1-11151" />
     <PackageVersion Include="Azure.ResourceManager.Sql" Version="1.2.0" />
     <PackageVersion Include="Azure.ResourceManager.ApplicationInsights" Version="1.0.0-beta.4" />
     <PackageVersion Include="Azure.ResourceManager.OperationalInsights" Version="1.2.0" />

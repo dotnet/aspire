@@ -41,7 +41,7 @@ var redis = builder.AddRedis("redis")
                    .AsAzureRedis();
 
 var serviceBus = builder.AddAzureServiceBus("sb", ["queue1"], ["topic1"]);
-
+var signalr = builder.AddAzureSignalR("signalr");
 builder.AddProject<Projects.BicepSample_ApiService>("api")
        .WithReference(sqlServer)
        .WithReference(pg)
@@ -54,6 +54,7 @@ builder.AddProject<Projects.BicepSample_ApiService>("api")
        .WithReference(appInsights)
        .WithReference(redis)
        .WithReference(serviceBus)
+       .WithReference(signalr)
        .WithEnvironment("bicepValue_test", templ.GetOutput("test"))
        .WithEnvironment("bicepValue0", templ.GetOutput("val0"))
        .WithEnvironment("bicepValue1", templ.GetOutput("val1"));
