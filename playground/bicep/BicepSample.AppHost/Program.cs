@@ -15,12 +15,12 @@ var templ = builder.AddBicepTemplate("test", "test.bicep")
 
 var kv = builder.AddAzureKeyVault("kv");
 var appConfig = builder.AddAzureAppConfiguration("appConfig").WithParameter("sku", "standard");
-var storage = builder.AddAzureBicepAzureStorage("storage");
+var storage = builder.AddAzureStorage("storage");
                     // .UseEmulator();
 
-var blobs = storage.AddBlob("blob");
-var tables = storage.AddTable("table");
-var queues = storage.AddQueue("queue");
+var blobs = storage.AddBlobs("blob");
+var tables = storage.AddTables("table");
+var queues = storage.AddQueues("queue");
 
 var sqlServer = builder.AddBicepAzureSqlServer("sql").AddDatabase("db");
 

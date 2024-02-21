@@ -51,17 +51,17 @@
       }
     },
     "blob": {
-      "type": "azure.bicep.v0",
+      "type": "value.v0",
       "connectionString": "{storage.outputs.blobEndpoint}",
       "parent": "storage"
     },
     "table": {
-      "type": "azure.bicep.v0",
+      "type": "value.v0",
       "connectionString": "{storage.outputs.tableEndpoint}",
       "parent": "storage"
     },
     "queue": {
-      "type": "azure.bicep.v0",
+      "type": "value.v0",
       "connectionString": "{storage.outputs.queueEndpoint}",
       "parent": "storage"
     },

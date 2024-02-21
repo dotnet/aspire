@@ -363,15 +363,15 @@ public class AzureBicepResourceTests
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        var storage = builder.AddAzureBicepAzureStorage("storage");
+        var storage = builder.AddAzureStorage("storage");
 
         storage.Resource.Outputs["blobEndpoint"] = "https://myblob";
         storage.Resource.Outputs["queueEndpoint"] = "https://myqueue";
         storage.Resource.Outputs["tableEndpoint"] = "https://mytable";
 
-        var blob = storage.AddBlob("blob");
-        var queue = storage.AddQueue("queue");
-        var table = storage.AddTable("table");
+        var blob = storage.AddBlobs("blob");
+        var queue = storage.AddQueues("queue");
+        var table = storage.AddTables("table");
 
         Assert.Equal("Aspire.Hosting.Azure.Bicep.storage.bicep", storage.Resource.TemplateResourceName);
         Assert.Equal("storage", storage.Resource.Name);
@@ -385,14 +385,17 @@ public class AzureBicepResourceTests
         Assert.Equal("{storage.outputs.tableEndpoint}", table.Resource.ConnectionStringExpression);
 
         var blobManifest = GetManifest(blob.Resource.WriteToManifest);
+        Assert.Equal("value.v0", blobManifest["type"]?.ToString());
         Assert.Equal("{storage.outputs.blobEndpoint}", blobManifest["connectionString"]?.ToString());
         Assert.Equal("storage", blobManifest["parent"]?.ToString());
 
         var queueManifest = GetManifest(queue.Resource.WriteToManifest);
+        Assert.Equal("value.v0", queueManifest["type"]?.ToString());
         Assert.Equal("{storage.outputs.queueEndpoint}", queueManifest["connectionString"]?.ToString());
         Assert.Equal("storage", blobManifest["parent"]?.ToString());
 
         var tableManifest = GetManifest(table.Resource.WriteToManifest);
+        Assert.Equal("value.v0", tableManifest["type"]?.ToString());
         Assert.Equal("{storage.outputs.tableEndpoint}", tableManifest["connectionString"]?.ToString());
         Assert.Equal("storage", blobManifest["parent"]?.ToString());
     }
