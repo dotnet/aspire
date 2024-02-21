@@ -230,22 +230,29 @@ public class AzureBicepResourceTests
     }
 
     [Fact]
-    public void AddBicepSqlServer()
+    public void AsAzureSqlDatabase()
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        var sql = builder.AddBicepAzureSqlServer("sql");
-        sql.AddDatabase("db", "database");
+        IResourceBuilder<AzureSqlServerResource>? azureSql = null;
+        var sql = builder.AddSqlServer("sql").AsAzureSqlDatabase(resource =>
+        {
+            azureSql = resource;
+        });
+        sql.AddDatabase("db");
 
-        sql.Resource.Outputs["sqlServerFqdn"] = "myserver";
+        Assert.NotNull(azureSql);
+        azureSql.Resource.Outputs["sqlServerFqdn"] = "myserver";
 
-        var databases = sql.Resource.Parameters["databases"] as IEnumerable<string>;
+        var databasesCallback = azureSql.Resource.Parameters["databases"] as Func<object?>;
+        Assert.NotNull(databasesCallback);
+        var databases = databasesCallback() as IEnumerable<string>;
 
-        Assert.Equal("Aspire.Hosting.Azure.Bicep.sql.bicep", sql.Resource.TemplateResourceName);
+        Assert.Equal("Aspire.Hosting.Azure.Bicep.sql.bicep", azureSql.Resource.TemplateResourceName);
         Assert.Equal("sql", sql.Resource.Name);
-        Assert.Equal("sql", sql.Resource.Parameters["serverName"]);
+        Assert.Equal("sql", azureSql.Resource.Parameters["serverName"]);
         Assert.NotNull(databases);
-        Assert.Equal(["database"], databases);
+        Assert.Equal(["db"], databases);
         Assert.Equal("Server=tcp:myserver,1433;Encrypt=True;Authentication=\"Active Directory Default\"", sql.Resource.GetConnectionString());
         Assert.Equal("Server=tcp:{sql.outputs.sqlServerFqdn},1433;Encrypt=True;Authentication=\"Active Directory Default\"", sql.Resource.ConnectionStringExpression);
     }
