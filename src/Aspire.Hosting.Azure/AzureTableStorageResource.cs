@@ -16,29 +16,24 @@ public class AzureTableStorageResource(string name, AzureStorageResource storage
     IResourceWithParent<AzureStorageResource>
 {
     /// <summary>
-    /// Gets the parent AzureStorageResource of this AzureBlobStorageResource.
+    /// Gets the parent AzureStorageResource of this AzureTableStorageResource.
     /// </summary>
     public AzureStorageResource Parent => storage;
 
     /// <summary>
-    /// Gets the connection string template for the manifest for the Azure Blob Storage resource.
+    /// Gets the connection string template for the manifest for the Azure Table Storage resource.
     /// </summary>
     public string ConnectionStringExpression => Parent.TableEndpoint.ValueExpression;
 
     /// <summary>
-    /// Gets the connection string for the Azure Blob Storage resource.
+    /// Gets the connection string for the Azure Table Storage resource.
     /// </summary>
-    /// <returns>The connection string for the Azure Blob Storage resource.</returns>
+    /// <returns>The connection string for the Azure Table Storage resource.</returns>
     public string? GetConnectionString() => Parent.GetTableConnectionString();
 
-    /// <summary>
-    /// TODO: Doc Comments
-    /// </summary>
-    /// <param name="context"></param>
-    public void WriteToManifest(ManifestPublishingContext context)
+    internal void WriteToManifest(ManifestPublishingContext context)
     {
         context.Writer.WriteString("type", "value.v0");
         context.Writer.WriteString("connectionString", ConnectionStringExpression);
-        context.Writer.WriteString("parent", Parent.Name);
     }
 }

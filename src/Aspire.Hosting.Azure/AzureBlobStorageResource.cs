@@ -35,10 +35,9 @@ public class AzureBlobStorageResource(string name, AzureStorageResource storage)
     /// Called by manifest publisher to write manifest resource.
     /// </summary>
     /// <param name="context">The context for the manifest publishing operation.</param>
-    public void WriteToManifest(ManifestPublishingContext context)
+    internal void WriteToManifest(ManifestPublishingContext context)
     {
         context.Writer.WriteString("type", "value.v0");
         context.Writer.WriteString("connectionString", ConnectionStringExpression);
-        context.Writer.WriteString("parent", Parent.Name);
     }
 }
