@@ -52,18 +52,15 @@
     },
     "blob": {
       "type": "value.v0",
-      "connectionString": "{storage.outputs.blobEndpoint}",
-      "parent": "storage"
+      "connectionString": "{storage.outputs.blobEndpoint}"
     },
     "table": {
       "type": "value.v0",
-      "connectionString": "{storage.outputs.tableEndpoint}",
-      "parent": "storage"
+      "connectionString": "{storage.outputs.tableEndpoint}"
     },
     "queue": {
       "type": "value.v0",
-      "connectionString": "{storage.outputs.queueEndpoint}",
-      "parent": "storage"
+      "connectionString": "{storage.outputs.queueEndpoint}"
     },
     "sql": {
       "type": "azure.bicep.v0",
