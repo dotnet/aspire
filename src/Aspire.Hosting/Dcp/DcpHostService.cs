@@ -6,7 +6,6 @@ using System.Collections;
 using System.IO.Pipelines;
 using System.Net.Sockets;
 using System.Text;
-using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp.Process;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -18,14 +17,15 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
 {
     private const int LoggingSocketConnectionBacklog = 3;
     private readonly ApplicationExecutor _appExecutor;
-    private readonly DistributedApplicationModel _applicationModel;
-    private IAsyncDisposable? _dcpRunDisposable;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger _logger;
     private readonly DcpOptions _dcpOptions;
     private readonly DistributedApplicationExecutionContext _executionContext;
     private readonly IDcpDependencyCheckService _dependencyCheckService;
     private readonly Locations _locations;
+    private readonly CancellationTokenSource _shutdownCts = new();
+    private Task? _logProcessorTask;
+    private IAsyncDisposable? _dcpRunDisposable;
 
     // These environment variables should never be inherited by DCP from app host.
     private static readonly string[] s_doNotInheritEnvironmentVars =
@@ -37,7 +37,6 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
     };
 
     public DcpHostService(
-        DistributedApplicationModel applicationModel,
         ILoggerFactory loggerFactory,
         IOptions<DcpOptions> dcpOptions,
         DistributedApplicationExecutionContext executionContext,
@@ -45,7 +44,6 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
         IDcpDependencyCheckService dependencyCheckService,
         Locations locations)
     {
-        _applicationModel = applicationModel;
         _loggerFactory = loggerFactory;
         _logger = loggerFactory.CreateLogger<DcpHostService>();
         _dcpOptions = dcpOptions.Value;
@@ -72,12 +70,21 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
 
     public async Task StopAsync(CancellationToken cancellationToken = default)
     {
-        if (!IsSupported)
+        _shutdownCts.Cancel();
+        if (_logProcessorTask is { } task)
         {
-            return;
+            try
+            {
+                await task.ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in logging socket processor.");
+            }
         }
-
-        await _appExecutor.StopApplicationAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async ValueTask DisposeAsync()
@@ -87,7 +94,6 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
             return;
         }
 
-        await _appExecutor.StopApplicationAsync().ConfigureAwait(false);
         await _dcpRunDisposable.DisposeAsync().ConfigureAwait(false);
         _dcpRunDisposable = null;
     }
@@ -104,16 +110,16 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
             try
             {
                 AspireEventSource.Instance.DcpLogSocketCreateStart();
-                Socket loggingSocket = CreateLoggingSocket(_locations.DcpLogSocket);
+                var loggingSocket = CreateLoggingSocket(_locations.DcpLogSocket);
                 loggingSocket.Listen(LoggingSocketConnectionBacklog);
 
                 dcpProcessSpec.EnvironmentVariables.Add("DCP_LOG_SOCKET", _locations.DcpLogSocket);
 
-                _ = Task.Run(() => StartLoggingSocketAsync(loggingSocket), CancellationToken.None);
+                _logProcessorTask = Task.Run(() => StartLoggingSocketAsync(loggingSocket));
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"Failed to enable orchestration logging: {ex}");
+                _logger.LogError(ex, "Failed to enable orchestration logging.");
             }
             finally
             {
@@ -203,23 +209,29 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
 
     private async Task StartLoggingSocketAsync(Socket socket)
     {
-        while (true)
+        List<Task> outputLoggers = [];
+        while (!_shutdownCts.IsCancellationRequested)
         {
             try
             {
-                Socket acceptedSocket = await socket.AcceptAsync().ConfigureAwait(false);
-                _ = Task.Run(() => LogSocketOutputAsync(acceptedSocket), CancellationToken.None);
+                Socket acceptedSocket = await socket.AcceptAsync(_shutdownCts.Token).ConfigureAwait(false);
+                outputLoggers.Add(Task.Run(() => LogSocketOutputAsync(acceptedSocket, _shutdownCts.Token)));
             }
             catch
             {
                 // Suppress exceptions reading logs from DCP controllers
             }
         }
+
+        await Task.WhenAll(outputLoggers).ConfigureAwait(false);
+        socket.Dispose();
     }
 
-    private async Task LogSocketOutputAsync(Socket socket)
+    private async Task LogSocketOutputAsync(Socket socket, CancellationToken cancellationToken)
     {
-        var reader = PipeReader.Create(new NetworkStream(socket));
+        using var stream = new NetworkStream(socket, ownsSocket: true);
+        using var _ = cancellationToken.Register(s => ((NetworkStream)s!).Close(), stream);
+        var reader = PipeReader.Create(stream);
 
         // Logger cache to avoid creating a new string per log line, for a few categories
         var loggerCache = new Dictionary<int, ILogger>();
@@ -293,11 +305,11 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
                 position = seq.Position;
             }
 
-            while (true)
+            while (!cancellationToken.IsCancellationRequested)
             {
-                var result = await reader.ReadAsync().ConfigureAwait(false);
+                var result = await reader.ReadAsync(CancellationToken.None).ConfigureAwait(false);
 
-                if (result.IsCompleted)
+                if (result.IsCompleted || result.IsCanceled)
                 {
                     break;
                 }

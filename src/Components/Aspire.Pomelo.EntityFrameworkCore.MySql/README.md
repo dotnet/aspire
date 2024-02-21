@@ -1,6 +1,6 @@
 # Aspire.Pomelo.EntityFrameworkCore.MySql library
 
-Registers [EntityFrameworkCore](https://learn.microsoft.com/ef/core/) [DbContext](https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbcontext) in the DI container for connecting MySql database. Enables connection pooling, health check, logging and telemetry.
+Registers [EntityFrameworkCore](https://learn.microsoft.com/ef/core/) [DbContext](https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbcontext) in the DI container for connecting MySql database. Enables connection pooling, retries, health check, logging and telemetry.
 
 ## Getting started
 
@@ -35,6 +35,14 @@ public ProductsController(MyDbContext context)
 }
 ```
 
+You might also need to configure specific option of MySql, or register a `DbContext` in other ways. In this case call the `EnrichMySqlDbContext` extension method, for example:
+
+```csharp
+var connectionString = builder.Configuration.GetConnectionString("mysqldb");
+builder.Services.AddDbContextPool<MyDbContext>(dbContextOptionsBuilder => dbContextOptionsBuilder.UseMySql(connectionString, serverVersion));
+builder.EnrichMySqlDbContext<MyDbContext>();
+```
+
 ## Configuration
 
 The .NET Aspire Pomelo EntityFrameworkCore MySQL component provides multiple options to configure the database connection based on the requirements and conventions of your project.
@@ -57,6 +65,8 @@ And then the connection string will be retrieved from the `ConnectionStrings` co
 }
 ```
 
+The `EnrichMySqlDbContext` won't make use of the `ConnectionStrings` or `ServerVersion` configuration sections since it expects a `DbContext` to be registered at the point it is called.
+
 See the [ConnectionString documentation](https://mysqlconnector.net/connection-options/) for more information on how to format this connection string.
 
 ### Use configuration providers
@@ -71,7 +81,6 @@ Example `appsettings.json` that configures some of the options:
     "Pomelo": {
       "EntityFrameworkCore": {
         "MySql": {
-          "DbContextPooling": true,
           "HealthChecks": false,
           "Tracing": false
         }
@@ -87,6 +96,12 @@ Also you can pass the `Action<PomeloEntityFrameworkCoreMySqlSettings> configureS
 
 ```csharp
     builder.AddMySqlDbContext<MyDbContext>("mysqldb", settings => settings.HealthChecks = false);
+```
+
+or
+
+```csharp
+    builder.EnrichMySqlDbContext<MyDbContext>(settings => settings.HealthChecks = false);
 ```
 
 ## AppHost extensions

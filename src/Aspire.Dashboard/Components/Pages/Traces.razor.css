@@ -9,7 +9,6 @@
     align-items: center;
     border: 1px solid rgb(217, 217, 217);
     padding: 2px 7px;
-    margin-right: 7px;
     font-size: 12px;
     background-color: var(--neutral-fill-rest);
     color: var(--neutral-foreground-rest);
@@ -17,6 +16,7 @@
 
 .trace-service-tag {
     border-left-width: 15px;
+    margin-right: 7px;
 }
 
 ::deep.traces-layout {

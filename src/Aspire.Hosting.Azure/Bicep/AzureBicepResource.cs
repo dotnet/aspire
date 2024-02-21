@@ -161,11 +161,8 @@ public class AzureBicepResource(string name, string? templateFile = null, string
         using var template = GetBicepTemplateFile(Path.GetDirectoryName(context.ManifestPath), deleteTemporaryFileOnDispose: false);
         var path = template.Path;
 
-        // REVIEW: This should be in the ManifestPublisher
-        if (this is IResourceWithConnectionString c && c.ConnectionStringExpression is string connectionString)
-        {
-            context.Writer.WriteString("connectionString", connectionString);
-        }
+        // Write a connection string if it exists.
+        context.WriteConnectionString(this);
 
         // REVIEW: Consider multiple files.
         context.Writer.WriteString("path", context.GetManifestRelativePath(path));

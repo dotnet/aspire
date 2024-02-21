@@ -47,7 +47,10 @@ public static partial class AspireEFPostgreSqlExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        var settings = GetDbContextSettings<TContext>(builder);
+        var settings = builder.GetDbContextSettings<TContext, NpgsqlEntityFrameworkCorePostgreSQLSettings>(
+            DefaultConfigSectionName,
+            (settings, section) => section.Bind(settings)
+        );
 
         if (builder.Configuration.GetConnectionString(connectionName) is string connectionString)
         {
@@ -97,7 +100,10 @@ public static partial class AspireEFPostgreSqlExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        var settings = GetDbContextSettings<TContext>(builder);
+        var settings = builder.GetDbContextSettings<TContext, NpgsqlEntityFrameworkCorePostgreSQLSettings>(
+            DefaultConfigSectionName,
+            (settings, section) => section.Bind(settings)
+        );
 
         configureSettings?.Invoke(settings);
 
@@ -112,38 +118,7 @@ public static partial class AspireEFPostgreSqlExtensions
                 return;
             }
 
-            // Resolving DbContext<TContextService> will resolve DbContextOptions<TContextImplementation>.
-            // We need to replace the DbContextOptions service descriptor to inject more logic. This won't be necessary once
-            // Aspire targets .NET 9 as EF will respect the calls to services.ConfigureDbContext<TContext>(). c.f. https://github.com/dotnet/efcore/pull/32518
-
-            var oldDbContextOptionsDescriptor = builder.Services.FirstOrDefault(sd => sd.ServiceType == typeof(DbContextOptions<TContext>));
-
-            if (oldDbContextOptionsDescriptor is null)
-            {
-                throw new InvalidOperationException($"DbContext<{typeof(TContext).Name}> was not registered");
-            }
-
-            builder.Services.Remove(oldDbContextOptionsDescriptor);
-
-            var dbContextOptionsDescriptor = new ServiceDescriptor(
-                oldDbContextOptionsDescriptor.ServiceType,
-                oldDbContextOptionsDescriptor.ServiceKey,
-                factory: (sp, key) =>
-                {
-                    var dbContextOptions = oldDbContextOptionsDescriptor.ImplementationFactory?.Invoke(sp) as DbContextOptions<TContext>;
-
-                    var optionsBuilder = dbContextOptions != null
-                        ? new DbContextOptionsBuilder<TContext>(dbContextOptions)
-                        : new DbContextOptionsBuilder<TContext>();
-
-                    optionsBuilder.UseNpgsql(options => options.EnableRetryOnFailure());
-
-                    return optionsBuilder.Options;
-                },
-                oldDbContextOptionsDescriptor.Lifetime
-                );
-
-            builder.Services.Add(dbContextOptionsDescriptor);
+            builder.PatchServiceDescriptor<TContext>(optionsBuilder => optionsBuilder.UseNpgsql(options => options.EnableRetryOnFailure()));
         }
     }
 
@@ -187,22 +162,5 @@ public static partial class AspireEFPostgreSqlExtensions
                     NpgsqlCommon.AddNpgsqlMetrics(meterProviderBuilder);
                 });
         }
-    }
-
-    private static NpgsqlEntityFrameworkCorePostgreSQLSettings GetDbContextSettings<TContext>(IHostApplicationBuilder builder)
-    {
-        NpgsqlEntityFrameworkCorePostgreSQLSettings settings = new();
-        var typeSpecificSectionName = $"{DefaultConfigSectionName}:{typeof(TContext).Name}";
-        var typeSpecificConfigurationSection = builder.Configuration.GetSection(typeSpecificSectionName);
-        if (typeSpecificConfigurationSection.Exists()) // https://github.com/dotnet/runtime/issues/91380
-        {
-            typeSpecificConfigurationSection.Bind(settings);
-        }
-        else
-        {
-            builder.Configuration.GetSection(DefaultConfigSectionName).Bind(settings);
-        }
-
-        return settings;
     }
 }
