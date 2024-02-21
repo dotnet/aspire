@@ -43,7 +43,7 @@ public static class JavaScriptAppHostingExtension
     /// <param name="scriptName">The npm script to execute. Defaults to "start".</param>
     /// <param name="args">The arguments to pass to the command.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<JavaScriptAppResource> AddJavaScriptCLIApp(this IDistributedApplicationBuilder builder, string name, string workingDirectory, string? scriptName = null, string[]? args = null)
+    public static IResourceBuilder<JavaScriptAppResource> AddJavaScriptCLIApp(this IDistributedApplicationBuilder builder, string name, string workingDirectory, string? scriptName = null, string[]? args = null!)
 
     {   
         string[] allArgs;
@@ -77,7 +77,7 @@ public static class JavaScriptAppHostingExtension
     {
         var environment = builder.ApplicationBuilder.Environment;
 
-        if (builder.Resource.ScriptPath.Equals("node", StringComparison.OrdinalIgnoreCase))
+        if (builder.Resource.command.Equals("node", StringComparison.OrdinalIgnoreCase))
         {
             return builder.WithOtlpExporter()
                             .WithEnvironment("NODE_ENV", environment.IsDevelopment() ? "development" : "production");
