@@ -147,10 +147,9 @@ public class AspireEFMySqlExtensionsTests
         // ensure the command timeout was respected
         Assert.Equal(123, extension.CommandTimeout);
 
-        // Other EF components check the connection string is respected but MySqlConnector
-        // is adding default properties to it.
-        //var actualConnectionString = context.Database.GetDbConnection().ConnectionString;
-        //Assert.Equal(ConnectionString, actualConnectionString);
+        // ensure the connection string from config was respected
+        var actualConnectionString = context.Database.GetDbConnection().ConnectionString;
+        Assert.Equal(ConnectionString + ";Allow User Variables=True;Default Command Timeout=123;Use Affected Rows=False", actualConnectionString);
 
         // ensure no retry strategy was registered
         Assert.Null(extension.ExecutionStrategyFactory);
