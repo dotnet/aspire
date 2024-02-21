@@ -28,6 +28,11 @@ public interface IDistributedApplicationBuilder
     public IServiceCollection Services { get; }
 
     /// <summary>
+    /// Execution context for this invocation of the AppHost.
+    /// </summary>
+    public DistributedApplicationExecutionContext ExecutionContext { get; }
+
+    /// <summary>
     /// Gets the collection of resources for the distributed application.
     /// </summary>
     /// <remarks>

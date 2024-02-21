@@ -28,7 +28,7 @@ public class EnrichSqlServerTests : ConformanceTests
         HostApplicationBuilder builder = Host.CreateEmptyApplicationBuilder(settings: null);
 
         var exception = Assert.Throws<InvalidOperationException>(() => builder.EnrichSqlServerDbContext<TestDbContext>());
-        Assert.Equal("DbContext<TestDbContext> was not registered", exception.Message);
+        Assert.Equal("DbContext<TestDbContext> was not registered. Ensure you have registered the DbContext in DI before calling EnrichSqlServerDbContext.", exception.Message);
     }
 
     [Fact]

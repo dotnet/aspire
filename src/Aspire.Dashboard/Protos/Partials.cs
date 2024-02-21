@@ -3,6 +3,7 @@
 
 using System.Collections.Frozen;
 using System.Collections.Immutable;
+using System.Runtime.CompilerServices;
 using Aspire.Dashboard.Model;
 
 namespace Aspire.V1;
@@ -16,12 +17,12 @@ partial class Resource
     {
         return new()
         {
-            Name = Name,
-            ResourceType = ResourceType,
-            DisplayName = DisplayName,
-            Uid = Uid,
+            Name = ValidateNotNull(Name),
+            ResourceType = ValidateNotNull(ResourceType),
+            DisplayName = ValidateNotNull(DisplayName),
+            Uid = ValidateNotNull(Uid),
             CreationTimeStamp = CreatedAt.ToDateTime(),
-            Properties = Properties.ToFrozenDictionary(p => p.Name, p => p.Value, StringComparers.ResourcePropertyName),
+            Properties = Properties.ToFrozenDictionary(property => ValidateNotNull(property.Name), property => ValidateNotNull(property.Value), StringComparers.ResourcePropertyName),
             Endpoints = GetEndpoints(),
             Environment = GetEnvironment(),
             ExpectedEndpointsCount = ExpectedEndpointsCount,
@@ -39,7 +40,7 @@ partial class Resource
         ImmutableArray<EnvironmentVariableViewModel> GetEnvironment()
         {
             return Environment
-                .Select(s => new EnvironmentVariableViewModel(s.Name, s.Value, s.IsFromSpec))
+                .Select(e => new EnvironmentVariableViewModel(e.Name, e.Value, e.IsFromSpec))
                 .ToImmutableArray();
         }
 
@@ -48,6 +49,16 @@ partial class Resource
             return Endpoints
                 .Select(e => new EndpointViewModel(e.EndpointUrl, e.ProxyUrl))
                 .ToImmutableArray();
+        }
+
+        T ValidateNotNull<T>(T value, [CallerArgumentExpression(nameof(value))] string? expression = null) where T : class
+        {
+            if (value is null)
+            {
+                throw new InvalidOperationException($"Message field '{expression}' on resource with name '{Name}' cannot be null.");
+            }
+
+            return value;
         }
     }
 }

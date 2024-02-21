@@ -12,6 +12,58 @@ namespace Aspire.Hosting.Tests;
 public class ManifestGenerationTests
 {
     [Fact]
+    public void EnsureAddParameterWithSecretFalseDoesntEmitSecretField()
+    {
+        var program = CreateTestProgramJsonDocumentManifestPublisher();
+        program.AppBuilder.AddParameter("x", secret: false);
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+        var x = resources.GetProperty("x");
+        var inputs = x.GetProperty("inputs");
+        var value = inputs.GetProperty("value");
+        Assert.False(value.TryGetProperty("secret", out _));
+    }
+
+    [Fact]
+    public void EnsureAddParameterWithSecretDefaultDoesntEmitSecretField()
+    {
+        var program = CreateTestProgramJsonDocumentManifestPublisher();
+        program.AppBuilder.AddParameter("x");
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+        var x = resources.GetProperty("x");
+        var inputs = x.GetProperty("inputs");
+        var value = inputs.GetProperty("value");
+        Assert.False(value.TryGetProperty("secret", out _));
+    }
+
+    [Fact]
+    public void EnsureAddParameterWithSecretTrueDoesEmitSecretField()
+    {
+        var program = CreateTestProgramJsonDocumentManifestPublisher();
+        program.AppBuilder.AddParameter("x", secret: true);
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+        var x = resources.GetProperty("x");
+        var inputs = x.GetProperty("inputs");
+        var value = inputs.GetProperty("value");
+        Assert.True(value.TryGetProperty("secret", out var secret));
+        Assert.True(secret.GetBoolean());
+    }
+
+    [Fact]
     public void EnsureWorkerProjectDoesNotGetBindingsGenerated()
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher();
@@ -211,8 +263,7 @@ public class ManifestGenerationTests
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher();
 
-        program.AppBuilder.AddRedis("redisabstract");
-        program.AppBuilder.AddRedis("rediscontainer").PublishAsContainer();
+        program.AppBuilder.AddRedis("rediscontainer");
 
         // Build AppHost so that publisher can be resolved.
         program.Build();
@@ -221,9 +272,6 @@ public class ManifestGenerationTests
         program.Run();
 
         var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var connection = resources.GetProperty("redisabstract");
-        Assert.Equal("redis.v0", connection.GetProperty("type").GetString());
 
         var container = resources.GetProperty("rediscontainer");
         Assert.Equal("container.v0", container.GetProperty("type").GetString());
@@ -234,7 +282,7 @@ public class ManifestGenerationTests
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher();
 
-        program.AppBuilder.AddRedis("rediscontainer").PublishAsContainer();
+        program.AppBuilder.AddRedis("rediscontainer");
 
         // Build AppHost so that publisher can be resolved.
         program.Build();
@@ -255,8 +303,7 @@ public class ManifestGenerationTests
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher();
 
-        program.AppBuilder.AddPostgres("postgresabstract");
-        program.AppBuilder.AddPostgres("postgrescontainer").PublishAsContainer().AddDatabase("postgresdatabase");
+        program.AppBuilder.AddPostgres("postgrescontainer").AddDatabase("postgresdatabase");
 
         // Build AppHost so that publisher can be resolved.
         program.Build();
@@ -265,46 +312,12 @@ public class ManifestGenerationTests
         program.Run();
 
         var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var connection = resources.GetProperty("postgresabstract");
-        Assert.Equal("postgres.server.v0", connection.GetProperty("type").GetString());
 
         var server = resources.GetProperty("postgrescontainer");
         Assert.Equal("container.v0", server.GetProperty("type").GetString());
 
         var db = resources.GetProperty("postgresdatabase");
-        Assert.Equal("postgres.database.v0", db.GetProperty("type").GetString());
-    }
-
-    [Fact]
-    public void EnsureAllAzureStorageManifestTypesHaveVersion0Suffix()
-    {
-        var program = CreateTestProgramJsonDocumentManifestPublisher();
-
-        var parent = program.AppBuilder.AddAzureStorage("storage");
-        parent.AddBlobs("blobs");
-        parent.AddQueues("queues");
-        parent.AddTables("tables");
-
-        // Build AppHost so that publisher can be resolved.
-        program.Build();
-        var publisher = program.GetManifestPublisher();
-
-        program.Run();
-
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var storage = resources.GetProperty("storage");
-        Assert.Equal("azure.storage.v0", storage.GetProperty("type").GetString());
-
-        var blobs = resources.GetProperty("blobs");
-        Assert.Equal("azure.storage.blob.v0", blobs.GetProperty("type").GetString());
-
-        var queues = resources.GetProperty("queues");
-        Assert.Equal("azure.storage.queue.v0", queues.GetProperty("type").GetString());
-
-        var tables = resources.GetProperty("tables");
-        Assert.Equal("azure.storage.table.v0", tables.GetProperty("type").GetString());
+        Assert.Equal("value.v0", db.GetProperty("type").GetString());
     }
 
     [Fact]
@@ -312,8 +325,7 @@ public class ManifestGenerationTests
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher();
 
-        program.AppBuilder.AddRabbitMQ("rabbitabstract");
-        program.AppBuilder.AddRabbitMQ("rabbitcontainer").PublishAsContainer();
+        program.AppBuilder.AddRabbitMQ("rabbitcontainer");
 
         // Build AppHost so that publisher can be resolved.
         program.Build();
@@ -322,9 +334,6 @@ public class ManifestGenerationTests
         program.Run();
 
         var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var connection = resources.GetProperty("rabbitabstract");
-        Assert.Equal("rabbitmq.server.v0", connection.GetProperty("type").GetString());
 
         var server = resources.GetProperty("rabbitcontainer");
         Assert.Equal("container.v0", server.GetProperty("type").GetString());
@@ -335,8 +344,7 @@ public class ManifestGenerationTests
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher();
 
-        program.AppBuilder.AddKafka("kafkaabstract");
-        program.AppBuilder.AddKafka("kafkacontainer").PublishAsContainer();
+        program.AppBuilder.AddKafka("kafkacontainer");
 
         // Build AppHost so that publisher can be resolved.
         program.Build();
@@ -345,91 +353,9 @@ public class ManifestGenerationTests
         program.Run();
 
         var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var connection = resources.GetProperty("kafkaabstract");
-        Assert.Equal("kafka.server.v0", connection.GetProperty("type").GetString());
 
         var server = resources.GetProperty("kafkacontainer");
         Assert.Equal("container.v0", server.GetProperty("type").GetString());
-    }
-
-    [Fact]
-    public void EnsureAllKeyVaultManifestTypesHaveVersion0Suffix()
-    {
-        var program = CreateTestProgramJsonDocumentManifestPublisher();
-
-        program.AppBuilder.AddAzureKeyVault("keyvault");
-
-        // Build AppHost so that publisher can be resolved.
-        program.Build();
-        var publisher = program.GetManifestPublisher();
-
-        program.Run();
-
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var keyvault = resources.GetProperty("keyvault");
-        Assert.Equal("azure.keyvault.v0", keyvault.GetProperty("type").GetString());
-    }
-
-    [Fact]
-    public void EnsureAllServiceBusManifestTypesHaveVersion0Suffix()
-    {
-        var program = CreateTestProgramJsonDocumentManifestPublisher();
-
-        program.AppBuilder.AddAzureServiceBus("servicebus");
-
-        // Build AppHost so that publisher can be resolved.
-        program.Build();
-        var publisher = program.GetManifestPublisher();
-
-        program.Run();
-
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var servicebus = resources.GetProperty("servicebus");
-        Assert.Equal("azure.servicebus.v0", servicebus.GetProperty("type").GetString());
-    }
-
-    [Fact]
-    public void EnsureAllAzureDatabaseManifestTypesHaveVersion0Suffix()
-    {
-        var program = CreateTestProgramJsonDocumentManifestPublisher();
-
-        program.AppBuilder.AddAzureSqlServer("sqlserver").AddDatabase("database");
-
-        // Build AppHost so that publisher can be resolved.
-        program.Build();
-        var publisher = program.GetManifestPublisher();
-
-        program.Run();
-
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var sqlserver = resources.GetProperty("sqlserver");
-        Assert.Equal("azure.sql.v0", sqlserver.GetProperty("type").GetString());
-
-        var database = resources.GetProperty("database");
-        Assert.Equal("azure.sql.database.v0", database.GetProperty("type").GetString());
-    }
-
-    [Fact]
-    public void EnsureAllAzureRedisManifestTypesHaveVersion0Suffix()
-    {
-        var program = CreateTestProgramJsonDocumentManifestPublisher();
-
-        program.AppBuilder.AddAzureRedis("redis");
-
-        // Build AppHost so that publisher can be resolved.
-        program.Build();
-        var publisher = program.GetManifestPublisher();
-
-        program.Run();
-
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var redis = resources.GetProperty("redis");
-        Assert.Equal("azure.redis.v0", redis.GetProperty("type").GetString());
     }
 
     [Fact]
@@ -452,25 +378,6 @@ public class ManifestGenerationTests
 
         var deployment = resources.GetProperty("deployment");
         Assert.Equal("azure.openai.deployment.v0", deployment.GetProperty("type").GetString());
-    }
-
-    [Fact]
-    public void EnsureAllAzureAppConfigurationManifestTypesHaveVersion0Suffix()
-    {
-        var program = CreateTestProgramJsonDocumentManifestPublisher();
-
-        program.AppBuilder.AddAzureAppConfiguration("appconfig");
-
-        // Build AppHost so that publisher can be resolved.
-        program.Build();
-        var publisher = program.GetManifestPublisher();
-
-        program.Run();
-
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var config = resources.GetProperty("appconfig");
-        Assert.Equal("azure.appconfiguration.v0", config.GetProperty("type").GetString());
     }
 
     [Fact]
@@ -502,25 +409,6 @@ public class ManifestGenerationTests
         var db2 = resources.GetProperty("mydb2");
         Assert.Equal("azure.cosmosdb.database.v0", db2.GetProperty("type").GetString());
         Assert.Equal("cosmosaccount", db2.GetProperty("parent").GetString());
-    }
-
-    [Fact]
-    public void EnsureAllAzureApplicationInsightsManifestTypesHaveVersion0Suffix()
-    {
-        var program = CreateTestProgramJsonDocumentManifestPublisher();
-
-        program.AppBuilder.AddApplicationInsights("appInsights");
-
-        // Build AppHost so that publisher can be resolved.
-        program.Build();
-        var publisher = program.GetManifestPublisher();
-
-        program.Run();
-
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var storage = resources.GetProperty("appInsights");
-        Assert.Equal("azure.appinsights.v0", storage.GetProperty("type").GetString());
     }
 
     [Fact]

@@ -65,7 +65,7 @@ public static class ResourceBuilderExtensions
     {
         return builder.WithEnvironment(context =>
         {
-            if (context.PublisherName == "manifest")
+            if (context.ExecutionContext.Operation == DistributedApplicationOperation.Publish)
             {
                 context.EnvironmentVariables[name] = endpointReference.ValueExpression;
                 return;
@@ -91,7 +91,7 @@ public static class ResourceBuilderExtensions
     {
         return builder.WithEnvironment(context =>
         {
-            if (context.PublisherName == "manifest")
+            if (context.ExecutionContext.Operation == DistributedApplicationOperation.Publish)
             {
                 context.EnvironmentVariables[name] = parameter.Resource.ValueExpression;
                 return;
@@ -112,6 +112,19 @@ public static class ResourceBuilderExtensions
     {
         // You can only ever have one manifest publishing callback, so it must be a replace operation.
         return builder.WithAnnotation(new ManifestPublishingCallbackAnnotation(callback), ResourceAnnotationMutationBehavior.Replace);
+    }
+
+    /// <summary>
+    /// Registers a callback which is invoked when a connection string is requested for a resource.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="resource">Resource to which connection string generation is redirected.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithConnectionStringRedirection<T>(this IResourceBuilder<T> builder, IResourceWithConnectionString resource) where T : IResourceWithConnectionString
+    {
+        // You can only ever have one manifest publishing callback, so it must be a replace operation.
+        return builder.WithAnnotation(new ConnectionStringRedirectAnnotation(resource), ResourceAnnotationMutationBehavior.Replace);
     }
 
     private static bool ContainsAmbiguousEndpoints(IEnumerable<AllocatedEndpointAnnotation> endpoints)
@@ -184,7 +197,7 @@ public static class ResourceBuilderExtensions
         {
             var connectionStringName = resource.ConnectionStringEnvironmentVariable ?? $"{ConnectionStringEnvironmentName}{connectionName}";
 
-            if (context.PublisherName == "manifest")
+            if (context.ExecutionContext.Operation == DistributedApplicationOperation.Publish)
             {
                 context.EnvironmentVariables[connectionStringName] = resource.ConnectionStringReferenceExpression;
                 return;

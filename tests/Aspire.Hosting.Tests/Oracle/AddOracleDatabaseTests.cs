@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net.Sockets;
+using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -26,7 +27,7 @@ public class AddOracleDatabaseTests
         Assert.NotNull(manifestPublishing.Callback);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal("latest", containerAnnotation.Tag);
+        Assert.Equal("23.3.0.0", containerAnnotation.Tag);
         Assert.Equal("database/free", containerAnnotation.Image);
         Assert.Equal("container-registry.oracle.com", containerAnnotation.Registry);
 
@@ -42,7 +43,8 @@ public class AddOracleDatabaseTests
         var envAnnotations = containerResource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
+        var context = new EnvironmentCallbackContext(executionContext, config);
 
         foreach (var annotation in envAnnotations)
         {
@@ -74,7 +76,7 @@ public class AddOracleDatabaseTests
         Assert.NotNull(manifestPublishing.Callback);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal("latest", containerAnnotation.Tag);
+        Assert.Equal("23.3.0.0", containerAnnotation.Tag);
         Assert.Equal("database/free", containerAnnotation.Image);
         Assert.Equal("container-registry.oracle.com", containerAnnotation.Registry);
 
@@ -90,7 +92,8 @@ public class AddOracleDatabaseTests
         var envAnnotations = containerResource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
+        var context = new EnvironmentCallbackContext(executionContext, config);
 
         foreach (var annotation in envAnnotations)
         {
@@ -125,6 +128,7 @@ public class AddOracleDatabaseTests
         var connectionStringResource = Assert.Single(appModel.Resources.OfType<IResourceWithConnectionString>());
         var connectionString = connectionStringResource.GetConnectionString();
 
+        Assert.Equal("user id=system;password={orcl.inputs.password};data source={orcl.bindings.tcp.host}:{orcl.bindings.tcp.port};", connectionStringResource.ConnectionStringExpression);
         Assert.StartsWith("user id=system;password=", connectionString);
         Assert.EndsWith(";data source=localhost:2000", connectionString);
     }
@@ -152,6 +156,7 @@ public class AddOracleDatabaseTests
         var oracleDatabaseResource = Assert.Single(appModel.Resources.OfType<OracleDatabaseResource>());
         var dbConnectionString = oracleDatabaseResource.GetConnectionString();
 
+        Assert.Equal("{orcl.connectionString}/db", oracleDatabaseResource.ConnectionStringExpression);
         Assert.Equal(oracleConnectionString + "/db", dbConnectionString);
     }
 
@@ -173,7 +178,7 @@ public class AddOracleDatabaseTests
         Assert.NotNull(manifestPublishing.Callback);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal("latest", containerAnnotation.Tag);
+        Assert.Equal("23.3.0.0", containerAnnotation.Tag);
         Assert.Equal("database/free", containerAnnotation.Image);
         Assert.Equal("container-registry.oracle.com", containerAnnotation.Registry);
 
@@ -189,7 +194,8 @@ public class AddOracleDatabaseTests
         var envAnnotations = containerResource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
+        var context = new EnvironmentCallbackContext(executionContext, config);
 
         foreach (var annotation in envAnnotations)
         {
@@ -202,5 +208,22 @@ public class AddOracleDatabaseTests
                 Assert.Equal("ORACLE_PWD", env.Key);
                 Assert.Equal("pass", env.Value);
             });
+    }
+
+    [Fact]
+    public void VerifyManifest()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        var oracleServer = appBuilder.AddOracleDatabase("oracle");
+        var db = oracleServer.AddDatabase("db");
+
+        var serverManifest = ManifestUtils.GetManifest(oracleServer.Resource);
+        var dbManifest = ManifestUtils.GetManifest(db.Resource);
+
+        Assert.Equal("container.v0", serverManifest["type"]?.ToString());
+        Assert.Equal(oracleServer.Resource.ConnectionStringExpression, serverManifest["connectionString"]?.ToString());
+
+        Assert.Equal("value.v0", dbManifest["type"]?.ToString());
+        Assert.Equal(db.Resource.ConnectionStringExpression, dbManifest["connectionString"]?.ToString());
     }
 }

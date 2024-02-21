@@ -30,10 +30,6 @@
                       "type": "string",
                       "description": "Gets or sets the connection string of the Azure Cosmos database to connect to."
                     },
-                    "IgnoreEmulatorCertificate": {
-                      "type": "boolean",
-                      "description": "Controls whether the Cosmos DB emulator certificate is ignored when its use is detected."
-                    },
                     "Tracing": {
                       "type": "boolean",
                       "description": "Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is enabled or not.",

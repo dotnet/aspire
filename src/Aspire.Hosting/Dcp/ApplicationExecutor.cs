@@ -58,7 +58,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                                           IConfiguration configuration,
                                           IOptions<DcpOptions> options,
                                           IDashboardEndpointProvider dashboardEndpointProvider,
-                                          IDashboardAvailability dashboardAvailability)
+                                          IDashboardAvailability dashboardAvailability,
+                                          DistributedApplicationExecutionContext executionContext)
 {
     private const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
 
@@ -68,17 +69,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
     private readonly IOptions<DcpOptions> _options = options;
     private readonly IDashboardEndpointProvider _dashboardEndpointProvider = dashboardEndpointProvider;
     private readonly IDashboardAvailability _dashboardAvailability = dashboardAvailability;
+    private readonly DistributedApplicationExecutionContext _executionContext = executionContext;
     private readonly List<AppResource> _appResources = [];
-
-    // These environment variables should never be inherited from app host;
-    // they only make sense if they come from a launch profile of a service project.
-    private static readonly string[] s_doNotInheritEnvironmentVars =
-    {
-        "ASPNETCORE_URLS",
-        "DOTNET_LAUNCH_PROFILE",
-        "ASPNETCORE_ENVIRONMENT",
-        "DOTNET_ENVIRONMENT"
-    };
 
     public async Task RunApplicationAsync(CancellationToken cancellationToken = default)
     {
@@ -252,23 +244,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         else
         {
             _logger.LogWarning("Skipping dashboard availability check because ASPNETCORE_URLS environment variable could not be parsed.");
-        }
-    }
-
-    public async Task StopApplicationAsync(CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            AspireEventSource.Instance.DcpModelCleanupStart();
-            await DeleteResourcesAsync<ExecutableReplicaSet>("project", cancellationToken).ConfigureAwait(false);
-            await DeleteResourcesAsync<Executable>("project", cancellationToken).ConfigureAwait(false);
-            await DeleteResourcesAsync<Container>("container", cancellationToken).ConfigureAwait(false);
-            await DeleteResourcesAsync<Service>("service", cancellationToken).ConfigureAwait(false);
-        }
-        finally
-        {
-            AspireEventSource.Instance.DcpModelCleanupStop();
-            _appResources.Clear();
         }
     }
 
@@ -447,7 +422,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             {
                 exeSpec.ExecutionType = ExecutionType.IDE;
 
-                // ExcludeLaunchProfileAnnotation takes precedence over LaunchProfileAnnotation. 
+                // ExcludeLaunchProfileAnnotation takes precedence over LaunchProfileAnnotation.
                 if (project.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _))
                 {
                     annotationHolder.Annotate(Executable.CSharpDisableLaunchProfileAnnotation, "true");
@@ -557,7 +532,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 }
 
                 var config = new Dictionary<string, string>();
-                var context = new EnvironmentCallbackContext("dcp", config);
+                var context = new EnvironmentCallbackContext(_executionContext, config);
 
                 // Need to apply configuration settings manually; see PrepareExecutables() for details.
                 if (er.ModelResource is ProjectResource project && project.SelectLaunchProfileName() is { } launchProfileName && project.GetLaunchSettings() is { } launchSettings)
@@ -566,17 +541,11 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 }
                 else
                 {
-                    // If there is no launch profile, we want to make sure that certain environment variables are NOT inherited
-                    foreach (var envVar in s_doNotInheritEnvironmentVars)
-                    {
-                        config.Add(envVar, "");
-                    }
-
                     if (er.ServicesProduced.Count > 0)
                     {
                         if (er.ModelResource is ProjectResource)
                         {
-                            var urls = er.ServicesProduced.Where(s => s.EndpointAnnotation.UriScheme is "http" or "https").Select(sar =>
+                            var urls = er.ServicesProduced.Where(IsUnspecifiedHttpService).Select(sar =>
                             {
                                 var url = sar.EndpointAnnotation.UriScheme + "://localhost:{{- portForServing \"" + sar.Service.Metadata.Name + "\" -}}";
                                 return url;
@@ -641,7 +610,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         {
             if (executableResource.DcpResource is ExecutableReplicaSet)
             {
-                var urls = executableResource.ServicesProduced.Select(sar =>
+                var urls = executableResource.ServicesProduced.Where(IsUnspecifiedHttpService).Select(sar =>
                 {
                     var url = sar.EndpointAnnotation.UriScheme + "://localhost:{{- portForServing \"" + sar.Service.Metadata.Name + "\" -}}";
                     return url;
@@ -716,19 +685,33 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
             ctr.Annotate(Container.ResourceNameAnnotation, container.Name);
             ctr.Annotate(Container.OtelServiceNameAnnotation, container.Name);
 
-            if (container.TryGetVolumeMounts(out var volumeMounts))
+            if (container.TryGetContainerMounts(out var containerMounts))
             {
                 ctr.Spec.VolumeMounts = new();
 
-                foreach (var mount in volumeMounts)
+                foreach (var mount in containerMounts)
                 {
-                    bool isBound = mount.Type == ApplicationModel.VolumeMountType.Bind;
+                    var isBound = mount.Type == ContainerMountType.Bind;
+                    var resolvedSource = mount.Source;
+                    if (isBound)
+                    {
+                        // Source is only optional for creating anonymous volume mounts.
+                        if (mount.Source == null)
+                        {
+                            throw new InvalidDataException($"Bind mount for container '{container.Name}' is missing required source.");
+                        }
+
+                        if (!Path.IsPathRooted(mount.Source))
+                        {
+                            resolvedSource = Path.GetFullPath(mount.Source);
+                        }
+                    }
+
                     var volumeSpec = new VolumeMount
                     {
-                        Source = isBound && !Path.IsPathRooted(mount.Source) ?
-                            Path.GetFullPath(mount.Source) : mount.Source,
+                        Source = resolvedSource,
                         Target = mount.Target,
-                        Type = isBound ? Model.VolumeMountType.Bind : Model.VolumeMountType.Named,
+                        Type = isBound ? VolumeMountType.Bind : VolumeMountType.Volume,
                         IsReadOnly = mount.IsReadOnly
                     };
                     ctr.Spec.VolumeMounts.Add(volumeSpec);
@@ -794,7 +777,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
                 if (modelContainerResource.TryGetEnvironmentVariables(out var containerEnvironmentVariables))
                 {
-                    var context = new EnvironmentCallbackContext("dcp", config);
+                    var context = new EnvironmentCallbackContext(_executionContext, config);
 
                     foreach (var v in containerEnvironmentVariables)
                     {
@@ -885,27 +868,6 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
     }
 
-    private async Task DeleteResourcesAsync<RT>(string resourceType, CancellationToken cancellationToken) where RT : CustomResource
-    {
-        var resourcesToDelete = _appResources.Select(r => r.DcpResource).OfType<RT>();
-        if (!resourcesToDelete.Any())
-        {
-            return;
-        }
-
-        foreach (var res in resourcesToDelete)
-        {
-            try
-            {
-                await kubernetesService.DeleteAsync<RT>(res.Metadata.Name, res.Metadata.NamespaceProperty, cancellationToken).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogInformation(ex, "Could not stop {ResourceType} '{ResourceName}'.", resourceType, res.Metadata.Name);
-            }
-        }
-    }
-
     private static string GetObjectNameForResource(IResource resource, string suffix = "")
     {
         string maybeWithSuffix(string s) => string.IsNullOrWhiteSpace(suffix) ? s : $"{s}_{suffix}";
@@ -929,5 +891,16 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
         }
 
         return uniqueName;
+    }
+
+    // Returns true if this resource represents an HTTP service endpoint which does not specify an environment variable for the endpoint.
+    // This is used to decide whether the endpoint should be propagated via the ASPNETCORE_URLS environment variable.
+    private static bool IsUnspecifiedHttpService(ServiceAppResource serviceAppResource)
+    {
+        return serviceAppResource.EndpointAnnotation is
+        {
+            UriScheme: "http" or "https",
+            EnvironmentVariable: null or { Length: 0 }
+        };
     }
 }

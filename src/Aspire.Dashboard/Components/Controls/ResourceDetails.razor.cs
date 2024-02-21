@@ -3,6 +3,7 @@
 
 using System.Globalization;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Utils;
 using Google.Protobuf.WellKnownTypes;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
@@ -169,7 +170,7 @@ public partial class ResourceDetails
             // Use try parse to check if a value matches ISO 8601 format. If there is a match then convert to a friendly format.
             if (DateTime.TryParseExact(value, "o", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
             {
-                value = date.ToString(CultureInfo.CurrentCulture);
+                value = FormatHelpers.FormatDateTime(date, cultureInfo: CultureInfo.CurrentCulture);
             }
         }
 

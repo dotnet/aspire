@@ -5,9 +5,9 @@ using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure.Bicep;
 using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Lifecycle;
-using Aspire.Hosting.Publishing;
 using Azure;
 using Azure.Core;
 using Azure.Identity;
@@ -25,7 +25,7 @@ namespace Aspire.Hosting.Azure;
 // Provisions azure resources for development purposes
 internal sealed class AzureProvisioner(
     IOptions<AzureProvisionerOptions> options,
-    IOptions<PublishingOptions> publishingOptions,
+    DistributedApplicationExecutionContext executionContext,
     IConfiguration configuration,
     IHostEnvironment environment,
     ILogger<AzureProvisioner> logger,
@@ -36,15 +36,32 @@ internal sealed class AzureProvisioner(
 
     private readonly AzureProvisionerOptions _options = options.Value;
 
+    private static IResource PromoteAzureResourceFromAnnotation(IResource resource)
+    {
+        // Some resources do not derive from IAzureResource but can be handled
+        // by the Azure provisioner because they have the AzureBicepResourceAnnotation
+        // which holds a reference to the surrogate AzureBicepResource which implements
+        // IAzureResource and can be used by the Azure Bicep Provisioner.
+
+        if (resource.Annotations.OfType<AzureBicepResourceAnnotation>().SingleOrDefault() is not { } azureSurrogate)
+        {
+            return resource;
+        }
+        else
+        {
+            return azureSurrogate.Resource;
+        }
+    }
+
     public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
         // TODO: Make this more general purpose
-        if (publishingOptions.Value.Publisher == "manifest")
+        if (executionContext.Operation == DistributedApplicationOperation.Publish)
         {
             return;
         }
 
-        var azureResources = appModel.Resources.OfType<IAzureResource>();
+        var azureResources = appModel.Resources.Select(PromoteAzureResourceFromAnnotation).OfType<IAzureResource>();
         if (!azureResources.OfType<IAzureResource>().Any())
         {
             return;

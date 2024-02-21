@@ -15,10 +15,6 @@ namespace Aspire.Hosting.Dcp;
 
 internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
 {
-    // Docker goes to into resource saver mode after 5 minutes of not running a container (by default).
-    // While in this mode, the commands we use for the docker runtime checks can take quite some time
-    private const int WaitTimeForDcpInfoCommandInSeconds = 10;
-
     [GeneratedRegex("[^\\d\\.].*$")]
     private static partial Regex VersionRegex();
 
@@ -65,7 +61,15 @@ internal sealed partial class DcpDependencyCheck : IDcpDependencyCheckService
 
             (task, processDisposable) = ProcessUtil.Run(processSpec);
 
-            await task.WaitAsync(TimeSpan.FromSeconds(WaitTimeForDcpInfoCommandInSeconds), cancellationToken).ConfigureAwait(false);
+            // Disable timeout if DependencyCheckTimeout is set to zero or a negative value
+            if (_dcpOptions.DependencyCheckTimeout > 0)
+            {
+                await task.WaitAsync(TimeSpan.FromSeconds(_dcpOptions.DependencyCheckTimeout), cancellationToken).ConfigureAwait(false);
+            }
+            else
+            {
+                await task.WaitAsync(cancellationToken).ConfigureAwait(false);
+            }
 
             // Parse the output as JSON
             var output = outputStringBuilder.ToString();

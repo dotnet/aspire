@@ -109,6 +109,8 @@ public class AzureBicepResource(string name, string? templateFile = null, string
             IEnumerable<string> enumerable => Quote(Parenthesize(Join(enumerable.Select(SingleQuote)))),
             IResourceBuilder<IResourceWithConnectionString> builder => Quote(builder.Resource.GetConnectionString() ?? throw new InvalidOperationException("Missing connection string")),
             IResourceBuilder<ParameterResource> p => Quote(p.Resource.Value),
+            // REVIEW: The value might not be calculated yet
+            BicepOutputReference output => Quote(output.Name + "=" + output.Resource.GetChecksum()),
             object o => Quote(input.ToString()!),
             null => ""
         };
@@ -159,11 +161,8 @@ public class AzureBicepResource(string name, string? templateFile = null, string
         using var template = GetBicepTemplateFile(Path.GetDirectoryName(context.ManifestPath), deleteTemporaryFileOnDispose: false);
         var path = template.Path;
 
-        // REVIEW: This should be in the ManifestPublisher
-        if (this is IResourceWithConnectionString c && c.ConnectionStringExpression is string connectionString)
-        {
-            context.Writer.WriteString("connectionString", connectionString);
-        }
+        // Write a connection string if it exists.
+        context.WriteConnectionString(this);
 
         // REVIEW: Consider multiple files.
         context.Writer.WriteString("path", context.GetManifestRelativePath(path));
@@ -173,11 +172,14 @@ public class AzureBicepResource(string name, string? templateFile = null, string
             context.Writer.WriteStartObject("params");
             foreach (var input in Parameters)
             {
-                if (input.Value is JsonNode || input.Value is IEnumerable<string>)
+                // Used for deferred evaluation of parameter.
+                object? inputValue = input.Value is Func<object?> f ? f() : input.Value;
+
+                if (inputValue is JsonNode || inputValue is IEnumerable<string>)
                 {
                     context.Writer.WritePropertyName(input.Key);
                     // Write JSON objects to the manifest for JSON node parameters
-                    JsonSerializer.Serialize(context.Writer, input.Value);
+                    JsonSerializer.Serialize(context.Writer, inputValue);
                     continue;
                 }
 
@@ -185,6 +187,7 @@ public class AzureBicepResource(string name, string? templateFile = null, string
                 {
                     IResourceBuilder<ParameterResource> p => p.Resource.ValueExpression,
                     IResourceBuilder<IResourceWithConnectionString> p => p.Resource.ConnectionStringReferenceExpression,
+                    BicepOutputReference output => output.ValueExpression,
                     object obj => obj.ToString(),
                     null => ""
                 };
@@ -196,26 +199,29 @@ public class AzureBicepResource(string name, string? templateFile = null, string
     }
 
     /// <summary>
-    /// Known parameters that can be used in the bicep template.
+    /// Known parameters that will be filled in automatically by the host environment.
     /// </summary>
     public static class KnownParameters
     {
         /// <summary>
-        /// TODO: Doc Comments
+        /// The principal id of the current user or managed identity.
         /// </summary>
-        public const string PrincipalId = "principalId";
+        public static readonly string PrincipalId = "principalId";
+
         /// <summary>
-        /// TODO: Doc Comments
+        /// The principal name of the current user or managed identity.
         /// </summary>
-        public const string PrincipalName = "principalName";
+        public static readonly string PrincipalName = "principalName";
+
         /// <summary>
-        /// TODO: Doc Comments
+        /// The principal type of the current user or managed identity. Either 'User' or 'ServicePrincipal'.
         /// </summary>
-        public const string PrincipalType = "principalType";
+        public static readonly string PrincipalType = "principalType";
+
         /// <summary>
-        /// TODO: Doc Comments
+        /// The name of the key vault resource used to store secret outputs.
         /// </summary>
-        public static string KeyVaultName = "keyVaultName";
+        public static readonly string KeyVaultName = "keyVaultName";
     }
 }
 
@@ -241,6 +247,44 @@ public readonly struct BicepTemplateFile(string path, bool deleteFileOnDispose) 
             File.Delete(Path);
         }
     }
+}
+
+/// <summary>
+/// A reference to a secret output from a bicep template.
+/// </summary>
+/// <param name="name">The name of the secret output.</param>
+/// <param name="resource">The <see cref="AzureBicepResource"/>.</param>
+public class BicepSecretOutputReference(string name, AzureBicepResource resource)
+{
+    /// <summary>
+    /// Name of the output.
+    /// </summary>
+    public string Name { get; } = name;
+
+    /// <summary>
+    /// The instance of the bicep resource.
+    /// </summary>
+    public AzureBicepResource Resource { get; } = resource;
+
+    /// <summary>
+    /// The value of the output.
+    /// </summary>
+    public string? Value
+    {
+        get
+        {
+            if (!Resource.SecretOutputs.TryGetValue(Name, out var value))
+            {
+                throw new InvalidOperationException($"No secret output for {Name}");
+            }
+            return value;
+        }
+    }
+
+    /// <summary>
+    /// The expression used in the manifest to reference the value of the secret output.
+    /// </summary>
+    public string ValueExpression => $"{{{Resource.Name}.secretOutputs.{Name}}}";
 }
 
 /// <summary>
@@ -328,6 +372,17 @@ public static class AzureBicepTemplateResourceExtensions
     }
 
     /// <summary>
+    /// Gets a reference to a secret output from a bicep template. This is an output that is written to a keyvault using the "keyVaultName" convention.
+    /// </summary>
+    /// <param name="builder">The resource buider.</param>
+    /// <param name="name">The name of the secret output.</param>
+    /// <returns>A <see cref="BicepSecretOutputReference"/> that represents the output.</returns>
+    public static BicepSecretOutputReference GetSecretOutput(this IResourceBuilder<AzureBicepResource> builder, string name)
+    {
+        return new BicepSecretOutputReference(name, builder.Resource);
+    }
+
+    /// <summary>
     /// Adds an environment variable to the resource with the value of the output from the bicep template.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
@@ -340,13 +395,28 @@ public static class AzureBicepTemplateResourceExtensions
     {
         return builder.WithEnvironment(ctx =>
         {
-            if (ctx.PublisherName == "manifest")
-            {
-                ctx.EnvironmentVariables[name] = bicepOutputReference.ValueExpression;
-                return;
-            }
+            ctx.EnvironmentVariables[name] = ctx.ExecutionContext.Operation == DistributedApplicationOperation.Publish
+                ? bicepOutputReference.ValueExpression
+                : bicepOutputReference.Value!;
+        });
+    }
 
-            ctx.EnvironmentVariables[name] = bicepOutputReference.Value!;
+    /// <summary>
+    /// Adds an environment variable to the resource with the value of the secret output from the bicep template.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">The name of the environment variable.</param>
+    /// <param name="bicepOutputReference">The reference to the bicep output.</param>
+    /// <returns>An <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithEnvironment<T>(this IResourceBuilder<T> builder, string name, BicepSecretOutputReference bicepOutputReference)
+        where T : IResourceWithEnvironment
+    {
+        return builder.WithEnvironment(ctx =>
+        {
+            ctx.EnvironmentVariables[name] = ctx.ExecutionContext.Operation == DistributedApplicationOperation.Publish
+                ? bicepOutputReference.ValueExpression
+                : bicepOutputReference.Value!;
         });
     }
 
@@ -415,6 +485,21 @@ public static class AzureBicepTemplateResourceExtensions
     /// <typeparam name="T">The <see cref="AzureBicepResource"/></typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <param name="name">The name of the input.</param>
+    /// <param name="valueCallback">The value of the parameter.</param>
+    /// <returns>An <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithParameter<T>(this IResourceBuilder<T> builder, string name, Func<object?> valueCallback)
+        where T : AzureBicepResource
+    {
+        builder.Resource.Parameters[name] = valueCallback;
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds a parameter to the bicep template.
+    /// </summary>
+    /// <typeparam name="T">The <see cref="AzureBicepResource"/></typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">The name of the input.</param>
     /// <param name="value">The value of the parameter.</param>
     /// <returns>An <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithParameter<T>(this IResourceBuilder<T> builder, string name, IResourceBuilder<ParameterResource> value)
@@ -433,6 +518,21 @@ public static class AzureBicepTemplateResourceExtensions
     /// <param name="value">The value of the parameter.</param>
     /// <returns>An <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> WithParameter<T>(this IResourceBuilder<T> builder, string name, IResourceBuilder<IResourceWithConnectionString> value)
+        where T : AzureBicepResource
+    {
+        builder.Resource.Parameters[name] = value;
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds a parameter to the bicep template.
+    /// </summary>
+    /// <typeparam name="T">The <see cref="AzureBicepResource"/></typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="name">The name of the input.</param>
+    /// <param name="value">The value of the parameter.</param>
+    /// <returns>An <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> WithParameter<T>(this IResourceBuilder<T> builder, string name, BicepOutputReference value)
         where T : AzureBicepResource
     {
         builder.Resource.Parameters[name] = value;

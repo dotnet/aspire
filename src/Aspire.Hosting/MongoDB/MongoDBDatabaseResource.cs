@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Publishing;
+
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
@@ -10,6 +12,12 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="parent">The MongoDB server resource associated with this database.</param>
 public class MongoDBDatabaseResource(string name, MongoDBServerResource parent) : Resource(name), IResourceWithParent<MongoDBServerResource>, IResourceWithConnectionString
 {
+    /// <summary>
+    /// Gets the connection string expression for the MongoDB database.
+    /// </summary>
+    public string ConnectionStringExpression
+        => $"{{{Parent.Name}.connectionString}}/{Name}";
+
     /// <summary>
     /// Gets the parent MongoDB container resource.
     /// </summary>
@@ -29,5 +37,11 @@ public class MongoDBDatabaseResource(string name, MongoDBServerResource parent) 
         }
 
         throw new DistributedApplicationException("Parent resource connection string was null.");
+    }
+
+    internal void WriteMongoDBDatabaseToManifest(ManifestPublishingContext context)
+    {
+        context.Writer.WriteString("type", "value.v0");
+        context.WriteConnectionString(this);
     }
 }

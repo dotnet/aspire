@@ -46,28 +46,56 @@ public sealed class ResourceViewModel
     }
 }
 
-public sealed class EnvironmentVariableViewModel(string name, string? value, bool fromSpec)
+public sealed class EnvironmentVariableViewModel
 {
-    public string Name { get; } = name;
-    public string? Value { get; } = value;
-    public bool FromSpec { get; } = fromSpec;
+    public string Name { get; }
+    public string? Value { get; }
+    public bool FromSpec { get; }
 
     public bool IsValueMasked { get; set; } = true;
+
+    public EnvironmentVariableViewModel(string name, string? value, bool fromSpec)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+
+        Name = name;
+        Value = value;
+        FromSpec = fromSpec;
+    }
 }
 
-public sealed class EndpointViewModel(string endpointUrl, string proxyUrl)
+public sealed class EndpointViewModel
 {
-    public string EndpointUrl { get; } = endpointUrl;
-    public string ProxyUrl { get; } = proxyUrl;
+    public string EndpointUrl { get; }
+    public string ProxyUrl { get; }
+
+    public EndpointViewModel(string endpointUrl, string proxyUrl)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(endpointUrl);
+        ArgumentException.ThrowIfNullOrWhiteSpace(proxyUrl);
+
+        EndpointUrl = endpointUrl;
+        ProxyUrl = proxyUrl;
+    }
 }
 
-public sealed class ResourceServiceViewModel(string name, string? allocatedAddress, int? allocatedPort)
+public sealed class ResourceServiceViewModel
 {
-    public string Name { get; } = name;
-    public string? AllocatedAddress { get; } = allocatedAddress;
-    public int? AllocatedPort { get; } = allocatedPort;
+    public string Name { get; }
+    public string? AllocatedAddress { get; }
+    public int? AllocatedPort { get; }
 
-    public string AddressAndPort { get; } = $"{allocatedAddress}:{allocatedPort}";
+    public string AddressAndPort { get; }
+
+    public ResourceServiceViewModel(string name, string? allocatedAddress, int? allocatedPort)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+
+        Name = name;
+        AllocatedAddress = allocatedAddress;
+        AllocatedPort = allocatedPort;
+        AddressAndPort = $"{allocatedAddress}:{allocatedPort}";
+    }
 }
 
 public static class ResourceStates
@@ -76,4 +104,5 @@ public static class ResourceStates
     public const string ExitedState = "Exited";
     public const string FailedToStartState = "FailedToStart";
     public const string StartingState = "Starting";
+    public const string RunningState = "Running";
 }
