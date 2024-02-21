@@ -3,7 +3,9 @@
 
 using Aspire.Dashboard.Components.Controls.Chart;
 using Aspire.Dashboard.Otlp.Model;
+using Aspire.Dashboard.Resources;
 using Microsoft.AspNetCore.Components;
+using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Controls;
@@ -36,14 +38,16 @@ public partial class MetricTable : ChartBase
         _instrument = InstrumentViewModel.Instrument;
         _showCount = InstrumentViewModel.ShowCount;
 
-        _metrics = UpdateMetrics(out var xValuesToAnnounce);
+        var newMetrics = UpdateMetrics(out var xValuesToAnnounce);
 
         if (xValuesToAnnounce.Count == 0)
         {
             return;
         }
 
-        await InvokeAsync(StateHasChanged);
+        _metrics = newMetrics;
+
+        //await InvokeAsync(StateHasChanged);
 
         if (_jsModule is not null)
         {
@@ -236,5 +240,16 @@ public partial class MetricTable : ChartBase
         Histogram,
         Instrument,
         Count
+    }
+
+    private (Icon Icon, string Title)? GetIconAndTitleForDirection(ValueDirectionChange? directionChange)
+    {
+        return directionChange switch
+        {
+            ValueDirectionChange.Up => (new Icons.Filled.Size16.ArrowCircleUp().WithColor(Color.Success), Loc[nameof(ControlsStrings.MetricTableValueIncreased)]),
+            ValueDirectionChange.Down => (new Icons.Filled.Size16.ArrowCircleDown().WithColor(Color.Warning), Loc[nameof(ControlsStrings.MetricTableValueDecreased)]),
+            ValueDirectionChange.Constant => (new Icons.Filled.Size16.ArrowCircleRight().WithColor(Color.Info), Loc[nameof(ControlsStrings.MetricTableValueNoChange)]),
+            _ => null
+        };
     }
 }
