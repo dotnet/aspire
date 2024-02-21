@@ -3,6 +3,7 @@
 
 using System.Net.Sockets;
 using Aspire.Hosting.MongoDB;
+using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -95,7 +96,10 @@ public class AddMongoDBTests
         var connectionStringResource = Assert.Single(appModel.Resources.OfType<MongoDBDatabaseResource>());
         var connectionString = connectionStringResource.GetConnectionString();
 
+        Assert.Equal("mongodb://localhost:27017/", connectionStringResource.Parent.GetConnectionString());
+        Assert.Equal("mongodb://{mongodb.bindings.tcp.host}:{mongodb.bindings.tcp.port}", connectionStringResource.Parent.ConnectionStringExpression);
         Assert.Equal("mongodb://localhost:27017/mydatabase", connectionString);
+        Assert.Equal("{mongodb.connectionString}/mydatabase", connectionStringResource.ConnectionStringExpression);
     }
 
     [Fact]
@@ -115,5 +119,22 @@ public class AddMongoDBTests
         builder.AddMongoDB("mongo2").WithMongoExpress();
 
         Assert.Equal(2, builder.Resources.OfType<MongoExpressContainerResource>().Count());
+    }
+
+    [Fact]
+    public void VerifyManifest()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        var mongo = appBuilder.AddMongoDB("mongo");
+        var db = mongo.AddDatabase("mydb");
+
+        var mongoManifest = ManifestUtils.GetManifest(mongo.Resource);
+        var dbManifest = ManifestUtils.GetManifest(db.Resource);
+        
+        Assert.Equal("container.v0", mongoManifest["type"]?.ToString());
+        Assert.Equal(mongo.Resource.ConnectionStringExpression, mongoManifest["connectionString"]?.ToString());
+
+        Assert.Equal("value.v0", dbManifest["type"]?.ToString());
+        Assert.Equal(db.Resource.ConnectionStringExpression, dbManifest["connectionString"]?.ToString());
     }
 }

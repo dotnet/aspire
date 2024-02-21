@@ -38,6 +38,6 @@ public class AzureBlobStorageResource(string name, AzureStorageResource storage)
     internal void WriteToManifest(ManifestPublishingContext context)
     {
         context.Writer.WriteString("type", "value.v0");
-        context.Writer.WriteString("connectionString", ConnectionStringExpression);
+        context.WriteConnectionString(this);
     }
 }

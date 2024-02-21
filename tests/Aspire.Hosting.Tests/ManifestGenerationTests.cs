@@ -263,8 +263,7 @@ public class ManifestGenerationTests
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher();
 
-        program.AppBuilder.AddRedis("redisabstract");
-        program.AppBuilder.AddRedis("rediscontainer").PublishAsContainer();
+        program.AppBuilder.AddRedis("rediscontainer");
 
         // Build AppHost so that publisher can be resolved.
         program.Build();
@@ -273,9 +272,6 @@ public class ManifestGenerationTests
         program.Run();
 
         var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var connection = resources.GetProperty("redisabstract");
-        Assert.Equal("redis.v0", connection.GetProperty("type").GetString());
 
         var container = resources.GetProperty("rediscontainer");
         Assert.Equal("container.v0", container.GetProperty("type").GetString());
@@ -286,7 +282,7 @@ public class ManifestGenerationTests
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher();
 
-        program.AppBuilder.AddRedis("rediscontainer").PublishAsContainer();
+        program.AppBuilder.AddRedis("rediscontainer");
 
         // Build AppHost so that publisher can be resolved.
         program.Build();
@@ -307,8 +303,7 @@ public class ManifestGenerationTests
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher();
 
-        program.AppBuilder.AddPostgres("postgresabstract");
-        program.AppBuilder.AddPostgres("postgrescontainer").PublishAsContainer().AddDatabase("postgresdatabase");
+        program.AppBuilder.AddPostgres("postgrescontainer").AddDatabase("postgresdatabase");
 
         // Build AppHost so that publisher can be resolved.
         program.Build();
@@ -317,9 +312,6 @@ public class ManifestGenerationTests
         program.Run();
 
         var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var connection = resources.GetProperty("postgresabstract");
-        Assert.Equal("postgres.server.v0", connection.GetProperty("type").GetString());
 
         var server = resources.GetProperty("postgrescontainer");
         Assert.Equal("container.v0", server.GetProperty("type").GetString());
@@ -333,8 +325,7 @@ public class ManifestGenerationTests
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher();
 
-        program.AppBuilder.AddRabbitMQ("rabbitabstract");
-        program.AppBuilder.AddRabbitMQ("rabbitcontainer").PublishAsContainer();
+        program.AppBuilder.AddRabbitMQ("rabbitcontainer");
 
         // Build AppHost so that publisher can be resolved.
         program.Build();
@@ -343,9 +334,6 @@ public class ManifestGenerationTests
         program.Run();
 
         var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var connection = resources.GetProperty("rabbitabstract");
-        Assert.Equal("rabbitmq.server.v0", connection.GetProperty("type").GetString());
 
         var server = resources.GetProperty("rabbitcontainer");
         Assert.Equal("container.v0", server.GetProperty("type").GetString());
@@ -356,8 +344,7 @@ public class ManifestGenerationTests
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher();
 
-        program.AppBuilder.AddKafka("kafkaabstract");
-        program.AppBuilder.AddKafka("kafkacontainer").PublishAsContainer();
+        program.AppBuilder.AddKafka("kafkacontainer");
 
         // Build AppHost so that publisher can be resolved.
         program.Build();
@@ -366,9 +353,6 @@ public class ManifestGenerationTests
         program.Run();
 
         var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var connection = resources.GetProperty("kafkaabstract");
-        Assert.Equal("kafka.server.v0", connection.GetProperty("type").GetString());
 
         var server = resources.GetProperty("kafkacontainer");
         Assert.Equal("container.v0", server.GetProperty("type").GetString());

@@ -152,6 +152,15 @@ public static class ContainerResourceBuilderExtensions
         return builder;
     }
 
+    /// <summary>
+    /// Changes the Kafka resource to be published as a container in the manifest.
+    /// </summary>
+    /// <param name="builder">Resource builder.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<T> PublishAsContainer<T>(this IResourceBuilder<T> builder) where T : ContainerResource
+    {
+        return builder.WithManifestPublishingCallback(context => context.WriteContainer(builder.Resource));
+    }
 }
 
 internal static class IListExtensions

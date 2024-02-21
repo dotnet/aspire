@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Publishing;
+
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
@@ -16,6 +18,11 @@ public class SqlServerDatabaseResource(string name, SqlServerServerResource pare
     public SqlServerServerResource Parent { get; } = parent;
 
     /// <summary>
+    /// Gets the connection string expression for the SQL Server database for use in the manifest.
+    /// </summary>
+    public string ConnectionStringExpression => $"{{{Parent.Name}.connectionString}};Database={Name}";
+
+    /// <summary>
     /// Gets the connection string for the database resource.
     /// </summary>
     /// <returns>The connection string for the database resource.</returns>
@@ -24,11 +31,17 @@ public class SqlServerDatabaseResource(string name, SqlServerServerResource pare
     {
         if (Parent.GetConnectionString() is { } connectionString)
         {
-            return $"{connectionString}Database={Name}";
+            return $"{connectionString};Database={Name}";
         }
         else
         {
             throw new DistributedApplicationException("Parent resource connection string was null.");
         }
+    }
+
+    internal void WriteToManifest(ManifestPublishingContext context)
+    {
+        context.Writer.WriteString("type", "value.v0");
+        context.WriteConnectionString(this);
     }
 }

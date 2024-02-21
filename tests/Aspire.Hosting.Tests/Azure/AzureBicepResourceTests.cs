@@ -1,11 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Text.Json;
+using System.Net.Sockets;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.Postgres;
-using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
 using Xunit;
 
@@ -85,7 +84,7 @@ public class AzureBicepResourceTests
                                     .WithParameter("param4", param);
 
         // This makes a temp file
-        var obj = GetManifest(bicepResource.Resource.WriteToManifest);
+        var obj = ManifestUtils.GetManifest(bicepResource.Resource.WriteToManifest);
 
         Assert.NotNull(obj);
         Assert.Equal("azure.bicep.v0", obj["type"]?.ToString());
@@ -127,7 +126,7 @@ public class AzureBicepResourceTests
 
         var db = builder.AddBicepCosmosDb("cosmos").AddDatabase("db", "mydatabase");
 
-        var obj = GetManifest(db.Resource.WriteToManifest);
+        var obj = ManifestUtils.GetManifest(db.Resource.WriteToManifest);
 
         Assert.NotNull(obj);
         Assert.Equal("azure.bicep.v0", obj["type"]?.ToString());
@@ -200,15 +199,15 @@ public class AzureBicepResourceTests
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        var redis = builder.AddRedis("cache").PublishAsAzureRedis();
+        var redis = builder.AddRedis("cache")
+            .WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "localhost", 12455, "tcp"))
+            .PublishAsAzureRedis();
 
         Assert.True(redis.Resource.IsContainer());
 
-        var manifestCallback = redis.Resource.Annotations.OfType<ManifestPublishingCallbackAnnotation>().Single();
+        Assert.Equal("localhost:12455", redis.Resource.GetConnectionString());
 
-        Assert.NotNull(manifestCallback?.Callback);
-
-        var manifest = GetManifest(manifestCallback.Callback);
+        var manifest = ManifestUtils.GetManifest(redis.Resource);
 
         Assert.Equal("azure.bicep.v0", manifest["type"]?.ToString());
         Assert.Equal("{cache.secretOutputs.connectionString}", manifest["connectionString"]?.ToString());
@@ -330,9 +329,14 @@ public class AzureBicepResourceTests
         var endpointAnnotation = new AllocatedEndpointAnnotation("dummy", System.Net.Sockets.ProtocolType.Tcp, "localhost", 1234, "tcp");
         postgres.WithAnnotation(endpointAnnotation);
         var expectedConnectionString = $"Host={endpointAnnotation.Address};Port={endpointAnnotation.Port};Username=postgres;Password={PasswordUtil.EscapePassword(postgres.Resource.Password)}";
-        Assert.NotNull(postgres.Resource.GetConnectionString());
+        Assert.Equal(expectedConnectionString, postgres.Resource.GetConnectionString());
 
         Assert.Equal("{postgres.secretOutputs.connectionString}", azurePostgres.Resource.ConnectionStringExpression);
+
+        var manifest = ManifestUtils.GetManifest(postgres.Resource);
+
+        Assert.Equal("azure.bicep.v0", manifest["type"]?.ToString());
+        Assert.Equal("{postgres.secretOutputs.connectionString}", manifest["connectionString"]?.ToString());
     }
 
     [Fact]
@@ -384,31 +388,13 @@ public class AzureBicepResourceTests
         Assert.Equal("{storage.outputs.queueEndpoint}", queue.Resource.ConnectionStringExpression);
         Assert.Equal("{storage.outputs.tableEndpoint}", table.Resource.ConnectionStringExpression);
 
-        var blobManifest = GetManifest(blob.Resource.WriteToManifest);
-        Assert.Equal("value.v0", blobManifest["type"]?.ToString());
+        var blobManifest = ManifestUtils.GetManifest(blob.Resource);
         Assert.Equal("{storage.outputs.blobEndpoint}", blobManifest["connectionString"]?.ToString());
 
-        var queueManifest = GetManifest(queue.Resource.WriteToManifest);
-        Assert.Equal("value.v0", queueManifest["type"]?.ToString());
+        var queueManifest = ManifestUtils.GetManifest(queue.Resource);
         Assert.Equal("{storage.outputs.queueEndpoint}", queueManifest["connectionString"]?.ToString());
 
-        var tableManifest = GetManifest(table.Resource.WriteToManifest);
-        Assert.Equal("value.v0", tableManifest["type"]?.ToString());
+        var tableManifest = ManifestUtils.GetManifest(table.Resource);
         Assert.Equal("{storage.outputs.tableEndpoint}", tableManifest["connectionString"]?.ToString());
-    }
-
-    private static JsonNode GetManifest(Action<ManifestPublishingContext> writeManifest)
-    {
-        using var ms = new MemoryStream();
-        var writer = new Utf8JsonWriter(ms);
-        writer.WriteStartObject();
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish);
-        writeManifest(new ManifestPublishingContext(executionContext, Environment.CurrentDirectory, writer));
-        writer.WriteEndObject();
-        writer.Flush();
-        ms.Position = 0;
-        var obj = JsonNode.Parse(ms);
-        Assert.NotNull(obj);
-        return obj;
     }
 }
