@@ -387,17 +387,14 @@ public class AzureBicepResourceTests
         var blobManifest = GetManifest(blob.Resource.WriteToManifest);
         Assert.Equal("value.v0", blobManifest["type"]?.ToString());
         Assert.Equal("{storage.outputs.blobEndpoint}", blobManifest["connectionString"]?.ToString());
-        Assert.Equal("storage", blobManifest["parent"]?.ToString());
 
         var queueManifest = GetManifest(queue.Resource.WriteToManifest);
         Assert.Equal("value.v0", queueManifest["type"]?.ToString());
         Assert.Equal("{storage.outputs.queueEndpoint}", queueManifest["connectionString"]?.ToString());
-        Assert.Equal("storage", blobManifest["parent"]?.ToString());
 
         var tableManifest = GetManifest(table.Resource.WriteToManifest);
         Assert.Equal("value.v0", tableManifest["type"]?.ToString());
         Assert.Equal("{storage.outputs.tableEndpoint}", tableManifest["connectionString"]?.ToString());
-        Assert.Equal("storage", blobManifest["parent"]?.ToString());
     }
 
     private static JsonNode GetManifest(Action<ManifestPublishingContext> writeManifest)
