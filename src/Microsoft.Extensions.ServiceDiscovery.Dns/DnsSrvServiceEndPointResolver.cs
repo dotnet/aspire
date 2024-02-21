@@ -59,14 +59,13 @@ internal sealed partial class DnsSrvServiceEndPointResolver(
             }
 
             ttl = MinTtl(record, ttl);
-            if (targetRecord is AddressRecord addressRecord)
+            if (targetRecord is not AddressRecord addressRecord)
             {
-                endPoints.Add(CreateEndPoint(new IPEndPoint(addressRecord.Address, record.Port)));
+                Log.UnsupportedDnsSrvRecord(Logger, record.RecordType.ToString(), ServiceName);
+                continue;
             }
-            else if (targetRecord is CNameRecord canonicalNameRecord)
-            {
-                endPoints.Add(CreateEndPoint(new DnsEndPoint(canonicalNameRecord.CanonicalName.Value.TrimEnd('.'), record.Port)));
-            }
+
+            endPoints.Add(CreateEndPoint(new IPEndPoint(addressRecord.Address, record.Port)));
         }
 
         SetResult(endPoints, ttl);

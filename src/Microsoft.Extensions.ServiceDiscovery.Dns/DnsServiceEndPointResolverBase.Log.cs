@@ -23,5 +23,8 @@ internal partial class DnsServiceEndPointResolverBase
 
         [LoggerMessage(5, LogLevel.Debug, "DNS SRV query cannot be constructed for service name '{ServiceName}' because no DNS namespace was configured or detected.", EventName = "NoDnsSuffixFound")]
         public static partial void NoDnsSuffixFound(ILogger logger, string serviceName);
+
+        [LoggerMessage(6, LogLevel.Warning, "DNS SRV query returned a record with an unsupported type '{RecordType}' for service name '{ServiceName}'.", EventName = "UnsupportedDnsSrvRecord")]
+        public static partial void UnsupportedDnsSrvRecord(ILogger logger, string recordType, string serviceName);
     }
 }

@@ -13,7 +13,6 @@ namespace Microsoft.Extensions.ServiceDiscovery.Dns;
 internal abstract partial class DnsServiceEndPointResolverBase : IServiceEndPointResolver
 {
     private readonly object _lock = new();
-    private readonly ILogger _logger;
     private readonly CancellationTokenSource _disposeCancellation = new();
     private readonly TimeProvider _timeProvider;
     private long _lastRefreshTimeStamp;
@@ -36,7 +35,7 @@ internal abstract partial class DnsServiceEndPointResolverBase : IServiceEndPoin
         TimeProvider timeProvider)
     {
         ServiceName = serviceName;
-        _logger = logger;
+        Logger = logger;
         _lastEndPointCollection = null;
         _timeProvider = timeProvider;
         _lastRefreshTimeStamp = _timeProvider.GetTimestamp();
@@ -58,13 +57,15 @@ internal abstract partial class DnsServiceEndPointResolverBase : IServiceEndPoin
 
     protected CancellationToken ShutdownToken => _disposeCancellation.Token;
 
+    protected ILogger Logger { get; }
+
     /// <inheritdoc/>
     public async ValueTask<ResolutionStatus> ResolveAsync(ServiceEndPointCollectionSource endPoints, CancellationToken cancellationToken)
     {
         // Only add endpoints to the collection if a previous provider (eg, a configuration override) did not add them.
         if (endPoints.EndPoints.Count != 0)
         {
-            Log.SkippedResolution(_logger, ServiceName, "Collection has existing endpoints");
+            Log.SkippedResolution(Logger, ServiceName, "Collection has existing endpoints");
             return ResolutionStatus.None;
         }
 
