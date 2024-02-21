@@ -48,6 +48,8 @@ public static class JavaScriptAppHostingExtension
     {   
         string[] allArgs;
 
+        scriptName ??= "npm";
+
         // Check if scriptName is "npm" and adjust allArgs accordingly
         if (string.Equals(scriptName, "npm", StringComparison.OrdinalIgnoreCase))
         {
@@ -57,18 +59,11 @@ public static class JavaScriptAppHostingExtension
         }
         else
         {
-        // If scriptName is not npm, use developer config or throw an error if null or empty
-            if (args is null || args.Length == 0)
-            {
-                throw new ArgumentException("Developer config (args) cannot be null or empty if scriptName is not 'npm'.");
-            }
-
-            allArgs = args;
+            // If scriptName is not npm, use developer config or an empty array
+            allArgs = args ?? Array.Empty<string>();
         }
 
         workingDirectory = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, workingDirectory));
-
-        scriptName ??= "npm";
 
         var resource = new JavaScriptAppResource(name, scriptName, workingDirectory, allArgs);
 
