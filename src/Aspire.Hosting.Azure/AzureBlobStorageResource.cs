@@ -32,9 +32,9 @@ public class AzureBlobStorageResource(string name, AzureStorageResource storage)
     public string? GetConnectionString() => Parent.GetBlobConnectionString();
 
     /// <summary>
-    /// TODO: Doc Comments
+    /// Called by manifest publisher to write manifest resource.
     /// </summary>
-    /// <param name="context"></param>
+    /// <param name="context">The context for the manifest publishing operation.</param>
     public void WriteToManifest(ManifestPublishingContext context)
     {
         context.Writer.WriteString("type", "value.v0");
