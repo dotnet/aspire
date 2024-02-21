@@ -4,30 +4,34 @@
 using Aspire.Hosting.Tests.Helpers;
 using Xunit;
 
-namespace Aspire.Hosting.Tests.JavaScript;
-
-[Collection("JavaScriptApp")]
-public class JavaScriptFunctionalTests
+namespace Aspire.Hosting.Tests.JavaScript
 {
-    private readonly JavaScriptAppFixture _javaScriptRuntimeFixture;
-
-    public JavaScriptFunctionalTests(JavaScriptAppFixture nodeJsFixture)
+    [Collection("JavaScriptApp")]
+    public class JavaScriptFunctionalTests
     {
-        _javaScriptRuntimeFixture = nodeJsFixture;
-    }
-    // can this be a reassignable variable? eg: varXYZ = "node"
-    [LocalOnlyFact(varXYZ)]
-    public async Task VerifyJavaScriptAppWorks()
-    {
-        var testProgram = _javaScriptRuntimeFixture.TestProgram;
-        var client = _javaScriptRuntimeFixture.HttpClient;
+        private readonly JavaScriptAppFixture _javaScriptRuntimeFixture;
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
+        public JavaScriptFunctionalTests(JavaScriptAppFixture nodeJsFixture)
+        {
+            _javaScriptRuntimeFixture = nodeJsFixture;
+        }
 
-        var response0 = await testProgram.JavaScriptAppBuilder!.HttpGetStringWithRetryAsync(client, "http", "/", cts.Token);
-        var response1 = await testProgram.JavaScriptCLIAppBuilder!.HttpGetStringWithRetryAsync(client, "http", "/", cts.Token);
+        // Reassignable variable, stringPath = "node"
+        private static string stringPath = "node";
 
-        Assert.Equal("Hello from JavaScript Runtime!", response0);
-        Assert.Equal("Hello from JavaScript Runtime!", response1);
+        [LocalOnlyFact(stringPath)]
+        public async Task VerifyJavaScriptAppWorks()
+        {
+            var testProgram = _javaScriptRuntimeFixture.TestProgram;
+            var client = _javaScriptRuntimeFixture.HttpClient;
+
+            using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(1));
+
+            var response0 = await testProgram.JavaScriptAppBuilder!.HttpGetStringWithRetryAsync(client, "http", "/", cts.Token);
+            var response1 = await testProgram.JavaScriptCLIAppBuilder!.HttpGetStringWithRetryAsync(client, "http", "/", cts.Token);
+
+            Assert.Equal("Hello from JavaScript Runtime!", response0);
+            Assert.Equal("Hello from JavaScript Runtime!", response1);
+        }
     }
 }
