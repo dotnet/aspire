@@ -82,7 +82,7 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"Error in logging socket processor: {ex}");
+                _logger.LogError(ex, "Error in logging socket processor.");
             }
         }
     }
@@ -119,7 +119,7 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"Failed to enable orchestration logging: {ex}");
+                _logger.LogError(ex, "Failed to enable orchestration logging.");
             }
             finally
             {
