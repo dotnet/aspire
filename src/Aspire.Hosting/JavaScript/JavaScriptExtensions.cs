@@ -10,7 +10,7 @@ namespace Aspire.Hosting;
 /// Provides extension methods for adding JavaScript runtime based applications to an <see cref="IDistributedApplicationBuilder"/>.
 /// </summary>
 public static class JavaScriptAppHostingExtension
-{
+{   
     /// <summary>
     /// Adds a JavaScript runtime to the application model. The runtime and dependencies should available on the PATH.
     /// </summary>
@@ -20,18 +20,15 @@ public static class JavaScriptAppHostingExtension
     /// <param name="workingDirectory">The working directory to use for the command. If null, the working directory of the current process is used.</param>
     /// <param name="args">The arguments to pass to the command.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<JavaScriptAppResource> AddJavaScriptApp(this IDistributedApplicationBuilder builder, string name, string scriptPath, string? workingDirectory = null, string[]? args = null)
-    {
+    public static IResourceBuilder<JavaScriptAppResource> AddJavaScriptApp(this IDistributedApplicationBuilder builder, string name, string scriptPath = null, string? workingDirectory = null, string[]? args = null)
+    {   
+        scriptPath ??= "node";
         args ??= [];
         string[] effectiveArgs = [scriptPath, .. args];
         workingDirectory ??= Path.GetDirectoryName(scriptPath)!;
         workingDirectory = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, workingDirectory));
 
-        // pseudo code
-        // create a 'vaXYZ' that is == "node" as default or reassigned to the desired runtime name
-        // passed as second argument to the JavaScriptAppResource constructor
-
-        var resource = new JavaScriptAppResource(name, varXYZ, workingDirectory, effectiveArgs);
+        var resource = new JavaScriptAppResource(name, scriptPath, workingDirectory, effectiveArgs);
 
         return builder.AddResource(resource)
                       .WithJavaScriptAppDefaults();
@@ -46,22 +43,29 @@ public static class JavaScriptAppHostingExtension
     /// <param name="scriptName">The npm script to execute. Defaults to "start".</param>
     /// <param name="args">The arguments to pass to the command.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<JavaScriptAppResource> AddJavaScriptCLIApp(this IDistributedApplicationBuilder builder, string name, string workingDirectory, string scriptName, string[]? args = null)
-
-    // pseudo code
-    // create a 'vaXYZ' that is == "npm" as default or reassigned to the desired package manager/CLI tool name
-    // passed as second argument to the JavaScriptAppResource constructor
+    public static IResourceBuilder<JavaScriptAppResource> AddJavaScriptCLIApp(this IDistributedApplicationBuilder builder, string name, string workingDirectory, string? scriptName = null, string[]? args = null)
 
     {   
-        // create a conditional so if varXYZ is "npm" then the scriptName is "run" and the args are passed as is
-        string[] allArgs = args is { Length: > 0 }
-            ? ["run", scriptName, "--", .. args]
-            : ["run", scriptName];
+        string[] allArgs;
 
-        // or else all args is a custom object with the scriptName and the args
+        // Check if scriptName is "npm" and adjust allArgs accordingly
+        if (string.Equals(scriptName, "npm", StringComparison.OrdinalIgnoreCase))
+        {
+            allArgs = args is { Length: > 0 }
+                ? new string[] { "run", scriptName, "--" }.Concat(args).ToArray()
+                : new string[] { "run", scriptName };
+        }
+        else
+        {
+            // If scriptName is not npm, use developer config or an empty array
+            allArgs = args ?? Array.Empty<string>();
+        }
 
         workingDirectory = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, workingDirectory));
-        var resource = new JavaScriptAppResource(name, varXYZ, workingDirectory, allArgs);
+
+        scriptName ??= "npm";
+
+        var resource = new JavaScriptAppResource(name, scriptName, workingDirectory, allArgs);
 
         return builder.AddResource(resource)
                       .WithJavaScriptAppDefaults();
@@ -69,7 +73,16 @@ public static class JavaScriptAppHostingExtension
 
     // this needs tested only for node since
     // other runtimes may use a different pattern for env configuration
-    private static IResourceBuilder<JavaScriptAppResource> WithJavaScriptAppDefaults(this IResourceBuilder<JavaScriptAppResource> builder) =>
-        builder.WithOtlpExporter()
-            .WithEnvironment("NODE_ENV", builder.ApplicationBuilder.Environment.IsDevelopment() ? "development" : "production");
+     private static IResourceBuilder<JavaScriptAppResource> WithJavaScriptAppDefaults(this IResourceBuilder<JavaScriptAppResource> builder)
+    {
+        var environment = builder.ApplicationBuilder.Environment;
+
+        if (builder.Resource.ScriptPath.Equals("node", StringComparison.OrdinalIgnoreCase))
+        {
+            return builder.WithOtlpExporter()
+                            .WithEnvironment("NODE_ENV", environment.IsDevelopment() ? "development" : "production");
+        }
+
+        return builder;
+    }
 }
