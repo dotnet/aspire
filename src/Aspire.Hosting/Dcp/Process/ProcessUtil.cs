@@ -34,6 +34,11 @@ internal static partial class ProcessUtil
             EnableRaisingEvents = true
         };
 
+        if (!processSpec.InheritEnv)
+        {
+            process.StartInfo.Environment.Clear();
+        }
+
         foreach (var (key, value) in processSpec.EnvironmentVariables)
         {
             process.StartInfo.Environment[key] = value;

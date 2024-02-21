@@ -80,35 +80,46 @@
     },
     "db": {
       "type": "azure.bicep.v0",
-      "connectionString": "{sql.connectionString};Intial Catalog=db",
+      "connectionString": "{sql.connectionString};Initial Catalog=db",
       "parent": "sql"
     },
-    "password": {
+    "administratorLogin": {
       "type": "parameter.v0",
-      "value": "{password.inputs.value}",
+      "value": "{administratorLogin.inputs.value}",
       "inputs": {
         "value": {
           "type": "string"
         }
       }
     },
+    "administratorLoginPassword": {
+      "type": "parameter.v0",
+      "value": "{administratorLoginPassword.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true
+        }
+      }
+    },
     "postgres2": {
       "type": "azure.bicep.v0",
-      "connectionString": "Host={postgres2.outputs.pgfqdn};Username=someuser;Password={password.value}",
+      "connectionString": "{postgres2.secretOutputs.connectionString}",
       "path": "aspire.hosting.azure.bicep.postgres.bicep",
       "params": {
         "serverName": "postgres2",
-        "administratorLogin": "someuser",
-        "administratorLoginPassword": "{password.value}",
+        "keyVaultName": "",
+        "administratorLogin": "{administratorLogin.value}",
+        "administratorLoginPassword": "{administratorLoginPassword.value}",
         "databases": [
           "db2"
         ]
       }
     },
     "db2": {
-      "type": "azure.bicep.v0",
-      "connectionString": "{postgres2.connectionString};Database=db2",
-      "parent": "postgres2"
+      "type": "value.v0",
+      "parent": "postgres2",
+      "connectionString": "{postgres2.connectionString};Database=db2;"
     },
     "cosmos": {
       "type": "azure.bicep.v0",

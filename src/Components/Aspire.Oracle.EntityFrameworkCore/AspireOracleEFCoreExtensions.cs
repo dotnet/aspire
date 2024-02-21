@@ -59,10 +59,7 @@ public static class AspireOracleEFCoreExtensions
 
         void ConfigureDbContext(DbContextOptionsBuilder dbContextOptionsBuilder)
         {
-            if (string.IsNullOrEmpty(settings.ConnectionString))
-            {
-                throw new InvalidOperationException($"ConnectionString is missing. It should be provided in 'ConnectionStrings:{connectionName}' or under the 'ConnectionString' key in '{DefaultConfigSectionName}' or '{DefaultConfigSectionName}:{typeof(TContext).Name}' configuration section.");
-            }
+		    ConnectionStringValidation.ValidateConnectionString(settings.ConnectionString, connectionName, DefaultConfigSectionName, $"{DefaultConfigSectionName}:{typeof(TContext).Name}", isEfDesignTime: EF.IsDesignTime);
 
             dbContextOptionsBuilder.UseOracle(settings.ConnectionString, builder =>
             {

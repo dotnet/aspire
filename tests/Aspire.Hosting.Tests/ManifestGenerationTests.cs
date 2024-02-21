@@ -12,6 +12,58 @@ namespace Aspire.Hosting.Tests;
 public class ManifestGenerationTests
 {
     [Fact]
+    public void EnsureAddParameterWithSecretFalseDoesntEmitSecretField()
+    {
+        var program = CreateTestProgramJsonDocumentManifestPublisher();
+        program.AppBuilder.AddParameter("x", secret: false);
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+        var x = resources.GetProperty("x");
+        var inputs = x.GetProperty("inputs");
+        var value = inputs.GetProperty("value");
+        Assert.False(value.TryGetProperty("secret", out _));
+    }
+
+    [Fact]
+    public void EnsureAddParameterWithSecretDefaultDoesntEmitSecretField()
+    {
+        var program = CreateTestProgramJsonDocumentManifestPublisher();
+        program.AppBuilder.AddParameter("x");
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+        var x = resources.GetProperty("x");
+        var inputs = x.GetProperty("inputs");
+        var value = inputs.GetProperty("value");
+        Assert.False(value.TryGetProperty("secret", out _));
+    }
+
+    [Fact]
+    public void EnsureAddParameterWithSecretTrueDoesEmitSecretField()
+    {
+        var program = CreateTestProgramJsonDocumentManifestPublisher();
+        program.AppBuilder.AddParameter("x", secret: true);
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+        var x = resources.GetProperty("x");
+        var inputs = x.GetProperty("inputs");
+        var value = inputs.GetProperty("value");
+        Assert.True(value.TryGetProperty("secret", out var secret));
+        Assert.True(secret.GetBoolean());
+    }
+
+    [Fact]
     public void EnsureWorkerProjectDoesNotGetBindingsGenerated()
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher();
@@ -273,7 +325,7 @@ public class ManifestGenerationTests
         Assert.Equal("container.v0", server.GetProperty("type").GetString());
 
         var db = resources.GetProperty("postgresdatabase");
-        Assert.Equal("postgres.database.v0", db.GetProperty("type").GetString());
+        Assert.Equal("value.v0", db.GetProperty("type").GetString());
     }
 
     [Fact]
@@ -354,44 +406,6 @@ public class ManifestGenerationTests
     }
 
     [Fact]
-    public void EnsureAllKeyVaultManifestTypesHaveVersion0Suffix()
-    {
-        var program = CreateTestProgramJsonDocumentManifestPublisher();
-
-        program.AppBuilder.AddAzureKeyVault("keyvault");
-
-        // Build AppHost so that publisher can be resolved.
-        program.Build();
-        var publisher = program.GetManifestPublisher();
-
-        program.Run();
-
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var keyvault = resources.GetProperty("keyvault");
-        Assert.Equal("azure.keyvault.v0", keyvault.GetProperty("type").GetString());
-    }
-
-    [Fact]
-    public void EnsureAllServiceBusManifestTypesHaveVersion0Suffix()
-    {
-        var program = CreateTestProgramJsonDocumentManifestPublisher();
-
-        program.AppBuilder.AddAzureServiceBus("servicebus");
-
-        // Build AppHost so that publisher can be resolved.
-        program.Build();
-        var publisher = program.GetManifestPublisher();
-
-        program.Run();
-
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var servicebus = resources.GetProperty("servicebus");
-        Assert.Equal("azure.servicebus.v0", servicebus.GetProperty("type").GetString());
-    }
-
-    [Fact]
     public void EnsureAllAzureDatabaseManifestTypesHaveVersion0Suffix()
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher();
@@ -414,25 +428,6 @@ public class ManifestGenerationTests
     }
 
     [Fact]
-    public void EnsureAllAzureRedisManifestTypesHaveVersion0Suffix()
-    {
-        var program = CreateTestProgramJsonDocumentManifestPublisher();
-
-        program.AppBuilder.AddAzureRedis("redis");
-
-        // Build AppHost so that publisher can be resolved.
-        program.Build();
-        var publisher = program.GetManifestPublisher();
-
-        program.Run();
-
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var redis = resources.GetProperty("redis");
-        Assert.Equal("azure.redis.v0", redis.GetProperty("type").GetString());
-    }
-
-    [Fact]
     public void EnsureAllAzureOpenAIManifestTypesHaveVersion0Suffix()
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher();
@@ -452,25 +447,6 @@ public class ManifestGenerationTests
 
         var deployment = resources.GetProperty("deployment");
         Assert.Equal("azure.openai.deployment.v0", deployment.GetProperty("type").GetString());
-    }
-
-    [Fact]
-    public void EnsureAllAzureAppConfigurationManifestTypesHaveVersion0Suffix()
-    {
-        var program = CreateTestProgramJsonDocumentManifestPublisher();
-
-        program.AppBuilder.AddAzureAppConfiguration("appconfig");
-
-        // Build AppHost so that publisher can be resolved.
-        program.Build();
-        var publisher = program.GetManifestPublisher();
-
-        program.Run();
-
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var config = resources.GetProperty("appconfig");
-        Assert.Equal("azure.appconfiguration.v0", config.GetProperty("type").GetString());
     }
 
     [Fact]
@@ -502,25 +478,6 @@ public class ManifestGenerationTests
         var db2 = resources.GetProperty("mydb2");
         Assert.Equal("azure.cosmosdb.database.v0", db2.GetProperty("type").GetString());
         Assert.Equal("cosmosaccount", db2.GetProperty("parent").GetString());
-    }
-
-    [Fact]
-    public void EnsureAllAzureApplicationInsightsManifestTypesHaveVersion0Suffix()
-    {
-        var program = CreateTestProgramJsonDocumentManifestPublisher();
-
-        program.AppBuilder.AddApplicationInsights("appInsights");
-
-        // Build AppHost so that publisher can be resolved.
-        program.Build();
-        var publisher = program.GetManifestPublisher();
-
-        program.Run();
-
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var storage = resources.GetProperty("appInsights");
-        Assert.Equal("azure.appinsights.v0", storage.GetProperty("type").GetString());
     }
 
     [Fact]

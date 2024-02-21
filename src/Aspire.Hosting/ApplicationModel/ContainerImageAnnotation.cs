@@ -11,6 +11,9 @@ namespace Aspire.Hosting.ApplicationModel;
 [DebuggerDisplay("Type = {GetType().Name,nq}, Image = {Image}, Tag = {Tag}, SHA256 = {SHA256}")]
 public sealed class ContainerImageAnnotation : IResourceAnnotation
 {
+    private string? _tag;
+    private string? _sha256;
+
     /// <summary>
     /// Gets or sets the registry for the container image.
     /// </summary>
@@ -24,11 +27,35 @@ public sealed class ContainerImageAnnotation : IResourceAnnotation
     /// <summary>
     /// Gets or sets the tag for the container image.
     /// </summary>
-    public required string Tag { get; set; }
+    public string? Tag
+    {
+        get
+        {
+            return _tag;
+        }
+
+        set
+        {
+            // These two properties are mutually exclusive.
+            _tag = value;
+            _sha256 = null;
+        }
+    }
 
     /// <summary>
     /// Gets or sets the SHA256 for the specific image.
     /// </summary>
-    public string? SHA256 { get; set; }
+    public string? SHA256
+    {
+        get
+        {
+            return _sha256;
+        }
 
+        set
+        {
+            _sha256 = value;
+            _tag = null;
+        }
+    }
 }

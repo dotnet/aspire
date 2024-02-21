@@ -17,21 +17,36 @@ public class AzureBicepStorageResource(string name) :
     AzureBicepResource(name, templateResouceName: "Aspire.Hosting.Azure.Bicep.storage.bicep")
 {
     /// <summary>
+    /// Gets the "blobEndpoint" output reference from the bicep template for the Azure Storage resource.
+    /// </summary>
+    public BicepOutputReference BlobEndpoint => new("blobEndpoint", this);
+
+    /// <summary>
+    /// Gets the "queueEndpoint" output reference from the bicep template for the Azure Storage resource.
+    /// </summary>
+    public BicepOutputReference QueueEndpoint => new("queueEndpoint", this);
+
+    /// <summary>
+    /// Gets the "tableEndpoint" output reference from the bicep template for the Azure Storage resource.
+    /// </summary>
+    public BicepOutputReference TableEndpoint => new("tableEndpoint", this);
+
+    /// <summary>
     /// Gets a value indicating whether the Azure Storage resource is running in the local emulator.
     /// </summary>
     public bool IsEmulator => this.IsContainer();
 
     internal string? GetTableConnectionString() => IsEmulator
         ? AzureStorageEmulatorConnectionString.Create(tablePort: GetEmulatorPort("table"))
-        : Outputs["tableEndpoint"];
+        : TableEndpoint.Value;
 
     internal string? GetQueueConnectionString() => IsEmulator
         ? AzureStorageEmulatorConnectionString.Create(queuePort: GetEmulatorPort("queue"))
-        : Outputs["queueEndpoint"];
+        : QueueEndpoint.Value;
 
     internal string? GetBlobConnectionString() => IsEmulator
         ? AzureStorageEmulatorConnectionString.Create(blobPort: GetEmulatorPort("blob"))
-        : Outputs["blobEndpoint"];
+        : BlobEndpoint.Value;
 
     private int GetEmulatorPort(string endpointName) =>
         Annotations
@@ -58,7 +73,7 @@ public class AzureBicepBlobStorageResource(string name, AzureBicepStorageResourc
     /// <summary>
     /// Gets the connection string template for the manifest for the Azure Blob Storage resource.
     /// </summary>
-    public string ConnectionStringExpression => $"{{{Parent.Name}.outputs.blobEndpoint}}";
+    public string ConnectionStringExpression => Parent.BlobEndpoint.ValueExpression;
 
     /// <summary>
     /// Gets the connection string for the Azure Blob Storage resource.
@@ -95,7 +110,7 @@ public class AzureBicepTableStorageResource(string name, AzureBicepStorageResour
     /// <summary>
     /// Gets the connection string template for the manifest for the Azure Blob Storage resource.
     /// </summary>
-    public string ConnectionStringExpression => $"{{{Parent.Name}.outputs.tableEndpoint}}";
+    public string ConnectionStringExpression => Parent.TableEndpoint.ValueExpression;
 
     /// <summary>
     /// Gets the connection string for the Azure Blob Storage resource.
@@ -132,7 +147,7 @@ public class AzureBicepQueueStorageResource(string name, AzureBicepStorageResour
     /// <summary>
     /// Gets the connection string template for the manifest for the Azure Blob Storage resource.
     /// </summary>
-    public string ConnectionStringExpression => $"{{{Parent.Name}.outputs.queueEndpoint}}";
+    public string ConnectionStringExpression => Parent.QueueEndpoint.ValueExpression;
 
     /// <summary>
     /// Gets the connection string for the Azure Blob Storage resource.
@@ -190,11 +205,11 @@ public static class AzureBicepSqlResourceExtensions
         builder.WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, name: "blob", port: blobPort, containerPort: 10000))
                .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, name: "queue", port: queuePort, containerPort: 10001))
                .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, name: "table", port: tablePort, containerPort: 10002))
-               .WithAnnotation(new ContainerImageAnnotation { Image = "mcr.microsoft.com/azure-storage/azurite", Tag = imageTag ?? "latest" });
+               .WithAnnotation(new ContainerImageAnnotation { Image = "mcr.microsoft.com/azure-storage/azurite", Tag = imageTag ?? "3.29.0" });
 
         if (storagePath is not null)
         {
-            var volumeAnnotation = new VolumeMountAnnotation(storagePath, "/data", VolumeMountType.Bind, false);
+            var volumeAnnotation = new ContainerMountAnnotation(storagePath, "/data", ContainerMountType.Bind, false);
             return builder.WithAnnotation(volumeAnnotation);
         }
 

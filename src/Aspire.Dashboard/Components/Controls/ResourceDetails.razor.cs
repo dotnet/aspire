@@ -170,7 +170,7 @@ public partial class ResourceDetails
             // Use try parse to check if a value matches ISO 8601 format. If there is a match then convert to a friendly format.
             if (DateTime.TryParseExact(value, "o", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
             {
-                value = FormatHelpers.FormatDateTime(date);
+                value = FormatHelpers.FormatDateTime(date, cultureInfo: CultureInfo.CurrentCulture);
             }
         }
 

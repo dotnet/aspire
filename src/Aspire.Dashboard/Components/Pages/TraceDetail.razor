@@ -1,5 +1,4 @@
 ﻿@page "/Trace/{traceId}"
-@page "/Trace/{traceId}/Span/{spanId}"
 
 @using Aspire.Dashboard.Model.Otlp
 @using Aspire.Dashboard.Otlp.Model
@@ -20,7 +19,7 @@
         </div>
         <FluentToolbar Orientation="Orientation.Horizontal">
             <div>
-                @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailTraceStartHeader)] <strong>@_trace.FirstSpan.StartTime.ToString("MMMM d yyyy"), @FormatHelpers.FormatTimeStamp(_trace.FirstSpan.StartTime)</strong>
+                @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailTraceStartHeader)] <strong>@FormatHelpers.FormatDateTime(_trace.FirstSpan.StartTime, includeMilliseconds: true)</strong>
             </div>
             <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
             <div>

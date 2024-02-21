@@ -16,8 +16,6 @@ public class AzureStorageEmulatorResource(AzureStorageResource innerResource) : 
     /// <inheritdoc/>
     public override string Name => _innerResource.Name;
 
-    /// <summary>
-    /// TODO: Doc Comments
-    /// </summary>
+    /// <inheritdoc />
     public override ResourceMetadataCollection Annotations => _innerResource.Annotations;
 }

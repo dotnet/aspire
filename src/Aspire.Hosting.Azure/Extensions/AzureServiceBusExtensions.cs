@@ -2,35 +2,14 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure;
 
-namespace Aspire.Hosting.Azure;
-
-/// <summary>
-/// Represents an Azure Service Bus resource.
-/// </summary>
-/// <param name="name">The name of the resource.</param>
-public class AzureBicepServiceBusResource(string name) :
-    AzureBicepResource(name, templateResouceName: "Aspire.Hosting.Azure.Bicep.servicebus.bicep"),
-    IResourceWithConnectionString
-{
-    /// <summary>
-    /// Gets the connection string template for the manifest for the Azure Service Bus endpoint.
-    /// </summary>
-    public string ConnectionStringExpression => $"{{{Name}.outputs.serviceBusEndpoint}}";
-    /// <summary>
-    /// Gets the connection string for the Azure Service Bus endpoint.
-    /// </summary>
-    /// <returns>The connection string for the Azure Service Bus endpoint.</returns>
-    public string? GetConnectionString()
-    {
-        return Outputs["serviceBusEndpoint"];
-    }
-}
+namespace Aspire.Hosting;
 
 /// <summary>
 /// Provides extension methods for adding the Azure Service Bus resources to the application model.
 /// </summary>
-public static class AzureBicepServiceBusExtensions
+public static class AzureServiceBusExtensions
 {
     /// <summary>
     /// Adds an Azure Service Bus resource to the application model.
@@ -40,9 +19,9 @@ public static class AzureBicepServiceBusExtensions
     /// <param name="queueNames">A list of queue names associated with this service bus resource.</param>
     /// <param name="topicNames">A list of topic names associated with this service bus resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureBicepServiceBusResource> AddBicepAzureServiceBus(this IDistributedApplicationBuilder builder, string name, string[]? queueNames = null, string[]? topicNames = null)
+    public static IResourceBuilder<AzureServiceBusResource> AddAzureServiceBus(this IDistributedApplicationBuilder builder, string name, string[]? queueNames = null, string[]? topicNames = null)
     {
-        var resource = new AzureBicepServiceBusResource(name);
+        var resource = new AzureServiceBusResource(name);
         // TODO: Change topics and queues to child resources
 
         return builder.AddResource(resource)

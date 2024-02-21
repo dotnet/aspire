@@ -13,12 +13,12 @@ internal class PgAdminConfigWriterHook : IDistributedApplicationLifecycleHook
     public Task AfterEndpointsAllocatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
     {
         var adminResource = appModel.Resources.OfType<PgAdminContainerResource>().Single();
-        var serverFileMount = adminResource.Annotations.OfType<VolumeMountAnnotation>().Single(v => v.Target == "/pgadmin4/servers.json");
+        var serverFileMount = adminResource.Annotations.OfType<ContainerMountAnnotation>().Single(v => v.Target == "/pgadmin4/servers.json");
         var postgresInstances = appModel.Resources.OfType<PostgresServerResource>();
 
         var serverFileBuilder = new StringBuilder();
 
-        using var stream = new FileStream(serverFileMount.Source, FileMode.Create);
+        using var stream = new FileStream(serverFileMount.Source!, FileMode.Create);
         using var writer = new Utf8JsonWriter(stream);
 
         var serverIndex = 1;
