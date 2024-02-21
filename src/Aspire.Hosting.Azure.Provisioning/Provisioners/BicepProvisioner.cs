@@ -138,9 +138,12 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
         var parameters = new JsonObject();
         foreach (var parameter in resource.Parameters)
         {
+            // Execute parameter values which are deferred.
+            object? parameterValue = parameter.Value is Func<object?> f ? f() : parameter.Value;
+
             parameters[parameter.Key] = new JsonObject()
             {
-                ["value"] = parameter.Value switch
+                ["value"] = parameterValue switch
                 {
                     string s => s,
                     IEnumerable<string> s => new JsonArray(s.Select(s => JsonValue.Create(s)).ToArray()),
@@ -149,6 +152,8 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
                     JsonNode node => node,
                     IResourceBuilder<IResourceWithConnectionString> c => c.Resource.GetConnectionString(),
                     IResourceBuilder<ParameterResource> p => p.Resource.Value,
+                    // TODO: Support this
+                    BicepOutputReference reference => throw new NotSupportedException("Referencing bicep outputs is not supported"),
                     object o => o.ToString()!,
                     null => null,
                 }

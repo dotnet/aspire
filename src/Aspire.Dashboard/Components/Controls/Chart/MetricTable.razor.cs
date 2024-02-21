@@ -3,7 +3,6 @@
 
 using Aspire.Dashboard.Components.Controls.Chart;
 using Aspire.Dashboard.Otlp.Model;
-using Aspire.Dashboard.Otlp.Model.MetricValues;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -11,9 +10,8 @@ namespace Aspire.Dashboard.Components.Controls;
 
 public partial class MetricTable : ChartBase
 {
-    private readonly List<MetricView> _metrics = [];
-    private bool _onlyShowValueChanges;
-    private bool _anyDimensionsShown;
+    private SortedList<DateTime, MetricViewBase> _metrics = [];
+    private string _unitColumnHeader = string.Empty;
     private IJSObjectReference? _jsModule;
 
     private OtlpInstrument? _instrument;
@@ -21,15 +19,13 @@ public partial class MetricTable : ChartBase
 
     private readonly CancellationTokenSource _waitTaskCancellationTokenSource = new();
 
-    private IQueryable<MetricView> _metricsView => _metrics.AsEnumerable().Reverse().AsQueryable();
+    private IQueryable<MetricViewBase> _metricsView => _metrics.Values.AsEnumerable().Reverse().ToList().AsQueryable();
 
     [Inject]
     public required IJSRuntime JS { get; init; }
 
-    protected override Task OnChartUpdated(List<ChartTrace> traces, List<DateTime> xValues, bool tickUpdate, DateTime inProgressDataTime)
+    protected override async Task OnChartUpdated(List<ChartTrace> traces, List<DateTime> xValues, bool tickUpdate, DateTime inProgressDataTime)
     {
-        _anyDimensionsShown = false; // remove
-
         if (!Equals(_instrument?.Name, InstrumentViewModel.Instrument?.Name) || _showCount != InstrumentViewModel.ShowCount)
         {
             _metrics.Clear();
@@ -40,27 +36,131 @@ public partial class MetricTable : ChartBase
         _instrument = InstrumentViewModel.Instrument;
         _showCount = InstrumentViewModel.ShowCount;
 
-        UpdateMetrics();
+        _metrics = UpdateMetrics(out var xValuesToAnnounce);
 
-        /*UpdateMetrics(InstrumentViewModel.MatchedDimensions, _metrics, IsHistogramInstrument(), _showCount, _onlyShowValueChanges, out var oldMetrics, out var indices, out _anyDimensionsShown);
+        if (xValuesToAnnounce.Count == 0)
+        {
+            return;
+        }
 
         await InvokeAsync(StateHasChanged);
 
-        if (_jsModule is not null && indices.Count > 0 && oldMetrics.Count > 0)
+        if (_jsModule is not null)
         {
             await Task.Delay(500, _waitTaskCancellationTokenSource.Token);
 
             if (_jsModule is not null)
             {
+                var metricView = _metricsView.ToList();
+                List<int> indices = [];
+
+                for (var i = 0; i < metricView.Count; i++)
+                {
+                    if (xValuesToAnnounce.Contains(metricView[i].DateTime))
+                    {
+                        indices.Add(i);
+                    }
+                }
+
                 await _jsModule.InvokeVoidAsync("announceDataGridRows", "metric-table-container", indices);
             }
-        }*/
+        }
 
-        return Task.CompletedTask;
+        return;
 
-        static void UpdateMetrics()
+        SortedList<DateTime, MetricViewBase> UpdateMetrics(out ISet<DateTime> addedXValues)
         {
+            var newMetrics = new SortedList<DateTime, MetricViewBase>();
 
+            _unitColumnHeader = traces.First().Name;
+
+            for (var i = 0; i < xValues.Count; i++)
+            {
+                var xValue = xValues[i];
+                KeyValuePair<DateTime, MetricViewBase>? previousMetric = newMetrics.LastOrDefault(dt => dt.Key < xValue);
+
+                if (IsHistogramInstrument() && !_showCount)
+                {
+                    var iTmp = i;
+                    var traceValuesByPercentile = traces.ToDictionary(trace => trace.Percentile!.Value, trace => trace.Values[iTmp]);
+                    var valueDiffs = traceValuesByPercentile.Select(kvp =>
+                    {
+                        var (percentile, traceValue) = kvp;
+                        if (traceValue is not null
+                            && previousMetric?.Value is HistogramMetricView histogramMetricView
+                            && histogramMetricView.Percentiles[percentile].Value is { } previousPercentileValue)
+                        {
+                            return traceValue.Value - previousPercentileValue;
+                        }
+
+                        return traceValue;
+                    }).ToList();
+
+                    if (traceValuesByPercentile.Values.All(value => value is null) || valueDiffs.All(diff => DoubleEquals(diff, 0)))
+                    {
+                        continue;
+                    }
+
+                    newMetrics.Add(xValue, CreateHistogramMetricView());
+
+                    MetricViewBase CreateHistogramMetricView()
+                    {
+                        var percentiles = new SortedDictionary<int, (string Name, double? Value, ValueDirectionChange Direction)>();
+                        for (var traceIndex = 0; traceIndex < traces.Count; traceIndex++)
+                        {
+                            var trace = traces[traceIndex];
+                            percentiles.Add(trace.Percentile!.Value, (trace.Name, trace.Values[i], GetDirectionChange(valueDiffs[traceIndex])));
+                        }
+
+                        return new HistogramMetricView
+                        {
+                            DateTime = xValue,
+                            Percentiles = percentiles
+                        };
+                    }
+                }
+                else
+                {
+                    var trace = traces.Single();
+                    var yValue = trace.Values[i];
+                    var valueDiff = yValue is not null && (previousMetric?.Value as MetricValueView)?.Value is { } previousValue ? yValue - previousValue : yValue;
+
+                    if (yValue is null || DoubleEquals(valueDiff, 0d))
+                    {
+                        continue;
+                    }
+
+                    newMetrics.Add(xValue, CreateMetricView());
+
+                    MetricViewBase CreateMetricView()
+                    {
+                        return new MetricValueView
+                        {
+                            DateTime = xValue,
+                            Value = yValue,
+                            ValueChange = GetDirectionChange(valueDiff)
+                        };
+                    }
+                }
+            }
+
+            addedXValues = newMetrics.Keys.Where(newKey => !_metrics.ContainsKey(newKey)).ToHashSet();
+            return newMetrics;
+
+            bool DoubleEquals(double? a, double? b)
+            {
+                if (a is not null && b is not null)
+                {
+                    return Math.Abs(a.Value - b.Value) < 0.00002; // arbitrarily small number
+                }
+
+                if ((a is null && b is not null) || (a is not null && b is null))
+                {
+                    return false;
+                }
+
+                return true;
+            }
         }
     }
 
@@ -74,37 +174,12 @@ public partial class MetricTable : ChartBase
         await base.OnAfterRenderAsync(firstRender);
     }
 
-    private Task SettingsChangedAsync()
-    {
-        return InvokeAsync(StateHasChanged);
-    }
-
     private bool IsHistogramInstrument()
     {
         return _instrument?.Type == OtlpInstrumentType.Histogram;
     }
 
-    /*private static ValueDirectionChange GetDirectionChange(IComparable? current, IComparable? previous)
-    {
-        if (current is null && previous is null)
-        {
-            return ValueDirectionChange.Constant;
-        }
-
-        if (previous is null)
-        {
-            return ValueDirectionChange.Up;
-        }
-
-        if (current is null)
-        {
-            return ValueDirectionChange.Down;
-        }
-
-        return GetDirectionChange(current.CompareTo(previous));
-    }
-
-    private static ValueDirectionChange GetDirectionChange(int comparisonResult)
+    private static ValueDirectionChange GetDirectionChange(double? comparisonResult)
     {
         if (comparisonResult > 0)
         {
@@ -112,7 +187,7 @@ public partial class MetricTable : ChartBase
         }
 
         return comparisonResult < 0 ? ValueDirectionChange.Down : ValueDirectionChange.Constant;
-    }*/
+    }
 
     public async ValueTask DisposeAsync()
     {
@@ -133,18 +208,20 @@ public partial class MetricTable : ChartBase
         }
     }
 
-    public record MetricView
+    public abstract record MetricViewBase
     {
-        public required string DimensionName { get; init; }
-        public required KeyValuePair<string, string>[] DimensionAttributes { get; init; }
-        public required MetricValueBase Value { get; set; }
-        public required ValueDirectionChange? CountChange { get; init; }
+        public required DateTime DateTime { get; set; }
+    }
+
+    public record MetricValueView : MetricViewBase
+    {
+        public required double? Value { get; set; }
         public required ValueDirectionChange? ValueChange { get; init; }
     }
 
-    public record HistogramMetricView : MetricView
+    public record HistogramMetricView : MetricViewBase
     {
-        public required SortedDictionary<int, (double? Value, ValueDirectionChange Direction)> Percentiles { get; init; }
+        public required SortedDictionary<int, (string Name, double? Value, ValueDirectionChange Direction)> Percentiles { get; init; }
     }
 
     public enum ValueDirectionChange

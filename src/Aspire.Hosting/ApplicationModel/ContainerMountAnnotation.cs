@@ -6,19 +6,19 @@ using System.Diagnostics;
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// Represents a volume mount annotation for a resource.
+/// Represents a mount annotation for a container resource.
 /// </summary>
 [DebuggerDisplay("Type = {GetType().Name,nq}, Source = {Source}, Target = {Target}")]
-public sealed class VolumeMountAnnotation : IResourceAnnotation
+public sealed class ContainerMountAnnotation : IResourceAnnotation
 {
     /// <summary>
-    /// Instantiates a volume mount annotation that specifies the source and target paths for a volume mount.
+    /// Instantiates a mount annotation that specifies the source and target paths for a mount.
     /// </summary>
-    /// <param name="source">The source path of the volume mount.</param>
-    /// <param name="target">The target path of the volume mount.</param>
-    /// <param name="type">The type of the volume mount.</param>
-    /// <param name="isReadOnly">A value indicating whether the volume mount is read-only.</param>
-    public VolumeMountAnnotation(string source, string target, VolumeMountType type = default, bool isReadOnly = false)
+    /// <param name="source">The source path of the mount.</param>
+    /// <param name="target">The target path of the mount.</param>
+    /// <param name="type">The type of the mount.</param>
+    /// <param name="isReadOnly">A value indicating whether the mount is read-only.</param>
+    public ContainerMountAnnotation(string source, string target, ContainerMountType type, bool isReadOnly)
     {
         Source = source;
         Target = target;
@@ -27,19 +27,19 @@ public sealed class VolumeMountAnnotation : IResourceAnnotation
     }
 
     /// <summary>
-    /// Gets or sets the source of the volume mount.
+    /// Gets or sets the source of the mount.
     /// </summary>
     public string Source { get; set; }
 
     /// <summary>
-    /// Gets or sets the target of the volume mount.
+    /// Gets or sets the target of the mount.
     /// </summary>
     public string Target { get; set; }
 
     /// <summary>
-    /// Gets or sets the type of the volume mount.
+    /// Gets or sets the type of the mount.
     /// </summary>
-    public VolumeMountType Type { get; set; }
+    public ContainerMountType Type { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether the volume mount is read-only.
@@ -48,9 +48,9 @@ public sealed class VolumeMountAnnotation : IResourceAnnotation
 }
 
 /// <summary>
-/// Represents the type of a volume mount.
+/// Represents the type of a container mount.
 /// </summary>
-public enum VolumeMountType
+public enum ContainerMountType
 {
     /// <summary>
     /// A local folder that is mounted into the container.

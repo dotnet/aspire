@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
@@ -7,6 +7,7 @@ using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Model.MetricValues;
 using Aspire.Dashboard.Resources;
+using Aspire.Dashboard.Utils;
 using Humanizer;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
@@ -90,9 +91,9 @@ public abstract class ChartBase : ComponentBase
         var pointDuration = Duration / pointCount;
         var traces = new Dictionary<int, ChartTrace>
         {
-            [50] = new ChartTrace { Name = $"P50 {yLabel}" },
-            [90] = new ChartTrace { Name = $"P90 {yLabel}" },
-            [99] = new ChartTrace { Name = $"P99 {yLabel}" },
+            [50] = new() { Name = $"P50 {yLabel}", Percentile = 50 },
+            [90] = new() { Name = $"P90 {yLabel}", Percentile = 90},
+            [99] = new() { Name = $"P99 {yLabel}", Percentile = 99 }
         };
         var xValues = new List<DateTime>();
         var startDate = _currentDataStartTime;
@@ -158,7 +159,7 @@ public abstract class ChartBase : ComponentBase
 
     private string FormatTooltip(string name, double yValue, DateTime xValue)
     {
-        return $"<b>{InstrumentViewModel.Instrument?.Name}</b><br />{name}: {yValue.ToString("##,0.######", CultureInfo.InvariantCulture)}<br />Time: {xValue.ToString("h:mm:ss tt", CultureInfo.InvariantCulture)}";
+        return $"<b>{InstrumentViewModel.Instrument?.Name}</b><br />{name}: {FormatHelpers.FormatNumberWithOptionalDecimalPlaces(yValue, CultureInfo.CurrentCulture)}<br />Time: {FormatHelpers.FormatTime(xValue)}";
     }
 
     private static HistogramValue GetHistogramValue(MetricValueBase metric)
@@ -385,8 +386,16 @@ public abstract class ChartBase : ComponentBase
 
     private async Task UpdateChart(bool tickUpdate, DateTime inProgressDataTime)
     {
+        // Unit comes from the instrument and they're not localized.
+        // The hardcoded "Count" label isn't localized for consistency.
+        const string CountUnit = "Count";
+
         Debug.Assert(InstrumentViewModel.MatchedDimensions != null);
-        var unit = GetDisplayedUnit(InstrumentViewModel.Instrument, InstrumentViewModel.ShowCount, Loc);
+        Debug.Assert(InstrumentViewModel.Instrument != null);
+
+        var unit = !InstrumentViewModel.ShowCount
+            ? GetDisplayedUnit(InstrumentViewModel.Instrument)
+            : CountUnit;
 
         List<ChartTrace> traces;
         List<DateTime> xValues;
@@ -402,20 +411,13 @@ public abstract class ChartBase : ComponentBase
         await OnChartUpdated(traces, xValues, tickUpdate, inProgressDataTime);
     }
 
-    internal static string GetDisplayedUnit(OtlpInstrument? instrument, bool showCount, IStringLocalizer<ControlsStrings> loc)
+    private static DateTime GetCurrentDataTime()
     {
-        if (instrument is null)
-        {
-            return string.Empty;
-        }
+        return DateTime.UtcNow.Subtract(TimeSpan.FromSeconds(1)); // Compensate for delay in receiving metrics from sevices.;
+    }
 
-        if (showCount)
-        {
-            // Unit comes from the instrument and they're not localized.
-            // The hardcoded "Count" label isn't localized for consistency.
-            return "Count";
-        }
-
+    private string GetDisplayedUnit(OtlpInstrument instrument)
+    {
         if (!string.IsNullOrEmpty(instrument.Unit))
         {
             var unit = OtlpUnits.GetUnit(instrument.Unit.TrimStart('{').TrimEnd('}'));
@@ -426,21 +428,16 @@ public abstract class ChartBase : ComponentBase
         // but have a descriptive name that lets us infer the unit.
         if (instrument.Name.EndsWith(".count"))
         {
-            return loc[nameof(ControlsStrings.PlotlyChartCount)];
+            return Loc[nameof(ControlsStrings.PlotlyChartCount)];
         }
         else if (instrument.Name.EndsWith(".length"))
         {
-            return loc[nameof(ControlsStrings.PlotlyChartLength)];
+            return Loc[nameof(ControlsStrings.PlotlyChartLength)];
         }
         else
         {
-            return loc[nameof(ControlsStrings.PlotlyChartValue)];
+            return Loc[nameof(ControlsStrings.PlotlyChartValue)];
         }
-    }
-
-    private static DateTime GetCurrentDataTime()
-    {
-        return DateTime.UtcNow.Subtract(TimeSpan.FromSeconds(1)); // Compensate for delay in receiving metrics from sevices.;
     }
 
     protected abstract Task OnChartUpdated(List<ChartTrace> traces, List<DateTime> xValues, bool tickUpdate, DateTime inProgressDataTime);

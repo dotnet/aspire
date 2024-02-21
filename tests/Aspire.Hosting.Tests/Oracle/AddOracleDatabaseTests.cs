@@ -26,7 +26,7 @@ public class AddOracleDatabaseTests
         Assert.NotNull(manifestPublishing.Callback);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal("latest", containerAnnotation.Tag);
+        Assert.Equal("23.3.0.0", containerAnnotation.Tag);
         Assert.Equal("database/free", containerAnnotation.Image);
         Assert.Equal("container-registry.oracle.com", containerAnnotation.Registry);
 
@@ -75,7 +75,7 @@ public class AddOracleDatabaseTests
         Assert.NotNull(manifestPublishing.Callback);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal("latest", containerAnnotation.Tag);
+        Assert.Equal("23.3.0.0", containerAnnotation.Tag);
         Assert.Equal("database/free", containerAnnotation.Image);
         Assert.Equal("container-registry.oracle.com", containerAnnotation.Registry);
 
@@ -175,7 +175,7 @@ public class AddOracleDatabaseTests
         Assert.NotNull(manifestPublishing.Callback);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal("latest", containerAnnotation.Tag);
+        Assert.Equal("23.3.0.0", containerAnnotation.Tag);
         Assert.Equal("database/free", containerAnnotation.Image);
         Assert.Equal("container-registry.oracle.com", containerAnnotation.Registry);
 

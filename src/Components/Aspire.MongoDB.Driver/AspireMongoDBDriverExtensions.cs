@@ -225,9 +225,6 @@ public static class AspireMongoDBDriverExtensions
         string connectionName,
         string configurationSectionName)
     {
-        if (string.IsNullOrEmpty(settings.ConnectionString))
-        {
-            throw new InvalidOperationException($"ConnectionString is missing. It should be provided in 'ConnectionStrings:{connectionName}' or under the 'ConnectionString' key in '{configurationSectionName}' configuration section.");
-        }
+        ConnectionStringValidation.ValidateConnectionString(settings.ConnectionString, connectionName, configurationSectionName);
     }
 }

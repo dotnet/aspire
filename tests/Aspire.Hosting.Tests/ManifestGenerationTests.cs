@@ -12,6 +12,58 @@ namespace Aspire.Hosting.Tests;
 public class ManifestGenerationTests
 {
     [Fact]
+    public void EnsureAddParameterWithSecretFalseDoesntEmitSecretField()
+    {
+        var program = CreateTestProgramJsonDocumentManifestPublisher();
+        program.AppBuilder.AddParameter("x", secret: false);
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+        var x = resources.GetProperty("x");
+        var inputs = x.GetProperty("inputs");
+        var value = inputs.GetProperty("value");
+        Assert.False(value.TryGetProperty("secret", out _));
+    }
+
+    [Fact]
+    public void EnsureAddParameterWithSecretDefaultDoesntEmitSecretField()
+    {
+        var program = CreateTestProgramJsonDocumentManifestPublisher();
+        program.AppBuilder.AddParameter("x");
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+        var x = resources.GetProperty("x");
+        var inputs = x.GetProperty("inputs");
+        var value = inputs.GetProperty("value");
+        Assert.False(value.TryGetProperty("secret", out _));
+    }
+
+    [Fact]
+    public void EnsureAddParameterWithSecretTrueDoesEmitSecretField()
+    {
+        var program = CreateTestProgramJsonDocumentManifestPublisher();
+        program.AppBuilder.AddParameter("x", secret: true);
+        program.Build();
+        var publisher = program.GetManifestPublisher();
+
+        program.Run();
+
+        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
+        var x = resources.GetProperty("x");
+        var inputs = x.GetProperty("inputs");
+        var value = inputs.GetProperty("value");
+        Assert.True(value.TryGetProperty("secret", out var secret));
+        Assert.True(secret.GetBoolean());
+    }
+
+    [Fact]
     public void EnsureWorkerProjectDoesNotGetBindingsGenerated()
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher();
@@ -273,7 +325,7 @@ public class ManifestGenerationTests
         Assert.Equal("container.v0", server.GetProperty("type").GetString());
 
         var db = resources.GetProperty("postgresdatabase");
-        Assert.Equal("postgres.database.v0", db.GetProperty("type").GetString());
+        Assert.Equal("value.v0", db.GetProperty("type").GetString());
     }
 
     [Fact]
@@ -411,25 +463,6 @@ public class ManifestGenerationTests
 
         var database = resources.GetProperty("database");
         Assert.Equal("azure.sql.database.v0", database.GetProperty("type").GetString());
-    }
-
-    [Fact]
-    public void EnsureAllAzureRedisManifestTypesHaveVersion0Suffix()
-    {
-        var program = CreateTestProgramJsonDocumentManifestPublisher();
-
-        program.AppBuilder.AddAzureRedis("redis");
-
-        // Build AppHost so that publisher can be resolved.
-        program.Build();
-        var publisher = program.GetManifestPublisher();
-
-        program.Run();
-
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var redis = resources.GetProperty("redis");
-        Assert.Equal("azure.redis.v0", redis.GetProperty("type").GetString());
     }
 
     [Fact]

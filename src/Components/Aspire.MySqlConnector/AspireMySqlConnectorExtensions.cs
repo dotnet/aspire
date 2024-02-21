@@ -121,10 +121,7 @@ public static class AspireMySqlConnectorExtensions
         // delay validating the ConnectionString until the DataSource is requested. This ensures an exception doesn't happen until a Logger is established.
         void ValidateConnection()
         {
-            if (string.IsNullOrEmpty(settings.ConnectionString))
-            {
-                throw new InvalidOperationException($"ConnectionString is missing. It should be provided in 'ConnectionStrings:{connectionName}' or under the 'ConnectionString' key in '{configurationSectionName}' configuration section.");
-            }
+            ConnectionStringValidation.ValidateConnectionString(settings.ConnectionString, connectionName, configurationSectionName);
         }
     }
 }
