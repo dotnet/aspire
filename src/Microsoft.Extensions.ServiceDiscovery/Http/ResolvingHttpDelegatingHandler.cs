@@ -5,6 +5,10 @@ using System.Net;
 using Microsoft.Extensions.Internal;
 using Microsoft.Extensions.ServiceDiscovery.Abstractions;
 
+#if NETFRAMEWORK
+using System.Net.Http;
+#endif
+
 namespace Microsoft.Extensions.ServiceDiscovery.Http;
 
 /// <summary>

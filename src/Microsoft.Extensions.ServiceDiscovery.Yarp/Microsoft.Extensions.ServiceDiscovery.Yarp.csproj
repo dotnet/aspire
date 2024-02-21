@@ -1,11 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(NetCurrent)</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>true</IsPackable>
-    <IsAotCompatible>true</IsAotCompatible>
+    <IsAotCompatible Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net6.0'))">true</IsAotCompatible>
     <Description>Provides extensions for service discovery for the YARP reverse proxy.</Description>
     <PackageIconFullPath>$(DefaultDotnetIconFullPath)</PackageIconFullPath>
   </PropertyGroup>

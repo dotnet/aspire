@@ -40,7 +40,7 @@ public readonly struct ResolutionStatus(ResolutionStatusCode statusCode, Excepti
     /// <returns>A new <see cref="ResolutionStatus"/> instance.</returns>
     public static ResolutionStatus FromException(Exception exception)
     {
-        ArgumentNullException.ThrowIfNull(exception);
+        ThrowHelper.ThrowIfNull(exception);
         return new ResolutionStatus(ResolutionStatusCode.Error, exception, exception.Message);
     }
 
@@ -49,9 +49,9 @@ public readonly struct ResolutionStatus(ResolutionStatusCode statusCode, Excepti
     /// </summary>
     /// <param name="exception">The resolution exception, if there was one.</param>
     /// <returns>A new <see cref="ResolutionStatus"/> instance.</returns>
-    public static ResolutionStatus FromPending(Exception? exception = null)
+    public static ResolutionStatus FromPending(Exception exception)
     {
-        ArgumentNullException.ThrowIfNull(exception);
+        ThrowHelper.ThrowIfNull(exception);
         return new ResolutionStatus(ResolutionStatusCode.Pending, exception, exception.Message);
     }
 

@@ -141,7 +141,7 @@ internal sealed partial class ConfigurationServiceEndPointResolver : IServiceEnd
         static bool EndPointNamesMatch(string? endPointName, ServiceNameParts parts) =>
             string.IsNullOrEmpty(parts.EndPointName)
             || string.IsNullOrEmpty(endPointName)
-            || MemoryExtensions.Equals(parts.EndPointName, endPointName, StringComparison.OrdinalIgnoreCase);
+            || MemoryExtensions.Equals(parts.EndPointName.AsSpan(), endPointName.AsSpan(), StringComparison.OrdinalIgnoreCase);
     }
 
     private ServiceEndPoint CreateEndPoint(EndPoint endPoint)

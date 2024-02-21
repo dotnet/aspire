@@ -25,12 +25,22 @@ internal sealed partial class DnsServiceEndPointResolver(
     /// <inheritdoc/>
     public override string ToString() => "DNS";
 
+    private async Task<IPAddress[]> GetHostAddressesAsync()
+    {
+#if NET8_0_OR_GREATER
+        return await System.Net.Dns.GetHostAddressesAsync(hostName, ShutdownToken).ConfigureAwait(false);
+#else
+        return await System.Net.Dns.GetHostAddressesAsync(hostName)
+            .WaitAsync(Timeout.InfiniteTimeSpan, TimeProvider.System, ShutdownToken).ConfigureAwait(false);
+#endif
+    }
+
     protected override async Task ResolveAsyncCore()
     {
         var endPoints = new List<ServiceEndPoint>();
         var ttl = DefaultRefreshPeriod;
         Log.AddressQuery(logger, ServiceName, hostName);
-        var addresses = await System.Net.Dns.GetHostAddressesAsync(hostName, ShutdownToken).ConfigureAwait(false);
+        var addresses = await GetHostAddressesAsync().ConfigureAwait(false);
         foreach (var address in addresses)
         {
             var serviceEndPoint = ServiceEndPoint.Create(new IPEndPoint(address, 0));

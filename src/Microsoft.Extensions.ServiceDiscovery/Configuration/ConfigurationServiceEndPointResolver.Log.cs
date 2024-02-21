@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Globalization;
 using System.Text;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.ServiceDiscovery.Internal;
@@ -12,7 +11,7 @@ internal sealed partial class ConfigurationServiceEndPointResolver
 {
     private sealed partial class Log
     {
-        [LoggerMessage(1, LogLevel.Debug, "Skipping endpoint resolution for service '{ServiceName}': '{Reason}'.", EventName = "SkippedResolution")]  
+        [LoggerMessage(1, LogLevel.Debug, "Skipping endpoint resolution for service '{ServiceName}': '{Reason}'.", EventName = "SkippedResolution")]
         public static partial void SkippedResolution(ILogger logger, string serviceName, string reason);
 
         [LoggerMessage(2, LogLevel.Debug, "Matching endpoints using endpoint names for service '{ServiceName}' since endpoint names are specified in configuration.", EventName = "MatchingEndPointNames")]
@@ -61,7 +60,7 @@ internal sealed partial class ConfigurationServiceEndPointResolver
                     endpointValues.Append(", ");
                 }
 
-                endpointValues.Append(CultureInfo.InvariantCulture, $"({parsedValues[i]})");
+                endpointValues.Append(FormattableString.Invariant($"({parsedValues[i]})"));
             }
 
             var configuredEndPoints = endpointValues.ToString();

@@ -81,7 +81,7 @@ internal abstract partial class DnsServiceEndPointResolverBase : IServiceEndPoin
                 resolveTask = _resolveTask;
             }
 
-            await resolveTask.WaitAsync(cancellationToken).ConfigureAwait(false);
+            await resolveTask.WaitAsync(Timeout.InfiniteTimeSpan, _timeProvider, cancellationToken).ConfigureAwait(false);
         }
 
         lock (_lock)
@@ -162,7 +162,7 @@ internal abstract partial class DnsServiceEndPointResolverBase : IServiceEndPoin
             }
 
             _lastCollectionCancellation.Cancel();
-            var cancellation = _lastCollectionCancellation = new CancellationTokenSource(validityPeriod, _timeProvider);
+            var cancellation = _lastCollectionCancellation = CreateCancellationTokenSource(validityPeriod);
             _lastChangeToken = new CancellationChangeToken(cancellation.Token);
             _lastEndPointCollection = endPoints;
         }
@@ -179,6 +179,15 @@ internal abstract partial class DnsServiceEndPointResolverBase : IServiceEndPoin
         }
     }
 
+    private CancellationTokenSource CreateCancellationTokenSource(TimeSpan delay)
+    {
+#if NET8_0_OR_GREATER
+        return new CancellationTokenSource(delay, _timeProvider);
+#else
+        return _timeProvider.CreateCancellationTokenSource(delay);
+#endif
+    }
+
     /// <inheritdoc/>
     public async ValueTask DisposeAsync()
     {
@@ -186,7 +195,7 @@ internal abstract partial class DnsServiceEndPointResolverBase : IServiceEndPoin
 
         if (_resolveTask is { } task)
         {
-            await task.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+            await task.SuppressThrowing();
         }
     }
 }

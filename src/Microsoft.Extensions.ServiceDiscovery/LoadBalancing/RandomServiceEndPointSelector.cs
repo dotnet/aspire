@@ -24,6 +24,6 @@ public class RandomServiceEndPointSelector : IServiceEndPointSelector
             throw new InvalidOperationException("The endpoint collection contains no endpoints");
         }
 
-        return collection[Random.Shared.Next(collection.Count)];
+        return collection[ThreadSafeRandom.Next(collection.Count)];
     }
 }

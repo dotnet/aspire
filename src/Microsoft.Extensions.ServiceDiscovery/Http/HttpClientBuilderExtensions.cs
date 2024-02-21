@@ -101,6 +101,7 @@ public static class HttpClientBuilderExtensions
                 next(builder);
                 if (_global || _options.ClientNames.Contains(builder.Name))
                 {
+#if NET6_0_OR_GREATER
                     if (builder.PrimaryHandler is SocketsHttpHandler socketsHttpHandler)
                     {
                         // gRPC knows about this property and uses it to check whether
@@ -108,6 +109,7 @@ public static class HttpClientBuilderExtensions
                         // see https://github.com/grpc/grpc-dotnet/blob/1625f8942791c82d700802fc7278c543025f0fd3/src/Grpc.Net.Client/GrpcChannel.cs#L286
                         socketsHttpHandler.Properties["__GrpcLoadBalancingDisabled"] = true;
                     }
+#endif
                 }
             };
         }

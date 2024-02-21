@@ -36,7 +36,7 @@ internal sealed partial class DnsSrvServiceEndPointResolverProvider(
     {
         // If a default namespace is not specified, then this provider will attempt to infer the namespace from the service name, but only when running inside Kubernetes.
         // Kubernetes DNS spec: https://github.com/kubernetes/dns/blob/master/docs/specification.md
-        // SRV records are available for headless services with named ports. 
+        // SRV records are available for headless services with named ports.
         // They take the form $"_{portName}._{protocol}.{serviceName}.{namespace}.{suffix}"
         // The suffix (after the service name) can be parsed from /etc/resolv.conf
         // Otherwise, the namespace can be read from /var/run/secrets/kubernetes.io/serviceaccount/namespace and combined with an assumed suffix of "svc.cluster.local".
@@ -70,7 +70,7 @@ internal sealed partial class DnsSrvServiceEndPointResolverProvider(
             return null;
         }
 
-        if (!OperatingSystem.IsLinux())
+        if (Environment.OSVersion.Platform != PlatformID.Unix)
         {
             return null;
         }
@@ -119,10 +119,10 @@ internal sealed partial class DnsSrvServiceEndPointResolverProvider(
                 continue;
             }
 
-            var components = line.Split(' ', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+            var components = line.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
             if (components.Length > 1)
             {
-                return components[1];
+                return components[1].Trim();
             }
         }
 
