@@ -36,7 +36,7 @@ internal static class EntityFrameworkUtils
     /// <summary>
     /// Enriches the DbContext options service descriptor with custom alterations.
     /// </summary>
-    public static void PatchServiceDescriptor<TContext>(this IHostApplicationBuilder builder, Action<DbContextOptionsBuilder<TContext>>? options = null, [CallerMemberName] string memberName = "")
+    public static void PatchServiceDescriptor<TContext>(this IHostApplicationBuilder builder, Action<DbContextOptionsBuilder<TContext>>? configureDbContextOptions = null, [CallerMemberName] string memberName = "")
         where TContext : DbContext
     {
         // Resolving DbContext<TContextService> will resolve DbContextOptions<TContextImplementation>.
@@ -50,7 +50,7 @@ internal static class EntityFrameworkUtils
             throw new InvalidOperationException($"DbContext<{typeof(TContext).Name}> was not registered. Ensure you have registered the DbContext in DI before calling {memberName}.");
         }
 
-        if (options == null)
+        if (configureDbContextOptions == null)
         {
             return;
         }
@@ -73,7 +73,7 @@ internal static class EntityFrameworkUtils
                     ? new DbContextOptionsBuilder<TContext>(dbContextOptions)
                     : new DbContextOptionsBuilder<TContext>();
 
-                options(optionsBuilder);
+                configureDbContextOptions(optionsBuilder);
 
                 return optionsBuilder.Options;
             },
