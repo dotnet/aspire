@@ -57,8 +57,13 @@ public static class JavaScriptAppHostingExtension
         }
         else
         {
-            // If scriptName is not npm, use developer config or an empty array
-            allArgs = args ?? Array.Empty<string>();
+        // If scriptName is not npm, use developer config or throw an error if null or empty
+            if (args is null || args.Length == 0)
+            {
+                throw new ArgumentException("Developer config (args) cannot be null or empty if scriptName is not 'npm'.");
+            }
+
+            allArgs = args;
         }
 
         workingDirectory = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, workingDirectory));
