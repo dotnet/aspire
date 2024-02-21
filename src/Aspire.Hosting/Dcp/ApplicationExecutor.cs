@@ -758,6 +758,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
                         if (!sp.EndpointAnnotation.IsProxied)
                         {
+                            // When DCP isn't proxying the container we need to set the host port that the containers internal port will be mapped to
                             portSpec.HostPort = sp.EndpointAnnotation.Port;
                         }
 

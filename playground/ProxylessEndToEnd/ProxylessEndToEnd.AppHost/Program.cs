@@ -9,12 +9,7 @@ var redis = builder.AddRedis("redis", 9999).WithEndpoint("tcp", (endpoint) =>
 });
 
 builder.AddProject<Projects.ProxylessEndToEnd_ApiService>("api")
-    .WithEndpoint("http", ea =>
-    {
-        ea.UriScheme = "http";
-        ea.Port = 12345;
-        ea.IsProxied = false;
-    })
+    .WithEndpoint(12345, "http", isProxied: false)
     .WithReference(redis);
 
 builder.AddProject<Projects.ProxylessEndToEnd_ApiService>("api2")

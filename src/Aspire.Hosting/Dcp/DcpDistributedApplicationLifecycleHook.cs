@@ -45,6 +45,7 @@ internal sealed class DcpDistributedApplicationLifecycleHook(DistributedApplicat
 
                 if (endpointAnnotations.Any())
                 {
+                    // We have a non-proxied endpoint with the same name as the 'url', don't add another endpoint for the same name
                     continue;
                 }
 

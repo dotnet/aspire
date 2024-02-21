@@ -6,9 +6,11 @@ var builder = DistributedApplication.CreateBuilder(args);
 var db1 = builder.AddSqlServer("sql1").PublishAsAzureSqlDatabase().AddDatabase("db1");
 var db2 = builder.AddSqlServer("sql2").PublishAsContainer().AddDatabase("db2");
 
-builder.AddProject<Projects.SqlServerEndToEnd_ApiService>("api")
-       .WithReference(db1)
-       .WithReference(db2);
+//var db1 = builder.AddSqlServer("sql1").AddDatabase("db1");
+//var db2 = builder.AddSqlServer("sql2").PublishAsContainer().AddDatabase("db2");
+
+builder.AddProject<Projects.SqlServerEndToEnd_ApiService>("api");
+       //.WithReference(ai);
 
 // This project is only added in playground projects to support development/debugging
 // of the dashboard. It is not required in end developer code. Comment out this code

@@ -323,9 +323,9 @@ public static class ResourceBuilderExtensions
     /// <param name="env"></param>
     /// <returns></returns>
     [Obsolete("WithServiceBinding has been renamed to WithEndpoint. Use WithEndpoint instead.")]
-    public static IResourceBuilder<T> WithServiceBinding<T>(this IResourceBuilder<T> builder, int? hostPort = null, string? scheme = null, string? name = null, string? env = null, bool isProxied = true) where T : IResource
+    public static IResourceBuilder<T> WithServiceBinding<T>(this IResourceBuilder<T> builder, int? hostPort = null, string? scheme = null, string? name = null, string? env = null) where T : IResource
     {
-        return builder.WithEndpoint(hostPort: hostPort, scheme: scheme, name: name, env: env, isProxied: isProxied);
+        return builder.WithEndpoint(hostPort: hostPort, scheme: scheme, name: name, env: env);
     }
 
     /// <summary>
@@ -430,9 +430,9 @@ public static class ResourceBuilderExtensions
     /// <param name="env"></param>
     /// <returns></returns>
     [Obsolete("WithServiceBinding has been renamed to WithEndpoint. Use WithEndpoint instead.")]
-    public static IResourceBuilder<T> WithServiceBinding<T>(this IResourceBuilder<T> builder, int containerPort, int? hostPort = null, string? scheme = null, string? name = null, string? env = null, bool isProxied = true) where T : IResource
+    public static IResourceBuilder<T> WithServiceBinding<T>(this IResourceBuilder<T> builder, int containerPort, int? hostPort = null, string? scheme = null, string? name = null, string? env = null) where T : IResource
     {
-        return builder.WithEndpoint(containerPort: containerPort, hostPort: hostPort, scheme: scheme, name: name, env: env, isProxied: isProxied);
+        return builder.WithEndpoint(containerPort: containerPort, hostPort: hostPort, scheme: scheme, name: name, env: env);
     }
 
     /// <summary>

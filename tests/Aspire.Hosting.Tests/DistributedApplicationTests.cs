@@ -13,7 +13,6 @@ using Microsoft.Extensions.Logging;
 using Xunit;
 using Xunit.Abstractions;
 using Xunit.Sdk;
-using VolumeMountType = Aspire.Hosting.ApplicationModel.VolumeMountType;
 
 namespace Aspire.Hosting.Tests;
 
