@@ -22,8 +22,18 @@ public class SqlServerServerResource(string name, string password) : ContainerRe
     /// <summary>
     /// Gets the connection string expression for the SQL Server for the manifest.
     /// </summary>
-    public string ConnectionStringExpression =>
-        $"Server={{{Name}.bindings.tcp.host}},{{{Name}.bindings.tcp.port}};User ID=sa;Password={{{Name}.inputs.password}};TrustServerCertificate=true";
+    public string? ConnectionStringExpression
+    {
+        get
+        {
+            if (this.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var connectionStringAnnotation))
+            {
+                return connectionStringAnnotation.Resource.ConnectionStringExpression;
+            }
+
+            return $"Server={{{Name}.bindings.tcp.host}},{{{Name}.bindings.tcp.port}};User ID=sa;Password={{{Name}.inputs.password}};TrustServerCertificate=true";
+        }
+    }
 
     /// <summary>
     /// Gets the connection string for the SQL Server.
@@ -31,6 +41,11 @@ public class SqlServerServerResource(string name, string password) : ContainerRe
     /// <returns>A connection string for the SQL Server in the form "Server=host,port;User ID=sa;Password=password;TrustServerCertificate=true".</returns>
     public string? GetConnectionString()
     {
+        if (this.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var connectionStringAnnotation))
+        {
+            return connectionStringAnnotation.Resource.GetConnectionString();
+        }
+
         if (!this.TryGetAnnotationsOfType<AllocatedEndpointAnnotation>(out var allocatedEndpoints))
         {
             throw new DistributedApplicationException("Expected allocated endpoints!");
