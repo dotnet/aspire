@@ -7,30 +7,34 @@ using Microsoft.Extensions.Hosting;
 namespace Aspire.Hosting;
 
 /// <summary>
-/// Provides extension methods for adding Node applications to an <see cref="IDistributedApplicationBuilder"/>.
+/// Provides extension methods for adding JavaScript runtime based applications to an <see cref="IDistributedApplicationBuilder"/>.
 /// </summary>
-public static class NodeAppHostingExtension
+public static class JavaScriptAppHostingExtension
 {
     /// <summary>
-    /// Adds a node application to the application model. Node should available on the PATH.
+    /// Adds a JavaScript runtime to the application model. The runtime and dependencies should available on the PATH.
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/> to add the resource to.</param>
     /// <param name="name">The name of the resource.</param>
-    /// <param name="scriptPath">The path to the script that Node will execute.</param>
+    /// <param name="scriptPath">The path to the script that the runtime will execute.</param>
     /// <param name="workingDirectory">The working directory to use for the command. If null, the working directory of the current process is used.</param>
     /// <param name="args">The arguments to pass to the command.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<NodeAppResource> AddNodeApp(this IDistributedApplicationBuilder builder, string name, string scriptPath, string? workingDirectory = null, string[]? args = null)
+    public static IResourceBuilder<JavaScriptAppResource> AddJavaScriptApp(this IDistributedApplicationBuilder builder, string name, string scriptPath, string? workingDirectory = null, string[]? args = null)
     {
         args ??= [];
         string[] effectiveArgs = [scriptPath, .. args];
         workingDirectory ??= Path.GetDirectoryName(scriptPath)!;
         workingDirectory = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, workingDirectory));
 
-        var resource = new NodeAppResource(name, "node", workingDirectory, effectiveArgs);
+        // pseudo code
+        // create a 'vaXYZ' that is == "node" as default or reassigned to the desired runtime name
+        // passed as second argument to the JavaScriptAppResource constructor
+
+        var resource = new JavaScriptAppResource(name, varXYZ, workingDirectory, effectiveArgs);
 
         return builder.AddResource(resource)
-                      .WithNodeDefaults();
+                      .WithJavaScriptAppDefaults();
     }
 
     /// <summary>
@@ -42,20 +46,30 @@ public static class NodeAppHostingExtension
     /// <param name="scriptName">The npm script to execute. Defaults to "start".</param>
     /// <param name="args">The arguments to pass to the command.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<NodeAppResource> AddNpmApp(this IDistributedApplicationBuilder builder, string name, string workingDirectory, string scriptName = "start", string[]? args = null)
-    {
+    public static IResourceBuilder<JavaScriptAppResource> AddJavaScriptCLIApp(this IDistributedApplicationBuilder builder, string name, string workingDirectory, string scriptName, string[]? args = null)
+
+    // pseudo code
+    // create a 'vaXYZ' that is == "npm" as default or reassigned to the desired package manager/CLI tool name
+    // passed as second argument to the JavaScriptAppResource constructor
+
+    {   
+        // create a conditional so if varXYZ is "npm" then the scriptName is "run" and the args are passed as is
         string[] allArgs = args is { Length: > 0 }
             ? ["run", scriptName, "--", .. args]
             : ["run", scriptName];
 
+        // or else all args is a custom object with the scriptName and the args
+
         workingDirectory = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, workingDirectory));
-        var resource = new NodeAppResource(name, "npm", workingDirectory, allArgs);
+        var resource = new JavaScriptAppResource(name, varXYZ, workingDirectory, allArgs);
 
         return builder.AddResource(resource)
-                      .WithNodeDefaults();
+                      .WithJavaScriptAppDefaults();
     }
 
-    private static IResourceBuilder<NodeAppResource> WithNodeDefaults(this IResourceBuilder<NodeAppResource> builder) =>
+    // this needs tested only for node since
+    // other runtimes may use a different pattern for env configuration
+    private static IResourceBuilder<JavaScriptAppResource> WithJavaScriptAppDefaults(this IResourceBuilder<JavaScriptAppResource> builder) =>
         builder.WithOtlpExporter()
             .WithEnvironment("NODE_ENV", builder.ApplicationBuilder.Environment.IsDevelopment() ? "development" : "production");
 }

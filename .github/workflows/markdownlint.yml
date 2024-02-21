@@ -24,3 +24,5 @@ jobs:
         echo "::add-matcher::.github/workflows/markdownlint-problem-matcher.json"
         npm i -g markdownlint-cli
         markdownlint --ignore '.dotnet/' '**/*.md'
+
+# why is node.js version 16.x used?

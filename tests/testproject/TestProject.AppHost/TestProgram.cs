@@ -31,7 +31,7 @@ public class TestProgram
             var path = Path.Combine(Projects.TestProject_AppHost.ProjectPath, @"..\nodeapp");
             var scriptPath = Path.Combine(path, "app.js");
 
-            NodeAppBuilder = AppBuilder.AddNodeApp("nodeapp", scriptPath)
+            NodeAppBuilder = AppBuilder.AddJavaScriptApp("nodeapp", scriptPath)
                 .WithHttpEndpoint(hostPort: 5031, env: "PORT");
 
             NpmAppBuilder = AppBuilder.AddNpmApp("npmapp", path)
@@ -87,8 +87,8 @@ public class TestProgram
     public IResourceBuilder<ProjectResource> ServiceCBuilder { get; private set; }
     public IResourceBuilder<ProjectResource> WorkerABuilder { get; private set; }
     public IResourceBuilder<ProjectResource>? IntegrationServiceABuilder { get; private set; }
-    public IResourceBuilder<NodeAppResource>? NodeAppBuilder { get; private set; }
-    public IResourceBuilder<NodeAppResource>? NpmAppBuilder { get; private set; }
+    public IResourceBuilder<JavaScriptAppResource>? NodeAppBuilder { get; private set; }
+    public IResourceBuilder<JavaScriptAppResource>? NpmAppBuilder { get; private set; }
     public DistributedApplication? App { get; private set; }
 
     public List<IResourceBuilder<ProjectResource>> ServiceProjectBuilders => [ServiceABuilder, ServiceBBuilder, ServiceCBuilder];

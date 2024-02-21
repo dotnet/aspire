@@ -11,7 +11,7 @@ namespace Aspire.Hosting;
 /// <param name="command">The command to execute.</param>
 /// <param name="workingDirectory">The working directory to use for the command. If null, the working directory of the current process is used.</param>
 /// <param name="args">The arguments to pass to the command.</param>
-public class NodeAppResource(string name, string command, string workingDirectory, string[]? args)
+public class JavaScriptAppResource(string name, string command, string workingDirectory, string[]? args)
     : ExecutableResource(name, command, workingDirectory, args), IResourceWithServiceDiscovery
 {
 
