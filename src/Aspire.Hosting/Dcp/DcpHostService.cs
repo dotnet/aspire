@@ -73,7 +73,17 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
         _shutdownCts.Cancel();
         if (_logProcessorTask is { } task)
         {
-            await task.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+            try
+            {
+                await task.ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"Error in logging socket processor: {ex}");
+            }
         }
     }
 
@@ -105,7 +115,7 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
 
                 dcpProcessSpec.EnvironmentVariables.Add("DCP_LOG_SOCKET", _locations.DcpLogSocket);
 
-                _logProcessorTask = StartLoggingSocketAsync(loggingSocket);
+                _logProcessorTask = Task.Run(() => StartLoggingSocketAsync(loggingSocket));
             }
             catch (Exception ex)
             {
@@ -199,14 +209,13 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
 
     private async Task StartLoggingSocketAsync(Socket socket)
     {
-        await Task.CompletedTask.ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
         List<Task> outputLoggers = [];
         while (!_shutdownCts.IsCancellationRequested)
         {
             try
             {
                 Socket acceptedSocket = await socket.AcceptAsync(_shutdownCts.Token).ConfigureAwait(false);
-                outputLoggers.Add(LogSocketOutputAsync(acceptedSocket, _shutdownCts.Token));
+                outputLoggers.Add(Task.Run(() => LogSocketOutputAsync(acceptedSocket, _shutdownCts.Token)));
             }
             catch
             {
@@ -220,7 +229,6 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
 
     private async Task LogSocketOutputAsync(Socket socket, CancellationToken cancellationToken)
     {
-        await Task.CompletedTask.ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
         using var stream = new NetworkStream(socket, ownsSocket: true);
         using var _ = cancellationToken.Register(s => ((NetworkStream)s!).Close(), stream);
         var reader = PipeReader.Create(stream);
