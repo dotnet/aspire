@@ -52,7 +52,7 @@ public class AspireRabbitMQLoggingTests
 
         await rabbitMqContainer.StopAsync();
 
-        await tsc.Task;
+        await tsc.Task.WaitAsync(TimeSpan.FromMinutes(1));
 
         Assert.True(logger.Logs.Count >= 2, "Should be at least 2 logs written.");
 
