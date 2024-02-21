@@ -67,18 +67,17 @@
       "connectionString": "Server=tcp:{sql.outputs.sqlServerFqdn},1433;Encrypt=True;Authentication=\u0022Active Directory Default\u0022",
       "path": "aspire.hosting.azure.bicep.sql.bicep",
       "params": {
+        "serverName": "sql",
         "principalId": "",
         "principalName": "",
-        "serverName": "sql",
         "databases": [
           "db"
         ]
       }
     },
     "db": {
-      "type": "azure.bicep.v0",
-      "connectionString": "{sql.connectionString};Initial Catalog=db",
-      "parent": "sql"
+      "type": "value.v0",
+      "connectionString": "{sql.connectionString};Database=db"
     },
     "administratorLogin": {
       "type": "parameter.v0",
@@ -115,8 +114,7 @@
     },
     "db2": {
       "type": "value.v0",
-      "parent": "postgres2",
-      "connectionString": "{postgres2.connectionString};Database=db2;"
+      "connectionString": "{postgres2.connectionString};Database=db2"
     },
     "cosmos": {
       "type": "azure.bicep.v0",

@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Immutable;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
 
@@ -21,8 +22,18 @@ public class SqlServerServerResource(string name, string password) : ContainerRe
     /// <summary>
     /// Gets the connection string expression for the SQL Server for the manifest.
     /// </summary>
-    public string ConnectionStringExpression =>
-        $"Server={{{Name}.bindings.tcp.host}},{{{Name}.bindings.tcp.port}};User ID=sa;Password={{{Name}.inputs.password}};TrustServerCertificate=true";
+    public string? ConnectionStringExpression
+    {
+        get
+        {
+            if (this.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var connectionStringAnnotation))
+            {
+                return connectionStringAnnotation.Resource.ConnectionStringExpression;
+            }
+
+            return $"Server={{{Name}.bindings.tcp.host}},{{{Name}.bindings.tcp.port}};User ID=sa;Password={{{Name}.inputs.password}};TrustServerCertificate=true";
+        }
+    }
 
     /// <summary>
     /// Gets the connection string for the SQL Server.
@@ -30,6 +41,11 @@ public class SqlServerServerResource(string name, string password) : ContainerRe
     /// <returns>A connection string for the SQL Server in the form "Server=host,port;User ID=sa;Password=password;TrustServerCertificate=true".</returns>
     public string? GetConnectionString()
     {
+        if (this.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var connectionStringAnnotation))
+        {
+            return connectionStringAnnotation.Resource.GetConnectionString();
+        }
+
         if (!this.TryGetAnnotationsOfType<AllocatedEndpointAnnotation>(out var allocatedEndpoints))
         {
             throw new DistributedApplicationException("Expected allocated endpoints!");
@@ -40,6 +56,23 @@ public class SqlServerServerResource(string name, string password) : ContainerRe
         // HACK: Use the 127.0.0.1 address because localhost is resolving to [::1] following
         //       up with DCP on this issue.
         return $"Server=127.0.0.1,{endpoint.Port};User ID=sa;Password={PasswordUtil.EscapePassword(Password)};TrustServerCertificate=true";
+    }
+
+    private readonly List<string> _databases = new List<string>();
+
+    /// <summary>
+    /// List of databases hosted on this server resource.
+    /// </summary>
+    public IEnumerable<string> Databases => _databases.ToImmutableArray();
+
+    internal void AddDatabase(string databaseName)
+    {
+        if (_databases.Contains(databaseName, StringComparers.ResourceName))
+        {
+            return;
+        }
+
+        _databases.Add(databaseName);
     }
 
     internal void WriteToManifest(ManifestPublishingContext context)
