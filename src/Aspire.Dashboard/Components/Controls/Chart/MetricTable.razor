@@ -23,7 +23,7 @@
                             var percentileData = histogramMetric.Percentiles[percentile];
 
                             <span style="@($"text-decoration-thickness: 2px; text-decoration-line: underline; text-decoration-color: {underlineColor}; margin-right: 4px;")">
-                                @percentileData.Value
+                                @FormatMetricValue(percentileData.Value)
                             </span>
 
                             if (GetIconAndTitleForDirection(percentileData.Direction) is var (icon, title))
@@ -34,16 +34,21 @@
                     </TemplateColumn>
                 }
             }
-            else
+            else if (_metrics.Values.All(value => value is MetricValueView))
             {
+                <!-- if we're switching between grid types, this could be false -->
                 <TemplateColumn Title="@_unitColumnHeader">
                     @{
-                        var metricValueView = (MetricValueView)context;
+                        var metricValueView = context as MetricValueView;
                     }
 
-                    @if (metricValueView.ValueChange is null)
+                    @if (metricValueView is null)
                     {
-                        @metricValueView.Value
+                        @Loc[nameof(ControlsStrings.Loading)]
+                    }
+                    else if (metricValueView.ValueChange is null)
+                    {
+                        @FormatMetricValue(metricValueView.Value)
                     }
                     else
                     {
@@ -61,3 +66,10 @@
         </EmptyContent>
     </FluentDataGrid>
 </div>
+
+<FluentStack Orientation="Orientation.Vertical" Style="margin-bottom: 20px;">
+    <FluentSwitch Class="table-switch"
+                  @bind-Value="@_onlyShowValueChanges"
+                  @bind-Value:after="SettingsChangedAsync"
+                  Label="@Loc[nameof(ControlsStrings.MetricTableShowOnlyValueChanges)]"/>
+</FluentStack>

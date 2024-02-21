@@ -55,7 +55,13 @@
                     <div class="metrics-content">
                         @if (PageViewModel.SelectedApplication.Id?.InstanceId != null && PageViewModel.SelectedMeter != null && PageViewModel.SelectedInstrument != null)
                         {
-                            <ChartContainer ApplicationId="@(PageViewModel.SelectedApplication.Id.InstanceId)" MeterName="@(PageViewModel.SelectedMeter.MeterName)" InstrumentName="@(PageViewModel.SelectedInstrument.Name)" Duration="PageViewModel.SelectedDuration.Id" />
+                            <ChartContainer
+                                ApplicationId="@(PageViewModel.SelectedApplication.Id.InstanceId)"
+                                MeterName="@(PageViewModel.SelectedMeter.MeterName)"
+                                InstrumentName="@(PageViewModel.SelectedInstrument.Name)"
+                                Duration="PageViewModel.SelectedDuration.Id"
+                                ActiveView="@(PageViewModel.SelectedViewKind ?? MetricViewKind.Graph)"
+                                OnViewChangedAsync="@OnViewChangedAsync"/>
                         }
                         else if (PageViewModel.SelectedMeter != null)
                         {

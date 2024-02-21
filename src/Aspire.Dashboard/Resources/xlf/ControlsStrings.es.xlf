@@ -122,6 +122,11 @@
         <target state="new">Show value</target>
         <note />
       </trans-unit>
+      <trans-unit id="Loading">
+        <source>Loading...</source>
+        <target state="new">Loading...</target>
+        <note />
+      </trans-unit>
       <trans-unit id="MetricTableNoValuesYet">
         <source>There are no metric values yet.</source>
         <target state="new">There are no metric values yet.</target>
