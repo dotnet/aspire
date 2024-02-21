@@ -6,7 +6,7 @@ using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Pomelo.EntityFrameworkCore.MySql.Tests;
 
-public class ConformanceTests_Pooling_TypeSpecificConfig : ConformanceTests_Pooling
+public class ConformanceTests_TypeSpecificConfig : ConformanceTests
 {
     protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
         => configuration.AddInMemoryCollection(new KeyValuePair<string, string?>[2]
