@@ -44,7 +44,7 @@ public static class MongoDBBuilderExtensions
 
         return builder.ApplicationBuilder
             .AddResource(mongoDBDatabase)
-            .WithManifestPublishingCallback(MongoDBDatabaseResource.WriteMongoDBDatabaseToManifest);
+            .WithManifestPublishingCallback(mongoDBDatabase.WriteMongoDBDatabaseToManifest);
     }
 
     /// <summary>

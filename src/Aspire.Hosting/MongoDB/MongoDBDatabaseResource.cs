@@ -39,8 +39,9 @@ public class MongoDBDatabaseResource(string name, MongoDBServerResource parent) 
         throw new DistributedApplicationException("Parent resource connection string was null.");
     }
 
-    internal static void WriteMongoDBDatabaseToManifest(ManifestPublishingContext context)
+    internal void WriteMongoDBDatabaseToManifest(ManifestPublishingContext context)
     {
         context.Writer.WriteString("type", "value.v0");
+        context.WriteConnectionString(this);
     }
 }
