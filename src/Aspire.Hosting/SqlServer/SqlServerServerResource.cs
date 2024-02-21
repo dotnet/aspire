@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Immutable;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
 
@@ -40,6 +41,23 @@ public class SqlServerServerResource(string name, string password) : ContainerRe
         // HACK: Use the 127.0.0.1 address because localhost is resolving to [::1] following
         //       up with DCP on this issue.
         return $"Server=127.0.0.1,{endpoint.Port};User ID=sa;Password={PasswordUtil.EscapePassword(Password)};TrustServerCertificate=true";
+    }
+
+    private readonly List<string> _databases = new List<string>();
+
+    /// <summary>
+    /// List of databases hosted on this server resource.
+    /// </summary>
+    public IEnumerable<string> Databases => _databases.ToImmutableArray();
+
+    internal void AddDatabase(string databaseName)
+    {
+        if (_databases.Contains(databaseName, StringComparers.ResourceName))
+        {
+            return;
+        }
+
+        _databases.Add(databaseName);
     }
 
     internal void WriteToManifest(ManifestPublishingContext context)
