@@ -58,7 +58,8 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                                           IConfiguration configuration,
                                           IOptions<DcpOptions> options,
                                           IDashboardEndpointProvider dashboardEndpointProvider,
-                                          IDashboardAvailability dashboardAvailability)
+                                          IDashboardAvailability dashboardAvailability,
+                                          DistributedApplicationExecutionContext executionContext)
 {
     private const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
 
@@ -68,6 +69,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
     private readonly IOptions<DcpOptions> _options = options;
     private readonly IDashboardEndpointProvider _dashboardEndpointProvider = dashboardEndpointProvider;
     private readonly IDashboardAvailability _dashboardAvailability = dashboardAvailability;
+    private readonly DistributedApplicationExecutionContext _executionContext = executionContext;
     private readonly List<AppResource> _appResources = [];
 
     // These environment variables should never be inherited from app host;
@@ -557,7 +559,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
                 }
 
                 var config = new Dictionary<string, string>();
-                var context = new EnvironmentCallbackContext("dcp", config);
+                var context = new EnvironmentCallbackContext(_executionContext, config);
 
                 // Need to apply configuration settings manually; see PrepareExecutables() for details.
                 if (er.ModelResource is ProjectResource project && project.SelectLaunchProfileName() is { } launchProfileName && project.GetLaunchSettings() is { } launchSettings)
@@ -794,7 +796,7 @@ internal sealed class ApplicationExecutor(ILogger<ApplicationExecutor> logger,
 
                 if (modelContainerResource.TryGetEnvironmentVariables(out var containerEnvironmentVariables))
                 {
-                    var context = new EnvironmentCallbackContext("dcp", config);
+                    var context = new EnvironmentCallbackContext(_executionContext, config);
 
                     foreach (var v in containerEnvironmentVariables)
                     {

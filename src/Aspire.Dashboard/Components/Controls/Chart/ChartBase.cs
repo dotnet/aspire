@@ -1,4 +1,4 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
@@ -10,11 +10,10 @@ using Aspire.Dashboard.Resources;
 using Humanizer;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
-using Microsoft.JSInterop;
 
-namespace Aspire.Dashboard.Components;
+namespace Aspire.Dashboard.Components.Controls.Chart;
 
-public partial class PlotlyChart : ComponentBase
+public abstract class ChartBase : ComponentBase
 {
     private const int GraphPointCount = 30;
 
@@ -27,7 +26,7 @@ public partial class PlotlyChart : ComponentBase
     private bool _renderedShowCount;
 
     [Inject]
-    public required IJSRuntime JSRuntime { get; set; }
+    public required IStringLocalizer<ControlsStrings> Loc { get; set; }
 
     [Parameter, EditorRequired]
     public required InstrumentViewModel InstrumentViewModel { get; set; }
@@ -86,22 +85,14 @@ public partial class PlotlyChart : ComponentBase
         return InvokeAsync(StateHasChanged);
     }
 
-    internal sealed class Trace
-    {
-        public required string Name { get; init; }
-        public List<double?> Values { get; } = new();
-        public List<double?> DiffValues { get; } = new();
-        public List<string?> Tooltips { get; } = new();
-    }
-
-    private (List<Trace> Y, List<DateTime> X) CalculateHistogramValues(List<DimensionScope> dimensions, int pointCount, bool tickUpdate, DateTime inProgressDataTime, string yLabel)
+    private (List<ChartTrace> Y, List<DateTime> X) CalculateHistogramValues(List<DimensionScope> dimensions, int pointCount, bool tickUpdate, DateTime inProgressDataTime, string yLabel)
     {
         var pointDuration = Duration / pointCount;
-        var traces = new Dictionary<int, Trace>
+        var traces = new Dictionary<int, ChartTrace>
         {
-            [50] = new Trace { Name = $"P50 {yLabel}" },
-            [90] = new Trace { Name = $"P90 {yLabel}" },
-            [99] = new Trace { Name = $"P99 {yLabel}" },
+            [50] = new ChartTrace { Name = $"P50 {yLabel}" },
+            [90] = new ChartTrace { Name = $"P90 {yLabel}" },
+            [99] = new ChartTrace { Name = $"P99 {yLabel}" },
         };
         var xValues = new List<DateTime>();
         var startDate = _currentDataStartTime;
@@ -137,7 +128,7 @@ public partial class PlotlyChart : ComponentBase
             xValues.Add(inProgressDataTime.ToLocalTime());
         }
 
-        Trace? previousValues = null;
+        ChartTrace? previousValues = null;
         foreach (var trace in traces.OrderBy(kvp => kvp.Key))
         {
             var currentTrace = trace.Value;
@@ -180,7 +171,7 @@ public partial class PlotlyChart : ComponentBase
         throw new InvalidOperationException("Unexpected metric type: " + metric.GetType());
     }
 
-    internal static bool TryCalculateHistogramPoints(List<DimensionScope> dimensions, DateTime start, DateTime end, Dictionary<int, Trace> traces)
+    internal static bool TryCalculateHistogramPoints(List<DimensionScope> dimensions, DateTime start, DateTime end, Dictionary<int, ChartTrace> traces)
     {
         var hasValue = false;
 
@@ -288,7 +279,7 @@ public partial class PlotlyChart : ComponentBase
         return explicitBounds[explicitBounds.Length - 1];
     }
 
-    private (List<Trace> Y, List<DateTime> X) CalculateChartValues(List<DimensionScope> dimensions, int pointCount, bool tickUpdate, DateTime inProgressDataTime, string yLabel)
+    private (List<ChartTrace> Y, List<DateTime> X) CalculateChartValues(List<DimensionScope> dimensions, int pointCount, bool tickUpdate, DateTime inProgressDataTime, string yLabel)
     {
         var pointDuration = Duration / pointCount;
         var yValues = new List<double?>();
@@ -325,7 +316,7 @@ public partial class PlotlyChart : ComponentBase
             xValues.Add(inProgressDataTime.ToLocalTime());
         }
 
-        var trace = new Trace
+        var trace = new ChartTrace
         {
             Name = yLabel
         };
@@ -397,7 +388,7 @@ public partial class PlotlyChart : ComponentBase
         Debug.Assert(InstrumentViewModel.MatchedDimensions != null);
         var unit = GetDisplayedUnit(InstrumentViewModel.Instrument, InstrumentViewModel.ShowCount, Loc);
 
-        List<Trace> traces;
+        List<ChartTrace> traces;
         List<DateTime> xValues;
         if (InstrumentViewModel.Instrument?.Type != OtlpInstrumentType.Histogram || InstrumentViewModel.ShowCount)
         {
@@ -408,31 +399,7 @@ public partial class PlotlyChart : ComponentBase
             (traces, xValues) = CalculateHistogramValues(InstrumentViewModel.MatchedDimensions, GraphPointCount, tickUpdate, inProgressDataTime, unit);
         }
 
-        var traceDtos = traces.Select(y => new
-        {
-            name = y.Name,
-            values = y.DiffValues,
-            tooltips = y.Tooltips
-        }).ToArray();
-
-        if (!tickUpdate)
-        {
-            await JSRuntime.InvokeVoidAsync("initializeChart",
-                "plotly-chart-container",
-                traceDtos,
-                xValues,
-                inProgressDataTime.ToLocalTime(),
-                (inProgressDataTime - Duration).ToLocalTime()).ConfigureAwait(false);
-        }
-        else
-        {
-            await JSRuntime.InvokeVoidAsync("updateChart",
-                "plotly-chart-container",
-                traceDtos,
-                xValues,
-                inProgressDataTime.ToLocalTime(),
-                (inProgressDataTime - Duration).ToLocalTime()).ConfigureAwait(false);
-        }
+        await OnChartUpdated(traces, xValues, tickUpdate, inProgressDataTime);
     }
 
     internal static string GetDisplayedUnit(OtlpInstrument? instrument, bool showCount, IStringLocalizer<ControlsStrings> loc)
@@ -475,4 +442,6 @@ public partial class PlotlyChart : ComponentBase
     {
         return DateTime.UtcNow.Subtract(TimeSpan.FromSeconds(1)); // Compensate for delay in receiving metrics from sevices.;
     }
+
+    protected abstract Task OnChartUpdated(List<ChartTrace> traces, List<DateTime> xValues, bool tickUpdate, DateTime inProgressDataTime);
 }

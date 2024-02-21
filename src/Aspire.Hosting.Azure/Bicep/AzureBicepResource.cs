@@ -340,7 +340,7 @@ public static class AzureBicepTemplateResourceExtensions
     {
         return builder.WithEnvironment(ctx =>
         {
-            if (ctx.PublisherName == "manifest")
+            if (ctx.ExecutionContext.Operation == DistributedApplicationOperation.Publish)
             {
                 ctx.EnvironmentVariables[name] = bicepOutputReference.ValueExpression;
                 return;

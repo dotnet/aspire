@@ -1,10 +1,10 @@
-﻿@using Aspire.Dashboard.Model
-@using Aspire.Dashboard.Otlp.Model
-@using Aspire.Dashboard.Otlp.Model.MetricValues
+﻿@namespace Aspire.Dashboard.Components.Controls
+
+@using Aspire.Dashboard.Components.Controls.Chart
 @using Aspire.Dashboard.Resources
-@namespace Aspire.Dashboard.Components.Controls
+
 @implements IAsyncDisposable
-@inject IStringLocalizer<ControlsStrings> Loc
+@inherits Aspire.Dashboard.Components.Controls.Chart.ChartBase
 
 <div id="metric-table-container" style="height: 40vh; overflow-y: auto; margin-bottom: 20px;">
    @if (IsHistogramInstrument())

@@ -6,11 +6,7 @@
 <FluentDataGrid Items="@Metrics" ItemSize="35" Virtualize="true">
     <ChildContent>
         <TemplateColumn Class="metric-grid-cell" Title="@Loc[nameof(ControlsStrings.MetricTableStartColumnHeader)]" Tooltip="true" TooltipText="@(metric => metric.DimensionName)">
-            <span aria-live="polite">@context.Value.Start.ToLocalTime()</span>
-            @if (AnyDimensionsShown)
-            {
-                <FluentIcon Icon="Icons.Filled.Size16.DataBarVertical" Color="Color.Info" Style="margin-left: 3px; vertical-align: text-bottom"/>
-            }
+           @context.Value.Start.ToLocalTime()
         </TemplateColumn>
 
         <PropertyColumn Property="@(c => c.Value.End.ToLocalTime())" Title="@Loc[nameof(ControlsStrings.MetricTableEndColumnHeader)]"/>
@@ -34,7 +30,7 @@
         }
         else if (TableType == MetricTable.TableType.Histogram)
         {
-            var unit = PlotlyChart.GetDisplayedUnit(Instrument, false, Loc);
+            /*var unit = PlotlyChart.GetDisplayedUnit(Instrument, false, Loc);
             // these colors line up with P50/P90/P99 colors for the plotly graph
             var percentileColumns = new List<(int Percentile, string UnderlineColor)> { (50, "#89B5D3"), (90, "#F9B980"), (99, "#8FC98F") };
             foreach (var (percentile, underlineColor) in percentileColumns)
@@ -50,7 +46,7 @@
                         }
                     }
                 </TemplateColumn>
-            }
+            }*/
         }
         else
         {
@@ -78,8 +74,4 @@
 
     [Parameter, EditorRequired]
     public required IQueryable<MetricTable.MetricView> Metrics { get; set; }
-
-    [Parameter, EditorRequired]
-    public required bool AnyDimensionsShown { get; set; }
-
 }

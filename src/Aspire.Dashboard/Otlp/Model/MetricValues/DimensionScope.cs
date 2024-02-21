@@ -25,7 +25,7 @@ public class DimensionScope
     {
         Attributes = attributes;
         var name = Attributes.ConcatProperties();
-        Name = name != null && name.Length > 0 ? name : "no-dimensions";
+        Name = name != null && name.Length > 0 ? name : NoDimensions;
         _values = new(capacity);
     }
 
