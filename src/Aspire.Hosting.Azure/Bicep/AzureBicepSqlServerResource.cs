@@ -14,13 +14,18 @@ public class AzureBicepSqlServerResource(string name) :
     AzureBicepResource(name, templateResouceName: "Aspire.Hosting.Azure.Bicep.sql.bicep"),
     IResourceWithConnectionString
 {
+    /// <summary>
+    /// Gets the fully qualified domain name (FQDN) output reference from the bicep template for the Azure SQL Server resource.
+    /// </summary>
+    public BicepOutputReference FullyQualifiedDomainName => new("sqlServerFqdn", this);
+
     internal List<string> Databases { get; } = [];
 
     /// <summary>
     /// Gets the connection template for the manifest for the Azure SQL Server resource.
     /// </summary>
     public string ConnectionStringExpression =>
-        $"Server=tcp:{{{Name}.outputs.sqlServerFqdn}},1433;Encrypt=True;Authentication=\"Active Directory Default\"";
+        $"Server=tcp:{FullyQualifiedDomainName.ValueExpression},1433;Encrypt=True;Authentication=\"Active Directory Default\"";
 
     /// <summary>
     /// Gets the connection string for the Azure SQL Server resource.
@@ -28,7 +33,7 @@ public class AzureBicepSqlServerResource(string name) :
     /// <returns>The connection string for the Azure SQL Server resource.</returns>
     public string? GetConnectionString()
     {
-        return $"Server=tcp:{Outputs["sqlServerFqdn"]},1433;Encrypt=True;Authentication=\"Active Directory Default\"";
+        return $"Server=tcp:{FullyQualifiedDomainName.Value},1433;Encrypt=True;Authentication=\"Active Directory Default\"";
     }
 }
 
@@ -49,7 +54,7 @@ public class AzureBicepSqlDbResource(string name, string databaseName, AzureBice
     /// Gets the connection template for the manifest for the Azure SQL Database resource.
     /// </summary>
     public string ConnectionStringExpression =>
-        $"{{{Parent.Name}.connectionString}};Intial Catalog={databaseName}";
+        $"{{{Parent.Name}.connectionString}};Initial Catalog={databaseName}";
 
     /// <summary>
     /// Gets the connection string for the Azure SQL Database resource.

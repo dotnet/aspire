@@ -104,4 +104,5 @@ public static class ResourceStates
     public const string ExitedState = "Exited";
     public const string FailedToStartState = "FailedToStart";
     public const string StartingState = "Starting";
+    public const string RunningState = "Running";
 }

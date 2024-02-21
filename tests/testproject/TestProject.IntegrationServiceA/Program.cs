@@ -17,10 +17,7 @@ builder.AddKafkaConsumer<string, string>("kafka", consumerBuilder =>
     consumerBuilder.Config.AutoOffsetReset = AutoOffsetReset.Earliest;
 });
 
-builder.AddAzureCosmosDB("cosmos", settings =>
-{
-    settings.IgnoreEmulatorCertificate = true;
-});
+builder.AddAzureCosmosDB("cosmos");
 
 var app = builder.Build();
 

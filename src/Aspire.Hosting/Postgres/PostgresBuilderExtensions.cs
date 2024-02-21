@@ -18,7 +18,7 @@ public static class PostgresBuilderExtensions
     private const string PasswordEnvVarName = "POSTGRES_PASSWORD";
 
     /// <summary>
-    /// Adds a PostgreSQL resource to the application model. A container is used for local development.
+    /// Adds a PostgreSQL resource to the application model. A container is used for local development. This version the package defaults to the 16.2 tag of the postgres container image
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
@@ -33,7 +33,7 @@ public static class PostgresBuilderExtensions
         return builder.AddResource(postgresServer)
                       .WithManifestPublishingCallback(WritePostgresContainerToManifest)
                       .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 5432)) // Internal port is always 5432.
-                      .WithAnnotation(new ContainerImageAnnotation { Image = "postgres", Tag = "latest" })
+                      .WithAnnotation(new ContainerImageAnnotation { Image = "postgres", Tag = "16.2" })
                       .WithEnvironment("POSTGRES_HOST_AUTH_METHOD", "scram-sha-256")
                       .WithEnvironment("POSTGRES_INITDB_ARGS", "--auth-host=scram-sha-256 --auth-local=scram-sha-256")
                       .WithEnvironment(context =>
@@ -57,13 +57,14 @@ public static class PostgresBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<PostgresDatabaseResource> AddDatabase(this IResourceBuilder<PostgresServerResource> builder, string name)
     {
+        builder.Resource.AddDatabase(name);
         var postgresDatabase = new PostgresDatabaseResource(name, builder.Resource);
         return builder.ApplicationBuilder.AddResource(postgresDatabase)
                                          .WithManifestPublishingCallback(context => WritePostgresDatabaseToManifest(context, postgresDatabase));
     }
 
     /// <summary>
-    /// Adds a pgAdmin 4 administration and development platform for PostgreSQL to the application model.
+    /// Adds a pgAdmin 4 administration and development platform for PostgreSQL to the application model. This version the package defaults to the 8.3 tag of the dpage/pgadmin4 container image
     /// </summary>
     /// <param name="builder">The PostgreSQL server resource builder.</param>
     /// <param name="hostPort">The host port for the application ui.</param>
@@ -82,10 +83,10 @@ public static class PostgresBuilderExtensions
 
         var pgAdminContainer = new PgAdminContainerResource(containerName);
         builder.ApplicationBuilder.AddResource(pgAdminContainer)
-                                  .WithAnnotation(new ContainerImageAnnotation { Image = "dpage/pgadmin4", Tag = "latest" })
+                                  .WithAnnotation(new ContainerImageAnnotation { Image = "dpage/pgadmin4", Tag = "8.3" })
                                   .WithHttpEndpoint(containerPort: 80, hostPort: hostPort, name: containerName)
                                   .WithEnvironment(SetPgAdminEnviromentVariables)
-                                  .WithVolumeMount(Path.GetTempFileName(), "/pgadmin4/servers.json")
+                                  .WithBindMount(Path.GetTempFileName(), "/pgadmin4/servers.json")
                                   .ExcludeFromManifest();
 
         return builder;
@@ -109,8 +110,9 @@ public static class PostgresBuilderExtensions
 
     private static void WritePostgresDatabaseToManifest(ManifestPublishingContext context, PostgresDatabaseResource postgresDatabase)
     {
-        context.Writer.WriteString("type", "postgres.database.v0");
+        context.Writer.WriteString("type", "value.v0");
         context.Writer.WriteString("parent", postgresDatabase.Parent.Name);
+        context.Writer.WriteString("connectionString", $"{{{postgresDatabase.Parent.Name}.connectionString}};Database={postgresDatabase.Name};");
     }
 
     /// <summary>

@@ -1,27 +1,34 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-namespace Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.ApplicationModel;
+
+namespace Aspire.Hosting.Azure;
 
 /// <summary>
 /// A resource that represents an Azure Application Insights resource.
 /// </summary>
 /// <param name="name">The resource name.</param>
-/// <param name="connectionString">The connection string to use to connect.</param>
-public sealed class AzureApplicationInsightsResource(string name, string? connectionString)
-    : Resource(name), IAzureResource, IResourceWithConnectionString
+public class AzureApplicationInsightsResource(string name) :
+    AzureBicepResource(name, templateResouceName: "Aspire.Hosting.Azure.Bicep.appinsights.bicep"),
+    IResourceWithConnectionString
 {
     /// <summary>
-    /// Gets or sets the connection string for the Azure Application Insights resource.
+    /// Gets the "appInsightsConnectionString" output reference for the Azure Application Insights resource.
     /// </summary>
-    public string? ConnectionString { get; set; } = connectionString;
+    public BicepOutputReference ConnectionString => new("appInsightsConnectionString", this);
+
+    /// <summary>
+    /// Gets the connection string template for the manifest for the Azure Application Insights resource.
+    /// </summary>
+    public string ConnectionStringExpression => ConnectionString.ValueExpression;
 
     /// <summary>
     /// Gets the connection string for the Azure Application Insights resource.
     /// </summary>
     /// <returns>The connection string for the Azure Application Insights resource.</returns>
-    public string? GetConnectionString() => ConnectionString;
+    public string? GetConnectionString() => ConnectionString.Value;
 
-    // UseAzureMonitor is looking for this specific environment variable name.
+    // UseAzureMonitor is looks for this specific environment variable name.
     string IResourceWithConnectionString.ConnectionStringEnvironmentVariable => "APPLICATIONINSIGHTS_CONNECTION_STRING";
 }

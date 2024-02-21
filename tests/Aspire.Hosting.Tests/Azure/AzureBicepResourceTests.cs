@@ -4,7 +4,9 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Azure;
+using Aspire.Hosting.Azure.Postgres;
 using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Utils;
 using Xunit;
 
 namespace Aspire.Hosting.Tests.Azure;
@@ -38,6 +40,18 @@ public class AzureBicepResourceTests
     }
 
     [Fact]
+    public void GetSecretOutputReturnsSecretOutputValue()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var bicepResource = builder.AddBicepTemplateString("templ", "content");
+
+        bicepResource.Resource.SecretOutputs["connectionString"] = "https://myendpoint;Key=43";
+
+        Assert.Equal("https://myendpoint;Key=43", bicepResource.GetSecretOutput("connectionString").Value);
+    }
+
+    [Fact]
     public void GetOutputValueThrowsIfNoOutput()
     {
         var builder = DistributedApplication.CreateBuilder();
@@ -45,6 +59,16 @@ public class AzureBicepResourceTests
         var bicepResource = builder.AddBicepTemplateString("templ", "content");
 
         Assert.Throws<InvalidOperationException>(() => bicepResource.GetOutput("resourceEndpoint").Value);
+    }
+
+    [Fact]
+    public void GetSecretOutputValueThrowsIfNoOutput()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var bicepResource = builder.AddBicepTemplateString("templ", "content");
+
+        Assert.Throws<InvalidOperationException>(() => bicepResource.GetSecretOutput("connectionString").Value);
     }
 
     [Fact]
@@ -116,7 +140,7 @@ public class AzureBicepResourceTests
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        var appConfig = builder.AddBicepAppConfiguration("appConfig");
+        var appConfig = builder.AddAzureAppConfiguration("appConfig");
 
         appConfig.Resource.Outputs["appConfigEndpoint"] = "https://myendpoint";
 
@@ -128,19 +152,47 @@ public class AzureBicepResourceTests
     }
 
     [Fact]
-    public void AddBicepRedis()
+    public void AddApplicationInsights()
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        var redis = builder.AddBicepAzureRedis("redis");
+        var appInsights = builder.AddAzureApplicationInsights("appInsights");
 
-        redis.Resource.SecretOutputs["connectionString"] = "myconnectionstring";
+        appInsights.Resource.Outputs["appInsightsConnectionString"] = "myinstrumentationkey";
 
-        Assert.Equal("Aspire.Hosting.Azure.Bicep.redis.bicep", redis.Resource.TemplateResourceName);
-        Assert.Equal("redis", redis.Resource.Name);
-        Assert.Equal("redis", redis.Resource.Parameters["redisCacheName"]);
-        Assert.Equal("myconnectionstring", redis.Resource.GetConnectionString());
-        Assert.Equal("{redis.secretOutputs.connectionString}", redis.Resource.ConnectionStringExpression);
+        Assert.Equal("Aspire.Hosting.Azure.Bicep.appinsights.bicep", appInsights.Resource.TemplateResourceName);
+        Assert.Equal("appInsights", appInsights.Resource.Name);
+        Assert.Equal("appinsights", appInsights.Resource.Parameters["appInsightsName"]);
+        Assert.Equal("myinstrumentationkey", appInsights.Resource.GetConnectionString());
+        Assert.Equal("{appInsights.outputs.appInsightsConnectionString}", appInsights.Resource.ConnectionStringExpression);
+    }
+
+    [Fact]
+    public void WithReferenceAppInsightsSetsEnvironmentVariable()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var appInsights = builder.AddAzureApplicationInsights("ai");
+
+        appInsights.Resource.Outputs["appInsightsConnectionString"] = "myinstrumentationkey";
+
+        var serviceA = builder.AddProject<Projects.ServiceA>("serviceA")
+            .WithReference(appInsights);
+
+        // Call environment variable callbacks.
+        var annotations = serviceA.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
+
+        var config = new Dictionary<string, string>();
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
+        var context = new EnvironmentCallbackContext(executionContext, config);
+
+        foreach (var annotation in annotations)
+        {
+            annotation.Callback(context);
+        }
+
+        Assert.True(config.ContainsKey("APPLICATIONINSIGHTS_CONNECTION_STRING"));
+        Assert.Equal("myinstrumentationkey", config["APPLICATIONINSIGHTS_CONNECTION_STRING"]);
     }
 
     [Fact]
@@ -167,7 +219,7 @@ public class AzureBicepResourceTests
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        var keyVault = builder.AddBicepKeyVault("keyVault");
+        var keyVault = builder.AddAzureKeyVault("keyVault");
 
         keyVault.Resource.Outputs["vaultUri"] = "https://myvault";
 
@@ -200,11 +252,95 @@ public class AzureBicepResourceTests
     }
 
     [Fact]
+    public void AsAzurePostgresFlexibleServer()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        builder.Configuration["Parameters:usr"] = "user";
+        builder.Configuration["Parameters:pwd"] = "password";
+
+        var usr = builder.AddParameter("usr");
+        var pwd = builder.AddParameter("pwd", secret: true);
+
+        IResourceBuilder<AzurePostgresResource>? azurePostgres = null;
+        var postgres = builder.AddPostgres("postgres").AsAzurePostgresFlexibleServer(usr, pwd, (resource) =>
+        {
+            Assert.NotNull(resource);
+            azurePostgres = resource;
+        });
+        postgres.AddDatabase("db");
+
+        Assert.NotNull(azurePostgres);
+
+        var databasesCallback = azurePostgres.Resource.Parameters["databases"] as Func<object?>;
+        Assert.NotNull(databasesCallback);
+        var databases = databasesCallback() as IEnumerable<string>;
+
+        Assert.Equal("Aspire.Hosting.Azure.Bicep.postgres.bicep", azurePostgres.Resource.TemplateResourceName);
+        Assert.Equal("postgres", postgres.Resource.Name);
+        Assert.Equal("postgres", azurePostgres.Resource.Parameters["serverName"]);
+        Assert.Same(usr, azurePostgres.Resource.Parameters["administratorLogin"]);
+        Assert.Same(pwd, azurePostgres.Resource.Parameters["administratorLoginPassword"]);
+        Assert.True(azurePostgres.Resource.Parameters.ContainsKey(AzureBicepResource.KnownParameters.KeyVaultName));
+        Assert.NotNull(databases);
+        Assert.Equal(["db"], databases);
+
+        // Setup to verify that connection strings is acquired via resource connectionstring redirct.
+        azurePostgres.Resource.SecretOutputs["connectionString"] = "myconnectionstring";
+        Assert.Equal("myconnectionstring", postgres.Resource.GetConnectionString());
+
+        Assert.Equal("{postgres.secretOutputs.connectionString}", azurePostgres.Resource.ConnectionStringExpression);
+    }
+
+    [Fact]
+    public void PublishAsAzurePostgresFlexibleServer()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        builder.Configuration["Parameters:usr"] = "user";
+        builder.Configuration["Parameters:pwd"] = "password";
+
+        var usr = builder.AddParameter("usr");
+        var pwd = builder.AddParameter("pwd", secret: true);
+
+        IResourceBuilder<AzurePostgresResource>? azurePostgres = null;
+        var postgres = builder.AddPostgres("postgres").PublishAsAzurePostgresFlexibleServer(usr, pwd, (resource) =>
+        {
+            azurePostgres = resource;
+        });
+        postgres.AddDatabase("db");
+
+        Assert.NotNull(azurePostgres);
+
+        var databasesCallback = azurePostgres.Resource.Parameters["databases"] as Func<object?>;
+        Assert.NotNull(databasesCallback);
+        var databases = databasesCallback() as IEnumerable<string>;
+
+        Assert.Equal("Aspire.Hosting.Azure.Bicep.postgres.bicep", azurePostgres.Resource.TemplateResourceName);
+        Assert.Equal("postgres", postgres.Resource.Name);
+        Assert.Equal("postgres", azurePostgres.Resource.Parameters["serverName"]);
+        Assert.Same(usr, azurePostgres.Resource.Parameters["administratorLogin"]);
+        Assert.Same(pwd, azurePostgres.Resource.Parameters["administratorLoginPassword"]);
+        Assert.True(azurePostgres.Resource.Parameters.ContainsKey(AzureBicepResource.KnownParameters.KeyVaultName));
+        Assert.NotNull(databases);
+        Assert.Equal(["db"], databases);
+
+        // Verify that when PublishAs variant is used, connection string acquisition
+        // still uses the local endpoint.
+        var endpointAnnotation = new AllocatedEndpointAnnotation("dummy", System.Net.Sockets.ProtocolType.Tcp, "localhost", 1234, "tcp");
+        postgres.WithAnnotation(endpointAnnotation);
+        var expectedConnectionString = $"Host={endpointAnnotation.Address};Port={endpointAnnotation.Port};Username=postgres;Password={PasswordUtil.EscapePassword(postgres.Resource.Password)}";
+        Assert.NotNull(postgres.Resource.GetConnectionString());
+
+        Assert.Equal("{postgres.secretOutputs.connectionString}", azurePostgres.Resource.ConnectionStringExpression);
+    }
+
+    [Fact]
     public void AddBicepServiceBus()
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        var sb = builder.AddBicepAzureServiceBus("sb", ["queue1"], ["topic1"]);
+        var sb = AzureServiceBusExtensions.AddAzureServiceBus(builder, "sb", ["queue1"], ["topic1"]);
 
         sb.Resource.Outputs["serviceBusEndpoint"] = "mynamespaceEndpoint";
 

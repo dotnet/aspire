@@ -16,7 +16,7 @@ public static class OracleDatabaseBuilderExtensions
     private const string PasswordEnvVarName = "ORACLE_PWD";
 
     /// <summary>
-    /// Adds a Oracle Database resource to the application model. A container is used for local development.
+    /// Adds a Oracle Database resource to the application model. A container is used for local development. This version the package defaults to the 23.3.0.0 tag of the container-registry.oracle.com/database/free container image
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
@@ -31,7 +31,7 @@ public static class OracleDatabaseBuilderExtensions
         return builder.AddResource(oracleDatabaseServer)
                       .WithManifestPublishingCallback(WriteOracleDatabaseContainerToManifest)
                       .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 1521))
-                      .WithAnnotation(new ContainerImageAnnotation { Image = "database/free", Tag = "latest", Registry = "container-registry.oracle.com" })
+                      .WithAnnotation(new ContainerImageAnnotation { Image = "database/free", Tag = "23.3.0.0", Registry = "container-registry.oracle.com" })
                       .WithEnvironment(context =>
                       {
                           if (context.ExecutionContext.Operation == DistributedApplicationOperation.Publish)

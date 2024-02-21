@@ -4,6 +4,7 @@
 using System.Net.Sockets;
 using System.Text.Json;
 using Aspire.Hosting.Postgres;
+using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -28,7 +29,7 @@ public class AddPostgresTests
         Assert.NotNull(manifestPublishing.Callback);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal("latest", containerAnnotation.Tag);
+        Assert.Equal("16.2", containerAnnotation.Tag);
         Assert.Equal("postgres", containerAnnotation.Image);
         Assert.Null(containerAnnotation.Registry);
 
@@ -87,7 +88,7 @@ public class AddPostgresTests
         Assert.NotNull(manifestPublishing.Callback);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal("latest", containerAnnotation.Tag);
+        Assert.Equal("16.2", containerAnnotation.Tag);
         Assert.Equal("postgres", containerAnnotation.Image);
         Assert.Null(containerAnnotation.Registry);
 
@@ -133,23 +134,17 @@ public class AddPostgresTests
     public void PostgresCreatesConnectionString()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.AddPostgres("postgres")
-            .WithAnnotation(
-            new AllocatedEndpointAnnotation("mybinding",
-            ProtocolType.Tcp,
-            "localhost",
-            2000,
-            "https"
-            ));
+        var postgres = appBuilder.AddPostgres("postgres")
+                                 .WithAnnotation(
+                                     new AllocatedEndpointAnnotation("mybinding",
+                                      ProtocolType.Tcp,
+                                     "localhost",
+                                     2000,
+                                     "https"
+                                 ));
 
-        var app = appBuilder.Build();
-
-        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-
-        var connectionStringResource = Assert.Single(appModel.Resources.OfType<IResourceWithConnectionString>());
-        var connectionString = connectionStringResource.GetConnectionString();
-        Assert.StartsWith("Host=localhost;Port=2000;Username=postgres;Password=", connectionString);
-        Assert.EndsWith(";", connectionString);
+        var connectionString = postgres.Resource.GetConnectionString();
+        Assert.Equal($"Host=localhost;Port=2000;Username=postgres;Password={PasswordUtil.EscapePassword(postgres.Resource.Password)};", connectionString);
     }
 
     [Fact]
@@ -176,7 +171,7 @@ public class AddPostgresTests
         var dbConnectionString = postgresDatabaseResource.GetConnectionString();
 
         Assert.EndsWith(";", postgresConnectionString);
-        Assert.Equal(postgresConnectionString + "Database=db", dbConnectionString);
+        Assert.Equal(postgresConnectionString + ";Database=db", dbConnectionString);
     }
 
     [Fact]
@@ -197,7 +192,7 @@ public class AddPostgresTests
         Assert.NotNull(manifestPublishing.Callback);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal("latest", containerAnnotation.Tag);
+        Assert.Equal("16.2", containerAnnotation.Tag);
         Assert.Equal("postgres", containerAnnotation.Image);
         Assert.Null(containerAnnotation.Registry);
 
@@ -246,7 +241,7 @@ public class AddPostgresTests
         builder.AddPostgres("mypostgres").WithPgAdmin(8081);
 
         var container = builder.Resources.Single(r => r.Name == "mypostgres-pgadmin");
-        var volume = container.Annotations.OfType<VolumeMountAnnotation>().Single();
+        var volume = container.Annotations.OfType<ContainerMountAnnotation>().Single();
 
         Assert.True(File.Exists(volume.Source)); // File should exist, but will be empty.
         Assert.Equal("/pgadmin4/servers.json", volume.Target);
@@ -274,7 +269,7 @@ public class AddPostgresTests
         pg2.WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "host.docker.internal", 5002, "tcp"));
 
         var pgadmin = builder.Resources.Single(r => r.Name.EndsWith("-pgadmin"));
-        var volume = pgadmin.Annotations.OfType<VolumeMountAnnotation>().Single();
+        var volume = pgadmin.Annotations.OfType<ContainerMountAnnotation>().Single();
 
         var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -282,7 +277,7 @@ public class AddPostgresTests
         var hook = new PgAdminConfigWriterHook();
         hook.AfterEndpointsAllocatedAsync(appModel, CancellationToken.None);
 
-        using var stream = File.OpenRead(volume.Source);
+        using var stream = File.OpenRead(volume.Source!);
         var document = JsonDocument.Parse(stream);
 
         var servers = document.RootElement.GetProperty("Servers");
