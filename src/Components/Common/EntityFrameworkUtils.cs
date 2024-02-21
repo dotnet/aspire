@@ -66,7 +66,7 @@ internal static class EntityFrameworkUtils
 
                 if (dbContextOptions is null)
                 {
-                    throw new InvalidOperationException($"DbContext<{typeof(TContext).Name}> was not registered. Ensure you have registered the DbContext in DI before calling {memberName}.");
+                    throw new InvalidOperationException($"DbContext<{typeof(TContext).Name}> was not configured. Ensure you have registered the DbContext in DI before calling {memberName}.");
                 }
 
                 var optionsBuilder = dbContextOptions != null
