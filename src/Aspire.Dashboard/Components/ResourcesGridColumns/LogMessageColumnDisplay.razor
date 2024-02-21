@@ -48,7 +48,9 @@
     </FluentTooltip>
 }
 
-<FluentHighlighter HighlightedText="@FilterText" Text="@LogEntry.Message" />
+<GridValue Value="@LogEntry.Message"
+           EnableHighlighting="true"
+           HighlightText="@FilterText"/>
 
 @code {
     [Parameter, EditorRequired]
