@@ -162,7 +162,7 @@ public static partial class AspireEFMySqlExtensions
                         dbContextOptions.FindExtension<MySqlOptionsExtension>() is not MySqlOptionsExtension extension ||
                         extension.ServerVersion is not ServerVersion serverVersion)
                     {
-                        throw new InvalidOperationException($"A DbContextOptions<{typeof(TContext).Name}> was not found. Please ensure 'ServerVersion' was configured.");
+                        throw new InvalidOperationException($"A DbContextOptions<{typeof(TContext).Name}> was not found. Please ensure 'UseMySql' was called correctly with a ServerVersion.");
                     }
 #pragma warning restore EF1001 // Internal EF Core API usage.
 
