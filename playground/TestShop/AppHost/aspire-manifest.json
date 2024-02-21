@@ -1,14 +1,50 @@
 {
   "resources": {
     "postgres": {
-      "type": "postgres.server.v0"
+      "connectionString": "Host={postgres.bindings.tcp.host};Port={postgres.bindings.tcp.port};Username=postgres;Password={postgres.inputs.password}",
+      "type": "container.v0",
+      "image": "postgres:16.2",
+      "env": {
+        "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
+        "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
+        "POSTGRES_PASSWORD": "{postgres.inputs.password}"
+      },
+      "bindings": {
+        "tcp": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp",
+          "containerPort": 5432
+        }
+      },
+      "inputs": {
+        "password": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 10
+            }
+          }
+        }
+      }
     },
     "catalogdb": {
-      "type": "postgres.database.v0",
-      "parent": "postgres"
+      "connectionString": "{postgres.connectionString};Database=catalogdb",
+      "type": "value.v0"
     },
     "basketcache": {
-      "type": "redis.v0"
+      "connectionString": "{basketcache.bindings.tcp.host}:{basketcache.bindings.tcp.port}",
+      "type": "container.v0",
+      "image": "redis:7.2.4",
+      "bindings": {
+        "tcp": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp",
+          "containerPort": 6379
+        }
+      }
     },
     "catalogservice": {
       "type": "project.v0",
@@ -32,6 +68,7 @@
       }
     },
     "messaging": {
+      "connectionString": "amqp://guest:{messaging.inputs.password}@{messaging.bindings.tcp.host}:{messaging.bindings.tcp.port}",
       "type": "container.v0",
       "image": "rabbitmq:3",
       "env": {
@@ -46,7 +83,6 @@
           "containerPort": 5672
         }
       },
-      "connectionString": "amqp://guest:{messaging.inputs.password}@{messaging.bindings.tcp.host}:{messaging.bindings.tcp.port}",
       "inputs": {
         "password": {
           "type": "string",

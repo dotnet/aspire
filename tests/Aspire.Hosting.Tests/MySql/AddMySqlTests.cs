@@ -6,6 +6,7 @@ using Aspire.Hosting.MySql;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.Tests.MySql;
 
@@ -128,8 +129,9 @@ public class AddMySqlTests
 
         var connectionStringResource = Assert.Single(appModel.Resources.OfType<IResourceWithConnectionString>());
         var connectionString = connectionStringResource.GetConnectionString();
+
+        Assert.Equal("Server={mysql.bindings.tcp.host};Port={mysql.bindings.tcp.port};User ID=root;Password={mysql.inputs.password}", connectionStringResource.ConnectionStringExpression);
         Assert.StartsWith("Server=localhost;Port=2000;User ID=root;Password=", connectionString);
-        Assert.EndsWith(";", connectionString);
     }
 
     [Fact]
@@ -155,8 +157,25 @@ public class AddMySqlTests
         var mySqlDatabaseResource = Assert.Single(appModel.Resources.OfType<MySqlDatabaseResource>());
         var dbConnectionString = mySqlDatabaseResource.GetConnectionString();
 
-        Assert.EndsWith(";", mySqlConnectionString);
-        Assert.Equal(mySqlConnectionString + "Database=db", dbConnectionString);
+        Assert.Equal(mySqlConnectionString + ";Database=db", dbConnectionString);
+        Assert.Equal("{mysql.connectionString};Database=db", mySqlDatabaseResource.ConnectionStringExpression);
+    }
+
+    [Fact]
+    public void VerifyManifest()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        var mysql = appBuilder.AddMySql("mysql");
+        var db = mysql.AddDatabase("db");
+
+        var mySqlManifest = ManifestUtils.GetManifest(mysql.Resource);
+        var dbManifest = ManifestUtils.GetManifest(db.Resource);
+
+        Assert.Equal("container.v0", mySqlManifest["type"]?.ToString());
+        Assert.Equal(mysql.Resource.ConnectionStringExpression, mySqlManifest["connectionString"]?.ToString());
+
+        Assert.Equal("value.v0", dbManifest["type"]?.ToString());
+        Assert.Equal(db.Resource.ConnectionStringExpression, dbManifest["connectionString"]?.ToString());
     }
 
     [Fact]

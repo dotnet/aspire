@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Immutable;
+using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.ApplicationModel;
@@ -17,6 +18,22 @@ public class PostgresServerResource(string name, string password) : ContainerRes
     /// Gets the PostgreSQL server password.
     /// </summary>
     public string Password { get; } = password;
+
+    /// <summary>
+    /// Gets the connection string expression for the PostgreSQL server for the manifest.
+    /// </summary>
+    public string? ConnectionStringExpression
+    {
+        get
+        {
+            if (this.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var connectionStringAnnotation))
+            {
+                return connectionStringAnnotation.Resource.ConnectionStringExpression;
+            }
+
+            return $"Host={{{Name}.bindings.tcp.host}};Port={{{Name}.bindings.tcp.port}};Username=postgres;Password={{{Name}.inputs.password}}";
+        }
+    }
 
     /// <summary>
     /// Gets the connection string for the PostgreSQL server.
@@ -36,7 +53,7 @@ public class PostgresServerResource(string name, string password) : ContainerRes
 
         var allocatedEndpoint = allocatedEndpoints.Single(); // We should only have one endpoint for Postgres.
 
-        var connectionString = $"Host={allocatedEndpoint.Address};Port={allocatedEndpoint.Port};Username=postgres;Password={PasswordUtil.EscapePassword(Password)};";
+        var connectionString = $"Host={allocatedEndpoint.Address};Port={allocatedEndpoint.Port};Username=postgres;Password={PasswordUtil.EscapePassword(Password)}";
         return connectionString;
     }
 
@@ -55,5 +72,22 @@ public class PostgresServerResource(string name, string password) : ContainerRes
         }
 
         _databases.Add(databaseName);
+    }
+
+    internal void WriteToManifest(ManifestPublishingContext context)
+    {
+        context.WriteContainer(this);
+
+        context.Writer.WriteStartObject("inputs");      // "inputs": {
+        context.Writer.WriteStartObject("password");    //   "password": {
+        context.Writer.WriteString("type", "string");   //     "type": "string",
+        context.Writer.WriteBoolean("secret", true);    //     "secret": true,
+        context.Writer.WriteStartObject("default");     //     "default": {
+        context.Writer.WriteStartObject("generate");    //       "generate": {
+        context.Writer.WriteNumber("minLength", 10);    //         "minLength": 10,
+        context.Writer.WriteEndObject();                //       }
+        context.Writer.WriteEndObject();                //     }
+        context.Writer.WriteEndObject();                //   }
+        context.Writer.WriteEndObject();                // }
     }
 }

@@ -5,7 +5,6 @@ using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.MySql;
-using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
@@ -31,7 +30,6 @@ public static class MySqlBuilderExtensions
 
         var resource = new MySqlServerResource(name, password);
         return builder.AddResource(resource)
-                      .WithManifestPublishingCallback(WriteMySqlContainerToManifest)
                       .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 3306)) // Internal port is always 3306.
                       .WithAnnotation(new ContainerImageAnnotation { Image = "mysql", Tag = "8.3.0" })
                       .WithEnvironment(context =>
@@ -44,7 +42,8 @@ public static class MySqlBuilderExtensions
                           {
                               context.EnvironmentVariables.Add(PasswordEnvVarName, resource.Password);
                           }
-                      });
+                      })
+                      .PublishAsContainer();
     }
 
     /// <summary>
@@ -57,7 +56,7 @@ public static class MySqlBuilderExtensions
     {
         var mySqlDatabase = new MySqlDatabaseResource(name, builder.Resource);
         return builder.ApplicationBuilder.AddResource(mySqlDatabase)
-                                         .WithManifestPublishingCallback(context => WriteMySqlDatabaseToManifest(context, mySqlDatabase));
+                                         .WithManifestPublishingCallback(mySqlDatabase.WriteToManifest);
     }
 
     /// <summary>
@@ -88,17 +87,6 @@ public static class MySqlBuilderExtensions
         return builder;
     }
 
-    private static void WriteMySqlContainerToManifest(ManifestPublishingContext context)
-    {
-        context.Writer.WriteString("type", "mysql.server.v0");
-    }
-
-    private static void WriteMySqlDatabaseToManifest(ManifestPublishingContext context, MySqlDatabaseResource mySqlDatabase)
-    {
-        context.Writer.WriteString("type", "mysql.database.v0");
-        context.Writer.WriteString("parent", mySqlDatabase.Parent.Name);
-    }
-
     /// <summary>
     /// Changes resource to be published as a container.
     /// </summary>
@@ -106,25 +94,6 @@ public static class MySqlBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<MySqlServerResource> PublishAsContainer(this IResourceBuilder<MySqlServerResource> builder)
     {
-        return builder.WithManifestPublishingCallback(context => WriteMySqlContainerResourceToManifest(context, builder.Resource));
-    }
-
-    private static void WriteMySqlContainerResourceToManifest(ManifestPublishingContext context, MySqlServerResource resource)
-    {
-        context.WriteContainer(resource);
-        context.Writer.WriteString(                     // "connectionString": "...",
-            "connectionString",
-            $"Server={{{resource.Name}.bindings.tcp.host}};Port={{{resource.Name}.bindings.tcp.port}};User ID=root;Password={{{resource.Name}.inputs.password}}");
-        context.Writer.WriteStartObject("inputs");      // "inputs": {
-        context.Writer.WriteStartObject("password");    //   "password": {
-        context.Writer.WriteString("type", "string");   //     "type": "string",
-        context.Writer.WriteBoolean("secret", true);    //     "secret": true,
-        context.Writer.WriteStartObject("default");     //     "default": {
-        context.Writer.WriteStartObject("generate");    //       "generate": {
-        context.Writer.WriteNumber("minLength", 10);    //         "minLength": 10,
-        context.Writer.WriteEndObject();                //       }
-        context.Writer.WriteEndObject();                //     }
-        context.Writer.WriteEndObject();                //   }
-        context.Writer.WriteEndObject();                // }
+        return builder.WithManifestPublishingCallback(builder.Resource.WriteToManifest);
     }
 }

@@ -144,7 +144,8 @@ public class AddPostgresTests
                                  ));
 
         var connectionString = postgres.Resource.GetConnectionString();
-        Assert.Equal($"Host=localhost;Port=2000;Username=postgres;Password={PasswordUtil.EscapePassword(postgres.Resource.Password)};", connectionString);
+        Assert.Equal("Host={postgres.bindings.tcp.host};Port={postgres.bindings.tcp.port};Username=postgres;Password={postgres.inputs.password}", postgres.Resource.ConnectionStringExpression);
+        Assert.Equal($"Host=localhost;Port=2000;Username=postgres;Password={PasswordUtil.EscapePassword(postgres.Resource.Password)}", connectionString);
     }
 
     [Fact]
@@ -170,7 +171,7 @@ public class AddPostgresTests
         var postgresDatabaseResource = Assert.Single(appModel.Resources.OfType<PostgresDatabaseResource>());
         var dbConnectionString = postgresDatabaseResource.GetConnectionString();
 
-        Assert.EndsWith(";", postgresConnectionString);
+        Assert.Equal("{postgres.connectionString};Database=db", postgresDatabaseResource.ConnectionStringExpression);
         Assert.Equal(postgresConnectionString + ";Database=db", dbConnectionString);
     }
 
@@ -232,6 +233,23 @@ public class AddPostgresTests
                 Assert.Equal("POSTGRES_PASSWORD", env.Key);
                 Assert.Equal("pass", env.Value);
             });
+    }
+
+    [Fact]
+    public void VerifyManifest()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        var pgServer = appBuilder.AddPostgres("pg");
+        var db = pgServer.AddDatabase("db");
+
+        var serverManifest = ManifestUtils.GetManifest(pgServer.Resource);
+        var dbManifest = ManifestUtils.GetManifest(db.Resource);
+
+        Assert.Equal("container.v0", serverManifest["type"]?.ToString());
+        Assert.Equal(pgServer.Resource.ConnectionStringExpression, serverManifest["connectionString"]?.ToString());
+
+        Assert.Equal("value.v0", dbManifest["type"]?.ToString());
+        Assert.Equal(db.Resource.ConnectionStringExpression, dbManifest["connectionString"]?.ToString());
     }
 
     [Fact]
