@@ -10,7 +10,6 @@ using Azure.ResourceManager;
 using Azure.ResourceManager.CosmosDB;
 using Azure.ResourceManager.Resources;
 using Azure.ResourceManager.Sql;
-using Azure.ResourceManager.Storage;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
@@ -31,9 +30,6 @@ public static class AzureProvisionerExtensions
         // Attempt to read azure configuration from configuration
         builder.Services.AddOptions<AzureProvisionerOptions>()
             .BindConfiguration("Azure");
-
-        builder.AddAzureProvisioner<AzureStorageResource, StorageProvisioner>();
-        builder.AddResourceEnumerator(resourceGroup => resourceGroup.GetStorageAccounts(), resource => resource.Data.Tags);
 
         builder.AddAzureProvisioner<AzureCosmosDBResource, AzureCosmosDBProvisioner>();
         builder.AddResourceEnumerator(resourceGroup => resourceGroup.GetCosmosDBAccounts(), resource => resource.Data.Tags);

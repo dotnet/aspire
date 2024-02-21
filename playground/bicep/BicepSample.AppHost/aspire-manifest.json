@@ -51,19 +51,16 @@
       }
     },
     "blob": {
-      "type": "azure.bicep.v0",
-      "connectionString": "{storage.outputs.blobEndpoint}",
-      "parent": "storage"
+      "type": "value.v0",
+      "connectionString": "{storage.outputs.blobEndpoint}"
     },
     "table": {
-      "type": "azure.bicep.v0",
-      "connectionString": "{storage.outputs.tableEndpoint}",
-      "parent": "storage"
+      "type": "value.v0",
+      "connectionString": "{storage.outputs.tableEndpoint}"
     },
     "queue": {
-      "type": "azure.bicep.v0",
-      "connectionString": "{storage.outputs.queueEndpoint}",
-      "parent": "storage"
+      "type": "value.v0",
+      "connectionString": "{storage.outputs.queueEndpoint}"
     },
     "sql": {
       "type": "azure.bicep.v0",

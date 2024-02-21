@@ -329,37 +329,6 @@ public class ManifestGenerationTests
     }
 
     [Fact]
-    public void EnsureAllAzureStorageManifestTypesHaveVersion0Suffix()
-    {
-        var program = CreateTestProgramJsonDocumentManifestPublisher();
-
-        var parent = program.AppBuilder.AddAzureStorage("storage");
-        parent.AddBlobs("blobs");
-        parent.AddQueues("queues");
-        parent.AddTables("tables");
-
-        // Build AppHost so that publisher can be resolved.
-        program.Build();
-        var publisher = program.GetManifestPublisher();
-
-        program.Run();
-
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var storage = resources.GetProperty("storage");
-        Assert.Equal("azure.storage.v0", storage.GetProperty("type").GetString());
-
-        var blobs = resources.GetProperty("blobs");
-        Assert.Equal("azure.storage.blob.v0", blobs.GetProperty("type").GetString());
-
-        var queues = resources.GetProperty("queues");
-        Assert.Equal("azure.storage.queue.v0", queues.GetProperty("type").GetString());
-
-        var tables = resources.GetProperty("tables");
-        Assert.Equal("azure.storage.table.v0", tables.GetProperty("type").GetString());
-    }
-
-    [Fact]
     public void EnsureAllRabbitMQManifestTypesHaveVersion0Suffix()
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher();
