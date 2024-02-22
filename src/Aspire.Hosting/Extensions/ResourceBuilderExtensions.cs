@@ -359,7 +359,7 @@ public static class ResourceBuilderExtensions
     /// <param name="callback">Callback that modifies the endpoint.</param>
     /// <param name="createIfNotExists">Create endpoint if it does not exist.</param>
     /// <returns></returns>
-    public static IResourceBuilder<T> WithEndpoint<T>(this IResourceBuilder<T> builder, string endpointName, Action<EndpointAnnotation> callback, bool createIfNotExists = true) where T: IResourceWithEndpoints
+    public static IResourceBuilder<T> WithEndpoint<T>(this IResourceBuilder<T> builder, string endpointName, Action<EndpointAnnotation> callback, bool createIfNotExists = true) where T : IResourceWithEndpoints
     {
         var endpoint = builder.Resource.Annotations
             .OfType<EndpointAnnotation>()
@@ -530,11 +530,6 @@ public static class ResourceBuilderExtensions
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<T> ExcludeFromManifest<T>(this IResourceBuilder<T> builder) where T : IResource
     {
-        foreach (var annotation in builder.Resource.Annotations.OfType<ManifestPublishingCallbackAnnotation>())
-        {
-            builder.Resource.Annotations.Remove(annotation);
-        }
-
         return builder.WithAnnotation(ManifestPublishingCallbackAnnotation.Ignore);
     }
 

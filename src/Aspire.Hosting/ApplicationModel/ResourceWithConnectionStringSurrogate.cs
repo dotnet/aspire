@@ -14,7 +14,5 @@ internal sealed class ResourceWithConnectionStringSurrogate(IResource innerResou
         return callback();
     }
 
-    public string ConnectionStringReferenceExpression => $"{{{Name}.value}}";
-
     public string? ConnectionStringEnvironmentVariable => environmentVariableName;
 }

@@ -1,0 +1,81 @@
+﻿@namespace Aspire.Dashboard.Components.Controls
+
+@implements IAsyncDisposable
+@using Aspire.Dashboard.Resources
+@using Aspire.Dashboard.Utils
+@using System.Globalization
+@inherits Aspire.Dashboard.Components.Controls.Chart.ChartBase
+
+@{
+    // these colors line up with P50/P90/P99 colors for the plotly graph
+    var percentileColumns = new List<(int Percentile, string UnderlineColor)> { (50, "#89B5D3"), (90, "#F9B980"), (99, "#8FC98F") };
+    var columnCount = ShowPercentiles() ? percentileColumns.Count + 1 : 2;
+}
+
+<div id="metric-table-container" style="height: 40vh; overflow-y: auto; margin-bottom: 20px; max-width:1200px;">
+    <FluentDataGrid Items="@_metricsView" ItemSize="35" Virtualize="true" GridTemplateColumns="@string.Join(" ", Enumerable.Repeat("1fr", columnCount))">
+        <ChildContent>
+            <TemplateColumn Title="@Loc[nameof(ControlsStrings.MetricTableStartColumnHeader)]" TooltipText="@(context => FormatHelpers.FormatDateTime(context.DateTime, false, CultureInfo.CurrentCulture))" Tooltip="true">
+                @FormatHelpers.FormatTimeWithOptionalDate(context.DateTime)
+            </TemplateColumn>
+
+            @if (ShowPercentiles())
+            {
+                foreach (var (percentile, underlineColor) in percentileColumns)
+                {
+                    <TemplateColumn Title="@((_metricsView.FirstOrDefault() as HistogramMetricView)?.Percentiles[percentile].Name ?? $"P{percentile}")">
+                        @if (context is HistogramMetricView histogramMetric)
+                        {
+                            var percentileData = histogramMetric.Percentiles[percentile];
+
+                            <span style="@($"text-decoration-thickness: 2px; text-decoration-line: underline; text-decoration-color: {underlineColor}; margin-right: 4px;")">
+                                @percentileData.Value
+                            </span>
+
+                            if (GetIconAndTitleForDirection(percentileData.Direction) is var (icon, title))
+                            {
+                                <FluentIcon Style="vertical-align: text-bottom" Value="@icon" Title="@title"/>
+                            }
+                        }
+                    </TemplateColumn>
+                }
+            }
+            else if (_metrics.Values.All(value => value is MetricValueView))
+            {
+                <!-- if we're switching between grid types, this could be false -->
+                <TemplateColumn Title="@_unitColumnHeader">
+                    @{
+                        var metricValueView = context as MetricValueView;
+                    }
+
+                    @if (metricValueView is null)
+                    {
+                        @Loc[nameof(ControlsStrings.Loading)]
+                    }
+                    else if (metricValueView.ValueChange is null)
+                    {
+                        @FormatMetricValue(metricValueView.Value)
+                    }
+                    else
+                    {
+                        <span style="margin-right: 4px;">@metricValueView.Value</span>
+                        if (GetIconAndTitleForDirection(metricValueView.ValueChange) is var (icon, title))
+                        {
+                            <FluentIcon Style="vertical-align: text-bottom" Value="@icon" Title="@title"/>
+                        }
+                    }
+                </TemplateColumn>
+            }
+        </ChildContent>
+        <EmptyContent>
+            <FluentIcon Icon="Icons.Regular.Size24.ChartMultiple" />&nbsp;@Loc[nameof(ControlsStrings.MetricTableNoMetricsFound)]
+        </EmptyContent>
+    </FluentDataGrid>
+</div>
+
+<FluentStack Orientation="Orientation.Vertical" Style="margin-bottom: 20px;">
+    <FluentSwitch Class="table-switch"
+                  @bind-Value="@_onlyShowValueChanges"
+                  @bind-Value:after="SettingsChangedAsync"
+                  Label="@Loc[nameof(ControlsStrings.MetricTableShowOnlyValueChanges)]"/>
+</FluentStack>

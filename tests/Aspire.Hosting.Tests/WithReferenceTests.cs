@@ -369,7 +369,7 @@ public class WithReferenceTests
             annotation.Callback(context);
         }
 
-        Assert.Equal("{resource.value}", config["ConnectionStrings__resource"]);
+        Assert.Equal("{resource.connectionString}", config["ConnectionStrings__resource"]);
     }
 
     [Fact]
@@ -394,7 +394,7 @@ public class WithReferenceTests
             annotation.Callback(context);
         }
 
-        Assert.Equal("{resource.value}", config["MY_ENV"]);
+        Assert.Equal("{resource.connectionString}", config["MY_ENV"]);
     }
 
     [Fact]
