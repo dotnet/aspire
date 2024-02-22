@@ -35,6 +35,7 @@
     <_TestRunCommandArguments Include="--blame" />
     <_TestRunCommandArguments Include="--blame-hang" />
     <_TestRunCommandArguments Include="--blame-hang-dump-type full" />
+    <_TestRunCommandArguments Include="--diag $(_HelixLogsPath)/foo.log" />
     <_TestRunCommandArguments Include="$(_TestNameEnvVar).dll" />
     <_TestRunCommandArguments Include="--ResultsDirectory:$(_HelixLogsPath)" />
   </ItemGroup>
