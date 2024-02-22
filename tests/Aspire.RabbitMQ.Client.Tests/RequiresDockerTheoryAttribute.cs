@@ -5,7 +5,7 @@ using Xunit;
 
 namespace Aspire.RabbitMQ.Client.Tests;
 
-// TODO: remove this attribute when Helix has a Windows agent with Docker support
+// TODO: remove these attributes when Helix has a Windows agent with Docker support
 public class RequiresDockerTheoryAttribute : TheoryAttribute
 {
     public static bool IsSupported => !OperatingSystem.IsWindows() || Environment.GetEnvironmentVariable("helix") is null;
@@ -15,6 +15,22 @@ public class RequiresDockerTheoryAttribute : TheoryAttribute
         get
         {
             if (!IsSupported)
+            {
+                return "RequiresDockerFactAttribute tests are not run on Windows during CI.";
+            }
+
+            return null!;
+        }
+    }
+}
+
+public class RequiresDockerFactAttribute : FactAttribute
+{
+    public override string Skip
+    {
+        get
+        {
+            if (!RequiresDockerTheoryAttribute.IsSupported)
             {
                 return "RequiresDockerFactAttribute tests are not run on Windows during CI.";
             }

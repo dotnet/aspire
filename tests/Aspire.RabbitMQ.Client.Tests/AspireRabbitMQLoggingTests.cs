@@ -21,7 +21,7 @@ public class AspireRabbitMQLoggingTests
     /// The easiest way to ensure a log is written is to start the RabbitMQ container, establish the connection,
     /// and then stop the container. This will cause the RabbitMQ client to log an error message.
     /// </summary>
-    [LocalOnlyFact]
+    [RequiresDockerFact]
     public async Task EndToEndLoggingTest()
     {
         await using var rabbitMqContainer = new RabbitMqBuilder().Build();
@@ -137,14 +137,14 @@ public class AspireRabbitMQLoggingTests
         Assert.True(string.IsNullOrEmpty(errorEvent[4].Value?.ToString()));
     }
 
-    sealed class LoggerProvider(TestLogger logger) : ILoggerProvider
+    private sealed class LoggerProvider(TestLogger logger) : ILoggerProvider
     {
         public ILogger CreateLogger(string categoryName) => logger;
 
         public void Dispose() { }
     }
 
-    sealed class TestLogger : ILogger
+    private sealed class TestLogger : ILogger
     {
         public List<(LogLevel Level, string Message, object? State)> Logs { get; } = new();
         public Action? LoggedMessage { get; set; }
@@ -158,26 +158,6 @@ public class AspireRabbitMQLoggingTests
         {
             Logs.Add((logLevel, formatter(state, exception), state));
             LoggedMessage?.Invoke();
-        }
-    }
-
-    // TODO: remove this attribute when the above tests are running in CI
-
-    public class LocalOnlyFactAttribute : FactAttribute
-    {
-        public override string Skip
-        {
-            get
-            {
-                // BUILD_BUILDID is defined by Azure Dev Ops
-
-                if (Environment.GetEnvironmentVariable("BUILD_BUILDID") != null)
-                {
-                    return "LocalOnlyFactAttribute tests are not run as part of CI.";
-                }
-
-                return null!;
-            }
         }
     }
 }
