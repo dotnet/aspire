@@ -18,7 +18,7 @@ public class AddPostgresTests
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddPostgres("myPostgres");
 
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -77,7 +77,7 @@ public class AddPostgresTests
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddPostgres("myPostgres", 1234, "pass");
 
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -162,7 +162,7 @@ public class AddPostgresTests
             ))
             .AddDatabase("db");
 
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -181,7 +181,7 @@ public class AddPostgresTests
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddPostgres("postgres", 1234, "pass").AddDatabase("db");
 
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var containerResources = appModel.GetContainerResources();
@@ -289,7 +289,7 @@ public class AddPostgresTests
         var pgadmin = builder.Resources.Single(r => r.Name.EndsWith("-pgadmin"));
         var volume = pgadmin.Annotations.OfType<ContainerMountAnnotation>().Single();
 
-        var app = builder.Build();
+        using var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var hook = new PgAdminConfigWriterHook();
