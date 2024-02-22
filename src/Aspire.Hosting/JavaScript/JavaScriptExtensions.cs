@@ -20,7 +20,7 @@ public static class JavaScriptAppHostingExtension
     /// <param name="workingDirectory">The working directory to use for the command. If null, the working directory of the current process is used.</param>
     /// <param name="args">The arguments to pass to the command.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<JavaScriptAppResource> AddJavaScriptApp(this IDistributedApplicationBuilder builder, string name, string scriptPath = null, string? workingDirectory = null!, string[]? args = null)
+    public static IResourceBuilder<JavaScriptAppResource> AddJavaScriptApp(this IDistributedApplicationBuilder builder, string name, string? scriptPath = null, string? workingDirectory = null, string[]? args = null)
     {   
         scriptPath ??= "node";
         args ??= [];
