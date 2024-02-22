@@ -36,11 +36,16 @@ public static class MongoDBBuilderExtensions
     /// Adds a MongoDB database to the application model.
     /// </summary>
     /// <param name="builder">The MongoDB server resource builder.</param>
-    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <param name="name">The name of the resource. If <paramref name="databaseName"/> is not provided This name will be used as the connection string name when referenced in a dependency and must be unique.</param>
+    /// <param name="databaseName">The name of the database if different from <paramref name="name"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<MongoDBDatabaseResource> AddDatabase(this IResourceBuilder<MongoDBServerResource> builder, string name)
+    public static IResourceBuilder<MongoDBDatabaseResource> AddDatabase(this IResourceBuilder<MongoDBServerResource> builder, string name, string? databaseName = null)
     {
-        var mongoDBDatabase = new MongoDBDatabaseResource(name, builder.Resource);
+        // Use the resource name as the database name if it's not provided
+        databaseName ??= name;
+
+        builder.Resource.AddDatabase(name, databaseName);
+        var mongoDBDatabase = new MongoDBDatabaseResource(name, databaseName, builder.Resource);
 
         return builder.ApplicationBuilder
             .AddResource(mongoDBDatabase)
