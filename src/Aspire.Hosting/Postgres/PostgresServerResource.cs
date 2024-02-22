@@ -65,12 +65,7 @@ public class PostgresServerResource(string name, string password) : ContainerRes
 
     internal void AddDatabase(string name, string databaseName)
     {
-        if (_databases.ContainsKey(name))
-        {
-            return;
-        }
-
-        _databases[name] = databaseName;
+        _databases.TryAdd(name, databaseName);
     }
 
     internal void WriteToManifest(ManifestPublishingContext context)
