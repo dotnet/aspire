@@ -103,7 +103,7 @@ public class AzureBicepResourceTests
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        var cosmos = builder.AddBicepCosmosDb("cosmos");
+        var cosmos = builder.AddAzureCosmosDB("cosmos");
         cosmos.AddDatabase("db", "mydatabase");
 
         cosmos.Resource.SecretOutputs["connectionString"] = "mycosmosconnectionstring";
@@ -124,12 +124,12 @@ public class AzureBicepResourceTests
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        var db = builder.AddBicepCosmosDb("cosmos").AddDatabase("db", "mydatabase");
+        var db = builder.AddAzureCosmosDB("cosmos").AddDatabase("db", "mydatabase");
 
         var obj = ManifestUtils.GetManifest(db.Resource.WriteToManifest);
 
         Assert.NotNull(obj);
-        Assert.Equal("azure.bicep.v0", obj["type"]?.ToString());
+        Assert.Equal("value.v0", obj["type"]?.ToString());
         Assert.Equal("{cosmos.connectionString}", obj["connectionString"]?.ToString());
         Assert.Equal("cosmos", obj["parent"]?.ToString());
     }
