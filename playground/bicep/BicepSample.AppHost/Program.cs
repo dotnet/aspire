@@ -30,8 +30,7 @@ var pg = builder.AddPostgres("postgres2")
                 .AsAzurePostgresFlexibleServer(administratorLogin, administratorLoginPassword)
                 .AddDatabase("db2");
 
-var cosmosDb = builder.AddBicepCosmosDb("cosmos")
-                      // .UseEmulator()
+var cosmosDb = builder.AddAzureCosmosDB("cosmos")
                       .AddDatabase("db3");
 
 var appInsights = builder.AddAzureApplicationInsights("ai");
