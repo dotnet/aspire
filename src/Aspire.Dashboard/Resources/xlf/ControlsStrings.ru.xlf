@@ -127,9 +127,9 @@
         <target state="new">Loading...</target>
         <note />
       </trans-unit>
-      <trans-unit id="MetricTableNoValuesYet">
-        <source>There are no metric values yet.</source>
-        <target state="new">There are no metric values yet.</target>
+      <trans-unit id="MetricTableNoMetricsFound">
+        <source>No metrics data found</source>
+        <target state="new">No metrics data found</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricTableShowLatestValues">
@@ -143,8 +143,8 @@
         <note />
       </trans-unit>
       <trans-unit id="MetricTableStartColumnHeader">
-        <source>Date</source>
-        <target state="new">Date</target>
+        <source>Time</source>
+        <target state="new">Time</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricTableValueDecreased">

@@ -2,19 +2,25 @@
 
 @implements IAsyncDisposable
 @using Aspire.Dashboard.Resources
+@using Aspire.Dashboard.Utils
+@using System.Globalization
 @inherits Aspire.Dashboard.Components.Controls.Chart.ChartBase
 
-<div id="metric-table-container" style="height: 40vh; overflow-y: auto; margin-bottom: 20px;">
-    <FluentDataGrid Items="@_metricsView" ItemSize="35" Virtualize="true">
+@{
+    // these colors line up with P50/P90/P99 colors for the plotly graph
+    var percentileColumns = new List<(int Percentile, string UnderlineColor)> { (50, "#89B5D3"), (90, "#F9B980"), (99, "#8FC98F") };
+    var columnCount = ShowPercentiles() ? percentileColumns.Count + 1 : 2;
+}
+
+<div id="metric-table-container" style="height: 40vh; overflow-y: auto; margin-bottom: 20px; max-width:1200px;">
+    <FluentDataGrid Items="@_metricsView" ItemSize="35" Virtualize="true" GridTemplateColumns="@string.Join(" ", Enumerable.Repeat("1fr", columnCount))">
         <ChildContent>
-            <TemplateColumn Class="metric-grid-cell" Title="@Loc[nameof(ControlsStrings.MetricTableStartColumnHeader)]">
-                @context.DateTime.ToLocalTime()
+            <TemplateColumn Title="@Loc[nameof(ControlsStrings.MetricTableStartColumnHeader)]" TooltipText="@(context => FormatHelpers.FormatDateTime(context.DateTime, false, CultureInfo.CurrentCulture))" Tooltip="true">
+                @FormatHelpers.FormatTimeWithOptionalDate(context.DateTime)
             </TemplateColumn>
 
-            @if (IsHistogramInstrument() && !_showCount)
+            @if (ShowPercentiles())
             {
-                // these colors line up with P50/P90/P99 colors for the plotly graph
-                var percentileColumns = new List<(int Percentile, string UnderlineColor)> { (50, "#89B5D3"), (90, "#F9B980"), (99, "#8FC98F") };
                 foreach (var (percentile, underlineColor) in percentileColumns)
                 {
                     <TemplateColumn Title="@((_metricsView.FirstOrDefault() as HistogramMetricView)?.Percentiles[percentile].Name ?? $"P{percentile}")">
@@ -23,7 +29,7 @@
                             var percentileData = histogramMetric.Percentiles[percentile];
 
                             <span style="@($"text-decoration-thickness: 2px; text-decoration-line: underline; text-decoration-color: {underlineColor}; margin-right: 4px;")">
-                                @FormatMetricValue(percentileData.Value)
+                                @percentileData.Value
                             </span>
 
                             if (GetIconAndTitleForDirection(percentileData.Direction) is var (icon, title))
@@ -62,7 +68,7 @@
             }
         </ChildContent>
         <EmptyContent>
-            @Loc[nameof(ControlsStrings.MetricTableNoValuesYet)]
+            <FluentIcon Icon="Icons.Regular.Size24.ChartMultiple" />&nbsp;@Loc[nameof(ControlsStrings.MetricTableNoMetricsFound)]
         </EmptyContent>
     </FluentDataGrid>
 </div>

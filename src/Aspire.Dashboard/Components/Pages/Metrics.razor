@@ -69,7 +69,7 @@
                             <FluentDataGrid Style="max-width:1100px;" Items="@PageViewModel.Instruments.Where(i => i.Parent == PageViewModel.SelectedMeter).OrderBy(i => i.Name).AsQueryable()" GridTemplateColumns="3fr 5fr" TGridItem="OtlpInstrument">
                                 <ChildContent>
                                     <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Metrics.MetricsInsturementNameGridNameColumnHeader)]">
-                                        <FluentAnchor Href="@($"/Metrics/{PageViewModel.SelectedApplication.Id}/Meter/{context.Parent.MeterName}/Instrument/{context.Name}")" Appearance="Appearance.Lightweight">
+                                        <FluentAnchor Href="@($"/Metrics/{PageViewModel.SelectedApplication.Name}/Meter/{context.Parent.MeterName}/Instrument/{context.Name}")" Appearance="Appearance.Lightweight">
                                             @context.Name
                                         </FluentAnchor>
                                     </TemplateColumn>

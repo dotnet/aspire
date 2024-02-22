@@ -92,7 +92,7 @@ public abstract class ChartBase : ComponentBase
         var traces = new Dictionary<int, ChartTrace>
         {
             [50] = new() { Name = $"P50 {yLabel}", Percentile = 50 },
-            [90] = new() { Name = $"P90 {yLabel}", Percentile = 90},
+            [90] = new() { Name = $"P90 {yLabel}", Percentile = 90 },
             [99] = new() { Name = $"P99 {yLabel}", Percentile = 99 }
         };
         var xValues = new List<DateTime>();

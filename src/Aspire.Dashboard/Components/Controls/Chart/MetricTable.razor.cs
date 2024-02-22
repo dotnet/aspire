@@ -81,11 +81,6 @@ public partial class MetricTable : ChartBase
         {
             var xValue = xValues[i];
 
-            if (DateTime.UtcNow - xValue < TimeSpan.FromSeconds(2))
-            {
-                continue;
-            }
-
             KeyValuePair<DateTime, MetricViewBase>? previousMetric = newMetrics.LastOrDefault(dt => dt.Key < xValue);
 
             if (IsHistogramInstrument() && !_showCount)
@@ -196,6 +191,11 @@ public partial class MetricTable : ChartBase
     private bool IsHistogramInstrument()
     {
         return _instrument?.Type == OtlpInstrumentType.Histogram;
+    }
+
+    private bool ShowPercentiles()
+    {
+        return IsHistogramInstrument() && !_showCount;
     }
 
     private Task SettingsChangedAsync() => InvokeAsync(StateHasChanged);

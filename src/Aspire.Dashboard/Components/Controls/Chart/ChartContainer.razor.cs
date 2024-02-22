@@ -242,7 +242,7 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
                         // Automatically select new incoming values if existing values are all selected.
                         var newSelectedValues = (existing.AreAllValuesSelected ?? false)
                             ? item.Values
-                            : item.Values.Where(newValue => existing.Values.Any(existingValue => existingValue.Name == newValue.Name));
+                            : item.Values.Where(newValue => existing.SelectedValues.Any(existingValue => existingValue.Name == newValue.Name));
 
                         foreach (var v in newSelectedValues)
                         {
