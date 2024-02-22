@@ -27,7 +27,7 @@ public static class AzurePostgresExtensions
         var azurePostgres = builder.ApplicationBuilder.CreateResourceBuilder(resource).ConfigureDefaults();
         azurePostgres.WithParameter("administratorLogin", administratorLogin)
                      .WithParameter("administratorLoginPassword", administratorLoginPassword)
-                     .WithParameter("databases", () => builder.Resource.Databases.Select(x => x.Key));
+                     .WithParameter("databases", () => builder.Resource.Databases.Select(x => x.Value));
 
         if (callback != null)
         {
@@ -51,7 +51,7 @@ public static class AzurePostgresExtensions
         var azurePostgres = builder.ApplicationBuilder.CreateResourceBuilder(resource).ConfigureDefaults();
         azurePostgres.WithParameter("administratorLogin", administratorLogin)
                      .WithParameter("administratorLoginPassword", administratorLoginPassword)
-                     .WithParameter("databases", () => builder.Resource.Databases.Select(x => x.Key));
+                     .WithParameter("databases", () => builder.Resource.Databases.Select(x => x.Value));
 
         // Used to hold a reference to the azure surrogate for use with the provisioner.
         builder.WithAnnotation(new AzureBicepResourceAnnotation(resource));

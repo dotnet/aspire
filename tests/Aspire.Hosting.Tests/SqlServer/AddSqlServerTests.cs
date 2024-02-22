@@ -134,4 +134,67 @@ public class AddSqlServerTests
         Assert.Equal("value.v0", dbManifest["type"]?.ToString());
         Assert.Equal(db.Resource.ConnectionStringExpression, dbManifest["connectionString"]?.ToString());
     }
+
+    [Fact]
+    public void ThrowsWithIdenticalChildResourceNames()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        builder.AddSqlServer("sqlserver1")
+            .AddDatabase("db");
+
+        Assert.Throws<DistributedApplicationException>(() =>
+            builder.AddSqlServer("sqlserver1")
+            .AddDatabase("db")
+        );
+    }
+
+    [Fact]
+    public void ThrowsWithIdenticalChildResourceNamesDifferentParents()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        builder.AddSqlServer("sqlserver1")
+            .AddDatabase("db");
+
+        Assert.Throws<DistributedApplicationException>(() =>
+            builder.AddSqlServer("sqlserver2")
+            .AddDatabase("db")
+        );
+    }
+
+    [Fact]
+    public void CanAddDatabasesWithDifferentNamesOnSingleServer()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var sqlserver1 = builder.AddSqlServer("sqlserver1");
+
+        var db1 = sqlserver1.AddDatabase("db1", "customers1");
+        var db2 = sqlserver1.AddDatabase("db2", "customers2");
+
+        Assert.Equal("customers1", db1.Resource.DatabaseName);
+        Assert.Equal("customers2", db2.Resource.DatabaseName);
+
+        Assert.Equal("{sqlserver1.connectionString};Database=customers1", db1.Resource.ConnectionStringExpression);
+        Assert.Equal("{sqlserver1.connectionString};Database=customers2", db2.Resource.ConnectionStringExpression);
+    }
+
+    [Fact]
+    public void CanAddDatabasesWithTheSameNameOnMultipleServers()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var db1 = builder.AddPostgres("sqlserver1")
+            .AddDatabase("db1", "imports");
+
+        var db2 = builder.AddPostgres("sqlserver2")
+            .AddDatabase("db2", "imports");
+
+        Assert.Equal("imports", db1.Resource.DatabaseName);
+        Assert.Equal("imports", db2.Resource.DatabaseName);
+
+        Assert.Equal("{sqlserver1.connectionString};Database=imports", db1.Resource.ConnectionStringExpression);
+        Assert.Equal("{sqlserver2.connectionString};Database=imports", db2.Resource.ConnectionStringExpression);
+    }
 }

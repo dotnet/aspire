@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Collections.Immutable;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
 
@@ -58,21 +57,21 @@ public class SqlServerServerResource(string name, string password) : ContainerRe
         return $"Server=127.0.0.1,{endpoint.Port};User ID=sa;Password={PasswordUtil.EscapePassword(Password)};TrustServerCertificate=true";
     }
 
-    private readonly List<string> _databases = new List<string>();
+    private readonly Dictionary<string, string> _databases = new Dictionary<string, string>(StringComparers.ResourceName);
 
     /// <summary>
-    /// List of databases hosted on this server resource.
+    /// A dictionary where the key is the resource name and the value is the database name.
     /// </summary>
-    public IEnumerable<string> Databases => _databases.ToImmutableArray();
+    public IReadOnlyDictionary<string, string> Databases => _databases;
 
-    internal void AddDatabase(string databaseName)
+    internal void AddDatabase(string name, string databaseName)
     {
-        if (_databases.Contains(databaseName, StringComparers.ResourceName))
+        if (_databases.ContainsKey(name))
         {
             return;
         }
 
-        _databases.Add(databaseName);
+        _databases[name] = databaseName;
     }
 
     internal void WriteToManifest(ManifestPublishingContext context)
