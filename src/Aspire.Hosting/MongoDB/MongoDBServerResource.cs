@@ -14,6 +14,12 @@ public class MongoDBServerResource(string name) : ContainerResource(name), IReso
     /// <summary>
     /// Gets the connection string for the MongoDB server.
     /// </summary>
+    public string ConnectionStringExpression =>
+        $"mongodb://{{{Name}.bindings.tcp.host}}:{{{Name}.bindings.tcp.port}}";
+
+    /// <summary>
+    /// Gets the connection string for the MongoDB server.
+    /// </summary>
     /// <returns>A connection string for the MongoDB server in the form "mongodb://host:port".</returns>
     public string? GetConnectionString()
     {

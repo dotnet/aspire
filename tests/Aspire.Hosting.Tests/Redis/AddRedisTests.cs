@@ -3,6 +3,7 @@
 
 using System.Net.Sockets;
 using Aspire.Hosting.Redis;
+using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -36,7 +37,7 @@ public class AddRedisTests
         Assert.Equal("tcp", endpoint.UriScheme);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal("latest", containerAnnotation.Tag);
+        Assert.Equal("7.2.4", containerAnnotation.Tag);
         Assert.Equal("redis", containerAnnotation.Image);
         Assert.Null(containerAnnotation.Registry);
     }
@@ -67,7 +68,7 @@ public class AddRedisTests
         Assert.Equal("tcp", endpoint.UriScheme);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal("latest", containerAnnotation.Tag);
+        Assert.Equal("7.2.4", containerAnnotation.Tag);
         Assert.Equal("redis", containerAnnotation.Image);
         Assert.Null(containerAnnotation.Registry);
     }
@@ -82,7 +83,7 @@ public class AddRedisTests
             ProtocolType.Tcp,
             "localhost",
             2000,
-            "https"
+            "tcp"
             ));
 
         var app = appBuilder.Build();
@@ -91,7 +92,20 @@ public class AddRedisTests
 
         var connectionStringResource = Assert.Single(appModel.Resources.OfType<IResourceWithConnectionString>());
         var connectionString = connectionStringResource.GetConnectionString();
+        Assert.Equal("{myRedis.bindings.tcp.host}:{myRedis.bindings.tcp.port}", connectionStringResource.ConnectionStringExpression);
         Assert.StartsWith("localhost:2000", connectionString);
+    }
+
+    [Fact]
+    public void VerifyManifest()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        var redis = appBuilder.AddRedis("redis");
+
+        var manifest = ManifestUtils.GetManifest(redis.Resource);
+
+        Assert.Equal("container.v0", manifest["type"]?.ToString());
+        Assert.Equal(redis.Resource.ConnectionStringExpression, manifest["connectionString"]?.ToString());
     }
 
     [Fact]

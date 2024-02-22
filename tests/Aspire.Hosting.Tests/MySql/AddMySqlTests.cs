@@ -6,6 +6,7 @@ using Aspire.Hosting.MySql;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.Tests.MySql;
 
@@ -28,7 +29,7 @@ public class AddMySqlTests
         Assert.NotNull(manifestAnnotation.Callback);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal("latest", containerAnnotation.Tag);
+        Assert.Equal("8.3.0", containerAnnotation.Tag);
         Assert.Equal("mysql", containerAnnotation.Image);
         Assert.Null(containerAnnotation.Registry);
 
@@ -77,7 +78,7 @@ public class AddMySqlTests
         Assert.NotNull(manifestPublishing.Callback);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal("latest", containerAnnotation.Tag);
+        Assert.Equal("8.3.0", containerAnnotation.Tag);
         Assert.Equal("mysql", containerAnnotation.Image);
         Assert.Null(containerAnnotation.Registry);
 
@@ -128,8 +129,9 @@ public class AddMySqlTests
 
         var connectionStringResource = Assert.Single(appModel.Resources.OfType<IResourceWithConnectionString>());
         var connectionString = connectionStringResource.GetConnectionString();
+
+        Assert.Equal("Server={mysql.bindings.tcp.host};Port={mysql.bindings.tcp.port};User ID=root;Password={mysql.inputs.password}", connectionStringResource.ConnectionStringExpression);
         Assert.StartsWith("Server=localhost;Port=2000;User ID=root;Password=", connectionString);
-        Assert.EndsWith(";", connectionString);
     }
 
     [Fact]
@@ -155,8 +157,25 @@ public class AddMySqlTests
         var mySqlDatabaseResource = Assert.Single(appModel.Resources.OfType<MySqlDatabaseResource>());
         var dbConnectionString = mySqlDatabaseResource.GetConnectionString();
 
-        Assert.EndsWith(";", mySqlConnectionString);
-        Assert.Equal(mySqlConnectionString + "Database=db", dbConnectionString);
+        Assert.Equal(mySqlConnectionString + ";Database=db", dbConnectionString);
+        Assert.Equal("{mysql.connectionString};Database=db", mySqlDatabaseResource.ConnectionStringExpression);
+    }
+
+    [Fact]
+    public void VerifyManifest()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        var mysql = appBuilder.AddMySql("mysql");
+        var db = mysql.AddDatabase("db");
+
+        var mySqlManifest = ManifestUtils.GetManifest(mysql.Resource);
+        var dbManifest = ManifestUtils.GetManifest(db.Resource);
+
+        Assert.Equal("container.v0", mySqlManifest["type"]?.ToString());
+        Assert.Equal(mysql.Resource.ConnectionStringExpression, mySqlManifest["connectionString"]?.ToString());
+
+        Assert.Equal("value.v0", dbManifest["type"]?.ToString());
+        Assert.Equal(db.Resource.ConnectionStringExpression, dbManifest["connectionString"]?.ToString());
     }
 
     [Fact]
@@ -208,7 +227,7 @@ public class AddMySqlTests
         builder.AddMySql("mySql").WithPhpMyAdmin();
 
         var container = builder.Resources.Single(r => r.Name == "mySql-phpmyadmin");
-        var volume = container.Annotations.OfType<VolumeMountAnnotation>().Single();
+        var volume = container.Annotations.OfType<ContainerMountAnnotation>().Single();
 
         Assert.True(File.Exists(volume.Source)); // File should exist, but will be empty.
         Assert.Equal("/etc/phpmyadmin/config.user.inc.php", volume.Target);
@@ -226,7 +245,7 @@ public class AddMySqlTests
         mysql2.WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "host.docker.internal", 5002, "tcp"));
 
         var myAdmin = builder.Resources.Single(r => r.Name.EndsWith("-phpmyadmin"));
-        var volume = myAdmin.Annotations.OfType<VolumeMountAnnotation>().Single();
+        var volume = myAdmin.Annotations.OfType<ContainerMountAnnotation>().Single();
 
         var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -234,7 +253,7 @@ public class AddMySqlTests
         var hook = new PhpMyAdminConfigWriterHook();
         hook.AfterEndpointsAllocatedAsync(appModel, CancellationToken.None);
 
-        using var stream = File.OpenRead(volume.Source);
+        using var stream = File.OpenRead(volume.Source!);
         var fileContents = new StreamReader(stream).ReadToEnd();
 
         // check to see that the two hosts are in the file

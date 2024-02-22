@@ -1,13 +1,39 @@
 {
   "resources": {
     "sql1": {
-      "type": "sqlserver.server.v0"
+      "connectionString": "Server={sql1.bindings.tcp.host},{sql1.bindings.tcp.port};User ID=sa;Password={sql1.inputs.password};TrustServerCertificate=true",
+      "type": "container.v0",
+      "image": "mcr.microsoft.com/mssql/server:2022-latest",
+      "env": {
+        "ACCEPT_EULA": "Y",
+        "MSSQL_SA_PASSWORD": "{sql1.inputs.password}"
+      },
+      "bindings": {
+        "tcp": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp",
+          "containerPort": 1433
+        }
+      },
+      "inputs": {
+        "password": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 10
+            }
+          }
+        }
+      }
     },
     "db1": {
-      "type": "sqlserver.database.v0",
-      "parent": "sql1"
+      "connectionString": "{sql1.connectionString};Database=db1",
+      "type": "value.v0"
     },
     "sql2": {
+      "connectionString": "Server={sql2.bindings.tcp.host},{sql2.bindings.tcp.port};User ID=sa;Password={sql2.inputs.password};TrustServerCertificate=true",
       "type": "container.v0",
       "image": "mcr.microsoft.com/mssql/server:2022-latest",
       "env": {
@@ -22,7 +48,6 @@
           "containerPort": 1433
         }
       },
-      "connectionString": "Server={sql2.bindings.tcp.host},{sql2.bindings.tcp.port};User ID=sa;Password={sql2.inputs.password};TrustServerCertificate=true;",
       "inputs": {
         "password": {
           "type": "string",
@@ -36,8 +61,8 @@
       }
     },
     "db2": {
-      "type": "sqlserver.database.v0",
-      "parent": "sql2"
+      "connectionString": "{sql2.connectionString};Database=db2",
+      "type": "value.v0"
     },
     "api": {
       "type": "project.v0",

@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Publishing;
+
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
@@ -16,6 +18,12 @@ public class MySqlDatabaseResource(string name, MySqlServerResource parent) : Re
     public MySqlServerResource Parent { get; } = parent;
 
     /// <summary>
+    /// Gets the connection string expression for the MySQL database.
+    /// </summary>
+    public string ConnectionStringExpression =>
+        $"{{{Parent.Name}.connectionString}};Database={Name}";
+
+    /// <summary>
     /// Gets the connection string for the MySQL database.
     /// </summary>
     /// <returns>A connection string for the MySQL database.</returns>
@@ -23,11 +31,17 @@ public class MySqlDatabaseResource(string name, MySqlServerResource parent) : Re
     {
         if (Parent.GetConnectionString() is { } connectionString)
         {
-            return $"{connectionString}Database={Name}";
+            return $"{connectionString};Database={Name}";
         }
         else
         {
             throw new DistributedApplicationException("Parent resource connection string was null.");
         }
+    }
+
+    internal void WriteToManifest(ManifestPublishingContext context)
+    {
+        context.Writer.WriteString("type", "value.v0");
+        context.WriteConnectionString(this);
     }
 }

@@ -37,10 +37,5 @@ public sealed class AzureCosmosDBSettings
     /// Gets or sets the credential used to authenticate to the Azure Cosmos DB endpoint.
     /// </summary>
     public TokenCredential? Credential { get; set; }
-
-    /// <summary>
-    /// Controls whether the Cosmos DB emulator certificate is ignored when its use is detected.
-    /// </summary>
-    public bool IgnoreEmulatorCertificate { get; set; }
 }
 
