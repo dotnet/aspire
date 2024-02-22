@@ -28,12 +28,12 @@ public class ApiDbInitializer(
     {
         using var activity = s_activitySource.StartActivity("Migrating database", ActivityKind.Client);
 
+        await dbContext.Database.EnsureCreatedAsync(cancellationToken);
+
         var strategy = dbContext.Database.CreateExecutionStrategy();
         await strategy.ExecuteAsync(async () =>
         {
-            await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
             await dbContext.Database.MigrateAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
         });
     }
 }
