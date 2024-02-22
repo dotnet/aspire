@@ -48,7 +48,7 @@ public static class OracleDatabaseBuilderExtensions
     /// Adds a Oracle Database database to the application model.
     /// </summary>
     /// <param name="builder">The Oracle Database server resource builder.</param>
-    /// <param name="name">The name of the resource. If <paramref name="databaseName"/> is not provided This name will be used as the connection string name when referenced in a dependency and must be unique.</param>
+    /// <param name="name">The name of the resource. If <paramref name="databaseName"/> is not provided this name will be used as the connection string name when referenced in a dependency and must be unique.</param>
     /// <param name="databaseName">The name of the database if different from <paramref name="name"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<OracleDatabaseResource> AddDatabase(this IResourceBuilder<OracleDatabaseServerResource> builder, string name, string? databaseName = null)
