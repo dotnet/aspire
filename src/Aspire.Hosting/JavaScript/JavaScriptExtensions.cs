@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
+
 using Microsoft.Extensions.Hosting;
 
 namespace Aspire.Hosting;
@@ -75,13 +76,13 @@ public static class JavaScriptAppHostingExtension
      private static IResourceBuilder<JavaScriptAppResource> WithJavaScriptAppDefaults(this IResourceBuilder<JavaScriptAppResource> builder)
     {
         var environment = builder.ApplicationBuilder.Environment;
-
-        if (builder.Resource.command.Equals("node", StringComparison.OrdinalIgnoreCase))
+        Console.WriteLine("Resource Command: " + builder.Resource.Command);
+        /* if (builder.Resource.Command.Equals("node", StringComparison.OrdinalIgnoreCase))
         {
             return builder.WithOtlpExporter()
                             .WithEnvironment("NODE_ENV", environment.IsDevelopment() ? "development" : "production");
         }
-
+ */
         return builder;
     }
 }

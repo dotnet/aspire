@@ -14,5 +14,5 @@ namespace Aspire.Hosting;
 public class JavaScriptAppResource(string name, string command, string workingDirectory, string[]? args)
     : ExecutableResource(name, command, workingDirectory, args), IResourceWithServiceDiscovery
 {
-
+    
 }
