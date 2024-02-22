@@ -50,11 +50,15 @@ public static class MySqlBuilderExtensions
     /// Adds a MySQL database to the application model.
     /// </summary>
     /// <param name="builder">The MySQL server resource builder.</param>
-    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<MySqlDatabaseResource> AddDatabase(this IResourceBuilder<MySqlServerResource> builder, string name)
+    /// <param name="name">The name of the resource. If <paramref name="databaseName"/> is not provided This name will be used as the connection string name when referenced in a dependency and must be unique.</param>
+    /// <param name="databaseName">The name of the database if different from <paramref name="name"/>.</param>
+    public static IResourceBuilder<MySqlDatabaseResource> AddDatabase(this IResourceBuilder<MySqlServerResource> builder, string name, string? databaseName = null)
     {
-        var mySqlDatabase = new MySqlDatabaseResource(name, builder.Resource);
+        // Use the resource name as the database name if it's not provided
+        databaseName ??= name;
+
+        builder.Resource.AddDatabase(name, databaseName);
+        var mySqlDatabase = new MySqlDatabaseResource(name, databaseName, builder.Resource);
         return builder.ApplicationBuilder.AddResource(mySqlDatabase)
                                          .WithManifestPublishingCallback(mySqlDatabase.WriteToManifest);
     }

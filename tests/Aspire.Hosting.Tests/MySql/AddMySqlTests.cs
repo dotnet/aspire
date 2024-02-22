@@ -264,4 +264,70 @@ public class AddMySqlTests
         Match match2 = Regex.Match(fileContents, pattern2);
         Assert.True(match2.Success);
     }
+
+    [Fact]
+    public void ThrowsWithIdenticalChildResourceNames()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        builder.AddMySql("mysql1")
+            .AddDatabase("db");
+
+        Assert.Throws<DistributedApplicationException>(() =>
+            builder.AddMySql("mysql1")
+            .AddDatabase("db")
+        );
+    }
+
+    [Fact]
+    public void ThrowsWithIdenticalChildResourceNamesDifferentParents()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        builder.AddMySql("mysql1")
+            .AddDatabase("db");
+
+        Assert.Throws<DistributedApplicationException>(() =>
+            builder.AddMySql("mysql2")
+            .AddDatabase("db")
+        );
+    }
+
+    [Fact]
+    public void CanAddDatabasesWithDifferentNamesOnSingleServer()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var mysql1 = builder.AddMySql("mysql1");
+
+        var db1 = mysql1.AddDatabase("db1", "customers1");
+        var db2 = mysql1.AddDatabase("db2", "customers2");
+
+        Assert.Equal(["db1", "db2"], mysql1.Resource.Databases.Keys);
+        Assert.Equal(["customers1", "customers2"], mysql1.Resource.Databases.Values);
+
+        Assert.Equal("customers1", db1.Resource.DatabaseName);
+        Assert.Equal("customers2", db2.Resource.DatabaseName);
+
+        Assert.Equal("{mysql1.connectionString};Database=customers1", db1.Resource.ConnectionStringExpression);
+        Assert.Equal("{mysql1.connectionString};Database=customers2", db2.Resource.ConnectionStringExpression);
+    }
+
+    [Fact]
+    public void CanAddDatabasesWithTheSameNameOnMultipleServers()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var db1 = builder.AddMySql("mysql1")
+            .AddDatabase("db1", "imports");
+
+        var db2 = builder.AddMySql("mysql2")
+            .AddDatabase("db2", "imports");
+
+        Assert.Equal("imports", db1.Resource.DatabaseName);
+        Assert.Equal("imports", db2.Resource.DatabaseName);
+
+        Assert.Equal("{mysql1.connectionString};Database=imports", db1.Resource.ConnectionStringExpression);
+        Assert.Equal("{mysql2.connectionString};Database=imports", db2.Resource.ConnectionStringExpression);
+    }
 }
