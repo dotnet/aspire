@@ -18,7 +18,7 @@ public class AddMongoDBTests
 
         appBuilder.AddMongoDB("mongodb");
 
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -49,7 +49,7 @@ public class AddMongoDBTests
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddMongoDB("mongodb", 9813);
 
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -89,7 +89,7 @@ public class AddMongoDBTests
             ))
             .AddDatabase("mydatabase");
 
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 

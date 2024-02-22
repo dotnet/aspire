@@ -17,7 +17,7 @@ public class AddRedisTests
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddRedis("myRedis").PublishAsContainer();
 
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -48,7 +48,7 @@ public class AddRedisTests
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddRedis("myRedis", port: 9813);
 
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -86,7 +86,7 @@ public class AddRedisTests
             "tcp"
             ));
 
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -123,7 +123,7 @@ public class AddRedisTests
     {
         var builder = DistributedApplication.CreateBuilder();
         var redis = builder.AddRedis("myredis1").WithRedisCommander();
-        var app = builder.Build();
+        using var app = builder.Build();
 
         // Add fake allocated endpoints.
         redis.WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "host.docker.internal", 5001, "tcp"));
@@ -154,7 +154,7 @@ public class AddRedisTests
         var builder = DistributedApplication.CreateBuilder();
         var redis1 = builder.AddRedis("myredis1").WithRedisCommander();
         var redis2 = builder.AddRedis("myredis2").WithRedisCommander();
-        var app = builder.Build();
+        using var app = builder.Build();
 
         // Add fake allocated endpoints.
         redis1.WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "host.docker.internal", 5001, "tcp"));

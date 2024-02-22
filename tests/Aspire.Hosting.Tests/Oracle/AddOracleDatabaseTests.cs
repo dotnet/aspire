@@ -16,7 +16,7 @@ public class AddOracleDatabaseTests
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddOracleDatabase("orcl");
 
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -65,7 +65,7 @@ public class AddOracleDatabaseTests
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddOracleDatabase("orcl", 1234, "pass");
 
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -121,7 +121,7 @@ public class AddOracleDatabaseTests
             "https"
             ));
 
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -147,7 +147,7 @@ public class AddOracleDatabaseTests
             ))
             .AddDatabase("db");
 
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -166,7 +166,7 @@ public class AddOracleDatabaseTests
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddOracleDatabase("oracle", 1234, "pass").AddDatabase("db");
 
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var containerResources = appModel.GetContainerResources();
