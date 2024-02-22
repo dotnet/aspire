@@ -56,39 +56,6 @@ public class AzureCosmosDBResource(string name) :
 }
 
 /// <summary>
-/// A resource that represents an Azure Cosmos DB database.
-/// </summary>
-public class AzureCosmosDBDatabaseResource(string name, AzureCosmosDBResource cosmosDB) :
-    Resource(name),
-    IResourceWithConnectionString,
-    IResourceWithParent<AzureCosmosDBResource>
-{
-    /// <summary>
-    /// Gets the parent Azure Cosmos DB resource.
-    /// </summary>
-    public AzureCosmosDBResource Parent => cosmosDB;
-
-    /// <summary>
-    /// Gets the connection string template for the manifest for the Azure Cosmos DB database resource.
-    /// </summary>
-    public string ConnectionStringExpression => $"{{{Parent.Name}.connectionString}}";
-
-    /// <summary>
-    /// Gets the connection string to use for this database.
-    /// </summary>
-    public string? GetConnectionString()
-    {
-        return Parent.GetConnectionString();
-    }
-
-    internal void WriteToManifest(ManifestPublishingContext context)
-    {
-        context.Writer.WriteString("type", "value.v0");
-        context.Writer.WriteString("connectionString", ConnectionStringExpression);
-    }
-}
-
-/// <summary>
 /// Extension methods for adding Azure Cosmos DB resources to the application model.
 /// </summary>
 public static class AzureCosmosExtensions
