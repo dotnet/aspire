@@ -10,12 +10,12 @@ internal static class PasswordGenerator
 {
     // Some chars are excluded:
     // - prevent potential confusions, e.g., 0,o,O and i,I,l
-    // - exclude special chars which could interfere with command line arguments or connection strings, e.g. =,$,...
+    // - exclude special chars which could interfere with command line arguments, URL (rfc3986 gen-delims), or connection strings, e.g. =,$,...
 
     internal const string LowerCaseChars = "abcdefghjkmnpqrstuvwxyz"; // exclude i,l,o
     internal const string UpperCaseChars = "ABCDEFGHJKMNPQRSTUVWXYZ"; // exclude I,L,O
     internal const string DigitChars = "0123456789";
-    internal const string SpecialChars = "-_#@!./:[]{}+*()~"; // exclude &<>=;,`'^%$
+    internal const string SpecialChars = "-_.{}~()*+!"; // exclude &<>=;,`'^%$#@/:[]
 
     /// <summary>
     /// Creates a cryptographically random password.
