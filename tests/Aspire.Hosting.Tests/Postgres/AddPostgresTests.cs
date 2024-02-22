@@ -326,13 +326,10 @@ public class AddPostgresTests
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        builder.AddPostgres("postgres1")
-            .AddDatabase("db");
+        var db = builder.AddPostgres("postgres1");
+        db.AddDatabase("db");
 
-        Assert.Throws<DistributedApplicationException>(() =>
-            builder.AddPostgres("postgres1")
-            .AddDatabase("db")
-        );
+        Assert.Throws<DistributedApplicationException>(() => db.AddDatabase("db"));
     }
 
     [Fact]
@@ -343,10 +340,8 @@ public class AddPostgresTests
         builder.AddPostgres("postgres1")
             .AddDatabase("db");
 
-        Assert.Throws<DistributedApplicationException>(() =>
-            builder.AddPostgres("postgres2")
-            .AddDatabase("db")
-        );
+        var db = builder.AddPostgres("postgres2");
+        Assert.Throws<DistributedApplicationException>(() => db.AddDatabase("db"));
     }
 
     [Fact]

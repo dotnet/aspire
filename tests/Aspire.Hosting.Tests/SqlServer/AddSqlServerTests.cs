@@ -140,13 +140,10 @@ public class AddSqlServerTests
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        builder.AddSqlServer("sqlserver1")
-            .AddDatabase("db");
+        var db = builder.AddSqlServer("sqlserver1");
+        db.AddDatabase("db");
 
-        Assert.Throws<DistributedApplicationException>(() =>
-            builder.AddSqlServer("sqlserver1")
-            .AddDatabase("db")
-        );
+        Assert.Throws<DistributedApplicationException>(() => db.AddDatabase("db"));
     }
 
     [Fact]
@@ -157,10 +154,8 @@ public class AddSqlServerTests
         builder.AddSqlServer("sqlserver1")
             .AddDatabase("db");
 
-        Assert.Throws<DistributedApplicationException>(() =>
-            builder.AddSqlServer("sqlserver2")
-            .AddDatabase("db")
-        );
+        var db = builder.AddSqlServer("sqlserver2");
+        Assert.Throws<DistributedApplicationException>(() => db.AddDatabase("db"));
     }
 
     [Fact]

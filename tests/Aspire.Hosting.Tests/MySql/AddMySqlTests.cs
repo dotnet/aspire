@@ -270,13 +270,10 @@ public class AddMySqlTests
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        builder.AddMySql("mysql1")
-            .AddDatabase("db");
+        var db = builder.AddMySql("mysql1");
+        db.AddDatabase("db");
 
-        Assert.Throws<DistributedApplicationException>(() =>
-            builder.AddMySql("mysql1")
-            .AddDatabase("db")
-        );
+        Assert.Throws<DistributedApplicationException>(() => db.AddDatabase("db"));
     }
 
     [Fact]
@@ -287,10 +284,8 @@ public class AddMySqlTests
         builder.AddMySql("mysql1")
             .AddDatabase("db");
 
-        Assert.Throws<DistributedApplicationException>(() =>
-            builder.AddMySql("mysql2")
-            .AddDatabase("db")
-        );
+        var db = builder.AddMySql("mysql2");
+        Assert.Throws<DistributedApplicationException>(() => db.AddDatabase("db"));
     }
 
     [Fact]

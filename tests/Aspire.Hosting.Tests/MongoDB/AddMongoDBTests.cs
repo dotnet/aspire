@@ -143,13 +143,10 @@ public class AddMongoDBTests
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        builder.AddMongoDB("mongo1")
-            .AddDatabase("db");
+        var db = builder.AddMongoDB("mongo1");
+        db.AddDatabase("db");
 
-        Assert.Throws<DistributedApplicationException>(() =>
-            builder.AddMongoDB("mongo1")
-            .AddDatabase("db")
-        );
+        Assert.Throws<DistributedApplicationException>(() => db.AddDatabase("db"));
     }
 
     [Fact]
@@ -160,10 +157,8 @@ public class AddMongoDBTests
         builder.AddMongoDB("mongo1")
             .AddDatabase("db");
 
-        Assert.Throws<DistributedApplicationException>(() =>
-            builder.AddMongoDB("mongo2")
-            .AddDatabase("db")
-        );
+        var db = builder.AddMongoDB("mongo2");
+        Assert.Throws<DistributedApplicationException>(() => db.AddDatabase("db"));
     }
 
     [Fact]

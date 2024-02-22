@@ -232,13 +232,10 @@ public class AddOracleDatabaseTests
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        builder.AddOracleDatabase("oracle1")
-            .AddDatabase("db");
+        var db = builder.AddOracleDatabase("oracle1");
+        db.AddDatabase("db");
 
-        Assert.Throws<DistributedApplicationException>(() =>
-            builder.AddOracleDatabase("oracle1")
-            .AddDatabase("db")
-        );
+        Assert.Throws<DistributedApplicationException>(() => db.AddDatabase("db"));
     }
 
     [Fact]
@@ -249,10 +246,8 @@ public class AddOracleDatabaseTests
         builder.AddOracleDatabase("oracle1")
             .AddDatabase("db");
 
-        Assert.Throws<DistributedApplicationException>(() =>
-            builder.AddOracleDatabase("oracle2")
-            .AddDatabase("db")
-        );
+        var db = builder.AddOracleDatabase("oracle2");
+        Assert.Throws<DistributedApplicationException>(() => db.AddDatabase("db"));
     }
 
     [Fact]
