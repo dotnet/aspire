@@ -50,8 +50,9 @@ public static class MySqlBuilderExtensions
     /// Adds a MySQL database to the application model.
     /// </summary>
     /// <param name="builder">The MySQL server resource builder.</param>
-    /// <param name="name">The name of the resource. If <paramref name="databaseName"/> is not provided this name will be used as the connection string name when referenced in a dependency and must be unique.</param>
-    /// <param name="databaseName">The name of the database if different from <paramref name="name"/>.</param>
+    /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <param name="databaseName">The name of the database. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<MySqlDatabaseResource> AddDatabase(this IResourceBuilder<MySqlServerResource> builder, string name, string? databaseName = null)
     {
         // Use the resource name as the database name if it's not provided
