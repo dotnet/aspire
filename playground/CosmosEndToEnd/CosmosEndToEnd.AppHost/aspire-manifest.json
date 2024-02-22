@@ -12,17 +12,13 @@
         "keyVaultName": ""
       }
     },
-    "db": {
-      "type": "value.v0",
-      "connectionString": "{cosmos.connectionString}"
-    },
     "api": {
       "type": "project.v0",
       "path": "../CosmosEndToEnd.ApiService/CosmosEndToEnd.ApiService.csproj",
       "env": {
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
-        "ConnectionStrings__db": "{db.connectionString}"
+        "ConnectionStrings__cosmos": "{cosmos.connectionString}"
       },
       "bindings": {
         "http": {

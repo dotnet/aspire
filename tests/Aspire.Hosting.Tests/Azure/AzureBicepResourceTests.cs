@@ -131,7 +131,6 @@ public class AzureBicepResourceTests
         Assert.NotNull(obj);
         Assert.Equal("value.v0", obj["type"]?.ToString());
         Assert.Equal("{cosmos.connectionString}", obj["connectionString"]?.ToString());
-        Assert.Equal("cosmos", obj["parent"]?.ToString());
     }
 
     [Fact]

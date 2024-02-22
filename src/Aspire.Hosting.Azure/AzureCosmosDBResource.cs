@@ -150,22 +150,15 @@ public static class AzureCosmosExtensions
     }
 
     /// <summary>
-    /// Adds a resource which represents a database in the associated Cosmos DB account resource.
+    /// Adds a database to the associated Cosmos DB account resource.
     /// </summary>
     /// <param name="builder">AzureCosmosDB resource builder.</param>
-    /// <param name="name">The name of the resource.</param>
     /// <param name="databaseName">Name of database.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<AzureCosmosDBDatabaseResource> AddDatabase(this IResourceBuilder<AzureCosmosDBResource> builder, string name, string? databaseName = null)
+    public static IResourceBuilder<AzureCosmosDBResource> AddDatabase(this IResourceBuilder<AzureCosmosDBResource> builder, string databaseName)
     {
-        var dbName = databaseName ?? name;
-
-        var resource = new AzureCosmosDBDatabaseResource(name, builder.Resource);
-
-        builder.Resource.Databases.Add(dbName);
-
-        return builder.ApplicationBuilder.AddResource(resource)
-                      .WithManifestPublishingCallback(resource.WriteToManifest);
+        builder.Resource.Databases.Add(databaseName);
+        return builder;
     }
 }
 
