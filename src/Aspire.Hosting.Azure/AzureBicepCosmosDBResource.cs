@@ -3,10 +3,11 @@
 
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.Cosmos;
 using Aspire.Hosting.Publishing;
 
-namespace Aspire.Hosting.Azure;
+namespace Aspire.Hosting;
 
 /// <summary>
 /// A resource that represents an Azure Cosmos DB.
