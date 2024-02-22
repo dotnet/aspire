@@ -39,13 +39,10 @@ var appInsights = builder.AddAzureApplicationInsights("ai");
 var redis = builder.AddRedis("redis")
                    .AsAzureRedis();
 
-var serviceBus = builder.AddAzureServiceBus("sb");
-
-// TODO: Should the below return the builder for serviceBus?
-serviceBus
-    .AddQueue("queue1")
-    .AddTopic("topic1", ["subscription1", "subscription2"])
-    .AddTopic("topic2", ["subscription1"]);
+var serviceBus = builder.AddAzureServiceBus("sb")
+                        .AddQueue("queue1")
+                        .AddTopic("topic1", ["subscription1", "subscription2"])
+                        .AddTopic("topic2", ["subscription1"]);
 
 builder.AddProject<Projects.BicepSample_ApiService>("api")
        .WithReference(sqlServer)
