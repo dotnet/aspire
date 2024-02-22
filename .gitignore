@@ -140,4 +140,8 @@ node_modules/
 # Storage emulator storage files
 **/.azurite/*
 
-.fake
+# Azure Developer CLI files
+/playground/**/.gitignore
+/playground/**/azure.yaml
+/playground/**/next-steps.md
+
