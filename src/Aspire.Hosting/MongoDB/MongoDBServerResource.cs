@@ -45,11 +45,6 @@ public class MongoDBServerResource(string name) : ContainerResource(name), IReso
 
     internal void AddDatabase(string name, string databaseName)
     {
-        if (_databases.ContainsKey(name))
-        {
-            return;
-        }
-
-        _databases[name] = databaseName;
+        _databases.TryAdd(name, databaseName);
     }
 }
