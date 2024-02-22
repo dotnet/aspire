@@ -5,7 +5,6 @@ using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.Cosmos;
-using Aspire.Hosting.Publishing;
 
 namespace Aspire.Hosting;
 
