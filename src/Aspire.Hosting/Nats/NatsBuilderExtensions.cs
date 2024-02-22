@@ -24,7 +24,7 @@ public static class NatsBuilderExtensions
         var nats = new NatsServerResource(name);
         return builder.AddResource(nats)
                       .WithManifestPublishingCallback(WriteNatsResourceToManifest)
-                      .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, uriScheme: "nats", port: port, containerPort: 4222))
+                      .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 4222))
                       .WithAnnotation(new ContainerImageAnnotation { Image = "nats", Tag = "latest" });
     }
 
