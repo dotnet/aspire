@@ -7,17 +7,25 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using RabbitMQ.Client;
+using Xunit;
 
 namespace Aspire.RabbitMQ.Client.Tests;
 
-public class ConformanceTests : ConformanceTests<IConnection, RabbitMQClientSettings>
+public class ConformanceTests : ConformanceTests<IConnection, RabbitMQClientSettings>, IClassFixture<RabbitMQContainerFixture>
 {
+    private readonly RabbitMQContainerFixture _containerFixture;
+
+    public ConformanceTests(RabbitMQContainerFixture containerFixture)
+    {
+        _containerFixture = containerFixture;
+    }
+
     protected override ServiceLifetime ServiceLifetime => ServiceLifetime.Singleton;
 
     // IConnectionMultiplexer can be created only via call to ConnectionMultiplexer.Connect
     protected override bool CanCreateClientWithoutConnectingToServer => false;
 
-    protected override bool CanConnectToServer => AspireRabbitMQHelpers.CanConnectToServer;
+    protected override bool CanConnectToServer => RequiresDockerTheoryAttribute.IsSupported;
 
     protected override bool SupportsKeyedRegistrations => true;
 
@@ -58,8 +66,16 @@ public class ConformanceTests : ConformanceTests<IConnection, RabbitMQClientSett
             ("""{"Aspire": { "RabbitMQ": { "Client":{ "ConnectionFactory": { "RequestedConnectionTimeout": "3S"}}}}}""", "Value does not match format \"duration\"")
         };
 
-    protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null) =>
-        AspireRabbitMQHelpers.PopulateConfiguration(configuration, key);
+    protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
+    {
+        var connectionString = RequiresDockerTheoryAttribute.IsSupported ?
+            _containerFixture.GetConnectionString() :
+            "amqp://localhost:5672";
+
+        configuration.AddInMemoryCollection([
+            new(CreateConfigKey("Aspire:RabbitMQ:Client", key, "ConnectionString"), connectionString)
+        ]);
+    }
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<RabbitMQClientSettings>? configure = null, string? key = null)
     {
