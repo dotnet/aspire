@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Utils;
+using Aspire.Hosting;
 using Microsoft.Extensions.Hosting;
 
 namespace Aspire.Hosting;
@@ -20,7 +20,7 @@ public static class JavaScriptAppHostingExtension
     /// <param name="workingDirectory">The working directory to use for the command. If null, the working directory of the current process is used.</param>
     /// <param name="args">The arguments to pass to the command.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<JavaScriptAppResource> AddJavaScriptApp(this IDistributedApplicationBuilder builder, string name, string scriptPath = null, string? workingDirectory = null, string[]? args = null)
+    public static IResourceBuilder<JavaScriptAppResource> AddJavaScriptApp(this IDistributedApplicationBuilder builder, string name, string scriptPath = null, string? workingDirectory = null!, string[]? args = null)
     {   
         scriptPath ??= "node";
         args ??= [];
@@ -44,7 +44,6 @@ public static class JavaScriptAppHostingExtension
     /// <param name="args">The arguments to pass to the command.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<JavaScriptAppResource> AddJavaScriptCLIApp(this IDistributedApplicationBuilder builder, string name, string workingDirectory, string? scriptName = null, string[]? args = null)
-
     {   
         args ??= [];
         scriptName ??= "npm";
@@ -77,7 +76,7 @@ public static class JavaScriptAppHostingExtension
     {
         var environment = builder.ApplicationBuilder.Environment;
 
-        if (builder.Resource.scriptPath.Equals("node", StringComparison.OrdinalIgnoreCase))
+        if (builder.Resource.command.Equals("node", StringComparison.OrdinalIgnoreCase))
         {
             return builder.WithOtlpExporter()
                             .WithEnvironment("NODE_ENV", environment.IsDevelopment() ? "development" : "production");

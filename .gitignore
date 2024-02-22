@@ -139,3 +139,5 @@ node_modules/
 
 # Storage emulator storage files
 **/.azurite/*
+
+.fake
