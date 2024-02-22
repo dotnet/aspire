@@ -226,4 +226,67 @@ public class AddOracleDatabaseTests
         Assert.Equal("value.v0", dbManifest["type"]?.ToString());
         Assert.Equal(db.Resource.ConnectionStringExpression, dbManifest["connectionString"]?.ToString());
     }
+
+    [Fact]
+    public void ThrowsWithIdenticalChildResourceNames()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        builder.AddOracleDatabase("oracle1")
+            .AddDatabase("db");
+
+        Assert.Throws<DistributedApplicationException>(() =>
+            builder.AddOracleDatabase("oracle1")
+            .AddDatabase("db")
+        );
+    }
+
+    [Fact]
+    public void ThrowsWithIdenticalChildResourceNamesDifferentParents()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        builder.AddOracleDatabase("oracle1")
+            .AddDatabase("db");
+
+        Assert.Throws<DistributedApplicationException>(() =>
+            builder.AddOracleDatabase("oracle2")
+            .AddDatabase("db")
+        );
+    }
+
+    [Fact]
+    public void CanAddDatabasesWithDifferentNamesOnSingleServer()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var oracle1 = builder.AddOracleDatabase("oracle1");
+
+        var db1 = oracle1.AddDatabase("db1", "customers1");
+        var db2 = oracle1.AddDatabase("db2", "customers2");
+
+        Assert.Equal("customers1", db1.Resource.DatabaseName);
+        Assert.Equal("customers2", db2.Resource.DatabaseName);
+
+        Assert.Equal("{oracle1.connectionString}/customers1", db1.Resource.ConnectionStringExpression);
+        Assert.Equal("{oracle1.connectionString}/customers2", db2.Resource.ConnectionStringExpression);
+    }
+
+    [Fact]
+    public void CanAddDatabasesWithTheSameNameOnMultipleServers()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var db1 = builder.AddOracleDatabase("oracle1")
+            .AddDatabase("db1", "imports");
+
+        var db2 = builder.AddOracleDatabase("oracle2")
+            .AddDatabase("db2", "imports");
+
+        Assert.Equal("imports", db1.Resource.DatabaseName);
+        Assert.Equal("imports", db2.Resource.DatabaseName);
+
+        Assert.Equal("{oracle1.connectionString}/imports", db1.Resource.ConnectionStringExpression);
+        Assert.Equal("{oracle2.connectionString}/imports", db2.Resource.ConnectionStringExpression);
+    }
 }

@@ -41,6 +41,23 @@ public class OracleDatabaseServerResource(string name, string password) : Contai
         return connectionString;
     }
 
+    private readonly Dictionary<string, string> _databases = new Dictionary<string, string>(StringComparers.ResourceName);
+
+    /// <summary>
+    /// A dictionary where the key is the resource name and the value is the database name.
+    /// </summary>
+    public IReadOnlyDictionary<string, string> Databases => _databases;
+
+    internal void AddDatabase(string name, string databaseName)
+    {
+        if (_databases.ContainsKey(name))
+        {
+            return;
+        }
+
+        _databases[name] = databaseName;
+    }
+
     internal void WriteToManifest(ManifestPublishingContext context)
     {
         context.WriteContainer(this);
