@@ -646,7 +646,7 @@ public class DistributedApplicationTests
         await app.StopAsync();
     }
 
-    [Fact]
+    [LocalOnlyFact("docker")]
     public async Task ProxylessContainerWithoutPortThrows()
     {
         var builder = DistributedApplication.CreateBuilder(
