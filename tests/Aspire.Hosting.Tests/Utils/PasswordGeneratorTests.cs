@@ -80,4 +80,18 @@ public class PasswordGeneratorTests
         Assert.Equal(length, password.Count(PasswordGenerator.DigitChars.Contains));
         Assert.Equal(length, password.Count(PasswordGenerator.SpecialChars.Contains));
     }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(3)]
+    [InlineData(10)]
+    public void ValidUriCharacters(int length)
+    {
+        var password = PasswordGenerator.GeneratePassword(length, length, length, 0);
+        password += PasswordGenerator.SpecialChars;
+
+        Exception exception = Record.Exception(() => new Uri($"https://guest:{password}@localhost:12345"));
+
+        Assert.True((exception is null), $"Password contains invalid chars: {password}");
+    }
 }

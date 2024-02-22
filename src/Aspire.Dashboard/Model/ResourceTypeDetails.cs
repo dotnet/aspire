@@ -1,10 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using Aspire.Dashboard.Otlp.Model;
 
 namespace Aspire.Dashboard.Model;
 
+[DebuggerDisplay("Type = {Type}, InstanceId = {InstanceId}, ReplicaSetName = {ReplicaSetName}")]
 public class ResourceTypeDetails
 {
     private ResourceTypeDetails(OtlpApplicationType type, string? instanceId, string? replicaSetName)

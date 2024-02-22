@@ -18,7 +18,7 @@ public class AddMySqlTests
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddMySql("mysql");
 
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -67,7 +67,7 @@ public class AddMySqlTests
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddMySql("mysql", 1234, "pass");
 
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -123,7 +123,7 @@ public class AddMySqlTests
             "https"
             ));
 
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -148,7 +148,7 @@ public class AddMySqlTests
             ))
             .AddDatabase("db");
 
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -193,7 +193,7 @@ public class AddMySqlTests
     {
         var builder = DistributedApplication.CreateBuilder();
         var mysql = builder.AddMySql("mySql").WithPhpMyAdmin();
-        var app = builder.Build();
+        using var app = builder.Build();
 
         // Add fake allocated endpoints.
         mysql.WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "host.docker.internal", 5001, "tcp"));
@@ -247,7 +247,7 @@ public class AddMySqlTests
         var myAdmin = builder.Resources.Single(r => r.Name.EndsWith("-phpmyadmin"));
         var volume = myAdmin.Annotations.OfType<ContainerMountAnnotation>().Single();
 
-        var app = builder.Build();
+        using var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var hook = new PhpMyAdminConfigWriterHook();

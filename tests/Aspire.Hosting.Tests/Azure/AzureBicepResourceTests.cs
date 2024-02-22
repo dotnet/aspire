@@ -103,8 +103,8 @@ public class AzureBicepResourceTests
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        var cosmos = builder.AddBicepCosmosDb("cosmos");
-        cosmos.AddDatabase("db", "mydatabase");
+        var cosmos = builder.AddAzureCosmosDB("cosmos");
+        cosmos.AddDatabase("mydatabase");
 
         cosmos.Resource.SecretOutputs["connectionString"] = "mycosmosconnectionstring";
 
@@ -117,21 +117,6 @@ public class AzureBicepResourceTests
         Assert.Equal(["mydatabase"], databases);
         Assert.Equal("mycosmosconnectionstring", cosmos.Resource.GetConnectionString());
         Assert.Equal("{cosmos.secretOutputs.connectionString}", cosmos.Resource.ConnectionStringExpression);
-    }
-
-    [Fact]
-    public void AddBicepCosmosDbDatabaseReferencesParentConnectionString()
-    {
-        var builder = DistributedApplication.CreateBuilder();
-
-        var db = builder.AddBicepCosmosDb("cosmos").AddDatabase("db", "mydatabase");
-
-        var obj = ManifestUtils.GetManifest(db.Resource.WriteToManifest);
-
-        Assert.NotNull(obj);
-        Assert.Equal("azure.bicep.v0", obj["type"]?.ToString());
-        Assert.Equal("{cosmos.connectionString}", obj["connectionString"]?.ToString());
-        Assert.Equal("cosmos", obj["parent"]?.ToString());
     }
 
     [Fact]
@@ -350,23 +335,33 @@ public class AzureBicepResourceTests
     public void AddBicepServiceBus()
     {
         var builder = DistributedApplication.CreateBuilder();
+        var serviceBus = builder.AddAzureServiceBus("sb");
 
-        var sb = AzureServiceBusExtensions.AddAzureServiceBus(builder, "sb", ["queue1"], ["topic1"]);
+        serviceBus
+            .AddQueue("queue1")
+            .AddQueue("queue2")
+            .AddTopic("t1", ["s1", "s2"])
+            .AddTopic("t2", [])
+            .AddTopic("t3", ["s3"]);
 
-        sb.Resource.Outputs["serviceBusEndpoint"] = "mynamespaceEndpoint";
+        serviceBus.Resource.Outputs["serviceBusEndpoint"] = "mynamespaceEndpoint";
 
-        var queues = sb.Resource.Parameters["queues"] as IEnumerable<string>;
-        var topics = sb.Resource.Parameters["topics"] as IEnumerable<string>;
+        var queuesCallback = serviceBus.Resource.Parameters["queues"] as Func<object?>;
+        var topicsCallback = serviceBus.Resource.Parameters["topics"] as Func<object?>;
+        Assert.NotNull(queuesCallback);
+        Assert.NotNull(topicsCallback);
+        var queues = queuesCallback() as IEnumerable<string>;
+        var topics = topicsCallback() as JsonNode;
 
-        Assert.Equal("Aspire.Hosting.Azure.Bicep.servicebus.bicep", sb.Resource.TemplateResourceName);
-        Assert.Equal("sb", sb.Resource.Name);
-        Assert.Equal("sb", sb.Resource.Parameters["serviceBusNamespaceName"]);
+        Assert.Equal("Aspire.Hosting.Azure.Bicep.servicebus.bicep", serviceBus.Resource.TemplateResourceName);
+        Assert.Equal("sb", serviceBus.Resource.Name);
+        Assert.Equal("sb", serviceBus.Resource.Parameters["serviceBusNamespaceName"]);
         Assert.NotNull(queues);
-        Assert.Equal(["queue1"], queues);
+        Assert.Equal(["queue1", "queue2"], queues);
         Assert.NotNull(topics);
-        Assert.Equal(["topic1"], topics);
-        Assert.Equal("mynamespaceEndpoint", sb.Resource.GetConnectionString());
-        Assert.Equal("{sb.outputs.serviceBusEndpoint}", sb.Resource.ConnectionStringExpression);
+        Assert.Equal("""[{"name":"t1","subscriptions":["s1","s2"]},{"name":"t2","subscriptions":[]},{"name":"t3","subscriptions":["s3"]}]""", topics.ToJsonString());
+        Assert.Equal("mynamespaceEndpoint", serviceBus.Resource.GetConnectionString());
+        Assert.Equal("{sb.outputs.serviceBusEndpoint}", serviceBus.Resource.ConnectionStringExpression);
     }
 
     [Fact]

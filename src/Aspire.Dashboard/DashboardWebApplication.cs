@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net;
+using System.Reflection;
 using Aspire.Dashboard.Components;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Grpc;
@@ -107,8 +108,14 @@ public class DashboardWebApplication : IAsyncDisposable
         builder.Services.AddLocalization();
 
         _app = builder.Build();
-
         var logger = _app.Logger;
+
+        if (GetType().Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion is string informationalVersion)
+        {
+            // Write version at info level so it's written to the console by default. Help us debug user issues.
+            // Display version and commit like 8.0.0-preview.2.23619.3+17dd83f67c6822954ec9a918ef2d048a78ad4697
+            logger.LogInformation("Aspire version: {Version}", informationalVersion);
+        }
 
         if (dashboardUris.FirstOrDefault() is { } reportedDashboardUri)
         {

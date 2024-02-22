@@ -16,7 +16,7 @@ public class AddRabbitMQTests
 
         appBuilder.AddRabbitMQ("rabbit");
 
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -55,7 +55,7 @@ public class AddRabbitMQTests
                 "tcp"
             ));
 
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 

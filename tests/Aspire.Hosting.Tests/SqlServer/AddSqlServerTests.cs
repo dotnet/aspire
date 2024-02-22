@@ -17,7 +17,7 @@ public class AddSqlServerTests
 
         appBuilder.AddSqlServer("sqlserver");
 
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -80,7 +80,7 @@ public class AddSqlServerTests
                     "tcp"
              ));
 
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
@@ -106,7 +106,7 @@ public class AddSqlServerTests
                     "tcp"
              )).AddDatabase("mydb");
 
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
