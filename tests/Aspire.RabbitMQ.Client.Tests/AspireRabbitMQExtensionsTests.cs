@@ -21,7 +21,7 @@ public class AspireRabbitMQExtensionsTests : IClassFixture<RabbitMQContainerFixt
         _containerFixture = containerFixture;
     }
 
-    [Theory]
+    [RequiresDockerTheory]
     [InlineData(true)]
     [InlineData(false)]
     public void ReadsFromConnectionStringsCorrectly(bool useKeyed)
@@ -50,7 +50,7 @@ public class AspireRabbitMQExtensionsTests : IClassFixture<RabbitMQContainerFixt
         Assert.Equal(uri.Port, connection.Endpoint.Port);
     }
 
-    [Theory]
+    [RequiresDockerTheory]
     [InlineData(true)]
     [InlineData(false)]
     public void ConnectionStringCanBeSetInCode(bool useKeyed)
@@ -80,7 +80,7 @@ public class AspireRabbitMQExtensionsTests : IClassFixture<RabbitMQContainerFixt
         Assert.Equal(uri.Port, connection.Endpoint.Port);
     }
 
-    [Theory]
+    [RequiresDockerTheory]
     [InlineData(true)]
     [InlineData(false)]
     public void ConnectionNameWinsOverConfigSection(bool useKeyed)

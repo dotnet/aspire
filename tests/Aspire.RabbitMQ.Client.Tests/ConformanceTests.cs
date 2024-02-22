@@ -25,7 +25,7 @@ public class ConformanceTests : ConformanceTests<IConnection, RabbitMQClientSett
     // IConnectionMultiplexer can be created only via call to ConnectionMultiplexer.Connect
     protected override bool CanCreateClientWithoutConnectingToServer => false;
 
-    protected override bool CanConnectToServer => true;
+    protected override bool CanConnectToServer => RequiresDockerTheoryAttribute.IsSupported;
 
     protected override bool SupportsKeyedRegistrations => true;
 
@@ -66,10 +66,16 @@ public class ConformanceTests : ConformanceTests<IConnection, RabbitMQClientSett
             ("""{"Aspire": { "RabbitMQ": { "Client":{ "ConnectionFactory": { "RequestedConnectionTimeout": "3S"}}}}}""", "Value does not match format \"duration\"")
         };
 
-    protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null) =>
+    protected override void PopulateConfiguration(ConfigurationManager configuration, string? key = null)
+    {
+        var connectionString = RequiresDockerTheoryAttribute.IsSupported ?
+            _containerFixture.GetConnectionString() :
+            "amqp://localhost:5672";
+
         configuration.AddInMemoryCollection([
-            new(CreateConfigKey("Aspire:RabbitMQ:Client", key, "ConnectionString"), _containerFixture.GetConnectionString())
+            new(CreateConfigKey("Aspire:RabbitMQ:Client", key, "ConnectionString"), connectionString)
         ]);
+    }
 
     protected override void RegisterComponent(HostApplicationBuilder builder, Action<RabbitMQClientSettings>? configure = null, string? key = null)
     {

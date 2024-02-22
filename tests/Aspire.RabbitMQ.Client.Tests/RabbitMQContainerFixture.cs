@@ -15,8 +15,11 @@ public sealed class RabbitMQContainerFixture : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        _container = new RabbitMqBuilder().Build();
-        await _container.StartAsync();
+        if (RequiresDockerTheoryAttribute.IsSupported)
+        {
+            _container = new RabbitMqBuilder().Build();
+            await _container.StartAsync();
+        }
     }
 
     public async Task DisposeAsync()
