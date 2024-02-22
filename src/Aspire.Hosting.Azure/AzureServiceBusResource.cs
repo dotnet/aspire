@@ -13,6 +13,9 @@ public class AzureServiceBusResource(string name) :
     AzureBicepResource(name, templateResouceName: "Aspire.Hosting.Azure.Bicep.servicebus.bicep"),
     IResourceWithConnectionString
 {
+    internal List<string> Queues { get; } = [];
+    internal Dictionary<string, string[]> Topics { get; } = [];
+
     /// <summary>
     /// Gets the "serviceBusEndpoint" output reference from the bicep template for the Azure Service Bus endpoint.
     /// </summary>
@@ -22,6 +25,7 @@ public class AzureServiceBusResource(string name) :
     /// Gets the connection string template for the manifest for the Azure Service Bus endpoint.
     /// </summary>
     public string ConnectionStringExpression => ServiceBusEndpoint.ValueExpression;
+
     /// <summary>
     /// Gets the connection string for the Azure Service Bus endpoint.
     /// </summary>

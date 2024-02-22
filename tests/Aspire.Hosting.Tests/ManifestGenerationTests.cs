@@ -381,37 +381,6 @@ public class ManifestGenerationTests
     }
 
     [Fact]
-    public void EnsureAllAzureCosmosDBManifestTypesHaveVersion0Suffix()
-    {
-        var program = CreateTestProgramJsonDocumentManifestPublisher();
-
-        program.AppBuilder.AddAzureCosmosDB("cosmosconnection", "a connection string").AddDatabase("mydb1");
-        program.AppBuilder.AddAzureCosmosDB("cosmosaccount").AddDatabase("mydb2");
-
-        // Build AppHost so that publisher can be resolved.
-        program.Build();
-        var publisher = program.GetManifestPublisher();
-
-        program.Run();
-
-        var resources = publisher.ManifestDocument.RootElement.GetProperty("resources");
-
-        var connection = resources.GetProperty("cosmosconnection");
-        Assert.Equal("azure.cosmosdb.connection.v0", connection.GetProperty("type").GetString());
-
-        var account = resources.GetProperty("cosmosaccount");
-        Assert.Equal("azure.cosmosdb.account.v0", account.GetProperty("type").GetString());
-
-        var db1 = resources.GetProperty("mydb1");
-        Assert.Equal("azure.cosmosdb.database.v0", db1.GetProperty("type").GetString());
-        Assert.Equal("cosmosconnection", db1.GetProperty("parent").GetString());
-
-        var db2 = resources.GetProperty("mydb2");
-        Assert.Equal("azure.cosmosdb.database.v0", db2.GetProperty("type").GetString());
-        Assert.Equal("cosmosaccount", db2.GetProperty("parent").GetString());
-    }
-
-    [Fact]
     public void NodeAppIsExecutableResource()
     {
         var program = CreateTestProgramJsonDocumentManifestPublisher();
