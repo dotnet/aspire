@@ -1,0 +1,98 @@
+﻿@namespace Aspire.Dashboard.Components
+
+@using Aspire.Dashboard.Resources
+@using Aspire.Dashboard.Otlp.Model
+@using Aspire.Dashboard.Model
+@inject IStringLocalizer<ControlsStrings> Loc
+
+<div class="metrics-filters-container">
+    @if (ViewModel.DimensionFilters.Count > 0)
+    {
+        <div class="metrics-filters-section">
+            <h5>@Loc[nameof(ControlsStrings.ChartContainerFiltersHeader)]</h5>
+            <FluentDataGrid Items="@Queryable.AsQueryable(ViewModel.DimensionFilters)" GridTemplateColumns="200px 1fr auto" GenerateHeader="GenerateHeaderOption.None">
+                <ChildContent>
+                    <PropertyColumn Tooltip="true" TooltipText="@(c => c.Name)" Property="@(c => c.Name)"/>
+                    <TemplateColumn Tooltip="true" TooltipText="@(c => c.SelectedValues.Count == 0 ? Loc[nameof(ControlsStrings.ChartContainerNoneSelected)] : string.Join(", ", c.SelectedValues.Select(v => v.Name)))">
+                        <FluentOverflow Class="dimension-overflow">
+                            <ChildContent>
+                                @if (context.SelectedValues.Count == 0)
+                                {
+                                    <FluentBadge>@Loc[nameof(ControlsStrings.ChartContainerNoneSelected)]</FluentBadge>
+                                }
+                                else
+                                {
+                                    foreach (var item in context.SelectedValues.OrderBy(g => g.Name))
+                                    {
+                                        <FluentOverflowItem @key=item>
+                                            <FluentBadge>@item.Name</FluentBadge>
+                                        </FluentOverflowItem>
+                                    }
+                                }
+                            </ChildContent>
+                            <MoreButtonTemplate Context="overflow">
+                                <FluentBadge>
+                                    @($"+{overflow.ItemsOverflow.Count()}")
+                                </FluentBadge>
+                            </MoreButtonTemplate>
+                        </FluentOverflow>
+                    </TemplateColumn>
+                    <TemplateColumn>
+                        @{
+                            var id = $"typeFilterButton-{context.SanitizedHtmlId}-{Guid.NewGuid()}";
+                        }
+                        <FluentButton id="@id"
+                                      IconEnd="@(new Icons.Regular.Size20.Filter())"
+                                      Appearance="@(context.AreAllValuesSelected is true ? Appearance.Stealth : Appearance.Accent)"
+                                      @onclick="() => context.PopupVisible = !context.PopupVisible"
+                                      aria-label="@(context.AreAllValuesSelected is true ? Loc[nameof(ControlsStrings.ChartContainerAllTags)] : Loc[nameof(ControlsStrings.ChartContainerFilteredTags)])"/>
+                        <FluentPopover AnchorId="@id" @bind-Open="context.PopupVisible" VerticalThreshold="200">
+                            <Header>@context.Name</Header>
+                            <Body>
+                            <FluentStack Orientation="Orientation.Vertical" Class="dimension-popup">
+                                <FluentCheckbox Label="@Loc[nameof(ControlsStrings.All)]"
+                                                ThreeState="true"
+                                                ShowIndeterminate="false"
+                                                ThreeStateOrderUncheckToIntermediate="true"
+                                                @bind-CheckState="context.AreAllValuesSelected"/>
+                                @foreach (var tag in context.Values)
+                                {
+                                    var isChecked = context.SelectedValues.Contains(tag);
+                                    <FluentCheckbox Label="@tag.Name"
+                                                    title="@tag.Name"
+                                                    @key=tag
+                                                    @bind-Value:get="isChecked"
+                                                    @bind-Value:set="c => context.OnTagSelectionChanged(tag, c)"/>
+                                }
+                            </FluentStack>
+                            </Body>
+                        </FluentPopover>
+                    </TemplateColumn>
+                </ChildContent>
+            </FluentDataGrid>
+        </div>
+    }
+    @if (Instrument.Type == OtlpInstrumentType.Histogram)
+    {
+        <div class="metrics-filters-section">
+            <h5>@Loc[nameof(ControlsStrings.ChartContainerOptionsHeader)]</h5>
+            <div>
+                <FluentSwitch Class="table-switch"
+                              Label="@Loc[nameof(ControlsStrings.ChartContainerShowCountLabel)]"
+                              @bind-Value="_showCount"
+                              @bind-Value:after="ShowCountChanged"/>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public required OtlpInstrument Instrument { get; set; }
+
+    [Parameter, EditorRequired]
+    public required CounterChartViewModel ViewModel { get; set; }
+
+    [Parameter, EditorRequired]
+    public required InstrumentViewModel InstrumentViewModel { get; set; }
+}
