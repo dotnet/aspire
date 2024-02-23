@@ -17,7 +17,7 @@ internal sealed class DistributedApplicationLifecycle(ILogger<DistributedApplica
 
     public Task StartedAsync(CancellationToken cancellationToken)
     {
-        if (executionContext.IsRunning)
+        if (executionContext.IsRunMode)
         {
             logger.LogInformation("Distributed application started. Press CTRL-C to stop.");
         }
@@ -34,7 +34,7 @@ internal sealed class DistributedApplicationLifecycle(ILogger<DistributedApplica
             logger.LogInformation("Aspire version: {Version}", informationalVersion);
         }
 
-        if (executionContext.IsRunning)
+        if (executionContext.IsRunMode)
         {
             logger.LogInformation("Distributed application starting.");
             logger.LogInformation("Application host directory is: {AppHostDirectory}", configuration["AppHost:Directory"]);

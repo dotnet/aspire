@@ -53,7 +53,7 @@ internal sealed class DcpHostService : IHostedLifecycleService, IAsyncDisposable
         _locations = locations;
     }
 
-    private bool IsSupported => !_executionContext.IsPublishing;
+    private bool IsSupported => !_executionContext.IsPublishMode;
 
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {

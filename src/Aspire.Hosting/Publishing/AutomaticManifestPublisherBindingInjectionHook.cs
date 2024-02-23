@@ -34,7 +34,7 @@ internal sealed class AutomaticManifestPublisherBindingInjectionHook(Distributed
 
     public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
-        if (executionContext.IsRunning)
+        if (executionContext.IsRunMode)
         {
             return Task.CompletedTask;
         }

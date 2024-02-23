@@ -11,7 +11,7 @@ internal sealed class DcpDistributedApplicationLifecycleHook(DistributedApplicat
 {
     public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
-        if (executionContext.IsRunning)
+        if (executionContext.IsRunMode)
         {
             PrepareServices(appModel);
         }

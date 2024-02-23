@@ -395,7 +395,7 @@ public static class AzureBicepTemplateResourceExtensions
     {
         return builder.WithEnvironment(ctx =>
         {
-            ctx.EnvironmentVariables[name] = ctx.ExecutionContext.IsPublishing
+            ctx.EnvironmentVariables[name] = ctx.ExecutionContext.IsPublishMode
                 ? bicepOutputReference.ValueExpression
                 : bicepOutputReference.Value!;
         });
@@ -414,7 +414,7 @@ public static class AzureBicepTemplateResourceExtensions
     {
         return builder.WithEnvironment(ctx =>
         {
-            ctx.EnvironmentVariables[name] = ctx.ExecutionContext.IsPublishing
+            ctx.EnvironmentVariables[name] = ctx.ExecutionContext.IsPublishMode
                 ? bicepOutputReference.ValueExpression
                 : bicepOutputReference.Value!;
         });

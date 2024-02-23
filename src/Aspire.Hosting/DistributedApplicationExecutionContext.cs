@@ -17,10 +17,10 @@ public class DistributedApplicationExecutionContext(DistributedApplicationOperat
     /// <summary>
     /// Returns true if the current operation is publishing.
     /// </summary>
-    public bool IsPublishing => Operation == DistributedApplicationOperation.Publish;
+    public bool IsPublishMode => Operation == DistributedApplicationOperation.Publish;
 
     /// <summary>
     /// Returns true if the current operation is running.
     /// </summary>
-    public bool IsRunning => Operation == DistributedApplicationOperation.Publish;
+    public bool IsRunMode => Operation == DistributedApplicationOperation.Publish;
 }

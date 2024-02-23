@@ -36,7 +36,7 @@ public static class PostgresBuilderExtensions
                       .WithEnvironment("POSTGRES_INITDB_ARGS", "--auth-host=scram-sha-256 --auth-local=scram-sha-256")
                       .WithEnvironment(context =>
                       {
-                          if (context.ExecutionContext.IsPublishing)
+                          if (context.ExecutionContext.IsPublishMode)
                           {
                               context.EnvironmentVariables.Add(PasswordEnvVarName, $"{{{postgresServer.Name}.inputs.password}}");
                           }

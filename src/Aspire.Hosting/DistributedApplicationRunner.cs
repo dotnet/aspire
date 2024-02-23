@@ -12,7 +12,7 @@ internal sealed class DistributedApplicationRunner(DistributedApplicationExecuti
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var publisher = executionContext.IsPublishing
+        var publisher = executionContext.IsPublishMode
             ? serviceProvider.GetRequiredKeyedService<IDistributedApplicationPublisher>("manifest")
             : serviceProvider.GetRequiredKeyedService<IDistributedApplicationPublisher>("dcp");
 

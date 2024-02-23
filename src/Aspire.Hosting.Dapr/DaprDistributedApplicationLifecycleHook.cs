@@ -139,7 +139,7 @@ internal sealed class DaprDistributedApplicationLifecycleHook : IDistributedAppl
                 new EnvironmentCallbackAnnotation(
                     context =>
                     {
-                        if (context.ExecutionContext.IsPublishing)
+                        if (context.ExecutionContext.IsPublishMode)
                         {
                             return;
                         }
