@@ -64,16 +64,4 @@ public static class NatsBuilderExtensions
         return builder.WithManifestPublishingCallback(context => WriteNatsContainerResourceToManifest(context, builder.Resource));
     }
 
-    private static void WriteNatsResourceToManifest(ManifestPublishingContext context)
-    {
-        context.Writer.WriteString("type", "nats.v0");
-    }
-
-    private static void WriteNatsContainerResourceToManifest(ManifestPublishingContext context, NatsServerResource resource)
-    {
-        context.WriteContainer(resource);
-        context.Writer.WriteString(                     // "connectionString": "...",
-            "connectionString",
-            $"nats://{{{resource.Name}.bindings.tcp.host}}:{{{resource.Name}.bindings.tcp.port}}");
-    }
 }
