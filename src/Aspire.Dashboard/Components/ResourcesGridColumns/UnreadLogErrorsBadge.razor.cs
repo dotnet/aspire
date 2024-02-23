@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Model;
@@ -50,6 +50,6 @@ public partial class UnreadLogErrorsBadge
 
     private static string GetResourceErrorStructuredLogsUrl(ResourceViewModel resource)
     {
-        return $"/StructuredLogs/{resource.Uid}?level=error";
+        return $"/structuredlogs/{resource.Uid}?level=error";
     }
 }

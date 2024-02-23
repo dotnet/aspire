@@ -1,5 +1,5 @@
-﻿@page "/Traces"
-@page "/Traces/Resource/{applicationName}"
+﻿@page "/traces"
+@page "/traces/resource/{applicationName}"
 
 @using Aspire.Dashboard.Model.Otlp
 @using Aspire.Dashboard.Otlp.Model
@@ -94,7 +94,7 @@
                 </TemplateColumn>
 
                 <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.DetailsColumnHeader)]">
-                    <FluentAnchor Appearance="Appearance.Lightweight" Href="@($"/Traces/Detail/{context.TraceId}")">@ControlsStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentAnchor>
+                    <FluentAnchor Appearance="Appearance.Lightweight" Href="@($"/traces/detail/{context.TraceId}")">@ControlsStringsLoc[nameof(ControlsStrings.ViewAction)]</FluentAnchor>
                 </TemplateColumn>
             </ChildContent>
             <EmptyContent>
