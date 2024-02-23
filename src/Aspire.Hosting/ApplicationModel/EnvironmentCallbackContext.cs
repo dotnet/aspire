@@ -14,7 +14,7 @@ public class EnvironmentCallbackContext(DistributedApplicationExecutionContext e
     /// Obsolete. Use ExecutionContext instead. Will be removed in next preview.
     /// </summary>
     [Obsolete("Use ExecutionContext instead")]
-    public string PublisherName => ExecutionContext.Operation == DistributedApplicationOperation.Publish ? "manifest" : "dcp";
+    public string PublisherName => ExecutionContext.IsPublishMode ? "manifest" : "dcp";
 
     /// <summary>
     /// Gets the environment variables associated with the callback context.
