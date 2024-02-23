@@ -149,6 +149,11 @@ public class AzureBicepResourceTests
         Assert.Equal("appinsights", appInsights.Resource.Parameters["appInsightsName"]);
         Assert.Equal("myinstrumentationkey", appInsights.Resource.GetConnectionString());
         Assert.Equal("{appInsights.outputs.appInsightsConnectionString}", appInsights.Resource.ConnectionStringExpression);
+
+        var appInsightsManifest = ManifestUtils.GetManifest(appInsights.Resource);
+        Assert.Equal("{appInsights.outputs.appInsightsConnectionString}", appInsightsManifest["connectionString"]?.ToString());
+        Assert.Equal("azure.bicep.v0", appInsightsManifest["type"]?.ToString());
+        Assert.Equal("aspire.hosting.azure.bicep.appinsights.bicep", appInsightsManifest["path"]?.ToString());
     }
 
     [Fact]
@@ -398,5 +403,30 @@ public class AzureBicepResourceTests
 
         var tableManifest = ManifestUtils.GetManifest(table.Resource);
         Assert.Equal("{storage.outputs.tableEndpoint}", tableManifest["connectionString"]?.ToString());
+    }
+
+    [Fact]
+    public void PublishAsConnectionString()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var ai = builder.AddAzureApplicationInsights("ai").PublishAsConnectionString();
+        var serviceBus = builder.AddAzureServiceBus("servicebus").PublishAsConnectionString();
+
+        var serviceA = builder.AddProject<Projects.ServiceA>("serviceA")
+            .WithReference(ai)
+            .WithReference(serviceBus);
+
+        var aiManifest = ManifestUtils.GetManifest(ai.Resource);
+        Assert.Equal("{ai.value}", aiManifest["connectionString"]?.ToString());
+        Assert.Equal("parameter.v0", aiManifest["type"]?.ToString());
+
+        var serviceBusManifest = ManifestUtils.GetManifest(serviceBus.Resource);
+        Assert.Equal("{servicebus.value}", serviceBusManifest["connectionString"]?.ToString());
+        Assert.Equal("parameter.v0", serviceBusManifest["type"]?.ToString());
+
+        var serviceManifest = ManifestUtils.GetManifest(serviceA.Resource);
+        Assert.Equal("{ai.connectionString}", serviceManifest["env"]?["APPLICATIONINSIGHTS_CONNECTION_STRING"]?.ToString());
+        Assert.Equal("{servicebus.connectionString}", serviceManifest["env"]?["ConnectionStrings__servicebus"]?.ToString());
     }
 }
