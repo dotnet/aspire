@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using MySqlConnector;
 using MySqlConnector.Logging;
 using OpenTelemetry.Metrics;
 using Pomelo.EntityFrameworkCore.MySql.Infrastructure.Internal;
@@ -75,11 +76,36 @@ public static partial class AspireEFMySqlExtensions
 
             var connectionString = settings.ConnectionString ?? string.Empty;
 
-            ServerVersion serverVersion;
+            // Initialize serverVersion to a dummy value; the loop below will either replace it with an actual value or throw an unhandled exception.
+            ServerVersion serverVersion = null!;
+
             if (settings.ServerVersion is null)
             {
                 ConnectionStringValidation.ValidateConnectionString(settings.ConnectionString, connectionName, DefaultConfigSectionName, $"{DefaultConfigSectionName}:{typeof(TContext).Name}", isEfDesignTime: EF.IsDesignTime);
-                serverVersion = ServerVersion.AutoDetect(connectionString);
+
+                // Implement a simple backoff and retry loop based on MySqlRetryingExecutionStrategy (which has not been dependency-injected yet).
+                var delay = s_initialRetryDelay;
+                for (var retryCount = 0; retryCount < MaximumRetries; retryCount++)
+                {
+                    try
+                    {
+                        serverVersion = ServerVersion.AutoDetect(connectionString);
+                        break;
+                    }
+                    catch (MySqlException ex) when (ex.IsTransient && retryCount < MaximumRetries - 1)
+                    {
+                        serviceProvider.GetService<ILogger<PomeloEntityFrameworkCoreMySqlSettings>>()?.LogWarning(ex, "Failed to auto-detect server version. Retrying in {Delay}.", delay);
+                    }
+
+                    using var waitEvent = new ManualResetEventSlim(false);
+                    waitEvent.WaitHandle.WaitOne(delay);
+
+                    delay *= 2;
+                    if (delay > s_maximumRetryDelay)
+                    {
+                        delay = s_maximumRetryDelay;
+                    }
+                }
             }
             else
             {
@@ -186,4 +212,9 @@ public static partial class AspireEFMySqlExtensions
                 });
         }
     }
+
+    // Values are taken from MySqlRetryingExecutionStrategy.MaxRetryCount and MaxRetryDelay.
+    private static readonly TimeSpan s_initialRetryDelay = TimeSpan.FromSeconds(1);
+    private static readonly TimeSpan s_maximumRetryDelay = TimeSpan.FromSeconds(30);
+    private const int MaximumRetries = 6;
 }
