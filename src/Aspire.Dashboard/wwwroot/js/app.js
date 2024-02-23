@@ -263,7 +263,8 @@ function isActiveElementInput() {
 }
 
 function isInputElement(element, isRoot, isShadowRoot) {
-    if (element.tagName.toLowerCase() === "input") return true;
+    const tag = element.tagName.toLowerCase();
+    if (tag === "input" || tag === "textarea" || tag === "select") return true; // comes from https://developer.mozilla.org/en-US/docs/Web/API/Element/input_event
 
     if (isShadowRoot || isRoot) {
         const elementChildren = element.children;
