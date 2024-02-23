@@ -99,7 +99,7 @@ public class AzureBicepResourceTests
     }
 
     [Fact]
-    public void AddBicepCosmosDb()
+    public void AddAzureCosmosDb()
     {
         var builder = DistributedApplication.CreateBuilder();
 
@@ -147,6 +147,7 @@ public class AzureBicepResourceTests
         Assert.Equal("Aspire.Hosting.Azure.Bicep.appinsights.bicep", appInsights.Resource.TemplateResourceName);
         Assert.Equal("appInsights", appInsights.Resource.Name);
         Assert.Equal("appinsights", appInsights.Resource.Parameters["appInsightsName"]);
+        Assert.True(appInsights.Resource.Parameters.ContainsKey(AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId));
         Assert.Equal("myinstrumentationkey", appInsights.Resource.GetConnectionString());
         Assert.Equal("{appInsights.outputs.appInsightsConnectionString}", appInsights.Resource.ConnectionStringExpression);
 
@@ -337,7 +338,7 @@ public class AzureBicepResourceTests
     }
 
     [Fact]
-    public void AddBicepServiceBus()
+    public void AddAzureServiceBus()
     {
         var builder = DistributedApplication.CreateBuilder();
         var serviceBus = builder.AddAzureServiceBus("sb");
@@ -370,7 +371,7 @@ public class AzureBicepResourceTests
     }
 
     [Fact]
-    public void AddBicepStorage()
+    public void AddAzureStorage()
     {
         var builder = DistributedApplication.CreateBuilder();
 

@@ -199,6 +199,11 @@ public class AzureBicepResource(string name, string? templateFile = null, string
         /// The location of the resource. This is required for all resources.
         /// </summary>
         public static readonly string Location = "location";
+
+        /// <summary>
+        /// The resource id of the log analytics workspace.
+        /// </summary>
+        public static readonly string LogAnalyticsWorkspaceId = "logAnalyticsWorkspaceId";
     }
 }
 

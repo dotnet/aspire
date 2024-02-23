@@ -234,6 +234,12 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
             resource.Parameters[AzureBicepResource.KnownParameters.PrincipalType] = "User";
         }
 
+        if (resource.Parameters.TryGetValue(AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId, out var logAnalyticsWorkspaceId) && logAnalyticsWorkspaceId is null)
+        {
+            // We don't have a log analytics workspace for environments so we will just let the bicep file create one
+            resource.Parameters.Remove(AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId);
+        }
+
         // Always specify the location
         resource.Parameters[AzureBicepResource.KnownParameters.Location] = context.Location.Name;
     }
@@ -333,6 +339,7 @@ internal sealed class BicepProvisioner(ILogger<BicepProvisioner> logger) : Azure
         AzureBicepResource.KnownParameters.PrincipalType,
         AzureBicepResource.KnownParameters.KeyVaultName,
         AzureBicepResource.KnownParameters.Location,
+        AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId,
     ];
 
     // Converts the parameters to a JSON object compatible with the ARM template

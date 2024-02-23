@@ -22,6 +22,7 @@ public static class AzureApplicationInsightsExtensions
         var resource = new AzureApplicationInsightsResource(name);
         return builder.AddResource(resource)
                 .WithParameter("appInsightsName", resource.CreateBicepResourceName())
+                .WithParameter(AzureBicepResource.KnownParameters.LogAnalyticsWorkspaceId)
                 .WithManifestPublishingCallback(resource.WriteToManifest);
     }
 }
