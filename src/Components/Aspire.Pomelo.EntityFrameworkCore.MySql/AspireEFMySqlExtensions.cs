@@ -11,6 +11,9 @@ using Microsoft.Extensions.Logging;
 using MySqlConnector;
 using MySqlConnector.Logging;
 using OpenTelemetry.Metrics;
+using Polly;
+using Polly.Registry;
+using Polly.Retry;
 using Pomelo.EntityFrameworkCore.MySql.Infrastructure.Internal;
 
 namespace Microsoft.Extensions.Hosting;
@@ -64,6 +67,20 @@ public static partial class AspireEFMySqlExtensions
 
         builder.Services.AddDbContextPool<TContext>(ConfigureDbContext);
 
+        const string resilienceKey = "Microsoft.Extensions.Hosting.AspireEFMySqlExtensions.ServerVersion";
+        builder.Services.AddResiliencePipeline(resilienceKey, static builder =>
+        {
+            // Values are taken from MySqlRetryingExecutionStrategy.MaxRetryCount and MaxRetryDelay.
+            builder.AddRetry(new RetryStrategyOptions
+            {
+                ShouldHandle = new PredicateBuilder().Handle<MySqlException>(ex => ex.IsTransient),
+                BackoffType = DelayBackoffType.Exponential,
+                MaxRetryAttempts = 6,
+                Delay = TimeSpan.FromSeconds(1),
+                MaxDelay = TimeSpan.FromSeconds(30),
+            });
+        });
+
         ConfigureInstrumentation<TContext>(builder, settings);
 
         void ConfigureDbContext(IServiceProvider serviceProvider, DbContextOptionsBuilder dbContextOptionsBuilder)
@@ -83,29 +100,9 @@ public static partial class AspireEFMySqlExtensions
             {
                 ConnectionStringValidation.ValidateConnectionString(settings.ConnectionString, connectionName, DefaultConfigSectionName, $"{DefaultConfigSectionName}:{typeof(TContext).Name}", isEfDesignTime: EF.IsDesignTime);
 
-                // Implement a simple backoff and retry loop based on MySqlRetryingExecutionStrategy (which has not been dependency-injected yet).
-                var delay = s_initialRetryDelay;
-                for (var retryCount = 0; retryCount < MaximumRetries; retryCount++)
-                {
-                    try
-                    {
-                        serverVersion = ServerVersion.AutoDetect(connectionString);
-                        break;
-                    }
-                    catch (MySqlException ex) when (ex.IsTransient && retryCount < MaximumRetries - 1)
-                    {
-                        serviceProvider.GetService<ILogger<PomeloEntityFrameworkCoreMySqlSettings>>()?.LogWarning(ex, "Failed to auto-detect server version. Retrying in {Delay}.", delay);
-                    }
-
-                    using var waitEvent = new ManualResetEventSlim(false);
-                    waitEvent.WaitHandle.WaitOne(delay);
-
-                    delay *= 2;
-                    if (delay > s_maximumRetryDelay)
-                    {
-                        delay = s_maximumRetryDelay;
-                    }
-                }
+                var resiliencePipelineProvider = serviceProvider.GetRequiredService<ResiliencePipelineProvider<string>>();
+                var resiliencePipeline = resiliencePipelineProvider.GetPipeline(resilienceKey);
+                serverVersion = resiliencePipeline.Execute(() => ServerVersion.AutoDetect(connectionString));
             }
             else
             {
@@ -212,9 +209,4 @@ public static partial class AspireEFMySqlExtensions
                 });
         }
     }
-
-    // Values are taken from MySqlRetryingExecutionStrategy.MaxRetryCount and MaxRetryDelay.
-    private static readonly TimeSpan s_initialRetryDelay = TimeSpan.FromSeconds(1);
-    private static readonly TimeSpan s_maximumRetryDelay = TimeSpan.FromSeconds(30);
-    private const int MaximumRetries = 6;
 }
