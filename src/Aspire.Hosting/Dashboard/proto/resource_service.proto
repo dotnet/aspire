@@ -28,8 +28,6 @@ message ResourceCommand {
     string command_type = 1;
     // The display name of the command, to be shown in the UI. May be localized.
     string display_name = 2;
-    // The unique name of the resource type. Matches ResourceType.unique_name and Resource.resource_type.
-    string resource_type = 3;
     // When present, this message must be shown to the user and their confirmation obtained
     // before sending the request for this command to be executed.
     // The user will be presented with Ok/Cancel options.
