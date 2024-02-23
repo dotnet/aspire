@@ -45,7 +45,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     // State
     public ConsoleLogsViewModel PageViewModel { get; set; } = null!;
 
-    public string BasePath => "ConsoleLogs";
+    public string BasePath => "consolelogs";
     public string SessionStorageKey => "ConsoleLogs_PageState";
 
     protected override void OnInitialized()
@@ -330,7 +330,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     {
         if (serializable.SelectedResource is { } selectedOption)
         {
-            return new UrlState($"{BasePath}/{selectedOption}", null);
+            return new UrlState($"{BasePath}/resource/{selectedOption}", null);
         }
 
         return new UrlState($"/{BasePath}", null);
