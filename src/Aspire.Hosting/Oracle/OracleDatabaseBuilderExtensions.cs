@@ -32,7 +32,7 @@ public static class OracleDatabaseBuilderExtensions
                       .WithAnnotation(new ContainerImageAnnotation { Image = "database/free", Tag = "23.3.0.0", Registry = "container-registry.oracle.com" })
                       .WithEnvironment(context =>
                       {
-                          if (context.ExecutionContext.Operation == DistributedApplicationOperation.Publish)
+                          if (context.ExecutionContext.IsPublishMode)
                           {
                               context.EnvironmentVariables.Add(PasswordEnvVarName, $"{{{oracleDatabaseServer.Name}.inputs.password}}");
                           }
