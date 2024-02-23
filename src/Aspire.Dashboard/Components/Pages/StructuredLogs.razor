@@ -86,7 +86,7 @@
                             <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsTraceColumnHeader)]">
                                 @if (!string.IsNullOrEmpty(context.TraceId))
                                 {
-                                    <a href="@($"/Trace/{HttpUtility.UrlEncode(context.TraceId)}")" class="long-inner-content">
+                                    <a href="@($"/Traces/Detail/{HttpUtility.UrlEncode(context.TraceId)}")" class="long-inner-content">
                                         @OtlpHelpers.ToShortenedId(context.TraceId)
                                     </a>
                                 }
