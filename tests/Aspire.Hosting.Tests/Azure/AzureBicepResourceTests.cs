@@ -224,7 +224,7 @@ public class AzureBicepResourceTests
         {
             azureSql = resource;
         });
-        sql.AddDatabase("db");
+        sql.AddDatabase("db", "dbName");
 
         Assert.NotNull(azureSql);
         azureSql.Resource.Outputs["sqlServerFqdn"] = "myserver";
@@ -237,7 +237,7 @@ public class AzureBicepResourceTests
         Assert.Equal("sql", sql.Resource.Name);
         Assert.Equal("sql", azureSql.Resource.Parameters["serverName"]);
         Assert.NotNull(databases);
-        Assert.Equal(["db"], databases);
+        Assert.Equal(["dbName"], databases);
         Assert.Equal("Server=tcp:myserver,1433;Encrypt=True;Authentication=\"Active Directory Default\"", sql.Resource.GetConnectionString());
         Assert.Equal("Server=tcp:{sql.outputs.sqlServerFqdn},1433;Encrypt=True;Authentication=\"Active Directory Default\"", sql.Resource.ConnectionStringExpression);
     }
@@ -259,7 +259,7 @@ public class AzureBicepResourceTests
             Assert.NotNull(resource);
             azurePostgres = resource;
         });
-        postgres.AddDatabase("db");
+        postgres.AddDatabase("db", "dbName");
 
         Assert.NotNull(azurePostgres);
 
@@ -274,7 +274,7 @@ public class AzureBicepResourceTests
         Assert.Same(pwd, azurePostgres.Resource.Parameters["administratorLoginPassword"]);
         Assert.True(azurePostgres.Resource.Parameters.ContainsKey(AzureBicepResource.KnownParameters.KeyVaultName));
         Assert.NotNull(databases);
-        Assert.Equal(["db"], databases);
+        Assert.Equal(["dbName"], databases);
 
         // Setup to verify that connection strings is acquired via resource connectionstring redirct.
         azurePostgres.Resource.SecretOutputs["connectionString"] = "myconnectionstring";

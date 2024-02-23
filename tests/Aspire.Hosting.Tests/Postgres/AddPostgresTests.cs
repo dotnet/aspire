@@ -320,4 +320,62 @@ public class AddPostgresTests
         Assert.Equal("postgres", servers.GetProperty("2").GetProperty("MaintenanceDB").GetString());
         Assert.Equal($"echo '{pg2.Resource.Password}'", servers.GetProperty("2").GetProperty("PasswordExecCommand").GetString());
     }
+
+    [Fact]
+    public void ThrowsWithIdenticalChildResourceNames()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var db = builder.AddPostgres("postgres1");
+        db.AddDatabase("db");
+
+        Assert.Throws<DistributedApplicationException>(() => db.AddDatabase("db"));
+    }
+
+    [Fact]
+    public void ThrowsWithIdenticalChildResourceNamesDifferentParents()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        builder.AddPostgres("postgres1")
+            .AddDatabase("db");
+
+        var db = builder.AddPostgres("postgres2");
+        Assert.Throws<DistributedApplicationException>(() => db.AddDatabase("db"));
+    }
+
+    [Fact]
+    public void CanAddDatabasesWithDifferentNamesOnSingleServer()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var postgres1 = builder.AddPostgres("postgres1");
+
+        var db1 = postgres1.AddDatabase("db1", "customers1");
+        var db2 = postgres1.AddDatabase("db2", "customers2");
+
+        Assert.Equal("customers1", db1.Resource.DatabaseName);
+        Assert.Equal("customers2", db2.Resource.DatabaseName);
+
+        Assert.Equal("{postgres1.connectionString};Database=customers1", db1.Resource.ConnectionStringExpression);
+        Assert.Equal("{postgres1.connectionString};Database=customers2", db2.Resource.ConnectionStringExpression);
+    }
+
+    [Fact]
+    public void CanAddDatabasesWithTheSameNameOnMultipleServers()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var db1 = builder.AddPostgres("postgres1")
+            .AddDatabase("db1", "imports");
+
+        var db2 = builder.AddPostgres("postgres2")
+            .AddDatabase("db2", "imports");
+
+        Assert.Equal("imports", db1.Resource.DatabaseName);
+        Assert.Equal("imports", db2.Resource.DatabaseName);
+
+        Assert.Equal("{postgres1.connectionString};Database=imports", db1.Resource.ConnectionStringExpression);
+        Assert.Equal("{postgres2.connectionString};Database=imports", db2.Resource.ConnectionStringExpression);
+    }
 }
