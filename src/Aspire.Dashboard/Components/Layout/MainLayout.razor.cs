@@ -10,11 +10,12 @@ using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Layout;
 
-public partial class MainLayout : IDisposable
+public partial class MainLayout
 {
     private IDisposable? _themeChangedSubscription;
     private IDisposable? _locationChangingRegistration;
     private IJSObjectReference? _jsModule;
+    private IJSObjectReference? _keyboardHandlers;
 
     [Inject]
     public required ThemeManager ThemeManager { get; init; }
@@ -69,15 +70,35 @@ public partial class MainLayout : IDisposable
         if (firstRender)
         {
             _jsModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/theme.js");
+            _keyboardHandlers = await JS.InvokeAsync<IJSObjectReference>("window.registerGlobalKeydownListener", typeof(App).Assembly.GetName().Name);
+            ShortcutManager.AddGlobalKeydownListener(this);
         }
     }
 
-    public async Task LaunchSettings()
+    private async Task LaunchHelpAsync()
+    {
+        DialogParameters parameters = new()
+        {
+            Title = Loc[nameof(Resources.Layout.MainLayoutAspireDashboardHelpLink)],
+            PrimaryAction = Loc[nameof(Resources.Layout.MainLayoutSettingsDialogClose)],
+            PrimaryActionEnabled = true,
+            SecondaryAction = null,
+            TrapFocus = true,
+            Modal = true,
+            Alignment = HorizontalAlignment.Center,
+            Width = "700px",
+            Height = "auto"
+        };
+
+        await DialogService.ShowDialogAsync<HelpDialog>(parameters).ConfigureAwait(true);
+    }
+
+    public async Task LaunchSettingsAsync()
     {
         DialogParameters parameters = new()
         {
             Title = Loc[nameof(Resources.Layout.MainLayoutSettingsDialogTitle)],
-            PrimaryAction = Resources.Layout.MainLayoutSettingsDialogClose,
+            PrimaryAction = Loc[nameof(Resources.Layout.MainLayoutSettingsDialogClose)],
             PrimaryActionEnabled = true,
             SecondaryAction = null,
             TrapFocus = true,
@@ -87,12 +108,53 @@ public partial class MainLayout : IDisposable
             Height = "auto"
         };
 
-        _ = await DialogService.ShowPanelAsync<SettingsDialog>(parameters).ConfigureAwait(true);
+        await DialogService.ShowPanelAsync<SettingsDialog>(parameters).ConfigureAwait(true);
+    }
+
+    public async Task OnPageKeyDownAsync(KeyboardEventArgsWithPressedKeys args)
+    {
+        if (args is { Key: "?", ShiftKey: true })
+        {
+            await LaunchHelpAsync();
+        }
+        else if (args.Key.ToLower() == "s" && args.ShiftKey)
+        {
+            await LaunchSettingsAsync();
+        }
+        else if (args.CurrentlyHeldKeys.Contains("g"))
+        {
+            if (args.Key.ToLower() == "r")
+            {
+                NavigationManager.NavigateTo("/");
+            }
+            else if (args.Key.ToLower() == "c")
+            {
+                NavigationManager.NavigateTo("/ConsoleLogs");
+            }
+            else if (args.Key.ToLower() == "s")
+            {
+                NavigationManager.NavigateTo("/StructuredLogs");
+            }
+            else if (args.Key.ToLower() == "t")
+            {
+                NavigationManager.NavigateTo("/Traces");
+            }
+            else if (args.Key.ToLower() == "m")
+            {
+                NavigationManager.NavigateTo("/Metrics");
+            }
+        }
     }
 
     public void Dispose()
     {
         _themeChangedSubscription?.Dispose();
         _locationChangingRegistration?.Dispose();
+        ShortcutManager.RemoveGlobalKeydownListener(this);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await JS.InvokeVoidAsync("window.unregisterGlobalKeydownListener", _keyboardHandlers);
     }
 }

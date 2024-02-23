@@ -1,12 +1,14 @@
 ﻿@using Aspire.Dashboard.Resources
 @inject IStringLocalizer<ControlsStrings> Loc
+@implements Aspire.Dashboard.Model.IGlobalKeydownListener
 
 <div class="summary-details-container">
     <FluentSplitter Orientation="@Orientation" Collapsed="@(!_internalShowDetails)"
                     OnResized="HandleSplitterResize"
                     Panel1Size="@_panel1Size" Panel2Size="@_panel2Size"
                     Panel1MinSize="150px" Panel2MinSize="150px"
-                    BarSize="5">
+                    BarSize="5"
+                    @ref="_splitterRef">
         <Panel1>
             <div class="summary-container">
                 @Summary

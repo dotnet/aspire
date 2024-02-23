@@ -255,3 +255,76 @@ function registerLocale(serverLocale) {
     };
     Plotly.register(locale);
 }
+
+function isActiveElementInput() {
+    const currentElement = document.activeElement;
+    // fluent components may have shadow roots that contain inputs
+    return currentElement.tagName.toLowerCase() === "input" || currentElement.tagName.toLowerCase().startsWith("fluent") ? isInputElement(currentElement, false) : false;
+}
+
+function isInputElement(element, isRoot, isShadowRoot) {
+    if (element.tagName.toLowerCase() === "input") return true;
+
+    if (isShadowRoot || isRoot) {
+        const elementChildren = element.children;
+        for (let i = 0; i < elementChildren.length; i++) {
+            if (isInputElement(elementChildren[i], false, isShadowRoot)) return true;
+        }
+    }
+
+    const shadowRoot = element.shadowRoot;
+    if (shadowRoot) {
+        const shadowRootChildren = shadowRoot.children;
+        for (let i = 0; i < shadowRootChildren.length; i++) {
+            if (isInputElement(shadowRootChildren[i], false, true)) return true;
+        }
+    }
+
+    return false;
+}
+
+window.registerGlobalKeydownListener = function(assemblyName) {
+    let currentlyHeldKeys = [];
+
+    const serializeEvent = function (e) {
+        if (e) {
+            return {
+                key: e.key,
+                code: e.keyCode.toString(),
+                location: e.location,
+                repeat: e.repeat,
+                ctrlKey: e.ctrlKey,
+                shiftKey: e.shiftKey,
+                altKey: e.altKey,
+                metaKey: e.metaKey,
+                type: e.type,
+                currentlyHeldKeys: currentlyHeldKeys
+            };
+        }
+    };
+
+    const keydownListener = function (e) {
+        if (!isActiveElementInput()) {
+            currentlyHeldKeys.push(e.key.toLowerCase());
+            DotNet.invokeMethodAsync(assemblyName, 'OnGlobalKeyDown', serializeEvent(e))
+        }
+    }
+
+    const keyupListener = function (e) {
+        currentlyHeldKeys = currentlyHeldKeys.filter(key => key !== e.key);
+    };
+
+    window.document.addEventListener('keydown', keydownListener);
+
+    window.document.addEventListener('keyup', keyupListener);
+
+    return {
+        keydownListener: keydownListener,
+        keyupListener: keyupListener
+    }
+}
+
+window.unregisterGlobalKeydownListener = function (keydownListener, keyupListener) {
+    window.document.removeEventListener('keydown', keydownListener);
+    window.document.removeEventListener('keyup', keyupListener);
+}
