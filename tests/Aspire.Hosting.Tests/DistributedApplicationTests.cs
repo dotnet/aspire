@@ -29,7 +29,7 @@ public class DistributedApplicationTests
     {
         var exceptionMessage = "Exception from lifecycle hook to prove it ran!";
 
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
         testProgram.AppBuilder.Services.AddLifecycleHook((sp) =>
         {
             return new CallbackLifecycleHook((appModel, cancellationToken) =>
@@ -57,7 +57,7 @@ public class DistributedApplicationTests
 
         var signal = (FirstHookExecuted: false, SecondHookExecuted: false);
 
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
 
         // Lifecycle hook 1
         testProgram.AppBuilder.Services.AddLifecycleHook((sp) =>
@@ -98,7 +98,7 @@ public class DistributedApplicationTests
     {
         var exceptionMessage = "Exception from lifecycle hook to prove it ran!";
 
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
         testProgram.AppBuilder.Services.AddLifecycleHook((sp) =>
         {
             return new CallbackLifecycleHook((appModel, cancellationToken) =>
@@ -117,7 +117,7 @@ public class DistributedApplicationTests
     [Fact]
     public void TryAddWillNotAddTheSameLifecycleHook()
     {
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
 
         var callback1 = (IServiceProvider sp) => new DummyLifecycleHook();
         testProgram.AppBuilder.Services.TryAddLifecycleHook(callback1);
@@ -134,7 +134,7 @@ public class DistributedApplicationTests
     [LocalOnlyFact]
     public async Task AllocatedPortsAssignedAfterHookRuns()
     {
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
         var tcs = new TaskCompletionSource<DistributedApplicationModel>(TaskCreationOptions.RunContinuationsAsynchronously);
         testProgram.AppBuilder.Services.AddLifecycleHook(sp => new CheckAllocatedEndpointsLifecycleHook(tcs));
 
@@ -169,7 +169,7 @@ public class DistributedApplicationTests
     {
         var replicaCount = 3;
 
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
         testProgram.AppBuilder.Services
@@ -218,7 +218,7 @@ public class DistributedApplicationTests
     [LocalOnlyFact("docker")]
     public async Task VerifyDockerAppWorks()
     {
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
         testProgram.AppBuilder.AddContainer("redis-cli", "redis")
@@ -244,7 +244,7 @@ public class DistributedApplicationTests
     [LocalOnlyFact("docker")]
     public async Task SpecifyingEnvPortInEndpointFlowsToEnv()
     {
-        var testProgram = CreateTestProgram(includeNodeApp: true);
+        using var testProgram = CreateTestProgram(includeNodeApp: true);
 
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
@@ -298,7 +298,7 @@ public class DistributedApplicationTests
     [LocalOnlyFact("docker")]
     public async Task VerifyDockerWithEntrypointWorks()
     {
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
         testProgram.AppBuilder.AddContainer("redis-cli", "redis")
@@ -327,7 +327,7 @@ public class DistributedApplicationTests
     [LocalOnlyFact("docker")]
     public async Task VerifyDockerWithBindMountWorksWithAbsolutePaths()
     {
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
         testProgram.AppBuilder.AddContainer("redis-cli", "redis")
@@ -357,7 +357,7 @@ public class DistributedApplicationTests
     [LocalOnlyFact("docker")]
     public async Task VerifyDockerWithBindMountWorksWithRelativePaths()
     {
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
         testProgram.AppBuilder.AddContainer("redis-cli", "redis")
@@ -388,7 +388,7 @@ public class DistributedApplicationTests
     [LocalOnlyFact("docker")]
     public async Task VerifyDockerWithVolumeMountWorksWithName()
     {
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
         testProgram.AppBuilder.AddContainer("redis-cli", "redis")
@@ -418,7 +418,7 @@ public class DistributedApplicationTests
     [LocalOnlyFact("docker")]
     public async Task KubernetesHasResourceNameForContainersAndExes()
     {
-        var testProgram = CreateTestProgram(includeIntegrationServices: true, includeNodeApp: true);
+        using var testProgram = CreateTestProgram(includeIntegrationServices: true, includeNodeApp: true);
         testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
 
         await using var app = testProgram.Build();
