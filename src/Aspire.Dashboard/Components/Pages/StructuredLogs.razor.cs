@@ -285,7 +285,7 @@ public partial class StructuredLogs : IPageWithSessionAndUrlState<StructuredLogs
 
     public UrlState GetUrlFromSerializableViewModel(StructuredLogsPageState serializable)
     {
-        var path = serializable.SelectedApplication is not null ? $"/StructuredLogs/{serializable.SelectedApplication}" : "/StructuredLogs";
+        var path = serializable.SelectedApplication is not null ? $"/StructuredLogs/Resource/{serializable.SelectedApplication}" : "/StructuredLogs";
         var queryParameters = new Dictionary<string, string?>();
 
         if (serializable.LogLevelText is not null)

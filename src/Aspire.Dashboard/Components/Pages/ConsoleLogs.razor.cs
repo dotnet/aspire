@@ -330,7 +330,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IAsyncDisposable, IPage
     {
         if (serializable.SelectedResource is { } selectedOption)
         {
-            return new UrlState($"{BasePath}/{selectedOption}", null);
+            return new UrlState($"{BasePath}/Resource/{selectedOption}", null);
         }
 
         return new UrlState($"/{BasePath}", null);

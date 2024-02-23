@@ -210,12 +210,12 @@ public partial class Metrics : IDisposable, IPageWithSessionAndUrlState<Metrics.
         if (serializable.ApplicationName is not null && serializable.MeterName is not null)
         {
             path = serializable.InstrumentName is not null
-                ? $"/{BasePath}/{serializable.ApplicationName}/Meter/{serializable.MeterName}/Instrument/{serializable.InstrumentName}"
-                : $"/{BasePath}/{serializable.ApplicationName}/Meter/{serializable.MeterName}";
+                ? $"/{BasePath}/Resource/{serializable.ApplicationName}/Meter/{serializable.MeterName}/Instrument/{serializable.InstrumentName}"
+                : $"/{BasePath}/Resource/{serializable.ApplicationName}/Meter/{serializable.MeterName}";
         }
         else if (serializable.ApplicationName is not null)
         {
-            path = $"/{BasePath}/{serializable.ApplicationName}";
+            path = $"/{BasePath}/Resource/{serializable.ApplicationName}";
         }
         else
         {
