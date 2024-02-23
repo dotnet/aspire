@@ -50,6 +50,6 @@ public partial class UnreadLogErrorsBadge
 
     private static string GetResourceErrorStructuredLogsUrl(ResourceViewModel resource)
     {
-        return $"/structuredlogs/{resource.Uid}?level=error";
+        return $"/structuredlogs/resource/{resource.Name}?level=error";
     }
 }
