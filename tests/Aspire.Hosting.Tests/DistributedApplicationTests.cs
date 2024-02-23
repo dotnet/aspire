@@ -12,6 +12,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Xunit;
 using Xunit.Abstractions;
+using Xunit.Sdk;
 
 namespace Aspire.Hosting.Tests;
 
@@ -481,6 +482,185 @@ public class DistributedApplicationTests
                 break;
             }
         }
+    }
+
+    [LocalOnlyFact("docker")]
+    public async Task ReplicasAndProxylessEndpointThrows()
+    {
+        var testProgram = CreateTestProgram();
+        testProgram.ServiceABuilder.WithReplicas(2).WithEndpoint("http", endpoint =>
+        {
+            endpoint.IsProxied = false;
+        });
+        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+
+        await using var app = testProgram.Build();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => app.StartAsync());
+        Assert.Equal("'servicea' specifies multiple replicas and at least one proxyless endpoint. These features do not work together.", ex.Message);
+    }
+
+    [LocalOnlyFact("docker")]
+    public async Task ProxylessEndpointWithoutPortThrows()
+    {
+        var testProgram = CreateTestProgram();
+        testProgram.ServiceABuilder.WithEndpoint("http", endpoint =>
+        {
+            endpoint.IsProxied = false;
+        });
+        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+
+        await using var app = testProgram.Build();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => app.StartAsync());
+        Assert.Equal("Service 'servicea' needs to specify a port for endpoint 'http' since it isn't using a proxy.", ex.Message);
+    }
+
+    [LocalOnlyFact("docker")]
+    public async Task ProxylessEndpointWorks()
+    {
+        var testProgram = CreateTestProgram();
+
+        testProgram.AppBuilder.Services
+            .AddHttpClient()
+            .ConfigureHttpClientDefaults(b =>
+            {
+                b.UseSocketsHttpHandler((handler, sp) => handler.PooledConnectionLifetime = TimeSpan.FromSeconds(5));
+            });
+
+        testProgram.ServiceABuilder.WithEndpoint(1234, "http", isProxied: false);
+        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+
+        await using var app = testProgram.Build();
+
+        await app.StartAsync();
+
+        var client = app.Services.GetRequiredService<IHttpClientFactory>().CreateClient();
+
+        var token = new CancellationTokenSource(TimeSpan.FromMinutes(1)).Token;
+
+        while (true)
+        {
+            try
+            {
+                await client.GetStringAsync("http://localhost:1234/pid", token);
+                break;
+            }
+            catch
+            {
+                await Task.Delay(100, token);
+            }
+        }
+
+        // Check that endpoint from launchsettings doesn't work
+        await Assert.ThrowsAnyAsync<Exception>(() => client.GetStringAsync("http://localhost:5156/pid"));
+    }
+
+    [LocalOnlyFact("docker")]
+    public async Task ProxylessAndProxiedEndpointBothWorkOnSameResource()
+    {
+        var testProgram = CreateTestProgram();
+
+        testProgram.AppBuilder.Services
+            .AddHttpClient()
+            .ConfigureHttpClientDefaults(b =>
+            {
+                b.UseSocketsHttpHandler((handler, sp) => handler.PooledConnectionLifetime = TimeSpan.FromSeconds(5));
+            });
+
+        testProgram.ServiceABuilder
+            .ExcludeLaunchProfile()
+            .WithEndpoint(1234, "http", isProxied: false)
+            .WithEndpoint(1543, "https");
+
+        testProgram.AppBuilder.Services.AddLogging(b => b.AddXunit(_testOutputHelper));
+
+        await using var app = testProgram.Build();
+
+        await app.StartAsync();
+
+        var client = app.Services.GetRequiredService<IHttpClientFactory>().CreateClient();
+
+        var token = new CancellationTokenSource(TimeSpan.FromMinutes(1)).Token;
+
+        var urls = string.Empty;
+        while (true)
+        {
+            try
+            {
+                urls = await client.GetStringAsync("http://localhost:1234/urls", token);
+                break;
+            }
+            catch
+            {
+                await Task.Delay(100, token);
+            }
+        }
+
+        Assert.Contains("http://localhost:1234", urls);
+        // https endpoint is proxied so app won't have this specific endpoint
+        Assert.DoesNotContain("https://localhost:1543", urls);
+
+        while (true)
+        {
+            try
+            {
+                var value = await client.GetStringAsync("https://localhost:1543/urls", token);
+                Assert.Equal(urls, value);
+                break;
+            }
+            catch (Exception ex) when (ex is not EqualException)
+            {
+                await Task.Delay(100, token);
+            }
+        }
+    }
+
+    [LocalOnlyFact("docker")]
+    public async Task ProxylessContainerCanBeReferenced()
+    {
+        var builder = DistributedApplication.CreateBuilder(
+            new DistributedApplicationOptions { DisableDashboard = true, AssemblyName = typeof(DistributedApplicationTests).Assembly.FullName });
+
+        var redis = builder.AddRedis("redis", 1234).WithEndpoint("tcp", endpoint =>
+        {
+            endpoint.IsProxied = false;
+        });
+        var servicea = builder.AddProject<Projects.ServiceA>("servicea")
+            .WithReference(redis);
+
+        var app = builder.Build();
+        await app.StartAsync();
+
+        var s = app.Services.GetRequiredService<IKubernetesService>();
+        var exeList = await s.ListAsync<Executable>();
+
+        var service = Assert.Single(exeList);
+        var env = Assert.Single(service.Spec.Env!.Where(e => e.Name == "ConnectionStrings__redis"));
+        Assert.Equal("localhost:1234", env.Value);
+
+        var list = await s.ListAsync<Container>();
+        var redisContainer = Assert.Single(list);
+        Assert.Equal(1234, Assert.Single(redisContainer.Spec.Ports!).HostPort);
+
+        await app.StopAsync();
+    }
+
+    [LocalOnlyFact("docker")]
+    public async Task ProxylessContainerWithoutPortThrows()
+    {
+        var builder = DistributedApplication.CreateBuilder(
+            new DistributedApplicationOptions { DisableDashboard = true, AssemblyName = typeof(DistributedApplicationTests).Assembly.FullName });
+
+        var redis = builder.AddRedis("redis").WithEndpoint("tcp", endpoint =>
+        {
+            endpoint.IsProxied = false;
+        });
+
+        var app = builder.Build();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => app.StartAsync());
+        Assert.Equal("Service 'redis' needs to specify a port for endpoint 'tcp' since it isn't using a proxy.", ex.Message);
     }
 
     private static TestProgram CreateTestProgram(string[]? args = null, bool includeIntegrationServices = false, bool includeNodeApp = false) =>

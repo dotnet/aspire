@@ -26,7 +26,8 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     /// <param name="containerPort">If the endpoint is used for the container, this is the port the container process is listening on.</param>
     /// <param name="isExternal">Indicates that this endpoint should be exposed externally at publish time.</param>
     /// <param name="env">The name of the environment variable that will be set to the port number of this endpoint.</param>
-    public EndpointAnnotation(ProtocolType protocol, string? uriScheme = null, string? transport = null, string? name = null, int? port = null, int? containerPort = null, bool? isExternal = null, string? env = null)
+    /// <param name="isProxied">Specifies if the endpoint will be proxied by DCP. Defaults to true.</param>
+    public EndpointAnnotation(ProtocolType protocol, string? uriScheme = null, string? transport = null, string? name = null, int? port = null, int? containerPort = null, bool? isExternal = null, string? env = null, bool isProxied = true)
     {
         // If the URI scheme is null, we'll adopt either udp:// or tcp:// based on the
         // protocol. If the name is null, we'll use the URI scheme as the default. This
@@ -46,6 +47,7 @@ public sealed class EndpointAnnotation : IResourceAnnotation
         ContainerPort = containerPort ?? port;
         IsExternal = isExternal ?? false;
         EnvironmentVariable = env;
+        IsProxied = isProxied;
     }
 
     /// <summary>
@@ -90,4 +92,11 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     /// The name of the environment variable that will be set to the port number of this endpoint.
     /// </summary>
     public string? EnvironmentVariable { get; set; }
+
+    /// <summary>
+    /// Indicates that this endpoint should be managed by DCP. This means it can be replicated and use a different port internally than the one publicly exposed.
+    /// Setting to false means the endpoint will be handled and exposed by the resource.
+    /// </summary>
+    /// <remarks>Defaults to <c>true</c>.</remarks>
+    public bool IsProxied { get; set; } = true;
 }
