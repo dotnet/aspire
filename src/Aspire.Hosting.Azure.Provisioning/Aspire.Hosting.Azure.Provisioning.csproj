@@ -14,7 +14,6 @@
     <PackageReference Include="Azure.ResourceManager.KeyVault" />
     <PackageReference Include="Azure.ResourceManager.Resources" />
     <PackageReference Include="Azure.Security.KeyVault.Secrets" />
-    <PackageReference Include="Azure.ResourceManager.SignalR" />
     <Compile Include="$(SharedDir)ValueStopwatch\*.cs" />
   </ItemGroup>
 
