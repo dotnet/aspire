@@ -1,11 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Model.MetricValues;
 using Aspire.Dashboard.Otlp.Storage;
 using Microsoft.AspNetCore.Components;
+using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Components;
 
@@ -20,7 +22,6 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
     private int _renderedDimensionsCount;
     private string? _previousMeterName;
     private string? _previousInstrumentName;
-    private bool _showCount;
     private readonly InstrumentViewModel _instrumentViewModel = new InstrumentViewModel();
 
     [Parameter, EditorRequired]
@@ -87,7 +88,6 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
             }
             else
             {
-                // Only update data in plotly
                 await UpdateInstrumentDataAsync(_instrument);
             }
         }
@@ -242,7 +242,7 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
                         // Automatically select new incoming values if existing values are all selected.
                         var newSelectedValues = (existing.AreAllValuesSelected ?? false)
                             ? item.Values
-                            : item.Values.Where(newValue => existing.Values.Any(existingValue => existingValue.Name == newValue.Name));
+                            : item.Values.Where(newValue => existing.SelectedValues.Any(existingValue => existingValue.Name == newValue.Name));
 
                         foreach (var v in newSelectedValues)
                         {
@@ -264,8 +264,17 @@ public partial class ChartContainer : ComponentBase, IAsyncDisposable
         return filters;
     }
 
-    private void ShowCountChanged()
+    private Task OnTabChangeAsync(FluentTab newTab)
     {
-        _instrumentViewModel.ShowCount = _showCount;
+        var id = newTab.Id?.Substring("tab-".Length);
+
+        if (id is null
+            || !Enum.TryParse(typeof(Metrics.MetricViewKind), id, out var o)
+            || o is not Metrics.MetricViewKind viewKind)
+        {
+            return Task.CompletedTask;
+        }
+
+        return OnViewChangedAsync(viewKind);
     }
 }

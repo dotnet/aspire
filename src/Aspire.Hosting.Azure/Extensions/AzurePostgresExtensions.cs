@@ -18,7 +18,7 @@ public static class AzurePostgresExtensions
     /// </summary>
     /// <param name="builder">The builder for the Postgres resource.</param>
     /// <param name="administratorLogin">Parameter containing the administrator username for the server that will be provisioned in Azure.</param>
-    /// <param name="administratorLoginPassword">Parameter containing the administrator password for the serve rthat will be provisioned in Azure.</param>
+    /// <param name="administratorLoginPassword">Parameter containing the administrator password for the server that will be provisioned in Azure.</param>
     /// <param name="callback">Callback to customize the Azure resources that will be provisioned in Azure.</param>
     /// <returns></returns>
     public static IResourceBuilder<PostgresServerResource> PublishAsAzurePostgresFlexibleServer(this IResourceBuilder<PostgresServerResource> builder, IResourceBuilder<ParameterResource> administratorLogin, IResourceBuilder<ParameterResource> administratorLoginPassword, Action<IResourceBuilder<AzurePostgresResource>>? callback = null)
@@ -27,7 +27,7 @@ public static class AzurePostgresExtensions
         var azurePostgres = builder.ApplicationBuilder.CreateResourceBuilder(resource).ConfigureDefaults();
         azurePostgres.WithParameter("administratorLogin", administratorLogin)
                      .WithParameter("administratorLoginPassword", administratorLoginPassword)
-                     .WithParameter("databases", () => builder.Resource.Databases);
+                     .WithParameter("databases", () => builder.Resource.Databases.Select(x => x.Value));
 
         if (callback != null)
         {
@@ -42,7 +42,7 @@ public static class AzurePostgresExtensions
     /// </summary>
     /// <param name="builder">The builder for the Postgres resource.</param>
     /// <param name="administratorLogin">Parameter containing the administrator username for the server that will be provisioned in Azure.</param>
-    /// <param name="administratorLoginPassword">Parameter containing the administrator password for the serve rthat will be provisioned in Azure.</param>
+    /// <param name="administratorLoginPassword">Parameter containing the administrator password for the server that will be provisioned in Azure.</param>
     /// <param name="callback">Callback to customize the Azure resources that will be provisioned in Azure.</param>
     /// <returns></returns>
     public static IResourceBuilder<PostgresServerResource> AsAzurePostgresFlexibleServer(this IResourceBuilder<PostgresServerResource> builder, IResourceBuilder<ParameterResource> administratorLogin, IResourceBuilder<ParameterResource> administratorLoginPassword, Action<IResourceBuilder<AzurePostgresResource>>? callback = null)
@@ -51,7 +51,7 @@ public static class AzurePostgresExtensions
         var azurePostgres = builder.ApplicationBuilder.CreateResourceBuilder(resource).ConfigureDefaults();
         azurePostgres.WithParameter("administratorLogin", administratorLogin)
                      .WithParameter("administratorLoginPassword", administratorLoginPassword)
-                     .WithParameter("databases", () => builder.Resource.Databases);
+                     .WithParameter("databases", () => builder.Resource.Databases.Select(x => x.Value));
 
         // Used to hold a reference to the azure surrogate for use with the provisioner.
         builder.WithAnnotation(new AzureBicepResourceAnnotation(resource));

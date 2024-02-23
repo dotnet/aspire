@@ -11,7 +11,7 @@ public class WithEndpointTests
     [Fact]
     public void WithEndpointInvokesCallback()
     {
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
         testProgram.ServiceABuilder.WithEndpoint(3000, 1000, name: "mybinding");
         testProgram.ServiceABuilder.WithEndpoint("mybinding", endpoint =>
         {
@@ -27,7 +27,7 @@ public class WithEndpointTests
     {
         var executed = false;
 
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
         testProgram.ServiceABuilder.WithEndpoint("mybinding", endpoint =>
         {
             executed = true;
@@ -42,7 +42,7 @@ public class WithEndpointTests
     {
         var executed = false;
 
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
         testProgram.ServiceABuilder.WithEndpoint("mybinding", endpoint =>
         {
             executed = true;
@@ -56,7 +56,7 @@ public class WithEndpointTests
     {
         var executed = false;
 
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
         testProgram.ServiceABuilder.WithEndpoint("mybinding", endpoint =>
         {
             executed = true;
@@ -71,7 +71,7 @@ public class WithEndpointTests
     {
         var ex = Assert.Throws<DistributedApplicationException>(() =>
         {
-            var testProgram = CreateTestProgram();
+            using var testProgram = CreateTestProgram();
             testProgram.ServiceABuilder.WithHttpsEndpoint(3000, 1000, name: "mybinding");
             testProgram.ServiceABuilder.WithHttpsEndpoint(3000, 2000, name: "mybinding");
         });
@@ -84,7 +84,7 @@ public class WithEndpointTests
     {
         var ex = Assert.Throws<DistributedApplicationException>(() =>
         {
-            var testProgram = CreateTestProgram();
+            using var testProgram = CreateTestProgram();
             testProgram.ServiceABuilder.WithHttpsEndpoint(1000, name: "mybinding");
             testProgram.ServiceABuilder.WithHttpsEndpoint(2000, name: "mybinding");
         });
@@ -95,7 +95,7 @@ public class WithEndpointTests
     [Fact]
     public void CanAddEndpointsWithContainerPortAndEnv()
     {
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
         testProgram.AppBuilder.AddExecutable("foo", "foo", ".")
                               .WithHttpEndpoint(containerPort: 3001, name: "mybinding", env: "PORT");
 

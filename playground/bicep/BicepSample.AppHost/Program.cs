@@ -30,8 +30,7 @@ var pg = builder.AddPostgres("postgres2")
                 .AsAzurePostgresFlexibleServer(administratorLogin, administratorLoginPassword)
                 .AddDatabase("db2");
 
-var cosmosDb = builder.AddBicepCosmosDb("cosmos")
-                      // .UseEmulator()
+var cosmosDb = builder.AddAzureCosmosDB("cosmos")
                       .AddDatabase("db3");
 
 var appInsights = builder.AddAzureApplicationInsights("ai");
@@ -40,8 +39,12 @@ var appInsights = builder.AddAzureApplicationInsights("ai");
 var redis = builder.AddRedis("redis")
                    .AsAzureRedis();
 
-var serviceBus = builder.AddAzureServiceBus("sb", ["queue1"], ["topic1"]);
+var serviceBus = builder.AddAzureServiceBus("sb")
+                        .AddQueue("queue1")
+                        .AddTopic("topic1", ["subscription1", "subscription2"])
+                        .AddTopic("topic2", ["subscription1"]);
 var signalr = builder.AddAzureSignalR("signalr");
+
 builder.AddProject<Projects.BicepSample_ApiService>("api")
        .WithReference(sqlServer)
        .WithReference(pg)

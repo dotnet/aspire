@@ -59,16 +59,16 @@
                                 </FluentOverflowItem>
                             }
                         </ChildContent>
-                        <MoreButtonTemplate Context="another_name">
+                        <MoreButtonTemplate Context="overflow">
                             <span class="trace-tag">
-                                @($"+{another_name.ItemsOverflow.Count()}")
+                                @($"+{overflow.ItemsOverflow.Count()}")
                             </span>
                         </MoreButtonTemplate>
-                        <OverflowTemplate Context="another_name">
+                        <OverflowTemplate Context="overflow">
                             @{
-                                var items = another_name.ItemsOverflow.ToList();
+                                var items = overflow.ItemsOverflow.ToList();
                             }
-                            <FluentTooltip UseTooltipService="false" Anchor="@another_name.IdMoreButton">
+                            <FluentTooltip UseTooltipService="false" Anchor="@overflow.IdMoreButton">
                                 @foreach (var item in items)
                                 {
                                     <div style="margin-top: 8px; margin-bottom: 8px;">

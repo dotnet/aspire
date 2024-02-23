@@ -8,7 +8,7 @@ namespace Aspire.Dashboard.Otlp.Model.MetricValues;
 [DebuggerDisplay("Start = {Start}, End = {End}")]
 public abstract class MetricValueBase
 {
-    public readonly DateTime Start;
+    public DateTime Start { get; set; }
     public DateTime End { get; set; }
     public ulong Count = 1;
 
@@ -22,6 +22,8 @@ public abstract class MetricValueBase
     {
         return item.Clone();
     }
+
+    internal abstract bool TryCompare(MetricValueBase other, out int comparisonResult);
 
     protected abstract MetricValueBase Clone();
 }

@@ -139,3 +139,8 @@ node_modules/
 
 # Storage emulator storage files
 **/.azurite/*
+
+# Azure Developer CLI files
+/playground/**/.gitignore
+/playground/**/azure.yaml
+/playground/**/next-steps.md
