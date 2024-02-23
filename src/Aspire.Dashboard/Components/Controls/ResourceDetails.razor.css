@@ -1,4 +1,4 @@
-::deep.environment-variables-layout {
+::deep.resource-details-layout {
     display: grid;
     grid-template-rows: auto 1fr;
     grid-template-areas:
@@ -8,7 +8,7 @@
     gap: calc(var(--design-unit) * 1px);
 }
 
-::deep.environment-variables-layout > fluent-toolbar {
+::deep.resource-details-layout > fluent-toolbar {
     grid-area: toolbar;
 }
 
@@ -24,17 +24,28 @@
     --fill-color: var(--neutral-layer-1);
 }
 
+/* Under the current light theme, --neutral-layer-1 is too white, so we'll
+   use something that's halfway between --neutral-layer-2 and --neutral-layer1.
+*/
+[data-theme="light"] .resource-details-layout ::deep fluent-accordion {
+    --fill-color: var(--neutral-fill-rest);
+}
+
 ::deep fluent-accordion-item {
     margin:0 calc(var(--design-unit) * 1px);
 }
 
+::deep fluent-accordion-item::part(heading),
 ::deep fluent-accordion-item::part(region) {
     background-color: var(--fill-color);
+}
+
+::deep fluent-accordion-item::part(region) {
     padding-bottom: 0;
 }
 
 ::deep fluent-accordion-item::part(heading-content) {
-    font-weight: bold;
+    font-weight: 600;
     font-size: var(--type-ramp-plus-1-font-size);
 }
 
@@ -50,4 +61,9 @@
 ::deep fluent-accordion fluent-data-grid fluent-button[appearance=stealth]:hover::part(control),
 ::deep fluent-accordion fluent-data-grid fluent-button[appearance=lightweight]:hover::part(control) {
     background-color: var(--neutral-fill-stealth-hover-on-neutral-fill-layer-rest);
+}
+
+/* Under the current dark theme, the fluent-badge background color was too dark on --neutral-layer-1 */
+[data-theme="dark"] .resource-details-layout ::deep fluent-accordion-item fluent-badge::part(control) {
+    background-color: var(--neutral-fill-active);
 }
