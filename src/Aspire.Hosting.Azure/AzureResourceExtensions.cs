@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure;
 using Aspire.Hosting.Publishing;
 
 namespace Aspire.Hosting;
@@ -39,8 +40,7 @@ public static class AzureResourceExtensions
     {
         var resource = new AzureOpenAIDeploymentResource(name, serverBuilder.Resource);
         return serverBuilder.ApplicationBuilder.AddResource(resource)
-                            .WithManifestPublishingCallback(context => 
-                                                            (context, resource));
+                            .WithManifestPublishingCallback(context => WriteAzureOpenAIDeploymentToManifest(context, resource));
     }
 
     private static void WriteAzureOpenAIDeploymentToManifest(ManifestPublishingContext context, AzureOpenAIDeploymentResource resource)
