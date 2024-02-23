@@ -11,7 +11,7 @@ public class InstrumentViewModel
     public OtlpInstrument? Instrument { get; private set; }
     public List<DimensionScope>? MatchedDimensions { get; private set; }
 
-    public Func<Task>? OnDataUpdate { get; set; }
+    public List<Func<Task>> DataUpdateSubscriptions { get; } = [];
     public string? Theme { get; set; }
     public bool ShowCount { get; set; }
 
@@ -19,9 +19,10 @@ public class InstrumentViewModel
     {
         Instrument = instrument;
         MatchedDimensions = matchedDimensions;
-        if (OnDataUpdate is not null)
+
+        foreach (var subscription in DataUpdateSubscriptions)
         {
-            await OnDataUpdate().ConfigureAwait(false);
+            await subscription().ConfigureAwait(false);
         }
     }
 }

@@ -36,7 +36,7 @@ public static class PostgresBuilderExtensions
                       .WithEnvironment("POSTGRES_INITDB_ARGS", "--auth-host=scram-sha-256 --auth-local=scram-sha-256")
                       .WithEnvironment(context =>
                       {
-                          if (context.ExecutionContext.Operation == DistributedApplicationOperation.Publish)
+                          if (context.ExecutionContext.IsPublishMode)
                           {
                               context.EnvironmentVariables.Add(PasswordEnvVarName, $"{{{postgresServer.Name}.inputs.password}}");
                           }
@@ -53,11 +53,15 @@ public static class PostgresBuilderExtensions
     /// </summary>
     /// <param name="builder">The PostgreSQL server resource builder.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <param name="databaseName">The name of the database. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<PostgresDatabaseResource> AddDatabase(this IResourceBuilder<PostgresServerResource> builder, string name)
+    public static IResourceBuilder<PostgresDatabaseResource> AddDatabase(this IResourceBuilder<PostgresServerResource> builder, string name, string? databaseName = null)
     {
-        builder.Resource.AddDatabase(name);
-        var postgresDatabase = new PostgresDatabaseResource(name, builder.Resource);
+        // Use the resource name as the database name if it's not provided
+        databaseName ??= name;
+
+        builder.Resource.AddDatabase(name, databaseName);
+        var postgresDatabase = new PostgresDatabaseResource(name, databaseName, builder.Resource);
         return builder.ApplicationBuilder.AddResource(postgresDatabase)
                                          .WithManifestPublishingCallback(postgresDatabase.WriteToManifest);
     }
@@ -84,14 +88,14 @@ public static class PostgresBuilderExtensions
         builder.ApplicationBuilder.AddResource(pgAdminContainer)
                                   .WithAnnotation(new ContainerImageAnnotation { Image = "dpage/pgadmin4", Tag = "8.3" })
                                   .WithHttpEndpoint(containerPort: 80, hostPort: hostPort, name: containerName)
-                                  .WithEnvironment(SetPgAdminEnviromentVariables)
+                                  .WithEnvironment(SetPgAdminEnvironmentVariables)
                                   .WithBindMount(Path.GetTempFileName(), "/pgadmin4/servers.json")
                                   .ExcludeFromManifest();
 
         return builder;
     }
 
-    private static void SetPgAdminEnviromentVariables(EnvironmentCallbackContext context)
+    private static void SetPgAdminEnvironmentVariables(EnvironmentCallbackContext context)
     {
         // Disables pgAdmin authentication.
         context.EnvironmentVariables.Add("PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED", "False");
