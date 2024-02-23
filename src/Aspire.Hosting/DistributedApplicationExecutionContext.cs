@@ -22,5 +22,5 @@ public class DistributedApplicationExecutionContext(DistributedApplicationOperat
     /// <summary>
     /// Returns true if the current operation is running.
     /// </summary>
-    public bool IsRunMode => Operation == DistributedApplicationOperation.Publish;
+    public bool IsRunMode => Operation == DistributedApplicationOperation.Run;
 }
