@@ -51,8 +51,8 @@ internal static class VolumeMountType
     // A volume mount to a host directory
     public const string Bind = "bind";
 
-    // A volume mount to a named volume managed by the container orchestrator
-    public const string Named = "volume";
+    // A volume mount to a volume managed by the container orchestrator
+    public const string Volume = "volume";
 }
 
 internal sealed class VolumeMount

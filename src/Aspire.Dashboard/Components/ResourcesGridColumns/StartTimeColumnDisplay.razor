@@ -5,17 +5,8 @@
 
 @if (Resource.CreationTimeStamp is {} timeStamp)
 {
-    if (timeStamp.ToLocalTime().Date == DateTime.Now.Date)
-    {
-        // e.g. "08:57:44" (based on user's culture and preferences)
-        // Don't include milliseconds as resource server returned time stamp is second precision.
-        @FormatHelpers.FormatTime(timeStamp)
-    }
-    else
-    {
-        // e.g. "9/02/2024 08:57:44" (based on user's culture and preferences)
-        @FormatHelpers.FormatDateTime(timeStamp)
-    }
+    // Don't include milliseconds as resource server returned time stamp is second precision.
+    @FormatHelpers.FormatTimeWithOptionalDate(timeStamp)
 }
 
 @code {

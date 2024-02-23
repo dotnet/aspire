@@ -8,6 +8,7 @@ internal sealed class ProcessSpec
     public string ExecutablePath { get; }
     public string? WorkingDirectory { get; init; }
     public IDictionary<string, string> EnvironmentVariables { get; init; } = new Dictionary<string, string>();
+    public bool InheritEnv { get; init; } = true;
     public string? Arguments { get; init; }
     public Action<string>? OnOutputData { get; init; }
     public Action<string>? OnErrorData { get; init; }

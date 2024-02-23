@@ -37,7 +37,7 @@ public sealed class ResourceViewModel
                 count++;
                 if (count >= 2)
                 {
-                    return ResourceFormatter.GetName(resource.DisplayName, resource.Uid);
+                    return resource.Name;
                 }
             }
         }
@@ -104,4 +104,5 @@ public static class ResourceStates
     public const string ExitedState = "Exited";
     public const string FailedToStartState = "FailedToStart";
     public const string StartingState = "Starting";
+    public const string RunningState = "Running";
 }

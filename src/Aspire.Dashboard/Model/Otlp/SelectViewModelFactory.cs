@@ -40,7 +40,7 @@ public class SelectViewModelFactory
                 new SelectViewModel<ResourceTypeDetails>
                 {
                     Id = ResourceTypeDetails.CreateReplicaInstance(replica.InstanceId, applicationName),
-                    Name = ResourceFormatter.GetName(replica.ApplicationName, replica.InstanceId)
+                    Name = replica.InstanceId
                 }));
         }
 

@@ -4,7 +4,6 @@
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
-using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Redis;
 
 namespace Aspire.Hosting;
@@ -25,9 +24,9 @@ public static class RedisBuilderExtensions
     {
         var redis = new RedisResource(name);
         return builder.AddResource(redis)
-                      .WithManifestPublishingCallback(WriteRedisResourceToManifest)
                       .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 6379))
-                      .WithAnnotation(new ContainerImageAnnotation { Image = "redis", Tag = "7.2.4" });
+                      .WithAnnotation(new ContainerImageAnnotation { Image = "redis", Tag = "7.2.4" })
+                      .PublishAsContainer();
     }
 
     /// <summary>
@@ -55,28 +54,5 @@ public static class RedisBuilderExtensions
                                   .ExcludeFromManifest();
 
         return builder;
-    }
-
-    private static void WriteRedisResourceToManifest(ManifestPublishingContext context)
-    {
-        context.Writer.WriteString("type", "redis.v0");
-    }
-
-    /// <summary>
-    /// Changes the Redis resource to be published as a container in the manifest.
-    /// </summary>
-    /// <param name="builder">Resource builder for <see cref="RedisResource"/>.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<RedisResource> PublishAsContainer(this IResourceBuilder<RedisResource> builder)
-    {
-        return builder.WithManifestPublishingCallback(context => WriteRedisContainerResourceToManifest(context, builder.Resource));
-    }
-
-    private static void WriteRedisContainerResourceToManifest(ManifestPublishingContext context, RedisResource resource)
-    {
-        context.WriteContainer(resource);
-        context.Writer.WriteString(                     // "connectionString": "...",
-            "connectionString",
-            $"{{{resource.Name}.bindings.tcp.host}}:{{{resource.Name}.bindings.tcp.port}}");
     }
 }

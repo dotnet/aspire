@@ -60,6 +60,9 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     {
         Writer.WriteString("type", "container.v0");
 
+        // Attempt to write the connection string for the container (if this resource has one).
+        WriteConnectionString(container);
+
         if (!container.TryGetContainerImageName(out var image))
         {
             throw new DistributedApplicationException("Could not get container image name.");
@@ -94,6 +97,19 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
         WriteEnvironmentVariables(container);
         WriteBindings(container, emitContainerPort: true);
+    }
+
+    /// <summary>
+    /// Writes the "connectionString" field for the underlying resource.
+    /// </summary>
+    /// <param name="resource"></param>
+    public void WriteConnectionString(IResource resource)
+    {
+        if (resource is IResourceWithConnectionString resourceWithConnectionString &&
+            resourceWithConnectionString.ConnectionStringExpression is string connectionString)
+        {
+            Writer.WriteString("connectionString", connectionString);
+        }
     }
 
     /// <summary>
@@ -136,7 +152,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     public void WriteEnvironmentVariables(IResource resource)
     {
         var config = new Dictionary<string, string>();
-        
+
         var envContext = new EnvironmentCallbackContext(ExecutionContext, config);
 
         if (resource.TryGetAnnotationsOfType<EnvironmentCallbackAnnotation>(out var callbacks))
@@ -190,7 +206,6 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
 
                     Writer.WriteString($"services__{endpointReferenceAnnotation.Resource.Name}__{i++}", $"{{{endpointReferenceAnnotation.Resource.Name}.bindings.{binding.Name}.url}}");
                 }
-
             }
         }
     }

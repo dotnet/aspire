@@ -5,7 +5,6 @@ using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.MySql;
-using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
@@ -31,7 +30,6 @@ public static class MySqlBuilderExtensions
 
         var resource = new MySqlServerResource(name, password);
         return builder.AddResource(resource)
-                      .WithManifestPublishingCallback(WriteMySqlContainerToManifest)
                       .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 3306)) // Internal port is always 3306.
                       .WithAnnotation(new ContainerImageAnnotation { Image = "mysql", Tag = "8.3.0" })
                       .WithEnvironment(context =>
@@ -44,7 +42,8 @@ public static class MySqlBuilderExtensions
                           {
                               context.EnvironmentVariables.Add(PasswordEnvVarName, resource.Password);
                           }
-                      });
+                      })
+                      .PublishAsContainer();
     }
 
     /// <summary>
@@ -52,12 +51,17 @@ public static class MySqlBuilderExtensions
     /// </summary>
     /// <param name="builder">The MySQL server resource builder.</param>
     /// <param name="name">The name of the resource. This name will be used as the connection string name when referenced in a dependency.</param>
+    /// <param name="databaseName">The name of the database. If not provided, this defaults to the same value as <paramref name="name"/>.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<MySqlDatabaseResource> AddDatabase(this IResourceBuilder<MySqlServerResource> builder, string name)
+    public static IResourceBuilder<MySqlDatabaseResource> AddDatabase(this IResourceBuilder<MySqlServerResource> builder, string name, string? databaseName = null)
     {
-        var mySqlDatabase = new MySqlDatabaseResource(name, builder.Resource);
+        // Use the resource name as the database name if it's not provided
+        databaseName ??= name;
+
+        builder.Resource.AddDatabase(name, databaseName);
+        var mySqlDatabase = new MySqlDatabaseResource(name, databaseName, builder.Resource);
         return builder.ApplicationBuilder.AddResource(mySqlDatabase)
-                                         .WithManifestPublishingCallback(context => WriteMySqlDatabaseToManifest(context, mySqlDatabase));
+                                         .WithManifestPublishingCallback(mySqlDatabase.WriteToManifest);
     }
 
     /// <summary>
@@ -82,21 +86,10 @@ public static class MySqlBuilderExtensions
         builder.ApplicationBuilder.AddResource(phpMyAdminContainer)
                                   .WithAnnotation(new ContainerImageAnnotation { Image = "phpmyadmin", Tag = "5.2" })
                                   .WithHttpEndpoint(containerPort: 80, hostPort: hostPort, name: containerName)
-                                  .WithVolumeMount(Path.GetTempFileName(), "/etc/phpmyadmin/config.user.inc.php")
+                                  .WithBindMount(Path.GetTempFileName(), "/etc/phpmyadmin/config.user.inc.php")
                                   .ExcludeFromManifest();
         
         return builder;
-    }
-
-    private static void WriteMySqlContainerToManifest(ManifestPublishingContext context)
-    {
-        context.Writer.WriteString("type", "mysql.server.v0");
-    }
-
-    private static void WriteMySqlDatabaseToManifest(ManifestPublishingContext context, MySqlDatabaseResource mySqlDatabase)
-    {
-        context.Writer.WriteString("type", "mysql.database.v0");
-        context.Writer.WriteString("parent", mySqlDatabase.Parent.Name);
     }
 
     /// <summary>
@@ -106,25 +99,6 @@ public static class MySqlBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<MySqlServerResource> PublishAsContainer(this IResourceBuilder<MySqlServerResource> builder)
     {
-        return builder.WithManifestPublishingCallback(context => WriteMySqlContainerResourceToManifest(context, builder.Resource));
-    }
-
-    private static void WriteMySqlContainerResourceToManifest(ManifestPublishingContext context, MySqlServerResource resource)
-    {
-        context.WriteContainer(resource);
-        context.Writer.WriteString(                     // "connectionString": "...",
-            "connectionString",
-            $"Server={{{resource.Name}.bindings.tcp.host}};Port={{{resource.Name}.bindings.tcp.port}};User ID=root;Password={{{resource.Name}.inputs.password}}");
-        context.Writer.WriteStartObject("inputs");      // "inputs": {
-        context.Writer.WriteStartObject("password");    //   "password": {
-        context.Writer.WriteString("type", "string");   //     "type": "string",
-        context.Writer.WriteBoolean("secret", true);    //     "secret": true,
-        context.Writer.WriteStartObject("default");     //     "default": {
-        context.Writer.WriteStartObject("generate");    //       "generate": {
-        context.Writer.WriteNumber("minLength", 10);    //         "minLength": 10,
-        context.Writer.WriteEndObject();                //       }
-        context.Writer.WriteEndObject();                //     }
-        context.Writer.WriteEndObject();                //   }
-        context.Writer.WriteEndObject();                // }
+        return builder.WithManifestPublishingCallback(builder.Resource.WriteToManifest);
     }
 }

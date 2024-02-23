@@ -1,0 +1,7 @@
+﻿::deep .tab-label > svg {
+    margin-right: 2px;
+}
+
+::deep .metric-tab {
+    margin-top: 10px;
+}

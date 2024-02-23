@@ -6,6 +6,7 @@
 @using Microsoft.Extensions.Logging
 @using System.Web
 @using Aspire.Dashboard.Resources
+@using System.Globalization
 @inject IJSRuntime JS
 @implements IDisposable
 @inject IStringLocalizer<Dashboard.Resources.StructuredLogs> Loc
@@ -61,7 +62,7 @@
         }
         <FluentButton slot="end" Appearance="Appearance.Stealth" aria-label="Add Filter" OnClick="() => OpenFilterAsync(null)"><FluentIcon Value="@(new Icons.Regular.Size16.Filter())" /></FluentButton>
     </FluentToolbar>
-    <SummaryDetailsView DetailsTitle="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsEntryDetails)]" ShowDetails="SelectedLogEntryProperties is not null" OnDismiss="() => ClearSelectedLogEntry()">
+    <SummaryDetailsView DetailsTitle="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsEntryDetails)]" ShowDetails="SelectedLogEntryProperties is not null" OnDismiss="() => ClearSelectedLogEntry()" ViewKey="StructuredLogsList">
         <Summary>
             <div class="logs-summary-layout">
                 <div class="logs-grid-container continuous-scroll-overflow">
@@ -75,7 +76,9 @@
                             <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsLevelColumnHeader)]">
                                 <LogLevelColumnDisplay LogEntry="@context" />
                             </TemplateColumn>
-                            <PropertyColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsTimestampColumnHeader)]" Property="@(context => FormatHelpers.FormatTimeStamp(context.TimeStamp))" Tooltip="true" />
+                            <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsTimestampColumnHeader)]" TooltipText="@(context => FormatHelpers.FormatDateTime(context.TimeStamp, true, CultureInfo.CurrentCulture))" Tooltip="true">
+                                @FormatHelpers.FormatTimeWithOptionalDate(context.TimeStamp, includeMilliseconds: true)
+                            </TemplateColumn>
                             <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsMessageColumnHeader)]" Tooltip="true" TooltipText="(e) => e.Message">
                                 <LogMessageColumnDisplay FilterText="@(ViewModel.FilterText)" LogEntry="@context" />
                             </TemplateColumn>

@@ -17,14 +17,6 @@
     width: 100%;
 }
 
-::deep .trace-view-grid .selected-span {
-    background-color: var(--neutral-fill-active);
-}
-
-::deep .trace-view-grid .selected-span:hover {
-    background-color: var(--neutral-fill-hover) !important;
-}
-
 ::deep .trace-view-grid fluent-data-grid-row[row-type="default"]:hover .span-bar-label-detail {
     display: inline !important;
 }

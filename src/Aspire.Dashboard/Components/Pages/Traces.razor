@@ -4,6 +4,7 @@
 @using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Utils
+@using System.Globalization
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JS
 @inject IStringLocalizer<Dashboard.Resources.Traces> Loc
@@ -35,7 +36,9 @@
     <div class="datagrid-overflow-area continuous-scroll-overflow" tabindex="-1">
         <FluentDataGrid Virtualize="true" GenerateHeader="GenerateHeaderOption.Sticky" ItemSize="46" ResizableColumns="true" ItemsProvider="@GetData" TGridItem="OtlpTrace" GridTemplateColumns="0.8fr 2fr 3fr 0.8fr 0.5fr">
             <ChildContent>
-                <PropertyColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.TimestampColumnHeader)]" Property="@(context => FormatHelpers.FormatTimeStamp(context.FirstSpan.StartTime))" />
+                <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.TimestampColumnHeader)]" TooltipText="@(context => FormatHelpers.FormatDateTime(context.FirstSpan.StartTime, true, CultureInfo.CurrentCulture))" Tooltip="true">
+                    @FormatHelpers.FormatTimeWithOptionalDate(context.FirstSpan.StartTime, includeMilliseconds: true)
+                </TemplateColumn>
                 <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Tooltip="true" TooltipText="@((t) => $"{t.FullName}: {OtlpHelpers.ToShortenedId(t.TraceId)}")">
                     <span><FluentHighlighter HighlightedText="@(TracesViewModel.FilterText)" Text="@(context.FullName)" /></span>
                     <span class="trace-id">@OtlpHelpers.ToShortenedId(context.TraceId)</span>
@@ -56,11 +59,24 @@
                                 </FluentOverflowItem>
                             }
                         </ChildContent>
-                        <MoreButtonTemplate Context="another_name">
+                        <MoreButtonTemplate Context="overflow">
                             <span class="trace-tag">
-                                @($"+{another_name.ItemsOverflow.Count()}")
+                                @($"+{overflow.ItemsOverflow.Count()}")
                             </span>
                         </MoreButtonTemplate>
+                        <OverflowTemplate Context="overflow">
+                            @{
+                                var items = overflow.ItemsOverflow.ToList();
+                            }
+                            <FluentTooltip UseTooltipService="false" Anchor="@overflow.IdMoreButton">
+                                @foreach (var item in items)
+                                {
+                                    <div style="margin-top: 8px; margin-bottom: 8px;">
+                                        @item.ChildContent
+                                    </div>
+                                }
+                            </FluentTooltip>
+                        </OverflowTemplate>
                     </FluentOverflow>
                 </TemplateColumn>
                 <TemplateColumn Title="@ControlsStringsLoc[nameof(ControlsStrings.DurationColumnHeader)]">
