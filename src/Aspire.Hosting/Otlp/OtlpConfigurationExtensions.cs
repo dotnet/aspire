@@ -29,7 +29,7 @@ public static class OtlpConfigurationExtensions
 
         resource.Annotations.Add(new EnvironmentCallbackAnnotation(context =>
         {
-            if (context.ExecutionContext.Operation == DistributedApplicationOperation.Publish)
+            if (context.ExecutionContext.IsPublishMode)
             {
                 // REVIEW:  Do we want to set references to an imaginary otlp provider as a requirement?
                 return;

@@ -35,6 +35,7 @@ public class WithEndpointTests
         createIfNotExists: false);
 
         Assert.False(executed);
+        Assert.False(testProgram.ServiceABuilder.Resource.TryGetAnnotationsOfType<EndpointAnnotation>(out _));
     }
 
     [Fact]
@@ -49,6 +50,7 @@ public class WithEndpointTests
         });
 
         Assert.True(executed);
+        Assert.True(testProgram.ServiceABuilder.Resource.TryGetAnnotationsOfType<EndpointAnnotation>(out _));
     }
 
     [Fact]
@@ -64,6 +66,7 @@ public class WithEndpointTests
         createIfNotExists: true);
 
         Assert.True(executed);
+        Assert.True(testProgram.ServiceABuilder.Resource.TryGetAnnotationsOfType<EndpointAnnotation>(out _));
     }
 
     [Fact]

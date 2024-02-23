@@ -38,8 +38,6 @@
                 @Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailTotalSpansHeader)] <strong>@_trace.Spans.Count</strong>
             </div>
             <FluentAnchor slot="end" Appearance="Appearance.Lightweight" Href="@($"/StructuredLogs?traceId={_trace.TraceId}")">@ControlStringsLoc[nameof(ControlsStrings.ViewLogsLink)]</FluentAnchor>
-            <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
-            <FluentAnchor slot="end" Appearance="Appearance.Lightweight" Href="@($"/Traces")">@Loc[nameof(Dashboard.Resources.TraceDetail.TraceDetailBackButtonText)]</FluentAnchor>
         </FluentToolbar>
 
         <SummaryDetailsView ShowDetails="SelectedSpan is not null" OnDismiss="() => ClearSelectedSpan()" ViewKey="TraceDetail">
