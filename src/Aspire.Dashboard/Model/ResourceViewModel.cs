@@ -37,7 +37,7 @@ public sealed class ResourceViewModel
                 count++;
                 if (count >= 2)
                 {
-                    return ResourceFormatter.GetName(resource.DisplayName, resource.Uid);
+                    return resource.Name;
                 }
             }
         }

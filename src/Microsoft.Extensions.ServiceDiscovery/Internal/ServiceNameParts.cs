@@ -46,6 +46,7 @@ internal readonly struct ServiceNameParts : IEquatable<ServiceNameParts>
             var segmentSeparatorIndex = uriHost.IndexOf('.');
             string host;
             string? endPointName = null;
+            var port = uri.Port > 0 ? uri.Port : 0;
             if (uriHost.StartsWith('_') && segmentSeparatorIndex > 1 && uriHost[^1] != '.')
             {
                 endPointName = uriHost[1..segmentSeparatorIndex];
@@ -62,7 +63,7 @@ internal readonly struct ServiceNameParts : IEquatable<ServiceNameParts>
                 }
             }
 
-            return new(host, endPointName, uri.Port);
+            return new(host, endPointName, port);
         }
     }
 

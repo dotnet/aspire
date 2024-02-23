@@ -13,4 +13,14 @@ public class DistributedApplicationExecutionContext(DistributedApplicationOperat
     /// The operation currently being performed by the AppHost.
     /// </summary>
     public DistributedApplicationOperation Operation { get; } = operation;
+
+    /// <summary>
+    /// Returns true if the current operation is publishing.
+    /// </summary>
+    public bool IsPublishMode => Operation == DistributedApplicationOperation.Publish;
+
+    /// <summary>
+    /// Returns true if the current operation is running.
+    /// </summary>
+    public bool IsRunMode => Operation == DistributedApplicationOperation.Run;
 }

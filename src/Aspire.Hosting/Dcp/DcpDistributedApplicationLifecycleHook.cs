@@ -11,7 +11,7 @@ internal sealed class DcpDistributedApplicationLifecycleHook(DistributedApplicat
 {
     public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
-        if (executionContext.Operation == DistributedApplicationOperation.Run)
+        if (executionContext.IsRunMode)
         {
             PrepareServices(appModel);
         }
@@ -35,11 +35,18 @@ internal sealed class DcpDistributedApplicationLifecycleHook(DistributedApplicat
             {
                 var uri = new Uri(url);
 
-                if (projectResource.Annotations.OfType<EndpointAnnotation>().Any(sb => string.Equals(sb.Name, uri.Scheme, StringComparisons.EndpointAnnotationName)))
+                var endpointAnnotations = projectResource.Annotations.OfType<EndpointAnnotation>().Where(sb => string.Equals(sb.Name, uri.Scheme, StringComparisons.EndpointAnnotationName));
+                if (endpointAnnotations.Any(sb => sb.IsProxied))
                 {
                     // If someone uses WithEndpoint in the dev host to register a endpoint with the name
                     // http or https this exception will be thrown.
                     throw new DistributedApplicationException($"Endpoint with name '{uri.Scheme}' already exists.");
+                }
+
+                if (endpointAnnotations.Any())
+                {
+                    // We have a non-proxied endpoint with the same name as the 'url', don't add another endpoint for the same name
+                    continue;
                 }
 
                 var generatedEndpointAnnotation = new EndpointAnnotation(

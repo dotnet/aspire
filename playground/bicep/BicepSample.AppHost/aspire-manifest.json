@@ -166,6 +166,16 @@
         ]
       }
     },
+    "signalr": {
+      "type": "azure.bicep.v0",
+      "connectionString": "Endpoint=https://{signalr.outputs.hostName};AuthType=azure",
+      "path": "aspire.hosting.azure.bicep.signalr.bicep",
+      "params": {
+        "name": "signalr",
+        "principalId": "",
+        "principalType": ""
+      }
+    },
     "api": {
       "type": "project.v0",
       "path": "../BicepSample.ApiService/BicepSample.ApiService.csproj",
@@ -183,6 +193,7 @@
         "APPLICATIONINSIGHTS_CONNECTION_STRING": "{ai.connectionString}",
         "ConnectionStrings__redis": "{redis.connectionString}",
         "ConnectionStrings__sb": "{sb.connectionString}",
+        "ConnectionStrings__signalr": "{signalr.connectionString}",
         "bicepValue_test": "{test.outputs.test}",
         "bicepValue0": "{test.outputs.val0}",
         "bicepValue1": "{test.outputs.val1}"

@@ -79,7 +79,6 @@ The .NET Aspire Microsoft EntityFrameworkCore Cosmos component supports [Microso
     "Microsoft": {
       "EntityFrameworkCore": {
         "Cosmos": {
-          "DbContextPooling": true,
           "Tracing": false
         }
       }
@@ -99,7 +98,7 @@ Also you can pass the `Action<EntityFrameworkCoreCosmosDBSettings> configureSett
 or
 
 ```csharp
-    builder.EnrichCosmosDbContext<MyDbContext>(settings => settings.HealthChecks = false);
+    builder.EnrichCosmosDbContext<MyDbContext>(settings => settings.Tracing = false);
 ```
 
 ## AppHost extensions
