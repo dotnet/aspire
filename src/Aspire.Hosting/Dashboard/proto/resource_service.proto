@@ -31,11 +31,11 @@ message ResourceCommand {
     // When present, this message must be shown to the user and their confirmation obtained
     // before sending the request for this command to be executed.
     // The user will be presented with Ok/Cancel options.
-    optional string confirmation_message = 4;
+    optional string confirmation_message = 3;
     // Optional parameter that configures the command in some way.
     // Clients must return any value provided by the server when invoking
     // the command.
-    optional google.protobuf.Value parameter = 5;
+    optional google.protobuf.Value parameter = 4;
 }
 
 // Represents a request to execute a command.
