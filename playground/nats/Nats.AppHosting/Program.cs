@@ -1,8 +1,7 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
 var nats = builder.AddNats("nats")
-    .WithJetStream()
-    .PublishAsContainer();
+    .WithJetStream();
 
 builder.AddProject<Projects.Nats_ApiService>("api")
     .WithReference(nats);

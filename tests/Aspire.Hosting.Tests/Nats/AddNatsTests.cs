@@ -29,14 +29,14 @@ public class AddNatsTests
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
         Assert.Equal(4222, endpoint.ContainerPort);
         Assert.False(endpoint.IsExternal);
-        Assert.Equal("nats", endpoint.Name);
+        Assert.Equal("tcp", endpoint.Name);
         Assert.Null(endpoint.Port);
         Assert.Equal(ProtocolType.Tcp, endpoint.Protocol);
         Assert.Equal("tcp", endpoint.Transport);
-        Assert.Equal("nats", endpoint.UriScheme);
+        Assert.Equal("tcp", endpoint.UriScheme);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal("latest", containerAnnotation.Tag);
+        Assert.Equal("2", containerAnnotation.Tag);
         Assert.Equal("nats", containerAnnotation.Image);
         Assert.Null(containerAnnotation.Registry);
     }
@@ -57,9 +57,9 @@ public class AddNatsTests
         var manifestAnnotation = Assert.Single(containerResource.Annotations.OfType<ManifestPublishingCallbackAnnotation>());
         Assert.NotNull(manifestAnnotation.Callback);
 
-        var volumeAnnotation = Assert.Single(containerResource.Annotations.OfType<VolumeMountAnnotation>());
-        Assert.Equal("/tmp/dev-data", volumeAnnotation.Source);
-        Assert.Equal("/data", volumeAnnotation.Target);
+        var mountAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerMountAnnotation>());
+        Assert.Equal("/tmp/dev-data", mountAnnotation.Source);
+        Assert.Equal("/data", mountAnnotation.Target);
 
         var argsAnnotation = Assert.Single(containerResource.Annotations.OfType<ExecutableArgsCallbackAnnotation>());
         Assert.NotNull(argsAnnotation.Callback);
@@ -70,14 +70,14 @@ public class AddNatsTests
         var endpoint = Assert.Single(containerResource.Annotations.OfType<EndpointAnnotation>());
         Assert.Equal(4222, endpoint.ContainerPort);
         Assert.False(endpoint.IsExternal);
-        Assert.Equal("nats", endpoint.Name);
+        Assert.Equal("tcp", endpoint.Name);
         Assert.Equal(1234, endpoint.Port);
         Assert.Equal(ProtocolType.Tcp, endpoint.Protocol);
         Assert.Equal("tcp", endpoint.Transport);
-        Assert.Equal("nats", endpoint.UriScheme);
+        Assert.Equal("tcp", endpoint.UriScheme);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal("latest", containerAnnotation.Tag);
+        Assert.Equal("2", containerAnnotation.Tag);
         Assert.Equal("nats", containerAnnotation.Image);
         Assert.Null(containerAnnotation.Registry);
     }

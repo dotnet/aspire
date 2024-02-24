@@ -3,7 +3,6 @@
 
 using System.Net.Sockets;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Publishing;
 
 namespace Aspire.Hosting;
 
@@ -23,9 +22,9 @@ public static class NatsBuilderExtensions
     {
         var nats = new NatsServerResource(name);
         return builder.AddResource(nats)
-                      .WithManifestPublishingCallback(WriteNatsResourceToManifest)
                       .WithAnnotation(new EndpointAnnotation(ProtocolType.Tcp, port: port, containerPort: 4222))
-                      .WithAnnotation(new ContainerImageAnnotation { Image = "nats", Tag = "latest" });
+                      .WithAnnotation(new ContainerImageAnnotation { Image = "nats", Tag = "2" })
+                      .PublishAsContainer();
     }
 
     /// <summary>
@@ -48,7 +47,7 @@ public static class NatsBuilderExtensions
 
         if (srcMountPath != null)
         {
-            builder.WithAnnotation(new VolumeMountAnnotation(srcMountPath, "/data"));
+            builder.WithAnnotation(new ContainerMountAnnotation(srcMountPath, "/data", ContainerMountType.Bind, false));
         }
 
         return builder;
@@ -61,7 +60,6 @@ public static class NatsBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<NatsServerResource> PublishAsContainer(this IResourceBuilder<NatsServerResource> builder)
     {
-        return builder.WithManifestPublishingCallback(context => WriteNatsContainerResourceToManifest(context, builder.Resource));
+        return builder.WithManifestPublishingCallback(context => context.WriteContainer(builder.Resource));
     }
-
 }
