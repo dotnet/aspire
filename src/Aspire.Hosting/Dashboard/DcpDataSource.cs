@@ -23,7 +23,7 @@ namespace Aspire.Hosting.Dashboard;
 internal sealed class DcpDataSource
 {
     private readonly IKubernetesService _kubernetesService;
-    private readonly DistributedApplicationModel _applicationModel;
+    private readonly Dictionary<string, IResource> _applicationModel;
     private readonly Func<ResourceSnapshot, ResourceSnapshotChangeType, ValueTask> _onResourceChanged;
     private readonly ILogger _logger;
 
@@ -42,7 +42,7 @@ internal sealed class DcpDataSource
         CancellationToken cancellationToken)
     {
         _kubernetesService = kubernetesService;
-        _applicationModel = applicationModel;
+        _applicationModel = applicationModel.Resources.ToDictionary(d => d.Name);
         _onResourceChanged = onResourceChanged;
 
         _logger = loggerFactory.CreateLogger<DcpDataSource>();
@@ -52,6 +52,12 @@ internal sealed class DcpDataSource
         Task.Run(
             async () =>
             {
+                // Show all resources initially and allow updates from DCP (for the relevant resources)
+                foreach (var resource in applicationModel.Resources)
+                {
+                    await ProcessInitialResourceAsync(resource, cancellationToken).ConfigureAwait(false);
+                }
+
                 using (semaphore)
                 {
                     await Task.WhenAll(
@@ -102,6 +108,140 @@ internal sealed class DcpDataSource
 
             return false;
         }
+    }
+
+    private async Task ProcessInitialResourceAsync(IResource resource, CancellationToken cancellationToken)
+    {
+        // If the resource is a redirect, we want to create a snapshot for the resource it redirects to.
+        if (resource.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var redirectAnnotation))
+        {
+            resource = redirectAnnotation.Resource;
+        }
+
+        if (resource.TryGetLastAnnotation<ContainerImageAnnotation>(out var containerImageAnnotation))
+        {
+            var snapshot = new ContainerSnapshot
+            {
+                Name = resource.Name,
+                DisplayName = resource.Name,
+                Uid = resource.Name,
+                CreationTimeStamp = DateTime.UtcNow,
+                Image = containerImageAnnotation.Image,
+                State = "Starting",
+                ContainerId = null,
+                ExitCode = null,
+                ExpectedEndpointsCount = null,
+                Environment = [],
+                Endpoints = [],
+                Services = [],
+                Command = null,
+                Args = [],
+                Ports = []
+            };
+
+            await _onResourceChanged(snapshot, ResourceSnapshotChangeType.Upsert).ConfigureAwait(false);
+        }
+        else if (resource is ProjectResource p)
+        {
+            var snapshot = new ProjectSnapshot
+            {
+                Name = p.Name,
+                DisplayName = p.Name,
+                Uid = p.Name,
+                CreationTimeStamp = DateTime.UtcNow,
+                ProjectPath = p.GetProjectMetadata().ProjectPath,
+                State = "Starting",
+                ExpectedEndpointsCount = null,
+                Environment = [],
+                Endpoints = [],
+                Services = [],
+                ExecutablePath = null,
+                ExitCode = null,
+                Arguments = null,
+                ProcessId = null,
+                StdErrFile = null,
+                StdOutFile = null,
+                WorkingDirectory = null
+            };
+
+            await _onResourceChanged(snapshot, ResourceSnapshotChangeType.Upsert).ConfigureAwait(false);
+        }
+        else if (resource is ExecutableResource exe)
+        {
+            var snapshot = new ExecutableSnapshot
+            {
+                Name = exe.Name,
+                DisplayName = exe.Name,
+                Uid = exe.Name,
+                CreationTimeStamp = DateTime.UtcNow,
+                ExecutablePath = exe.Command,
+                WorkingDirectory = exe.WorkingDirectory,
+                Arguments = null,
+                State = "Starting",
+                ExitCode = null,
+                StdOutFile = null,
+                StdErrFile = null,
+                ProcessId = null,
+                ExpectedEndpointsCount = null,
+                Environment = [],
+                Endpoints = [],
+                Services = []
+            };
+
+            await _onResourceChanged(snapshot, ResourceSnapshotChangeType.Upsert).ConfigureAwait(false);
+        }
+        else if (resource.TryGetLastAnnotation<DashboardAnnotation>(out var dashboardAnnotation))
+        {
+            // We have a dashboard annotation, so we want to create a snapshot for the resource
+            // and update data immediately. We also want to watch for changes to the dashboard state.
+            var state = dashboardAnnotation.GetIntialState();
+            var creationTimestamp = DateTime.UtcNow;
+
+            var snapshot = CreateResourceSnapshot(resource, creationTimestamp, state);
+
+            await _onResourceChanged(snapshot, ResourceSnapshotChangeType.Upsert).ConfigureAwait(false);
+
+            _ = Task.Run(async () =>
+            {
+                await foreach (var state in dashboardAnnotation.WatchAsync(cancellationToken))
+                {
+                    try
+                    {
+                        var snapshot = CreateResourceSnapshot(resource, creationTimestamp, state);
+
+                        await _onResourceChanged(snapshot, ResourceSnapshotChangeType.Upsert).ConfigureAwait(false);
+                    }
+                    catch (Exception ex) when (ex is not OperationCanceledException)
+                    {
+                        _logger.LogError(ex, "Error updating resource snapshot for {Name}", resource.Name);
+                    }
+                }
+
+            }, cancellationToken);
+        }
+    }
+
+    private static GenericResourceSnapshot CreateResourceSnapshot(IResource resource, DateTime creationTimestamp, DashboardResourceState dashboardState)
+    {
+        ImmutableArray<EnvironmentVariableSnapshot> environmentVariables = [..
+            dashboardState.EnviromentVariables.Select(e => new EnvironmentVariableSnapshot(e.Name, e.Value, false))];
+
+        ImmutableArray<EndpointSnapshot> endpoints = [..
+            dashboardState.Urls.Select(u => new EndpointSnapshot(u, u))];
+
+        return new GenericResourceSnapshot(dashboardState)
+        {
+            Uid = resource.Name,
+            CreationTimeStamp = creationTimestamp,
+            Name = resource.Name,
+            DisplayName = resource.Name,
+            Endpoints = endpoints,
+            Environment = environmentVariables,
+            ExitCode = null,
+            ExpectedEndpointsCount = endpoints.Length,
+            Services = [],
+            State = dashboardState.State ?? "Running"
+        };
     }
 
     private async Task ProcessResourceChange<T>(WatchEventType watchEventType, T resource, ConcurrentDictionary<string, T> resourceByName, string resourceKind, Func<T, ResourceSnapshot> snapshotFactory) where T : CustomResource
@@ -193,12 +333,15 @@ internal sealed class DcpDataSource
         var containerId = container.Status?.ContainerId;
         var (endpoints, services) = GetEndpointsAndServices(container, "Container");
 
+        string? resourceName = null;
+        container.Metadata.Annotations?.TryGetValue(Container.ResourceNameAnnotation, out resourceName);
+
         var environment = GetEnvironmentVariables(container.Status?.EffectiveEnv ?? container.Spec.Env, container.Spec.Env);
 
         return new ContainerSnapshot
         {
-            Name = container.Metadata.Name,
-            DisplayName = container.Metadata.Name,
+            Name = resourceName ?? container.Metadata.Name,
+            DisplayName = resourceName ?? container.Metadata.Name,
             Uid = container.Metadata.Uid,
             ContainerId = containerId,
             CreationTimeStamp = container.Metadata.CreationTimestamp?.ToLocalTime(),
@@ -239,6 +382,9 @@ internal sealed class DcpDataSource
         string? projectPath = null;
         executable.Metadata.Annotations?.TryGetValue(Executable.CSharpProjectPathAnnotation, out projectPath);
 
+        string? resourceName = null;
+        executable.Metadata.Annotations?.TryGetValue(Executable.ResourceNameAnnotation, out resourceName);
+
         var (endpoints, services) = GetEndpointsAndServices(executable, "Executable", projectPath);
 
         if (projectPath is not null)
@@ -248,8 +394,8 @@ internal sealed class DcpDataSource
             // the project.
             return new ProjectSnapshot
             {
-                Name = executable.Metadata.Name,
-                DisplayName = GetDisplayName(executable),
+                Name = resourceName ?? executable.Metadata.Name,
+                DisplayName = resourceName ?? GetDisplayName(executable),
                 Uid = executable.Metadata.Uid,
                 CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToLocalTime(),
                 ExecutablePath = executable.Spec.ExecutablePath,
@@ -270,8 +416,8 @@ internal sealed class DcpDataSource
 
         return new ExecutableSnapshot
         {
-            Name = executable.Metadata.Name,
-            DisplayName = GetDisplayName(executable),
+            Name = resourceName ?? executable.Metadata.Name,
+            DisplayName = resourceName ?? GetDisplayName(executable),
             Uid = executable.Metadata.Uid,
             CreationTimeStamp = executable.Metadata.CreationTimestamp?.ToLocalTime(),
             ExecutablePath = executable.Spec.ExecutablePath,
@@ -315,6 +461,8 @@ internal sealed class DcpDataSource
         var endpoints = ImmutableArray.CreateBuilder<EndpointSnapshot>();
         var services = ImmutableArray.CreateBuilder<ResourceServiceSnapshot>();
         var name = resource.Metadata.Name;
+        string? resourceName = null;
+        resource.Metadata.Annotations?.TryGetValue(Executable.ResourceNameAnnotation, out resourceName);
 
         foreach (var endpoint in _endpointsMap.Values)
         {
@@ -332,7 +480,9 @@ internal sealed class DcpDataSource
 
                 // For project look into launch profile to append launch url
                 if (projectPath is not null
-                    && _applicationModel.TryGetProjectWithPath(name, projectPath, out var project)
+                    && resourceName is not null
+                    && _applicationModel.TryGetValue(resourceName, out var appModelResource)
+                    && appModelResource is ProjectResource project
                     && project.GetEffectiveLaunchProfile() is LaunchProfile launchProfile
                     && launchProfile.LaunchUrl is string launchUrl)
                 {

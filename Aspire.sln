@@ -277,7 +277,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DatabaseMigration.AppHost",
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DatabaseMigration.MigrationService", "playground\DatabaseMigration\DatabaseMigration.MigrationService\DatabaseMigration.MigrationService.csproj", "{E7DB736B-C316-460E-A609-2200E58BF0C2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DatabaseMigration.ApiModel", "playground\DatabaseMigration\DatabaseMigration.ApiModel\DatabaseMigration.ApiModel.csproj", "{C15F3F13-AB63-47CF-AAFE-D319F02E7B33}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DatabaseMigration.ApiModel", "playground\DatabaseMigration\DatabaseMigration.ApiModel\DatabaseMigration.ApiModel.csproj", "{C15F3F13-AB63-47CF-AAFE-D319F02E7B33}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "signalr", "signalr", "{E6985EED-47E3-4EAC-8222-074E5410CEDC}"
 EndProject
@@ -290,6 +290,10 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ProxylessEndToEnd.ApiService", "playground\ProxylessEndToEnd\ProxylessEndToEnd.ApiService\ProxylessEndToEnd.ApiService.csproj", "{51654CD7-2E05-4664-B2EB-95308A300609}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ProxylessEndToEnd.AppHost", "playground\ProxylessEndToEnd\ProxylessEndToEnd.AppHost\ProxylessEndToEnd.AppHost.csproj", "{0244203D-7491-4414-9C88-10BFED9C5B2D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CustomResources", "CustomResources", "{867A00A7-AF8E-4396-9583-982FBB31762C}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CustomResources.AppHost", "playground\CustomResources\CustomResources.AppHost\CustomResources.AppHost.csproj", "{4231B6F1-1110-4992-A727-8F1176A47440}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -761,6 +765,10 @@ Global
 		{0244203D-7491-4414-9C88-10BFED9C5B2D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0244203D-7491-4414-9C88-10BFED9C5B2D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0244203D-7491-4414-9C88-10BFED9C5B2D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4231B6F1-1110-4992-A727-8F1176A47440}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4231B6F1-1110-4992-A727-8F1176A47440}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4231B6F1-1110-4992-A727-8F1176A47440}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4231B6F1-1110-4992-A727-8F1176A47440}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -900,6 +908,8 @@ Global
 		{9C30FFD6-2262-45E7-B010-24B30E0433C2} = {D173887B-AF42-4576-B9C1-96B9E9B3D9C0}
 		{51654CD7-2E05-4664-B2EB-95308A300609} = {9C30FFD6-2262-45E7-B010-24B30E0433C2}
 		{0244203D-7491-4414-9C88-10BFED9C5B2D} = {9C30FFD6-2262-45E7-B010-24B30E0433C2}
+		{867A00A7-AF8E-4396-9583-982FBB31762C} = {D173887B-AF42-4576-B9C1-96B9E9B3D9C0}
+		{4231B6F1-1110-4992-A727-8F1176A47440} = {867A00A7-AF8E-4396-9583-982FBB31762C}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6DCEDFEC-988E-4CB3-B45B-191EB5086E0C}

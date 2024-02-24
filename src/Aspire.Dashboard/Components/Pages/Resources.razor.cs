@@ -28,8 +28,7 @@ public partial class Resources : ComponentBase, IDisposable
 
     private readonly CancellationTokenSource _watchTaskCancellationTokenSource = new();
     private readonly ConcurrentDictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
-    // TODO populate resource types from server data
-    private readonly ImmutableArray<string> _allResourceTypes = [KnownResourceTypes.Project, KnownResourceTypes.Executable, KnownResourceTypes.Container];
+    private ImmutableHashSet<string> _allResourceTypes = [];
     private readonly HashSet<string> _visibleResourceTypes;
     private string _filter = "";
     private bool _isTypeFilterVisible;
@@ -82,13 +81,13 @@ public partial class Resources : ComponentBase, IDisposable
     private readonly GridSort<ResourceViewModel> _stateSort = GridSort<ResourceViewModel>.ByAscending(p => p.State);
     private readonly GridSort<ResourceViewModel> _startTimeSort = GridSort<ResourceViewModel>.ByDescending(p => p.CreationTimeStamp);
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         _applicationUnviewedErrorCounts = TelemetryRepository.GetApplicationUnviewedErrorLogsCount();
 
         if (DashboardClient.IsEnabled)
         {
-            SubscribeResources();
+            await SubscribeResources();
         }
 
         _logsSubscription = TelemetryRepository.OnNewLogs(null, SubscriptionType.Other, async () =>
@@ -97,7 +96,7 @@ public partial class Resources : ComponentBase, IDisposable
             await InvokeAsync(StateHasChanged);
         });
 
-        void SubscribeResources()
+        async Task SubscribeResources()
         {
             var (snapshot, subscription) = DashboardClient.SubscribeResources();
 
@@ -105,8 +104,20 @@ public partial class Resources : ComponentBase, IDisposable
             foreach (var resource in snapshot)
             {
                 var added = _resourceByName.TryAdd(resource.Name, resource);
+
+                ImmutableInterlocked.Update(ref _allResourceTypes, set => set.Add(resource.ResourceType));
                 Debug.Assert(added, "Should not receive duplicate resources in initial snapshot data.");
             }
+
+            await InvokeAsync(() =>
+            {
+                foreach (var resourceType in _allResourceTypes)
+                {
+                    _visibleResourceTypes.Add(resourceType);
+                }
+
+                StateHasChanged();
+            });
 
             // Listen for updates and apply.
             _ = Task.Run(async () =>
@@ -116,6 +127,8 @@ public partial class Resources : ComponentBase, IDisposable
                     if (changeType == ResourceViewModelChangeType.Upsert)
                     {
                         _resourceByName[resource.Name] = resource;
+
+                        ImmutableInterlocked.Update(ref _allResourceTypes, set => set.Add(resource.ResourceType));
                     }
                     else if (changeType == ResourceViewModelChangeType.Delete)
                     {
@@ -123,7 +136,12 @@ public partial class Resources : ComponentBase, IDisposable
                         Debug.Assert(removed, "Cannot remove unknown resource.");
                     }
 
-                    await InvokeAsync(StateHasChanged);
+                    await InvokeAsync(() =>
+                    {
+                        _visibleResourceTypes.Add(resource.ResourceType);
+
+                        StateHasChanged();
+                    });
                 }
             });
         }
