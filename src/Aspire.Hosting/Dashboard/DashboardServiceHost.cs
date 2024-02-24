@@ -4,7 +4,6 @@
 using System.Net;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
-using Aspire.Hosting.Publishing;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server;
@@ -49,16 +48,15 @@ internal sealed class DashboardServiceHost : IHostedService
     public DashboardServiceHost(
         DistributedApplicationOptions options,
         DistributedApplicationModel applicationModel,
-        KubernetesService kubernetesService,
+        IKubernetesService kubernetesService,
         IConfiguration configuration,
-        IOptions<PublishingOptions> publishingOptions,
+        DistributedApplicationExecutionContext executionContext,
         ILoggerFactory loggerFactory,
         IConfigureOptions<LoggerFilterOptions> loggerOptions)
     {
         _logger = loggerFactory.CreateLogger<DashboardServiceHost>();
 
-        if (!options.DashboardEnabled ||
-            publishingOptions.Value.Publisher == "manifest") // HACK: Manifest publisher check is temporary until DcpHostService is integrated with DcpPublisher.
+        if (!options.DashboardEnabled || executionContext.IsPublishMode)
         {
             _logger.LogDebug("Dashboard is not enabled so skipping hosting the resource service.");
             _resourceServiceUri.SetCanceled();

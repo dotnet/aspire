@@ -14,7 +14,7 @@ public class ContainerResourceTests
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddContainer("container", "none");
 
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var containerResources = appModel.GetContainerResources();
@@ -33,7 +33,7 @@ public class ContainerResourceTests
         var appBuilder = DistributedApplication.CreateBuilder();
         appBuilder.AddContainer("container", "none", "nightly");
 
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var containerResources = appModel.GetContainerResources();

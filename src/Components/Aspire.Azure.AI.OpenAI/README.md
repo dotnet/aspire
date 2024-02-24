@@ -7,7 +7,7 @@ Registers [OpenAIClient](https://learn.microsoft.com/dotnet/api/azure.ai.openai.
 ### Prerequisites
 
 - Azure subscription - [create one for free](https://azure.microsoft.com/free/)
-- Azure OpenAI or OpenAI account - [create am Azure OpenAI Service resource](https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/create-resource)
+- Azure OpenAI or OpenAI account - [create an Azure OpenAI Service resource](https://learn.microsoft.com/azure/ai-services/openai/how-to/create-resource)
 
 ### Install the package
 
@@ -76,7 +76,7 @@ Alternatively, a custom connection string can be used.
 }
 ```
 
-In order to connect to the non-Azure OpenAI service, use the AccountKey property only to set the API key (https://platform.openai.com/account/api-keys).
+In order to connect to the non-Azure OpenAI service, drop the Endpoint property and only set the Key property to set the API key (https://platform.openai.com/account/api-keys).
 
 ### Use configuration providers
 

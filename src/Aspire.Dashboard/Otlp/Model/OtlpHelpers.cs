@@ -42,11 +42,6 @@ public static class OtlpHelpers
     public static string ToShortenedId(string id) =>
         id.Length > 7 ? id[..7] : id;
 
-    public static string FormatTimeStamp(DateTime timestamp)
-    {
-        return timestamp.ToLocalTime().ToString("h:mm:ss.fff tt", CultureInfo.CurrentCulture);
-    }
-
     public static string ToHexString(ReadOnlyMemory<byte> bytes)
     {
         if (bytes.Length == 0)
@@ -94,21 +89,16 @@ public static class OtlpHelpers
         buffer[startingIndex] = (char)(packedResult >> 8);
     }
 
-    public static DateTime UnixNanoSecondsToDateTime(ulong unixTimeNanoSeconds)
+    public static DateTime UnixNanoSecondsToDateTime(ulong unixTimeNanoseconds)
     {
-        var ticks = NanoSecondsToTicks(unixTimeNanoSeconds);
+        var ticks = NanosecondsToTicks(unixTimeNanoseconds);
 
-        // Create a DateTime object for the Unix epoch (January 1, 1970)
-        var unixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-        unixEpoch = unixEpoch.AddTicks(ticks);
-
-        return unixEpoch;
+        return DateTime.UnixEpoch.AddTicks(ticks);
     }
 
-    private static long NanoSecondsToTicks(ulong nanoSeconds)
+    private static long NanosecondsToTicks(ulong nanoseconds)
     {
-        const ulong nanosecondsPerTick = 100; // 100 nanoseconds per tick
-        return (long)(nanoSeconds / nanosecondsPerTick);
+        return (long)(nanoseconds / TimeSpan.NanosecondsPerTick);
     }
 
     public static KeyValuePair<string, string>[] ToKeyValuePairs(this RepeatedField<KeyValue> attributes)
@@ -156,6 +146,37 @@ public static class OtlpHelpers
                 return values[i].Value;
             }
         }
+        return null;
+    }
+
+    public static string? GetPeerAddress(this KeyValuePair<string, string>[] values)
+    {
+        var address = GetValue(values, OtlpSpan.PeerServiceAttributeKey);
+        if (address != null)
+        {
+            return address;
+        }
+
+        // OTEL HTTP 1.7.0 doesn't return peer.service. Fallback to server.address and server.port.
+        if (GetValue(values, OtlpSpan.ServerAddressAttributeKey) is { } server)
+        {
+            if (GetValue(values, OtlpSpan.ServerPortAttributeKey) is { } serverPort)
+            {
+                server += ":" + serverPort;
+            }
+            return server;
+        }
+
+        // Fallback to older names of net.peer.name and net.peer.port.
+        if (GetValue(values, OtlpSpan.NetPeerNameAttributeKey) is { } peer)
+        {
+            if (GetValue(values, OtlpSpan.NetPeerPortAttributeKey) is { } peerPort)
+            {
+                peer += ":" + peerPort;
+            }
+            return peer;
+        }
+
         return null;
     }
 

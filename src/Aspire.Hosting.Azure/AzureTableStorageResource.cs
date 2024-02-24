@@ -1,7 +1,10 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-namespace Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Publishing;
+
+namespace Aspire.Hosting.Azure;
 
 /// <summary>
 /// Represents an Azure Table Storage resource.
@@ -18,8 +21,19 @@ public class AzureTableStorageResource(string name, AzureStorageResource storage
     public AzureStorageResource Parent => storage;
 
     /// <summary>
+    /// Gets the connection string template for the manifest for the Azure Table Storage resource.
+    /// </summary>
+    public string ConnectionStringExpression => Parent.TableEndpoint.ValueExpression;
+
+    /// <summary>
     /// Gets the connection string for the Azure Table Storage resource.
     /// </summary>
     /// <returns>The connection string for the Azure Table Storage resource.</returns>
     public string? GetConnectionString() => Parent.GetTableConnectionString();
+
+    internal void WriteToManifest(ManifestPublishingContext context)
+    {
+        context.Writer.WriteString("type", "value.v0");
+        context.WriteConnectionString(this);
+    }
 }

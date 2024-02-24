@@ -66,14 +66,14 @@ public static class ResourceExtensions
     }
 
     /// <summary>
-    /// Attempts to get the volume mounts for the specified resource.
+    /// Attempts to get the container mounts for the specified resource.
     /// </summary>
     /// <param name="resource">The resource to get the volume mounts for.</param>
     /// <param name="volumeMounts">When this method returns, contains the volume mounts for the specified resource, if found; otherwise, <c>null</c>.</param>
     /// <returns><c>true</c> if the volume mounts were successfully retrieved; otherwise, <c>false</c>.</returns>
-    public static bool TryGetVolumeMounts(this IResource resource, [NotNullWhen(true)] out IEnumerable<VolumeMountAnnotation>? volumeMounts)
+    public static bool TryGetContainerMounts(this IResource resource, [NotNullWhen(true)] out IEnumerable<ContainerMountAnnotation>? volumeMounts)
     {
-        return TryGetAnnotationsOfType<VolumeMountAnnotation>(resource, out volumeMounts);
+        return TryGetAnnotationsOfType<ContainerMountAnnotation>(resource, out volumeMounts);
     }
 
     /// <summary>
@@ -109,8 +109,18 @@ public static class ResourceExtensions
         if (resource.Annotations.OfType<ContainerImageAnnotation>().LastOrDefault() is { } imageAnnotation)
         {
             var registryPrefix = string.IsNullOrEmpty(imageAnnotation.Registry) ? string.Empty : $"{imageAnnotation.Registry}/";
-            var tagSuffix = string.IsNullOrEmpty(imageAnnotation.Tag) ? string.Empty : $":{imageAnnotation.Tag}";
-            imageName = $"{registryPrefix}{imageAnnotation.Image}{tagSuffix}";
+
+            if (string.IsNullOrEmpty(imageAnnotation.SHA256))
+            {
+                var tagSuffix = string.IsNullOrEmpty(imageAnnotation.Tag) ? string.Empty : $":{imageAnnotation.Tag}";
+                imageName = $"{registryPrefix}{imageAnnotation.Image}{tagSuffix}";
+            }
+            else
+            {
+                var shaSuffix = $"@sha256:{imageAnnotation.SHA256}";
+                imageName = $"{registryPrefix}{imageAnnotation.Image}{shaSuffix}";
+            }
+
             return true;
         }
 

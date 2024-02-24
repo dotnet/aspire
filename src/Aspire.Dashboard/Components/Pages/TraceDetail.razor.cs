@@ -15,7 +15,6 @@ public partial class TraceDetail : ComponentBase
 {
     private readonly List<IDisposable> _peerChangesSubscriptions = new();
     private OtlpTrace? _trace;
-    private OtlpSpan? _span;
     private Subscription? _tracesSubscription;
     private List<SpanWaterfallViewModel>? _spanWaterfallViewModels;
     private int _maxDepth;
@@ -24,9 +23,6 @@ public partial class TraceDetail : ComponentBase
 
     [Parameter]
     public required string TraceId { get; set; }
-
-    [Parameter]
-    public string? SpanId { get; set; }
 
     [Inject]
     public required TelemetryRepository TelemetryRepository { get; set; }
@@ -103,7 +99,7 @@ public partial class TraceDetail : ComponentBase
             var labelIsRight = (relativeStart + span.Duration / 2) < (span.Trace.Duration / 2);
 
             // A span may indicate a call to another service but the service isn't instrumented.
-            var hasPeerService = span.Attributes.Any(a => a.Key == OtlpSpan.PeerServiceAttributeKey);
+            var hasPeerService = OtlpHelpers.GetPeerAddress(span.Attributes) != null;
             var isUninstrumentedPeer = hasPeerService && span.Kind is OtlpSpanKind.Client or OtlpSpanKind.Producer && !span.GetChildSpans().Any();
             var uninstrumentedPeer = isUninstrumentedPeer ? ResolveUninstrumentedPeerName(span, state.OutgoingPeerResolvers) : null;
 
@@ -144,7 +140,7 @@ public partial class TraceDetail : ComponentBase
         }
 
         // Fallback to the peer address.
-        return OtlpHelpers.GetValue(span.Attributes, OtlpSpan.PeerServiceAttributeKey);
+        return OtlpHelpers.GetPeerAddress(span.Attributes);
     }
 
     protected override void OnParametersSet()
@@ -157,7 +153,6 @@ public partial class TraceDetail : ComponentBase
         _applications = TelemetryRepository.GetApplications();
 
         _trace = null;
-        _span = null;
 
         if (TraceId is not null)
         {
@@ -177,24 +172,19 @@ public partial class TraceDetail : ComponentBase
                         return Task.CompletedTask;
                     }));
                 }
-                if (SpanId is not null)
-                {
-                    _span = _trace.Spans.FirstOrDefault(s => s.SpanId.StartsWith(SpanId, StringComparison.Ordinal));
-                }
             }
         }
     }
 
     private string GetRowClass(SpanWaterfallViewModel viewModel)
     {
-        if (viewModel.Span == SelectedSpan?.Span)
+        // Test with id rather than the object reference because the data and view model objects are recreated on trace updates.
+        if (viewModel.Span.SpanId == SelectedSpan?.Span.SpanId)
         {
             return "selected-row";
         }
-        else
-        {
-            return (viewModel.Span.SpanId == _span?.SpanId) ? "selected-span" : string.Empty;
-        }
+
+        return string.Empty;
     }
 
     public SpanDetailsViewModel? SelectedSpan { get; set; }

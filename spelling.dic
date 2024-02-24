@@ -13,6 +13,7 @@ brightred
 brightwhite
 brightyellow
 chmod
+consolelogs
 csproj
 dbug
 dcpctrl
@@ -32,12 +33,14 @@ mssql
 mysql
 noreferrer
 noopener
+npgsql
 oninput
 openai
 orleans
 otel
 otlp
 pgadmin
+postgre
 postgres
 protoc
 rabbitmq
@@ -45,8 +48,11 @@ redis
 rediscommander
 runtimeconfig
 sqlserver
+structuredlogs
 trce
 uninstrumented
+unix
 upsert
 uris
 urls
+kubernetes

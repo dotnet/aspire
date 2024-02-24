@@ -34,6 +34,11 @@ internal static partial class ProcessUtil
             EnableRaisingEvents = true
         };
 
+        if (!processSpec.InheritEnv)
+        {
+            process.StartInfo.Environment.Clear();
+        }
+
         foreach (var (key, value) in processSpec.EnvironmentVariables)
         {
             process.StartInfo.Environment[key] = value;
@@ -53,7 +58,7 @@ internal static partial class ProcessUtil
             {
                 startupComplete.Wait();
 
-                if (e.Data == null || process.HasExited)
+                if (String.IsNullOrEmpty(e.Data))
                 {
                     return;
                 }
@@ -67,7 +72,7 @@ internal static partial class ProcessUtil
             process.ErrorDataReceived += (_, e) =>
             {
                 startupComplete.Wait();
-                if (e.Data == null || process.HasExited)
+                if (String.IsNullOrEmpty(e.Data))
                 {
                     return;
                 }
@@ -95,7 +100,9 @@ internal static partial class ProcessUtil
 
         try
         {
+#if ASPIRE_EVENTSOURCE
             AspireEventSource.Instance.ProcessLaunchStart(processSpec.ExecutablePath, processSpec.Arguments ?? "");
+#endif
 
             process.Start();
             process.BeginOutputReadLine();
@@ -105,8 +112,9 @@ internal static partial class ProcessUtil
         finally
         {
             startupComplete.Set(); // Allow output/error/exit handlers to start processing data.
-
+#if ASPIRE_EVENTSOURCE
             AspireEventSource.Instance.ProcessLaunchStop(processSpec.ExecutablePath, processSpec.Arguments ?? "");
+#endif
         }
 
         return (processLifetimeTcs.Task, new ProcessDisposable(process, processLifetimeTcs.Task, processSpec.KillEntireProcessTree));

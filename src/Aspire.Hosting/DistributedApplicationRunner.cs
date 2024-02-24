@@ -5,23 +5,17 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting;
 
-internal sealed class DistributedApplicationRunner(DistributedApplicationModel model, IOptions<PublishingOptions> options, IServiceProvider serviceProvider) : BackgroundService
+internal sealed class DistributedApplicationRunner(DistributedApplicationExecutionContext executionContext, DistributedApplicationModel model, IServiceProvider serviceProvider) : BackgroundService
 {
-    private readonly DistributedApplicationModel _model = model;
-    private readonly IOptions<PublishingOptions> _options = options;
-    private readonly IServiceProvider _serviceProvider = serviceProvider;
-
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var publisherName = _options.Value.Publisher?.ToLowerInvariant() ?? "dcp";
+        var publisher = executionContext.IsPublishMode
+            ? serviceProvider.GetRequiredKeyedService<IDistributedApplicationPublisher>("manifest")
+            : serviceProvider.GetRequiredKeyedService<IDistributedApplicationPublisher>("dcp");
 
-        var publisher = _serviceProvider.GetKeyedService<IDistributedApplicationPublisher>(publisherName)
-            ?? throw new DistributedApplicationException($"Could not find registered publisher '{publisherName}'");
-
-        await publisher.PublishAsync(_model, stoppingToken).ConfigureAwait(false);
+        await publisher.PublishAsync(model, stoppingToken).ConfigureAwait(false);
     }
 }

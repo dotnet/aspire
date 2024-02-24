@@ -7,12 +7,35 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Publishing;
 
-public sealed class ManifestPublishingContext(string manifestPath, Utf8JsonWriter writer)
+/// <summary>
+/// Contextual information used for manifest publishing during this execution of the AppHost.
+/// </summary>
+/// <param name="executionContext">Global contextual information for this invocation of the AppHost.</param>
+/// <param name="manifestPath">Manifest path passed in for this invocation of the AppHost.</param>
+/// <param name="writer">JSON writer used to writing the manifest.</param>
+public sealed class ManifestPublishingContext(DistributedApplicationExecutionContext executionContext, string manifestPath, Utf8JsonWriter writer)
 {
+    /// <summary>
+    /// Gets execution context for this invocation of the AppHost.
+    /// </summary>
+    public DistributedApplicationExecutionContext ExecutionContext { get; } = executionContext;
+
+    /// <summary>
+    /// Gets manifest path specified for this invocation of the AppHost.
+    /// </summary>
     public string ManifestPath { get; } = manifestPath;
 
+    /// <summary>
+    /// Gets JSON writer for writing manifest entries.
+    /// </summary>
     public Utf8JsonWriter Writer { get; } = writer;
 
+    /// <summary>
+    /// Generates a relative path based on the location of the manifest path.
+    /// </summary>
+    /// <param name="path"></param>
+    /// <returns></returns>
+    /// <exception cref="DistributedApplicationException"></exception>
     [return: NotNullIfNotNull(nameof(path))]
     public string? GetManifestRelativePath(string? path)
     {
@@ -28,9 +51,17 @@ public sealed class ManifestPublishingContext(string manifestPath, Utf8JsonWrite
         return relativePath.Replace('\\', '/');
     }
 
+    /// <summary>
+    /// TODO: Doc Comments
+    /// </summary>
+    /// <param name="container"></param>
+    /// <exception cref="DistributedApplicationException"></exception>
     public void WriteContainer(ContainerResource container)
     {
         Writer.WriteString("type", "container.v0");
+
+        // Attempt to write the connection string for the container (if this resource has one).
+        WriteConnectionString(container);
 
         if (!container.TryGetContainerImageName(out var image))
         {
@@ -68,6 +99,24 @@ public sealed class ManifestPublishingContext(string manifestPath, Utf8JsonWrite
         WriteBindings(container, emitContainerPort: true);
     }
 
+    /// <summary>
+    /// Writes the "connectionString" field for the underlying resource.
+    /// </summary>
+    /// <param name="resource"></param>
+    public void WriteConnectionString(IResource resource)
+    {
+        if (resource is IResourceWithConnectionString resourceWithConnectionString &&
+            resourceWithConnectionString.ConnectionStringExpression is string connectionString)
+        {
+            Writer.WriteString("connectionString", connectionString);
+        }
+    }
+
+    /// <summary>
+    /// TODO: Doc Comments
+    /// </summary>
+    /// <param name="resource"></param>
+    /// <param name="emitContainerPort"></param>
     public void WriteBindings(IResource resource, bool emitContainerPort = false)
     {
         if (resource.TryGetEndpoints(out var endpoints))
@@ -96,10 +145,15 @@ public sealed class ManifestPublishingContext(string manifestPath, Utf8JsonWrite
         }
     }
 
+    /// <summary>
+    /// TODO: Doc Comments
+    /// </summary>
+    /// <param name="resource"></param>
     public void WriteEnvironmentVariables(IResource resource)
     {
         var config = new Dictionary<string, string>();
-        var envContext = new EnvironmentCallbackContext("manifest", config);
+
+        var envContext = new EnvironmentCallbackContext(ExecutionContext, config);
 
         if (resource.TryGetAnnotationsOfType<EnvironmentCallbackAnnotation>(out var callbacks))
         {
@@ -122,6 +176,10 @@ public sealed class ManifestPublishingContext(string manifestPath, Utf8JsonWrite
         }
     }
 
+    /// <summary>
+    /// TODO: Doc Comments
+    /// </summary>
+    /// <param name="resource"></param>
     public void WriteServiceDiscoveryEnvironmentVariables(IResource resource)
     {
         var endpointReferenceAnnotations = resource.Annotations.OfType<EndpointReferenceAnnotation>();
@@ -148,11 +206,14 @@ public sealed class ManifestPublishingContext(string manifestPath, Utf8JsonWrite
 
                     Writer.WriteString($"services__{endpointReferenceAnnotation.Resource.Name}__{i++}", $"{{{endpointReferenceAnnotation.Resource.Name}.bindings.{binding.Name}.url}}");
                 }
-
             }
         }
     }
 
+    /// <summary>
+    /// TODO: Doc Comments
+    /// </summary>
+    /// <param name="resource"></param>
     public void WritePortBindingEnvironmentVariables(IResource resource)
     {
         if (resource.TryGetEndpoints(out var endpoints))
@@ -167,5 +228,23 @@ public sealed class ManifestPublishingContext(string manifestPath, Utf8JsonWrite
                 Writer.WriteString(endpoint.EnvironmentVariable, $"{{{resource.Name}.bindings.{endpoint.Name}.port}}");
             }
         }
+    }
+
+    internal void WriteManifestMetadata(IResource resource)
+    {
+        if (!resource.TryGetAnnotationsOfType<ManifestMetadataAnnotation>(out var metadataAnnotations))
+        {
+            return;
+        }
+
+        Writer.WriteStartObject("metadata");
+
+        foreach (var metadataAnnotation in metadataAnnotations)
+        {
+            Writer.WritePropertyName(metadataAnnotation.Name);
+            JsonSerializer.Serialize(Writer, metadataAnnotation.Value);
+        }
+
+        Writer.WriteEndObject();
     }
 }

@@ -22,6 +22,7 @@ steps:
   - script: ${{ parameters.buildScript }}
             -restore -build
             -configuration ${{ parameters.buildConfig }}
+            /p:ArchiveTests=true
             /bl:${{ parameters.repoLogPath }}/build.binlog
             $(_OfficialBuildIdArgs)
     displayName: Build
@@ -29,9 +30,44 @@ steps:
   - ${{ if ne(parameters.skipTests, 'true') }}:
     - script: ${{ parameters.dotnetScript }} dotnet-coverage collect
               --settings $(Build.SourcesDirectory)/eng/CodeCoverage.config
+              --output ${{ parameters.repoTestResultsPath }}/NonHelixTests.cobertura.xml
+              "${{ parameters.buildScript }} -testnobuild -test -configuration ${{ parameters.buildConfig }} /bl:${{ parameters.repoLogPath }}/tests.binlog $(_OfficialBuildIdArgs)"
+      displayName: Run non-helix tests
+
+    - template: /eng/pipelines/templates/send-to-helix.yml
+      parameters:
+        HelixProjectPath: '$(Build.SourcesDirectory)/tests/send-to-helix.proj'
+        HelixProjectArguments: /p:RunWithCodeCoverage=true /p:RepoTestResultsPath=${{ parameters.repoTestResultsPath }}
+
+        ${{ if eq(parameters.isWindows, 'true') }}:
+          ${{ if eq(variables['System.TeamProject'], 'public') }}:
+            HelixTargetQueues: Windows.11.Amd64.Client.Open
+          ${{ if eq(variables['System.TeamProject'], 'internal') }}:
+            HelixTargetQueues: Windows.11.Amd64.Client
+        ${{ if ne(parameters.isWindows, 'true') }}:
+          ${{ if eq(variables['System.TeamProject'], 'public') }}:
+            HelixTargetQueues: Ubuntu.2204.Amd64.Open
+          ${{ if eq(variables['System.TeamProject'], 'internal') }}:
+            HelixTargetQueues: Ubuntu.2204.Amd64
+
+        IsWindows: ${{ parameters.isWindows }}
+        ${{ if eq(variables['System.TeamProject'], 'public') }}:
+          Creator: $(Build.DefinitionName)
+        HelixBuild: $(Build.BuildNumber)
+        HelixAccessToken: $(HelixApiAccessToken)
+
+    - task: CopyFiles@2
+      inputs:
+        Contents: '${{ parameters.repoTestResultsPath }}/**/*.cobertura.xml'
+        TargetFolder: '${{ parameters.repoTestResultsPath }}/collected'
+        flattenFolders: true
+      displayName: Gather coverage results (cobertura.xml)
+
+    - script: $(Build.SourcesDirectory)/.dotnet/dotnet dotnet-coverage merge
+              ${{ parameters.repoTestResultsPath }}/collected/*.cobertura.xml
+              --output-format cobertura
               --output ${{ parameters.repoTestResultsPath }}/$(Agent.Os)_$(Agent.JobName).cobertura.xml
-              "${{ parameters.buildScript }} -test -configuration ${{ parameters.buildConfig }} /bl:${{ parameters.repoLogPath }}/tests.binlog $(_OfficialBuildIdArgs)"
-      displayName: Run tests
+      displayName: Merge code coverage reports
 
     - task: PublishBuildArtifacts@1
       inputs:

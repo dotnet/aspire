@@ -7,11 +7,16 @@
     <TargetFramework>$(NetCurrent)</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <NoWarn>$(NoWarn);CS8002</NoWarn>
+    <!--
+      CS1591: Missing XML comment for publicly visible type or member 'Type_or_Member'
+      CS8002: Referenced assembly does not have a strong name
+    -->
+    <NoWarn>$(NoWarn);CS1591;CS8002</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
-    <Protobuf Include="**/*.proto" GrpcServices="Server">
+    <!-- Build service and client types. Integration tests use the client types to call OTLP services. -->
+    <Protobuf Include="**/*.proto">
       <ProtoRoot>Otlp</ProtoRoot>
     </Protobuf>
   </ItemGroup>
@@ -25,6 +30,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Aspire.Dashboard.Tests" />
+    <InternalsVisibleTo Include="Aspire.Dashboard.Components.Tests" />
   </ItemGroup>
 
   <ItemGroup>

@@ -22,6 +22,21 @@
         <target state="new">Filters</target>
         <note />
       </trans-unit>
+      <trans-unit id="ChartContainerGraphAccessibleLabel">
+        <source>Graph. For an accessible view please navigate to the Table tab</source>
+        <target state="new">Graph. For an accessible view please navigate to the Table tab</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ChartContainerGraphTab">
+        <source>Graph</source>
+        <target state="new">Graph</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ChartContainerNoneSelected">
+        <source>(None)</source>
+        <target state="new">(None)</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ChartContainerOptionsHeader">
         <source>Options</source>
         <target state="new">Options</target>
@@ -35,6 +50,11 @@
       <trans-unit id="ChartContainerShowCountLabel">
         <source>Show count</source>
         <target state="new">Show count</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ChartContainerTableTab">
+        <source>Table</source>
+        <target state="new">Table</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerUnableToDisplay">
@@ -82,6 +102,11 @@
         <target state="new">Show values</target>
         <note />
       </trans-unit>
+      <trans-unit id="GridValueCopied">
+        <source>Copied!</source>
+        <target state="new">Copied!</target>
+        <note />
+      </trans-unit>
       <trans-unit id="GridValueCopyToClipboard">
         <source>Copy to clipboard</source>
         <target state="new">Copy to clipboard</target>
@@ -95,6 +120,46 @@
       <trans-unit id="GridValueMaskShowValue">
         <source>Show value</source>
         <target state="new">Show value</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Loading">
+        <source>Loading...</source>
+        <target state="new">Loading...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MetricTableNoMetricsFound">
+        <source>No metrics data found</source>
+        <target state="new">No metrics data found</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MetricTableShowLatestValues">
+        <source>Show latest 10 values</source>
+        <target state="new">Show latest 10 values</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MetricTableShowOnlyValueChanges">
+        <source>Only show value updates</source>
+        <target state="new">Only show value updates</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MetricTableStartColumnHeader">
+        <source>Time</source>
+        <target state="new">Time</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MetricTableValueDecreased">
+        <source>Value decreased</source>
+        <target state="new">Value decreased</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MetricTableValueIncreased">
+        <source>Value increased</source>
+        <target state="new">Value increased</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MetricTableValueNoChange">
+        <source>Value did not change</source>
+        <target state="new">Value did not change</target>
         <note />
       </trans-unit>
       <trans-unit id="NameColumnHeader">
@@ -121,6 +186,16 @@
         <source>Value</source>
         <target state="new">Value</target>
         <note />
+      </trans-unit>
+      <trans-unit id="ReplicaSetLower">
+        <source>replica set</source>
+        <target state="new">replica set</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ResourceDropdownReplicaAccessibleTitle">
+        <source>{0} (replica of {1})</source>
+        <target state="new">{0} (replica of {1})</target>
+        <note>{0} is a resource name, {1} is a replica set name</note>
       </trans-unit>
       <trans-unit id="SelectAResource">
         <source>Select a resource</source>

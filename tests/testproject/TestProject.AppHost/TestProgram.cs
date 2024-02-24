@@ -2,11 +2,19 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Reflection;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using Aspire.Hosting.Lifecycle;
 
-public class TestProgram
+public class TestProgram : IDisposable
 {
-    private TestProgram(string[] args, Assembly assembly, bool includeIntegrationServices = false, bool disableDashboard = true, bool includeNodeApp = false)
+    private TestProgram(string[] args, Assembly assembly, bool includeIntegrationServices, bool includeNodeApp, bool disableDashboard)
     {
+        if (args.Contains("--disable-dashboard"))
+        {
+            disableDashboard = true;
+        }
+
         AppBuilder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions { Args = args, DisableDashboard = disableDashboard, AssemblyName = assembly.FullName });
 
         var serviceAPath = Path.Combine(Projects.TestProject_AppHost.ProjectPath, @"..\TestProject.ServiceA\TestProject.ServiceA.csproj");
@@ -66,10 +74,12 @@ public class TestProgram
                 .WithReference(kafka)
                 .WithReference(cosmos);
         }
+
+        AppBuilder.Services.AddLifecycleHook<EndPointWriterHook>();
     }
 
     public static TestProgram Create<T>(string[]? args = null, bool includeIntegrationServices = false, bool includeNodeApp = false, bool disableDashboard = true) =>
-        new TestProgram(args ?? [], typeof(T).Assembly, includeIntegrationServices, disableDashboard, includeNodeApp: includeNodeApp);
+        new TestProgram(args ?? [], typeof(T).Assembly, includeIntegrationServices, includeNodeApp, disableDashboard);
 
     public IDistributedApplicationBuilder AppBuilder { get; private set; }
     public IResourceBuilder<ProjectResource> ServiceABuilder { get; private set; }
@@ -98,10 +108,39 @@ public class TestProgram
         return App;
     }
 
-    public void Run()
+    public void Run() => Build().Run();
+
+    public void Dispose() => App?.Dispose();
+
+    /// <summary>
+    /// Writes the allocated endpoints to the console in JSON format.
+    /// This allows for easier consumption by the external test process.
+    /// </summary>
+    private sealed class EndPointWriterHook : IDistributedApplicationLifecycleHook
     {
-        Build();
-        App!.Run();
+        public async Task AfterEndpointsAllocatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
+        {
+            var root = new JsonObject();
+            foreach (var project in appModel.Resources.OfType<ProjectResource>())
+            {
+                var projectJson = new JsonObject();
+                root[project.Name] = projectJson;
+
+                var endpointsJsonArray = new JsonArray();
+                projectJson["Endpoints"] = endpointsJsonArray;
+
+                foreach (var endpoint in project.Annotations.OfType<AllocatedEndpointAnnotation>())
+                {
+                    var endpointJsonObject = new JsonObject();
+                    endpointJsonObject["Name"] = endpoint.Name;
+                    endpointJsonObject["Uri"] = endpoint.UriString;
+                    endpointsJsonArray.Add(endpointJsonObject);
+                }
+            }
+
+            // write the whole json in a single line so it's easier to parse by the external process
+            await Console.Out.WriteLineAsync("$ENDPOINTS: " + JsonSerializer.Serialize(root, JsonSerializerOptions.Default));
+        }
     }
 }
 

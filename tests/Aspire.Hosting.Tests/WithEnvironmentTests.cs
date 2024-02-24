@@ -11,7 +11,7 @@ public class WithEnvironmentTests
     [Fact]
     public void EnvironmentReferencingEndpointPopulatesWithBindingUrl()
     {
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
 
         // Create a binding and its metching annotation (simulating DCP behavior)
         testProgram.ServiceABuilder.WithHttpsEndpoint(1000, 2000, "mybinding");
@@ -31,7 +31,8 @@ public class WithEnvironmentTests
         var annotations = testProgram.ServiceBBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
+        var context = new EnvironmentCallbackContext(executionContext, config);
 
         foreach (var annotation in annotations)
         {
@@ -46,7 +47,7 @@ public class WithEnvironmentTests
     [Fact]
     public void SimpleEnvironmentWithNameAndValue()
     {
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
 
         testProgram.ServiceABuilder.WithEnvironment("myName", "value");
 
@@ -56,7 +57,8 @@ public class WithEnvironmentTests
         var annotations = testProgram.ServiceABuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
+        var context = new EnvironmentCallbackContext(executionContext, config);
 
         foreach (var annotation in annotations)
         {
@@ -71,7 +73,7 @@ public class WithEnvironmentTests
     [Fact]
     public void EnvironmentCallbackPopulatesValueWhenCalled()
     {
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
 
         var environmentValue = "value";
         testProgram.ServiceABuilder.WithEnvironment("myName", () => environmentValue);
@@ -83,7 +85,8 @@ public class WithEnvironmentTests
         var annotations = testProgram.ServiceABuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
+        var context = new EnvironmentCallbackContext(executionContext, config);
 
         foreach (var annotation in annotations)
         {
@@ -98,7 +101,7 @@ public class WithEnvironmentTests
     [Fact]
     public void EnvironmentCallbackPopulatesValueWhenParameterResourceProvided()
     {
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
         testProgram.AppBuilder.Configuration["Parameters:parameter"] = "MY_PARAMETER_VALUE";
         var parameter = testProgram.AppBuilder.AddParameter("parameter");
 
@@ -109,7 +112,8 @@ public class WithEnvironmentTests
         var annotations = testProgram.ServiceABuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
+        var context = new EnvironmentCallbackContext(executionContext, config);
 
         foreach (var annotation in annotations)
         {
@@ -122,7 +126,7 @@ public class WithEnvironmentTests
     [Fact]
     public void EnvironmentCallbackPopulatesWithExpressionPlaceholderWhenPublishingManifest()
     {
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
         var parameter = testProgram.AppBuilder.AddParameter("parameter");
 
         testProgram.ServiceABuilder.WithEnvironment("MY_PARAMETER", parameter);
@@ -132,7 +136,8 @@ public class WithEnvironmentTests
         var annotations = testProgram.ServiceABuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("manifest", config);
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish);
+        var context = new EnvironmentCallbackContext(executionContext, config);
 
         foreach (var annotation in annotations)
         {
@@ -145,7 +150,7 @@ public class WithEnvironmentTests
     [Fact]
     public void EnvironmentCallbackThrowsWhenParameterValueMissingInDcpMode()
     {
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
         var parameter = testProgram.AppBuilder.AddParameter("parameter");
 
         testProgram.ServiceABuilder.WithEnvironment("MY_PARAMETER", parameter);
@@ -155,7 +160,8 @@ public class WithEnvironmentTests
         var annotations = testProgram.ServiceABuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
+        var context = new EnvironmentCallbackContext(executionContext, config);
 
         var exception = Assert.Throws<DistributedApplicationException>(() =>
         {
@@ -171,7 +177,7 @@ public class WithEnvironmentTests
     [Fact]
     public void ComplexEnvironmentCallbackPopulatesValueWhenCalled()
     {
-        var testProgram = CreateTestProgram();
+        using var testProgram = CreateTestProgram();
 
         var environmentValue = "value";
         testProgram.ServiceABuilder.WithEnvironment((context) =>
@@ -186,7 +192,8 @@ public class WithEnvironmentTests
         var annotations = testProgram.ServiceABuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
+        var context = new EnvironmentCallbackContext(executionContext, config);
 
         foreach (var annotation in annotations)
         {

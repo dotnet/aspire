@@ -1,11 +1,16 @@
 <Project>
-  <ItemGroup Condition="'$(DotNetBuildFromSource)' != 'true' and '$(DotNetBuildSourceOnly)' != 'true'">
+  <ItemGroup Condition="'$(DotNetBuildFromSource)' != 'true' and '$(DotNetBuild)' != 'true'">
     <ProjectToBuild Include="$(RepoRoot)src\**\*.csproj" Exclude="$(RepoRoot)src\Aspire.ProjectTemplates\templates\**\*.csproj" />
     <ProjectToBuild Include="$(RepoRoot)tests\**\*.csproj"  />
-    <ProjectToBuild Include="$(RepoRoot)samples\**\*.csproj" />
+    <ProjectToBuild Include="$(RepoRoot)playground\**\*.csproj" />
   </ItemGroup>
   <!-- If we are building for SourceBuild, then we only want to build the Aspire manifest package -->
-  <ItemGroup Condition="'$(DotNetBuildFromSource)' == 'true' or '$(DotNetBuildSourceOnly)' == 'true'">
+  <ItemGroup Condition="'$(DotNetBuildFromSource)' == 'true' or '$(DotNetBuild)' == 'true'">
     <ProjectToBuild Include="$(RepoRoot)src\Microsoft.NET.Sdk.Aspire\Microsoft.NET.Sdk.Aspire.csproj" />
   </ItemGroup>
+
+  <!-- When building from source, we want to use the live repo contents as opposed to cloning the repo. -->
+  <PropertyGroup Condition="'$(ArcadeBuildFromSource)' == 'true'">
+    <CopySrcInsteadOfClone>true</CopySrcInsteadOfClone>
+  </PropertyGroup>
 </Project>

@@ -51,8 +51,8 @@ internal static class VolumeMountType
     // A volume mount to a host directory
     public const string Bind = "bind";
 
-    // A volume mount to a named volume managed by the container orchestrator
-    public const string Named = "volume";
+    // A volume mount to a volume managed by the container orchestrator
+    public const string Volume = "volume";
 }
 
 internal sealed class VolumeMount
@@ -220,6 +220,9 @@ internal static class ContainerState
 
 internal sealed class Container : CustomResource<ContainerSpec, ContainerStatus>
 {
+    public const string ResourceNameAnnotation = "resource-name";
+    public const string OtelServiceNameAnnotation = "otel-service-name";
+
     [JsonConstructor]
     public Container(ContainerSpec spec) : base(spec) { }
 

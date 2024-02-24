@@ -28,6 +28,11 @@ fluent-toolbar[orientation=horizontal] {
     --log-critical: #F8ECEB;
     --log-error: #F8ECEB;
     --log-warning: #FBF3DD;
+
+    --info: #717171 !important;
+    --warning: #E85E36 !important;
+    --success: #108310 !important;
+
     --badge-fill-error: var(--error);
     --badge-fill-warning: var(--warning);
     --badge-color-error: var(--foreground-on-accent-rest);
@@ -38,13 +43,15 @@ fluent-toolbar[orientation=horizontal] {
     --error-ui-accent-foreground-color: #1d00d0;
     --reconnection-ui-bg: rgb(255, 255, 255);
     --error-counter-badge-foreground-color: var(--neutral-fill-rest);
+
+    /* overrides of default fluentui-blazor styling */
+    --disabled-opacity: 0.7 !important;
 }
 
 [data-theme="dark"] {
     --log-critical: #493634;
     --log-error: #493634;
     --log-warning: #3F3A2B;
-    --error: #E10B11 !important;
     --foreground-subtext-rest: #8D8D8D;
     --foreground-subtext-hover: #A1A1A1;
 
@@ -52,6 +59,16 @@ fluent-toolbar[orientation=horizontal] {
     --error-ui-accent-foreground-color: #512bd4;
     --reconnection-ui-bg: #D6D6D6;
     --error-counter-badge-foreground-color: #ffffff;
+
+    /* overrides of default fluentui-blazor styling */
+    --error: #E10B11 !important;
+    --disabled-opacity: 0.85 !important;
+
+    color-scheme: dark;
+}
+
+[data-theme="light"] {
+    color-scheme: light;
 }
 
  #components-reconnect-modal :is(h5, p) {
@@ -199,6 +216,19 @@ fluent-data-grid-cell .long-inner-content {
     margin-right: 3px;
 }
 
+.align-text-bottom {
+    vertical-align: text-bottom;
+}
+
+ .visually-hidden {
+     top: 0;
+     left: -2px;
+     width: 1px;
+     height: 1px;
+     position: absolute;
+     overflow: hidden;
+ }
+
 split-panels::part(handle) {
     display: none;
 }
@@ -218,4 +248,8 @@ layout > .header {
 
 .flex-filler {
     flex-grow: 1;
+}
+
+fluent-switch.table-switch::part(label) {
+     width: 160px;
 }

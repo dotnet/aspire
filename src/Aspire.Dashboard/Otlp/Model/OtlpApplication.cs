@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using Aspire.Dashboard.Model;
 using Google.Protobuf.Collections;
 using OpenTelemetry.Proto.Common.V1;
 using OpenTelemetry.Proto.Metrics.V1;
@@ -24,10 +23,11 @@ public class OtlpApplication
     private readonly Dictionary<OtlpInstrumentKey, OtlpInstrument> _instruments = new();
 
     private readonly ILogger _logger;
+    private readonly int _maxMetricsCount;
 
     public KeyValuePair<string, string>[] Properties { get; }
 
-    public OtlpApplication(Resource resource, IReadOnlyDictionary<string, OtlpApplication> applications, ILogger logger)
+    public OtlpApplication(Resource resource, IReadOnlyDictionary<string, OtlpApplication> applications, ILogger logger, int maxMetricsCount)
     {
         var properties = new List<KeyValuePair<string, string>>();
         foreach (var attribute in resource.Attributes)
@@ -60,6 +60,7 @@ public class OtlpApplication
             InstanceId = ApplicationName;
         }
         _logger = logger;
+        _maxMetricsCount = maxMetricsCount;
     }
 
     public Dictionary<string, string> AllProperties()
@@ -100,7 +101,8 @@ public class OtlpApplication
                                 Description = metric.Description,
                                 Unit = metric.Unit,
                                 Type = MapMetricType(metric.DataCase),
-                                Parent = GetMeter(sm.Scope)
+                                Parent = GetMeter(sm.Scope),
+                                Capacity = _maxMetricsCount
                             });
                         }
 
@@ -178,6 +180,13 @@ public class OtlpApplication
         }
     }
 
+    public static Dictionary<string, List<OtlpApplication>> GetReplicasByApplicationName(IEnumerable<OtlpApplication> allApplications)
+    {
+        return allApplications
+            .GroupBy(application => application.ApplicationName)
+            .ToDictionary(grouping => grouping.Key, grouping => grouping.ToList());
+    }
+
     public static string GetResourceName(OtlpApplication app, List<OtlpApplication> allApplications)
     {
         var count = 0;
@@ -188,7 +197,7 @@ public class OtlpApplication
                 count++;
                 if (count >= 2)
                 {
-                    return ResourceFormatter.GetName(app.ApplicationName, app.InstanceId);
+                    return app.InstanceId;
                 }
             }
         }

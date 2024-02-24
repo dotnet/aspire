@@ -92,6 +92,7 @@ public readonly struct ResolutionStatus(ResolutionStatusCode statusCode, Excepti
     /// <inheritdoc/>
     public override int GetHashCode() => HashCode.Combine(StatusCode, Exception, Message);
 
+    /// <inheritdoc/>
     public override string ToString() => Exception switch
     {
         not null => $"[{nameof(StatusCode)}: {StatusCode}, {nameof(Message)}: {Message}, {nameof(Exception)}: {Exception}]",

@@ -5,7 +5,7 @@
 <div class="environment-variables-layout">
 
     <FluentToolbar Orientation="Orientation.Horizontal">
-        <FluentAnchor Appearance="Appearance.Lightweight" Href="@($"/ConsoleLogs/{Resource?.Name}")" slot="end">View logs</FluentAnchor>
+        <FluentAnchor Appearance="Appearance.Lightweight" Href="@($"/consolelogs/resource/{Resource?.Name}")" slot="end">View logs</FluentAnchor>
 
         @if (ShowSpecOnlyToggle)
         {

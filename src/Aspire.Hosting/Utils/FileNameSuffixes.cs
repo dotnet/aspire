@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 
 namespace Aspire.Hosting.Utils;
 
-public static class FileNameSuffixes
+internal static class FileNameSuffixes
 {
     public const string DepsJson = ".deps.json";
     public const string RuntimeConfigJson = ".runtimeconfig.json";

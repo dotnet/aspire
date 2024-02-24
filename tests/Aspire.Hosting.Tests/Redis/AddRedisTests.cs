@@ -3,6 +3,7 @@
 
 using System.Net.Sockets;
 using Aspire.Hosting.Redis;
+using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -14,13 +15,13 @@ public class AddRedisTests
     public void AddRedisContainerWithDefaultsAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.AddRedisContainer("myRedis");
+        appBuilder.AddRedis("myRedis").PublishAsContainer();
 
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var containerResource = Assert.Single(appModel.Resources.OfType<RedisContainerResource>());
+        var containerResource = Assert.Single(appModel.Resources.OfType<RedisResource>());
         Assert.Equal("myRedis", containerResource.Name);
 
         var manifestAnnotation = Assert.Single(containerResource.Annotations.OfType<ManifestPublishingCallbackAnnotation>());
@@ -36,7 +37,7 @@ public class AddRedisTests
         Assert.Equal("tcp", endpoint.UriScheme);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal("latest", containerAnnotation.Tag);
+        Assert.Equal("7.2.4", containerAnnotation.Tag);
         Assert.Equal("redis", containerAnnotation.Image);
         Assert.Null(containerAnnotation.Registry);
     }
@@ -45,13 +46,13 @@ public class AddRedisTests
     public void AddRedisContainerAddsAnnotationMetadata()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.AddRedisContainer("myRedis", 9813);
+        appBuilder.AddRedis("myRedis", port: 9813);
 
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var containerResource = Assert.Single(appModel.Resources.OfType<RedisContainerResource>());
+        var containerResource = Assert.Single(appModel.Resources.OfType<RedisResource>());
         Assert.Equal("myRedis", containerResource.Name);
 
         var manifestAnnotation = Assert.Single(containerResource.Annotations.OfType<ManifestPublishingCallbackAnnotation>());
@@ -67,7 +68,7 @@ public class AddRedisTests
         Assert.Equal("tcp", endpoint.UriScheme);
 
         var containerAnnotation = Assert.Single(containerResource.Annotations.OfType<ContainerImageAnnotation>());
-        Assert.Equal("latest", containerAnnotation.Tag);
+        Assert.Equal("7.2.4", containerAnnotation.Tag);
         Assert.Equal("redis", containerAnnotation.Image);
         Assert.Null(containerAnnotation.Registry);
     }
@@ -76,22 +77,35 @@ public class AddRedisTests
     public void RedisCreatesConnectionString()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        appBuilder.AddRedisContainer("myRedis")
+        appBuilder.AddRedis("myRedis")
             .WithAnnotation(
             new AllocatedEndpointAnnotation("mybinding",
             ProtocolType.Tcp,
             "localhost",
             2000,
-            "https"
+            "tcp"
             ));
 
-        var app = appBuilder.Build();
+        using var app = appBuilder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var connectionStringResource = Assert.Single(appModel.Resources.OfType<IResourceWithConnectionString>());
         var connectionString = connectionStringResource.GetConnectionString();
+        Assert.Equal("{myRedis.bindings.tcp.host}:{myRedis.bindings.tcp.port}", connectionStringResource.ConnectionStringExpression);
         Assert.StartsWith("localhost:2000", connectionString);
+    }
+
+    [Fact]
+    public void VerifyManifest()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        var redis = appBuilder.AddRedis("redis");
+
+        var manifest = ManifestUtils.GetManifest(redis.Resource);
+
+        Assert.Equal("container.v0", manifest["type"]?.ToString());
+        Assert.Equal(redis.Resource.ConnectionStringExpression, manifest["connectionString"]?.ToString());
     }
 
     [Fact]
@@ -99,7 +113,7 @@ public class AddRedisTests
     {
         var builder = DistributedApplication.CreateBuilder();
         builder.AddRedis("myredis1").WithRedisCommander();
-        builder.AddRedisContainer("myredis2").WithRedisCommander();
+        builder.AddRedis("myredis2").WithRedisCommander();
 
         Assert.Single(builder.Resources.OfType<RedisCommanderResource>());
     }
@@ -109,7 +123,7 @@ public class AddRedisTests
     {
         var builder = DistributedApplication.CreateBuilder();
         var redis = builder.AddRedis("myredis1").WithRedisCommander();
-        var app = builder.Build();
+        using var app = builder.Build();
 
         // Add fake allocated endpoints.
         redis.WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "host.docker.internal", 5001, "tcp"));
@@ -123,7 +137,8 @@ public class AddRedisTests
         var envAnnotations = commander.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
+        var context = new EnvironmentCallbackContext(executionContext, config);
 
         foreach (var annotation in envAnnotations)
         {
@@ -138,8 +153,8 @@ public class AddRedisTests
     {
         var builder = DistributedApplication.CreateBuilder();
         var redis1 = builder.AddRedis("myredis1").WithRedisCommander();
-        var redis2 = builder.AddRedisContainer("myredis2").WithRedisCommander();
-        var app = builder.Build();
+        var redis2 = builder.AddRedis("myredis2").WithRedisCommander();
+        using var app = builder.Build();
 
         // Add fake allocated endpoints.
         redis1.WithAnnotation(new AllocatedEndpointAnnotation("tcp", ProtocolType.Tcp, "host.docker.internal", 5001, "tcp"));
@@ -154,7 +169,8 @@ public class AddRedisTests
         var envAnnotations = commander.Annotations.OfType<EnvironmentCallbackAnnotation>();
 
         var config = new Dictionary<string, string>();
-        var context = new EnvironmentCallbackContext("dcp", config);
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run);
+        var context = new EnvironmentCallbackContext(executionContext, config);
 
         foreach (var annotation in envAnnotations)
         {

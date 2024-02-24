@@ -1,0 +1,6 @@
+@CosmosEndToEnd.ApiService_HostAddress = http://localhost:5193
+
+GET {{CosmosEndToEnd.ApiService_HostAddress}}/
+Accept: application/json
+
+###

@@ -1,0 +1,15 @@
+﻿@using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Resources
+@using System.Globalization
+@using Aspire.Dashboard.Utils
+
+@if (Resource.CreationTimeStamp is {} timeStamp)
+{
+    // Don't include milliseconds as resource server returned time stamp is second precision.
+    @FormatHelpers.FormatTimeWithOptionalDate(timeStamp)
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public required ResourceViewModel Resource { get; set; }
+}

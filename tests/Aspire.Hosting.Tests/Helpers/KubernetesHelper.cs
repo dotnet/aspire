@@ -9,7 +9,7 @@ namespace Aspire.Hosting.Tests.Helpers;
 
 internal static class KubernetesHelper
 {
-    public static async Task<T> GetResourceByNameAsync<T>(KubernetesService kubernetes, string resourceName, Func<T, bool> ready, CancellationToken cancellationToken) where T : CustomResource
+    public static async Task<T> GetResourceByNameAsync<T>(IKubernetesService kubernetes, string resourceName, Func<T, bool> ready, CancellationToken cancellationToken) where T : CustomResource
     {
         await foreach (var (_, r) in kubernetes.WatchAsync<T>(cancellationToken: cancellationToken))
         {

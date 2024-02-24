@@ -2,9 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Net;
+using System.Reflection;
 using Aspire.Dashboard.Components;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Grpc;
+using Aspire.Dashboard.Otlp.Security;
 using Aspire.Dashboard.Otlp.Storage;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
@@ -13,7 +15,7 @@ using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard;
 
-public class DashboardWebApplication
+public class DashboardWebApplication : IAsyncDisposable
 {
     private const string DashboardOtlpUrlVariableName = "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL";
     private const string DashboardOtlpUrlDefaultValue = "http://localhost:18889";
@@ -21,13 +23,35 @@ public class DashboardWebApplication
     private const string DashboardUrlDefaultValue = "http://localhost:18888";
 
     private readonly WebApplication _app;
+    private Func<IPEndPoint>? _browserEndPointAccessor;
+    private Func<IPEndPoint>? _otlpServiceEndPointAccessor;
 
-    public DashboardWebApplication()
+    public Func<IPEndPoint> BrowserEndPointAccessor
+    {
+        get => _browserEndPointAccessor ?? throw new InvalidOperationException("WebApplication not started yet.");
+    }
+
+    public Func<IPEndPoint> OtlpServiceEndPointAccessor
+    {
+        get => _otlpServiceEndPointAccessor ?? throw new InvalidOperationException("WebApplication not started yet.");
+    }
+
+    /// <summary>
+    /// Create a new instance of the <see cref="DashboardWebApplication"/> class.
+    /// </summary>
+    /// <param name="configureBuilder">Configuration the internal app builder. This is for unit testing.</param>
+    public DashboardWebApplication(Action<WebApplicationBuilder>? configureBuilder = null)
     {
         var builder = WebApplication.CreateBuilder();
+        if (configureBuilder != null)
+        {
+            configureBuilder(builder);
+        }
 
+#if !DEBUG
         builder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.None);
         builder.Logging.AddFilter("Microsoft.AspNetCore.Server.Kestrel", LogLevel.Error);
+#endif
 
         var dashboardUris = builder.Configuration.GetUris(DashboardUrlVariableName, new(DashboardUrlDefaultValue));
 
@@ -43,8 +67,17 @@ public class DashboardWebApplication
 
         builder.WebHost.ConfigureKestrel(kestrelOptions =>
         {
-            ConfigureListenAddresses(kestrelOptions, dashboardUris);
-            ConfigureListenAddresses(kestrelOptions, otlpUris, HttpProtocols.Http2);
+            ConfigureListenAddresses(kestrelOptions, dashboardUris, options =>
+            {
+                _browserEndPointAccessor = CreateEndPointAccessor(options);
+            });
+            ConfigureListenAddresses(kestrelOptions, otlpUris, options =>
+            {
+                options.Protocols = HttpProtocols.Http2;
+                options.UseOtlpConnection();
+
+                _otlpServiceEndPointAccessor = CreateEndPointAccessor(options);
+            });
         });
 
         if (isAllHttps)
@@ -61,7 +94,7 @@ public class DashboardWebApplication
         builder.Services.AddScoped<IDashboardClient, DashboardClient>();
 
         // OTLP services.
-        builder.Services.AddGrpc();
+        builder.Services.AddGrpc(options => options.Interceptors.Add<OtlpInterceptor>());
         builder.Services.AddSingleton<TelemetryRepository>();
         builder.Services.AddTransient<StructuredLogsViewModel>();
         builder.Services.AddTransient<TracesViewModel>();
@@ -75,8 +108,14 @@ public class DashboardWebApplication
         builder.Services.AddLocalization();
 
         _app = builder.Build();
-
         var logger = _app.Logger;
+
+        if (GetType().Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion is string informationalVersion)
+        {
+            // Write version at info level so it's written to the console by default. Help us debug user issues.
+            // Display version and commit like 8.0.0-preview.2.23619.3+17dd83f67c6822954ec9a918ef2d048a78ad4697
+            logger.LogInformation("Aspire version: {Version}", informationalVersion);
+        }
 
         if (dashboardUris.FirstOrDefault() is { } reportedDashboardUri)
         {
@@ -86,9 +125,26 @@ public class DashboardWebApplication
 
         if (otlpUris.FirstOrDefault() is { } reportedOtlpUri)
         {
-            // dotnet watch needs the trailing slash removed. See https://github.com/dotnet/sdk/issues/36709. Conform to dashboard URL format above
-            logger.LogInformation("OTLP server running at: {DashboardUri}", reportedOtlpUri.AbsoluteUri.TrimEnd('/'));
+            // This isn't used by dotnet watch but still useful to have for debugging
+            logger.LogInformation("OTLP server running at: {OtlpEndpointUri}", reportedOtlpUri.AbsoluteUri.TrimEnd('/'));
         }
+
+        // Redirect browser directly to /structuredlogs address if the dashboard is running without a resource service.
+        // This is done to avoid immediately navigating in the Blazor app.
+        _app.Use(async (context, next) =>
+        {
+            if (context.Request.Path.Equals(TargetLocationInterceptor.ResourcesPath, StringComparisons.UrlPath))
+            {
+                var client = context.RequestServices.GetRequiredService<IDashboardClient>();
+                if (!client.IsEnabled)
+                {
+                    context.Response.Redirect(TargetLocationInterceptor.StructuredLogsPath);
+                    return;
+                }
+            }
+
+            await next(context).ConfigureAwait(false);
+        });
 
         // Configure the HTTP request pipeline.
         if (_app.Environment.IsDevelopment())
@@ -132,15 +188,34 @@ public class DashboardWebApplication
         _app.MapGrpcService<OtlpMetricsService>();
         _app.MapGrpcService<OtlpTraceService>();
         _app.MapGrpcService<OtlpLogsService>();
+
+        static Func<IPEndPoint> CreateEndPointAccessor(ListenOptions options)
+        {
+            // We want to provide a way for someone to get the IP address of an endpoint.
+            // However, if a dynamic port is used, the port is not known until the server is started.
+            // Instead of returning the ListenOption's endpoint directly, we provide a func that returns the endpoint.
+            // The endpoint on ListenOptions is updated after binding, so accessing it via the func after the server
+            // has started returns the resolved port.
+            return () => options.IPEndPoint!;
+        }
     }
 
     public void Run() => _app.Run();
 
-    private static void ConfigureListenAddresses(KestrelServerOptions kestrelOptions, Uri[] uris, HttpProtocols? httpProtocols = null)
+    public Task StartAsync(CancellationToken cancellationToken = default) => _app.StartAsync(cancellationToken);
+
+    public Task StopAsync(CancellationToken cancellationToken = default) => _app.StopAsync(cancellationToken);
+
+    public ValueTask DisposeAsync()
+    {
+        return _app.DisposeAsync();
+    }
+
+    private static void ConfigureListenAddresses(KestrelServerOptions kestrelOptions, Uri[] uris, Action<ListenOptions>? configureListenOptions = null)
     {
         foreach (var uri in uris)
         {
-            if (uri.IsLoopback)
+            if (string.Equals(uri.Host, "localhost", StringComparison.OrdinalIgnoreCase))
             {
                 kestrelOptions.ListenLocalhost(uri.Port, ConfigureListenOptions);
             }
@@ -155,10 +230,7 @@ public class DashboardWebApplication
                 {
                     options.UseHttps();
                 }
-                if (httpProtocols is not null)
-                {
-                    options.Protocols = httpProtocols.Value;
-                }
+                configureListenOptions?.Invoke(options);
             }
         }
     }

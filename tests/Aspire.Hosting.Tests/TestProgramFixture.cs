@@ -54,6 +54,7 @@ public abstract class TestProgramFixture : IAsyncLifetime
             await _app.DisposeAsync();
         }
 
+        _testProgram?.Dispose();
         _httpClient?.Dispose();
     }
 }
@@ -90,46 +91,6 @@ public class SlimTestProgramFixture : TestProgramFixture
 }
 
 /// <summary>
-/// TestProgram with integration services but no dashboard or node app.
-/// </summary>
-/// <remarks>
-/// Use <c>[Collection("IntegrationServices")]</c> to inject this fixture in test constructors.
-/// </remarks>
-public class IntegrationServicesFixture : TestProgramFixture
-{
-    public override TestProgram CreateTestProgram()
-    {
-        var testProgram = TestProgram.Create<DistributedApplicationTests>(includeIntegrationServices: true);
-
-        testProgram.AppBuilder.Services
-            .AddHttpClient()
-            .ConfigureHttpClientDefaults(b =>
-            {
-                b.UseSocketsHttpHandler((handler, sp) =>
-                {
-                    handler.PooledConnectionLifetime = TimeSpan.FromSeconds(5);
-                    handler.ConnectTimeout = TimeSpan.FromSeconds(5);
-                });
-
-                // Ensure transient errors are retried for up to 5 minutes
-                b.AddStandardResilienceHandler(options =>
-                {
-                    options.AttemptTimeout.Timeout = TimeSpan.FromMinutes(1);
-                    options.CircuitBreaker.SamplingDuration = TimeSpan.FromMinutes(2); // needs to be at least double the AttemptTimeout to pass options validation
-                    options.TotalRequestTimeout.Timeout = TimeSpan.FromMinutes(5);
-                });
-            });
-
-        return testProgram;
-    }
-
-    public override Task WaitReadyStateAsync(CancellationToken cancellationToken = default)
-    {
-        return TestProgram.IntegrationServiceABuilder!.HttpGetPidAsync(HttpClient, "http", cancellationToken);
-    }
-}
-
-/// <summary>
 /// TestProgram with node app but no dashboard or integration services.
 /// </summary>
 /// <remarks>
@@ -159,14 +120,6 @@ public class NodeAppFixture : TestProgramFixture
 
 [CollectionDefinition("SlimTestProgram")]
 public class SlimTestProgramCollection : ICollectionFixture<SlimTestProgramFixture>
-{
-    // This class has no code, and is never created. Its purpose is simply
-    // to be the place to apply [CollectionDefinition] and all the
-    // ICollectionFixture<> interfaces.
-}
-
-[CollectionDefinition("IntegrationServices")]
-public class IntegrationServicesCollection : ICollectionFixture<IntegrationServicesFixture>
 {
     // This class has no code, and is never created. Its purpose is simply
     // to be the place to apply [CollectionDefinition] and all the

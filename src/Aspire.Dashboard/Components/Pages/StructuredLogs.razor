@@ -1,12 +1,13 @@
-﻿@page "/StructuredLogs/{applicationInstanceId?}"
-@using Aspire.Dashboard.Model
+﻿@page "/structuredlogs"
+@page "/structuredlogs/resource/{applicationName}"
+
 @using Aspire.Dashboard.Model.Otlp
 @using Aspire.Dashboard.Otlp.Model
+@using Aspire.Dashboard.Utils
 @using Microsoft.Extensions.Logging
 @using System.Web
 @using Aspire.Dashboard.Resources
-@inject NavigationManager NavigationManager
-@inject IDashboardClient DashboardClient
+@using System.Globalization
 @inject IJSRuntime JS
 @implements IDisposable
 @inject IStringLocalizer<Dashboard.Resources.StructuredLogs> Loc
@@ -17,13 +18,17 @@
 <div class="logs-layout">
     <h1 class="page-header">@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsHeader)]</h1>
     <FluentToolbar Orientation="Orientation.Horizontal">
-        <FluentSelect TOption="SelectViewModel<string>"
-                      Items="@_applicationViewModels"
-                      OptionText="@(c => c.Name)"
-                      @bind-SelectedOption="_selectedApplication"
+        <FluentSelect Items="@_applicationViewModels"
+                      OptionValue="@(c => c.Id?.InstanceId)"
+                      OptionDisabled="@(c => c.Id?.Type is OtlpApplicationType.ReplicaSet)"
+                      @bind-SelectedOption="PageViewModel.SelectedApplication"
                       @bind-SelectedOption:after="HandleSelectedApplicationChangedAsync"
-                      AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAnApplication)]"/>
-        <FluentSearch @bind-Value="_filter"
+                      AriaLabel="@ControlsStringsLoc[nameof(ControlsStrings.SelectAnApplication)]">
+            <OptionTemplate>
+                <ResourceSelectOptionTemplate ViewModel="@context" />
+            </OptionTemplate>
+        </FluentSelect>
+        <FluentSearch @bind-Value="PageViewModel.Filter"
                       @oninput="HandleFilter"
                       @bind-Value:after="HandleClear"
                       Placeholder="@ControlsStringsLoc[nameof(ControlsStrings.FilterPlaceholder)]"
@@ -36,7 +41,7 @@
             <FluentSelect TOption="SelectViewModel<LogLevel?>"
                           Items="@_logLevels"
                           OptionText="@(c => c.Name)"
-                          @bind-SelectedOption="_selectedLogLevel"
+                          @bind-SelectedOption="PageViewModel.SelectedLogLevel"
                           @bind-SelectedOption:after="HandleSelectedLogLevelChangedAsync"
                           Width="120px"
                           Style="min-width: auto;"
@@ -58,7 +63,7 @@
         }
         <FluentButton slot="end" Appearance="Appearance.Stealth" aria-label="Add Filter" OnClick="() => OpenFilterAsync(null)"><FluentIcon Value="@(new Icons.Regular.Size16.Filter())" /></FluentButton>
     </FluentToolbar>
-    <SummaryDetailsView DetailsTitle="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsEntryDetails)]" ShowDetails="SelectedLogEntryProperties is not null" OnDismiss="() => ClearSelectedLogEntry()">
+    <SummaryDetailsView DetailsTitle="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsEntryDetails)]" ShowDetails="SelectedLogEntryProperties is not null" OnDismiss="() => ClearSelectedLogEntry()" ViewKey="StructuredLogsList">
         <Summary>
             <div class="logs-summary-layout">
                 <div class="logs-grid-container continuous-scroll-overflow">
@@ -70,24 +75,18 @@
                                 </span>
                             </TemplateColumn>
                             <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsLevelColumnHeader)]">
-                                @if (context.Severity is LogLevel.Error or LogLevel.Critical)
-                                {
-                                    <FluentIcon Icon="Icons.Filled.Size16.ErrorCircle" Color="Color.Error" Class="severity-icon" />
-                                }
-                                else if (context.Severity is LogLevel.Warning)
-                                {
-                                    <FluentIcon Icon="Icons.Filled.Size16.Warning" Color="Color.Warning" Class="severity-icon" />
-                                }
-                                @context.Severity
+                                <LogLevelColumnDisplay LogEntry="@context" />
                             </TemplateColumn>
-                            <PropertyColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsTimestampColumnHeader)]" Property="@(context => OtlpHelpers.FormatTimeStamp(context.TimeStamp))" Tooltip="true" />
+                            <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsTimestampColumnHeader)]" TooltipText="@(context => FormatHelpers.FormatDateTime(context.TimeStamp, true, CultureInfo.CurrentCulture))" Tooltip="true">
+                                @FormatHelpers.FormatTimeWithOptionalDate(context.TimeStamp, includeMilliseconds: true)
+                            </TemplateColumn>
                             <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsMessageColumnHeader)]" Tooltip="true" TooltipText="(e) => e.Message">
-                                <FluentHighlighter HighlightedText="@(ViewModel.FilterText)" Text="@context.Message" />
+                                <LogMessageColumnDisplay FilterText="@(ViewModel.FilterText)" LogEntry="@context" />
                             </TemplateColumn>
                             <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsTraceColumnHeader)]">
                                 @if (!string.IsNullOrEmpty(context.TraceId))
                                 {
-                                    <a href="@($"/Trace/{HttpUtility.UrlEncode(context.TraceId)}")" class="long-inner-content">
+                                    <a href="@($"/traces/detail/{HttpUtility.UrlEncode(context.TraceId)}")" class="long-inner-content">
                                         @OtlpHelpers.ToShortenedId(context.TraceId)
                                     </a>
                                 }
